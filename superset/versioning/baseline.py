@@ -46,7 +46,7 @@ from typing import Any, Callable, Optional
 import sqlalchemy as sa
 from sqlalchemy import event
 from sqlalchemy.exc import OperationalError
-from sqlalchemy.orm import Session, attributes
+from sqlalchemy.orm import attributes, Session
 
 from superset.versioning.utils import read_row_outside_flush
 
@@ -138,7 +138,11 @@ def _force_parent_dirty_on_child_change(session: Session) -> None:
         # InvalidRequestError from ``attributes.flag_modified`` when a
         # brand-new parent's ``uuid`` default (``default=uuid4``) hasn't
         # fired yet so the attribute is unloaded in instance state.
-        if parent in session.new or parent in session.dirty or parent in session.deleted:
+        if (
+            parent in session.new
+            or parent in session.dirty
+            or parent in session.deleted
+        ):
             continue
         col_keys = [prop.key for prop in versioned_column_properties(parent)]
         if not col_keys:
@@ -537,16 +541,12 @@ def _baseline_attached_slices(
             )
         ).all()
     }
-    missing_ids = [
-        sid for sid in attached_slice_ids if sid not in existing_shadow_ids
-    ]
+    missing_ids = [sid for sid in attached_slice_ids if sid not in existing_shadow_ids]
     if not missing_ids:
         return
 
     slice_rows = (
-        conn.execute(
-            sa.select(slice_table).where(slice_table.c.id.in_(missing_ids))
-        )
+        conn.execute(sa.select(slice_table).where(slice_table.c.id.in_(missing_ids)))
         .mappings()
         .all()
     )

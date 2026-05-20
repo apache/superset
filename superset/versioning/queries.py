@@ -92,9 +92,9 @@ def _version_with_tx_user_join(
     a left-outer so saves with no Flask user context (CLI, Celery, import)
     still surface in the result with ``changed_by = None``.
     """
-    return ver_tbl.join(
-        tx_tbl, ver_tbl.c.transaction_id == tx_tbl.c.id
-    ).outerjoin(user_tbl, tx_tbl.c.user_id == user_tbl.c.id)
+    return ver_tbl.join(tx_tbl, ver_tbl.c.transaction_id == tx_tbl.c.id).outerjoin(
+        user_tbl, tx_tbl.c.user_id == user_tbl.c.id
+    )
 
 
 def _baseline_first_ordering(ver_tbl: sa.Table) -> tuple[Any, ...]:
@@ -194,9 +194,7 @@ def current_version_number(model_cls: type, entity_id: int) -> Optional[int]:
     return count - 1 if count > 0 else None
 
 
-def current_live_transaction_id(
-    model_cls: type, entity_id: int
-) -> Optional[int]:
+def current_live_transaction_id(model_cls: type, entity_id: int) -> Optional[int]:
     """Return the Continuum ``transaction_id`` of the live row for
     *entity_id* — stable across retention pruning, unlike the index
     returned by :func:`current_version_number`.
@@ -331,8 +329,7 @@ def list_versions(
     # filter ``WHERE entity_kind = 'chart' AND entity_id = ?`` can be
     # precise when multiple versioned entities share a flush.
     changes_by_tx: dict[int, list[dict[str, Any]]] = {}
-    entity_kind = _entity_kind_for(model_cls)
-    if entity_kind is not None:
+    if (entity_kind := _entity_kind_for(model_cls)) is not None:
         tx_ids = [row["transaction_id"] for row in rows]
         changes_by_tx = list_change_records_batch(entity_kind, entity.id, tx_ids)
 
@@ -451,8 +448,7 @@ def get_version(
         result[col.name] = value
 
     changes: list[dict[str, Any]] = []
-    entity_kind = _entity_kind_for(model_cls)
-    if entity_kind is not None:
+    if (entity_kind := _entity_kind_for(model_cls)) is not None:
         changes = list_change_records_batch(
             entity_kind, entity.id, [row["transaction_id"]]
         ).get(row["transaction_id"], [])
