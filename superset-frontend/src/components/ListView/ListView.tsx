@@ -202,6 +202,24 @@ const ViewModeContainer = styled.div`
   `}
 `;
 
+const ClearAllButton = styled.button`
+  ${({ theme }) => `
+    background: none;
+    border: none;
+    padding: 0 ${theme.sizeUnit}px;
+    color: ${theme.colorPrimary};
+    font-size: ${theme.fontSizeSM}px;
+    cursor: pointer;
+    white-space: nowrap;
+    line-height: ${theme.controlHeight}px;
+
+    &:hover {
+      color: ${theme.colorPrimaryHover};
+      text-decoration: underline;
+    }
+  `}
+`;
+
 const EmptyWrapper = styled.div`
   ${({ theme }) => `
     padding: ${theme.sizeUnit * 40}px 0;
@@ -366,6 +384,14 @@ export function ListView<T extends object = any>({
     clearFilterById: (id: string) => void;
   }>(null);
 
+  const hasActiveFilters = internalFilters.some(f => {
+    if (f.value === null || f.value === undefined || f.value === '')
+      return false;
+    if (Array.isArray(f.value))
+      return f.value.some(v => v !== null && v !== undefined && v !== '');
+    return true;
+  });
+
   // Wire the optional external filtersRef to our internal filterControlsRef.
   // useLayoutEffect fires synchronously after DOM mutations, guaranteeing the
   // ref is populated before the first paint and after every update.
@@ -423,6 +449,14 @@ export function ListView<T extends object = any>({
                 internalFilters={internalFilters}
                 updateFilterValue={applyFilterValue}
               />
+            )}
+            {filterable && hasActiveFilters && (
+              <ClearAllButton
+                type="button"
+                onClick={() => filterControlsRef.current?.clearFilters()}
+              >
+                {t('Clear all')}
+              </ClearAllButton>
             )}
             {viewMode === 'card' && cardSortSelectOptions && (
               <CardSortSelect

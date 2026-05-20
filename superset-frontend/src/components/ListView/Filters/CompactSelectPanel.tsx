@@ -60,10 +60,10 @@ const PanelContainer = styled.div`
     overflow: hidden;
     background: ${theme.colorBgElevated};
     box-shadow: ${theme.boxShadowSecondary};
-    padding: ${theme.sizeUnit * 2}px;
+    padding: ${theme.sizeUnit * 2}px 0;
 
     .ant-input-affix-wrapper {
-      margin-bottom: ${theme.sizeUnit * 2}px;
+      margin: 0 ${theme.sizeUnit * 2}px ${theme.sizeUnit * 2}px;
     }
   `}
 `;
@@ -89,7 +89,6 @@ const OptionItem = styled.li<{ $active: boolean }>`
     font-size: ${theme.fontSize}px;
     color: ${theme.colorText};
     background: ${$active ? theme.colorPrimaryBg : 'transparent'};
-    border-radius: ${theme.borderRadiusSM}px;
     transition: background 0.15s;
 
     &:hover {
@@ -109,7 +108,7 @@ const OptionLabel = styled.span`
 
 const StatusText = styled.div`
   ${({ theme }) => css`
-    padding: ${theme.sizeUnit * 2}px;
+    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
     text-align: center;
     color: ${theme.colorTextDisabled};
     font-size: ${theme.fontSizeSM}px;
