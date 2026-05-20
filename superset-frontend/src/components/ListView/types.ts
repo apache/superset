@@ -24,8 +24,12 @@ export interface SortColumn {
 }
 
 export interface SelectOption {
-  label: string;
+  label: ReactNode;
   value: any;
+  // Plain-text representation of the option. Callers should set this when
+  // `label` is a ReactNode so that the option can be serialized (e.g. into
+  // URL filter state) without losing the human-readable name.
+  title?: string;
 }
 
 export interface CardSortSelectOption {
@@ -81,7 +85,7 @@ export type InnerFilterValue =
   | undefined
   | string[]
   | number[]
-  | { label: string; value: string | number }
+  | { label: ReactNode; value: string | number }
   | [number | null, number | null];
 
 export interface ListViewFilterValue {
