@@ -130,3 +130,63 @@ test('does not restore when no prior zoom range exists', async () => {
   );
   expect(dataZoomCalls).toHaveLength(0);
 });
+
+test('does not restore when prior zoom is at default full range', async () => {
+  // ECharts populates start:0/end:100 on slider dataZoom by default, so
+  // every untouched timeseries would otherwise dispatch a redundant action
+  // on each re-render. Skip the dispatch when the range is just the default.
+  getOption.mockReturnValue({
+    dataZoom: [{ type: 'slider', show: true, start: 0, end: 100 }],
+  });
+
+  const { rerender } = renderEchart({ xAxis: {}, series: [] });
+  await waitFor(() => expect(setOption).toHaveBeenCalledTimes(1));
+
+  rerender(
+    <Echart
+      width={400}
+      height={300}
+      echartOptions={{ xAxis: {}, series: [{ type: 'line' }] }}
+      refs={{ divRef: undefined }}
+    />,
+  );
+
+  await waitFor(() => expect(setOption).toHaveBeenCalledTimes(2));
+  const dataZoomCalls = dispatchAction.mock.calls.filter(
+    ([action]) => action?.type === 'dataZoom',
+  );
+  expect(dataZoomCalls).toHaveLength(0);
+});
+
+test('does not restore when the new option reshapes dataZoom', async () => {
+  // 1st render starts with no engaged zoom; 2nd render captures an engaged
+  // range but the post-setOption dataZoom has a different count, so
+  // index-based restore could write to the wrong component. Skip in that case.
+  getOption
+    // 1st render: previousZoom + newZoom (no engaged values, nothing to dispatch)
+    .mockReturnValueOnce({ dataZoom: [{ type: 'slider' }] })
+    .mockReturnValueOnce({ dataZoom: [{ type: 'slider' }] })
+    // 2nd render: previousZoom has user range, but newZoom has 2 entries
+    .mockReturnValueOnce({ dataZoom: [{ start: 12, end: 48 }] })
+    .mockReturnValueOnce({
+      dataZoom: [{ start: 12, end: 48 }, { type: 'inside' }],
+    });
+
+  const { rerender } = renderEchart({ xAxis: {}, series: [] });
+  await waitFor(() => expect(setOption).toHaveBeenCalledTimes(1));
+
+  rerender(
+    <Echart
+      width={400}
+      height={300}
+      echartOptions={{ xAxis: {}, series: [{ type: 'line' }] }}
+      refs={{ divRef: undefined }}
+    />,
+  );
+
+  await waitFor(() => expect(setOption).toHaveBeenCalledTimes(2));
+  const dataZoomCalls = dispatchAction.mock.calls.filter(
+    ([action]) => action?.type === 'dataZoom',
+  );
+  expect(dataZoomCalls).toHaveLength(0);
+});

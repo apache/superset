@@ -56,6 +56,7 @@ import {
   VisualMapComponent,
   LegendComponent,
   DataZoomComponent,
+  type DataZoomComponentOption,
   ToolboxComponent,
   GraphicComponent,
   AriaComponent,
@@ -283,7 +284,8 @@ function Echart(
       // setOption(notMerge:true) replaces the dataZoom config, dropping any
       // range the user has engaged. Preserve it across the call.
       const previousZoom = notMerge
-        ? (chartRef.current?.getOption() as any)?.dataZoom
+        ? (chartRef.current?.getOption() as { dataZoom?: DataZoomComponentOption[] })
+            ?.dataZoom
         : undefined;
       chartRef.current?.setOption(themedEchartOptions, {
         notMerge,
@@ -292,23 +294,41 @@ function Echart(
         lazyUpdate: false,
       });
       if (previousZoom?.length) {
-        const batch = previousZoom
-          .map((dz: any, dataZoomIndex: number) => ({
-            dataZoomIndex,
-            start: dz.start,
-            end: dz.end,
-            startValue: dz.startValue,
-            endValue: dz.endValue,
-          }))
-          .filter(
-            (b: any) =>
-              b.start !== undefined ||
-              b.end !== undefined ||
-              b.startValue !== undefined ||
-              b.endValue !== undefined,
-          );
-        if (batch.length) {
-          chartRef.current?.dispatchAction({ type: 'dataZoom', batch });
+        // Skip restore when the new option reshapes dataZoom (different count
+        // means index-based restore could land on the wrong component).
+        const newZoom = (
+          chartRef.current?.getOption() as {
+            dataZoom?: DataZoomComponentOption[];
+          }
+        )?.dataZoom;
+        if (newZoom?.length === previousZoom.length) {
+          const batch = previousZoom
+            .map((dz, dataZoomIndex) => ({
+              dataZoomIndex,
+              start: dz.start,
+              end: dz.end,
+              startValue: dz.startValue,
+              endValue: dz.endValue,
+            }))
+            .filter(b => {
+              const hasAny =
+                b.start !== undefined ||
+                b.end !== undefined ||
+                b.startValue !== undefined ||
+                b.endValue !== undefined;
+              if (!hasAny) return false;
+              // Default full-range zoom is functionally identical to the
+              // fresh state setOption already produces — skip the dispatch.
+              const isDefaultRange =
+                b.start === 0 &&
+                b.end === 100 &&
+                b.startValue === undefined &&
+                b.endValue === undefined;
+              return !isDefaultRange;
+            });
+          if (batch.length) {
+            chartRef.current?.dispatchAction({ type: 'dataZoom', batch });
+          }
         }
       }
     }
