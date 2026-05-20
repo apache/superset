@@ -230,14 +230,6 @@ const GroupByFilterCardContent: FC<{
     return t('None');
   }, [dataset, datasetName]);
 
-  const aggregationDisplay = useMemo(() => {
-    const sortMetric = customizationItem.controlValues?.sortMetric;
-    if (sortMetric) {
-      return sortMetric.toUpperCase();
-    }
-    return t('None');
-  }, [customizationItem.controlValues?.sortMetric]);
-
   return (
     <div>
       <Row
@@ -270,11 +262,6 @@ const GroupByFilterCardContent: FC<{
         <RowValue>
           {typeof datasetLabel === 'string' ? datasetLabel : t('Dataset')}
         </RowValue>
-      </Row>
-
-      <Row>
-        <RowLabel>{t('Aggregation')}</RowLabel>
-        <RowValue>{aggregationDisplay}</RowValue>
       </Row>
     </div>
   );
