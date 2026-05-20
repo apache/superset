@@ -38,6 +38,7 @@ from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES, SoftDeleteMi
 from superset.views.filters import (
     AUGMENT_RESPONSE_WITH_DELETED_AT,
     BaseDeletedStateFilter,
+    DELETED_STATE_ADDED_CLASSES,
     SoftDeleteApiMixin,
 )
 
@@ -243,3 +244,113 @@ def test_serialize_deleted_at_handles_none() -> None:
     serialize = SoftDeleteApiMixin._serialize_deleted_at
     assert serialize(None) is None
     assert serialize(datetime(2026, 5, 14, 12, 0, 0)) == "2026-05-14T12:00:00"
+
+
+# --- F-002: session bypass cleanup ----------------------------------------
+
+
+def test_filter_records_added_classes_on_g(
+    flask_request_ctx: None,
+    concrete_filter: _ConcreteFilter,
+    query_with_session: MagicMock,
+) -> None:
+    """The filter records each class it adds to the bypass set on
+    ``g._deleted_state_added_classes`` so the mixin's release step can
+    distinguish filter-added entries from those installed by
+    programmatic callers (the context manager or DAO bypass).
+    """
+    concrete_filter.apply(query_with_session, "include")
+    added = getattr(g, DELETED_STATE_ADDED_CLASSES, set())
+    assert added == {_SoftDeletable}
+
+
+def test_mixin_releases_bypass_after_inject(
+    flask_request_ctx: None, query_with_session: MagicMock
+) -> None:
+    """After the augmentation step in ``pre_get_list``, the classes the
+    filter added are removed from ``session.info[SKIP_VISIBILITY_FILTER_CLASSES]``.
+    Code that runs later in the same request (audit hooks, after_request
+    handlers) sees normal filtered visibility rather than the widened
+    scope the filter installed for the list query.
+    """
+    # Simulate the filter having installed the bypass.
+    query_with_session.session.info[SKIP_VISIBILITY_FILTER_CLASSES] = {_SoftDeletable}
+    setattr(g, DELETED_STATE_ADDED_CLASSES, {_SoftDeletable})
+    setattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, True)
+
+    # Patch db.session to point at our test session so the release
+    # step finds the same info dict.
+    import superset.views.filters as filters_module
+
+    original_db = filters_module.db
+    filters_module.db = MagicMock()
+    filters_module.db.session = query_with_session.session
+    try:
+        api = _ConcreteApi(deleted_at_map={})
+        api.pre_get_list({"ids": [], "result": []})
+    finally:
+        filters_module.db = original_db
+
+    bypass = query_with_session.session.info.get(SKIP_VISIBILITY_FILTER_CLASSES, set())
+    assert _SoftDeletable not in bypass
+    # And the per-request tracker is itself cleared so a second list
+    # operation in the same request starts clean.
+    assert getattr(g, DELETED_STATE_ADDED_CLASSES) == set()
+
+
+def test_mixin_release_does_not_touch_unrelated_bypass_entries(
+    flask_request_ctx: None, query_with_session: MagicMock
+) -> None:
+    """If a programmatic caller (e.g., the ``skip_visibility_filter``
+    context manager or a DAO call) installed a bypass for a *different*
+    class earlier in the request, the mixin's release step must leave
+    that entry alone. Pinning this guards against the filter cleanup
+    accidentally clobbering bypasses owned by other callers.
+    """
+
+    class _OtherSoftDeletable(SoftDeleteMixin):  # type: ignore[misc, valid-type]
+        pass
+
+    # Both classes are in the bypass set, but only ``_SoftDeletable``
+    # was added by the filter (the other was installed by some other
+    # caller). The release must remove ``_SoftDeletable`` only.
+    query_with_session.session.info[SKIP_VISIBILITY_FILTER_CLASSES] = {
+        _SoftDeletable,
+        _OtherSoftDeletable,
+    }
+    setattr(g, DELETED_STATE_ADDED_CLASSES, {_SoftDeletable})
+    setattr(g, AUGMENT_RESPONSE_WITH_DELETED_AT, True)
+
+    import superset.views.filters as filters_module
+
+    original_db = filters_module.db
+    filters_module.db = MagicMock()
+    filters_module.db.session = query_with_session.session
+    try:
+        api = _ConcreteApi(deleted_at_map={})
+        api.pre_get_list({"ids": [], "result": []})
+    finally:
+        filters_module.db = original_db
+
+    bypass = query_with_session.session.info[SKIP_VISIBILITY_FILTER_CLASSES]
+    assert _SoftDeletable not in bypass
+    assert _OtherSoftDeletable in bypass
+
+
+def test_mixin_release_is_noop_when_filter_was_not_invoked(
+    flask_request_ctx: None, query_with_session: MagicMock
+) -> None:
+    """If ``pre_get_list`` runs without the augmentation flag (e.g., a
+    request that didn't use ``deleted_state``), the release step has
+    nothing to do and must not raise or touch unrelated state.
+    """
+    query_with_session.session.info[SKIP_VISIBILITY_FILTER_CLASSES] = {_SoftDeletable}
+
+    api = _ConcreteApi(deleted_at_map={})
+    api.pre_get_list({"ids": [], "result": []})
+
+    # Unrelated entry is left alone.
+    assert (
+        _SoftDeletable
+        in query_with_session.session.info[SKIP_VISIBILITY_FILTER_CLASSES]
+    )

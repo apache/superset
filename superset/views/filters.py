@@ -128,6 +128,13 @@ class FilterRelatedTables(BaseFilter):  # pylint: disable=too-few-public-methods
 
 AUGMENT_RESPONSE_WITH_DELETED_AT = "_augment_response_with_deleted_at"
 
+# Tracks the classes that ``BaseDeletedStateFilter`` added to
+# ``session.info[SKIP_VISIBILITY_FILTER_CLASSES]`` for this request,
+# so ``SoftDeleteApiMixin.pre_get_list`` can remove only those (and not
+# any entries a programmatic caller — context manager, DAO bypass —
+# may have placed there independently).
+DELETED_STATE_ADDED_CLASSES = "_deleted_state_added_classes"
+
 
 class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     """Base class for ``*_deleted_state`` rison filters.
@@ -150,6 +157,16 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
         bypass survives that reconstruction; per-class scoping prevents
         the bypass from unhiding soft-deleted rows of any *other*
         ``SoftDeleteMixin`` entity that the request might touch.
+      * The bypass is **released after the list response is augmented**
+        by ``SoftDeleteApiMixin.pre_get_list``, so any code that runs
+        later in the same request (audit hooks, ``after_request``
+        handlers, dependent operations during response serialisation)
+        sees normal filtered visibility. The release is scoped to the
+        classes *this filter* added — programmatic callers using the
+        ``skip_visibility_filter`` context manager or DAO bypass are
+        unaffected. Classes added are tracked in
+        ``g._deleted_state_added_classes`` (request-scoped, auto-cleans
+        at request teardown).
       * The response-augmentation step (which adds a ``deleted_at``
         field to each result row) is signalled via a separate
         request-scoped flag ``g._augment_response_with_deleted_at``.
@@ -183,12 +200,22 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
 
     def _add_session_bypass(self, query: Query) -> None:
         """Add ``self.model`` to the session's bypass class set, so the
-        listener stops filtering this entity for the duration of the
-        session (request). Cleared at request teardown when the scoped
-        session is removed.
+        listener stops filtering this entity for FAB's count + inner +
+        outer queries. The class is removed from the bypass set by
+        ``SoftDeleteApiMixin._release_session_bypass`` after
+        ``pre_get_list`` augments the response — so any code that runs
+        later in the same request sees normal filtered visibility.
+
+        The class is also recorded in ``g._deleted_state_added_classes``
+        so the release step removes only the entries *this filter*
+        added, leaving any entries placed by the ``skip_visibility_filter``
+        context manager or DAO bypass intact.
         """
         bypass = query.session.info.setdefault(SKIP_VISIBILITY_FILTER_CLASSES, set())
         bypass.add(self.model)
+        # Track for release in ``SoftDeleteApiMixin._release_session_bypass``.
+        added = getattr(g, DELETED_STATE_ADDED_CLASSES, set()) | {self.model}
+        setattr(g, DELETED_STATE_ADDED_CLASSES, added)
 
     @staticmethod
     def _mark_response_for_deleted_at_augmentation() -> None:
@@ -226,7 +253,30 @@ class SoftDeleteApiMixin:
         super().pre_get_list(data)  # type: ignore[misc]
         if not self._consume_augmentation_flag():
             return
-        self._inject_deleted_at(data)
+        try:
+            self._inject_deleted_at(data)
+        finally:
+            # Release the session-scoped bypass now that FAB is done with
+            # the list query. Code that runs later in the same request
+            # (after_request handlers, post-response audit hooks) sees
+            # normal filtered visibility rather than the widened scope
+            # the filter installed for the list query.
+            self._release_session_bypass()
+
+    @staticmethod
+    def _release_session_bypass() -> None:
+        """Remove from ``session.info[SKIP_VISIBILITY_FILTER_CLASSES]``
+        only the classes ``BaseDeletedStateFilter._add_session_bypass``
+        added for this request. Programmatic bypasses installed by the
+        ``skip_visibility_filter`` context manager or DAO methods (which
+        manage their own lifecycle) remain untouched.
+        """
+        added = getattr(g, DELETED_STATE_ADDED_CLASSES, set())
+        if not added:
+            return
+        bypass = db.session.info.get(SKIP_VISIBILITY_FILTER_CLASSES, set())
+        bypass -= added
+        setattr(g, DELETED_STATE_ADDED_CLASSES, set())
 
     @staticmethod
     def _consume_augmentation_flag() -> bool:
