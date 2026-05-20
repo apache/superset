@@ -158,13 +158,10 @@ export default function CompactFilterTrigger({
       trigger={['click']}
       popupRender={() =>
         isValidElement(children)
-          ? cloneElement(
-              children as ReactElement<FilterPanelInjectedProps>,
-              {
-                onClose: () => setOpen(false),
-                isOpen: open,
-              },
-            )
+          ? cloneElement(children as ReactElement<FilterPanelInjectedProps>, {
+              onClose: () => setOpen(false),
+              isOpen: open,
+            })
           : (children as ReactElement)
       }
       placement="bottomLeft"
