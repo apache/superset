@@ -39,6 +39,8 @@ Options:
   --lang LANG        ISO language code to backfill (required)
   --batch-size N     Number of strings per Claude request (default: 50)
   --limit N          Stop after translating N entries (default: unlimited)
+  --min-context N    Skip entries with fewer than N existing translations across
+                     reference languages (default: 0 — translate everything)
   --model MODEL      Claude model ID (default: claude-sonnet-4-6)
   --index PATH       Path to translation_index.json (default: auto-detect)
   --dry-run          Print translations without writing to .po file
@@ -227,8 +229,11 @@ def build_prompt(
     for i, item in enumerate(batch):
         lines.extend(_render_item(i, item, index, target_lang, reference_langs_sorted))
 
-    if batch and batch[0].get("msgid_plural"):
-        # Add guidance on plural form counts per language
+    # Add guidance on plural form counts per language whenever ANY entry in
+    # the batch is plural — batches mix singular and plural in .po order, so
+    # gating on the first entry would silently drop the guidance whenever
+    # the plural entries happen to land after a singular one.
+    if any(item.get("msgid_plural") for item in batch):
         lines.append(
             "Note: provide ALL plural forms required by the target language "
             "(e.g. French needs 2, Russian needs 3, Arabic needs 6)."
@@ -479,6 +484,16 @@ def backfill(
     mark_fuzzy: bool = True,
 ) -> None:
     """Backfill missing translations in the target language's .po file."""
+    # Defense against path traversal: ``lang`` lands in a filesystem path
+    # without further sanitization, so reject anything that isn't an
+    # ISO 639-1/639-2 code with an optional ISO 3166 region (e.g. ``pt_BR``).
+    if not re.fullmatch(r"[a-z]{2,3}(_[A-Z]{2})?", lang):
+        print(
+            f"Invalid language code: {lang!r} "
+            "(expected ISO 639 code, optionally with _<REGION>, e.g. 'fr' or 'pt_BR')",
+            file=sys.stderr,
+        )
+        sys.exit(1)
     po_path = TRANSLATIONS_DIR / lang / "LC_MESSAGES" / "messages.po"
     if not po_path.exists():
         print(f"No .po file found for language '{lang}': {po_path}", file=sys.stderr)
@@ -612,7 +627,13 @@ def main() -> None:
         dest="mark_fuzzy",
         action="store_false",
         default=True,
-        help="Do not mark generated translations as #, fuzzy",
+        help=(
+            "Do not mark generated translations as #, fuzzy. "
+            "WARNING: fuzzy entries are excluded from compiled .mo files. "
+            "Removing this flag causes AI-generated translations to be served "
+            "to end users without human review — only use after you have "
+            "manually verified the .po file."
+        ),
     )
     args = parser.parse_args()
 

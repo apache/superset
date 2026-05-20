@@ -286,5 +286,27 @@ def test_apply_translation_plural_empty_list_falls_back_to_string_broadcast() ->
     backfill_po._apply_translation(
         entry, "[]", _item(), model="claude-test", mark_fuzzy=True
     )
-    # Falls into the JSONDecodeError/ValueError branch → broadcast raw string.
+    # "[]" parses cleanly to an empty list, so the JSON branch matches but the
+    # list-handling fork sees a falsy value and falls through to scalar
+    # broadcast — the raw "[]" string ends up filling every plural slot.
     assert entry.msgstr_plural == {0: "[]", 1: "[]"}
+
+
+def test_build_prompt_includes_plural_note_when_plural_is_not_first() -> None:
+    """
+    Regression: batches mix singular and plural entries in .po file order. If
+    the plural-form guidance only fires when the first entry is plural, any
+    batch where the plural lives after a singular would lose the guidance and
+    the model would silently produce malformed plural responses.
+    """
+    batch = [
+        {"msgid": "Save", "msgstr": "", "index_key": "Save"},
+        {
+            "msgid": "%(num)d row",
+            "msgid_plural": "%(num)d rows",
+            "msgstr_plural": {0: "", 1: ""},
+            "index_key": "%(num)d row\x00%(num)d rows",
+        },
+    ]
+    prompt = backfill_po.build_prompt("fr", batch, index={})
+    assert "provide ALL plural forms" in prompt
