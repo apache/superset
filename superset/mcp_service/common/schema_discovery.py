@@ -635,3 +635,45 @@ CHART_ALL_COLUMNS: list[str] = []
 DATASET_ALL_COLUMNS: list[str] = []
 DASHBOARD_ALL_COLUMNS: list[str] = []
 DATABASE_ALL_COLUMNS: list[str] = []
+
+
+# Report (alerts & reports) configuration
+REPORT_DEFAULT_COLUMNS = ["id", "name", "type", "active", "crontab"]
+REPORT_SORTABLE_COLUMNS = [
+    "id",
+    "name",
+    "type",
+    "active",
+    "changed_on",
+    "created_on",
+]
+REPORT_SEARCH_COLUMNS = ["name", "description"]
+REPORT_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
+    "changed_on_humanized": ColumnMetadata(
+        name="changed_on_humanized",
+        description="Humanized modification time",
+        type="str",
+        is_default=False,
+    ),
+    "created_on_humanized": ColumnMetadata(
+        name="created_on_humanized",
+        description="Humanized creation time",
+        type="str",
+        is_default=False,
+    ),
+}
+
+
+def get_report_columns() -> list[ColumnMetadata]:
+    """Get column metadata for ReportSchedule model dynamically."""
+    from superset.reports.models import ReportSchedule
+
+    return get_columns_from_model(
+        ReportSchedule,
+        REPORT_DEFAULT_COLUMNS,
+        REPORT_EXTRA_COLUMNS,
+        exclude_columns=set(USER_DIRECTORY_FIELDS),
+    )
+
+
+REPORT_ALL_COLUMNS: list[str] = []

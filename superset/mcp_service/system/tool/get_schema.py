@@ -47,9 +47,13 @@ from superset.mcp_service.common.schema_discovery import (
     get_dashboard_columns,
     get_database_columns,
     get_dataset_columns,
+    get_report_columns,
     GetSchemaRequest,
     GetSchemaResponse,
     ModelSchemaInfo,
+    REPORT_DEFAULT_COLUMNS,
+    REPORT_SEARCH_COLUMNS,
+    REPORT_SORTABLE_COLUMNS,
 )
 from superset.mcp_service.constants import ModelType
 from superset.mcp_service.mcp_core import ModelGetSchemaCore
@@ -144,6 +148,26 @@ def _get_database_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
     )
 
 
+def _get_report_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
+    """Create report schema core with dynamically extracted columns."""
+    # Lazy import to avoid circular dependency at module load time
+    from superset.daos.report import ReportScheduleDAO
+
+    return ModelGetSchemaCore(
+        model_type="report",
+        dao_class=ReportScheduleDAO,
+        output_schema=ModelSchemaInfo,
+        select_columns=get_report_columns(),
+        sortable_columns=REPORT_SORTABLE_COLUMNS,
+        default_columns=REPORT_DEFAULT_COLUMNS,
+        search_columns=REPORT_SEARCH_COLUMNS,
+        default_sort="changed_on",
+        default_sort_direction="desc",
+        exclude_filter_columns=set(SELF_REFERENCING_FILTER_COLUMNS),
+        logger=logger,
+    )
+
+
 # Map model types to their core factory functions
 _SCHEMA_CORE_FACTORIES: dict[
     ModelType,
@@ -153,6 +177,7 @@ _SCHEMA_CORE_FACTORIES: dict[
     "dataset": _get_dataset_schema_core,
     "dashboard": _get_dashboard_schema_core,
     "database": _get_database_schema_core,
+    "report": _get_report_schema_core,
 }
 
 
@@ -182,7 +207,7 @@ async def get_schema(
     Column metadata is extracted dynamically from SQLAlchemy models.
 
     Args:
-        model_type: One of "chart", "dataset", "dashboard", or "database"
+        model_type: One of "chart", "dataset", "dashboard", "database", or "report"
 
     Returns:
         Comprehensive schema information for the requested model type
