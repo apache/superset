@@ -145,6 +145,12 @@ Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
 - get_database_info: Get detailed database connection info by ID (backend, capabilities)
 
+User and Role Management:
+- list_users: List users with filtering (1-based pagination, admin only)
+- get_user_info: Get user details by ID (admin only)
+- list_roles: List roles with filtering (1-based pagination, admin only)
+- get_role_info: Get role details by ID (admin only)
+
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
@@ -694,6 +700,10 @@ from superset.mcp_service.query.tool import (  # noqa: F401, E402
     get_query_info,
     list_queries,
 )
+from superset.mcp_service.role.tool import (  # noqa: F401, E402
+    get_role_info,
+    list_roles,
+)
 from superset.mcp_service.saved_query.tool import (  # noqa: F401, E402
     get_saved_query_info,
     list_saved_queries,
@@ -721,6 +731,10 @@ from superset.mcp_service.tag.tool import (  # noqa: F401, E402
 from superset.mcp_service.task.tool import (  # noqa: F401, E402
     get_task_info,
     list_tasks,
+)
+from superset.mcp_service.user.tool import (  # noqa: F401, E402
+    get_user_info,
+    list_users,
 )
 
 
