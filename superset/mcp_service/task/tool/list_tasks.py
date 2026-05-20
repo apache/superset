@@ -105,6 +105,7 @@ async def list_tasks(
         with event_logger.log_context(action="mcp.list_tasks.query"):
             result = list_tool.run_tool(
                 filters=request.filters,
+                search=request.search,
                 select_columns=request.select_columns,
                 order_column=request.order_column,
                 order_direction=request.order_direction,
@@ -119,7 +120,16 @@ async def list_tasks(
                 getattr(result, "total_count", None),
             )
         )
-        return result
+        columns_to_filter = result.columns_requested
+        await ctx.debug(
+            "Applying field filtering via serialization context: columns=%s"
+            % (columns_to_filter,)
+        )
+        with event_logger.log_context(action="mcp.list_tasks.serialization"):
+            return result.model_dump(
+                mode="json",
+                context={"select_columns": columns_to_filter},
+            )
 
     except Exception as e:
         await ctx.error(

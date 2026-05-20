@@ -22,7 +22,15 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, PositiveInt
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_serializer,
+    model_validator,
+    PositiveInt,
+)
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
@@ -86,6 +94,16 @@ class ActionLogInfo(BaseModel):
 
             object.__setattr__(self, "dttm", self.dttm.replace(tzinfo=timezone.utc))
 
+    @model_serializer(mode="wrap")
+    def _filter_fields_by_context(self, serializer: Any, info: Any) -> dict[str, Any]:
+        data = serializer(self)
+        if info.context and isinstance(info.context, dict):
+            select_columns = info.context.get("select_columns")
+            if select_columns:
+                requested_fields = set(select_columns)
+                return {k: v for k, v in data.items() if k in requested_fields}
+        return data
+
 
 class ActionLogList(BaseModel):
     action_logs: list[ActionLogInfo]
@@ -127,6 +145,16 @@ class ListActionLogsRequest(BaseModel):
             description="Columns to return. Defaults to common columns.",
         ),
     ]
+    search: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description=(
+                "Text search string matched against action. "
+                "Cannot be used together with 'filters'."
+            ),
+        ),
+    ]
     order_column: Annotated[
         str | None,
         Field(default=None, description="Column to sort by (default: dttm)"),
@@ -158,6 +186,16 @@ class ListActionLogsRequest(BaseModel):
     @classmethod
     def parse_columns(cls, v: Any) -> list[str]:
         return parse_json_or_list(v, "select_columns")
+
+    @model_validator(mode="after")
+    def validate_search_and_filters(self) -> "ListActionLogsRequest":
+        if self.search and self.filters:
+            raise ValueError(
+                "Cannot use both 'search' and 'filters' simultaneously. "
+                "Use 'search' for text matching on action, or 'filters' for "
+                "column-based filtering, but not both."
+            )
+        return self
 
 
 class ActionLogError(BaseModel):
