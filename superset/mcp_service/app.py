@@ -652,6 +652,10 @@ from superset.mcp_service.system.tool import (  # noqa: F401, E402
     get_schema,
     health_check,
 )
+from superset.mcp_service.tag.tool import (  # noqa: F401, E402
+    get_tag_info,
+    list_tags,
+)
 
 
 def _remove_disabled_tools(disabled_tools: set[str]) -> None:

@@ -1,0 +1,227 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""
+Pydantic schemas for tag-related responses
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Annotated, Any, List, Literal
+
+import humanize
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+    PositiveInt,
+)
+
+from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
+from superset.mcp_service.system.schemas import PaginationInfo
+from superset.mcp_service.utils.schema_utils import (
+    parse_json_or_list,
+    parse_json_or_model_list,
+)
+
+
+class TagFilter(ColumnOperator):
+    """
+    Filter object for tag listing.
+    col: The column to filter on. Must be one of the allowed filter fields.
+    opr: The operator to use. Must be one of the supported operators.
+    value: The value to filter by (type depends on col and opr).
+    """
+
+    col: Literal["name", "type"] = Field(
+        ...,
+        description="Column to filter on. Supported: 'name' (string match), "
+        "'type' (tag type: custom, type, owner, favorited_by).",
+    )
+    opr: ColumnOperatorEnum = Field(
+        ...,
+        description="Operator to use. Use get_schema(model_type='tag') for "
+        "available operators.",
+    )
+    value: str | int | float | bool | List[str | int | float | bool] = Field(
+        ..., description="Value to filter by (type depends on col and opr)"
+    )
+
+
+class TagInfo(BaseModel):
+    id: int | None = Field(None, description="Tag ID")
+    name: str | None = Field(None, description="Tag name")
+    type: str | None = Field(
+        None, description="Tag type (custom, type, owner, favorited_by)"
+    )
+    description: str | None = Field(None, description="Tag description")
+    changed_on: str | datetime | None = Field(
+        None, description="Last modification timestamp"
+    )
+    changed_on_humanized: str | None = Field(
+        None, description="Humanized modification time"
+    )
+    model_config = ConfigDict(
+        from_attributes=True,
+        ser_json_timedelta="iso8601",
+        populate_by_name=True,
+    )
+
+
+class TagList(BaseModel):
+    tags: List[TagInfo]
+    count: int
+    total_count: int
+    page: int
+    page_size: int
+    total_pages: int
+    has_previous: bool
+    has_next: bool
+    columns_requested: List[str] = Field(default_factory=list)
+    columns_loaded: List[str] = Field(default_factory=list)
+    columns_available: List[str] = Field(default_factory=list)
+    sortable_columns: List[str] = Field(default_factory=list)
+    filters_applied: List[TagFilter] = Field(default_factory=list)
+    pagination: PaginationInfo | None = None
+    timestamp: datetime | None = None
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
+
+
+class ListTagsRequest(BaseModel):
+    """Request schema for list_tags."""
+
+    filters: Annotated[
+        List[TagFilter],
+        Field(
+            default_factory=list,
+            description="List of filter objects (column, operator, value). Each "
+            "filter has 'col', 'opr', and 'value' properties. Cannot be used "
+            "together with 'search'.",
+        ),
+    ]
+    select_columns: Annotated[
+        List[str],
+        Field(
+            default_factory=list,
+            description="List of columns to select. Defaults to common columns if not "
+            "specified.",
+        ),
+    ]
+    search: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Text search string to match against tag name. Cannot be used "
+            "together with 'filters'.",
+        ),
+    ]
+    order_column: Annotated[
+        str | None, Field(default=None, description="Column to order results by")
+    ]
+    order_direction: Annotated[
+        Literal["asc", "desc"],
+        Field(
+            default="asc",
+            description="Direction to order results ('asc' or 'desc')",
+        ),
+    ]
+    page: Annotated[
+        PositiveInt,
+        Field(default=1, description="Page number for pagination (1-based)"),
+    ]
+    page_size: Annotated[
+        int,
+        Field(
+            default=DEFAULT_PAGE_SIZE,
+            gt=0,
+            le=MAX_PAGE_SIZE,
+            description=f"Number of items per page (max {MAX_PAGE_SIZE})",
+        ),
+    ]
+
+    @field_validator("filters", mode="before")
+    @classmethod
+    def parse_filters(cls, v: Any) -> List[TagFilter]:
+        return parse_json_or_model_list(v, TagFilter, "filters")
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def parse_columns(cls, v: Any) -> List[str]:
+        return parse_json_or_list(v, "select_columns")
+
+    @model_validator(mode="after")
+    def validate_search_and_filters(self) -> "ListTagsRequest":
+        if self.search and self.filters:
+            raise ValueError(
+                "Cannot use both 'search' and 'filters' parameters simultaneously. "
+                "Use either 'search' for text-based searching or 'filters' for "
+                "precise column-based filtering, but not both."
+            )
+        return self
+
+
+class TagError(BaseModel):
+    error: str = Field(..., description="Error message")
+    error_type: str = Field(..., description="Type of error")
+    timestamp: str | datetime | None = Field(None, description="Error timestamp")
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
+
+    @classmethod
+    def create(cls, error: str, error_type: str) -> "TagError":
+        from datetime import timezone
+
+        return cls(
+            error=error, error_type=error_type, timestamp=datetime.now(timezone.utc)
+        )
+
+
+class GetTagInfoRequest(BaseModel):
+    """Request schema for get_tag_info with numeric ID."""
+
+    identifier: Annotated[
+        int,
+        Field(description="Tag identifier — numeric ID"),
+    ]
+
+
+def _humanize_timestamp(dt: datetime | None) -> str | None:
+    if dt is None:
+        return None
+    now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
+    return humanize.naturaltime(now - dt)
+
+
+def serialize_tag_object(tag: Any) -> TagInfo | None:
+    if not tag:
+        return None
+
+    type_str: str | None = None
+    if (raw_type := getattr(tag, "type", None)) is not None:
+        type_str = raw_type.name if hasattr(raw_type, "name") else str(raw_type)
+
+    return TagInfo(
+        id=getattr(tag, "id", None),
+        name=getattr(tag, "name", None),
+        type=type_str,
+        description=getattr(tag, "description", None),
+        changed_on=getattr(tag, "changed_on", None),
+        changed_on_humanized=_humanize_timestamp(getattr(tag, "changed_on", None)),
+    )
