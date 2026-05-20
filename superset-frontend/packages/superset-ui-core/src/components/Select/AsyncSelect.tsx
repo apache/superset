@@ -617,7 +617,11 @@ const AsyncSelect = forwardRef(
       }
     }, [isLoading, loading]);
 
-    const clearCache = () => fetchedQueries.current.clear();
+    const clearCache = () => {
+      fetchedQueries.current.clear();
+      initialOptionsRef.current = EMPTY_OPTIONS;
+      setAllValuesLoaded(false);
+    };
 
     useImperativeHandle(
       ref,
