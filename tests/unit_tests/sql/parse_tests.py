@@ -1164,6 +1164,77 @@ def test_has_mutation(engine: str, sql: str, expected: bool) -> None:
     assert SQLScript(sql, engine).has_mutation() == expected
 
 
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT last(my_value_column, my_time_column) FROM my_table",
+        "SELECT first(my_value_column, my_time_column) FROM my_table",
+        "SELECT time_bucket('1 hour', my_time_column) AS bucket FROM my_table",
+    ],
+)
+def test_postgres_parses_timescaledb_hyperfunctions(sql: str) -> None:
+    """
+    Regression for #32028: TimescaleDB extends Postgres with hyperfunctions
+    (``last``, ``first``, ``time_bucket``, etc.) that take more arguments
+    than vanilla Postgres equivalents. SQL Lab tolerates them (it routes
+    raw SQL straight to the engine), but the dashboard chart path runs the
+    SQL through ``SQLScript`` for inspection. A strict per-function arity
+    check in sqlglot was rejecting these queries with ``The number of
+    provided arguments (2) is greater than the maximum number of supported
+    arguments (1)``, which broke dashboards built on TimescaleDB datasets.
+
+    These tests pin that the parse path tolerates Postgres-dialect SQL
+    using TimescaleDB hyperfunction signatures. If a future sqlglot
+    upgrade reintroduces the strict arity check, this fails immediately.
+    """
+    SQLScript(sql, "postgresql")  # Must not raise.
+
+
+@pytest.mark.parametrize(
+    "engine",
+    ["oracle", "postgresql", "trino", "presto", "hive", "base"],
+)
+def test_with_clause_containing_union_is_not_mutating(engine: str) -> None:
+    """
+    Regression for #25659: a SELECT with a WITH clause whose CTEs contain
+    UNION (or UNION ALL) must not be classified as mutating, on any dialect.
+
+    The original bug surfaced on Oracle, where saving a virtual dataset built
+    from such a query failed with "Only `SELECT` statements are allowed". The
+    parser was misclassifying the WITH+UNION construct as DML.
+
+    Multiple dialects are exercised because the bug arose from sqlglot's
+    per-dialect AST shape — Oracle's representation of the same query may
+    differ from Postgres/Trino, and a fix that only touches one dialect
+    leaves the others exposed to the same regression.
+    """
+    sql = """
+    WITH set1 AS (SELECT 1 AS n UNION SELECT 2),
+         set2 AS (SELECT * FROM set1)
+    SELECT * FROM set2
+    """
+    assert not SQLScript(sql, engine).has_mutation(), (
+        f"WITH+UNION misclassified as mutating on {engine!r}; "
+        "this would block the query from being saved as a virtual dataset."
+    )
+
+
+def test_with_clause_containing_union_all_is_not_mutating_oracle() -> None:
+    """
+    Companion to test_with_clause_containing_union_is_not_mutating: the
+    original bug report (#25659) used the exact Oracle-flavored shape below
+    (``SYSDATE FROM DUAL`` is the Oracle no-op for "now"). Pinning the
+    verbatim repro guards against a future dialect-specific regression that
+    a generic ``SELECT 1`` test might miss.
+    """
+    sql = """
+    WITH SET1 AS (SELECT SYSDATE FROM DUAL UNION ALL SELECT SYSDATE FROM DUAL),
+         SET2 AS (SELECT * FROM SET1)
+    SELECT * FROM SET2
+    """
+    assert not SQLScript(sql, "oracle").has_mutation()
+
+
 def test_get_settings() -> None:
     """
     Test `get_settings` in some edge cases.
@@ -1299,6 +1370,66 @@ def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
     Since we can't parse the PL/pgSQL inside the block we always assume it is mutating.
     """
     assert SQLStatement(sql, "postgresql").is_mutating() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1", False),
+        ("INSERT INTO t VALUES (1)", False),
+        ("UPDATE t SET x = 1", False),
+        ("DELETE FROM t", False),
+        ("MERGE INTO t USING s ON t.id = s.id WHEN MATCHED THEN DELETE", False),
+        ("CREATE TABLE t (id INT)", False),
+        ("DROP TABLE t", True),
+        ("DROP TABLE IF EXISTS t", True),
+        ("DROP VIEW v", True),
+        ("TRUNCATE TABLE t", True),
+        ("ALTER TABLE t ADD COLUMN x INT", True),
+        ("ALTER TABLE t DROP COLUMN x", True),
+    ],
+)
+def test_is_destructive(sql: str, expected: bool) -> None:
+    """
+    Test that ``is_destructive`` detects DROP, TRUNCATE, and ALTER
+    but not SELECT, INSERT, UPDATE, DELETE, MERGE, or CREATE.
+    """
+    assert SQLStatement(sql, "postgresql").is_destructive() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1; INSERT INTO t VALUES (1)", False),
+        ("SELECT 1; DROP TABLE t", True),
+        ("SELECT 1; TRUNCATE TABLE t", True),
+        ("CREATE TABLE t (id INT); ALTER TABLE t ADD COLUMN x INT", True),
+    ],
+)
+def test_has_destructive(sql: str, expected: bool) -> None:
+    """
+    Test that ``has_destructive`` on SQLScript detects destructive DDL
+    across multiple statements.
+    """
+    assert SQLScript(sql, "postgresql").has_destructive() == expected
+
+
+@pytest.mark.parametrize(
+    "kql, expected",
+    [
+        (".drop table T", True),
+        (".alter table T (col:string)", True),
+        (".show tables", False),
+        ("T | count", False),
+    ],
+)
+def test_kusto_is_destructive(kql: str, expected: bool) -> None:
+    """
+    Test ``is_destructive`` on KustoKQLStatement.
+    """
+    from superset.sql.parse import KustoKQLStatement
+
+    assert KustoKQLStatement(kql, "kustokql").is_destructive() == expected
 
 
 def test_optimize() -> None:
