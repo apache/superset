@@ -45,7 +45,7 @@ from typing import Any, Callable, Optional
 
 import sqlalchemy as sa
 from sqlalchemy import event
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import InvalidRequestError, OperationalError
 from sqlalchemy.orm import attributes, Session
 
 from superset.versioning.utils import read_row_outside_flush
@@ -131,19 +131,6 @@ def _force_parent_dirty_on_child_change(session: Session) -> None:
         parent = getattr(obj, parent_attr, None)
         if parent is None or type(parent) is not parent_cls:  # noqa: E721
             continue
-        # Only flag *persistent + clean* parents. Anything else is
-        # either already going to surface in the flush (``session.new``
-        # → INSERT, ``session.dirty`` → already flagged) or shouldn't be
-        # flagged (``session.deleted`` → being removed). Also avoids
-        # InvalidRequestError from ``attributes.flag_modified`` when a
-        # brand-new parent's ``uuid`` default (``default=uuid4``) hasn't
-        # fired yet so the attribute is unloaded in instance state.
-        if (
-            parent in session.new
-            or parent in session.dirty
-            or parent in session.deleted
-        ):
-            continue
         col_keys = [prop.key for prop in versioned_column_properties(parent)]
         if not col_keys:
             continue
@@ -154,7 +141,16 @@ def _force_parent_dirty_on_child_change(session: Session) -> None:
         # orders. Falls back to the first available column for forks or
         # subclasses that excluded ``uuid``.
         flag_col = "uuid" if "uuid" in col_keys else col_keys[0]
-        attributes.flag_modified(parent, flag_col)
+        try:
+            attributes.flag_modified(parent, flag_col)
+        except InvalidRequestError:
+            # The parent is a freshly-constructed ``session.new`` instance
+            # whose ``uuid`` default (``default=uuid4``) hasn't fired yet
+            # — the attribute is unloaded in instance state, so
+            # ``flag_modified`` rejects it. The parent will INSERT in this
+            # flush regardless, so the flag was redundant; safely skip.
+            # Hit by ``test_create_dataset_item`` (POST /api/v1/dataset/).
+            continue
 
 
 def _collect_parents_to_baseline(session: Session) -> dict[int, Any]:
