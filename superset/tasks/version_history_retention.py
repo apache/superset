@@ -141,14 +141,40 @@ def _delete_for_transactions(
     tables: list[sa.Table],
     tx_ids: list[int],
 ) -> int:
-    """Delete shadow rows in *tables* whose ``transaction_id`` is in
-    *tx_ids*. Returns total rowcount across all tables.
+    """Delete shadow rows in *tables* whose lifespan touches a pruned
+    transaction — either ``transaction_id`` (created at) or
+    ``end_transaction_id`` (closed at) is in *tx_ids*. Returns total
+    rowcount across all tables.
+
+    The ``end_transaction_id`` predicate is required to keep referential
+    integrity when transactions span multiple entities. A flush that
+    saves dashboard + slice + dataset at the same ``tx=X`` produces
+    three shadow rows sharing that tx. If only the dashboard is later
+    edited at ``tx=Y``, the dashboard row at ``tx=X`` is closed
+    (``end_tx=Y``) while the slice/dataset rows stay live at
+    ``tx=X``. Retention preserves ``tx=X`` (slice/dataset are live
+    there) and prunes ``tx=Y``. Without the ``end_tx`` predicate, the
+    dashboard's closed row at ``tx=X`` survives step 1 — its
+    ``end_transaction_id=Y`` then violates the FK when step 2 deletes
+    ``version_transaction`` row ``Y``.
+
+    Live rows are never matched by either predicate
+    (``end_transaction_id IS NULL`` is not ``IN`` anything; live rows'
+    ``transaction_id`` is preserved by construction in
+    :func:`_candidate_transaction_ids`).
     """
     if not tx_ids:
         return 0
     total = 0
     for tbl in tables:
-        result = conn.execute(sa.delete(tbl).where(tbl.c.transaction_id.in_(tx_ids)))
+        result = conn.execute(
+            sa.delete(tbl).where(
+                sa.or_(
+                    tbl.c.transaction_id.in_(tx_ids),
+                    tbl.c.end_transaction_id.in_(tx_ids),
+                )
+            )
+        )
         total += result.rowcount or 0
     return total
 
