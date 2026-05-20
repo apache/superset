@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { HTMLAttributes, memo, useMemo, useCallback } from 'react';
+import { HTMLAttributes, ReactNode, memo, useMemo, useCallback } from 'react';
 import {
   ColumnInstance,
   HeaderGroup,
@@ -196,6 +196,11 @@ function TableCollection<T extends object>({
   const rowSelection: TableRowSelection | undefined = useMemo(() => {
     if (!bulkSelectEnabled) return undefined;
 
+    // antd Table's `rowSelection` API renders its own checkbox column;
+    // wrap the header and per-row checkboxes with stable `data-test`
+    // attributes so Playwright selectors (which previously targeted
+    // `bulkSelectColumnConfig` in ListView — a column that no longer
+    // reaches the rendered DOM) can resolve them.
     return {
       selectedRowKeys,
       onSelect: (record, selected) => {
@@ -204,6 +209,12 @@ function TableCollection<T extends object>({
       onSelectAll: (selected: boolean) => {
         toggleAllRowsSelected?.(selected);
       },
+      columnTitle: (originNode: ReactNode) => (
+        <span data-test="header-toggle-all">{originNode}</span>
+      ),
+      renderCell: (_value, _record, _index, originNode) => (
+        <span data-test="row-select-checkbox">{originNode}</span>
+      ),
     };
   }, [
     bulkSelectEnabled,
