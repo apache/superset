@@ -24,7 +24,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal
 
-import humanize
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -68,6 +67,7 @@ class CssTemplateFilter(ColumnOperator):
 
 class CssTemplateInfo(BaseModel):
     id: int | None = Field(None, description="CSS template ID")
+    uuid: str | None = Field(None, description="CSS template UUID")
     template_name: str | None = Field(None, description="CSS template name")
     css: str | None = Field(
         None,
@@ -235,20 +235,13 @@ class GetCssTemplateInfoRequest(MetadataCacheControl):
     ]
 
 
-def _humanize_timestamp(dt: datetime | None) -> str | None:
-    """Convert a datetime to a humanized string like '2 hours ago'."""
-    if dt is None:
-        return None
-    now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
-    return humanize.naturaltime(now - dt)
-
-
 def serialize_css_template_object(obj: Any) -> CssTemplateInfo | None:
     if not obj:
         return None
 
     return CssTemplateInfo(
         id=getattr(obj, "id", None),
+        uuid=str(getattr(obj, "uuid", "")) if getattr(obj, "uuid", None) else None,
         template_name=getattr(obj, "template_name", None),
         css=getattr(obj, "css", None),
         changed_on=getattr(obj, "changed_on", None),
