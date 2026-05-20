@@ -133,7 +133,10 @@ export default defineConfig({
         // No storageState = clean browser with no cached cookies
       },
     },
-    ...(process.env.INCLUDE_EMBEDDED
+    // Strict 'true' check: non-empty strings like 'false' or '0' would
+    // otherwise enable the embedded project, matching the env-parsing
+    // convention used in docker/pythonpath_dev/superset_config_docker_light.py.
+    ...(process.env.INCLUDE_EMBEDDED?.toLowerCase() === 'true'
       ? [
           {
             // Embedded dashboard tests - validates the full embedding flow:

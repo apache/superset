@@ -29,7 +29,7 @@ export const ENDPOINTS = {
 export interface EmbeddedConfig {
   uuid: string;
   allowed_domains: string[];
-  dashboard_id: number;
+  dashboard_id: string;
 }
 
 /**
