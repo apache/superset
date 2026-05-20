@@ -630,9 +630,11 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render cell without color', () => {
@@ -669,12 +671,14 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
-          'rgba(172, 225, 196, 0.812)',
+          'rgba(172, 225, 196, 0.81)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          '',
+          'rgba(0, 0, 0, 0)',
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('preserves muted null styling when no formatter resolves text color', () => {
@@ -1059,10 +1063,10 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          '',
+          'rgba(0, 0, 0, 0)',
         );
       });
 
@@ -1090,9 +1094,11 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Maria')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('Joe')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with string column color formatter (operator containing)', () => {
@@ -1119,9 +1125,11 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('Joe')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with string column color formatter (operator not containing)', () => {
@@ -1148,10 +1156,10 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          '',
+          'rgba(0, 0, 0, 0)',
         );
       });
 
@@ -1179,10 +1187,10 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          '',
+          'rgba(0, 0, 0, 0)',
         );
       });
 
@@ -1209,13 +1217,13 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('Joe')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByText('Maria')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
       });
 
@@ -1243,9 +1251,11 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('true')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('false')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('false')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with boolean column color formatter (operator is false)', () => {
@@ -1272,9 +1282,11 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('false')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('true')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('true')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with boolean column color formatter (operator is null)', () => {
@@ -1301,10 +1313,14 @@ describe('plugin-chart-table', () => {
           }),
         );
         expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('true')).background).toBe('');
-        expect(getComputedStyle(screen.getByText('false')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('true')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
+        expect(getComputedStyle(screen.getByText('false')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with boolean column color formatter (operator is not null)', () => {
@@ -1333,12 +1349,14 @@ describe('plugin-chart-table', () => {
         const trueElements = screen.getAllByText('true');
         const falseElements = screen.getAllByText('false');
         expect(getComputedStyle(trueElements[0]).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(falseElements[0]).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByText('N/A')).background).toBe('');
+        expect(getComputedStyle(screen.getByText('N/A')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with column color formatter to entire row', () => {
@@ -1367,13 +1385,13 @@ describe('plugin-chart-table', () => {
         );
 
         expect(getComputedStyle(screen.getByText('Michael')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
         expect(getComputedStyle(screen.getByTitle('0.123456')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
       });
 
@@ -1644,7 +1662,9 @@ describe('plugin-chart-table', () => {
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
           'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with useGradient true returns gradient color', () => {
@@ -1674,9 +1694,11 @@ describe('plugin-chart-table', () => {
 
         // When useGradient is true, should return gradient color with opacity
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with useGradient undefined defaults to gradient (backward compatibility)', () => {
@@ -1705,9 +1727,11 @@ describe('plugin-chart-table', () => {
 
         // When useGradient is undefined, should default to gradient for backward compatibility
         expect(getComputedStyle(screen.getByTitle('2467063')).background).toBe(
-          'rgba(172, 225, 196, 1)',
+          'rgb(172, 225, 196)',
         );
-        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe('');
+        expect(getComputedStyle(screen.getByTitle('2467')).background).toBe(
+          'rgba(0, 0, 0, 0)',
+        );
       });
 
       test('render color with useGradient false and None operator returns solid color', () => {
@@ -2358,5 +2382,78 @@ describe('plugin-chart-table', () => {
       expect(filters[0].col).toBe('name');
       expect(filters[0].val).toEqual(['Michael']);
     });
+  });
+});
+
+/**
+ * DRILL-TO-DETAIL FIX VERIFICATION (#23847)
+ */
+describe('Drill-to-Detail Temporal Range Logic', () => {
+  const renderChartAndOpenContextMenu = (
+    timeGrain?: TimeGranularity,
+    timestampValue?: string | number | null,
+  ) => {
+    const onContextMenu = jest.fn();
+    const data = cloneDeep(testData.basic);
+
+    if (timestampValue !== undefined) {
+      data.queriesData[0].data[0].__timestamp = timestampValue;
+    }
+
+    const props = transformProps({
+      ...data,
+      rawFormData: {
+        ...data.rawFormData,
+        ...(timeGrain ? { time_grain_sqla: timeGrain } : {}),
+      },
+      hooks: { onAddFilter: jest.fn(), onContextMenu, setDataMask: jest.fn() },
+    });
+    render(<TableChart {...props} sticky={false} />);
+
+    const tbody = screen.getAllByRole('rowgroup')[1];
+    fireEvent.contextMenu(tbody.querySelectorAll('td')[0]);
+
+    const [, , { drillToDetail }] = onContextMenu.mock.calls[0];
+    return drillToDetail.find((f: any) => f.col === '__timestamp');
+  };
+
+  test('uses TEMPORAL_RANGE for monthly grain', () => {
+    const filter = renderChartAndOpenContextMenu(TimeGranularity.MONTH);
+
+    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.val).toContain(
+      '2020-01-01T12:34:56.000Z : 2020-02-01T00:00:00.000Z',
+    );
+  });
+
+  test('uses the full bucket for week ending sunday grain', () => {
+    const filter = renderChartAndOpenContextMenu(
+      TimeGranularity.WEEK_ENDING_SUNDAY,
+      '2020-01-05T00:00:00',
+    );
+
+    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.val).toBe(
+      '2019-12-30T00:00:00.000Z : 2020-01-06T00:00:00.000Z',
+    );
+  });
+
+  test('uses the full bucket for week ending saturday grain', () => {
+    const filter = renderChartAndOpenContextMenu(
+      TimeGranularity.WEEK_ENDING_SATURDAY,
+      '2020-01-04T00:00:00',
+    );
+
+    expect(filter.op).toBe('TEMPORAL_RANGE');
+    expect(filter.val).toBe(
+      '2019-12-29T00:00:00.000Z : 2020-01-05T00:00:00.000Z',
+    );
+  });
+
+  test('correctly handles NULL values by emitting IS NULL instead of 1970 timestamp', () => {
+    const filter = renderChartAndOpenContextMenu(TimeGranularity.MONTH, null);
+
+    expect(filter.op).toBe('IS NULL');
+    expect(filter.val).toBeNull();
   });
 });

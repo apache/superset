@@ -82,17 +82,7 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
 
     const setup = async () => {
       if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
-        try {
-          await ExtensionsLoader.getInstance().initializeExtensions();
-          supersetCore.utils.logging.info(
-            'Extensions initialized successfully.',
-          );
-        } catch (error) {
-          supersetCore.utils.logging.error(
-            'Error setting up extensions:',
-            error,
-          );
-        }
+        await ExtensionsLoader.getInstance().initializeExtensions();
       }
       setInitialized(true);
     };

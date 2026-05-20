@@ -16,6 +16,7 @@
 # under the License.
 
 import logging
+import secrets
 import time
 from collections import defaultdict
 from typing import Any, Awaitable, Callable, Dict, Protocol, Sequence
@@ -40,6 +41,12 @@ from superset.extensions import event_logger
 from superset.mcp_service.constants import (
     DEFAULT_TOKEN_LIMIT,
     DEFAULT_WARN_THRESHOLD_PCT,
+)
+from superset.mcp_service.utils.token_utils import (
+    estimate_response_tokens,
+    format_size_limit_error,
+    INFO_TOOLS,
+    truncate_oversized_response,
 )
 from superset.utils.core import get_user_id
 
@@ -239,11 +246,20 @@ class LoggingMiddleware(Middleware):
         )
         tool_name = getattr(context.message, "name", None)
 
+        mcp_call_id = secrets.token_hex(16)
+        context.mcp_call_id = mcp_call_id
         start_time = time.time()
         success = False
         try:
             result = await call_next(context)
             success = not self._is_error_response(result)
+            if isinstance(result, ToolResult):
+                existing_meta = result.meta or {}
+                result = ToolResult(
+                    content=result.content,
+                    meta={**existing_meta, "mcp_call_id": mcp_call_id},
+                    structured_content=result.structured_content,
+                )
             return result
         except Exception:
             success = False
@@ -259,6 +275,7 @@ class LoggingMiddleware(Middleware):
                     slice_id=slice_id,
                     referrer=None,
                     curated_payload={
+                        "mcp_call_id": mcp_call_id,
                         "tool": tool_name,
                         "agent_id": agent_id,
                         "params": _sanitize_params(params),
@@ -272,7 +289,7 @@ class LoggingMiddleware(Middleware):
             logger.info(
                 "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
                 "dashboard_id=%s, slice_id=%s, dataset_id=%s, duration_ms=%s, "
-                "success=%s",
+                "success=%s, mcp_call_id=%s",
                 tool_name,
                 agent_id,
                 user_id,
@@ -282,6 +299,7 @@ class LoggingMiddleware(Middleware):
                 dataset_id,
                 duration_ms,
                 success,
+                mcp_call_id,
             )
 
     async def on_message(
@@ -385,8 +403,10 @@ class StructuredContentStripperMiddleware(Middleware):
             # unhandled exception — including ToolError from
             # GlobalErrorHandlerMiddleware, ValueError, TypeError, etc. —
             # will cause encoding failures on the wire.
+            mcp_call_id = getattr(context, "mcp_call_id", None)
             return ToolResult(
                 content=[mt.TextContent(type="text", text=f"Error: {e}")],
+                meta={"mcp_call_id": mcp_call_id} if mcp_call_id else None,
             )
         if isinstance(result, ToolResult) and result.structured_content is not None:
             result = ToolResult(content=result.content, meta=result.meta)
@@ -1104,11 +1124,6 @@ class ResponseSizeGuardMiddleware(Middleware):
         ``content[0].text`` as a JSON string.  We parse that string, run the
         truncation phases on the resulting dict, then re-wrap the result.
         """
-        from superset.mcp_service.utils.token_utils import (
-            estimate_response_tokens,
-            truncate_oversized_response,
-        )
-
         # Unwrap ToolResult so truncation operates on the real payload
         extracted = self._extract_payload_from_tool_result(response)
         if extracted is not None:
@@ -1191,12 +1206,6 @@ class ResponseSizeGuardMiddleware(Middleware):
         # Execute the tool
         response = await call_next(context)
 
-        # Estimate response token count (guard against huge responses causing OOM)
-        from superset.mcp_service.utils.token_utils import (
-            estimate_response_tokens,
-            format_size_limit_error,
-        )
-
         # When the response is a ToolResult, estimate tokens on the actual
         # payload inside content[0].text rather than on the ToolResult
         # wrapper (which would double-serialize the JSON string).
@@ -1233,8 +1242,6 @@ class ResponseSizeGuardMiddleware(Middleware):
             params = getattr(context.message, "params", {}) or {}
 
             # For info tools, try dynamic truncation before blocking
-            from superset.mcp_service.utils.token_utils import INFO_TOOLS
-
             if tool_name in INFO_TOOLS:
                 truncated = self._try_truncate_info_response(
                     tool_name, response, estimated_tokens

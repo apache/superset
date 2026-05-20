@@ -17,12 +17,11 @@ jobs:
     steps:
       - name: Check if user is allowed
         id: check
+        env:
+          COMMENTER: ${{ github.event.comment.user.login }}
         run: |
           # List of allowed users
           ALLOWED_USERS="mistercrunch,rusackas"
-
-          # Get the commenter's username
-          COMMENTER="${{ github.event.comment.user.login }}"
 
           echo "Checking permissions for user: $COMMENTER"
 
@@ -45,9 +44,12 @@ jobs:
     steps:
       - name: Comment access denied
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          COMMENTER_LOGIN: ${{ github.event.comment.user.login || github.event.review.user.login || github.event.issue.user.login }}
         with:
           script: |
-            const message = `👋 Hi @${{ github.event.comment.user.login || github.event.review.user.login || github.event.issue.user.login }}!
+            const commenter = process.env.COMMENTER_LOGIN;
+            const message = `👋 Hi @${commenter}!
 
             Thanks for trying to use Claude Code, but currently only certain team members have access to this feature.
 

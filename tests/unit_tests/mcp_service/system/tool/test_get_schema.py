@@ -355,6 +355,93 @@ class TestGetSchemaToolViaClient:
             assert field not in info["filter_columns"]
             assert field not in info["sortable_columns"]
 
+    @patch("superset.daos.chart.ChartDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_get_schema_chart_omits_self_referencing_filter_columns(
+        self, mock_filters, mcp_server
+    ):
+        """Test that chart schema does not advertise self-referencing filter columns.
+
+        Even if the DAO returns created_by_fk or owner, they must be excluded so
+        LLMs cannot discover and use them to enumerate user IDs.
+        """
+        mock_filters.return_value = {
+            "slice_name": ["eq", "ilike"],
+            "created_by_fk": ["eq"],
+            "owner": ["eq", "in"],
+            "created_by_fk_or_owner": ["eq"],
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "chart"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        info = data["schema_info"]
+
+        assert "slice_name" in info["filter_columns"]
+        for field in ("created_by_fk", "owner", "created_by_fk_or_owner"):
+            assert field not in info["filter_columns"]
+
+    @patch("superset.daos.dataset.DatasetDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_get_schema_dataset_omits_self_referencing_filter_columns(
+        self, mock_filters, mcp_server
+    ):
+        """Test that dataset schema does not advertise self-referencing filter columns.
+
+        Even if the DAO returns created_by_fk or owner, they must be excluded so
+        LLMs cannot discover and use them to enumerate user IDs.
+        """
+        mock_filters.return_value = {
+            "table_name": ["eq", "ilike"],
+            "created_by_fk": ["eq"],
+            "owner": ["eq", "in"],
+            "created_by_fk_or_owner": ["eq"],
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "dataset"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        info = data["schema_info"]
+
+        assert "table_name" in info["filter_columns"]
+        for field in ("created_by_fk", "owner", "created_by_fk_or_owner"):
+            assert field not in info["filter_columns"]
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_get_schema_dashboard_omits_self_referencing_filter_columns(
+        self, mock_filters, mcp_server
+    ):
+        """Test dashboard schema omits self-referencing filter columns.
+
+        Even if the DAO returns created_by_fk or owner, they must be excluded
+        so LLMs cannot discover and use them to enumerate user IDs.
+        """
+        mock_filters.return_value = {
+            "dashboard_title": ["eq", "ilike"],
+            "created_by_fk": ["eq"],
+            "owner": ["eq", "in"],
+            "created_by_fk_or_owner": ["eq"],
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "dashboard"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        info = data["schema_info"]
+
+        assert "dashboard_title" in info["filter_columns"]
+        for field in ("created_by_fk", "owner", "created_by_fk_or_owner"):
+            assert field not in info["filter_columns"]
+
 
 class TestGetSchemaEdgeCases:
     """Test edge cases for get_schema tool."""
