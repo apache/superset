@@ -852,10 +852,22 @@ def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
     for cls in _all_soft_delete_subclasses():
         if cls in bypass_classes:
             continue
+        # Pass the criteria as a lambda — SQLAlchemy adapts the column
+        # reference to whatever alias the class wears at each occurrence
+        # in the statement (critical for FAB's outer/inner reconstruction
+        # and any other code that aliases the same model under different
+        # names). A concrete SQL expression — ``cls.where_not_deleted()``
+        # — would render as the raw ``slices.deleted_at`` even when the
+        # statement actually aliases ``slices AS chart``, producing
+        # ``Unknown column 'slices.deleted_at' in 'on clause'``. The
+        # lambda's body is trivial so the ``DeferredLambdaElement``
+        # parser handles it without issue; complex control flow inside
+        # the lambda is what trips the parser, not simple attribute
+        # access.
         execute_state.statement = execute_state.statement.options(
             with_loader_criteria(
                 cls,
-                cls.where_not_deleted(),
+                lambda c: c.deleted_at.is_(None),
                 include_aliases=True,
             )
         )

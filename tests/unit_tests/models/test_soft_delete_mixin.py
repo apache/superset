@@ -30,7 +30,7 @@ from datetime import datetime
 
 import pytest
 from sqlalchemy import Column, ForeignKey, Integer, String
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import aliased, declarative_base, relationship
 from sqlalchemy.orm.session import Session
 
 from superset.models.helpers import (
@@ -165,6 +165,47 @@ def test_global_filter_excludes_soft_deleted_rows(
         session.query(_SoftDeletable).filter(_SoftDeletable.id == obj_id).one_or_none()
     )
     assert result is None
+
+
+@pytest.mark.usefixtures("_synthetic_tables")
+def test_listener_adapts_criteria_to_aliased_table_in_joins(
+    app_context: None, session: Session
+) -> None:
+    """When the same soft-deletable table appears under an alias in a
+    JOIN (e.g., ``slices AS chart``), the listener's loader_criteria
+    must reference the **alias**, not the raw table name. Passing the
+    criteria as ``Slice.deleted_at.is_(None)`` (a concrete SQL
+    expression bound to the base class) renders as
+    ``slices.deleted_at`` even when the statement aliases
+    ``slices AS chart`` — producing
+    ``Unknown column 'slices.deleted_at' in 'on clause'``. The fix is
+    to pass the criteria as a lambda so SQLAlchemy adapts the column
+    reference per occurrence.
+
+    This regression test reproduces the FAB shape that surfaced the
+    bug on the chart-rollout PR: a parent table joined to an aliased
+    soft-deletable child. The query must run without
+    ``OperationalError``.
+    """
+    parent_a = _SoftDeletableParent(name="p_with_child")
+    child = _SoftDeletableChild(name="c1")
+    parent_a.children = [child]
+    session.add(parent_a)
+    session.flush()
+    session.expunge_all()
+
+    # Alias the child so the JOIN renders as ``_soft_deletable_child AS
+    # aliased_child`` — same shape as FAB's ``slices AS chart``.
+    aliased_child = aliased(_SoftDeletableChild)
+    results = (
+        session.query(_SoftDeletableParent, aliased_child)
+        .outerjoin(aliased_child, _SoftDeletableParent.id == aliased_child.parent_id)
+        .all()
+    )
+    # Query must execute without OperationalError. The exact result
+    # shape isn't the point — that the listener-attached criteria
+    # references the alias rather than the raw table name is.
+    assert len(results) == 1
 
 
 @pytest.mark.usefixtures("_synthetic_tables")
