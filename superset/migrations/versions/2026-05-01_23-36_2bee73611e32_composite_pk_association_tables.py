@@ -37,6 +37,7 @@ from typing import NamedTuple
 
 import sqlalchemy as sa
 from alembic import op
+from alembic.operations.base import BatchOperations
 from sqlalchemy import inspect
 from sqlalchemy.engine import Connection
 
@@ -263,6 +264,36 @@ def _build_pre_upgrade_table(
     return sa.Table(t.name, md, *cols)
 
 
+def _enforce_not_null_for_sqlite(
+    batch_op: BatchOperations, t: AssociationTable, conn: Connection
+) -> None:
+    """Force ``NOT NULL`` on the FK columns post-PK-promotion on SQLite only.
+
+    SQLite has a long-standing quirk: composite ``PRIMARY KEY`` does not
+    promote constituent columns to ``NOT NULL`` (only ``INTEGER PRIMARY KEY``
+    does). PostgreSQL and MySQL implicitly promote the PK columns to
+    ``NOT NULL`` when the constraint is added, making the explicit
+    ``alter_column`` redundant there.
+
+    Skipping the ``alter_column`` on MySQL is also functionally required:
+    MySQL 8 rejects ``ALTER COLUMN`` on a column that participates in a
+    foreign key constraint with ``ERROR 1832 (HY000): Cannot change column
+    'X': used in a foreign key constraint 'Y'`` whenever the table has
+    data — even when the only change is ``NULL`` → ``NOT NULL`` and the
+    column is already part of a freshly-added composite primary key (which
+    InnoDB has just made implicitly ``NOT NULL`` anyway). The error fires
+    on populated tables but not on empty ones, which is why CI's
+    ``test-mysql`` shard (fresh schema) didn't catch this and a real
+    production-shaped install does.
+
+    Only SQLite still needs the explicit step, and SQLite has no FK
+    enforcement objection.
+    """
+    if conn.dialect.name == "sqlite":
+        batch_op.alter_column(t.fk1, existing_type=sa.Integer, nullable=False)
+        batch_op.alter_column(t.fk2, existing_type=sa.Integer, nullable=False)
+
+
 def upgrade() -> None:
     conn = op.get_bind()
     _check_no_external_fks_to_id(conn)
@@ -310,23 +341,12 @@ def upgrade() -> None:
             ) as batch_op:
                 batch_op.drop_column("id")
                 batch_op.create_primary_key(f"pk_{t.name}", [t.fk1, t.fk2])
-                # SQLite quirk: composite PRIMARY KEY does not promote the
-                # constituent columns to NOT NULL (only ``INTEGER PRIMARY
-                # KEY`` does). PostgreSQL and MySQL implicitly promote the
-                # PK columns to NOT NULL when the constraint is added,
-                # so the explicit ``alter_column`` is a no-op on those
-                # backends but enforces the post-upgrade contract on
-                # SQLite. Without it, ``INSERT (NULL, 5)`` would succeed
-                # on SQLite despite the columns being part of the PK.
-                batch_op.alter_column(t.fk1, existing_type=sa.Integer, nullable=False)
-                batch_op.alter_column(t.fk2, existing_type=sa.Integer, nullable=False)
+                _enforce_not_null_for_sqlite(batch_op, t, conn)
         else:
             with op.batch_alter_table(t.name) as batch_op:
                 batch_op.drop_column("id")
                 batch_op.create_primary_key(f"pk_{t.name}", [t.fk1, t.fk2])
-                # See comment above re: SQLite composite-PK NOT NULL quirk.
-                batch_op.alter_column(t.fk1, existing_type=sa.Integer, nullable=False)
-                batch_op.alter_column(t.fk2, existing_type=sa.Integer, nullable=False)
+                _enforce_not_null_for_sqlite(batch_op, t, conn)
 
 
 def downgrade() -> None:
