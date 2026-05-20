@@ -56,14 +56,14 @@ const PanelContainer = styled.div`
     max-height: 320px;
     display: flex;
     flex-direction: column;
-    border-radius: ${theme.borderRadius}px;
+    border-radius: ${theme.borderRadiusLG}px;
     overflow: hidden;
     background: ${theme.colorBgElevated};
     box-shadow: ${theme.boxShadowSecondary};
-    padding: ${theme.sizeUnit * 2}px 0;
+    padding: ${theme.paddingXXS}px 0;
 
     .ant-input-affix-wrapper {
-      margin: 0 ${theme.sizeUnit * 2}px ${theme.sizeUnit * 2}px;
+      margin: 0 ${theme.sizeUnit * 2}px ${theme.paddingXXS}px;
     }
   `}
 `;
@@ -83,11 +83,12 @@ const OptionItem = styled.li<{ $active: boolean }>`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 3}px;
-    min-height: 32px;
+    padding: 5px ${theme.sizeUnit * 3}px;
+    min-height: ${theme.controlHeight}px;
     cursor: pointer;
     font-size: ${theme.fontSize}px;
     color: ${theme.colorText};
+    border-radius: ${theme.borderRadiusSM}px;
     background: ${$active ? theme.colorPrimaryBg : 'transparent'};
     transition: background 0.15s;
 
@@ -95,6 +96,8 @@ const OptionItem = styled.li<{ $active: boolean }>`
       background: ${$active
         ? theme.colorPrimaryBgHover
         : theme.colorFillTertiary};
+      outline: 2px solid ${theme.colorPrimary};
+      outline-offset: -2px;
     }
   `}
 `;
