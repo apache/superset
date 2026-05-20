@@ -57,13 +57,16 @@ const PanelContainer = styled.div`
     display: flex;
     flex-direction: column;
     border-radius: ${theme.borderRadiusLG}px;
+    overflow: hidden;
     background: ${theme.colorBgElevated};
     box-shadow: ${theme.boxShadowSecondary};
     padding: ${theme.paddingXXS}px 0;
+  `}
+`;
 
-    .ant-input-affix-wrapper {
-      margin: 0 ${theme.sizeUnit * 2}px ${theme.paddingXXS}px;
-    }
+const SearchRow = styled.div`
+  ${({ theme }) => css`
+    padding: 0 ${theme.sizeUnit * 2}px ${theme.paddingXXS}px;
   `}
 `;
 
@@ -239,23 +242,25 @@ function CompactSelectPanel(
   return (
     <PanelContainer>
       {showSearch && (
-        <Input
-          ref={inputRef}
-          prefix={
-            <Icons.SearchOutlined iconSize="l" iconColor={theme.colorIcon} />
-          }
-          placeholder={t('Search')}
-          value={search}
-          onChange={e => {
-            setSearch(e.target.value);
-            debouncedSetSearch(e.target.value);
-          }}
-          allowClear
-          css={css`
-            width: 100%;
-            box-shadow: none;
-          `}
-        />
+        <SearchRow>
+          <Input
+            ref={inputRef}
+            prefix={
+              <Icons.SearchOutlined iconSize="l" iconColor={theme.colorIcon} />
+            }
+            placeholder={t('Search')}
+            value={search}
+            onChange={e => {
+              setSearch(e.target.value);
+              debouncedSetSearch(e.target.value);
+            }}
+            allowClear
+            css={css`
+              width: 100%;
+              box-shadow: none;
+            `}
+          />
+        </SearchRow>
       )}
       <OptionList role="listbox" aria-label={t('Filter options')}>
         {isLoading ? (
