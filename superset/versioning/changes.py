@@ -50,6 +50,16 @@ Continuum shadow tables via :func:`_shadow_rows_valid_at`, executed in
 ``session.new`` entities are not processed in this listener:
 operation_type=0 transactions (baseline capture and first-save INSERTs)
 produce zero change records per spec §Clarifications 2026-04-24.
+
+**Inline imports.** Several helpers below use ``# pylint: disable=
+import-outside-toplevel`` for imports of ``sqlalchemy_continuum`` and
+Superset model classes. The reason is uniform with ``baseline.py``:
+this module is imported from ``init_versioning()`` before all SQLAlchemy
+mappers are configured and before Continuum's ``make_versioned()`` has
+finished wiring shadow classes. Top-level imports would either trip an
+unresolved-mapper error or create an init-order cycle. The lazy form
+defers resolution until the helper runs. Unusual cases (if any are
+added) should be commented explicitly.
 """
 
 from __future__ import annotations
