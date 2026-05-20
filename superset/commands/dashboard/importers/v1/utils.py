@@ -202,6 +202,9 @@ def update_cross_filter_scoping(  # noqa: C901
             id_map[old_id] for old_id in scope_excluded if old_id in id_map
         ]
 
+    # Global cross-filter chartsInScope mirrors the native-filter case.
+    _remap_charts_in_scope(cross_filter_global_config, id_map)
+
     if "chart_configuration" in (metadata := fixed.get("metadata", {})):
         # Build remapped configuration in a single pass for clarity/readability.
         new_chart_configuration: dict[str, Any] = {}

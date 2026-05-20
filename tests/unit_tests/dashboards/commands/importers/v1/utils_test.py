@@ -331,6 +331,43 @@ def test_update_id_refs_remaps_cross_filter_charts_in_scope():
     assert cross_filters["chartsInScope"] == [1, 2]
 
 
+def test_update_id_refs_remaps_global_chart_configuration_charts_in_scope():
+    """
+    Per-chart and native-filter ``chartsInScope`` are remapped by their own
+    branches; ``global_chart_configuration.chartsInScope`` lives next to
+    ``global_chart_configuration.scope.excluded`` and needs the same treatment
+    so the global cross-filter scope cache doesn't keep stale source-env IDs.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config: dict[str, Any] = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+            "CHART2": {
+                "id": "CHART2",
+                "meta": {"chartId": 102, "uuid": "uuid2"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "global_chart_configuration": {
+                "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+                "chartsInScope": [101, 102, 103],
+            },
+        },
+    }
+    chart_ids = {"uuid1": 1, "uuid2": 2}
+    dataset_info: dict[str, dict[str, Any]] = {}
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+
+    assert fixed["metadata"]["global_chart_configuration"]["chartsInScope"] == [1, 2]
+
+
 def test_update_id_refs_cross_filter_chart_configuration_key_and_excluded_mapping():
     from superset.commands.dashboard.importers.v1.utils import update_id_refs
 
