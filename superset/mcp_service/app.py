@@ -654,6 +654,14 @@ from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
     generate_explore_link,
 )
+from superset.mcp_service.query.tool import (  # noqa: F401, E402
+    get_query_info,
+    list_queries,
+)
+from superset.mcp_service.saved_query.tool import (  # noqa: F401, E402
+    get_saved_query_info,
+    list_saved_queries,
+)
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,
     open_sql_lab_with_context,
