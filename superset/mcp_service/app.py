@@ -635,6 +635,10 @@ warnings.filterwarnings(
 # NOTE: Always add new prompt/resource imports here when creating new prompts/resources.
 # Prompts use @mcp.prompt decorators and resources use @mcp.resource decorators.
 # They register automatically on import, similar to tools.
+from superset.mcp_service.action_log.tool import (  # noqa: F401, E402
+    get_action_log_info,
+    list_action_logs,
+)
 from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
     get_annotation_layer_info,
     get_layer_annotation_info,
@@ -703,6 +707,10 @@ from superset.mcp_service.system.tool import (  # noqa: F401, E402
 from superset.mcp_service.tag.tool import (  # noqa: F401, E402
     get_tag_info,
     list_tags,
+)
+from superset.mcp_service.task.tool import (  # noqa: F401, E402
+    get_task_info,
+    list_tasks,
 )
 
 
