@@ -198,9 +198,7 @@ function TableCollection<T extends object>({
 
     // antd Table's `rowSelection` API renders its own checkbox column;
     // wrap the header and per-row checkboxes with stable `data-test`
-    // attributes so Playwright selectors (which previously targeted
-    // `bulkSelectColumnConfig` in ListView — a column that no longer
-    // reaches the rendered DOM) can resolve them.
+    // attributes so Playwright selectors can resolve them.
     return {
       selectedRowKeys,
       onSelect: (record, selected) => {
