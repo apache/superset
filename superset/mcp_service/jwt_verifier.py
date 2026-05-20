@@ -45,7 +45,7 @@ from starlette.authentication import AuthenticationError
 from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import HTTPConnection
-from starlette.responses import JSONResponse
+from starlette.responses import HTMLResponse, JSONResponse
 
 from superset.utils import json
 
@@ -61,21 +61,129 @@ _jwt_failure_reason: ContextVar[str | None] = ContextVar(
     "_jwt_failure_reason", default=None
 )
 
+_MCP_BROWSER_HELLO_HTML = """<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Superset MCP Server</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      margin: 0;
+      padding: 40px 16px;
+      line-height: 1.6;
+    }
+    .card {
+      max-width: 640px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.12);
+      padding: 40px 40px 32px;
+    }
+    h1 { font-size: 1.4rem; margin: 0 0 8px; }
+    .badge {
+      display: inline-block;
+      background: #e8f4fd;
+      color: #0070c0;
+      font-size: .75rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    p { margin: 0 0 20px; color: #444; }
+    h2 { font-size: 1rem; margin: 24px 0 8px; color: #1a1a1a; }
+    pre {
+      background: #f0f0f0;
+      border-radius: 6px;
+      padding: 16px;
+      font-size: .85rem;
+      overflow-x: auto;
+      margin: 0 0 24px;
+    }
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    .note {
+      font-size: .85rem;
+      color: #666;
+      border-left: 3px solid #ddd;
+      padding-left: 12px;
+      margin-top: 24px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="badge">MCP API Endpoint</div>
+    <h1>Superset MCP Server</h1>
+    <p>
+      This is the <strong>Model Context Protocol (MCP)</strong> endpoint for
+      Apache Superset. It is an API designed for AI coding assistants —
+      not a web page to browse directly.
+    </p>
+    <h2>How to connect</h2>
+    <p>Add the following to your MCP client configuration,
+    replacing the URL and API key with your actual values:</p>
+    <pre><code>{
+  "mcpServers": {
+    "superset": {
+      "url": "&lt;this-url&gt;",
+      "transport": "streamable-http",
+      "headers": {
+        "Authorization": "Bearer &lt;your-api-key&gt;"
+      }
+    }
+  }
+}</code></pre>
+    <h2>Supported clients</h2>
+    <p>This endpoint works with any MCP-compatible client, including:</p>
+    <ul style="color:#444;margin:0 0 20px;padding-left:20px;">
+      <li>Claude Desktop</li>
+      <li>Claude Code (CLI)</li>
+      <li>Cursor</li>
+      <li>Any client that supports the <code>streamable-http</code> transport</li>
+    </ul>
+    <div class="note">
+      Replace <code>&lt;this-url&gt;</code> with the full URL of this page and
+      <code>&lt;your-api-key&gt;</code> with a valid Superset API key or JWT token.
+    </div>
+  </div>
+</body>
+</html>"""
+
 
 def _json_auth_error_handler(
     conn: HTTPConnection, exc: AuthenticationError
-) -> JSONResponse:
-    """JSON 401 error handler for authentication failures.
+) -> JSONResponse | HTMLResponse:
+    """Auth error handler for authentication failures.
 
-    Per RFC 6750 Section 3.1, error responses MUST NOT leak server
-    configuration or token claim values. Only generic error codes are
-    returned to clients. Detailed failure reasons are logged server-side
-    only for debugging.
+    Returns a friendly HTML page when the request comes from a browser
+    (Accept: text/html), so users who open the MCP URL in a browser see
+    setup instructions rather than a raw JSON 401.
+
+    For all other clients (API, SSE) returns a standard JSON 401 per
+    RFC 6750 Section 3.1.
 
     References:
         - RFC 6750 Section 3.1: https://datatracker.ietf.org/doc/html/rfc6750#section-3.1
         - CVE-2022-29266, CVE-2019-7644: verbose JWT errors led to exploits
     """
+    accept = conn.headers.get("accept", "")
+    if (
+        "text/html" in accept
+        and "application/json" not in accept
+        and "text/event-stream" not in accept
+    ):
+        return HTMLResponse(status_code=200, content=_MCP_BROWSER_HELLO_HTML)
+
     # Log detailed reason server-side only
     logger.warning("JWT authentication failed: %s", exc)
 
