@@ -17,87 +17,67 @@
  * under the License.
  */
 import { createRef, act } from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import CompactSelectPanel from './CompactSelectPanel';
 import type { FilterHandler } from './types';
 
-const SELECTS = [
+const SMALL_SELECTS = [
   { label: 'Alice', value: 1 },
   { label: 'Bob', value: 2 },
   { label: 'Charlie', value: 3 },
 ];
 
-jest.mock('@superset-ui/core/components', () => ({
-  Select: jest.fn(({ onChange, onOpenChange, value, open, ariaLabel }: any) => (
-    <div
-      data-test="mock-select"
-      data-open={String(open)}
-      aria-label={ariaLabel}
-    >
-      <button
-        type="button"
-        data-test="select-option-alice"
-        onClick={() => onChange({ label: 'Alice', value: 1 })}
-      >
-        Alice
-      </button>
-      <button
-        type="button"
-        data-test="select-option-bob"
-        onClick={() => onChange({ label: 'Bob', value: 2 })}
-      >
-        Bob
-      </button>
-      <button
-        type="button"
-        data-test="trigger-close"
-        onClick={() => onOpenChange?.(false)}
-      >
-        close
-      </button>
-      {value && <span data-test="selected-value">{String(value.value)}</span>}
-    </div>
-  )),
-  AsyncSelect: jest.fn(({ onChange, onOpenChange, open, ariaLabel }: any) => (
-    <div
-      data-test="mock-async-select"
-      data-open={String(open)}
-      aria-label={ariaLabel}
-    >
-      <button
-        type="button"
-        data-test="async-option-remote"
-        onClick={() => onChange({ label: 'Remote User', value: 99 })}
-      >
-        Remote User
-      </button>
-      <button
-        type="button"
-        data-test="async-trigger-close"
-        onClick={() => onOpenChange?.(false)}
-      >
-        close
-      </button>
-    </div>
-  )),
-}));
+const LARGE_SELECTS = [
+  { label: 'Alice', value: 1 },
+  { label: 'Bob', value: 2 },
+  { label: 'Charlie', value: 3 },
+  { label: 'David', value: 4 },
+  { label: 'Eve', value: 5 },
+  { label: 'Frank', value: 6 },
+  { label: 'Grace', value: 7 },
+];
 
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
-test('renders Select when selects prop is provided', () => {
+test('renders options from selects prop', () => {
   render(
     <CompactSelectPanel
-      selects={SELECTS}
+      selects={SMALL_SELECTS}
       value={undefined}
       onSelect={jest.fn()}
     />,
   );
-  expect(screen.getByTestId('mock-select')).toBeInTheDocument();
+  expect(screen.getByText('Alice')).toBeInTheDocument();
+  expect(screen.getByText('Bob')).toBeInTheDocument();
+  expect(screen.getByText('Charlie')).toBeInTheDocument();
 });
 
-test('renders AsyncSelect when fetchSelects prop is provided', () => {
+test('hides search input when selects.length is 6 or fewer', () => {
+  render(
+    <CompactSelectPanel
+      selects={SMALL_SELECTS}
+      value={undefined}
+      onSelect={jest.fn()}
+    />,
+  );
+  expect(screen.queryByPlaceholderText('Search')).not.toBeInTheDocument();
+});
+
+test('shows search input when selects.length exceeds 6', () => {
+  render(
+    <CompactSelectPanel
+      selects={LARGE_SELECTS}
+      value={undefined}
+      onSelect={jest.fn()}
+    />,
+  );
+  expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
+});
+
+test('shows search input when fetchSelects is provided', () => {
   const fetchSelects = jest.fn().mockResolvedValue({ data: [], totalCount: 0 });
   render(
     <CompactSelectPanel
@@ -106,87 +86,87 @@ test('renders AsyncSelect when fetchSelects prop is provided', () => {
       onSelect={jest.fn()}
     />,
   );
-  expect(screen.getByTestId('mock-async-select')).toBeInTheDocument();
+  expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
 });
 
-test('passes isOpen as open prop to Select', () => {
+test('filters static options by search term', async () => {
   render(
     <CompactSelectPanel
-      selects={SELECTS}
+      selects={LARGE_SELECTS}
       value={undefined}
       onSelect={jest.fn()}
-      isOpen
     />,
   );
-  expect(screen.getByTestId('mock-select')).toHaveAttribute(
-    'data-open',
-    'true',
-  );
+  await userEvent.type(screen.getByPlaceholderText('Search'), 'ali');
+  expect(screen.getByText('Alice')).toBeInTheDocument();
+  expect(screen.queryByText('Bob')).not.toBeInTheDocument();
 });
 
-test('calls onSelect with normalized option when onChange fires', () => {
+test('calls onSelect with normalized option when an option is clicked', async () => {
   const onSelect = jest.fn();
   render(
     <CompactSelectPanel
-      selects={SELECTS}
+      selects={SMALL_SELECTS}
       value={undefined}
       onSelect={onSelect}
     />,
   );
-  screen.getByTestId('select-option-alice').click();
+  await userEvent.click(screen.getByText('Alice'));
   expect(onSelect).toHaveBeenCalledWith({ label: 'Alice', value: 1 }, false);
 });
 
-test('calls onSelect(undefined, true) when onChange fires with undefined', () => {
+test('calls onSelect with undefined when same option is clicked twice (deselect)', async () => {
   const onSelect = jest.fn();
-  const { Select: MockSelect } = jest.requireMock(
-    '@superset-ui/core/components',
-  ) as any;
-  MockSelect.mockImplementationOnce(({ onChange }: any) => (
-    <button
-      type="button"
-      data-test="trigger-clear"
-      onClick={() => onChange(undefined)}
-    >
-      clear
-    </button>
-  ));
   render(
     <CompactSelectPanel
-      selects={SELECTS}
+      selects={SMALL_SELECTS}
       value={{ label: 'Alice', value: 1 }}
       onSelect={onSelect}
     />,
   );
-  screen.getByTestId('trigger-clear').click();
+  await userEvent.click(screen.getByText('Alice'));
   expect(onSelect).toHaveBeenCalledWith(undefined, true);
 });
 
-test('calls onClose after onChange fires', () => {
-  const onClose = jest.fn();
+test('shows checkmark icon on selected option', () => {
   render(
     <CompactSelectPanel
-      selects={SELECTS}
-      value={undefined}
+      selects={SMALL_SELECTS}
+      value={{ label: 'Alice', value: 1 }}
       onSelect={jest.fn()}
-      onClose={onClose}
     />,
   );
-  screen.getByTestId('select-option-alice').click();
-  expect(onClose).toHaveBeenCalledTimes(1);
+  const aliceOption = screen
+    .getByText('Alice')
+    .closest('[role="option"]') as HTMLElement;
+  expect(aliceOption).toHaveAttribute('aria-selected', 'true');
 });
 
-test('calls onClose when onOpenChange fires false', () => {
+test('unselected options have aria-selected false', () => {
+  render(
+    <CompactSelectPanel
+      selects={SMALL_SELECTS}
+      value={{ label: 'Alice', value: 1 }}
+      onSelect={jest.fn()}
+    />,
+  );
+  const bobOption = screen
+    .getByText('Bob')
+    .closest('[role="option"]') as HTMLElement;
+  expect(bobOption).toHaveAttribute('aria-selected', 'false');
+});
+
+test('calls onClose after a selection is made', async () => {
   const onClose = jest.fn();
   render(
     <CompactSelectPanel
-      selects={SELECTS}
+      selects={SMALL_SELECTS}
       value={undefined}
       onSelect={jest.fn()}
       onClose={onClose}
     />,
   );
-  screen.getByTestId('trigger-close').click();
+  await userEvent.click(screen.getByText('Alice'));
   expect(onClose).toHaveBeenCalledTimes(1);
 });
 
@@ -196,81 +176,154 @@ test('clearFilter via ref resets selection and calls onSelect(undefined, true)',
   render(
     <CompactSelectPanel
       ref={ref}
-      selects={SELECTS}
+      selects={SMALL_SELECTS}
       value={{ label: 'Alice', value: 1 }}
       onSelect={onSelect}
     />,
   );
+  expect(screen.getByText('Alice').closest('[role="option"]')).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
+
   act(() => {
     ref.current?.clearFilter();
   });
+
   expect(onSelect).toHaveBeenCalledWith(undefined, true);
+  expect(screen.getByText('Alice').closest('[role="option"]')).toHaveAttribute(
+    'aria-selected',
+    'false',
+  );
+});
+
+test('shows Loading text when loading prop is true', () => {
+  render(
+    <CompactSelectPanel
+      selects={SMALL_SELECTS}
+      value={undefined}
+      onSelect={jest.fn()}
+      loading
+    />,
+  );
+  expect(screen.getByText('Loading...')).toBeInTheDocument();
+});
+
+test('shows No results when displayOptions is empty', () => {
+  render(
+    <CompactSelectPanel selects={[]} value={undefined} onSelect={jest.fn()} />,
+  );
+  expect(screen.getByText('No results')).toBeInTheDocument();
+});
+
+test('renders options list with listbox role and accessible label', () => {
+  render(
+    <CompactSelectPanel
+      selects={SMALL_SELECTS}
+      value={undefined}
+      onSelect={jest.fn()}
+    />,
+  );
+  const listbox = screen.getByRole('listbox');
+  expect(listbox).toBeInTheDocument();
+  expect(listbox).toHaveAttribute('aria-label', 'Filter options');
+});
+
+test('option items have option role', () => {
+  render(
+    <CompactSelectPanel
+      selects={SMALL_SELECTS}
+      value={undefined}
+      onSelect={jest.fn()}
+    />,
+  );
+  const options = screen.getAllByRole('option');
+  expect(options).toHaveLength(3);
+});
+
+test('fetches and displays remote options via fetchSelects on mount', async () => {
+  const fetchSelects = jest.fn().mockResolvedValue({
+    data: [{ label: 'Remote User', value: 99 }],
+    totalCount: 1,
+  });
+  render(
+    <CompactSelectPanel
+      fetchSelects={fetchSelects}
+      value={undefined}
+      onSelect={jest.fn()}
+    />,
+  );
+  expect(screen.getByText('Loading...')).toBeInTheDocument();
+  await waitFor(() => {
+    expect(screen.getByText('Remote User')).toBeInTheDocument();
+  });
+  expect(fetchSelects).toHaveBeenCalledWith('', 0, 50);
+});
+
+test('shows No results when fetchSelects returns empty data', async () => {
+  const fetchSelects = jest.fn().mockResolvedValue({ data: [], totalCount: 0 });
+  render(
+    <CompactSelectPanel
+      fetchSelects={fetchSelects}
+      value={undefined}
+      onSelect={jest.fn()}
+    />,
+  );
+  await waitFor(() => {
+    expect(screen.getByText('No results')).toBeInTheDocument();
+  });
+});
+
+test('shows No results when fetchSelects rejects', async () => {
+  const fetchSelects = jest.fn().mockRejectedValue(new Error('network error'));
+  render(
+    <CompactSelectPanel
+      fetchSelects={fetchSelects}
+      value={undefined}
+      onSelect={jest.fn()}
+    />,
+  );
+  await waitFor(() => {
+    expect(screen.getByText('No results')).toBeInTheDocument();
+  });
+});
+
+test('selects option via keyboard Enter key', async () => {
+  const onSelect = jest.fn();
+  render(
+    <CompactSelectPanel
+      selects={SMALL_SELECTS}
+      value={undefined}
+      onSelect={onSelect}
+    />,
+  );
+  const aliceOption = screen.getByText('Alice').closest('[role="option"]')!;
+  await userEvent.type(aliceOption, '{Enter}');
+  expect(onSelect).toHaveBeenCalledWith({ label: 'Alice', value: 1 }, false);
 });
 
 test('syncs selected state when external value prop changes', () => {
   const { rerender } = render(
     <CompactSelectPanel
-      selects={SELECTS}
+      selects={SMALL_SELECTS}
       value={{ label: 'Alice', value: 1 }}
       onSelect={jest.fn()}
     />,
   );
-  expect(screen.getByTestId('selected-value')).toHaveTextContent('1');
+  expect(screen.getByText('Alice').closest('[role="option"]')).toHaveAttribute(
+    'aria-selected',
+    'true',
+  );
 
   rerender(
     <CompactSelectPanel
-      selects={SELECTS}
+      selects={SMALL_SELECTS}
       value={undefined}
       onSelect={jest.fn()}
     />,
   );
-  expect(screen.queryByTestId('selected-value')).not.toBeInTheDocument();
-});
-
-test('passes isOpen as open prop to AsyncSelect', () => {
-  const fetchSelects = jest.fn().mockResolvedValue({ data: [], totalCount: 0 });
-  render(
-    <CompactSelectPanel
-      fetchSelects={fetchSelects}
-      value={undefined}
-      onSelect={jest.fn()}
-      isOpen
-    />,
-  );
-  expect(screen.getByTestId('mock-async-select')).toHaveAttribute(
-    'data-open',
-    'true',
-  );
-});
-
-test('calls onClose when AsyncSelect onOpenChange fires false', () => {
-  const onClose = jest.fn();
-  const fetchSelects = jest.fn().mockResolvedValue({ data: [], totalCount: 0 });
-  render(
-    <CompactSelectPanel
-      fetchSelects={fetchSelects}
-      value={undefined}
-      onSelect={jest.fn()}
-      onClose={onClose}
-    />,
-  );
-  screen.getByTestId('async-trigger-close').click();
-  expect(onClose).toHaveBeenCalledTimes(1);
-});
-
-test('calls onSelect on AsyncSelect onChange', () => {
-  const onSelect = jest.fn();
-  const fetchSelects = jest.fn().mockResolvedValue({ data: [], totalCount: 0 });
-  render(
-    <CompactSelectPanel
-      fetchSelects={fetchSelects}
-      value={undefined}
-      onSelect={onSelect}
-    />,
-  );
-  screen.getByTestId('async-option-remote').click();
-  expect(onSelect).toHaveBeenCalledWith(
-    { label: 'Remote User', value: 99 },
-    false,
+  expect(screen.getByText('Alice').closest('[role="option"]')).toHaveAttribute(
+    'aria-selected',
+    'false',
   );
 });
