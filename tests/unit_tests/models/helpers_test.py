@@ -100,6 +100,125 @@ def test_values_for_column(database: Database) -> None:
         assert table.values_for_column("a") == [1, None]
 
 
+def test_values_for_column_passes_catalog_and_schema(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test that `values_for_column` forwards the dataset's catalog and schema
+    to `database.get_sqla_engine()` so that engine params are adjusted with
+    the correct schema context (e.g. for MySQL, Snowflake, Presto).
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+
+    connection = engine.raw_connection()
+    connection.execute("CREATE TABLE t (a INTEGER, b TEXT)")
+    connection.execute("INSERT INTO t VALUES (1, 'Alice')")
+    connection.commit()
+
+    # Track the catalog/schema values passed to get_sqla_engine
+    captured_kwargs: dict[str, str | None] = {}
+
+    @contextmanager
+    def mock_get_sqla_engine(catalog=None, schema=None, **kwargs):
+        captured_kwargs["catalog"] = catalog
+        captured_kwargs["schema"] = schema
+        yield engine
+
+    mocker.patch.object(
+        database,
+        "get_sqla_engine",
+        new=mock_get_sqla_engine,
+    )
+
+    table = SqlaTable(
+        database=database,
+        catalog="my_catalog",
+        schema="my_schema",
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": [1]}),
+    ):
+        table.values_for_column("a")
+
+    assert captured_kwargs["catalog"] == "my_catalog"
+    assert captured_kwargs["schema"] == "my_schema"
+
+
+def test_values_for_column_passes_none_catalog_and_schema(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Test that `values_for_column` forwards None catalog/schema when the
+    dataset has no catalog or schema set.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    engine = create_engine(
+        "sqlite://",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+
+    connection = engine.raw_connection()
+    connection.execute("CREATE TABLE t (a INTEGER, b TEXT)")
+    connection.execute("INSERT INTO t VALUES (1, 'Alice')")
+    connection.commit()
+
+    captured_kwargs: dict[str, str | None] = {}
+
+    @contextmanager
+    def mock_get_sqla_engine(catalog=None, schema=None, **kwargs):
+        captured_kwargs["catalog"] = catalog
+        captured_kwargs["schema"] = schema
+        yield engine
+
+    mocker.patch.object(
+        database,
+        "get_sqla_engine",
+        new=mock_get_sqla_engine,
+    )
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": [1]}),
+    ):
+        table.values_for_column("a")
+
+    assert captured_kwargs["catalog"] is None
+    assert captured_kwargs["schema"] is None
+
+
 def test_values_for_column_with_rls(database: Database) -> None:
     """
     Test the `values_for_column` method with RLS enabled.
@@ -1937,6 +2056,235 @@ def test_extras_having_is_parenthesized(
         )
 
 
+def test_calculated_column_filter_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that calculated column expressions containing OR are wrapped in
+    parentheses when used in WHERE filters.
+
+    Without parentheses, a calculated column expression like
+    ``status = 'active' OR status = 'pending'`` combined with other filters
+    via AND would produce unexpected evaluation order due to SQL operator
+    precedence (AND binds tighter than OR), potentially dropping time range
+    and other filters. Same class of bug as fixed in PR #38183 for
+    extras.where/having, but on the calculated column filter path.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="is_active",
+                expression="status = 'active' OR status = 'pending'",
+                type="BOOLEAN",
+            ),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        filter=[
+            {
+                "col": "is_active",
+                "op": "IS TRUE",
+                "val": None,
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "(status = 'active' OR status = 'pending')" in sql, (
+        f"Calculated column expression should be wrapped in parentheses. "
+        f"Generated SQL: {sql}"
+    )
+
+
+def test_calculated_column_nested_or_and_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that calculated column expressions with nested OR/AND combinations
+    are correctly parenthesized as a single unit in WHERE filters.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="is_target",
+                expression=(
+                    "(status = 'active' AND region = 'US') "
+                    "OR (status = 'pending' AND region = 'EU')"
+                ),
+                type="BOOLEAN",
+            ),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        filter=[
+            {
+                "col": "is_target",
+                "op": "IS TRUE",
+                "val": None,
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert (
+        "((status = 'active' AND region = 'US') "
+        "OR (status = 'pending' AND region = 'EU'))"
+    ) in sql, (
+        f"Nested OR/AND expression should be wrapped in parentheses. "
+        f"Generated SQL: {sql}"
+    )
+
+
+def test_calculated_column_non_boolean_filter_is_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that non-boolean calculated column expressions are parenthesized
+    when used with IN filters.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="full_name",
+                expression="first_name || ' ' || last_name",
+                type="TEXT",
+            ),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        filter=[
+            {
+                "col": "full_name",
+                "op": "IN",
+                "val": ["John Doe", "Jane Doe"],
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "(first_name || ' ' || last_name)" in sql, (
+        f"Non-boolean calculated column should be wrapped in parentheses. "
+        f"Generated SQL: {sql}"
+    )
+
+
+def test_multiple_calculated_columns_each_parenthesized(
+    database: Database,
+) -> None:
+    """
+    Test that multiple calculated columns used as filters are each
+    independently wrapped in parentheses.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(
+                column_name="is_active",
+                expression="status = 'active' OR status = 'pending'",
+                type="BOOLEAN",
+            ),
+            TableColumn(
+                column_name="is_premium",
+                expression="tier = 'gold' OR tier = 'platinum'",
+                type="BOOLEAN",
+            ),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["a"],
+        filter=[
+            {
+                "col": "is_active",
+                "op": "IS TRUE",
+                "val": None,
+            },
+            {
+                "col": "is_premium",
+                "op": "IS TRUE",
+                "val": None,
+            },
+        ],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "(status = 'active' OR status = 'pending')" in sql, (
+        f"First calculated column should be parenthesized. Generated SQL: {sql}"
+    )
+    assert "(tier = 'gold' OR tier = 'platinum')" in sql, (
+        f"Second calculated column should be parenthesized. Generated SQL: {sql}"
+    )
+
+
 def _run_probe(
     database: Database,
     type_probe_needs_row: bool = False,
@@ -2256,3 +2604,49 @@ def test_numeric_adhoc_filter_value_is_unquoted_in_where_clause(
     # The numeric value should be emitted without quotes.
     assert "IN (3)" in sql, f"Expected numeric IN-list, got SQL: {sql}"
     assert "IN ('3')" not in sql, f"Value should not be quoted, got SQL: {sql}"
+
+
+def test_filter_by_verbose_name_resolves_to_column(
+    database: Database,
+) -> None:
+    """
+    A filter whose "col" value matches a column's verbose_name
+    (e.g. the label emitted by "Drill to detail by") must resolve to that
+    column and produce a WHERE clause on the underlying column_name.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(
+                column_name="country_code",
+                verbose_name="Country",
+                type="TEXT",
+            ),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["b"],
+        # Filter uses the verbose label, as "Drill to detail by" does.
+        filter=[{"col": "Country", "op": "==", "val": "US"}],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The filter should be translated to a WHERE clause on the real column.
+    assert "WHERE" in sql, f"Expected WHERE clause, got SQL: {sql}"
+    assert "country_code" in sql, f"Expected filter on 'country_code', got SQL: {sql}"
+    assert "'US'" in sql, f"Expected filter value 'US', got SQL: {sql}"

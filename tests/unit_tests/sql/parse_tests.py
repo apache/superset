@@ -1164,6 +1164,32 @@ def test_has_mutation(engine: str, sql: str, expected: bool) -> None:
     assert SQLScript(sql, engine).has_mutation() == expected
 
 
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT last(my_value_column, my_time_column) FROM my_table",
+        "SELECT first(my_value_column, my_time_column) FROM my_table",
+        "SELECT time_bucket('1 hour', my_time_column) AS bucket FROM my_table",
+    ],
+)
+def test_postgres_parses_timescaledb_hyperfunctions(sql: str) -> None:
+    """
+    Regression for #32028: TimescaleDB extends Postgres with hyperfunctions
+    (``last``, ``first``, ``time_bucket``, etc.) that take more arguments
+    than vanilla Postgres equivalents. SQL Lab tolerates them (it routes
+    raw SQL straight to the engine), but the dashboard chart path runs the
+    SQL through ``SQLScript`` for inspection. A strict per-function arity
+    check in sqlglot was rejecting these queries with ``The number of
+    provided arguments (2) is greater than the maximum number of supported
+    arguments (1)``, which broke dashboards built on TimescaleDB datasets.
+
+    These tests pin that the parse path tolerates Postgres-dialect SQL
+    using TimescaleDB hyperfunction signatures. If a future sqlglot
+    upgrade reintroduces the strict arity check, this fails immediately.
+    """
+    SQLScript(sql, "postgresql")  # Must not raise.
+
+
 def test_get_settings() -> None:
     """
     Test `get_settings` in some edge cases.
@@ -3051,6 +3077,42 @@ def test_has_subquery(sql: str, engine: str, expected: bool) -> None:
     Test the `has_subquery` method.
     """
     assert SQLStatement(sql, engine).has_subquery() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine",
+    [
+        # Double-quoted identifiers (#32684 — postgres dataset)
+        ('"Adresse E-mail"', "postgresql"),
+        ('"Nom de structure"', "postgresql"),
+        # Backtick-quoted identifiers (#32541 — mysql view)
+        ("`Answer Created Time`", "mysql"),
+        ("`Correction Time`", "mysql"),
+        # Diacritics, slash, and dot — listed as "working" in #32684 but
+        # easily broken by overzealous parser changes; pin them too.
+        ('"Appartement / étage"', "postgresql"),
+        ('"Bâtiment / Résidence"', "postgresql"),
+        ('"C.Postal"', "postgresql"),
+    ],
+)
+def test_quoted_column_name_with_spaces_is_not_subquery(sql: str, engine: str) -> None:
+    r"""
+    Regression for #32541 and #32684: a quoted identifier that happens to
+    contain spaces (or a slash, accents, dots) must not be misclassified
+    as a subquery.
+
+    The original symptom was an opaque ``Custom SQL fields cannot contain
+    sub-queries.`` error when the user added a column like ``"Adresse
+    E-mail"`` (Postgres) or a backtick-quoted equivalent (MySQL) to a
+    chart. Snake-case aliases worked; multi-word display names did not.
+    The check that raises that error is
+    ``parsed_statement.has_subquery()`` in
+    ``superset/models/helpers.py:206``.
+    """
+    assert not SQLStatement(sql, engine).has_subquery(), (
+        f"Quoted identifier {sql!r} on {engine!r} was misclassified as a "
+        "subquery — would block the column from being used in any chart."
+    )
 
 
 @pytest.mark.parametrize(
