@@ -27,7 +27,9 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { NULL_STRING } from 'src/utils/common';
-import SelectFilterPlugin from './SelectFilterPlugin';
+import SelectFilterPlugin, {
+  getSelectPopupContainer,
+} from './SelectFilterPlugin';
 import transformProps from './transformProps';
 import { FilterState } from '@superset-ui/core';
 import {
@@ -201,6 +203,30 @@ describe('SelectFilterPlugin', () => {
         excludeFilterValues: true,
       },
     });
+  });
+
+  test('uses document.body as popup container in dashboard filter bar', () => {
+    const container = getSelectPopupContainer(AppSection.Dashboard, false);
+    expect(container(document.createElement('div'))).toBe(document.body);
+  });
+
+  test('uses parent ref as popup container for overflowed filters', () => {
+    const parentNode = document.createElement('div');
+    const container = getSelectPopupContainer(AppSection.Dashboard, true, {
+      current: parentNode,
+    });
+    expect(container()).toBe(parentNode);
+  });
+
+  test('keeps trigger parent popup container outside dashboard filter bar', () => {
+    const triggerParent = document.createElement('div');
+    const trigger = document.createElement('div');
+    triggerParent.appendChild(trigger);
+    const container = getSelectPopupContainer(
+      AppSection.FilterConfigModal,
+      false,
+    );
+    expect(container(trigger)).toBe(triggerParent);
   });
 
   test('Remove multiple values when required', () => {
