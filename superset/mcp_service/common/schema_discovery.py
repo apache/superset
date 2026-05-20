@@ -635,3 +635,54 @@ CHART_ALL_COLUMNS: list[str] = []
 DATASET_ALL_COLUMNS: list[str] = []
 DASHBOARD_ALL_COLUMNS: list[str] = []
 DATABASE_ALL_COLUMNS: list[str] = []
+
+
+# CSS Template configuration
+CSS_TEMPLATE_DEFAULT_COLUMNS = [
+    "id",
+    "template_name",
+]
+CSS_TEMPLATE_SORTABLE_COLUMNS = [
+    "id",
+    "template_name",
+    "changed_on",
+    "created_on",
+]
+CSS_TEMPLATE_SEARCH_COLUMNS = ["template_name"]
+
+
+def get_css_template_columns() -> list[ColumnMetadata]:
+    """Get column metadata for CssTemplate model dynamically."""
+    from superset.models.core import CssTemplate
+
+    return get_columns_from_model(
+        CssTemplate,
+        CSS_TEMPLATE_DEFAULT_COLUMNS,
+        exclude_columns=set(USER_DIRECTORY_FIELDS),
+    )
+
+
+# Theme configuration
+THEME_DEFAULT_COLUMNS = [
+    "id",
+    "theme_name",
+    "uuid",
+]
+THEME_SORTABLE_COLUMNS = [
+    "id",
+    "theme_name",
+    "changed_on",
+    "created_on",
+]
+THEME_SEARCH_COLUMNS = ["theme_name"]
+
+
+def get_theme_columns() -> list[ColumnMetadata]:
+    """Get column metadata for Theme model dynamically."""
+    from superset.models.core import Theme
+
+    return get_columns_from_model(
+        Theme,
+        THEME_DEFAULT_COLUMNS,
+        exclude_columns=set(USER_DIRECTORY_FIELDS),
+    )
