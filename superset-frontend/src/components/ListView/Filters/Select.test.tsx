@@ -16,9 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, selectOption, waitFor } from 'spec/helpers/testing-library';
+import { createRef } from 'react';
+import {
+  render,
+  screen,
+  selectOption,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { ListViewFilterOperator } from '../types';
 import UIFilters from './index';
+import SelectFilter from './Select';
+import type { FilterHandler } from './types';
 
 const mockUpdateFilterValue = jest.fn();
 
@@ -119,5 +127,141 @@ test('select filter falls back to stringified value when no string label or titl
       label: '123',
       value: 123,
     });
+  });
+});
+
+test('plain select with string label passes label through unchanged', async () => {
+  // Happy-path coverage for the typeof-string branch in onChange, exercised
+  // through the non-async Select wrapper (selects array, no fetchSelects).
+  const filters = [
+    {
+      Header: 'Status',
+      key: 'status',
+      id: 'status',
+      input: 'select' as const,
+      operator: ListViewFilterOperator.Equals,
+      unfilteredLabel: 'All',
+      selects: [
+        { label: 'Published', value: 7 },
+        { label: 'Draft', value: 8 },
+      ],
+    },
+  ];
+
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  await selectOption('Published', 'Status');
+
+  await waitFor(() => {
+    expect(mockUpdateFilterValue).toHaveBeenCalledWith(0, {
+      label: 'Published',
+      value: 7,
+    });
+  });
+});
+
+test('plain select with ReactNode label uses option title when serializing selection', async () => {
+  // Parallel coverage to the AsyncSelect ReactNode-with-title test, against
+  // the non-async Select wrapper. Guards against the two wrappers ever
+  // diverging on antd's two-arg onChange shape.
+  const ReactNodeLabel = (
+    <div>
+      <span>Jane Roe</span>
+      <span>jane@example.com</span>
+    </div>
+  );
+
+  const filters = [
+    {
+      Header: 'Owner',
+      key: 'owner',
+      id: 'owners',
+      input: 'select' as const,
+      operator: ListViewFilterOperator.RelationManyMany,
+      unfilteredLabel: 'All',
+      selects: [{ label: ReactNodeLabel, value: 99, title: 'Jane Roe' }],
+    },
+  ];
+
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  await selectOption('Jane Roe', 'Owner');
+
+  await waitFor(() => {
+    expect(mockUpdateFilterValue).toHaveBeenCalledWith(0, {
+      label: 'Jane Roe',
+      value: 99,
+    });
+  });
+});
+
+test('clearFilter notifies onSelect with undefined and isClear=true', () => {
+  // The isClear flag is what allows the parent (Filters/index) to suppress
+  // onFilterUpdate side-effects when the user clears the filter rather than
+  // picking a new value. Lock that contract in.
+  const mockOnSelect = jest.fn();
+  const ref = createRef<FilterHandler>();
+
+  render(
+    <SelectFilter
+      Header="Owner"
+      initialValue={{ label: 'John Doe', value: 42 }}
+      onSelect={mockOnSelect}
+      selects={[{ label: 'John Doe', value: 42, title: 'John Doe' }]}
+      ref={ref}
+    />,
+  );
+
+  ref.current?.clearFilter();
+
+  expect(mockOnSelect).toHaveBeenCalledWith(undefined, true);
+});
+
+test('rehydrates filter pill from initialValue with plain-string label', async () => {
+  // The user-visible regression: after URL/state rehydration the filter pill
+  // must render the human-readable name, not the numeric user id. The fix
+  // ensures the persisted label is a string; this test asserts that string
+  // is what surfaces in the rendered combobox selection.
+  const filters = [
+    {
+      Header: 'Owner',
+      key: 'owner',
+      id: 'owners',
+      input: 'select' as const,
+      operator: ListViewFilterOperator.RelationManyMany,
+      unfilteredLabel: 'All',
+      fetchSelects: jest.fn().mockResolvedValue({ data: [], totalCount: 0 }),
+      paginate: true,
+    },
+  ];
+
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[
+        {
+          id: 'owners',
+          operator: ListViewFilterOperator.RelationManyMany,
+          value: { label: 'John Doe', value: 42 },
+        },
+      ]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(screen.getByText('John Doe')).toBeInTheDocument();
   });
 });
