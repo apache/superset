@@ -24,10 +24,24 @@ builders at the bottom. Module-level state (``VERSIONED_MODELS``,
 
 VERSIONED_MODELS is populated at app startup by the initialisation code after
 make_versioned() has run and all versioned model classes have been defined.
+
+**Inline imports.** Several helpers below use ``# pylint: disable=
+import-outside-toplevel`` for imports of ``sqlalchemy_continuum`` and
+Superset model classes. The reason is uniform: this module is imported
+from ``init_versioning()`` in ``superset/initialization/__init__.py``
+before all SQLAlchemy mappers are configured and before Continuum's
+``make_versioned()`` has finished wiring shadow classes. Top-level
+imports of model classes or Continuum helpers would either trip an
+unresolved-mapper error or create an init-order cycle. The lazy form
+defers resolution until the helper actually runs, by which point app
+init is complete. Per-call ``why-`` comments are omitted to avoid
+repeating the same explanation at every callsite; unusual cases (if
+any are added) should be commented explicitly.
 """
 
+import functools
 import logging
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import sqlalchemy as sa
 from sqlalchemy import event
@@ -153,6 +167,7 @@ def _collect_parents_to_baseline(session: Session) -> dict[int, Any]:
     return parents
 
 
+@functools.cache
 def _child_to_parent_registry() -> dict[type, tuple[str, type]]:
     """Map child entity class → (parent-relationship-attr, parent class).
 
@@ -163,7 +178,16 @@ def _child_to_parent_registry() -> dict[type, tuple[str, type]]:
     A (just ``TableColumn``) followed by flush B (``SqlaTable.changed_on``);
     flush B reads children from DB AFTER flush A already pushed UPDATEs,
     capturing post-edit state.
+
+    Cached because this is called from ``_force_parent_dirty_on_child_change``
+    and ``_collect_parents_to_baseline`` on every save flush. The returned
+    mapping depends only on the (fixed at import time) child model classes,
+    so an unbounded ``functools.cache`` is the right shape — no invalidation
+    needed.
     """
+    # Lazy import: ``baseline`` is imported during ``init_versioning``, which
+    # runs before all model mappers are configured. Importing model classes
+    # at module load would either cycle or hit unresolved mappers.
     # pylint: disable=import-outside-toplevel
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 
@@ -403,7 +427,8 @@ def _baseline_dashboard_children(session: Session, dashboard: Any, tx_id: int) -
 # the model definitions — typo-prone if extended. Declared after the
 # handlers it references because module-level dict literals evaluate
 # at import time and need the names already bound.
-_CHILD_BASELINE_HANDLERS: dict[str, Any] = {
+_ChildBaselineHandler = Callable[[Session, Any, int], None]
+_CHILD_BASELINE_HANDLERS: dict[str, _ChildBaselineHandler] = {
     "SqlaTable": _baseline_dataset_children,
     "Dashboard": _baseline_dashboard_children,
 }
