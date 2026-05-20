@@ -213,9 +213,14 @@ const ClearAllButton = styled.button`
     white-space: nowrap;
     line-height: ${theme.controlHeight}px;
 
-    &:hover {
+    &:hover:not(:disabled) {
       color: ${theme.colorPrimaryHover};
       text-decoration: underline;
+    }
+
+    &:disabled {
+      color: ${theme.colorTextDisabled};
+      cursor: not-allowed;
     }
   `}
 `;
@@ -450,9 +455,10 @@ export function ListView<T extends object = any>({
                 updateFilterValue={applyFilterValue}
               />
             )}
-            {filterable && hasActiveFilters && (
+            {filterable && (
               <ClearAllButton
                 type="button"
+                disabled={!hasActiveFilters}
                 onClick={() => filterControlsRef.current?.clearFilters()}
               >
                 {t('Clear all')}
