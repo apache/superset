@@ -648,7 +648,7 @@ def _resolve_default_x_axis(
     return config.model_copy(update={"x": ColumnRef(name=dataset.main_dttm_col)})
 
 
-def map_xy_config(
+def map_xy_config(  # noqa: C901
     config: XYChartConfig, dataset_id: int | str | None = None
 ) -> Dict[str, Any]:
     """Map XY chart config to form_data with defensive validation."""
@@ -713,6 +713,9 @@ def map_xy_config(
         _ensure_temporal_adhoc_filter(form_data, config.x.name)
 
     form_data["row_limit"] = config.row_limit
+
+    if config.series_limit is not None:
+        form_data["series_limit"] = config.series_limit
 
     # Add stacking configuration
     if getattr(config, "stacked", False):
