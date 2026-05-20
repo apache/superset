@@ -36,6 +36,8 @@ def create_mock_task(
     task_id: int = 1,
     task_uuid: str | None = None,
     task_type: str = "sql_execution",
+    task_key: str = "default-key",
+    task_name: str | None = None,
     status: str = "success",
     scope: str = "private",
     changed_on: datetime | None = None,
@@ -45,6 +47,8 @@ def create_mock_task(
     task.id = task_id
     task.uuid = task_uuid or SAMPLE_UUID
     task.task_type = task_type
+    task.task_key = task_key
+    task.task_name = task_name
     task.status = status
     task.scope = scope
     task.changed_on = changed_on or datetime(2024, 1, 2, 10, 0, 0, tzinfo=timezone.utc)

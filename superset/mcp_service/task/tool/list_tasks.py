@@ -62,6 +62,7 @@ async def list_tasks(
 
     Sortable columns for order_column: id, changed_on, created_on, status
     Filter columns: task_type, status, scope
+    Search columns (via search=): task_type, task_key, task_name, status, scope
 
     Common task_type values: sql_execution, thumbnail, report
     Common status values: pending, in_progress, success, failure, aborted
@@ -94,7 +95,7 @@ async def list_tasks(
             item_serializer=_serialize,
             filter_type=TaskColumnFilter,
             default_columns=DEFAULT_TASK_COLUMNS,
-            search_columns=["task_type", "status", "scope"],
+            search_columns=["task_type", "task_key", "task_name", "status", "scope"],
             list_field_name="tasks",
             output_list_schema=TaskList,
             all_columns=ALL_TASK_COLUMNS,

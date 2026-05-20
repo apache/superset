@@ -111,7 +111,7 @@ async def test_list_action_logs_default_7day_filter_applied(mock_list, mcp_serve
     mock_list.return_value = ([], 0)
 
     async with Client(mcp_server) as client:
-        await client.call_tool("list_action_logs", {})
+        result = await client.call_tool("list_action_logs", {})
 
     # Verify list() was called with a dttm filter in column_operators
     call_kwargs = mock_list.call_args.kwargs
@@ -119,6 +119,14 @@ async def test_list_action_logs_default_7day_filter_applied(mock_list, mcp_serve
     dttm_filters = [f for f in col_operators if getattr(f, "col", None) == "dttm"]
     assert len(dttm_filters) == 1
     assert dttm_filters[0].opr == "gte"
+
+    # Verify the injected filter appears in the serialized filters_applied
+    data = json.loads(result.content[0].text)
+    filters_applied = data.get("filters_applied", [])
+    dttm_applied = [f for f in filters_applied if f.get("col") == "dttm"]
+    assert len(dttm_applied) == 1
+    assert dttm_applied[0]["opr"] == "gte"
+    assert isinstance(dttm_applied[0]["value"], str)  # ISO string, not datetime
 
 
 @patch("superset.daos.log.LogDAO.list")

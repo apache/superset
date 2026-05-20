@@ -45,6 +45,8 @@ ALL_TASK_COLUMNS: list[str] = [
     "id",
     "uuid",
     "task_type",
+    "task_key",
+    "task_name",
     "status",
     "scope",
     "changed_on",
@@ -75,6 +77,8 @@ class TaskInfo(BaseModel):
     id: int | None = Field(None, description="Task ID")
     uuid: str | None = Field(None, description="Task UUID")
     task_type: str | None = Field(None, description="Task type (e.g., sql_execution)")
+    task_key: str | None = Field(None, description="Task deduplication key")
+    task_name: str | None = Field(None, description="Human-readable task name")
     status: str | None = Field(None, description="Task status")
     scope: str | None = Field(None, description="Task scope (private/shared/system)")
     changed_on: str | datetime | None = Field(
@@ -144,7 +148,8 @@ class ListTasksRequest(BaseModel):
         Field(
             default=None,
             description=(
-                "Text search string matched against task_type, status, and scope. "
+                "Text search string matched against task_type, task_key, "
+                "task_name, status, and scope. "
                 "Cannot be used together with 'filters'."
             ),
         ),
@@ -226,6 +231,8 @@ def serialize_task_object(task: Any) -> TaskInfo | None:
         id=getattr(task, "id", None),
         uuid=str(uuid_val) if uuid_val is not None else None,
         task_type=getattr(task, "task_type", None),
+        task_key=getattr(task, "task_key", None),
+        task_name=getattr(task, "task_name", None),
         status=getattr(task, "status", None),
         scope=getattr(task, "scope", None),
         changed_on=getattr(task, "changed_on", None),
