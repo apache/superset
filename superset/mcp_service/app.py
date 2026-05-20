@@ -154,7 +154,7 @@ SQL Lab Integration:
 - open_sql_lab_with_context: Generate SQL Lab URL with pre-filled sql
 
 Schema Discovery:
-- get_schema: Get schema metadata for chart/dataset/dashboard (columns, filters)
+- get_schema: Get schema metadata for chart/dataset/dashboard/database/css_template/theme (columns, filters)
 
 System Information:
 - get_instance_info: Get instance-wide statistics, metadata, and current user identity
