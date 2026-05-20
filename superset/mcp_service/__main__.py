@@ -42,6 +42,8 @@ if os.environ.get("FASTMCP_TRANSPORT", "stdio") == "stdio":
     click.echo = lambda *args, **kwargs: click.echo(*args, file=sys.stderr, **kwargs)
 
 from superset.mcp_service.app import init_fastmcp_server, mcp
+from superset.mcp_service.middleware import create_response_size_guard_middleware
+from superset.mcp_service.server import build_middleware_list
 
 
 def _add_default_middlewares() -> None:
@@ -56,9 +58,6 @@ def _add_default_middlewares() -> None:
     ``build_middleware_list()`` already returns middlewares in the correct
     outermost-first order.
     """
-    from superset.mcp_service.middleware import create_response_size_guard_middleware
-    from superset.mcp_service.server import build_middleware_list
-
     for middleware in build_middleware_list():
         mcp.add_middleware(middleware)
 

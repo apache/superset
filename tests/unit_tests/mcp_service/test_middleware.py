@@ -34,11 +34,13 @@ from superset.commands.exceptions import (
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
+from superset.mcp_service.auth import MCPPermissionDeniedError
 from superset.mcp_service.mcp_config import MCP_RESPONSE_SIZE_CONFIG
 from superset.mcp_service.middleware import (
     _is_user_error,
     create_response_size_guard_middleware,
     GlobalErrorHandlerMiddleware,
+    RBACToolVisibilityMiddleware,
     ResponseSizeGuardMiddleware,
 )
 
@@ -1044,8 +1046,6 @@ class TestGlobalErrorHandlerLogLevels:
     @pytest.mark.asyncio
     async def test_mcp_permission_denied_error_becomes_tool_error(self) -> None:
         """MCPPermissionDeniedError must convert to ToolError, not a generic error."""
-        from superset.mcp_service.auth import MCPPermissionDeniedError
-
         middleware = GlobalErrorHandlerMiddleware()
 
         context = MagicMock()
@@ -1073,8 +1073,6 @@ class TestGlobalErrorHandlerLogLevels:
     @pytest.mark.asyncio
     async def test_mcp_permission_denied_error_is_user_error(self) -> None:
         """MCPPermissionDeniedError must be classified as a user error (WARNING)."""
-        from superset.mcp_service.auth import MCPPermissionDeniedError
-
         error = MCPPermissionDeniedError(
             permission_name="can_write",
             view_name="Chart",
@@ -1084,8 +1082,6 @@ class TestGlobalErrorHandlerLogLevels:
     @pytest.mark.asyncio
     async def test_mcp_permission_denied_error_logs_at_warning(self) -> None:
         """MCPPermissionDeniedError should log at WARNING, not ERROR."""
-        from superset.mcp_service.auth import MCPPermissionDeniedError
-
         middleware = GlobalErrorHandlerMiddleware()
 
         context = MagicMock()
@@ -1124,8 +1120,6 @@ class TestRBACToolVisibilityMiddleware:
     @pytest.mark.asyncio
     async def test_fails_open_on_exception(self) -> None:
         """Returns all tools when get_flask_app raises (fail open)."""
-        from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
-
         tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
         call_next = AsyncMock(return_value=tools)
         middleware = RBACToolVisibilityMiddleware()
@@ -1141,8 +1135,6 @@ class TestRBACToolVisibilityMiddleware:
     @pytest.mark.asyncio
     async def test_fails_open_when_user_is_none(self, app) -> None:
         """Returns all tools when get_user_from_request returns None."""
-        from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
-
         tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
         call_next = AsyncMock(return_value=tools)
         middleware = RBACToolVisibilityMiddleware()
@@ -1163,8 +1155,6 @@ class TestRBACToolVisibilityMiddleware:
     @pytest.mark.asyncio
     async def test_filters_tools_by_rbac(self, app) -> None:
         """Tools denied by is_tool_visible_to_current_user are removed."""
-        from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
-
         read_tool = self._make_tool("list_charts")
         write_tool = self._make_tool("generate_chart")
         tools = [read_tool, write_tool]
@@ -1197,8 +1187,6 @@ class TestRBACToolVisibilityMiddleware:
     @pytest.mark.asyncio
     async def test_fails_closed_on_permission_error(self, app) -> None:
         """Returns empty list when credentials are invalid (PermissionError)."""
-        from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
-
         tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
         call_next = AsyncMock(return_value=tools)
         middleware = RBACToolVisibilityMiddleware()
@@ -1219,8 +1207,6 @@ class TestRBACToolVisibilityMiddleware:
     @pytest.mark.asyncio
     async def test_fails_closed_on_bad_credentials_value_error(self, app) -> None:
         """Returns empty list when auth was attempted but user not found."""
-        from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
-
         tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
         call_next = AsyncMock(return_value=tools)
         middleware = RBACToolVisibilityMiddleware()
@@ -1241,8 +1227,6 @@ class TestRBACToolVisibilityMiddleware:
     @pytest.mark.asyncio
     async def test_fails_open_when_no_auth_configured(self, app) -> None:
         """Returns all tools when no auth source is configured at all."""
-        from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
-
         tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
         call_next = AsyncMock(return_value=tools)
         middleware = RBACToolVisibilityMiddleware()
