@@ -94,7 +94,9 @@ const OptionItem = styled.li<{ $active: boolean }>`
     transition: background 0.15s;
 
     &:hover {
-      background: ${$active ? theme.colorPrimaryBgHover : theme.colorFillTertiary};
+      background: ${$active
+        ? theme.colorPrimaryBgHover
+        : theme.colorFillTertiary};
     }
   `}
 `;
@@ -251,7 +253,7 @@ function CompactSelectPanel(
           `}
         />
       )}
-      <OptionList role="listbox">
+      <OptionList role="listbox" aria-label={t('Filter options')}>
         {isLoading ? (
           <StatusText>{t('Loading...')}</StatusText>
         ) : displayOptions.length === 0 ? (

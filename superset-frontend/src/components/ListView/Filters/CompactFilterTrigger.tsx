@@ -128,6 +128,9 @@ export default function CompactFilterTrigger({
   );
 
   return (
+    // destroyPopupOnHide intentionally omitted: keeping the popup mounted
+    // preserves filter component refs so external clearFilters() calls can
+    // reach the panel instance after it has been opened at least once.
     <Dropdown
       open={open}
       onOpenChange={setOpen}

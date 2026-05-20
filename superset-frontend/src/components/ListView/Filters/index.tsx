@@ -49,7 +49,7 @@ interface UIFiltersProps {
 
 function UIFilters(
   { filters, internalFilters = [], updateFilterValue }: UIFiltersProps,
-  ref: RefObject<{ clearFilters: () => void }>,
+  ref: RefObject<{ clearFilters: () => void; clearFilterById: (id: string) => void }>,
 ) {
   const filterRefs = useMemo(
     () =>
