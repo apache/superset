@@ -17,7 +17,7 @@
  * under the License.
  */
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   DataMask,
   DataMaskStateWithId,
@@ -28,7 +28,12 @@ import {
   Filters,
   NativeFilterType,
 } from '@superset-ui/core';
-import { styled, css, useTheme, SupersetTheme } from '@apache-superset/core/ui';
+import {
+  styled,
+  css,
+  useTheme,
+  SupersetTheme,
+} from '@apache-superset/core/theme';
 import {
   Typography,
   Select,
@@ -46,6 +51,10 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import { dispatchChartCustomizationHoverAction } from './utils';
 import { mergeExtraFormData } from '../../utils';
+import {
+  datasetLabel as getDatasetLabel,
+  datasetLabelLower,
+} from 'src/features/semanticLayers/label';
 
 interface ColumnApiResponse {
   column_name?: string;
@@ -257,9 +266,9 @@ const GroupByFilterCardContent: FC<{
       </Row>
 
       <Row>
-        <RowLabel>{t('Dataset')}</RowLabel>
+        <RowLabel>{getDatasetLabel()}</RowLabel>
         <RowValue>
-          {typeof datasetLabel === 'string' ? datasetLabel : 'Dataset'}
+          {typeof datasetLabel === 'string' ? datasetLabel : t('Dataset')}
         </RowValue>
       </Row>
 
@@ -470,7 +479,13 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
       } catch (error) {
         setColumnOptions([]);
         dispatch(
-          addDangerToast(t('Failed to load columns for dataset %s', datasetId)),
+          addDangerToast(
+            t(
+              'Failed to load columns for %s %s',
+              datasetLabelLower(),
+              datasetId,
+            ),
+          ),
         );
       } finally {
         setLoading(false);

@@ -19,15 +19,15 @@
 import { getExtensionsRegistry } from '@superset-ui/core';
 import { Provider as ReduxProvider } from 'react-redux';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DynamicPluginProvider } from 'src/components';
 import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
-import type { ThemeStorage } from '@apache-superset/core/ui';
+import { type ThemeStorage, ThemeMode } from '@apache-superset/core/theme';
 import { store } from 'src/views/store';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import querystring from 'query-string';
 
 /**
@@ -52,13 +52,16 @@ class ThemeMemoryStorageAdapter implements ThemeStorage {
 
 const themeController = new ThemeController({
   storage: new ThemeMemoryStorageAdapter(),
+  initialMode: ThemeMode.DEFAULT,
 });
 
 export const getThemeController = (): ThemeController => themeController;
 
 const extensionsRegistry = getExtensionsRegistry();
 
-export const EmbeddedContextProviders: React.FC = ({ children }) => {
+export const EmbeddedContextProviders: React.FC<{
+  children?: React.ReactNode;
+}> = ({ children }) => {
   const RootContextProviderExtension = extensionsRegistry.get(
     'root.context.provider',
   );
@@ -66,6 +69,7 @@ export const EmbeddedContextProviders: React.FC = ({ children }) => {
   return (
     <SupersetThemeProvider themeController={themeController}>
       <ReduxProvider store={store}>
+        {/* @ts-expect-error react-dnd types not updated for React 18 */}
         <DndProvider backend={HTML5Backend}>
           <EmbeddedUiConfigProvider>
             <DynamicPluginProvider>

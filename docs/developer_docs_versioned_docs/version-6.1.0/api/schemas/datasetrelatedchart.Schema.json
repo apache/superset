@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"type":"integer"},"slice_name":{"type":"string"},"viz_type":{"type":"string"}},"type":"object","title":"DatasetRelatedChart"},"schemaType":"response"}

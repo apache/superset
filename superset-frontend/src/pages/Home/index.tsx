@@ -17,14 +17,14 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
   FeatureFlag,
   getExtensionsRegistry,
   JsonObject,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import rison from 'rison';
 import { Collapse, ListViewCard } from '@superset-ui/core/components';
 import { User } from 'src/types/bootstrapTypes';
@@ -135,7 +135,7 @@ const bootstrapData = getBootstrapData();
 
 export const LoadingCards = ({ cover }: LoadingProps) => (
   <CardContainer showThumbnails={cover} className="loading-cards">
-    {new Array(loadingCardCount).fill(undefined).map((_, index) => (
+    {Array.from({ length: loadingCardCount }, (_, index) => (
       <ListViewCard
         key={index}
         cover={cover ? false : <></>}

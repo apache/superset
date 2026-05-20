@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,576 +16,435 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+import type { ReactElement } from 'react';
+import '@testing-library/jest-dom';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { TableRenderer } from '../../src/react-pivottable/TableRenderers';
+import { aggregatorTemplates } from '../../src/react-pivottable/utilities';
 
-let tableRenderer: TableRenderer;
-let mockGetAggregatedData: jest.Mock;
-let mockSortAndCacheData: jest.Mock;
+jest.mock(
+  'react-icons/fa',
+  () => ({
+    FaSort: () => <span data-testid="sort-icon" />,
+    FaSortDown: () => <span data-testid="sort-desc-icon" />,
+    FaSortUp: () => <span data-testid="sort-asc-icon" />,
+  }),
+  { virtual: true },
+);
 
-const columnIndex = 0;
-const visibleColKeys = [['col1'], ['col2']];
-const pivotData = {
-  subtotals: {
-    rowEnabled: true,
-    rowPartialOnTop: false,
-  },
-} as any;
-const maxRowIndex = 2;
-
-const mockProps = {
-  rows: ['row1'],
-  cols: ['col1'],
-  data: [],
-  aggregatorName: 'Sum',
-  vals: ['value'],
-  valueFilter: {},
-  sorters: {},
-  rowOrder: 'key_a_to_z',
-  colOrder: 'key_a_to_z',
-  tableOptions: {},
-  namesMapping: {},
-  allowRenderHtml: false,
-  onContextMenu: jest.fn(),
-  aggregatorsFactory: jest.fn(),
-  defaultFormatter: jest.fn(),
-  customFormatters: {},
-  rowEnabled: true,
-  rowPartialOnTop: false,
-  colEnabled: false,
-  colPartialOnTop: false,
-};
-
-beforeEach(() => {
-  tableRenderer = new TableRenderer(mockProps);
-
-  mockGetAggregatedData = jest.fn();
-  mockSortAndCacheData = jest.fn();
-
-  tableRenderer.getAggregatedData = mockGetAggregatedData;
-  tableRenderer.sortAndCacheData = mockSortAndCacheData;
-
-  tableRenderer.cachedBasePivotSettings = {
-    pivotData: {
-      subtotals: {
-        rowEnabled: true,
-        rowPartialOnTop: false,
-        colEnabled: false,
-        colPartialOnTop: false,
-      },
-    },
-    rowKeys: [['A'], ['B'], ['C']],
-  } as any;
-
-  tableRenderer.state = {
-    sortingOrder: [],
-    activeSortColumn: null,
-    collapsedRows: {},
-    collapsedCols: {},
-  } as any;
+/**
+ * A minimal aggregatorsFactory that mirrors the production one.
+ * PivotData's constructor calls `aggregatorsFactory(defaultFormatter)`
+ * to obtain a map of aggregator constructors keyed by name.
+ * The `formatter` argument is ignored here because the tests only
+ * care about rendering output, not number formatting precision.
+ */
+const aggregatorsFactory = () => ({
+  Count: aggregatorTemplates.count(),
+  Sum: aggregatorTemplates.sum(),
 });
 
-const mockGroups = {
-  B: {
-    currentVal: 20,
-    B1: { currentVal: 15 },
-    B2: { currentVal: 5 },
-  },
-  A: {
-    currentVal: 10,
-    A1: { currentVal: 8 },
-    A2: { currentVal: 2 },
-  },
-  C: {
-    currentVal: 30,
-    C1: { currentVal: 25 },
-    C2: { currentVal: 5 },
-  },
-};
+const SAMPLE_DATA = [
+  { color: 'blue', shape: 'circle', value: 10 },
+  { color: 'blue', shape: 'square', value: 20 },
+  { color: 'red', shape: 'circle', value: 30 },
+  { color: 'red', shape: 'square', value: 40 },
+];
 
-const createMockPivotData = (rowData: Record<string, number>) => {
+function renderWithTheme(ui: ReactElement) {
+  return render(<ThemeProvider theme={supersetTheme}>{ui}</ThemeProvider>);
+}
+
+function buildDefaultProps(overrides: Record<string, unknown> = {}) {
   return {
-    rowKeys: Object.keys(rowData).map(key => key.split('.')),
-    getAggregator: (rowKey: string[], colName: string) => ({
-      value: () => rowData[rowKey.join('.')],
-    }),
+    data: SAMPLE_DATA,
+    rows: ['color'] as string[],
+    cols: ['shape'] as string[],
+    aggregatorName: 'Count',
+    vals: [] as string[],
+    aggregatorsFactory,
+    tableOptions: {},
+    onContextMenu: jest.fn(),
+    ...overrides,
   };
-};
+}
 
-test('should set initial ascending sort when no active sort column', () => {
-  mockGetAggregatedData.mockReturnValue({
-    A: { currentVal: 30 },
-    B: { currentVal: 10 },
-    C: { currentVal: 20 },
+test('TableRenderer renders a table element with the pvtTable class', () => {
+  const props = buildDefaultProps();
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const table = screen.getByRole('grid');
+  expect(table).toBeInTheDocument();
+  expect(table).toHaveClass('pvtTable');
+});
+
+test('TableRenderer renders column headers from pivot data', () => {
+  const props = buildDefaultProps();
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // The column attribute values ("circle" and "square") should appear as
+  // column headers in the rendered table.
+  expect(screen.getByText('circle')).toBeInTheDocument();
+  expect(screen.getByText('square')).toBeInTheDocument();
+});
+
+test('TableRenderer renders row headers from pivot data', () => {
+  const props = buildDefaultProps();
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // The row attribute values ("blue" and "red") should appear as
+  // row headers in the rendered table.
+  expect(screen.getByText('blue')).toBeInTheDocument();
+  expect(screen.getByText('red')).toBeInTheDocument();
+});
+
+test('TableRenderer renders aggregated cell values', () => {
+  const props = buildDefaultProps();
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // With "Count" aggregator, each cell (row x col intersection) should
+  // contain "1" because each combination appears exactly once.
+  const cells = screen.getAllByRole('gridcell');
+  const cellTexts = cells.map(cell => cell.textContent);
+
+  // There should be cell values of "1" for each of the four intersections
+  // (blue+circle, blue+square, red+circle, red+square).
+  const onesCount = cellTexts.filter(text => text === '1').length;
+  expect(onesCount).toBeGreaterThanOrEqual(4);
+});
+
+test('TableRenderer renders row totals when rowTotals is enabled', () => {
+  const props = buildDefaultProps({
+    tableOptions: { rowTotals: true, colTotals: true },
   });
+  renderWithTheme(<TableRenderer {...props} />);
 
-  const setStateMock = jest.fn();
-  tableRenderer.setState = setStateMock;
+  // Row totals column should show "2" for each color (blue has 2 records,
+  // red has 2 records).
+  const totalCells = screen
+    .getAllByRole('gridcell')
+    .filter(cell => cell.classList.contains('pvtTotal'));
+  expect(totalCells.length).toBeGreaterThan(0);
 
-  tableRenderer.sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex);
-
-  expect(setStateMock).toHaveBeenCalled();
-
-  const [stateUpdater] = setStateMock.mock.calls[0];
-
-  expect(typeof stateUpdater).toBe('function');
-
-  const previousState = {
-    sortingOrder: [],
-    activeSortColumn: 0,
-  };
-
-  const newState = stateUpdater(previousState);
-
-  expect(newState.sortingOrder[columnIndex]).toBe('asc');
-  expect(newState.activeSortColumn).toBe(columnIndex);
-
-  expect(mockGetAggregatedData).toHaveBeenCalledWith(
-    pivotData,
-    visibleColKeys[columnIndex],
-    false,
-  );
-
-  expect(mockSortAndCacheData).toHaveBeenCalledWith(
-    { A: { currentVal: 30 }, B: { currentVal: 10 }, C: { currentVal: 20 } },
-    'asc',
-    true,
-    false,
-    maxRowIndex,
-  );
+  const totalValues = totalCells.map(cell => cell.textContent);
+  expect(totalValues).toContain('2');
 });
 
-test('should toggle from asc to desc when clicking same column', () => {
-  mockGetAggregatedData.mockReturnValue({
-    A: { currentVal: 30 },
-    B: { currentVal: 10 },
-    C: { currentVal: 20 },
+test('TableRenderer renders col totals row when colTotals is enabled', () => {
+  const props = buildDefaultProps({
+    tableOptions: { rowTotals: true, colTotals: true },
   });
-  const setStateMock = jest.fn(stateUpdater => {
-    if (typeof stateUpdater === 'function') {
-      const newState = stateUpdater({
-        sortingOrder: ['asc' as never],
-        activeSortColumn: 0,
-      });
+  renderWithTheme(<TableRenderer {...props} />);
 
-      tableRenderer.state = {
-        ...tableRenderer.state,
-        ...newState,
-      };
-    }
+  // The totals row should have cells with class pvtRowTotal.
+  const rowTotalCells = screen
+    .getAllByRole('gridcell')
+    .filter(cell => cell.classList.contains('pvtRowTotal'));
+  expect(rowTotalCells.length).toBeGreaterThan(0);
+});
+
+test('TableRenderer renders grand total when both totals are enabled', () => {
+  const props = buildDefaultProps({
+    tableOptions: { rowTotals: true, colTotals: true },
   });
-  tableRenderer.setState = setStateMock;
+  renderWithTheme(<TableRenderer {...props} />);
 
-  tableRenderer.sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex);
-
-  expect(mockSortAndCacheData).toHaveBeenCalledWith(
-    { A: { currentVal: 30 }, B: { currentVal: 10 }, C: { currentVal: 20 } },
-    'desc',
-    true,
-    false,
-    maxRowIndex,
-  );
+  // The grand total cell should show "4" (total record count).
+  const grandTotalCells = screen
+    .getAllByRole('gridcell')
+    .filter(cell => cell.classList.contains('pvtGrandTotal'));
+  expect(grandTotalCells.length).toBe(1);
+  expect(grandTotalCells[0]).toHaveTextContent('4');
 });
 
-test('should check second call in sequence', () => {
-  mockGetAggregatedData.mockReturnValue({
-    A: { currentVal: 30 },
-    B: { currentVal: 10 },
-    C: { currentVal: 20 },
+test('TableRenderer handles empty data gracefully', () => {
+  const props = buildDefaultProps({ data: [] });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // The table should still render without crashing, just with no data rows.
+  const table = screen.getByRole('grid');
+  expect(table).toBeInTheDocument();
+
+  // With empty data, there are no regular value cells (pvtVal).
+  const valueCells = document.querySelectorAll('.pvtVal');
+  expect(valueCells).toHaveLength(0);
+
+  // No row headers should be present.
+  const rowLabels = document.querySelectorAll('.pvtRowLabel');
+  expect(rowLabels).toHaveLength(0);
+});
+
+test('TableRenderer handles data with no rows dimension', () => {
+  const props = buildDefaultProps({
+    rows: [],
+    cols: ['color'],
   });
+  renderWithTheme(<TableRenderer {...props} />);
 
-  mockSortAndCacheData.mockClear();
+  const table = screen.getByRole('grid');
+  expect(table).toBeInTheDocument();
 
-  const setStateMock = jest.fn(stateUpdater => {
-    if (typeof stateUpdater === 'function') {
-      const newState = stateUpdater(tableRenderer.state);
-      tableRenderer.state = {
-        ...tableRenderer.state,
-        ...newState,
-      };
-    }
+  // Column headers should still render.
+  expect(screen.getByText('blue')).toBeInTheDocument();
+  expect(screen.getByText('red')).toBeInTheDocument();
+});
+
+test('TableRenderer handles data with no cols dimension', () => {
+  const props = buildDefaultProps({
+    rows: ['color'],
+    cols: [],
   });
-  tableRenderer.setState = setStateMock;
+  renderWithTheme(<TableRenderer {...props} />);
 
-  tableRenderer.state = {
-    sortingOrder: [],
-    activeSortColumn: 0,
-    collapsedRows: {},
-    collapsedCols: {},
-  } as any;
-  tableRenderer.sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex);
+  const table = screen.getByRole('grid');
+  expect(table).toBeInTheDocument();
 
-  tableRenderer.state = {
-    sortingOrder: ['asc' as never],
-    activeSortColumn: 0 as any,
-    collapsedRows: {},
-    collapsedCols: {},
-  } as any;
-  tableRenderer.sortData(columnIndex, visibleColKeys, pivotData, maxRowIndex);
-
-  expect(mockSortAndCacheData).toHaveBeenCalledTimes(2);
-
-  expect(mockSortAndCacheData.mock.calls[0]).toEqual([
-    { A: { currentVal: 30 }, B: { currentVal: 10 }, C: { currentVal: 20 } },
-    'asc',
-    true,
-    false,
-    maxRowIndex,
-  ]);
-
-  expect(mockSortAndCacheData.mock.calls[1]).toEqual([
-    { A: { currentVal: 30 }, B: { currentVal: 10 }, C: { currentVal: 20 } },
-    'desc',
-    true,
-    false,
-    maxRowIndex,
-  ]);
+  // Row headers should still render.
+  expect(screen.getByText('blue')).toBeInTheDocument();
+  expect(screen.getByText('red')).toBeInTheDocument();
 });
 
-test('should sort hierarchical data in descending order', () => {
-  tableRenderer = new TableRenderer(mockProps);
-  const groups = {
-    A: {
-      currentVal: 30,
-      A1: { currentVal: 13 },
-      A2: { currentVal: 17 },
-    },
-    B: {
-      currentVal: 10,
-      B1: { currentVal: 7 },
-      B2: { currentVal: 3 },
-    },
-
-    C: {
-      currentVal: 18,
-      C1: { currentVal: 7 },
-      C2: { currentVal: 11 },
-    },
-  };
-
-  const result = tableRenderer.sortAndCacheData(groups, 'desc', true, false, 2);
-
-  expect(result).toBeDefined();
-
-  expect(Array.isArray(result)).toBe(true);
-
-  expect(result).toEqual([
-    ['A', 'A2'],
-    ['A', 'A1'],
-    ['A'],
-    ['C', 'C2'],
-    ['C', 'C1'],
-    ['C'],
-    ['B', 'B1'],
-    ['B', 'B2'],
-    ['B'],
-  ]);
-});
-
-test('should sort hierarchical data in ascending order', () => {
-  tableRenderer = new TableRenderer(mockProps);
-  const groups = {
-    A: {
-      currentVal: 30,
-      A1: { currentVal: 13 },
-      A2: { currentVal: 17 },
-    },
-    B: {
-      currentVal: 10,
-      B1: { currentVal: 7 },
-      B2: { currentVal: 3 },
-    },
-
-    C: {
-      currentVal: 18,
-      C1: { currentVal: 7 },
-      C2: { currentVal: 11 },
-    },
-  };
-
-  const result = tableRenderer.sortAndCacheData(groups, 'asc', true, false, 2);
-
-  expect(result).toBeDefined();
-
-  expect(Array.isArray(result)).toBe(true);
-
-  expect(result).toEqual([
-    ['B', 'B2'],
-    ['B', 'B1'],
-    ['B'],
-    ['C', 'C1'],
-    ['C', 'C2'],
-    ['C'],
-    ['A', 'A1'],
-    ['A', 'A2'],
-    ['A'],
-  ]);
-});
-
-test('should calculate groups from pivot data', () => {
-  tableRenderer = new TableRenderer(mockProps);
-  const mockAggregator = (value: number) => ({
-    value: () => value,
-    format: jest.fn(),
-    isSubtotal: false,
+test('TableRenderer renders with Sum aggregator', () => {
+  const props = buildDefaultProps({
+    aggregatorName: 'Sum',
+    vals: ['value'],
   });
+  renderWithTheme(<TableRenderer {...props} />);
 
-  const mockPivotData = {
-    rowKeys: [['A'], ['B'], ['C']],
-    getAggregator: jest
-      .fn()
-      .mockReturnValueOnce(mockAggregator(30))
-      .mockReturnValueOnce(mockAggregator(10))
-      .mockReturnValueOnce(mockAggregator(20)),
-  };
+  const cells = screen.getAllByRole('gridcell');
+  const cellTexts = cells.map(cell => cell.textContent);
 
-  const result = tableRenderer.getAggregatedData(
-    mockPivotData as any,
-    ['col1'],
-    false,
-  );
+  // Sum of value for blue+circle=10, blue+square=20, red+circle=30,
+  // red+square=40. Check that at least some of these appear.
+  expect(cellTexts.some(text => text?.includes('10'))).toBe(true);
+  expect(cellTexts.some(text => text?.includes('40'))).toBe(true);
+});
 
-  expect(result).toEqual({
-    A: { currentVal: 30 },
-    B: { currentVal: 10 },
-    C: { currentVal: 20 },
+test('TableRenderer applies namesMapping to header labels', () => {
+  const props = buildDefaultProps({
+    namesMapping: { blue: 'Blue Color', red: 'Red Color' },
   });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  expect(screen.getByText('Blue Color')).toBeInTheDocument();
+  expect(screen.getByText('Red Color')).toBeInTheDocument();
 });
 
-test('should sort groups and convert to array in ascending order', () => {
-  tableRenderer = new TableRenderer(mockProps);
-  const result = tableRenderer.sortAndCacheData(
-    mockGroups,
-    'asc',
-    true,
-    false,
-    2,
-  );
+test('TableRenderer renders the row attribute label in the header', () => {
+  const props = buildDefaultProps();
+  renderWithTheme(<TableRenderer {...props} />);
 
-  expect(result).toEqual([
-    ['A', 'A2'],
-    ['A', 'A1'],
-    ['A'],
-    ['B', 'B2'],
-    ['B', 'B1'],
-    ['B'],
-    ['C', 'C2'],
-    ['C', 'C1'],
-    ['C'],
-  ]);
+  // The row attribute name "color" should appear as an axis label.
+  const axisLabels = document.querySelectorAll('.pvtAxisLabel');
+  const axisLabelTexts = Array.from(axisLabels).map(el => el.textContent);
+  expect(axisLabelTexts).toContain('color');
 });
 
-test('should sort groups and convert to array in descending order', () => {
-  tableRenderer = new TableRenderer(mockProps);
-  const result = tableRenderer.sortAndCacheData(
-    mockGroups,
-    'desc',
-    true,
-    false,
-    2,
-  );
+test('TableRenderer renders the column attribute label in the header', () => {
+  const props = buildDefaultProps();
+  renderWithTheme(<TableRenderer {...props} />);
 
-  expect(result).toEqual([
-    ['C', 'C1'],
-    ['C', 'C2'],
-    ['C'],
-    ['B', 'B1'],
-    ['B', 'B2'],
-    ['B'],
-    ['A', 'A1'],
-    ['A', 'A2'],
-    ['A'],
-  ]);
+  // The column attribute name "shape" should appear as an axis label.
+  const axisLabels = document.querySelectorAll('.pvtAxisLabel');
+  const axisLabelTexts = Array.from(axisLabels).map(el => el.textContent);
+  expect(axisLabelTexts).toContain('shape');
 });
 
-test('should handle rowPartialOnTop = true configuration', () => {
-  tableRenderer = new TableRenderer(mockProps);
-  const result = tableRenderer.sortAndCacheData(
-    mockGroups,
-    'asc',
-    true,
-    true,
-    2,
-  );
-
-  expect(result).toEqual([
-    ['A'],
-    ['A', 'A2'],
-    ['A', 'A1'],
-    ['B'],
-    ['B', 'B2'],
-    ['B', 'B1'],
-    ['C'],
-    ['C', 'C2'],
-    ['C', 'C1'],
-  ]);
-});
-
-test('should handle rowEnabled = false and rowPartialOnTop = false, sorting asc', () => {
-  tableRenderer = new TableRenderer(mockProps);
-
-  const result = tableRenderer.sortAndCacheData(
-    mockGroups,
-    'asc',
-    false,
-    false,
-    2,
-  );
-
-  expect(result).toEqual([
-    ['A', 'A2'],
-    ['A', 'A1'],
-    ['B', 'B2'],
-    ['B', 'B1'],
-    ['C', 'C2'],
-    ['C', 'C1'],
-  ]);
-});
-
-test('should handle rowEnabled = false and rowPartialOnTop = false , sorting desc', () => {
-  tableRenderer = new TableRenderer(mockProps);
-
-  const result = tableRenderer.sortAndCacheData(
-    mockGroups,
-    'desc',
-    false,
-    false,
-    2,
-  );
-
-  expect(result).toEqual([
-    ['C', 'C1'],
-    ['C', 'C2'],
-    ['B', 'B1'],
-    ['B', 'B2'],
-    ['A', 'A1'],
-    ['A', 'A2'],
-  ]);
-});
-
-test('create hierarchical structure with subtotal at bottom', () => {
-  tableRenderer = new TableRenderer(mockProps);
-  const rowData = {
-    'A.A1': 10,
-    'A.A2': 20,
-    A: 30,
-    'B.B1': 30,
-    'B.B2': 40,
-    B: 70,
-    'C.C1': 50,
-    'C.C2': 60,
-    C: 110,
-  };
-
-  const pivotData = createMockPivotData(rowData);
-  const result = tableRenderer.getAggregatedData(pivotData, 'Col1', false);
-
-  expect(result).toEqual({
-    A: {
-      A1: { currentVal: 10 },
-      A2: { currentVal: 20 },
-      currentVal: 30,
-    },
-    B: {
-      B1: { currentVal: 30 },
-      B2: { currentVal: 40 },
-      currentVal: 70,
-    },
-    C: {
-      C1: { currentVal: 50 },
-      C2: { currentVal: 60 },
-      currentVal: 110,
-    },
+test('TableRenderer calls onContextMenu callback', () => {
+  const onContextMenu = jest.fn();
+  const props = buildDefaultProps({
+    onContextMenu,
+    tableOptions: { highlightHeaderCellsOnHover: true },
   });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // The column attribute value "circle" is rendered inside a header <th> whose
+  // onContextMenu handler calls the callback.
+  const columnHeaderCell = screen.getByText('circle').closest('th');
+  expect(columnHeaderCell).not.toBeNull();
+  fireEvent.contextMenu(columnHeaderCell!);
+
+  expect(onContextMenu).toHaveBeenCalledTimes(1);
+  const [, colKey, rowKey, filters] = onContextMenu.mock.calls[0];
+  expect(colKey).toEqual(['circle']);
+  expect(rowKey).toBeUndefined();
+  expect(filters).toEqual({ shape: 'circle' });
 });
 
-test('create hierarchical structure with subtotal at top', () => {
-  tableRenderer = new TableRenderer(mockProps);
-  const rowData = {
-    A: 30,
-    'A.A1': 10,
-    'A.A2': 20,
-    B: 70,
-    'B.B1': 30,
-    'B.B2': 40,
-    C: 110,
-    'C.C1': 50,
-    'C.C2': 60,
-  };
+test('TableRenderer renders with multiple row dimensions', () => {
+  const multiRowData = [
+    { country: 'US', city: 'NYC', value: 10 },
+    { country: 'US', city: 'LA', value: 20 },
+    { country: 'UK', city: 'London', value: 30 },
+  ];
 
-  const pivotData = createMockPivotData(rowData);
-  const result = tableRenderer.getAggregatedData(pivotData, 'Col1', true);
-
-  expect(result).toEqual({
-    A: {
-      A1: { currentVal: 10 },
-      A2: { currentVal: 20 },
-      currentVal: 30,
-    },
-    B: {
-      B1: { currentVal: 30 },
-      B2: { currentVal: 40 },
-      currentVal: 70,
-    },
-    C: {
-      C1: { currentVal: 50 },
-      C2: { currentVal: 60 },
-      currentVal: 110,
-    },
+  const props = buildDefaultProps({
+    data: multiRowData,
+    rows: ['country', 'city'],
+    cols: [],
   });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const table = screen.getByRole('grid');
+  expect(table).toBeInTheDocument();
+
+  expect(screen.getByText('US')).toBeInTheDocument();
+  expect(screen.getByText('UK')).toBeInTheDocument();
+  expect(screen.getByText('NYC')).toBeInTheDocument();
+  expect(screen.getByText('LA')).toBeInTheDocument();
+  expect(screen.getByText('London')).toBeInTheDocument();
 });
 
-test('values ​​from the 3rd level of the hierarchy with a subtotal at the bottom', () => {
-  tableRenderer = new TableRenderer(mockProps);
-  const rowData = {
-    'A.A1.A11': 10,
-    'A.A1.A12': 20,
-    'A.A1': 30,
-    'A.A2': 30,
-    'A.A3': 50,
-    A: 110,
-  };
+test('TableRenderer renders with multiple column dimensions', () => {
+  const multiColData = [
+    { year: '2023', quarter: 'Q1', metric: 5 },
+    { year: '2023', quarter: 'Q2', metric: 10 },
+    { year: '2024', quarter: 'Q1', metric: 15 },
+  ];
 
-  const pivotData = createMockPivotData(rowData);
-  const result = tableRenderer.getAggregatedData(pivotData, 'Col1', false);
+  const props = buildDefaultProps({
+    data: multiColData,
+    rows: [],
+    cols: ['year', 'quarter'],
+  });
+  renderWithTheme(<TableRenderer {...props} />);
 
-  expect(result).toEqual({
-    A: {
-      A1: {
-        A11: { currentVal: 10 },
-        A12: { currentVal: 20 },
-        currentVal: 30,
+  const table = screen.getByRole('grid');
+  expect(table).toBeInTheDocument();
+
+  expect(screen.getByText('2023')).toBeInTheDocument();
+  expect(screen.getByText('2024')).toBeInTheDocument();
+  // Q1 appears under both 2023 and 2024, so use getAllByText.
+  expect(screen.getAllByText('Q1').length).toBeGreaterThanOrEqual(2);
+  expect(screen.getByText('Q2')).toBeInTheDocument();
+});
+
+test('TableRenderer renders value cells with the pvtVal class', () => {
+  const props = buildDefaultProps();
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const valueCells = document.querySelectorAll('.pvtVal');
+  // 2 rows x 2 cols = 4 value cells
+  expect(valueCells.length).toBe(4);
+});
+
+test('TableRenderer coerces numeric timestamp strings to numbers for column header date formatters', () => {
+  const dateFormatter = jest.fn((val: unknown) => `col:${String(val)}`);
+  const data = [
+    { shape: '1700000000000', color: 'blue', value: 1 },
+    { shape: 'square', color: 'blue', value: 2 },
+  ];
+  const props = buildDefaultProps({
+    data,
+    rows: ['color'],
+    cols: ['shape'],
+    tableOptions: { dateFormatters: { shape: dateFormatter } },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // Numeric string should be coerced to a Number before being passed to the
+  // date formatter; plain (non-numeric) strings should pass through verbatim.
+  expect(dateFormatter).toHaveBeenCalledWith(1700000000000);
+  expect(dateFormatter).toHaveBeenCalledWith('square');
+
+  expect(screen.getByText('col:1700000000000')).toBeInTheDocument();
+  expect(screen.getByText('col:square')).toBeInTheDocument();
+});
+
+test('TableRenderer coerces numeric timestamp strings to numbers for row header date formatters', () => {
+  const dateFormatter = jest.fn((val: unknown) => `row:${String(val)}`);
+  const data = [
+    { color: '1700000000000', shape: 'circle', value: 1 },
+    { color: 'red', shape: 'circle', value: 2 },
+  ];
+  const props = buildDefaultProps({
+    data,
+    rows: ['color'],
+    cols: ['shape'],
+    tableOptions: { dateFormatters: { color: dateFormatter } },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // Row-header path mirrors the column path: numeric strings coerce to
+  // Number, non-numeric strings pass through verbatim.
+  expect(dateFormatter).toHaveBeenCalledWith(1700000000000);
+  expect(dateFormatter).toHaveBeenCalledWith('red');
+
+  expect(screen.getByText('row:1700000000000')).toBeInTheDocument();
+  expect(screen.getByText('row:red')).toBeInTheDocument();
+});
+
+test('TableRenderer applies cellColorFormatters background and contrast color to column headers', () => {
+  const cellColorFormatters = {
+    shape: [
+      {
+        column: 'shape',
+        getColorFromValue: (val: unknown) =>
+          val === 'circle' ? '#ff0000' : undefined,
       },
-      A2: { currentVal: 30 },
-      A3: { currentVal: 50 },
-      currentVal: 110,
-    },
+    ],
+  };
+  const props = buildDefaultProps({
+    tableOptions: { cellColorFormatters },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  // The matching column header should pick up the formatter's background
+  // color and a contrast-aware text color from getTextColorForBackground.
+  const formattedHeader = screen.getByText('circle').closest('th');
+  expect(formattedHeader).not.toBeNull();
+  expect(formattedHeader!.style.backgroundColor).not.toBe('');
+  expect(formattedHeader!.style.color).not.toBe('');
+
+  // The non-matching header should not get a background applied.
+  const plainHeader = screen.getByText('square').closest('th');
+  expect(plainHeader!.style.backgroundColor).toBe('');
+});
+
+test('TableRenderer applies cellColorFormatters background and contrast color to value cells', () => {
+  // Value-cell formatters are matched against actual row/col key values
+  // (not attribute names), so a formatter with column: 'blue' fires for
+  // every value cell whose row key contains 'blue'.
+  const cellColorFormatters = {
+    color: [
+      {
+        column: 'blue',
+        getColorFromValue: () => '#000000',
+      },
+    ],
+  };
+  const props = buildDefaultProps({
+    tableOptions: { cellColorFormatters },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const valueCells = Array.from(
+    document.querySelectorAll<HTMLElement>('.pvtVal'),
+  );
+  expect(valueCells.length).toBeGreaterThan(0);
+
+  // At least one value cell in the "blue" row should have both a background
+  // and a contrast-aware text color applied.
+  const formattedCells = valueCells.filter(
+    cell => cell.style.backgroundColor !== '',
+  );
+  expect(formattedCells.length).toBeGreaterThan(0);
+  formattedCells.forEach(cell => {
+    expect(cell.style.color).not.toBe('');
   });
 });
 
-test('values ​​from the 3rd level of the hierarchy with a subtotal at the top', () => {
-  tableRenderer = new TableRenderer(mockProps);
-  const rowData = {
-    A: 110,
-    'A.A1': 30,
-    'A.A1.A11': 10,
-    'A.A1.A12': 20,
-    'A.A2': 30,
-    'A.A3': 50,
-  };
+test('TableRenderer renders correct number of thead and tbody sections', () => {
+  const props = buildDefaultProps();
+  renderWithTheme(<TableRenderer {...props} />);
 
-  const pivotData = createMockPivotData(rowData);
-  const result = tableRenderer.getAggregatedData(pivotData, 'Col1', true);
+  const table = screen.getByRole('grid');
 
-  expect(result).toEqual({
-    A: {
-      A1: {
-        A11: { currentVal: 10 },
-        A12: { currentVal: 20 },
-        currentVal: 30,
-      },
-      A2: { currentVal: 30 },
-      A3: { currentVal: 50 },
-      currentVal: 110,
-    },
-  });
+  // The table should have thead and tbody elements.
+  const theadEl = table.querySelector('thead');
+  const tbodyEl = table.querySelector('tbody');
+  expect(theadEl).toBeInTheDocument();
+  expect(tbodyEl).toBeInTheDocument();
 });

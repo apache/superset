@@ -17,8 +17,8 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { t } from '@apache-superset/core';
-import { tn } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
+import { tn } from '@apache-superset/core/translation';
 import levenshtein from 'js-levenshtein';
 
 import { List } from '@superset-ui/core/components';
@@ -56,6 +56,7 @@ const findMatches = (undefinedParameters: string[], templateKeys: string[]) => {
 export function ParameterErrorMessage({
   error,
   subtitle,
+  closable,
 }: ErrorMessageComponentProps<ParameterErrorExtra>) {
   const { extra = { issue_codes: [] }, level, message } = error;
 
@@ -118,6 +119,7 @@ export function ParameterErrorMessage({
       message={message}
       description={subtitle}
       descriptionDetails={body}
+      closable={closable}
     />
   );
 }

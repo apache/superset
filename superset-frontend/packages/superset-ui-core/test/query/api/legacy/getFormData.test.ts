@@ -44,7 +44,7 @@ describe('getFormData()', () => {
     row_limit: 1000,
   };
 
-  it('returns formData for given slice id', () => {
+  test('returns formData for given slice id', () => {
     fetchMock.get(`glob:*/api/v1/form_data/?slice_id=1`, mockData);
 
     return expect(
@@ -54,7 +54,7 @@ describe('getFormData()', () => {
     ).resolves.toEqual(mockData);
   });
 
-  it('overrides formData when overrideFormData is specified', () => {
+  test('overrides formData when overrideFormData is specified', () => {
     fetchMock.get(`glob:*/api/v1/form_data/?slice_id=1`, mockData);
 
     return expect(

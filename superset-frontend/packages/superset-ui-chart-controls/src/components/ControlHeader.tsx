@@ -17,8 +17,8 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { t } from '@apache-superset/core';
-import { css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css } from '@apache-superset/core/theme';
 import { InfoTooltip, Tooltip, Icons } from '@superset-ui/core/components';
 
 type ValidationError = string;

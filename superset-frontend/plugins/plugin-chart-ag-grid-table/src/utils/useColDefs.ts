@@ -20,7 +20,8 @@
 import { ColDef } from '@superset-ui/core/components/ThemedAgGridReact';
 import { useCallback, useMemo } from 'react';
 import { DataRecord, DataRecordValue } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
+import { useTheme } from '@apache-superset/core/theme';
 import { ColorFormatters } from '@superset-ui/chart-controls';
 import { extent as d3Extent, max as d3Max } from 'd3-array';
 import {
@@ -31,6 +32,9 @@ import {
 } from '../types';
 import getCellClass from './getCellClass';
 import filterValueGetter from './filterValueGetter';
+import htmlTextFilterValueGetter, {
+  htmlTextComparator,
+} from './htmlTextFilterValueGetter';
 import dateFilterComparator from './dateFilterComparator';
 import DateWithFormatter from './DateWithFormatter';
 import { getAggFunc } from './getAggFunc';
@@ -225,6 +229,7 @@ export const useColDefs = ({
   alignPositiveNegative,
   slice_id,
 }: UseColDefsProps) => {
+  const theme = useTheme();
   const getCommonColProps = useCallback(
     (
       col: InputColumn,
@@ -263,6 +268,7 @@ export const useColDefs = ({
       const isTextColumn =
         dataType === GenericDataType.String ||
         dataType === GenericDataType.Temporal;
+      const isBooleanColumn = dataType === GenericDataType.Boolean;
 
       const valueRange =
         !hasBasicColorFormatters &&
@@ -279,15 +285,30 @@ export const useColDefs = ({
         headerName: getHeaderLabel(col),
         valueFormatter: p => valueFormatter(p, col),
         valueGetter: p => valueGetter(p, col),
-        cellStyle: p =>
-          getCellStyle({
+        cellStyle: p => {
+          const cellSurfaceColor =
+            p.node?.rowPinned != null
+              ? theme.colorBgBase
+              : p.rowIndex % 2 === 0
+                ? theme.colorBgBase
+                : theme.colorFillQuaternary;
+          const hoverCellSurfaceColor =
+            p.node?.rowPinned != null
+              ? cellSurfaceColor
+              : theme.colorFillSecondary;
+          const cellStyleParams = {
             ...p,
             hasColumnColorFormatters,
             columnColorFormatters,
             hasBasicColorFormatters,
             basicColorFormatters,
             col,
-          }),
+            cellSurfaceColor,
+            hoverCellSurfaceColor,
+          } as Parameters<typeof getCellStyle>[0];
+
+          return getCellStyle(cellStyleParams);
+        },
         cellClass: p =>
           getCellClass({
             ...p,
@@ -299,6 +320,24 @@ export const useColDefs = ({
         ...(isPercentMetric && {
           filterValueGetter,
         }),
+        ...(dataType === GenericDataType.String &&
+          !serverPagination && {
+            // HTML cells (e.g. anchor markup) are rendered by TextCellRenderer
+            // via dangerouslySetInnerHTML; without these the filter and sort
+            // operate on raw HTML so the URL inside the markup dictates order
+            // and the "Contains" filter matches against the raw HTML string.
+            //
+            // Gated on !serverPagination: in server-pagination mode sort and
+            // filter are both delegated to the backend (which sees raw HTML
+            // in the database), so applying the visible-text getter only on
+            // the client would create a mismatch where the typed filter
+            // value is stripped client-side but the server query still
+            // operates on the raw HTML. Server-paginated tables with HTML
+            // columns are out of scope for this fix and would require
+            // server-side handling.
+            filterValueGetter: htmlTextFilterValueGetter,
+            comparator: htmlTextComparator,
+          }),
         ...(dataType === GenericDataType.Temporal && {
           // Use dateFilterValueGetter so AG Grid correctly identifies null dates for blank filter
           filterValueGetter: dateFilterValueGetter,
@@ -325,18 +364,25 @@ export const useColDefs = ({
             'last',
           ],
         }),
-        cellRenderer: (p: CellRendererProps) =>
-          isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p),
-        cellRendererParams: {
-          allowRenderHtml: true,
-          columns,
-          hasBasicColorFormatters,
-          col,
-          basicColorFormatters,
-          valueRange,
-          alignPositiveNegative: alignPN || alignPositiveNegative,
-          colorPositiveNegative,
-        },
+        ...(isBooleanColumn
+          ? {
+              cellRenderer: 'agCheckboxCellRenderer',
+              cellRendererParams: { disabled: true },
+            }
+          : {
+              cellRenderer: (p: CellRendererProps) =>
+                isTextColumn ? TextCellRenderer(p) : NumericCellRenderer(p),
+              cellRendererParams: {
+                allowRenderHtml: true,
+                columns,
+                hasBasicColorFormatters,
+                col,
+                basicColorFormatters,
+                valueRange,
+                alignPositiveNegative: alignPN || alignPositiveNegative,
+                colorPositiveNegative,
+              },
+            }),
         context: {
           isMetric,
           isPercentMetric,
@@ -377,6 +423,9 @@ export const useColDefs = ({
       allowRearrangeColumns,
       serverPagination,
       alignPositiveNegative,
+      theme.colorBgBase,
+      theme.colorFillSecondary,
+      theme.colorFillQuaternary,
     ],
   );
 

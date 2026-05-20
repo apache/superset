@@ -26,8 +26,9 @@ import {
 } from 'react';
 import { omit } from 'lodash';
 
-import { t } from '@apache-superset/core';
-import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import { useBeforeUnload } from 'src/hooks/useBeforeUnload';
@@ -43,10 +44,10 @@ import {
   Space,
   Tooltip,
 } from '@superset-ui/core/components';
-import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import type { editors } from '@apache-superset/core';
 import { EditorHost } from 'src/core/editors';
 import { Typography } from '@superset-ui/core/components/Typography';
+import { useThemeValidation } from 'src/theme/hooks/useThemeValidation';
 import { OnlyKeyWithType } from 'src/utils/types';
 import { ThemeObject } from './types';
 
@@ -69,6 +70,15 @@ const toEditorAnnotations = (
     column: ann.column,
     message: ann.text,
   }));
+
+const formatJsonData = (jsonData?: string): string | undefined => {
+  if (!jsonData) return jsonData;
+  try {
+    return JSON.stringify(JSON.parse(jsonData), null, 2);
+  } catch {
+    return jsonData;
+  }
+};
 
 interface ThemeModalProps {
   addDangerToast: (msg: string) => void;
@@ -147,10 +157,9 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     SupersetText?.THEME_MODAL?.DOCUMENTATION_URL ||
     'https://superset.apache.org/docs/configuration/theming/';
 
-  // JSON validation annotations using reusable hook
-  const jsonAnnotations = useJsonValidation(currentTheme?.json_data, {
-    enabled: !isReadOnly,
-    errorPrefix: 'Invalid JSON syntax',
+  // Theme validation (structure + token names)
+  const validation = useThemeValidation(currentTheme?.json_data || '', {
+    enabled: !isReadOnly && Boolean(currentTheme?.json_data),
   });
 
   // theme fetch logic
@@ -178,6 +187,15 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
   }, [onHide]);
 
   const onSave = useCallback(() => {
+    // Synchronous JSON guard to catch invalid JSON before API call
+    // This handles the race condition where debounced validation hasn't updated yet
+    try {
+      JSON.parse(currentTheme?.json_data || '');
+    } catch {
+      addDangerToast(t('Invalid JSON configuration'));
+      return;
+    }
+
     if (isEditMode) {
       // Edit
       if (currentTheme?.id) {
@@ -211,6 +229,7 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     createResource,
     onThemeAdd,
     hide,
+    addDangerToast,
   ]);
 
   const handleCancel = useCallback(() => {
@@ -306,27 +325,31 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
     [currentTheme],
   );
 
-  const validate = useCallback(() => {
-    if (isReadOnly) {
+  const onFormat = useCallback(() => {
+    if (currentTheme?.json_data) {
+      const formatted = formatJsonData(currentTheme.json_data);
+      if (formatted !== currentTheme.json_data) {
+        onJsonDataChange(formatted || '');
+      }
+    }
+  }, [currentTheme?.json_data, onJsonDataChange]);
+
+  const validate = () => {
+    if (isReadOnly || !currentTheme) {
       setDisableSave(true);
       return;
     }
 
-    if (
-      currentTheme?.theme_name.length &&
-      currentTheme?.json_data?.length &&
-      isValidJson(currentTheme.json_data)
-    ) {
-      setDisableSave(false);
-    } else {
-      setDisableSave(true);
-    }
-  }, [
-    currentTheme?.theme_name,
-    currentTheme?.json_data,
-    isReadOnly,
-    isValidJson,
-  ]);
+    const hasValidName = Boolean(currentTheme?.theme_name?.trim());
+    const hasValidJsonData = Boolean(currentTheme?.json_data?.trim());
+
+    // Block save only on ERRORS (not warnings)
+    // Errors: JSON syntax errors, empty themes
+    // Warnings: Unknown tokens, null values (non-blocking)
+    const canSave = hasValidName && hasValidJsonData && !validation.hasErrors;
+
+    setDisableSave(!canSave);
+  };
 
   // Initialize
   useEffect(() => {
@@ -352,15 +375,24 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
 
   useEffect(() => {
     if (resource) {
-      setCurrentTheme(resource);
-      setInitialTheme(resource);
+      const formatted = {
+        ...resource,
+        json_data: formatJsonData(resource.json_data),
+      };
+      setCurrentTheme(formatted);
+      setInitialTheme(formatted);
     }
   }, [resource]);
 
   // Validation
   useEffect(() => {
     validate();
-  }, [validate]);
+  }, [
+    currentTheme ? currentTheme.theme_name : '',
+    currentTheme ? currentTheme.json_data : '',
+    isReadOnly,
+    validation.hasErrors,
+  ]);
 
   // Show/hide
   useEffect(() => {
@@ -490,7 +522,10 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                   >
                     {t('documentation')}
                   </a>
-                  {t(' for details.')}
+                  {t(' for details.')}{' '}
+                  <Typography.Text type="secondary">
+                    {t('Unknown tokens will be highlighted as warnings.')}
+                  </Typography.Text>
                 </span>
               }
             />
@@ -506,29 +541,50 @@ const ThemeModal: FunctionComponent<ThemeModalProps> = ({
                 lineNumbers
                 width="100%"
                 height="250px"
-                annotations={toEditorAnnotations(jsonAnnotations)}
+                annotations={toEditorAnnotations(validation.annotations)}
               />
             </StyledEditorWrapper>
-            {canDevelopThemes && (
-              <div className="apply-button-container">
-                <Tooltip
-                  title={t('Set local theme for testing (preview only)')}
-                  placement="top"
-                >
-                  <Button
-                    icon={<Icons.ThunderboltOutlined />}
-                    onClick={onApply}
-                    disabled={
-                      !currentTheme?.json_data ||
-                      !isValidJson(currentTheme.json_data)
-                    }
-                    buttonStyle="secondary"
+            <div className="apply-button-container">
+              <Space>
+                {!isReadOnly && (
+                  <Tooltip
+                    title={t('Format JSON configuration')}
+                    placement="top"
                   >
-                    {t('Apply')}
-                  </Button>
-                </Tooltip>
-              </div>
-            )}
+                    <Button
+                      icon={<Icons.AlignLeftOutlined />}
+                      buttonStyle="secondary"
+                      onClick={onFormat}
+                      disabled={
+                        !currentTheme?.json_data ||
+                        !isValidJson(currentTheme.json_data)
+                      }
+                    >
+                      {t('Format')}
+                    </Button>
+                  </Tooltip>
+                )}
+                {canDevelopThemes && (
+                  <Tooltip
+                    title={t('Set local theme for testing (preview only)')}
+                    placement="top"
+                  >
+                    <Button
+                      icon={<Icons.ThunderboltOutlined />}
+                      onClick={onApply}
+                      disabled={
+                        !currentTheme?.json_data ||
+                        !isValidJson(currentTheme.json_data) ||
+                        validation.hasErrors
+                      }
+                      buttonStyle="secondary"
+                    >
+                      {t('Apply')}
+                    </Button>
+                  </Tooltip>
+                )}
+              </Space>
+            </div>
           </Form.Item>
         </Form>
       </StyledFormWrapper>

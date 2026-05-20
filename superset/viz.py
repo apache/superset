@@ -32,10 +32,10 @@ from datetime import datetime, timedelta
 from itertools import product
 from typing import Any, cast, Optional, TYPE_CHECKING
 
-import geohash
 import numpy as np
 import pandas as pd
 import polyline
+import pygeohash
 from dateutil import relativedelta as rdelta
 from deprecation import deprecated
 from flask import current_app, request
@@ -51,6 +51,7 @@ from superset.exceptions import (
     NullValueException,
     QueryObjectValidationError,
     SpatialException,
+    SupersetErrorException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
@@ -65,6 +66,7 @@ from superset.superset_typing import (
 )
 from superset.utils import core as utils, csv, json
 from superset.utils.cache import set_and_log_cache
+from superset.utils.cache_keys import add_impersonation_cache_key_if_needed
 from superset.utils.core import (
     apply_max_row_limit,
     DateColumn,
@@ -79,6 +81,10 @@ from superset.utils.core import (
 )
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.hashing import hash_from_str
+from superset.utils.pandas_postprocessing.utils import (
+    escape_separator,
+    FLAT_COLUMN_SEPARATOR,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -472,6 +478,16 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
         cache_dict["rls"] = security_manager.get_rls_cache_key(self.datasource)
         cache_dict["changed_on"] = self.datasource.changed_on
+
+        # Add an impersonation key to cache if impersonation is enabled on the db
+        # or if the CACHE_QUERY_BY_USER flag is on or per_user_caching is enabled on
+        #  the database
+        try:
+            add_impersonation_cache_key_if_needed(self.datasource.database, cache_dict)
+        except AttributeError:
+            # datasource or database do not exist
+            pass
+
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hash_from_str(json_data)
 
@@ -601,6 +617,10 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 )
                 self.errors.append(error)
                 self.status = QueryStatus.FAILED
+            except SupersetErrorException:
+                # Let structured Superset errors (e.g. OAuth2RedirectError) propagate
+                # so the global Flask error handler serializes them.
+                raise
             except Exception as ex:  # pylint: disable=broad-except
                 logger.exception(ex)
 
@@ -747,6 +767,11 @@ class TimeTableViz(BaseViz):
         pt = df.pivot_table(index=DTTM_ALIAS, columns=columns, values=values)
         pt.index = pt.index.map(str)
         pt = pt.sort_index()
+        if isinstance(pt.columns, pd.MultiIndex):
+            pt.columns = [
+                FLAT_COLUMN_SEPARATOR.join(escape_separator(str(s)) for s in col)
+                for col in pt.columns
+            ]
         return {
             "records": pt.to_dict(orient="index"),
             "columns": list(pt.columns),
@@ -1521,6 +1546,29 @@ class MapboxViz(BaseViz):
         }
 
 
+class MapLibreViz(MapboxViz):
+    """Rich maps made with MapLibre"""
+
+    viz_type = "point_cluster_map"
+    verbose_name = _("Point Cluster Map")
+    credits = '<a href="https://maplibre.org/">MapLibre GL JS</a>'
+
+    @deprecated(deprecated_in="3.0")
+    def query_obj(self) -> QueryObjectDict:
+        self.form_data["mapbox_label"] = self.form_data.get("map_label")
+        return super().query_obj()
+
+    @deprecated(deprecated_in="3.0")
+    def get_data(self, df: pd.DataFrame) -> VizData:
+        self.form_data["mapbox_label"] = self.form_data.get("map_label")
+        self.form_data["mapbox_style"] = self.form_data.get("map_style")
+        self.form_data["mapbox_color"] = self.form_data.get("map_color")
+        data = super().get_data(df)
+        if data:
+            data.pop("mapboxApiKey", None)
+        return data
+
+
 class DeckGLMultiLayer(BaseViz):
     """Pile on multiple DeckGL layers"""
 
@@ -1830,7 +1878,7 @@ class BaseDeckGLViz(BaseViz):
     @staticmethod
     @deprecated(deprecated_in="3.0")
     def reverse_geohash_decode(geohash_code: str) -> tuple[str, str]:
-        lat, lng = geohash.decode(geohash_code)
+        lat, lng = pygeohash.decode(geohash_code)
         return (lng, lat)
 
     @staticmethod
@@ -2133,13 +2181,21 @@ class DeckGrid(BaseDeckGLViz):
 
 @deprecated(deprecated_in="3.0")
 def geohash_to_json(geohash_code: str) -> list[list[float]]:
-    bbox = geohash.bbox(geohash_code)
+    # Get the center and the error margins
+    lat, lon, lat_err, lon_err = pygeohash.decode_exactly(geohash_code)
+    # Calculate the Bounding Box
+    bbox = {
+        "n": lat + lat_err,
+        "s": lat - lat_err,
+        "e": lon + lon_err,
+        "w": lon - lon_err,
+    }
     return [
-        [bbox.get("w"), bbox.get("n")],
-        [bbox.get("e"), bbox.get("n")],
-        [bbox.get("e"), bbox.get("s")],
-        [bbox.get("w"), bbox.get("s")],
-        [bbox.get("w"), bbox.get("n")],
+        [bbox["w"], bbox["n"]],
+        [bbox["e"], bbox["n"]],
+        [bbox["e"], bbox["s"]],
+        [bbox["w"], bbox["s"]],
+        [bbox["w"], bbox["n"]],
     ]
 
 
@@ -2817,15 +2873,19 @@ class PartitionViz(NVD3TimeSeriesViz):
         return self.nest_values(levels)
 
 
+def _get_subclasses(cls: type[BaseViz]) -> set[type[BaseViz]]:
+    return set(cls.__subclasses__()).union(
+        [sc for c in cls.__subclasses__() for sc in _get_subclasses(c)]
+    )
+
+
 @deprecated(deprecated_in="3.0")
 def get_subclasses(cls: type[BaseViz]) -> set[type[BaseViz]]:
-    return set(cls.__subclasses__()).union(
-        [sc for c in cls.__subclasses__() for sc in get_subclasses(c)]
-    )
+    return _get_subclasses(cls)
 
 
 viz_types = {
     o.viz_type: o
-    for o in get_subclasses(BaseViz)
+    for o in _get_subclasses(BaseViz)
     if o.viz_type not in current_app.config["VIZ_TYPE_DENYLIST"]
 }

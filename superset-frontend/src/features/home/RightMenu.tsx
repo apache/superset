@@ -22,9 +22,19 @@ import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { isEmpty } from 'lodash';
-import { t } from '@apache-superset/core';
-import { SupersetClient, getExtensionsRegistry } from '@superset-ui/core';
-import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import {
+  SupersetClient,
+  getExtensionsRegistry,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
+import {
+  styled,
+  css,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import {
   Tag,
   Tooltip,
@@ -34,7 +44,8 @@ import {
   TelemetryPixel,
 } from '@superset-ui/core/components';
 import type { ItemType, MenuItem } from '@superset-ui/core/components/Menu';
-import { ensureAppRoot, makeUrl } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { findPermission } from 'src/utils/findPermission';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import {
@@ -202,7 +213,10 @@ const RightMenu = ({
     },
     {
       label: t('SQL query'),
-      url: makeUrl('/sqllab?new=true'),
+      // Keep the URL relative so isFrontendRoute() matches and Link navigates
+      // via React Router; the <Typography.Link> fallback applies ensureAppRoot
+      // exactly once for non-frontend routes.
+      url: '/sqllab?new=true',
       icon: <Icons.SearchOutlined data-test={`menu-item-${t('SQL query')}`} />,
       perm: 'can_sqllab',
       view: 'Superset',
@@ -489,15 +503,22 @@ const RightMenu = ({
             ),
           });
         }
-        userItems.push({
-          key: 'logout',
-          label: (
-            <Typography.Link href={navbarRight.user_logout_url}>
-              {t('Logout')}
-            </Typography.Link>
-          ),
-          onClick: handleLogout,
-        });
+        const showLogout =
+          !isEmbedded() ||
+          !isFeatureEnabled(FeatureFlag.DisableEmbeddedSupersetLogout);
+        if (showLogout) {
+          userItems.push({
+            key: 'logout',
+            label: (
+              <Typography.Link
+                href={ensureAppRoot(navbarRight.user_logout_url)}
+              >
+                {t('Logout')}
+              </Typography.Link>
+            ),
+            onClick: handleLogout,
+          });
+        }
 
         items.push({
           type: 'group',

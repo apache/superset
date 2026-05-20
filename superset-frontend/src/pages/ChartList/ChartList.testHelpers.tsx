@@ -23,9 +23,9 @@ import { Provider } from 'react-redux';
 import { BrowserRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import ChartList from 'src/pages/ChartList';
 import handleResourceExport from 'src/utils/export';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 
 export const mockHandleResourceExport =
   handleResourceExport as jest.MockedFunction<typeof handleResourceExport>;
@@ -65,7 +65,7 @@ export const mockCharts = [
     // Add form_data with matrixify enabled
     form_data: {
       viz_type: 'table',
-      matrixify_enable_vertical_layout: true,
+      matrixify_enable: true,
       matrixify_mode_rows: 'metrics',
       matrixify_rows: [{ label: 'COUNT(*)', expressionType: 'SIMPLE' }],
     },

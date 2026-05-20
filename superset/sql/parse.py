@@ -45,7 +45,7 @@ from sqlglot.optimizer.scope import (
 )
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import DB2, Dremio, Firebolt, Pinot
+from superset.sql.dialects import DB2, Dremio, Firebolt, OpenSearch, Pinot, Vertica
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -60,6 +60,7 @@ SQLGLOT_DIALECTS = {
     "ascend": Dialects.HIVE,
     "awsathena": Dialects.ATHENA,
     "bigquery": Dialects.BIGQUERY,
+    "datastore": Dialects.BIGQUERY,
     "clickhouse": Dialects.CLICKHOUSE,
     "clickhousedb": Dialects.CLICKHOUSE,
     "cockroachdb": Dialects.POSTGRES,
@@ -92,7 +93,7 @@ SQLGLOT_DIALECTS = {
     "netezza": Dialects.POSTGRES,
     "oceanbase": Dialects.MYSQL,
     # "ocient": ???
-    # "odelasticsearch": ???
+    "odelasticsearch": OpenSearch,
     "oracle": Dialects.ORACLE,
     "parseable": Dialects.POSTGRES,
     "pinot": Pinot,
@@ -112,7 +113,7 @@ SQLGLOT_DIALECTS = {
     # "taosws": ???
     "teradatasql": Dialects.TERADATA,
     "trino": Dialects.TRINO,
-    "vertica": Dialects.POSTGRES,
+    "vertica": Vertica,
     "yql": Dialects.CLICKHOUSE,
 }
 
@@ -259,19 +260,20 @@ class RLSAsSubqueryTransformer(RLSTransformer):
             if node.alias:
                 alias = node.alias
             else:
-                name = ".".join(
-                    part
-                    for part in (node.catalog or "", node.db or "", node.name)
-                    if part
-                )
-                alias = exp.TableAlias(this=exp.Identifier(this=name, quoted=True))
+                # Use just the table name (not schema-qualified) so that
+                # column references like ``table.column`` still resolve after
+                # the table is replaced with a subquery.  Using the full
+                # ``schema.table`` path as a quoted identifier creates a
+                # mismatch: the columns reference ``table`` but the alias is
+                # ``"schema.table"``, which are different identifiers.
+                alias = exp.TableAlias(this=exp.Identifier(this=node.name, quoted=True))
 
             node.set("alias", None)
             node = exp.Subquery(
                 this=exp.Select(
                     expressions=[exp.Star()],
                     where=exp.Where(this=predicate),
-                    **{"from": exp.From(this=node.copy())},
+                    from_=exp.From(this=node.copy()),
                 ),
                 alias=alias,
             )
@@ -437,6 +439,14 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def is_destructive(self) -> bool:
+        """
+        Check if the statement is destructive DDL (DROP, TRUNCATE, ALTER).
+
+        :return: True if the statement is destructive DDL.
+        """
+        raise NotImplementedError()
+
     def optimize(self) -> BaseSQLStatement[InternalRepresentation]:
         """
         Return optimized statement.
@@ -449,6 +459,15 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
 
         :param functions: List of functions to check for
         :return: True if any of the functions are present
+        """
+        raise NotImplementedError()
+
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
         """
         raise NotImplementedError()
 
@@ -708,6 +727,31 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         return False
 
+    def is_destructive(self) -> bool:
+        """
+        Check if the statement is destructive DDL (DROP, TRUNCATE, ALTER).
+
+        Unlike ``is_mutating()``, this excludes non-destructive DML
+        (INSERT, UPDATE, DELETE, MERGE) and CREATE.
+
+        :return: True if the statement is destructive DDL.
+        """
+        destructive_nodes = (
+            exp.Drop,
+            exp.TruncateTable,
+            exp.Alter,
+        )
+
+        for node_type in destructive_nodes:
+            if self._parsed.find(node_type):
+                return True
+
+        # Handle ALTER parsed as Command (Oracle, MS SQL dialects)
+        if isinstance(self._parsed, exp.Command) and self._parsed.name == "ALTER":
+            return True  # pragma: no cover
+
+        return False
+
     def format(self, comments: bool = True) -> str:
         """
         Pretty-format the SQL statement.
@@ -766,6 +810,16 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         }
         return any(function.upper() in present for function in functions)
 
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        present = {table.table.lower() for table in self.tables}
+        return any(table.lower() in present for table in tables)
+
     def get_limit_value(self) -> int | None:
         """
         Parse a SQL query and return the `LIMIT` or `TOP` value, if present.
@@ -797,7 +851,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 limit=exp.Limit(
                     expression=exp.Literal(this=str(limit), is_string=False)
                 ),
-                **{"from": exp.From(this=exp.Subquery(this=self._parsed.copy()))},
+                from_=exp.From(this=exp.Subquery(this=self._parsed.copy())),
             )
         else:  # method == LimitMethod.FETCH_MANY
             pass
@@ -808,7 +862,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         :return: True if the statement has a CTE at the top level.
         """
-        return "with" in self._parsed.args
+        return bool(self._parsed.args.get("with_"))
 
     def as_cte(self, alias: str = "__cte") -> SQLStatement:
         """
@@ -821,8 +875,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param alias: The alias to use for the CTE.
         :return: A new SQLStatement with the CTE.
         """
-        existing_ctes = self._parsed.args["with"].expressions if self.has_cte() else []
-        self._parsed.args["with"] = None
+        existing_ctes = self._parsed.args["with_"].expressions if self.has_cte() else []
+        self._parsed.args["with_"] = None
         new_cte = exp.CTE(
             this=self._parsed.copy(),
             alias=exp.TableAlias(this=exp.Identifier(this=alias)),
@@ -1154,6 +1208,18 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         return self._parsed.startswith(".") and not self._parsed.startswith(".show")
 
+    def is_destructive(self) -> bool:
+        """
+        Check if the statement is destructive DDL.
+
+        Kusto KQL uses dot-commands for management operations. Destructive
+        operations start with ``.drop`` or ``.alter``.
+
+        :return: True if the statement is destructive DDL.
+        """
+        lower = self._parsed.lower()
+        return lower.startswith(".drop") or lower.startswith(".alter")
+
     def optimize(self) -> KustoKQLStatement:
         """
         Return optimized statement.
@@ -1170,6 +1236,16 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         :return: True if any of the functions are present
         """
         logger.warning("Kusto KQL doesn't support checking for functions present.")
+        return False
+
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        logger.warning("Kusto KQL doesn't support checking for tables present.")
         return False
 
     def get_limit_value(self) -> int | None:
@@ -1290,6 +1366,14 @@ class SQLScript:
         """
         return any(statement.is_mutating() for statement in self.statements)
 
+    def has_destructive(self) -> bool:
+        """
+        Check if the script contains destructive DDL (DROP, TRUNCATE, ALTER).
+
+        :return: True if any statement is destructive DDL.
+        """
+        return any(statement.is_destructive() for statement in self.statements)
+
     def optimize(self) -> SQLScript:
         """
         Return optimized script.
@@ -1311,6 +1395,17 @@ class SQLScript:
         return any(
             statement.check_functions_present(functions)
             for statement in self.statements
+        )
+
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the script.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        return any(
+            statement.check_tables_present(tables) for statement in self.statements
         )
 
     def is_valid_ctas(self) -> bool:
@@ -1515,7 +1610,7 @@ def sanitize_clause(clause: str, engine: str) -> str:
         return Dialect.get_or_raise(dialect).generate(
             statement._parsed,  # pylint: disable=protected-access
             copy=True,
-            comments=False,
+            comments=True,
             pretty=False,
         )
     except SupersetParseError as ex:
@@ -1526,6 +1621,7 @@ def transpile_to_dialect(
     sql: str,
     target_engine: str,
     source_engine: str | None = None,
+    identify: bool = False,
 ) -> str:
     """
     Transpile SQL from one database dialect to another using SQLGlot.
@@ -1534,6 +1630,7 @@ def transpile_to_dialect(
         sql: The SQL query to transpile
         target_engine: The target database engine (e.g., "mysql", "postgresql")
         source_engine: The source database engine. If None, uses generic SQL dialect.
+        identify: If True, quote all identifiers per the target dialect.
 
     Returns:
         The transpiled SQL string
@@ -1556,6 +1653,7 @@ def transpile_to_dialect(
             copy=True,
             comments=False,
             pretty=False,
+            identify=identify,
         )
     except ParseError as ex:
         raise QueryClauseValidationException(f"Cannot parse SQL clause: {sql}") from ex

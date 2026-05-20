@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { legacyValidateInteger, legacyValidateNumber } from '@superset-ui/core';
 import { ControlPanelSectionConfig } from '../types';
 import { displayTimeRelatedControls } from '../utils';

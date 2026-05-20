@@ -173,8 +173,6 @@ export default function transformProps(
   const treeData = treeBuilder(data, groupbyLabels, metricLabel);
   const labelProps = {
     color: theme.colorText,
-    borderColor: theme.colorBgBase,
-    borderWidth: 1,
   };
   const traverse = (treeNodes: TreeNode[], path: string[]) =>
     treeNodes.map(treeNode => {

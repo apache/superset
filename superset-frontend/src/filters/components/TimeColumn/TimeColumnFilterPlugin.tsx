@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, tn } from '@apache-superset/core';
+import { t, tn } from '@apache-superset/core/translation';
 import { ensureIsArray, ExtraFormData } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { useEffect, useState } from 'react';
 import {
   FormItem,
@@ -106,21 +106,20 @@ export default function PluginFilterTimeColumn(
   return (
     <FilterPluginStyle height={height} width={width}>
       <FormItem validateStatus={filterState.validateStatus} {...formItemData}>
-        <Select
-          name={formData.nativeFilterId}
-          allowClear
-          value={value}
-          placeholder={placeholderText}
-          // @ts-ignore
-          onChange={handleChange}
-          onBlur={unsetFocusedFilter}
-          onFocus={setFocusedFilter}
-          onMouseEnter={setHoveredFilter}
-          onMouseLeave={unsetHoveredFilter}
-          ref={inputRef}
-          options={options}
-          onOpenChange={setFilterActive}
-        />
+        <div onMouseEnter={setHoveredFilter} onMouseLeave={unsetHoveredFilter}>
+          <Select
+            name={formData.nativeFilterId}
+            allowClear
+            value={value}
+            placeholder={placeholderText}
+            onChange={val => handleChange(val as string | string[] | null)}
+            onBlur={unsetFocusedFilter}
+            onFocus={setFocusedFilter}
+            ref={inputRef}
+            options={options}
+            onOpenChange={setFilterActive}
+          />
+        </div>
       </FormItem>
     </FilterPluginStyle>
   );

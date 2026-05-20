@@ -60,7 +60,7 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
-from superset_core.api.models import Database as CoreDatabase
+from superset_core.common.models import Database as CoreDatabase
 
 from superset import db, db_engine_specs, is_feature_enabled
 from superset.commands.database.exceptions import DatabaseInvalidError
@@ -95,7 +95,7 @@ metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
-    from superset_core.api.types import AsyncQueryHandle, QueryOptions, QueryResult
+    from superset_core.queries.types import AsyncQueryHandle, QueryOptions, QueryResult
 
     from superset.models.sql_lab import Query
 
@@ -468,13 +468,34 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             engine_context_manager = app.config["ENGINE_CONTEXT_MANAGER"]
             with engine_context_manager(self, catalog, schema):
                 with check_for_oauth2(self):
-                    yield self._get_sqla_engine(
+                    engine = self._get_sqla_engine(
                         catalog=catalog,
                         schema=schema,
                         nullpool=nullpool,
                         source=source,
                         sqlalchemy_uri=sqlalchemy_uri,
                     )
+                    prequeries = self.db_engine_spec.get_prequeries(
+                        database=self,
+                        catalog=catalog,
+                        schema=schema,
+                    )
+                    if prequeries:
+                        # SQLAlchemy connect event: runs prequeries on every new
+                        # DBAPI connection (e.g. SET search_path for PostgreSQL).
+                        def run_prequeries(
+                            dbapi_connection: Any,
+                            connection_record: Any,  # pylint: disable=unused-argument
+                        ) -> None:
+                            cursor = dbapi_connection.cursor()
+                            try:
+                                for prequery in prequeries:
+                                    cursor.execute(prequery)
+                            finally:
+                                cursor.close()
+
+                        sqla.event.listen(engine, "connect", run_prequeries)
+                    yield engine
 
     def _get_sqla_engine(  # pylint: disable=too-many-locals  # noqa: C901
         self,
@@ -583,15 +604,6 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         ) as engine:
             with check_for_oauth2(self):
                 with closing(engine.raw_connection()) as conn:
-                    # pre-session queries are used to set the selected catalog/schema
-                    for prequery in self.db_engine_spec.get_prequeries(
-                        database=self,
-                        catalog=catalog,
-                        schema=schema,
-                    ):
-                        cursor = conn.cursor()
-                        cursor.execute(prequery)
-
                     yield conn
 
     def get_default_catalog(self) -> str | None:
@@ -1183,10 +1195,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     def has_table(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
+            inspector = sqla.inspect(engine)
             # do not pass "" as an empty schema; force null
-            if engine.has_table(table.table, table.schema or None):
+            if inspector.has_table(table.table, table.schema or None):
                 return True
-            return engine.has_table(table.table.lower(), table.schema or None)
+            return inspector.has_table(table.table.lower(), table.schema or None)
 
     def has_view(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:

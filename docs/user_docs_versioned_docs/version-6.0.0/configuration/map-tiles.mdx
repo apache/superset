@@ -1,0 +1,78 @@
+---
+title: Map Tiles
+sidebar_position: 12
+version: 1
+---
+
+# Map tiles
+
+Superset uses OSM and Mapbox tiles by default. OSM is free but you still need setting your MAPBOX_API_KEY if you want to use mapbox maps.
+
+## Setting map tiles
+
+Map tiles can be set with `DECKGL_BASE_MAP` in your `superset_config.py` or `superset_config_docker.py`
+For adding your own map tiles, you can use the following format.
+
+```python
+DECKGL_BASE_MAP = [
+    ['tile://https://your_personal_url/{z}/{x}/{y}.png', 'MyTile']
+]
+```
+Openstreetmap tiles url can be added without prefix.
+```python
+DECKGL_BASE_MAP = [
+    ['https://c.tile.openstreetmap.org/{z}/{x}/{y}.png', 'OpenStreetMap']
+]
+```
+
+Default values are:
+```python
+DECKGL_BASE_MAP = [
+    ['https://tile.openstreetmap.org/{z}/{x}/{y}.png', 'Streets (OSM)'],
+    ['https://tile.osm.ch/osm-swiss-style/{z}/{x}/{y}.png', 'Topography (OSM)'],
+    ['mapbox://styles/mapbox/streets-v9', 'Streets'],
+    ['mapbox://styles/mapbox/dark-v9', 'Dark'],
+    ['mapbox://styles/mapbox/light-v9', 'Light'],
+    ['mapbox://styles/mapbox/satellite-streets-v9', 'Satellite Streets'],
+    ['mapbox://styles/mapbox/satellite-v9', 'Satellite'],
+    ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors'],
+]
+```
+
+It is possible to set only mapbox by removing osm tiles and other way around.
+
+:::warning
+Setting `DECKGL_BASE_MAP` overwrite default values
+:::
+
+After defining your map tiles, set them in these variables:
+- `CORS_OPTIONS`
+- `connect-src` of `TALISMAN_CONFIG` and `TALISMAN_CONFIG_DEV` variables.
+
+```python
+ENABLE_CORS = True
+CORS_OPTIONS: dict[Any, Any] = {
+    "origins": [
+        "https://tile.openstreetmap.org",
+        "https://tile.osm.ch",
+        "https://your_personal_url/{z}/{x}/{y}.png",
+    ]
+}
+
+.
+.
+
+TALISMAN_CONFIG = {
+    "content_security_policy": {
+        ...
+        "connect-src": [
+            "'self'",
+            "https://api.mapbox.com",
+            "https://events.mapbox.com",
+            "https://tile.openstreetmap.org",
+            "https://tile.osm.ch",
+            "https://your_personal_url/{z}/{x}/{y}.png",
+        ],
+        ...
+}
+```

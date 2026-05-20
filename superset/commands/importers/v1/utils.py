@@ -31,6 +31,7 @@ from superset.extensions import feature_flag_manager
 from superset.models.core import Database
 from superset.models.dashboard import dashboard_slices
 from superset.tags.models import Tag, TaggedObject
+from superset.utils import json
 from superset.utils.core import check_is_safe_zip
 from superset.utils.decorators import transaction
 
@@ -111,6 +112,7 @@ def load_configs(
     ssh_tunnel_passwords: dict[str, str],
     ssh_tunnel_private_keys: dict[str, str],
     ssh_tunnel_priv_key_passwords: dict[str, str],
+    encrypted_extra_secrets: dict[str, dict[str, str]],
 ) -> dict[str, Any]:
     configs: dict[str, Any] = {}
 
@@ -149,9 +151,13 @@ def load_configs(
             try:
                 config = load_yaml(file_name, content)
 
-                # populate passwords from the request or from existing DBs
+                # populate passwords from the request, from YAML config,
+                # or from existing DBs
                 if file_name in passwords:
                     config["password"] = passwords[file_name]
+                elif prefix == "databases" and config.get("password"):
+                    # password already in YAML config, keep it
+                    pass
                 elif prefix == "databases" and config["uuid"] in db_passwords:
                     config["password"] = db_passwords[config["uuid"]]
 
@@ -190,6 +196,23 @@ def load_configs(
                     config["ssh_tunnel"]["private_key_password"] = (
                         db_ssh_tunnel_priv_key_passws[config["uuid"]]
                     )
+
+                # populate encrypted_extra secrets from the request
+                # The secrets dict maps JSONPath -> value
+                # e.g., {"$.oauth2_client_info.secret": "actual_value"}
+                if file_name in encrypted_extra_secrets and config.get(
+                    "masked_encrypted_extra"
+                ):
+                    # Normalize escape sequences (needed for PEM keys/certs)
+                    normalized_secrets = {
+                        path: value.replace("\\n", "\n")
+                        if isinstance(value, str)
+                        else value
+                        for path, value in encrypted_extra_secrets[file_name].items()
+                    }
+                    temp_dict = json.loads(config["masked_encrypted_extra"])
+                    temp_dict = json.set_masked_fields(temp_dict, normalized_secrets)
+                    config["masked_encrypted_extra"] = json.dumps(temp_dict)
 
                 # Normalize example data URLs before schema validation
                 if prefix == "datasets" and "data" in config:

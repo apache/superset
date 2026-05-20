@@ -25,14 +25,14 @@ describe('computeMaxFontSize(input)', () => {
     beforeEach(addDummyFill);
     afterEach(removeDummyFill);
 
-    it('requires either idealFontSize or maxHeight', () => {
+    test('requires either idealFontSize or maxHeight', () => {
       expect(() => {
         computeMaxFontSize({
           text: SAMPLE_TEXT[0],
         });
       }).toThrow();
     });
-    it('computes maximum font size for given maxWidth and maxHeight', () => {
+    test('computes maximum font size for given maxWidth and maxHeight', () => {
       expect(
         computeMaxFontSize({
           maxWidth: 400,
@@ -41,7 +41,7 @@ describe('computeMaxFontSize(input)', () => {
         }),
       ).toEqual(30);
     });
-    it('computes maximum font size for given idealFontSize and maxHeight', () => {
+    test('computes maximum font size for given idealFontSize and maxHeight', () => {
       expect(
         computeMaxFontSize({
           maxHeight: 20,
@@ -50,7 +50,7 @@ describe('computeMaxFontSize(input)', () => {
         }),
       ).toEqual(20);
     });
-    it('computes maximum font size for given maxWidth and idealFontSize', () => {
+    test('computes maximum font size for given maxWidth and idealFontSize', () => {
       expect(
         computeMaxFontSize({
           maxWidth: 250,
@@ -59,7 +59,7 @@ describe('computeMaxFontSize(input)', () => {
         }),
       ).toEqual(25);
     });
-    it('ensure idealFontSize is used if the maximum font size calculation goes below zero', () => {
+    test('ensure idealFontSize is used if the maximum font size calculation goes below zero', () => {
       expect(
         computeMaxFontSize({
           maxWidth: 5,

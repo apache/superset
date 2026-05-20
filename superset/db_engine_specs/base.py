@@ -43,7 +43,7 @@ import requests
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
 from deprecation import deprecated
-from flask import current_app as app, g, url_for
+from flask import current_app as app, g
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import fields, Schema
@@ -62,7 +62,11 @@ from superset import db
 from superset.constants import QUERY_CANCEL_KEY, TimeGrain as TimeGrainConstants
 from superset.databases.utils import get_table_metadata, make_url_safe
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import OAuth2Error, OAuth2RedirectError
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    OAuth2TokenRefreshError,
+)
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.sql.parse import (
     BaseSQLStatement,
@@ -88,6 +92,7 @@ from superset.utils.oauth2 import (
     encode_oauth2_state,
     generate_code_challenge,
     generate_code_verifier,
+    get_oauth2_redirect_uri,
 )
 
 if TYPE_CHECKING:
@@ -526,16 +531,27 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     force_column_alias_quotes = False
     arraysize = 0
     max_column_name_length: int | None = None
+
+    # Some databases (e.g. Druid, Pinot) build cursor.description by inspecting
+    # the values in the first returned row rather than from query-plan metadata.
+    # For those engines WHERE FALSE returns no rows and therefore leaves
+    # cursor.description as None, which breaks the adhoc column type probe.
+    # Set this to True on any engine spec where at least one row must be
+    # fetched for cursor.description to be populated.
+    type_probe_needs_row: bool = False
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
     custom_errors: dict[
         Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]
     ] = {}
 
-    # List of JSON path to fields in `encrypted_extra` that should be masked when the
-    # database is edited. By default everything is masked.
+    # JSONPath fields in `encrypted_extra` that should be masked when the database is
+    # edited. Can be a set of paths (labels will default to the path) or a dict mapping
+    # paths to human-readable labels for import validation error messages.
     # pylint: disable=invalid-name
-    encrypted_extra_sensitive_fields: set[str] = {"$.*"}
+    encrypted_extra_sensitive_fields: set[str] | dict[str, str] = {
+        "$.*": "Encrypted Extra",
+    }
 
     # Whether the engine supports file uploads
     # if True, database will be listed as option in the upload file form
@@ -561,6 +577,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Does the DB engine spec support cross-catalog queries?
     supports_cross_catalog_queries = False
 
+    # Does the DB engine support schemas? When set to False the schema selector is
+    # hidden in the dataset creation UI and schema is not required for table access.
+    supports_schemas = True
+
     # Does the engine supports OAuth 2.0? This requires logic to be added to one of the
     # the user impersonation methods to handle personal tokens.
     supports_oauth2 = False
@@ -569,8 +589,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     oauth2_token_request_uri: str | None = None
     oauth2_token_request_type = "data"  # noqa: S105
 
+    # Driver-specific query params to be included in `get_oauth2_authorization_uri`
+    oauth2_additional_auth_uri_query_params: dict[str, Any] = {}
+    # Driver-specific params to be included in the `get_oauth2_token` request body
+    oauth2_additional_token_request_params: dict[str, Any] = {}
     # Driver-specific exception that should be mapped to OAuth2RedirectError
-    oauth2_exception = OAuth2RedirectError
+    oauth2_exception: type[Exception] | tuple[type[Exception], ...] = (
+        OAuth2RedirectError
+    )
 
     # Does the query id related to the connection?
     # The default value is True, which means that the query id is determined when
@@ -579,6 +605,22 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # is determined only after the specific query is executed and it will update
     # the `cancel_query` value in the `extra` field of the `query` object
     has_query_id_before_execute = True
+
+    @classmethod
+    def encrypted_extra_sensitive_field_paths(cls) -> set[str]:
+        """
+        Returns a set of paths for fields that should be masked in the
+        ``masked_encrypted_extra`` JSON.
+
+        :param cls: Description
+        :return: Description
+        :rtype: set[str]
+        """
+        return (
+            set(cls.encrypted_extra_sensitive_fields)
+            if isinstance(cls.encrypted_extra_sensitive_fields, dict)
+            else cls.encrypted_extra_sensitive_fields
+        )
 
     @classmethod
     def get_rls_method(cls) -> RLSMethod:
@@ -623,10 +665,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         from superset.daos.key_value import KeyValueDAO
 
         tab_id = str(uuid4())
-        default_redirect_uri = app.config.get(
-            "DATABASE_OAUTH2_REDIRECT_URI",
-            url_for("DatabaseRestApi.oauth2", _external=True),
-        )
+        default_redirect_uri = get_oauth2_redirect_uri()
 
         # Generate PKCE code verifier (RFC 7636)
         code_verifier = generate_code_verifier()
@@ -689,10 +728,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return None
 
         db_engine_spec_config = oauth2_config[cls.engine_name]
-        redirect_uri = app.config.get(
-            "DATABASE_OAUTH2_REDIRECT_URI",
-            url_for("DatabaseRestApi.oauth2", _external=True),
-        )
+        redirect_uri = get_oauth2_redirect_uri()
 
         config: OAuth2ClientConfig = {
             "id": db_engine_spec_config["id"],
@@ -735,6 +771,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "state": encode_oauth2_state(state),
             "redirect_uri": config["redirect_uri"],
             "client_id": config["id"],
+            **cls.oauth2_additional_auth_uri_query_params,
         }
 
         # Add PKCE parameters (RFC 7636) if code_verifier is provided
@@ -765,6 +802,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "client_secret": config["secret"],
             "redirect_uri": config["redirect_uri"],
             "grant_type": "authorization_code",
+            **cls.oauth2_additional_token_request_params,
         }
         # Add PKCE code_verifier if present (RFC 7636)
         if code_verifier:
@@ -800,6 +838,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             if config["request_content_type"] == "data"
             else requests.post(uri, json=req_body, timeout=timeout)
         )
+        if response.status_code in (400, 401, 403):
+            raise OAuth2TokenRefreshError(response.text)
         response.raise_for_status()
         return response.json()
 
@@ -2443,7 +2483,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         masked_encrypted_extra = redact_sensitive(
             config,
-            cls.encrypted_extra_sensitive_fields,
+            cls.encrypted_extra_sensitive_field_paths(),
         )
 
         return json.dumps(masked_encrypted_extra)
@@ -2469,7 +2509,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         new_config = reveal_sensitive(
             old_config,
             new_config,
-            cls.encrypted_extra_sensitive_fields,
+            cls.encrypted_extra_sensitive_field_paths(),
         )
 
         return json.dumps(new_config)
@@ -2487,6 +2527,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
             "supports_oauth2": cls.supports_oauth2,
+            "supports_schemas": cls.supports_schemas,
         }
 
     @classmethod

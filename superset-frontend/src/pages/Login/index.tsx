@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 import {
   Button,
   Card,
@@ -57,6 +57,7 @@ enum AuthType {
   AuthDB = 1,
   AuthLDAP = 2,
   AuthOauth = 4,
+  AuthSAML = 5,
 }
 
 const StyledCard = styled(Card)`
@@ -180,7 +181,8 @@ export default function Login() {
             </Form>
           </Flex>
         )}
-        {authType === AuthType.AuthOauth && (
+        {(authType === AuthType.AuthOauth ||
+          authType === AuthType.AuthSAML) && (
           <Flex justify="center" gap={0} vertical>
             <Form layout="vertical" requiredMark="optional" form={form}>
               {providers.map((provider: OAuthProvider) => (

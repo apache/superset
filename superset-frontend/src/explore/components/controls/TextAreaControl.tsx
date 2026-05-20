@@ -17,7 +17,6 @@
  * under the License.
  */
 import { Component } from 'react';
-import PropTypes from 'prop-types';
 import { debounce } from 'lodash';
 import {
   Input,
@@ -26,8 +25,8 @@ import {
   TextAreaEditor,
   ModalTrigger,
 } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
-import { withTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { withTheme } from '@apache-superset/core/theme';
 
 import 'ace-builds/src-min-noconflict/mode-handlebars';
 
@@ -81,43 +80,8 @@ interface TextAreaControlProps {
   [key: string]: unknown;
 }
 
-const propTypes = {
-  name: PropTypes.string,
-  onChange: PropTypes.func,
-  initialValue: PropTypes.string,
-  height: PropTypes.number,
-  minLines: PropTypes.number,
-  maxLines: PropTypes.number,
-  offerEditInModal: PropTypes.bool,
-  language: PropTypes.oneOf([
-    null,
-    'json',
-    'html',
-    'sql',
-    'markdown',
-    'javascript',
-    'handlebars',
-  ]),
-  aboveEditorSection: PropTypes.node,
-  readOnly: PropTypes.bool,
-  resize: PropTypes.oneOf([
-    null,
-    'block',
-    'both',
-    'horizontal',
-    'inline',
-    'none',
-    'vertical',
-  ]),
-  textAreaStyles: PropTypes.object,
-  tooltipOptions: PropTypes.object,
-  hotkeys: PropTypes.array,
-  debounceDelay: PropTypes.number,
-};
-
 const defaultProps = {
   onChange: () => {},
-  initialValue: '',
   height: 250,
   minLines: 3,
   maxLines: 10,
@@ -131,8 +95,6 @@ const defaultProps = {
 };
 
 class TextAreaControl extends Component<TextAreaControlProps> {
-  static propTypes = propTypes;
-
   static defaultProps = defaultProps;
 
   debouncedOnChange:
@@ -173,26 +135,51 @@ class TextAreaControl extends Component<TextAreaControlProps> {
 
   componentWillUnmount() {
     if (this.debouncedOnChange) {
-      this.debouncedOnChange.cancel();
+      this.debouncedOnChange.flush();
     }
   }
 
   renderEditor(inModal = false) {
-    const minLines = inModal ? 40 : this.props.minLines || 12;
-    if (this.props.language) {
+    // Exclude props that shouldn't be passed to TextAreaEditor:
+    // - theme: TextAreaEditor expects theme as a string, not the theme object from withTheme HOC
+    // - height: ReactAce expects string, we pass number (height is controlled via minLines/maxLines)
+    // - other control-specific props and explicitly-set props to avoid duplicate/conflicting assignments
+    const {
+      theme,
+      height,
+      offerEditInModal,
+      aboveEditorSection,
+      resize,
+      textAreaStyles,
+      tooltipOptions,
+      hotkeys,
+      debounceDelay,
+      language,
+      initialValue,
+      readOnly,
+      name,
+      onChange,
+      value,
+      minLines: minLinesProp,
+      maxLines: maxLinesProp,
+      ...editorProps
+    } = this.props;
+    const minLines = inModal ? 40 : minLinesProp || 12;
+    if (language) {
       const style: React.CSSProperties = {
-        border: this.props.theme?.colorBorder
-          ? `1px solid ${this.props.theme.colorBorder}`
+        border: theme?.colorBorder
+          ? `1px solid ${theme.colorBorder}`
           : undefined,
         minHeight: `${minLines}em`,
         width: 'auto',
-        ...this.props.textAreaStyles,
+        ...textAreaStyles,
       };
-      if (this.props.resize) {
-        style.resize = this.props.resize;
+      if (resize) {
+        style.resize = resize;
+        style.overflow = 'auto';
       }
-      if (this.props.readOnly) {
-        style.backgroundColor = this.props.theme?.colorBgMask;
+      if (readOnly) {
+        style.backgroundColor = theme?.colorBgMask;
       }
       const onEditorLoad = (editor: {
         commands: {
@@ -203,7 +190,7 @@ class TextAreaControl extends Component<TextAreaControlProps> {
           }) => void;
         };
       }) => {
-        this.props.hotkeys?.forEach(keyConfig => {
+        hotkeys?.forEach(keyConfig => {
           editor.commands.addCommand({
             name: keyConfig.name,
             bindKey: { win: keyConfig.key, mac: keyConfig.key },
@@ -214,23 +201,23 @@ class TextAreaControl extends Component<TextAreaControlProps> {
       const codeEditor = (
         <div>
           <TextAreaEditor
-            mode={this.props.language}
+            mode={language}
             style={style}
             minLines={minLines}
-            maxLines={inModal ? 1000 : this.props.maxLines}
+            maxLines={inModal ? 1000 : maxLinesProp}
             editorProps={{ $blockScrolling: true }}
             onLoad={onEditorLoad}
-            defaultValue={this.props.initialValue}
-            readOnly={this.props.readOnly}
-            key={this.props.name}
-            {...this.props}
+            defaultValue={initialValue ?? value}
+            readOnly={readOnly}
+            key={name}
+            {...editorProps}
             onChange={this.handleChange.bind(this)}
           />
         </div>
       );
 
-      if (this.props.tooltipOptions) {
-        return <Tooltip {...this.props.tooltipOptions}>{codeEditor}</Tooltip>;
+      if (tooltipOptions) {
+        return <Tooltip {...tooltipOptions}>{codeEditor}</Tooltip>;
       }
       return codeEditor;
     }

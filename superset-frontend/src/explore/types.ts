@@ -71,6 +71,8 @@ export type OptionSortType = Partial<
 
 export type Datasource = Dataset & {
   database?: DatabaseObject;
+  /** The parent resource that owns this datasource (database or semantic layer). */
+  parent?: { name: string };
   datasource?: string;
   catalog?: string | null;
   schema?: string;
@@ -88,6 +90,7 @@ export interface ExplorePageInitialData {
     owners: string[];
     created_by?: string;
     changed_by?: string;
+    color_namespace?: string;
     dashboards?: {
       id: number;
       dashboard_title: string;
@@ -97,7 +100,10 @@ export interface ExplorePageInitialData {
 }
 
 export interface ExploreResponsePayload {
-  result: ExplorePageInitialData & { message: string };
+  result: ExplorePageInitialData & {
+    message: string;
+    chartState?: JsonObject;
+  };
 }
 
 export interface ExplorePageState {
@@ -111,6 +117,8 @@ export interface ExplorePageState {
   explore: {
     can_add: boolean;
     can_download: boolean;
+    can_export_image: boolean;
+    can_copy_clipboard: boolean;
     can_overwrite: boolean;
     isDatasourceMetaLoading: boolean;
     isStarred: boolean;
@@ -125,6 +133,9 @@ export interface ExplorePageState {
     standalone: boolean;
     force: boolean;
     common: JsonObject;
+    compatibleMetrics?: string[] | null;
+    compatibleDimensions?: string[] | null;
+    compatibilityLoading?: boolean;
   };
   sliceEntities?: JsonObject; // propagated from Dashboard view
 }

@@ -42,6 +42,11 @@ def find_native_filter_datasets(metadata: dict[str, Any]) -> set[str]:
             dataset_uuid = target.get("datasetUuid")
             if dataset_uuid:
                 uuids.add(dataset_uuid)
+    for customization in metadata.get("chart_customization_config") or []:
+        for target in customization.get("targets") or []:
+            dataset_uuid = target.get("datasetUuid")
+            if dataset_uuid:
+                uuids.add(dataset_uuid)
     return uuids
 
 
@@ -55,6 +60,21 @@ def build_uuid_to_id_map(position: dict[str, Any]) -> dict[str, int]:
             and "uuid" in child["meta"]
         )
     }
+
+
+def _remap_charts_in_scope(container: dict[str, Any], id_map: dict[int, int]) -> None:
+    """Remap source-env chart IDs in ``container["chartsInScope"]`` in place.
+
+    ``chartsInScope`` is a denormalized cache of the charts a filter (native
+    or cross-filter) currently applies to. Both surfaces share this contract,
+    so they share this remap. Unresolvable IDs are dropped rather than
+    passed through, matching the convention used for ``scope.excluded``.
+    """
+    charts_in_scope = container.get("chartsInScope")
+    if isinstance(charts_in_scope, list):
+        container["chartsInScope"] = [
+            id_map[old_id] for old_id in charts_in_scope if old_id in id_map
+        ]
 
 
 def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
@@ -139,11 +159,35 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
             native_filter["scope"]["excluded"] = [
                 id_map[old_id] for old_id in scope_excluded if old_id in id_map
             ]
+
+        _remap_charts_in_scope(native_filter, id_map)
+
+    # fix display control dataset references
+    for customization in (
+        fixed.get("metadata", {}).get("chart_customization_config") or []
+    ):
+        for target in customization.get("targets") or []:
+            dataset_uuid = target.pop("datasetUuid", None)
+            if dataset_uuid:
+                info = dataset_info.get(dataset_uuid)
+                if info:
+                    target["datasetId"] = info["datasource_id"]
+                else:
+                    # UUID present but unresolvable — remove stale integer ID
+                    # so the control fails visibly rather than binding to
+                    # whatever dataset happens to own that ID in this environment
+                    target.pop("datasetId", None)
+                    logger.warning(
+                        "Display control target references unknown dataset UUID %s; "
+                        "datasetId will not be restored",
+                        dataset_uuid,
+                    )
+
     fixed = update_cross_filter_scoping(fixed, id_map)
     return fixed
 
 
-def update_cross_filter_scoping(
+def update_cross_filter_scoping(  # noqa: C901
     config: dict[str, Any], id_map: dict[int, int]
 ) -> dict[str, Any]:
     # fix cross filter references
@@ -157,6 +201,9 @@ def update_cross_filter_scoping(
         cross_filter_global_config["scope"]["excluded"] = [
             id_map[old_id] for old_id in scope_excluded if old_id in id_map
         ]
+
+    # Global cross-filter chartsInScope mirrors the native-filter case.
+    _remap_charts_in_scope(cross_filter_global_config, id_map)
 
     if "chart_configuration" in (metadata := fixed.get("metadata", {})):
         # Build remapped configuration in a single pass for clarity/readability.
@@ -184,6 +231,11 @@ def update_cross_filter_scoping(
                             for old_id in excluded_scope
                             if old_id in id_map
                         ]
+
+                # Cross-filter chartsInScope mirrors the native-filter case.
+                cross_filters = chart_config.get("crossFilters")
+                if isinstance(cross_filters, dict):
+                    _remap_charts_in_scope(cross_filters, id_map)
 
             new_chart_configuration[str(new_id)] = chart_config
 

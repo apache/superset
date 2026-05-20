@@ -25,8 +25,9 @@ import {
 } from '@testing-library/react';
 import '@testing-library/jest-dom';
 import userEvent from '@testing-library/user-event';
-import { ThemeProvider, supersetTheme } from '@apache-superset/core/ui';
+import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
 import type { editors } from '@apache-superset/core';
+import AceEditorProvider from './AceEditorProvider';
 
 type EditorProps = editors.EditorProps;
 
@@ -62,8 +63,6 @@ jest.mock('@superset-ui/core/components', () => ({
   CssEditor: () => <div data-test="css-editor" />,
   ConfigEditor: () => <div data-test="config-editor" />,
 }));
-
-import AceEditorProvider from './AceEditorProvider';
 
 const render = (ui: ReactElement) =>
   rtlRender(<ThemeProvider theme={supersetTheme}>{ui}</ThemeProvider>);

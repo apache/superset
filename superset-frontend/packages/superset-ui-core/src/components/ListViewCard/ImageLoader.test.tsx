@@ -52,12 +52,12 @@ describe('ImageLoader', () => {
 
   afterEach(() => fetchMock.clearHistory());
 
-  it('is a valid element', async () => {
+  test('is a valid element', async () => {
     setup();
     expect(await screen.findByTestId('image-loader')).toBeVisible();
   });
 
-  it('fetches loads the image in the background', async () => {
+  test('fetches loads the image in the background', async () => {
     setup();
     expect(screen.getByTestId('image-loader')).toHaveAttribute(
       'src',
@@ -71,7 +71,7 @@ describe('ImageLoader', () => {
     );
   });
 
-  it('displays fallback image when response is not an image', async () => {
+  test('displays fallback image when response is not an image', async () => {
     fetchMock.once('glob:*/thumbnail2', {}, { name: 'thumbnail2' });
 
     setup({ src: 'glob:*/thumbnail2' });

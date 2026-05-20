@@ -26,7 +26,7 @@ import {
   parseErrorJson,
   SupersetError,
 } from '@superset-ui/core';
-import { logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 type AsyncEvent = {

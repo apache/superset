@@ -61,6 +61,7 @@ export interface VirtualizedTreeItemData {
   metricsMap: Map<string, Metric>;
   columnsMap: Map<string, ColumnMeta>;
   activeId: UniqueIdentifier | null;
+  draggedFolderChildIds: Set<string>;
   forbiddenDropFolderIds: Set<string>;
   currentDropTargetId: string | null;
   onToggleCollapse: (id: string) => void;
@@ -151,6 +152,7 @@ function VirtualizedTreeItemComponent({
     metricsMap,
     columnsMap,
     activeId,
+    draggedFolderChildIds,
     forbiddenDropFolderIds,
     currentDropTargetId,
     onToggleCollapse,
@@ -183,6 +185,12 @@ function VirtualizedTreeItemComponent({
         isFolder={isFolder}
       />
     );
+  }
+
+  // Hidden descendants of the dragged folder — not droppable.
+  // handleDragEnd uses lastValidOverIdRef when dropping in this dead zone.
+  if (draggedFolderChildIds.has(item.uuid)) {
+    return <div style={{ ...style, visibility: 'hidden' }} />;
   }
 
   const childCount = isFolder ? (folderChildCounts.get(item.uuid) ?? 0) : 0;

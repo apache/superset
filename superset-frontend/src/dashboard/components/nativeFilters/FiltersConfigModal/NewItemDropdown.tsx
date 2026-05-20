@@ -17,9 +17,9 @@
  * under the License.
  */
 import { FC } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { NativeFilterType, ChartCustomizationType } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { useTheme } from '@apache-superset/core/theme';
 import { Button, Dropdown, Menu } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 

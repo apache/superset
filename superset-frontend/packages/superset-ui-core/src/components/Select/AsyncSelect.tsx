@@ -31,7 +31,7 @@ import {
   ClipboardEvent,
 } from 'react';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   usePrevious,
@@ -479,10 +479,10 @@ const AsyncSelect = forwardRef(
           fullSelectOptions.filter(opt => set.has(opt.value)),
         );
         if (isSingleMode) {
-          // @ts-ignore
+          // @ts-expect-error
           onChange?.(selectValue, options[0]);
         } else {
-          // @ts-ignore
+          // @ts-expect-error
           onChange?.(array, options);
         }
       }
@@ -619,7 +619,7 @@ const AsyncSelect = forwardRef(
           onBlur={handleOnBlur}
           onDeselect={handleOnDeselect}
           onOpenChange={handleOnDropdownVisibleChange}
-          // @ts-ignore
+          // @ts-expect-error
           onPaste={onPaste}
           onPopupScroll={handlePagination}
           onSearch={showSearch ? handleOnSearch : undefined}

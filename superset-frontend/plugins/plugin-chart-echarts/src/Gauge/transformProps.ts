@@ -350,7 +350,6 @@ export default function transformProps(
       axisTick,
       pointer,
       detail,
-      // @ts-ignore
       tooltip,
       radius:
         Math.min(width, height) / 2 - axisLabelDistance - axisTickDistance,

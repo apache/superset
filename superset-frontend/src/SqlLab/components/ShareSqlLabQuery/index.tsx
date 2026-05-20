@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
-import { css } from '@apache-superset/core/ui';
+import { css } from '@apache-superset/core/theme';
 import { Button } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -71,7 +71,7 @@ const ShareSqlLabQuery = ({
     const tooltip = t('Copy query link to your clipboard');
     return (
       <Button
-        color="primary"
+        color="default"
         variant="text"
         tooltip={tooltip}
         css={css`
@@ -89,6 +89,7 @@ const ShareSqlLabQuery = ({
       getText={getCopyUrl}
       wrapped={false}
       copyNode={buildButton()}
+      hideTooltip
     />
   );
 };

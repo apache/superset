@@ -43,9 +43,8 @@ const mockEchart = jest.fn();
 jest.mock('../components/Echart', () => {
   const { forwardRef } = jest.requireActual<typeof import('react')>('react');
   const MockEchart = forwardRef<EchartsHandler | null, EchartsProps>(
-    (props, ref) => {
+    (props, _ref) => {
       mockEchart(props);
-      void ref;
       return null;
     },
   );
@@ -157,9 +156,9 @@ const defaultFormData: EchartsTimeseriesFormData & {
   showLegend: false,
   legendSort: null,
   xAxisTitle: '',
-  xAxisTitleMargin: 0,
+  xAxisTitleMargin: 40,
   yAxisTitle: '',
-  yAxisTitleMargin: 0,
+  yAxisTitleMargin: 50,
   yAxisTitlePosition: '',
   time_range: 'No filter',
   granularity: undefined,
@@ -227,9 +226,7 @@ test('observes extra control height changes when ResizeObserver is available', a
       observeSpy(target);
     };
 
-    unobserve(_target: Element): void {
-      void _target;
-    }
+    unobserve(_target: Element): void {}
 
     disconnect = () => {
       disconnectSpy();

@@ -16,10 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import PropTypes from 'prop-types';
-
-import columnType from './columnType';
-import adhocMetricType from './adhocMetricType';
 import { StyledColumnOption } from '../../optionRenderers';
 
 interface OptionType {
@@ -29,14 +25,6 @@ interface OptionType {
   type?: string;
   [key: string]: unknown;
 }
-
-const propTypes = {
-  option: PropTypes.oneOfType([
-    columnType,
-    PropTypes.shape({ saved_metric_name: PropTypes.string.isRequired }),
-    adhocMetricType,
-  ]).isRequired,
-};
 
 export default function FilterDefinitionOption({
   option,
@@ -69,4 +57,3 @@ export default function FilterDefinitionOption({
   }
   return null;
 }
-FilterDefinitionOption.propTypes = propTypes;

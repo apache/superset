@@ -20,10 +20,10 @@
 import { Component } from 'react';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { FixedSizeList as List } from 'react-window';
-// @ts-ignore
+// @ts-expect-error
 import { createFilter } from 'react-search-input';
-import { t } from '@apache-superset/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, css } from '@apache-superset/core/theme';
 import {
   Button,
   Checkbox,
@@ -55,6 +55,7 @@ import type { ConnectDragSource } from 'react-dnd';
 import AddSliceCard from './AddSliceCard';
 import AddSliceDragPreview from './dnd/AddSliceDragPreview';
 import { DragDroppable } from './dnd/DragDroppable';
+import { datasetLabelLower } from 'src/features/semanticLayers/label';
 
 export type SliceAdderProps = {
   theme: Theme;
@@ -88,7 +89,7 @@ const KEYS_TO_FILTERS = ['slice_name', 'viz_type', 'datasource_name'];
 const KEYS_TO_SORT = {
   slice_name: t('name'),
   viz_type: t('viz type'),
-  datasource_name: t('dataset'),
+  datasource_name: datasetLabelLower(),
   changed_on: t('recent'),
 };
 

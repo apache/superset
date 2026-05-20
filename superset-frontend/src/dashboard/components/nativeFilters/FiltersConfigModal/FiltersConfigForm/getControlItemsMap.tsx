@@ -25,13 +25,13 @@ import {
   Tooltip,
   type FormInstance,
 } from '@superset-ui/core/components';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   Filter,
   ChartCustomization,
   getChartControlPanelRegistry,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import {
   doesColumnMatchFilterType,
   getControlItems,
@@ -121,7 +121,9 @@ export default function getControlItemsMap({
             initialValue={initColumn}
             label={
               <StyledLabel>
-                {mainControlItem.config?.label || t('Column')}
+                {typeof mainControlItem.config?.label === 'function'
+                  ? (mainControlItem.config.label as Function)()
+                  : mainControlItem.config?.label || t('Column')}
               </StyledLabel>
             }
             rules={[
@@ -165,7 +167,8 @@ export default function getControlItemsMap({
       (controlItem: CustomControlItem) =>
         controlItem?.config?.renderTrigger &&
         controlItem.name !== 'sortAscending' &&
-        controlItem.name !== 'enableSingleValue',
+        controlItem.name !== 'enableSingleValue' &&
+        controlItem.name !== 'operatorType',
     )
     .forEach(controlItem => {
       const initialValue =
@@ -219,11 +222,18 @@ export default function getControlItemsMap({
                 }}
               >
                 <>
-                  {controlItem.config.label}&nbsp;
+                  {typeof controlItem.config.label === 'function'
+                    ? (controlItem.config.label as Function)()
+                    : controlItem.config.label}
+                  &nbsp;
                   {controlItem.config.description && (
                     <InfoTooltip
                       placement="top"
-                      tooltip={controlItem.config.description}
+                      tooltip={
+                        typeof controlItem.config.description === 'function'
+                          ? (controlItem.config.description as Function)()
+                          : (controlItem.config.description as React.ReactNode)
+                      }
                     />
                   )}
                 </>

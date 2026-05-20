@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
-import { ModalTrigger } from '@superset-ui/core/components';
+import { styled, useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
+import { ModalTrigger, Tabs } from '@superset-ui/core/components';
 import CodeSyntaxHighlighter from '@superset-ui/core/components/CodeSyntaxHighlighter';
 
 export interface HighlightedSqlProps {
@@ -40,6 +41,12 @@ interface TriggerNodeProps {
   maxWidth: number;
 }
 
+const Title = styled.h4`
+  font-size: ${({ theme }) => theme.fontSizeLG}px;
+  margin: ${({ theme }) => theme.sizeUnit * 2}px 0;
+  font-weight: ${({ theme }) => theme.fontWeightStrong};
+`;
+
 const shrinkSql = (sql: string, maxLines: number, maxWidth: number) => {
   const ssql = sql || '';
   let lines = ssql.split('\n');
@@ -56,24 +63,60 @@ const shrinkSql = (sql: string, maxLines: number, maxWidth: number) => {
 
 function TriggerNode({ shrink, sql, maxLines, maxWidth }: TriggerNodeProps) {
   return (
-    <CodeSyntaxHighlighter language="sql">
+    <CodeSyntaxHighlighter language="sql" showCopyButton={false}>
       {shrink ? shrinkSql(sql, maxLines, maxWidth) : sql}
     </CodeSyntaxHighlighter>
   );
 }
 
 function HighlightSqlModal({ rawSql, sql }: HighlightedSqlModalTypes) {
+  const theme = useTheme();
+  const codeBlockStyle = {
+    border: 1,
+    borderColor: theme.colorBorder,
+    borderStyle: 'solid',
+    backgroundColor: theme.colorBgLayout,
+    fontSize: theme.fontSize * 0.9,
+    padding: theme.sizeUnit * 2,
+  };
+
+  const isDifferent = !!rawSql && rawSql !== sql;
+
+  if (!isDifferent) {
+    return (
+      <div>
+        <Title>{t('Source SQL')}</Title>
+        <CodeSyntaxHighlighter language="sql" customStyle={codeBlockStyle}>
+          {sql}
+        </CodeSyntaxHighlighter>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <h4>{t('Source SQL')}</h4>
-      <CodeSyntaxHighlighter language="sql">{sql}</CodeSyntaxHighlighter>
-      {rawSql && rawSql !== sql && (
-        <div>
-          <h4>{t('Executed SQL')}</h4>
-          <CodeSyntaxHighlighter language="sql">{rawSql}</CodeSyntaxHighlighter>
-        </div>
-      )}
-    </div>
+    <Tabs
+      defaultActiveKey="executed"
+      items={[
+        {
+          key: 'executed',
+          label: t('Executed SQL'),
+          children: (
+            <CodeSyntaxHighlighter language="sql" customStyle={codeBlockStyle}>
+              {rawSql!}
+            </CodeSyntaxHighlighter>
+          ),
+        },
+        {
+          key: 'source',
+          label: t('Source SQL'),
+          children: (
+            <CodeSyntaxHighlighter language="sql" customStyle={codeBlockStyle}>
+              {sql}
+            </CodeSyntaxHighlighter>
+          ),
+        },
+      ]}
+    />
   );
 }
 
@@ -96,6 +139,7 @@ function HighlightedSql({
           maxWidth={maxWidth}
         />
       }
+      responsive
     />
   );
 }

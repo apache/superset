@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ChartProps } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { EchartsTreemapChartProps } from '../../src/Treemap/types';
 import transformProps from '../../src/Treemap/transformProps';
 
@@ -44,7 +44,7 @@ describe('Treemap transformProps', () => {
     theme: supersetTheme,
   });
 
-  it('should transform chart props for viz', () => {
+  test('should transform chart props for viz', () => {
     expect(transformProps(chartProps as EchartsTreemapChartProps)).toEqual(
       expect.objectContaining({
         width: 800,

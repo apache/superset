@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ControlPanelConfig } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 
 const config: ControlPanelConfig = {
   controlPanelSections: [

@@ -167,6 +167,8 @@ export function safeHtmlSpan(possiblyHtmlString: string) {
     return (
       <span
         className="safe-html-wrapper"
+        // Safe: HTML is sanitized before rendering
+        // eslint-disable-next-line react/no-danger
         dangerouslySetInnerHTML={{ __html: sanitizeHtml(possiblyHtmlString) }}
       />
     );

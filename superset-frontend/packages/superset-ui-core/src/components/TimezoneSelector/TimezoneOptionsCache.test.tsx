@@ -241,7 +241,7 @@ test('uses queueMicrotask when available', async () => {
 
 test('falls back to setTimeout when queueMicrotask is not available', async () => {
   const originalQueueMicrotask = global.queueMicrotask;
-  // @ts-ignore - temporarily remove queueMicrotask for testing
+  // @ts-expect-error - temporarily remove queueMicrotask for testing
   delete global.queueMicrotask;
 
   const setTimeoutSpy = jest.spyOn(global, 'setTimeout');

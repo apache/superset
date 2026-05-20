@@ -32,7 +32,7 @@ import type { editors } from '@apache-superset/core';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
   isFeatureEnabled,
@@ -40,7 +40,8 @@ import {
   QueryResponse,
   Query,
 } from '@superset-ui/core';
-import { css, styled, useTheme, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import type {
   QueryEditor,
   SqlLabRootState,
@@ -291,7 +292,10 @@ const SqlEditor: FC<Props> = ({
   const SqlFormExtension = extensionsRegistry.get('sqleditor.extension.form');
 
   const startQuery = useCallback(
-    (ctasArg = false, ctas_method = CtasEnum.Table) => {
+    (
+      ctasArg = false,
+      ctas_method: (typeof CtasEnum)[keyof typeof CtasEnum] = CtasEnum.Table,
+    ) => {
       if (!database) {
         return;
       }
@@ -787,7 +791,12 @@ const SqlEditor: FC<Props> = ({
 
   const onSaveQuery = async (query: QueryPayload, clientId: string) => {
     const savedQuery = await dispatch(saveQuery(query, clientId));
-    dispatch(addSavedQueryToTabState(queryEditor, savedQuery));
+    dispatch(
+      addSavedQueryToTabState(
+        queryEditor,
+        savedQuery as unknown as { remoteId: string },
+      ),
+    );
   };
 
   const renderEditorPrimaryAction = () => {

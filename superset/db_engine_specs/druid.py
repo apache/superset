@@ -46,6 +46,10 @@ class DruidEngineSpec(BaseEngineSpec):
     allows_joins = is_feature_enabled("DRUID_JOINS")
     allows_subqueries = True
 
+    # pydruid builds cursor.description from the first returned row, so a
+    # WHERE FALSE query (zero rows) leaves description as None.
+    type_probe_needs_row = True
+
     metadata = {
         "description": (
             "Apache Druid is a high performance real-time analytics database."

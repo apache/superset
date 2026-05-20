@@ -202,7 +202,7 @@ export default function transformProps(
       tooltip: {
         ...getDefaultTooltip(refs),
         formatter: (param: CallbackDataParams) => {
-          // @ts-ignore
+          // @ts-expect-error
           const {
             value,
             name,
@@ -239,7 +239,7 @@ export default function transformProps(
         },
       },
     },
-    // @ts-ignore
+    // @ts-expect-error
     ...outlierData,
   ];
   const addYAxisTitleOffset =

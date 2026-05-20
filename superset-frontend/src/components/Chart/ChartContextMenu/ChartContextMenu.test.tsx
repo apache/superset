@@ -50,6 +50,7 @@ const TestWrapper = () => {
   return (
     <>
       <button
+        type="button"
         onClick={() => contextMenuRef.current?.open(100, 100, {})}
         data-test="open-context-menu"
       >
@@ -70,8 +71,8 @@ const TestWrapper = () => {
   );
 };
 
-const setup = () => {
-  return render(<TestWrapper />, {
+const setup = () =>
+  render(<TestWrapper />, {
     useRedux: true,
     initialState: {
       ...mockState,
@@ -88,7 +89,6 @@ const setup = () => {
       },
     },
   });
-};
 
 beforeEach(() => {
   // @ts-ignore

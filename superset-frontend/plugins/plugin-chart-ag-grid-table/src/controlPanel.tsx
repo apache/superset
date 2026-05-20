@@ -39,8 +39,9 @@ import {
   shouldSkipMetricColumn,
   isRegularMetric,
   isPercentMetric,
+  ColorSchemeEnum,
 } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   isAdhocColumn,
@@ -53,10 +54,9 @@ import {
   validateServerPagination,
   withLabel,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { isEmpty, last } from 'lodash';
 import { PAGE_SIZE_OPTIONS, SERVER_PAGE_SIZE_OPTIONS } from './consts';
-import { ColorSchemeEnum } from './types';
 
 /**
  * Generate comparison column names for a given column.
@@ -87,31 +87,29 @@ function getQueryMode(controls: ControlStateMapping): QueryMode {
 }
 
 const processComparisonColumns = (columns: any[], suffix: string) =>
-  columns
-    .map(col => {
-      if (!col.label.includes(suffix)) {
-        return [
-          {
-            label: `${t('Main')} ${col.label}`,
-            value: `${t('Main')} ${col.value}`,
-          },
-          {
-            label: `# ${col.label}`,
-            value: `# ${col.value}`,
-          },
-          {
-            label: `△ ${col.label}`,
-            value: `△ ${col.value}`,
-          },
-          {
-            label: `% ${col.label}`,
-            value: `% ${col.value}`,
-          },
-        ];
-      }
-      return [];
-    })
-    .flat();
+  columns.flatMap(col => {
+    if (!col.label.includes(suffix)) {
+      return [
+        {
+          label: `${t('Main')} ${col.label}`,
+          value: `${t('Main')} ${col.value}`,
+        },
+        {
+          label: `# ${col.label}`,
+          value: `# ${col.value}`,
+        },
+        {
+          label: `△ ${col.label}`,
+          value: `△ ${col.value}`,
+        },
+        {
+          label: `% ${col.label}`,
+          value: `% ${col.value}`,
+        },
+      ];
+    }
+    return [];
+  });
 
 /**
  * Visibility check
@@ -496,6 +494,12 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+      ],
+    },
+    {
+      label: t('Visual formatting'),
+      expanded: true,
+      controlSetRows: [
         [
           {
             name: 'column_config',
@@ -589,18 +593,12 @@ const config: ControlPanelConfig = {
             },
           },
         ],
-      ],
-    },
-    {
-      label: t('Visual formatting'),
-      expanded: true,
-      controlSetRows: [
         [
           {
             name: 'show_cell_bars',
             config: {
               type: 'CheckboxControl',
-              label: t('Show cell bars'),
+              label: t('Show cell bars for all columns'),
               renderTrigger: true,
               default: true,
               description: t(
@@ -614,7 +612,7 @@ const config: ControlPanelConfig = {
             name: 'align_pn',
             config: {
               type: 'CheckboxControl',
-              label: t('Align +/-'),
+              label: t('Align +/- for all columns'),
               renderTrigger: true,
               default: false,
               description: t(
@@ -628,7 +626,7 @@ const config: ControlPanelConfig = {
             name: 'color_pn',
             config: {
               type: 'CheckboxControl',
-              label: t('Add colors to cell bars for +/-'),
+              label: t('Add colors to cell bars for +/- for all columns'),
               renderTrigger: true,
               default: true,
               description: t(
