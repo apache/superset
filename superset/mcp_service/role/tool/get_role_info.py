@@ -61,7 +61,7 @@ async def get_role_info(
     await ctx.info("Retrieving role information: identifier=%s" % (request.identifier,))
 
     try:
-        from superset.mcp_service.role.dao import RoleDAO
+        from superset.daos.role import RoleDAO
 
         with event_logger.log_context(action="mcp.get_role_info.lookup"):
             get_tool = ModelGetInfoCore(

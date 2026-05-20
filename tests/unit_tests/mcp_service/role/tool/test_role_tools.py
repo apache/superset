@@ -77,7 +77,7 @@ class TestRoleFilterSchema:
 # ---------------------------------------------------------------------------
 
 
-@patch("superset.mcp_service.role.dao.RoleDAO.list")
+@patch("superset.daos.role.RoleDAO.list")
 @pytest.mark.asyncio
 async def test_list_roles_basic(mock_list, mcp_server):
     """Basic role listing returns expected fields."""
@@ -94,7 +94,7 @@ async def test_list_roles_basic(mock_list, mcp_server):
     assert data["roles"][0]["name"] == "Admin"
 
 
-@patch("superset.mcp_service.role.dao.RoleDAO.list")
+@patch("superset.daos.role.RoleDAO.list")
 @pytest.mark.asyncio
 async def test_list_roles_with_request(mock_list, mcp_server):
     """list_roles accepts an explicit request object."""
@@ -110,7 +110,7 @@ async def test_list_roles_with_request(mock_list, mcp_server):
     assert data["roles"][0]["name"] == "Alpha"
 
 
-@patch("superset.mcp_service.role.dao.RoleDAO.list")
+@patch("superset.daos.role.RoleDAO.list")
 @pytest.mark.asyncio
 async def test_list_roles_with_search(mock_list, mcp_server):
     """list_roles passes search to the DAO."""
@@ -125,7 +125,7 @@ async def test_list_roles_with_search(mock_list, mcp_server):
     assert data["roles"][0]["name"] == "Gamma"
 
 
-@patch("superset.mcp_service.role.dao.RoleDAO.list")
+@patch("superset.daos.role.RoleDAO.list")
 @pytest.mark.asyncio
 async def test_list_roles_with_name_filter(mock_list, mcp_server):
     """list_roles accepts name column filters."""
@@ -143,7 +143,7 @@ async def test_list_roles_with_name_filter(mock_list, mcp_server):
     assert data["roles"][0]["name"] == "Viewer"
 
 
-@patch("superset.mcp_service.role.dao.RoleDAO.list")
+@patch("superset.daos.role.RoleDAO.list")
 @pytest.mark.asyncio
 async def test_list_roles_empty_result(mock_list, mcp_server):
     """list_roles handles empty results gracefully."""
@@ -158,7 +158,7 @@ async def test_list_roles_empty_result(mock_list, mcp_server):
     assert data["total_count"] == 0
 
 
-@patch("superset.mcp_service.role.dao.RoleDAO.list")
+@patch("superset.daos.role.RoleDAO.list")
 @pytest.mark.asyncio
 async def test_list_roles_pagination(mock_list, mcp_server):
     """list_roles returns correct pagination metadata."""
@@ -174,6 +174,25 @@ async def test_list_roles_pagination(mock_list, mcp_server):
     assert data["total_count"] == 10
     assert data["page"] == 1
     assert data["page_size"] == 3
+
+
+@patch("superset.daos.role.RoleDAO.list")
+@pytest.mark.asyncio
+async def test_list_roles_select_columns_filters_output(mock_list, mcp_server):
+    """select_columns controls which fields appear in each role dict."""
+    role = create_mock_role()
+    mock_list.return_value = ([role], 1)
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "list_roles",
+            {"request": {"select_columns": ["id"]}},
+        )
+
+    data = json.loads(result.content[0].text)
+    role_dict = data["roles"][0]
+    assert set(role_dict.keys()) == {"id"}
+    assert role_dict["id"] == 1
 
 
 @pytest.mark.asyncio
@@ -199,7 +218,7 @@ async def test_list_roles_search_and_filters_mutually_exclusive(mcp_server):
 # ---------------------------------------------------------------------------
 
 
-@patch("superset.mcp_service.role.dao.RoleDAO.find_by_id")
+@patch("superset.daos.role.RoleDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_get_role_info_success(mock_find, mcp_server):
     """get_role_info returns role details for a known ID."""
@@ -214,7 +233,7 @@ async def test_get_role_info_success(mock_find, mcp_server):
     assert data["name"] == "Admin"
 
 
-@patch("superset.mcp_service.role.dao.RoleDAO.find_by_id")
+@patch("superset.daos.role.RoleDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_get_role_info_not_found(mock_find, mcp_server):
     """get_role_info returns a not_found error for unknown IDs."""
@@ -229,7 +248,7 @@ async def test_get_role_info_not_found(mock_find, mcp_server):
     assert data["error_type"] == "not_found"
 
 
-@patch("superset.mcp_service.role.dao.RoleDAO.find_by_id")
+@patch("superset.daos.role.RoleDAO.find_by_id")
 @pytest.mark.asyncio
 async def test_get_role_info_returns_id_and_name(mock_find, mcp_server):
     """get_role_info returns exactly id and name."""
