@@ -21,6 +21,7 @@ from sqlglot import Dialect, exp
 
 from superset.sql.parse import SQLStatement, Table
 from superset.sql.rls_splice import (
+    _after_previous_token,
     _classify_source_predicate,
     _find_condition_end,
     _find_join_splice,
@@ -117,6 +118,11 @@ def test_classify_source_predicate_returns_none_for_unsupported_parent() -> None
         None,
     )
     assert result == ("none", None, None)
+
+
+def test_after_previous_token_returns_zero_at_stream_start() -> None:
+    tokens = _tokenize("SELECT 1")
+    assert _after_previous_token(tokens, 0) == 0
 
 
 def test_scan_until_scope_boundary_tracks_parenthesis_depth() -> None:
