@@ -670,6 +670,33 @@ CSS_TEMPLATE_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
 }
 
 
+# Report (alerts & reports) configuration
+REPORT_DEFAULT_COLUMNS = ["id", "name", "type", "active", "crontab"]
+REPORT_SORTABLE_COLUMNS = [
+    "id",
+    "name",
+    "type",
+    "active",
+    "changed_on",
+    "created_on",
+]
+REPORT_SEARCH_COLUMNS = ["name", "description"]
+REPORT_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
+    "changed_on_humanized": ColumnMetadata(
+        name="changed_on_humanized",
+        description="Humanized modification time",
+        type="str",
+        is_default=False,
+    ),
+    "created_on_humanized": ColumnMetadata(
+        name="created_on_humanized",
+        description="Humanized creation time",
+        type="str",
+        is_default=False,
+    ),
+}
+
+
 def get_css_template_columns() -> list[ColumnMetadata]:
     """Get column metadata for CssTemplate model dynamically."""
     from superset.models.core import CssTemplate
@@ -714,3 +741,18 @@ def get_theme_columns() -> list[ColumnMetadata]:
         THEME_DEFAULT_COLUMNS,
         exclude_columns=set(USER_DIRECTORY_FIELDS),
     )
+
+
+def get_report_columns() -> list[ColumnMetadata]:
+    """Get column metadata for ReportSchedule model dynamically."""
+    from superset.reports.models import ReportSchedule
+
+    return get_columns_from_model(
+        ReportSchedule,
+        REPORT_DEFAULT_COLUMNS,
+        REPORT_EXTRA_COLUMNS,
+        exclude_columns=set(USER_DIRECTORY_FIELDS),
+    )
+
+
+REPORT_ALL_COLUMNS: list[str] = []

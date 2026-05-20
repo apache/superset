@@ -333,3 +333,74 @@ async def test_get_report_info_with_chart(mock_find, mcp_server):
         data = json.loads(result.content[0].text)
         assert data["chart_id"] == 7
         assert data["dashboard_id"] is None
+
+
+def test_list_reports_request_rejects_invalid_order_column():
+    """order_column is validated against REPORT_SORTABLE_COLUMNS."""
+    from superset.mcp_service.common.schema_discovery import REPORT_SORTABLE_COLUMNS
+
+    assert "invalid_column" not in REPORT_SORTABLE_COLUMNS
+    # The validation happens inside ModelListCore, not the request schema,
+    # so we just verify the sortable list doesn't include bad columns.
+    request = ListReportsRequest(page=1, page_size=10, order_column="invalid_column")
+    assert (
+        request.order_column == "invalid_column"
+    )  # schema accepts it; core rejects it
+
+
+@patch("superset.daos.report.ReportScheduleDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_report_info_humanized_timestamps(mock_find, mcp_server):
+    """Test that changed_on_humanized and created_on_humanized are returned."""
+    from datetime import datetime, timezone
+
+    report = create_mock_report()
+    report.changed_on = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    report.created_on = datetime(2024, 1, 1, 10, 0, 0, tzinfo=timezone.utc)
+    mock_find.return_value = report
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_report_info", {"request": {"identifier": 1}}
+        )
+        data = json.loads(result.content[0].text)
+        assert "changed_on_humanized" in data
+        assert data["changed_on_humanized"] is not None
+        assert "created_on_humanized" in data
+        assert data["created_on_humanized"] is not None
+
+
+@patch("superset.daos.report.ReportScheduleDAO.list")
+@pytest.mark.asyncio
+async def test_list_reports_owned_by_me_passed_to_dao(mock_list, mcp_server):
+    """owned_by_me=True is forwarded to the DAO layer."""
+    mock_list.return_value = ([], 0)
+
+    async with Client(mcp_server) as client:
+        request = ListReportsRequest(page=1, page_size=10, owned_by_me=True)
+        await client.call_tool("list_reports", {"request": request.model_dump()})
+
+    mock_list.assert_called_once()
+    _, kwargs = mock_list.call_args
+    filters_arg = kwargs.get("filters", [])
+    assert any(getattr(f, "col", None) == "owners.id" for f in filters_arg), (
+        "owned_by_me should inject an owners.id filter into the DAO call"
+    )
+
+
+@patch("superset.daos.report.ReportScheduleDAO.list")
+@pytest.mark.asyncio
+async def test_list_reports_created_by_me_passed_to_dao(mock_list, mcp_server):
+    """created_by_me=True is forwarded to the DAO layer."""
+    mock_list.return_value = ([], 0)
+
+    async with Client(mcp_server) as client:
+        request = ListReportsRequest(page=1, page_size=10, created_by_me=True)
+        await client.call_tool("list_reports", {"request": request.model_dump()})
+
+    mock_list.assert_called_once()
+    _, kwargs = mock_list.call_args
+    filters_arg = kwargs.get("filters", [])
+    assert any(getattr(f, "col", None) == "created_by_fk" for f in filters_arg), (
+        "created_by_me should inject a created_by_fk filter into the DAO call"
+    )

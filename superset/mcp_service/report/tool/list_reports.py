@@ -29,6 +29,13 @@ if TYPE_CHECKING:
     from superset.reports.models import ReportSchedule
 
 from superset.extensions import event_logger
+from superset.mcp_service.common.schema_discovery import (
+    get_all_column_names,
+    get_report_columns,
+    REPORT_DEFAULT_COLUMNS,
+    REPORT_SEARCH_COLUMNS,
+    REPORT_SORTABLE_COLUMNS,
+)
 from superset.mcp_service.mcp_core import ModelListCore
 from superset.mcp_service.report.schemas import (
     ListReportsRequest,
@@ -40,21 +47,6 @@ from superset.mcp_service.report.schemas import (
 )
 
 logger = logging.getLogger(__name__)
-
-DEFAULT_REPORT_COLUMNS = ["id", "name", "type", "active", "crontab"]
-SORTABLE_REPORT_COLUMNS = ["id", "name", "type", "active", "changed_on", "created_on"]
-ALL_REPORT_COLUMNS = [
-    "id",
-    "name",
-    "description",
-    "type",
-    "active",
-    "crontab",
-    "dashboard_id",
-    "chart_id",
-    "changed_on",
-    "created_on",
-]
 
 _DEFAULT_LIST_REPORTS_REQUEST = ListReportsRequest()
 
@@ -117,12 +109,12 @@ async def list_reports(
             output_schema=ReportInfo,
             item_serializer=_serialize_report,
             filter_type=ReportFilter,
-            default_columns=DEFAULT_REPORT_COLUMNS,
-            search_columns=["name", "description"],
+            default_columns=REPORT_DEFAULT_COLUMNS,
+            search_columns=REPORT_SEARCH_COLUMNS,
             list_field_name="reports",
             output_list_schema=ReportList,
-            all_columns=ALL_REPORT_COLUMNS,
-            sortable_columns=SORTABLE_REPORT_COLUMNS,
+            all_columns=get_all_column_names(get_report_columns()),
+            sortable_columns=REPORT_SORTABLE_COLUMNS,
             logger=logger,
         )
 
@@ -135,6 +127,8 @@ async def list_reports(
                 order_direction=request.order_direction,
                 page=max(request.page - 1, 0),
                 page_size=request.page_size,
+                created_by_me=request.created_by_me,
+                owned_by_me=request.owned_by_me,
             )
 
         await ctx.info(
