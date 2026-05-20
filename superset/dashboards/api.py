@@ -1058,11 +1058,15 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
 
         try:
+            dry_run = parse_boolean_string(request.args.get("dry_run", "false"))
             mark_updated = parse_boolean_string(
                 request.args.get("mark_updated", "true")
             )
-            UpdateDashboardColorsConfigCommand(pk, item, mark_updated).run()
-            response = self.response(200)
+            if dry_run:
+                response = self.response(200)
+            else:
+                UpdateDashboardColorsConfigCommand(pk, item, mark_updated).run()
+                response = self.response(200)
         except DashboardNotFoundError:
             response = self.response_404()
         except DashboardForbiddenError:
