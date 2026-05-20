@@ -62,6 +62,21 @@ def build_uuid_to_id_map(position: dict[str, Any]) -> dict[str, int]:
     }
 
 
+def _remap_charts_in_scope(container: dict[str, Any], id_map: dict[int, int]) -> None:
+    """Remap source-env chart IDs in ``container["chartsInScope"]`` in place.
+
+    ``chartsInScope`` is a denormalized cache of the charts a filter (native
+    or cross-filter) currently applies to. Both surfaces share this contract,
+    so they share this remap. Unresolvable IDs are dropped rather than
+    passed through, matching the convention used for ``scope.excluded``.
+    """
+    charts_in_scope = container.get("chartsInScope")
+    if isinstance(charts_in_scope, list):
+        container["chartsInScope"] = [
+            id_map[old_id] for old_id in charts_in_scope if old_id in id_map
+        ]
+
+
 def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
     config: dict[str, Any],
     chart_ids: dict[str, int],
@@ -145,6 +160,8 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
                 id_map[old_id] for old_id in scope_excluded if old_id in id_map
             ]
 
+        _remap_charts_in_scope(native_filter, id_map)
+
     # fix display control dataset references
     for customization in (
         fixed.get("metadata", {}).get("chart_customization_config") or []
@@ -170,7 +187,7 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
     return fixed
 
 
-def update_cross_filter_scoping(
+def update_cross_filter_scoping(  # noqa: C901
     config: dict[str, Any], id_map: dict[int, int]
 ) -> dict[str, Any]:
     # fix cross filter references
@@ -184,6 +201,9 @@ def update_cross_filter_scoping(
         cross_filter_global_config["scope"]["excluded"] = [
             id_map[old_id] for old_id in scope_excluded if old_id in id_map
         ]
+
+    # Global cross-filter chartsInScope mirrors the native-filter case.
+    _remap_charts_in_scope(cross_filter_global_config, id_map)
 
     if "chart_configuration" in (metadata := fixed.get("metadata", {})):
         # Build remapped configuration in a single pass for clarity/readability.
@@ -211,6 +231,11 @@ def update_cross_filter_scoping(
                             for old_id in excluded_scope
                             if old_id in id_map
                         ]
+
+                # Cross-filter chartsInScope mirrors the native-filter case.
+                cross_filters = chart_config.get("crossFilters")
+                if isinstance(cross_filters, dict):
+                    _remap_charts_in_scope(cross_filters, id_map)
 
             new_chart_configuration[str(new_id)] = chart_config
 
