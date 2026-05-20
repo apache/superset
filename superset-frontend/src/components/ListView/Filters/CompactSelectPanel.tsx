@@ -57,7 +57,6 @@ const PanelContainer = styled.div`
     display: flex;
     flex-direction: column;
     border-radius: ${theme.borderRadiusLG}px;
-    overflow: hidden;
     background: ${theme.colorBgElevated};
     box-shadow: ${theme.boxShadowSecondary};
     padding: ${theme.paddingXXS}px 0;
@@ -84,7 +83,6 @@ const OptionItem = styled.li<{ $active: boolean }>`
     align-items: center;
     justify-content: space-between;
     padding: 5px ${theme.sizeUnit * 3}px;
-    min-height: ${theme.controlHeight}px;
     cursor: pointer;
     font-size: ${theme.fontSize}px;
     color: ${theme.colorText};
