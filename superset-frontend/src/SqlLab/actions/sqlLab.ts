@@ -1671,7 +1671,7 @@ export interface VizOptions {
 
 export function createDatasource(
   vizOptions: VizOptions,
-): SqlLabThunkAction<Promise<unknown>> {
+): SqlLabThunkAction<Promise<{ id: number }>> {
   return (dispatch: AppDispatch) => {
     dispatch(createDatasourceStarted());
     const { dbId, catalog, schema, datasourceName, sql, templateParams } =
@@ -1691,9 +1691,10 @@ export function createDatasource(
       }),
     })
       .then(({ json }) => {
-        dispatch(createDatasourceSuccess(json as { id: number }));
+        const result = json as { id: number };
+        dispatch(createDatasourceSuccess(result));
 
-        return Promise.resolve(json);
+        return result;
       })
       .catch(error => {
         getClientErrorObject(error).then(e => {
