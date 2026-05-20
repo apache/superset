@@ -49,7 +49,10 @@ interface UIFiltersProps {
 
 function UIFilters(
   { filters, internalFilters = [], updateFilterValue }: UIFiltersProps,
-  ref: RefObject<{ clearFilters: () => void; clearFilterById: (id: string) => void }>,
+  ref: RefObject<{
+    clearFilters: () => void;
+    clearFilterById: (id: string) => void;
+  }>,
 ) {
   const filterRefs = useMemo(
     () =>
@@ -65,8 +68,11 @@ function UIFilters(
 
   useImperativeHandle(ref, () => ({
     clearFilters: () => {
-      filterRefs.forEach(filter => {
+      filterRefs.forEach((filter, index) => {
         filter.current?.clearFilter?.();
+        // Direct reset as safety net — ensures URL updates even if the ref
+        // is stale (e.g. filter value was hydrated from URL after page refresh).
+        updateFilterValue(index, undefined);
       });
       setTooltipLabels({});
     },
@@ -74,6 +80,7 @@ function UIFilters(
       const index = filters.findIndex(f => f.id === id);
       if (index >= 0) {
         filterRefs[index]?.current?.clearFilter?.();
+        updateFilterValue(index, undefined);
         setTooltipLabels(prev => {
           const next = { ...prev };
           delete next[index];
