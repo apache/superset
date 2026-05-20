@@ -509,11 +509,7 @@ function ChartRendererComponent({
           onClose={handleContextMenuClosed}
         />
       )}
-      <div
-        onContextMenu={
-          showContextMenu ? onContextMenuFallback : undefined
-        }
-      >
+      <div onContextMenu={showContextMenu ? onContextMenuFallback : undefined}>
         <SuperChart
           disableErrorBoundary
           key={`${chartId}${webpackHash}`}
