@@ -45,7 +45,7 @@ from starlette.authentication import AuthenticationError
 from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import HTTPConnection
-from starlette.responses import HTMLResponse, JSONResponse
+from starlette.responses import HTMLResponse, JSONResponse, Response
 
 from superset.utils import json
 
@@ -160,28 +160,38 @@ _MCP_BROWSER_HELLO_HTML = """<!DOCTYPE html>
 </html>"""
 
 
-def _json_auth_error_handler(
-    conn: HTTPConnection, exc: AuthenticationError
-) -> JSONResponse | HTMLResponse:
-    """Auth error handler for authentication failures.
+def _prefers_browser_html(conn: HTTPConnection) -> bool:
+    """Return True when the request looks like a browser navigation.
 
-    Returns a friendly HTML page when the request comes from a browser
-    (Accept: text/html), so users who open the MCP URL in a browser see
-    setup instructions rather than a raw JSON 401.
+    Checks both the HTTP method (GET/HEAD only) and the Accept header
+    (text/html present, application/json and text/event-stream absent).
+    Case-insensitive to handle unusual but valid header values.
+    """
+    if conn.scope.get("method") not in ("GET", "HEAD"):
+        return False
+    accept = conn.headers.get("accept", "").lower()
+    return (
+        "text/html" in accept
+        and "application/json" not in accept
+        and "text/event-stream" not in accept
+    )
 
-    For all other clients (API, SSE) returns a standard JSON 401 per
-    RFC 6750 Section 3.1.
+
+def _auth_error_handler(conn: HTTPConnection, exc: AuthenticationError) -> Response:
+    """Auth error handler for unauthenticated MCP requests.
+
+    Returns a friendly HTML page for browser navigation requests so users
+    who open the MCP URL in a browser see setup instructions instead of a
+    raw JSON 401.
+
+    For all other clients (API, SSE, non-GET methods) returns a standard
+    JSON 401 per RFC 6750 Section 3.1.
 
     References:
         - RFC 6750 Section 3.1: https://datatracker.ietf.org/doc/html/rfc6750#section-3.1
         - CVE-2022-29266, CVE-2019-7644: verbose JWT errors led to exploits
     """
-    accept = conn.headers.get("accept", "")
-    if (
-        "text/html" in accept
-        and "application/json" not in accept
-        and "text/event-stream" not in accept
-    ):
+    if _prefers_browser_html(conn):
         return HTMLResponse(status_code=200, content=_MCP_BROWSER_HELLO_HTML)
 
     # Log detailed reason server-side only
@@ -197,6 +207,28 @@ def _json_auth_error_handler(
             "WWW-Authenticate": 'Bearer error="invalid_token"',
         },
     )
+
+
+class MCPJWTVerifier(JWTVerifier):
+    """JWTVerifier with Superset MCP auth error handling.
+
+    Provides browser-friendly HTML responses for unauthenticated browser
+    navigation requests (GET/HEAD with Accept: text/html), while maintaining
+    RFC 6750-compliant JSON 401 responses for API and SSE clients.
+
+    Use this as the base for all Superset JWT verifiers so the browser hello
+    page is active regardless of which verifier variant is configured.
+    """
+
+    def get_middleware(self) -> list[Any]:
+        return [
+            Middleware(
+                AuthenticationMiddleware,
+                backend=BearerAuthBackend(self),
+                on_error=_auth_error_handler,
+            ),
+            Middleware(AuthContextMiddleware),
+        ]
 
 
 class DetailedBearerAuthBackend(BearerAuthBackend):
@@ -232,7 +264,7 @@ class DetailedBearerAuthBackend(BearerAuthBackend):
         return None
 
 
-class DetailedJWTVerifier(JWTVerifier):
+class DetailedJWTVerifier(MCPJWTVerifier):
     """
     JWT verifier with tiered server-side logging for each validation step.
 
@@ -408,7 +440,7 @@ class DetailedJWTVerifier(JWTVerifier):
             Middleware(
                 AuthenticationMiddleware,
                 backend=DetailedBearerAuthBackend(self),
-                on_error=_json_auth_error_handler,
+                on_error=_auth_error_handler,
             ),
             Middleware(AuthContextMiddleware),
         ]
