@@ -74,7 +74,7 @@ test('select filter with ReactNode label uses option title when serializing sele
   await selectOption('John Doe', 'Owner');
 
   await waitFor(() => {
-    expect(mockUpdateFilterValue).toHaveBeenCalledWith({
+    expect(mockUpdateFilterValue).toHaveBeenCalledWith(0, {
       label: 'John Doe',
       value: 42,
     });
@@ -115,7 +115,7 @@ test('select filter falls back to stringified value when no string label or titl
   await selectOption('123', 'Something');
 
   await waitFor(() => {
-    expect(mockUpdateFilterValue).toHaveBeenCalledWith({
+    expect(mockUpdateFilterValue).toHaveBeenCalledWith(0, {
       label: '123',
       value: 123,
     });
