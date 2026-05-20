@@ -214,7 +214,9 @@ class BaseDeletedStateFilter(BaseFilter):  # pylint: disable=too-few-public-meth
         bypass = query.session.info.setdefault(SKIP_VISIBILITY_FILTER_CLASSES, set())
         bypass.add(self.model)
         # Track for release in ``SoftDeleteApiMixin._release_session_bypass``.
-        added = getattr(g, DELETED_STATE_ADDED_CLASSES, set()) | {self.model}
+        added: set[type[SoftDeleteMixin]] = getattr(
+            g, DELETED_STATE_ADDED_CLASSES, set()
+        ) | {self.model}
         setattr(g, DELETED_STATE_ADDED_CLASSES, added)
 
     @staticmethod
@@ -271,10 +273,14 @@ class SoftDeleteApiMixin:
         ``skip_visibility_filter`` context manager or DAO methods (which
         manage their own lifecycle) remain untouched.
         """
-        added = getattr(g, DELETED_STATE_ADDED_CLASSES, set())
+        added: set[type[SoftDeleteMixin]] = getattr(
+            g, DELETED_STATE_ADDED_CLASSES, set()
+        )
         if not added:
             return
-        bypass = db.session.info.get(SKIP_VISIBILITY_FILTER_CLASSES, set())
+        bypass: set[type[SoftDeleteMixin]] = db.session.info.get(
+            SKIP_VISIBILITY_FILTER_CLASSES, set()
+        )
         bypass -= added
         setattr(g, DELETED_STATE_ADDED_CLASSES, set())
 

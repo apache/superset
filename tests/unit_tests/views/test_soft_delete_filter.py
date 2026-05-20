@@ -260,7 +260,7 @@ def test_filter_records_added_classes_on_g(
     programmatic callers (the context manager or DAO bypass).
     """
     concrete_filter.apply(query_with_session, "include")
-    added = getattr(g, DELETED_STATE_ADDED_CLASSES, set())
+    added: set[type] = getattr(g, DELETED_STATE_ADDED_CLASSES, set())
     assert added == {_SoftDeletable}
 
 
@@ -308,7 +308,7 @@ def test_mixin_release_does_not_touch_unrelated_bypass_entries(
     accidentally clobbering bypasses owned by other callers.
     """
 
-    class _OtherSoftDeletable(SoftDeleteMixin):  # type: ignore[misc, valid-type]
+    class _OtherSoftDeletable(SoftDeleteMixin):
         pass
 
     # Both classes are in the bypass set, but only ``_SoftDeletable``

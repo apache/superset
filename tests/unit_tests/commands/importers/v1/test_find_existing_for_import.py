@@ -42,9 +42,7 @@ from superset.models.helpers import SoftDeleteMixin
 _TestBase = declarative_base()
 
 
-class _ImportableSoftDeletable(  # type: ignore[misc, valid-type]
-    SoftDeleteMixin, _TestBase
-):
+class _ImportableSoftDeletable(SoftDeleteMixin, _TestBase):  # type: ignore[misc, valid-type]
     __tablename__ = "_importable_soft_deletable_test"
     id = Column(Integer, primary_key=True)
     name = Column(String, nullable=False)
