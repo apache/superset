@@ -186,7 +186,7 @@ SQL Lab Integration:
 - get_query_info: Get SQL query history details by ID
 
 Schema Discovery:
-- get_schema: Get schema metadata for chart/dataset/dashboard (columns, filters)
+- get_schema: Get schema metadata for chart/dataset/dashboard/database/css_template/theme (columns, filters)
 
 Action Logs (requires SUPERSET_LOG_VIEW and FAB_ADD_SECURITY_VIEWS):
 - list_action_logs: List user action logs with filtering and pagination (defaults to last 7 days)
