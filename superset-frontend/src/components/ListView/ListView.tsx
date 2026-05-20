@@ -464,9 +464,7 @@ export function ListView<T extends object = any>({
             )}
             {filterable && (
               <Tooltip
-                title={
-                  !hasActiveFilters ? t('No filters applied') : undefined
-                }
+                title={!hasActiveFilters ? t('No filters applied') : undefined}
               >
                 <span>
                   <ClearAllButton
