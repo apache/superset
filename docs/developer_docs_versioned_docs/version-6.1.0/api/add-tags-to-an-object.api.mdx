@@ -1,0 +1,68 @@
+---
+id: add-tags-to-an-object
+title: "Add tags to an object"
+description: "Adds tags to an object. Creates new tags if they do not already exist."
+sidebar_label: "Add tags to an object"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFV21v2zYQ/iuHw4AmmBInXQcUKvohDVq0XZcGsYsNiIKUEc8WG5lUScqNJ+i/D0dK8uu6lw7oJ5nk3fGeh8eH5wYludyqyiujMcUzKR14MXPgDQgN5u4T5f4Yzi0JTw40fYnLagq+oCVIA9p4EKUlIZdAD8r5Y0ywElbMyZN1mF43qDh4JXyBCWoxJ0wxhr71y4owQUufa2VJYuptTQm6vKC5wLTBYJCi0p5mZLFtk6+FU/LfBbuJ1uT8CyOXbJIb7Ul7/imqqlS5YG5GnxwT1KzFqqypyHpFLkQWs/Dd5LNUzoOZMmfAiUZepeRPzBgTVJ7mbi07563SM2yTfkJYK5aMvJ/oXNsE6UHMq5JWGVz37jctO2ymMxEz6ABss9TyhKuMdhHP45PTXTjsL6QkyVv/dPJ41+KKpLKU+wDUFwR5bS1pD1LNyIWUn5ycfAPPc3JOzGgPXX9Dz+CIL4SE7tBTeKMXolQSVgULlTULFUDuMrjmG7Gcfl8sH7SofWGs+oNkCme1L0j7bn8YTngPkHXHiOTJ90VyYTxMTa1lCpOCepKJ6XamtjmBNKxAxkeV2QdqiMG7/Py96+yN9mS1KMGRXZAFstbYFM401JoeKsoZXZgEk4d7svekXgkvymgXNneU11b5ZRDWT188ptc3rGP9/Z/w9ybBh6PcSBqHxKIKl0LPMMX8w9U7TLAUd1SuhpFkHte2hKPf4fL9eAIZFt5X6WhUmlyUhXE+fXry9OlIVGq0OB15MRs1a0reDiMl21GGkGWZBjh6DRmedfUW+E/hBQlLFn44Oz9/OR7fTt7/8vJi0+E8ntzRZFlRCtuHt7KV8KjJ8J6WGaaQ4UKUNWXYPkJ+KjrMl0tfGL2GepgYcKt5ZazvC89lOtO9IsLzYfq4Ms4f8L7wreQkMUpBQpJ1z5stiiKajqYM4UcQeU7O3XpzT7rtvJmK5/vgZ/ow05VV2h/0MI7Z+ODwcJ2Yt2IhxqHa1sjZmFwVhtGO+Rk4EV+E8jAlnxeBkf+DjybCmpMvjGQ8XIbbXKW9GWzXFXPwsS+tJhI2CXx9TFYu65UVWdutrmjd03xn5DKFt+P3F8dRB9R0edDAPS3XOIf2kK2Z+meZjnRJ4cVA1dZBdEampOPSzA7Y9PAZ8l2O8LnJMc6HdsoXmOI/Y5LPLChOvPW15SPdezK4rTXveBkkLag01Zzf7RgpVEwM1FTWeJObsk1Ho4ZDtWnDN6fdiXZeO2/mfYgEF8IqcVdGge3DxB5iKurSd2ligqTrOWtZN+RP0LTN+K8nk0sY4rQJcjab8Qa8O8mNoyjzGndmYCy8ueQgjGUzyF6qOv9g3YZGshfmMT8pEWSQ5wbvQkG+MnYuON7b3ybYdaV8r+IqDs9KAN0m7HxraWrJFf81CEdxRl+tWtyXX2kYE1R6anabunFdkXXEHHrl2Xl9igst2i1OI3/Oz0V4XLvePP57CE3w3RKqe5iKhbHKk9tmde25xl+FvXehh2RH4QYvmBq70VvWbh25pwc/qkqhNGcTirbpLtA1ikpxyqcY3ktMMK3uMcH1hLjOYiFdY9PcCUcfbNm2PP25Jsvv7s2qlsMVk8rxb4npVJSOvgLq4KrryQ7hrzLum369DFemrHmECSs8C8I9tnxSUQnD7nHhLM8p6HXvstPtbAgLyyomyE3gWo8zVFH3g8PvzadpokXU1nZIL7xNnGHb/gm5yu7H
+sidebar_class_name: "post api-method"
+info_path: developer-docs/api/superset
+custom_edit_url: null
+hide_send_button: true
+show_extensions: true
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Add tags to an object"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"post"}
+  path={"/api/v1/tag/{object_type}/{object_id}/"}
+  context={"endpoint"}
+>
+
+</MethodEndpoint>
+
+
+
+Adds tags to an object. Creates new tags if they do not already exist.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  {...require("./add-tags-to-an-object.ParamsDetails.json")}
+>
+
+</ParamsDetails>
+
+<RequestSchema
+  {...require("./add-tags-to-an-object.RequestSchema.json")}
+>
+
+</RequestSchema>
+
+<StatusCodes
+  {...require("./add-tags-to-an-object.StatusCodes.json")}
+>
+
+</StatusCodes>
