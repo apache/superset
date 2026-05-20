@@ -145,6 +145,14 @@ Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
 - get_database_info: Get detailed database connection info by ID (backend, capabilities)
 
+CSS Templates:
+- list_css_templates: List CSS templates with advanced filters (1-based pagination)
+- get_css_template_info: Get CSS template details by ID (includes full css content)
+
+Themes:
+- list_themes: List themes with advanced filters (1-based pagination)
+- get_theme_info: Get theme details by ID or UUID (includes json_data configuration)
+
 User and Role Management:
 - list_users: List users with filtering (1-based pagination, admin only)
 - get_user_info: Get user details by ID (admin only)
@@ -676,6 +684,10 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     update_chart,
     update_chart_preview,
 )
+from superset.mcp_service.css_template.tool import (  # noqa: F401, E402
+    get_css_template_info,
+    list_css_templates,
+)
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
     generate_dashboard,
@@ -731,6 +743,10 @@ from superset.mcp_service.tag.tool import (  # noqa: F401, E402
 from superset.mcp_service.task.tool import (  # noqa: F401, E402
     get_task_info,
     list_tasks,
+)
+from superset.mcp_service.theme.tool import (  # noqa: F401, E402
+    get_theme_info,
+    list_themes,
 )
 from superset.mcp_service.user.tool import (  # noqa: F401, E402
     get_user_info,
