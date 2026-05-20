@@ -205,11 +205,11 @@ def test_impersonate_user_injects_access_token() -> None:
     url, engine_kwargs = SemanticAPIEngineSpec.impersonate_user(
         database=MagicMock(),
         username=None,
-        user_token="demo-access-token",
+        user_token="demo-access-token",  # noqa: S106
         url=make_url("sqlite://"),
         engine_kwargs={"connect_args": {}},
     )
-    assert url.query["access_token"] == "demo-access-token"
+    assert url.query["access_token"] == "demo-access-token"  # noqa: S105
     assert engine_kwargs == {"connect_args": {}}
 
 
@@ -272,7 +272,7 @@ def test_build_sqlalchemy_uri_full() -> None:
 
     oauth2 = encrypted_extra["oauth2_client_info"]
     assert oauth2["authorization_request_uri"] == "https://h:8000/authorize"
-    assert oauth2["token_request_uri"] == "https://h:8000/token"
+    assert oauth2["token_request_uri"] == "https://h:8000/token"  # noqa: S105
     assert oauth2["scope"] == ""
 
 
@@ -293,7 +293,7 @@ def test_build_sqlalchemy_uri_oauth_uri_overrides_preserved() -> None:
     SemanticAPIEngineSpec.build_sqlalchemy_uri({"host": "h"}, encrypted_extra)
     oauth2 = encrypted_extra["oauth2_client_info"]
     assert oauth2["authorization_request_uri"] == "https://idp/authorize"
-    assert oauth2["token_request_uri"] == "https://idp/token"
+    assert oauth2["token_request_uri"] == "https://idp/token"  # noqa: S105
 
 
 def test_build_sqlalchemy_uri_additional_configuration_string() -> None:
@@ -303,7 +303,7 @@ def test_build_sqlalchemy_uri_additional_configuration_string() -> None:
     from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
 
     uri = SemanticAPIEngineSpec.build_sqlalchemy_uri(
-        {"host": "h", "additional_configuration": '{"x":1}'},
+        {"host": "h", "additional_configuration": '{"x":1}'},  # type: ignore[typeddict-item]
     )
     assert make_url(uri).query["additional_configuration"] == '{"x":1}'
 
@@ -329,7 +329,9 @@ def test_get_parameters_from_uri_roundtrip() -> None:
     assert params["port"] == 8000
     assert params["secure"] is True
     assert params["additional_configuration"] == {"workspace": "acme"}
-    assert params["oauth2_client_info"]["id"] == "x"
+    oauth2 = params["oauth2_client_info"]
+    assert oauth2 is not None
+    assert oauth2["id"] == "x"
 
 
 def test_get_parameters_from_uri_invalid_additional_configuration() -> None:
@@ -352,7 +354,9 @@ def test_validate_parameters_missing_host() -> None:
 
     errors = SemanticAPIEngineSpec.validate_parameters({"parameters": {}})
     assert len(errors) == 1
-    assert errors[0].extra["missing"] == ["host"]
+    extra = errors[0].extra
+    assert extra is not None
+    assert extra["missing"] == ["host"]
 
 
 def test_validate_parameters_happy() -> None:
