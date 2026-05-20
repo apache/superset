@@ -76,11 +76,18 @@ const ListViewStyles = styled.div`
           row-gap: ${theme.sizeUnit * 2}px;
 
           [data-test='search-filter-container'] {
+            flex: 1;
+            min-width: ${theme.sizeUnit * 40}px;
+            width: auto;
             height: ${theme.controlHeight}px;
             justify-content: center;
 
             label {
               display: none;
+            }
+
+            .ant-input-affix-wrapper {
+              width: 100%;
             }
           }
         }
