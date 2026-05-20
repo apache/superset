@@ -44,11 +44,12 @@ Configuration:
 - MCP_DEV_USERNAME: Fallback username for development
 """
 
+import contextlib
 import logging
 from contextlib import AbstractContextManager
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
-from flask import g, has_request_context
+from flask import current_app, g, has_app_context, has_request_context
 from flask_appbuilder.security.sqla.models import Group, User
 
 if TYPE_CHECKING:
@@ -657,16 +658,14 @@ def _get_app_context_manager() -> AbstractContextManager[None]:
     from both ``mcp_auth_hook`` (tool execution) and
     ``RBACToolVisibilityMiddleware`` (tools/list filtering).
     """
-    import contextlib
-
-    from flask import current_app, has_app_context, has_request_context
-
     if has_request_context():
         return contextlib.nullcontext()
     if has_app_context():
         # Push a new context for the CURRENT app (not get_flask_app()
         # which may return a different instance in test environments).
         return current_app._get_current_object().app_context()
+    # Deferred: importing at module level would trigger create_app() before
+    # Superset is fully initialised (e.g. during unit-test collection).
     from superset.mcp_service.flask_singleton import get_flask_app
 
     return get_flask_app().app_context()

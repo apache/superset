@@ -26,7 +26,7 @@ from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.middleware import CallNext
 from fastmcp.tools.tool import Tool, ToolResult
-from flask import has_app_context
+from flask import g, has_app_context
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
 from starlette.exceptions import HTTPException
@@ -38,7 +38,12 @@ from superset.commands.exceptions import (
 )
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.extensions import event_logger
-from superset.mcp_service.auth import MCPPermissionDeniedError
+from superset.mcp_service.auth import (
+    MCPPermissionDeniedError,
+    _get_app_context_manager,
+    get_user_from_request,
+    is_tool_visible_to_current_user,
+)
 from superset.mcp_service.constants import (
     DEFAULT_TOKEN_LIMIT,
     DEFAULT_WARN_THRESHOLD_PCT,
@@ -438,14 +443,6 @@ class RBACToolVisibilityMiddleware(Middleware):
         tools = await call_next(context)
 
         try:
-            from flask import g
-
-            from superset.mcp_service.auth import (
-                _get_app_context_manager,
-                get_user_from_request,
-                is_tool_visible_to_current_user,
-            )
-
             with _get_app_context_manager():
                 # Use get_user_from_request directly rather than
                 # _setup_user_context, which carries per-call execution
