@@ -60,7 +60,7 @@ const PanelContainer = styled.div`
     overflow: hidden;
     background: ${theme.colorBgElevated};
     box-shadow: ${theme.boxShadowSecondary};
-    padding: ${theme.paddingXXS}px 0;
+    padding: 0 0 ${theme.paddingXXS}px;
   `}
 `;
 
