@@ -452,6 +452,43 @@ class TestRowLimit:
                 row_limit=100000,
             )
 
+    def test_xy_chart_series_limit_default_none(self) -> None:
+        """Test that XYChartConfig series_limit defaults to None."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+        )
+        assert config.series_limit is None
+
+    def test_xy_chart_series_limit_custom(self) -> None:
+        """Test that XYChartConfig accepts a custom series_limit."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            group_by=[ColumnRef(name="region")],
+            series_limit=5,
+        )
+        assert config.series_limit == 5
+
+    def test_xy_chart_series_limit_validation(self) -> None:
+        """Test that XYChartConfig rejects invalid series_limit values."""
+        with pytest.raises(ValidationError):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="date"),
+                y=[ColumnRef(name="revenue", aggregate="SUM")],
+                series_limit=0,
+            )
+        with pytest.raises(ValidationError):
+            XYChartConfig(
+                chart_type="xy",
+                x=ColumnRef(name="date"),
+                y=[ColumnRef(name="revenue", aggregate="SUM")],
+                series_limit=10001,
+            )
+
     def test_table_chart_default_row_limit(self) -> None:
         """Test that TableChartConfig has default row_limit of 1000."""
         config = TableChartConfig(
