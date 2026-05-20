@@ -301,15 +301,19 @@ describe('ListView', () => {
   });
 
   test('renders UI filters', () => {
-    const filterControls = screen.getAllByRole('combobox');
-    expect(filterControls).toHaveLength(2);
+    // select and datetime_range filters render as compact pill buttons;
+    // search filter renders as a text input
+    const filterPills = screen.getAllByTestId('compact-filter-pill');
+    expect(filterPills).toHaveLength(3); // ID, Age, Time
   });
 
   test('calls fetchData on filter', async () => {
-    // Handle select filter
-    const selectFilter = screen.getAllByRole('combobox')[0];
-    await userEvent.click(selectFilter);
-    const option = screen.getByText('foo');
+    // Click the ID compact pill to open its option panel
+    const idPill = screen.getByRole('button', { name: 'ID' });
+    await userEvent.click(idPill);
+
+    // Wait for and click the 'foo' option in the dropdown panel
+    const option = await screen.findByRole('option', { name: 'foo' });
     await userEvent.click(option);
 
     // Handle search filter
