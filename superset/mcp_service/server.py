@@ -411,7 +411,10 @@ def _tool_allowed_for_current_user(tool: Any) -> bool:
             try:
                 g.user = get_user_from_request()
             except (ValueError, PermissionError):
-                return False
+                # Can't resolve user; only hide protected tools. Public tools
+                # (no _class_permission_name) pass through regardless.
+                func = getattr(tool, "fn", tool)
+                return not getattr(func, "_class_permission_name", None)
 
         return is_tool_visible_to_current_user(tool)
     except (AttributeError, RuntimeError, ValueError):

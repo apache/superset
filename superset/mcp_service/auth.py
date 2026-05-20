@@ -44,9 +44,8 @@ Configuration:
 - MCP_DEV_USERNAME: Fallback username for development
 """
 
-import contextlib
 import logging
-from contextlib import AbstractContextManager
+from contextlib import AbstractContextManager, nullcontext
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
 from flask import current_app, g, has_app_context, has_request_context
@@ -659,7 +658,7 @@ def _get_app_context_manager() -> AbstractContextManager[None]:
     ``RBACToolVisibilityMiddleware`` (tools/list filtering).
     """
     if has_request_context():
-        return contextlib.nullcontext()
+        return nullcontext()
     if has_app_context():
         # Push a new context for the CURRENT app (not get_flask_app()
         # which may return a different instance in test environments).
