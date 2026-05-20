@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from unittest.mock import patch
 
 import pandas as pd
 from pytz import timezone
@@ -100,3 +101,49 @@ def test_email_subject_with_datetime() -> None:
     )._get_subject()
     assert datetime_pattern not in subject
     assert now.strftime(datetime_pattern) in subject
+
+
+@with_feature_flags(DATE_FORMAT_IN_EMAIL_SUBJECT=True)
+def test_email_subject_datetime_evaluated_per_send() -> None:
+    """
+    Regression test for #35908: the datetime token in the email subject must
+    be re-evaluated on every send, not frozen to the time the notification
+    class was first imported.
+    """
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="report %Y-%m-%d %H:%M",
+        embedded_data=pd.DataFrame({"A": [1]}),
+        description="",
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "owners": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+
+    notification = EmailNotification(
+        recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+    )
+
+    first_send = datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone("UTC"))
+    second_send = datetime(2026, 1, 1, 11, 0, 0, tzinfo=timezone("UTC"))
+
+    with patch("superset.reports.notifications.email.datetime") as mock_datetime:
+        mock_datetime.now.return_value = first_send
+        first_subject = notification._get_subject()
+
+        mock_datetime.now.return_value = second_send
+        second_subject = notification._get_subject()
+
+    assert "2026-01-01 10:00" in first_subject
+    assert "2026-01-01 11:00" in second_subject
+    assert first_subject != second_subject

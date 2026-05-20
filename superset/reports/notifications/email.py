@@ -59,7 +59,7 @@ ALLOWED_TAGS = {
     "ul",
 }.union(TABLE_TAGS)
 
-ALLOWED_TABLE_ATTRIBUTES = {tag: TABLE_ATTRIBUTES for tag in TABLE_TAGS}
+ALLOWED_TABLE_ATTRIBUTES = dict.fromkeys(TABLE_TAGS, TABLE_ATTRIBUTES)
 ALLOWED_ATTRIBUTES = {
     "a": {"href", "title"},
     "abbr": {"title"},
@@ -83,7 +83,6 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     """
 
     type = ReportRecipientType.EMAIL
-    now = datetime.now(timezone("UTC"))
 
     @property
     def _name(self) -> str:
@@ -215,9 +214,10 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _parse_name(self, name: str) -> str:
         """If user add a date format to the subject, parse it to the real date
         This feature is hidden behind a feature flag `DATE_FORMAT_IN_EMAIL_SUBJECT`
-        by default it is disabled
+        by default it is disabled. Evaluated per send so each scheduled email
+        carries the current timestamp rather than the worker's start time.
         """
-        return self.now.strftime(name)
+        return datetime.now(timezone("UTC")).strftime(name)
 
     def _get_call_to_action(self) -> str:
         return __(current_app.config["EMAIL_REPORTS_CTA"])
