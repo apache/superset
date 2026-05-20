@@ -19,6 +19,7 @@ import textwrap
 from dataclasses import dataclass
 from datetime import datetime
 from email.utils import make_msgid, parseaddr
+from functools import cached_property
 from typing import Any, Optional
 
 import nh3
@@ -83,6 +84,13 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     """
 
     type = ReportRecipientType.EMAIL
+
+    @cached_property
+    def _send_time(self) -> datetime:
+        """Captured once per notification instance so subject, CSV filename and
+        PDF filename share a consistent timestamp across the same send.
+        """
+        return datetime.now(timezone("UTC"))
 
     @property
     def _name(self) -> str:
@@ -214,10 +222,10 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     def _parse_name(self, name: str) -> str:
         """If user add a date format to the subject, parse it to the real date
         This feature is hidden behind a feature flag `DATE_FORMAT_IN_EMAIL_SUBJECT`
-        by default it is disabled. Evaluated per send so each scheduled email
-        carries the current timestamp rather than the worker's start time.
+        by default it is disabled. Uses ``_send_time`` so subject and attachment
+        filenames stay aligned across the same send.
         """
-        return datetime.now(timezone("UTC")).strftime(name)
+        return self._send_time.strftime(name)
 
     def _get_call_to_action(self) -> str:
         return __(current_app.config["EMAIL_REPORTS_CTA"])

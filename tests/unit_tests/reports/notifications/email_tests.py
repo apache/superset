@@ -106,16 +106,67 @@ def test_email_subject_with_datetime() -> None:
 @with_feature_flags(DATE_FORMAT_IN_EMAIL_SUBJECT=True)
 def test_email_subject_datetime_evaluated_per_send() -> None:
     """
-    Regression test for #35908: the datetime token in the email subject must
-    be re-evaluated on every send, not frozen to the time the notification
-    class was first imported.
+    Regression test for #35908: two notifications constructed at different
+    times must carry their own send timestamp, not a value frozen to the
+    time the notification class was first imported.
+    """
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    def make_content() -> NotificationContent:
+        return NotificationContent(
+            name="report %Y-%m-%d %H:%M",
+            embedded_data=pd.DataFrame({"A": [1]}),
+            description="",
+            header_data={
+                "notification_format": "PNG",
+                "notification_type": "Alert",
+                "owners": [1],
+                "notification_source": None,
+                "chart_id": None,
+                "dashboard_id": None,
+                "slack_channels": None,
+                "execution_id": "test-execution-id",
+            },
+        )
+
+    first_send = datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone("UTC"))
+    second_send = datetime(2026, 1, 1, 11, 0, 0, tzinfo=timezone("UTC"))
+
+    with patch("superset.reports.notifications.email.datetime") as mock_datetime:
+        mock_datetime.now.return_value = first_send
+        first_subject = EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL),
+            content=make_content(),
+        )._get_subject()
+
+        mock_datetime.now.return_value = second_send
+        second_subject = EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL),
+            content=make_content(),
+        )._get_subject()
+
+    assert "2026-01-01 10:00" in first_subject
+    assert "2026-01-01 11:00" in second_subject
+    assert first_subject != second_subject
+
+
+@with_feature_flags(DATE_FORMAT_IN_EMAIL_SUBJECT=True)
+def test_email_subject_datetime_consistent_within_single_send() -> None:
+    """
+    Regression test for the codeant-ai review on #40285: within a single
+    notification instance, `_name` is read multiple times (subject + CSV/PDF
+    attachment filenames). All reads must return the same timestamp so the
+    subject and attachment names don't disagree if execution crosses a
+    second/minute boundary.
     """
     from superset.reports.models import ReportRecipients, ReportRecipientType
     from superset.reports.notifications.base import NotificationContent
     from superset.reports.notifications.email import EmailNotification
 
     content = NotificationContent(
-        name="report %Y-%m-%d %H:%M",
+        name="report %Y-%m-%d %H:%M:%S",
         embedded_data=pd.DataFrame({"A": [1]}),
         description="",
         header_data={
@@ -134,16 +185,18 @@ def test_email_subject_datetime_evaluated_per_send() -> None:
         recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
     )
 
-    first_send = datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone("UTC"))
-    second_send = datetime(2026, 1, 1, 11, 0, 0, tzinfo=timezone("UTC"))
+    construct_time = datetime(2026, 1, 1, 10, 0, 0, tzinfo=timezone("UTC"))
+    much_later = datetime(2026, 1, 1, 23, 59, 59, tzinfo=timezone("UTC"))
 
     with patch("superset.reports.notifications.email.datetime") as mock_datetime:
-        mock_datetime.now.return_value = first_send
-        first_subject = notification._get_subject()
+        mock_datetime.now.return_value = construct_time
+        first_read = notification._name
 
-        mock_datetime.now.return_value = second_send
-        second_subject = notification._get_subject()
+        # Simulate execution crossing a boundary before the next _name read.
+        mock_datetime.now.return_value = much_later
+        second_read = notification._name
 
-    assert "2026-01-01 10:00" in first_subject
-    assert "2026-01-01 11:00" in second_subject
-    assert first_subject != second_subject
+    # Both reads must return the construct-time value — _send_time is cached
+    # on the instance so subject and attachment names stay aligned.
+    assert first_read == second_read
+    assert "2026-01-01 10:00:00" in first_read
