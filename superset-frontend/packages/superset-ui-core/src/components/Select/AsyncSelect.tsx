@@ -162,6 +162,11 @@ const AsyncSelect = forwardRef(
     const fetchedQueries = useRef(new Map<string, number>());
     const initialOptionsRef = useRef<SelectOptionsType>(EMPTY_OPTIONS);
     const inputValueRef = useRef('');
+    // Counts fetches whose `.finally` has not yet run. Loading is cleared only
+    // when this drops to 0, so a stale response (which returns early without
+    // updating selectOptions) cannot flip the spinner off while a newer
+    // request is still pending.
+    const inFlightFetchesRef = useRef(0);
     const mappedMode = isSingleMode ? undefined : 'multiple';
     const allowFetch = !fetchOnlyOnSearch || inputValue;
     const [maxTagCount, setMaxTagCount] = useState(
@@ -339,6 +344,7 @@ const AsyncSelect = forwardRef(
         setIsLoading(true);
 
         const fetchOptions = options as SelectOptionsPagePromise;
+        inFlightFetchesRef.current += 1;
         fetchOptions(search, page, pageSize)
           .then(({ data, totalCount }: SelectOptionsTypePage) => {
             // Drop responses whose search arg no longer matches the user's
@@ -400,7 +406,13 @@ const AsyncSelect = forwardRef(
           })
           .catch(internalOnError)
           .finally(() => {
-            setIsLoading(false);
+            inFlightFetchesRef.current = Math.max(
+              0,
+              inFlightFetchesRef.current - 1,
+            );
+            if (inFlightFetchesRef.current === 0) {
+              setIsLoading(false);
+            }
           });
       },
       [

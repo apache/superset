@@ -1127,6 +1127,87 @@ test('refetches a dropped search response when the same search is repeated', asy
   });
 });
 
+test('keeps loading indicator while a newer request is in flight after a stale response is dropped', async () => {
+  // Regression for the P2 race: the `.finally` block that clears isLoading
+  // must not fire when a stale (dropped) response resolves while a newer
+  // request is still in flight. Otherwise the spinner disappears mid-search
+  // and the undebounced scroll-pagination handler can fire against stale
+  // totalCount before page 0 of the active search lands.
+  type OptionRow = { label: string; value: string | number };
+  type PageResponse = { data: OptionRow[]; totalCount: number };
+  // Initialized to no-op so the finally block can always call them, even if
+  // an assertion in the try throws before the corresponding mock ran.
+  let resolveAlpha: (value: PageResponse) => void = () => {};
+  let resolveBeta: (value: PageResponse) => void = () => {};
+  const page0Data: OptionRow[] = Array.from({ length: 10 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  const alphaData: OptionRow[] = [{ label: 'Match-alpha', value: 'va' }];
+  const betaData: OptionRow[] = [{ label: 'Match-beta', value: 'vb' }];
+
+  const loadOptions = jest.fn((search: string) => {
+    if (search === '') {
+      return Promise.resolve<PageResponse>({
+        data: page0Data,
+        totalCount: 100,
+      });
+    }
+    if (search === 'alpha') {
+      return new Promise<PageResponse>(resolve => {
+        resolveAlpha = resolve;
+      });
+    }
+    return new Promise<PageResponse>(resolve => {
+      resolveBeta = resolve;
+    });
+  });
+
+  const isSpinnerVisible = () =>
+    Boolean(document.querySelector('.ant-select-arrow .ant-spin'));
+
+  try {
+    render(<AsyncSelect {...defaultProps} options={loadOptions} />);
+    await open();
+    await waitFor(() => expect(loadOptions).toHaveBeenCalledWith('', 0, 10));
+
+    // Type 'alpha' — alpha fetch is held, loading should be true.
+    await type('alpha');
+    await waitFor(() =>
+      expect(loadOptions).toHaveBeenCalledWith('alpha', 0, 10),
+    );
+    await waitFor(() => expect(isSpinnerVisible()).toBe(true));
+
+    // Type 'beta' — beta fetch is also held; both are in flight.
+    await type('beta');
+    await waitFor(() =>
+      expect(loadOptions).toHaveBeenCalledWith('beta', 0, 10),
+    );
+    expect(isSpinnerVisible()).toBe(true);
+
+    // Release the stale alpha response. It is dropped at the early-return
+    // (search !== inputValueRef.current), but the in-flight counter is still
+    // non-zero because beta is pending — spinner must stay visible.
+    resolveAlpha({ data: alphaData, totalCount: 1 });
+    // Yield a microtask so alpha's .then/.finally runs, then re-assert.
+    await Promise.resolve();
+    expect(isSpinnerVisible()).toBe(true);
+
+    // Release beta. Now the in-flight counter drops to 0 and the spinner
+    // clears.
+    resolveBeta({ data: betaData, totalCount: 1 });
+    await waitFor(() => expect(isSpinnerVisible()).toBe(false));
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Match-beta');
+  } finally {
+    // Defensive: never leave a held promise that could hang a parallel worker
+    // if an assertion above threw. Promise resolve is idempotent.
+    resolveAlpha({ data: alphaData, totalCount: 1 });
+    resolveBeta({ data: betaData, totalCount: 1 });
+  }
+});
+
 test('re-shows search results when the same search term is repeated after a clear', async () => {
   // Regression: a prior fix cached search responses' totalCount in
   // fetchedQueries. After restore-on-clear had replaced selectOptions with
@@ -1177,6 +1258,114 @@ test('re-shows search results when the same search term is repeated after a clea
     expect(options).toHaveLength(1);
     expect(options[0]).toHaveTextContent('Match-alpha');
   });
+});
+
+test('appends page>1 results during an active search and discards them when search changes', async () => {
+  // Covers the production branch `else { mergeData(data) }` in fetchPage that
+  // fires when search is non-empty AND page > 0 — i.e. user scrolled within
+  // a multi-page search result. Switching to a new search must replace, not
+  // retain, the prior search's accumulated pages.
+  type OptionRow = { label: string; value: string | number };
+  const pageSize = 5;
+  const aliceData: OptionRow[] = Array.from({ length: 5 }, (_, i) => ({
+    label: `Alice-${i}`,
+    value: `a${i}`,
+  }));
+  const alicePage1: OptionRow[] = Array.from({ length: 3 }, (_, i) => ({
+    label: `Alice-${i + 5}`,
+    value: `a${i + 5}`,
+  }));
+  const bobData: OptionRow[] = [{ label: 'Bob-0', value: 'b0' }];
+
+  const loadOptions = jest.fn(
+    async (search: string, page: number): Promise<{
+      data: OptionRow[];
+      totalCount: number;
+    }> => {
+      if (search === '') {
+        return { data: [], totalCount: 100 };
+      }
+      if (search === 'alice') {
+        if (page === 0) return { data: aliceData, totalCount: 8 };
+        return { data: alicePage1, totalCount: 8 };
+      }
+      return { data: bobData, totalCount: 1 };
+    },
+  );
+
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      pageSize={pageSize}
+      options={loadOptions}
+    />,
+  );
+  await open();
+
+  await type('alice');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith('alice', 0, pageSize),
+  );
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(5);
+  });
+  // Wait for loading to finish so handlePagination's `!isLoading` gate is
+  // open before we fire scroll.
+  await waitFor(() =>
+    expect(document.querySelector('.ant-select-arrow .ant-spin')).toBeNull(),
+  );
+
+  // Trigger pagination by dispatching a scroll event on the virtual-list
+  // scroll container. jsdom returns 0 for layout properties by default, so
+  // override the relevant ones before firing scroll. rc-virtual-list reads
+  // scrollTop via e.currentTarget in its onFallbackScroll handler, which
+  // then forwards to onPopupScroll (handlePagination here).
+  const holder = document.querySelector(
+    '.rc-virtual-list-holder',
+  ) as HTMLElement | null;
+  if (!holder) throw new Error('virtual-list holder not rendered');
+  Object.defineProperty(holder, 'scrollHeight', {
+    configurable: true,
+    get: () => 1000,
+  });
+  Object.defineProperty(holder, 'offsetHeight', {
+    configurable: true,
+    get: () => 200,
+  });
+  Object.defineProperty(holder, 'clientHeight', {
+    configurable: true,
+    get: () => 200,
+  });
+  Object.defineProperty(holder, 'scrollTop', {
+    configurable: true,
+    get: () => 900,
+    set: () => {},
+  });
+  fireEvent.scroll(holder);
+
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith('alice', 1, pageSize),
+  );
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    // Page 0 (5) + page 1 (3) merged
+    expect(options).toHaveLength(8);
+  });
+
+  // Switching to a new search must replace the accumulated pages, not retain
+  // them.
+  await type('bob');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith('bob', 0, pageSize),
+  );
+  await waitFor(async () => {
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('Bob-0');
+  });
+  expect(screen.queryByText('Alice-0')).not.toBeInTheDocument();
+  expect(screen.queryByText('Alice-7')).not.toBeInTheDocument();
 });
 
 test('does not duplicate options when using numeric values', async () => {
