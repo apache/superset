@@ -69,17 +69,20 @@ test('does not render tooltip wrapper when tooltipTitle is absent', () => {
   expect(container.querySelector('.ant-tooltip')).not.toBeInTheDocument();
 });
 
-test('renders tooltip span wrapper when hasValue and tooltipTitle are set', () => {
-  const { container } = render(
+test('shows active state indicators when hasValue and tooltipTitle are set', () => {
+  render(
     <CompactFilterTrigger
       {...defaultProps}
       hasValue
       tooltipTitle="Some Owner"
     />,
   );
-  // The span wrapper should be present as direct parent of the Dropdown trigger
-  const span = container.querySelector('span[style*="inline-flex"]');
-  expect(span).toBeInTheDocument();
+  // Active pill: close icon visible, aria-expanded starts closed
+  expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+  expect(screen.getByTestId('compact-filter-pill')).toHaveAttribute(
+    'aria-expanded',
+    'false',
+  );
 });
 
 test('injects isOpen and onClose props into child element when dropdown opens', async () => {

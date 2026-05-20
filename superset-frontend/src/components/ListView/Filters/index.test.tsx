@@ -154,6 +154,112 @@ test('select pill shows active state when a value is selected', () => {
   expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
 });
 
+test('datetime_range filter renders as CompactFilterTrigger with dialog aria-haspopup', () => {
+  const filters = [
+    {
+      Header: 'Time range',
+      key: 'time_range',
+      id: 'time_range',
+      input: 'datetime_range' as const,
+      operator: ListViewFilterOperator.Between,
+    },
+  ];
+
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  const pill = screen.getByTestId('compact-filter-pill');
+  expect(pill).toBeInTheDocument();
+  expect(pill).toHaveAttribute('aria-haspopup', 'dialog');
+  expect(screen.getByText('Time range')).toBeInTheDocument();
+});
+
+test('datetime_range pill shows active state when value is set', () => {
+  const filters = [
+    {
+      Header: 'Time range',
+      key: 'time_range',
+      id: 'time_range',
+      input: 'datetime_range' as const,
+      operator: ListViewFilterOperator.Between,
+    },
+  ];
+
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[
+        {
+          id: 'time_range',
+          operator: ListViewFilterOperator.Between,
+          value: ['2024-01-01', '2024-12-31'],
+        },
+      ]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+});
+
+test('numerical_range filter renders as CompactFilterTrigger with dialog aria-haspopup', () => {
+  const filters = [
+    {
+      Header: 'Age range',
+      key: 'age_range',
+      id: 'age_range',
+      input: 'numerical_range' as const,
+      operator: ListViewFilterOperator.Between,
+    },
+  ];
+
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  const pill = screen.getByTestId('compact-filter-pill');
+  expect(pill).toBeInTheDocument();
+  expect(pill).toHaveAttribute('aria-haspopup', 'dialog');
+  expect(screen.getByText('Age range')).toBeInTheDocument();
+});
+
+test('numerical_range pill shows active state when value is set', () => {
+  const filters = [
+    {
+      Header: 'Age range',
+      key: 'age_range',
+      id: 'age_range',
+      input: 'numerical_range' as const,
+      operator: ListViewFilterOperator.Between,
+    },
+  ];
+
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[
+        {
+          id: 'age_range',
+          operator: ListViewFilterOperator.Between,
+          value: [18, 65],
+        },
+      ]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+});
+
 test('renders multiple search filters with different inputName values', () => {
   const filters = [
     {
