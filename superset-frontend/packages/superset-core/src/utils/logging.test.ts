@@ -16,13 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+type LoggingModule = typeof import('./index');
+
+const loadLogging = (): LoggingModule['logging'] => {
+  let logging: LoggingModule['logging'] | undefined;
+  jest.isolateModules(() => {
+    ({ logging } = jest.requireActual<LoggingModule>(
+      '@apache-superset/core/utils',
+    ));
+  });
+  return logging!;
+};
+
 beforeEach(() => {
-  jest.resetModules();
   jest.resetAllMocks();
 });
 
 test('should pipe to `console` methods', () => {
-  const { logging } = require('@apache-superset/core/utils');
+  const logging = loadLogging();
 
   jest.spyOn(logging, 'debug').mockImplementation();
   jest.spyOn(logging, 'log').mockImplementation();
@@ -53,7 +64,7 @@ test('should use noop functions when console unavailable', () => {
   const originalConsole = window.console;
   Object.assign(window, { console: undefined });
   try {
-    const { logging } = require('@apache-superset/core/utils');
+    const logging = loadLogging();
 
     expect(() => {
       logging.debug();

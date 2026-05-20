@@ -25,8 +25,15 @@ export const Avatar = forwardRef<HTMLSpanElement, AvatarProps>((props, ref) => (
   <AntdAvatar ref={ref} {...props} />
 ));
 
-export const AvatarGroup = (props: AvatarGroupProps) => (
-  <AntdAvatar.Group {...props} />
+// antd Avatar.Group is a plain function component without forwardRef; wrap in
+// a span so this component can be a Tooltip / Popover trigger and skip the
+// findDOMNode fallback.
+export const AvatarGroup = forwardRef<HTMLSpanElement, AvatarGroupProps>(
+  (props, ref) => (
+    <span ref={ref}>
+      <AntdAvatar.Group {...props} />
+    </span>
+  ),
 );
 
 export type { AvatarProps, AvatarGroupProps };
