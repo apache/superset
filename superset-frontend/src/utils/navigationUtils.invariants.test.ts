@@ -246,7 +246,6 @@ const HARDCODED_SUPERSET_LITERAL_ALLOWLIST: string[] = [
   'src/dashboard/components/nativeFilters/FilterBar/index.tsx',
   'src/components/Datasource/components/DatasourceEditor/components/DashboardLinksExternal/index.tsx',
   'src/components/ListView/CrossLinks.tsx',
-  'src/pages/FileHandler/index.tsx',
   'src/pages/Tags/index.tsx',
   'src/pages/DatabaseList/index.tsx',
   'src/pages/DatasetList/index.tsx',
