@@ -73,6 +73,13 @@ class ThemeInfo(BaseModel):
         None,
         description="Theme JSON configuration data",
     )
+    is_system: bool | None = Field(None, description="Whether this is a system theme")
+    is_system_default: bool | None = Field(
+        None, description="Whether this is the default system theme"
+    )
+    is_system_dark: bool | None = Field(
+        None, description="Whether this is the dark system theme"
+    )
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
     )
@@ -244,6 +251,9 @@ def serialize_theme_object(obj: Any) -> ThemeInfo | None:
         uuid=str(getattr(obj, "uuid", "")) if getattr(obj, "uuid", None) else None,
         theme_name=getattr(obj, "theme_name", None),
         json_data=getattr(obj, "json_data", None),
+        is_system=getattr(obj, "is_system", None),
+        is_system_default=getattr(obj, "is_system_default", None),
+        is_system_dark=getattr(obj, "is_system_dark", None),
         changed_on=getattr(obj, "changed_on", None),
         created_on=getattr(obj, "created_on", None),
     )
