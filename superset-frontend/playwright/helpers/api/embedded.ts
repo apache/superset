@@ -18,7 +18,7 @@
  */
 
 import { Page } from '@playwright/test';
-import { apiPost, apiPut, getCsrfToken } from './requests';
+import { apiPost, apiPut } from './requests';
 import { ENDPOINTS as DASHBOARD_ENDPOINTS } from './dashboard';
 
 export const ENDPOINTS = {
@@ -109,15 +109,15 @@ export async function getGuestToken(
     }));
   const rls = options?.rls ?? [];
 
-  // The guest_token endpoint authenticates via JWT Bearer, but if the
-  // request also carries a session cookie (which page.request inherits from
-  // storageState), Flask-WTF still requires a matching X-CSRFToken. Send it
-  // unconditionally so this works whether the caller is authenticated via
-  // session, JWT, or both.
-  const { token: csrfToken } = await getCsrfToken(page);
-  const guestResponse = await page.request.post(ENDPOINTS.GUEST_TOKEN, {
-    failOnStatusCode: true,
-    data: {
+  // The guest_token endpoint authenticates via JWT Bearer, but `page.request`
+  // inherits the session cookie from storageState, so Flask-WTF still requires
+  // a matching X-CSRFToken (plus a same-origin Referer). Route through
+  // `apiPost` so CSRF + Referer headers are built consistently with every
+  // other mutation helper; only the Authorization header is added here.
+  const guestResponse = await apiPost(
+    page,
+    ENDPOINTS.GUEST_TOKEN,
+    {
       user: {
         username: 'embedded_test_user',
         first_name: 'Embedded',
@@ -126,12 +126,8 @@ export async function getGuestToken(
       resources: [{ type: 'dashboard', id: String(dashboardId) }],
       rls,
     },
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-      ...(csrfToken ? { 'X-CSRFToken': csrfToken } : {}),
-    },
-  });
+    { headers: { Authorization: `Bearer ${accessToken}` } },
+  );
   const guestBody = await guestResponse.json();
   return guestBody.token;
 }

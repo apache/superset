@@ -82,8 +82,11 @@ under the License.
         // Expose dashboard API on window for Playwright assertions
         window.__embeddedDashboard = dashboard;
       } catch (err) {
+        // Browser exceptions can be strings, DOMExceptions, or arbitrary
+        // thrown values; only Error instances reliably expose `.message`.
+        const message = err instanceof Error ? err.message : String(err);
         document.getElementById('error').style.display = 'block';
-        document.getElementById('error').textContent = 'Embed failed: ' + err.message;
+        document.getElementById('error').textContent = 'Embed failed: ' + message;
         statusEl.textContent = 'Error';
       }
     })();
