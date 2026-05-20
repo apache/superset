@@ -410,9 +410,13 @@ def _tool_allowed_for_current_user(tool: Any) -> bool:
         if not getattr(g, "user", None):
             try:
                 g.user = get_user_from_request()
-            except (ValueError, PermissionError):
-                # Can't resolve user; only hide protected tools. Public tools
-                # (no _class_permission_name) pass through regardless.
+            except PermissionError:
+                # Invalid credentials (bad API key) → deny all, matching
+                # RBACToolVisibilityMiddleware's fail-closed behaviour.
+                return False
+            except ValueError:
+                # No auth source configured → only pass public tools
+                # (those with no class-level permission requirement).
                 func = getattr(tool, "fn", tool)
                 return not getattr(func, "_class_permission_name", None)
 
