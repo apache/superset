@@ -60,6 +60,12 @@ function UIFilters(
         filter.current?.clearFilter?.();
       });
     },
+    clearFilterById: (id: string) => {
+      const index = filters.findIndex(f => f.id === id);
+      if (index >= 0) {
+        filterRefs[index]?.current?.clearFilter?.();
+      }
+    },
   }));
 
   return (

@@ -30,6 +30,7 @@ import {
   jsDataMutator,
   jsTooltip,
   jsOnclickHref,
+  crossFilterColumn,
   legendFormat,
   legendPosition,
   fillColorPicker,
@@ -203,6 +204,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Advanced'),
       controlSetRows: [
+        [crossFilterColumn],
         [jsColumns],
         [jsDataMutator],
         [jsTooltip],

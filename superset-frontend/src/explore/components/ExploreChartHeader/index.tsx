@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, useCallback, useEffect, useMemo, useState } from 'react';
+import { FC, memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { QueryFormData, JsonObject } from '@superset-ui/core';
@@ -100,7 +100,7 @@ const additionalItemsStyles = (theme: SupersetTheme) => css`
   }
 `;
 
-export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
+const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   dashboardId,
   colorScheme: dashboardColorScheme,
   slice,
@@ -270,77 +270,112 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     }
   }, [showUnsavedChangesModal, shouldForceCloseModal]);
 
+  const editableTitleProps = useMemo(
+    () => ({
+      title: sliceName ?? '',
+      canEdit:
+        !slice ||
+        canOverwrite ||
+        (user?.userId !== undefined &&
+          (slice?.owners || []).includes(user.userId)),
+      onSave: actions.updateChartTitle,
+      placeholder: t('Add the name of the chart'),
+      label: t('Chart title'),
+    }),
+    [actions.updateChartTitle, canOverwrite, slice, sliceName, user?.userId],
+  );
+
+  const certificatiedBadgeProps = useMemo(
+    () => ({
+      certifiedBy: slice?.certified_by,
+      details: slice?.certification_details,
+    }),
+    [slice?.certified_by, slice?.certification_details],
+  );
+
+  const faveStarProps = useMemo(
+    () => ({
+      itemId: slice?.slice_id ?? 0,
+      fetchFaveStar: actions.fetchFaveStar,
+      saveFaveStar: actions.saveFaveStar,
+      isStarred,
+      showTooltip: true,
+    }),
+    [actions.fetchFaveStar, actions.saveFaveStar, isStarred, slice?.slice_id],
+  );
+
+  const titlePanelAdditionalItems = useMemo(
+    () => (
+      <div css={additionalItemsStyles}>
+        {sliceFormData ? (
+          <AlteredSliceTag
+            className="altered"
+            diffs={formDiffs}
+            origFormData={originalFormData as QueryFormData}
+            currentFormData={currentFormData as QueryFormData}
+          />
+        ) : null}
+        {formData && isMatrixifyEnabled(formData as MatrixifyFormData) && (
+          <Tag name="Matrixified" color="purple" />
+        )}
+        {metadataBar}
+      </div>
+    ),
+    [
+      currentFormData,
+      formData,
+      formDiffs,
+      metadataBar,
+      originalFormData,
+      sliceFormData,
+    ],
+  );
+
+  const rightPanelAdditionalItems = useMemo(
+    () => (
+      <Tooltip
+        title={
+          saveDisabled ? t('Add required control values to save chart') : null
+        }
+      >
+        {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
+        <div>
+          <Button
+            buttonStyle="secondary"
+            onClick={showModal}
+            disabled={saveDisabled}
+            data-test="query-save-button"
+            css={saveButtonStyles}
+            icon={<Icons.SaveOutlined />}
+          >
+            {t('Save')}
+          </Button>
+        </div>
+      </Tooltip>
+    ),
+    [saveDisabled, showModal],
+  );
+
+  const menuDropdownProps = useMemo(
+    () => ({
+      open: isDropdownVisible,
+      onOpenChange: setIsDropdownVisible,
+    }),
+    [isDropdownVisible, setIsDropdownVisible],
+  );
+
   return (
     <>
       <PageHeaderWithActions
-        editableTitleProps={{
-          title: sliceName ?? '',
-          canEdit:
-            !slice ||
-            canOverwrite ||
-            (user?.userId !== undefined &&
-              (slice?.owners || []).includes(user.userId)),
-          onSave: actions.updateChartTitle,
-          placeholder: t('Add the name of the chart'),
-          label: t('Chart title'),
-        }}
+        editableTitleProps={editableTitleProps}
         showTitlePanelItems={!!slice}
-        certificatiedBadgeProps={{
-          certifiedBy: slice?.certified_by,
-          details: slice?.certification_details,
-        }}
+        certificatiedBadgeProps={certificatiedBadgeProps}
         showFaveStar={!!user?.userId && slice?.slice_id !== undefined}
-        faveStarProps={{
-          itemId: slice?.slice_id ?? 0,
-          fetchFaveStar: actions.fetchFaveStar,
-          saveFaveStar: actions.saveFaveStar,
-          isStarred,
-          showTooltip: true,
-        }}
-        titlePanelAdditionalItems={
-          <div css={additionalItemsStyles}>
-            {sliceFormData ? (
-              <AlteredSliceTag
-                className="altered"
-                diffs={formDiffs}
-                origFormData={originalFormData as QueryFormData}
-                currentFormData={currentFormData as QueryFormData}
-              />
-            ) : null}
-            {formData && isMatrixifyEnabled(formData as MatrixifyFormData) && (
-              <Tag name="Matrixified" color="purple" />
-            )}
-            {metadataBar}
-          </div>
-        }
-        rightPanelAdditionalItems={
-          <Tooltip
-            title={
-              saveDisabled
-                ? t('Add required control values to save chart')
-                : null
-            }
-          >
-            {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
-            <div>
-              <Button
-                buttonStyle="secondary"
-                onClick={showModal}
-                disabled={saveDisabled}
-                data-test="query-save-button"
-                css={saveButtonStyles}
-                icon={<Icons.SaveOutlined />}
-              >
-                {t('Save')}
-              </Button>
-            </div>
-          </Tooltip>
-        }
+        faveStarProps={faveStarProps}
+        titlePanelAdditionalItems={titlePanelAdditionalItems}
+        rightPanelAdditionalItems={rightPanelAdditionalItems}
         additionalActionsMenu={menu}
-        menuDropdownProps={{
-          open: isDropdownVisible,
-          onOpenChange: setIsDropdownVisible,
-        }}
+        menuDropdownProps={menuDropdownProps}
       />
       {isPropertiesModalOpen && (
         <PropertiesModal
@@ -398,4 +433,4 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   );
 };
 
-export default ExploreChartHeader;
+export default memo(ExploreChartHeader);
