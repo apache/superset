@@ -25,13 +25,25 @@ under the License.
   <body>
     <script nonce="{{ macros.get_nonce() }}">
       const message = { tabId: '{{ tab_id }}' };
+      let broadcasted = false;
       if (typeof BroadcastChannel !== 'undefined') {
-        const channel = new BroadcastChannel('oauth');
-        channel.postMessage(message);
-        channel.close();
+        try {
+          const channel = new BroadcastChannel('oauth');
+          channel.postMessage(message);
+          channel.close();
+          broadcasted = true;
+        } catch (e) {
+          // fall through to the localStorage fallback below
+        }
       }
-      localStorage.setItem('oauth2_auth_complete', JSON.stringify(message));
-      localStorage.removeItem('oauth2_auth_complete');
+      if (!broadcasted) {
+        try {
+          localStorage.setItem('oauth2_auth_complete', JSON.stringify(message));
+          localStorage.removeItem('oauth2_auth_complete');
+        } catch (e) {
+          // storage may be unavailable (e.g. blocked or restricted); ignore
+        }
+      }
       window.close();
     </script>
     <p>You can close this window and re-run the query.</p>

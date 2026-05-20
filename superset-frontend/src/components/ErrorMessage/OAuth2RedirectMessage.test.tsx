@@ -304,4 +304,29 @@ describe('OAuth2RedirectMessage Component', () => {
     });
     expect(api.util.invalidateTags).not.toHaveBeenCalled();
   });
+
+  test('dispatches only once when both BroadcastChannel and storage signals arrive', async () => {
+    render(setup());
+
+    simulateBroadcastMessage({ tabId: 'tabId' });
+    simulateStorageMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(reRunQuery).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  test('falls back to storage events when BroadcastChannel construction throws', async () => {
+    (global as any).BroadcastChannel = jest.fn().mockImplementation(() => {
+      throw new Error('blocked');
+    });
+
+    render(setup());
+
+    simulateStorageMessage({ tabId: 'tabId' });
+
+    await waitFor(() => {
+      expect(reRunQuery).toHaveBeenCalledWith({ sql: 'SELECT * FROM table' });
+    });
+  });
 });
