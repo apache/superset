@@ -94,12 +94,29 @@ export default defineConfig({
       name: 'chromium',
       testIgnore: [
         '**/tests/auth/**/*.spec.ts',
+        '**/tests/sqllab/**/*.spec.ts',
         ...(process.env.INCLUDE_EXPERIMENTAL ? [] : ['**/experimental/**']),
       ],
       use: {
         browserName: 'chromium',
         testIdAttribute: 'data-test',
         // Reuse authentication state from global setup (fast E2E tests)
+        storageState: 'playwright/.auth/user.json',
+      },
+    },
+    {
+      // SQL Lab needs its own project because tab state is stored server-side
+      // per user (/tabstateview/*). All workers share the same auth user, so
+      // parallel workers mutating tabs would cause nondeterministic tab counts
+      // and cross-worker tab deletions. Other test suites (dataset, dashboard,
+      // chart) don't need this because they create/delete isolated resources
+      // via API with unique names — no shared mutable state between tests.
+      name: 'chromium-sqllab',
+      testMatch: '**/tests/sqllab/**/*.spec.ts',
+      fullyParallel: false,
+      use: {
+        browserName: 'chromium',
+        testIdAttribute: 'data-test',
         storageState: 'playwright/.auth/user.json',
       },
     },

@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"type":"integer"},"username":{"maxLength":128,"type":"string"}},"required":["username"],"type":"object","title":"GroupApi.get.User"},"schemaType":"response"}

@@ -585,9 +585,9 @@ def bundle(ctx: click.Context, output: Path | None) -> None:
         sys.exit(1)
 
     manifest = json.loads(manifest_path.read_text())
-    id_ = manifest["id"]
+    name = manifest["name"]
     version = manifest["version"]
-    default_filename = f"{id_}-{version}.supx"
+    default_filename = f"{name}-{version}.supx"
 
     if output is None:
         zip_path = Path(default_filename)

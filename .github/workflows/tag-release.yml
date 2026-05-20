@@ -31,10 +31,12 @@ jobs:
         id: check
         shell: bash
         run: |
-          if [ -n "${{ (secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_TOKEN != '') || '' }}" ]; then
+          if [ -n "${DOCKERHUB_USER}" ]; then
             echo "has-secrets=1" >> "$GITHUB_OUTPUT"
           fi
 
+        env:
+          DOCKERHUB_USER: ${{ (secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_TOKEN != '') || '' }}
   docker-release:
     needs: config
     if: needs.config.outputs.has-secrets
@@ -60,7 +62,7 @@ jobs:
           build: "true"
 
       - name: Use Node.js 20
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 20
 
@@ -72,17 +74,20 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_RELEASE: ${{ github.event.inputs.release }}
+          INPUT_FORCE_LATEST: ${{ github.event.inputs.force-latest }}
+          INPUT_GIT_REF: ${{ github.event.inputs.git-ref }}
         run: |
           RELEASE="${{ github.event.release.tag_name }}"
           FORCE_LATEST=""
           EVENT="${{github.event_name}}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # in the case of a manually-triggered run, read release from input
-            RELEASE="${{ github.event.inputs.release }}"
-            if [ "${{ github.event.inputs.force-latest }}" = "true" ]; then
+            RELEASE="${INPUT_RELEASE}"
+            if [ "${INPUT_FORCE_LATEST}" = "true" ]; then
               FORCE_LATEST="--force-latest"
             fi
-            git checkout "${{ github.event.inputs.git-ref }}"
+            git checkout "${INPUT_GIT_REF}"
             EVENT="release"
           fi
 
@@ -112,7 +117,7 @@ jobs:
           fetch-depth: 0
 
       - name: Use Node.js 20
-        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version: 20
 
@@ -122,6 +127,7 @@ jobs:
       - name: Label the PRs with the right release-related labels
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_RELEASE: ${{ github.event.inputs.release }}
         run: |
           export GITHUB_ACTOR=""
           git fetch --all --tags
@@ -129,6 +135,6 @@ jobs:
           RELEASE="${{ github.event.release.tag_name }}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # in the case of a manually-triggered run, read release from input
-            RELEASE="${{ github.event.inputs.release }}"
+            RELEASE="${INPUT_RELEASE}"
           fi
           supersetbot release-label $RELEASE

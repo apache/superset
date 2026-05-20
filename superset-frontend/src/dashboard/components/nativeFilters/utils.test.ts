@@ -19,7 +19,11 @@
 import { Behavior } from '@superset-ui/core';
 import { DashboardLayout } from 'src/dashboard/types';
 import { CHART_TYPE } from 'src/dashboard/util/componentTypes';
-import { nativeFilterGate, findTabsWithChartsInScope } from './utils';
+import {
+  nativeFilterGate,
+  findTabsWithChartsInScope,
+  getFormData,
+} from './utils';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('nativeFilterGate', () => {
@@ -80,4 +84,19 @@ test('findTabsWithChartsInScope should handle a recursive layout structure', () 
   expect(Array.from(findTabsWithChartsInScope(chartLayoutItems, []))).toEqual(
     [],
   );
+});
+
+test('getFormData should include persisted time_grains for time grain filters', () => {
+  const formData = getFormData({
+    dashboardId: 10,
+    id: 'NATIVE_FILTER-1',
+    filterType: 'filter_timegrain',
+    type: 'NATIVE_FILTER' as any,
+    controlValues: {},
+    defaultDataMask: {},
+    datasetId: 11,
+    time_grains: ['PT1H', 'P1D', 'P1W'],
+  });
+
+  expect((formData as any).time_grains).toEqual(['PT1H', 'P1D', 'P1W']);
 });
