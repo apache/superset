@@ -272,6 +272,38 @@ class TestOpenSqlLabWithContext:
         finally:
             _restore_modules(saved_modules)
 
+    def test_whitespace_only_title_is_dropped(self) -> None:
+        """Whitespace-only titles must not produce a blank-looking tab label."""
+        mod, saved_modules = _get_tool_module()
+        try:
+            request = OpenSqlLabRequest(
+                database_id=7,
+                sql="SELECT 1",
+                title="   ",
+            )
+
+            with (
+                patch(
+                    "superset.daos.database.DatabaseDAO.find_by_id",
+                    return_value=Mock(database_name="examples"),
+                ),
+                patch.object(
+                    mod.event_logger, "log_context", return_value=nullcontext()
+                ),
+                patch.object(
+                    mod,
+                    "get_superset_base_url",
+                    return_value="https://superset.example.com",
+                ),
+            ):
+                response = mod.open_sql_lab_with_context(request, _make_mock_ctx())
+
+            params = parse_qs(urlsplit(response.url).query)
+            assert "name" not in params
+            assert response.title is None
+        finally:
+            _restore_modules(saved_modules)
+
     def test_sanitizes_error_and_keeps_empty_url_for_missing_database(self) -> None:
         mod, saved_modules = _get_tool_module()
         try:

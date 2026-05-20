@@ -296,6 +296,16 @@ class OpenSqlLabRequest(BaseModel):
         max_length=256,
     )
 
+    @field_validator("title")
+    @classmethod
+    def title_strip_or_none(cls, v: str | None) -> str | None:
+        # Whitespace-only would render as a blank tab label; fall back to
+        # SQL Lab's default "Untitled Query N" naming instead.
+        if v is None:
+            return None
+        stripped = v.strip()
+        return stripped or None
+
 
 class SqlLabResponse(_SchemaFieldNormalizer):
     """Response schema for SQL Lab URL generation."""
