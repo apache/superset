@@ -94,6 +94,12 @@ from superset.utils.oauth2 import (
 metadata = Model.metadata  # pylint: disable=no-member
 logger = logging.getLogger(__name__)
 
+# Per-process SQLAlchemy engine cache (#27897). Key is
+# (database_id, str(sqlalchemy_url), repr(sorted(engine_kwargs.items()))).
+# Populated only when ``nullpool=False`` — pooled engines are the only ones
+# that benefit from process-wide reuse.
+_ENGINE_CACHE: dict[tuple[Any, ...], Engine] = {}
+
 if TYPE_CHECKING:
     from superset_core.queries.types import AsyncQueryHandle, QueryOptions, QueryResult
 
@@ -565,10 +571,29 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 security_manager,
                 source,
             )
+        # Per-process engine cache (#27897). SQLAlchemy expects ``create_engine``
+        # to be called once per process per URL so its connection pool can do
+        # its job. Recreating the engine every call defeats the pool that
+        # operators configure via ``DB_CONNECTION_MUTATOR`` (e.g. duckdb with a
+        # size-1 queue). Skip the cache when ``nullpool`` is True — those
+        # engines are intentionally poolless and there's nothing to reuse.
+        cache_key: tuple[Any, ...] | None = None
+        if not nullpool:
+            cache_key = (
+                self.id,
+                str(sqlalchemy_url),
+                repr(sorted(engine_kwargs.items())),
+            )
+            cached = _ENGINE_CACHE.get(cache_key)
+            if cached is not None:
+                return cached
         try:
-            return create_engine(sqlalchemy_url, **engine_kwargs)
+            engine = create_engine(sqlalchemy_url, **engine_kwargs)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
+        if cache_key is not None:
+            _ENGINE_CACHE[cache_key] = engine
+        return engine
 
     def add_database_to_signature(
         self,

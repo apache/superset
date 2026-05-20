@@ -552,7 +552,10 @@ def test_get_sqla_engine_caches_engine_per_url(mocker: MockerFixture) -> None:
     ``create_engine`` once. It will fail until ``Database._get_sqla_engine``
     grows a per-URL engine cache.
     """
-    from superset.models.core import Database
+    from superset.models.core import _ENGINE_CACHE, Database
+
+    # Clear the process-wide cache so prior tests don't poison this assertion.
+    _ENGINE_CACHE.clear()
 
     mocker.patch(
         "superset.models.core.security_manager.find_user",
