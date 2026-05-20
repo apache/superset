@@ -128,12 +128,17 @@ def test_handle_filters_args_returns_request_scoped_filters(
     full_api_access: None,
 ) -> None:
     """
-    Dataset API: ``_handle_filters_args`` must return a fresh ``Filters``
-    instance per call so concurrent requests don't share filter state.
+    ``_handle_filters_args`` must return a fresh ``Filters`` instance per
+    call so concurrent requests don't share filter state.
 
     Regression test for #33828: under concurrent traffic the FAB default
     implementation mutates ``self._filters`` (a single shared instance),
     causing filters from one request to leak into another.
+
+    The fix lives on ``BaseSupersetModelRestApi`` so every superset REST
+    API subclass (datasets, charts, dashboards, saved queries, etc.)
+    inherits the request-scoped behavior. This test exercises it via
+    ``DatasetRestApi`` as a concrete subclass.
     """
     from flask_appbuilder.const import API_FILTERS_RIS_KEY
 
