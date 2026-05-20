@@ -72,6 +72,7 @@ export type AntdExposedProps = Pick<
   | 'getPopupContainer'
   | 'menuItemSelectedIcon'
   | 'dropdownAlign'
+  | 'open'
 >;
 
 export type SelectOptionsType = Exclude<AntdProps['options'], undefined>;
