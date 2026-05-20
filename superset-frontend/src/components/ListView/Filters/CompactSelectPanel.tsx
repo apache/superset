@@ -66,7 +66,7 @@ const PanelContainer = styled.div`
 
 const SearchRow = styled.div`
   ${({ theme }) => css`
-    padding: 0 ${theme.sizeUnit * 2}px ${theme.paddingXXS}px;
+    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 2}px ${theme.paddingXXS}px;
   `}
 `;
 
