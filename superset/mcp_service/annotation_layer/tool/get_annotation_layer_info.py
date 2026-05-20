@@ -30,6 +30,7 @@ from superset.mcp_service.annotation_layer.schemas import (
     GetAnnotationLayerInfoRequest,
     serialize_annotation_layer,
 )
+from superset.mcp_service.mcp_core import ModelGetInfoCore
 
 logger = logging.getLogger(__name__)
 
@@ -62,24 +63,27 @@ async def get_annotation_layer_info(
         from superset.daos.annotation_layer import AnnotationLayerDAO
 
         with event_logger.log_context(action="mcp.get_annotation_layer_info.lookup"):
-            layer = AnnotationLayerDAO.find_by_id(request.id)
+            get_tool = ModelGetInfoCore(
+                dao_class=AnnotationLayerDAO,
+                output_schema=AnnotationLayerInfo,
+                error_schema=AnnotationLayerError,
+                serializer=serialize_annotation_layer,
+                supports_slug=False,
+                logger=logger,
+            )
+            result = get_tool.run_tool(request.id)
 
-        if layer is None:
-            await ctx.warning("Annotation layer not found: id=%s" % (request.id,))
-            return AnnotationLayerError.create(
-                error=f"Annotation layer with id '{request.id}' not found",
-                error_type="not_found",
+        if isinstance(result, AnnotationLayerInfo):
+            await ctx.info(
+                "Annotation layer retrieved: id=%s, name=%s" % (result.id, result.name)
+            )
+        else:
+            await ctx.warning(
+                "Annotation layer not found: id=%s, error_type=%s"
+                % (request.id, result.error_type)
             )
 
-        result = serialize_annotation_layer(layer)
-        await ctx.info(
-            "Annotation layer retrieved: id=%s, name=%s"
-            % (result.id if result else None, result.name if result else None)
-        )
-        return result or AnnotationLayerError.create(
-            error="Failed to serialize annotation layer",
-            error_type="SerializationError",
-        )
+        return result
 
     except Exception as e:
         await ctx.error(

@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Any, List, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import (
     BaseModel,
@@ -51,7 +51,7 @@ class AnnotationLayerFilter(ColumnOperator):
         description="Column to filter on. Supported: 'name'.",
     )
     opr: ColumnOperatorEnum = Field(..., description="Filter operator.")
-    value: str | int | float | bool | List[str | int | float | bool] = Field(
+    value: str | int | float | bool | list[str | int | float | bool] = Field(
         ..., description="Value to filter by."
     )
 
@@ -64,7 +64,7 @@ class AnnotationFilter(ColumnOperator):
         description="Column to filter on. Supported: 'short_descr'.",
     )
     opr: ColumnOperatorEnum = Field(..., description="Filter operator.")
-    value: str | int | float | bool | List[str | int | float | bool] = Field(
+    value: str | int | float | bool | list[str | int | float | bool] = Field(
         ..., description="Value to filter by."
     )
 
@@ -81,7 +81,7 @@ class AnnotationLayerInfo(BaseModel):
 
 
 class AnnotationLayerList(BaseModel):
-    annotation_layers: List[AnnotationLayerInfo]
+    annotation_layers: list[AnnotationLayerInfo]
     count: int
     total_count: int
     page: int
@@ -89,11 +89,11 @@ class AnnotationLayerList(BaseModel):
     total_pages: int
     has_previous: bool
     has_next: bool
-    columns_requested: List[str] = Field(default_factory=list)
-    columns_loaded: List[str] = Field(default_factory=list)
-    columns_available: List[str] = Field(default_factory=list)
-    sortable_columns: List[str] = Field(default_factory=list)
-    filters_applied: List[AnnotationLayerFilter] = Field(default_factory=list)
+    columns_requested: list[str] = Field(default_factory=list)
+    columns_loaded: list[str] = Field(default_factory=list)
+    columns_available: list[str] = Field(default_factory=list)
+    sortable_columns: list[str] = Field(default_factory=list)
+    filters_applied: list[AnnotationLayerFilter] = Field(default_factory=list)
     pagination: PaginationInfo | None = None
     timestamp: datetime | None = None
     model_config = ConfigDict(ser_json_timedelta="iso8601")
@@ -103,14 +103,14 @@ class ListAnnotationLayersRequest(BaseModel):
     """Request schema for list_annotation_layers."""
 
     filters: Annotated[
-        List[AnnotationLayerFilter],
+        list[AnnotationLayerFilter],
         Field(
             default_factory=list,
             description="List of filter objects. Cannot be combined with 'search'.",
         ),
     ]
     select_columns: Annotated[
-        List[str],
+        list[str],
         Field(
             default_factory=list,
             description="Columns to include in the response.",
@@ -118,7 +118,10 @@ class ListAnnotationLayersRequest(BaseModel):
     ]
     search: Annotated[
         str | None,
-        Field(default=None, description="Text search across name and description."),
+        Field(
+            default=None,
+            description="Text search across annotation layer name and description.",
+        ),
     ]
     order_column: Annotated[
         str | None, Field(default=None, description="Column to order results by.")
@@ -143,12 +146,12 @@ class ListAnnotationLayersRequest(BaseModel):
 
     @field_validator("filters", mode="before")
     @classmethod
-    def parse_filters(cls, v: Any) -> List[AnnotationLayerFilter]:
+    def parse_filters(cls, v: Any) -> list[AnnotationLayerFilter]:
         return parse_json_or_model_list(v, AnnotationLayerFilter, "filters")
 
     @field_validator("select_columns", mode="before")
     @classmethod
-    def parse_columns(cls, v: Any) -> List[str]:
+    def parse_columns(cls, v: Any) -> list[str]:
         return parse_json_or_list(v, "select_columns")
 
     @model_validator(mode="after")
@@ -176,7 +179,7 @@ class AnnotationInfo(BaseModel):
 
 
 class AnnotationList(BaseModel):
-    annotations: List[AnnotationInfo]
+    annotations: list[AnnotationInfo]
     count: int
     total_count: int
     page: int
@@ -184,12 +187,14 @@ class AnnotationList(BaseModel):
     total_pages: int
     has_previous: bool
     has_next: bool
-    layer_id: int
-    columns_requested: List[str] = Field(default_factory=list)
-    columns_loaded: List[str] = Field(default_factory=list)
-    columns_available: List[str] = Field(default_factory=list)
-    sortable_columns: List[str] = Field(default_factory=list)
-    filters_applied: List[AnnotationFilter] = Field(default_factory=list)
+    # layer_id defaults to 0; the tool sets it after ModelListCore constructs this
+    # object. ModelListCore does not know about this domain-specific field.
+    layer_id: int = 0
+    columns_requested: list[str] = Field(default_factory=list)
+    columns_loaded: list[str] = Field(default_factory=list)
+    columns_available: list[str] = Field(default_factory=list)
+    sortable_columns: list[str] = Field(default_factory=list)
+    filters_applied: list[AnnotationFilter] = Field(default_factory=list)
     pagination: PaginationInfo | None = None
     timestamp: datetime | None = None
     model_config = ConfigDict(ser_json_timedelta="iso8601")
@@ -202,20 +207,21 @@ class ListLayerAnnotationsRequest(BaseModel):
         int, Field(description="Annotation layer ID to list annotations for.")
     ]
     filters: Annotated[
-        List[AnnotationFilter],
+        list[AnnotationFilter],
         Field(
             default_factory=list,
             description="List of filter objects. Cannot be combined with 'search'.",
         ),
     ]
     select_columns: Annotated[
-        List[str],
+        list[str],
         Field(default_factory=list, description="Columns to include in the response."),
     ]
     search: Annotated[
         str | None,
         Field(
-            default=None, description="Text search across short and long description."
+            default=None,
+            description="Text search across annotation short and long description.",
         ),
     ]
     order_column: Annotated[
@@ -241,12 +247,12 @@ class ListLayerAnnotationsRequest(BaseModel):
 
     @field_validator("filters", mode="before")
     @classmethod
-    def parse_filters(cls, v: Any) -> List[AnnotationFilter]:
+    def parse_filters(cls, v: Any) -> list[AnnotationFilter]:
         return parse_json_or_model_list(v, AnnotationFilter, "filters")
 
     @field_validator("select_columns", mode="before")
     @classmethod
-    def parse_columns(cls, v: Any) -> List[str]:
+    def parse_columns(cls, v: Any) -> list[str]:
         return parse_json_or_list(v, "select_columns")
 
     @model_validator(mode="after")

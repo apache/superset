@@ -85,7 +85,7 @@ async def list_annotation_layers(
             item_serializer=_serialize,
             filter_type=AnnotationLayerFilter,
             default_columns=DEFAULT_LAYER_COLUMNS,
-            search_columns=["name"],
+            search_columns=["name", "descr"],
             list_field_name="annotation_layers",
             output_list_schema=AnnotationLayerList,
             all_columns=_ALL_LAYER_COLUMNS,

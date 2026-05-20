@@ -106,7 +106,7 @@ async def list_layer_annotations(
             item_serializer=_serialize,
             filter_type=AnnotationFilter,
             default_columns=DEFAULT_ANNOTATION_COLUMNS,
-            search_columns=["short_descr"],
+            search_columns=["short_descr", "long_descr"],
             list_field_name="annotations",
             output_list_schema=AnnotationList,
             all_columns=_ALL_ANNOTATION_COLUMNS,
@@ -125,21 +125,17 @@ async def list_layer_annotations(
                 page_size=request.page_size,
             )
 
-        # Attach the layer_id to the result for caller context
-        result_dict = result.model_dump()
-        result_dict["layer_id"] = request.layer_id
-        # Rebuild with layer_id set
-        final = AnnotationList(**result_dict)
+        result.layer_id = request.layer_id
 
         await ctx.info(
             "Annotations listed: layer_id=%s, count=%s, total_count=%s"
             % (
                 request.layer_id,
-                len(final.annotations) if hasattr(final, "annotations") else 0,
-                getattr(final, "total_count", None),
+                len(result.annotations) if hasattr(result, "annotations") else 0,
+                getattr(result, "total_count", None),
             )
         )
-        return final
+        return result
 
     except Exception as e:
         await ctx.error(
