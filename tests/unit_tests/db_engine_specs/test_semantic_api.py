@@ -231,6 +231,161 @@ def test_impersonate_user_without_token_is_a_noop() -> None:
     assert engine_kwargs == {}
 
 
+def test_build_sqlalchemy_uri_minimum() -> None:
+    """
+    Just host → ``semanticapi://host/``.
+    """
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    assert (
+        SemanticAPIEngineSpec.build_sqlalchemy_uri(
+            {"host": "localhost"},
+        )
+        == "semanticapi://localhost"
+    )
+
+
+def test_build_sqlalchemy_uri_full() -> None:
+    """
+    Host, port, secure, ``additional_configuration`` and OAuth client info all
+    round-trip cleanly. The OAuth2 URIs get auto-filled from host:port.
+    """
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    encrypted_extra = {
+        "oauth2_client_info": {"id": "demo-client", "secret": "demo-secret"},
+    }
+    uri = SemanticAPIEngineSpec.build_sqlalchemy_uri(
+        {
+            "host": "h",
+            "port": 8000,
+            "secure": True,
+            "additional_configuration": {"workspace": "acme"},
+        },
+        encrypted_extra,
+    )
+    parsed = make_url(uri)
+    assert parsed.host == "h"
+    assert parsed.port == 8000
+    assert parsed.query["secure"] == "true"
+    assert json.loads(parsed.query["additional_configuration"]) == {"workspace": "acme"}
+
+    oauth2 = encrypted_extra["oauth2_client_info"]
+    assert oauth2["authorization_request_uri"] == "https://h:8000/authorize"
+    assert oauth2["token_request_uri"] == "https://h:8000/token"
+    assert oauth2["scope"] == ""
+
+
+def test_build_sqlalchemy_uri_oauth_uri_overrides_preserved() -> None:
+    """
+    Existing OAuth URIs are left alone (no clobbering of explicit overrides).
+    """
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    encrypted_extra = {
+        "oauth2_client_info": {
+            "id": "x",
+            "secret": "y",
+            "authorization_request_uri": "https://idp/authorize",
+            "token_request_uri": "https://idp/token",
+        },
+    }
+    SemanticAPIEngineSpec.build_sqlalchemy_uri({"host": "h"}, encrypted_extra)
+    oauth2 = encrypted_extra["oauth2_client_info"]
+    assert oauth2["authorization_request_uri"] == "https://idp/authorize"
+    assert oauth2["token_request_uri"] == "https://idp/token"
+
+
+def test_build_sqlalchemy_uri_additional_configuration_string() -> None:
+    """
+    A pre-serialised ``additional_configuration`` string is forwarded as-is.
+    """
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    uri = SemanticAPIEngineSpec.build_sqlalchemy_uri(
+        {"host": "h", "additional_configuration": '{"x":1}'},
+    )
+    assert make_url(uri).query["additional_configuration"] == '{"x":1}'
+
+
+def test_get_parameters_from_uri_roundtrip() -> None:
+    """
+    A URL produced by ``build_sqlalchemy_uri`` is parsed back to the same parameters.
+    """
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    encrypted_extra = {"oauth2_client_info": {"id": "x", "secret": "y"}}
+    uri = SemanticAPIEngineSpec.build_sqlalchemy_uri(
+        {
+            "host": "h",
+            "port": 8000,
+            "secure": True,
+            "additional_configuration": {"workspace": "acme"},
+        },
+        encrypted_extra,
+    )
+    params = SemanticAPIEngineSpec.get_parameters_from_uri(uri, encrypted_extra)
+    assert params["host"] == "h"
+    assert params["port"] == 8000
+    assert params["secure"] is True
+    assert params["additional_configuration"] == {"workspace": "acme"}
+    assert params["oauth2_client_info"]["id"] == "x"
+
+
+def test_get_parameters_from_uri_invalid_additional_configuration() -> None:
+    """
+    Garbage in ``additional_configuration`` doesn't blow up — set to None.
+    """
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    params = SemanticAPIEngineSpec.get_parameters_from_uri(
+        "semanticapi://h/?additional_configuration=not-json",
+    )
+    assert params["additional_configuration"] is None
+
+
+def test_validate_parameters_missing_host() -> None:
+    """
+    A missing host produces a clear validation error.
+    """
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    errors = SemanticAPIEngineSpec.validate_parameters({"parameters": {}})
+    assert len(errors) == 1
+    assert errors[0].extra["missing"] == ["host"]
+
+
+def test_validate_parameters_happy() -> None:
+    """
+    With a host, no errors are reported.
+    """
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    assert (
+        SemanticAPIEngineSpec.validate_parameters(
+            {"parameters": {"host": "localhost"}},
+        )
+        == []
+    )
+
+
+def test_parameters_json_schema_exposes_fields() -> None:
+    """
+    ``parameters_json_schema`` advertises every form field so the frontend
+    can render it.
+    """
+    from superset.db_engine_specs.semantic_api import SemanticAPIEngineSpec
+
+    schema = SemanticAPIEngineSpec.parameters_json_schema()
+    properties = schema["properties"]
+    assert set(properties).issuperset(
+        {"host", "port", "secure", "additional_configuration", "oauth2_client_info"},
+    )
+    # oauth2_client_info is marked as encrypted so the frontend stores it in
+    # ``encrypted_extra``.
+    assert properties["oauth2_client_info"].get("x-encrypted-extra") is True
+
+
 def test_get_metrics_extracts_computed() -> None:
     """
     Computed columns become Superset metric definitions.

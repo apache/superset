@@ -20,19 +20,25 @@ An interface to any server implementing the Semantic Layer REST API.
 
 from __future__ import annotations
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, TypedDict
 
+from apispec import APISpec
+from apispec.ext.marshmallow import MarshmallowPlugin
 from flask import g
+from marshmallow import fields, Schema
 from shillelagh.exceptions import UnauthenticatedError
+from sqlalchemy.engine.url import URL
 
+from superset.databases.types import EncryptedDict
+from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import MetricType
 from superset.db_engine_specs.shillelagh import ShillelaghEngineSpec
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2TokenRefreshError
 from superset.utils import json
 
 if TYPE_CHECKING:
     from sqlalchemy.engine.reflection import Inspector
-    from sqlalchemy.engine.url import URL
 
     from superset.models.core import Database
     from superset.sql.parse import Table
@@ -45,6 +51,64 @@ SELECT_STAR_MESSAGE = (
     'the database in Apache Superset so that the "Disable SQL Lab data preview '
     'queries" option under "Advanced" → "SQL Lab" is enabled.'
 )
+
+_TRUTHY = {"1", "true", "yes", "on"}
+
+ma_plugin = MarshmallowPlugin()
+
+
+class SemanticAPIParametersSchema(Schema):
+    """Form schema for the Semantic Layer API connection wizard."""
+
+    host = fields.Str(
+        required=True,
+        metadata={"description": "Hostname of the Semantic Layer API server."},
+    )
+    port = fields.Int(
+        required=False,
+        allow_none=True,
+        metadata={"description": "Optional port (omit to use the URL default)."},
+    )
+    secure = fields.Bool(
+        load_default=False,
+        metadata={"description": "Use HTTPS to reach the server."},
+    )
+    additional_configuration = fields.Dict(
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": (
+                "Per-tenant JSON object forwarded to the server on every call. "
+                "Sent as ``runtime_configuration`` when listing views and as "
+                "``additional_configuration`` for each view."
+            ),
+        },
+    )
+    oauth2_client_info = EncryptedDict(
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": (
+                "OAuth2 client credentials. Provide ``id`` and ``secret``; the "
+                "authorisation and token URIs are auto-filled from the server "
+                "host unless explicitly set."
+            ),
+            "default": {"id": "", "secret": "", "scope": ""},
+        },
+    )
+
+
+class SemanticAPIParametersType(TypedDict, total=False):
+    host: str
+    port: int | None
+    secure: bool
+    additional_configuration: dict[str, Any] | None
+    oauth2_client_info: dict[str, Any] | None
+
+
+class SemanticAPIPropertiesType(TypedDict, total=False):
+    parameters: SemanticAPIParametersType
+    masked_encrypted_extra: str
 
 
 class SemanticAPIEngineSpec(ShillelaghEngineSpec):
@@ -73,7 +137,10 @@ class SemanticAPIEngineSpec(ShillelaghEngineSpec):
 
     engine = "semanticapi"
     engine_name = "Semantic Layer API"
+    default_driver = "apsw"
     sqlalchemy_uri_placeholder = "semanticapi://<host>[:port]/?secure=<true|false>"
+
+    parameters_schema = SemanticAPIParametersSchema()
 
     # OAuth 2.0 — the authorisation and token URIs live on each database's
     # ``encrypted_extra.oauth2_client_info`` since they're derived from that
@@ -86,6 +153,104 @@ class SemanticAPIEngineSpec(ShillelaghEngineSpec):
     encrypted_extra_sensitive_fields = {
         "$.oauth2_client_info.secret": "OAuth2 Client Secret",
     }
+
+    @classmethod
+    def build_sqlalchemy_uri(
+        cls,
+        parameters: SemanticAPIParametersType,
+        encrypted_extra: dict[str, Any] | None = None,
+    ) -> str:
+        """
+        Turn form parameters into a ``semanticapi://`` URL.
+
+        ``additional_configuration`` is JSON-encoded onto the query string,
+        and the OAuth2 ``authorization_request_uri`` / ``token_request_uri``
+        are filled in (if missing) from the server's host:port.
+        """
+        host = parameters.get("host") or ""
+        port = parameters.get("port")
+        secure = bool(parameters.get("secure"))
+
+        query: dict[str, str] = {}
+        if secure:
+            query["secure"] = "true"
+        if config := parameters.get("additional_configuration"):
+            query["additional_configuration"] = (
+                config if isinstance(config, str) else json.dumps(config)
+            )
+
+        if encrypted_extra and (oauth2 := encrypted_extra.get("oauth2_client_info")):
+            scheme = "https" if secure else "http"
+            netloc = f"{host}:{port}" if port else host
+            base = f"{scheme}://{netloc}"
+            oauth2.setdefault("authorization_request_uri", f"{base}/authorize")
+            oauth2.setdefault("token_request_uri", f"{base}/token")
+            oauth2.setdefault("scope", "")
+
+        return str(URL.create(cls.engine, host=host, port=port, query=query))
+
+    @classmethod
+    def get_parameters_from_uri(
+        cls,
+        uri: str,
+        encrypted_extra: dict[str, Any] | None = None,
+    ) -> SemanticAPIParametersType:
+        """
+        Inverse of :meth:`build_sqlalchemy_uri` for repopulating the form.
+        """
+        url = make_url_safe(uri)
+        parameters: SemanticAPIParametersType = {
+            "host": url.host or "",
+            "port": url.port,
+            "secure": str(url.query.get("secure", "")).lower() in _TRUTHY,
+        }
+        if raw := url.query.get("additional_configuration"):
+            try:
+                parameters["additional_configuration"] = json.loads(raw)
+            except json.JSONDecodeError:
+                parameters["additional_configuration"] = None
+        if encrypted_extra and "oauth2_client_info" in encrypted_extra:
+            parameters["oauth2_client_info"] = encrypted_extra["oauth2_client_info"]
+        return parameters
+
+    @classmethod
+    def parameters_json_schema(cls) -> Any:
+        """Return the form's OpenAPI schema, used by the frontend to render it."""
+        # imported lazily because ``superset.databases.schemas`` touches the
+        # Flask app context at import time.
+        from superset.databases.schemas import encrypted_field_properties
+
+        if not cls.parameters_schema:
+            return None
+        spec = APISpec(
+            title="Database Parameters",
+            version="1.0.0",
+            openapi_version="3.0.0",
+            plugins=[ma_plugin],
+        )
+        ma_plugin.init_spec(spec)
+        ma_plugin.converter.add_attribute_function(encrypted_field_properties)
+        spec.components.schema(cls.__name__, schema=cls.parameters_schema)
+        return spec.to_dict()["components"]["schemas"][cls.__name__]
+
+    @classmethod
+    def validate_parameters(
+        cls,
+        properties: SemanticAPIPropertiesType,
+    ) -> list[SupersetError]:
+        """Surface missing ``host`` (the only field we strictly require)."""
+        errors: list[SupersetError] = []
+        parameters = properties.get("parameters", {})
+        if not parameters.get("host"):
+            errors.append(
+                SupersetError(
+                    message="Host is required.",
+                    error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
+                    level=ErrorLevel.WARNING,
+                    extra={"missing": ["host"]},
+                ),
+            )
+        return errors
 
     @classmethod
     def needs_oauth2(cls, ex: Exception) -> bool:
