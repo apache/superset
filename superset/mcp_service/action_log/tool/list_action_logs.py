@@ -90,16 +90,14 @@ async def list_action_logs(
         filters: list[ColumnOperator] = list(request.filters)
         has_dttm_filter = any(getattr(f, "col", None) == "dttm" for f in filters)
         if not has_dttm_filter:
-            cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+            cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
             default_filter = ColumnOperator(
                 col="dttm",
                 opr=ColumnOperatorEnum.gte,
                 value=cutoff,
             )
             filters = [default_filter] + filters
-            await ctx.debug(
-                "Applied default 7-day dttm filter: cutoff=%s" % (cutoff.isoformat(),)
-            )
+            await ctx.debug("Applied default 7-day dttm filter: cutoff=%s" % (cutoff,))
 
         def _serialize(obj: object, cols: list[str] | None) -> ActionLogInfo | None:
             return serialize_action_log_object(obj)
