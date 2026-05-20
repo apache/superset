@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useEffect, useState, type ReactNode, type MouseEvent } from 'react';
+import {
+  cloneElement,
+  isValidElement,
+  useEffect,
+  useState,
+  type ReactElement,
+  type ReactNode,
+  type MouseEvent,
+} from 'react';
 import { useTheme, styled, css } from '@apache-superset/core/theme';
 import { Dropdown, Tooltip, Icons } from '@superset-ui/core/components';
 
@@ -149,15 +157,15 @@ export default function CompactFilterTrigger({
       onOpenChange={setOpen}
       trigger={['click']}
       popupRender={() =>
-        React.isValidElement(children)
-          ? React.cloneElement(
-              children as React.ReactElement<FilterPanelInjectedProps>,
+        isValidElement(children)
+          ? cloneElement(
+              children as ReactElement<FilterPanelInjectedProps>,
               {
                 onClose: () => setOpen(false),
                 isOpen: open,
               },
             )
-          : (children as React.ReactElement)
+          : (children as ReactElement)
       }
       placement="bottomLeft"
     >
