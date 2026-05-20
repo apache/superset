@@ -123,6 +123,10 @@ Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
 - get_database_info: Get detailed database connection info by ID (backend, capabilities)
 
+Alerts & Reports:
+- list_reports: List alerts and reports with filtering and search (1-based pagination)
+- get_report_info: Get detailed alert/report schedule info by ID
+
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
@@ -635,6 +639,10 @@ from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
     generate_explore_link,
+)
+from superset.mcp_service.report.tool import (  # noqa: F401, E402
+    get_report_info,
+    list_reports,
 )
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,
