@@ -148,6 +148,12 @@ function RoleListEditModal({
   }, [addDangerToast, id]);
 
   useEffect(() => {
+    if (!stablePermissionIds.length) {
+      setRolePermissions([]);
+      setLoadingRolePermissions(false);
+      return;
+    }
+
     let cancelled = false;
     setLoadingRolePermissions(true);
     permissionFetchSucceeded.current = false;
@@ -180,7 +186,7 @@ function RoleListEditModal({
     return () => {
       cancelled = true;
     };
-  }, [addDangerToast, id]);
+  }, [addDangerToast, id, stablePermissionIds]);
 
   useEffect(() => {
     if (!stableGroupIds.length) {
