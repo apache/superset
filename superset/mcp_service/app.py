@@ -123,6 +123,14 @@ Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
 - get_database_info: Get detailed database connection info by ID (backend, capabilities)
 
+Row Level Security (Admin only):
+- list_rls_filters: List RLS filters with filtering and search (1-based pagination)
+- get_rls_filter_info: Get detailed RLS filter info by ID (tables, roles, clause)
+
+Plugins (Admin only):
+- list_plugins: List dynamic plugins with filtering and search (1-based pagination)
+- get_plugin_info: Get detailed plugin info by ID (name, key, bundle URL)
+
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
@@ -635,6 +643,14 @@ from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
     generate_explore_link,
+)
+from superset.mcp_service.plugin.tool import (  # noqa: F401, E402
+    get_plugin_info,
+    list_plugins,
+)
+from superset.mcp_service.rls.tool import (  # noqa: F401, E402
+    get_rls_filter_info,
+    list_rls_filters,
 )
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,
