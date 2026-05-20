@@ -241,6 +241,14 @@ class GenerateBugReportRequest(BaseModel):
             "PII and secrets are sanitized before being written to the report."
         ),
     )
+    mcp_call_id: str | None = Field(
+        None,
+        description=(
+            "Optional MCP call ID from a previous tool invocation. "
+            "When provided, it will be included in the bug report "
+            "for server-side log correlation."
+        ),
+    )
 
 
 class GenerateBugReportResponse(BaseModel):
