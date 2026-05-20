@@ -117,7 +117,7 @@ class FilterRelatedTables(BaseFilter):  # pylint: disable=too-few-public-methods
     arg_name = "tables"
 
     def apply(self, query: Query, value: Optional[Any]) -> Query:
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import SqlaTable  # noqa: PLC0415
 
         like_value = "%" + cast(str, value) + "%"
         return query.filter(SqlaTable.table_name.ilike(like_value))

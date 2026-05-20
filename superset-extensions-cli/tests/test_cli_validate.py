@@ -35,7 +35,7 @@ def test_validate_command_success(cli_runner, isolated_filesystem):
         "version": "1.0.0",
         "permissions": [],
     }
-    import json
+    import json  # noqa: PLC0415
 
     (isolated_filesystem / "extension.json").write_text(json.dumps(extension_json))
 

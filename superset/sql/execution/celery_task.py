@@ -109,7 +109,7 @@ def _handle_query_error(
 
 def _serialize_payload(payload: dict[Any, Any]) -> bytes:
     """Serialize payload for storage based on RESULTS_BACKEND_USE_MSGPACK config."""
-    from superset import results_backend_use_msgpack
+    from superset import results_backend_use_msgpack  # noqa: PLC0415
 
     if results_backend_use_msgpack:
         return msgpack.dumps(payload, default=json.json_iso_dttm_ser, use_bin_type=True)
@@ -298,8 +298,8 @@ def _serialize_result_set(
     :param result_set: Query result set to serialize
     :returns: Tuple of (serialized_data, columns)
     """
-    from superset import results_backend_use_msgpack
-    from superset.dataframe import df_to_records
+    from superset import results_backend_use_msgpack  # noqa: PLC0415
+    from superset.dataframe import df_to_records  # noqa: PLC0415
 
     if results_backend_use_msgpack:
         if has_app_context():

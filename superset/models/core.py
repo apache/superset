@@ -1317,7 +1317,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         :param options: QueryOptions with execution settings
         :returns: QueryResult with status, data, and metadata
         """
-        from superset.sql.execution import SQLExecutor
+        from superset.sql.execution import SQLExecutor  # noqa: PLC0415
 
         return SQLExecutor(self).execute(sql, options)
 
@@ -1333,7 +1333,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         :param options: QueryOptions with execution settings
         :returns: AsyncQueryHandle for tracking the query
         """
-        from superset.sql.execution import SQLExecutor
+        from superset.sql.execution import SQLExecutor  # noqa: PLC0415
 
         return SQLExecutor(self).execute_async(sql, options)
 

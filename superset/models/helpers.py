@@ -1375,7 +1375,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         # Import here to avoid circular dependency
         # pylint: disable=import-outside-toplevel
-        from superset.common.utils.query_cache_manager import QueryCacheManager
+        from superset.common.utils.query_cache_manager import (  # noqa: PLC0415
+            QueryCacheManager,
+        )
 
         # ensure query_object is immutable
         query_object_clone = copy.copy(query_object)
@@ -2513,7 +2515,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :return: Dict with validation result and any errors
         """
 
-        from superset.sql_validators.base import SQLValidationAnnotation
+        from superset.sql_validators.base import (  # noqa: PLC0415
+            SQLValidationAnnotation,
+        )
 
         try:
             # Process template

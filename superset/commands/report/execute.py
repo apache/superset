@@ -179,7 +179,7 @@ class BaseReportState:
         """
         Creates a Report execution log, uses the current computed last_value for Alerts
         """
-        from sqlalchemy.orm.exc import StaleDataError
+        from sqlalchemy.orm.exc import StaleDataError  # noqa: PLC0415
 
         try:
             log = ReportExecutionLog(

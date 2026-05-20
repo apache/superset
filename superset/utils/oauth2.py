@@ -102,7 +102,7 @@ def get_oauth2_access_token(
     a valid token when they retry.
     """  # noqa: E501
     # pylint: disable=import-outside-toplevel
-    from superset.models.core import DatabaseUserOAuth2Tokens
+    from superset.models.core import DatabaseUserOAuth2Tokens  # noqa: PLC0415
 
     token = (
         db.session.query(DatabaseUserOAuth2Tokens)
@@ -131,7 +131,7 @@ def refresh_oauth2_token(
     db_engine_spec: type[BaseEngineSpec],
 ) -> str | None:
     # pylint: disable=import-outside-toplevel
-    from superset.models.core import DatabaseUserOAuth2Tokens
+    from superset.models.core import DatabaseUserOAuth2Tokens  # noqa: PLC0415
 
     # Use longer TTL for OAuth2 token refresh (may involve network calls)
     with DistributedLock(

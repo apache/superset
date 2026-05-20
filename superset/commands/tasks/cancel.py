@@ -86,7 +86,7 @@ class CancelTaskCommand(BaseCommand):
 
         :returns: The updated task model
         """
-        from superset.daos.tasks import TaskDAO
+        from superset.daos.tasks import TaskDAO  # noqa: PLC0415
 
         # Lightweight fetch to compute dedup_key for locking
         # This is needed to use the same lock key as SubmitTaskCommand
@@ -113,7 +113,7 @@ class CancelTaskCommand(BaseCommand):
         # Publish abort notification AFTER transaction commits
         # This prevents race conditions where listeners check DB before commit
         if self._should_publish_abort:
-            from superset.tasks.manager import TaskManager
+            from superset.tasks.manager import TaskManager  # noqa: PLC0415
 
             TaskManager.publish_abort(self._task_uuid)
 
@@ -129,7 +129,7 @@ class CancelTaskCommand(BaseCommand):
 
         :returns: The updated task model
         """
-        from superset.daos.tasks import TaskDAO
+        from superset.daos.tasks import TaskDAO  # noqa: PLC0415
 
         # Check admin status (no DB access)
         is_admin = security_manager.is_admin()
@@ -232,7 +232,7 @@ class CancelTaskCommand(BaseCommand):
         :param is_admin: Whether current user is admin
         :returns: The updated task model
         """
-        from superset.daos.tasks import TaskDAO
+        from superset.daos.tasks import TaskDAO  # noqa: PLC0415
 
         try:
             result: Task | None = TaskDAO.abort_task(
@@ -273,7 +273,7 @@ class CancelTaskCommand(BaseCommand):
         :param user_id: ID of user to unsubscribe
         :returns: The updated task model
         """
-        from superset.daos.tasks import TaskDAO
+        from superset.daos.tasks import TaskDAO  # noqa: PLC0415
 
         self._action_taken = "unsubscribed"
 

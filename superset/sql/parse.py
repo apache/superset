@@ -1550,7 +1550,7 @@ def process_jinja_sql(
     :raises jinja2.exceptions.TemplateError: If the Jinjafied SQL could not be rendered
     """
 
-    from superset.jinja_context import (  # pylint: disable=import-outside-toplevel
+    from superset.jinja_context import (  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
         get_template_processor,
     )
 
@@ -1605,7 +1605,7 @@ def sanitize_clause(clause: str, engine: str) -> str:
     try:
         statement = SQLStatement(clause, engine)
         dialect = SQLGLOT_DIALECTS.get(engine)
-        from sqlglot.dialects.dialect import Dialect
+        from sqlglot.dialects.dialect import Dialect  # noqa: PLC0415
 
         return Dialect.get_or_raise(dialect).generate(
             statement._parsed,  # pylint: disable=protected-access

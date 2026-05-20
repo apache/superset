@@ -56,7 +56,7 @@ def _prophet_fit_and_predict(  # pylint: disable=too-many-arguments
         # `prophet` complains about `plotly` not being installed
         with suppress_logging("prophet.plot"):
             # pylint: disable=import-outside-toplevel
-            from prophet import Prophet
+            from prophet import Prophet  # noqa: PLC0415
 
         prophet_logger = logging.getLogger("prophet.plot")
         prophet_logger.setLevel(logging.CRITICAL)

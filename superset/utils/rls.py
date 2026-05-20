@@ -84,7 +84,7 @@ def get_predicates_for_table(
     table must be fully qualified, with catalog (null if the DB doesn't support) and
     schema.
     """
-    from superset.connectors.sqla.models import SqlaTable
+    from superset.connectors.sqla.models import SqlaTable  # noqa: PLC0415
 
     # if the dataset in the RLS has null catalog, match it when using the default
     # catalog
@@ -158,7 +158,7 @@ def collect_rls_predicates_for_sql(
         (kept consistent with what's actually applied at query time).
     :return: List of RLS predicate strings that would be applied
     """
-    from superset.sql.parse import SQLScript
+    from superset.sql.parse import SQLScript  # noqa: PLC0415
 
     try:
         parsed_script = SQLScript(sql, engine=database.db_engine_spec.engine)

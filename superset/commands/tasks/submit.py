@@ -80,7 +80,7 @@ class SubmitTaskCommand(BaseCommand):
 
         :returns: Tuple of (Task, is_new) where is_new is True if task was created
         """
-        from superset.daos.tasks import TaskDAO
+        from superset.daos.tasks import TaskDAO  # noqa: PLC0415
 
         self.validate()
 

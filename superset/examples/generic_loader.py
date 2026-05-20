@@ -74,7 +74,7 @@ def load_parquet_table(  # noqa: C901
     Returns:
         The created SqlaTable object
     """
-    from sqlalchemy import text
+    from sqlalchemy import text  # noqa: PLC0415
 
     if database is None:
         database = get_example_database()

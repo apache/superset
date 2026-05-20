@@ -421,7 +421,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             is_system=False,  # User-created themes are never system themes
         )
 
-        from superset.extensions import db
+        from superset.extensions import db  # noqa: PLC0415
 
         db.session.add(new_theme)
         db.session.flush()  # Flush to get the ID
@@ -601,7 +601,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         # Check if user is admin
-        from superset import security_manager
+        from superset import security_manager  # noqa: PLC0415
 
         if not security_manager.is_admin():
             return self.response(
@@ -668,7 +668,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         # Check if user is admin
-        from superset import security_manager
+        from superset import security_manager  # noqa: PLC0415
 
         if not security_manager.is_admin():
             return self.response(
@@ -721,7 +721,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         # Check if user is admin
-        from superset import security_manager
+        from superset import security_manager  # noqa: PLC0415
 
         if not security_manager.is_admin():
             return self.response(
@@ -771,7 +771,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         # Check if user is admin
-        from superset import security_manager
+        from superset import security_manager  # noqa: PLC0415
 
         if not security_manager.is_admin():
             return self.response(

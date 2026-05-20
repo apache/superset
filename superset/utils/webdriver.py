@@ -125,7 +125,7 @@ def validate_webdriver_config() -> dict[str, Any]:
     Returns a dictionary with the status of available webdrivers
     and feature flags.
     """
-    from superset import feature_flag_manager
+    from superset import feature_flag_manager  # noqa: PLC0415
 
     return {
         "selenium_available": True,  # Always available as required dependency

@@ -249,7 +249,9 @@ def transaction(  # pylint: disable=redefined-outer-name
     def decorate(func: Callable[..., Any]) -> Callable[..., Any]:
         @wraps(func)
         def wrapped(*args: Any, **kwargs: Any) -> Any:
-            from superset import db  # pylint: disable=import-outside-toplevel
+            from superset import (  # noqa: PLC0415
+                db,  # pylint: disable=import-outside-toplevel
+            )
 
             if getattr(g, "in_transaction", False):
                 # If already in a transaction, call the function directly

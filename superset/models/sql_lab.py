@@ -238,7 +238,7 @@ class Query(
 
     @property
     def columns(self) -> list["TableColumn"]:
-        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
             TableColumn,
         )
 

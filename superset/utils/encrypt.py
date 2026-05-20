@@ -102,7 +102,9 @@ class EncryptedFieldFactory:
 
 class SecretsMigrator:
     def __init__(self, previous_secret_key: str) -> None:
-        from superset import db  # pylint: disable=import-outside-toplevel
+        from superset import (  # noqa: PLC0415
+            db,  # pylint: disable=import-outside-toplevel
+        )
 
         self._db = db
         self._previous_secret_key = previous_secret_key
@@ -129,7 +131,7 @@ class SecretsMigrator:
 
         :return: mapping of table name to (Table, {column name: EncryptedType})
         """
-        from flask_appbuilder import (  # pylint: disable=import-outside-toplevel
+        from flask_appbuilder import (  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
             Model as FABModel,
         )
 

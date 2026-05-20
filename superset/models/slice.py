@@ -342,7 +342,9 @@ class Slice(  # pylint: disable=too-many-public-methods
     def get_query_context_factory(self) -> QueryContextFactory:
         if self.query_context_factory is None:
             # pylint: disable=import-outside-toplevel
-            from superset.common.query_context_factory import QueryContextFactory
+            from superset.common.query_context_factory import (  # noqa: PLC0415
+                QueryContextFactory,
+            )
 
             self.query_context_factory = QueryContextFactory()
         return self.query_context_factory
@@ -363,7 +365,7 @@ def id_or_uuid_filter(id_or_uuid: str | int) -> BinaryExpression:
 
 def set_related_perm(_mapper: Mapper, _connection: Connection, target: Slice) -> None:
     # pylint: disable=import-outside-toplevel
-    from superset.daos.datasource import DatasourceDAO
+    from superset.daos.datasource import DatasourceDAO  # noqa: PLC0415
 
     src_class = DatasourceDAO.sources[target.datasource_type]
     if id_ := target.datasource_id:

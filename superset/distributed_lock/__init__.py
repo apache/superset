@@ -50,8 +50,12 @@ def DistributedLock(  # noqa: N802
             or Redis connection fails
     """
     # pylint: disable=import-outside-toplevel
-    from superset.commands.distributed_lock.acquire import AcquireDistributedLock
-    from superset.commands.distributed_lock.release import ReleaseDistributedLock
+    from superset.commands.distributed_lock.acquire import (  # noqa: PLC0415
+        AcquireDistributedLock,
+    )
+    from superset.commands.distributed_lock.release import (  # noqa: PLC0415
+        ReleaseDistributedLock,
+    )
 
     key = get_key(namespace, **kwargs)
 

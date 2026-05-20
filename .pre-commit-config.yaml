@@ -120,6 +120,19 @@ repos:
         entry: ruff check --fix --show-fixes
         language: system
         types: [python]
+      - id: ruff-import-placement
+        name: ruff (import placement / PLC0415)
+        # PLC0415 ("import should be at top-level") is preview-only in
+        # ruff, so we can't put it in `[tool.ruff.lint] select` without
+        # enabling preview mode globally (which would also activate
+        # behavior changes for unrelated stable rules). Run it as a
+        # dedicated step instead. Existing function-body imports are
+        # grandfathered with per-line `# noqa: PLC0415`; new code must
+        # either move the import to the top or add the same noqa with
+        # a justification.
+        entry: ruff check --select PLC0415 --preview --no-fix
+        language: system
+        types: [python]
   - repo: local
     hooks:
       - id: pylint

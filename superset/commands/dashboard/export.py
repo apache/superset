@@ -219,7 +219,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
 
             # Export related theme
             if model.theme:
-                from superset.commands.theme.export import ExportThemesCommand
+                from superset.commands.theme.export import ExportThemesCommand  # noqa: PLC0415
 
                 yield from ExportThemesCommand([model.theme.id]).run()
 

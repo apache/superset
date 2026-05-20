@@ -181,7 +181,7 @@ def test_template_rendering_with_different_ids(
     jinja_env, publisher, technical_name, display_name
 ):
     """Test templates render correctly with various publisher/name combinations."""
-    from superset_extensions_cli.utils import (
+    from superset_extensions_cli.utils import (  # noqa: PLC0415
         get_module_federation_name,
         kebab_to_snake_case,
     )

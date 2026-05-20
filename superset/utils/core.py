@@ -595,7 +595,7 @@ def sanitize_url(url: str) -> str:
         return url
 
     try:
-        from urllib.parse import urlparse
+        from urllib.parse import urlparse  # noqa: PLC0415
 
         parsed = urlparse(url)
 

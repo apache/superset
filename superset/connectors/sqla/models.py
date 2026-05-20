@@ -2053,7 +2053,7 @@ class SqlaTable(
         :param query_obj: query object to analyze
         :return: The extra cache keys
         """
-        from superset.utils.rls import collect_rls_predicates_for_sql
+        from superset.utils.rls import collect_rls_predicates_for_sql  # noqa: PLC0415
 
         extra_cache_keys = super().get_extra_cache_keys(query_obj)
         if self.has_extra_cache_key_calls(query_obj):

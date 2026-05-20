@@ -67,7 +67,9 @@ class SqlQueryRenderImpl(SqlQueryRender):
             self._raise_template_exception(ex, execution_context)
             return "NOT_REACHABLE_CODE"
         except Exception as ex:
-            from superset.jinja_context import UndefinedTemplateFunctionException
+            from superset.jinja_context import (  # noqa: PLC0415
+                UndefinedTemplateFunctionException,
+            )
 
             if isinstance(ex, UndefinedTemplateFunctionException):
                 return query_model.sql.strip().strip(";")
@@ -78,7 +80,7 @@ class SqlQueryRenderImpl(SqlQueryRender):
         execution_context: SqlJsonExecutionContext,
         sql: str,
     ) -> str:
-        from superset.sql.parse import SQLScript
+        from superset.sql.parse import SQLScript  # noqa: PLC0415
 
         engine = execution_context.query.database.db_engine_spec.engine
         script = SQLScript(sql, engine)

@@ -214,9 +214,12 @@ class Superset(BaseSupersetView):
 
     @staticmethod
     def _generate_xlsx(viz_obj: BaseViz) -> FlaskResponse:
-        import pandas as pd
+        import pandas as pd  # noqa: PLC0415
 
-        from superset.utils.excel import apply_column_types, df_to_excel
+        from superset.utils.excel import (  # noqa: PLC0415
+            apply_column_types,
+            df_to_excel,
+        )
 
         payload = viz_obj.get_df_payload()
         df = payload.get("df")

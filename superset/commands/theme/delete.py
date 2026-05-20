@@ -68,7 +68,7 @@ class DeleteThemeCommand(BaseCommand):
 
     def _dissociate_dashboards(self) -> None:
         """Dissociate dashboards from themes before deletion."""
-        from superset.models.dashboard import Dashboard
+        from superset.models.dashboard import Dashboard  # noqa: PLC0415
 
         theme_ids = [theme.id for theme in self._models or []]
         if not theme_ids:
@@ -95,7 +95,7 @@ class DeleteThemeCommand(BaseCommand):
 
     def _get_dashboard_usage(self) -> dict[int, list[str]]:
         """Get dashboard names that use these themes."""
-        from superset.models.dashboard import Dashboard
+        from superset.models.dashboard import Dashboard  # noqa: PLC0415
 
         theme_ids = [theme.id for theme in self._models or []]
         if not theme_ids:

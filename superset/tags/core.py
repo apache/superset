@@ -18,14 +18,14 @@
 
 
 def register_sqla_event_listeners() -> None:
-    import sqlalchemy as sqla
+    import sqlalchemy as sqla  # noqa: PLC0415
 
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import FavStar
-    from superset.models.dashboard import Dashboard
-    from superset.models.slice import Slice
-    from superset.models.sql_lab import SavedQuery
-    from superset.tags.models import (
+    from superset.connectors.sqla.models import SqlaTable  # noqa: PLC0415
+    from superset.models.core import FavStar  # noqa: PLC0415
+    from superset.models.dashboard import Dashboard  # noqa: PLC0415
+    from superset.models.slice import Slice  # noqa: PLC0415
+    from superset.models.sql_lab import SavedQuery  # noqa: PLC0415
+    from superset.tags.models import (  # noqa: PLC0415
         ChartUpdater,
         DashboardUpdater,
         DatasetUpdater,
@@ -54,14 +54,14 @@ def register_sqla_event_listeners() -> None:
 
 
 def clear_sqla_event_listeners() -> None:
-    import sqlalchemy as sqla
+    import sqlalchemy as sqla  # noqa: PLC0415
 
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.models.core import FavStar
-    from superset.models.dashboard import Dashboard
-    from superset.models.slice import Slice
-    from superset.models.sql_lab import SavedQuery
-    from superset.tags.models import (
+    from superset.connectors.sqla.models import SqlaTable  # noqa: PLC0415
+    from superset.models.core import FavStar  # noqa: PLC0415
+    from superset.models.dashboard import Dashboard  # noqa: PLC0415
+    from superset.models.slice import Slice  # noqa: PLC0415
+    from superset.models.sql_lab import SavedQuery  # noqa: PLC0415
+    from superset.tags.models import (  # noqa: PLC0415
         ChartUpdater,
         DashboardUpdater,
         DatasetUpdater,

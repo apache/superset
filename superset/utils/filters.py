@@ -26,8 +26,8 @@ def get_dataset_access_filters(
     *args: Any,
 ) -> BooleanClauseList:
     # pylint: disable=import-outside-toplevel
-    from superset import security_manager
-    from superset.connectors.sqla.models import Database
+    from superset import security_manager  # noqa: PLC0415
+    from superset.connectors.sqla.models import Database  # noqa: PLC0415
 
     database_ids = security_manager.get_accessible_databases()
     perms = security_manager.user_view_menu_names("datasource_access")

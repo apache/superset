@@ -36,7 +36,9 @@ def _sl(legacy: str, semantic: str) -> str:
     # Imported lazily to avoid a circular import at module load time
     # (superset.semantic_layers.labels is imported by superset.initialization,
     # which is itself imported during superset package initialization).
-    from superset import feature_flag_manager  # pylint: disable=import-outside-toplevel
+    from superset import (  # noqa: PLC0415
+        feature_flag_manager,  # pylint: disable=import-outside-toplevel
+    )
 
     return (
         semantic

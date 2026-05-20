@@ -129,7 +129,9 @@ class Api(BaseSupersetView):
     def get_query_context_factory(self) -> QueryContextFactory:
         if self.query_context_factory is None:
             # pylint: disable=import-outside-toplevel
-            from superset.common.query_context_factory import QueryContextFactory
+            from superset.common.query_context_factory import (  # noqa: PLC0415
+                QueryContextFactory,
+            )
 
             self.query_context_factory = QueryContextFactory()
         return self.query_context_factory

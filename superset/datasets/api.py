@@ -749,7 +749,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         # pylint: disable=import-outside-toplevel
-        from superset.datasets.datetime_format_detector import DatetimeFormatDetector
+        from superset.datasets.datetime_format_detector import (  # noqa: PLC0415
+            DatetimeFormatDetector,
+        )
 
         try:
             # Get force parameter from query string

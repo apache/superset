@@ -40,6 +40,6 @@ def version() -> FlaskResponse:
     Return comprehensive version information including Git SHA
     and branch when available.
     """
-    from superset.utils.version import get_version_metadata
+    from superset.utils.version import get_version_metadata  # noqa: PLC0415
 
     return jsonify(get_version_metadata())

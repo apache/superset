@@ -34,13 +34,13 @@ class ExtensionsRestApi(BaseApi):
 
     def response(self, status_code: int, **kwargs: Any) -> Response:
         """Helper method to create JSON responses."""
-        from flask import jsonify
+        from flask import jsonify  # noqa: PLC0415
 
         return jsonify(kwargs), status_code
 
     def response_404(self) -> Response:
         """Helper method to create 404 responses."""
-        from flask import jsonify
+        from flask import jsonify  # noqa: PLC0415
 
         return jsonify({"message": "Not found"}), 404
 

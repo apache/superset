@@ -37,7 +37,7 @@ _watcher_lock = threading.Lock()
 def _get_file_handler_class() -> Any:
     """Get the file handler class, importing watchdog only when needed."""
     try:
-        from watchdog.events import FileSystemEventHandler
+        from watchdog.events import FileSystemEventHandler  # noqa: PLC0415
 
         class LocalExtensionFileHandler(FileSystemEventHandler):
             """Custom file system event handler for LOCAL_EXTENSIONS directories."""
@@ -131,7 +131,7 @@ def setup_local_extensions_watcher(app: Flask) -> None:  # noqa: C901
         return
 
     try:
-        from watchdog.observers import Observer
+        from watchdog.observers import Observer  # noqa: PLC0415
 
         # Set up and start the file watcher
         event_handler = handler_class()

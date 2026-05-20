@@ -60,7 +60,7 @@ def get_dataset_config_from_yaml(example_dir: Path) -> Dict[str, Optional[str]]:
 
 def get_examples_directory() -> Path:
     """Get the path to the examples directory."""
-    from .helpers import get_examples_folder
+    from .helpers import get_examples_folder  # noqa: PLC0415
 
     return Path(get_examples_folder())
 

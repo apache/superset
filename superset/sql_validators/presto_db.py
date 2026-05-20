@@ -63,7 +63,7 @@ class PrestoDBSQLValidator(BaseSQLValidator):
         # these EXPLAIN queries done in validation as proper Query objects
         # in the superset ORM.
         # pylint: disable=import-outside-toplevel
-        from pyhive.exc import DatabaseError
+        from pyhive.exc import DatabaseError  # noqa: PLC0415
 
         try:
             db_engine_spec.execute(cursor, sql, database)

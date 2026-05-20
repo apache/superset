@@ -335,7 +335,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             return False
 
     def _sanitize_filters(self) -> None:
-        from superset.jinja_context import get_template_processor
+        from superset.jinja_context import get_template_processor  # noqa: PLC0415
 
         needs_transpilation = self.extras.get("transpile_to_dialect", False)
 

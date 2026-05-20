@@ -611,7 +611,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         # that is made available in some plugins behind the experimental
         # feature flag.
         # pylint: disable=import-outside-toplevel
-        from superset import feature_flag_manager
+        from superset import feature_flag_manager  # noqa: PLC0415
 
         if feature_flag_manager.is_feature_enabled("CHART_PLUGINS_EXPERIMENTAL"):
             time_unit = ""

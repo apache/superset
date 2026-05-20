@@ -98,7 +98,7 @@ def create_tool_decorator(
     def decorator(func: F) -> F:
         try:
             # Import here to avoid circular imports
-            from superset.mcp_service.app import mcp
+            from superset.mcp_service.app import mcp  # noqa: PLC0415
 
             # Use provided values or extract from function
             base_tool_name = name or func.__name__
@@ -111,7 +111,7 @@ def create_tool_decorator(
             # Store RBAC permission metadata on the function so
             # mcp_auth_hook can read them at call time.
             if class_permission_name:
-                from superset.mcp_service.auth import (
+                from superset.mcp_service.auth import (  # noqa: PLC0415
                     CLASS_PERMISSION_ATTR,
                     METHOD_PERMISSION_ATTR,
                 )
@@ -124,13 +124,13 @@ def create_tool_decorator(
 
             # Conditionally apply authentication wrapper
             if protect:
-                from superset.mcp_service.auth import mcp_auth_hook
+                from superset.mcp_service.auth import mcp_auth_hook  # noqa: PLC0415
 
                 wrapped_func = mcp_auth_hook(func)
             else:
                 wrapped_func = func
 
-            from fastmcp.tools import Tool
+            from fastmcp.tools import Tool  # noqa: PLC0415
 
             tool = Tool.from_function(
                 wrapped_func,
@@ -208,7 +208,7 @@ def create_prompt_decorator(
     def decorator(func: F) -> F:
         try:
             # Import here to avoid circular imports
-            from superset.mcp_service.app import mcp
+            from superset.mcp_service.app import mcp  # noqa: PLC0415
 
             # Use provided values or extract from function
             base_prompt_name = name or func.__name__
@@ -223,7 +223,7 @@ def create_prompt_decorator(
 
             # Conditionally apply authentication wrapper
             if protect:
-                from superset.mcp_service.auth import mcp_auth_hook
+                from superset.mcp_service.auth import mcp_auth_hook  # noqa: PLC0415
 
                 wrapped_func = mcp_auth_hook(func)
             else:
@@ -279,10 +279,10 @@ def initialize_core_mcp_dependencies() -> None:
 
     Also imports MCP service app to register all host tools BEFORE extension loading.
     """
-    import superset_core.mcp.decorators
+    import superset_core.mcp.decorators  # noqa: PLC0415
 
     try:
-        from fastmcp.tools import Tool  # noqa: F401
+        from fastmcp.tools import Tool  # noqa: F401, PLC0415
     except ImportError:
         logger.info(
             "fastmcp is not installed, skipping MCP initialization. "
@@ -299,7 +299,7 @@ def initialize_core_mcp_dependencies() -> None:
     try:
         # Import MCP service app to register host tools BEFORE extension loading
         # This prevents host tools from being registered during extension context
-        from superset.mcp_service import app  # noqa: F401
+        from superset.mcp_service import app  # noqa: F401, PLC0415
 
         logger.info("MCP service app imported - host tools registered")
     except Exception as e:

@@ -79,7 +79,7 @@ class SupersetMetastoreCache(BaseCache):
 
     def set(self, key: str, value: Any, timeout: Optional[int] = None) -> bool:
         # pylint: disable=import-outside-toplevel
-        from superset.daos.key_value import KeyValueDAO
+        from superset.daos.key_value import KeyValueDAO  # noqa: PLC0415
 
         KeyValueDAO.upsert_entry(
             resource=RESOURCE,
@@ -93,7 +93,7 @@ class SupersetMetastoreCache(BaseCache):
 
     def add(self, key: str, value: Any, timeout: Optional[int] = None) -> bool:
         # pylint: disable=import-outside-toplevel
-        from superset.daos.key_value import KeyValueDAO
+        from superset.daos.key_value import KeyValueDAO  # noqa: PLC0415
 
         try:
             KeyValueDAO.delete_expired_entries(RESOURCE)
@@ -112,7 +112,7 @@ class SupersetMetastoreCache(BaseCache):
 
     def get(self, key: str) -> Any:
         # pylint: disable=import-outside-toplevel
-        from superset.daos.key_value import KeyValueDAO
+        from superset.daos.key_value import KeyValueDAO  # noqa: PLC0415
 
         return KeyValueDAO.get_value(RESOURCE, self.get_key(key), self.codec)
 
@@ -125,6 +125,6 @@ class SupersetMetastoreCache(BaseCache):
     @transaction()
     def delete(self, key: str) -> Any:
         # pylint: disable=import-outside-toplevel
-        from superset.daos.key_value import KeyValueDAO
+        from superset.daos.key_value import KeyValueDAO  # noqa: PLC0415
 
         return KeyValueDAO.delete_entry(RESOURCE, self.get_key(key))

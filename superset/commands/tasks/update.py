@@ -97,7 +97,7 @@ class UpdateTaskCommand(BaseCommand):
 
         :returns: The updated task model
         """
-        from superset.daos.tasks import TaskDAO
+        from superset.daos.tasks import TaskDAO  # noqa: PLC0415
 
         self.validate()
 
@@ -129,7 +129,7 @@ class UpdateTaskCommand(BaseCommand):
 
         :returns: The updated task model
         """
-        from superset.daos.tasks import TaskDAO
+        from superset.daos.tasks import TaskDAO  # noqa: PLC0415
 
         # Re-fetch model under lock to get fresh state
         fresh_model = TaskDAO.find_one_or_none(

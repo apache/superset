@@ -34,9 +34,9 @@ logger = logging.getLogger(__name__)
 
 def import_theme(config: dict[str, Any], overwrite: bool = False) -> "Theme | None":
     """Import a single theme from config dictionary"""
-    from superset import db, security_manager
-    from superset.models.core import Theme
-    from superset.utils.core import get_user
+    from superset import db, security_manager  # noqa: PLC0415
+    from superset.models.core import Theme  # noqa: PLC0415
+    from superset.utils.core import get_user  # noqa: PLC0415
 
     can_write = security_manager.can_access("can_write", "Theme")
     existing = db.session.query(Theme).filter_by(uuid=config["uuid"]).first()

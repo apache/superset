@@ -104,7 +104,7 @@ def normalize_example_data_url(url: str) -> str:
         Normalized file:// URL pointing to the Parquet file, or the original URL
         if it's a remote URL (http://, https://, etc.)
     """
-    import os
+    import os  # noqa: PLC0415
 
     # Handle existing examples:// protocol
     if url.startswith(EXAMPLES_PROTOCOL):
@@ -158,7 +158,7 @@ def read_example_data(
     Returns:
         DataFrame with the loaded data
     """
-    import os
+    import os  # noqa: PLC0415
 
     # Extract example name from filepath
     if filepath.startswith(EXAMPLES_PROTOCOL):

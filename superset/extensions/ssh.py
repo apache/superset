@@ -53,7 +53,7 @@ class SSHManager:
         ssh_tunnel: "SSHTunnel",
         sqlalchemy_database_uri: str,
     ) -> sshtunnel.SSHTunnelForwarder:
-        from superset.utils.ssh_tunnel import get_default_port
+        from superset.utils.ssh_tunnel import get_default_port  # noqa: PLC0415
 
         url = make_url_safe(sqlalchemy_database_uri)
         backend = url.get_backend_name()

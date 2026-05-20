@@ -67,7 +67,7 @@ class TaskPruneCommand(BaseCommand):
 
         # Select all IDs that need to be deleted
         # Only delete completed tasks (success, failure, or aborted)
-        from superset.models.tasks import Task
+        from superset.models.tasks import Task  # noqa: PLC0415
 
         select_stmt = sa.select(Task.id).where(
             Task.ended_at < datetime.now() - timedelta(days=self.retention_period_days),

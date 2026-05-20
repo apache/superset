@@ -87,7 +87,7 @@ def extension_setup_for_dev():
     """Set up extension structure for dev testing."""
 
     def _setup(base_path: Path) -> None:
-        import json
+        import json  # noqa: PLC0415
 
         # Create extension.json with new structure
         extension_json = {
@@ -111,7 +111,7 @@ def extension_setup_for_bundling():
     """Set up a complete extension structure ready for bundling."""
 
     def _setup(base_path: Path) -> None:
-        import json
+        import json  # noqa: PLC0415
 
         # Create dist directory with manifest and files
         dist_dir = base_path / "dist"

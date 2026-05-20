@@ -178,8 +178,8 @@ class AbstractEventLogger(ABC):
         **payload_override: dict[str, Any] | None,
     ) -> None:
         # pylint: disable=import-outside-toplevel
-        from superset import db
-        from superset.views.core import get_form_data
+        from superset import db  # noqa: PLC0415
+        from superset.views.core import get_form_data  # noqa: PLC0415
 
         referrer = request.referrer[:1000] if request and request.referrer else None
 
@@ -380,8 +380,8 @@ class DBEventLogger(AbstractEventLogger):
         **kwargs: Any,
     ) -> None:
         # pylint: disable=import-outside-toplevel
-        from superset import db
-        from superset.models.core import Log
+        from superset import db  # noqa: PLC0415
+        from superset.models.core import Log  # noqa: PLC0415
 
         records = kwargs.get("records", [])
         curated_payload = kwargs.get("curated_payload")

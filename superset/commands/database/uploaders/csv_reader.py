@@ -101,7 +101,7 @@ class CSVReader(BaseDataReader):
                 return "c"
 
             # Import pyarrow to verify it works properly
-            import pyarrow as pa  # noqa: F401
+            import pyarrow as pa  # noqa: F401, PLC0415
 
             # Check if pandas has built-in pyarrow support
             pandas_version = str(pd.__version__)

@@ -152,7 +152,7 @@ class AsyncQueryManager:
             self.register_request_handlers(app)
 
         # pylint: disable=import-outside-toplevel
-        from superset.tasks.async_queries import (
+        from superset.tasks.async_queries import (  # noqa: PLC0415
             load_chart_data_into_cache,
             load_explore_json_into_cache,
         )
@@ -222,7 +222,7 @@ class AsyncQueryManager:
         user_id: Optional[int] = None,
     ) -> dict[str, Any]:
         # pylint: disable=import-outside-toplevel
-        from superset import security_manager
+        from superset import security_manager  # noqa: PLC0415
 
         job_metadata = self.init_job(channel_id, user_id)
         self._load_explore_json_into_cache_job.delay(
@@ -242,7 +242,7 @@ class AsyncQueryManager:
         user_id: Optional[int] = None,
     ) -> dict[str, Any]:
         # pylint: disable=import-outside-toplevel
-        from superset import security_manager
+        from superset import security_manager  # noqa: PLC0415
 
         # if it's guest user, we want to pass the guest token to the celery task
         # chart data cache key is calculated based on the current user

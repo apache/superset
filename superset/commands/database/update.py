@@ -158,8 +158,13 @@ class UpdateDatabaseCommand(BaseCommand):
         """
         Update the catalog of the datasets that are associated with database.
         """
-        from superset.connectors.sqla.models import SqlaTable
-        from superset.models.sql_lab import Query, SavedQuery, TableSchema, TabState
+        from superset.connectors.sqla.models import SqlaTable  # noqa: PLC0415
+        from superset.models.sql_lab import (  # noqa: PLC0415
+            Query,
+            SavedQuery,
+            TableSchema,
+            TabState,
+        )
 
         for model in [
             SqlaTable,

@@ -285,7 +285,7 @@ class ExtraCache:
         """
 
         # pylint: disable=import-outside-toplevel
-        from superset.views.utils import get_form_data
+        from superset.views.utils import get_form_data  # noqa: PLC0415
 
         if has_request_context() and request.args.get(param):
             return request.args.get(param, default)
@@ -407,7 +407,7 @@ class ExtraCache:
         :return: returns a list of filters
         """
         # pylint: disable=import-outside-toplevel
-        from superset.views.utils import get_form_data
+        from superset.views.utils import get_form_data  # noqa: PLC0415
 
         form_data, _ = get_form_data()
         convert_legacy_filters_into_adhoc(form_data)
@@ -512,7 +512,7 @@ class ExtraCache:
         :return: The corresponding time filter.
         """
         # pylint: disable=import-outside-toplevel
-        from superset.views.utils import get_form_data
+        from superset.views.utils import get_form_data  # noqa: PLC0415
 
         form_data, _ = get_form_data()
         convert_legacy_filters_into_adhoc(form_data)
@@ -948,7 +948,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
         """
 
         # pylint: disable=import-outside-toplevel
-        from superset.db_engine_specs.presto import PrestoEngineSpec
+        from superset.db_engine_specs.presto import PrestoEngineSpec  # noqa: PLC0415
 
         table_name, schema = self._schema_table(table_name, self._schema)
         return cast(PrestoEngineSpec, self._database.db_engine_spec).latest_partition(
@@ -959,7 +959,7 @@ class PrestoTemplateProcessor(JinjaTemplateProcessor):
         table_name, schema = self._schema_table(table_name, self._schema)
 
         # pylint: disable=import-outside-toplevel
-        from superset.db_engine_specs.presto import PrestoEngineSpec
+        from superset.db_engine_specs.presto import PrestoEngineSpec  # noqa: PLC0415
 
         return cast(
             PrestoEngineSpec, self._database.db_engine_spec
@@ -1052,7 +1052,7 @@ def dataset_macro(
     the underlying dataset.
     """
     # pylint: disable=import-outside-toplevel
-    from superset.daos.dataset import DatasetDAO
+    from superset.daos.dataset import DatasetDAO  # noqa: PLC0415
 
     dataset = DatasetDAO.find_by_id(dataset_id)
     if not dataset:
@@ -1081,8 +1081,8 @@ def get_dataset_id_from_context(metric_key: str) -> int:
     :returns: the dataset ID.
     """
     # pylint: disable=import-outside-toplevel
-    from superset.daos.chart import ChartDAO
-    from superset.views.utils import loads_request_json
+    from superset.daos.chart import ChartDAO  # noqa: PLC0415
+    from superset.views.utils import loads_request_json  # noqa: PLC0415
 
     form_data: dict[str, Any] = {}
     exc_message = _(
@@ -1134,7 +1134,7 @@ def metric_macro(
     :returns: the macro SQL syntax.
     """
     # pylint: disable=import-outside-toplevel
-    from superset.daos.dataset import DatasetDAO
+    from superset.daos.dataset import DatasetDAO  # noqa: PLC0415
 
     if not dataset_id:
         dataset_id = get_dataset_id_from_context(metric_key)

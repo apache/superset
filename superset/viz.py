@@ -1309,7 +1309,7 @@ class WorldMapViz(BaseViz):
             return None
 
         # pylint: disable=import-outside-toplevel
-        from superset.examples import countries
+        from superset.examples import countries  # noqa: PLC0415
 
         cols = get_column_names([self.form_data.get("entity")])  # type: ignore
         metric = utils.get_metric_name(self.form_data["metric"])
@@ -1661,8 +1661,8 @@ class DeckGLMultiLayer(BaseViz):
     def get_data(self, df: pd.DataFrame) -> VizData:
         # Late imports to avoid circular import issues
         # pylint: disable=import-outside-toplevel
-        from superset import db
-        from superset.models.slice import Slice
+        from superset import db  # noqa: PLC0415
+        from superset.models.slice import Slice  # noqa: PLC0415
 
         slice_ids = self.form_data.get("deck_slices")
         slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()

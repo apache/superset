@@ -341,6 +341,13 @@ target-version = "py310"
 # Enable Pyflakes (`F`) and a subset of the pycodestyle (`E`)  codes by default.
 # Unlike Flake8, Ruff doesn't enable pycodestyle warnings (`W`) or
 # McCabe complexity (`C901`) by default.
+#
+# NOTE: PLC0415 (`import` should be at the top-level of a file) is enforced
+# via a dedicated pre-commit hook (`ruff-import-placement`) rather than
+# globally here, because the rule is still preview-only in ruff and
+# enabling `preview = true` globally would also activate other preview-
+# rule behavior changes we don't want. Existing function-body imports
+# have been grandfathered with per-line `# noqa: PLC0415`.
 select = [
     "B904",
     "E4",
@@ -390,10 +397,36 @@ dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 "superset/cli/update.py" = ["TID251"]
 "superset/key_value/types.py" = ["TID251"]
 "superset/translations/utils.py" = ["TID251"]
-"superset/extensions/__init__.py" = ["TID251"]
 "superset/utils/json.py" = ["TID251"]
 "docker/*" = ["I"]  # Docker config files have non-standard imports that vary by environment
 "superset/db_engine_specs/lib.py" = ["E501"]  # Database config file with long description strings
+
+# PLC0415 — function-body imports. Allow in directories where this is a
+# deliberate pattern rather than an oversight:
+#   - cli/, scripts/: subcommand-deferred imports (don't load heavy modules
+#     unless the subcommand actually runs).
+#   - tasks/: Celery task bodies routinely defer imports of the modules
+#     they orchestrate.
+#   - migrations/versions/: Alembic migrations import models at runtime
+#     to interact with the schema state, not at module load.
+#   - mcp_service/: MCP tools lazy-load resources on invocation so the
+#     server can register many tools without paying their import cost.
+#   - db_engine_specs/: engine specs defer driver imports so optional
+#     DB drivers don't have to be installed.
+#   - initialization/__init__.py, extensions/__init__.py: the app-factory
+#     and extension wiring are full of intentional circular-import
+#     workarounds.
+"superset/cli/**/*.py" = ["PLC0415"]
+"scripts/**/*.py" = ["PLC0415"]
+"superset/tasks/**/*.py" = ["PLC0415"]
+"superset/migrations/versions/**/*.py" = ["PLC0415"]
+"superset/mcp_service/**/*.py" = ["PLC0415"]
+"superset/db_engine_specs/**/*.py" = ["PLC0415"]
+"superset/initialization/__init__.py" = ["PLC0415"]
+"superset/extensions/__init__.py" = ["TID251", "PLC0415"]
+"superset/app.py" = ["PLC0415"]
+"tests/**/*.py" = ["PLC0415"]  # Tests import fixtures lazily; rule still
+                               # applies in CI to production code in src/.
 
 [tool.ruff.lint.isort]
 case-sensitive = false

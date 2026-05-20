@@ -122,7 +122,7 @@ def execute_sql_with_cursor(
     :returns: List of (statement_sql, result_set, execution_time_ms, rowcount) tuples
         Returns empty list if stopped. Raises exception on error (fail-fast).
     """
-    from superset.result_set import SupersetResultSet
+    from superset.result_set import SupersetResultSet  # noqa: PLC0415
 
     total = len(statements)
     if total == 0:
@@ -214,7 +214,7 @@ class SQLExecutor:
 
         See superset_core.api.models.Database.execute() for full documentation.
         """
-        from superset_core.queries.types import (
+        from superset_core.queries.types import (  # noqa: PLC0415
             QueryOptions as QueryOptionsType,
             QueryResult as QueryResultType,
             QueryStatus,
@@ -341,7 +341,7 @@ class SQLExecutor:
 
         See superset_core.api.models.Database.execute_async() for full documentation.
         """
-        from superset_core.queries.types import (
+        from superset_core.queries.types import (  # noqa: PLC0415
             QueryOptions as QueryOptionsType,
             QueryResult as QueryResultType,
             QueryStatus,
@@ -363,7 +363,7 @@ class SQLExecutor:
 
         # DRY RUN: Return transformed SQL as completed async handle
         if opts.dry_run:
-            from superset_core.queries.types import StatementResult
+            from superset_core.queries.types import StatementResult  # noqa: PLC0415
 
             original_sqls = [stmt.format() for stmt in original_script.statements]
             transformed_sqls = [stmt.format() for stmt in transformed_script.statements]
@@ -510,7 +510,7 @@ class SQLExecutor:
         :param query: Query model for progress tracking
         :returns: List of StatementResult objects
         """
-        from superset_core.queries.types import StatementResult
+        from superset_core.queries.types import StatementResult  # noqa: PLC0415
 
         # Get original statement strings
         original_sqls = [stmt.format() for stmt in original_script.statements]
@@ -578,7 +578,7 @@ class SQLExecutor:
         :param sql: SQL to log
         :param schema: Schema name
         """
-        from superset import security_manager
+        from superset import security_manager  # noqa: PLC0415
 
         if log_query := app.config.get("QUERY_LOGGER"):
             log_query(
@@ -607,7 +607,9 @@ class SQLExecutor:
             statements before the failure
         :returns: QueryResult with error status
         """
-        from superset_core.queries.types import QueryResult as QueryResultType
+        from superset_core.queries.types import (  # noqa: PLC0415
+            QueryResult as QueryResultType,
+        )
 
         return QueryResultType(
             status=status,
@@ -629,7 +631,7 @@ class SQLExecutor:
         if template_params is None:
             return sql
 
-        from superset.jinja_context import get_template_processor
+        from superset.jinja_context import get_template_processor  # noqa: PLC0415
 
         tp = get_template_processor(database=self.database)
         return tp.process_template(sql, **template_params)
@@ -737,7 +739,7 @@ class SQLExecutor:
         :param catalog: Catalog name
         :param schema: Schema name
         """
-        from superset.utils.rls import apply_rls
+        from superset.utils.rls import apply_rls  # noqa: PLC0415
 
         # Apply RLS to each statement in the script
         for statement in script.statements:
@@ -761,7 +763,7 @@ class SQLExecutor:
         :param status: Initial QueryStatus (RUNNING for sync, PENDING for async)
         :returns: Query model instance
         """
-        from superset.models.sql_lab import Query as QueryModel
+        from superset.models.sql_lab import Query as QueryModel  # noqa: PLC0415
 
         user_id = None
         if has_app_context() and hasattr(g, "user") and g.user:
@@ -793,7 +795,7 @@ class SQLExecutor:
         :param opts: Query options
         :returns: Cached QueryResult if found, None otherwise
         """
-        from superset_core.queries.types import (
+        from superset_core.queries.types import (  # noqa: PLC0415
             QueryResult as QueryResultType,
             QueryStatus,
             StatementResult,
@@ -833,7 +835,7 @@ class SQLExecutor:
         :param sql: SQL query (for cache key)
         :param opts: Query options
         """
-        from superset_core.queries.types import QueryStatus
+        from superset_core.queries.types import QueryStatus  # noqa: PLC0415
 
         if result.status != QueryStatus.SUCCESS:
             return
@@ -849,7 +851,7 @@ class SQLExecutor:
         # Convert DataFrames to list-of-dicts so the cache backend
         # does not need to pickle pandas objects (which can fail to
         # deserialize correctly with some backends or pandas versions).
-        import pandas as pd
+        import pandas as pd  # noqa: PLC0415
 
         cached_data = {
             "statements": [
@@ -906,9 +908,9 @@ class SQLExecutor:
         :param rendered_sql: Rendered SQL to execute
         :raises: Re-raises any exception after marking query as failed
         """
-        from superset.sql.execution.celery_task import execute_sql_task
-        from superset.utils.core import get_username
-        from superset.utils.dates import now_as_float
+        from superset.sql.execution.celery_task import execute_sql_task  # noqa: PLC0415
+        from superset.utils.core import get_username  # noqa: PLC0415
+        from superset.utils.dates import now_as_float  # noqa: PLC0415
 
         try:
             task = execute_sql_task.delay(
@@ -931,7 +933,7 @@ class SQLExecutor:
         :param query_id: ID of the Query model
         :returns: AsyncQueryHandle with configured methods
         """
-        from superset_core.queries.types import (
+        from superset_core.queries.types import (  # noqa: PLC0415
             AsyncQueryHandle as AsyncQueryHandleType,
             QueryResult as QueryResultType,
             QueryStatus,
@@ -970,7 +972,7 @@ class SQLExecutor:
         :param cached_result: The cached QueryResult
         :returns: AsyncQueryHandle that returns the cached data
         """
-        from superset_core.queries.types import (
+        from superset_core.queries.types import (  # noqa: PLC0415
             AsyncQueryHandle as AsyncQueryHandleType,
             QueryResult as QueryResultType,
             QueryStatus,
@@ -1001,9 +1003,11 @@ class SQLExecutor:
     @staticmethod
     def _get_async_query_status(query_id: int) -> Any:
         """Get the current status of an async query."""
-        from superset_core.queries.types import QueryStatus as QueryStatusType
+        from superset_core.queries.types import (  # noqa: PLC0415
+            QueryStatus as QueryStatusType,
+        )
 
-        from superset.models.sql_lab import Query as QueryModel
+        from superset.models.sql_lab import Query as QueryModel  # noqa: PLC0415
 
         query = db.session.query(QueryModel).filter_by(id=query_id).one_or_none()
         if not query:
@@ -1022,14 +1026,14 @@ class SQLExecutor:
     @staticmethod
     def _get_async_query_result(query_id: int) -> Any:
         """Get the result of an async query."""
-        import pandas as pd
-        from superset_core.queries.types import (
+        import pandas as pd  # noqa: PLC0415
+        from superset_core.queries.types import (  # noqa: PLC0415
             QueryResult as QueryResultType,
             QueryStatus as QueryStatusType,
             StatementResult,
         )
 
-        from superset.models.sql_lab import Query as QueryModel
+        from superset.models.sql_lab import Query as QueryModel  # noqa: PLC0415
 
         query = db.session.query(QueryModel).filter_by(id=query_id).one_or_none()
         if not query:
@@ -1048,16 +1052,16 @@ class SQLExecutor:
 
         # Fetch results from results backend
         if query.results_key:
-            import msgpack
+            import msgpack  # noqa: PLC0415
 
-            from superset import results_backend_manager
+            from superset import results_backend_manager  # noqa: PLC0415
 
             results_backend = results_backend_manager.results_backend
             if results_backend is not None:
                 blob = results_backend.get(query.results_key)
                 if blob:
                     try:
-                        from superset.utils.core import zlib_decompress
+                        from superset.utils.core import zlib_decompress  # noqa: PLC0415
 
                         payload = msgpack.loads(zlib_decompress(blob))
 
@@ -1107,7 +1111,7 @@ class SQLExecutor:
     @staticmethod
     def _cancel_async_query(query_id: int, database: Database) -> bool:
         """Cancel an async query."""
-        from superset.models.sql_lab import Query as QueryModel
+        from superset.models.sql_lab import Query as QueryModel  # noqa: PLC0415
 
         query = db.session.query(QueryModel).filter_by(id=query_id).one_or_none()
         if not query:
@@ -1128,8 +1132,11 @@ class SQLExecutor:
         :param query: Query model instance to cancel
         :returns: True if cancelled successfully, False otherwise
         """
-        from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
-        from superset.utils.core import QuerySource
+        from superset.constants import (  # noqa: PLC0415
+            QUERY_CANCEL_KEY,
+            QUERY_EARLY_CANCEL_KEY,
+        )
+        from superset.utils.core import QuerySource  # noqa: PLC0415
 
         # Some engines implicitly handle cancellation
         if database.db_engine_spec.has_implicit_cancel():

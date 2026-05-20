@@ -42,22 +42,24 @@ def inject_dao_implementations() -> None:
     Replace abstract DAO classes in superset_core common/queries/tasks daos with
     concrete implementations from Superset.
     """
-    import superset_core.common.daos as core_common_dao_module
-    import superset_core.queries.daos as core_queries_dao_module
-    import superset_core.tasks.daos as core_tasks_dao_module
+    import superset_core.common.daos as core_common_dao_module  # noqa: PLC0415
+    import superset_core.queries.daos as core_queries_dao_module  # noqa: PLC0415
+    import superset_core.tasks.daos as core_tasks_dao_module  # noqa: PLC0415
 
-    from superset.daos.chart import ChartDAO as HostChartDAO
-    from superset.daos.dashboard import DashboardDAO as HostDashboardDAO
-    from superset.daos.database import DatabaseDAO as HostDatabaseDAO
-    from superset.daos.dataset import DatasetDAO as HostDatasetDAO
-    from superset.daos.key_value import KeyValueDAO as HostKeyValueDAO
-    from superset.daos.query import (
+    from superset.daos.chart import ChartDAO as HostChartDAO  # noqa: PLC0415
+    from superset.daos.dashboard import (  # noqa: PLC0415
+        DashboardDAO as HostDashboardDAO,
+    )
+    from superset.daos.database import DatabaseDAO as HostDatabaseDAO  # noqa: PLC0415
+    from superset.daos.dataset import DatasetDAO as HostDatasetDAO  # noqa: PLC0415
+    from superset.daos.key_value import KeyValueDAO as HostKeyValueDAO  # noqa: PLC0415
+    from superset.daos.query import (  # noqa: PLC0415
         QueryDAO as HostQueryDAO,
         SavedQueryDAO as HostSavedQueryDAO,
     )
-    from superset.daos.tag import TagDAO as HostTagDAO
-    from superset.daos.tasks import TaskDAO as HostTaskDAO
-    from superset.daos.user import UserDAO as HostUserDAO
+    from superset.daos.tag import TagDAO as HostTagDAO  # noqa: PLC0415
+    from superset.daos.tasks import TaskDAO as HostTaskDAO  # noqa: PLC0415
+    from superset.daos.user import UserDAO as HostUserDAO  # noqa: PLC0415
 
     # Replace abstract classes in common.daos with concrete implementations
     core_common_dao_module.DatasetDAO = HostDatasetDAO  # type: ignore[assignment,misc]
@@ -83,19 +85,24 @@ def inject_model_implementations() -> None:
 
     Uses in-place replacement to maintain single import location for extensions.
     """
-    import superset_core.common.models as core_common_models_module
-    import superset_core.queries.models as core_queries_models_module
-    import superset_core.tasks.models as core_tasks_models_module
-    from flask_appbuilder.security.sqla.models import User as HostUser
+    import superset_core.common.models as core_common_models_module  # noqa: PLC0415
+    import superset_core.queries.models as core_queries_models_module  # noqa: PLC0415
+    import superset_core.tasks.models as core_tasks_models_module  # noqa: PLC0415
+    from flask_appbuilder.security.sqla.models import User as HostUser  # noqa: PLC0415
 
-    from superset.connectors.sqla.models import SqlaTable as HostDataset
-    from superset.key_value.models import KeyValueEntry as HostKeyValue
-    from superset.models.core import Database as HostDatabase
-    from superset.models.dashboard import Dashboard as HostDashboard
-    from superset.models.slice import Slice as HostChart
-    from superset.models.sql_lab import Query as HostQuery, SavedQuery as HostSavedQuery
-    from superset.models.tasks import Task as HostTask
-    from superset.tags.models import Tag as HostTag
+    from superset.connectors.sqla.models import (  # noqa: PLC0415
+        SqlaTable as HostDataset,
+    )
+    from superset.key_value.models import KeyValueEntry as HostKeyValue  # noqa: PLC0415
+    from superset.models.core import Database as HostDatabase  # noqa: PLC0415
+    from superset.models.dashboard import Dashboard as HostDashboard  # noqa: PLC0415
+    from superset.models.slice import Slice as HostChart  # noqa: PLC0415
+    from superset.models.sql_lab import (  # noqa: PLC0415
+        Query as HostQuery,
+        SavedQuery as HostSavedQuery,
+    )
+    from superset.models.tasks import Task as HostTask  # noqa: PLC0415
+    from superset.tags.models import Tag as HostTag  # noqa: PLC0415
 
     # In-place replacement in common.models
     core_common_models_module.Database = HostDatabase  # type: ignore[misc]
@@ -119,9 +126,9 @@ def inject_query_implementations() -> None:
     Replace abstract query functions in superset_core.queries.query with concrete
     implementations from Superset.
     """
-    import superset_core.queries.query as core_query_module
+    import superset_core.queries.query as core_query_module  # noqa: PLC0415
 
-    from superset.sql.parse import SQLGLOT_DIALECTS
+    from superset.sql.parse import SQLGLOT_DIALECTS  # noqa: PLC0415
 
     def get_sqlglot_dialect(database: "Database") -> Any:
         return (
@@ -137,12 +144,12 @@ def inject_task_implementations() -> None:
     Replace abstract task functions in superset_core tasks.types and tasks.decorators
     with concrete implementations from Superset.
     """
-    import superset_core.tasks.decorators as core_tasks_decorators_module
-    import superset_core.tasks.types as core_tasks_types_module
+    import superset_core.tasks.decorators as core_tasks_decorators_module  # noqa: PLC0415
+    import superset_core.tasks.types as core_tasks_types_module  # noqa: PLC0415
 
-    from superset.tasks.ambient_context import get_context
-    from superset.tasks.context import TaskContext
-    from superset.tasks.decorators import task
+    from superset.tasks.ambient_context import get_context  # noqa: PLC0415
+    from superset.tasks.context import TaskContext  # noqa: PLC0415
+    from superset.tasks.decorators import task  # noqa: PLC0415
 
     # Replace abstract classes and functions with concrete implementations
     core_tasks_types_module.TaskContext = TaskContext  # type: ignore[assignment,misc]
@@ -155,9 +162,9 @@ def inject_rest_api_implementations() -> None:
     Replace abstract REST API decorators in superset_core.rest_api.decorators
     with concrete implementations from Superset.
     """
-    import superset_core.rest_api.decorators as core_rest_api_module
+    import superset_core.rest_api.decorators as core_rest_api_module  # noqa: PLC0415
 
-    from superset.extensions import appbuilder
+    from superset.extensions import appbuilder  # noqa: PLC0415
 
     T = TypeVar("T", bound=type["RestApi"])
 
@@ -219,10 +226,10 @@ def inject_model_session_implementation() -> None:
     Replace abstract get_session function in superset_core.common.models with concrete
     implementation from Superset.
     """
-    import superset_core.common.models as core_models_module
+    import superset_core.common.models as core_models_module  # noqa: PLC0415
 
     def get_session() -> scoped_session:
-        from superset import db
+        from superset import db  # noqa: PLC0415
 
         return db.session
 
@@ -235,10 +242,10 @@ def inject_semantic_layer_implementations() -> None:
     superset_core.semantic_layers.decorators with a concrete implementation
     that registers classes in the contributions registry.
     """
-    import superset_core.semantic_layers.decorators as core_sl_module
+    import superset_core.semantic_layers.decorators as core_sl_module  # noqa: PLC0415
 
-    import superset.extensions.context as context_module
-    from superset.semantic_layers.registry import registry
+    import superset.extensions.context as context_module  # noqa: PLC0415
+    from superset.semantic_layers.registry import registry  # noqa: PLC0415
 
     def semantic_layer_impl(
         id: str,

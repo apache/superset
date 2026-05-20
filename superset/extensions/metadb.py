@@ -296,7 +296,7 @@ class SupersetShillelaghAdapter(Adapter):
         This is done on initialization because it's expensive.
         """
         # pylint: disable=import-outside-toplevel
-        from superset.models.core import Database
+        from superset.models.core import Database  # noqa: PLC0415
 
         database = (
             db.session.query(Database).filter_by(database_name=self.database).first()

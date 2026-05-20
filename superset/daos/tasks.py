@@ -213,7 +213,9 @@ class TaskDAO(BaseDAO[Task]):
         :returns: Task if aborted/aborting, None if not found or already finished
         :raises TaskNotAbortableError: If in-progress task has no abort handler
         """
-        from superset.commands.tasks.exceptions import TaskNotAbortableError
+        from superset.commands.tasks.exceptions import (  # noqa: PLC0415
+            TaskNotAbortableError,
+        )
 
         task = cls.find_one_or_none(skip_base_filter=skip_base_filter, uuid=task_uuid)
         if not task:

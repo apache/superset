@@ -209,7 +209,7 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
     :raises DatasetUnAllowedDataURI: If a dataset is trying
     to load data from a URI that is not allowed.
     """
-    from superset.examples.helpers import normalize_example_data_url
+    from superset.examples.helpers import normalize_example_data_url  # noqa: PLC0415
 
     # Convert example URLs to align with configuration
     data_uri = normalize_example_data_url(data_uri)

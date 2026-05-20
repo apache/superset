@@ -347,7 +347,7 @@ def test_build_manifest_exits_when_extension_json_missing(isolated_filesystem):
 @pytest.mark.unit
 def test_clean_dist_frontend_removes_frontend_dist(isolated_filesystem):
     """Test clean_dist_frontend removes frontend/dist directory specifically."""
-    from superset_extensions_cli.cli import clean_dist_frontend
+    from superset_extensions_cli.cli import clean_dist_frontend  # noqa: PLC0415
 
     # Create dist/frontend structure
     dist_dir = isolated_filesystem / "dist"
@@ -366,7 +366,7 @@ def test_clean_dist_frontend_removes_frontend_dist(isolated_filesystem):
 @pytest.mark.unit
 def test_clean_dist_frontend_handles_nonexistent_directory(isolated_filesystem):
     """Test clean_dist_frontend handles case where frontend dist doesn't exist."""
-    from superset_extensions_cli.cli import clean_dist_frontend
+    from superset_extensions_cli.cli import clean_dist_frontend  # noqa: PLC0415
 
     # No dist directory exists
     clean_dist_frontend(isolated_filesystem)
@@ -377,7 +377,7 @@ def test_clean_dist_frontend_handles_nonexistent_directory(isolated_filesystem):
 @pytest.mark.unit
 def test_run_frontend_build_with_output_messages(isolated_filesystem):
     """Test run_frontend_build produces expected output messages."""
-    from superset_extensions_cli.cli import run_frontend_build
+    from superset_extensions_cli.cli import run_frontend_build  # noqa: PLC0415
 
     frontend_dir = isolated_filesystem / "frontend"
     frontend_dir.mkdir()
@@ -406,7 +406,7 @@ def test_rebuild_frontend_handles_build_results(
     isolated_filesystem, return_code, expected_result
 ):
     """Test rebuild_frontend handles different build results."""
-    from superset_extensions_cli.cli import rebuild_frontend
+    from superset_extensions_cli.cli import rebuild_frontend  # noqa: PLC0415
 
     # Create frontend structure
     frontend_dir = isolated_filesystem / "frontend"
@@ -434,7 +434,7 @@ def test_rebuild_frontend_handles_build_results(
 @pytest.mark.unit
 def test_rebuild_backend_calls_copy_and_shows_message(isolated_filesystem):
     """Test rebuild_backend calls copy_backend_files and shows success message."""
-    from superset_extensions_cli.cli import rebuild_backend
+    from superset_extensions_cli.cli import rebuild_backend  # noqa: PLC0415
 
     # Create extension.json
     extension_json = {

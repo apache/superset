@@ -276,7 +276,9 @@ def get_extensions() -> dict[str, LoadedExtension]:
 
     # Load extensions from discovery path (.supx files)
     if extensions_path := current_app.config.get("EXTENSIONS_PATH"):
-        from superset.extensions.discovery import discover_and_load_extensions
+        from superset.extensions.discovery import (  # noqa: PLC0415
+            discover_and_load_extensions,
+        )
 
         for extension in discover_and_load_extensions(extensions_path):
             extension_id = extension.manifest.id

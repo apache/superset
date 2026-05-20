@@ -235,9 +235,9 @@ def export_dataset_data(
     sample_rows: int | None = None,
 ) -> bytes | None:
     """Export dataset data to Parquet format. Returns bytes or None on failure."""
-    import pandas as pd  # pylint: disable=import-outside-toplevel
+    import pandas as pd  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
 
-    from superset import db  # pylint: disable=import-outside-toplevel
+    from superset import db  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
 
     # Ensure dataset is attached to session and relationships are loaded
     if dataset not in db.session:
@@ -394,7 +394,7 @@ def export_dashboard_yaml(
     dataset_id_to_uuid: dict[int, str],
 ) -> dict[str, Any]:
     """Export dashboard to YAML format with proper ID remapping."""
-    from superset.utils import (
+    from superset.utils import (  # noqa: PLC0415
         json as superset_json,  # pylint: disable=import-outside-toplevel
     )
 

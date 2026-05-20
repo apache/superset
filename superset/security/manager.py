@@ -132,7 +132,7 @@ def _log_audit_event(action: str, payload: dict[str, Any]) -> None:
     configured implementation (DBEventLogger, S3EventLogger, etc.)
     receives these security audit events.
     """
-    from superset.extensions import (
+    from superset.extensions import (  # noqa: PLC0415
         event_logger,  # pylint: disable=import-outside-toplevel
     )
 
@@ -654,7 +654,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def request_loader(self, request: Request) -> Optional[User]:
         # pylint: disable=import-outside-toplevel
-        from superset.extensions import feature_flag_manager
+        from superset.extensions import feature_flag_manager  # noqa: PLC0415
 
         if feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
             return self.get_guest_user_from_request(request)
@@ -799,7 +799,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param datasource: The datasource
         :returns: Whether the user can access the datasource's schema
         """
-        from superset.connectors.sqla.models import BaseDatasource
+        from superset.connectors.sqla.models import BaseDatasource  # noqa: PLC0415
 
         # Admin/superuser override
         if self.can_access_all_datasources():
@@ -847,7 +847,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Return True if an embedded user or DASHBOARD_RBAC user can drill a dataset.
         """
-        from superset import is_feature_enabled
+        from superset import is_feature_enabled  # noqa: PLC0415
 
         if (
             (
@@ -909,7 +909,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: Whether the user has drill access.
         """
 
-        from superset.models.slice import Slice
+        from superset.models.slice import Slice  # noqa: PLC0415
 
         # Drill to Detail: no slice/chart context, dataset must belong to the dashboard
         if (
@@ -1097,7 +1097,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         user_datasources = set()
 
         # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import SqlaTable  # noqa: PLC0415
 
         user_datasources.update(
             self.session.query(SqlaTable)
@@ -1208,7 +1208,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import SqlaTable  # noqa: PLC0415
 
         default_catalog = database.get_default_catalog()
         catalog = catalog or default_catalog
@@ -1274,7 +1274,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The set of accessible database catalogs
         """
         # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import SqlaTable  # noqa: PLC0415
 
         if hierarchical and self.can_access_database(database):
             return catalogs
@@ -1339,7 +1339,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :returns: The list of accessible SQL tables w/ schema
         """
         # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import SqlaTable  # noqa: PLC0415
 
         if self.can_access_database(database):
             return datasource_names
@@ -1428,8 +1428,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import SqlaTable
-        from superset.models import core as models
+        from superset.connectors.sqla.models import SqlaTable  # noqa: PLC0415
+        from superset.models import core as models  # noqa: PLC0415
 
         logger.info("Fetching a set of all perms to lookup which ones are missing")
         all_pvs = {
@@ -1461,7 +1461,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         existing_pvs: set[tuple[str, str]],
     ) -> None:
         """Backfill perm columns and create missing PVMs for semantic models."""
-        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
             SemanticLayer,
             SemanticView,
         )
@@ -1959,10 +1959,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: The database object
         :return: A list of changed view menus (permission resource names)
         """  # noqa: E501
-        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
             SqlaTable,
         )
-        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+        from superset.models.slice import (  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
             Slice,
         )
 
@@ -2039,7 +2039,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: The changed dataset object
         :return:
         """
-        from superset.models.core import (  # pylint: disable=import-outside-toplevel
+        from superset.models.core import (  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
             Database,
         )
 
@@ -2152,7 +2152,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :return:
         """
         # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import SqlaTable
+        from superset.connectors.sqla.models import SqlaTable  # noqa: PLC0415
 
         # Check if watched fields have changed
         table = SqlaTable.__table__  # pylint: disable=no-member
@@ -2245,10 +2245,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param target: Dataset that was updated
         :return:
         """
-        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
             SqlaTable,
         )
-        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+        from superset.models.slice import (  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
             Slice,
         )
 
@@ -2318,10 +2318,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             old_permission_name,
             new_permission_name,
         )
-        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
             SqlaTable,
         )
-        from superset.models.slice import (  # pylint: disable=import-outside-toplevel
+        from superset.models.slice import (  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
             Slice,
         )
 
@@ -2379,7 +2379,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         Creates the datasource_access PVM and stores the perm string on the row.
         """
-        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
             SemanticLayer,
         )
 
@@ -2406,7 +2406,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Renames the FAB ViewMenu so the PVM stays in sync with the layer name.
         Also cascades the rename to all semantic view perms under this layer.
         """
-        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
             SemanticLayer,
             SemanticView,
         )
@@ -2494,7 +2494,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Looks up the layer name via connection since the ORM relationship may
         not be loaded during event handling.
         """
-        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
             SemanticLayer,
             SemanticView,
         )
@@ -2526,7 +2526,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Looks up the layer name via connection since the ORM relationship may
         not be loaded during event handling.
         """
-        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel  # noqa: PLC0415
             SemanticLayer,
             SemanticView,
         )
@@ -2883,12 +2883,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
-        from superset import is_feature_enabled
-        from superset.connectors.sqla.models import SqlaTable
-        from superset.models.dashboard import Dashboard
-        from superset.models.slice import Slice
-        from superset.models.sql_lab import Query
-        from superset.utils.core import shortid
+        from superset import is_feature_enabled  # noqa: PLC0415
+        from superset.connectors.sqla.models import SqlaTable  # noqa: PLC0415
+        from superset.models.dashboard import Dashboard  # noqa: PLC0415
+        from superset.models.slice import Slice  # noqa: PLC0415
+        from superset.models.sql_lab import Query  # noqa: PLC0415
+        from superset.utils.core import shortid  # noqa: PLC0415
 
         if sql and database:
             query = Query(
@@ -2922,7 +2922,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # If the DB engine spec doesn't implement the logic the schema is read
                 # from the SQLAlchemy URI if possible; if not, we use the SQLAlchemy
                 # inspector to read it.
-                from superset.models.sql_lab import Query
+                from superset.models.sql_lab import Query  # noqa: PLC0415
 
                 default_schema = database.get_default_schema_for_query(
                     cast(Query, query),
@@ -3215,7 +3215,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return cache[cache_key]
 
         # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import (
+        from superset.connectors.sqla.models import (  # noqa: PLC0415
             RLSFilterRoles,
             RLSFilterTables,
             RowLevelSecurityFilter,
@@ -3299,7 +3299,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return
 
         # pylint: disable=import-outside-toplevel
-        from superset.connectors.sqla.models import (
+        from superset.connectors.sqla.models import (  # noqa: PLC0415
             RLSFilterRoles,
             RLSFilterTables,
             RowLevelSecurityFilter,
@@ -3410,11 +3410,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     @staticmethod
     def validate_guest_token_resources(resources: GuestTokenResources) -> None:
         # pylint: disable=import-outside-toplevel
-        from superset.commands.dashboard.embedded.exceptions import (
+        from superset.commands.dashboard.embedded.exceptions import (  # noqa: PLC0415
             EmbeddedDashboardNotFoundError,
         )
-        from superset.daos.dashboard import EmbeddedDashboardDAO
-        from superset.models.dashboard import Dashboard
+        from superset.daos.dashboard import EmbeddedDashboardDAO  # noqa: PLC0415
+        from superset.models.dashboard import Dashboard  # noqa: PLC0415
 
         for resource in resources:
             if resource["type"] == GuestTokenResourceType.DASHBOARD.value:
@@ -3505,7 +3505,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     @staticmethod
     def is_guest_user(user: Optional[Any] = None) -> bool:
         # pylint: disable=import-outside-toplevel
-        from superset import is_feature_enabled
+        from superset import is_feature_enabled  # noqa: PLC0415
 
         if not is_feature_enabled("EMBEDDED_SUPERSET"):
             return False
@@ -3598,7 +3598,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     # temporal change to remove the roles view from the security menu,
     # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
     def register_views(self) -> None:
-        from superset.views.auth import SupersetAuthView, SupersetRegisterUserView
+        from superset.views.auth import (  # noqa: PLC0415
+            SupersetAuthView,
+            SupersetRegisterUserView,
+        )
 
         if self.register_superset_auth_view:
             self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)

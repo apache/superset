@@ -216,7 +216,9 @@ def load_configs(
 
                 # Normalize example data URLs before schema validation
                 if prefix == "datasets" and "data" in config:
-                    from superset.examples.helpers import normalize_example_data_url
+                    from superset.examples.helpers import (  # noqa: PLC0415
+                        normalize_example_data_url,
+                    )
 
                     config["data"] = normalize_example_data_url(config["data"])
 
@@ -353,7 +355,7 @@ def safe_insert_dashboard_chart_relationships(
     This function checks for existing relationships and only inserts new ones
     to avoid duplicate key constraint errors.
     """
-    from sqlalchemy.sql import select
+    from sqlalchemy.sql import select  # noqa: PLC0415
 
     if not dashboard_chart_ids:
         return

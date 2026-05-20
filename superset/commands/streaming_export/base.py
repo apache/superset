@@ -233,7 +233,7 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                         )
                     except Exception as e:
                         logger.error("Error in streaming CSV generator: %s", e)
-                        import traceback
+                        import traceback  # noqa: PLC0415
 
                         logger.error("Traceback: %s", traceback.format_exc())
 

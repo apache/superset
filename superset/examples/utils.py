@@ -50,7 +50,7 @@ def _read_file_if_exists(base: Any, path: Any) -> str | None:
 
 def _load_shared_configs(examples_root: Any) -> dict[str, str]:
     """Load shared database and metadata configs from _shared directory."""
-    from flask import current_app
+    from flask import current_app  # noqa: PLC0415
 
     contents: dict[str, str] = {}
     base = files("superset")

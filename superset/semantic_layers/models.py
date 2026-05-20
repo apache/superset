@@ -150,7 +150,7 @@ class SemanticLayer(AuditMixinNullable, Model):
         connection: Connection,
         target: "SemanticLayer",
     ) -> None:
-        from superset import security_manager
+        from superset import security_manager  # noqa: PLC0415
 
         security_manager.semantic_layer_after_insert(mapper, connection, target)
 
@@ -160,7 +160,7 @@ class SemanticLayer(AuditMixinNullable, Model):
         connection: Connection,
         target: "SemanticLayer",
     ) -> None:
-        from superset import security_manager
+        from superset import security_manager  # noqa: PLC0415
 
         security_manager.semantic_layer_before_update(mapper, connection, target)
 
@@ -170,7 +170,7 @@ class SemanticLayer(AuditMixinNullable, Model):
         connection: Connection,
         target: "SemanticLayer",
     ) -> None:
-        from superset import security_manager
+        from superset import security_manager  # noqa: PLC0415
 
         security_manager.semantic_layer_after_delete(mapper, connection, target)
 
@@ -242,7 +242,7 @@ class SemanticView(AuditMixinNullable, Model):
         connection: Connection,
         target: "SemanticView",
     ) -> None:
-        from superset import security_manager
+        from superset import security_manager  # noqa: PLC0415
 
         security_manager.semantic_view_after_insert(mapper, connection, target)
 
@@ -252,7 +252,7 @@ class SemanticView(AuditMixinNullable, Model):
         connection: Connection,
         target: "SemanticView",
     ) -> None:
-        from superset import security_manager
+        from superset import security_manager  # noqa: PLC0415
 
         security_manager.semantic_view_before_update(mapper, connection, target)
 
@@ -262,7 +262,7 @@ class SemanticView(AuditMixinNullable, Model):
         connection: Connection,
         target: "SemanticView",
     ) -> None:
-        from superset import security_manager
+        from superset import security_manager  # noqa: PLC0415
 
         security_manager.semantic_view_after_delete(mapper, connection, target)
 
@@ -482,9 +482,13 @@ class SemanticView(AuditMixinNullable, Model):
 
     def raise_for_access(self) -> None:
         """Check that the user has access to this semantic view."""
-        from superset import security_manager
-        from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-        from superset.exceptions import SupersetSecurityException
+        from superset import security_manager  # noqa: PLC0415
+        from superset.errors import (  # noqa: PLC0415
+            ErrorLevel,
+            SupersetError,
+            SupersetErrorType,
+        )
+        from superset.exceptions import SupersetSecurityException  # noqa: PLC0415
 
         if security_manager.can_access_all_datasources():
             return
