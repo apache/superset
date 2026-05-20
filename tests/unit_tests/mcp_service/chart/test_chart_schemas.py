@@ -452,6 +452,42 @@ class TestRowLimit:
                 row_limit=100000,
             )
 
+    def test_table_chart_default_row_limit(self) -> None:
+        """Test that TableChartConfig has default row_limit of 1000."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+        )
+        assert config.row_limit == 1000
+
+    def test_table_chart_custom_row_limit(self) -> None:
+        """Test that TableChartConfig accepts custom row_limit."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+            row_limit=500,
+        )
+        assert config.row_limit == 500
+
+    def test_table_chart_row_limit_validation(self) -> None:
+        """Test that TableChartConfig rejects invalid row_limit."""
+        with pytest.raises(ValidationError):
+            TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="product")],
+                row_limit=0,
+            )
+        with pytest.raises(ValidationError):
+            TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="product")],
+                row_limit=100000,
+            )
+
+
+class TestSeriesLimit:
+    """Test series_limit field on XYChartConfig."""
+
     def test_xy_chart_series_limit_default_none(self) -> None:
         """Test that XYChartConfig series_limit defaults to None."""
         config = XYChartConfig(
@@ -487,38 +523,6 @@ class TestRowLimit:
                 x=ColumnRef(name="date"),
                 y=[ColumnRef(name="revenue", aggregate="SUM")],
                 series_limit=10001,
-            )
-
-    def test_table_chart_default_row_limit(self) -> None:
-        """Test that TableChartConfig has default row_limit of 1000."""
-        config = TableChartConfig(
-            chart_type="table",
-            columns=[ColumnRef(name="product")],
-        )
-        assert config.row_limit == 1000
-
-    def test_table_chart_custom_row_limit(self) -> None:
-        """Test that TableChartConfig accepts custom row_limit."""
-        config = TableChartConfig(
-            chart_type="table",
-            columns=[ColumnRef(name="product")],
-            row_limit=500,
-        )
-        assert config.row_limit == 500
-
-    def test_table_chart_row_limit_validation(self) -> None:
-        """Test that TableChartConfig rejects invalid row_limit."""
-        with pytest.raises(ValidationError):
-            TableChartConfig(
-                chart_type="table",
-                columns=[ColumnRef(name="product")],
-                row_limit=0,
-            )
-        with pytest.raises(ValidationError):
-            TableChartConfig(
-                chart_type="table",
-                columns=[ColumnRef(name="product")],
-                row_limit=100000,
             )
 
 
