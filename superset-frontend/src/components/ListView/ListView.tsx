@@ -307,6 +307,7 @@ export function ListView<T extends object = any>({
   addSuccessToast,
   addDangerToast,
 }: ListViewProps<T>) {
+  const allowBulkTagActions = Boolean(bulkTagResourceName && enableBulkTag);
   const {
     getTableProps,
     getTableBodyProps,
@@ -324,7 +325,8 @@ export function ListView<T extends object = any>({
     query,
   } = useListViewState({
     bulkSelectColumnConfig,
-    bulkSelectMode: bulkSelectEnabled && Boolean(bulkActions.length),
+    bulkSelectMode:
+      bulkSelectEnabled && Boolean(bulkActions.length || allowBulkTagActions),
     columns,
     count,
     data,
@@ -335,7 +337,6 @@ export function ListView<T extends object = any>({
     renderCard: Boolean(renderCard),
     defaultViewMode,
   });
-  const allowBulkTagActions = bulkTagResourceName && enableBulkTag;
   const filterable = Boolean(filters.length);
   if (filterable) {
     const columnAccessors = columns.reduce(
@@ -464,7 +465,7 @@ export function ListView<T extends object = any>({
                           {action.name}
                         </Button>
                       ))}
-                      {enableBulkTag && (
+                      {allowBulkTagActions && (
                         <span
                           data-test="bulk-select-tag-btn"
                           role="button"

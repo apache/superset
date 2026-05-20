@@ -166,6 +166,7 @@ function SavedQueryList({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
+  const canBulkTag = isFeatureEnabled(FeatureFlag.TaggingSystem);
 
   const handleSavedQueryPreview = useCallback(
     (id: number) => {
@@ -210,7 +211,7 @@ function SavedQueryList({
     });
   }
 
-  if (canDelete) {
+  if (canDelete || canExport || canBulkTag) {
     subMenuButtons.push({
       name: t('Bulk select'),
       onClick: toggleBulkSelect,
@@ -627,7 +628,6 @@ function SavedQueryList({
         onConfirm={handleBulkQueryDelete}
       >
         {confirmDelete => {
-          const enableBulkTag = isFeatureEnabled(FeatureFlag.TaggingSystem);
           const bulkActions: ListViewProps['bulkActions'] = [];
           if (canDelete) {
             bulkActions.push({
@@ -662,7 +662,7 @@ function SavedQueryList({
               bulkSelectEnabled={bulkSelectEnabled}
               disableBulkSelect={toggleBulkSelect}
               highlightRowId={savedQueryCurrentlyPreviewing?.id}
-              enableBulkTag={enableBulkTag}
+              enableBulkTag={canBulkTag}
               bulkTagResourceName="query"
               refreshData={refreshData}
             />
