@@ -1712,7 +1712,7 @@ export function createDatasource(
 
 export function createCtasDatasource(
   vizOptions: Record<string, unknown>,
-): SqlLabThunkAction<Promise<{ id: number }>> {
+): SqlLabThunkAction<Promise<{ table_id: number }>> {
   return (dispatch: AppDispatch) => {
     dispatch(createDatasourceStarted());
     return SupersetClient.post({
@@ -1720,9 +1720,14 @@ export function createCtasDatasource(
       jsonPayload: vizOptions,
     })
       .then(({ json }) => {
-        dispatch(createDatasourceSuccess(json.result));
+        const result = json.result as { table_id: number };
+        // The endpoint's `result.table_id` IS the dataset id; normalize so
+        // createDatasourceSuccess's `${data.id}__table` resolves correctly.
+        // Without this, the CTAS Explore button silently produced
+        // `"undefined__table"` because `result.id` doesn't exist.
+        dispatch(createDatasourceSuccess({ id: result.table_id }));
 
-        return json.result;
+        return result;
       })
       .catch(() => {
         const errorMsg = t('An error occurred while creating the data source');

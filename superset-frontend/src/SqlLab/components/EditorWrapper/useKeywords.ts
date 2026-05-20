@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useMemo, useRef } from 'react';
-import { useDispatch, useStore } from 'react-redux';
+import { useStore } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { t } from '@apache-superset/core/translation';
 import { getExtensionsRegistry } from '@superset-ui/core';
 
@@ -68,7 +69,7 @@ export function useKeywords(
     catalog,
     schema,
   });
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const hasFetchedKeywords = useRef(false);
   // skipFetch is used to prevent re-evaluating memoized keywords
   // due to updated api results by skip flag
