@@ -131,6 +131,15 @@ def _force_parent_dirty_on_child_change(session: Session) -> None:
         parent = getattr(obj, parent_attr, None)
         if parent is None or type(parent) is not parent_cls:  # noqa: E721
             continue
+        # Only flag *persistent + clean* parents. Anything else is
+        # either already going to surface in the flush (``session.new``
+        # → INSERT, ``session.dirty`` → already flagged) or shouldn't be
+        # flagged (``session.deleted`` → being removed). Also avoids
+        # InvalidRequestError from ``attributes.flag_modified`` when a
+        # brand-new parent's ``uuid`` default (``default=uuid4``) hasn't
+        # fired yet so the attribute is unloaded in instance state.
+        if parent in session.new or parent in session.dirty or parent in session.deleted:
+            continue
         col_keys = [prop.key for prop in versioned_column_properties(parent)]
         if not col_keys:
             continue
