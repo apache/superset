@@ -23,7 +23,6 @@ import {
   useRef,
   useState,
   useEffect,
-  type KeyboardEvent,
   type RefObject,
 } from 'react';
 import { debounce } from 'lodash';
@@ -215,7 +214,11 @@ function CompactSelectPanel(
   // Show search for async selects or large static lists
   const showSearch = !!fetchSelects || selects.length > 6;
 
-  const handleSelect = (opt: SelectOption) => {
+  // displayText is the actual rendered text of the clicked list item, captured
+  // from the DOM via e.currentTarget.textContent. This is more reliable than
+  // reading opt.label, which may be a styled ReactNode (e.g. for owner options)
+  // rather than a plain string — causing tooltip to show the raw value instead.
+  const handleSelect = (opt: SelectOption, displayText?: string) => {
     const isDeselect = selectedOption?.value === opt.value;
     // Normalize to a plain object so the value can be safely serialized to
     // URL query params without circular-reference errors from emotion metadata
@@ -224,7 +227,8 @@ function CompactSelectPanel(
       ? undefined
       : {
           label:
-            typeof opt.label === 'string' ? opt.label : String(opt.value ?? ''),
+            displayText ||
+            (typeof opt.label === 'string' ? opt.label : String(opt.value ?? '')),
           value: opt.value,
         };
     setSelectedOption(next);
@@ -261,12 +265,8 @@ function CompactSelectPanel(
         ) : (
           displayOptions.map(opt => {
             const isActive = selectedOption?.value === opt.value;
-            const onKeyDown = (e: KeyboardEvent<HTMLLIElement>) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                handleSelect(opt);
-              }
-            };
+            const getDisplayText = (el: HTMLElement) =>
+              el.textContent?.trim() || undefined;
             return (
               <OptionItem
                 key={opt.value}
@@ -274,8 +274,13 @@ function CompactSelectPanel(
                 role="option"
                 aria-selected={isActive}
                 tabIndex={0}
-                onClick={() => handleSelect(opt)}
-                onKeyDown={onKeyDown}
+                onClick={e => handleSelect(opt, getDisplayText(e.currentTarget))}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleSelect(opt, getDisplayText(e.currentTarget));
+                  }
+                }}
               >
                 <OptionLabel>{opt.label}</OptionLabel>
                 {isActive && (
