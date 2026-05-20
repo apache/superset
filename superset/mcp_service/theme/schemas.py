@@ -24,7 +24,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal
 
-import humanize
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -234,14 +233,6 @@ class GetThemeInfoRequest(MetadataCacheControl):
         int | str,
         Field(description="Theme identifier - can be numeric ID or UUID string"),
     ]
-
-
-def _humanize_timestamp(dt: datetime | None) -> str | None:
-    """Convert a datetime to a humanized string like '2 hours ago'."""
-    if dt is None:
-        return None
-    now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
-    return humanize.naturaltime(now - dt)
 
 
 def serialize_theme_object(obj: Any) -> ThemeInfo | None:

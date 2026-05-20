@@ -122,7 +122,8 @@ async def test_list_css_templates_css_not_in_default_columns(mock_list, mcp_serv
     assert len(data["css_templates"]) == 1
     # css not in default columns
     assert "css" not in data["css_templates"][0]
-    assert data["columns_requested"] == ["id", "template_name"]
+    assert data["columns_requested"] == ["id", "uuid", "template_name"]
+    assert data["css_templates"][0]["uuid"] == "test-css-template-uuid-1"
 
 
 @patch("superset.daos.css.CssTemplateDAO.list")
@@ -210,6 +211,7 @@ async def test_get_css_template_info_basic(mock_find, mcp_server):
         data = json.loads(result.content[0].text)
         assert data["id"] == 1
         assert data["template_name"] == "my_template"
+        assert data["uuid"] == "test-css-template-uuid-1"
         assert data["css"] == "body { color: red; }"
 
 
