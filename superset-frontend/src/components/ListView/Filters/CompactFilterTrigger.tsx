@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState, type ReactNode, type MouseEvent } from 'react';
+import React, { useEffect, useState, type ReactNode, type MouseEvent } from 'react';
 import { useTheme, styled, css } from '@apache-superset/core/theme';
 import { Dropdown, Tooltip, Icons } from '@superset-ui/core/components';
 
@@ -89,6 +89,15 @@ export default function CompactFilterTrigger({
 }: CompactFilterTriggerProps) {
   const [open, setOpen] = useState(false);
   const theme = useTheme();
+
+  // Close dropdown on window resize — AntD Dropdown doesn't reposition
+  // itself on resize so the panel ends up detached from the pill.
+  useEffect(() => {
+    if (!open) return;
+    const handleResize = () => setOpen(false);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [open]);
 
   const handleClear = (e: MouseEvent) => {
     e.stopPropagation();
