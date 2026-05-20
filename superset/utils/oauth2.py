@@ -24,10 +24,11 @@ import secrets
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from typing import Any, Iterator, TYPE_CHECKING
+from uuid import UUID
 
 import backoff
 import jwt
-from flask import current_app as app, url_for
+from flask import current_app as app, g, url_for
 from marshmallow import EXCLUDE, fields, post_load, Schema, validate
 from werkzeug.routing import BuildError
 
@@ -87,7 +88,7 @@ def generate_code_challenge(code_verifier: str) -> str:
 )
 def get_oauth2_access_token(
     config: OAuth2ClientConfig,
-    database_id: int,
+    database_id: int | None,
     user_id: int,
     db_engine_spec: type[BaseEngineSpec],
 ) -> str | None:
@@ -100,9 +101,17 @@ def get_oauth2_access_token(
     simultaneous requests for refreshing a stale token; in that case only the first
     process to acquire the lock will perform the refresh, and othe process should find a
     a valid token when they retry.
+
+    When ``database_id`` is ``None`` (the "Create database" wizard, where the
+    database hasn't been persisted yet), look up the token in the KV store under
+    ``g.oauth2_tab_id``. The token was cached there by
+    :class:`OAuth2StoreTokenCommand` after the wizard's OAuth2 dance.
     """  # noqa: E501
     # pylint: disable=import-outside-toplevel
     from superset.models.core import DatabaseUserOAuth2Tokens
+
+    if not database_id:
+        return _get_pre_create_access_token(user_id)
 
     token = (
         db.session.query(DatabaseUserOAuth2Tokens)
@@ -122,6 +131,39 @@ def get_oauth2_access_token(
     db.session.delete(token)
 
     return None
+
+
+def _get_pre_create_access_token(user_id: int) -> str | None:
+    """
+    Look up a pre-create OAuth2 token in the KV store.
+
+    The KV entry is keyed by the wizard's ``tab_id``; the frontend passes it on
+    every "Test Connection" request, and the test-connection command exposes it
+    via :data:`flask.g.oauth2_tab_id`.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.daos.key_value import KeyValueDAO
+    from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
+
+    tab_id = getattr(g, "oauth2_tab_id", None)
+    if not tab_id:
+        return None
+    try:
+        tab_uuid = UUID(tab_id)
+    except (TypeError, ValueError):
+        return None
+
+    cached = KeyValueDAO.get_value(
+        resource=KeyValueResource.OAUTH2_PRE_CREATE_TOKEN,
+        key=tab_uuid,
+        codec=JsonKeyValueCodec(),
+    )
+    if not cached:
+        return None
+    if cached.get("user_id") != user_id:
+        # the tab_id is the user's own, but be defensive
+        return None
+    return cached.get("access_token")
 
 
 def refresh_oauth2_token(
@@ -203,14 +245,20 @@ def refresh_oauth2_token(
 def encode_oauth2_state(state: OAuth2State) -> str:
     """
     Encode the OAuth2 state.
+
+    ``database_id`` is ``None`` for the pre-create-database OAuth2 dance,
+    which means the token won't be persisted to ``database_user_oauth2_tokens``
+    when the callback runs — see :class:`OAuth2StoreTokenCommand`.
     """
     payload: dict[str, Any] = {
         "exp": datetime.now(tz=timezone.utc) + JWT_EXPIRATION,
-        "database_id": state["database_id"],
+        "database_id": state.get("database_id"),
         "user_id": state["user_id"],
         "default_redirect_uri": state["default_redirect_uri"],
         "tab_id": state["tab_id"],
     }
+    if engine := state.get("engine"):
+        payload["engine"] = engine
 
     encoded_state = jwt.encode(
         payload=payload,
@@ -225,10 +273,11 @@ def encode_oauth2_state(state: OAuth2State) -> str:
 
 
 class OAuth2StateSchema(Schema):
-    database_id = fields.Int(required=True)
+    database_id = fields.Int(required=True, allow_none=True)
     user_id = fields.Int(required=True)
     default_redirect_uri = fields.Str(required=True)
     tab_id = fields.Str(required=True)
+    engine = fields.Str(required=False, load_default=None)
 
     # pylint: disable=unused-argument
     @post_load
@@ -237,12 +286,15 @@ class OAuth2StateSchema(Schema):
         data: dict[str, Any],
         **kwargs: Any,
     ) -> OAuth2State:
-        return {
+        state: OAuth2State = {
             "database_id": data["database_id"],
             "user_id": data["user_id"],
             "default_redirect_uri": data["default_redirect_uri"],
             "tab_id": data["tab_id"],
         }
+        if data.get("engine"):
+            state["engine"] = data["engine"]
+        return state
 
     class Meta:  # pylint: disable=too-few-public-methods
         # ignore `exp`

@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -27,6 +27,7 @@ from superset.daos.database import DatabaseUserOAuth2TokensDAO
 from superset.databases.schemas import OAuth2ProviderResponseSchema
 from superset.exceptions import OAuth2Error
 from superset.models.core import Database
+from superset.superset_typing import OAuth2State
 from superset.utils.oauth2 import decode_oauth2_state, encode_oauth2_state
 
 
@@ -133,6 +134,80 @@ def test_run_success(
 
     assert result == "new_token"
     mock_create.assert_called_once()
+
+
+def test_run_pre_create_caches_token_in_kv(mocker: MockerFixture) -> None:
+    """
+    With ``state.database_id is None`` the command reads the engine + config
+    from the pre-create KV entry, exchanges the code, and writes the token
+    back to KV — *not* to ``database_user_oauth2_tokens``.
+    """
+    state: OAuth2State = {
+        "user_id": 1,
+        "database_id": None,
+        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+        "tab_id": "3a3a3a3a-3a3a-3a3a-3a3a-3a3a3a3a3a3a",
+        "engine": "semanticapi",
+    }
+    parameters: dict[str, Any] = {
+        "code": "the-code",
+        "state": encode_oauth2_state(state),
+    }
+
+    kv_dao = mocker.patch("superset.commands.database.oauth2.KeyValueDAO")
+    kv_dao.get_value.side_effect = [
+        {"engine": "semanticapi", "config": {"id": "x", "secret": "y"}},  # validate()
+        None,  # code_verifier lookup
+    ]
+
+    engine_spec = mocker.MagicMock()
+    engine_spec.engine = "semanticapi"
+    engine_spec.get_oauth2_token.return_value = {
+        "access_token": "fresh-token",
+        "expires_in": 3600,
+        "refresh_token": "refresh",
+    }
+    mocker.patch(
+        "superset.commands.database.oauth2.get_engine_spec",
+        return_value=engine_spec,
+    )
+
+    dao_get_db = mocker.patch.object(DatabaseUserOAuth2TokensDAO, "get_database")
+    dao_create = mocker.patch.object(DatabaseUserOAuth2TokensDAO, "create")
+
+    result = OAuth2StoreTokenCommand(
+        cast(OAuth2ProviderResponseSchema, parameters),
+    ).run()
+
+    assert result is None
+    dao_get_db.assert_not_called()
+    dao_create.assert_not_called()
+    kv_dao.upsert_entry.assert_called_once()
+    upsert_kwargs = kv_dao.upsert_entry.call_args.kwargs
+    assert upsert_kwargs["value"]["access_token"] == "fresh-token"  # noqa: S105
+    assert upsert_kwargs["value"]["user_id"] == 1
+
+
+def test_run_pre_create_missing_kv_entry(mocker: MockerFixture) -> None:
+    """
+    Pre-create flow with no cached entry should fail with a clear OAuth2Error.
+    """
+    state: OAuth2State = {
+        "user_id": 1,
+        "database_id": None,
+        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+        "tab_id": "3a3a3a3a-3a3a-3a3a-3a3a-3a3a3a3a3a3a",
+    }
+    parameters: dict[str, Any] = {"code": "x", "state": encode_oauth2_state(state)}
+
+    kv_dao = mocker.patch("superset.commands.database.oauth2.KeyValueDAO")
+    kv_dao.get_value.return_value = None
+
+    with pytest.raises(OAuth2Error) as exc_info:
+        OAuth2StoreTokenCommand(
+            cast(OAuth2ProviderResponseSchema, parameters),
+        ).validate()
+    assert "Pre-create OAuth2 context" in exc_info.value.error.extra["error"]
 
 
 def test_run_existing_token(

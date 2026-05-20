@@ -623,6 +623,16 @@ class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
     )
 
     ssh_tunnel = fields.Nested(DatabaseSSHTunnel, allow_none=True)
+    oauth2_tab_id = fields.String(
+        metadata={
+            "description": (
+                "UUID identifying the wizard tab for the pre-create OAuth2 flow."
+                " Optional; when supplied, the engine will look up the pre-create"
+                " OAuth2 token cached under this key."
+            ),
+        },
+        allow_none=True,
+    )
 
 
 class TableMetadataOptionsResponse(TypedDict):

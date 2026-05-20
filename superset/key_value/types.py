@@ -46,6 +46,7 @@ class KeyValueResource(StrEnum):
     METASTORE_CACHE = "superset_metastore_cache"
     LOCK = "lock"
     PKCE_CODE_VERIFIER = "pkce_code_verifier"
+    OAUTH2_PRE_CREATE_TOKEN = "oauth2_pre_create_token"  # noqa: S105
     SQLLAB_PERMALINK = "sqllab_permalink"
 
 

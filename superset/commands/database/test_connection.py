@@ -17,6 +17,7 @@
 import logging
 from typing import Any, Optional
 
+from flask import g
 from flask_babel import gettext as _
 from sqlalchemy.exc import DBAPIError, NoSuchModuleError
 
@@ -93,6 +94,13 @@ class TestConnectionDatabaseCommand(BaseCommand):
     ) -> None:  # pylint: disable=too-many-statements,too-many-branches
         self.validate()
         ex_str = ""
+
+        # Surface the wizard's tab_id (sent by the frontend) so that
+        # ``get_oauth2_access_token`` can find the pre-create OAuth2 token
+        # cached in the KV store, and so that ``start_oauth2_dance`` reuses
+        # this id instead of generating a new one.
+        if oauth2_tab_id := self._properties.get("oauth2_tab_id"):
+            g.oauth2_tab_id = oauth2_tab_id
 
         url = make_url_safe(self._uri)
         engine_name = url.get_backend_name()

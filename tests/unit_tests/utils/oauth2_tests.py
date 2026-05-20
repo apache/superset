@@ -458,6 +458,83 @@ def test_encode_decode_oauth2_state(
     assert decoded["user_id"] == 2
 
 
+def test_encode_decode_oauth2_state_pre_create(mocker: MockerFixture) -> None:
+    """
+    The pre-create dance encodes ``database_id=None`` and an ``engine``
+    field; both must survive the round-trip so the callback can resolve the
+    engine spec without a persisted database.
+    """
+    from superset.superset_typing import OAuth2State
+
+    mocker.patch(
+        "flask.current_app.config",
+        {"SECRET_KEY": "test-secret-key", "DATABASE_OAUTH2_JWT_ALGORITHM": "HS256"},
+    )
+
+    state: OAuth2State = {
+        "database_id": None,
+        "user_id": 2,
+        "default_redirect_uri": "http://localhost:8088/api/v1/oauth2/",
+        "tab_id": "abc",
+        "engine": "semanticapi",
+    }
+    with freeze_time("2024-01-01"):
+        decoded = decode_oauth2_state(encode_oauth2_state(state))
+
+    assert decoded["database_id"] is None
+    assert decoded["engine"] == "semanticapi"
+
+
+def test_get_oauth2_access_token_pre_create_hit(mocker: MockerFixture) -> None:
+    """
+    With ``database_id=None`` and a matching KV entry, the cached pre-create
+    token is returned.
+    """
+    mocker.patch(
+        "superset.utils.oauth2.g",
+        oauth2_tab_id="3a3a3a3a-3a3a-3a3a-3a3a-3a3a3a3a3a3a",
+    )
+    kv_dao = mocker.patch("superset.daos.key_value.KeyValueDAO")
+    kv_dao.get_value.return_value = {
+        "access_token": "cached-token",
+        "user_id": 7,
+    }
+
+    assert (
+        get_oauth2_access_token(DUMMY_OAUTH2_CONFIG, None, 7, mocker.MagicMock())
+        == "cached-token"
+    )
+
+
+def test_get_oauth2_access_token_pre_create_miss(mocker: MockerFixture) -> None:
+    """
+    Without a tab id (or with no KV entry / wrong user) the lookup returns None.
+    """
+    mocker.patch("superset.utils.oauth2.g", oauth2_tab_id=None)
+    assert (
+        get_oauth2_access_token(DUMMY_OAUTH2_CONFIG, None, 7, mocker.MagicMock())
+        is None
+    )
+
+    mocker.patch(
+        "superset.utils.oauth2.g",
+        oauth2_tab_id="3a3a3a3a-3a3a-3a3a-3a3a-3a3a3a3a3a3a",
+    )
+    kv_dao = mocker.patch("superset.daos.key_value.KeyValueDAO")
+    kv_dao.get_value.return_value = None
+    assert (
+        get_oauth2_access_token(DUMMY_OAUTH2_CONFIG, None, 7, mocker.MagicMock())
+        is None
+    )
+
+    kv_dao.get_value.return_value = {"access_token": "x", "user_id": 99}
+    # token belongs to another user
+    assert (
+        get_oauth2_access_token(DUMMY_OAUTH2_CONFIG, None, 7, mocker.MagicMock())
+        is None
+    )
+
+
 def test_get_oauth2_access_token_lock_not_acquired_no_error_log(
     mocker: MockerFixture,
     caplog: pytest.LogCaptureFixture,

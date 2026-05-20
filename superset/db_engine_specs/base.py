@@ -664,7 +664,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         # Prevent circular import.
         from superset.daos.key_value import KeyValueDAO
 
-        tab_id = str(uuid4())
+        # Reuse the wizard-supplied tab_id when present so the retry of
+        # "Test Connection" can find the same KV-cached token. Otherwise we
+        # generate a fresh one as before.
+        tab_id = getattr(g, "oauth2_tab_id", None) or str(uuid4())
         default_redirect_uri = get_oauth2_redirect_uri()
 
         # Generate PKCE code verifier (RFC 7636)
@@ -690,6 +693,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         # belongs to.
         state: OAuth2State = {
             # Database ID and user ID are the primary key associated with the token.
+            # ``database_id`` is ``None`` during the "Create database" wizard — the
+            # callback caches the access token in the KV store instead of inserting
+            # a row in ``database_user_oauth2_tokens``.
             "database_id": database.id,
             "user_id": g.user.id,
             # In multi-instance deployments there might be a single proxy handling
@@ -709,6 +715,25 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         oauth2_config = database.get_oauth2_config()
         if oauth2_config is None:
             raise OAuth2Error("No configuration found for OAuth2")
+
+        # Pre-create flow: the database has no row yet, so we can't look it up by id
+        # in the callback. Stash the engine spec + oauth2 config in the KV store
+        # alongside the existing PKCE entry, keyed by the same ``tab_id``. The
+        # callback reads this to exchange the code without a persisted ``Database``.
+        if database.id is None:
+            state["engine"] = cls.engine
+            KeyValueDAO.delete_expired_entries(KeyValueResource.OAUTH2_PRE_CREATE_TOKEN)
+            KeyValueDAO.create_entry(
+                resource=KeyValueResource.OAUTH2_PRE_CREATE_TOKEN,
+                value={
+                    "engine": cls.engine,
+                    "config": oauth2_config,
+                },
+                codec=JsonKeyValueCodec(),
+                key=UUID(tab_id),
+                expires_on=datetime.now() + timedelta(minutes=5),
+            )
+            db.session.commit()
 
         oauth_url = cls.get_oauth2_authorization_uri(
             oauth2_config,

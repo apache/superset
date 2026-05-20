@@ -622,6 +622,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const [editNewDb, setEditNewDb] = useState<boolean>(false);
   const [isLoading, setLoading] = useState<boolean>(false);
   const [testInProgress, setTestInProgress] = useState<boolean>(false);
+  // Stable id sent on every "Test Connection" call so that the backend can
+  // correlate the wizard's OAuth2 dance across requests. Generated once per
+  // modal session — keeping the same value lets the second test_connection
+  // call (after the user finishes the OAuth2 dance) find the cached token.
+  const oauth2TabIdRef = useRef<string>(
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2),
+  );
   const [passwords, setPasswords] = useState<Record<string, string>>({});
   const [sshTunnelPasswords, setSSHTunnelPasswords] = useState<
     Record<string, string>
@@ -727,6 +736,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [setValidationErrors, setHasValidated, clearError]);
 
   // Test Connection logic
+  // keep the latest ``testConnection`` callable accessible to long-lived
+  // listeners (BroadcastChannel/storage) without making them depend on every
+  // render of the modal.
+  const testConnectionRef = useRef<() => void>(() => {});
+
   const testConnection = () => {
     handleClearValidationErrors();
     if (!db?.sqlalchemy_uri) {
@@ -748,6 +762,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
               server_port: Number(db.ssh_tunnel!.server_port),
             }
           : undefined,
+      oauth2_tab_id: oauth2TabIdRef.current,
     };
     setTestInProgress(true);
     testDatabaseConnection(
@@ -764,6 +779,47 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       },
     );
   };
+  testConnectionRef.current = testConnection;
+
+  // Re-run "Test Connection" automatically when the OAuth2 dance completes
+  // in the popup tab. The dance posts a message on the ``oauth`` broadcast
+  // channel (and a localStorage event for cross-context delivery) carrying
+  // the wizard's own tab_id; we react only to our own.
+  useEffect(() => {
+    const tabId = oauth2TabIdRef.current;
+
+    const handleComplete = (incomingTabId?: string) => {
+      if (incomingTabId === tabId) {
+        testConnectionRef.current();
+      }
+    };
+
+    const channel =
+      typeof BroadcastChannel !== 'undefined'
+        ? new BroadcastChannel('oauth')
+        : null;
+    if (channel) {
+      channel.onmessage = event => handleComplete(event.data?.tabId);
+    }
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key !== 'oauth2_auth_complete' || !event.newValue) {
+        return;
+      }
+      try {
+        const payload = JSON.parse(event.newValue) as { tabId?: string };
+        handleComplete(payload.tabId);
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      channel?.close();
+    };
+  }, []);
 
   const getPlaceholder = (field: string) => {
     if (field === 'database') {

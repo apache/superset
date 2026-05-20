@@ -402,7 +402,15 @@ class OAuth2State(TypedDict, total=False):
     Type for the state passed during OAuth2.
     """
 
-    database_id: int
+    # ``database_id`` is ``None`` during the "Create database" wizard, where the
+    # OAuth2 dance runs before the database has been persisted. In that case the
+    # access token is cached in the KV store keyed by ``tab_id`` until the user
+    # saves the database.
+    database_id: int | None
     user_id: int
     default_redirect_uri: str
     tab_id: str
+    # Engine backend code (e.g. ``"semanticapi"``), present only for pre-create
+    # dances so the callback can resolve the engine spec without a persisted
+    # database row.
+    engine: str
