@@ -2650,3 +2650,56 @@ def test_filter_by_verbose_name_resolves_to_column(
     assert "WHERE" in sql, f"Expected WHERE clause, got SQL: {sql}"
     assert "country_code" in sql, f"Expected filter on 'country_code', got SQL: {sql}"
     assert "'US'" in sql, f"Expected filter value 'US', got SQL: {sql}"
+
+
+def test_format_time_humanized_activates_non_english_locale(
+    mocker: MockerFixture,
+) -> None:
+    """Regression for #28331: `_format_time_humanized` must call
+    `humanize.i18n.activate(locale)` before formatting when the user's locale
+    is not English. The original report described last-modified strings on
+    the chart editor header always rendering in English regardless of the
+    user's language setting.
+    """
+    from datetime import datetime, timedelta
+
+    from superset.models.helpers import AuditMixinNullable
+
+    mocker.patch(
+        "superset.models.helpers.get_locale",
+        return_value="es",  # Spanish
+    )
+    mock_activate = mocker.patch("superset.models.helpers.humanize.i18n.activate")
+    mock_deactivate = mocker.patch("superset.models.helpers.humanize.i18n.deactivate")
+
+    # Detached instance — we only need the method, not a session-bound row.
+    instance = AuditMixinNullable()
+    result = instance._format_time_humanized(datetime.now() - timedelta(hours=2))
+
+    mock_activate.assert_called_once_with("es")
+    mock_deactivate.assert_called_once()
+    assert isinstance(result, str), f"expected str, got {type(result).__name__}"
+    assert result, "_format_time_humanized returned empty string"
+
+
+def test_format_time_humanized_skips_activation_for_english(
+    mocker: MockerFixture,
+) -> None:
+    """Companion to the #28331 regression: for English, humanize already
+    defaults to English, so the i18n.activate call is intentionally skipped
+    as a perf optimization. This pins that fast-path so a future refactor
+    doesn't accidentally start calling activate('en') unconditionally."""
+    from datetime import datetime, timedelta
+
+    from superset.models.helpers import AuditMixinNullable
+
+    mocker.patch(
+        "superset.models.helpers.get_locale",
+        return_value="en",
+    )
+    mock_activate = mocker.patch("superset.models.helpers.humanize.i18n.activate")
+
+    instance = AuditMixinNullable()
+    instance._format_time_humanized(datetime.now() - timedelta(hours=2))
+
+    mock_activate.assert_not_called()
