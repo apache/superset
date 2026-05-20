@@ -1164,6 +1164,32 @@ def test_has_mutation(engine: str, sql: str, expected: bool) -> None:
     assert SQLScript(sql, engine).has_mutation() == expected
 
 
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT last(my_value_column, my_time_column) FROM my_table",
+        "SELECT first(my_value_column, my_time_column) FROM my_table",
+        "SELECT time_bucket('1 hour', my_time_column) AS bucket FROM my_table",
+    ],
+)
+def test_postgres_parses_timescaledb_hyperfunctions(sql: str) -> None:
+    """
+    Regression for #32028: TimescaleDB extends Postgres with hyperfunctions
+    (``last``, ``first``, ``time_bucket``, etc.) that take more arguments
+    than vanilla Postgres equivalents. SQL Lab tolerates them (it routes
+    raw SQL straight to the engine), but the dashboard chart path runs the
+    SQL through ``SQLScript`` for inspection. A strict per-function arity
+    check in sqlglot was rejecting these queries with ``The number of
+    provided arguments (2) is greater than the maximum number of supported
+    arguments (1)``, which broke dashboards built on TimescaleDB datasets.
+
+    These tests pin that the parse path tolerates Postgres-dialect SQL
+    using TimescaleDB hyperfunction signatures. If a future sqlglot
+    upgrade reintroduces the strict arity check, this fails immediately.
+    """
+    SQLScript(sql, "postgresql")  # Must not raise.
+
+
 def test_get_settings() -> None:
     """
     Test `get_settings` in some edge cases.
