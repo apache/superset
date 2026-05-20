@@ -88,6 +88,7 @@ export default function CompactFilterTrigger({
   popupType = 'listbox',
 }: CompactFilterTriggerProps) {
   const [open, setOpen] = useState(false);
+  const [tooltipOpen, setTooltipOpen] = useState(false);
   const theme = useTheme();
 
   // Close dropdown on window resize — AntD Dropdown doesn't reposition
@@ -107,8 +108,11 @@ export default function CompactFilterTrigger({
 
   const pill = (
     <Tooltip
-      title={hasValue && !open ? tooltipTitle : undefined}
+      title={tooltipTitle}
+      open={hasValue && !open && tooltipOpen}
+      onOpenChange={visible => setTooltipOpen(visible && hasValue && !open)}
       mouseEnterDelay={0.5}
+      mouseLeaveDelay={0}
     >
       <FilterPill
         $active={hasValue}
