@@ -39,10 +39,10 @@ from superset.commands.exceptions import (
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.extensions import event_logger
 from superset.mcp_service.auth import (
-    MCPPermissionDeniedError,
     _get_app_context_manager,
     get_user_from_request,
     is_tool_visible_to_current_user,
+    MCPPermissionDeniedError,
 )
 from superset.mcp_service.constants import (
     DEFAULT_TOKEN_LIMIT,
