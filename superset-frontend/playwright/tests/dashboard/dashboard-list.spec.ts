@@ -178,7 +178,7 @@ test('should bulk delete multiple dashboards', async ({
   await dashboardListPage.selectDashboardCheckbox(dashboard2.name);
 
   // Click bulk delete action
-  await dashboardListPage.clickBulkAction('Delete');
+  await dashboardListPage.clickBulkAction('delete');
 
   // Delete confirmation modal should appear
   const deleteModal = new DeleteConfirmationModal(page);
@@ -261,7 +261,7 @@ test('should bulk export multiple dashboards', async ({
   });
 
   // Click bulk export action (waits for the action button to render)
-  await dashboardListPage.clickBulkAction('Export');
+  await dashboardListPage.clickBulkAction('export');
 
   // Wait for export API response and validate zip contains both dashboards
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);

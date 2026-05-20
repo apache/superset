@@ -27,6 +27,14 @@ const BULK_SELECT_SELECTORS = {
 } as const;
 
 /**
+ * Stable keys for ListView bulk actions, matching `action.key` in the
+ * `bulkActions` prop passed to `ListView` (see `src/pages/*List`). Using
+ * the key — not the localized button text — keeps selectors valid across
+ * locales.
+ */
+export type BulkSelectActionKey = 'delete' | 'export';
+
+/**
  * BulkSelect component for Superset ListView bulk operations.
  * Provides a reusable interface for bulk selection and actions across list pages.
  *
@@ -35,7 +43,7 @@ const BULK_SELECT_SELECTORS = {
  * await bulkSelect.enable();
  * await bulkSelect.selectRow('my-dataset');
  * await bulkSelect.selectRow('another-dataset');
- * await bulkSelect.clickAction('Delete');
+ * await bulkSelect.clickAction('delete');
  */
 export class BulkSelect {
   private readonly page: Page;
@@ -111,23 +119,30 @@ export class BulkSelect {
   }
 
   /**
-   * Gets a bulk action button by name
-   * @param actionName - The name of the bulk action (e.g., "Export", "Delete")
+   * Gets a bulk action button by its stable action key.
+   *
+   * Scoping by `data-test-action-key` (rendered from `action.key`) instead
+   * of visible text keeps this selector valid across locales — the
+   * button's label is localized via i18n, but the action key is not.
+   *
+   * @param actionKey - The stable key of the bulk action (e.g., "delete", "export")
    */
-  getActionButton(actionName: string): Button {
+  getActionButton(actionKey: BulkSelectActionKey): Button {
     const controls = this.getControls();
     return new Button(
       this.page,
-      controls.locator(BULK_SELECT_SELECTORS.ACTION, { hasText: actionName }),
+      controls.locator(
+        `${BULK_SELECT_SELECTORS.ACTION}[data-test-action-key="${actionKey}"]`,
+      ),
     );
   }
 
   /**
-   * Clicks a bulk action button by name (e.g., "Export", "Delete").
-   * @param actionName - The name of the bulk action to click
+   * Clicks a bulk action button by its stable action key.
+   * @param actionKey - The stable key of the bulk action to click
    */
-  async clickAction(actionName: string): Promise<void> {
-    const button = this.getActionButton(actionName);
+  async clickAction(actionKey: BulkSelectActionKey): Promise<void> {
+    const button = this.getActionButton(actionKey);
     await button.click();
   }
 }

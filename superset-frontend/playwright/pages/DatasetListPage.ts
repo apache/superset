@@ -19,7 +19,7 @@
 
 import { Page, Locator } from '@playwright/test';
 import { Button, Table } from '../components/core';
-import { BulkSelect } from '../components/ListView';
+import { BulkSelect, BulkSelectActionKey } from '../components/ListView';
 import { URL } from '../utils/urls';
 
 /**
@@ -150,11 +150,11 @@ export class DatasetListPage {
   }
 
   /**
-   * Clicks a bulk action button by name (e.g., "Export", "Delete")
-   * @param actionName - The name of the bulk action to click
+   * Clicks a bulk action button by its stable action key (e.g., "delete", "export").
+   * @param actionKey - The stable key of the bulk action to click
    */
-  async clickBulkAction(actionName: string): Promise<void> {
-    await this.bulkSelect.clickAction(actionName);
+  async clickBulkAction(actionKey: BulkSelectActionKey): Promise<void> {
+    await this.bulkSelect.clickAction(actionKey);
   }
 
   /**

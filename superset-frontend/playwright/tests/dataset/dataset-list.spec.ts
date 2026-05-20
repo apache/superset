@@ -309,7 +309,7 @@ test('should export multiple datasets via bulk select action', async ({
   });
 
   // Click bulk export action
-  await datasetListPage.clickBulkAction('Export');
+  await datasetListPage.clickBulkAction('export');
 
   // Wait for export API response and validate zip contains multiple datasets
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
@@ -421,7 +421,7 @@ test('should bulk delete multiple datasets', async ({
   await datasetListPage.selectDatasetCheckbox(dataset2.name);
 
   // Click bulk delete action
-  await datasetListPage.clickBulkAction('Delete');
+  await datasetListPage.clickBulkAction('delete');
 
   // Delete confirmation modal should appear
   const deleteModal = new DeleteConfirmationModal(page);

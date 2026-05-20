@@ -229,7 +229,7 @@ test('should bulk delete multiple charts', async ({
   await chartListPage.selectChartCheckbox(chart2.name);
 
   // Click bulk delete action
-  await chartListPage.clickBulkAction('Delete');
+  await chartListPage.clickBulkAction('delete');
 
   // Delete confirmation modal should appear
   const deleteModal = new DeleteConfirmationModal(page);
@@ -368,7 +368,7 @@ test('should bulk export multiple charts', async ({
   });
 
   // Click bulk export action
-  await chartListPage.clickBulkAction('Export');
+  await chartListPage.clickBulkAction('export');
 
   // Wait for export API response and validate zip contains both charts
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);

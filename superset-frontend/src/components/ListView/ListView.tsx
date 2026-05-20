@@ -452,6 +452,7 @@ export function ListView<T extends object = any>({
                       {bulkActions.map(action => (
                         <Button
                           data-test="bulk-select-action"
+                          data-test-action-key={action.key}
                           key={action.key}
                           buttonStyle={action.type}
                           cta
