@@ -181,6 +181,21 @@ export const jsColumns = {
   },
 };
 
+export const crossFilterColumn: CustomControlItem = {
+  name: 'cross_filter_column',
+  config: {
+    ...sharedControls.groupby,
+    label: t('Cross-filter column'),
+    multi: false,
+    default: null,
+    description: t(
+      'Dimension column emitted as a cross-filter when a feature is clicked. ' +
+        'Other charts on the dashboard match against this column. If unset, ' +
+        'falls back to the geometry column (legacy behavior, often unmatchable).',
+    ),
+  },
+};
+
 export const jsDataMutator = {
   name: 'js_data_mutator',
   config: jsFunctionControl(

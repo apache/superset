@@ -400,6 +400,303 @@ describe('getCrossFilterDataMask', () => {
     expect(dataMask).toStrictEqual(expected);
   });
 
+  test('deck_polygon with cross_filter_column emits dimension filter (top-level)', () => {
+    const polygonFormData = {
+      ...formData,
+      line_column: 'geojson',
+      cross_filter_column: 'sa3_name',
+    };
+
+    const polygonPickingData = {
+      ...pickingData,
+      object: {
+        polygon: [
+          [-122.42, 37.8],
+          [-122.42, 37.81],
+          [-122.41, 37.81],
+          [-122.41, 37.8],
+          [-122.42, 37.8],
+        ],
+        sa3_name: 'Christchurch West',
+        extraProps: {},
+      },
+    };
+
+    const dataMask = getCrossFilterDataMask({
+      formData: polygonFormData,
+      data: polygonPickingData,
+      filterState: {},
+    });
+
+    expect(dataMask).toStrictEqual({
+      dataMask: {
+        extraFormData: {
+          filters: [
+            {
+              col: 'sa3_name',
+              op: '==',
+              val: 'Christchurch West',
+            },
+          ],
+        },
+        filterState: {
+          value: ['Christchurch West'],
+        },
+      },
+      isCurrentValueSelected: false,
+    });
+  });
+
+  test('deck_polygon with cross_filter_column reads from extraProps fallback', () => {
+    const polygonFormData = {
+      ...formData,
+      line_column: 'geojson',
+      cross_filter_column: 'region_id',
+    };
+
+    const polygonPickingData = {
+      ...pickingData,
+      object: {
+        polygon: [
+          [-122.42, 37.8],
+          [-122.42, 37.81],
+          [-122.41, 37.81],
+          [-122.41, 37.8],
+          [-122.42, 37.8],
+        ],
+        extraProps: { region_id: 42 },
+      },
+    };
+
+    const dataMask = getCrossFilterDataMask({
+      formData: polygonFormData,
+      data: polygonPickingData,
+      filterState: {},
+    });
+
+    expect(dataMask).toStrictEqual({
+      dataMask: {
+        extraFormData: {
+          filters: [
+            {
+              col: 'region_id',
+              op: '==',
+              val: 42,
+            },
+          ],
+        },
+        filterState: {
+          value: [42],
+        },
+      },
+      isCurrentValueSelected: false,
+    });
+  });
+
+  test('deck_polygon throws when cross_filter_column value missing on feature', () => {
+    const polygonFormData = {
+      ...formData,
+      line_column: 'geojson',
+      cross_filter_column: 'sa3_name',
+    };
+
+    const polygonPickingData = {
+      ...pickingData,
+      object: {
+        polygon: 'POLYGON_PATH_STRING',
+        // sa3_name intentionally absent (e.g. chart was saved before the column
+        // was added to the query)
+        extraProps: {},
+      },
+    };
+
+    expect(() =>
+      getCrossFilterDataMask({
+        formData: polygonFormData,
+        data: polygonPickingData,
+        filterState: {},
+      }),
+    ).toThrow(/Cross-filter column "sa3_name" not present/);
+  });
+
+  test('deck_geojson throws when cross_filter_column value missing on feature properties', () => {
+    const geojsonFormData = {
+      ...formData,
+      geojson: 'shape',
+      cross_filter_column: 'sa3_name',
+    };
+
+    const geojsonPickingData = {
+      ...pickingData,
+      object: {
+        type: 'Feature',
+        properties: { other: 'value' },
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [-122.42, 37.8],
+              [-122.42, 37.81],
+            ],
+          ],
+        },
+      },
+    };
+
+    expect(() =>
+      getCrossFilterDataMask({
+        formData: geojsonFormData,
+        data: geojsonPickingData,
+        filterState: {},
+      }),
+    ).toThrow(/Cross-filter column "sa3_name" not present/);
+  });
+
+  test('deck_polygon without cross_filter_column falls back to legacy geometry filter', () => {
+    const polygonFormData = {
+      ...formData,
+      line_column: 'geojson',
+    };
+
+    const polygonPickingData = {
+      ...pickingData,
+      object: {
+        polygon: 'POLYGON_PATH_STRING',
+      },
+    };
+
+    const dataMask = getCrossFilterDataMask({
+      formData: polygonFormData,
+      data: polygonPickingData,
+      filterState: {},
+    });
+
+    expect(dataMask).toStrictEqual({
+      dataMask: {
+        extraFormData: {
+          filters: [
+            {
+              col: {
+                expressionType: 'SQL',
+                sqlExpression: "REPLACE(geojson, ' ', '')",
+                label: 'geojson',
+              },
+              op: '==',
+              val: '"POLYGON_PATH_STRING"',
+            },
+          ],
+        },
+        filterState: {
+          value: ['"POLYGON_PATH_STRING"'],
+        },
+      },
+      isCurrentValueSelected: false,
+    });
+  });
+
+  test('deck_geojson with cross_filter_column emits filter from feature.properties', () => {
+    const geojsonFormData = {
+      ...formData,
+      geojson: 'shape',
+      cross_filter_column: 'sa3_name',
+    };
+
+    const geojsonPickingData = {
+      ...pickingData,
+      object: {
+        type: 'Feature',
+        properties: { sa3_name: 'Christchurch West', sa3_code: '301' },
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [-122.42, 37.8],
+              [-122.42, 37.81],
+              [-122.41, 37.81],
+              [-122.41, 37.8],
+              [-122.42, 37.8],
+            ],
+          ],
+        },
+      },
+    };
+
+    const dataMask = getCrossFilterDataMask({
+      formData: geojsonFormData,
+      data: geojsonPickingData,
+      filterState: {},
+    });
+
+    expect(dataMask).toStrictEqual({
+      dataMask: {
+        extraFormData: {
+          filters: [
+            {
+              col: 'sa3_name',
+              op: '==',
+              val: 'Christchurch West',
+            },
+          ],
+        },
+        filterState: {
+          value: ['Christchurch West'],
+        },
+      },
+      isCurrentValueSelected: false,
+    });
+  });
+
+  test('deck_geojson without cross_filter_column falls back to legacy LIKE filter', () => {
+    const geojsonFormData = {
+      ...formData,
+      geojson: 'shape',
+    };
+
+    const coords = [
+      [
+        [-122.42, 37.8],
+        [-122.42, 37.81],
+      ],
+    ];
+
+    const geojsonPickingData = {
+      ...pickingData,
+      object: {
+        type: 'Feature',
+        properties: {},
+        geometry: { type: 'Polygon', coordinates: coords },
+      },
+    };
+
+    const dataMask = getCrossFilterDataMask({
+      formData: geojsonFormData,
+      data: geojsonPickingData,
+      filterState: {},
+    });
+
+    expect(dataMask).toStrictEqual({
+      dataMask: {
+        extraFormData: {
+          filters: [
+            {
+              col: {
+                expressionType: 'SQL',
+                sqlExpression: "REPLACE(shape, ' ', '')",
+                label: 'shape',
+              },
+              op: 'LIKE',
+              val: `%${JSON.stringify(coords)}%`,
+            },
+          ],
+        },
+        filterState: {
+          value: [coords],
+        },
+      },
+      isCurrentValueSelected: false,
+    });
+  });
+
   test('handles Charts with GPU aggregation', () => {
     const latlongGPUFormData = {
       ...formData,

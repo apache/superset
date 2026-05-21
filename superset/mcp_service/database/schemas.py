@@ -36,7 +36,10 @@ from pydantic import (
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.common.cache_schemas import MetadataCacheControl
+from superset.mcp_service.common.cache_schemas import (
+    CreatedByMeMixin,
+    MetadataCacheControl,
+)
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import PaginationInfo
@@ -184,7 +187,7 @@ class DatabaseList(BaseModel):
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListDatabasesRequest(MetadataCacheControl):
+class ListDatabasesRequest(CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_databases with clear, unambiguous types."""
 
     filters: Annotated[

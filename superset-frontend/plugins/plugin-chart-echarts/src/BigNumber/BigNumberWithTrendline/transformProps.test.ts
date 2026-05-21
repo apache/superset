@@ -56,6 +56,7 @@ jest.mock('@superset-ui/chart-controls', () => ({
 }));
 
 jest.mock('@superset-ui/core', () => ({
+  BRAND_COLOR: '#00A699',
   GenericDataType: { Temporal: 2, String: 1 },
   extractTimegrain: jest.fn(() => 'P1D'),
   getMetricLabel: jest.fn(metric => metric),
@@ -279,5 +280,31 @@ describe('BigNumberWithTrendline transformProps', () => {
     );
     expect(result.bigNumber).toBe(360);
     expect(result.subheader).toBe('50.0% WoW');
+  });
+
+  test('should not crash and should return undefined mainColor when colorPicker is null', () => {
+    const chartProps = {
+      width: 400,
+      height: 300,
+      queriesData: [
+        {
+          data: [
+            { __timestamp: 1, value: 100 },
+          ] as unknown as BigNumberDatum[],
+          colnames: ['__timestamp', 'value'],
+          coltypes: ['TEMPORAL', 'NUMERIC'],
+        },
+      ],
+      formData: { ...baseFormData, colorPicker: null },
+      rawFormData: baseRawFormData,
+      hooks: baseHooks,
+      datasource: baseDatasource,
+      theme: { colors: { grayscale: { light5: '#eee' } } },
+    };
+
+    const result = transformProps(
+      chartProps as unknown as BigNumberWithTrendlineChartProps,
+    );
+    expect(result.mainColor).toBeUndefined();
   });
 });
