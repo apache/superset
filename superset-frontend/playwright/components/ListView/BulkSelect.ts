@@ -70,9 +70,12 @@ export class BulkSelect {
    *
    * Waits for the bulk-select column header to render so the next row
    * interaction does not race the table re-render that adds the checkbox
-   * column. The `data-test="header-toggle-all"` attribute is on a wrapper
-   * span around antd's select-all checkbox (see `TableCollection`'s
-   * `rowSelection.columnTitle`), which is a real visible element.
+   * column. The `data-test="header-toggle-all"` attribute is on the
+   * select-all `<th>` itself (see `TableCollection`'s `components.header.cell`
+   * slot, which keys on antd's `ant-table-selection-column` className).
+   * It deliberately is NOT injected via `rowSelection.columnTitle` because
+   * rc-table's measure row in `<tbody>` clones `columnTitle` and any
+   * `data-test` would duplicate, breaking Playwright strict mode.
    */
   async enable(): Promise<void> {
     await this.getToggleButton().click();

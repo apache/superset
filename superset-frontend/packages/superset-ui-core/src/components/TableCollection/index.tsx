@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { HTMLAttributes, ReactNode, memo, useMemo, useCallback } from 'react';
+import { HTMLAttributes, memo, useMemo, useCallback } from 'react';
 import {
   ColumnInstance,
   HeaderGroup,
@@ -196,9 +196,14 @@ function TableCollection<T extends object>({
   const rowSelection: TableRowSelection | undefined = useMemo(() => {
     if (!bulkSelectEnabled) return undefined;
 
-    // antd Table's `rowSelection` API renders its own checkbox column;
-    // wrap the header and per-row checkboxes with stable `data-test`
-    // attributes so Playwright selectors can resolve them.
+    // antd Table's `rowSelection` API renders its own checkbox column.
+    // The select-all `data-test` lives on the `<th>` via `header.cell`
+    // below (keyed on antd's `ant-table-selection-column` className), NOT
+    // via `columnTitle` — rc-table's MeasureCell renders the column
+    // `title` verbatim inside `<tbody>`, so a `columnTitle` wrapper leaks
+    // any `data-test` attr into the measure row and breaks Playwright
+    // strict-mode selectors. `renderCell` only renders in real body rows,
+    // so wrapping per-row checkboxes there is safe.
     return {
       selectedRowKeys,
       onSelect: (record, selected) => {
@@ -207,9 +212,6 @@ function TableCollection<T extends object>({
       onSelectAll: (selected: boolean) => {
         toggleAllRowsSelected?.(selected);
       },
-      columnTitle: (originNode: ReactNode) => (
-        <span data-test="header-toggle-all">{originNode}</span>
-      ),
       renderCell: (_value, _record, _index, originNode) => (
         <span data-test="row-select-checkbox">{originNode}</span>
       ),
@@ -315,9 +317,18 @@ function TableCollection<T extends object>({
       rowClassName={getRowClassName}
       components={{
         header: {
-          cell: (props: HTMLAttributes<HTMLTableCellElement>) => (
-            <th {...props} data-test="sort-header" />
-          ),
+          cell: (props: HTMLAttributes<HTMLTableCellElement>) => {
+            const isSelectionColumn =
+              props.className?.includes('ant-table-selection-column') ?? false;
+            return (
+              <th
+                {...props}
+                data-test={
+                  isSelectionColumn ? 'header-toggle-all' : 'sort-header'
+                }
+              />
+            );
+          },
         },
         body: {
           row: (props: HTMLAttributes<HTMLTableRowElement>) => (
