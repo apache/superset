@@ -1163,7 +1163,7 @@ test('keeps loading indicator while a newer request is in flight after a stale r
     });
   });
 
-  const isSpinnerVisible = () =>
+  const isSpinnerVisible = (): boolean =>
     Boolean(document.querySelector('.ant-select-arrow .ant-spin'));
 
   try {
@@ -1278,7 +1278,10 @@ test('appends page>1 results during an active search and discards them when sear
   const bobData: OptionRow[] = [{ label: 'Bob-0', value: 'b0' }];
 
   const loadOptions = jest.fn(
-    async (search: string, page: number): Promise<{
+    async (
+      search: string,
+      page: number,
+    ): Promise<{
       data: OptionRow[];
       totalCount: number;
     }> => {
@@ -1294,11 +1297,7 @@ test('appends page>1 results during an active search and discards them when sear
   );
 
   render(
-    <AsyncSelect
-      {...defaultProps}
-      pageSize={pageSize}
-      options={loadOptions}
-    />,
+    <AsyncSelect {...defaultProps} pageSize={pageSize} options={loadOptions} />,
   );
   await open();
 

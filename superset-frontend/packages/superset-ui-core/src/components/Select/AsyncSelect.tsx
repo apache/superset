@@ -364,12 +364,15 @@ const AsyncSelect = forwardRef(
               // (during an active search, selectOptions holds search results
               // and is not a safe accumulator). The accumulator is kept up
               // to date even when this response landed during a search, so
-              // restore-on-clear has a complete snapshot.
+              // restore-on-clear has a complete snapshot. We don't sort here
+              // — restore-on-clear sorts a copy at consumption time, and the
+              // live selectOptions path below goes through mergeData which
+              // sorts there. Sorting here too would double the per-page sort
+              // cost on large cached option sets.
               const dataValues = new Set(data.map(opt => opt.value));
               const accumulated = initialOptionsRef.current
                 .filter(opt => !dataValues.has(opt.value))
-                .concat(data)
-                .sort(sortComparatorForNoSearch);
+                .concat(data);
               initialOptionsRef.current = accumulated;
               if (!fetchOnlyOnSearch && accumulated.length >= totalCount) {
                 setAllValuesLoaded(true);
