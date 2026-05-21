@@ -58,14 +58,22 @@ function SelectFilter(
 ) {
   const [selectedOption, setSelectedOption] = useState(initialValue);
 
-  const onChange = (selected: SelectOption) => {
+  const onChange = (selected: SelectOption, option?: SelectOption) => {
+    // antd's `onChange` (with `labelInValue`) passes the `{label, value}`
+    // labeled-value as the first arg and the full option (which carries
+    // `title` and any other fields) as the second. Options may supply a
+    // ReactNode label (e.g. OwnerSelectLabel for the chart list Owner
+    // filter). Since this object is serialized into the URL and rehydrated
+    // as the filter pill on return, we need a plain string. Prefer `title`
+    // (set by callers to the human-readable name) before falling back to
+    // the value.
     onSelect(
       selected
         ? {
             label:
               typeof selected.label === 'string'
                 ? selected.label
-                : String(selected.value),
+                : (option?.title ?? String(selected.value)),
             value: selected.value,
           }
         : undefined,

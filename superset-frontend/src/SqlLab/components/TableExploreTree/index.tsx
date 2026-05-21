@@ -25,7 +25,8 @@ import {
   type ChangeEvent,
   useMemo,
 } from 'react';
-import { useSelector, useDispatch, shallowEqual } from 'react-redux';
+import { useSelector, shallowEqual } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import AutoSizer from 'react-virtualized-auto-sizer';
@@ -163,7 +164,7 @@ const savePinnedSchemasToStorage = (
 };
 
 const TableExploreTree: React.FC<Props> = ({ queryEditorId }) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const theme = useTheme();
   const treeRef = useRef<TreeApi<TreeNodeData>>(null);
   const tables = useSelector(
