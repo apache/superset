@@ -42,6 +42,7 @@ def test_default_query_object_to_dict():
         "columns": [],
         "extras": {},
         "filter": [],
+        "force_query": False,
         "from_dttm": None,
         "granularity": None,
         "group_others_when_limit_reached": False,

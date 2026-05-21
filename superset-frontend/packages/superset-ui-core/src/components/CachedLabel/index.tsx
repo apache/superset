@@ -29,13 +29,19 @@ export const CachedLabel: FC<CacheLabelProps> = ({
   className,
   onClick,
   cachedTimestamp,
+  cacheSource = 'query',
 }) => {
   const [hovered, setHovered] = useState(false);
 
   const labelType = hovered ? 'info' : 'default';
   return (
     <Tooltip
-      title={<TooltipContent cachedTimestamp={cachedTimestamp} />}
+      title={
+        <TooltipContent
+          cachedTimestamp={cachedTimestamp}
+          cacheSource={cacheSource}
+        />
+      }
       id="cache-desc-tooltip"
     >
       <Label

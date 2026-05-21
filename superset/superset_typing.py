@@ -179,6 +179,7 @@ class QueryObjectDict(TypedDict, total=False):
         orderby: List of order by clauses
         row_limit: Maximum number of rows
         row_offset: Number of rows to skip
+        force_query: Whether to bypass cache when executing
         series_columns: Columns to use for series
         series_limit: Maximum number of series
         series_limit_metric: Metric to use for series limiting
@@ -215,6 +216,7 @@ class QueryObjectDict(TypedDict, total=False):
     orderby: list[OrderBy]
     row_limit: int | None
     row_offset: int
+    force_query: bool
     series_columns: list[Column]
     series_limit: int
     series_limit_metric: Metric | None

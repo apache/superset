@@ -66,6 +66,9 @@ export const ChartPills = forwardRef(
   ) => {
     const isLoading = chartStatus === 'loading';
     const firstQueryResponse = queriesResponse?.[0];
+    const isQueryCached = Boolean(firstQueryResponse?.is_cached);
+    const isSemanticCached = Boolean(firstQueryResponse?.semantic_cache_hit);
+    const isAnyCacheHit = isQueryCached || isSemanticCached;
 
     // For table charts with server pagination, check second query for total count
     const isTableChart =
@@ -100,10 +103,15 @@ export const ChartPills = forwardRef(
               limit={Number(rowLimit ?? 0)}
             />
           )}
-          {!isLoading && firstQueryResponse?.is_cached && (
+          {!isLoading && isAnyCacheHit && (
             <CachedLabel
               onClick={refreshCachedQuery}
-              cachedTimestamp={firstQueryResponse.cached_dttm}
+              cachedTimestamp={
+                isQueryCached
+                  ? firstQueryResponse?.cached_dttm
+                  : firstQueryResponse?.queried_dttm
+              }
+              cacheSource={isSemanticCached ? 'semantic' : 'query'}
             />
           )}
           <Timer

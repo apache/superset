@@ -33,7 +33,12 @@ import { ensureAppRoot } from '../utils/pathUtils';
 import type { DashboardInfo, DashboardLayoutState } from '../dashboard/types';
 import type { QueryEditor } from '../SqlLab/types';
 
-type LogEventSource = 'dashboard' | 'embedded_dashboard' | 'explore' | 'sqlLab' | 'slice';
+type LogEventSource =
+  | 'dashboard'
+  | 'embedded_dashboard'
+  | 'explore'
+  | 'sqlLab'
+  | 'slice';
 
 interface LogEventData {
   source?: LogEventSource;

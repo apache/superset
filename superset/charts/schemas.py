@@ -1497,6 +1497,11 @@ class ChartDataResponseResult(Schema):
         required=True,
         allow_none=None,
     )
+    semantic_cache_hit = fields.Boolean(
+        metadata={"description": "Whether the semantic layer smart cache was used"},
+        required=False,
+        allow_none=True,
+    )
     query = fields.String(
         metadata={
             "description": "The executed query statement. May be absent when "

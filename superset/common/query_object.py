@@ -101,6 +101,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
     result_type: ChartDataResultType | None
     row_limit: int | None
     row_offset: int
+    force_query: bool
     series_columns: list[Column]
     series_limit: int
     series_limit_metric: Metric | None
@@ -128,6 +129,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         post_processing: list[dict[str, Any] | None] | None = None,
         row_limit: int | None = None,
         row_offset: int | None = None,
+        force_query: bool = False,
         series_columns: list[Column] | None = None,
         series_limit: int = 0,
         series_limit_metric: Metric | None = None,
@@ -152,6 +154,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
         self._set_post_processing(post_processing)
         self.row_limit = row_limit
         self.row_offset = row_offset or 0
+        self.force_query = force_query
         self._init_series_columns(series_columns, metrics, is_timeseries)
         self.series_limit = series_limit
         self.series_limit_metric = series_limit_metric
@@ -404,6 +407,7 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
             "post_processing": self.post_processing,
             "row_limit": self.row_limit,
             "row_offset": self.row_offset,
+            "force_query": self.force_query,
             "series_columns": self.series_columns,
             "series_limit": self.series_limit,
             "series_limit_metric": self.series_limit_metric,

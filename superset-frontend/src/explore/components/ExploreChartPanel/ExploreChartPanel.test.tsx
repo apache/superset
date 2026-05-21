@@ -168,6 +168,23 @@ describe('ChartContainer', () => {
     expect(screen.queryByText(/cached/i)).not.toBeInTheDocument();
   });
 
+  test('should show cached button for semantic smart cache hit', async () => {
+    const props = createProps({
+      chart: {
+        chartStatus: 'rendered',
+        queriesResponse: [
+          {
+            is_cached: false,
+            semantic_cache_hit: true,
+            queried_dttm: '2026-01-01',
+          },
+        ],
+      },
+    });
+    render(<ChartContainer {...props} />, { useRedux: true });
+    expect(await screen.findByText(/cached/i)).toBeInTheDocument();
+  });
+
   test('hides gutter when collapsing data panel', async () => {
     const props = createProps();
     setItem(LocalStorageKeys.IsDatapanelOpen, true);

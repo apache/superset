@@ -24,9 +24,9 @@ single dataframe.
 
 """
 
-from datetime import datetime, timedelta
-from time import time
-from typing import Any, cast, Sequence, TypeGuard
+from datetime import date, datetime, time, timedelta
+from time import time as current_time
+from typing import Any, Callable, cast, Sequence, TypeGuard
 
 import isodate
 import numpy as np
@@ -55,6 +55,11 @@ from superset.common.utils.time_range_utils import get_since_until_from_query_ob
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import NO_TIME_RANGE
 from superset.models.helpers import QueryResult
+from superset.semantic_layers.cache import (
+    store_result,
+    try_serve_from_cache,
+    ViewMeta,
+)
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import (
     FilterOperator,
@@ -103,7 +108,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
         raise ValueError("QueryObject must have a datasource defined.")
 
     # Track execution time
-    start_time = time()
+    start_time = current_time()
 
     semantic_view = query_object.datasource.implementation
     dispatcher = (
@@ -112,13 +117,15 @@ def get_results(query_object: QueryObject) -> QueryResult:
         else semantic_view.get_table
     )
 
+    cached_dispatch = _make_cached_dispatch(query_object, dispatcher)
+
     # Step 1: Convert QueryObject to list of SemanticQuery objects
     # The first query is the main query, subsequent queries are for time offsets
     queries = map_query_object(query_object)
 
     # Step 2: Execute the main query (first in the list)
     main_query = queries[0]
-    main_result = dispatcher(main_query)
+    main_result = cached_dispatch(main_query)
 
     main_df = main_result.results.to_pandas()
 
@@ -127,7 +134,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
 
     # If no time offsets, return the main result as-is
     if not query_object.time_offsets or len(queries) <= 1:
-        duration = timedelta(seconds=time() - start_time)
+        duration = timedelta(seconds=current_time() - start_time)
         return map_semantic_result_to_query_result(
             main_result,
             query_object,
@@ -149,7 +156,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
         strict=False,
     ):
         # Execute the offset query
-        result = dispatcher(offset_query)
+        result = cached_dispatch(offset_query)
 
         # Add this query's requests to the collection
         all_requests.extend(result.requests)
@@ -197,12 +204,43 @@ def get_results(query_object: QueryObject) -> QueryResult:
         requests=all_requests,
         results=pa.Table.from_pandas(main_df),
     )
-    duration = timedelta(seconds=time() - start_time)
+    duration = timedelta(seconds=current_time() - start_time)
     return map_semantic_result_to_query_result(
         semantic_result,
         query_object,
         duration,
     )
+
+
+def _make_cached_dispatch(
+    query_object: ValidatedQueryObject,
+    dispatcher: Callable[[SemanticQuery], SemanticResult],
+) -> Callable[[SemanticQuery], SemanticResult]:
+    """
+    Wrap the semantic view dispatcher with a containment-aware cache.
+
+    Row-count queries bypass the cache. Cache failures are logged and the
+    dispatcher is called as if the cache were absent.
+    """
+    if query_object.is_rowcount or query_object.force_query:
+        return dispatcher
+
+    view = query_object.datasource
+    changed_on = getattr(view, "changed_on", None)
+    view_meta = ViewMeta(
+        uuid=str(view.uuid),
+        changed_on_iso=changed_on.isoformat() if changed_on else "",
+        cache_timeout=getattr(view, "cache_timeout", None),
+    )
+
+    def cached_dispatch(query: SemanticQuery) -> SemanticResult:
+        if (hit := try_serve_from_cache(view_meta, query)) is not None:
+            return hit
+        result = dispatcher(query)
+        store_result(view_meta, query, result)
+        return result
+
+    return cached_dispatch
 
 
 def map_semantic_result_to_query_result(
@@ -226,6 +264,8 @@ def map_semantic_result_to_query_result(
             f"-- {req.type}\n{req.definition}" for req in semantic_result.requests
         )
 
+    semantic_cache_hit = any(req.type == "cache" for req in semantic_result.requests)
+
     return QueryResult(
         # Core data
         df=semantic_result.results.to_pandas(),
@@ -246,6 +286,7 @@ def map_semantic_result_to_query_result(
         # Time range - pass through from original query_object
         from_dttm=query_object.from_dttm,
         to_dttm=query_object.to_dttm,
+        semantic_cache_hit=semantic_cache_hit,
     )
 
 
@@ -557,6 +598,8 @@ def _convert_query_object_filter(
             ),
         }
 
+    value = _coerce_filter_value(value, dimension)
+
     # Map QueryObject operators to semantic layer operators
     operator_mapping = {
         FilterOperator.EQUALS.value: Operator.EQUALS,
@@ -586,6 +629,125 @@ def _convert_query_object_filter(
             value=value,
         )
     }
+
+
+def _coerce_filter_value(
+    value: FilterValues | frozenset[FilterValues],
+    dimension: Dimension,
+) -> FilterValues | frozenset[FilterValues]:
+    if isinstance(value, frozenset):
+        return frozenset(_coerce_scalar_filter_value(v, dimension) for v in value)
+    return _coerce_scalar_filter_value(value, dimension)
+
+
+def _coerce_scalar_filter_value(  # noqa: C901
+    value: FilterValues, dimension: Dimension
+) -> FilterValues:
+    if value is None:
+        return None
+
+    dtype = dimension.type
+
+    if pa.types.is_boolean(dtype):
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            parsed = value.strip().lower()
+            if parsed in {"true", "t", "1", "yes", "y", "on"}:
+                return True
+            if parsed in {"false", "f", "0", "no", "n", "off"}:
+                return False
+        raise ValueError(
+            f"Invalid boolean value {value!r} for filter column {dimension.name}"
+        )
+
+    if pa.types.is_integer(dtype):
+        if isinstance(value, bool):
+            raise ValueError(
+                f"Invalid integer value {value!r} for filter column {dimension.name}"
+            )
+        if isinstance(value, int):
+            return value
+        if isinstance(value, str):
+            try:
+                return int(value.strip())
+            except ValueError as ex:
+                raise ValueError(
+                    f"Invalid integer value {value!r} for filter column "
+                    f"{dimension.name}"
+                ) from ex
+        raise ValueError(
+            f"Invalid integer value {value!r} for filter column {dimension.name}"
+        )
+
+    if pa.types.is_floating(dtype) or pa.types.is_decimal(dtype):
+        if isinstance(value, bool):
+            raise ValueError(
+                f"Invalid numeric value {value!r} for filter column {dimension.name}"
+            )
+        if isinstance(value, (int, float)):
+            return float(value)
+        if isinstance(value, str):
+            try:
+                return float(value.strip())
+            except ValueError as ex:
+                raise ValueError(
+                    f"Invalid numeric value {value!r} for filter column "
+                    f"{dimension.name}"
+                ) from ex
+        raise ValueError(
+            f"Invalid numeric value {value!r} for filter column {dimension.name}"
+        )
+
+    if pa.types.is_date(dtype):
+        if isinstance(value, datetime):
+            return value.date()
+        if isinstance(value, date):
+            return value
+        if isinstance(value, str):
+            try:
+                return datetime.fromisoformat(value.strip()).date()
+            except ValueError as ex:
+                raise ValueError(
+                    f"Invalid date value {value!r} for filter column {dimension.name}"
+                ) from ex
+        raise ValueError(
+            f"Invalid date value {value!r} for filter column {dimension.name}"
+        )
+
+    if pa.types.is_timestamp(dtype):
+        if isinstance(value, datetime):
+            return value
+        if isinstance(value, date):
+            return datetime.combine(value, time.min)
+        if isinstance(value, str):
+            normalized = value.strip().replace("Z", "+00:00")
+            try:
+                return datetime.fromisoformat(normalized)
+            except ValueError as ex:
+                raise ValueError(
+                    f"Invalid timestamp value {value!r} for filter column "
+                    f"{dimension.name}"
+                ) from ex
+        raise ValueError(
+            f"Invalid timestamp value {value!r} for filter column {dimension.name}"
+        )
+
+    if pa.types.is_time(dtype):
+        if isinstance(value, time):
+            return value
+        if isinstance(value, str):
+            try:
+                return time.fromisoformat(value.strip())
+            except ValueError as ex:
+                raise ValueError(
+                    f"Invalid time value {value!r} for filter column {dimension.name}"
+                ) from ex
+        raise ValueError(
+            f"Invalid time value {value!r} for filter column {dimension.name}"
+        )
+
+    return value
 
 
 def _get_order_from_query_object(
