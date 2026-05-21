@@ -47,7 +47,7 @@ export function snapshotToFormData(
   if (!snapshot) return null;
   const parsedParams = parseParams(snapshot.params);
   const merged: Record<string, unknown> = {
-    ...(current ?? {}),
+    ...current,
     ...parsedParams,
   };
 

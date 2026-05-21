@@ -18,6 +18,7 @@
  */
 import { useMemo } from 'react';
 import { QueryFormData } from '@superset-ui/core';
+import { Change } from '../types';
 import VersionHistoryPanel from '../components/VersionHistoryPanel';
 import PreviewBanner from '../components/PreviewBanner';
 import {
@@ -108,8 +109,11 @@ function ExploreVersionHistoryInner({
             // ``changes`` is only on the list payload; reuse the version row
             // it came from via the snapshot's metadata.
             formatChangeTitle(
-              Array.isArray((snapshot as { changes?: unknown }).changes)
-                ? ((snapshot as { changes: never[] }).changes as never[])
+              Array.isArray(
+                (snapshot as unknown as { changes?: unknown }).changes,
+              )
+                ? ((snapshot as unknown as { changes: Change[] })
+                    .changes as Change[])
                 : [],
             )
           }
