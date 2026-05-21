@@ -71,7 +71,14 @@ SKIP_LANGS = {"en"}
 
 
 def count_translated(po_file: Path) -> int:
-    """Return the number of non-fuzzy translated messages in a .po file."""
+    """Return the number of non-fuzzy translated messages in a .po file.
+
+    Raises:
+        subprocess.CalledProcessError: if ``msgfmt`` fails (e.g. malformed
+            .po file). The regression check exists to surface translation
+            problems, so a silent zero would defeat its purpose — let the
+            caller see a malformed file as a hard failure.
+    """
     import shutil  # noqa: PLC0415
 
     msgfmt = shutil.which("msgfmt") or "msgfmt"
@@ -79,10 +86,16 @@ def count_translated(po_file: Path) -> int:
         [msgfmt, "--statistics", "-o", "/dev/null", str(po_file)],
         capture_output=True,
         text=True,
+        check=True,
     )
     # stderr: "123 translated messages, 4 fuzzy translations, 56 untranslated messages."
     match = re.search(r"(\d+) translated message", result.stderr)
-    return int(match.group(1)) if match else 0
+    if not match:
+        raise RuntimeError(
+            f"Could not parse msgfmt --statistics output for {po_file}: "
+            f"{result.stderr!r}"
+        )
+    return int(match.group(1))
 
 
 def get_counts(translations_dir: Path) -> dict[str, int]:
