@@ -928,9 +928,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     return renderChartContainer();
   }
 
-  // ``uuid`` is returned by the chart API but isn't on the Slice type yet.
-  const chartUuid =
-    (props.slice as unknown as { uuid?: string } | undefined)?.uuid ?? null;
+  const chartUuid = props.slice?.uuid ?? null;
   const versioningEnabled =
     isFeatureEnabled(FeatureFlag.VersionHistory) && !!chartUuid;
 

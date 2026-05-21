@@ -76,6 +76,7 @@ export type Slice = {
   owners?: number[];
   datasource?: string;
   datasource_id?: number;
+  uuid?: string;
 };
 
 export default Chart;

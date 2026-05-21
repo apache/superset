@@ -50,6 +50,9 @@ export interface VersionSnapshot {
   operation_type: string;
   issued_at: string;
   changed_by: ChangedBy | null;
+  // The list endpoint populates ``changes``; the single-version endpoint
+  // may omit it. When present, it's the same shape as Version.changes.
+  changes?: Change[];
   // Scalar fields are merged at the root by the backend; for dashboards
   // a ``slices`` array is included alongside the dashboard-level fields.
   [key: string]: unknown;

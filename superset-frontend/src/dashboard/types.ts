@@ -166,9 +166,15 @@ export type DashboardState = {
   isStarred?: boolean;
   lastRefreshTime?: number;
   tabActivationTimes?: Record<string, number>;
+  versionPreview?: {
+    versionUuid: string;
+    capturedSliceEntities: unknown;
+    capturedLayout: unknown;
+  } | null;
 };
 export type DashboardInfo = {
   id: number;
+  uuid?: string;
   common: {
     conf: JsonObject;
   };

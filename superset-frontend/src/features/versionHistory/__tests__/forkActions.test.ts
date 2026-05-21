@@ -69,6 +69,32 @@ test('forkChartFromSnapshot POSTs slice + params + datasource and returns the ne
   expect(body.params).toBe('{"metric":"count"}');
   expect(body.datasource_id).toBe(11);
   expect(body.datasource_type).toBe('table');
+  // No ownerId passed → no owners field on the body.
+  expect(body.owners).toBeUndefined();
+});
+
+test('forkChartFromSnapshot includes owners when ownerId is provided', async () => {
+  mockPost.mockResolvedValueOnce({
+    json: { id: 99 },
+  } as unknown as Awaited<ReturnType<typeof SupersetClient.post>>);
+
+  await forkChartFromSnapshot(
+    {
+      version_uuid: 'v-1',
+      version_number: 1,
+      transaction_id: 1,
+      operation_type: 'update',
+      issued_at: '2026-01-01T00:00:00Z',
+      changed_by: null,
+      slice_name: 'A',
+      viz_type: 'bar',
+      datasource_id: 1,
+      datasource_type: 'table',
+    } as Parameters<typeof forkChartFromSnapshot>[0],
+    7,
+  );
+  const body = JSON.parse(mockPost.mock.calls[0][0].body as string);
+  expect(body.owners).toEqual([7]);
 });
 
 test('forkChartFromSnapshot rejects when the API does not return an id', async () => {

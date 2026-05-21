@@ -21,10 +21,8 @@ import { ChangedBy } from '../types';
 
 export function formatVersionUser(by: ChangedBy | null): string {
   if (!by) return t('system');
-  if (by.first_name || by.last_name) {
-    return `${by.first_name ?? ''} ${by.last_name ?? ''}`.trim();
-  }
-  return by.username;
+  const fullName = `${by.first_name ?? ''} ${by.last_name ?? ''}`.trim();
+  return fullName || by.username || t('Unknown user');
 }
 
 export function formatVersionDate(iso: string): string {

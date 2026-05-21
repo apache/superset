@@ -929,8 +929,7 @@ const HeaderInner = (): JSX.Element => {
 
 const Header = (): JSX.Element => {
   const dashboardUuid = useSelector(
-    (state: HeaderRootState) =>
-      (state.dashboardInfo as unknown as { uuid?: string })?.uuid ?? null,
+    (state: HeaderRootState) => state.dashboardInfo?.uuid ?? null,
   );
   if (isFeatureEnabled(FeatureFlag.VersionHistory) && dashboardUuid) {
     return (

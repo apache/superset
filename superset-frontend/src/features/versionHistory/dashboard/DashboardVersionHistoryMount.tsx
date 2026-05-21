@@ -59,12 +59,7 @@ function DashboardPreviewBridge({
   const previewVersionUuid = ctx?.previewVersionUuid ?? null;
   const dispatch = useDispatch();
   const versionPreview = useSelector(
-    (state: RootState) =>
-      (
-        state.dashboardState as unknown as {
-          versionPreview?: { versionUuid: string } | null;
-        }
-      ).versionPreview ?? null,
+    (state: RootState) => state.dashboardState.versionPreview ?? null,
   );
   const { snapshot } = useVersionSnapshot(
     'dashboard',
@@ -94,11 +89,17 @@ function DashboardPreviewBridge({
     }
   }, [dispatch, previewVersionUuid, versionPreview]);
 
+  // Stable refs so the unmount cleanup doesn't re-run on every context
+  // change and tear down a preview the user just opened.
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx;
   useEffect(
     () => () => {
-      // Unmount cleanup.
       if (lastAppliedRef.current) {
         dispatch(exitVersionPreview());
+        // Also clear the URL param so reloading the page after unmount
+        // doesn't silently re-enter preview.
+        ctxRef.current?.exitPreview();
       }
     },
     [dispatch],
@@ -119,6 +120,9 @@ function DashboardForkBoundary({
 }) {
   const dispatch = useDispatch();
   const history = useHistory();
+  const ownerId = useSelector(
+    (state: { user?: { userId?: number } }) => state.user?.userId,
+  );
 
   const handleOpenAsNew = useCallback(
     async (version: Version) => {
@@ -129,6 +133,7 @@ function DashboardForkBoundary({
         });
         const created = await forkDashboardFromSnapshot(
           json as unknown as Parameters<typeof forkDashboardFromSnapshot>[0],
+          ownerId,
         );
         dispatch(
           addSuccessToast(
@@ -142,7 +147,7 @@ function DashboardForkBoundary({
         dispatch(addDangerToast(t('Failed to create dashboard from version')));
       }
     },
-    [dashboardUuid, dispatch, history],
+    [dashboardUuid, dispatch, history, ownerId],
   );
 
   return (

@@ -45,6 +45,7 @@ function asString(value: unknown): string | undefined {
  */
 export async function forkChartFromSnapshot(
   snapshot: VersionSnapshot,
+  ownerId?: number,
 ): Promise<{ id: number; name: string }> {
   const originalName =
     typeof snapshot.slice_name === 'string' ? snapshot.slice_name : '';
@@ -56,6 +57,7 @@ export async function forkChartFromSnapshot(
     datasource_type: snapshot.datasource_type,
     viz_type: snapshot.viz_type,
   };
+  if (typeof ownerId === 'number') body.owners = [ownerId];
   const params = asString(snapshot.params);
   if (params) body.params = params;
   const queryContext = asString(snapshot.query_context);
@@ -80,9 +82,15 @@ export async function forkChartFromSnapshot(
 /**
  * Creates a new dashboard from a version snapshot. POSTs the snapshot's
  * title + layout + metadata + css and returns the new dashboard's id.
+ *
+ * Note: the snapshot's ``position_json`` embeds slice ids that reference the
+ * live charts, not duplicated copies. The forked dashboard will render with
+ * the current state of those charts, not the snapshot's chart state. Use
+ * restore (not fork) if you need historical chart content.
  */
 export async function forkDashboardFromSnapshot(
   snapshot: VersionSnapshot,
+  ownerId?: number,
 ): Promise<{ id: number; name: string }> {
   const originalName =
     typeof snapshot.dashboard_title === 'string'
@@ -93,6 +101,7 @@ export async function forkDashboardFromSnapshot(
   const body: Record<string, unknown> = {
     dashboard_title: name,
   };
+  if (typeof ownerId === 'number') body.owners = [ownerId];
   const positionJson = asString(snapshot.position_json);
   if (positionJson) body.position_json = positionJson;
   const jsonMetadata = asString(snapshot.json_metadata);

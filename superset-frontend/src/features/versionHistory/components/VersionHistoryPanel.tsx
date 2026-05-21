@@ -53,11 +53,8 @@ const VersionHistoryPanel = ({ entityType, uuid, onOpenAsNew }: Props) => {
     exitPreview,
   } = useVersionHistory();
   const dispatch = useDispatch();
-  const { versions, loading, error, refetch } = useVersionList(
-    entityType,
-    uuid,
-  );
-  const { restore, restoring } = useRestoreVersion(entityType, uuid);
+  const { versions, loading, error } = useVersionList(entityType, uuid);
+  const { restore, restoring, lastError } = useRestoreVersion(entityType, uuid);
   const [pendingRestore, setPendingRestore] = useState<Version | null>(null);
 
   const handleSelect = useCallback(
@@ -90,11 +87,22 @@ const VersionHistoryPanel = ({ entityType, uuid, onOpenAsNew }: Props) => {
       );
       setPendingRestore(null);
       exitPreview();
-      await refetch();
+      // Reload so the in-memory chart/dashboard reflects the new live state
+      // — the restore endpoint mutates the backend record but our Redux
+      // entity slice still holds the pre-restore data.
+      if (typeof window !== 'undefined') {
+        window.location.reload();
+      }
     } else {
-      dispatch(addDangerToast(t('Failed to restore version')));
+      dispatch(
+        addDangerToast(
+          lastError
+            ? t('Failed to restore version: %(detail)s', { detail: lastError })
+            : t('Failed to restore version'),
+        ),
+      );
     }
-  }, [dispatch, exitPreview, pendingRestore, refetch, restore]);
+  }, [dispatch, exitPreview, lastError, pendingRestore, restore]);
 
   const restoreContext = useMemo(() => {
     if (!pendingRestore) return null;

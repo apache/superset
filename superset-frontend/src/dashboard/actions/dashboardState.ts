@@ -1591,12 +1591,20 @@ export const enterVersionPreview =
   (versionUuid: string, snapshot: VersionSnapshotPayload) =>
   (dispatch: AppDispatch, getState: GetState): void => {
     const state = getState();
-    const capturedSliceEntities = state.sliceEntities;
-    const capturedLayout = (
-      state as unknown as {
-        dashboardLayout: { present: Record<string, unknown> };
-      }
-    ).dashboardLayout.present;
+    // Preserve the live state captured on the first enter. Switching from
+    // version A to version B without exiting must not recapture the
+    // already-swapped A state as the "original" — otherwise exit would
+    // restore to A rather than to the user's live data.
+    const existingPreview = state.dashboardState.versionPreview;
+    const capturedSliceEntities =
+      existingPreview?.capturedSliceEntities ?? state.sliceEntities;
+    const capturedLayout =
+      existingPreview?.capturedLayout ??
+      (
+        state as unknown as {
+          dashboardLayout: { present: Record<string, unknown> };
+        }
+      ).dashboardLayout.present;
     const newSlices = normalizeSlicesFromSnapshot(snapshot);
     const newLayout = parsePositionJson(snapshot.position_json);
     dispatch({
@@ -1605,27 +1613,28 @@ export const enterVersionPreview =
       capturedSliceEntities,
       capturedLayout,
       newSliceEntities: {
-        ...capturedSliceEntities,
+        ...(capturedSliceEntities as Record<string, unknown>),
         slices: newSlices,
       },
       newLayout,
     });
+    // The preview layout swap goes through the undoable reducer (see
+    // TRACKED_ACTIONS in undoableDashboardLayout). Clear that entry from
+    // history so a later Ctrl+Z can't take the user back into a previewed
+    // layout.
+    dispatch(UndoActionCreators.clearHistory());
   };
 
 export const exitVersionPreview =
   () =>
   (dispatch: AppDispatch, getState: GetState): void => {
-    const { versionPreview } = getState().dashboardState as unknown as {
-      versionPreview?: {
-        versionUuid: string;
-        capturedSliceEntities: unknown;
-        capturedLayout: unknown;
-      } | null;
-    };
+    const { versionPreview } = getState().dashboardState;
     if (!versionPreview) return;
     dispatch({
       type: EXIT_VERSION_PREVIEW,
       restoreSliceEntities: versionPreview.capturedSliceEntities,
       restoreLayout: versionPreview.capturedLayout,
     });
+    // Same reason as enter: drop the EXIT entry from undo history.
+    dispatch(UndoActionCreators.clearHistory());
   };

@@ -72,6 +72,7 @@ const PreviewBanner = ({
         buttonSize="small"
         onClick={onRestore}
         loading={restoring}
+        disabled={restoring}
         data-test="version-preview-restore"
       >
         {t('Restore this version')}
@@ -80,6 +81,7 @@ const PreviewBanner = ({
         buttonStyle="secondary"
         buttonSize="small"
         onClick={onExit}
+        disabled={restoring}
         data-test="version-preview-exit"
       >
         {t('Exit preview')}

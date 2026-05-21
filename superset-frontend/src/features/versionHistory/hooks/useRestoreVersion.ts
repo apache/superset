@@ -17,12 +17,14 @@
  * under the License.
  */
 import { useCallback, useState } from 'react';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import { EntityType } from '../types';
 
 interface UseRestoreVersionResult {
   restore: (versionUuid: string) => Promise<boolean>;
   restoring: boolean;
+  lastError: string | null;
 }
 
 export function useRestoreVersion(
@@ -30,17 +32,22 @@ export function useRestoreVersion(
   uuid: string | null | undefined,
 ): UseRestoreVersionResult {
   const [restoring, setRestoring] = useState(false);
+  const [lastError, setLastError] = useState<string | null>(null);
 
   const restore = useCallback(
     async (versionUuid: string): Promise<boolean> => {
       if (!uuid) return false;
       setRestoring(true);
+      setLastError(null);
       try {
         await SupersetClient.post({
           endpoint: `/api/v1/${entityType}/${uuid}/versions/${versionUuid}/restore`,
         });
         return true;
       } catch (e) {
+        logging.error('Version restore failed', e);
+        const detail = await getClientErrorObject(e);
+        setLastError(detail?.error ?? detail?.message ?? String(e));
         return false;
       } finally {
         setRestoring(false);
@@ -49,5 +56,5 @@ export function useRestoreVersion(
     [entityType, uuid],
   );
 
-  return { restore, restoring };
+  return { restore, restoring, lastError };
 }

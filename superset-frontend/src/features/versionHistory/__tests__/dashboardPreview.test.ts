@@ -19,6 +19,8 @@
 import {
   ENTER_VERSION_PREVIEW,
   EXIT_VERSION_PREVIEW,
+  enterVersionPreview,
+  exitVersionPreview,
 } from 'src/dashboard/actions/dashboardState';
 import dashboardStateReducer from 'src/dashboard/reducers/dashboardState';
 import sliceEntitiesReducer from 'src/dashboard/reducers/sliceEntities';
@@ -146,4 +148,92 @@ test('captured-original roundtrip leaves all three reducers byte-identical to th
   expect(dashRestored.versionPreview).toBeNull();
   expect(slicesRestored).toBe(slices);
   expect(layoutRestored).toBe(layout);
+});
+
+test('enterVersionPreview thunk preserves the original capture when switching A → B', () => {
+  // A→B switch must not capture the already-swapped A state as the
+  // "original", or exit would restore to A instead of the user's live
+  // pre-preview state.
+  const liveSlices = {
+    slices: { 1: { slice_id: 1, slice_name: 'Live' } },
+    isLoading: false,
+    errorMessage: null,
+    lastUpdated: 0,
+  };
+  const liveLayout = { ROOT_ID: { id: 'live' } };
+
+  const stateA = {
+    dashboardState: { versionPreview: null },
+    sliceEntities: liveSlices,
+    dashboardLayout: { present: liveLayout },
+  };
+  const dispatched: Array<{ type: string; [k: string]: unknown }> = [];
+  const dispatch = (action: unknown) => {
+    if (
+      action &&
+      typeof action === 'object' &&
+      'type' in (action as Record<string, unknown>)
+    ) {
+      dispatched.push(action as { type: string });
+    }
+  };
+
+  // Enter A.
+  enterVersionPreview(
+    'a-1111aaaa-2222-3333-4444-aaaaaaaaaaaa' as string,
+    {
+      slices: [{ slice_id: 9, slice_name: 'A' }],
+      position_json: '{"ROOT_ID":{"id":"a"}}',
+    } as unknown as Parameters<typeof enterVersionPreview>[1],
+  )(dispatch as never, () => stateA as never);
+  const firstEnter = dispatched.find(a => a.type === ENTER_VERSION_PREVIEW)!;
+  expect(firstEnter.capturedSliceEntities).toBe(liveSlices);
+  expect(firstEnter.capturedLayout).toBe(liveLayout);
+
+  // Now we're "in preview A". Simulate dashboardState.versionPreview being
+  // set and the live state having been replaced with A's data.
+  const stateAfterA = {
+    dashboardState: {
+      versionPreview: {
+        versionUuid: 'a-1111aaaa-2222-3333-4444-aaaaaaaaaaaa',
+        capturedSliceEntities: liveSlices,
+        capturedLayout: liveLayout,
+      },
+    },
+    sliceEntities: { slices: { 9: { slice_id: 9 } } },
+    dashboardLayout: { present: { ROOT_ID: { id: 'a' } } },
+  };
+
+  dispatched.length = 0;
+  enterVersionPreview(
+    'b-2222bbbb-3333-4444-5555-bbbbbbbbbbbb' as string,
+    {
+      slices: [{ slice_id: 11, slice_name: 'B' }],
+      position_json: '{"ROOT_ID":{"id":"b"}}',
+    } as unknown as Parameters<typeof enterVersionPreview>[1],
+  )(dispatch as never, () => stateAfterA as never);
+  const secondEnter = dispatched.find(a => a.type === ENTER_VERSION_PREVIEW)!;
+  // Critical: the captured originals are still the LIVE values, not A.
+  expect(secondEnter.capturedSliceEntities).toBe(liveSlices);
+  expect(secondEnter.capturedLayout).toBe(liveLayout);
+});
+
+test('exitVersionPreview thunk is a no-op when no preview is active', () => {
+  const state = { dashboardState: { versionPreview: null } };
+  const dispatched: unknown[] = [];
+  exitVersionPreview()(
+    ((a: unknown) => {
+      dispatched.push(a);
+    }) as never,
+    () => state as never,
+  );
+  // No EXIT action dispatched.
+  expect(
+    dispatched.find(
+      a =>
+        a &&
+        typeof a === 'object' &&
+        (a as { type?: string }).type === EXIT_VERSION_PREVIEW,
+    ),
+  ).toBeUndefined();
 });

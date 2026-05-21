@@ -43,18 +43,12 @@ const DashboardPreviewBanner = () => {
   const dispatch = useDispatch();
   const ctx = useOptionalVersionHistory();
   const versionPreview = useSelector(
-    (state: RootState) =>
-      (
-        state.dashboardState as unknown as {
-          versionPreview?: { versionUuid: string } | null;
-        }
-      ).versionPreview ?? null,
+    (state: RootState) => state.dashboardState.versionPreview ?? null,
   );
   const dashboardUuid = useSelector(
-    (state: RootState) =>
-      (state.dashboardInfo as unknown as { uuid?: string }).uuid ?? null,
+    (state: RootState) => state.dashboardInfo?.uuid ?? null,
   );
-  const { versions, refetch } = useVersionList('dashboard', dashboardUuid);
+  const { versions } = useVersionList('dashboard', dashboardUuid);
   const { restore, restoring } = useRestoreVersion('dashboard', dashboardUuid);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -79,7 +73,12 @@ const DashboardPreviewBanner = () => {
       dispatch(addSuccessToast(t('Restored to "%(summary)s"', { summary })));
       setConfirmOpen(false);
       handleExit();
-      await refetch();
+      // Reload so the dashboard hydrate runs against the restored backend
+      // state — our Redux sliceEntities + dashboardLayout still hold the
+      // pre-restore values.
+      if (typeof window !== 'undefined') {
+        window.location.reload();
+      }
     } else {
       dispatch(addDangerToast(t('Failed to restore version')));
     }

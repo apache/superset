@@ -72,10 +72,21 @@ const VersionItem = ({
     return items;
   }, [isCurrent, onOpenAsNew, onRestore]);
 
+  // div + role="button" rather than a native <button> so the actions
+  // dropdown trigger (also role=button) is not nested inside another
+  // interactive element, which would violate ARIA.
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelect();
+    }
+  };
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
+      onKeyDown={handleKeyDown}
       data-test="version-history-item"
       aria-pressed={selected}
       css={css`
@@ -85,12 +96,15 @@ const VersionItem = ({
         padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
         text-align: left;
         background: ${selected ? theme.colorBgTextHover : 'transparent'};
-        border: none;
         border-left: 3px solid ${selected ? theme.colorPrimary : 'transparent'};
         cursor: pointer;
 
         &:hover {
           background: ${theme.colorBgTextHover};
+        }
+        &:focus {
+          outline: 2px solid ${theme.colorPrimary};
+          outline-offset: -2px;
         }
       `}
     >
@@ -166,7 +180,7 @@ const VersionItem = ({
           </Dropdown>
         </span>
       )}
-    </button>
+    </div>
   );
 };
 

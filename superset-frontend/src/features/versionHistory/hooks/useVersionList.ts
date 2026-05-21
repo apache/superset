@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { EntityType, Version } from '../types';
 
@@ -34,29 +34,41 @@ export function useVersionList(
   const [versions, setVersions] = useState<Version[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Incrementing token used to drop responses from earlier requests when a
+  // new one supersedes them (uuid change, panel toggle, etc.).
+  const requestIdRef = useRef(0);
 
   const refetch = useCallback(async () => {
     if (!uuid) return;
+    const requestId = (requestIdRef.current += 1);
     setLoading(true);
     setError(null);
     try {
       const { json } = await SupersetClient.get({
         endpoint: `/api/v1/${entityType}/${uuid}/versions/`,
       });
+      if (requestId !== requestIdRef.current) return;
       const result = (json as { result?: Version[] }).result ?? [];
       // API returns oldest-first; reverse so the latest version is the
       // first row and renders as the "Current version".
       setVersions([...result].reverse());
     } catch (e) {
+      if (requestId !== requestIdRef.current) return;
       setError(String((e as Error)?.message ?? e));
       setVersions([]);
     } finally {
-      setLoading(false);
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, [entityType, uuid]);
 
   useEffect(() => {
     refetch();
+    return () => {
+      // Bump the token so any in-flight response is ignored.
+      requestIdRef.current += 1;
+    };
   }, [refetch]);
 
   return { versions, loading, error, refetch };

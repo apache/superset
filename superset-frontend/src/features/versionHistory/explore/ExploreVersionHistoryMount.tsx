@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useMemo } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useHistory } from 'react-router-dom';
 import { QueryFormData, SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
@@ -59,7 +59,7 @@ function ExplorePreviewBanner({
   issuedAt,
 }: BannerProps) {
   const ctx = useOptionalVersionHistory();
-  const { versions, refetch } = useVersionList('chart', chartUuid);
+  const { versions } = useVersionList('chart', chartUuid);
   const { restore, restoring } = useRestoreVersion('chart', chartUuid);
 
   // Prefer the change summary from the matching list row (which contains
@@ -76,7 +76,11 @@ function ExplorePreviewBanner({
     const ok = await restore(ctx.previewVersionUuid);
     if (ok) {
       ctx.exitPreview();
-      await refetch();
+      // Reload so the chart re-fetches with the restored form_data — the
+      // Redux slice still holds the pre-restore state.
+      if (typeof window !== 'undefined') {
+        window.location.reload();
+      }
     }
   };
 
@@ -99,6 +103,9 @@ function ExploreVersionHistoryInner({
   const ctx = useOptionalVersionHistory();
   const dispatch = useDispatch();
   const history = useHistory();
+  const ownerId = useSelector(
+    (state: { user?: { userId?: number } }) => state.user?.userId,
+  );
   const previewVersionUuid = ctx?.previewVersionUuid ?? null;
   const { snapshot } = useVersionSnapshot(
     'chart',
@@ -119,6 +126,7 @@ function ExploreVersionHistoryInner({
         });
         const created = await forkChartFromSnapshot(
           json as unknown as Parameters<typeof forkChartFromSnapshot>[0],
+          ownerId,
         );
         dispatch(
           addSuccessToast(
@@ -132,26 +140,22 @@ function ExploreVersionHistoryInner({
         dispatch(addDangerToast(t('Failed to create chart from version')));
       }
     },
-    [chartUuid, dispatch, history],
+    [chartUuid, dispatch, history, ownerId],
   );
+
+  // ``changes`` is only on the list payload; the snapshot's bare metadata
+  // gets only the issued_at + version uuid. The banner uses this as a
+  // fallback when the list row hasn't loaded yet.
+  const snapshotChanges = Array.isArray(snapshot?.changes)
+    ? (snapshot.changes as Change[])
+    : [];
 
   return (
     <ChartPreviewContext.Provider value={previewFormData}>
       {previewFormData && snapshot && (
         <ExplorePreviewBanner
           chartUuid={chartUuid}
-          snapshotSummary={
-            // ``changes`` is only on the list payload; reuse the version row
-            // it came from via the snapshot's metadata.
-            formatChangeTitle(
-              Array.isArray(
-                (snapshot as unknown as { changes?: unknown }).changes,
-              )
-                ? ((snapshot as unknown as { changes: Change[] })
-                    .changes as Change[])
-                : [],
-            )
-          }
+          snapshotSummary={formatChangeTitle(snapshotChanges)}
           issuedAt={String(snapshot.issued_at ?? '')}
         />
       )}
