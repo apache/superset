@@ -72,15 +72,11 @@ test('no file outside navigationUtils.ts imports from pathUtils', () => {
 const RAW_HREF_ABSOLUTE_PATH_PATTERN =
   /(?<!\.)\bhref\s*=\s*(?:["']\/(?!\/)|\{\s*["']\/(?!\/)|\{\s*`\/(?!\/))/;
 
-const RAW_HREF_ABSOLUTE_PATH_ALLOWLIST: string[] = [
-  'src/explore/components/controls/AnnotationLayerControl/AnnotationLayer.tsx',
-  'src/pages/AnnotationLayerList/index.tsx',
-  'src/pages/AnnotationList/index.tsx',
-  'src/pages/DatabaseList/index.tsx',
-  'src/pages/DatasetList/index.tsx',
-  'src/pages/Login/index.tsx',
-  'src/pages/Register/index.tsx',
-];
+// Slice 3a (`fbd07afdc9` → next SHA): 7 entries removed; all callsites
+// migrated to `<AppLink>` (plain `<a>`) or `ensureAppRoot(...)` value-wrap
+// (antd `<Button href>`, `<Typography.Link href>`). The two scan + stale-
+// allowlist tests below now enforce a genuine zero on the RAW_HREF surface.
+const RAW_HREF_ABSOLUTE_PATH_ALLOWLIST: string[] = [];
 
 test('no raw absolute-path href in JSX outside the migration allow-list', () => {
   const hits = scanSource({
@@ -247,8 +243,9 @@ const HARDCODED_SUPERSET_LITERAL_ALLOWLIST: string[] = [
   'src/components/Datasource/components/DatasourceEditor/components/DashboardLinksExternal/index.tsx',
   'src/components/ListView/CrossLinks.tsx',
   'src/pages/Tags/index.tsx',
-  'src/pages/DatabaseList/index.tsx',
-  'src/pages/DatasetList/index.tsx',
+  // Slice 3a (`fbd07afdc9` → next SHA): `DatabaseList` / `DatasetList`
+  // entries removed; their `Typography.Link href={`/superset/dashboard/...`}`
+  // emitters migrated to `ensureAppRoot(`/dashboard/...`)` in the same commit.
   // Test-fixture helpers (referenced as production data but shaped as the
   // legacy URL the backend used to emit). Drop after `Dashboard.url` etc.
   // stop returning `/superset/...`.

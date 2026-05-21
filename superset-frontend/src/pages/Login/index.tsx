@@ -34,6 +34,7 @@ import { capitalize } from 'lodash/fp';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { useDispatch } from 'react-redux';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 
 type OAuthProvider = {
   name: string;
@@ -256,7 +257,7 @@ export default function Login() {
                     <Button
                       block
                       type="default"
-                      href="/register/"
+                      href={ensureAppRoot('/register/')}
                       data-test="register-button"
                     >
                       {t('Register')}
