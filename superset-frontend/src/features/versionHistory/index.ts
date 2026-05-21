@@ -18,11 +18,16 @@
  */
 export { default as VersionHistoryPanel } from './components/VersionHistoryPanel';
 export { default as PreviewBanner } from './components/PreviewBanner';
+export { ExploreVersionHistoryRoot } from './explore/ExploreVersionHistoryMount';
 export {
   VersionHistoryProvider,
   useVersionHistory,
   useOptionalVersionHistory,
 } from './context/VersionHistoryContext';
+export {
+  ChartPreviewContext,
+  useChartPreviewFormData,
+} from './context/ChartPreviewContext';
 export { useVersionList } from './hooks/useVersionList';
 export { useVersionSnapshot } from './hooks/useVersionSnapshot';
 export { useRestoreVersion } from './hooks/useRestoreVersion';
@@ -34,6 +39,7 @@ export {
   isAiUser,
 } from './utils/formatVersionUser';
 export { groupVersionsByDate } from './utils/groupVersionsByDate';
+export { snapshotToFormData } from './utils/snapshotToFormData';
 export type {
   EntityType,
   Version,

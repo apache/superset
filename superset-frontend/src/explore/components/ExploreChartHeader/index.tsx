@@ -45,6 +45,7 @@ import ReportModal from 'src/features/reports/ReportModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { getChartFormDiffs } from 'src/utils/getChartFormDiffs';
+import { useVersionHistory } from 'src/features/versionHistory';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { Tag } from 'src/components/Tag';
 import { ChartState, ExplorePageInitialData } from 'src/explore/types';
@@ -197,18 +198,8 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     [redirectSQLLab, history],
   );
 
-  const [menu, isDropdownVisible, setIsDropdownVisible, streamingExportState] =
-    useExploreAdditionalActionsMenu(
-      latestQueryFormData,
-      canDownload,
-      slice,
-      redirectToSQLLab,
-      openPropertiesModal,
-      ownState,
-      metadata?.dashboards,
-      showReportModal,
-      setCurrentReportDeleting,
-    );
+  const { openPanel, previewVersionUuid } = useVersionHistory();
+  const isPreviewing = !!previewVersionUuid;
 
   const metadataBar = useExploreMetadataBar(metadata, slice ?? null);
   const oldSliceName = slice?.slice_name;
@@ -241,6 +232,23 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     [originalFormData, currentFormData],
   );
 
+  const hasUnsavedChanges = Object.keys(formDiffs).length > 0;
+
+  const [menu, isDropdownVisible, setIsDropdownVisible, streamingExportState] =
+    useExploreAdditionalActionsMenu(
+      latestQueryFormData,
+      canDownload,
+      slice,
+      redirectToSQLLab,
+      openPropertiesModal,
+      ownState,
+      metadata?.dashboards,
+      showReportModal,
+      setCurrentReportDeleting,
+      openPanel,
+      hasUnsavedChanges,
+    );
+
   const {
     showModal: showUnsavedChangesModal,
     setShowModal: setShowUnsavedChangesModal,
@@ -248,7 +256,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     handleSaveAndCloseModal,
     triggerManualSave,
   } = useUnsavedChangesPrompt({
-    hasUnsavedChanges: Object.keys(formDiffs).length > 0,
+    hasUnsavedChanges,
     onSave: () => {
       dispatch(setSaveChartModalVisibility(true));
     },
@@ -331,11 +339,17 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     ],
   );
 
+  const effectiveSaveDisabled = saveDisabled || isPreviewing;
   const rightPanelAdditionalItems = useMemo(
     () => (
       <Tooltip
         title={
-          saveDisabled ? t('Add required control values to save chart') : null
+          // eslint-disable-next-line no-nested-ternary
+          isPreviewing
+            ? t('Exit version preview to save')
+            : saveDisabled
+              ? t('Add required control values to save chart')
+              : null
         }
       >
         {/* needed to wrap button in a div - antd tooltip doesn't work with disabled button */}
@@ -343,7 +357,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
           <Button
             buttonStyle="secondary"
             onClick={showModal}
-            disabled={saveDisabled}
+            disabled={effectiveSaveDisabled}
             data-test="query-save-button"
             css={saveButtonStyles}
             icon={<Icons.SaveOutlined />}
@@ -353,7 +367,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
         </div>
       </Tooltip>
     ),
-    [saveDisabled, showModal],
+    [effectiveSaveDisabled, isPreviewing, saveDisabled, showModal],
   );
 
   const menuDropdownProps = useMemo(

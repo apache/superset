@@ -77,6 +77,7 @@ export const SEARCH_THRESHOLD = 10;
 
 const MENU_KEYS = {
   EDIT_PROPERTIES: 'edit_properties',
+  VIEW_VERSION_HISTORY: 'view_version_history',
   DASHBOARDS_ADDED_TO: 'dashboards_added_to',
   DOWNLOAD_SUBMENU: 'download_submenu',
   DATA_EXPORT_OPTIONS: 'data_export_options',
@@ -206,6 +207,8 @@ export const useExploreAdditionalActionsMenu = (
     | undefined,
   showReportModal: () => void,
   setCurrentReportDeleting: Dispatch<SetStateAction<ReportObject | null>>,
+  onOpenVersionHistory?: () => void,
+  hasUnsavedChanges?: boolean,
   ...rest: MenuProps[]
 ): UseExploreAdditionalActionsMenuReturn => {
   const theme = useTheme();
@@ -614,6 +617,34 @@ export const useExploreAdditionalActionsMenu = (
         label: t('Edit chart properties'),
         onClick: () => {
           onOpenPropertiesModal();
+          setIsDropdownVisible(false);
+        },
+      });
+    }
+
+    // View version history
+    if (
+      slice &&
+      onOpenVersionHistory &&
+      isFeatureEnabled(FeatureFlag.VersionHistory)
+    ) {
+      const disabled = !!hasUnsavedChanges;
+      menuItems.push({
+        key: MENU_KEYS.VIEW_VERSION_HISTORY,
+        label: disabled ? (
+          <span>
+            {t('View version history')}
+            <MenuItemTooltip
+              title={t('Exit edit mode to view version history')}
+            />
+          </span>
+        ) : (
+          t('View version history')
+        ),
+        disabled,
+        onClick: () => {
+          if (disabled) return;
+          onOpenVersionHistory();
           setIsDropdownVisible(false);
         },
       });
@@ -1069,6 +1100,8 @@ export const useExploreAdditionalActionsMenu = (
     ownState,
     hasExportCurrentView,
     canExportImage,
+    onOpenVersionHistory,
+    hasUnsavedChanges,
   ]);
 
   // Return streaming modal state and handlers for parent to render

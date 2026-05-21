@@ -37,6 +37,8 @@ import {
   MatrixifyFormData,
   DatasourceType,
   ensureIsArray,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
 import {
   ControlStateMapping,
@@ -93,6 +95,7 @@ import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 import ExploreContainer from '../ExploreContainer';
+import { ExploreVersionHistoryRoot } from 'src/features/versionHistory';
 
 const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`
@@ -925,7 +928,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     return renderChartContainer();
   }
 
-  return (
+  // ``uuid`` is returned by the chart API but isn't on the Slice type yet.
+  const chartUuid =
+    (props.slice as unknown as { uuid?: string } | undefined)?.uuid ?? null;
+  const versioningEnabled =
+    isFeatureEnabled(FeatureFlag.VersionHistory) && !!chartUuid;
+
+  const tree = (
     <ExploreContainer>
       <ConnectedExploreChartHeader
         // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Combined actions type is compatible at runtime
@@ -1087,6 +1096,18 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       )}
     </ExploreContainer>
   );
+
+  if (versioningEnabled) {
+    return (
+      <ExploreVersionHistoryRoot
+        chartUuid={chartUuid}
+        formData={props.form_data}
+      >
+        {tree}
+      </ExploreVersionHistoryRoot>
+    );
+  }
+  return tree;
 }
 
 const retainQueryModeRequirements = (

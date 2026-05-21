@@ -52,6 +52,7 @@ import type { ChartState, Datasource } from 'src/explore/types';
 import type { ExploreState } from 'src/explore/reducers/exploreReducer';
 import type { Slice } from 'src/types/Chart';
 import LastQueriedLabel from 'src/components/LastQueriedLabel';
+import { useChartPreviewFormData } from 'src/features/versionHistory';
 import { DataTablesPane } from '../DataTablesPane';
 import { ChartPills } from '../ChartPills';
 import { ExploreAlert } from '../ExploreAlert';
@@ -166,7 +167,7 @@ const ExploreChartPanel = ({
   force,
   datasource,
   errorMessage,
-  form_data: formData,
+  form_data: formDataProp,
   onQuery,
   actions,
   timeout,
@@ -175,6 +176,10 @@ const ExploreChartPanel = ({
   chartAlert,
   can_download: canDownload,
 }: ExploreChartPanelProps) => {
+  // When a historical version is being previewed, render with snapshot
+  // form_data instead of the live Redux-driven one. Shadow-render only.
+  const previewFormData = useChartPreviewFormData();
+  const formData = previewFormData ?? formDataProp;
   const theme = useTheme();
   const dispatch = useDispatch();
   const gutterMargin = theme.sizeUnit * GUTTER_SIZE_FACTOR;
