@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -49,17 +49,12 @@ describe('Stringify utility testing', () => {
   test('handles simple circular json as expected', () => {
     const ping = new Noise();
     const pong = new Noise();
-    const pang = new Noise();
     ping.next = pong;
     pong.next = ping;
 
-    // ping.next is pong (the circular reference) now
+    // It should now safely output [Circular] for the recursive reference
     const safeString = safeStringify(ping);
-    ping.next = pang;
-
-    // ping.next is pang now, which has no circular reference, so it's safe to use JSON.stringify
-    const ordinaryString = JSON.stringify(ping);
-    expect(safeString).toEqual(ordinaryString);
+    expect(safeString).toEqual('{"next":{"next":"[Circular]"}}');
   });
 
   test('creates a parseable object even when the input is circular', () => {
@@ -68,9 +63,9 @@ describe('Stringify utility testing', () => {
     ping.next = pong;
     pong.next = ping;
 
-    const newNoise: Noise = JSON.parse(safeStringify(ping));
+    const newNoise: any = JSON.parse(safeStringify(ping));
     expect(newNoise).toBeTruthy();
-    expect(newNoise.next).toEqual({});
+    expect(newNoise.next).toEqual({ next: '[Circular]' });
   });
 
   test('does not remove noncircular duplicates', () => {
