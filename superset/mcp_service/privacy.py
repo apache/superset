@@ -40,7 +40,6 @@ USER_DIRECTORY_FIELDS = frozenset(
         "last_saved_by_name",
         "owner",
         "owners",
-        "roles",
     }
 )
 
@@ -140,7 +139,7 @@ def user_can_view_data_model_metadata() -> bool:
 
 
 def filter_user_directory_fields(data: dict[str, Any]) -> dict[str, Any]:
-    """Remove fields that expose users, roles, owners, or access metadata."""
+    """Remove fields that expose users, owners, or access metadata."""
     return {
         key: value for key, value in data.items() if key not in USER_DIRECTORY_FIELDS
     }
