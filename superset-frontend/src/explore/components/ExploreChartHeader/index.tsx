@@ -19,7 +19,7 @@
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { QueryFormData, JsonObject } from '@superset-ui/core';
+import { QueryFormData, JsonObject, LatestQueryFormData } from '@superset-ui/core';
 import {
   Tooltip,
   Button,
@@ -59,7 +59,7 @@ interface ExploreActions {
   fetchFaveStar: (sliceId: number) => void;
   saveFaveStar: (sliceId: number, isStarred: boolean) => void;
   redirectSQLLab: (
-    formData: QueryFormData,
+    formData: QueryFormData | LatestQueryFormData,
     history?: ReturnType<typeof useHistory> | false,
   ) => void;
 }
@@ -191,7 +191,7 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   const { redirectSQLLab } = actions;
 
   const redirectToSQLLab = useCallback(
-    (redirectFormData: QueryFormData, openNewWindow = false) => {
+    (redirectFormData: LatestQueryFormData, openNewWindow = false) => {
       redirectSQLLab(redirectFormData, !openNewWindow && history);
     },
     [redirectSQLLab, history],
