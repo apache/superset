@@ -265,17 +265,17 @@ def _resolve_user_from_api_key(app: Any) -> User | None:
         return None
 
     sm = app.appbuilder.sm
-    # _extract_api_key_from_request is FAB's internal method for reading
+    # extract_api_key_from_request is FAB's method for reading
     # the Bearer token from the Authorization header and matching prefixes.
     # Not all FAB versions include this method, so guard with hasattr.
-    if not hasattr(sm, "_extract_api_key_from_request"):
+    if not hasattr(sm, "extract_api_key_from_request"):
         logger.debug(
-            "FAB SecurityManager does not have _extract_api_key_from_request; "
+            "FAB SecurityManager does not have extract_api_key_from_request; "
             "API key authentication is not available in this FAB version"
         )
         return None
 
-    api_key_string = sm._extract_api_key_from_request()
+    api_key_string = sm.extract_api_key_from_request()
     if api_key_string is None:
         return None
 
@@ -516,6 +516,47 @@ def _cleanup_session_on_error() -> None:
         logger.warning("Error cleaning up session after exception: %s", e)
 
 
+def _remove_session_safe() -> None:
+    """Remove the scoped SQLAlchemy session, tolerating SSL/connection errors.
+
+    Thread-pool workers reuse threads across requests.  Before each tool call
+    the session is removed to prevent a prior request's thread-local session
+    from leaking into the next one.  If the underlying DBAPI connection died
+    between requests (e.g. RDS SSL idle-timeout or max-connection-age), the
+    rollback implicit in ``session.close()`` raises a ``DBAPIError`` subclass
+    (``OperationalError`` for psycopg2, ``InterfaceError`` for some other
+    drivers).
+
+    When that happens:
+    1. Invalidate the dead connection so the pool discards it (rather than
+       returning a broken connection to the next caller).
+    2. Retry ``remove()`` to deregister the session from the scoped registry.
+
+    The tool call still proceeds because a fresh connection will be obtained
+    on the next DB access.
+    """
+    from sqlalchemy.exc import DBAPIError
+
+    from superset.extensions import db
+
+    try:
+        db.session.remove()
+    except DBAPIError as exc:
+        logger.warning(
+            "Connection error during pre-call session cleanup "
+            "(likely SSL/idle timeout); invalidating connection and retrying: %s",
+            exc,
+        )
+        try:
+            db.session.invalidate()
+        except Exception as invalidate_exc:
+            logger.debug(
+                "Could not invalidate session after connection error: %s",
+                invalidate_exc,
+            )
+        db.session.remove()  # retry: session deregisters cleanly after invalidation
+
+
 def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     """
     Authentication and authorization decorator for MCP tools.
@@ -569,8 +610,7 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     is_async = inspect.iscoroutinefunction(tool_func)
 
     # Detect if the original function expects a ctx: Context parameter.
-    # If so, we inject it via get_context() at call time so tool functions
-    # don't need @parse_request to handle Context injection.
+    # If so, we inject it via get_context() at call time.
     from fastmcp import Context as FMContext
 
     _tool_sig = inspect.signature(tool_func)
@@ -633,6 +673,13 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
         @functools.wraps(tool_func)
         def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
             with _get_app_context_manager():
+                # Clear any stale thread-local SQLAlchemy session before user lookup.
+                # Thread pool workers reuse threads across requests; db.session is
+                # scoped by thread (not ContextVar), so a prior request's session may
+                # still be bound to a different tenant's DB engine. Removing it here
+                # ensures the next DB access creates a fresh session bound to the
+                # correct engine for the current request.
+                _remove_session_safe()
                 user = _setup_user_context()
 
                 # No Flask context - this is a FastMCP internal operation
@@ -696,33 +743,23 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     # Copy docstring from original function (not wrapper, which may have lost it)
     new_wrapper.__doc__ = tool_func.__doc__
 
-    # Set __signature__ from the original function, but:
-    # 1. Remove ctx parameter - FastMCP tools don't expose it to clients
-    # 2. Skip if original has *args (parse_request output has its own handling)
-    has_var_positional = any(
-        p.kind == inspect.Parameter.VAR_POSITIONAL
-        for p in _tool_sig.parameters.values()
+    # Set __signature__ from the original function, removing ctx parameter
+    # since FastMCP tools don't expose it to clients.
+    new_params = []
+    for _name, param in _tool_sig.parameters.items():
+        # Skip ctx parameter - FastMCP tools don't expose it to clients
+        if param.annotation is FMContext or (
+            hasattr(param.annotation, "__name__")
+            and param.annotation.__name__ == "Context"
+        ):
+            continue
+        new_params.append(param)
+    new_wrapper.__signature__ = _tool_sig.replace(  # type: ignore[attr-defined]
+        parameters=new_params
     )
 
-    if not has_var_positional:
-        # For functions without *args, preserve signature but remove ctx
-        new_params = []
-        for _name, param in _tool_sig.parameters.items():
-            # Skip ctx parameter - FastMCP tools don't expose it to clients
-            if param.annotation is FMContext or (
-                hasattr(param.annotation, "__name__")
-                and param.annotation.__name__ == "Context"
-            ):
-                continue
-            new_params.append(param)
-        new_wrapper.__signature__ = _tool_sig.replace(  # type: ignore[attr-defined]
-            parameters=new_params
-        )
-
-        # Also remove ctx from annotations to match signature
-        if "ctx" in new_wrapper.__annotations__:
-            del new_wrapper.__annotations__["ctx"]
-    # For functions with *args (parse_request output), the signature
-    # is already set by parse_request without ctx.
+    # Also remove ctx from annotations to match signature
+    if "ctx" in new_wrapper.__annotations__:
+        del new_wrapper.__annotations__["ctx"]
 
     return new_wrapper  # type: ignore[return-value]

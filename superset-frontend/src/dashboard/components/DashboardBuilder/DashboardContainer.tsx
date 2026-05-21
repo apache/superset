@@ -20,6 +20,7 @@
 // when its container size changes, due to e.g., builder side panel opening
 import {
   FC,
+  FocusEvent as ReactFocusEvent,
   memo,
   useCallback,
   useEffect,
@@ -93,11 +94,13 @@ function normalizeChartCustomizationsForScopeCalculation(
   chartCustomizations: ChartCustomizationConfiguration,
   chartIds: number[],
 ): ChartCustomizationConfiguration {
-  if (!chartCustomizations.some(isLegacyChartCustomizationFormat)) {
-    return chartCustomizations;
+  const truthyCustomizations = chartCustomizations.filter(Boolean);
+
+  if (!truthyCustomizations.some(isLegacyChartCustomizationFormat)) {
+    return truthyCustomizations;
   }
 
-  return chartCustomizations.map(item => {
+  return truthyCustomizations.map(item => {
     if (!isLegacyChartCustomizationFormat(item)) {
       return item;
     }
@@ -326,7 +329,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, [onBeforeUnload]);
 
   const renderTabBar = useCallback(() => <></>, []);
-  const handleFocus = useCallback(e => {
+  const handleFocus = useCallback((e: ReactFocusEvent<HTMLElement>) => {
     if (
       // prevent scrolling when tabbing to the tab pane
       e.target.classList.contains('ant-tabs-tabpane') &&
@@ -340,7 +343,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   }, []);
 
   const renderParentSizeChildren = useCallback(
-    ({ width }) => {
+    ({ width }: { width: number }) => {
       const tabItems = childIds.map((id, index) => ({
         key: index === 0 ? DASHBOARD_GRID_ID : index.toString(),
         label: null,

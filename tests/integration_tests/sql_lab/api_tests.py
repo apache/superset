@@ -24,7 +24,7 @@ import pandas as pd
 import io
 
 import pytest
-import prison
+import rison
 from sqlalchemy.sql import func  # noqa: F401
 from unittest import mock
 
@@ -462,11 +462,11 @@ class TestSqlLabApi(SupersetTestCase):
             # get all results
             arguments = {"key": "key"}
             result_key = json.loads(
-                self.get_resp(f"/api/v1/sqllab/results/?q={prison.dumps(arguments)}")
+                self.get_resp(f"/api/v1/sqllab/results/?q={rison.dumps(arguments)}")
             )
             arguments = {"key": "key", "rows": 1}
             result_limited = json.loads(
-                self.get_resp(f"/api/v1/sqllab/results/?q={prison.dumps(arguments)}")
+                self.get_resp(f"/api/v1/sqllab/results/?q={rison.dumps(arguments)}")
             )
 
         assert result_key == expected_key

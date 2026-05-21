@@ -1160,7 +1160,7 @@ test('does not fire onChange if the same value is selected in single mode', asyn
 
 // Reference for the bug this tests: https://github.com/apache/superset/pull/33043#issuecomment-2809419640
 test('typing and deleting the last character for a new option displays correctly', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   render(<Select {...defaultProps} allowNewOptions />);
 
   await open();

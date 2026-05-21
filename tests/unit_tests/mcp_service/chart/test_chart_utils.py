@@ -31,6 +31,7 @@ from superset.mcp_service.chart.chart_utils import (
     create_metric_object,
     generate_chart_name,
     generate_explore_link,
+    get_table_chart_type_label,
     is_column_truly_temporal,
     map_config_to_form_data,
     map_filter_operator,
@@ -43,10 +44,32 @@ from superset.mcp_service.chart.schemas import (
     ColumnRef,
     FilterConfig,
     LegendConfig,
+    SortByConfig,
     TableChartConfig,
     XYChartConfig,
 )
 from superset.utils.core import FilterOperator, GenericDataType
+
+
+class TestGetTableChartTypeLabel:
+    """Test user-facing labels for table-family chart types."""
+
+    def test_regular_table_label(self) -> None:
+        assert get_table_chart_type_label("table") == "table chart"
+
+    def test_ag_grid_table_label(self) -> None:
+        assert get_table_chart_type_label("ag-grid-table") == (
+            "interactive table chart"
+        )
+
+    def test_non_table_viz_type_has_no_label(self) -> None:
+        assert get_table_chart_type_label("echarts_timeseries_bar") is None
+
+    def test_unknown_viz_type_has_no_label(self) -> None:
+        assert get_table_chart_type_label("my-custom-chart") is None
+
+    def test_missing_viz_type_has_no_label(self) -> None:
+        assert get_table_chart_type_label(None) is None
 
 
 class TestCreateMetricObject:
@@ -273,7 +296,7 @@ class TestMapTableConfig:
         assert result["adhoc_filters"][2]["comparator"] == ["Sports", "Racing"]
 
     def test_map_table_config_with_sort(self) -> None:
-        """Test table config mapping with sort"""
+        """Bare strings default to descending."""
         config = TableChartConfig(
             chart_type="table",
             columns=[ColumnRef(name="product")],
@@ -281,7 +304,26 @@ class TestMapTableConfig:
         )
 
         result = map_table_config(config)
-        assert result["order_by_cols"] == ["product", "revenue"]
+        assert result["order_by_cols"] == ['["product", false]', '["revenue", false]']
+
+    def test_map_table_config_with_sort_direction(self) -> None:
+        """SortByConfig entries honor the explicit ascending flag."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+            sort_by=[
+                SortByConfig(column="product", ascending=True),
+                SortByConfig(column="revenue", ascending=False),
+                "category",
+            ],
+        )
+
+        result = map_table_config(config)
+        assert result["order_by_cols"] == [
+            '["product", true]',
+            '["revenue", false]',
+            '["category", false]',
+        ]
 
     def test_map_table_config_ag_grid_table(self) -> None:
         """Test table config mapping with AG Grid Interactive Table viz_type"""
@@ -552,7 +594,34 @@ class TestMapXYConfig:
 
         assert result["viz_type"] == "echarts_timeseries_scatter"
         assert result["show_legend"] is False
-        assert result["legend_orientation"] == "top"
+        assert result["legendOrientation"] == "top"
+
+    def test_map_xy_config_with_color_scheme(self) -> None:
+        """color_scheme propagates to form_data when set."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue")],
+            kind="line",
+            color_scheme="lyftColors",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["color_scheme"] == "lyftColors"
+
+    def test_map_xy_config_without_color_scheme(self) -> None:
+        """color_scheme key omitted when not set, leaving Superset default."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue")],
+            kind="line",
+        )
+
+        result = map_xy_config(config)
+
+        assert "color_scheme" not in result
 
     def test_map_xy_config_with_time_grain_month(self) -> None:
         """Test XY config mapping with monthly time grain"""
@@ -825,6 +894,62 @@ class TestMapConfigToFormData:
         """Test mapping unsupported config type raises error"""
         with pytest.raises(ValueError, match="Unsupported config type"):
             map_config_to_form_data("invalid_config")  # type: ignore
+
+    @patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_map_xy_config_x_none_defaults_to_main_dttm_col(
+        self, mock_find_by_id: Any, mock_is_temporal: Any
+    ) -> None:
+        """When x is None, map_xy_config resolves it from dataset.main_dttm_col."""
+        mock_dataset = MagicMock()
+        mock_dataset.main_dttm_col = "order_date"
+        mock_find_by_id.return_value = mock_dataset
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=None,
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="bar",
+        )
+
+        result = map_xy_config(config, dataset_id=42)
+
+        assert result["x_axis"] == "order_date"
+        mock_find_by_id.assert_called_once_with(42)
+
+    def test_map_xy_config_x_none_no_dataset_id_raises(self) -> None:
+        """When x is None and no dataset_id, raise ValueError."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=None,
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+        )
+
+        with pytest.raises(ValueError, match="x-axis column is required"):
+            map_xy_config(config, dataset_id=None)
+
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    def test_map_xy_config_x_none_no_main_dttm_col_raises(
+        self, mock_find_by_id: Any
+    ) -> None:
+        """When x is None and dataset has no main_dttm_col, raise ValueError."""
+        mock_dataset = MagicMock()
+        mock_dataset.main_dttm_col = None
+        mock_find_by_id.return_value = mock_dataset
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=None,
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+        )
+
+        with pytest.raises(ValueError, match="no primary datetime column"):
+            map_xy_config(config, dataset_id=42)
 
 
 class TestGenerateChartName:

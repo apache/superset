@@ -418,6 +418,89 @@ test('migrateChartCustomizationArray migrates mixed array', () => {
   expect(result[1].name).toBe('Already Migrated');
 });
 
+test('isLegacyChartCustomizationFormat rejects item with customization: null', () => {
+  const item = { id: 'CUSTOMIZATION-NULL', customization: null };
+  expect(isLegacyChartCustomizationFormat(item)).toBe(false);
+});
+
+test('migrateChartCustomizationArray drops item with customization: null', () => {
+  const items = [
+    { id: 'CUSTOMIZATION-NULL', customization: null },
+    {
+      id: 'CUSTOMIZATION-VALID',
+      customization: {
+        name: 'Valid',
+        dataset: 1,
+        column: 'country',
+      },
+    },
+  ];
+  const result = migrateChartCustomizationArray(items);
+  // Malformed item is dropped; valid legacy item is migrated
+  expect(result).toHaveLength(1);
+  expect(result[0].name).toBe('Valid');
+  expect(result[0].type).toBe(ChartCustomizationType.ChartCustomization);
+});
+
+test('isLegacyChartCustomizationFormat rejects item with customization: undefined', () => {
+  const item = { id: 'CUSTOMIZATION-UNDEF', customization: undefined };
+  expect(isLegacyChartCustomizationFormat(item)).toBe(false);
+});
+
+test('migrateChartCustomizationArray drops null entries', () => {
+  const items = [
+    null,
+    {
+      id: 'CUSTOMIZATION-VALID',
+      customization: {
+        name: 'Valid',
+        dataset: 1,
+        column: 'country',
+      },
+    },
+  ];
+  const result = migrateChartCustomizationArray(items);
+  expect(result).toHaveLength(1);
+  expect(result[0].name).toBe('Valid');
+  expect(result[0].type).toBe(ChartCustomizationType.ChartCustomization);
+});
+
+test('migrateChartCustomizationArray drops undefined entries', () => {
+  const items = [
+    undefined,
+    {
+      id: 'CUSTOMIZATION-VALID',
+      customization: {
+        name: 'Valid',
+        dataset: 1,
+        column: 'country',
+      },
+    },
+  ];
+  const result = migrateChartCustomizationArray(items);
+  expect(result).toHaveLength(1);
+  expect(result[0].name).toBe('Valid');
+  expect(result[0].type).toBe(ChartCustomizationType.ChartCustomization);
+});
+
+test('migrateChartCustomizationArray drops item with customization: undefined', () => {
+  const items = [
+    { id: 'CUSTOMIZATION-UNDEF', customization: undefined },
+    {
+      id: 'CUSTOMIZATION-VALID',
+      customization: {
+        name: 'Valid',
+        dataset: 1,
+        column: 'country',
+      },
+    },
+  ];
+  const result = migrateChartCustomizationArray(items);
+  expect(result).toHaveLength(1);
+  expect(result[0].name).toBe('Valid');
+  expect(result[0].type).toBe(ChartCustomizationType.ChartCustomization);
+});
+
 test('migrateChartCustomizationArray handles empty array', () => {
   const result = migrateChartCustomizationArray([]);
   expect(result).toEqual([]);
