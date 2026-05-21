@@ -79,9 +79,7 @@ class BaseRestoreVersionCommand(BaseCommand):
         )
         if version_number is None:
             raise self.not_found_exc()
-        entity = VersionDAO.restore_version(
-            self.model_cls, self._uuid, version_number
-        )
+        entity = VersionDAO.restore_version(self.model_cls, self._uuid, version_number)
         if entity is None:
             # Race: entity deleted between validate() and now.
             raise self.not_found_exc()

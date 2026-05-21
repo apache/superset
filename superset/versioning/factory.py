@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import json
 import logging
 from typing import Any, Callable
 
@@ -27,6 +26,7 @@ from sqlalchemy_continuum.plugins.flask import FlaskPlugin
 from sqlalchemy_continuum.transaction import TransactionFactory
 from sqlalchemy_continuum.utils import versioned_column_properties
 
+from superset.utils import json
 from superset.versioning.diff import DASHBOARD_JSON_METADATA_AUDIT_KEYS
 
 logger = logging.getLogger(__name__)
@@ -281,7 +281,9 @@ class SkipUnmodifiedPlugin(Plugin):
             return False  # no previous version → let Continuum create one
 
         for col_name, prev_value in zip(col_keys, row, strict=False):
-            post = _normalize_for_compare(target, col_name, getattr(target, col_name, None))
+            post = _normalize_for_compare(
+                target, col_name, getattr(target, col_name, None)
+            )
             pre = _normalize_for_compare(target, col_name, prev_value)
             if post != pre:
                 return False
