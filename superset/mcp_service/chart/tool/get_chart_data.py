@@ -58,7 +58,7 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
-from superset.utils.core import GenericDataType, merge_extra_filters
+from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
 
