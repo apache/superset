@@ -224,21 +224,6 @@ const discardChanges = () => {
   window.location.assign(url);
 };
 
-const Header = (): JSX.Element => {
-  const dashboardUuid = useSelector(
-    (state: HeaderRootState) =>
-      (state.dashboardInfo as unknown as { uuid?: string })?.uuid ?? null,
-  );
-  if (isFeatureEnabled(FeatureFlag.VersionHistory) && dashboardUuid) {
-    return (
-      <DashboardVersionHistoryRoot dashboardUuid={dashboardUuid}>
-        <HeaderInner />
-      </DashboardVersionHistoryRoot>
-    );
-  }
-  return <HeaderInner />;
-};
-
 const HeaderInner = (): JSX.Element => {
   const dispatch = useDispatch();
   const [didNotifyMaxUndoHistoryToast, setDidNotifyMaxUndoHistoryToast] =
@@ -940,6 +925,21 @@ const HeaderInner = (): JSX.Element => {
       />
     </div>
   );
+};
+
+const Header = (): JSX.Element => {
+  const dashboardUuid = useSelector(
+    (state: HeaderRootState) =>
+      (state.dashboardInfo as unknown as { uuid?: string })?.uuid ?? null,
+  );
+  if (isFeatureEnabled(FeatureFlag.VersionHistory) && dashboardUuid) {
+    return (
+      <DashboardVersionHistoryRoot dashboardUuid={dashboardUuid}>
+        <HeaderInner />
+      </DashboardVersionHistoryRoot>
+    );
+  }
+  return <HeaderInner />;
 };
 
 export default Header;

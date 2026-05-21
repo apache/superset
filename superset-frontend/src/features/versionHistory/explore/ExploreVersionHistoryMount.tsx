@@ -38,22 +38,47 @@ interface InnerProps {
   children: React.ReactNode;
 }
 
-/**
- * Wraps the Explore subtree with the version-history feature: provides the
- * panel + preview banner + the chart-preview form_data context. Visible only
- * when ``chartUuid`` is set (i.e. a saved chart is open).
- */
-export function ExploreVersionHistoryRoot({
+interface BannerProps {
+  chartUuid: string | null | undefined;
+  snapshotSummary: string;
+  issuedAt: string;
+}
+
+function ExplorePreviewBanner({
   chartUuid,
-  formData,
-  children,
-}: InnerProps) {
+  snapshotSummary,
+  issuedAt,
+}: BannerProps) {
+  const ctx = useOptionalVersionHistory();
+  const { versions, refetch } = useVersionList('chart', chartUuid);
+  const { restore, restoring } = useRestoreVersion('chart', chartUuid);
+
+  // Prefer the change summary from the matching list row (which contains
+  // the populated ``changes`` array) over the snapshot's bare metadata.
+  const matched = versions?.find(
+    v => v.version_uuid === ctx?.previewVersionUuid,
+  );
+  const summary = matched
+    ? formatChangeTitle(matched.changes)
+    : snapshotSummary;
+
+  const handleRestore = async () => {
+    if (!ctx?.previewVersionUuid) return;
+    const ok = await restore(ctx.previewVersionUuid);
+    if (ok) {
+      ctx.exitPreview();
+      await refetch();
+    }
+  };
+
   return (
-    <VersionHistoryProvider>
-      <ExploreVersionHistoryInner chartUuid={chartUuid} formData={formData}>
-        {children}
-      </ExploreVersionHistoryInner>
-    </VersionHistoryProvider>
+    <PreviewBanner
+      summary={summary}
+      date={formatVersionDate(issuedAt)}
+      onRestore={handleRestore}
+      onExit={() => ctx?.exitPreview()}
+      restoring={restoring}
+    />
   );
 }
 
@@ -97,46 +122,21 @@ function ExploreVersionHistoryInner({
   );
 }
 
-interface BannerProps {
-  chartUuid: string | null | undefined;
-  snapshotSummary: string;
-  issuedAt: string;
-}
-
-function ExplorePreviewBanner({
+/**
+ * Wraps the Explore subtree with the version-history feature: provides the
+ * panel + preview banner + the chart-preview form_data context. Visible only
+ * when ``chartUuid`` is set (i.e. a saved chart is open).
+ */
+export function ExploreVersionHistoryRoot({
   chartUuid,
-  snapshotSummary,
-  issuedAt,
-}: BannerProps) {
-  const ctx = useOptionalVersionHistory();
-  const { versions, refetch } = useVersionList('chart', chartUuid);
-  const { restore, restoring } = useRestoreVersion('chart', chartUuid);
-
-  // Prefer the change summary from the matching list row (which contains
-  // the populated ``changes`` array) over the snapshot's bare metadata.
-  const matched = versions?.find(
-    v => v.version_uuid === ctx?.previewVersionUuid,
-  );
-  const summary = matched
-    ? formatChangeTitle(matched.changes)
-    : snapshotSummary;
-
-  const handleRestore = async () => {
-    if (!ctx?.previewVersionUuid) return;
-    const ok = await restore(ctx.previewVersionUuid);
-    if (ok) {
-      ctx.exitPreview();
-      await refetch();
-    }
-  };
-
+  formData,
+  children,
+}: InnerProps) {
   return (
-    <PreviewBanner
-      summary={summary}
-      date={formatVersionDate(issuedAt)}
-      onRestore={handleRestore}
-      onExit={() => ctx?.exitPreview()}
-      restoring={restoring}
-    />
+    <VersionHistoryProvider>
+      <ExploreVersionHistoryInner chartUuid={chartUuid} formData={formData}>
+        {children}
+      </ExploreVersionHistoryInner>
+    </VersionHistoryProvider>
   );
 }
