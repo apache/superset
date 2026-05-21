@@ -40,6 +40,7 @@ USER_DIRECTORY_FIELDS = frozenset(
         "last_saved_by_name",
         "owner",
         "owners",
+        "roles",
     }
 )
 
