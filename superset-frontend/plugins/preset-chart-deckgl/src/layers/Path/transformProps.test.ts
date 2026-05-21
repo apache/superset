@@ -233,7 +233,11 @@ test('Path transformProps should include metric from breakpoint_metric', () => {
   const result = transformProps(props as ChartProps);
   const features = result.payload.data.features as PathFeature[];
 
-  const metrics = features.map(f => f.metric).sort((a, b) => a - b);
+  const metrics = features
+    .map(f => f.metric)
+    .filter((m): m is number => m !== undefined)
+    .sort((a, b) => a - b);
+
   expect(metrics).toEqual([50, 100, 200]);
 });
 
@@ -250,7 +254,10 @@ test('Path transformProps should fall back to base metric when breakpoint_metric
   const result = transformProps(props as ChartProps);
   const features = result.payload.data.features as PathFeature[];
 
-  const metrics = features.map(f => f.metric).sort((a, b) => a - b);
+  const metrics = features
+    .map(f => f.metric)
+    .filter((m): m is number => m !== undefined)
+    .sort((a, b) => a - b);
   expect(metrics).toEqual([50, 100, 200]);
 });
 
