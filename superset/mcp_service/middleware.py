@@ -19,6 +19,7 @@ import logging
 import secrets
 import time
 from collections import defaultdict
+from contextvars import ContextVar
 from typing import Any, Awaitable, Callable, Dict, Protocol, Sequence
 
 import mcp.types as mt
@@ -57,6 +58,7 @@ from superset.mcp_service.utils.token_utils import (
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
+_mcp_call_id_var: ContextVar[str | None] = ContextVar("mcp_call_id", default=None)
 
 
 def _sanitize_error_for_logging(error: Exception) -> str:
@@ -254,7 +256,7 @@ class LoggingMiddleware(Middleware):
         tool_name = getattr(context.message, "name", None)
 
         mcp_call_id = secrets.token_hex(16)
-        context.mcp_call_id = mcp_call_id
+        _mcp_call_id_var.set(mcp_call_id)
         start_time = time.time()
         success = False
         try:
@@ -410,7 +412,7 @@ class StructuredContentStripperMiddleware(Middleware):
             # unhandled exception — including ToolError from
             # GlobalErrorHandlerMiddleware, ValueError, TypeError, etc. —
             # will cause encoding failures on the wire.
-            mcp_call_id = getattr(context, "mcp_call_id", None)
+            mcp_call_id = _mcp_call_id_var.get(None)
             return ToolResult(
                 content=[mt.TextContent(type="text", text=f"Error: {e}")],
                 meta={"mcp_call_id": mcp_call_id} if mcp_call_id else None,

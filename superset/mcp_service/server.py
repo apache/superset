@@ -400,27 +400,33 @@ def _build_summary_serializer(max_desc: int) -> Any:
 def _tool_allowed_for_current_user(tool: Any) -> bool:
     """Return whether the current Flask user can see this tool in search results."""
     try:
-        from flask import g
+        from flask import g, has_app_context
 
         from superset.mcp_service.auth import (
+            _get_app_context_manager,
             get_user_from_request,
             is_tool_visible_to_current_user,
         )
 
-        if not getattr(g, "user", None):
-            try:
-                g.user = get_user_from_request()
-            except PermissionError:
-                # Invalid credentials (bad API key) → deny all, matching
-                # RBACToolVisibilityMiddleware's fail-closed behaviour.
-                return False
-            except ValueError:
-                # No auth source configured → only pass public tools
-                # (those with no class-level permission requirement).
-                func = getattr(tool, "fn", tool)
-                return not getattr(func, "_class_permission_name", None)
+        def _check() -> bool:
+            if not getattr(g, "user", None):
+                try:
+                    g.user = get_user_from_request()
+                except PermissionError:
+                    # Invalid credentials (bad API key) → deny all, matching
+                    # RBACToolVisibilityMiddleware's fail-closed behaviour.
+                    return False
+                except ValueError:
+                    # No auth source configured → only pass public tools
+                    # (those with no class-level permission requirement).
+                    func = getattr(tool, "fn", tool)
+                    return not getattr(func, "_class_permission_name", None)
+            return is_tool_visible_to_current_user(tool)
 
-        return is_tool_visible_to_current_user(tool)
+        if has_app_context():
+            return _check()
+        with _get_app_context_manager():
+            return _check()
     except (AttributeError, RuntimeError, ValueError):
         logger.debug("Could not evaluate tool search permission", exc_info=True)
         return False
