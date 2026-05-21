@@ -598,6 +598,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables the tagging system for organizing assets
     # @lifecycle: development
     "TAGGING_SYSTEM": False,
+    # Expose the chart/dashboard version history UI (panel + restore flow)
+    # backed by the entity-versioning REST endpoints.
+    # @lifecycle: development
+    "VERSION_HISTORY": False,
     # =================================================================
     # IN TESTING
     # =================================================================

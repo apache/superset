@@ -98,6 +98,12 @@
         "default": false,
         "lifecycle": "development",
         "description": "Enables the tagging system for organizing assets"
+      },
+      {
+        "name": "VERSION_HISTORY",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Expose the chart/dashboard version history UI (panel + restore flow) backed by the entity-versioning REST endpoints."
       }
     ],
     "testing": [
