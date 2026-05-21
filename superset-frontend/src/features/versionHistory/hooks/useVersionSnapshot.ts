@@ -48,7 +48,12 @@ export function useVersionSnapshot(
     })
       .then(({ json }) => {
         if (cancelled) return;
-        setSnapshot(json as VersionSnapshot);
+        // SupersetClient returns the envelope ``{ result: ... }``; the
+        // snapshot fields (position_json, issued_at, _version, ...) live
+        // inside ``result``, not at the root.
+        const result = (json as { result?: VersionSnapshot } | undefined)
+          ?.result;
+        setSnapshot(result ?? null);
       })
       .catch(e => {
         if (cancelled) return;
