@@ -505,7 +505,10 @@ def add_chart_to_existing_dashboard(  # noqa: C901
             )
             if tab_error is not None:
                 return tab_error
-            assert parent_id is not None  # narrowed: tab_error is None ↔ parent_id str
+            if parent_id is None:
+                raise RuntimeError(
+                    "unreachable: tab_error is None implies parent_id is str"
+                )
 
             # Add chart, column, and row to layout
             chart_key, column_key, row_key = _add_chart_to_layout(
