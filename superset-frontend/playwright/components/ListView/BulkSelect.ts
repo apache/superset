@@ -85,9 +85,13 @@ export class BulkSelect {
   /**
    * Gets the bulk-select checkbox for a row by name.
    *
-   * Scoped to `[data-test="row-select-checkbox"]` so a future second
-   * checkbox in the row (e.g. a column-level toggle) can't break strict
-   * mode.
+   * The `data-test="row-select-checkbox"` attribute is on the `<span>`
+   * wrapper that `TableCollection`'s `rowSelection.renderCell` puts around
+   * antd's checkbox originNode (the attribute can't be moved directly
+   * onto antd's `<input>` from `renderCell` because the originNode is
+   * opaque). We drill into `input[type="checkbox"]` so Playwright's
+   * `.check()` operates on the real input — `.check()` on the wrapper
+   * `<span>` throws "Not a checkbox or radio button".
    *
    * @param rowName - The name/text identifying the row
    */
@@ -95,7 +99,9 @@ export class BulkSelect {
     const row = this.table.getRow(rowName);
     return new Checkbox(
       this.page,
-      row.locator(BULK_SELECT_SELECTORS.ROW_CHECKBOX),
+      row.locator(
+        `${BULK_SELECT_SELECTORS.ROW_CHECKBOX} input[type="checkbox"]`,
+      ),
     );
   }
 

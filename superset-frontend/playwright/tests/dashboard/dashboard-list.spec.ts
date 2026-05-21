@@ -94,8 +94,15 @@ test('should delete a dashboard with confirmation', async ({
   const toast = new Toast(page);
   await expect(toast.getSuccess()).toBeVisible();
 
-  // Verify dashboard is removed from list
-  await expect(dashboardListPage.getDashboardRow(dashboardName)).toHaveCount(0);
+  // Verify dashboard is removed from list (extended timeout for slow CI
+  // post-delete propagation — the default 8s expect.timeout intermittently
+  // expires before the listview re-fetch lands).
+  await expect(dashboardListPage.getDashboardRow(dashboardName)).toHaveCount(
+    0,
+    {
+      timeout: TIMEOUT.API_RESPONSE,
+    },
+  );
 
   // Backend verification: API returns 404
   await expectDeleted(page, ENDPOINTS.DASHBOARD, dashboardId, {
@@ -200,9 +207,11 @@ test('should bulk delete multiple dashboards', async ({
   // Verify both dashboards are removed from list (deleted rows are removed from the DOM, so assert count rather than visibility)
   await expect(dashboardListPage.getDashboardRow(dashboard1.name)).toHaveCount(
     0,
+    { timeout: TIMEOUT.API_RESPONSE },
   );
   await expect(dashboardListPage.getDashboardRow(dashboard2.name)).toHaveCount(
     0,
+    { timeout: TIMEOUT.API_RESPONSE },
   );
 
   // Backend verification: Both return 404

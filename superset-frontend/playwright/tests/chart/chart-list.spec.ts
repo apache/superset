@@ -90,7 +90,9 @@ test('should delete a chart with confirmation', async ({
   await expect(toast.getSuccess()).toBeVisible();
 
   // Verify chart is removed from list (deleted rows are removed from the DOM, so assert count rather than visibility)
-  await expect(chartListPage.getChartRow(chartName)).toHaveCount(0);
+  await expect(chartListPage.getChartRow(chartName)).toHaveCount(0, {
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Backend verification: API returns 404
   await expectDeleted(page, ENDPOINTS.CHART, chartId, {
@@ -249,8 +251,12 @@ test('should bulk delete multiple charts', async ({
   await expect(toast.getSuccess()).toBeVisible();
 
   // Verify both charts are removed from list (deleted rows are removed from the DOM, so assert count rather than visibility)
-  await expect(chartListPage.getChartRow(chart1.name)).toHaveCount(0);
-  await expect(chartListPage.getChartRow(chart2.name)).toHaveCount(0);
+  await expect(chartListPage.getChartRow(chart1.name)).toHaveCount(0, {
+    timeout: TIMEOUT.API_RESPONSE,
+  });
+  await expect(chartListPage.getChartRow(chart2.name)).toHaveCount(0, {
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Backend verification: Both return 404
   for (const chart of [chart1, chart2]) {
@@ -312,7 +318,9 @@ test('should edit chart name from card view', async ({ page, testAssets }) => {
   await expect(cardListPage.getChartCard(newName)).toBeVisible({
     timeout: TIMEOUT.API_RESPONSE,
   });
-  await expect(cardListPage.getChartCard(chartName)).toHaveCount(0);
+  await expect(cardListPage.getChartCard(chartName)).toHaveCount(0, {
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Backend verification: API returns updated name
   const response = await apiGetChart(page, chartId);

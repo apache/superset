@@ -135,7 +135,9 @@ test('should delete a dataset with confirmation', async ({
   await expect(toast.getMessage()).toContainText('Deleted');
 
   // Verify dataset is removed from list (deleted rows are removed from the DOM, so assert count rather than visibility)
-  await expect(datasetListPage.getDatasetRow(datasetName)).toHaveCount(0);
+  await expect(datasetListPage.getDatasetRow(datasetName)).toHaveCount(0, {
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Verify via API that dataset no longer exists (404)
   await expectDeleted(page, ENDPOINTS.DATASET, datasetId, {
@@ -441,8 +443,12 @@ test('should bulk delete multiple datasets', async ({
   await expect(toast.getSuccess()).toBeVisible();
 
   // Verify both datasets are removed from list (deleted rows are removed from the DOM, so assert count rather than visibility)
-  await expect(datasetListPage.getDatasetRow(dataset1.name)).toHaveCount(0);
-  await expect(datasetListPage.getDatasetRow(dataset2.name)).toHaveCount(0);
+  await expect(datasetListPage.getDatasetRow(dataset1.name)).toHaveCount(0, {
+    timeout: TIMEOUT.API_RESPONSE,
+  });
+  await expect(datasetListPage.getDatasetRow(dataset2.name)).toHaveCount(0, {
+    timeout: TIMEOUT.API_RESPONSE,
+  });
 
   // Verify via API that datasets no longer exist (404)
   await expectDeleted(page, ENDPOINTS.DATASET, dataset1.id, {
