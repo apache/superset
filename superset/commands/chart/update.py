@@ -98,7 +98,7 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
             # Additional ownership check - must match CreateChartCommand behavior
             for dash in accessible_dashboards:
                 if not security_manager.is_owner(dash):
-                    exceptions.append(DashboardsForbiddenError())
+                    raise DashboardsForbiddenError()
 
     def validate(self) -> None:  # noqa: C901
         exceptions: list[ValidationError] = []
