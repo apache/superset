@@ -3298,6 +3298,31 @@ def test_rls_predicate_splice_preserves_dialect_function() -> None:
     )
 
 
+def test_rls_predicate_splice_combines_multiple_predicates() -> None:
+    """
+    Splice mode should AND together multiple predicates configured for the same
+    table into a single injected condition.
+    """
+    sql = "SELECT * FROM some_table WHERE status = 'open'"
+    statement = SQLStatement(sql, engine="postgresql")
+    statement.apply_rls(
+        None,
+        None,
+        {
+            Table("some_table"): [
+                "some_table.tenant_id = 42",
+                "some_table.region = 'US'",
+            ],
+        },
+        RLSMethod.AS_PREDICATE_SPLICE,
+    )
+    assert statement.format() == (
+        "SELECT * FROM some_table "
+        "WHERE some_table.tenant_id = 42 AND some_table.region = 'US' "
+        "AND (status = 'open')"
+    )
+
+
 def test_rls_predicate_splice_string_predicates_skip_parse() -> None:
     """
     Splice mode accepts predicate strings directly — no ``parse_predicate`` is

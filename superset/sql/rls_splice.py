@@ -41,6 +41,13 @@ Known limitations:
     parsing, not generation.
   - Predicate strings are spliced in as raw SQL. They must come from a trusted
     source (the RLS config), not user input.
+  - Predicate **column qualification** (prefixing bare columns with the table
+    alias) currently round-trips the predicate through the sqlglot generator
+    via ``_qualify_predicate``. Predicates that contain dialect-specific
+    functions can therefore still be transpiled by the generator at that step,
+    even though the surrounding query is preserved byte-for-byte. The
+    surrounding-query fidelity guarantee does not extend to the predicate
+    string itself.
 """
 
 from __future__ import annotations
@@ -220,7 +227,6 @@ def _splices_for_scope(
         join_splice = _find_join_splice(sql, tokens, table_end, pred_sql)
         if join_splice:
             join_splices.extend(join_splice)
-        continue
 
     if not from_predicates:
         return join_splices
@@ -237,9 +243,10 @@ def _splices_for_scope(
 
 def _table_end(source: exp.Table) -> int | None:
     ident = source.find(exp.Identifier)
-    if ident and getattr(ident, "_meta", None):
-        return ident._meta["end"]
-    return None
+    meta = getattr(ident, "_meta", None) if ident else None
+    if meta is None:
+        return None
+    return meta.get("end")
 
 
 def _classify_source_predicate(
@@ -284,6 +291,11 @@ def _qualify_predicate(
     """
     Qualify predicate columns with the table alias/name, mirroring
     ``RLSAsPredicateTransformer``.
+
+    Note: this re-renders the predicate via the sqlglot generator, so the
+    splice-mode fidelity guarantee does not extend to the predicate text
+    itself. Predicates containing dialect-specific functions may be transpiled
+    here even though the surrounding query is preserved byte-for-byte.
     """
     parsed = sqlglot.parse_one(predicate, dialect=dialect)
     table = table_node.alias_or_name

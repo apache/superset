@@ -894,7 +894,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         sources = cls._split_source(script, engine, len(asts))
         return [
             cls(ast=ast, engine=engine, source=source)
-            for ast, source in zip(asts, sources, strict=False)
+            for ast, source in zip(asts, sources, strict=True)
         ]
 
     @classmethod
@@ -927,13 +927,15 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             if tok.token_type == sqlglot.tokens.TokenType.L_PAREN:
                 depth += 1
             elif tok.token_type == sqlglot.tokens.TokenType.R_PAREN:
-                depth -= 1
+                # Clamp at 0 so malformed SQL with unbalanced ')' can't drive
+                # depth negative and misclassify later semicolons as nested.
+                depth = max(0, depth - 1)
             elif tok.token_type == sqlglot.tokens.TokenType.SEMICOLON and depth == 0:
                 boundaries.append(tok.start)
 
         starts = [0, *(b + 1 for b in boundaries)]
         ends = [*boundaries, len(script)]
-        sources = [script[s:e].strip() for s, e in zip(starts, ends, strict=False)]
+        sources = [script[s:e].strip() for s, e in zip(starts, ends, strict=True)]
         sources = [s for s in sources if s]
         if len(sources) != expected_count:
             return none_result
