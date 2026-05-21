@@ -665,3 +665,242 @@ class TestValidateSavedMetrics:
         assert not is_valid
         assert error is not None
         assert error.error_code == "INVALID_SAVED_METRIC"
+
+
+class TestGetCanonicalMetricName:
+    """Tests for _get_canonical_metric_name — metrics-only lookup."""
+
+    def test_exact_match(self, mock_dataset_context: DatasetContext) -> None:
+        result = DatasetValidator._get_canonical_metric_name(
+            "TotalRevenue", mock_dataset_context
+        )
+        assert result == "TotalRevenue"
+
+    def test_case_insensitive_match(self, mock_dataset_context: DatasetContext) -> None:
+        result = DatasetValidator._get_canonical_metric_name(
+            "totalrevenue", mock_dataset_context
+        )
+        assert result == "TotalRevenue"
+
+    def test_unknown_metric_returns_original(
+        self, mock_dataset_context: DatasetContext
+    ) -> None:
+        result = DatasetValidator._get_canonical_metric_name(
+            "no_such_metric", mock_dataset_context
+        )
+        assert result == "no_such_metric"
+
+    def test_column_name_not_matched(
+        self, mock_dataset_context: DatasetContext
+    ) -> None:
+        """A name that matches a column but not a metric returns the original."""
+        result = DatasetValidator._get_canonical_metric_name(
+            "Sales", mock_dataset_context
+        )
+        assert result == "Sales"
+
+
+@pytest.fixture
+def collision_dataset_context() -> DatasetContext:
+    """Dataset where a column and a metric share the same case-insensitive name
+    but have different casing — the scenario that exposed the saved-metric bug."""
+    return DatasetContext(
+        id=99,
+        table_name="sales_data",
+        schema="public",
+        database_name="examples",
+        available_columns=[
+            {"name": "totalrevenue", "type": "DECIMAL", "is_numeric": True},
+        ],
+        available_metrics=[
+            {
+                "name": "TotalRevenue",
+                "expression": "SUM(amount)",
+                "description": None,
+            },
+        ],
+    )
+
+
+class TestSavedMetricNormalizationCorrectness:
+    """Saved metrics must resolve against available_metrics, not available_columns.
+
+    When a column and a metric share the same case-insensitive name but have
+    different casing, _get_canonical_column_name (columns-first) returns the
+    column's casing.  For saved_metric=True refs this is wrong — downstream
+    metric resolution is exact-name based and expects the metric's casing.
+    """
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_xy_saved_metric_uses_metric_casing(
+        self,
+        mock_get_context: Any,
+        collision_dataset_context: DatasetContext,
+    ) -> None:
+        mock_get_context.return_value = collision_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="totalrevenue"),
+            y=[ColumnRef(name="totalrevenue", saved_metric=True)],
+        )
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        # x is a regular column ref — gets column casing
+        assert normalized.x is not None
+        assert normalized.x.name == "totalrevenue"
+        # y is a saved metric — must get metric casing, not column casing
+        assert normalized.y[0].name == "TotalRevenue"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_table_saved_metric_uses_metric_casing(
+        self,
+        mock_get_context: Any,
+        collision_dataset_context: DatasetContext,
+    ) -> None:
+        from superset.mcp_service.chart.schemas import TableChartConfig
+
+        mock_get_context.return_value = collision_dataset_context
+
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[
+                ColumnRef(name="totalrevenue"),
+                ColumnRef(name="totalrevenue", saved_metric=True),
+            ],
+        )
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        assert normalized.columns[0].name == "totalrevenue"
+        assert normalized.columns[1].name == "TotalRevenue"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_pie_saved_metric_uses_metric_casing(
+        self,
+        mock_get_context: Any,
+        collision_dataset_context: DatasetContext,
+    ) -> None:
+        from superset.mcp_service.chart.schemas import PieChartConfig
+
+        mock_get_context.return_value = collision_dataset_context
+
+        config = PieChartConfig(
+            chart_type="pie",
+            dimension=ColumnRef(name="totalrevenue"),
+            metric=ColumnRef(name="totalrevenue", saved_metric=True),
+        )
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        assert normalized.dimension.name == "totalrevenue"
+        assert normalized.metric.name == "TotalRevenue"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_big_number_saved_metric_uses_metric_casing(
+        self,
+        mock_get_context: Any,
+        collision_dataset_context: DatasetContext,
+    ) -> None:
+        from superset.mcp_service.chart.schemas import BigNumberChartConfig
+
+        mock_get_context.return_value = collision_dataset_context
+
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="totalrevenue", saved_metric=True),
+        )
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        assert normalized.metric.name == "TotalRevenue"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_mixed_timeseries_saved_metrics_use_metric_casing(
+        self,
+        mock_get_context: Any,
+        collision_dataset_context: DatasetContext,
+    ) -> None:
+        from superset.mcp_service.chart.schemas import (
+            ColumnRef,
+            MixedTimeseriesChartConfig,
+        )
+
+        context = DatasetContext(
+            id=99,
+            table_name="sales_data",
+            schema="public",
+            database_name="examples",
+            available_columns=[
+                {"name": "ds", "type": "TIMESTAMP", "is_temporal": True},
+                {"name": "totalrevenue", "type": "DECIMAL", "is_numeric": True},
+            ],
+            available_metrics=[
+                {
+                    "name": "TotalRevenue",
+                    "expression": "SUM(amount)",
+                    "description": None,
+                },
+                {
+                    "name": "OrderCount",
+                    "expression": "COUNT(*)",
+                    "description": None,
+                },
+            ],
+        )
+        mock_get_context.return_value = context
+
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="totalrevenue", saved_metric=True)],
+            y_secondary=[ColumnRef(name="ordercount", saved_metric=True)],
+        )
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=99)
+
+        assert normalized.y[0].name == "TotalRevenue"
+        assert normalized.y_secondary[0].name == "OrderCount"
+
+
+class TestPreValidateAliasHandling:
+    """pre_validate must accept schema field aliases, not just canonical names."""
+
+    def test_xy_pre_validate_accepts_metrics_alias(self) -> None:
+        from superset.mcp_service.chart.registry import get_registry
+
+        plugin = get_registry().get("xy")
+        assert plugin is not None
+
+        config_with_alias = {
+            "chart_type": "xy",
+            "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+        }
+        error = plugin.pre_validate(config_with_alias)
+        assert error is None, f"pre_validate rejected 'metrics' alias: {error}"
+
+    def test_mixed_timeseries_pre_validate_accepts_x_axis_alias(self) -> None:
+        from superset.mcp_service.chart.registry import get_registry
+
+        plugin = get_registry().get("mixed_timeseries")
+        assert plugin is not None
+
+        config_with_alias = {
+            "chart_type": "mixed_timeseries",
+            "x_axis": {"name": "ds"},
+            "metrics": [{"name": "revenue", "aggregate": "SUM"}],
+            "metrics_b": [{"name": "orders", "aggregate": "COUNT"}],
+        }
+        error = plugin.pre_validate(config_with_alias)
+        assert error is None, f"pre_validate rejected aliases: {error}"
+
+    def test_mixed_timeseries_pre_validate_still_rejects_truly_missing(self) -> None:
+        from superset.mcp_service.chart.registry import get_registry
+
+        plugin = get_registry().get("mixed_timeseries")
+        assert plugin is not None
+
+        config_missing_secondary = {
+            "chart_type": "mixed_timeseries",
+            "x": {"name": "ds"},
+            "y": [{"name": "revenue", "aggregate": "SUM"}],
+        }
+        error = plugin.pre_validate(config_missing_secondary)
+        assert error is not None
+        assert "y_secondary" in error.message

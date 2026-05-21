@@ -102,9 +102,13 @@ class TableChartPlugin(BaseChartPlugin):
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
         config_dict = config.model_dump()
         get_canonical = DatasetValidator._get_canonical_column_name
+        get_canonical_metric = DatasetValidator._get_canonical_metric_name
 
         for col in config_dict.get("columns") or []:
-            col["name"] = get_canonical(col["name"], dataset_context)
+            if col.get("saved_metric"):
+                col["name"] = get_canonical_metric(col["name"], dataset_context)
+            else:
+                col["name"] = get_canonical(col["name"], dataset_context)
 
         DatasetValidator._normalize_filters(config_dict, dataset_context)
         return TableChartConfig.model_validate(config_dict)

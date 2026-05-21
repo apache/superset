@@ -103,10 +103,19 @@ class PieChartPlugin(BaseChartPlugin):
                     config_dict["dimension"]["name"], dataset_context
                 )
             )
-        if config_dict.get("metric") and not config_dict["metric"].get("saved_metric"):
-            config_dict["metric"]["name"] = DatasetValidator._get_canonical_column_name(
-                config_dict["metric"]["name"], dataset_context
-            )
+        if config_dict.get("metric"):
+            if config_dict["metric"].get("saved_metric"):
+                config_dict["metric"]["name"] = (
+                    DatasetValidator._get_canonical_metric_name(
+                        config_dict["metric"]["name"], dataset_context
+                    )
+                )
+            else:
+                config_dict["metric"]["name"] = (
+                    DatasetValidator._get_canonical_column_name(
+                        config_dict["metric"]["name"], dataset_context
+                    )
+                )
         DatasetValidator._normalize_filters(config_dict, dataset_context)
         return PieChartConfig.model_validate(config_dict)
 

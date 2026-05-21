@@ -123,9 +123,14 @@ class PivotTableChartPlugin(BaseChartPlugin):
         def _norm_col_list(key: str) -> None:
             if config_dict.get(key):
                 for col in config_dict[key]:
-                    col["name"] = DatasetValidator._get_canonical_column_name(
-                        col["name"], dataset_context
-                    )
+                    if col.get("saved_metric"):
+                        col["name"] = DatasetValidator._get_canonical_metric_name(
+                            col["name"], dataset_context
+                        )
+                    else:
+                        col["name"] = DatasetValidator._get_canonical_column_name(
+                            col["name"], dataset_context
+                        )
 
         _norm_col_list("rows")
         _norm_col_list("metrics")

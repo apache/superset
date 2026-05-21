@@ -47,11 +47,11 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
     ) -> ChartGenerationError | None:
         missing_fields = []
 
-        if "x" not in config:
+        if "x" not in config and "x_axis" not in config:
             missing_fields.append("'x' (X-axis temporal column)")
-        if "y" not in config:
+        if "y" not in config and "metrics" not in config:
             missing_fields.append("'y' (primary Y-axis metrics)")
-        if "y_secondary" not in config:
+        if "y_secondary" not in config and "metrics_b" not in config:
             missing_fields.append("'y_secondary' (secondary Y-axis metrics)")
 
         if missing_fields:
@@ -132,9 +132,14 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
         def _norm_list(key: str) -> None:
             if config_dict.get(key):
                 for col in config_dict[key]:
-                    col["name"] = DatasetValidator._get_canonical_column_name(
-                        col["name"], dataset_context
-                    )
+                    if col.get("saved_metric"):
+                        col["name"] = DatasetValidator._get_canonical_metric_name(
+                            col["name"], dataset_context
+                        )
+                    else:
+                        col["name"] = DatasetValidator._get_canonical_column_name(
+                            col["name"], dataset_context
+                        )
 
         _norm_single("x")
         _norm_list("y")

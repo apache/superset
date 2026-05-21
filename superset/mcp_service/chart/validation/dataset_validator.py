@@ -343,6 +343,25 @@ class DatasetValidator:
         return column_name
 
     @staticmethod
+    def _get_canonical_metric_name(
+        metric_name: str, dataset_context: DatasetContext
+    ) -> str:
+        """Return the canonical saved-metric name from available_metrics.
+
+        Unlike _get_canonical_column_name, this only searches available_metrics
+        so that a same-named column with different casing cannot shadow the
+        metric's canonical name.  Use this whenever saved_metric=True.
+
+        Returns the original name when no metric matches (validation catches
+        the missing-metric case separately).
+        """
+        metric_lower = metric_name.lower()
+        for metric in dataset_context.available_metrics:
+            if metric["name"].lower() == metric_lower:
+                return metric["name"]
+        return metric_name
+
+    @staticmethod
     def _normalize_filters(
         config_dict: Dict[str, Any], dataset_context: DatasetContext
     ) -> None:

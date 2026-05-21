@@ -58,7 +58,7 @@ class XYChartPlugin(BaseChartPlugin):
         config: dict[str, Any],
     ) -> ChartGenerationError | None:
         # x is optional — defaults to dataset's main_dttm_col in map_xy_config
-        if "y" not in config:
+        if "y" not in config and "metrics" not in config:
             return ChartGenerationError(
                 error_type="missing_xy_fields",
                 message="XY chart missing required field: 'y' (Y-axis metrics)",
@@ -112,13 +112,17 @@ class XYChartPlugin(BaseChartPlugin):
     def normalize_column_refs(self, config: Any, dataset_context: Any) -> Any:
         config_dict = config.model_dump()
         get_canonical = DatasetValidator._get_canonical_column_name
+        get_canonical_metric = DatasetValidator._get_canonical_metric_name
 
         if config_dict.get("x"):
             config_dict["x"]["name"] = get_canonical(
                 config_dict["x"]["name"], dataset_context
             )
         for y_col in config_dict.get("y") or []:
-            y_col["name"] = get_canonical(y_col["name"], dataset_context)
+            if y_col.get("saved_metric"):
+                y_col["name"] = get_canonical_metric(y_col["name"], dataset_context)
+            else:
+                y_col["name"] = get_canonical(y_col["name"], dataset_context)
         for gb_col in config_dict.get("group_by") or []:
             gb_col["name"] = get_canonical(gb_col["name"], dataset_context)
 
