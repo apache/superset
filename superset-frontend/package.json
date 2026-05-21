@@ -112,7 +112,7 @@
     "@fontsource/fira-code": "^5.2.7",
     "@fontsource/ibm-plex-mono": "^5.2.7",
     "@fontsource/inter": "^5.2.8",
-    "@googleapis/sheets": "^13.0.1",
+    "@googleapis/sheets": "^13.0.2",
     "@great-expectations/jsonforms-antd-renderers": "^2.2.10",
     "@jsonforms/core": "^3.7.0",
     "@jsonforms/react": "^3.7.0",
