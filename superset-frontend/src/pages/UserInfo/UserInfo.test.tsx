@@ -51,6 +51,7 @@ const mockUser: UserWithPermissionsAndRoles = {
       ['can_write', 'Chart'],
     ],
   },
+  groups: ['Engineering', 'Analytics'],
   createdOn: new Date().toISOString(),
   isAnonymous: false,
   permissions: {
@@ -61,12 +62,12 @@ const mockUser: UserWithPermissionsAndRoles = {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('UserInfo', () => {
-  const renderPage = async () =>
+  const renderPage = async (user: UserWithPermissionsAndRoles = mockUser) =>
     act(async () => {
       render(
         <MemoryRouter>
           <QueryParamProvider adapter={ReactRouter5Adapter}>
-            <UserInfo user={mockUser} />
+            <UserInfo user={user} />
           </QueryParamProvider>
         </MemoryRouter>,
         { useRedux: true, store },
@@ -97,10 +98,18 @@ describe('UserInfo', () => {
     expect(screen.getByText('johndoe')).toBeInTheDocument();
     expect(screen.getByText('Yes')).toBeInTheDocument();
     expect(screen.getByText('Admin')).toBeInTheDocument();
+    expect(screen.getByText('Engineering, Analytics')).toBeInTheDocument();
     expect(screen.getByText('12')).toBeInTheDocument();
     expect(await screen.findByText('John')).toBeInTheDocument();
     expect(screen.getByText('Doe')).toBeInTheDocument();
     expect(screen.getByText('john@example.com')).toBeInTheDocument();
+  });
+
+  test('renders "None" when the user has no groups', async () => {
+    await renderPage({ ...mockUser, groups: [] });
+
+    expect(await screen.findByText('Groups')).toBeInTheDocument();
+    expect(screen.getByText('None')).toBeInTheDocument();
   });
 
   test('calls the /me endpoint on mount', async () => {

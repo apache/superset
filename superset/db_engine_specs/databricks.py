@@ -569,11 +569,11 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
     ) -> list[str]:
         prequeries = []
         if catalog:
-            catalog = f"`{catalog}`" if not catalog.startswith("`") else catalog
-            prequeries.append(f"USE CATALOG {catalog}")
+            escaped_catalog = catalog.replace("`", "``")
+            prequeries.append(f"USE CATALOG `{escaped_catalog}`")
         if schema:
-            schema = f"`{schema}`" if not schema.startswith("`") else schema
-            prequeries.append(f"USE SCHEMA {schema}")
+            escaped_schema = schema.replace("`", "``")
+            prequeries.append(f"USE SCHEMA `{escaped_schema}`")
         return prequeries
 
     @classmethod

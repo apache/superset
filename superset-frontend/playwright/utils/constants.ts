@@ -58,4 +58,20 @@ export const TIMEOUT = {
    * File import/upload operations (upload + server processing)
    */
   FILE_IMPORT: 30000, // 30s for file import operations
+
+  /**
+   * UI transition timeout (tab close, popover dismiss, dropdown close)
+   */
+  UI_TRANSITION: 5000, // 5s ceiling for Ant Design animations (~300-500ms actual)
+
+  /**
+   * SQL query execution (query → backend processing → results)
+   */
+  QUERY_EXECUTION: 15000, // 15s for SQL queries that may take longer than default expect timeout
+
+  /**
+   * Extended test timeout for multi-step tests (page load + query execution + assertions).
+   * Use with test.setTimeout() when the default 30s test timeout is insufficient.
+   */
+  SLOW_TEST: 60000, // 60s for tests that chain multiple slow operations
 } as const;

@@ -1,0 +1,1 @@
+{"parameters":[{"description":"Either the id of the chart, or its uuid","in":"path","name":"id_or_uuid","required":true,"schema":{"type":"string"}}]}

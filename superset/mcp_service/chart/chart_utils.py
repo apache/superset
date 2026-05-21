@@ -32,11 +32,13 @@ from superset.mcp_service.chart.schemas import (
     ChartCapabilities,
     ChartSemantics,
     ColumnRef,
+    CurrencyFormat,
     FilterConfig,
     HandlebarsChartConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SortByConfig,
     TableChartConfig,
     XYChartConfig,
 )
@@ -388,70 +390,95 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     if not config.columns:
         raise ValueError("Table chart must have at least one column")
 
-    # Separate columns with aggregates from raw columns
-    raw_columns = []
-    aggregated_metrics = []
-
-    for col in config.columns:
-        if col.is_metric:
-            # Saved metric or column with aggregation - treat as metric
-            aggregated_metrics.append(create_metric_object(col))
-        else:
-            # No aggregation - treat as raw column
-            raw_columns.append(col.name)
-
-    # Final validation - ensure we have some data to display
-    if not raw_columns and not aggregated_metrics:
-        raise ValueError("Table chart configuration resulted in no displayable columns")
-
     # Use the viz_type from config (defaults to "table", can be "ag-grid-table")
     form_data: Dict[str, Any] = {
         "viz_type": config.viz_type,
     }
 
-    # Handle raw columns (no aggregation)
-    if raw_columns and not aggregated_metrics:
-        # Pure raw columns - show individual rows
-        # Include both "all_columns" (Superset table viz) and "columns"
-        # (QueryContextFactory validation) to avoid "Empty query?" errors
+    # When query_mode is explicitly set to "raw", force raw mode for all columns.
+    # Aggregate settings on individual columns are ignored in this case.
+    if config.query_mode == "raw":
+        column_names = [col.name for col in config.columns]
         form_data.update(
             {
-                "all_columns": raw_columns,
-                "columns": raw_columns,
+                "all_columns": column_names,
+                "columns": column_names,
                 "query_mode": "raw",
                 "include_time": False,
                 "order_desc": True,
             }
         )
+    else:
+        # Auto-detect or explicit "aggregate": separate columns with aggregates
+        # from raw columns and build the appropriate form_data.
+        raw_columns = []
+        aggregated_metrics = []
 
-    # Handle aggregated columns only
-    elif aggregated_metrics and not raw_columns:
-        # Pure aggregation - show totals
-        form_data.update(
-            {
-                "metrics": aggregated_metrics,
-                "query_mode": "aggregate",
-            }
-        )
+        for col in config.columns:
+            if col.is_metric:
+                # Saved metric or column with aggregation - treat as metric
+                aggregated_metrics.append(create_metric_object(col))
+            else:
+                # No aggregation - treat as raw column
+                raw_columns.append(col.name)
 
-    # Handle mixed columns (raw + aggregated)
-    elif raw_columns and aggregated_metrics:
-        # Mixed mode - group by raw columns, aggregate metrics
-        form_data.update(
-            {
-                "all_columns": raw_columns,
-                "metrics": aggregated_metrics,
-                "groupby": raw_columns,
-                "query_mode": "aggregate",
-            }
-        )
+        # Final validation - ensure we have some data to display
+        if not raw_columns and not aggregated_metrics:
+            raise ValueError(
+                "Table chart configuration resulted in no displayable columns"
+            )
+
+        # Handle raw columns (no aggregation)
+        if raw_columns and not aggregated_metrics:
+            # Pure raw columns - show individual rows
+            # Include both "all_columns" (Superset table viz) and "columns"
+            # (QueryContextFactory validation) to avoid "Empty query?" errors
+            form_data.update(
+                {
+                    "all_columns": raw_columns,
+                    "columns": raw_columns,
+                    "query_mode": "raw",
+                    "include_time": False,
+                    "order_desc": True,
+                }
+            )
+
+        # Handle aggregated columns only
+        elif aggregated_metrics and not raw_columns:
+            # Pure aggregation - show totals
+            form_data.update(
+                {
+                    "metrics": aggregated_metrics,
+                    "query_mode": "aggregate",
+                }
+            )
+
+        # Handle mixed columns (raw + aggregated)
+        else:
+            # Mixed mode - group by raw columns, aggregate metrics
+            form_data.update(
+                {
+                    "all_columns": raw_columns,
+                    "metrics": aggregated_metrics,
+                    "groupby": raw_columns,
+                    "query_mode": "aggregate",
+                }
+            )
 
     _add_adhoc_filters(form_data, config.filters)
 
     if config.sort_by:
-        form_data["order_by_cols"] = config.sort_by
+        form_data["order_by_cols"] = [
+            json.dumps(
+                [entry.column, entry.ascending]
+                if isinstance(entry, SortByConfig)
+                else [entry, False]
+            )
+            for entry in config.sort_by
+        ]
 
     form_data["row_limit"] = config.row_limit
+    add_color_scheme(form_data, config.color_scheme)
 
     return form_data
 
@@ -522,7 +549,35 @@ def add_legend_config(form_data: Dict[str, Any], config: XYChartConfig) -> None:
         if not config.legend.show:
             form_data["show_legend"] = False
         if config.legend.position:
-            form_data["legend_orientation"] = config.legend.position
+            # Canonical form_data key is camelCase; the echarts plugins read
+            # `legendOrientation` directly off form_data.
+            form_data["legendOrientation"] = config.legend.position
+
+
+def add_color_scheme(form_data: Dict[str, Any], color_scheme: str | None) -> None:
+    """Add color scheme to form_data when set."""
+    if color_scheme:
+        form_data["color_scheme"] = color_scheme
+
+
+def add_currency_format(
+    form_data: Dict[str, Any],
+    currency_format: CurrencyFormat | None,
+    key: str = "currency_format",
+) -> None:
+    """Add currency format to form_data under the given key when set."""
+    if currency_format:
+        form_data[key] = currency_format.to_form_data()
+
+
+def add_xy_data_label_options(
+    form_data: Dict[str, Any], config: XYChartConfig, x_is_temporal: bool
+) -> None:
+    """Apply XY-specific data-label and time-format options when set."""
+    if config.x_axis_time_format and x_is_temporal:
+        form_data["x_axis_time_format"] = config.x_axis_time_format
+    if config.show_value:
+        form_data["show_value"] = True
 
 
 def add_orientation_config(form_data: Dict[str, Any], config: XYChartConfig) -> None:
@@ -594,6 +649,35 @@ def _ensure_temporal_adhoc_filter(form_data: Dict[str, Any], column: str) -> Non
     form_data["adhoc_filters"] = existing
 
 
+def _resolve_default_x_axis(
+    config: XYChartConfig, dataset_id: int | str | None
+) -> XYChartConfig:
+    """Resolve x-axis to the dataset's main_dttm_col when x is omitted."""
+    if config.x is not None:
+        return config
+
+    if not dataset_id:
+        raise ValueError("x-axis column is required when dataset_id is not provided")
+    from superset.daos.dataset import DatasetDAO
+
+    if isinstance(dataset_id, int) or (
+        isinstance(dataset_id, str) and dataset_id.isdigit()
+    ):
+        dataset = DatasetDAO.find_by_id(int(dataset_id))
+    else:
+        dataset = DatasetDAO.find_by_id(dataset_id, id_column="uuid")
+
+    if not dataset or not dataset.main_dttm_col:
+        raise ValueError(
+            "x-axis column is required: dataset has no primary datetime "
+            "column (main_dttm_col). Please specify the x-axis column "
+            "explicitly."
+        )
+    from superset.mcp_service.chart.schemas import ColumnRef
+
+    return config.model_copy(update={"x": ColumnRef(name=dataset.main_dttm_col)})
+
+
 def map_xy_config(
     config: XYChartConfig, dataset_id: int | str | None = None
 ) -> Dict[str, Any]:
@@ -601,6 +685,10 @@ def map_xy_config(
     # Early validation to prevent empty charts
     if not config.y:
         raise ValueError("XY chart must have at least one Y-axis metric")
+
+    # Resolve x-axis default: use dataset's main_dttm_col when x is omitted
+    config = _resolve_default_x_axis(config, dataset_id)
+    assert config.x is not None  # _resolve_default_x_axis guarantees x is set
 
     # Check if x-axis column is truly temporal (based on actual SQL type)
     x_is_temporal = is_column_truly_temporal(config.x.name, dataset_id)
@@ -664,6 +752,9 @@ def map_xy_config(
     add_axis_config(form_data, config)
     add_legend_config(form_data, config)
     add_orientation_config(form_data, config)
+    add_color_scheme(form_data, config.color_scheme)
+    add_currency_format(form_data, config.currency_format)
+    add_xy_data_label_options(form_data, config, x_is_temporal)
 
     return form_data
 
@@ -676,11 +767,13 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
         "viz_type": "pie",
         "groupby": [config.dimension.name],
         "metric": metric,
-        "color_scheme": "supersetColors",
+        "color_scheme": config.color_scheme or "supersetColors",
         "show_labels": config.show_labels,
         "show_legend": config.show_legend,
+        "legendOrientation": config.legend_orientation,
         "label_type": config.label_type,
         "number_format": config.number_format,
+        "date_format": config.date_format,
         "sort_by_metric": config.sort_by_metric,
         "row_limit": config.row_limit,
         "donut": config.donut,
@@ -688,9 +781,9 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
         "labels_outside": config.labels_outside,
         "outerRadius": config.outer_radius,
         "innerRadius": config.inner_radius,
-        "date_format": "smart_date",
     }
 
+    add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
 
     return form_data
@@ -716,6 +809,9 @@ def map_big_number_config(config: BigNumberChartConfig) -> Dict[str, Any]:
     if config.y_axis_format:
         form_data["y_axis_format"] = config.y_axis_format
 
+    add_color_scheme(form_data, config.color_scheme)
+    add_currency_format(form_data, config.currency_format)
+
     # Trendline-specific fields
     if viz_type == "big_number":
         # Big Number with trendline uses granularity_sqla for the temporal column
@@ -730,6 +826,9 @@ def map_big_number_config(config: BigNumberChartConfig) -> Dict[str, Any]:
 
         if config.compare_lag is not None:
             form_data["compare_lag"] = config.compare_lag
+
+        if config.time_format:
+            form_data["time_format"] = config.time_format
 
     _add_adhoc_filters(form_data, config.filters)
 
@@ -802,6 +901,10 @@ def map_pivot_table_config(config: PivotTableChartConfig) -> Dict[str, Any]:
         "row_limit": config.row_limit,
     }
 
+    if config.date_format:
+        form_data["date_format"] = config.date_format
+
+    add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
 
     return form_data
@@ -881,9 +984,19 @@ def map_mixed_timeseries_config(
         "yAxisIndexB": 1,
         # Display
         "show_legend": config.show_legend,
+        "legendOrientation": config.legend_orientation,
         "zoomable": True,
         "rich_tooltip": True,
     }
+
+    if config.show_value:
+        form_data["show_value"] = True
+
+    add_color_scheme(form_data, config.color_scheme)
+    add_currency_format(form_data, config.currency_format)
+    add_currency_format(
+        form_data, config.currency_format_secondary, key="currency_format_secondary"
+    )
 
     # Configure temporal handling
     configure_temporal_handling(form_data, x_is_temporal, config.time_grain)
@@ -984,7 +1097,7 @@ def _table_chart_what(config: TableChartConfig, dataset_name: str | None) -> str
 def _xy_chart_what(config: XYChartConfig) -> str:
     """Build the descriptive fragment for an XY chart."""
     primary_metric = _humanize_column(config.y[0]) if config.y else "Value"
-    dimension = _humanize_column(config.x)
+    dimension = _humanize_column(config.x) if config.x else "Dimension"
 
     if config.kind in ("line", "area") and not config.group_by:
         return f"{primary_metric} Over Time"
@@ -1160,6 +1273,17 @@ def _resolve_viz_type(config: Any) -> str:
             "big_number" if show_trendline and temporal_column else "big_number_total"
         )
     return "unknown"
+
+
+TABLE_VIZ_TYPE_LABELS = {
+    "table": "table chart",
+    "ag-grid-table": "interactive table chart",
+}
+
+
+def get_table_chart_type_label(viz_type: str | None) -> str | None:
+    """Return a user-facing label for table-family Superset viz types."""
+    return TABLE_VIZ_TYPE_LABELS.get(viz_type) if viz_type is not None else None
 
 
 def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilities:

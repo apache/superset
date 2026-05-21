@@ -120,6 +120,11 @@ fetchMock.get('glob:*/api/v1/chart/*', {
 });
 
 const defaultPath = '/explore/';
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 const renderWithRouter = ({
   search = '',
   overridePathname,
@@ -134,11 +139,10 @@ const renderWithRouter = ({
   history?: ReturnType<typeof createMemoryHistory>;
 } = {}) => {
   const path = overridePathname ?? defaultPath;
-  Object.defineProperty(window, 'location', {
-    get() {
-      return { pathname: path, search };
-    },
-  });
+  jest.spyOn(window, 'location', 'get').mockReturnValue({
+    pathname: path,
+    search,
+  } as Location);
   const history =
     existingHistory ??
     createMemoryHistory({ initialEntries: [`${path}${search}`] });

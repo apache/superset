@@ -41,7 +41,15 @@ export function ensureAppRoot(path: string): string {
   if (SAFE_ABSOLUTE_URL_RE.test(path) || path.startsWith('//')) {
     return path;
   }
-  return `${applicationRoot()}${path.startsWith('/') ? path : `/${path}`}`;
+  const root = applicationRoot();
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  if (
+    root &&
+    (normalizedPath === root || normalizedPath.startsWith(`${root}/`))
+  ) {
+    return normalizedPath;
+  }
+  return `${root}${normalizedPath}`;
 }
 
 /**

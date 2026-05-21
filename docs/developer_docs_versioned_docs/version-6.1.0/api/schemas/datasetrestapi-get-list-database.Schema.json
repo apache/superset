@@ -1,0 +1,1 @@
+{"schema":{"properties":{"database_name":{"maxLength":250,"type":"string"},"id":{"type":"integer"},"uuid":{"format":"uuid","nullable":true,"type":"string"}},"required":["database_name"],"type":"object","title":"DatasetRestApi.get_list.Database"},"schemaType":"response"}
