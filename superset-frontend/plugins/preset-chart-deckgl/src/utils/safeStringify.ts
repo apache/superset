@@ -1,3 +1,4 @@
+/* eslint-disable consistent-return */
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -7,7 +8,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- * http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -21,12 +22,15 @@ import { JsonObject } from '@superset-ui/core';
 
 /**
  * A Stringify function that will not crash when it runs into circular JSON references,
- * unlike JSON.stringify. Any circular references are replaced with a '[Circular]' placeholder.
+ * unlike JSON.stringify. Any circular references are simply omitted, as if there had
+ * been no data present
  * @param object any JSON object to be stringified
  */
+
 // eslint-disable-next-line import/prefer-default-export
-export function safeStringify(object: JsonObject): string {
+export function safeStringify(object: JsonObject) {
   const cache = new Set();
+
   return JSON.stringify(object, (key, value) => {
     if (typeof value === 'object' && value !== null) {
       if (cache.has(value)) {
@@ -35,14 +39,14 @@ export function safeStringify(object: JsonObject): string {
           // Quick deep copy to duplicate if this is a repeat rather than a circle.
           return JSON.parse(JSON.stringify(value));
         } catch (error) {
-          // Replace circular reference with a placeholder
-          console.warn(`Circular reference detected and replaced with '[Circular]' placeholder (key: "${key}")`);
-          return '[Circular]';
+          // Discard key if value cannot be duplicated.
+          return;
         }
       }
       // Store the value in our cache.
       cache.add(value);
     }
+
     return value;
   });
 }

@@ -24,6 +24,15 @@ class Noise {
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Stringify utility testing', () => {
+  beforeEach(() => {
+    // Spies on and silences console.warn to keep the test runner output completely clean
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
   test('correctly parses a simple object just like JSON', () => {
     const noncircular = {
       b: 'foo',
@@ -52,8 +61,9 @@ describe('Stringify utility testing', () => {
     ping.next = pong;
     pong.next = ping;
 
-    // It should now safely output [Circular] for the recursive reference
     const safeString = safeStringify(ping);
+
+    // Asserts that the recursive loop is safely identified with the '[Circular]' placeholder string
     expect(safeString).toEqual('{"next":{"next":"[Circular]"}}');
   });
 
@@ -63,7 +73,10 @@ describe('Stringify utility testing', () => {
     ping.next = pong;
     pong.next = ping;
 
-    const newNoise: any = JSON.parse(safeStringify(ping));
+    // Uses a safe 'unknown' assignment paired with a strict interface cast to avoid 'any'
+    const parsedNoise: unknown = JSON.parse(safeStringify(ping));
+    const newNoise = parsedNoise as { next: { next: string } };
+
     expect(newNoise).toBeTruthy();
     expect(newNoise.next).toEqual({ next: '[Circular]' });
   });
