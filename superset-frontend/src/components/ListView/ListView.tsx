@@ -461,6 +461,13 @@ export function ListView<T extends object = any>({
                 updateFilterValue={applyFilterValue}
               />
             )}
+            {viewMode === 'card' && cardSortSelectOptions && (
+              <CardSortSelect
+                initialSort={sortBy}
+                onChange={(value: SortColumn[]) => setSortBy(value)}
+                options={cardSortSelectOptions}
+              />
+            )}
             {filterable && (
               <Tooltip
                 title={!hasActiveFilters ? t('No filters applied') : undefined}
@@ -475,15 +482,6 @@ export function ListView<T extends object = any>({
                   </ClearAllButton>
                 </span>
               </Tooltip>
-            )}
-            {viewMode === 'card' && cardSortSelectOptions && (
-              <span style={{ marginLeft: 'auto' }}>
-                <CardSortSelect
-                  initialSort={sortBy}
-                  onChange={(value: SortColumn[]) => setSortBy(value)}
-                  options={cardSortSelectOptions}
-                />
-              </span>
             )}
           </div>
         </div>
