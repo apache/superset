@@ -76,9 +76,8 @@ const ListViewStyles = styled.div`
           row-gap: ${theme.sizeUnit * 2}px;
 
           [data-test='search-filter-container'] {
-            flex: 1;
-            min-width: ${theme.sizeUnit * 40}px;
-            width: auto;
+            width: ${theme.sizeUnit * 44}px;
+            flex-shrink: 0;
             height: ${theme.controlHeight}px;
             justify-content: center;
 
@@ -478,11 +477,13 @@ export function ListView<T extends object = any>({
               </Tooltip>
             )}
             {viewMode === 'card' && cardSortSelectOptions && (
-              <CardSortSelect
-                initialSort={sortBy}
-                onChange={(value: SortColumn[]) => setSortBy(value)}
-                options={cardSortSelectOptions}
-              />
+              <span style={{ marginLeft: 'auto' }}>
+                <CardSortSelect
+                  initialSort={sortBy}
+                  onChange={(value: SortColumn[]) => setSortBy(value)}
+                  options={cardSortSelectOptions}
+                />
+              </span>
             )}
           </div>
         </div>
