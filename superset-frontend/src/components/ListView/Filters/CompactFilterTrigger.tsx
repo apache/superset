@@ -154,7 +154,10 @@ export default function CompactFilterTrigger({
     // reach the panel instance after it has been opened at least once.
     <Dropdown
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={visible => {
+        setOpen(visible);
+        if (!visible) setTooltipOpen(false);
+      }}
       trigger={['click']}
       popupRender={() =>
         isValidElement(children)
