@@ -190,9 +190,19 @@ cypress-run-all() {
   fi
   export CYPRESS_BASE_URL
 
+  # Mirrors the args in docker/entrypoints/run-server.sh (1 worker × 20
+  # gthread threads) to keep parity with production. Multi-worker
+  # configurations expose timing-sensitive races in the SQL Lab → Explore
+  # navigation flow under E2E. We diverge from the entrypoint on:
+  #   --timeout 120: heavy dashboard import/export specs exceed the 60s
+  #     default
+  #   --max-requests / --max-requests-jitter: recycle the worker under
+  #     test load to avoid leaks accumulating across the run
+  #   superset.app:create_app(): explicit factory so we don't depend on
+  #     FLASK_APP being exported
   nohup gunicorn \
     --bind "127.0.0.1:$port" \
-    --workers 4 \
+    --workers 1 \
     --worker-class gthread \
     --threads 20 \
     --timeout 120 \
@@ -273,9 +283,12 @@ playwright-run() {
   fi
   export PLAYWRIGHT_BASE_URL
 
+  # See cypress-run-all() above for the args rationale (1 worker × 20
+  # gthread threads matching docker/entrypoints/run-server.sh, plus a
+  # 120s timeout and request-recycling for heavy E2E load).
   nohup gunicorn \
     --bind "127.0.0.1:$port" \
-    --workers 4 \
+    --workers 1 \
     --worker-class gthread \
     --threads 20 \
     --timeout 120 \
