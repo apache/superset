@@ -104,7 +104,18 @@ def get_counts(translations_dir: Path) -> dict[str, int]:
         lang = po_file.parent.parent.name
         if lang in SKIP_LANGS:
             continue
-        counts[lang] = count_translated(po_file)
+        try:
+            counts[lang] = count_translated(po_file)
+        except (subprocess.CalledProcessError, RuntimeError) as exc:
+            # A malformed .po file (msgfmt non-zero exit, or stderr we
+            # can't parse) is a real problem worth seeing, but it shouldn't
+            # take the whole regression check down with it — that would
+            # hide every other language's status. Skip and warn instead;
+            # the missing lang will not appear in the comparison output.
+            print(
+                f"WARNING: skipping {lang} — {po_file} could not be counted: {exc}",
+                file=sys.stderr,
+            )
     return counts
 
 
