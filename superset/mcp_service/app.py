@@ -401,9 +401,10 @@ IMPORTANT - Tool-Only Interaction:
 
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
-- Use get_schema to discover filterable columns, sortable columns, and default columns
-  for chart/dataset/dashboard/database. For action_log and task tools, consult each
-  tool's docstring — filterable and sortable columns are listed there directly.
+- Use get_schema (chart/dataset/dashboard/database) to discover filterable columns,
+  sortable columns, and default columns for those resource types
+- For action_log, task, list_rls_filters, and list_plugins tools, filterable/sortable
+  columns are listed inline in each tool's docstring — get_schema does not cover these
 - Use 'filters' parameter for advanced queries with filter columns from get_schema
 - IDs can be integer or UUID format where supported
 - All tools return structured, Pydantic-typed responses
