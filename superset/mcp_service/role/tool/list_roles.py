@@ -76,6 +76,16 @@ async def list_roles(
     )
 
     try:
+        if request.search and request.filters:
+            return RoleError.create(
+                error=(
+                    "Cannot use both 'search' and 'filters' parameters simultaneously. "
+                    "Use either 'search' for text-based searching or 'filters' for "
+                    "precise column-based filtering, but not both."
+                ),
+                error_type="validation_error",
+            ).model_dump(mode="json")
+
         from superset.daos.role import RoleDAO
 
         def _serialize_role(obj: Any, cols: list[str] | None) -> RoleInfo | None:

@@ -79,6 +79,16 @@ async def list_users(
     )
 
     try:
+        if request.search and request.filters:
+            return UserError.create(
+                error=(
+                    "Cannot use both 'search' and 'filters' parameters simultaneously. "
+                    "Use either 'search' for text-based searching or 'filters' for "
+                    "precise column-based filtering, but not both."
+                ),
+                error_type="validation_error",
+            ).model_dump(mode="json")
+
         from superset.daos.user import UserDAO
 
         can_view_sensitive = user_can_view_data_model_metadata()
