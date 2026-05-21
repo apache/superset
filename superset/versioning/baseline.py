@@ -134,22 +134,34 @@ def _force_parent_dirty_on_child_change(session: Session) -> None:
         col_keys = [prop.key for prop in versioned_column_properties(parent)]
         if not col_keys:
             continue
-        # ``uuid`` is on all three versioned parent classes (Dashboard,
-        # Slice, SqlaTable) and is in none of their ``__versioned__``
-        # excludes — pick it deterministically so the flagged attribute
-        # is stable across SQLAlchemy versions / mapper-configuration
-        # orders. Falls back to the first available column for forks or
-        # subclasses that excluded ``uuid``.
-        flag_col = "uuid" if "uuid" in col_keys else col_keys[0]
+        # ``description`` is a plain ``Text`` column on all three versioned
+        # parent classes (Dashboard, Slice, SqlaTable) and is in none of
+        # their ``__versioned__`` excludes — pick it deterministically so
+        # the flagged attribute is stable across SQLAlchemy versions /
+        # mapper-configuration orders. We deliberately avoid ``uuid``
+        # here: when a versioned-parent UPDATE goes through with ``uuid``
+        # flagged, the column's ``UUIDType``/BLOB round-trip produces a
+        # memoryview that fails an FK integrity check on some dialects
+        # (observed in ``test_rls_filter_alters_no_role_user_birth_names_query``
+        # and ``test_restore_applies_scalar_field``). ``description`` is
+        # a plain text column with no marshaling layer, so flagging it
+        # safely round-trips its current value. Falls back to ``uuid``
+        # then ``col_keys[0]`` for forks that excluded ``description``.
+        if "description" in col_keys:
+            flag_col = "description"
+        elif "uuid" in col_keys:
+            flag_col = "uuid"
+        else:
+            flag_col = col_keys[0]
         try:
             attributes.flag_modified(parent, flag_col)
         except InvalidRequestError:
             # The parent is a freshly-constructed ``session.new`` instance
-            # whose ``uuid`` default (``default=uuid4``) hasn't fired yet
-            # — the attribute is unloaded in instance state, so
-            # ``flag_modified`` rejects it. The parent will INSERT in this
-            # flush regardless, so the flag was redundant; safely skip.
-            # Hit by ``test_create_dataset_item`` (POST /api/v1/dataset/).
+            # whose attribute defaults haven't fired yet — the attribute
+            # is unloaded in instance state, so ``flag_modified`` rejects
+            # it. The parent will INSERT in this flush regardless, so the
+            # flag was redundant; safely skip. Hit by
+            # ``test_create_dataset_item`` (POST /api/v1/dataset/).
             continue
 
 
