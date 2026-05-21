@@ -594,7 +594,34 @@ class TestMapXYConfig:
 
         assert result["viz_type"] == "echarts_timeseries_scatter"
         assert result["show_legend"] is False
-        assert result["legend_orientation"] == "top"
+        assert result["legendOrientation"] == "top"
+
+    def test_map_xy_config_with_color_scheme(self) -> None:
+        """color_scheme propagates to form_data when set."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue")],
+            kind="line",
+            color_scheme="lyftColors",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["color_scheme"] == "lyftColors"
+
+    def test_map_xy_config_without_color_scheme(self) -> None:
+        """color_scheme key omitted when not set, leaving Superset default."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue")],
+            kind="line",
+        )
+
+        result = map_xy_config(config)
+
+        assert "color_scheme" not in result
 
     def test_map_xy_config_with_time_grain_month(self) -> None:
         """Test XY config mapping with monthly time grain"""
