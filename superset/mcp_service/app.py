@@ -155,6 +155,10 @@ SQL Lab Integration:
 - execute_sql: Execute SQL queries and get results (requires database_id and SQL access)
 - save_sql_query: Save a SQL query to Saved Queries list (requires write access)
 - open_sql_lab_with_context: Generate SQL Lab URL with pre-filled sql
+- list_saved_queries: List saved SQL queries with filtering and search (1-based pagination)
+- get_saved_query_info: Get saved query details by ID or UUID
+- list_queries: List SQL query history with filtering and search (most recent first)
+- get_query_info: Get SQL query history details by ID
 
 Schema Discovery:
 - get_schema: Get schema metadata for chart/dataset/dashboard (columns, filters)
