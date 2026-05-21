@@ -15,9 +15,7 @@ apispec==6.6.1
 apsw==3.50.1.0
     # via shillelagh
 async-timeout==4.0.3
-    # via
-    #   -r requirements/base.in
-    #   redis
+    # via -r requirements/base.in
 attrs==25.3.0
     # via
     #   cattrs
@@ -106,11 +104,6 @@ email-validator==2.2.0
     # via flask-appbuilder
 et-xmlfile==2.0.0
     # via openpyxl
-exceptiongroup==1.3.1
-    # via
-    #   cattrs
-    #   trio
-    #   trio-websocket
 filelock==3.20.3
     # via -r requirements/base.in
 flask==2.3.3
@@ -442,14 +435,11 @@ typing-extensions==4.15.0
     #   alembic
     #   apache-superset-core
     #   cattrs
-    #   cryptography
-    #   exceptiongroup
     #   limits
     #   pydantic
     #   pydantic-core
     #   pyopenssl
     #   referencing
-    #   rich
     #   selenium
     #   shillelagh
     #   typing-inspection
