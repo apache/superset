@@ -37,12 +37,14 @@ import {
 import {
   Typography,
   Select,
+  type LabeledValue,
   Popover,
   Loading,
   Icons,
   Tooltip,
   FormItem,
 } from '@superset-ui/core/components';
+import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import { useDispatch, useSelector } from 'react-redux';
 import { RootState } from 'src/dashboard/types';
 import { setPendingChartCustomization } from 'src/dashboard/actions/chartCustomizationActions';
@@ -329,6 +331,19 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
   const canSelectMultiple =
     customizationItem.controlValues?.canSelectMultiple ?? true;
 
+  const sortAscending = customizationItem.controlValues?.sortAscending;
+
+  const sortComparator = useCallback(
+    (a: LabeledValue, b: LabeledValue) => {
+      if (sortAscending === undefined) {
+        return 0;
+      }
+      const labelComparator = propertyComparator('label');
+      return sortAscending ? labelComparator(a, b) : labelComparator(b, a);
+    },
+    [sortAscending],
+  );
+
   const columnDisplayName = useMemo(() => {
     if (customizationItem.name) {
       return customizationItem.name;
@@ -581,6 +596,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
                   .toLowerCase()
                   .includes(input.toLowerCase())
               }
+              sortComparator={sortComparator}
               getPopupContainer={triggerNode => triggerNode.parentNode}
               oneLine={isHorizontalLayout}
               className="select-container"
@@ -610,6 +626,7 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
                 .toLowerCase()
                 .includes(input.toLowerCase())
             }
+            sortComparator={sortComparator}
             loading={loading}
           />
         </div>
