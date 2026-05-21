@@ -1572,24 +1572,43 @@ function normalizeSlicesFromSnapshot(
 
 function parsePositionJson(
   positionJson: string | Record<string, unknown> | null | undefined,
-): Record<string, unknown> {
-  if (!positionJson) return {};
+): Record<string, unknown> | null {
+  if (!positionJson) return null;
   if (typeof positionJson === 'object') return positionJson;
   try {
     return JSON.parse(positionJson);
   } catch {
-    return {};
+    return null;
   }
+}
+
+// A valid dashboard layout always contains at least the ROOT_ID + GRID_ID
+// keys. Bailing on missing structure prevents the renderer from crashing
+// when a snapshot's position_json is empty / malformed.
+function hasValidLayoutStructure(
+  layout: Record<string, unknown> | null,
+): layout is Record<string, unknown> {
+  return !!layout && 'ROOT_ID' in layout && 'GRID_ID' in layout;
 }
 
 /**
  * Enters preview mode for the given dashboard snapshot. Captures current
  * ``sliceEntities`` + ``dashboardLayout.present`` and replaces them with the
  * snapshot's values. Cleanup must call ``exitVersionPreview``.
+ *
+ * Returns ``true`` when the preview was entered, ``false`` when the snapshot
+ * is unusable (missing/malformed ``position_json``) — callers can surface a
+ * toast in the latter case.
  */
 export const enterVersionPreview =
   (versionUuid: string, snapshot: VersionSnapshotPayload) =>
-  (dispatch: AppDispatch, getState: GetState): void => {
+  (dispatch: AppDispatch, getState: GetState): boolean => {
+    const newLayout = parsePositionJson(snapshot.position_json);
+    if (!hasValidLayoutStructure(newLayout)) {
+      // Bail BEFORE dispatching — otherwise the renderer crashes trying to
+      // walk a layout without ROOT_ID / GRID_ID.
+      return false;
+    }
     const state = getState();
     // Preserve the live state captured on the first enter. Switching from
     // version A to version B without exiting must not recapture the
@@ -1605,8 +1624,16 @@ export const enterVersionPreview =
           dashboardLayout: { present: Record<string, unknown> };
         }
       ).dashboardLayout.present;
-    const newSlices = normalizeSlicesFromSnapshot(snapshot);
-    const newLayout = parsePositionJson(snapshot.position_json);
+    const snapshotSlices = normalizeSlicesFromSnapshot(snapshot);
+    // Merge — do not replace. The snapshot endpoint for dashboards does not
+    // currently emit a ``slices`` array; wiping the live entries would
+    // leave every CHART- component in the layout pointing at undefined and
+    // crash the renderer. When the snapshot does carry slices (or once the
+    // backend starts emitting them), those values override the live ones.
+    const liveSlices =
+      (capturedSliceEntities as { slices?: Record<string, unknown> }).slices ??
+      {};
+    const mergedSlices = { ...liveSlices, ...snapshotSlices };
     dispatch({
       type: ENTER_VERSION_PREVIEW,
       versionUuid,
@@ -1614,7 +1641,7 @@ export const enterVersionPreview =
       capturedLayout,
       newSliceEntities: {
         ...(capturedSliceEntities as Record<string, unknown>),
-        slices: newSlices,
+        slices: mergedSlices,
       },
       newLayout,
     });
@@ -1623,6 +1650,7 @@ export const enterVersionPreview =
     // history so a later Ctrl+Z can't take the user back into a previewed
     // layout.
     dispatch(UndoActionCreators.clearHistory());
+    return true;
   };
 
 export const exitVersionPreview =

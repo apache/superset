@@ -183,7 +183,7 @@ test('enterVersionPreview thunk preserves the original capture when switching A 
     'a-1111aaaa-2222-3333-4444-aaaaaaaaaaaa' as string,
     {
       slices: [{ slice_id: 9, slice_name: 'A' }],
-      position_json: '{"ROOT_ID":{"id":"a"}}',
+      position_json: '{"ROOT_ID":{"id":"a"},"GRID_ID":{"id":"g"}}',
     } as unknown as Parameters<typeof enterVersionPreview>[1],
   )(dispatch as never, () => stateA as never);
   const firstEnter = dispatched.find(a => a.type === ENTER_VERSION_PREVIEW)!;
@@ -209,7 +209,7 @@ test('enterVersionPreview thunk preserves the original capture when switching A 
     'b-2222bbbb-3333-4444-5555-bbbbbbbbbbbb' as string,
     {
       slices: [{ slice_id: 11, slice_name: 'B' }],
-      position_json: '{"ROOT_ID":{"id":"b"}}',
+      position_json: '{"ROOT_ID":{"id":"b"},"GRID_ID":{"id":"g"}}',
     } as unknown as Parameters<typeof enterVersionPreview>[1],
   )(dispatch as never, () => stateAfterA as never);
   const secondEnter = dispatched.find(a => a.type === ENTER_VERSION_PREVIEW)!;
@@ -236,4 +236,73 @@ test('exitVersionPreview thunk is a no-op when no preview is active', () => {
         (a as { type?: string }).type === EXIT_VERSION_PREVIEW,
     ),
   ).toBeUndefined();
+});
+
+test('enterVersionPreview merges live slices when the snapshot omits them', () => {
+  // The dashboard snapshot endpoint does not currently emit a ``slices``
+  // array. If we replaced sliceEntities.slices with {} on enter, every
+  // CHART- component in the layout would resolve to undefined and crash
+  // the renderer.
+  const liveSlices = {
+    7: { slice_id: 7, slice_name: 'Live A' },
+    9: { slice_id: 9, slice_name: 'Live B' },
+  };
+  const stateNoCapture = {
+    dashboardState: { versionPreview: null },
+    sliceEntities: { slices: liveSlices, isLoading: false },
+    dashboardLayout: { present: { ROOT_ID: {}, GRID_ID: {} } },
+  };
+  const dispatched: Array<{ type: string; [k: string]: unknown }> = [];
+  const dispatch = (a: unknown) => {
+    if (a && typeof a === 'object' && 'type' in (a as Record<string, unknown>)) {
+      dispatched.push(a as { type: string });
+    }
+  };
+  const result = enterVersionPreview(
+    '11111111-2222-3333-4444-555555555555',
+    {
+      // No ``slices`` field — matches Mike's current backend payload.
+      position_json: '{"ROOT_ID":{"id":"root"},"GRID_ID":{"id":"grid"}}',
+    } as unknown as Parameters<typeof enterVersionPreview>[1],
+  )(dispatch as never, () => stateNoCapture as never);
+  expect(result).toBe(true);
+  const enter = dispatched.find(a => a.type === ENTER_VERSION_PREVIEW)!;
+  // Live slices must survive the swap.
+  expect(
+    (enter.newSliceEntities as { slices: Record<string, unknown> }).slices,
+  ).toMatchObject(liveSlices);
+});
+
+test('enterVersionPreview bails when position_json lacks ROOT_ID/GRID_ID', () => {
+  // Malformed layout should not be dispatched — the dashboard renderer
+  // would otherwise crash trying to walk an empty structure.
+  const state = {
+    dashboardState: { versionPreview: null },
+    sliceEntities: { slices: {}, isLoading: false },
+    dashboardLayout: { present: { ROOT_ID: {}, GRID_ID: {} } },
+  };
+  const dispatched: Array<{ type: string }> = [];
+  const dispatch = (a: unknown) => {
+    if (a && typeof a === 'object' && 'type' in (a as Record<string, unknown>)) {
+      dispatched.push(a as { type: string });
+    }
+  };
+  // Missing position_json entirely.
+  const result = enterVersionPreview(
+    '11111111-2222-3333-4444-555555555555',
+    {} as unknown as Parameters<typeof enterVersionPreview>[1],
+  )(dispatch as never, () => state as never);
+  expect(result).toBe(false);
+  expect(
+    dispatched.find(a => a.type === ENTER_VERSION_PREVIEW),
+  ).toBeUndefined();
+
+  // Empty layout object also bails.
+  const result2 = enterVersionPreview('22222222-2222-3333-4444-555555555555', {
+    position_json: '{}',
+  } as unknown as Parameters<typeof enterVersionPreview>[1])(
+    dispatch as never,
+    () => state as never,
+  );
+  expect(result2).toBe(false);
 });

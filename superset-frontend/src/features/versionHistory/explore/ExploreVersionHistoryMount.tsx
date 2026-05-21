@@ -62,14 +62,17 @@ function ExplorePreviewBanner({
   const { versions } = useVersionList('chart', chartUuid);
   const { restore, restoring } = useRestoreVersion('chart', chartUuid);
 
-  // Prefer the change summary from the matching list row (which contains
-  // the populated ``changes`` array) over the snapshot's bare metadata.
+  // Prefer the matching list row's metadata. The single-version snapshot
+  // endpoint nests version metadata under ``_version`` (and may omit
+  // issued_at from the root), so we'd render "Invalid Date" without this
+  // fallback chain.
   const matched = versions?.find(
     v => v.version_uuid === ctx?.previewVersionUuid,
   );
   const summary = matched
     ? formatChangeTitle(matched.changes)
     : snapshotSummary;
+  const resolvedIssuedAt = matched?.issued_at ?? issuedAt;
 
   const handleRestore = async () => {
     if (!ctx?.previewVersionUuid) return;
@@ -87,7 +90,7 @@ function ExplorePreviewBanner({
   return (
     <PreviewBanner
       summary={summary}
-      date={formatVersionDate(issuedAt)}
+      date={resolvedIssuedAt ? formatVersionDate(resolvedIssuedAt) : ''}
       onRestore={handleRestore}
       onExit={() => ctx?.exitPreview()}
       restoring={restoring}
@@ -143,12 +146,20 @@ function ExploreVersionHistoryInner({
     [chartUuid, dispatch, history, ownerId],
   );
 
-  // ``changes`` is only on the list payload; the snapshot's bare metadata
-  // gets only the issued_at + version uuid. The banner uses this as a
-  // fallback when the list row hasn't loaded yet.
+  // The snapshot endpoint nests version metadata under ``_version`` —
+  // ``changes`` + ``issued_at`` live there, with ``issued_at`` absent
+  // from the root. The list endpoint puts them at the root. The banner
+  // prefers the list row when it's loaded; these are the fallbacks.
+  const snapshotMeta =
+    (snapshot as { _version?: { changes?: Change[]; issued_at?: string } })
+      ?._version ?? {};
   const snapshotChanges = Array.isArray(snapshot?.changes)
     ? (snapshot.changes as Change[])
-    : [];
+    : (snapshotMeta.changes ?? []);
+  const snapshotIssuedAt =
+    (typeof snapshot?.issued_at === 'string' && snapshot.issued_at) ||
+    snapshotMeta.issued_at ||
+    '';
 
   return (
     <ChartPreviewContext.Provider value={previewFormData}>
@@ -156,7 +167,7 @@ function ExploreVersionHistoryInner({
         <ExplorePreviewBanner
           chartUuid={chartUuid}
           snapshotSummary={formatChangeTitle(snapshotChanges)}
-          issuedAt={String(snapshot.issued_at ?? '')}
+          issuedAt={snapshotIssuedAt}
         />
       )}
       {children}

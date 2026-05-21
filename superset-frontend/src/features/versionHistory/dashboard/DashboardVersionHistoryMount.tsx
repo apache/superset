@@ -67,18 +67,34 @@ function DashboardPreviewBridge({
     previewVersionUuid,
   );
   const lastAppliedRef = useRef<string | null>(null);
+  // Stable ref so effects that exit on failure / unmount don't tear down a
+  // preview the user just opened by triggering a re-run when ctx changes.
+  const ctxRef = useRef(ctx);
+  ctxRef.current = ctx;
 
   // Enter preview when a snapshot is available for the requested uuid.
   useEffect(() => {
     if (!previewVersionUuid || !snapshot) return;
     if (lastAppliedRef.current === previewVersionUuid) return;
-    dispatch(
+    const entered = dispatch(
       enterVersionPreview(
         previewVersionUuid,
         snapshot as unknown as Parameters<typeof enterVersionPreview>[1],
       ),
-    );
-    lastAppliedRef.current = previewVersionUuid;
+    ) as unknown as boolean;
+    if (entered) {
+      lastAppliedRef.current = previewVersionUuid;
+    } else {
+      // Snapshot lacked usable layout structure — surface the failure to
+      // the user and back out of preview mode so the URL/banner don't
+      // imply success.
+      dispatch(
+        addDangerToast(
+          t('Snapshot is missing layout structure, cannot preview'),
+        ),
+      );
+      ctxRef.current?.exitPreview();
+    }
   }, [dispatch, previewVersionUuid, snapshot]);
 
   // Exit when context clears the preview, or on unmount.
@@ -89,10 +105,6 @@ function DashboardPreviewBridge({
     }
   }, [dispatch, previewVersionUuid, versionPreview]);
 
-  // Stable refs so the unmount cleanup doesn't re-run on every context
-  // change and tear down a preview the user just opened.
-  const ctxRef = useRef(ctx);
-  ctxRef.current = ctx;
   useEffect(
     () => () => {
       if (lastAppliedRef.current) {
