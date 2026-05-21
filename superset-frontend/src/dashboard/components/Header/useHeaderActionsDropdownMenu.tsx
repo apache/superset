@@ -22,6 +22,8 @@ import { useSelector } from 'react-redux';
 import { useHistory, useLocation } from 'react-router-dom';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { t } from '@apache-superset/core/translation';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import { Tooltip } from '@superset-ui/core/components';
 import { isEmpty } from 'lodash';
 import { URL_PARAMS } from 'src/constants';
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
@@ -67,6 +69,7 @@ export const useHeaderActionsMenu = ({
   dashboardTitle,
   logEvent,
   setCurrentReportDeleting,
+  onOpenVersionHistory,
 }: HeaderDropdownProps): [
   ReactElement,
   boolean,
@@ -117,6 +120,9 @@ export const useHeaderActionsMenu = ({
         case MenuKeys.ManageEmbedded:
           manageEmbedded();
           break;
+        case MenuKeys.ViewVersionHistory:
+          if (onOpenVersionHistory) onOpenVersionHistory();
+          break;
         default:
           break;
       }
@@ -130,6 +136,7 @@ export const useHeaderActionsMenu = ({
       manageEmbedded,
       history,
       location,
+      onOpenVersionHistory,
     ],
   );
 
@@ -305,6 +312,29 @@ export const useHeaderActionsMenu = ({
       menuItems.push(reportMenuItem);
     }
 
+    // View version history
+    if (onOpenVersionHistory && isFeatureEnabled(FeatureFlag.VersionHistory)) {
+      menuItems.push(
+        editMode
+          ? {
+              key: MenuKeys.ViewVersionHistory,
+              label: (
+                <Tooltip
+                  title={t('Exit edit mode to view version history')}
+                  placement="left"
+                >
+                  <span>{t('View version history')}</span>
+                </Tooltip>
+              ),
+              disabled: true,
+            }
+          : {
+              key: MenuKeys.ViewVersionHistory,
+              label: t('View version history'),
+            },
+      );
+    }
+
     // Set filter mapping
     if (editMode && !isEmpty(dashboardInfo?.metadata?.filter_scopes)) {
       menuItems.push(
@@ -350,6 +380,7 @@ export const useHeaderActionsMenu = ({
     userCanEdit,
     userCanSave,
     userCanShare,
+    onOpenVersionHistory,
   ]);
 
   return [menu, isDropdownVisible, setIsDropdownVisible];

@@ -61,6 +61,10 @@ import {
 } from 'src/features/reports/ReportModal/actions';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
+import {
+  DashboardVersionHistoryRoot,
+  useVersionHistory,
+} from 'src/features/versionHistory';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
@@ -221,6 +225,21 @@ const discardChanges = () => {
 };
 
 const Header = (): JSX.Element => {
+  const dashboardUuid = useSelector(
+    (state: HeaderRootState) =>
+      (state.dashboardInfo as unknown as { uuid?: string })?.uuid ?? null,
+  );
+  if (isFeatureEnabled(FeatureFlag.VersionHistory) && dashboardUuid) {
+    return (
+      <DashboardVersionHistoryRoot dashboardUuid={dashboardUuid}>
+        <HeaderInner />
+      </DashboardVersionHistoryRoot>
+    );
+  }
+  return <HeaderInner />;
+};
+
+const HeaderInner = (): JSX.Element => {
   const dispatch = useDispatch();
   const [didNotifyMaxUndoHistoryToast, setDidNotifyMaxUndoHistoryToast] =
     useState(false);
@@ -789,7 +808,9 @@ const Header = (): JSX.Element => {
     setCurrentReportDeleting(null);
   };
 
+  const { openPanel: openVersionHistoryPanel } = useVersionHistory();
   const [menu, isDropdownVisible, setIsDropdownVisible] = useHeaderActionsMenu({
+    onOpenVersionHistory: openVersionHistoryPanel,
     addSuccessToast: boundActionCreators.addSuccessToast,
     addDangerToast: boundActionCreators.addDangerToast,
     dashboardInfo,

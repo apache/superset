@@ -62,6 +62,7 @@ export interface HeaderDropdownProps {
   directPathToChild?: string[];
   showReportModal: () => void;
   setCurrentReportDeleting: Dispatch<SetStateAction<AlertObject | null>>;
+  onOpenVersionHistory?: () => void;
 }
 
 export interface HeaderProps {
