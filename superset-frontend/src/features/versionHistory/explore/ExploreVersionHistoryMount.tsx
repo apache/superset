@@ -16,9 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
-import { QueryFormData } from '@superset-ui/core';
-import { Change } from '../types';
+import { useCallback, useMemo } from 'react';
+import { useDispatch } from 'react-redux';
+import { useHistory } from 'react-router-dom';
+import { QueryFormData, SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import {
+  addDangerToast,
+  addSuccessToast,
+} from 'src/components/MessageToasts/actions';
+import { Change, Version } from '../types';
 import VersionHistoryPanel from '../components/VersionHistoryPanel';
 import PreviewBanner from '../components/PreviewBanner';
 import {
@@ -32,6 +39,7 @@ import { useRestoreVersion } from '../hooks/useRestoreVersion';
 import { snapshotToFormData } from '../utils/snapshotToFormData';
 import { formatChangeTitle } from '../utils/formatChangeTitle';
 import { formatVersionDate } from '../utils/formatVersionUser';
+import { forkChartFromSnapshot } from '../utils/forkActions';
 
 interface InnerProps {
   chartUuid: string | null | undefined;
@@ -89,6 +97,8 @@ function ExploreVersionHistoryInner({
   children,
 }: InnerProps) {
   const ctx = useOptionalVersionHistory();
+  const dispatch = useDispatch();
+  const history = useHistory();
   const previewVersionUuid = ctx?.previewVersionUuid ?? null;
   const { snapshot } = useVersionSnapshot(
     'chart',
@@ -98,6 +108,31 @@ function ExploreVersionHistoryInner({
   const previewFormData = useMemo(
     () => snapshotToFormData(snapshot, formData),
     [snapshot, formData],
+  );
+
+  const handleOpenAsNew = useCallback(
+    async (version: Version) => {
+      if (!chartUuid) return;
+      try {
+        const { json } = await SupersetClient.get({
+          endpoint: `/api/v1/chart/${chartUuid}/versions/${version.version_uuid}/`,
+        });
+        const created = await forkChartFromSnapshot(
+          json as unknown as Parameters<typeof forkChartFromSnapshot>[0],
+        );
+        dispatch(
+          addSuccessToast(
+            t('Created from version: %(summary)s', {
+              summary: formatChangeTitle(version.changes),
+            }),
+          ),
+        );
+        history.push(`/explore/?slice_id=${created.id}`);
+      } catch (e) {
+        dispatch(addDangerToast(t('Failed to create chart from version')));
+      }
+    },
+    [chartUuid, dispatch, history],
   );
 
   return (
@@ -121,7 +156,11 @@ function ExploreVersionHistoryInner({
         />
       )}
       {children}
-      <VersionHistoryPanel entityType="chart" uuid={chartUuid} />
+      <VersionHistoryPanel
+        entityType="chart"
+        uuid={chartUuid}
+        onOpenAsNew={handleOpenAsNew}
+      />
     </ChartPreviewContext.Provider>
   );
 }

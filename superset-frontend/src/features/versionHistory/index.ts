@@ -41,6 +41,10 @@ export {
 } from './utils/formatVersionUser';
 export { groupVersionsByDate } from './utils/groupVersionsByDate';
 export { snapshotToFormData } from './utils/snapshotToFormData';
+export {
+  forkChartFromSnapshot,
+  forkDashboardFromSnapshot,
+} from './utils/forkActions';
 export type {
   EntityType,
   Version,

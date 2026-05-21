@@ -16,8 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useEffect, useRef } from 'react';
+import { ReactNode, useCallback, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useHistory } from 'react-router-dom';
+import { SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import {
+  addDangerToast,
+  addSuccessToast,
+} from 'src/components/MessageToasts/actions';
 import {
   enterVersionPreview,
   exitVersionPreview,
@@ -29,6 +36,9 @@ import {
   useOptionalVersionHistory,
 } from '../context/VersionHistoryContext';
 import { useVersionSnapshot } from '../hooks/useVersionSnapshot';
+import { forkDashboardFromSnapshot } from '../utils/forkActions';
+import { formatChangeTitle } from '../utils/formatChangeTitle';
+import { Version } from '../types';
 
 interface Props {
   dashboardUuid: string | null | undefined;
@@ -102,6 +112,48 @@ function DashboardPreviewBridge({
  * dashboard view, and connects the preview state to the dashboardState
  * reducer's captured-original swap.
  */
+function DashboardForkBoundary({
+  dashboardUuid,
+}: {
+  dashboardUuid: string | null | undefined;
+}) {
+  const dispatch = useDispatch();
+  const history = useHistory();
+
+  const handleOpenAsNew = useCallback(
+    async (version: Version) => {
+      if (!dashboardUuid) return;
+      try {
+        const { json } = await SupersetClient.get({
+          endpoint: `/api/v1/dashboard/${dashboardUuid}/versions/${version.version_uuid}/`,
+        });
+        const created = await forkDashboardFromSnapshot(
+          json as unknown as Parameters<typeof forkDashboardFromSnapshot>[0],
+        );
+        dispatch(
+          addSuccessToast(
+            t('Created from version: %(summary)s', {
+              summary: formatChangeTitle(version.changes),
+            }),
+          ),
+        );
+        history.push(`/superset/dashboard/${created.id}/`);
+      } catch (e) {
+        dispatch(addDangerToast(t('Failed to create dashboard from version')));
+      }
+    },
+    [dashboardUuid, dispatch, history],
+  );
+
+  return (
+    <VersionHistoryPanel
+      entityType="dashboard"
+      uuid={dashboardUuid}
+      onOpenAsNew={handleOpenAsNew}
+    />
+  );
+}
+
 export function DashboardVersionHistoryRoot({
   dashboardUuid,
   children,
@@ -110,7 +162,7 @@ export function DashboardVersionHistoryRoot({
     <VersionHistoryProvider>
       {children}
       <DashboardPreviewBridge dashboardUuid={dashboardUuid} />
-      <VersionHistoryPanel entityType="dashboard" uuid={dashboardUuid} />
+      <DashboardForkBoundary dashboardUuid={dashboardUuid} />
     </VersionHistoryProvider>
   );
 }
