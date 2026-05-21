@@ -81,6 +81,7 @@ interface VersionPreviewState {
   versionUuid: string;
   capturedSliceEntities: unknown;
   capturedLayout: unknown;
+  capturedDashboardInfo?: Record<string, unknown> | null;
 }
 
 interface DashboardStateShape {
@@ -165,10 +166,13 @@ interface DashboardStateAction {
   versionUuid?: string;
   capturedSliceEntities?: unknown;
   capturedLayout?: unknown;
+  capturedDashboardInfo?: Record<string, unknown> | null;
   newSliceEntities?: unknown;
   newLayout?: unknown;
+  newDashboardInfo?: Record<string, unknown> | null;
   restoreSliceEntities?: unknown;
   restoreLayout?: unknown;
+  restoreDashboardInfo?: Record<string, unknown> | null;
   payload?: {
     maxUndoHistoryExceeded?: boolean;
     hasUnsavedChanges?: boolean;
@@ -237,12 +241,19 @@ export default function dashboardStateReducer(
       return { ...state, maxUndoHistoryExceeded };
     },
     [ENTER_VERSION_PREVIEW](): DashboardStateShape {
+      // Preserve the captured originals from a prior enter so an A → B
+      // switch still restores the live state on exit, not the previously
+      // previewed version.
+      const previous = state.versionPreview;
       return {
         ...state,
         versionPreview: {
           versionUuid: action.versionUuid as string,
-          capturedSliceEntities: action.capturedSliceEntities,
-          capturedLayout: action.capturedLayout,
+          capturedSliceEntities:
+            previous?.capturedSliceEntities ?? action.capturedSliceEntities,
+          capturedLayout: previous?.capturedLayout ?? action.capturedLayout,
+          capturedDashboardInfo:
+            previous?.capturedDashboardInfo ?? action.capturedDashboardInfo,
         },
       };
     },

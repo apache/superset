@@ -33,7 +33,7 @@ import type { RootState } from 'src/dashboard/types';
 import VersionHistoryPanel from '../components/VersionHistoryPanel';
 import {
   VersionHistoryProvider,
-  useOptionalVersionHistory,
+  useRequiredVersionHistory,
 } from '../context/VersionHistoryContext';
 import { useVersionSnapshot } from '../hooks/useVersionSnapshot';
 import { forkDashboardFromSnapshot } from '../utils/forkActions';
@@ -55,8 +55,12 @@ function DashboardPreviewBridge({
 }: {
   dashboardUuid: string | null | undefined;
 }) {
-  const ctx = useOptionalVersionHistory();
-  const previewVersionUuid = ctx?.previewVersionUuid ?? null;
+  // Bridge always lives inside DashboardVersionHistoryRoot's
+  // VersionHistoryProvider, so use the strict variant: a missing provider
+  // is a render-tree misconfiguration we want to surface, not silently
+  // degrade to the no-op stub.
+  const ctx = useRequiredVersionHistory();
+  const { previewVersionUuid } = ctx;
   const dispatch = useDispatch();
   const versionPreview = useSelector(
     (state: RootState) => state.dashboardState.versionPreview ?? null,
@@ -79,7 +83,7 @@ function DashboardPreviewBridge({
     const entered = dispatch(
       enterVersionPreview(
         previewVersionUuid,
-        snapshot as unknown as Parameters<typeof enterVersionPreview>[1],
+        snapshot as Parameters<typeof enterVersionPreview>[1],
       ),
     ) as unknown as boolean;
     if (entered) {
@@ -93,7 +97,7 @@ function DashboardPreviewBridge({
           t('Snapshot is missing layout structure, cannot preview'),
         ),
       );
-      ctxRef.current?.exitPreview();
+      ctxRef.current.exitPreview();
     }
   }, [dispatch, previewVersionUuid, snapshot]);
 
@@ -111,7 +115,7 @@ function DashboardPreviewBridge({
         dispatch(exitVersionPreview());
         // Also clear the URL param so reloading the page after unmount
         // doesn't silently re-enter preview.
-        ctxRef.current?.exitPreview();
+        ctxRef.current.exitPreview();
       }
     },
     [dispatch],

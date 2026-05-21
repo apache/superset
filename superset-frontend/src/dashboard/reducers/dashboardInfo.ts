@@ -29,6 +29,10 @@ import {
   DASHBOARD_INFO_FILTERS_CHANGED,
 } from '../actions/dashboardInfo';
 import {
+  ENTER_VERSION_PREVIEW,
+  EXIT_VERSION_PREVIEW,
+} from '../actions/dashboardState';
+import {
   SAVE_CHART_CUSTOMIZATION_COMPLETE,
   SET_CHART_CUSTOMIZATION_DATA_LOADING,
   SET_CHART_CUSTOMIZATION_DATA,
@@ -54,6 +58,8 @@ interface DashboardInfoAction {
   isLoading?: boolean;
   data?: ColumnOption[];
   pendingCustomization?: ChartCustomization;
+  newDashboardInfo?: Record<string, unknown> | null;
+  restoreDashboardInfo?: Record<string, unknown> | null;
   [key: string]: unknown;
 }
 
@@ -311,6 +317,29 @@ export default function dashboardInfoReducer(
           ),
         } as DashboardInfo['metadata'],
         last_modified_time: Math.round(new Date().getTime() / 1000),
+      };
+    }
+    case ENTER_VERSION_PREVIEW: {
+      // Apply the snapshot's scalar fields on top of the live dashboardInfo
+      // so the header, document title, slug, css etc. reflect the historical
+      // version. The thunk decides which fields to swap; we just spread.
+      const overrides =
+        (action as DashboardInfoAction).newDashboardInfo || null;
+      if (!overrides) return state;
+      return {
+        ...state,
+        ...overrides,
+      };
+    }
+    case EXIT_VERSION_PREVIEW: {
+      // Restore from the captured live values. The thunk passes the exact
+      // subset of fields it swapped on enter; spreading them restores them.
+      const restore =
+        (action as DashboardInfoAction).restoreDashboardInfo || null;
+      if (!restore) return state;
+      return {
+        ...state,
+        ...restore,
       };
     }
     default:

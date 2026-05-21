@@ -32,7 +32,11 @@ import {
   useOptionalVersionHistory,
   VersionHistoryProvider,
 } from '../context/VersionHistoryContext';
-import { ChartPreviewContext } from '../context/ChartPreviewContext';
+import {
+  ChartPreviewContext,
+  ChartPreviewSliceOverrides,
+  ChartPreviewValue,
+} from '../context/ChartPreviewContext';
 import { useVersionSnapshot } from '../hooks/useVersionSnapshot';
 import { useVersionList } from '../hooks/useVersionList';
 import { useRestoreVersion } from '../hooks/useRestoreVersion';
@@ -126,6 +130,34 @@ function ExploreVersionHistoryInner({
     () => snapshotToFormData(snapshot, formData),
     [snapshot, formData],
   );
+  // Slice-level scalars (title, description, certification badge text) are
+  // read directly from Redux ``state.explore.slice`` by the Explore header
+  // and metadata bar. Surface them via context so consumers can prefer the
+  // snapshot value during preview without mutating the live slice.
+  const previewSlice = useMemo<ChartPreviewSliceOverrides | null>(() => {
+    if (!snapshot) return null;
+    const overrides: ChartPreviewSliceOverrides = {};
+    if (typeof snapshot.slice_name === 'string') {
+      overrides.slice_name = snapshot.slice_name;
+    }
+    if (
+      typeof snapshot.description === 'string' ||
+      snapshot.description === null
+    ) {
+      overrides.description = snapshot.description as string | null;
+    }
+    if (typeof snapshot.certified_by === 'string') {
+      overrides.certified_by = snapshot.certified_by;
+    }
+    if (typeof snapshot.certification_details === 'string') {
+      overrides.certification_details = snapshot.certification_details;
+    }
+    return overrides;
+  }, [snapshot]);
+  const previewValue = useMemo<ChartPreviewValue>(
+    () => ({ formData: previewFormData, slice: previewSlice }),
+    [previewFormData, previewSlice],
+  );
 
   const handleOpenAsNew = useCallback(
     async (version: Version) => {
@@ -168,7 +200,7 @@ function ExploreVersionHistoryInner({
     typeof snapshot?.issued_at === 'string' ? snapshot.issued_at : '';
 
   return (
-    <ChartPreviewContext.Provider value={previewFormData}>
+    <ChartPreviewContext.Provider value={previewValue}>
       {previewFormData && snapshot && (
         <ExplorePreviewBanner
           chartUuid={chartUuid}

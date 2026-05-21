@@ -89,6 +89,53 @@ test('useVersionSnapshot unwraps the SupersetClient envelope (json.result)', asy
   });
 });
 
+test('useVersionSnapshot unwraps a chart-shaped payload (params + slice_name + viz_type)', async () => {
+  // Chart snapshots merge ``params`` (stringified form_data) and slice-level
+  // scalars at the root, not under a separate envelope. The same unwrap
+  // must work without code paths special-casing entity type.
+  mockGet.mockResolvedValueOnce({
+    json: {
+      result: {
+        version_uuid: '22222222-3333-4444-5555-666666666666',
+        version_number: 4,
+        transaction_id: 2,
+        operation_type: 'update',
+        issued_at: '2026-04-02T09:30:00Z',
+        changed_by: null,
+        slice_name: 'Snapshot chart name',
+        viz_type: 'big_number_total',
+        params: JSON.stringify({ metric: 'count', row_limit: 100 }),
+        datasource_id: 7,
+        datasource_type: 'table',
+        _version: {
+          version_uuid: '22222222-3333-4444-5555-666666666666',
+          version_number: 4,
+          changes: [],
+        },
+      },
+    },
+  } as unknown as Awaited<ReturnType<typeof SupersetClient.get>>);
+
+  const { result } = renderHook(() =>
+    useVersionSnapshot(
+      'chart',
+      'bbbbbbbb-cccc-dddd-eeee-ffffffffffff',
+      '22222222-3333-4444-5555-666666666666',
+    ),
+  );
+  await waitFor(() => {
+    expect(result.current.snapshot).not.toBeNull();
+  });
+  const snap = result.current.snapshot as Record<string, unknown>;
+  expect(snap.slice_name).toBe('Snapshot chart name');
+  expect(snap.viz_type).toBe('big_number_total');
+  expect(typeof snap.params).toBe('string');
+  expect(snap.datasource_id).toBe(7);
+  expect(snap.datasource_type).toBe('table');
+  // Envelope must not be re-exposed.
+  expect(snap.result).toBeUndefined();
+});
+
 test('useVersionSnapshot exposes null and an error message on API failure', async () => {
   mockGet.mockRejectedValueOnce(new Error('boom'));
 

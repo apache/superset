@@ -25,7 +25,6 @@ import {
   addSuccessToast,
 } from 'src/components/MessageToasts/actions';
 import type { RootState } from 'src/dashboard/types';
-import { exitVersionPreview } from 'src/dashboard/actions/dashboardState';
 import PreviewBanner from '../components/PreviewBanner';
 import RestoreConfirmModal from '../components/RestoreConfirmModal';
 import { useOptionalVersionHistory } from '../context/VersionHistoryContext';
@@ -62,9 +61,12 @@ const DashboardPreviewBanner = () => {
     : t('Historical version');
   const date = matched ? formatVersionDate(matched.issued_at) : '';
 
+  // Clearing the preview UUID on the context triggers the
+  // DashboardPreviewBridge's effect to dispatch exitVersionPreview. Doing
+  // it here too would double-dispatch (the reducer no-ops on the second
+  // hit, but we keep cleanup in one place).
   const handleExit = () => {
     ctx?.exitPreview();
-    dispatch(exitVersionPreview());
   };
 
   const handleConfirmRestore = async () => {

@@ -20,13 +20,37 @@ import { createContext, useContext } from 'react';
 import { QueryFormData } from '@superset-ui/core';
 
 /**
- * Exposes the form_data computed from a historical version snapshot so the
- * chart panel can shadow-render the preview without touching Redux.
- * ``null`` means no preview is active and consumers should use their normal
- * (live) form_data.
+ * Slice-level scalars that the Explore header / metadata bar read directly
+ * from Redux. During preview these need to reflect the historical snapshot
+ * without mutating the live ``explore.slice`` Redux subtree (which would
+ * trigger "unsaved changes" tracking, sliceUpdated subscribers, etc.).
  */
-export const ChartPreviewContext = createContext<QueryFormData | null>(null);
+export interface ChartPreviewSliceOverrides {
+  slice_name?: string;
+  description?: string | null;
+  certified_by?: string;
+  certification_details?: string;
+}
+
+export interface ChartPreviewValue {
+  formData: QueryFormData | null;
+  slice: ChartPreviewSliceOverrides | null;
+}
+
+const EMPTY: ChartPreviewValue = { formData: null, slice: null };
+
+/**
+ * Exposes the form_data + slice-level scalar overrides computed from a
+ * historical version snapshot so the chart panel can shadow-render the
+ * preview without touching Redux. ``formData`` of ``null`` means no preview
+ * is active and consumers should use their normal (live) values.
+ */
+export const ChartPreviewContext = createContext<ChartPreviewValue>(EMPTY);
 
 export function useChartPreviewFormData(): QueryFormData | null {
-  return useContext(ChartPreviewContext);
+  return useContext(ChartPreviewContext).formData;
+}
+
+export function useChartPreviewSlice(): ChartPreviewSliceOverrides | null {
+  return useContext(ChartPreviewContext).slice;
 }

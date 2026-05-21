@@ -40,9 +40,11 @@ import { t } from '@apache-superset/core/translation';
 import { chart as initChart } from 'src/components/Chart/chartReducer';
 import { applyDefaultFormData } from 'src/explore/store';
 import {
+  DASHBOARD_HEADER_ID,
   SAVE_TYPE_OVERWRITE,
   SAVE_TYPE_OVERWRITE_CONFIRMED,
 } from 'src/dashboard/util/constants';
+import { DASHBOARD_HEADER_TYPE } from 'src/dashboard/util/componentTypes';
 import {
   getCrossFiltersConfiguration,
   isCrossFiltersEnabled,
@@ -1548,8 +1550,29 @@ export const EXIT_VERSION_PREVIEW = 'EXIT_VERSION_PREVIEW';
 interface VersionSnapshotPayload {
   slices?: Record<string, unknown>[] | Record<string, Slice>;
   position_json?: string | Record<string, unknown> | null;
+  dashboard_title?: string | null;
+  description?: string | null;
+  slug?: string | null;
+  css?: string | null;
+  json_metadata?: string | null;
+  published?: boolean | null;
   [key: string]: unknown;
 }
+
+// Scalar fields read from ``dashboardInfo`` by the header, document title,
+// custom CSS, etc. These are the fields the snapshot endpoint emits at the
+// root level and that we replace on enter / restore on exit. Owners, roles,
+// and audit fields are intentionally excluded — Mike's snapshot endpoint
+// returns the live values for those (they aren't versioned) and swapping
+// them would imply they snap back to a historical state.
+const VERSIONED_DASHBOARD_INFO_FIELDS = [
+  'dashboard_title',
+  'description',
+  'slug',
+  'css',
+  'json_metadata',
+  'published',
+] as const;
 
 function normalizeSlicesFromSnapshot(
   snapshot: VersionSnapshotPayload,
@@ -1603,11 +1626,31 @@ function hasValidLayoutStructure(
 export const enterVersionPreview =
   (versionUuid: string, snapshot: VersionSnapshotPayload) =>
   (dispatch: AppDispatch, getState: GetState): boolean => {
-    const newLayout = parsePositionJson(snapshot.position_json);
-    if (!hasValidLayoutStructure(newLayout)) {
+    const parsedLayout = parsePositionJson(snapshot.position_json);
+    if (!hasValidLayoutStructure(parsedLayout)) {
       // Bail BEFORE dispatching — otherwise the renderer crashes trying to
       // walk a layout without ROOT_ID / GRID_ID.
       return false;
+    }
+    // The dashboard's title is read by the Header from
+    // ``layout[DASHBOARD_HEADER_ID].meta.text``. Backend ``position_json``
+    // does not always carry an updated DASHBOARD_HEADER_ID block, so inject
+    // the snapshot's ``dashboard_title`` here to guarantee the visible H1
+    // reflects the preview.
+    const newLayout: Record<string, unknown> = { ...parsedLayout };
+    if (typeof snapshot.dashboard_title === 'string') {
+      const existingHeader = (parsedLayout[DASHBOARD_HEADER_ID] as
+        | { meta?: Record<string, unknown> }
+        | undefined) ?? { meta: {} };
+      newLayout[DASHBOARD_HEADER_ID] = {
+        ...existingHeader,
+        id: DASHBOARD_HEADER_ID,
+        type: DASHBOARD_HEADER_TYPE,
+        meta: {
+          ...(existingHeader.meta as Record<string, unknown> | undefined),
+          text: snapshot.dashboard_title,
+        },
+      };
     }
     const state = getState();
     // Preserve the live state captured on the first enter. Switching from
@@ -1624,6 +1667,33 @@ export const enterVersionPreview =
           dashboardLayout: { present: Record<string, unknown> };
         }
       ).dashboardLayout.present;
+    // Capture the live values of the versioned scalar fields so EXIT can
+    // restore them. Always capture from ``state.dashboardInfo`` on first
+    // enter, even if the snapshot's payload omits a field — otherwise an
+    // A → B switch could drop the original value.
+    const liveDashboardInfo = (
+      state as unknown as { dashboardInfo?: Record<string, unknown> }
+    ).dashboardInfo;
+    const capturedDashboardInfo: Record<string, unknown> | null =
+      existingPreview?.capturedDashboardInfo ??
+      (liveDashboardInfo
+        ? VERSIONED_DASHBOARD_INFO_FIELDS.reduce(
+            (acc, key) => {
+              acc[key] = liveDashboardInfo[key];
+              return acc;
+            },
+            {} as Record<string, unknown>,
+          )
+        : null);
+    // Build the swap payload: only emit fields the snapshot actually
+    // carries. A missing field means "no change" — important for ``slug``
+    // and similar values that may be null in older snapshots.
+    const newDashboardInfo: Record<string, unknown> = {};
+    VERSIONED_DASHBOARD_INFO_FIELDS.forEach(key => {
+      if (key in snapshot) {
+        newDashboardInfo[key] = (snapshot as Record<string, unknown>)[key];
+      }
+    });
     const snapshotSlices = normalizeSlicesFromSnapshot(snapshot);
     // Merge — do not replace. The snapshot endpoint for dashboards does not
     // currently emit a ``slices`` array; wiping the live entries would
@@ -1639,11 +1709,14 @@ export const enterVersionPreview =
       versionUuid,
       capturedSliceEntities,
       capturedLayout,
+      capturedDashboardInfo,
       newSliceEntities: {
         ...(capturedSliceEntities as Record<string, unknown>),
         slices: mergedSlices,
       },
       newLayout,
+      newDashboardInfo:
+        Object.keys(newDashboardInfo).length > 0 ? newDashboardInfo : null,
     });
     // The preview layout swap goes through the undoable reducer (see
     // TRACKED_ACTIONS in undoableDashboardLayout). Clear that entry from
@@ -1662,6 +1735,7 @@ export const exitVersionPreview =
       type: EXIT_VERSION_PREVIEW,
       restoreSliceEntities: versionPreview.capturedSliceEntities,
       restoreLayout: versionPreview.capturedLayout,
+      restoreDashboardInfo: versionPreview.capturedDashboardInfo ?? null,
     });
     // Same reason as enter: drop the EXIT entry from undo history.
     dispatch(UndoActionCreators.clearHistory());

@@ -273,6 +273,148 @@ test('enterVersionPreview merges live slices when the snapshot omits them', () =
   ).toMatchObject(liveSlices);
 });
 
+test('enterVersionPreview lets snapshot slices override live entries on id collision', () => {
+  // Direction matters: when both the live state and the snapshot have an
+  // entry for the same slice_id, the snapshot value must win (otherwise
+  // we silently render live data while the banner claims preview mode).
+  const liveSlices = {
+    7: { slice_id: 7, slice_name: 'Live A' },
+    9: { slice_id: 9, slice_name: 'Live B' },
+  };
+  const state = {
+    dashboardState: { versionPreview: null },
+    sliceEntities: { slices: liveSlices, isLoading: false },
+    dashboardLayout: { present: { ROOT_ID: {}, GRID_ID: {} } },
+    dashboardInfo: {},
+  };
+  const dispatched: Array<{ type: string; [k: string]: unknown }> = [];
+  const dispatch = (a: unknown) => {
+    if (
+      a &&
+      typeof a === 'object' &&
+      'type' in (a as Record<string, unknown>)
+    ) {
+      dispatched.push(a as { type: string });
+    }
+  };
+  enterVersionPreview(
+    '33333333-4444-5555-6666-777777777777',
+    {
+      slices: [
+        { slice_id: 7, slice_name: 'Snapshot A' },
+        { slice_id: 42, slice_name: 'Snapshot only' },
+      ],
+      position_json: '{"ROOT_ID":{"id":"root"},"GRID_ID":{"id":"grid"}}',
+    } as unknown as Parameters<typeof enterVersionPreview>[1],
+  )(dispatch as never, () => state as never);
+  const enter = dispatched.find(a => a.type === ENTER_VERSION_PREVIEW)!;
+  const merged = (
+    enter.newSliceEntities as { slices: Record<number, { slice_name: string }> }
+  ).slices;
+  // Snapshot wins for the colliding id.
+  expect(merged[7].slice_name).toBe('Snapshot A');
+  // Snapshot-only id is included.
+  expect(merged[42].slice_name).toBe('Snapshot only');
+  // Live-only id survives.
+  expect(merged[9].slice_name).toBe('Live B');
+});
+
+test('enterVersionPreview captures dashboardInfo scalars and emits a swap payload', () => {
+  // The user-reported bug: editing the dashboard title and previewing an
+  // older version left the live title visible. The thunk must capture the
+  // live scalar fields and dispatch the snapshot's scalars as the swap.
+  const state = {
+    dashboardState: { versionPreview: null },
+    sliceEntities: { slices: {}, isLoading: false },
+    dashboardLayout: { present: { ROOT_ID: {}, GRID_ID: {} } },
+    dashboardInfo: {
+      dashboard_title: 'Live title',
+      description: 'Live description',
+      slug: 'live-slug',
+      css: '/* live */',
+      json_metadata: '{"live":true}',
+      published: true,
+    },
+  };
+  const dispatched: Array<{ type: string; [k: string]: unknown }> = [];
+  const dispatch = (a: unknown) => {
+    if (
+      a &&
+      typeof a === 'object' &&
+      'type' in (a as Record<string, unknown>)
+    ) {
+      dispatched.push(a as { type: string });
+    }
+  };
+  enterVersionPreview(
+    '44444444-5555-6666-7777-888888888888',
+    {
+      dashboard_title: 'Snapshot title',
+      description: 'Snapshot description',
+      css: '/* snapshot */',
+      published: false,
+      position_json: '{"ROOT_ID":{"id":"root"},"GRID_ID":{"id":"grid"}}',
+    } as unknown as Parameters<typeof enterVersionPreview>[1],
+  )(dispatch as never, () => state as never);
+  const enter = dispatched.find(a => a.type === ENTER_VERSION_PREVIEW)!;
+  expect(enter.capturedDashboardInfo).toEqual({
+    dashboard_title: 'Live title',
+    description: 'Live description',
+    slug: 'live-slug',
+    css: '/* live */',
+    json_metadata: '{"live":true}',
+    published: true,
+  });
+  expect(enter.newDashboardInfo).toEqual({
+    dashboard_title: 'Snapshot title',
+    description: 'Snapshot description',
+    css: '/* snapshot */',
+    published: false,
+  });
+  // The injected DASHBOARD_HEADER_ID block carries the snapshot title so
+  // the visible H1 (which reads from layout, not from dashboardInfo)
+  // reflects the preview.
+  const layout = enter.newLayout as Record<
+    string,
+    { meta?: { text?: string } }
+  >;
+  expect(layout.HEADER_ID?.meta?.text).toBe('Snapshot title');
+});
+
+test('exitVersionPreview emits the captured dashboardInfo as restoreDashboardInfo', () => {
+  const captured = {
+    dashboard_title: 'Live title',
+    description: 'Live description',
+    slug: 'live-slug',
+    css: '/* live */',
+    json_metadata: '{"live":true}',
+    published: true,
+  };
+  const state = {
+    dashboardState: {
+      versionPreview: {
+        versionUuid: '44444444-5555-6666-7777-888888888888',
+        capturedSliceEntities: { slices: {}, isLoading: false },
+        capturedLayout: { ROOT_ID: {}, GRID_ID: {} },
+        capturedDashboardInfo: captured,
+      },
+    },
+  };
+  const dispatched: Array<{ type: string; [k: string]: unknown }> = [];
+  const dispatch = (a: unknown) => {
+    if (
+      a &&
+      typeof a === 'object' &&
+      'type' in (a as Record<string, unknown>)
+    ) {
+      dispatched.push(a as { type: string });
+    }
+  };
+  exitVersionPreview()(dispatch as never, () => state as never);
+  const exit = dispatched.find(a => a.type === EXIT_VERSION_PREVIEW)!;
+  expect(exit.restoreDashboardInfo).toBe(captured);
+});
+
 test('enterVersionPreview bails when position_json lacks ROOT_ID/GRID_ID', () => {
   // Malformed layout should not be dispatched — the dashboard renderer
   // would otherwise crash trying to walk an empty structure.

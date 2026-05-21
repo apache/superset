@@ -43,17 +43,67 @@ export interface Version {
   changes: Change[];
 }
 
-export interface VersionSnapshot {
+/**
+ * The ``_version`` envelope the backend nests under every snapshot. Carries
+ * the same metadata as a list-row Version, but always populated (the list
+ * endpoint also nests this under each row).
+ */
+export interface VersionMeta {
   version_uuid: string;
   version_number: number;
-  transaction_id: number;
-  operation_type: string;
-  issued_at: string;
-  changed_by: ChangedBy | null;
-  // The list endpoint populates ``changes``; the single-version endpoint
-  // may omit it. When present, it's the same shape as Version.changes.
+  transaction_id?: number;
+  operation_type?: string;
+  issued_at?: string;
+  changed_by?: ChangedBy | null;
   changes?: Change[];
-  // Scalar fields are merged at the root by the backend; for dashboards
-  // a ``slices`` array is included alongside the dashboard-level fields.
-  [key: string]: unknown;
+}
+
+/**
+ * Snapshot payload returned by ``/api/v1/{entity}/{uuid}/versions/{version}``.
+ * Fields are loosely typed because the backend merges chart-only and
+ * dashboard-only columns at the root; consumers narrow with ``in`` checks
+ * (e.g. ``'params' in snapshot`` → chart payload).
+ */
+export interface VersionSnapshot {
+  // Top-level metadata mirrored from the list row (may be omitted on the
+  // single-version endpoint; consumers fall back to the matched list entry).
+  version_uuid?: string;
+  version_number?: number;
+  transaction_id?: number;
+  operation_type?: string;
+  issued_at?: string;
+  changed_by?: ChangedBy | null;
+  changes?: Change[];
+
+  // Dashboard scalars (merged at root by the backend).
+  dashboard_title?: string | null;
+  description?: string | null;
+  slug?: string | null;
+  css?: string | null;
+  json_metadata?: string | null;
+  published?: boolean | null;
+  position_json?: string | Record<string, unknown> | null;
+  certified_by?: string | null;
+  certification_details?: string | null;
+
+  // Chart scalars (merged at root by the backend).
+  slice_name?: string;
+  viz_type?: string;
+  params?: string | Record<string, unknown> | null;
+  query_context?: string | Record<string, unknown> | null;
+  cache_timeout?: number | null;
+  datasource_id?: number | null;
+  datasource_type?: string | null;
+
+  // Dashboards optionally carry the slice index; the single-version endpoint
+  // for charts/dashboards does not currently emit it.
+  slices?: Record<string, unknown>[] | Record<string, unknown>;
+
+  // Columns/metrics may appear on dataset-flavored snapshots in the future.
+  columns?: unknown[];
+  metrics?: unknown[];
+
+  // The nested version envelope; always present on the single-version
+  // endpoint.
+  _version?: VersionMeta;
 }

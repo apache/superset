@@ -45,7 +45,10 @@ import ReportModal from 'src/features/reports/ReportModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { getChartFormDiffs } from 'src/utils/getChartFormDiffs';
-import { useOptionalVersionHistory } from 'src/features/versionHistory';
+import {
+  useChartPreviewSlice,
+  useOptionalVersionHistory,
+} from 'src/features/versionHistory';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { Tag } from 'src/components/Tag';
 import { ChartState, ExplorePageInitialData } from 'src/explore/types';
@@ -204,8 +207,35 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   const versionHistoryCtx = useOptionalVersionHistory();
   const openVersionHistoryPanel = versionHistoryCtx?.openPanel;
   const isPreviewing = !!versionHistoryCtx?.previewVersionUuid;
+  // While previewing a historical version, the Explore header reads from
+  // ``slice``/``sliceName`` props which still hold the live values. The
+  // snapshot's slice-level scalars (title, description, certification) come
+  // through this context so we can render them without mutating Redux.
+  const previewSliceOverrides = useChartPreviewSlice();
+  const effectiveSliceName =
+    isPreviewing && previewSliceOverrides?.slice_name != null
+      ? previewSliceOverrides.slice_name
+      : sliceName;
+  const effectiveSlice = useMemo(() => {
+    if (!isPreviewing || !previewSliceOverrides || !slice) return slice;
+    return {
+      ...slice,
+      ...(previewSliceOverrides.slice_name != null && {
+        slice_name: previewSliceOverrides.slice_name,
+      }),
+      ...(previewSliceOverrides.description !== undefined && {
+        description: previewSliceOverrides.description,
+      }),
+      ...(previewSliceOverrides.certified_by !== undefined && {
+        certified_by: previewSliceOverrides.certified_by,
+      }),
+      ...(previewSliceOverrides.certification_details !== undefined && {
+        certification_details: previewSliceOverrides.certification_details,
+      }),
+    } as Slice;
+  }, [isPreviewing, previewSliceOverrides, slice]);
 
-  const metadataBar = useExploreMetadataBar(metadata, slice ?? null);
+  const metadataBar = useExploreMetadataBar(metadata, effectiveSlice ?? null);
   const oldSliceName = slice?.slice_name;
 
   // Capture initial form data for new charts
@@ -284,25 +314,33 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
 
   const editableTitleProps = useMemo(
     () => ({
-      title: sliceName ?? '',
+      title: effectiveSliceName ?? '',
       canEdit:
         !slice ||
-        canOverwrite ||
-        (user?.userId !== undefined &&
-          (slice?.owners || []).includes(user.userId)),
+        (!isPreviewing &&
+          (canOverwrite ||
+            (user?.userId !== undefined &&
+              (slice?.owners || []).includes(user.userId)))),
       onSave: actions.updateChartTitle,
       placeholder: t('Add the name of the chart'),
       label: t('Chart title'),
     }),
-    [actions.updateChartTitle, canOverwrite, slice, sliceName, user?.userId],
+    [
+      actions.updateChartTitle,
+      canOverwrite,
+      effectiveSliceName,
+      isPreviewing,
+      slice,
+      user?.userId,
+    ],
   );
 
   const certificatiedBadgeProps = useMemo(
     () => ({
-      certifiedBy: slice?.certified_by,
-      details: slice?.certification_details,
+      certifiedBy: effectiveSlice?.certified_by,
+      details: effectiveSlice?.certification_details,
     }),
-    [slice?.certified_by, slice?.certification_details],
+    [effectiveSlice?.certified_by, effectiveSlice?.certification_details],
   );
 
   const faveStarProps = useMemo(

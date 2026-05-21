@@ -26,6 +26,7 @@ export function formatVersionUser(by: ChangedBy | null): string {
 }
 
 export function formatVersionDate(iso: string): string {
+  if (!iso) return '';
   try {
     const lang = document.documentElement.lang || undefined;
     return new Date(iso).toLocaleString(lang);

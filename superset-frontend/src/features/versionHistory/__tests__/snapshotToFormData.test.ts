@@ -24,7 +24,7 @@ test('snapshotToFormData returns null for a missing snapshot', () => {
 });
 
 test('snapshotToFormData parses stringified params and overlays scalar fields', () => {
-  const snapshot = {
+  const snapshot: VersionSnapshot = {
     version_uuid: 'v1',
     version_number: 1,
     transaction_id: 1,
@@ -36,7 +36,7 @@ test('snapshotToFormData parses stringified params and overlays scalar fields', 
     params: JSON.stringify({ metric: 'count', row_limit: 50 }),
     datasource_id: 7,
     datasource_type: 'table',
-  } as unknown as VersionSnapshot;
+  };
 
   const result = snapshotToFormData(snapshot, {
     viz_type: 'live_type',

@@ -170,6 +170,7 @@ export type DashboardState = {
     versionUuid: string;
     capturedSliceEntities: unknown;
     capturedLayout: unknown;
+    capturedDashboardInfo?: Record<string, unknown> | null;
   } | null;
 };
 export type DashboardInfo = {

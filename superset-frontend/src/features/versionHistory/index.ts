@@ -25,10 +25,16 @@ export {
   VersionHistoryProvider,
   useVersionHistory,
   useOptionalVersionHistory,
+  useRequiredVersionHistory,
 } from './context/VersionHistoryContext';
 export {
   ChartPreviewContext,
   useChartPreviewFormData,
+  useChartPreviewSlice,
+} from './context/ChartPreviewContext';
+export type {
+  ChartPreviewSliceOverrides,
+  ChartPreviewValue,
 } from './context/ChartPreviewContext';
 export { useVersionList } from './hooks/useVersionList';
 export { useVersionSnapshot } from './hooks/useVersionSnapshot';

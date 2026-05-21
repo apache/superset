@@ -72,46 +72,47 @@ const VersionItem = ({
     return items;
   }, [isCurrent, onOpenAsNew, onRestore]);
 
-  // div + role="button" rather than a native <button> so the actions
-  // dropdown trigger (also role=button) is not nested inside another
-  // interactive element, which would violate ARIA.
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
       onSelect();
     }
   };
+
+  // Plain wrapper (no role) so the clickable row and the actions dropdown
+  // can both expose role="button" without nesting one interactive element
+  // inside another (which violates ARIA).
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={onSelect}
-      onKeyDown={handleKeyDown}
-      data-test="version-history-item"
-      aria-pressed={selected}
       css={css`
         display: flex;
         width: 100%;
         gap: ${theme.sizeUnit * 2}px;
         padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
-        text-align: left;
         background: ${selected ? theme.colorBgTextHover : 'transparent'};
         border-left: 3px solid ${selected ? theme.colorPrimary : 'transparent'};
-        cursor: pointer;
 
         &:hover {
           background: ${theme.colorBgTextHover};
         }
-        &:focus {
-          outline: 2px solid ${theme.colorPrimary};
-          outline-offset: -2px;
-        }
       `}
     >
       <div
+        role="button"
+        tabIndex={0}
+        onClick={onSelect}
+        onKeyDown={handleKeyDown}
+        data-test="version-history-item"
+        aria-pressed={selected}
         css={css`
           flex: 1;
           min-width: 0;
+          text-align: left;
+          cursor: pointer;
+          &:focus {
+            outline: 2px solid ${theme.colorPrimary};
+            outline-offset: -2px;
+          }
         `}
       >
         <div
@@ -147,38 +148,29 @@ const VersionItem = ({
         </div>
       </div>
       {menuItems && menuItems.length > 0 && (
-        <span
-          onClick={e => e.stopPropagation()}
-          onKeyDown={e => e.stopPropagation()}
-          role="presentation"
-          css={css`
-            display: inline-flex;
-            align-items: center;
-          `}
+        <Dropdown
+          trigger={['click']}
+          menu={{ items: menuItems }}
+          placement="bottomRight"
         >
-          <Dropdown
-            trigger={['click']}
-            menu={{ items: menuItems }}
-            placement="bottomRight"
+          <span
+            role="button"
+            aria-label={t('Version actions')}
+            tabIndex={0}
+            css={css`
+              display: inline-flex;
+              align-items: center;
+              padding: ${theme.sizeUnit}px;
+              cursor: pointer;
+              color: ${theme.colorIcon};
+              &:hover {
+                color: ${theme.colorIconHover};
+              }
+            `}
           >
-            <span
-              role="button"
-              aria-label={t('Version actions')}
-              tabIndex={0}
-              css={css`
-                display: inline-flex;
-                padding: ${theme.sizeUnit}px;
-                cursor: pointer;
-                color: ${theme.colorIcon};
-                &:hover {
-                  color: ${theme.colorIconHover};
-                }
-              `}
-            >
-              <Icons.MoreOutlined iconSize="l" />
-            </span>
-          </Dropdown>
-        </span>
+            <Icons.MoreOutlined iconSize="l" />
+          </span>
+        </Dropdown>
       )}
     </div>
   );
