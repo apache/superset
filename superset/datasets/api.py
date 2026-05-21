@@ -829,6 +829,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             }
             for chart in data["charts"]
         ]
+        # Filter dashboards to only include those the user can access
+        accessible_dashboards = [
+            dashboard
+            for dashboard in data["dashboards"]
+            if security_manager.can_access_dashboard(dashboard)
+        ]
+
         dashboards = [
             {
                 "id": dashboard.id,
@@ -836,7 +843,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 "slug": dashboard.slug,
                 "title": dashboard.dashboard_title,
             }
-            for dashboard in data["dashboards"]
+            for dashboard in accessible_dashboards
         ]
         return self.response(
             200,
