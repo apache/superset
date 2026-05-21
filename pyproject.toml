@@ -39,7 +39,7 @@ dependencies = [
     "apache-superset-core",
     "backoff>=1.8.0",
     "celery>=5.3.6, <6.0.0",
-    "click>=8.0.3",
+    "click>=8.4.0",
     "click-option-group",
     "colorama",
     "flask-cors>=6.0.0, <7.0",
