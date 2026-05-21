@@ -22,7 +22,7 @@ Pydantic schemas for tag-related responses
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Any, List, Literal
+from typing import Annotated, Any, Dict, List, Literal
 
 import humanize
 from pydantic import (
@@ -30,13 +30,17 @@ from pydantic import (
     ConfigDict,
     Field,
     field_validator,
+    model_serializer,
     model_validator,
     PositiveInt,
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from superset.mcp_service.system.schemas import PaginationInfo
+from superset.mcp_service.system.schemas import (
+    PaginationInfo,
+    TagInfo as BaseTagInfo,
+)
 from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
@@ -58,21 +62,17 @@ class TagFilter(ColumnOperator):
     )
     opr: ColumnOperatorEnum = Field(
         ...,
-        description="Operator to use. Use get_schema(model_type='tag') for "
-        "available operators.",
+        description="Operator to use. Common operators: 'eq' (equals), "
+        "'ct' (contains), 'sw' (starts with), 'ew' (ends with).",
     )
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
     )
 
 
-class TagInfo(BaseModel):
-    id: int | None = Field(None, description="Tag ID")
-    name: str | None = Field(None, description="Tag name")
-    type: str | None = Field(
-        None, description="Tag type (custom, type, owner, favorited_by)"
-    )
-    description: str | None = Field(None, description="Tag description")
+class TagInfo(BaseTagInfo):
+    """Extends the shared BaseTagInfo with audit timestamps for MCP list/get tools."""
+
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
     )
@@ -84,6 +84,17 @@ class TagInfo(BaseModel):
         ser_json_timedelta="iso8601",
         populate_by_name=True,
     )
+
+    @model_serializer(mode="wrap")
+    def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
+        """Filter serialized fields to those requested via select_columns context."""
+        data: Dict[str, Any] = serializer(self)
+        if info.context and isinstance(info.context, dict):
+            select_columns = info.context.get("select_columns")
+            if select_columns:
+                requested_fields = set(select_columns)
+                return {k: v for k, v in data.items() if k in requested_fields}
+        return data
 
 
 class TagList(BaseModel):
@@ -139,7 +150,7 @@ class ListTagsRequest(BaseModel):
     order_direction: Annotated[
         Literal["asc", "desc"],
         Field(
-            default="asc",
+            default="desc",
             description="Direction to order results ('asc' or 'desc')",
         ),
     ]

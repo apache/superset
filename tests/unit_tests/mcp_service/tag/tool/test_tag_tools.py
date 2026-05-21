@@ -216,3 +216,38 @@ async def test_get_tag_info_serializes_type_name(mock_find, mcp_server):
         result = await client.call_tool("get_tag_info", {"request": {"identifier": 2}})
         data = json.loads(result.content[0].text)
         assert data["type"] == "owner"
+
+
+@patch("superset.daos.tag.TagDAO.list")
+@pytest.mark.asyncio
+async def test_list_tags_select_columns_filters_response(mock_list, mcp_server):
+    """select_columns restricts the fields returned in each tag object."""
+    tag = create_mock_tag()
+    mock_list.return_value = ([tag], 1)
+    async with Client(mcp_server) as client:
+        request = ListTagsRequest(page=1, page_size=10, select_columns=["id", "name"])
+        result = await client.call_tool("list_tags", {"request": request.model_dump()})
+        data = json.loads(result.content[0].text)
+        assert data["columns_requested"] == ["id", "name"]
+        tag_obj = data["tags"][0]
+        assert set(tag_obj.keys()) == {"id", "name"}
+        assert "type" not in tag_obj
+        assert "description" not in tag_obj
+        assert "changed_on" not in tag_obj
+
+
+@patch("superset.daos.tag.TagDAO.list")
+@pytest.mark.asyncio
+async def test_list_tags_default_columns_are_id_name_type(mock_list, mcp_server):
+    """Default response includes id, name, type but not description or timestamps."""
+    tag = create_mock_tag()
+    mock_list.return_value = ([tag], 1)
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("list_tags", {})
+        data = json.loads(result.content[0].text)
+        tag_obj = data["tags"][0]
+        assert "id" in tag_obj
+        assert "name" in tag_obj
+        assert "type" in tag_obj
+        assert "description" not in tag_obj
+        assert "changed_on" not in tag_obj

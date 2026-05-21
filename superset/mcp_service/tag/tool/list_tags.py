@@ -129,7 +129,16 @@ async def list_tags(
             )
         )
 
-        return result
+        columns_to_filter = result.columns_requested
+        await ctx.debug(
+            "Applying field filtering via serialization context: columns=%s"
+            % (columns_to_filter,)
+        )
+        with event_logger.log_context(action="mcp.list_tags.serialization"):
+            return result.model_dump(
+                mode="json",
+                context={"select_columns": columns_to_filter},
+            )
 
     except Exception as e:
         await ctx.error(
