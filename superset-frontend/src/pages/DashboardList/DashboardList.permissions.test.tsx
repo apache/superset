@@ -17,6 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import userEvent from '@testing-library/user-event';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
@@ -58,6 +59,7 @@ const PERMISSIONS = {
   READ_ONLY: [],
   EXPORT_ONLY: [['can_export', 'Dashboard']],
   WRITE_ONLY: [['can_write', 'Dashboard']],
+  TAG_ONLY: [['can_read', 'Tag']],
 };
 
 const createMockUser = (overrides = {}) => ({
@@ -295,6 +297,22 @@ describe('DashboardList - Permission-based UI Tests', () => {
     await screen.findByTestId('dashboard-list-view');
 
     expect(screen.queryByTestId('bulk-select')).not.toBeInTheDocument();
+  });
+
+  test('shows bulk select for tag-only users when tagging is enabled', async () => {
+    await renderWithPermissions(PERMISSIONS.TAG_ONLY, 1, { tagging: true });
+    await screen.findByTestId('dashboard-list-view');
+
+    const bulkSelectButton = screen.getByTestId('bulk-select');
+    expect(bulkSelectButton).toBeInTheDocument();
+
+    await userEvent.click(bulkSelectButton);
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('checkbox')).toHaveLength(
+        mockDashboards.length + 1,
+      );
+    });
   });
 
   test('shows Create and Import buttons for users with write permissions', async () => {

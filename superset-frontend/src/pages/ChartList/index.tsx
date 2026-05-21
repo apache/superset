@@ -250,6 +250,7 @@ function ChartList(props: ChartListProps) {
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
+  const canBulkTag = isFeatureEnabled(FeatureFlag.TaggingSystem);
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
   const handleBulkChartExport = useCallback(
@@ -839,7 +840,7 @@ function ChartList(props: ChartListProps) {
     });
   }
 
-  if (canDelete || canExport) {
+  if (canDelete || canExport || canBulkTag) {
     subMenuButtons.push({
       name: t('Bulk select'),
       buttonStyle: 'secondary',
@@ -876,7 +877,6 @@ function ChartList(props: ChartListProps) {
         onConfirm={handleBulkChartDelete}
       >
         {confirmDelete => {
-          const enableBulkTag = isFeatureEnabled(FeatureFlag.TaggingSystem);
           const bulkActions: ListViewProps['bulkActions'] = [];
           if (canDelete) {
             bulkActions.push({
@@ -911,7 +911,7 @@ function ChartList(props: ChartListProps) {
               loading={loading}
               pageSize={PAGE_SIZE}
               renderCard={renderCard}
-              enableBulkTag={enableBulkTag}
+              enableBulkTag={canBulkTag}
               bulkTagResourceName="chart"
               addSuccessToast={addSuccessToast}
               addDangerToast={addDangerToast}

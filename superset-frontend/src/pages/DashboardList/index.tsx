@@ -221,6 +221,7 @@ function DashboardList(props: DashboardListProps) {
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
+  const canBulkTag = isFeatureEnabled(FeatureFlag.TaggingSystem);
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
@@ -718,7 +719,7 @@ function DashboardList(props: DashboardListProps) {
     });
   }
 
-  if (canDelete || canExport) {
+  if (canDelete || canExport || canBulkTag) {
     subMenuButtons.push({
       name: t('Bulk select'),
       buttonStyle: 'secondary',
@@ -748,7 +749,6 @@ function DashboardList(props: DashboardListProps) {
         onConfirm={handleBulkDashboardDelete}
       >
         {confirmDelete => {
-          const enableBulkTag = isFeatureEnabled(FeatureFlag.TaggingSystem);
           const bulkActions: ListViewProps['bulkActions'] = [];
           if (canDelete) {
             bulkActions.push({
@@ -828,7 +828,7 @@ function DashboardList(props: DashboardListProps) {
                     ? 'card'
                     : 'table'
                 }
-                enableBulkTag={enableBulkTag}
+                enableBulkTag={canBulkTag}
                 bulkTagResourceName="dashboard"
               />
             </>
