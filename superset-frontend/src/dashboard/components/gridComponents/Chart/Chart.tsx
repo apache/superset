@@ -224,7 +224,7 @@ const Chart = (props: ChartProps) => {
   const emitCrossFilters = useSelector(
     (state: RootState) => !!state.dashboardInfo.crossFiltersEnabled,
   );
-  const fullCsvMaxRows: number = useSelector(
+  const fullExportMaxRows: number = useSelector(
     (state: RootState) =>
       (state.dashboardInfo.common.conf.TABLE_VIZ_MAX_ROW_SERVER as number) ||
       (state.dashboardInfo.common.conf.SQL_MAX_ROW as number),
@@ -493,7 +493,7 @@ const Chart = (props: ChartProps) => {
       });
 
       const exportFormData = isFullCSV
-        ? { ...formData, row_limit: fullCsvMaxRows }
+        ? { ...formData, row_limit: fullExportMaxRows }
         : formData;
       const resultType = isPivot ? 'post_processed' : 'full';
 
@@ -581,7 +581,7 @@ const Chart = (props: ChartProps) => {
       sliceVizType,
       isCached,
       formData,
-      fullCsvMaxRows,
+      fullExportMaxRows,
       dataMaskOwnState,
       chartState,
       props.id,
