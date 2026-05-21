@@ -89,6 +89,7 @@ const ShareSqlLabQuery = ({
       getText={getCopyUrl}
       wrapped={false}
       copyNode={buildButton()}
+      hideTooltip
     />
   );
 };

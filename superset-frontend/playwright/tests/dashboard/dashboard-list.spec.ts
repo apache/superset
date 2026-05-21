@@ -25,7 +25,6 @@ import {
 } from '../../components/modals';
 import { Toast } from '../../components/core';
 import {
-  apiGetDashboard,
   apiDeleteDashboard,
   apiExportDashboards,
   getDashboardByName,
@@ -34,6 +33,7 @@ import {
 import { createTestDashboard } from './dashboard-test-helpers';
 import { waitForGet, waitForPost } from '../../helpers/api/intercepts';
 import {
+  expectDeleted,
   expectStatusOneOf,
   expectValidExportZip,
 } from '../../helpers/api/assertions';
@@ -97,17 +97,9 @@ test('should delete a dashboard with confirmation', async ({
   ).not.toBeVisible();
 
   // Backend verification: API returns 404
-  await expect
-    .poll(
-      async () => {
-        const response = await apiGetDashboard(page, dashboardId, {
-          failOnStatusCode: false,
-        });
-        return response.status();
-      },
-      { timeout: 10000, message: `Dashboard ${dashboardId} should return 404` },
-    )
-    .toBe(404);
+  await expectDeleted(page, ENDPOINTS.DASHBOARD, dashboardId, {
+    label: `Dashboard ${dashboardId}`,
+  });
 });
 
 test('should export a dashboard as a zip file', async ({
@@ -210,20 +202,9 @@ test('should bulk delete multiple dashboards', async ({
 
   // Backend verification: Both return 404
   for (const dashboard of [dashboard1, dashboard2]) {
-    await expect
-      .poll(
-        async () => {
-          const response = await apiGetDashboard(page, dashboard.id, {
-            failOnStatusCode: false,
-          });
-          return response.status();
-        },
-        {
-          timeout: 10000,
-          message: `Dashboard ${dashboard.id} should return 404`,
-        },
-      )
-      .toBe(404);
+    await expectDeleted(page, ENDPOINTS.DASHBOARD, dashboard.id, {
+      label: `Dashboard ${dashboard.id}`,
+    });
   }
 });
 
@@ -308,20 +289,9 @@ test.describe('import dashboard', () => {
     await apiDeleteDashboard(page, dashboardId);
 
     // Verify it's gone
-    await expect
-      .poll(
-        async () => {
-          const response = await apiGetDashboard(page, dashboardId, {
-            failOnStatusCode: false,
-          });
-          return response.status();
-        },
-        {
-          timeout: 10000,
-          message: `Dashboard ${dashboardId} should return 404 after delete`,
-        },
-      )
-      .toBe(404);
+    await expectDeleted(page, ENDPOINTS.DASHBOARD, dashboardId, {
+      label: `Dashboard ${dashboardId}`,
+    });
 
     // Refresh to confirm dashboard is no longer in the list
     await dashboardListPage.goto();

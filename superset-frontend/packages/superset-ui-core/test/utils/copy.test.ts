@@ -25,7 +25,9 @@ const CHROME_UA =
 
 const makeGetText = (text: string) => () => Promise.resolve(text);
 
-const globalWithClipboardItem = global as unknown as { ClipboardItem?: unknown };
+const globalWithClipboardItem = global as unknown as {
+  ClipboardItem?: unknown;
+};
 
 afterEach(() => {
   jest.restoreAllMocks();
@@ -94,9 +96,7 @@ function mockExecCommand(impl: (cmd: string) => boolean) {
   });
 }
 
-function setupFallbackMocks(options: {
-  selection: Partial<Selection> | null;
-}) {
+function setupFallbackMocks(options: { selection: Partial<Selection> | null }) {
   Object.defineProperty(navigator, 'userAgent', {
     value: CHROME_UA,
     configurable: true,
@@ -117,7 +117,9 @@ function setupFallbackMocks(options: {
   jest
     .spyOn(document, 'getSelection')
     .mockReturnValue(options.selection as Selection | null);
-  jest.spyOn(document, 'createRange').mockReturnValue(mockRange as unknown as Range);
+  jest
+    .spyOn(document, 'createRange')
+    .mockReturnValue(mockRange as unknown as Range);
   jest.spyOn(document, 'createElement').mockReturnValue(mockSpan);
   jest.spyOn(document.body, 'appendChild').mockImplementation(() => mockSpan);
   jest.spyOn(document.body, 'removeChild').mockImplementation(() => mockSpan);
@@ -168,7 +170,9 @@ test('rejects when execCommand returns false', async () => {
   });
   mockExecCommand(() => false);
 
-  await expect(copyTextToClipboard(makeGetText('fail'))).rejects.toBeUndefined();
+  await expect(
+    copyTextToClipboard(makeGetText('fail')),
+  ).rejects.toBeUndefined();
 });
 
 test('rejects when execCommand throws', async () => {
@@ -187,7 +191,9 @@ test('rejects when execCommand throws', async () => {
     writable: true,
   });
 
-  await expect(copyTextToClipboard(makeGetText('throw'))).rejects.toBeUndefined();
+  await expect(
+    copyTextToClipboard(makeGetText('throw')),
+  ).rejects.toBeUndefined();
 });
 
 test('resolves without copying when getSelection returns null', async () => {

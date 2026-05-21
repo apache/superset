@@ -18,7 +18,14 @@
  */
 import fetchMock from 'fetch-mock';
 import { QueryFormData, SupersetClient } from '@superset-ui/core';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
@@ -91,6 +98,34 @@ const fetchWithData = () => {
   fetchMock.post(SAMPLES_ENDPOINT, {
     result: {
       total_count: 3,
+      data: [
+        {
+          year: 1996,
+          na_sales: 11.27,
+          eu_sales: 8.89,
+        },
+        {
+          year: 1989,
+          na_sales: 23.2,
+          eu_sales: 2.26,
+        },
+        {
+          year: 1999,
+          na_sales: 9,
+          eu_sales: 6.18,
+        },
+      ],
+      colnames: ['year', 'na_sales', 'eu_sales'],
+      coltypes: [0, 0, 0],
+    },
+  });
+};
+
+const fetchWithPaginatedData = () => {
+  setupDatasetEndpoint();
+  fetchMock.post(SAMPLES_ENDPOINT, {
+    result: {
+      total_count: 100,
       data: [
         {
           year: 1996,
@@ -187,6 +222,114 @@ test('should render the error', async () => {
     .mockRejectedValue(new Error('Something went wrong'));
   await waitForRender();
   expect(screen.getByText('Error: Something went wrong')).toBeInTheDocument();
+});
+
+describe('download actions', () => {
+  const renderWithDownloadPermission = () =>
+    render(
+      <DrillDetailPane
+        initialFilters={[]}
+        formData={chart.form_data as unknown as QueryFormData}
+      />,
+      {
+        useRedux: true,
+        initialState: {
+          user: { roles: { Admin: [['can_csv', 'Superset']] } },
+          common: { conf: { SAMPLES_ROW_LIMIT: 10, ROW_LIMIT: 50000 } },
+          dashboardInfo: { id: 123 },
+        },
+      },
+    );
+
+  const clickDownloadItem = async (label: string) => {
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Download' }),
+    );
+    await userEvent.click(await screen.findByText(label));
+  };
+
+  test('CSV export posts drill_detail payload with ROW_LIMIT', async () => {
+    fetchWithData();
+    const postFormSpy = jest
+      .spyOn(SupersetClient, 'postForm')
+      .mockImplementation(() => Promise.resolve());
+    renderWithDownloadPermission();
+
+    await clickDownloadItem('Export to CSV');
+
+    expect(postFormSpy).toHaveBeenCalledTimes(1);
+    const body = postFormSpy.mock.calls[0][1] as { form_data: string };
+    const payload = JSON.parse(body.form_data);
+    expect(payload.result_type).toBe('drill_detail');
+    expect(payload.result_format).toBe('csv');
+    expect(payload.queries[0].row_limit).toBe(50000);
+    expect(payload.form_data.dashboardId).toBe(123);
+    postFormSpy.mockRestore();
+  });
+
+  test('XLSX export uses xlsx result_format', async () => {
+    fetchWithData();
+    const postFormSpy = jest
+      .spyOn(SupersetClient, 'postForm')
+      .mockImplementation(() => Promise.resolve());
+    renderWithDownloadPermission();
+
+    await clickDownloadItem('Export to Excel');
+
+    expect(postFormSpy).toHaveBeenCalledTimes(1);
+    const body = postFormSpy.mock.calls[0][1] as { form_data: string };
+    const payload = JSON.parse(body.form_data);
+    expect(payload.result_format).toBe('xlsx');
+    postFormSpy.mockRestore();
+  });
+});
+
+test('should render pagination when results exceed page size', async () => {
+  // The "should render the error" test above leaves a SupersetClient.post
+  // rejection spy active (matching the existing pattern; "should use
+  // verbose_map" further down does the same cleanup). Reset it here so the
+  // fetch in this test actually returns data.
+  jest.restoreAllMocks();
+  fetchWithPaginatedData();
+  await waitForRender();
+  // With total_count=100 and page size=50, pagination should render
+  await waitFor(() => {
+    const pagination = document.querySelector('.ant-pagination');
+    expect(pagination).toBeTruthy();
+  });
+});
+
+test('should offer the full set of page-size options', async () => {
+  fetchWithPaginatedData();
+  await waitForRender();
+
+  // The page-size changer renders as an antd Select. In jsdom, antd opens
+  // its overlay on mouseDown of the .ant-select-selector element rather
+  // than via a click on the inner combobox input.
+  const selector = await waitFor(() => {
+    const el = document.querySelector(
+      '.ant-pagination-options-size-changer .ant-select-selector',
+    ) as HTMLElement | null;
+    expect(el).toBeTruthy();
+    return el!;
+  });
+  fireEvent.mouseDown(selector);
+
+  // The opened listbox lives in a body portal; collect its options and assert
+  // exactly the canonical [5, 15, 25, 50, 100] set is offered. Without this
+  // guard, regressing to a single hardcoded option (the pre-rework approach)
+  // would silently pass CI.
+  const listbox = await screen.findByRole('listbox');
+  const offeredSizes = within(listbox)
+    .getAllByRole('option')
+    .map(el => el.getAttribute('title'));
+  expect(offeredSizes).toEqual([
+    '5 / page',
+    '15 / page',
+    '25 / page',
+    '50 / page',
+    '100 / page',
+  ]);
 });
 
 test('should use verbose_map for column headers when available', async () => {

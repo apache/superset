@@ -108,6 +108,8 @@ from superset.sql.parse import Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
+    DatasetColumnData,
+    DatasetMetricData,
     ExplorableData,
     Metric,
     QueryObjectDict,
@@ -267,6 +269,26 @@ class BaseDatasource(
 
         # Check if all requested columns are drillable
         return set(column_names).issubset(drillable_columns)
+
+    def get_compatible_metrics(
+        self,
+        selected_metrics: list[str],
+        selected_dimensions: list[str],
+    ) -> list[str]:
+        """
+        SQL datasets have no compatibility constraints — return all metrics.
+        """
+        return [m.metric_name for m in self.metrics]
+
+    def get_compatible_dimensions(
+        self,
+        selected_metrics: list[str],
+        selected_dimensions: list[str],
+    ) -> list[str]:
+        """
+        SQL datasets have no compatibility constraints — return all columns.
+        """
+        return [c.column_name for c in self.columns]
 
     def get_time_grains(self) -> list[TimeGrainDict]:
         """
@@ -448,6 +470,7 @@ class BaseDatasource(
             "column_formats": self.column_formats,
             "description": self.description,
             "database": self.database.data,  # pylint: disable=no-member
+            "parent": {"name": self.database.data["name"]},  # pylint: disable=no-member
             "default_endpoint": self.default_endpoint,
             "filter_select": self.filter_select_enabled,  # TODO deprecate
             "filter_select_enabled": self.filter_select_enabled,
@@ -465,8 +488,8 @@ class BaseDatasource(
             # sqla-specific
             "sql": self.sql,
             # one to many
-            "columns": [o.data for o in self.columns],
-            "metrics": [o.data for o in self.metrics],
+            "columns": [cast(DatasetColumnData, o.data) for o in self.columns],
+            "metrics": [cast(DatasetMetricData, o.data) for o in self.metrics],
             "folders": self.folders,
             # TODO deprecate, move logic to JS
             "order_by_choices": self.order_by_choices,
@@ -866,7 +889,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
     datetime_format = Column(String(100))
     extra = Column(Text)
 
-    table: Mapped[SqlaTable] = relationship(
+    table: Mapped["SqlaTable"] = relationship(
         "SqlaTable",
         back_populates="columns",
     )
@@ -1107,7 +1130,7 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
     expression = Column(utils.MediumText(), nullable=False)
     extra = Column(Text)
 
-    table: Mapped[SqlaTable] = relationship(
+    table: Mapped["SqlaTable"] = relationship(
         "SqlaTable",
         back_populates="metrics",
     )
@@ -1593,12 +1616,34 @@ class SqlaTable(
 
         return self.make_sqla_column_compatible(sqla_metric, label)
 
+    def _render_adhoc_expression_for_metadata_lookup(
+        self,
+        sql_expression: str,
+        template_processor: BaseTemplateProcessor | None,
+    ) -> str:
+        """Render Jinja in *sql_expression* so the result can be matched against
+        column metadata.  Without this, a templated expression such as
+        ``{{ filter_values('x')[0] }}`` is passed raw to ``get_column``, never
+        matches, and falls back to ``literal_column`` — which breaks for virtual
+        datasets because the rendered name isn't present in the FROM subquery."""
+        if not template_processor:
+            return sql_expression
+        try:
+            return template_processor.process_template(sql_expression)
+        except SupersetSyntaxErrorException as ex:
+            raise QueryObjectValidationError(
+                _(
+                    "Error in jinja expression in adhoc column: %(msg)s",
+                    msg=str(ex),
+                )
+            ) from ex
+
     def adhoc_column_to_sqla(  # pylint: disable=too-many-locals
         self,
         col: AdhocColumn,
         force_type_check: bool = False,
         template_processor: BaseTemplateProcessor | None = None,
-    ) -> ColumnElement:
+    ) -> tuple[ColumnElement, utils.GenericDataType | None]:
         """
         Turn an adhoc column into a sqlalchemy column.
 
@@ -1607,8 +1652,13 @@ class SqlaTable(
                This is needed to validate if a filter with an adhoc column
                is applicable.
         :param template_processor: template_processor instance
-        :returns: The metric defined as a sqlalchemy column
-        :rtype: sqlalchemy.sql.column
+        :returns: A tuple of (SQLAlchemy column, generic column type). The
+            generic type is populated when the column type is resolved
+            (either because the adhoc column matches a physical column, or
+            because ``force_type_check`` triggered a DB probe); otherwise
+            ``None``. Callers use it to coerce filter values to the correct
+            Python type (e.g. numeric casts for numeric adhoc expressions).
+        :rtype: tuple[sqlalchemy.sql.ColumnElement, Optional[GenericDataType]]
         """
         label = utils.get_column_name(col)
         sql_expression = col["sqlExpression"]
@@ -1617,15 +1667,21 @@ class SqlaTable(
         is_dttm = False
         pdf = None
         is_column_reference = col.get("isColumnReference", False)
+        generic_type: utils.GenericDataType | None = None
+
+        metadata_lookup_key = self._render_adhoc_expression_for_metadata_lookup(
+            sql_expression, template_processor
+        )
 
         # First, check if this is a column reference that exists in metadata
-        if col_in_metadata := self.get_column(sql_expression):
+        if col_in_metadata := self.get_column(metadata_lookup_key.strip()):
             # Column exists in metadata - use it directly
             sqla_column = col_in_metadata.get_sqla_col(
                 template_processor=template_processor
             )
             is_dttm = col_in_metadata.is_temporal
             pdf = col_in_metadata.python_date_format
+            generic_type = col_in_metadata.type_generic
         else:
             # Column doesn't exist in metadata or is not a reference - treat as ad-hoc
             # expression Note: If isColumnReference=true but column not found, we still
@@ -1660,7 +1716,7 @@ class SqlaTable(
                     # A small number of drivers (Druid, Pinot) instead build
                     # cursor.description by inspecting the first returned row;
                     # for those we fall back to LIMIT 1.
-                    tbl, _ = self.get_from_clause(template_processor)
+                    tbl, _unused_cte = self.get_from_clause(template_processor)
                     if self.db_engine_spec.type_probe_needs_row:
                         qry = sa.select([sqla_column]).limit(1).select_from(tbl)
                     else:
@@ -1681,6 +1737,12 @@ class SqlaTable(
                     if not col_desc:
                         raise SupersetGenericDBErrorException("Column not found")
                     is_dttm = col_desc[0]["is_dttm"]  # type: ignore
+                    # ResultSet already resolves the generic type from the
+                    # driver's cursor.description; reuse it so callers can
+                    # coerce filter values correctly (e.g. numeric IN-lists
+                    # stay unquoted for numeric adhoc expressions like
+                    # CAST(... AS BIGINT)).
+                    generic_type = col_desc[0].get("type_generic")
                 except SupersetGenericDBErrorException as ex:
                     raise ColumnNotFoundException(message=str(ex)) from ex
 
@@ -1690,7 +1752,7 @@ class SqlaTable(
                 pdf=pdf,
                 time_grain=time_grain,
             )
-        return self.make_sqla_column_compatible(sqla_column, label)
+        return self.make_sqla_column_compatible(sqla_column, label), generic_type
 
     def _get_series_orderby(
         self,
@@ -2010,6 +2072,7 @@ class SqlaTable(
                 self.database,
                 self.catalog,
                 self.schema or default_schema or "",
+                exclude_dataset_id=self.id,
             )
             # Add each predicate as a separate cache key component
             extra_cache_keys.extend(rls_predicates)

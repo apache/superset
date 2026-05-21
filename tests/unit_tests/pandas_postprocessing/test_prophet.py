@@ -184,3 +184,120 @@ def test_prophet_incorrect_time_grain():
             periods=10,
             confidence_interval=0.8,
         )
+
+
+def test_prophet_uncertainty_lower_bound_can_be_negative_for_negative_series():
+    """
+    Regression for #21734: when the input series contains negative values,
+    the forecast's lower confidence bound (``__yhat_lower``) must be allowed
+    to go below zero. The original bug claimed Superset clipped the lower
+    bound at 0, hiding the natural shape of the uncertainty interval for
+    series like temperatures or signed deltas.
+
+    Superset's wrapper passes through Prophet's output unchanged (no
+    clipping in ``superset/utils/pandas_postprocessing/prophet.py``); this
+    test pins that contract end-to-end. If a future refactor introduces
+    a ``max(0, lower)`` clamp, this test fails immediately.
+    """
+    if find_spec("prophet") is None:
+        pytest.skip("prophet not installed")
+
+    # All-negative monthly series — any reasonable forecast must predict
+    # negative values (and therefore negative uncertainty bounds) too.
+    negative_df = pd.DataFrame(
+        {
+            DTTM_ALIAS: [datetime(2020, m, 1) for m in range(1, 13)]
+            + [datetime(2021, m, 1) for m in range(1, 13)],
+            "temperature": [
+                -5.0,
+                -7.0,
+                -3.0,
+                1.0,
+                8.0,
+                14.0,
+                17.0,
+                16.0,
+                11.0,
+                5.0,
+                -1.0,
+                -4.0,
+                -6.0,
+                -8.0,
+                -2.0,
+                2.0,
+                9.0,
+                15.0,
+                18.0,
+                17.0,
+                12.0,
+                6.0,
+                0.0,
+                -3.0,
+            ],
+        }
+    )
+
+    result = prophet(
+        df=negative_df,
+        time_grain="P1M",
+        periods=3,
+        confidence_interval=0.9,
+    )
+
+    assert "temperature__yhat_lower" in result.columns
+    # Restrict to the forecast horizon (the last `periods` rows). The full
+    # output also contains historical fitted points, which can be negative
+    # for in-sample data even if a future-only clamp were introduced — so
+    # asserting on the whole frame would let a future-only clamp slip past.
+    forecast_periods = 3
+    forecast_lower = result["temperature__yhat_lower"].iloc[-forecast_periods:]
+    assert (forecast_lower < 0).any(), (
+        "Forecast (future) lower bound was non-negative everywhere despite "
+        "a series with negative actuals — suggests an unexpected clamp at "
+        "zero was reintroduced (regression of #21734)."
+    )
+
+
+def test_prophet_does_not_clamp_yhat_below_zero_for_negative_actuals():
+    """
+    Companion to the lower-bound test above: the central forecast
+    (``__yhat``) must also be allowed to go negative.
+    A bug that clamps the central forecast at zero would force the lower
+    bound non-negative as a side effect, masking the wider issue.
+    """
+    if find_spec("prophet") is None:
+        pytest.skip("prophet not installed")
+
+    negative_df = pd.DataFrame(
+        {
+            DTTM_ALIAS: [datetime(2020, m, 1) for m in range(1, 13)],
+            "balance": [
+                -100.0,
+                -110.0,
+                -95.0,
+                -120.0,
+                -130.0,
+                -125.0,
+                -140.0,
+                -135.0,
+                -150.0,
+                -145.0,
+                -160.0,
+                -155.0,
+            ],
+        }
+    )
+
+    result = prophet(
+        df=negative_df,
+        time_grain="P1M",
+        periods=2,
+        confidence_interval=0.8,
+    )
+
+    # Restrict to the forecast horizon — see lower-bound test above for the
+    # rationale. A future-only clamp on `__yhat` could leave historical
+    # in-sample fitted points negative and pass an unrestricted assertion.
+    forecast_periods = 2
+    forecast_yhat = result["balance__yhat"].iloc[-forecast_periods:]
+    assert (forecast_yhat < 0).any()

@@ -25,9 +25,10 @@ For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL.
 import logging
 import os
 from collections.abc import Sequence
-from typing import Annotated, Any
+from typing import Annotated, Any, Callable
 
 import uvicorn
+from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
@@ -41,6 +42,10 @@ from superset.mcp_service.middleware import (
     GlobalErrorHandlerMiddleware,
     LoggingMiddleware,
     StructuredContentStripperMiddleware,
+)
+from superset.mcp_service.privacy import (
+    tool_requires_data_model_metadata_access,
+    user_can_view_data_model_metadata,
 )
 from superset.mcp_service.storage import _create_redis_store
 from superset.utils import json
@@ -74,6 +79,34 @@ def _suppress_third_party_warnings() -> None:
     )
 
 
+class FastMCPValidationFilter(logging.Filter):
+    """Downgrade FastMCP's user-error logs from ERROR to WARNING.
+
+    FastMCP's server.py logs ValidationError and ToolError at ERROR level
+    via logger.exception() before our GlobalErrorHandlerMiddleware sees it.
+    These are user errors (LLM sent bad params, access denied, not found)
+    and are expected in normal MCP operation — they should not pollute
+    ERROR-level logs in Datadog.
+
+    Only "Error validating tool" messages are downgraded — these are
+    always Pydantic ValidationErrors (bad params from LLM). "Error calling
+    tool" messages are NOT downgraded because our middleware wraps both
+    user errors and system errors in ToolError, making it impossible to
+    distinguish them by exception type alone.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        # NOTE: This matches the literal log message from FastMCP's server.py
+        # (fastmcp/server/server.py line ~1245). If FastMCP changes this
+        # message format, this filter will stop working silently.
+        if record.levelno != logging.ERROR:
+            return True
+        if "Error validating tool" in record.getMessage():
+            record.levelno = logging.WARNING
+            record.levelname = "WARNING"
+        return True
+
+
 def configure_logging(debug: bool = False) -> None:
     """Configure logging for the MCP service."""
     import sys
@@ -101,6 +134,13 @@ def configure_logging(debug: bool = False) -> None:
 
         # Use logging instead of print to avoid stdout contamination
         logging.info("🔍 SQL Debug logging enabled")
+
+    # FastMCP's server.py logs ValidationError/ToolError at ERROR via
+    # logger.exception() before our middleware sees it. These are user errors
+    # (bad params from LLM) and should not pollute ERROR logs.
+    # Downgrade these specific messages from ERROR to WARNING.
+    fastmcp_server_logger = logging.getLogger("fastmcp.server.server")
+    fastmcp_server_logger.addFilter(FastMCPValidationFilter())
 
 
 def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
@@ -201,7 +241,43 @@ def _simplify_optional_union(result: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _compact_schema(obj: Any) -> Any:
+def _resolve_ref(
+    obj: dict[str, Any],
+    defs: dict[str, Any],
+    resolving: frozenset[str],
+) -> Any:
+    """Resolve a ``$ref`` pointer by inlining its definition from *defs*.
+
+    Falls back to ``{"type": "object"}`` when the definition is missing
+    or would cause a circular reference.
+    """
+    ref_path: str = obj["$ref"]
+    ref_name = ref_path.rsplit("/", 1)[-1] if "/" in ref_path else ""
+    definition = defs.get(ref_name) if ref_name else None
+
+    if definition is not None and ref_name not in resolving:
+        inlined = _compact_schema(
+            definition,
+            _defs=defs,
+            _resolving=resolving | {ref_name},
+        )
+        if isinstance(inlined, dict):
+            if desc := obj.get("description"):
+                inlined.setdefault("description", desc)
+        return inlined
+
+    replacement: dict[str, Any] = {"type": "object"}
+    if desc := obj.get("description"):
+        replacement["description"] = desc
+    return replacement
+
+
+def _compact_schema(
+    obj: Any,
+    *,
+    _defs: dict[str, Any] | None = None,
+    _resolving: frozenset[str] | None = None,
+) -> Any:
     """Collapse ``$defs`` and ``$ref`` pointers in a JSON Schema.
 
     Search results only need enough schema detail for the LLM to identify
@@ -212,28 +288,35 @@ def _compact_schema(obj: Any) -> Any:
     Transformations applied:
 
     * ``$defs`` sections are removed entirely.
-    * ``{"$ref": "..."}`` is replaced with ``{"type": "object"}``.
+    * ``{"$ref": "..."}`` is resolved by inlining the referenced
+      definition from ``$defs``.  If the definition cannot be found
+      (or would cause a circular reference), the ref is replaced with
+      ``{"type": "object"}``.
     * ``anyOf``/``oneOf`` lists containing only a ``$ref`` and
       ``{"type": "null"}`` (Pydantic's Optional encoding) are collapsed
       to the simplified non-null variant.
     """
     if isinstance(obj, list):
-        return [_compact_schema(item) for item in obj]
+        return [
+            _compact_schema(item, _defs=_defs, _resolving=_resolving) for item in obj
+        ]
     if not isinstance(obj, dict):
         return obj
 
-    # Direct $ref → generic object type
+    # On the first (top-level) call, extract $defs for later resolution.
+    if _defs is None:
+        _defs = obj.get("$defs", {})
+    if _resolving is None:
+        _resolving = frozenset()
+
     if "$ref" in obj:
-        replacement: dict[str, Any] = {"type": "object"}
-        if desc := obj.get("description"):
-            replacement["description"] = desc
-        return replacement
+        return _resolve_ref(obj, _defs, _resolving)
 
     result: dict[str, Any] = {}
     for key, value in obj.items():
         if key == "$defs":
             continue
-        result[key] = _compact_schema(value)
+        result[key] = _compact_schema(value, _defs=_defs, _resolving=_resolving)
 
     return _simplify_optional_union(result)
 
@@ -315,6 +398,51 @@ def _build_summary_serializer(max_desc: int) -> Any:
         return results
 
     return _summary_serializer
+
+
+def _tool_allowed_for_current_user(tool: Any) -> bool:
+    """Return whether the current Flask user can see this tool in search results."""
+    try:
+        from flask import current_app, g
+
+        if not current_app.config.get("MCP_RBAC_ENABLED", True):
+            return True
+
+        from superset import security_manager
+        from superset.mcp_service.auth import (
+            CLASS_PERMISSION_ATTR,
+            get_user_from_request,
+            METHOD_PERMISSION_ATTR,
+            PERMISSION_PREFIX,
+        )
+
+        tool_func = getattr(tool, "fn", None)
+        if tool_requires_data_model_metadata_access(tool_func) and not (
+            user_can_view_data_model_metadata()
+        ):
+            return False
+
+        class_permission_name = getattr(tool_func, CLASS_PERMISSION_ATTR, None)
+        if not class_permission_name:
+            return True
+
+        if not getattr(g, "user", None):
+            try:
+                g.user = get_user_from_request()
+            except ValueError:
+                return False
+
+        method_permission_name = getattr(tool_func, METHOD_PERMISSION_ATTR, "read")
+        permission_name = f"{PERMISSION_PREFIX}{method_permission_name}"
+        return security_manager.can_access(permission_name, class_permission_name)
+    except (AttributeError, RuntimeError, ValueError):
+        logger.debug("Could not evaluate tool search permission", exc_info=True)
+        return False
+
+
+def _filter_tools_by_current_user_permission(tools: Sequence[Any]) -> list[Any]:
+    """Filter search candidates to tools the current user can execute."""
+    return [tool for tool in tools if _tool_allowed_for_current_user(tool)]
 
 
 def _create_search_result_serializer(
@@ -468,7 +596,7 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
             Use this to execute tools discovered via search_tools.
             """
             if name in {transform._call_tool_name, transform._search_tool_name}:
-                raise ValueError(
+                raise ToolError(
                     f"'{name}' is a synthetic search tool and cannot be "
                     f"called via the call_tool proxy"
                 )
@@ -483,26 +611,11 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
         tool = Tool.from_function(fn=call_tool, name=transform._call_tool_name)
         return _fix_call_tool_arguments(tool)
 
-    if strategy == "regex":
-        from fastmcp.server.transforms.search import RegexSearchTransform
-
-        class _FixedRegexSearchTransform(RegexSearchTransform):
-            """Regex search with fixed call_tool schema and arg normalization."""
-
-            def _make_call_tool(self) -> Tool:
-                return _make_normalizing_call_tool(self)
-
-        transform = _FixedRegexSearchTransform(**kwargs)
-    else:
-        from fastmcp.server.transforms.search import BM25SearchTransform
-
-        class _FixedBM25SearchTransform(BM25SearchTransform):
-            """BM25 search with fixed call_tool schema and arg normalization."""
-
-            def _make_call_tool(self) -> Tool:
-                return _make_normalizing_call_tool(self)
-
-        transform = _FixedBM25SearchTransform(**kwargs)
+    transform = _create_search_transform(
+        strategy=strategy,
+        kwargs=kwargs,
+        make_normalizing_call_tool=_make_normalizing_call_tool,
+    )
 
     mcp_instance.add_transform(transform)
     logger.info(
@@ -511,6 +624,49 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
         kwargs["max_results"],
         kwargs["always_visible"],
     )
+
+
+def _create_search_transform(
+    *,
+    strategy: str,
+    kwargs: dict[str, Any],
+    make_normalizing_call_tool: Callable[[Any], Any],
+) -> Any:
+    """Create the configured search transform with tool-permission filtering."""
+    from fastmcp.server.context import Context
+
+    if strategy == "regex":
+        from fastmcp.server.transforms.search import RegexSearchTransform
+
+        class _FixedRegexSearchTransform(RegexSearchTransform):
+            """Regex search with fixed call_tool schema and arg normalization."""
+
+            async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
+                """Return only tools visible to the current authenticated user."""
+                tools = await super()._get_visible_tools(ctx)
+                return _filter_tools_by_current_user_permission(tools)
+
+            def _make_call_tool(self) -> Any:
+                """Build the normalized ``call_tool`` proxy for regex search."""
+                return make_normalizing_call_tool(self)
+
+        return _FixedRegexSearchTransform(**kwargs)
+
+    from fastmcp.server.transforms.search import BM25SearchTransform
+
+    class _FixedBM25SearchTransform(BM25SearchTransform):
+        """BM25 search with fixed call_tool schema and arg normalization."""
+
+        async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
+            """Return only tools visible to the current authenticated user."""
+            tools = await super()._get_visible_tools(ctx)
+            return _filter_tools_by_current_user_permission(tools)
+
+        def _make_call_tool(self) -> Any:
+            """Build the normalized ``call_tool`` proxy for BM25 search."""
+            return make_normalizing_call_tool(self)
+
+    return _FixedBM25SearchTransform(**kwargs)
 
 
 def _create_auth_provider(flask_app: Any) -> Any | None:

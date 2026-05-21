@@ -26,7 +26,7 @@ test('should render', async () => {
       value={{ metric_name: 'test', uuid: '1' }}
       type={DndItemType.Metric}
     />,
-    { useDnd: true },
+    { useDnd: true, useRedux: true, initialState: { explore: {} } },
   );
 
   expect(
@@ -41,7 +41,7 @@ test('should have attribute draggable:true', async () => {
       value={{ metric_name: 'test', uuid: '1' }}
       type={DndItemType.Metric}
     />,
-    { useDnd: true },
+    { useDnd: true, useRedux: true, initialState: { explore: {} } },
   );
 
   expect(
