@@ -123,24 +123,31 @@ def _force_parent_dirty_on_child_change(session: Session) -> None:
     from sqlalchemy_continuum import is_modified
     from sqlalchemy_continuum.utils import versioned_column_properties
 
+    # ``session.dirty`` is an IdentitySet — ``__contains__`` uses identity
+    # comparison, which is what we need for the phantom-dirty filter below.
+    dirty_set = session.dirty
     child_map = _child_to_parent_registry()
     for obj in list(session.dirty) + list(session.new) + list(session.deleted):
         entry = child_map.get(type(obj))
         if entry is None:
             continue
-        # Only flag the parent when the child has actually modified a
-        # *versioned* column. A child can appear in ``session.dirty`` for
-        # reasons that don't represent real content edits — lazy-load
-        # side effects, ``AuditMixin`` auto-bumps from prior code paths,
-        # M2M relationship-cascade artifacts (e.g., setUp code that does
-        # ``rls_entry.tables.extend([dataset])``), Reverter side passes.
-        # Force-touching the parent in those cases produces an
-        # incidental ``UPDATE tables SET description=…, changed_on=…,
-        # changed_by_fk=…`` whose ``changed_by_fk`` value or autoflush
-        # ordering can violate FK integrity on some dialects. Observed
-        # in ``test_rls_filter_alters_no_role_user_birth_names_query``
-        # and ``test_restore_applies_scalar_field``.
-        if not is_modified(obj):
+        # Phantom-dirty filter: a child can appear in ``session.dirty`` for
+        # reasons that don't represent real content edits — lazy-load side
+        # effects, ``AuditMixin`` auto-bumps from prior code paths, M2M
+        # relationship-cascade artifacts (e.g., ``rls_entry.tables.extend(
+        # [dataset])`` in setUp), Reverter side passes. Force-touching the
+        # parent in those cases produces an incidental
+        # ``UPDATE tables SET description=…, changed_on=…, changed_by_fk=…``
+        # that can violate FK integrity on some dialects (observed in
+        # ``test_rls_filter_alters_no_role_user_birth_names_query``).
+        #
+        # The filter applies ONLY to persistent rows in ``session.dirty``:
+        # ``session.new`` (creation) and ``session.deleted`` (removal) are
+        # always real content changes — deletion in particular is a state
+        # transition with no attribute history, so ``is_modified`` returns
+        # False there even when the change is real (column-removed records
+        # must still emit).
+        if obj in dirty_set and not is_modified(obj):
             continue
         parent_attr, parent_cls = entry
         parent = getattr(obj, parent_attr, None)
