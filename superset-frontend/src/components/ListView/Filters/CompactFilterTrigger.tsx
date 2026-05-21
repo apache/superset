@@ -117,8 +117,8 @@ export default function CompactFilterTrigger({
   const pill = (
     <Tooltip
       title={tooltipTitle}
-      open={hasValue && !open && tooltipOpen}
-      onOpenChange={visible => setTooltipOpen(visible && hasValue && !open)}
+      open={!!tooltipTitle && !open && tooltipOpen}
+      onOpenChange={visible => setTooltipOpen(visible && !!tooltipTitle && !open)}
       mouseEnterDelay={0.5}
       mouseLeaveDelay={0}
     >
