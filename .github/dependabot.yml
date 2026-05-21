@@ -62,6 +62,11 @@ updates:
   - package-ecosystem: "pip"
     directory: "/"
     open-pull-requests-limit: 10
+    # Bump the lower bound to the new version, not just widen the upper
+    # bound. Without this, a `sqlglot>=28.10.0, <29` constraint upgraded
+    # to `<30` would keep the stale lower bound forever, dragging
+    # transitively-resolved versions with it. See #40186 (review thread).
+    versioning-strategy: increase
     schedule:
       interval: "weekly"
     labels:
