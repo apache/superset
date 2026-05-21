@@ -64,7 +64,6 @@ class ReportFilter(ColumnOperator):
         "active",
         "dashboard_id",
         "chart_id",
-        "created_by_fk",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='report') for "
@@ -153,7 +152,7 @@ class ReportList(BaseModel):
         default_factory=list,
         description="Columns that can be used with order_column parameter",
     )
-    filters_applied: List[ReportFilter] = Field(
+    filters_applied: List[ColumnOperator] = Field(
         default_factory=list,
         description="List of advanced filter dicts applied to the query.",
     )
