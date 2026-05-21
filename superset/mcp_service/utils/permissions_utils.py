@@ -26,6 +26,8 @@ from typing import Any, List, Optional, Set
 from flask_appbuilder.security.sqla.models import User
 from pydantic import BaseModel
 
+from superset.mcp_service.privacy import USER_DIRECTORY_FIELDS
+
 logger = logging.getLogger(__name__)
 
 # Define sensitive fields by object type
@@ -34,24 +36,17 @@ SENSITIVE_FIELDS = {
         "sql",  # Raw SQL queries may contain sensitive logic
         "extra",  # May contain connection strings or credentials
         "database_id",  # Internal database references
-        "changed_by_fk",  # Internal user references
-        "created_by_fk",  # Internal user references
     },
     "chart": {
         "query_context",  # May contain sensitive filters or parameters
         "cache_key",  # Internal cache references
-        "changed_by_fk",  # Internal user references
-        "created_by_fk",  # Internal user references
     },
     "dashboard": {
         "css",  # May contain sensitive styling info
-        "changed_by_fk",  # Internal user references
-        "created_by_fk",  # Internal user references
     },
     "common": {
         "uuid",  # Internal identifiers (keep for some use cases)
-        "changed_by_fk",  # Internal user references
-        "created_by_fk",  # Internal user references
+        *USER_DIRECTORY_FIELDS,
     },
 }
 
@@ -139,7 +134,7 @@ def get_allowed_fields(
         user = get_current_user()
 
     # Get sensitive fields for this object type
-    sensitive_fields = SENSITIVE_FIELDS.get(object_type, set())
+    sensitive_fields = set(SENSITIVE_FIELDS.get(object_type, set()))
     sensitive_fields.update(SENSITIVE_FIELDS.get("common", set()))
 
     # If no user, only allow non-sensitive fields
@@ -155,6 +150,8 @@ def get_allowed_fields(
 
     if requested_fields:
         for field in requested_fields:
+            if field in USER_DIRECTORY_FIELDS:
+                continue
             if field not in sensitive_fields:
                 # Non-sensitive field, always allowed
                 allowed_fields.add(field)
@@ -229,6 +226,8 @@ def filter_sensitive_data(
     # Filter the dictionary
     filtered_data = {}
     for key, value in data.items():
+        if key in USER_DIRECTORY_FIELDS:
+            continue
         if key in allowed_fields:
             filtered_data[key] = value
         else:

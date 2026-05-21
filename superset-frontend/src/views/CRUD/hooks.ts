@@ -142,7 +142,7 @@ export function useListViewResource<D extends object = any>(
         return false;
       }
 
-      return Boolean(state.permissions.find(p => p === perm));
+      return Boolean(state.permissions.some(p => p === perm));
     },
     [state.permissions],
   );

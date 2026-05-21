@@ -1,0 +1,31 @@
+---
+title: SQLite
+sidebar_label: SQLite
+description: "SQLite is a self-contained, serverless SQL database engine."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"sqlite","engine_name":"SQLite","module":"sqlite","documentation":{"description":"SQLite is a self-contained, serverless SQL database engine.","logo":"sqlite.png","homepage_url":"https://www.sqlite.org/","categories":["TRADITIONAL_RDBMS","OPEN_SOURCE"],"pypi_packages":[],"connection_string":"sqlite:///path/to/file.db?check_same_thread=false","notes":"No additional library needed. SQLite is bundled with Python.","custom_errors":[{"regex_name":"COLUMN_DOES_NOT_EXIST_REGEX","message_template":"We can't seem to resolve the column \"%(column_name)s\"","error_type":"COLUMN_DOES_NOT_EXIST_ERROR","category":"Query","description":"Column not found","issue_codes":[1003,1004]}]},"time_grains":{"SECOND":true,"FIVE_SECONDS":true,"THIRTY_SECONDS":true,"MINUTE":true,"FIVE_MINUTES":true,"TEN_MINUTES":true,"FIFTEEN_MINUTES":true,"THIRTY_MINUTES":true,"HALF_HOUR":true,"HOUR":true,"SIX_HOURS":true,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":true,"WEEK_STARTING_MONDAY":true,"WEEK_ENDING_SATURDAY":true,"WEEK_ENDING_SUNDAY":true,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":true,"YEAR":true},"score":41,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":false,"supports_catalog":false,"supports_dynamic_catalog":false,"ssh_tunneling":false,"supports_file_upload":true,"query_cancelation":false,"query_cost_estimation":false,"sql_validation":false,"user_impersonation":false};
+
+<DatabasePage name="SQLite" database={databaseInfo} />

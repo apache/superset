@@ -25,7 +25,12 @@ import logging
 from typing import Any, Dict, List, Tuple
 
 from superset.mcp_service.chart.schemas import (
+    BigNumberChartConfig,
     ColumnRef,
+    HandlebarsChartConfig,
+    MixedTimeseriesChartConfig,
+    PieChartConfig,
+    PivotTableChartConfig,
     TableChartConfig,
     XYChartConfig,
 )
@@ -53,7 +58,7 @@ class DatasetValidator:
 
     @staticmethod
     def validate_against_dataset(
-        config: TableChartConfig | XYChartConfig,
+        config: Any,
         dataset_id: int | str,
         dataset_context: DatasetContext | None = None,
     ) -> Tuple[bool, ChartGenerationError | None]:
@@ -96,13 +101,16 @@ class DatasetValidator:
         if column_error:
             return False, column_error
 
-        # Validate aggregation compatibility
-        if isinstance(config, (TableChartConfig, XYChartConfig)):
-            aggregation_errors = DatasetValidator._validate_aggregations(
-                column_refs, dataset_context
-            )
-            if aggregation_errors:
-                return False, aggregation_errors[0]
+        # Validate aggregation compatibility for every config that produced
+        # column refs. ``_validate_aggregations`` is config-agnostic — gating
+        # it to Table/XY would let pie / pivot table / mixed timeseries /
+        # handlebars / big number slip through ``SUM(non_numeric)`` patterns
+        # for the fast-path tools that skip Tier 2.
+        aggregation_errors = DatasetValidator._validate_aggregations(
+            column_refs, dataset_context
+        )
+        if aggregation_errors:
+            return False, aggregation_errors[0]
 
         return True, None
 
@@ -110,13 +118,40 @@ class DatasetValidator:
     def _validate_columns_exist(
         column_refs: List[ColumnRef], dataset_context: DatasetContext
     ) -> ChartGenerationError | None:
-        """Validate that non-saved-metric column refs exist in the dataset."""
-        invalid_columns = []
+        """Validate that non-saved-metric column refs exist in the dataset.
+
+        A ``ColumnRef`` with ``saved_metric=False`` must match an entry in
+        ``available_columns``. Saved-metric *names* don't satisfy this check —
+        otherwise ``{name: "sum_boys", aggregate: "SUM"}`` (no
+        ``saved_metric=true``) would slip through and downstream code would
+        emit ``SUM(sum_boys)`` as an ad-hoc SIMPLE metric, producing the
+        broken-SQL pattern this validator is meant to prevent.
+        """
+        column_names_lower = {
+            col["name"].lower() for col in dataset_context.available_columns
+        }
+        metric_names_lower = {
+            metric["name"].lower() for metric in dataset_context.available_metrics
+        }
+
+        invalid_columns: List[ColumnRef] = []
+        saved_metric_typo: List[ColumnRef] = []
         for col_ref in column_refs:
             if col_ref.saved_metric:
                 continue
-            if not DatasetValidator._column_exists(col_ref.name, dataset_context):
+            name_lower = col_ref.name.lower()
+            if name_lower in column_names_lower:
+                continue
+            if name_lower in metric_names_lower:
+                # Name matches a saved metric but the ref didn't opt into
+                # saved-metric resolution. Surface a tailored hint so the
+                # caller (typically an LLM) can flip ``saved_metric=true``.
+                saved_metric_typo.append(col_ref)
+            else:
                 invalid_columns.append(col_ref)
+
+        if saved_metric_typo:
+            return DatasetValidator._build_saved_metric_hint_error(saved_metric_typo)
 
         if not invalid_columns:
             return None
@@ -130,6 +165,36 @@ class DatasetValidator:
 
         return DatasetValidator._build_column_error(
             invalid_columns, suggestions_map, dataset_context
+        )
+
+    @staticmethod
+    def _build_saved_metric_hint_error(
+        refs: List[ColumnRef],
+    ) -> ChartGenerationError:
+        """Error response when a non-saved-metric ref names a saved metric."""
+        names = [r.name for r in refs]
+        names_str = ", ".join(f"'{n}'" for n in names)
+        first = names[0]
+        return ChartGenerationError(
+            error_type="saved_metric_not_marked",
+            message=(
+                f"{names_str} matches a saved metric but the ref doesn't "
+                f"have saved_metric=true"
+            ),
+            details=(
+                f"The dataset has a saved metric named {names_str}. To use "
+                f"it, set 'saved_metric': true on the column ref instead of "
+                f"providing an 'aggregate'. With the current shape, the "
+                f"chart would emit ad-hoc SQL like SUM({first}) — which is "
+                f"invalid because {first} is a metric expression, not a "
+                f"column."
+            ),
+            suggestions=[
+                f'Did you mean: {{"name": "{first}", "saved_metric": true}}?',
+                "Use saved_metric=true to reference a saved dataset metric",
+                "Or pick a real column name and apply an aggregate to it",
+            ],
+            error_code="SAVED_METRIC_NOT_MARKED",
         )
 
     @staticmethod
@@ -195,23 +260,56 @@ class DatasetValidator:
             return None
 
     @staticmethod
-    def _extract_column_references(
-        config: TableChartConfig | XYChartConfig,
-    ) -> List[ColumnRef]:
-        """Extract all column references from configuration."""
-        refs = []
+    def _extract_column_references(config: Any) -> List[ColumnRef]:  # noqa: C901
+        """Extract all column references from a chart configuration.
+
+        Covers every supported ``ChartConfig`` variant so fast-path tools
+        (``generate_explore_link``, ``update_chart_preview``) that only run
+        Tier-1 validation still catch bad column refs in pie / pivot table /
+        mixed timeseries / handlebars / big number charts — not just XY and
+        table.
+        """
+        refs: List[ColumnRef] = []
 
         if isinstance(config, TableChartConfig):
             refs.extend(config.columns)
         elif isinstance(config, XYChartConfig):
+            if config.x is not None:
+                refs.append(config.x)
+            refs.extend(config.y)
+            if config.group_by:
+                refs.extend(config.group_by)
+        elif isinstance(config, PieChartConfig):
+            refs.append(config.dimension)
+            refs.append(config.metric)
+        elif isinstance(config, PivotTableChartConfig):
+            refs.extend(config.rows)
+            if config.columns:
+                refs.extend(config.columns)
+            refs.extend(config.metrics)
+        elif isinstance(config, MixedTimeseriesChartConfig):
             refs.append(config.x)
             refs.extend(config.y)
             if config.group_by:
                 refs.extend(config.group_by)
+            refs.extend(config.y_secondary)
+            if config.group_by_secondary:
+                refs.extend(config.group_by_secondary)
+        elif isinstance(config, HandlebarsChartConfig):
+            if config.columns:
+                refs.extend(config.columns)
+            if config.groupby:
+                refs.extend(config.groupby)
+            if config.metrics:
+                refs.extend(config.metrics)
+        elif isinstance(config, BigNumberChartConfig):
+            refs.append(config.metric)
+            if config.temporal_column:
+                refs.append(ColumnRef(name=config.temporal_column))
 
-        # Add filter columns
-        if hasattr(config, "filters") and config.filters:
-            for filter_config in config.filters:
+        # Filter columns (shared by every config type that defines ``filters``).
+        if filters := getattr(config, "filters", None):
+            for filter_config in filters:
                 refs.append(ColumnRef(name=filter_config.column))
 
         return refs
@@ -378,20 +476,28 @@ class DatasetValidator:
 
         # Find close matches
         column_lower = column_name.lower()
+        candidate_lookup = [name[0].lower() for name in all_names]
         close_matches = difflib.get_close_matches(
             column_lower,
-            [name[0].lower() for name in all_names],
+            candidate_lookup,
             n=max_suggestions,
             cutoff=0.6,
         )
 
-        # Build suggestions with proper case and type info
+        # Build suggestions with proper case and type info. ``ColumnSuggestion``
+        # requires ``similarity_score`` and does not have a ``data_type`` field;
+        # we score via difflib ratio and store the candidate kind in ``type``.
         suggestions = []
         for match in close_matches:
-            for name, col_type, data_type in all_names:
+            for name, col_type, _data_type in all_names:
                 if name.lower() == match:
+                    score = difflib.SequenceMatcher(None, column_lower, match).ratio()
                     suggestions.append(
-                        ColumnSuggestion(name=name, type=col_type, data_type=data_type)
+                        ColumnSuggestion(
+                            name=name,
+                            type=col_type,
+                            similarity_score=round(score, 3),
+                        )
                     )
                     break
 
@@ -502,8 +608,12 @@ class DatasetValidator:
                     break
 
             if col_info:
-                # Check numeric aggregates on non-numeric columns
-                numeric_aggs = ["SUM", "AVG", "MIN", "MAX", "STDDEV", "VAR", "MEDIAN"]
+                # Check numeric aggregates on non-numeric columns.
+                # MIN and MAX are intentionally excluded: they work on dates
+                # and text in most SQL engines, so restricting them here would
+                # produce false-positive errors.  Leave those to the Tier-2
+                # compile check.
+                numeric_aggs = ["SUM", "AVG", "STDDEV", "VAR", "MEDIAN"]
                 if (
                     col_ref.aggregate in numeric_aggs
                     and not col_info.get("is_numeric", False)

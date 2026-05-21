@@ -48,7 +48,6 @@ import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
 import { waitForAsyncData } from 'src/middleware/asyncEvent';
-import { ensureAppRoot } from 'src/utils/pathUtils';
 import { safeStringify } from 'src/utils/safeStringify';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import type { Dispatch, Action, AnyAction } from 'redux';
@@ -781,6 +780,15 @@ export function exploreJSON(
         handleChartDataResponse(response, json, useLegacyApi),
       )
       .then(queriesResponse => {
+        // Drop stale responses: if a newer query has started for this chart,
+        // its controller will have replaced ours in state, so ignore this
+        // response to avoid clobbering newer data with older results.
+        if (key != null) {
+          const currentController = getState().charts?.[key]?.queryController;
+          if (currentController && currentController !== controller) {
+            return undefined;
+          }
+        }
         (queriesResponse as QueryData[]).forEach(
           (resultItem: QueryData & { applied_filters?: JsonObject[] }) =>
             dispatch(
@@ -824,6 +832,15 @@ export function exploreJSON(
             return dispatch(
               chartUpdateStopped(key as string | number, controller),
             );
+          }
+
+          // Drop stale failures the same way we drop stale successes,
+          // so a slow earlier request can't mark a newer one as failed.
+          if (key != null) {
+            const currentController = getState().charts?.[key]?.queryController;
+            if (currentController && currentController !== controller) {
+              return undefined;
+            }
           }
 
           if (isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) {
@@ -934,7 +951,7 @@ export function redirectSQLLab(
             requestedQuery: payload,
           });
         } else {
-          SupersetClient.postForm(ensureAppRoot(redirectUrl), {
+          SupersetClient.postForm(redirectUrl, {
             form_data: safeStringify(payload),
           });
         }

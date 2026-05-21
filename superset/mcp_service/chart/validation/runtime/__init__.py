@@ -134,6 +134,8 @@ class RuntimeValidator:
             chart_type = config.kind if hasattr(config, "kind") else "default"
 
             # Check X-axis cardinality
+            if config.x is None:
+                return warnings, suggestions
             is_ok, cardinality_info = CardinalityValidator.check_cardinality(
                 dataset_id=dataset_id,
                 x_column=config.x.name,

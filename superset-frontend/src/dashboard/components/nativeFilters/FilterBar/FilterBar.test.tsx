@@ -17,7 +17,13 @@
  * under the License.
  */
 
-import { act, render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import { testWithId } from 'src/utils/testUtils';
 import { Preset, makeApi } from '@superset-ui/core';
@@ -33,7 +39,7 @@ import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 import * as dataMaskActions from 'src/dataMask/actions';
 
-jest.useFakeTimers();
+jest.useFakeTimers({ advanceTimers: true });
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -387,6 +393,15 @@ test('FilterBar apply button is disabled after creating a filter', async () => {
   userEvent.click(screen.getByTestId(getTestId('collapsable')));
   userEvent.click(screen.getByLabelText('setting'));
   userEvent.click(screen.getByText('Add or edit filters and controls'));
+
+  // First add a filter via the dropdown (modal now shows empty state by default)
+  const dropdownButton = screen.getByTestId('new-item-dropdown-button');
+  fireEvent.mouseEnter(dropdownButton);
+  const addFilterMenuItem = await screen.findByRole('menuitem', {
+    name: /add filter/i,
+  });
+  fireEvent.click(addFilterMenuItem);
+
   userEvent.click(screen.getByText('Value'));
   userEvent.click(screen.getByText('Time range'));
   userEvent.type(
@@ -471,7 +486,7 @@ test('FilterBar renders correctly when filter has complete extraFormData', async
   expect(screen.getByTestId(getTestId('filter-icon'))).toBeInTheDocument();
 });
 
-test('handleClearAll dispatches updateDataMask with value undefined for filter_select', async () => {
+test('Clear All stages filter_select clear without dispatching until Apply', async () => {
   const filterId = 'NATIVE_FILTER-clear-select';
   const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
   const selectFilter = createFilter({
@@ -498,7 +513,9 @@ test('handleClearAll dispatches updateDataMask with value undefined for filter_s
       activeTabs: ['ROOT_ID'],
     },
     dataMask: {
-      [filterId]: createDataMask(filterId, ['East']),
+      [filterId]: createDataMask(filterId, ['East'], {
+        filters: [{ col: 'region', op: 'IN', val: ['East'] }],
+      }),
     },
     nativeFilters: {
       filters: { [filterId]: selectFilter },
@@ -518,14 +535,24 @@ test('handleClearAll dispatches updateDataMask with value undefined for filter_s
     userEvent.click(clearBtn);
   });
 
+  // Clear All must not dispatch — staging only
+  expect(updateDataMaskSpy).not.toHaveBeenCalled();
+
+  // Apply commits the staged clear
+  const applyBtn = screen.getByTestId(getTestId('apply-button'));
+  expect(applyBtn).not.toBeDisabled();
+  await act(async () => {
+    userEvent.click(applyBtn);
+  });
   expect(updateDataMaskSpy).toHaveBeenCalledWith(filterId, {
-    filterState: { value: undefined },
+    id: filterId,
+    filterState: { value: undefined, validateStatus: undefined },
     extraFormData: {},
   });
   updateDataMaskSpy.mockRestore();
 });
 
-test('handleClearAll dispatches updateDataMask with [null, null] for filter_range', async () => {
+test('Clear All stages filter_range clear with [null, null], dispatched on Apply', async () => {
   fetchMock.post('glob:*/api/v1/chart/data', {
     result: [{ data: [{ min: 0, max: 100 }] }],
   });
@@ -555,7 +582,9 @@ test('handleClearAll dispatches updateDataMask with [null, null] for filter_rang
       activeTabs: ['ROOT_ID'],
     },
     dataMask: {
-      [filterId]: createDataMask(filterId, [10, 50]),
+      [filterId]: createDataMask(filterId, [10, 50], {
+        filters: [{ col: 'age', op: '>=', val: 10 }],
+      }),
     },
     nativeFilters: {
       filters: { [filterId]: rangeFilter },
@@ -575,14 +604,21 @@ test('handleClearAll dispatches updateDataMask with [null, null] for filter_rang
     userEvent.click(clearBtn);
   });
 
+  expect(updateDataMaskSpy).not.toHaveBeenCalled();
+
+  const applyBtn = screen.getByTestId(getTestId('apply-button'));
+  await act(async () => {
+    userEvent.click(applyBtn);
+  });
   expect(updateDataMaskSpy).toHaveBeenCalledWith(filterId, {
-    filterState: { value: [null, null] },
+    id: filterId,
+    filterState: { value: [null, null], validateStatus: undefined },
     extraFormData: {},
   });
   updateDataMaskSpy.mockRestore();
 });
 
-test('handleClearAll only dispatches for filters present in dataMask', async () => {
+test('Clear All + Apply only dispatches for filters present in dataMask', async () => {
   const idInMask = 'NATIVE_FILTER-has-value';
   const idNotInMask = 'NATIVE_FILTER-no-value';
   const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
@@ -616,7 +652,9 @@ test('handleClearAll only dispatches for filters present in dataMask', async () 
       activeTabs: ['ROOT_ID'],
     },
     dataMask: {
-      [idInMask]: createDataMask(idInMask, ['v']),
+      [idInMask]: createDataMask(idInMask, ['v'], {
+        filters: [{ col: 'x', op: 'IN', val: ['v'] }],
+      }),
     },
     nativeFilters: {
       filters: {
@@ -637,10 +675,16 @@ test('handleClearAll only dispatches for filters present in dataMask', async () 
   await act(async () => {
     userEvent.click(clearBtn);
   });
+  expect(updateDataMaskSpy).not.toHaveBeenCalled();
 
+  const applyBtn = screen.getByTestId(getTestId('apply-button'));
+  await act(async () => {
+    userEvent.click(applyBtn);
+  });
   expect(updateDataMaskSpy).toHaveBeenCalledTimes(1);
   expect(updateDataMaskSpy).toHaveBeenCalledWith(idInMask, {
-    filterState: { value: undefined },
+    id: idInMask,
+    filterState: { value: undefined, validateStatus: undefined },
     extraFormData: {},
   });
   updateDataMaskSpy.mockRestore();
@@ -775,18 +819,86 @@ test('FilterBar Clear All only clears in-scope filters, not out-of-scope ones', 
   await act(async () => {
     userEvent.click(clearButton);
   });
+  expect(updateDataMaskSpy).not.toHaveBeenCalled();
 
-  // Verify only the in-scope filter was cleared, not the out-of-scope ones
-  const clearedFilterIds = updateDataMaskSpy.mock.calls.map(call => call[0]);
-  expect(clearedFilterIds).toContain(inScopeFilterId);
-  expect(clearedFilterIds).not.toContain(outOfScopeRequiredFilterId);
-  expect(clearedFilterIds).not.toContain(outOfScopeNonRequiredFilterId);
+  // After Apply: only the in-scope filter was cleared. Out-of-scope filters
+  // retain their original values (Apply re-dispatches them unchanged).
+  const applyButton = screen.getByTestId(getTestId('apply-button'));
+  await act(async () => {
+    userEvent.click(applyButton);
+  });
 
-  // Verify the in-scope filter was cleared with the correct value
   expect(updateDataMaskSpy).toHaveBeenCalledWith(inScopeFilterId, {
-    filterState: { value: undefined },
+    id: inScopeFilterId,
+    filterState: { value: undefined, validateStatus: undefined },
     extraFormData: {},
   });
 
+  // Out-of-scope filters keep their existing values; not cleared
+  const outOfScopeRequiredCall = updateDataMaskSpy.mock.calls.find(
+    call => call[0] === outOfScopeRequiredFilterId,
+  );
+  expect(outOfScopeRequiredCall?.[1]?.filterState?.value).toEqual(['value2']);
+  const outOfScopeNonRequiredCall = updateDataMaskSpy.mock.calls.find(
+    call => call[0] === outOfScopeNonRequiredFilterId,
+  );
+  expect(outOfScopeNonRequiredCall?.[1]?.filterState?.value).toEqual([
+    'value3',
+  ]);
+
+  updateDataMaskSpy.mockRestore();
+});
+
+test('Clear All on a required filter disables Apply via validateStatus', async () => {
+  const filterId = 'NATIVE_FILTER-required-clear';
+  const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+  const requiredFilter = createFilter({
+    id: filterId,
+    name: 'Required Region',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 7, column: { name: 'region' } }],
+    controlValues: { enableEmptyFilter: true },
+    chartsInScope: [18],
+  });
+  const state = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      filterBarOrientation: FilterBarOrientation.Vertical,
+      metadata: {
+        native_filter_configuration: [requiredFilter],
+        chart_configuration: {},
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    dataMask: {
+      [filterId]: createDataMask(filterId, ['East'], {
+        filters: [{ col: 'region', op: 'IN', val: ['East'] }],
+      }),
+    },
+    nativeFilters: {
+      filters: { [filterId]: requiredFilter },
+      filtersState: {},
+    },
+  };
+
+  const props = createOpenedBarProps();
+  renderFilterBar(props, state);
+  await act(async () => {
+    jest.advanceTimersByTime(300);
+  });
+
+  const clearBtn = screen.getByTestId(getTestId('clear-button'));
+  await act(async () => {
+    userEvent.click(clearBtn);
+  });
+
+  // No dispatch yet; Apply should be disabled because the required filter is empty
+  expect(updateDataMaskSpy).not.toHaveBeenCalled();
+  expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   updateDataMaskSpy.mockRestore();
 });
