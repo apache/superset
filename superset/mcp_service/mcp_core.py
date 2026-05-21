@@ -245,6 +245,31 @@ class ModelListCore(BaseCore, Generic[L]):
             return [extra] + filters
         return [extra, filters]
 
+    def _call_dao_list(
+        self,
+        filters: Any,
+        order_column: str,
+        order_direction: str,
+        page: int,
+        page_size: int,
+        search: str | None,
+        columns_to_load: List[str],
+    ) -> tuple[List[Any], int]:
+        """Call the DAO list method.
+
+        Subclasses may override to change the kwarg name used for filters.
+        """
+        return self.dao_class.list(
+            column_operators=filters,
+            order_column=order_column,
+            order_direction=order_direction,
+            page=page,
+            page_size=page_size,
+            search=search,
+            search_columns=self.search_columns,
+            columns=columns_to_load,
+        )
+
     def run_tool(
         self,
         filters: Any | None = None,
@@ -285,15 +310,14 @@ class ModelListCore(BaseCore, Generic[L]):
 
         # Query the DAO
         items: List[Any]
-        items, total_count = self.dao_class.list(
-            column_operators=filters,
+        items, total_count = self._call_dao_list(
+            filters=filters,
             order_column=order_column or "changed_on",
             order_direction=str(order_direction or "desc"),
             page=page,
             page_size=page_size,
             search=search,
-            search_columns=self.search_columns,
-            columns=columns_to_load,
+            columns_to_load=columns_to_load,
         )
         # Serialize items
         item_objs = []
