@@ -1119,13 +1119,13 @@ class TestRBACToolVisibilityMiddleware:
 
     @pytest.mark.asyncio
     async def test_fails_open_on_exception(self) -> None:
-        """Returns all tools when get_flask_app raises (fail open)."""
+        """Returns all tools when unexpected setup exception occurs (fail open)."""
         tools = [self._make_tool("list_charts"), self._make_tool("generate_chart")]
         call_next = AsyncMock(return_value=tools)
         middleware = RBACToolVisibilityMiddleware()
 
         with patch(
-            "superset.mcp_service.flask_singleton.get_flask_app",
+            "superset.mcp_service.middleware._get_app_context_manager",
             side_effect=RuntimeError("no app"),
         ):
             result = await middleware.on_list_tools(MagicMock(), call_next)
