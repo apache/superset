@@ -113,7 +113,7 @@ const EstimateQueryCostButton = ({
         modalBody={renderModalBody()}
         triggerNode={
           <Button
-            color="primary"
+            color="default"
             variant="text"
             style={{ height: 32, padding: '4px 15px' }}
             onClick={onClickHandler}

@@ -46,14 +46,8 @@ jest.mock('src/components/Datasource/components/DatasourceEditor', () => ({
     ),
 }));
 
-let originalLocation: Location;
-
-beforeEach(() => {
-  originalLocation = window.location;
-});
-
 afterEach(() => {
-  window.location = originalLocation;
+  jest.restoreAllMocks();
 
   try {
     const unmatched = fetchMock.callHistory.calls('unmatched');
@@ -539,10 +533,10 @@ test('should show missing params state', () => {
 });
 
 test('should show missing dataset state', () => {
-  // @ts-expect-error - overriding window.location for test
-  delete window.location;
-  // @ts-expect-error - overriding window.location for test
-  window.location = { search: '?slice_id=152' };
+  jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?slice_id=152',
+  } as Location);
   const props = createProps({ datasource: fallbackExploreInitialData.dataset });
   render(<DatasourceControl {...props} />, { useRedux: true, useRouter: true });
   expect(screen.getAllByText(/missing dataset/i)).toHaveLength(2);
@@ -554,10 +548,10 @@ test('should show missing dataset state', () => {
 });
 
 test('should show forbidden dataset state', () => {
-  // @ts-expect-error - overriding window.location for test
-  delete window.location;
-  // @ts-expect-error - overriding window.location for test
-  window.location = { search: '?slice_id=152' };
+  jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?slice_id=152',
+  } as Location);
   const error = {
     error_type: 'TABLE_SECURITY_ACCESS_ERROR',
     statusText: 'FORBIDDEN',

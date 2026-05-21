@@ -33,7 +33,10 @@ from superset.mcp_service.chart.ascii_charts import (
     generate_ascii_chart,
     generate_ascii_table,
 )
-from superset.mcp_service.chart.chart_helpers import find_chart_by_identifier
+from superset.mcp_service.chart.chart_helpers import (
+    build_query_context_from_form_data,
+    find_chart_by_identifier,
+)
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
@@ -265,7 +268,6 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
     def generate(self) -> ASCIIPreview | ChartError:
         try:
             from superset.commands.chart.data.get_data_command import ChartDataCommand
-            from superset.common.query_context_factory import QueryContextFactory
             from superset.utils import json as utils_json
 
             form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
@@ -282,43 +284,11 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                     error_type="InvalidChart",
                 )
 
-            # Build query for chart data
-            metrics = _build_query_metrics(form_data)
-
-            # Table charts in raw mode use all_columns or columns
-            all_columns = form_data.get("all_columns", [])
-            raw_columns = form_data.get("columns", [])
-            if form_data.get("query_mode") == "raw" and (all_columns or raw_columns):
-                columns = list(all_columns or raw_columns)
-            else:
-                columns = _build_query_columns(form_data)
-
-            if not columns and not metrics:
-                return ChartError(
-                    error=(
-                        "Cannot generate ASCII preview: chart has no columns or "
-                        "metrics in its configuration. This chart type may not "
-                        "support ASCII preview."
-                    ),
-                    error_type="UnsupportedChart",
-                )
-
-            factory = QueryContextFactory()
-            query_context = factory.create(
-                datasource={
-                    "id": self.chart.datasource_id,
-                    "type": self.chart.datasource_type,
-                },
-                queries=[
-                    {
-                        "filters": form_data.get("filters", []),
-                        "columns": columns,
-                        "metrics": metrics,
-                        "row_limit": 50,
-                        "order_desc": True,
-                    }
-                ],
-                form_data=form_data,
+            query_context = build_query_context_from_form_data(
+                form_data,
+                chart=self.chart,
+                row_limit=50,
+                order_desc=True,
                 force=False,
             )
 
@@ -364,7 +334,6 @@ class TablePreviewStrategy(PreviewFormatStrategy):
     def generate(self) -> TablePreview | ChartError:
         try:
             from superset.commands.chart.data.get_data_command import ChartDataCommand
-            from superset.common.query_context_factory import QueryContextFactory
             from superset.utils import json as utils_json
 
             form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
@@ -376,24 +345,11 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                     error_type="InvalidChart",
                 )
 
-            columns = _build_query_columns(form_data)
-
-            factory = QueryContextFactory()
-            query_context = factory.create(
-                datasource={
-                    "id": self.chart.datasource_id,
-                    "type": self.chart.datasource_type,
-                },
-                queries=[
-                    {
-                        "filters": form_data.get("filters", []),
-                        "columns": columns,
-                        "metrics": _build_query_metrics(form_data),
-                        "row_limit": 20,
-                        "order_desc": True,
-                    }
-                ],
-                form_data=form_data,
+            query_context = build_query_context_from_form_data(
+                form_data,
+                chart=self.chart,
+                row_limit=20,
+                order_desc=True,
                 force=False,
             )
 
@@ -447,7 +403,6 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             # Get chart data directly using the same logic as get_chart_data tool
             # but without calling the MCP tool wrapper
             from superset.commands.chart.data.get_data_command import ChartDataCommand
-            from superset.common.query_context_factory import QueryContextFactory
             from superset.daos.chart import ChartDAO
             from superset.utils import json as utils_json
 
@@ -480,26 +435,11 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                     utils_json.loads(self.chart.params) if self.chart.params else {}
                 )
 
-            # Build columns list: include both x_axis and groupby
-            columns = _build_query_columns(form_data)
-
-            # Create query context for data retrieval
-            factory = QueryContextFactory()
-            query_context = factory.create(
-                datasource={
-                    "id": self.chart.datasource_id,
-                    "type": self.chart.datasource_type,
-                },
-                queries=[
-                    {
-                        "filters": form_data.get("filters", []),
-                        "columns": columns,
-                        "metrics": _build_query_metrics(form_data),
-                        "row_limit": 1000,  # More data for visualization
-                        "order_desc": True,
-                    }
-                ],
-                form_data=form_data,
+            query_context = build_query_context_from_form_data(
+                form_data,
+                chart=self.chart,
+                row_limit=1000,
+                order_desc=True,
                 force=self.request.force_refresh,
             )
 
