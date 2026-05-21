@@ -26,6 +26,7 @@ from typing import Any, Dict, List, TYPE_CHECKING
 from fastmcp import Context
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
@@ -350,7 +351,18 @@ async def get_chart_data(  # noqa: C901
                 # Build query context entirely from cached form_data
                 return await _query_from_form_data(cached_form_data_dict, request, ctx)
 
-        # Find the chart by identifier
+        # Find the chart by identifier.
+        # Eagerly load the dataset's metrics relationship so Excel export
+        # (which may run after the request-scoped session is detached) can
+        # access dataset.metrics without triggering a lazy load. See
+        # apache/superset#39206 for the analogous database eager-load fix.
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.slice import Slice
+
+        chart_query_options = [
+            subqueryload(Slice.table).subqueryload(SqlaTable.metrics),
+        ]
+
         with event_logger.log_context(action="mcp.get_chart_data.chart_lookup"):
             await ctx.debug("Looking up chart: identifier=%s" % (request.identifier,))
             if request.identifier is None:
@@ -358,7 +370,9 @@ async def get_chart_data(  # noqa: C901
                     error="Chart identifier is required",
                     error_type="ValidationError",
                 )
-            chart = find_chart_by_identifier(request.identifier)
+            chart = find_chart_by_identifier(
+                request.identifier, query_options=chart_query_options
+            )
 
         if not chart:
             await ctx.warning("Chart not found: identifier=%s" % (request.identifier,))
