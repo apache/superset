@@ -28,7 +28,6 @@ from pydantic import (
     Field,
     field_validator,
     model_serializer,
-    model_validator,
     PositiveInt,
 )
 
@@ -214,17 +213,6 @@ class ListUsersRequest(BaseModel):
     def parse_columns(cls, v: Any) -> List[str]:
         """Accept JSON array, list, or comma-separated string."""
         return parse_json_or_list(v, "select_columns")
-
-    @model_validator(mode="after")
-    def validate_search_and_filters(self) -> "ListUsersRequest":
-        """Prevent using both search and filters simultaneously."""
-        if self.search and self.filters:
-            raise ValueError(
-                "Cannot use both 'search' and 'filters' parameters simultaneously. "
-                "Use either 'search' for text-based searching or 'filters' for "
-                "precise column-based filtering, but not both."
-            )
-        return self
 
 
 class UserError(BaseModel):
