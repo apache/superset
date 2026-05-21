@@ -1710,7 +1710,14 @@ class GenerateChartRequest(QueryCacheControl):
 
 class GenerateExploreLinkRequest(FormDataCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: ChartConfig = Field(..., description="Chart configuration")
+    config: ChartConfig | None = Field(
+        None,
+        description=(
+            "Chart configuration. Optional; omit to get a default "
+            "explore URL that opens the dataset in Superset without a "
+            "preconfigured chart."
+        ),
+    )
 
 
 class UpdateChartRequest(QueryCacheControl):
