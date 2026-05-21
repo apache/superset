@@ -16,6 +16,7 @@
 # under the License.
 import logging
 from functools import partial
+from typing import Any
 
 from superset.commands.base import BaseCommand
 from superset.commands.tag.exceptions import (
@@ -25,8 +26,9 @@ from superset.commands.tag.exceptions import (
     TagInvalidError,
     TagNotFoundError,
 )
-from superset.commands.tag.utils import to_object_type
+from superset.commands.tag.utils import to_object_model, to_object_type
 from superset.daos.tag import TagDAO
+from superset.exceptions import SupersetSecurityException
 from superset.tags.models import ObjectType
 from superset.utils.decorators import on_error, transaction
 from superset.views.base import DeleteMixin
@@ -71,6 +73,9 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
                     )
                 )
             else:
+                # Validate user has access to the target object
+                self._validate_object_access(object_type, self._object_id, exceptions)
+
                 tagged_object = TagDAO.find_tagged_object(
                     object_type=object_type, object_id=self._object_id, tag_id=tag.id
                 )
@@ -84,6 +89,21 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
                     )
         if exceptions:
             raise TagInvalidError(exceptions=exceptions)
+
+    def _validate_object_access(
+        self, object_type: ObjectType, object_id: int, exceptions: list[Any]
+    ) -> None:
+        """Validate that the current user has access to the target object."""
+        try:
+            target_object = to_object_model(object_type, object_id)
+            if target_object and hasattr(target_object, "raise_for_access"):
+                target_object.raise_for_access()
+        except SupersetSecurityException:
+            exceptions.append(
+                TaggedObjectDeleteFailedError(
+                    f"Access denied for {object_type} {object_id}"
+                )
+            )
 
 
 class DeleteTagsCommand(DeleteMixin, BaseCommand):
