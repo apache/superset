@@ -17,7 +17,11 @@
 from unittest.mock import Mock, patch
 
 import sshtunnel
+from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+from cryptography.hazmat.primitives.asymmetric.rsa import (
+    generate_private_key as generate_rsa_key,
+)
 from cryptography.hazmat.primitives.serialization import (
     Encoding,
     NoEncryption,
@@ -102,10 +106,8 @@ def test_create_tunnel_accepts_rsa_private_key_unchanged() -> None:
     historically-supported RSA case. Uses a freshly generated RSA key in
     OpenSSH format.
     """
-    from cryptography.hazmat.primitives.asymmetric.rsa import generate_private_key
-
     rsa_pem = (
-        generate_private_key(public_exponent=65537, key_size=2048)
+        generate_rsa_key(public_exponent=65537, key_size=2048)
         .private_bytes(
             encoding=Encoding.PEM,
             format=PrivateFormat.OpenSSH,
@@ -136,4 +138,45 @@ def test_create_tunnel_accepts_rsa_private_key_unchanged() -> None:
         )
 
     assert mock_open.called
+    assert mock_open.call_args.kwargs["ssh_pkey"] is not None
+
+
+def test_create_tunnel_accepts_ecdsa_private_key() -> None:
+    """
+    Companion to the ed25519 and RSA tests: verify ECDSAKey (the third type
+    in _SSH_KEY_TYPES) is reachable by _load_private_key. Uses NIST P-256,
+    the most common ECDSA curve in practice.
+    """
+    ecdsa_pem = (
+        ec.generate_private_key(ec.SECP256R1())
+        .private_bytes(
+            encoding=Encoding.PEM,
+            format=PrivateFormat.OpenSSH,
+            encryption_algorithm=NoEncryption(),
+        )
+        .decode()
+    )
+
+    app = Mock()
+    app.config = {
+        "SSH_TUNNEL_LOCAL_BIND_ADDRESS": "127.0.0.1",
+        "SSH_TUNNEL_TIMEOUT_SEC": 10.0,
+        "SSH_TUNNEL_PACKET_TIMEOUT_SEC": 10.0,
+    }
+    manager = SSHManager(app)
+
+    ssh_tunnel = Mock()
+    ssh_tunnel.server_address = "ssh.example.com"
+    ssh_tunnel.server_port = 22
+    ssh_tunnel.username = "tunneluser"
+    ssh_tunnel.password = None
+    ssh_tunnel.private_key = ecdsa_pem
+    ssh_tunnel.private_key_password = None
+
+    with patch("superset.extensions.ssh.sshtunnel.open_tunnel") as mock_open:
+        manager.create_tunnel(
+            ssh_tunnel, "postgresql://user:pass@db.example.com:5432/x"
+        )
+
+    assert mock_open.called, "open_tunnel was never invoked — ECDSA key parsing aborted"
     assert mock_open.call_args.kwargs["ssh_pkey"] is not None

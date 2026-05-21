@@ -21,7 +21,14 @@ from typing import TYPE_CHECKING
 
 import sshtunnel
 from flask import Flask
-from paramiko import ECDSAKey, Ed25519Key, PKey, RSAKey, SSHException
+from paramiko import (
+    ECDSAKey,
+    Ed25519Key,
+    PasswordRequiredException,
+    PKey,
+    RSAKey,
+    SSHException,
+)
 
 from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelDatabasePortError
 from superset.databases.utils import make_url_safe
@@ -44,17 +51,19 @@ def _load_private_key(pem: str, password: str | None) -> PKey:
     key class only accepts its own format. Iterate over the supported types
     and return the first that parses cleanly.
     """
-    last_exc: Exception | None = None
+    last_exc: SSHException | None = None
     for key_class in _SSH_KEY_TYPES:
         try:
             return key_class.from_private_key(StringIO(pem), password=password)
+        except PasswordRequiredException:
+            raise
         except SSHException as exc:
             last_exc = exc
             continue
     raise SSHException(
         "Unable to parse SSH private key as any of "
         f"{', '.join(k.__name__ for k in _SSH_KEY_TYPES)}: {last_exc}"
-    )
+    ) from last_exc
 
 
 class SSHManager:
