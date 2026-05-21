@@ -118,7 +118,9 @@ export default function CompactFilterTrigger({
     <Tooltip
       title={tooltipTitle}
       open={!!tooltipTitle && !open && tooltipOpen}
-      onOpenChange={visible => setTooltipOpen(visible && !!tooltipTitle && !open)}
+      onOpenChange={visible =>
+        setTooltipOpen(visible && !!tooltipTitle && !open)
+      }
       mouseEnterDelay={0.5}
       mouseLeaveDelay={0}
     >
