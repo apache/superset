@@ -84,11 +84,11 @@ case "${1}" in
     # Environment-based debugger control for security
     # Only enable Werkzeug interactive debugger when explicitly requested
     # Modern Werkzeug (3.0+) includes PIN protection, but defense-in-depth approach
-    DEBUGGER_FLAG=""
     if [[ "${SUPERSET_DEBUG_ENABLED:-}" == "true" ]]; then
         DEBUGGER_FLAG="--debugger"
         echo "  ⚠️  Werkzeug debugger enabled (requires PIN for /console access)"
     else
+        DEBUGGER_FLAG="--no-debugger"
         echo "  🔒 Werkzeug debugger disabled (set SUPERSET_DEBUG_ENABLED=true to enable)"
     fi
 
