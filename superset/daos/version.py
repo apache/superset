@@ -29,25 +29,23 @@ New code should import from the versioning sub-modules directly.
 from __future__ import annotations
 
 from superset.versioning.queries import (
+    _get_version_count,
     current_live_transaction_id,
     current_live_version_uuid,
     current_version_number,
     derive_version_uuid,
+    derive_version_uuid as _derive_version_uuid,  # noqa: F401
     find_active_by_uuid,
     get_version,
     list_change_records_batch,
     list_versions,
     resolve_version_uuid,
     VERSION_UUID_NAMESPACE,
-    _get_version_count,
-)
-from superset.versioning.queries import (
-    derive_version_uuid as _derive_version_uuid,  # noqa: F401
 )
 from superset.versioning.restore import (
-    restore_version,
     _RESTORE_RELATIONS,
     _stamp_audit_fields_for_restore,
+    restore_version,
 )
 
 # Re-exports for ``from superset.daos.version import …`` consumers.
