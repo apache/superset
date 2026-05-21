@@ -62,6 +62,22 @@ const isActiveOptions = [
   },
 ];
 
+// Exported cell renderers for the Login count / Fail login count columns.
+// FAB's User model declares both fields as nullable integers (NULL until the
+// first login / first failed login), so we coalesce null / undefined to 0
+// rather than rendering an empty cell.
+export const renderLoginCountCell = ({
+  row: { original },
+}: {
+  row: { original: UserObject };
+}) => original.login_count ?? 0;
+
+export const renderFailLoginCountCell = ({
+  row: { original },
+}: {
+  row: { original: UserObject };
+}) => original.fail_login_count ?? 0;
+
 function UsersList({ user }: UsersListProps) {
   const { addDangerToast, addSuccessToast } = useToasts();
   const {
@@ -287,14 +303,14 @@ function UsersList({ user }: UsersListProps) {
         id: 'login_count',
         Header: t('Login count'),
         hidden: true,
-        Cell: ({ row: { original } }: any) => original.login_count ?? 0,
+        Cell: renderLoginCountCell,
       },
       {
         accessor: 'fail_login_count',
         id: 'fail_login_count',
         Header: t('Fail login count'),
         hidden: true,
-        Cell: ({ row: { original } }: any) => original.fail_login_count ?? 0,
+        Cell: renderFailLoginCountCell,
       },
       {
         accessor: 'created_on',
