@@ -156,18 +156,16 @@ describe('DashboardList Card View Tests', () => {
       ).toBeInTheDocument();
     });
 
-    // Find the sort select by its testId, then the combobox within it
+    // Find the sort select by its testId, then the pill button within it
     const sortContainer = screen.getByTestId('card-sort-select');
-    const sortCombobox = within(sortContainer).getByRole('combobox');
-    await userEvent.click(sortCombobox);
+    // eslint-disable-next-line testing-library/no-node-access
+    const sortPill = sortContainer.querySelector(
+      '[data-test="compact-filter-pill"]',
+    ) as HTMLElement;
+    await userEvent.click(sortPill);
 
     // Select "Alphabetical" from the dropdown
-    const alphabeticalOption = await waitFor(() =>
-      within(
-        // eslint-disable-next-line testing-library/no-node-access
-        document.querySelector('.rc-virtual-list')!,
-      ).getByText('Alphabetical'),
-    );
+    const alphabeticalOption = await screen.findByText('Alphabetical');
     await userEvent.click(alphabeticalOption);
 
     await waitFor(() => {

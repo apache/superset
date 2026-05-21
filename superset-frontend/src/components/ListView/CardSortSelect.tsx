@@ -62,18 +62,20 @@ export const CardSortSelect = ({
   };
 
   return (
-    <CompactFilterTrigger
-      label={t('Sort')}
-      hasValue={false}
-      onClear={() => {}}
-      tooltipTitle={String(currentValue.label)}
-    >
-      <CompactSelectPanel
-        ref={panelRef}
-        selects={selectOptions}
-        value={currentValue}
-        onSelect={handleSelect}
-      />
-    </CompactFilterTrigger>
+    <span data-test="card-sort-select">
+      <CompactFilterTrigger
+        label={t('Sort')}
+        hasValue={false}
+        onClear={() => {}}
+        tooltipTitle={String(currentValue.label)}
+      >
+        <CompactSelectPanel
+          ref={panelRef}
+          selects={selectOptions}
+          value={currentValue}
+          onSelect={handleSelect}
+        />
+      </CompactFilterTrigger>
+    </span>
   );
 };

@@ -345,7 +345,10 @@ describe('ListView', () => {
       initialSort: [{ id: 'something' }],
     });
 
-    const sortSelect = screen.getByTestId('card-sort-select');
+    const sortSelectContainer = screen.getByTestId('card-sort-select');
+    const sortSelect = sortSelectContainer.querySelector(
+      '[data-test="compact-filter-pill"]',
+    ) as HTMLElement;
     await userEvent.click(sortSelect);
 
     const sortOption = screen.getByText('Alphabetical');
