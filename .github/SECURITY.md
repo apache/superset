@@ -33,6 +33,10 @@ We kindly ask you to include the following information in your report to assist 
 - Expected vs. Actual Behavior: A clear description of the intended system behavior versus the observed vulnerability.
 - Detailed Reproduction Steps: Clear, manual steps to reproduce the vulnerability.
 
+**Vulnerability Definition**
+
+Apache Superset considers a security vulnerability to be a demonstrable issue that has meaningful impact on confidentiality, integrity, or availability beyond the intended security model. Low-impact boundary variations or technical edge cases in existing access controls may be classified as hardening improvements rather than vulnerabilities, even if exploitable.
+
 **Out of Scope Vulnerabilities**
 
 To prioritize engineering efforts on genuine architectural risks, the following scenarios are explicitly out of scope and will not be issued a CVE:
