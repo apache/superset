@@ -27,6 +27,10 @@ import {
   SliceEntitiesActionPayload,
 } from '../actions/sliceEntities';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
+import {
+  ENTER_VERSION_PREVIEW,
+  EXIT_VERSION_PREVIEW,
+} from '../actions/dashboardState';
 
 export const initSliceEntities: SliceEntitiesState = {
   slices: {},
@@ -35,11 +39,25 @@ export const initSliceEntities: SliceEntitiesState = {
   lastUpdated: 0,
 };
 
+type VersionPreviewSwapAction = {
+  type: typeof ENTER_VERSION_PREVIEW | typeof EXIT_VERSION_PREVIEW;
+  newSliceEntities?: SliceEntitiesState;
+  restoreSliceEntities?: SliceEntitiesState;
+};
+
 export default function sliceEntitiesReducer(
   state: SliceEntitiesState = initSliceEntities,
-  action: SliceEntitiesActionPayload,
+  action: SliceEntitiesActionPayload | VersionPreviewSwapAction,
 ): SliceEntitiesState {
   switch (action.type) {
+    case ENTER_VERSION_PREVIEW: {
+      const next = (action as VersionPreviewSwapAction).newSliceEntities;
+      return next ?? state;
+    }
+    case EXIT_VERSION_PREVIEW: {
+      const restore = (action as VersionPreviewSwapAction).restoreSliceEntities;
+      return (restore as SliceEntitiesState) ?? state;
+    }
     case HYDRATE_DASHBOARD:
       return {
         ...action.data.sliceEntities,

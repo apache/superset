@@ -16,10 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  enterVersionPreview,
+  exitVersionPreview,
+} from 'src/dashboard/actions/dashboardState';
+import type { RootState } from 'src/dashboard/types';
 import VersionHistoryPanel from '../components/VersionHistoryPanel';
-import PreviewBanner from '../components/PreviewBanner';
-import { VersionHistoryProvider } from '../context/VersionHistoryContext';
+import {
+  VersionHistoryProvider,
+  useOptionalVersionHistory,
+} from '../context/VersionHistoryContext';
+import { useVersionSnapshot } from '../hooks/useVersionSnapshot';
 
 interface Props {
   dashboardUuid: string | null | undefined;
@@ -27,11 +36,71 @@ interface Props {
 }
 
 /**
+ * Adapter that subscribes to ``previewVersionUuid`` from context, fetches the
+ * matching snapshot, and drives the Redux captured-original swap. Cleans up
+ * on unmount.
+ */
+function DashboardPreviewBridge({
+  dashboardUuid,
+}: {
+  dashboardUuid: string | null | undefined;
+}) {
+  const ctx = useOptionalVersionHistory();
+  const previewVersionUuid = ctx?.previewVersionUuid ?? null;
+  const dispatch = useDispatch();
+  const versionPreview = useSelector(
+    (state: RootState) =>
+      (
+        state.dashboardState as unknown as {
+          versionPreview?: { versionUuid: string } | null;
+        }
+      ).versionPreview ?? null,
+  );
+  const { snapshot } = useVersionSnapshot(
+    'dashboard',
+    dashboardUuid,
+    previewVersionUuid,
+  );
+  const lastAppliedRef = useRef<string | null>(null);
+
+  // Enter preview when a snapshot is available for the requested uuid.
+  useEffect(() => {
+    if (!previewVersionUuid || !snapshot) return;
+    if (lastAppliedRef.current === previewVersionUuid) return;
+    dispatch(
+      enterVersionPreview(
+        previewVersionUuid,
+        snapshot as unknown as Parameters<typeof enterVersionPreview>[1],
+      ),
+    );
+    lastAppliedRef.current = previewVersionUuid;
+  }, [dispatch, previewVersionUuid, snapshot]);
+
+  // Exit when context clears the preview, or on unmount.
+  useEffect(() => {
+    if (!previewVersionUuid && versionPreview) {
+      dispatch(exitVersionPreview());
+      lastAppliedRef.current = null;
+    }
+  }, [dispatch, previewVersionUuid, versionPreview]);
+
+  useEffect(
+    () => () => {
+      // Unmount cleanup.
+      if (lastAppliedRef.current) {
+        dispatch(exitVersionPreview());
+      }
+    },
+    [dispatch],
+  );
+
+  return null;
+}
+
+/**
  * Mounts the cross-entity VersionHistoryProvider + side panel for the
- * dashboard view. Dashboard-level preview rendering (swapping
- * sliceEntities / dashboardLayout from a snapshot) is deferred to a
- * follow-up; today the panel still lists versions and restore works via
- * the backend endpoint (which the panel calls directly).
+ * dashboard view, and connects the preview state to the dashboardState
+ * reducer's captured-original swap.
  */
 export function DashboardVersionHistoryRoot({
   dashboardUuid,
@@ -40,9 +109,8 @@ export function DashboardVersionHistoryRoot({
   return (
     <VersionHistoryProvider>
       {children}
+      <DashboardPreviewBridge dashboardUuid={dashboardUuid} />
       <VersionHistoryPanel entityType="dashboard" uuid={dashboardUuid} />
     </VersionHistoryProvider>
   );
 }
-
-export { PreviewBanner };

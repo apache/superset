@@ -30,6 +30,10 @@ import {
   MOVE_COMPONENT,
   HANDLE_COMPONENT_DROP,
 } from '../actions/dashboardLayout';
+import {
+  ENTER_VERSION_PREVIEW,
+  EXIT_VERSION_PREVIEW,
+} from '../actions/dashboardState';
 
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 
@@ -47,6 +51,12 @@ const TRACKED_ACTIONS: string[] = [
   RESIZE_COMPONENT,
   MOVE_COMPONENT,
   HANDLE_COMPONENT_DROP,
+  // Version-history preview swaps the active layout via these actions.
+  // Tracked here so the wrapped layout reducer actually receives them;
+  // edit-mode is blocked while previewing so the extra undo entries do
+  // not surface to users.
+  ENTER_VERSION_PREVIEW,
+  EXIT_VERSION_PREVIEW,
 ];
 
 /*

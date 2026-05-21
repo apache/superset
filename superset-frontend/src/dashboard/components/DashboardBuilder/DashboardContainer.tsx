@@ -52,6 +52,7 @@ import {
   DASHBOARD_ROOT_DEPTH,
 } from 'src/dashboard/util/constants';
 import findTabIndexByComponentId from 'src/dashboard/util/findTabIndexByComponentId';
+import { DashboardPreviewBanner } from 'src/features/versionHistory';
 import { setInScopeStatusOfFilters } from 'src/dashboard/actions/nativeFilters';
 import { setInScopeStatusOfCustomizations } from 'src/dashboard/actions/chartCustomizationActions';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
@@ -376,6 +377,7 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
 
   return (
     <div className="grid-container" data-test="grid-container">
+      <DashboardPreviewBanner />
       <ParentSize>{renderParentSizeChildren}</ParentSize>
     </div>
   );

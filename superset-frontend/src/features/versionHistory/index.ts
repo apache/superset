@@ -20,6 +20,7 @@ export { default as VersionHistoryPanel } from './components/VersionHistoryPanel
 export { default as PreviewBanner } from './components/PreviewBanner';
 export { ExploreVersionHistoryRoot } from './explore/ExploreVersionHistoryMount';
 export { DashboardVersionHistoryRoot } from './dashboard/DashboardVersionHistoryMount';
+export { default as DashboardPreviewBanner } from './dashboard/DashboardPreviewBanner';
 export {
   VersionHistoryProvider,
   useVersionHistory,

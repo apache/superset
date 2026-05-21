@@ -44,6 +44,10 @@ import {
 } from '../actions/dashboardLayout';
 
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
+import {
+  ENTER_VERSION_PREVIEW,
+  EXIT_VERSION_PREVIEW,
+} from '../actions/dashboardState';
 import { DashboardLayout } from '../types';
 import { DropResult } from '../components/dnd/dragDroppableConfig';
 
@@ -110,6 +114,24 @@ const actionHandlers: Record<
     return {
       ...action.data!.dashboardLayout.present,
     };
+  },
+
+  [ENTER_VERSION_PREVIEW](
+    state: DashboardLayout,
+    action: DashboardLayoutAction,
+  ): DashboardLayout {
+    const next = (action as unknown as { newLayout?: DashboardLayout })
+      .newLayout;
+    return next ?? state;
+  },
+
+  [EXIT_VERSION_PREVIEW](
+    state: DashboardLayout,
+    action: DashboardLayoutAction,
+  ): DashboardLayout {
+    const restore = (action as unknown as { restoreLayout?: DashboardLayout })
+      .restoreLayout;
+    return restore ?? state;
   },
 
   [UPDATE_COMPONENTS](

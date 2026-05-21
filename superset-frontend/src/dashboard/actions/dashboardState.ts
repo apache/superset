@@ -1531,3 +1531,101 @@ export const updateDashboardLabelsColor =
       logging.error('Failed to update colors for new charts and labels:', e);
     }
   };
+
+// ---------------------------------------------------------------------------
+// Version-history preview
+// ---------------------------------------------------------------------------
+//
+// Captured-original pattern: when entering preview mode for a historical
+// version, we stash the live ``sliceEntities`` + ``dashboardLayout`` snapshot
+// inside dashboardState. The same action swaps the displayed values in those
+// two reducers. Exiting reads the captured originals back out and dispatches
+// them as the new values. No backend re-fetch, no save-state mutation, no
+// editMode toggle.
+export const ENTER_VERSION_PREVIEW = 'ENTER_VERSION_PREVIEW';
+export const EXIT_VERSION_PREVIEW = 'EXIT_VERSION_PREVIEW';
+
+interface VersionSnapshotPayload {
+  slices?: Record<string, unknown>[] | Record<string, Slice>;
+  position_json?: string | Record<string, unknown> | null;
+  [key: string]: unknown;
+}
+
+function normalizeSlicesFromSnapshot(
+  snapshot: VersionSnapshotPayload,
+): Record<number, Slice> {
+  const raw = snapshot.slices;
+  if (!raw) return {};
+  const result: Record<number, Slice> = {};
+  if (Array.isArray(raw)) {
+    raw.forEach(slice => {
+      const s = slice as unknown as Slice;
+      if (typeof s.slice_id === 'number') {
+        result[s.slice_id] = s;
+      }
+    });
+    return result;
+  }
+  // Already keyed by id
+  return raw as unknown as Record<number, Slice>;
+}
+
+function parsePositionJson(
+  positionJson: string | Record<string, unknown> | null | undefined,
+): Record<string, unknown> {
+  if (!positionJson) return {};
+  if (typeof positionJson === 'object') return positionJson;
+  try {
+    return JSON.parse(positionJson);
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Enters preview mode for the given dashboard snapshot. Captures current
+ * ``sliceEntities`` + ``dashboardLayout.present`` and replaces them with the
+ * snapshot's values. Cleanup must call ``exitVersionPreview``.
+ */
+export const enterVersionPreview =
+  (versionUuid: string, snapshot: VersionSnapshotPayload) =>
+  (dispatch: AppDispatch, getState: GetState): void => {
+    const state = getState();
+    const capturedSliceEntities = state.sliceEntities;
+    const capturedLayout = (
+      state as unknown as {
+        dashboardLayout: { present: Record<string, unknown> };
+      }
+    ).dashboardLayout.present;
+    const newSlices = normalizeSlicesFromSnapshot(snapshot);
+    const newLayout = parsePositionJson(snapshot.position_json);
+    dispatch({
+      type: ENTER_VERSION_PREVIEW,
+      versionUuid,
+      capturedSliceEntities,
+      capturedLayout,
+      newSliceEntities: {
+        ...capturedSliceEntities,
+        slices: newSlices,
+      },
+      newLayout,
+    });
+  };
+
+export const exitVersionPreview =
+  () =>
+  (dispatch: AppDispatch, getState: GetState): void => {
+    const { versionPreview } = getState().dashboardState as unknown as {
+      versionPreview?: {
+        versionUuid: string;
+        capturedSliceEntities: unknown;
+        capturedLayout: unknown;
+      } | null;
+    };
+    if (!versionPreview) return;
+    dispatch({
+      type: EXIT_VERSION_PREVIEW,
+      restoreSliceEntities: versionPreview.capturedSliceEntities,
+      restoreLayout: versionPreview.capturedLayout,
+    });
+  };

@@ -55,6 +55,8 @@ import {
   REMOVE_CHART_STATE,
   RESTORE_CHART_STATES,
   CLEAR_ALL_CHART_STATES,
+  ENTER_VERSION_PREVIEW,
+  EXIT_VERSION_PREVIEW,
 } from '../actions/dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 import {
@@ -75,7 +77,14 @@ interface ChartStateEntry {
   lastModified: number;
 }
 
+interface VersionPreviewState {
+  versionUuid: string;
+  capturedSliceEntities: unknown;
+  capturedLayout: unknown;
+}
+
 interface DashboardStateShape {
+  versionPreview?: VersionPreviewState | null;
   sliceIds?: number[];
   isStarred?: boolean;
   isPublished?: boolean;
@@ -153,6 +162,13 @@ interface DashboardStateAction {
   timestamp?: number | null;
   error?: string | null;
   pauseOnInactiveTab?: boolean;
+  versionUuid?: string;
+  capturedSliceEntities?: unknown;
+  capturedLayout?: unknown;
+  newSliceEntities?: unknown;
+  newLayout?: unknown;
+  restoreSliceEntities?: unknown;
+  restoreLayout?: unknown;
   payload?: {
     maxUndoHistoryExceeded?: boolean;
     hasUnsavedChanges?: boolean;
@@ -219,6 +235,22 @@ export default function dashboardStateReducer(
     [SET_MAX_UNDO_HISTORY_EXCEEDED](): DashboardStateShape {
       const { maxUndoHistoryExceeded = true } = action.payload || {};
       return { ...state, maxUndoHistoryExceeded };
+    },
+    [ENTER_VERSION_PREVIEW](): DashboardStateShape {
+      return {
+        ...state,
+        versionPreview: {
+          versionUuid: action.versionUuid as string,
+          capturedSliceEntities: action.capturedSliceEntities,
+          capturedLayout: action.capturedLayout,
+        },
+      };
+    },
+    [EXIT_VERSION_PREVIEW](): DashboardStateShape {
+      return {
+        ...state,
+        versionPreview: null,
+      };
     },
     [SHOW_BUILDER_PANE](): DashboardStateShape {
       return { ...state };
