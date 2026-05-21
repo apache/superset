@@ -343,3 +343,36 @@ test('extracts currency formats from metrics in dataset', () => {
     }),
   );
 });
+
+test('preserves slice.uuid when hydrating from initial data', () => {
+  // Version-history wiring keys off ``state.explore.slice.uuid``. If
+  // hydrate drops the field, the chart-side menu item silently no-ops.
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {},
+    explore: {},
+  }));
+  const sliceUuid = '11111111-2222-3333-4444-555555555555';
+  const initialData = {
+    ...exploreInitialData,
+    slice: {
+      ...exploreInitialData.slice!,
+      uuid: sliceUuid,
+    },
+  };
+  // @ts-expect-error - test fixture isn't fully typed against ExplorePageState
+  hydrateExplore(initialData)(dispatch, getState);
+  expect(dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: HYDRATE_EXPLORE,
+      data: expect.objectContaining({
+        explore: expect.objectContaining({
+          slice: expect.objectContaining({ uuid: sliceUuid }),
+        }),
+      }),
+    }),
+  );
+});

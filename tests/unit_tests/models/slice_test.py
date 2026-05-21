@@ -123,3 +123,58 @@ class TestSlice:
 
         result = slc.datasource_url()
         assert result is None
+
+    @parameterized.expand(
+        [
+            (
+                "with_uuid",
+                uuid.UUID("11111111-2222-3333-4444-555555555555"),
+                "11111111-2222-3333-4444-555555555555",
+            ),
+            ("without_uuid", None, None),
+        ]
+    )
+    def test_data_serializes_uuid_for_explore_bootstrap(
+        self,
+        case_name,
+        uuid_value,
+        expected,
+    ):
+        """``data`` must surface uuid so the Explore bootstrap picks it up.
+
+        The chart-side version-history wiring keys off
+        ``state.explore.slice.uuid`` — without this field the menu item
+        silently no-ops on the chart page.
+        """
+        slc = Slice()
+        slc.id = 1
+        slc.slice_name = "Test"
+        slc.cache_timeout = None
+        slc.description = None
+        slc.query_context = None
+        slc.owners = []
+        slc.certified_by = None
+        slc.certification_details = None
+        slc.is_managed_externally = False
+        slc.uuid = uuid_value
+
+        # ``data`` reads many computed properties. Patching the class-level
+        # descriptors lets us call it without a database row.
+        with (
+            patch.object(Slice, "viz", new_callable=MagicMock) as mock_viz,
+            patch.object(Slice, "form_data", new_callable=MagicMock) as mock_fd,
+            patch.object(Slice, "changed_on_humanized", new_callable=MagicMock),
+            patch.object(Slice, "datasource_name", new_callable=MagicMock),
+            patch.object(Slice, "description_markeddown", new_callable=MagicMock),
+            patch.object(Slice, "edit_url", new_callable=MagicMock),
+            patch.object(Slice, "slice_url", new_callable=MagicMock),
+            patch.object(Slice, "modified", return_value=""),
+        ):
+            mock_viz.data = {}
+            mock_fd.return_value = {}
+            slc.changed_on = MagicMock()
+            slc.changed_on.isoformat.return_value = "2026-01-01T00:00:00"
+            result = slc.data
+
+        assert "uuid" in result
+        assert result["uuid"] == expected

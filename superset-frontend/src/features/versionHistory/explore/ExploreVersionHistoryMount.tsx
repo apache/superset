@@ -181,9 +181,15 @@ export function ExploreVersionHistoryRoot({
 }: InnerProps) {
   return (
     <VersionHistoryProvider>
-      <ExploreVersionHistoryInner chartUuid={chartUuid} formData={formData}>
-        {children}
-      </ExploreVersionHistoryInner>
+      <div
+        data-test="version-history-provider-mount"
+        data-test-entity-type="chart"
+        style={{ display: 'contents' }}
+      >
+        <ExploreVersionHistoryInner chartUuid={chartUuid} formData={formData}>
+          {children}
+        </ExploreVersionHistoryInner>
+      </div>
     </VersionHistoryProvider>
   );
 }

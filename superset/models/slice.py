@@ -262,6 +262,7 @@ class Slice(  # pylint: disable=too-many-public-methods
             "certified_by": self.certified_by,
             "certification_details": self.certification_details,
             "is_managed_externally": self.is_managed_externally,
+            "uuid": str(self.uuid) if self.uuid else None,
         }
 
     @property

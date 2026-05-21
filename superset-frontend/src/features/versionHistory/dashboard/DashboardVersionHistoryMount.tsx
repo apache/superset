@@ -165,9 +165,15 @@ export function DashboardVersionHistoryRoot({
 }: Props) {
   return (
     <VersionHistoryProvider>
-      {children}
-      <DashboardPreviewBridge dashboardUuid={dashboardUuid} />
-      <DashboardForkBoundary dashboardUuid={dashboardUuid} />
+      <div
+        data-test="version-history-provider-mount"
+        data-test-entity-type="dashboard"
+        style={{ display: 'contents' }}
+      >
+        {children}
+        <DashboardPreviewBridge dashboardUuid={dashboardUuid} />
+        <DashboardForkBoundary dashboardUuid={dashboardUuid} />
+      </div>
     </VersionHistoryProvider>
   );
 }

@@ -146,6 +146,12 @@ class SliceSchema(Schema):
     slice_id = fields.Integer(metadata={"description": "The slice ID."})
     slice_name = fields.String(metadata={"description": "The slice name."})
     slice_url = fields.String(metadata={"description": "The slice URL."})
+    uuid = fields.UUID(
+        allow_none=True,
+        metadata={
+            "description": "The slice UUID — used to address versioning endpoints."
+        },
+    )
 
 
 class ExploreContextSchema(Schema):

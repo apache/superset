@@ -45,7 +45,7 @@ import ReportModal from 'src/features/reports/ReportModal';
 import { deleteActiveReport } from 'src/features/reports/ReportModal/actions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { getChartFormDiffs } from 'src/utils/getChartFormDiffs';
-import { useVersionHistory } from 'src/features/versionHistory';
+import { useOptionalVersionHistory } from 'src/features/versionHistory';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { Tag } from 'src/components/Tag';
 import { ChartState, ExplorePageInitialData } from 'src/explore/types';
@@ -198,8 +198,12 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     [redirectSQLLab, history],
   );
 
-  const { openPanel, previewVersionUuid } = useVersionHistory();
-  const isPreviewing = !!previewVersionUuid;
+  // When the VersionHistoryProvider hasn't mounted (feature flag off, or
+  // the chart has no uuid yet) we deliberately don't surface the menu item
+  // — a stub openPanel would render an inert click target.
+  const versionHistoryCtx = useOptionalVersionHistory();
+  const openVersionHistoryPanel = versionHistoryCtx?.openPanel;
+  const isPreviewing = !!versionHistoryCtx?.previewVersionUuid;
 
   const metadataBar = useExploreMetadataBar(metadata, slice ?? null);
   const oldSliceName = slice?.slice_name;
@@ -245,7 +249,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
       metadata?.dashboards,
       showReportModal,
       setCurrentReportDeleting,
-      openPanel,
+      openVersionHistoryPanel,
       hasUnsavedChanges,
     );
 
