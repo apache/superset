@@ -464,14 +464,15 @@ test('should bulk delete multiple datasets', async ({
 // this prevents race conditions when parallel workers import the same dataset.
 // (Deviation from "avoid describe" guideline is necessary for functional reasons)
 test.describe('import dataset', () => {
-  test.describe.configure({ mode: 'serial' });
+  // `timeout` on describe.configure also bounds fixture setup, so the
+  // `datasetListPage` navigation gets the SLOW_TEST budget too —
+  // inline `test.setTimeout()` only applies once the test body runs.
+  test.describe.configure({ mode: 'serial', timeout: TIMEOUT.SLOW_TEST });
   test('should import a dataset from a zip file', async ({
     page,
     datasetListPage,
     testAssets,
   }) => {
-    test.setTimeout(TIMEOUT.SLOW_TEST);
-
     // Create a dataset, export it via API, then delete it, then reimport via UI
     const { id: datasetId, name: datasetName } = await createTestDataset(
       page,
