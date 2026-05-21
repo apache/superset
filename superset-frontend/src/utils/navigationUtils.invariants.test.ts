@@ -335,27 +335,17 @@ test('DIRECT_DOM_NAV_ALLOWLIST has no stale entries', () => {
 const HARDCODED_SUPERSET_LITERAL_PATTERN = /['"`]\/superset(?:[/?#]|['"`])/;
 
 const HARDCODED_SUPERSET_LITERAL_ALLOWLIST: string[] = [
-  // Frontend src/: migration targets that still emit legacy /superset/...
-  'src/preamble.ts',
-  'src/explore/exploreUtils/index.ts',
+  // Deferred to Slice 8 step 1 (edit-mode dashboard URL emitters):
+  // `dashboardState.ts` `navigateTo` (:542) and
+  // `navigateWithState({event:'dashboard_properties_changed'})` (:596) still
+  // emit full-reload URLs that must preserve the post-save history state arg.
   'src/dashboard/actions/dashboardState.ts',
-  'src/dashboard/actions/datasources.ts',
-  'src/dashboard/components/nativeFilters/FilterBar/index.tsx',
-  'src/components/Datasource/components/DatasourceEditor/components/DashboardLinksExternal/index.tsx',
-  'src/components/ListView/CrossLinks.tsx',
-  'src/pages/Tags/index.tsx',
-  // Slice 3a (`fbd07afdc9` → next SHA): `DatabaseList` / `DatasetList`
-  // entries removed; their `Typography.Link href={`/superset/dashboard/...`}`
-  // emitters migrated to `ensureAppRoot(`/dashboard/...`)` in the same commit.
   // Test-fixture helpers (referenced as production data but shaped as the
   // legacy URL the backend used to emit). Drop after `Dashboard.url` etc.
-  // stop returning `/superset/...`.
+  // stop returning `/superset/...`. The paired
+  // `testHelpers fixtures match the pattern` test below pins the exact set.
   'src/pages/ChartList/ChartList.testHelpers.tsx',
   'src/pages/DashboardList/DashboardList.testHelpers.tsx',
-  // packages/superset-ui-core/src: chart-client endpoints + legacy query.
-  'packages/superset-ui-core/src/chart/clients/ChartClient.ts',
-  'packages/superset-ui-core/src/chart/components/StatefulChart.tsx',
-  'packages/superset-ui-core/src/query/api/legacy/getDatasourceMetadata.ts',
 ];
 
 test('no hard-coded /superset/ path literals outside the migration allow-list', () => {
@@ -375,6 +365,30 @@ test('no hard-coded /superset/ path literals outside the migration allow-list', 
       'Replace with the post-route_base route (e.g. /dashboard/<id>/, ' +
       '/explore/...) and let ensureAppRoot apply the deployment root.',
   );
+});
+
+// Fixture retention: the two *.testHelpers.* files emit legacy /superset/...
+// URLs as production-data fixtures (shaped exactly as `Dashboard.url` /
+// `Slice.url` returned from the backend pre-route_base cleanup). They must
+// stay allowlisted until those backend fields stop returning the literal.
+// This assertion pins the exact set so a third fixture file cannot silently
+// drift in (the scoped pattern check avoids false-failing on
+// `DatasetList.testHelpers.tsx`, which exists but currently has no literal).
+test('HARDCODED_SUPERSET_LITERAL_ALLOWLIST testHelpers fixtures match the pattern', () => {
+  const testHelpersHitFiles = Array.from(
+    new Set(
+      dropCommentLines(
+        scanSource({ pattern: HARDCODED_SUPERSET_LITERAL_PATTERN }),
+        HARDCODED_SUPERSET_LITERAL_PATTERN,
+      ).map(hit => hit.file),
+    ),
+  )
+    .filter(file => /\.testHelpers\.(tsx?|jsx?)$/.test(file))
+    .sort();
+  expect(testHelpersHitFiles).toEqual([
+    'src/pages/ChartList/ChartList.testHelpers.tsx',
+    'src/pages/DashboardList/DashboardList.testHelpers.tsx',
+  ]);
 });
 
 test('HARDCODED_SUPERSET_LITERAL_ALLOWLIST has no stale entries', () => {

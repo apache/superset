@@ -66,7 +66,7 @@ describe('exploreUtils', () => {
         force: false,
         curUrl: 'http://superset.com',
       });
-      compareURI(URI(url!), URI('/superset/explore_json/'));
+      compareURI(URI(url!), URI('/explore_json/'));
     });
     test('generates proper json forced url', () => {
       const url = getExploreUrl({
@@ -75,10 +75,7 @@ describe('exploreUtils', () => {
         force: true,
         curUrl: 'superset.com',
       });
-      compareURI(
-        URI(url!),
-        URI('/superset/explore_json/').search({ force: 'true' }),
-      );
+      compareURI(URI(url!), URI('/explore_json/').search({ force: 'true' }));
     });
     test('generates proper csv URL', () => {
       const url = getExploreUrl({
@@ -87,10 +84,7 @@ describe('exploreUtils', () => {
         force: false,
         curUrl: 'superset.com',
       });
-      compareURI(
-        URI(url!),
-        URI('/superset/explore_json/').search({ csv: 'true' }),
-      );
+      compareURI(URI(url!), URI('/explore_json/').search({ csv: 'true' }));
     });
     test('generates proper standalone URL', () => {
       const url = getExploreUrl({
@@ -113,10 +107,7 @@ describe('exploreUtils', () => {
         force: false,
         curUrl: 'superset.com?foo=bar',
       });
-      compareURI(
-        URI(url!),
-        URI('/superset/explore_json/').search({ foo: 'bar' }),
-      );
+      compareURI(URI(url!), URI('/explore_json/').search({ foo: 'bar' }));
     });
     test('generate proper save slice url', () => {
       const url = getExploreUrl({
@@ -125,10 +116,7 @@ describe('exploreUtils', () => {
         force: false,
         curUrl: 'superset.com?foo=bar',
       });
-      compareURI(
-        URI(url!),
-        URI('/superset/explore_json/').search({ foo: 'bar' }),
-      );
+      compareURI(URI(url!), URI('/explore_json/').search({ foo: 'bar' }));
     });
   });
 
