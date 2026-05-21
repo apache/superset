@@ -25,24 +25,22 @@ under the License.
   <body>
     <script nonce="{{ macros.get_nonce() }}">
       const message = { tabId: '{{ tab_id }}' };
-      let broadcasted = false;
+      // Emit on both channels: postMessage success doesn't guarantee the original
+      // tab's listener was attached. The receiver dedupes via a `handled` flag.
       if (typeof BroadcastChannel !== 'undefined') {
         try {
           const channel = new BroadcastChannel('oauth');
           channel.postMessage(message);
           channel.close();
-          broadcasted = true;
         } catch (e) {
-          // fall through to the localStorage fallback below
+          // ignore; storage path below still fires
         }
       }
-      if (!broadcasted) {
-        try {
-          localStorage.setItem('oauth2_auth_complete', JSON.stringify(message));
-          localStorage.removeItem('oauth2_auth_complete');
-        } catch (e) {
-          // storage may be unavailable (e.g. blocked or restricted); ignore
-        }
+      try {
+        localStorage.setItem('oauth2_auth_complete', JSON.stringify(message));
+        localStorage.removeItem('oauth2_auth_complete');
+      } catch (e) {
+        // storage may be unavailable (e.g. blocked or restricted); ignore
       }
       window.close();
     </script>
