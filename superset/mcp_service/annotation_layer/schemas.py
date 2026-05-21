@@ -194,7 +194,7 @@ class AnnotationList(BaseModel):
     columns_loaded: list[str] = Field(default_factory=list)
     columns_available: list[str] = Field(default_factory=list)
     sortable_columns: list[str] = Field(default_factory=list)
-    filters_applied: list[AnnotationFilter] = Field(default_factory=list)
+    filters_applied: list[ColumnOperator] = Field(default_factory=list)
     pagination: PaginationInfo | None = None
     timestamp: datetime | None = None
     model_config = ConfigDict(ser_json_timedelta="iso8601")
