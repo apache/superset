@@ -49,6 +49,7 @@ import {
   handleComponentDrop,
   clearDashboardHistory,
 } from 'src/dashboard/actions/dashboardLayout';
+import { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_DEPTH,
@@ -98,6 +99,10 @@ const StyledHeader = styled.div<{ filterBarWidth: number }>`
     top: 0;
     z-index: 99;
     max-width: calc(100vw - ${filterBarWidth}px);
+
+    .empty-droptarget {
+      min-height: ${theme.sizeUnit * 4}px;
+    }
 
     .empty-droptarget:before {
       position: absolute;
@@ -252,7 +257,7 @@ const DashboardContentWrapper = styled.div`
         width: 100%;
       }
 
-      & > .empty-droptarget:first-child:not(.empty-droptarget--full) {
+      & > .empty-droptarget:first-of-type:not(.empty-droptarget--full) {
         height: ${theme.sizeUnit * 4}px;
         top: 0;
       }
@@ -298,7 +303,7 @@ const StyledDashboardContent = styled.div<{
     `}
 
       /* this is the ParentSize wrapper */
-    & > div:first-child {
+    & > div:first-of-type {
         height: 100% !important;
       }
     }
@@ -314,6 +319,7 @@ const StyledDashboardContent = styled.div<{
       background-color: ${theme.colorBgContainer};
       position: relative;
       padding: ${theme.sizeUnit * 4}px;
+      box-sizing: border-box;
       overflow-y: visible;
 
       // transitionable traits to show filter relevance
@@ -331,7 +337,7 @@ const StyledDashboardContent = styled.div<{
 
       &.fade-out {
         border-radius: ${theme.borderRadius}px;
-        box-shadow: none;
+        box-shadow: 0 0 0 1px ${addAlpha(theme.colorBorder, 0.5)};
       }
 
       & .missing-chart-container {
@@ -401,7 +407,7 @@ const DashboardBuilder = () => {
   }, [dashboardLayout, dispatch]);
 
   const handleDrop = useCallback(
-    dropResult => dispatch(handleComponentDrop(dropResult)),
+    (dropResult: DropResult) => dispatch(handleComponentDrop(dropResult)),
     [dispatch],
   );
 
@@ -568,7 +574,7 @@ const DashboardBuilder = () => {
     : theme.sizeUnit * 8;
 
   const renderChild = useCallback(
-    adjustedWidth => {
+    (adjustedWidth: number) => {
       const filterBarWidth = dashboardFiltersOpen
         ? adjustedWidth
         : CLOSED_FILTER_BAR_WIDTH;

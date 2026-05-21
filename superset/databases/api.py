@@ -33,7 +33,7 @@ from flask import (
     Response,
     send_file,
 )
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
@@ -675,7 +675,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/catalogs/")
     @protect()
-    @rison(database_catalogs_query_schema)
+    @parse_rison(database_catalogs_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.catalogs",
@@ -740,7 +740,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/schemas/")
     @protect()
-    @rison(database_schemas_query_schema)
+    @parse_rison(database_schemas_query_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.schemas",
@@ -824,7 +824,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/tables/")
     @protect()
-    @rison(database_tables_query_schema)
+    @parse_rison(database_tables_query_schema)
     @statsd_metrics
     @handle_api_exception
     @event_logger.log_this_with_context(
@@ -1473,7 +1473,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_export_ids_schema)
+    @parse_rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,

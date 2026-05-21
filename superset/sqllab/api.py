@@ -21,7 +21,7 @@ from urllib import parse
 
 from flask import current_app as app, request, Response
 from flask_appbuilder import permission_name
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
 from werkzeug.utils import secure_filename
@@ -455,7 +455,7 @@ class SqlLabRestApi(BaseSupersetApi):
     @expose("/results/")
     @protect()
     @statsd_metrics
-    @rison(sql_lab_get_results_schema)
+    @parse_rison(sql_lab_get_results_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_results",
         log_to_statsd=False,

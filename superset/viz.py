@@ -51,6 +51,7 @@ from superset.exceptions import (
     NullValueException,
     QueryObjectValidationError,
     SpatialException,
+    SupersetErrorException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager, security_manager
@@ -65,6 +66,7 @@ from superset.superset_typing import (
 )
 from superset.utils import core as utils, csv, json
 from superset.utils.cache import set_and_log_cache
+from superset.utils.cache_keys import add_impersonation_cache_key_if_needed
 from superset.utils.core import (
     apply_max_row_limit,
     DateColumn,
@@ -79,6 +81,10 @@ from superset.utils.core import (
 )
 from superset.utils.date_parser import get_since_until, parse_past_timedelta
 from superset.utils.hashing import hash_from_str
+from superset.utils.pandas_postprocessing.utils import (
+    escape_separator,
+    FLAT_COLUMN_SEPARATOR,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -472,6 +478,16 @@ class BaseViz:  # pylint: disable=too-many-public-methods
         cache_dict["extra_cache_keys"] = self.datasource.get_extra_cache_keys(query_obj)
         cache_dict["rls"] = security_manager.get_rls_cache_key(self.datasource)
         cache_dict["changed_on"] = self.datasource.changed_on
+
+        # Add an impersonation key to cache if impersonation is enabled on the db
+        # or if the CACHE_QUERY_BY_USER flag is on or per_user_caching is enabled on
+        #  the database
+        try:
+            add_impersonation_cache_key_if_needed(self.datasource.database, cache_dict)
+        except AttributeError:
+            # datasource or database do not exist
+            pass
+
         json_data = self.json_dumps(cache_dict, sort_keys=True)
         return hash_from_str(json_data)
 
@@ -601,6 +617,10 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 )
                 self.errors.append(error)
                 self.status = QueryStatus.FAILED
+            except SupersetErrorException:
+                # Let structured Superset errors (e.g. OAuth2RedirectError) propagate
+                # so the global Flask error handler serializes them.
+                raise
             except Exception as ex:  # pylint: disable=broad-except
                 logger.exception(ex)
 
@@ -747,6 +767,11 @@ class TimeTableViz(BaseViz):
         pt = df.pivot_table(index=DTTM_ALIAS, columns=columns, values=values)
         pt.index = pt.index.map(str)
         pt = pt.sort_index()
+        if isinstance(pt.columns, pd.MultiIndex):
+            pt.columns = [
+                FLAT_COLUMN_SEPARATOR.join(escape_separator(str(s)) for s in col)
+                for col in pt.columns
+            ]
         return {
             "records": pt.to_dict(orient="index"),
             "columns": list(pt.columns),
