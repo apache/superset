@@ -74,6 +74,11 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             bool(form_data.get("server_pagination")) if form_data else False
         )
 
+        # A "full" CSV/Excel export raises the row-limit ceiling to
+        # TABLE_VIZ_MAX_ROW_SERVER (when ALLOW_FULL_CSV_EXPORT is enabled).
+        # The marker is set by the frontend's "Export to full ..." actions.
+        full_export = bool(form_data.get("full_export")) if form_data else False
+
         queries_ = [
             self._process_query_object(
                 datasource_model_instance,
@@ -82,6 +87,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     result_type,
                     datasource=datasource,
                     server_pagination=server_pagination,
+                    full_export=full_export,
                     **query_obj,
                 ),
             )

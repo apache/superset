@@ -482,7 +482,7 @@ const Chart = (props: ChartProps) => {
   (formData as JsonObject).dashboardId = dashboardInfo.id;
 
   const exportTable = useCallback(
-    (format: string, isFullCSV: boolean, isPivot = false) => {
+    (format: string, isFullExport: boolean, isPivot = false) => {
       const logAction =
         format === 'csv'
           ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
@@ -492,8 +492,11 @@ const Chart = (props: ChartProps) => {
         is_cached: isCached,
       });
 
-      const exportFormData = isFullCSV
-        ? { ...formData, row_limit: fullExportMaxRows }
+      // For a "full" export, raise the requested row_limit and flag the
+      // request with full_export so the backend lifts the row-limit cap to
+      // TABLE_VIZ_MAX_ROW_SERVER (gated by the ALLOW_FULL_CSV_EXPORT flag).
+      const exportFormData = isFullExport
+        ? { ...formData, row_limit: fullExportMaxRows, full_export: true }
         : formData;
       const resultType = isPivot ? 'post_processed' : 'full';
 

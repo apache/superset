@@ -28,6 +28,7 @@ from pytest_mock import MockerFixture
 
 from superset.exceptions import SupersetException
 from superset.utils.core import (
+    apply_max_row_limit,
     cast_to_boolean,
     check_is_safe_zip,
     DateColumn,
@@ -53,6 +54,7 @@ from superset.utils.core import (
     sanitize_url,
 )
 from tests.conftest import with_config
+from tests.unit_tests.conftest import with_feature_flags
 
 ADHOC_FILTER: QueryObjectFilterClause = {
     "col": "foo",
@@ -1730,3 +1732,34 @@ def test_markdown_with_markup_wrap() -> None:
 
     assert isinstance(result, Markup)
     assert "<strong>bold</strong>" in str(result)
+
+
+@with_config({"SQL_MAX_ROW": 100000, "TABLE_VIZ_MAX_ROW_SERVER": 500000})
+def test_apply_max_row_limit_default_cap() -> None:
+    """A regular request is capped at SQL_MAX_ROW."""
+    assert apply_max_row_limit(300000) == 100000
+    assert apply_max_row_limit(5000) == 5000
+    # 0 means "no explicit limit" -> default max
+    assert apply_max_row_limit(0) == 100000
+
+
+@with_config({"SQL_MAX_ROW": 100000, "TABLE_VIZ_MAX_ROW_SERVER": 500000})
+def test_apply_max_row_limit_server_pagination() -> None:
+    """server_pagination raises the cap to TABLE_VIZ_MAX_ROW_SERVER."""
+    assert apply_max_row_limit(300000, server_pagination=True) == 300000
+    assert apply_max_row_limit(900000, server_pagination=True) == 500000
+
+
+@with_config({"SQL_MAX_ROW": 100000, "TABLE_VIZ_MAX_ROW_SERVER": 500000})
+@with_feature_flags(ALLOW_FULL_CSV_EXPORT=True)
+def test_apply_max_row_limit_full_export_with_flag() -> None:
+    """full_export raises the cap to TABLE_VIZ_MAX_ROW_SERVER when the flag is on."""
+    assert apply_max_row_limit(300000, full_export=True) == 300000
+    assert apply_max_row_limit(900000, full_export=True) == 500000
+
+
+@with_config({"SQL_MAX_ROW": 100000, "TABLE_VIZ_MAX_ROW_SERVER": 500000})
+@with_feature_flags(ALLOW_FULL_CSV_EXPORT=False)
+def test_apply_max_row_limit_full_export_without_flag() -> None:
+    """full_export has no effect when ALLOW_FULL_CSV_EXPORT is disabled."""
+    assert apply_max_row_limit(300000, full_export=True) == 100000

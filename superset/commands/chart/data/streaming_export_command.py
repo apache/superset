@@ -20,9 +20,6 @@ from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
 
-from flask import current_app as app
-
-from superset import is_feature_enabled
 from superset.commands.streaming_export.base import BaseStreamingCSVExportCommand
 
 if TYPE_CHECKING:
@@ -70,13 +67,6 @@ class StreamingCSVExportCommand(BaseStreamingCSVExportCommand):
         datasource = self._query_context.datasource
         query_obj = self._query_context.queries[0]
         query_dict = query_obj.to_dict()
-
-        # When ALLOW_FULL_CSV_EXPORT is enabled, raise the row limit so a
-        # "full" export is not silently capped at SQL_MAX_ROW. The ceiling is
-        # TABLE_VIZ_MAX_ROW_SERVER (a bounded, predictable maximum) rather than
-        # truly unlimited.
-        if is_feature_enabled("ALLOW_FULL_CSV_EXPORT"):
-            query_dict["row_limit"] = app.config["TABLE_VIZ_MAX_ROW_SERVER"]
 
         # Use get_query_str_extended (single, clean statement) instead of
         # get_query_str, which returns a multi-statement string (prequeries +

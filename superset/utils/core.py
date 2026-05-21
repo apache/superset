@@ -2051,13 +2051,17 @@ def parse_boolean_string(bool_str: str | None) -> bool:
 def apply_max_row_limit(
     limit: int,
     server_pagination: bool | None = None,
+    full_export: bool | None = None,
 ) -> int:
     """
-    Override row limit based on server pagination setting
+    Override row limit based on server pagination / full-export settings
 
     :param limit: requested row limit
     :param server_pagination: whether server-side pagination
     is enabled, defaults to None
+    :param full_export: whether this is a "full" CSV/Excel export request,
+    which raises the ceiling to TABLE_VIZ_MAX_ROW_SERVER when the
+    ALLOW_FULL_CSV_EXPORT feature flag is enabled, defaults to None
     :return: Capped row limit
 
     >>> apply_max_row_limit(600000, server_pagination=True)  # Server pagination
@@ -2069,13 +2073,25 @@ def apply_max_row_limit(
     >>> apply_max_row_limit(0)  # Zero returns default max limit
     50000
     """
+    # Imported locally to avoid a circular import: superset.extensions pulls in
+    # superset.security.manager / superset.utils.cache_manager, both of which
+    # import superset.utils.core.
     # pylint: disable=import-outside-toplevel
+    from superset.extensions import feature_flag_manager
 
-    max_limit = (
-        app.config["TABLE_VIZ_MAX_ROW_SERVER"]
-        if server_pagination
-        else app.config["SQL_MAX_ROW"]
+    # A "full" CSV/Excel export is allowed past the regular SQL_MAX_ROW cap, but
+    # only when the operator has opted in via the ALLOW_FULL_CSV_EXPORT flag.
+    # server_pagination is a separate, independent reason to raise the cap and is
+    # NOT gated by that flag.
+    allow_full_export = full_export and feature_flag_manager.is_feature_enabled(
+        "ALLOW_FULL_CSV_EXPORT"
     )
+    # Both raised cases share the same ceiling, TABLE_VIZ_MAX_ROW_SERVER (a
+    # bounded, predictable maximum); see its definition in config.py.
+    if server_pagination or allow_full_export:
+        max_limit = app.config["TABLE_VIZ_MAX_ROW_SERVER"]
+    else:
+        max_limit = app.config["SQL_MAX_ROW"]
     if limit != 0:
         return min(max_limit, limit)
     return max_limit

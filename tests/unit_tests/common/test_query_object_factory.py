@@ -30,6 +30,7 @@ def create_app_config() -> dict[str, Any]:
         "DEFAULT_RELATIVE_END_TIME": "today",
         "SAMPLES_ROW_LIMIT": 1000,
         "SQL_MAX_ROW": 100000,
+        "TABLE_VIZ_MAX_ROW_SERVER": 500000,
     }
 
 
@@ -48,12 +49,12 @@ def connector_registry() -> Mock:
 def apply_max_row_limit(
     limit: int,
     server_pagination: bool | None = None,
+    full_export: bool | None = None,
 ) -> int:
-    max_limit = (
-        create_app_config()["TABLE_VIZ_MAX_ROW_SERVER"]
-        if server_pagination
-        else create_app_config()["SQL_MAX_ROW"]
-    )
+    if server_pagination or full_export:
+        max_limit = create_app_config()["TABLE_VIZ_MAX_ROW_SERVER"]
+    else:
+        max_limit = create_app_config()["SQL_MAX_ROW"]
     if limit != 0:
         return min(max_limit, limit)
     return max_limit
@@ -108,6 +109,36 @@ class TestQueryObjectFactory:
 
         assert query_object.row_limit == 100
         assert query_object.row_offset == 200
+
+    def test_query_context_full_export_raises_limit(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        """full_export raises the row-limit ceiling to TABLE_VIZ_MAX_ROW_SERVER."""
+        raw_query_object = raw_query_context["queries"][0]
+        raw_query_object["row_limit"] = 300000
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"],
+            full_export=True,
+            **raw_query_object,
+        )
+        # Without full_export this would be capped at SQL_MAX_ROW (100000).
+        assert query_object.row_limit == 300000
+
+    def test_query_context_limit_capped_without_full_export(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ):
+        """A regular request stays capped at SQL_MAX_ROW."""
+        raw_query_object = raw_query_context["queries"][0]
+        raw_query_object["row_limit"] = 300000
+        query_object = query_object_factory.create(
+            raw_query_context["result_type"],
+            **raw_query_object,
+        )
+        assert query_object.row_limit == 100000
 
     def test_query_context_null_post_processing_op(
         self,

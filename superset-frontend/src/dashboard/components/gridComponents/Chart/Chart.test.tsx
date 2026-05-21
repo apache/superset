@@ -229,6 +229,7 @@ test('should call exportChart with row_limit TABLE_VIZ_MAX_ROW_SERVER when expor
     expect.objectContaining({
       formData: expect.objectContaining({
         row_limit: 999,
+        full_export: true,
         dashboardId: 111,
       }),
       resultType: 'full',
@@ -284,6 +285,7 @@ test('should call exportChart with row_limit TABLE_VIZ_MAX_ROW_SERVER when expor
     expect.objectContaining({
       formData: expect.objectContaining({
         row_limit: 999,
+        full_export: true,
         dashboardId: 111,
       }),
       resultType: 'full',

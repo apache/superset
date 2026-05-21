@@ -1317,7 +1317,9 @@ MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 # Maximum number of rows returned for any analytical database query
 SQL_MAX_ROW = 100000
 
-# Maximum number of rows for any query with Server Pagination in Table Viz type
+# Maximum number of rows for any query with Server Pagination in Table Viz type.
+# This also serves as the row-count ceiling for "full" CSV/Excel exports when the
+# ALLOW_FULL_CSV_EXPORT feature flag is enabled (see apply_max_row_limit).
 TABLE_VIZ_MAX_ROW_SERVER = 500000
 
 

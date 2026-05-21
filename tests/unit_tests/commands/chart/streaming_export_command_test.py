@@ -17,13 +17,11 @@
 """Unit tests for Chart Streaming CSV Export Command."""
 
 import pytest
-from flask import current_app as app
 from pytest_mock import MockerFixture
 
 from superset.commands.chart.data.streaming_export_command import (
     StreamingCSVExportCommand,
 )
-from tests.unit_tests.conftest import with_feature_flags
 
 
 def _setup_chart_mocks(
@@ -309,30 +307,6 @@ def test_catalog_and_schema_passed_to_engine(mocker: MockerFixture) -> None:
         catalog="my_catalog",
         schema="my_schema",
     )
-
-
-@with_feature_flags(ALLOW_FULL_CSV_EXPORT=True)
-def test_full_csv_export_raises_row_limit(mocker: MockerFixture) -> None:
-    """ALLOW_FULL_CSV_EXPORT raises the row limit to TABLE_VIZ_MAX_ROW_SERVER."""
-    _, query_context, datasource = _setup_chart_mocks(mocker)
-
-    command = StreamingCSVExportCommand(query_context)
-    command._get_sql_and_database()
-
-    query_dict = datasource.get_query_str_extended.call_args[0][0]
-    assert query_dict["row_limit"] == app.config["TABLE_VIZ_MAX_ROW_SERVER"]
-
-
-@with_feature_flags(ALLOW_FULL_CSV_EXPORT=False)
-def test_row_limit_unchanged_without_flag(mocker: MockerFixture) -> None:
-    """Without the flag, the chart's own row limit is left untouched."""
-    _, query_context, datasource = _setup_chart_mocks(mocker)
-
-    command = StreamingCSVExportCommand(query_context)
-    command._get_sql_and_database()
-
-    query_dict = datasource.get_query_str_extended.call_args[0][0]
-    assert query_dict["row_limit"] == 100
 
 
 def test_uses_extended_sql_single_statement(mocker: MockerFixture) -> None:

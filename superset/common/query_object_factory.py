@@ -58,6 +58,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         time_range: str | None = None,
         time_shift: str | None = None,
         server_pagination: bool | None = None,
+        full_export: bool | None = None,
         **kwargs: Any,
     ) -> QueryObject:
         datasource_model_instance = None
@@ -66,9 +67,12 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         processed_extras = self._process_extras(extras)
         result_type = kwargs.setdefault("result_type", parent_result_type)
 
-        # Process row limit taking server pagination into account
+        # Process row limit taking server pagination and full export into account
         row_limit = self._process_row_limit(
-            row_limit, result_type, server_pagination=server_pagination
+            row_limit,
+            result_type,
+            server_pagination=server_pagination,
+            full_export=full_export,
         )
 
         processed_time_range = self._process_time_range(
@@ -106,12 +110,14 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         row_limit: int | None,
         result_type: ChartDataResultType,
         server_pagination: bool | None = None,
+        full_export: bool | None = None,
     ) -> int:
         """Process row limit taking into account server pagination.
 
         :param row_limit: The requested row limit
         :param result_type: The type of result being processed
         :param server_pagination: Whether server-side pagination is enabled
+        :param full_export: Whether this is a "full" CSV/Excel export request
         :return: The processed row limit
         """
         default_row_limit = (
@@ -122,6 +128,7 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         return apply_max_row_limit(
             row_limit or default_row_limit,
             server_pagination=server_pagination,
+            full_export=full_export,
         )
 
     @staticmethod
