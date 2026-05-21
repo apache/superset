@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture
+@pytest.fixture()
 def mcp_server() -> object:
     """Return the FastMCP app instance for use in MCP client tests."""
     return mcp
@@ -138,7 +138,7 @@ def _mock_dashboard(
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_dashboard_not_found(mock_find_by_id: Mock, mcp_server: object) -> None:
     """Returns a clear error when the target dashboard does not exist."""
     mock_find_by_id.return_value = None
@@ -157,7 +157,7 @@ async def test_dashboard_not_found(mock_find_by_id: Mock, mcp_server: object) ->
 
 @patch("superset.security_manager.raise_for_ownership")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_permission_denied(
     mock_find_by_id: Mock, mock_raise_for_ownership: Mock, mcp_server: object
 ) -> None:
@@ -203,7 +203,7 @@ async def test_permission_denied(
 @patch("superset.db.session.get")
 @patch("superset.security_manager.raise_for_ownership")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_chart_not_found(
     mock_find_by_id: Mock,
     mock_raise_for_ownership: Mock,
@@ -231,7 +231,7 @@ async def test_chart_not_found(
 @patch("superset.db.session.get")
 @patch("superset.security_manager.raise_for_ownership")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_chart_already_in_dashboard(
     mock_find_by_id: Mock,
     mock_raise_for_ownership: Mock,
@@ -261,7 +261,7 @@ async def test_chart_already_in_dashboard(
 @patch("superset.db.session.get")
 @patch("superset.security_manager.raise_for_ownership")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-@pytest.mark.asyncio
+@pytest.mark.asyncio()
 async def test_successful_add(
     mock_find_by_id: Mock,
     mock_raise_for_ownership: Mock,
@@ -295,3 +295,17 @@ async def test_successful_add(
     assert "/superset/dashboard/1/" in content["dashboard_url"]
     assert content["position"] is not None
     assert "chart_key" in content["position"]
+
+
+def test_empty_target_tab_rejected_by_schema() -> None:
+    """Empty string target_tab is rejected at schema layer, not as 'Tab not found'."""
+    from pydantic import ValidationError
+
+    from superset.mcp_service.dashboard.schemas import AddChartToDashboardRequest
+
+    with pytest.raises(ValidationError):
+        AddChartToDashboardRequest(dashboard_id=1, chart_id=10, target_tab="")
+
+    # None is valid (tab omitted)
+    req = AddChartToDashboardRequest(dashboard_id=1, chart_id=10, target_tab=None)
+    assert req.target_tab is None
