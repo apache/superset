@@ -497,7 +497,9 @@ test.describe('import dataset', () => {
     // Refresh to confirm dataset is no longer in the list (deleted rows are removed from the DOM, so assert count rather than visibility)
     await datasetListPage.goto();
     await datasetListPage.waitForTableLoad();
-    await expect(datasetListPage.getDatasetRow(datasetName)).toHaveCount(0);
+    await expect(datasetListPage.getDatasetRow(datasetName)).toHaveCount(0, {
+      timeout: TIMEOUT.API_RESPONSE,
+    });
 
     // Click the import button
     await datasetListPage.clickImportButton();
