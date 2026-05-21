@@ -28,7 +28,11 @@ function startOfDay(d: Date): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
 
-function bucketLabel(iso: string, todayMs: number, yesterdayMs: number): string {
+function bucketLabel(
+  iso: string,
+  todayMs: number,
+  yesterdayMs: number,
+): string {
   const date = new Date(iso);
   const dayMs = startOfDay(date);
   if (dayMs === todayMs) return t('Today');

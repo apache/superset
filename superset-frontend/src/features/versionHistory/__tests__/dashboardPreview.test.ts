@@ -80,7 +80,9 @@ test('dashboardLayout reducer swaps in newLayout on ENTER and restores on EXIT',
   const original = { ROOT_ID: { id: 'live' } } as unknown as Parameters<
     typeof dashboardLayoutReducer
   >[0];
-  const snapshot = { ROOT_ID: { id: 'snapshot' } } as unknown as typeof original;
+  const snapshot = {
+    ROOT_ID: { id: 'snapshot' },
+  } as unknown as typeof original;
 
   const previewing = dashboardLayoutReducer(original, {
     type: ENTER_VERSION_PREVIEW,
