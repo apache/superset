@@ -108,7 +108,20 @@ async def list_rls_filters(
             % (len(result.rls_filters), result.total_count)
         )
 
-        columns_to_filter = result.columns_requested
+        # Build column selection using ALL_RLS_COLUMNS as the source of truth,
+        # bypassing the USER_DIRECTORY_FIELDS privacy filter applied by
+        # ModelListCore. 'roles' in an RLS filter is which roles the filter
+        # applies to — core filter data — not user-directory metadata (like
+        # dashboard.roles, which exposes who has access to the resource).
+        if request.select_columns:
+            columns_to_filter = [
+                c for c in request.select_columns if c in ALL_RLS_COLUMNS
+            ]
+            if not columns_to_filter:
+                columns_to_filter = list(DEFAULT_RLS_COLUMNS)
+        else:
+            columns_to_filter = list(DEFAULT_RLS_COLUMNS)
+
         with event_logger.log_context(action="mcp.list_rls_filters.serialization"):
             return result.model_dump(
                 mode="json",
