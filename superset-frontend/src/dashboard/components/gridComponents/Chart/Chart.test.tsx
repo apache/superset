@@ -90,7 +90,13 @@ const defaultState = {
     superset_can_explore: false,
     superset_can_share: false,
     superset_can_csv: false,
-    common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 0, SQL_MAX_ROW: 666 } },
+    common: {
+      conf: {
+        SUPERSET_WEBSERVER_TIMEOUT: 0,
+        SQL_MAX_ROW: 666,
+        TABLE_VIZ_MAX_ROW_SERVER: 999,
+      },
+    },
   },
   dashboardLayout: {
     present: {},
@@ -201,7 +207,7 @@ test('should call exportChart when exportCSV is clicked', async () => {
   stubbedExportCSV.mockRestore();
 });
 
-test('should call exportChart with row_limit props.maxRows when exportFullCSV is clicked', async () => {
+test('should call exportChart with row_limit TABLE_VIZ_MAX_ROW_SERVER when exportFullCSV is clicked', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
@@ -222,7 +228,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
   expect(stubbedExportCSV).toHaveBeenCalledWith(
     expect.objectContaining({
       formData: expect.objectContaining({
-        row_limit: 666,
+        row_limit: 999,
         dashboardId: 111,
       }),
       resultType: 'full',
@@ -256,7 +262,7 @@ test('should call exportChart when exportXLSX is clicked', async () => {
   stubbedExportXLSX.mockRestore();
 });
 
-test('should call exportChart with row_limit props.maxRows when exportFullXLSX is clicked', async () => {
+test('should call exportChart with row_limit TABLE_VIZ_MAX_ROW_SERVER when exportFullXLSX is clicked', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,
   };
@@ -277,7 +283,7 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
   expect(stubbedExportXLSX).toHaveBeenCalledWith(
     expect.objectContaining({
       formData: expect.objectContaining({
-        row_limit: 666,
+        row_limit: 999,
         dashboardId: 111,
       }),
       resultType: 'full',

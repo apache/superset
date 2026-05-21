@@ -17,11 +17,13 @@
 """Unit tests for Chart Streaming CSV Export Command."""
 
 import pytest
+from flask import current_app as app
 from pytest_mock import MockerFixture
 
 from superset.commands.chart.data.streaming_export_command import (
     StreamingCSVExportCommand,
 )
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def _setup_chart_mocks(
@@ -29,6 +31,7 @@ def _setup_chart_mocks(
     sql: str = "SELECT * FROM test",
     catalog: str | None = None,
     schema: str | None = None,
+    prequeries: list[str] | None = None,
 ) -> tuple[MockerFixture, MockerFixture, MockerFixture]:
     """Set up common mocks for chart streaming export tests."""
     mock_db = mocker.patch("superset.commands.streaming_export.base.db")
@@ -37,12 +40,22 @@ def _setup_chart_mocks(
 
     query_context = mocker.MagicMock()
     datasource = mocker.MagicMock()
-    datasource.get_query_str.return_value = sql
+    # The command prefers get_query_str_extended (clean single statement);
+    # get_query_str returns the legacy multi-statement form.
+    extended = mocker.MagicMock()
+    extended.sql = sql
+    extended.prequeries = prequeries or []
+    datasource.get_query_str_extended.return_value = extended
+    datasource.get_query_str.return_value = (
+        ";\n\n".join((prequeries or []) + [sql]) + ";"
+    )
     datasource.database = mocker.MagicMock()
     datasource.catalog = catalog
     datasource.schema = schema
     query_context.datasource = datasource
-    query_context.queries = [mocker.MagicMock()]
+    query_obj = mocker.MagicMock()
+    query_obj.to_dict.return_value = {"row_limit": 100}
+    query_context.queries = [query_obj]
     mock_session.merge.return_value = datasource.database
 
     return mock_db, query_context, datasource
@@ -296,3 +309,63 @@ def test_catalog_and_schema_passed_to_engine(mocker: MockerFixture) -> None:
         catalog="my_catalog",
         schema="my_schema",
     )
+
+
+@with_feature_flags(ALLOW_FULL_CSV_EXPORT=True)
+def test_full_csv_export_raises_row_limit(mocker: MockerFixture) -> None:
+    """ALLOW_FULL_CSV_EXPORT raises the row limit to TABLE_VIZ_MAX_ROW_SERVER."""
+    _, query_context, datasource = _setup_chart_mocks(mocker)
+
+    command = StreamingCSVExportCommand(query_context)
+    command._get_sql_and_database()
+
+    query_dict = datasource.get_query_str_extended.call_args[0][0]
+    assert query_dict["row_limit"] == app.config["TABLE_VIZ_MAX_ROW_SERVER"]
+
+
+@with_feature_flags(ALLOW_FULL_CSV_EXPORT=False)
+def test_row_limit_unchanged_without_flag(mocker: MockerFixture) -> None:
+    """Without the flag, the chart's own row limit is left untouched."""
+    _, query_context, datasource = _setup_chart_mocks(mocker)
+
+    command = StreamingCSVExportCommand(query_context)
+    command._get_sql_and_database()
+
+    query_dict = datasource.get_query_str_extended.call_args[0][0]
+    assert query_dict["row_limit"] == 100
+
+
+def test_uses_extended_sql_single_statement(mocker: MockerFixture) -> None:
+    """SQL generation uses get_query_str_extended (no prequeries, no trailing ;).
+
+    get_query_str returns a multi-statement string that SQLAlchemy text()
+    rejects; the command must use the clean single-statement extended form.
+    """
+    _, query_context, datasource = _setup_chart_mocks(
+        mocker,
+        sql="SELECT * FROM test",
+        prequeries=["SET search_path = my_schema"],
+    )
+
+    command = StreamingCSVExportCommand(query_context)
+    sql_query, _, _, _ = command._get_sql_and_database()
+
+    assert sql_query == "SELECT * FROM test"
+    assert ";\n\n" not in sql_query
+    assert not sql_query.endswith(";")
+    datasource.get_query_str.assert_not_called()
+
+
+def test_falls_back_to_get_query_str_without_extended(
+    mocker: MockerFixture,
+) -> None:
+    """Datasources lacking get_query_str_extended fall back to get_query_str."""
+    _, query_context, datasource = _setup_chart_mocks(mocker)
+    # SemanticView and other Explorables may not implement the extended form.
+    del datasource.get_query_str_extended
+
+    command = StreamingCSVExportCommand(query_context)
+    sql_query, _, _, _ = command._get_sql_and_database()
+
+    datasource.get_query_str.assert_called_once()
+    assert "SELECT * FROM test" in sql_query

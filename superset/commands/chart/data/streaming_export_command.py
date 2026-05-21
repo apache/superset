@@ -20,6 +20,9 @@ from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
 
+from flask import current_app as app
+
+from superset import is_feature_enabled
 from superset.commands.streaming_export.base import BaseStreamingCSVExportCommand
 
 if TYPE_CHECKING:
@@ -66,7 +69,29 @@ class StreamingCSVExportCommand(BaseStreamingCSVExportCommand):
         # Note: datasource should already be attached to a session from query_context
         datasource = self._query_context.datasource
         query_obj = self._query_context.queries[0]
-        sql_query = datasource.get_query_str(query_obj.to_dict())
+        query_dict = query_obj.to_dict()
+
+        # When ALLOW_FULL_CSV_EXPORT is enabled, raise the row limit so a
+        # "full" export is not silently capped at SQL_MAX_ROW. The ceiling is
+        # TABLE_VIZ_MAX_ROW_SERVER (a bounded, predictable maximum) rather than
+        # truly unlimited.
+        if is_feature_enabled("ALLOW_FULL_CSV_EXPORT"):
+            query_dict["row_limit"] = app.config["TABLE_VIZ_MAX_ROW_SERVER"]
+
+        # Use get_query_str_extended (single, clean statement) instead of
+        # get_query_str, which returns a multi-statement string (prequeries +
+        # main SQL joined by ";" with a trailing ";"). The base command runs the
+        # SQL through SQLAlchemy text(), which only accepts a single statement,
+        # so the multi-statement form fails on engines that emit prequeries
+        # (e.g. PostgreSQL/Snowflake "SET search_path"). Prequeries still run
+        # via the connect-event listener registered in Database.get_sqla_engine.
+        # get_query_str_extended lives on ExploreMixin, not the Explorable
+        # Protocol, so guard with getattr for datasources that lack it.
+        get_extended = getattr(datasource, "get_query_str_extended", None)
+        if callable(get_extended):
+            sql_query = get_extended(query_dict).sql
+        else:
+            sql_query = datasource.get_query_str(query_dict)
         database = getattr(datasource, "database", None)
         catalog = getattr(datasource, "catalog", None)
         schema = getattr(datasource, "schema", None)
