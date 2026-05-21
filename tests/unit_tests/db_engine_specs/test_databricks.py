@@ -281,6 +281,13 @@ def test_get_prequeries(mocker: MockerFixture) -> None:
     assert DatabricksNativeEngineSpec.get_prequeries(
         database, catalog="`escaped-hyphen`", schema="`hyphen-escaped`"
     ) == [
-        "USE CATALOG `escaped-hyphen`",
-        "USE SCHEMA `hyphen-escaped`",
+        "USE CATALOG ```escaped-hyphen```",
+        "USE SCHEMA ```hyphen-escaped```",
+    ]
+
+    assert DatabricksNativeEngineSpec.get_prequeries(
+        database, catalog="evil` USE CATALOG bad", schema="evil` USE SCHEMA bad"
+    ) == [
+        "USE CATALOG `evil`` USE CATALOG bad`",
+        "USE SCHEMA `evil`` USE SCHEMA bad`",
     ]

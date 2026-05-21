@@ -44,6 +44,7 @@ import {
   tooltipContents,
   tooltipTemplate,
   jsFunctionControl,
+  crossFilterColumn,
 } from '../../utilities/Shared_DeckGL';
 import { dndGeojsonColumn } from '../../utilities/sharedDndControls';
 import { BLACK_COLOR } from '../../utilities/controls';
@@ -367,6 +368,7 @@ const config: ControlPanelConfig = {
     {
       label: t('Advanced'),
       controlSetRows: [
+        [crossFilterColumn],
         [jsColumns],
         [jsDataMutator],
         [jsTooltip],
