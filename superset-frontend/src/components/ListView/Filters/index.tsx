@@ -126,47 +126,48 @@ function UIFilters(
               ? tooltipLabels[index]
               : undefined;
             return (
-              <CompactFilterTrigger
-                key={key}
-                label={Header}
-                hasValue={!!selectValue}
-                tooltipTitle={tooltipTitle}
-                onClear={() => {
-                  filterRefs[index]?.current?.clearFilter?.();
-                  updateFilterValue(index, undefined);
-                  setTooltipLabels(prev => {
-                    const next = { ...prev };
-                    delete next[index];
-                    return next;
-                  });
-                }}
-              >
-                <CompactSelectPanel
-                  ref={filterRefs[index]}
-                  selects={selects}
-                  fetchSelects={fetchSelects}
-                  value={initialValue as SelectOption | undefined}
-                  loading={loading ?? false}
-                  onSelect={(
-                    option: SelectOption | undefined,
-                    isClear?: boolean,
-                  ) => {
-                    if (option && !isClear) {
-                      setTooltipLabels(prev => ({
-                        ...prev,
-                        [index]:
-                          typeof option.label === 'string'
-                            ? option.label
-                            : String(option.value ?? ''),
-                      }));
-                    }
-                    if (onFilterUpdate && !isClear) {
-                      onFilterUpdate(option);
-                    }
-                    updateFilterValue(index, option);
+              <span key={key} data-test="select-filter-container">
+                <CompactFilterTrigger
+                  label={Header}
+                  hasValue={!!selectValue}
+                  tooltipTitle={tooltipTitle}
+                  onClear={() => {
+                    filterRefs[index]?.current?.clearFilter?.();
+                    updateFilterValue(index, undefined);
+                    setTooltipLabels(prev => {
+                      const next = { ...prev };
+                      delete next[index];
+                      return next;
+                    });
                   }}
-                />
-              </CompactFilterTrigger>
+                >
+                  <CompactSelectPanel
+                    ref={filterRefs[index]}
+                    selects={selects}
+                    fetchSelects={fetchSelects}
+                    value={initialValue as SelectOption | undefined}
+                    loading={loading ?? false}
+                    onSelect={(
+                      option: SelectOption | undefined,
+                      isClear?: boolean,
+                    ) => {
+                      if (option && !isClear) {
+                        setTooltipLabels(prev => ({
+                          ...prev,
+                          [index]:
+                            typeof option.label === 'string'
+                              ? option.label
+                              : String(option.value ?? ''),
+                        }));
+                      }
+                      if (onFilterUpdate && !isClear) {
+                        onFilterUpdate(option);
+                      }
+                      updateFilterValue(index, option);
+                    }}
+                  />
+                </CompactFilterTrigger>
+              </span>
             );
           }
           if (input === 'search' && typeof Header === 'string') {

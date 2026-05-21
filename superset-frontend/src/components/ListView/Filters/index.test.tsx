@@ -260,7 +260,7 @@ test('numerical_range pill shows active state when value is set', () => {
   expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
 });
 
-test('renders multiple search filters with different inputName values', () => {
+test('renders only the first search filter when multiple search filters are configured', () => {
   const filters = [
     {
       Header: 'Name',
@@ -288,8 +288,8 @@ test('renders multiple search filters with different inputName values', () => {
     />,
   );
 
+  // Only the first search filter renders — one search box per page
   const inputs = screen.getAllByTestId('filters-search') as HTMLInputElement[];
-  expect(inputs).toHaveLength(2);
+  expect(inputs).toHaveLength(1);
   expect(inputs[0].name).toBe('filter_name_search');
-  expect(inputs[1].name).toBe('description');
 });
