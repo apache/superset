@@ -21,7 +21,6 @@ import { css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import {
   Input,
-  Select,
   Loading,
   EmptyState,
   Icons,
@@ -29,10 +28,7 @@ import {
 import { Version } from '../types';
 import { groupVersionsByDate } from '../utils/groupVersionsByDate';
 import { formatChangeTitle } from '../utils/formatChangeTitle';
-import { isAiUser } from '../utils/formatVersionUser';
 import VersionGroup from './VersionGroup';
-
-type FilterKey = 'all' | 'human' | 'ai';
 
 interface Props {
   versions: Version[] | null;
@@ -56,18 +52,15 @@ const VersionList = ({
   const theme = useTheme();
   const [query, setQuery] = useState('');
   const deferredQuery = useDeferredValue(query);
-  const [filter, setFilter] = useState<FilterKey>('all');
 
   const filtered = useMemo(() => {
     if (!versions) return null;
     const q = deferredQuery.trim().toLowerCase();
-    return versions.filter(v => {
-      if (filter === 'ai' && !isAiUser(v.changed_by)) return false;
-      if (filter === 'human' && isAiUser(v.changed_by)) return false;
-      if (!q) return true;
-      return formatChangeTitle(v.changes).toLowerCase().includes(q);
-    });
-  }, [versions, deferredQuery, filter]);
+    if (!q) return versions;
+    return versions.filter(v =>
+      formatChangeTitle(v.changes).toLowerCase().includes(q),
+    );
+  }, [versions, deferredQuery]);
 
   const groups = useMemo(
     () => (filtered ? groupVersionsByDate(filtered) : []),
@@ -97,18 +90,6 @@ const VersionList = ({
           prefix={<Icons.SearchOutlined iconSize="m" />}
           value={query}
           onChange={e => setQuery(e.currentTarget.value)}
-        />
-        <Select
-          value={filter}
-          onChange={value => setFilter(value as FilterKey)}
-          options={[
-            { label: t('All'), value: 'all' },
-            { label: t('People'), value: 'human' },
-            { label: t('AI'), value: 'ai' },
-          ]}
-          css={css`
-            min-width: ${theme.sizeUnit * 28}px;
-          `}
         />
       </div>
 

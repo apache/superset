@@ -19,21 +19,12 @@
 import { t } from '@apache-superset/core/translation';
 import { ChangedBy } from '../types';
 
-// Reserved username for the assistant identity used by AI-driven edits.
-// Surfaces an "AI" badge in the version list.
-const AI_USERNAMES = new Set(['superset_ai', 'chatbot', 'ai']);
-
 export function formatVersionUser(by: ChangedBy | null): string {
   if (!by) return t('system');
   if (by.first_name || by.last_name) {
     return `${by.first_name ?? ''} ${by.last_name ?? ''}`.trim();
   }
   return by.username;
-}
-
-export function isAiUser(by: ChangedBy | null): boolean {
-  if (!by) return false;
-  return AI_USERNAMES.has(by.username?.toLowerCase?.() ?? '');
 }
 
 export function formatVersionDate(iso: string): string {

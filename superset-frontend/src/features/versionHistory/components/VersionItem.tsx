@@ -20,14 +20,12 @@ import { memo, useMemo } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { Dropdown, Icons } from '@superset-ui/core/components';
-import { Tag } from 'src/components/Tag';
 import type { MenuProps } from '@superset-ui/core/components/Menu';
 import { Version } from '../types';
 import { formatChangeTitle } from '../utils/formatChangeTitle';
 import {
   formatVersionDate,
   formatVersionUser,
-  isAiUser,
 } from '../utils/formatVersionUser';
 
 interface Props {
@@ -48,7 +46,6 @@ const VersionItem = ({
   onOpenAsNew,
 }: Props) => {
   const theme = useTheme();
-  const ai = isAiUser(version.changed_by);
 
   const menuItems = useMemo<MenuProps['items']>(() => {
     const items: NonNullable<MenuProps['items']> = [];
@@ -124,7 +121,6 @@ const VersionItem = ({
           >
             {formatChangeTitle(version.changes)}
           </span>
-          {ai && <Tag name={t('AI')} color="purple" />}
         </div>
         <div
           css={css`

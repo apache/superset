@@ -37,7 +37,6 @@ export { formatChangeTitle } from './utils/formatChangeTitle';
 export {
   formatVersionUser,
   formatVersionDate,
-  isAiUser,
 } from './utils/formatVersionUser';
 export { groupVersionsByDate } from './utils/groupVersionsByDate';
 export { snapshotToFormData } from './utils/snapshotToFormData';
