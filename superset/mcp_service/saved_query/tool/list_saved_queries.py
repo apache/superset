@@ -105,7 +105,7 @@ async def list_saved_queries(
             item_serializer=_serialize_saved_query,
             filter_type=SavedQueryFilter,
             default_columns=DEFAULT_SAVED_QUERY_COLUMNS,
-            search_columns=["label", "description"],
+            search_columns=["label", "description", "sql"],
             list_field_name="saved_queries",
             output_list_schema=SavedQueryList,
             all_columns=ALL_SAVED_QUERY_COLUMNS,

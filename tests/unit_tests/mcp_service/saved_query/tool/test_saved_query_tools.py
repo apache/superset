@@ -236,6 +236,23 @@ async def test_list_saved_queries_empty(mock_list, mcp_server):
         assert data["total_count"] == 0
 
 
+@patch("superset.daos.query.SavedQueryDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_saved_query_info_by_uuid(mock_find, mcp_server):
+    """Test get saved query info by UUID string."""
+    saved_query = create_mock_saved_query(uuid="a1b2c3d4-5678-90ab-cdef-1234567890ab")
+    mock_find.return_value = saved_query
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_saved_query_info",
+            {"request": {"identifier": "a1b2c3d4-5678-90ab-cdef-1234567890ab"}},
+        )
+        assert result.content is not None
+        data = json.loads(result.content[0].text)
+        assert data["id"] == 1
+        assert data["uuid"] == "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+
+
 @patch("superset.daos.query.SavedQueryDAO.list")
 @pytest.mark.asyncio
 async def test_list_saved_queries_pagination_info(mock_list, mcp_server):

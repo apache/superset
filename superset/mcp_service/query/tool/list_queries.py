@@ -104,7 +104,7 @@ async def list_queries(
             item_serializer=_serialize_query,
             filter_type=QueryFilter,
             default_columns=DEFAULT_QUERY_COLUMNS,
-            search_columns=["tab_name"],
+            search_columns=["tab_name", "sql"],
             list_field_name="queries",
             output_list_schema=QueryList,
             all_columns=ALL_QUERY_COLUMNS,
