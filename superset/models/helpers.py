@@ -766,20 +766,28 @@ def _collect_bypass_classes(execute_state: ORMExecuteState) -> frozenset[type]:
     return frozenset(per_query or ()) | frozenset(per_session or ())
 
 
-def _is_primary_user_select(execute_state: ORMExecuteState) -> bool:
+def _should_attach_soft_delete_criteria(execute_state: ORMExecuteState) -> bool:
     """The event classes where the listener attaches loader criteria.
 
-    Relationship and column loads are excluded: SQLAlchemy propagates
-    ``with_loader_criteria(..., propagate_to_loaders=True)`` from the
-    parent statement to those loads automatically (see
-    ``_add_soft_delete_filter`` docstring). Re-attaching here would
-    stack redundant ``deleted_at IS NULL`` clauses.
+    Column loads are excluded: they re-execute against already-loaded
+    parents to refresh specific attribute values; the soft-delete
+    criteria isn't meaningful at that level and would add noise.
+
+    Relationship loads ARE included. The Bayer canonical pattern
+    excludes them on the assumption that
+    ``with_loader_criteria(..., propagate_to_loaders=True)`` carries
+    the criteria from the parent statement to its relationship loads
+    automatically. In practice this propagation isn't reliable when
+    the criteria targets a class that doesn't appear in the parent
+    statement (e.g., loading a ``Dashboard`` whose listener-attached
+    criteria targets ``Slice`` — Slice never appears in the parent
+    query, and the criteria doesn't always reach the
+    ``dashboard.slices`` lazy load). Re-attaching on the
+    relationship-load event closes that gap. The resulting WHERE
+    clause may have ``deleted_at IS NULL`` twice when propagation
+    DOES work — harmless redundancy, idempotent SQL.
     """
-    return (
-        execute_state.is_select
-        and not execute_state.is_column_load
-        and not execute_state.is_relationship_load
-    )
+    return execute_state.is_select and not execute_state.is_column_load
 
 
 def _all_soft_delete_subclasses() -> list[type[SoftDeleteMixin]]:
@@ -844,7 +852,7 @@ def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
     entities this is still negligible on typical endpoints; profile
     before adding many more.
     """
-    if not _is_primary_user_select(execute_state):
+    if not _should_attach_soft_delete_criteria(execute_state):
         return
 
     bypass_classes = _collect_bypass_classes(execute_state)
