@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import difflib
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Literal, Protocol
+from typing import Annotated, Any, cast, Dict, List, Literal, Protocol
 
 import humanize
 from pydantic import (
@@ -146,7 +146,7 @@ class ChartInfo(BaseModel):
         ),
     )
     form_data_key: str | None = Field(
-        None,
+        default=None,
         description=(
             "Cache key used to retrieve unsaved form_data. When present, indicates "
             "the form_data came from cache (unsaved edits) rather than the saved chart."
@@ -523,17 +523,18 @@ class ChartFilter(ColumnOperator):
     value: The value to filter by (type depends on col and opr).
     """
 
-    col: Literal[
+    col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "slice_name",
         "viz_type",
         "datasource_name",
+        "created_by_fk",
+        "changed_by_fk",
     ] = Field(
         ...,
-        description=(
-            "Column to filter on. Valid values: 'slice_name', 'viz_type', "
-            "'datasource_name'. Other column names are not valid filter columns "
-            "and will cause a validation error."
-        ),
+        description="Column to filter on. Use get_schema(model_type='chart') for "
+        "available filter columns. To filter by a person, first call find_users "
+        "to resolve a name to a user ID, then filter by created_by_fk or "
+        "changed_by_fk with that integer ID.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -731,6 +732,29 @@ class LegendConfig(BaseModel):
     position: Literal["top", "bottom", "left", "right"] | None = "right"
 
 
+class CurrencyFormat(BaseModel):
+    """Currency symbol and placement applied to numeric values."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    symbol: str = Field(
+        ...,
+        description="Currency code or symbol (e.g. 'USD', 'EUR', '$', '€')",
+        max_length=20,
+    )
+    symbol_position: Literal["prefix", "suffix"] = Field(
+        "prefix",
+        description="Whether to render the symbol before or after the value",
+        validation_alias=AliasChoices("symbol_position", "symbolPosition"),
+    )
+
+    def to_form_data(self) -> Dict[str, str]:
+        return {"symbol": self.symbol, "symbolPosition": self.symbol_position}
+
+
+LEGEND_POSITION_LITERAL = Literal["top", "bottom", "left", "right"]
+
+
 class FilterConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -857,6 +881,27 @@ class PieChartConfig(UnknownFieldCheckMixin):
     )
     row_limit: int = Field(100, description="Max slices", ge=1, le=10000)
     number_format: str = Field("SMART_NUMBER", max_length=50)
+    date_format: str = Field(
+        "smart_date",
+        description="Date format for date dimension labels (e.g. 'smart_date', "
+        "'%Y-%m-%d')",
+        max_length=50,
+    )
+    currency_format: CurrencyFormat | None = Field(
+        None,
+        description="Currency symbol applied to the metric value",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). Defaults to 'supersetColors'."
+        ),
+        max_length=100,
+    )
+    legend_orientation: LEGEND_POSITION_LITERAL = Field(
+        "top", description="Legend placement around the chart"
+    )
     show_total: bool = Field(False, description="Show total in center")
     labels_outside: bool = True
     outer_radius: int = Field(70, description="Outer radius % (1-100)", ge=1, le=100)
@@ -908,6 +953,15 @@ class PivotTableChartConfig(UnknownFieldCheckMixin):
     )
     row_limit: int = Field(10000, description="Max cells", ge=1, le=50000)
     value_format: str = Field("SMART_NUMBER", max_length=50)
+    date_format: str | None = Field(
+        None,
+        description="Date format for date columns (e.g. 'smart_date', '%Y-%m-%d')",
+        max_length=50,
+    )
+    currency_format: CurrencyFormat | None = Field(
+        None,
+        description="Currency symbol applied to numeric metric values",
+    )
 
 
 class MixedTimeseriesChartConfig(UnknownFieldCheckMixin):
@@ -954,9 +1008,29 @@ class MixedTimeseriesChartConfig(UnknownFieldCheckMixin):
     )
     # Display options
     show_legend: bool = True
+    legend_orientation: LEGEND_POSITION_LITERAL = Field(
+        "top", description="Legend placement around the chart"
+    )
+    show_value: bool = Field(False, description="Show data labels on each data point")
     x_axis: AxisConfig | None = None
     y_axis: AxisConfig | None = None
     y_axis_secondary: AxisConfig | None = None
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors'). "
+            "When omitted, Superset's default scheme is used."
+        ),
+        max_length=100,
+    )
+    currency_format: CurrencyFormat | None = Field(
+        None,
+        description="Currency symbol applied to primary metric values",
+    )
+    currency_format_secondary: CurrencyFormat | None = Field(
+        None,
+        description="Currency symbol applied to secondary metric values",
+    )
     filters: List[FilterConfig] | None = Field(
         None,
         description="Structured filters (column/op/value). "
@@ -1132,6 +1206,27 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
         ),
         max_length=50,
     )
+    time_format: str | None = Field(
+        None,
+        description=(
+            "Date format string for trendline x-axis labels "
+            "(e.g. 'smart_date', '%Y-%m-%d'). Only applies when "
+            "show_trendline=True."
+        ),
+        max_length=50,
+    )
+    currency_format: CurrencyFormat | None = Field(
+        None,
+        description="Currency symbol applied to the metric value",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID for the trendline (e.g. 'supersetColors'). "
+            "When omitted, Superset's default scheme is used."
+        ),
+        max_length=100,
+    )
     start_y_axis_at_zero: bool = Field(
         True,
         description="Anchor trendline y-axis at zero",
@@ -1217,6 +1312,14 @@ class TableChartConfig(UnknownFieldCheckMixin):
         validation_alias=AliasChoices("sort_by", "order_by_cols", "order_by"),
     )
     row_limit: int = Field(1000, description="Max rows returned", ge=1, le=50000)
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID applied to conditional/cell formatting "
+            "(e.g. 'supersetColors')."
+        ),
+        max_length=100,
+    )
 
     @model_validator(mode="after")
     def validate_unique_column_labels(self) -> "TableChartConfig":
@@ -1298,6 +1401,28 @@ class XYChartConfig(UnknownFieldCheckMixin):
     x_axis: AxisConfig | None = None
     y_axis: AxisConfig | None = None
     legend: LegendConfig | None = None
+    x_axis_time_format: str | None = Field(
+        None,
+        description=(
+            "Date format for temporal x-axis labels (e.g. 'smart_date', "
+            "'%Y-%m-%d'). Only applies when the x-axis column is temporal."
+        ),
+        max_length=50,
+    )
+    show_value: bool = Field(False, description="Show data labels on each data point")
+    currency_format: CurrencyFormat | None = Field(
+        None,
+        description="Currency symbol applied to metric values",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). When omitted, Superset's "
+            "default scheme is used."
+        ),
+        max_length=100,
+    )
     filters: List[FilterConfig] | None = Field(
         None,
         description="Structured filters (column/op/value). "
@@ -1414,7 +1539,10 @@ class ListChartsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
         """
         from superset.mcp_service.utils.schema_utils import parse_json_or_model_list
 
-        return parse_json_or_model_list(v, ChartFilter, "filters")
+        return cast(
+            List[ChartFilter],
+            parse_json_or_model_list(v, ChartFilter, "filters"),
+        )
 
     @field_validator("select_columns", mode="before")
     @classmethod
