@@ -90,6 +90,11 @@ function UIFilters(
     },
   }));
 
+  // Only the first search filter renders inline; subsequent ones are skipped
+  // to keep one search box per page (multi-field search pages like Users would
+  // otherwise show several input boxes in the header).
+  let searchFilterRendered = false;
+
   return (
     <>
       {filters.map(
@@ -165,6 +170,8 @@ function UIFilters(
             );
           }
           if (input === 'search' && typeof Header === 'string') {
+            if (searchFilterRendered) return null;
+            searchFilterRendered = true;
             return (
               <SearchFilter
                 ref={filterRefs[index]}
