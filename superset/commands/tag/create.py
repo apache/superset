@@ -74,7 +74,12 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
         """Validate that the current user has access to the target object."""
         try:
             target_object = to_object_model(object_type, object_id)
-            if target_object and hasattr(target_object, "raise_for_access"):
+            if target_object is None:
+                exceptions.append(
+                    TagCreateFailedError(f"Access denied for {object_type} {object_id}")
+                )
+                return
+            if hasattr(target_object, "raise_for_access"):
                 target_object.raise_for_access()
         except SupersetSecurityException:
             exceptions.append(
