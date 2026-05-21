@@ -577,6 +577,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Does the DB engine spec support cross-catalog queries?
     supports_cross_catalog_queries = False
 
+    # Does the DB engine support schemas? When set to False the schema selector is
+    # hidden in the dataset creation UI and schema is not required for table access.
+    supports_schemas = True
+
     # Does the engine supports OAuth 2.0? This requires logic to be added to one of the
     # the user impersonation methods to handle personal tokens.
     supports_oauth2 = False
@@ -590,7 +594,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Driver-specific params to be included in the `get_oauth2_token` request body
     oauth2_additional_token_request_params: dict[str, Any] = {}
     # Driver-specific exception that should be mapped to OAuth2RedirectError
-    oauth2_exception = OAuth2RedirectError
+    oauth2_exception: type[Exception] | tuple[type[Exception], ...] = (
+        OAuth2RedirectError
+    )
 
     # Does the query id related to the connection?
     # The default value is True, which means that the query id is determined when
@@ -2521,6 +2527,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
             "supports_oauth2": cls.supports_oauth2,
+            "supports_schemas": cls.supports_schemas,
         }
 
     @classmethod

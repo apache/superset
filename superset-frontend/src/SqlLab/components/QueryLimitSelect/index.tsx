@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useDispatch } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { t } from '@apache-superset/core/translation';
 import { Dropdown, Button } from '@superset-ui/core/components';
 import { Menu } from '@superset-ui/core/components/Menu';
@@ -75,7 +75,7 @@ const QueryLimitSelect = ({
   maxRow,
   defaultQueryLimit,
 }: QueryLimitSelectProps) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   const queryEditor = useQueryEditor(queryEditorId, ['id', 'queryLimit']);
   const queryLimit = queryEditor.queryLimit || defaultQueryLimit;

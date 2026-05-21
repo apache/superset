@@ -97,6 +97,7 @@ export function createWrapper(options?: Options) {
     }
 
     if (useDnd) {
+      // @ts-ignore react-dnd's DndProviderProps omits `children` under React 18 types
       result = <DndProvider backend={HTML5Backend}>{result}</DndProvider>;
     }
 
