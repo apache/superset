@@ -43,8 +43,6 @@ jobs:
       PYTHONPATH: ${{ github.workspace }}
       REDIS_PORT: 16379
       GITHUB_TOKEN: ${{ github.token }}
-      SUPERSET_FEATURE_EMBEDDED_SUPERSET: "true"
-      INCLUDE_EMBEDDED: "true"
     services:
       postgres:
         image: postgres:17-alpine
@@ -137,6 +135,14 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scope embedded-only env vars to this step. Setting them at the job
+          # level enabled the EMBEDDED_SUPERSET feature flag inside Flask for
+          # the preceding "Required Tests" and "Experimental Tests" steps too,
+          # which loads extra handlers and destabilizes the werkzeug dev
+          # server under the 2-worker Playwright load. Required Tests should
+          # match master's Flask configuration.
+          SUPERSET_FEATURE_EMBEDDED_SUPERSET: "true"
+          INCLUDE_EMBEDDED: "true"
         with:
           run: playwright-run "${{ matrix.app_root }}" embedded
       - name: Set safe app root
