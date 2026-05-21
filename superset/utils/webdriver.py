@@ -324,7 +324,10 @@ class WebDriverPlaywright(WebDriverProxy):
                         'document.querySelectorAll(".chart-container").length'
                     )
                     dashboard_height = page.evaluate(
-                        f'document.querySelector(".{element_name}").scrollHeight || 0'
+                        f"""() => {{
+                            const target = document.querySelector(\".{element_name}\");
+                            return target ? target.scrollHeight : 0;
+                        }}"""
                     )
                     chart_threshold = app.config.get(
                         "SCREENSHOT_TILED_CHART_THRESHOLD", 20
@@ -335,6 +338,14 @@ class WebDriverPlaywright(WebDriverProxy):
                     tile_height = app.config.get(
                         "SCREENSHOT_TILED_VIEWPORT_HEIGHT", viewport_height
                     )
+
+                    if dashboard_height == 0:
+                        logger.warning(
+                            "Could not determine dashboard height for element %s "
+                            "at url %s; falling back to standard screenshot behavior",
+                            element_name,
+                            url,
+                        )
 
                     # Use tiled screenshots for large dashboards
                     use_tiled = (
