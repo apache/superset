@@ -113,9 +113,7 @@ export async function forkDashboardFromSnapshot(
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
-  const id =
-    (json as { id?: number; result?: { id?: number } } | undefined)?.id ??
-    (json as { result?: { id?: number } } | undefined)?.result?.id;
+  const id = (json as { id?: number } | undefined)?.id;
   if (typeof id !== 'number') {
     throw new Error('Dashboard copy did not return an id');
   }

@@ -54,7 +54,7 @@ const VersionHistoryPanel = ({ entityType, uuid, onOpenAsNew }: Props) => {
   } = useVersionHistory();
   const dispatch = useDispatch();
   const { versions, loading, error } = useVersionList(entityType, uuid);
-  const { restore, restoring, lastError } = useRestoreVersion(entityType, uuid);
+  const { restore, restoring } = useRestoreVersion(entityType, uuid);
   const [pendingRestore, setPendingRestore] = useState<Version | null>(null);
 
   const handleSelect = useCallback(
@@ -76,7 +76,7 @@ const VersionHistoryPanel = ({ entityType, uuid, onOpenAsNew }: Props) => {
 
   const confirmRestore = useCallback(async () => {
     if (!pendingRestore) return;
-    const ok = await restore(pendingRestore.version_uuid);
+    const { ok, error } = await restore(pendingRestore.version_uuid);
     if (ok) {
       dispatch(
         addSuccessToast(
@@ -96,13 +96,13 @@ const VersionHistoryPanel = ({ entityType, uuid, onOpenAsNew }: Props) => {
     } else {
       dispatch(
         addDangerToast(
-          lastError
-            ? t('Failed to restore version: %(detail)s', { detail: lastError })
+          error
+            ? t('Failed to restore version: %(detail)s', { detail: error })
             : t('Failed to restore version'),
         ),
       );
     }
-  }, [dispatch, exitPreview, lastError, pendingRestore, restore]);
+  }, [dispatch, exitPreview, pendingRestore, restore]);
 
   const restoreContext = useMemo(() => {
     if (!pendingRestore) return null;

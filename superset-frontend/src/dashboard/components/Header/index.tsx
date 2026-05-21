@@ -63,7 +63,7 @@ import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWi
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import {
   DashboardVersionHistoryRoot,
-  useVersionHistory,
+  useOptionalVersionHistory,
 } from 'src/features/versionHistory';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
@@ -793,7 +793,11 @@ const HeaderInner = (): JSX.Element => {
     setCurrentReportDeleting(null);
   };
 
-  const { openPanel: openVersionHistoryPanel } = useVersionHistory();
+  // Only surface the menu item when the provider has actually mounted —
+  // otherwise the no-op stub renders an inert click target. Symmetric
+  // with how the chart Explore menu gates on context presence.
+  const versionHistoryCtx = useOptionalVersionHistory();
+  const openVersionHistoryPanel = versionHistoryCtx?.openPanel;
   const [menu, isDropdownVisible, setIsDropdownVisible] = useHeaderActionsMenu({
     onOpenVersionHistory: openVersionHistoryPanel,
     addSuccessToast: boundActionCreators.addSuccessToast,

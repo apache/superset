@@ -21,10 +21,14 @@ import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { EntityType } from '../types';
 
+export interface RestoreResult {
+  ok: boolean;
+  error: string | null;
+}
+
 interface UseRestoreVersionResult {
-  restore: (versionUuid: string) => Promise<boolean>;
+  restore: (versionUuid: string) => Promise<RestoreResult>;
   restoring: boolean;
-  lastError: string | null;
 }
 
 export function useRestoreVersion(
@@ -32,23 +36,23 @@ export function useRestoreVersion(
   uuid: string | null | undefined,
 ): UseRestoreVersionResult {
   const [restoring, setRestoring] = useState(false);
-  const [lastError, setLastError] = useState<string | null>(null);
 
   const restore = useCallback(
-    async (versionUuid: string): Promise<boolean> => {
-      if (!uuid) return false;
+    async (versionUuid: string): Promise<RestoreResult> => {
+      if (!uuid) return { ok: false, error: null };
       setRestoring(true);
-      setLastError(null);
       try {
         await SupersetClient.post({
           endpoint: `/api/v1/${entityType}/${uuid}/versions/${versionUuid}/restore`,
         });
-        return true;
+        return { ok: true, error: null };
       } catch (e) {
         logging.error('Version restore failed', e);
         const detail = await getClientErrorObject(e);
-        setLastError(detail?.error ?? detail?.message ?? String(e));
-        return false;
+        return {
+          ok: false,
+          error: detail?.error ?? detail?.message ?? String(e),
+        };
       } finally {
         setRestoring(false);
       }
@@ -56,5 +60,5 @@ export function useRestoreVersion(
     [entityType, uuid],
   );
 
-  return { restore, restoring, lastError };
+  return { restore, restoring };
 }

@@ -59,13 +59,12 @@ function ExplorePreviewBanner({
   issuedAt,
 }: BannerProps) {
   const ctx = useOptionalVersionHistory();
+  const dispatch = useDispatch();
   const { versions } = useVersionList('chart', chartUuid);
   const { restore, restoring } = useRestoreVersion('chart', chartUuid);
 
-  // Prefer the matching list row's metadata. The single-version snapshot
-  // endpoint nests version metadata under ``_version`` (and may omit
-  // issued_at from the root), so we'd render "Invalid Date" without this
-  // fallback chain.
+  // Prefer the matching list row's metadata — the snapshot endpoint may
+  // omit ``issued_at`` until the list response loads.
   const matched = versions?.find(
     v => v.version_uuid === ctx?.previewVersionUuid,
   );
@@ -76,7 +75,7 @@ function ExplorePreviewBanner({
 
   const handleRestore = async () => {
     if (!ctx?.previewVersionUuid) return;
-    const ok = await restore(ctx.previewVersionUuid);
+    const { ok, error } = await restore(ctx.previewVersionUuid);
     if (ok) {
       ctx.exitPreview();
       // Reload so the chart re-fetches with the restored form_data — the
@@ -84,6 +83,14 @@ function ExplorePreviewBanner({
       if (typeof window !== 'undefined') {
         window.location.reload();
       }
+    } else {
+      dispatch(
+        addDangerToast(
+          error
+            ? t('Failed to restore version: %(detail)s', { detail: error })
+            : t('Failed to restore version'),
+        ),
+      );
     }
   };
 
@@ -127,10 +134,15 @@ function ExploreVersionHistoryInner({
         const { json } = await SupersetClient.get({
           endpoint: `/api/v1/chart/${chartUuid}/versions/${version.version_uuid}/`,
         });
-        const created = await forkChartFromSnapshot(
-          json as unknown as Parameters<typeof forkChartFromSnapshot>[0],
-          ownerId,
-        );
+        // SupersetClient wraps responses as ``{ result: ... }`` — unwrap so
+        // the fork helper sees the actual snapshot fields, not the envelope.
+        const snapshotPayload = (
+          json as { result?: Parameters<typeof forkChartFromSnapshot>[0] }
+        )?.result;
+        if (!snapshotPayload) {
+          throw new Error('Snapshot payload missing');
+        }
+        const created = await forkChartFromSnapshot(snapshotPayload, ownerId);
         dispatch(
           addSuccessToast(
             t('Created from version: %(summary)s', {
@@ -146,20 +158,14 @@ function ExploreVersionHistoryInner({
     [chartUuid, dispatch, history, ownerId],
   );
 
-  // The snapshot endpoint nests version metadata under ``_version`` —
-  // ``changes`` + ``issued_at`` live there, with ``issued_at`` absent
-  // from the root. The list endpoint puts them at the root. The banner
-  // prefers the list row when it's loaded; these are the fallbacks.
-  const snapshotMeta =
-    (snapshot as { _version?: { changes?: Change[]; issued_at?: string } })
-      ?._version ?? {};
+  // ``changes`` only appears on the list payload, never on the
+  // snapshot endpoint, so we default to [] here and rely on the banner
+  // to prefer the matched list row when one is loaded.
   const snapshotChanges = Array.isArray(snapshot?.changes)
     ? (snapshot.changes as Change[])
-    : (snapshotMeta.changes ?? []);
+    : [];
   const snapshotIssuedAt =
-    (typeof snapshot?.issued_at === 'string' && snapshot.issued_at) ||
-    snapshotMeta.issued_at ||
-    '';
+    typeof snapshot?.issued_at === 'string' ? snapshot.issued_at : '';
 
   return (
     <ChartPreviewContext.Provider value={previewFormData}>

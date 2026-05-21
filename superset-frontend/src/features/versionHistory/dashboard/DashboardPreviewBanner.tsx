@@ -68,7 +68,7 @@ const DashboardPreviewBanner = () => {
   };
 
   const handleConfirmRestore = async () => {
-    const ok = await restore(versionUuid);
+    const { ok, error } = await restore(versionUuid);
     if (ok) {
       dispatch(addSuccessToast(t('Restored to "%(summary)s"', { summary })));
       setConfirmOpen(false);
@@ -80,7 +80,13 @@ const DashboardPreviewBanner = () => {
         window.location.reload();
       }
     } else {
-      dispatch(addDangerToast(t('Failed to restore version')));
+      dispatch(
+        addDangerToast(
+          error
+            ? t('Failed to restore version: %(detail)s', { detail: error })
+            : t('Failed to restore version'),
+        ),
+      );
     }
   };
 

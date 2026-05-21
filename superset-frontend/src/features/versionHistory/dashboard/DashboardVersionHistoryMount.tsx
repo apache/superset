@@ -143,8 +143,18 @@ function DashboardForkBoundary({
         const { json } = await SupersetClient.get({
           endpoint: `/api/v1/dashboard/${dashboardUuid}/versions/${version.version_uuid}/`,
         });
+        // SupersetClient wraps responses as ``{ result: ... }`` — unwrap so
+        // the fork helper sees the actual snapshot fields, not the envelope.
+        const snapshotPayload = (
+          json as {
+            result?: Parameters<typeof forkDashboardFromSnapshot>[0];
+          }
+        )?.result;
+        if (!snapshotPayload) {
+          throw new Error('Snapshot payload missing');
+        }
         const created = await forkDashboardFromSnapshot(
-          json as unknown as Parameters<typeof forkDashboardFromSnapshot>[0],
+          snapshotPayload,
           ownerId,
         );
         dispatch(
