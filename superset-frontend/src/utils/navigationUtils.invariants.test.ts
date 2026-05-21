@@ -25,21 +25,83 @@ import {
 // Hits whose source line is a comment are not real violations. The scanner is
 // line-based and cannot tell apart `const u = '/superset/x'` from `// example
 // '/superset/x'` — explanatory JSDoc and block comments that reference the
-// doubled-prefix bug intentionally contain the literal. Drop those lines here
-// so the invariant flags only executable code.
-function dropCommentLines(hits: ScanHit[]): ScanHit[] {
+// doubled-prefix bug intentionally contain the literal. Strip comments from
+// each line and re-test the original pattern against what's left.
+//
+// AF-7 hardening (Slice 3b): the previous line-based predicate dropped any
+// line beginning with `/*`, which silently swallowed shapes like
+// `/* ignore */ window.open('/x')` — executable code following an inline
+// block comment. The structural strip below removes block-comment and
+// line-comment segments inline and re-runs the caller's pattern; only lines
+// whose substantive content still matches survive.
+function dropCommentLines(hits: ScanHit[], pattern: RegExp): ScanHit[] {
+  // Use a fresh, non-global RegExp instance for `.test()` so any `g` flag on
+  // the caller's pattern does not skew lastIndex across invocations.
+  const testRegex = pattern.flags.includes('g')
+    ? new RegExp(pattern.source, pattern.flags.replace('g', ''))
+    : pattern;
   return hits.filter(({ text }) => {
-    const trimmed = text.trimStart();
-    return !(
-      trimmed.startsWith('//') ||
-      trimmed.startsWith('* ') ||
-      trimmed.startsWith('*/') ||
-      trimmed === '*' ||
-      trimmed.startsWith('/*') ||
-      trimmed.startsWith('/**')
-    );
+    let stripped = text.replace(/\/\*[\s\S]*?\*\//g, '');
+    stripped = stripped.replace(/\/\/.*$/, '');
+    const collapsed = stripped.trim();
+    if (collapsed === '') return false;
+    // JSDoc continuation in a multi-line block comment (no closer on this
+    // line): a leading `*`, the standalone closer `*/`, or an unclosed
+    // `/*` / `/**` opener.
+    if (
+      collapsed === '*' ||
+      collapsed === '*/' ||
+      collapsed.startsWith('* ') ||
+      (collapsed.startsWith('/*') && !collapsed.includes('*/'))
+    ) {
+      return false;
+    }
+    return testRegex.test(collapsed);
   });
 }
+
+// Synthetic AF-7 regression — pins the structural strip behaviour above.
+// Mutate `dropCommentLines` back to the line-based form and this fails on
+// the `/* ignore */ window.open(...)` row, the exact evasion shape the
+// rewrite closes.
+test('dropCommentLines: strips comments structurally, not by leading marker', () => {
+  const synthetic: ScanHit[] = [
+    {
+      file: 'src/synthetic.ts',
+      line: 1,
+      text: "/* ignore */ window.open('/x')",
+      match: 'window.open(',
+    },
+    {
+      file: 'src/synthetic.ts',
+      line: 2,
+      text: '/* pure inline block comment */',
+      match: '',
+    },
+    {
+      file: 'src/synthetic.ts',
+      line: 3,
+      text: "* `window.open('/x')` inside JSDoc continuation",
+      match: 'window.open(',
+    },
+    {
+      file: 'src/synthetic.ts',
+      line: 4,
+      text: "callSite(); // window.open('/x') trailing-comment example",
+      match: 'window.open(',
+    },
+    {
+      file: 'src/synthetic.ts',
+      line: 5,
+      text: "window.open('/x') // real call with trailing note",
+      match: 'window.open(',
+    },
+  ];
+  const surviving = dropCommentLines(synthetic, /\bwindow\.open\(/);
+  // Lines 1 and 5 have executable `window.open(` after stripping; the
+  // others are comment-only and must be dropped.
+  expect(surviving.map(h => h.line)).toEqual([1, 5]);
+});
 
 test('no file outside navigationUtils.ts imports from pathUtils', () => {
   // pathUtils.ts is the implementation module; navigationUtils.ts re-exports
@@ -141,6 +203,7 @@ test('applicationRoot() is called only from sanctioned modules', () => {
       pattern: APPLICATION_ROOT_CALL_PATTERN,
       allowlist: APPLICATION_ROOT_CALL_ALLOWLIST,
     }),
+    APPLICATION_ROOT_CALL_PATTERN,
   );
 
   expectNoHits(
@@ -157,6 +220,7 @@ test('APPLICATION_ROOT_CALL_ALLOWLIST has no stale entries', () => {
   const hitFiles = new Set(
     dropCommentLines(
       scanSource({ pattern: APPLICATION_ROOT_CALL_PATTERN }),
+      APPLICATION_ROOT_CALL_PATTERN,
     ).map(hit => hit.file),
   );
 
@@ -179,28 +243,49 @@ test('APPLICATION_ROOT_CALL_ALLOWLIST has no stale entries', () => {
 const DIRECT_DOM_NAV_PATTERN =
   /\bwindow\.(?:open\(|location\.(?:href\s*=|assign\(|replace\()|history\.(?:pushState\(|replaceState\())/;
 
-const DIRECT_DOM_NAV_ALLOWLIST: string[] = [
-  // Sanctioned entry point: the helpers themselves wrap window.open /
-  // window.location and history.{push,replace}State after ensuring the app
-  // root is applied exactly once.
+// SANCTIONED: files that legitimately call window.open / window.location /
+// window.history directly because the helpers themselves live here, or the
+// call shape is intentionally outside the navigationUtils contract (mailto:
+// links, OAuth popup-handle capture, external-doc opener, full-page login
+// redirect inside the HTTP client). The set is permanent; adding to it
+// requires a documented justification adjacent to the entry.
+const DIRECT_DOM_NAV_SANCTIONED: string[] = [
+  // Owns the helpers: openInNewTab / redirect / navigateTo / navigateWithState
+  // are the only callers that should reach for window.* in src/.
   'src/utils/navigationUtils.ts',
-  // Migration targets: still call window.open / window.location directly.
+  // Dashboard reload-to-self after a layout change — `window.location.assign`
+  // is intentionally a full-page nav and the URL is already app-rooted.
   'src/dashboard/components/Header/index.tsx',
+  // `mailto:` schemes are not router-relative; helpers reject them via the
+  // assertSafeNavigationUrl guard.
   'src/dashboard/components/menu/ShareMenuItems/index.tsx',
   'src/explore/components/useExploreAdditionalActionsMenu/index.tsx',
-  'src/components/Datasource/components/DatasourceEditor/DatasourceEditor.tsx',
+  // OAuth flow needs the popup handle returned by window.open so it can
+  // poll the child window for completion; the helper does not return it.
   'src/components/ErrorMessage/OAuth2RedirectMessage.tsx',
-  'src/SqlLab/components/ResultSet/index.tsx',
-  'src/SqlLab/components/SaveDatasetModal/index.tsx',
+  // SupersetClient login redirect: full-page reload to a server-built
+  // `${appRoot}/login?next=...` URL inside the connection layer, before
+  // navigationUtils is available.
   'packages/superset-ui-core/src/connection/SupersetClientClass.ts',
+  // External documentation links opened via a user-supplied URL — the
+  // navigationUtils guard would reject any non-http(s) value here.
   'packages/superset-ui-core/src/components/Form/LabeledErrorBoundInput.tsx',
 ];
 
+// MIGRATION TARGETS: files that still call window.* directly and should be
+// drained to zero. Slice 3b drained the last three (DatasourceEditor,
+// ResultSet, SaveDatasetModal); future direct-DOM navigations must either
+// migrate immediately or earn a justified SANCTIONED entry above.
+const DIRECT_DOM_NAV_ALLOWLIST: string[] = [];
+
 test('no direct window.open/window.location navigation outside navigationUtils', () => {
-  const hits = scanSource({
-    pattern: DIRECT_DOM_NAV_PATTERN,
-    allowlist: DIRECT_DOM_NAV_ALLOWLIST,
-  });
+  const hits = dropCommentLines(
+    scanSource({
+      pattern: DIRECT_DOM_NAV_PATTERN,
+      allowlist: [...DIRECT_DOM_NAV_SANCTIONED, ...DIRECT_DOM_NAV_ALLOWLIST],
+    }),
+    DIRECT_DOM_NAV_PATTERN,
+  );
 
   expectNoHits(
     hits,
@@ -212,9 +297,25 @@ test('no direct window.open/window.location navigation outside navigationUtils',
   );
 });
 
+test('DIRECT_DOM_NAV_SANCTIONED has no stale entries', () => {
+  const hitFiles = new Set(
+    dropCommentLines(
+      scanSource({ pattern: DIRECT_DOM_NAV_PATTERN }),
+      DIRECT_DOM_NAV_PATTERN,
+    ).map(hit => hit.file),
+  );
+
+  const stale = DIRECT_DOM_NAV_SANCTIONED.filter(file => !hitFiles.has(file));
+
+  expect(stale).toEqual([]);
+});
+
 test('DIRECT_DOM_NAV_ALLOWLIST has no stale entries', () => {
   const hitFiles = new Set(
-    scanSource({ pattern: DIRECT_DOM_NAV_PATTERN }).map(hit => hit.file),
+    dropCommentLines(
+      scanSource({ pattern: DIRECT_DOM_NAV_PATTERN }),
+      DIRECT_DOM_NAV_PATTERN,
+    ).map(hit => hit.file),
   );
 
   const stale = DIRECT_DOM_NAV_ALLOWLIST.filter(file => !hitFiles.has(file));
@@ -263,6 +364,7 @@ test('no hard-coded /superset/ path literals outside the migration allow-list', 
       pattern: HARDCODED_SUPERSET_LITERAL_PATTERN,
       allowlist: HARDCODED_SUPERSET_LITERAL_ALLOWLIST,
     }),
+    HARDCODED_SUPERSET_LITERAL_PATTERN,
   );
 
   expectNoHits(
@@ -279,6 +381,7 @@ test('HARDCODED_SUPERSET_LITERAL_ALLOWLIST has no stale entries', () => {
   const hitFiles = new Set(
     dropCommentLines(
       scanSource({ pattern: HARDCODED_SUPERSET_LITERAL_PATTERN }),
+      HARDCODED_SUPERSET_LITERAL_PATTERN,
     ).map(hit => hit.file),
   );
 

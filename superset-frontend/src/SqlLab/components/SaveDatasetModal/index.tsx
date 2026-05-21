@@ -60,6 +60,7 @@ import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
 import { isEmpty } from 'lodash';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
+import { openInNewTab, redirect } from 'src/utils/navigationUtils';
 
 interface QueryDatabase {
   id?: number;
@@ -246,10 +247,12 @@ export const SaveDatasetModal = ({
     useState(false);
 
   const createWindow = (url: string) => {
+    // `url` is from `mountExploreUrl(..., includeAppRoot=true)`; the
+    // navigationUtils helpers re-apply `ensureAppRoot` idempotently.
     if (openWindow) {
-      window.open(url, '_blank', 'noreferrer');
+      openInNewTab(url);
     } else {
-      window.location.href = url;
+      redirect(url);
     }
   };
   const formDataWithDefaults = {
