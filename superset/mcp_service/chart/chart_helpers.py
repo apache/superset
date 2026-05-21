@@ -44,20 +44,29 @@ QUERY_CONTEXT_EXTRA_FORM_DATA_OVERRIDE_KEYS = {
 }
 
 
-def find_chart_by_identifier(identifier: int | str) -> Slice | None:
+def find_chart_by_identifier(
+    identifier: int | str,
+    query_options: list[Any] | None = None,
+) -> Slice | None:
     """Find a chart by numeric ID or UUID string.
 
     Accepts an integer ID, a string that looks like a digit (e.g. "123"),
     or a UUID string. Returns the Slice model instance or None.
+
+    ``query_options`` is forwarded to the DAO so callers can eager-load
+    relationships needed after the request-scoped session is detached.
     """
     from superset.daos.chart import ChartDAO  # avoid circular import
 
+    extra: dict[str, Any] = (
+        {"query_options": query_options} if query_options is not None else {}
+    )
     if isinstance(identifier, int) or (
         isinstance(identifier, str) and identifier.isdigit()
     ):
         chart_id = int(identifier) if isinstance(identifier, str) else identifier
-        return ChartDAO.find_by_id(chart_id)
-    return ChartDAO.find_by_id(identifier, id_column="uuid")
+        return ChartDAO.find_by_id(chart_id, **extra)
+    return ChartDAO.find_by_id(identifier, id_column="uuid", **extra)
 
 
 def get_cached_form_data(form_data_key: str) -> str | None:
