@@ -14,14 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import redirect, request
+from flask import redirect
 from flask_appbuilder import permission_name
 from flask_appbuilder.api import expose
 from flask_appbuilder.security.decorators import has_access
 
 from superset import event_logger
 from superset.superset_typing import FlaskResponse
-from superset.views.utils import loads_request_json
+from superset.views.utils import get_explore_redirect_url
 
 from .base import BaseSupersetView
 
@@ -37,20 +37,14 @@ class ExploreView(BaseSupersetView):
     def root(self) -> FlaskResponse:
         # After `Superset.route_base = ""`, both `Superset.explore` and this
         # view register at `/explore/`; this view wins. Preserve the legacy
-        # form_data → form_data_key cache-and-redirect contract here so
-        # callers passing `?form_data=...` with a datasource still get the
-        # short cache-key URL. Form_data without a datasource (e.g. legacy
-        # `slice_url` payloads carrying only `slice_id`) cannot be cached,
-        # so `get_redirect_url` would return the same URL — falling back to
-        # SPA rendering avoids a 302 loop.
-        if request_form_data := request.args.get("form_data"):
-            parsed_form_data = loads_request_json(request_form_data)
-            if isinstance(parsed_form_data, dict) and parsed_form_data.get(
-                "datasource"
-            ):
-                from superset.views.core import Superset  # avoid circular import
-
-                return redirect(Superset.get_redirect_url())
+        # form_data → form_data_key cache-and-redirect contract via the
+        # shared `get_explore_redirect_url` helper (lives in `views/utils.py`
+        # so both callers share the same guards: AF-2 malformed datasource,
+        # AF-3 non-numeric slice_id, cache-write failure, loop guard). The
+        # helper returns ``None`` for any case that would otherwise loop;
+        # we render the SPA in that branch.
+        if redirect_url := get_explore_redirect_url():
+            return redirect(redirect_url)
         return super().render_app_template()
 
 

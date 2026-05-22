@@ -57,7 +57,6 @@ from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
 from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.commands.dashboard.permalink.get import GetDashboardPermalinkCommand
 from superset.commands.dataset.exceptions import DatasetNotFoundError
-from superset.commands.explore.form_data.create import CreateFormDataCommand
 from superset.commands.explore.form_data.get import GetFormDataCommand
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
@@ -110,9 +109,9 @@ from superset.views.utils import (
     check_explore_cache_perms,
     check_resource_permissions,
     get_datasource_info,
+    get_explore_redirect_url,
     get_form_data,
     get_viz,
-    loads_request_json,
     redirect_to_login,
     sanitize_datasource_data,
 )
@@ -399,39 +398,6 @@ class Superset(BaseSupersetView):
         except SupersetException as ex:
             return json_error_response(utils.error_msg_from_exception(ex), 400)
 
-    @staticmethod
-    def get_redirect_url() -> str:
-        """Assembles the redirect URL to the new endpoint. It also replaces
-        the form_data param with a form_data_key by saving the original content
-        to the cache layer.
-        """
-        form_data_key = None
-        if request_form_data := request.args.get("form_data"):
-            parsed_form_data = loads_request_json(request_form_data)
-            slice_id = parsed_form_data.get(
-                "slice_id", int(request.args.get("slice_id", 0))
-            )
-            if datasource := parsed_form_data.get("datasource"):
-                datasource_id, datasource_type = datasource.split("__")
-                parameters = CommandParameters(
-                    datasource_id=datasource_id,
-                    datasource_type=datasource_type,
-                    chart_id=slice_id,
-                    form_data=request_form_data,
-                )
-                form_data_key = CreateFormDataCommand(parameters).run()
-
-        # Use `url_for` so subdirectory deployments inherit SCRIPT_NAME. The
-        # legacy `request.url.replace("/superset/explore", "/explore")` would
-        # strip the application-root segment and redirect outside the subdir.
-        query = parse.parse_qs(request.query_string.decode())
-        if form_data_key:
-            query.pop("form_data", None)
-            query["form_data_key"] = [form_data_key]
-        encoded_query = parse.urlencode(query, doseq=True)
-        path = url_for("ExploreView.root")
-        return f"{path}?{encoded_query}" if encoded_query else path
-
     @has_access
     @event_logger.log_this
     @expose(
@@ -457,7 +423,18 @@ class Superset(BaseSupersetView):
         key: str | None = None,
     ) -> FlaskResponse:
         if request.method == "GET":
-            return redirect(Superset.get_redirect_url())
+            # Share the form_data → form_data_key cache-and-redirect contract
+            # with `ExploreView.root` via the lifted helper. Helper returns
+            # ``None`` for: empty/non-dict form_data, missing datasource,
+            # malformed datasource (AF-2), invalid `DatasourceType` (AF-2),
+            # cache-write failure (loop guard), and "already at target" loop
+            # guard. Falling through to `super().render_app_template()` kills
+            # the typed-entry `/explore/<dst>/<int:dsid>/` GET loop that the
+            # `isinstance(dict)` gate alone missed.
+            redirect_url = get_explore_redirect_url()
+            if redirect_url:
+                return redirect(redirect_url)
+            return super().render_app_template()
 
         initial_form_data = {}
 

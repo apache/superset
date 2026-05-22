@@ -23,7 +23,14 @@ from urllib import parse
 
 import msgpack
 import pyarrow as pa
-from flask import current_app as app, g, has_request_context, redirect, request
+from flask import (
+    current_app as app,
+    g,
+    has_request_context,
+    redirect,
+    request,
+    url_for,
+)
 from flask_appbuilder.security.sqla import models as ab_models
 from flask_appbuilder.security.sqla.models import User
 from flask_babel import _
@@ -184,6 +191,107 @@ def loads_request_json(request_json_data: str) -> dict[Any, Any]:
         return json.loads(request_json_data)
     except (TypeError, json.JSONDecodeError):
         return {}
+
+
+def get_explore_redirect_url() -> str | None:
+    """Construct the `/explore/?form_data_key=...` redirect URL, or None.
+
+    Returns ``None`` when the request should render the SPA fall-through
+    instead of redirecting — covers all of:
+    - no/empty/non-dict ``form_data``;
+    - ``form_data`` missing a ``datasource`` (e.g. legacy ``slice_url``
+      payloads carrying only ``slice_id``);
+    - ``datasource`` that doesn't decompose as ``"<id>__<type>"`` (AF-2);
+    - ``datasource`` whose type is not a valid ``DatasourceType`` (AF-2);
+    - cache-write failure (``CreateFormDataCommand.run`` raises
+      ``ValueError``) — avoid 302-looping when the cache layer is down;
+    - the current request already matches the would-be redirect target
+      (loop guard via ``(endpoint, sorted(query_items))`` equality).
+
+    Single source of truth for the form_data → form_data_key cache-and-
+    redirect contract; both ``ExploreView.root`` (``views/explore.py``)
+    and the deprecated ``Superset.explore`` GET branch
+    (``views/core.py``) call this and redirect only when it returns a URL.
+    """
+    # Local imports break a circular dependency: `views/utils.py` is imported
+    # transitively by `commands/base.py`'s dependency graph, so importing
+    # `CreateFormDataCommand` at module level would loop back through this
+    # file before initialisation finishes (matches the prior inline
+    # `from superset.views.core import Superset` pattern in `views/explore.py`).
+    from superset.commands.explore.form_data.create import (  # noqa: PLC0415
+        CreateFormDataCommand,
+    )
+    from superset.commands.explore.form_data.parameters import (  # noqa: PLC0415
+        CommandParameters,
+    )
+
+    request_form_data = request.args.get("form_data")
+    if not request_form_data:
+        return None
+    parsed_form_data = loads_request_json(request_form_data)
+    if not isinstance(parsed_form_data, dict):
+        return None
+    datasource = parsed_form_data.get("datasource")
+    if not datasource:
+        return None
+
+    parts = datasource.split("__")
+    if len(parts) != 2:
+        # AF-2: malformed `datasource` (missing the `__type` suffix) used to
+        # raise `ValueError: not enough values to unpack` and surface as 500.
+        return None
+    datasource_id, datasource_type = parts
+    try:
+        DatasourceType(datasource_type)
+    except ValueError:
+        # AF-2: an unknown `datasource_type` used to raise `ValueError` from
+        # `DatasourceType(...)` and surface as 500. Fall through to SPA.
+        return None
+
+    slice_id = parsed_form_data.get("slice_id")
+    if slice_id is None:
+        # AF-3: previously `int(request.args.get("slice_id", 0))` blew up on
+        # non-numeric values (`?slice_id=abc`). `type=int` returns None on
+        # parse failure; coerce to 0 to preserve historical default.
+        slice_id = request.args.get("slice_id", type=int) or 0
+
+    parameters = CommandParameters(
+        datasource_id=datasource_id,
+        datasource_type=datasource_type,
+        chart_id=slice_id,
+        form_data=request_form_data,
+    )
+    try:
+        form_data_key = CreateFormDataCommand(parameters).run()
+    except ValueError:
+        # Narrow catch: cache-write failure renders SPA instead of looping.
+        # `SQLAlchemyError` remains caught inside `CreateFormDataCommand.run`.
+        return None
+
+    # Use `url_for` so subdirectory deployments inherit SCRIPT_NAME. The
+    # legacy `request.url.replace("/superset/explore", "/explore")` would
+    # strip the application-root segment and redirect outside the subdir.
+    query = parse.parse_qs(request.query_string.decode())
+    if form_data_key:
+        query.pop("form_data", None)
+        query["form_data_key"] = [form_data_key]
+    encoded_query = parse.urlencode(query, doseq=True)
+    target_path = url_for("ExploreView.root")
+    target_url = f"{target_path}?{encoded_query}" if encoded_query else target_path
+
+    # Loop guard: if the current request is already at the redirect target
+    # (same endpoint, same sorted query items), render the SPA instead of
+    # 302-looping. Compare on `(endpoint, sorted_query_items)` rather than
+    # `full_path` so SCRIPT_NAME (subdir deployment) is irrelevant.
+    current_query_items = sorted(parse.parse_qsl(request.query_string.decode()))
+    target_query_items = sorted(parse.parse_qsl(encoded_query))
+    if (
+        request.endpoint == "ExploreView.root"
+        and current_query_items == target_query_items
+    ):
+        return None
+
+    return target_url
 
 
 def get_form_data(
