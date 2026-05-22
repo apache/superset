@@ -274,6 +274,52 @@ def merge_extra_form_data_filters_into_query(
     merge_form_data_filters_into_query(query, extra_query_form_data)
 
 
+def _deck_gl_spatial_cols(spatial: dict[str, Any] | None) -> list[str]:
+    """Return the column names referenced by a single Deck.gl spatial control."""
+    if not isinstance(spatial, dict):
+        return []
+    spatial_type = spatial.get("type")
+    if spatial_type == "latlong":
+        return [c for c in [spatial.get("lonCol"), spatial.get("latCol")] if c]
+    if spatial_type == "delimited":
+        return [c for c in [spatial.get("lonlatCol")] if c]
+    if spatial_type == "geohash":
+        return [c for c in [spatial.get("geohashCol")] if c]
+    return []
+
+
+def resolve_deck_gl_columns(form_data: dict[str, Any]) -> list[str]:
+    """Extract SQL column names for Deck.gl chart types from form_data.
+
+    Deck.gl charts use spatial controls (lat/lon pairs, geohash, etc.)
+    rather than the standard metrics/groupby structure. This function
+    maps those spatial control configs to the actual column names
+    needed by the SQL query.
+    """
+    seen: set[str] = set()
+    columns: list[str] = []
+
+    def _add(col: str | None) -> None:
+        if col and isinstance(col, str) and col not in seen:
+            seen.add(col)
+            columns.append(col)
+
+    # Most Deck.gl types use "spatial"; arc charts use start/end spatial
+    for key in ("spatial", "start_spatial", "end_spatial"):
+        for col in _deck_gl_spatial_cols(form_data.get(key)):
+            _add(col)
+
+    # deck_path / deck_polygon use a line column; deck_geojson uses geojson
+    for field in ("line_column", "geojson", "dimension"):
+        _add(form_data.get(field))
+
+    for col in form_data.get("js_columns") or []:
+        if isinstance(col, str):
+            _add(col)
+
+    return columns
+
+
 def resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
     """Extract metrics from form_data, handling chart-type-specific fields."""
     if viz_type == "bubble":
@@ -437,6 +483,27 @@ def build_query_dicts_from_form_data(
         or (getattr(chart, "viz_type", "") if chart else "")
         or ""
     )
+
+    # Deck.gl charts use spatial column configs rather than the standard
+    # metrics / groupby fields. Extract columns from the spatial controls.
+    if viz_type.startswith("deck_"):
+        deck_columns = resolve_deck_gl_columns(form_data)
+        deck_metrics: list[Any] = []
+        for field in ("size", "metric"):
+            m = form_data.get(field)
+            if m:
+                deck_metrics.append(m)
+                break
+        return [
+            _build_single_query_dict(
+                form_data,
+                deck_columns,
+                deck_metrics,
+                row_limit=row_limit,
+                order_desc=order_desc,
+            )
+        ]
+
     is_timeseries = (
         viz_type.startswith("echarts_timeseries") or viz_type == "mixed_timeseries"
     )
