@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+export {}; // ensure this file is treated as a module so top-level declarations don't leak into global scope
+
 type LoggingModule = typeof import('./index');
 
 const loadLogging = (): LoggingModule['logging'] => {
