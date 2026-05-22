@@ -98,11 +98,18 @@ async def list_dashboards(
         list_dashboards(search="sales", page=1)  # DO NOT DO THIS
 
     Valid filter columns for ``filters[].col``:
-        ``dashboard_title``, ``published``, ``favorite``
+        ``dashboard_title``, ``published``, ``favorite``,
+        ``created_by_fk``, ``changed_by_fk``
 
     Sortable columns for ``order_column``:
         ``id``, ``dashboard_title``, ``slug``, ``published``,
         ``changed_on``, ``created_on``
+
+    To filter by a person (e.g. "dashboards Maxime is working on"), do NOT pass
+    the name as the search parameter — search matches titles and slugs only.
+    Instead, call find_users to resolve the name to a user ID, then pass it as
+    a filter: filters=[{"col": "created_by_fk", "opr": "eq", "value": <id>}]
+    (or "changed_by_fk" for "last modified by").
     """
     request = request or _DEFAULT_LIST_DASHBOARDS_REQUEST.model_copy(deep=True)
     await ctx.info(
