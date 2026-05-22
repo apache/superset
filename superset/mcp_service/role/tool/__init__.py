@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from .create_role import create_role
 from .get_role_info import get_role_info
 from .list_roles import list_roles
 
 __all__ = [
-    "list_roles",
+    "create_role",
     "get_role_info",
+    "list_roles",
 ]

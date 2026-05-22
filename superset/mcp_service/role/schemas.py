@@ -262,3 +262,38 @@ def serialize_role_object(
         if permissions is not None
         else None,
     )
+
+
+# ---------------------------------------------------------------------------
+# create_role / update_role schemas
+# ---------------------------------------------------------------------------
+
+
+_ROLE_NAME_MAX_LEN = 64
+
+
+class CreateRoleRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    name: str = Field(
+        ...,
+        description="Name for the new role. Must be unique.",
+    )
+    permission_ids: list[int] = Field(
+        default_factory=list,
+        description=(
+            "Optional list of PermissionView IDs to assign to the role. "
+            "These correspond to FAB permission-view-menu pairs "
+            "(e.g., can_read on Chart). "
+            "Leave empty to create a role with no permissions."
+        ),
+    )
+
+
+class CreateRoleResponse(BaseModel):
+    id: int | None = Field(None, description="ID of the created role.")
+    name: str | None = Field(None, description="Name of the created role.")
+    error: str | None = Field(
+        None,
+        description="Error message if role creation failed, otherwise null.",
+    )

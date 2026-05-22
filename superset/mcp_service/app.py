@@ -204,6 +204,9 @@ Task Management (requires GLOBAL_TASK_FRAMEWORK feature flag):
 - list_tasks: List background tasks with status filtering and pagination
 - get_task_info: Get task details by integer ID or UUID
 
+Role Management:
+- create_role: Create a new FAB role, optionally assigning PermissionView IDs (admin only, requires write access)
+
 System Information:
 - get_instance_info: Get instance-wide statistics, metadata, and current user identity
 - find_users: Resolve a person's name to user IDs for use as a filter value
@@ -429,6 +432,8 @@ Input format:
   save_sql_query, add_chart_to_existing_dashboard, update_chart_preview) require write
   permissions. These tools are only listed for users who have the necessary access.
   If a write tool does not appear in the tool list, the current user lacks write access.
+- create_role requires admin-level write access to the security permission class.
+  It will not appear in the tool list for non-admin users.
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate
   from write access. A user may have SQL Lab access without having write access to charts
   or dashboards, and vice versa.
@@ -730,6 +735,7 @@ from superset.mcp_service.rls.tool import (  # noqa: F401, E402
     list_rls_filters,
 )
 from superset.mcp_service.role.tool import (  # noqa: F401, E402
+    create_role,
     get_role_info,
     list_roles,
 )
