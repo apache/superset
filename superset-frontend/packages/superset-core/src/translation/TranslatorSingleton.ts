@@ -25,6 +25,10 @@ import { TranslatorConfig, Translations, LocaleData } from './types';
 let singleton: Translator | undefined;
 let isConfigured = false;
 
+// Tracks which keys have already triggered a pre-configure warning so the
+// logs don't drown in repeated calls from large module-load fan-outs.
+const warnedPreConfigureKeys = new Set<string>();
+
 function configure(config?: TranslatorConfig) {
   singleton = new Translator(config);
   isConfigured = true;
@@ -33,10 +37,6 @@ function configure(config?: TranslatorConfig) {
 }
 
 function getInstance() {
-  if (!isConfigured) {
-    console.warn('You should call configure(...) before calling other methods');
-  }
-
   if (typeof singleton === 'undefined') {
     singleton = new Translator();
   }
@@ -44,11 +44,32 @@ function getInstance() {
   return singleton;
 }
 
+function warnPreConfigure(key: string) {
+  // Only warn in non-production builds — production callers may legitimately
+  // tolerate the fallback, and the noise isn't useful at runtime.
+  if (
+    typeof process !== 'undefined' &&
+    process.env?.NODE_ENV === 'production'
+  ) {
+    return;
+  }
+  if (warnedPreConfigureKeys.has(key)) return;
+  warnedPreConfigureKeys.add(key);
+  console.warn(
+    `[i18n] t(${JSON.stringify(key)}) was called before configure() — ` +
+      `the result is the fallback language and will not update when the ` +
+      `user switches language. If this call is at module load (e.g., a ` +
+      `controlPanel \`label\`/\`description\`), wrap it in an arrow ` +
+      `function: \`() => t(${JSON.stringify(key)})\`.`,
+  );
+}
+
 function resetTranslation() {
   if (isConfigured) {
     isConfigured = false;
     singleton = undefined;
   }
+  warnedPreConfigureKeys.clear();
 }
 
 function addTranslation(key: string, translations: string[]) {
@@ -64,10 +85,12 @@ function addLocaleData(data: LocaleData) {
 }
 
 function t(input: string, ...args: unknown[]) {
+  if (!isConfigured) warnPreConfigure(input);
   return getInstance().translate(input, ...args);
 }
 
 function tn(key: string, ...args: unknown[]) {
+  if (!isConfigured) warnPreConfigure(key);
   return getInstance().translateWithNumber(key, ...args);
 }
 

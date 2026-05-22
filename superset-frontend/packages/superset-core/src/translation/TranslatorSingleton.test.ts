@@ -26,7 +26,7 @@ test('t() warns and creates a default translator when called before configure', 
     const { t } = require('./TranslatorSingleton');
     const result = t('hello');
     expect(consoleSpy).toHaveBeenCalledWith(
-      'You should call configure(...) before calling other methods',
+      expect.stringMatching(/was called before configure\(\)/),
     );
     expect(result).toBe('hello');
     consoleSpy.mockRestore();
@@ -54,7 +54,7 @@ test('resetTranslation resets the configured singleton', () => {
     // After reset, calling t() should warn again
     t('hello');
     expect(consoleSpy).toHaveBeenCalledWith(
-      'You should call configure(...) before calling other methods',
+      expect.stringMatching(/was called before configure\(\)/),
     );
     consoleSpy.mockRestore();
   });
@@ -96,6 +96,65 @@ test('tn() calls translateWithNumber on the singleton', () => {
   });
 });
 
+test('pre-configure warning fires once per unique key', () => {
+  jest.isolateModules(() => {
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { t } = require('./TranslatorSingleton');
+    t('apple');
+    t('apple');
+    t('apple');
+    t('banana');
+    expect(consoleSpy).toHaveBeenCalledTimes(2);
+    expect(consoleSpy).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('"apple"'),
+    );
+    expect(consoleSpy).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('"banana"'),
+    );
+    consoleSpy.mockRestore();
+  });
+});
+
+test('pre-configure warning suggests the lazy-function fix', () => {
+  jest.isolateModules(() => {
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { t } = require('./TranslatorSingleton');
+    t('Sort ascending');
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining('() => t("Sort ascending")'),
+    );
+    consoleSpy.mockRestore();
+  });
+});
+
+test('pre-configure warning is suppressed in production', () => {
+  jest.isolateModules(() => {
+    const originalEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = 'production';
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { t } = require('./TranslatorSingleton');
+    t('hello');
+    expect(consoleSpy).not.toHaveBeenCalled();
+    consoleSpy.mockRestore();
+    process.env.NODE_ENV = originalEnv;
+  });
+});
+
+test('resetTranslation clears the warned-keys dedupe set', () => {
+  jest.isolateModules(() => {
+    const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    const { t, resetTranslation } = require('./TranslatorSingleton');
+    t('hello');
+    expect(consoleSpy).toHaveBeenCalledTimes(1);
+    resetTranslation();
+    t('hello');
+    expect(consoleSpy).toHaveBeenCalledTimes(2);
+    consoleSpy.mockRestore();
+  });
+});
+
 test('resetTranslation does nothing when not yet configured', () => {
   jest.isolateModules(() => {
     const consoleSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
@@ -105,7 +164,7 @@ test('resetTranslation does nothing when not yet configured', () => {
     // The singleton is still unconfigured, so t() warns
     t('hello');
     expect(consoleSpy).toHaveBeenCalledWith(
-      'You should call configure(...) before calling other methods',
+      expect.stringMatching(/was called before configure\(\)/),
     );
     consoleSpy.mockRestore();
   });

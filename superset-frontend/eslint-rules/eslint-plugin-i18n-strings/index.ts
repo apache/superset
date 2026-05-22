@@ -65,6 +65,86 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
         };
       },
     },
+    'no-eager-t-in-config': {
+      meta: {
+        type: 'problem',
+        fixable: 'code',
+        docs: {
+          description:
+            'Disallow eager t()/tn() calls for `label` and `description` in config objects evaluated at module load (e.g., controlPanel files). The translation is captured at module-evaluation time, before i18n has loaded, and never updates when the user switches language. Wrap the call in an arrow function so it is evaluated at render time.',
+        },
+        schema: [
+          {
+            type: 'object',
+            properties: {
+              properties: {
+                type: 'array',
+                items: { type: 'string' },
+              },
+            },
+            additionalProperties: false,
+          },
+        ],
+        messages: {
+          eager:
+            'Eager `{{property}}: t(...)` is evaluated at module load, before i18n is initialized. Wrap in an arrow function: `{{property}}: () => t(...)`.',
+        },
+      },
+      create(context: Rule.RuleContext): Rule.RuleListener {
+        const watchedProps: string[] = context.options[0]?.properties ?? [
+          'label',
+          'description',
+        ];
+        const TRANSLATE_FNS = new Set(['t', 'tn']);
+
+        function handler(node: Node): void {
+          const prop = node as Node & {
+            key: { type: string; name?: string; value?: string };
+            value: Node & {
+              type: string;
+              callee?: { type: string; name?: string };
+            };
+            shorthand?: boolean;
+            computed?: boolean;
+          };
+          if (prop.shorthand || prop.computed) return;
+
+          const keyName =
+            prop.key.type === 'Identifier'
+              ? prop.key.name
+              : prop.key.type === 'Literal'
+                ? prop.key.value
+                : undefined;
+          if (typeof keyName !== 'string' || !watchedProps.includes(keyName)) {
+            return;
+          }
+
+          const callee = prop.value;
+          if (
+            callee.type !== 'CallExpression' ||
+            callee.callee?.type !== 'Identifier' ||
+            !callee.callee.name ||
+            !TRANSLATE_FNS.has(callee.callee.name)
+          ) {
+            return;
+          }
+
+          context.report({
+            node: prop.value,
+            messageId: 'eager',
+            data: { property: keyName },
+            fix(fixer) {
+              const source = context.getSourceCode().getText(prop.value);
+              return fixer.replaceText(prop.value, `() => ${source}`);
+            },
+          });
+        }
+
+        return {
+          Property: handler,
+        };
+      },
+    },
     'sentence-case-buttons': {
       meta: {
         type: 'suggestion',
