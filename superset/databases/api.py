@@ -1324,8 +1324,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         accessible_charts = [
             chart
             for chart in data["charts"]
-            if security_manager.can_access("can_read", "Chart")
-            and security_manager.is_owner(chart)
+            if security_manager.can_access_chart(chart)
         ]
         charts = [
             {
