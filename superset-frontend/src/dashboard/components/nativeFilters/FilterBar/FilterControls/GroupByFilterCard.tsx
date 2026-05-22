@@ -212,6 +212,18 @@ const DescriptionTooltip = ({ description }: { description: string }) => (
   </ToolTipContainer>
 );
 
+// Sort display values by label: ascending when sortAscending is true, descending
+// when false, and source order (no sort) when it is unset.
+export const createLabelSortComparator =
+  (sortAscending?: boolean) =>
+  (a: LabeledValue, b: LabeledValue): number => {
+    if (sortAscending === undefined) {
+      return 0;
+    }
+    const labelComparator = propertyComparator('label');
+    return sortAscending ? labelComparator(a, b) : labelComparator(b, a);
+  };
+
 const GroupByFilterCardContent: FC<{
   customizationItem: ChartCustomization;
   hidePopover: () => void;
@@ -333,14 +345,8 @@ const GroupByFilterCard: FC<GroupByFilterCardProps> = ({
 
   const sortAscending = customizationItem.controlValues?.sortAscending;
 
-  const sortComparator = useCallback(
-    (a: LabeledValue, b: LabeledValue) => {
-      if (sortAscending === undefined) {
-        return 0;
-      }
-      const labelComparator = propertyComparator('label');
-      return sortAscending ? labelComparator(a, b) : labelComparator(b, a);
-    },
+  const sortComparator = useMemo(
+    () => createLabelSortComparator(sortAscending),
     [sortAscending],
   );
 
