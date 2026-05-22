@@ -26,6 +26,7 @@ from superset.mcp_service.chart.chart_helpers import (
     merge_extra_form_data_filters_into_query,
     merge_form_data_filters_into_query,
     prepare_form_data_for_query,
+    resolve_deck_gl_columns,
 )
 
 
@@ -285,3 +286,212 @@ def test_merge_extra_form_data_filters_into_query_adds_only_extra_predicates(
     assert query["time_range"] == "No filter"
     assert query["granularity"] == "updated_at"
     assert query["time_grain_sqla"] == "P1D"
+
+
+# ---------------------------------------------------------------------------
+# resolve_deck_gl_columns
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_deck_gl_columns_latlong():
+    form_data = {
+        "spatial": {"type": "latlong", "lonCol": "longitude", "latCol": "latitude"},
+    }
+    assert resolve_deck_gl_columns(form_data) == ["longitude", "latitude"]
+
+
+def test_resolve_deck_gl_columns_delimited():
+    form_data = {
+        "spatial": {"type": "delimited", "lonlatCol": "coords"},
+    }
+    assert resolve_deck_gl_columns(form_data) == ["coords"]
+
+
+def test_resolve_deck_gl_columns_geohash():
+    form_data = {
+        "spatial": {"type": "geohash", "geohashCol": "geo"},
+    }
+    assert resolve_deck_gl_columns(form_data) == ["geo"]
+
+
+def test_resolve_deck_gl_columns_arc_start_end():
+    form_data = {
+        "start_spatial": {
+            "type": "latlong",
+            "lonCol": "start_lon",
+            "latCol": "start_lat",
+        },
+        "end_spatial": {"type": "latlong", "lonCol": "end_lon", "latCol": "end_lat"},
+    }
+    cols = resolve_deck_gl_columns(form_data)
+    assert cols == ["start_lon", "start_lat", "end_lon", "end_lat"]
+
+
+def test_resolve_deck_gl_columns_path_line_column():
+    form_data = {
+        "line_column": "path_wkt",
+    }
+    assert resolve_deck_gl_columns(form_data) == ["path_wkt"]
+
+
+def test_resolve_deck_gl_columns_geojson():
+    form_data = {
+        "geojson": "geom_col",
+    }
+    assert resolve_deck_gl_columns(form_data) == ["geom_col"]
+
+
+def test_resolve_deck_gl_columns_with_dimension_and_js_columns():
+    form_data = {
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "dimension": "category",
+        "js_columns": ["name", "value"],
+    }
+    cols = resolve_deck_gl_columns(form_data)
+    assert "lon" in cols
+    assert "lat" in cols
+    assert "category" in cols
+    assert "name" in cols
+    assert "value" in cols
+
+
+def test_resolve_deck_gl_columns_deduplicates():
+    form_data = {
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "dimension": "lon",  # same as lonCol — should not duplicate
+    }
+    cols = resolve_deck_gl_columns(form_data)
+    assert cols.count("lon") == 1
+
+
+def test_resolve_deck_gl_columns_empty():
+    assert resolve_deck_gl_columns({}) == []
+
+
+def test_resolve_deck_gl_columns_ignores_non_string_js_columns():
+    form_data = {
+        "js_columns": [42, None, "valid_col"],
+    }
+    assert resolve_deck_gl_columns(form_data) == ["valid_col"]
+
+
+# ---------------------------------------------------------------------------
+# build_query_dicts_from_form_data — Deck.gl branch
+# ---------------------------------------------------------------------------
+
+
+def test_build_query_dicts_deck_scatter_latlong(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_scatter",
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert len(queries) == 1
+    assert queries[0]["columns"] == ["lon", "lat"]
+    assert queries[0]["metrics"] == []
+
+
+def test_build_query_dicts_deck_scatter_with_size_metric(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    metric = {
+        "expressionType": "SIMPLE",
+        "column": {"column_name": "sales"},
+        "aggregate": "SUM",
+    }
+    form_data = {
+        "viz_type": "deck_scatter",
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "size": metric,
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert len(queries) == 1
+    assert queries[0]["columns"] == ["lon", "lat"]
+    assert queries[0]["metrics"] == [metric]
+
+
+def test_build_query_dicts_deck_arc(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_arc",
+        "start_spatial": {
+            "type": "latlong",
+            "lonCol": "origin_lon",
+            "latCol": "origin_lat",
+        },
+        "end_spatial": {"type": "latlong", "lonCol": "dest_lon", "latCol": "dest_lat"},
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert len(queries) == 1
+    assert queries[0]["columns"] == ["origin_lon", "origin_lat", "dest_lon", "dest_lat"]
+    assert queries[0]["metrics"] == []
+
+
+def test_build_query_dicts_deck_geojson(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_geojson",
+        "geojson": "geometry",
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert len(queries) == 1
+    assert queries[0]["columns"] == ["geometry"]
+    assert queries[0]["metrics"] == []
+
+
+def test_build_query_dicts_deck_hex_geohash(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_hex",
+        "spatial": {"type": "geohash", "geohashCol": "geohash"},
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert len(queries) == 1
+    assert queries[0]["columns"] == ["geohash"]
+
+
+def test_build_query_dicts_deck_path_with_row_limit(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_path",
+        "line_column": "path_col",
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table", row_limit=50)
+
+    assert queries[0]["columns"] == ["path_col"]
+    assert queries[0]["row_limit"] == 50
