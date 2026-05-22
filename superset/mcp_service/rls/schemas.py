@@ -16,7 +16,7 @@
 # under the License.
 
 """
-Pydantic schemas for row level security filter responses.
+Pydantic schemas for RLS (row-level security) MCP tools.
 """
 
 from __future__ import annotations
@@ -252,4 +252,68 @@ def serialize_rls_filter_object(rls_filter: Any) -> RlsFilterInfo | None:
         clause=getattr(rls_filter, "clause", None),
         group_key=getattr(rls_filter, "group_key", None),
         changed_on=getattr(rls_filter, "changed_on", None),
+    )
+
+
+class CreateRLSFilterRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    name: str = Field(..., min_length=1, description="Name for the RLS filter rule.")
+    filter_type: Literal["Regular", "Base"] = Field(
+        ...,
+        description=(
+            'Type of filter. "Regular" hides rows from the specified roles '
+            'unless the clause matches. "Base" shows only rows where the '
+            "clause matches to the specified roles."
+        ),
+    )
+    tables: list[int] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "List of table IDs this filter applies to. Use list_datasets to find IDs."
+        ),
+    )
+    roles: list[int] = Field(
+        ...,
+        description="List of role IDs that see this filter applied.",
+    )
+    clause: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "SQL WHERE clause applied to matching tables (e.g. \"region = 'EMEA'\")."
+        ),
+    )
+    group_key: str | None = Field(
+        None,
+        description="Optional group key for grouping related filters.",
+    )
+    description: str | None = Field(
+        None,
+        description="Optional human-readable description of the filter.",
+    )
+
+
+class CreateRLSFilterResponse(BaseModel):
+    id: int | None = Field(
+        None,
+        description="Created RLS filter ID. None if creation failed.",
+    )
+    name: str = Field(..., description="Name of the RLS filter.")
+    filter_type: str | None = Field(None, description="Filter type: Regular or Base.")
+    clause: str | None = Field(None, description="SQL WHERE clause of the filter.")
+    tables: list[int] = Field(
+        default_factory=list,
+        description="Table IDs this filter applies to.",
+    )
+    roles: list[int] = Field(
+        default_factory=list,
+        description="Role IDs affected by this filter.",
+    )
+    group_key: str | None = Field(None, description="Group key for the filter.")
+    description: str | None = Field(None, description="Description of the filter.")
+    error: str | None = Field(
+        None,
+        description="Error message if creation failed, otherwise null.",
     )

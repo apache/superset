@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from .create_rls_filter import create_rls_filter
 from .get_rls_filter_info import get_rls_filter_info
 from .list_rls_filters import list_rls_filters
 
 __all__ = [
-    "list_rls_filters",
+    "create_rls_filter",
     "get_rls_filter_info",
+    "list_rls_filters",
 ]

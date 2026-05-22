@@ -726,6 +726,7 @@ from superset.mcp_service.query.tool import (  # noqa: F401, E402
     list_queries,
 )
 from superset.mcp_service.rls.tool import (  # noqa: F401, E402
+    create_rls_filter,
     get_rls_filter_info,
     list_rls_filters,
 )
