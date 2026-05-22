@@ -1073,7 +1073,7 @@ export function TableRenderer(props: TableRendererProps) {
                 true,
               )}
             >
-              {t('Subtotal')}
+              {t('Subvalue')}
             </th>,
           );
         }
@@ -1333,7 +1333,7 @@ export function TableRenderer(props: TableRendererProps) {
               true,
             )}
           >
-            {t('Subtotal')}
+            {t('Subvalue')}
           </th>
         ) : null;
 
