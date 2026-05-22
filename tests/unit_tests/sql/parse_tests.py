@@ -1190,6 +1190,51 @@ def test_postgres_parses_timescaledb_hyperfunctions(sql: str) -> None:
     SQLScript(sql, "postgresql")  # Must not raise.
 
 
+@pytest.mark.parametrize(
+    "engine",
+    ["oracle", "postgresql", "trino", "presto", "hive", "base"],
+)
+def test_with_clause_containing_union_is_not_mutating(engine: str) -> None:
+    """
+    Regression for #25659: a SELECT with a WITH clause whose CTEs contain
+    UNION (or UNION ALL) must not be classified as mutating, on any dialect.
+
+    The original bug surfaced on Oracle, where saving a virtual dataset built
+    from such a query failed with "Only `SELECT` statements are allowed". The
+    parser was misclassifying the WITH+UNION construct as DML.
+
+    Multiple dialects are exercised because the bug arose from sqlglot's
+    per-dialect AST shape — Oracle's representation of the same query may
+    differ from Postgres/Trino, and a fix that only touches one dialect
+    leaves the others exposed to the same regression.
+    """
+    sql = """
+    WITH set1 AS (SELECT 1 AS n UNION SELECT 2),
+         set2 AS (SELECT * FROM set1)
+    SELECT * FROM set2
+    """
+    assert not SQLScript(sql, engine).has_mutation(), (
+        f"WITH+UNION misclassified as mutating on {engine!r}; "
+        "this would block the query from being saved as a virtual dataset."
+    )
+
+
+def test_with_clause_containing_union_all_is_not_mutating_oracle() -> None:
+    """
+    Companion to test_with_clause_containing_union_is_not_mutating: the
+    original bug report (#25659) used the exact Oracle-flavored shape below
+    (``SYSDATE FROM DUAL`` is the Oracle no-op for "now"). Pinning the
+    verbatim repro guards against a future dialect-specific regression that
+    a generic ``SELECT 1`` test might miss.
+    """
+    sql = """
+    WITH SET1 AS (SELECT SYSDATE FROM DUAL UNION ALL SELECT SYSDATE FROM DUAL),
+         SET2 AS (SELECT * FROM SET1)
+    SELECT * FROM SET2
+    """
+    assert not SQLScript(sql, "oracle").has_mutation()
+
+
 def test_get_settings() -> None:
     """
     Test `get_settings` in some edge cases.
