@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@apache-superset/core/common';
-import config, {
-  getOperatorTypeChoices,
-  isStringOperatorColumn,
-} from './controlPanel';
-import { SelectFilterOperatorType } from './types';
+import config from './controlPanel';
 
 type ControlConfig = {
   label?: unknown;
@@ -32,31 +27,9 @@ type ControlItem = {
   config: ControlConfig;
 } | null;
 
-test('getOperatorTypeChoices only returns exact match for non-string columns', () => {
-  expect(getOperatorTypeChoices(false)).toEqual([
-    [SelectFilterOperatorType.Exact, 'Exact match (IN)'],
-  ]);
-});
-
-test('isStringOperatorColumn returns false for numeric selected columns', () => {
-  expect(
-    isStringOperatorColumn('num_col', [
-      { column_name: 'num_col', type_generic: GenericDataType.Numeric },
-    ]),
-  ).toBe(false);
-});
-
-test('isStringOperatorColumn returns true for string selected columns', () => {
-  expect(
-    isStringOperatorColumn('name', [
-      { column_name: 'name', type_generic: GenericDataType.String },
-    ]),
-  ).toBe(true);
-});
-
-test('Select controlPanel label and description functions return strings', () => {
+function collectFunctionProps(cfg: typeof config) {
   const fns: Array<() => unknown> = [];
-  config.controlPanelSections.forEach(section => {
+  cfg.controlPanelSections.forEach(section => {
     section?.controlSetRows.forEach(row => {
       (row as ControlItem[]).forEach(item => {
         if (item && typeof item === 'object' && 'config' in item) {
@@ -68,6 +41,11 @@ test('Select controlPanel label and description functions return strings', () =>
       });
     });
   });
+  return fns;
+}
+
+test('DynamicGroupBy controlPanel label and description functions return strings', () => {
+  const fns = collectFunctionProps(config);
   expect(fns.length).toBeGreaterThan(0);
   fns.forEach(fn => {
     expect(typeof fn()).toBe('string');
