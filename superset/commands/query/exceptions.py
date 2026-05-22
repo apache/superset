@@ -19,6 +19,7 @@ from flask_babel import lazy_gettext as _
 from superset.commands.exceptions import (
     CommandException,
     CommandInvalidError,
+    CreateFailedError,
     DeleteFailedError,
     ImportFailedError,
 )
@@ -38,3 +39,7 @@ class SavedQueryImportError(ImportFailedError):
 
 class SavedQueryInvalidError(CommandInvalidError):
     message = _("Saved query parameters are invalid.")
+
+
+class SavedQueryCreateFailedError(CreateFailedError):
+    message = _("Saved query could not be created.")

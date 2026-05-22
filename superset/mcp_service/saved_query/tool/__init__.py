@@ -15,10 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from .get_saved_query_info import get_saved_query_info
-from .list_saved_queries import list_saved_queries
+from superset.mcp_service.saved_query.tool.create_saved_query import (
+    create_saved_query,
+)
+from superset.mcp_service.saved_query.tool.get_saved_query_info import (
+    get_saved_query_info,
+)
+from superset.mcp_service.saved_query.tool.list_saved_queries import list_saved_queries
 
 __all__ = [
-    "list_saved_queries",
+    "create_saved_query",
     "get_saved_query_info",
+    "list_saved_queries",
 ]

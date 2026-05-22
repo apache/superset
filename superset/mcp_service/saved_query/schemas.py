@@ -267,3 +267,76 @@ def serialize_saved_query_object(saved_query: Any) -> SavedQueryInfo | None:
         created_on=getattr(saved_query, "created_on", None),
         last_run=getattr(saved_query, "last_run", None),
     )
+
+
+class CreateSavedQueryRequest(BaseModel):
+    """Request schema for create_saved_query."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    label: str = Field(
+        ...,
+        min_length=1,
+        max_length=256,
+        description="Name for the saved query (shown in the Saved Queries list).",
+    )
+    sql: str = Field(
+        ...,
+        description="SQL query text to save.",
+    )
+    db_id: int = Field(
+        ...,
+        description=(
+            "ID of the database connection. Use list_databases to find valid IDs."
+        ),
+    )
+    schema: str | None = Field(
+        None,
+        description="Database schema the query targets (optional).",
+    )
+    description: str | None = Field(
+        None,
+        description="Human-readable description of the saved query (optional).",
+    )
+    template_parameters: str | None = Field(
+        None,
+        description=(
+            "JSON string of Jinja2 template parameters for the query (optional)."
+        ),
+    )
+
+    @field_validator("sql")
+    @classmethod
+    def sql_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("sql must not be empty")
+        return v.strip()
+
+    @field_validator("label")
+    @classmethod
+    def label_not_empty(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("label must not be empty")
+        return v.strip()
+
+
+class CreateSavedQueryResponse(BaseModel):
+    """Response schema for create_saved_query."""
+
+    id: int | None = Field(
+        None,
+        description="Saved query ID. None if creation failed.",
+    )
+    label: str = Field(..., description="Name of the saved query.")
+    sql: str = Field(..., description="SQL query text stored.")
+    db_id: int = Field(..., description="Database ID used.")
+    schema: str | None = Field(None, description="Database schema (if set).")
+    description: str | None = Field(None, description="Query description (if set).")
+    url: str | None = Field(
+        None,
+        description=(
+            "URL to open this saved query in SQL Lab "
+            "(e.g., /sqllab?savedQueryId=42). None if creation failed."
+        ),
+    )
+    error: str | None = Field(None, description="Error message if creation failed.")
