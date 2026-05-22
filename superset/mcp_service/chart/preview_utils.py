@@ -26,7 +26,6 @@ import logging
 import math
 from typing import Any, Dict, List
 
-from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.mcp_service.chart.schemas import (
     ASCIIPreview,
     ChartError,
@@ -78,6 +77,7 @@ def generate_preview_from_form_data(
     """
     try:
         # Execute query to get data
+        from superset.commands.chart.data.get_data_command import ChartDataCommand
         from superset.connectors.sqla.models import SqlaTable
         from superset.extensions import db
 

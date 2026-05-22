@@ -244,11 +244,9 @@ test('reads database from localStorage when URL has db param', () => {
 
   jest.spyOn(localStorageHelpers, 'getItem').mockReturnValue(localStorageDb);
 
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: { search: '?db=true' },
-    writable: true,
-  });
+  const locationSpy = jest
+    .spyOn(window, 'location', 'get')
+    .mockReturnValue({ ...window.location, search: '?db=true' } as Location);
 
   const store = mockStore(createInitialState());
   const { result, rerender } = renderHook(
@@ -269,10 +267,7 @@ test('reads database from localStorage when URL has db param', () => {
     null,
   );
 
-  Object.defineProperty(window, 'location', {
-    value: originalLocation,
-    writable: true,
-  });
+  locationSpy.mockRestore();
 });
 
 test('returns null db when dbId does not exist in databases', () => {

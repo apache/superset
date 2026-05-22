@@ -108,13 +108,13 @@ test('renders ConfigEditor', async () => {
 test('renders a custom placeholder', () => {
   const aceModules: AceModule[] = ['mode/css', 'theme/github'];
   const editorOptions: AsyncAceEditorOptions = {
-    placeholder: () => <p role="paragraph">Custom placeholder</p>,
+    placeholder: () => <p>Custom placeholder</p>,
   };
   const Editor = AsyncAceEditor(aceModules, editorOptions);
 
   render(<Editor />);
 
-  expect(screen.getByRole('paragraph')).toBeInTheDocument();
+  expect(screen.getByText('Custom placeholder')).toBeInTheDocument();
 });
 
 test('registers afterExec event listener for command handling', async () => {
