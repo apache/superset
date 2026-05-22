@@ -15,10 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from .create_tag import create_tag
 from .get_tag_info import get_tag_info
 from .list_tags import list_tags
 
 __all__ = [
+    "create_tag",
     "get_tag_info",
     "list_tags",
 ]

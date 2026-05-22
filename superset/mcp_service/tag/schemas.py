@@ -249,3 +249,51 @@ def serialize_tag_object(tag: Any) -> TagInfo | None:
             created_on_humanized=humanize_timestamp(getattr(tag, "created_on", None)),
         )
     )
+
+
+class CreateTagRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    name: str = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Name for the new tag. Must be unique. "
+            "Used to identify and reference the tag across Superset."
+        ),
+    )
+    description: str | None = Field(
+        None,
+        description="Optional human-readable description for the tag.",
+    )
+    objects_to_tag: list[tuple[str, int]] = Field(
+        default_factory=list,
+        description=(
+            "Optional list of objects to apply this tag to immediately after creation. "
+            "Each item is a [object_type, object_id] pair where object_type is one of: "
+            "'chart', 'dashboard', 'dataset', 'query'."
+        ),
+    )
+
+
+class CreateTagResponse(BaseModel):
+    id: int | None = Field(
+        None,
+        description="ID of the created tag. None if creation failed.",
+    )
+    name: str = Field(..., description="Tag name.")
+    description: str | None = Field(None, description="Tag description.")
+    objects_tagged: list[tuple[str, int]] = Field(
+        default_factory=list,
+        description="Objects that were successfully tagged.",
+    )
+    objects_skipped: list[tuple[str, int]] = Field(
+        default_factory=list,
+        description=(
+            "Objects that were skipped because the current user lacks ownership."
+        ),
+    )
+    error: str | None = Field(
+        None,
+        description="Error message if creation failed, otherwise null.",
+    )

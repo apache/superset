@@ -754,6 +754,7 @@ from superset.mcp_service.system.tool import (  # noqa: F401, E402
     health_check,
 )
 from superset.mcp_service.tag.tool import (  # noqa: F401, E402
+    create_tag,
     get_tag_info,
     list_tags,
 )
