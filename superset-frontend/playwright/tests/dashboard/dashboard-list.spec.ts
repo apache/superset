@@ -323,6 +323,7 @@ test.describe('import dashboard', () => {
     await dashboardListPage.waitForTableLoad();
     await expect(dashboardListPage.getDashboardRow(dashboardName)).toHaveCount(
       0,
+      { timeout: TIMEOUT.API_RESPONSE },
     );
 
     // Click the import button
