@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from .create_layer_annotation import create_layer_annotation
 from .get_annotation_layer_info import get_annotation_layer_info
 from .get_layer_annotation_info import get_layer_annotation_info
 from .list_annotation_layers import list_annotation_layers
@@ -25,4 +26,5 @@ __all__ = [
     "get_annotation_layer_info",
     "list_layer_annotations",
     "get_layer_annotation_info",
+    "create_layer_annotation",
 ]
