@@ -1612,7 +1612,7 @@ def test_get_df_payload_invalidates_cache_missing_applied_filter_columns():
     )
 
 
-def test_get_df_payload_bq_memory_limited_warning():
+def test_get_df_payload_bq_memory_limited_warning() -> None:
     """
     Test that get_df_payload includes a warning when BigQuery results are
     truncated due to the memory limit (g.bq_memory_limited is set).
@@ -1672,7 +1672,7 @@ def test_get_df_payload_bq_memory_limited_warning():
     assert "memory constraints" in result["warning"]
 
 
-def test_get_df_payload_no_warning_when_not_memory_limited():
+def test_get_df_payload_no_warning_when_not_memory_limited() -> None:
     """
     Test that get_df_payload does not include a warning when BigQuery
     results were not truncated.

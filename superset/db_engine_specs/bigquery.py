@@ -108,6 +108,11 @@ SYNTAX_ERROR_REGEX = re.compile(
 
 ma_plugin = MarshmallowPlugin()
 
+# Initial sample size for the progressive fetch in ``fetch_data``. Reading a
+# small first batch lets us measure the row size before deciding how many
+# more rows fit within ``BQ_FETCH_MAX_MB``.
+_BQ_INITIAL_SAMPLE_ROWS = 1000
+
 
 class BigQueryParametersSchema(Schema):
     credentials_info = EncryptedString(
@@ -313,13 +318,22 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         total number of rows that fit within ``BQ_FETCH_MAX_MB``.
         Falls back to the parent implementation on any error.
         """
+        # ``BQ_FETCH_MAX_MB`` has a default in ``config.py``, so use bracket
+        # access in-context — a missing key should surface as a loud KeyError
+        # rather than be silently masked by a duplicated default here. The
+        # 200 fallback is only used when running outside an app context
+        # (e.g., direct unit-test calls to ``fetch_data``).
         max_mb: int = (
-            current_app.config.get("BQ_FETCH_MAX_MB", 200) if has_app_context() else 200
+            current_app.config["BQ_FETCH_MAX_MB"] if has_app_context() else 200
         )
         max_bytes = max_mb * 1024 * 1024
 
         try:
-            initial_batch_size = min(1000, limit) if limit else 1000
+            initial_batch_size = (
+                min(_BQ_INITIAL_SAMPLE_ROWS, limit)
+                if limit
+                else _BQ_INITIAL_SAMPLE_ROWS
+            )
             first_batch: list[Any] = cursor.fetchmany(initial_batch_size)
 
             if not first_batch:
@@ -377,6 +391,12 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             return data
 
         except Exception:  # pylint: disable=broad-except
+            # Broad catch on purpose: any failure in the size-estimation /
+            # progressive-fetch path (BigQuery DB-API errors, network or
+            # auth timeouts mid-fetch, ``sys.getsizeof`` raising on an
+            # unexpected cell type, or a future ``Row`` subclass we don't
+            # know how to unwrap) must degrade gracefully to the parent's
+            # straight fetch so the user still gets data.
             # Fallback to parent implementation
             data = super().fetch_data(cursor, limit)
             if data and type(data[0]).__name__ == "Row":
