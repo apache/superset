@@ -469,6 +469,37 @@ test('timeseries chart: dynamic group by replaces base groupby with the user sel
   expectGroupBy(result, ['series_col']);
 });
 
+test('regression #39356: an all-conflicting selection keeps the base groupby and never empties it', () => {
+  // Selecting only the x_axis (already in use) contributes no new dimension, so the
+  // base groupby survives unchanged rather than the chart losing its dimensions.
+  const customizationId = 'CHART_CUSTOMIZATION-groupby-1';
+  const result = getFormDataWithExtraFilters({
+    ...mockArgs,
+    chart: {
+      ...mockChart,
+      form_data: {
+        ...mockChart.form_data,
+        viz_type: 'echarts_timeseries_line',
+        datasource: '3__table',
+        groupby: ['series_col', 'breakdown_col'],
+        x_axis: 'time_col',
+      },
+    },
+    dataMask: {
+      [customizationId]: {
+        id: customizationId,
+        extraFormData: {},
+        filterState: { value: ['time_col'] },
+        ownState: {},
+      },
+    },
+    chartCustomizationItems: [
+      createChartCustomization({ id: customizationId }),
+    ],
+  });
+  expectGroupBy(result, ['series_col', 'breakdown_col']);
+});
+
 test('SC-100237: selecting base dimension + new dimension keeps BOTH in groupby', () => {
   const result = getFormDataWithExtraFilters(
     makeGroupByArgs(['product_line', 'deal_size'], ['product_line']),
