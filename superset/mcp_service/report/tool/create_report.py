@@ -61,6 +61,7 @@ async def create_report(
     )
 
     try:
+        # Deferred to avoid circular imports with the @tool decorator initialization
         from superset.commands.report.create import CreateReportScheduleCommand
         from superset.commands.report.exceptions import (
             ReportScheduleCreateFailedError,
@@ -79,20 +80,19 @@ async def create_report(
             else ReportScheduleType.REPORT
         )
 
-        recipients: list[dict[str, Any]] = []
-        for recipient in request.recipients:
-            recipient_type_map = {
-                "Email": ReportRecipientType.EMAIL,
-                "Slack": ReportRecipientType.SLACK,
-                "SlackV2": ReportRecipientType.SLACKV2,
-                "Webhook": ReportRecipientType.WEBHOOK,
+        recipient_type_map = {
+            "Email": ReportRecipientType.EMAIL,
+            "Slack": ReportRecipientType.SLACK,
+            "SlackV2": ReportRecipientType.SLACKV2,
+            "Webhook": ReportRecipientType.WEBHOOK,
+        }
+        recipients: list[dict[str, Any]] = [
+            {
+                "type": recipient_type_map[r.type],
+                "recipient_config_json": {"target": r.target},
             }
-            recipients.append(
-                {
-                    "type": recipient_type_map[recipient.type],
-                    "recipient_config_json": {"target": recipient.target},
-                }
-            )
+            for r in request.recipients
+        ]
 
         properties: dict[str, Any] = {
             "name": request.name,
@@ -116,10 +116,7 @@ async def create_report(
         with event_logger.log_context(action="mcp.create_report.create"):
             schedule = CreateReportScheduleCommand(properties).run()
 
-        report_url = (
-            f"{get_superset_base_url()}/report/list/"
-            f"?filters=%5B%7B%22id%22%3A%22{schedule.id}%22%7D%5D"
-        )
+        report_url = f"{get_superset_base_url()}/report/list/"
 
         await ctx.info(
             "Report schedule created: id=%s, name=%r, type=%s"
