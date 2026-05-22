@@ -25,12 +25,19 @@ from fastmcp import Context
 from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.commands.dashboard.exceptions import DashboardNotFoundError
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger
-from superset.mcp_service.chart.chart_helpers import get_cached_form_data
+from superset.mcp_service.chart.chart_helpers import (
+    build_applied_dashboard_filters,
+    ChartNotOnDashboardError,
+    get_cached_form_data,
+)
 from superset.mcp_service.chart.chart_utils import validate_chart_dataset
 from superset.mcp_service.chart.schemas import (
     CHART_FORM_DATA_EXCLUDED_FIELD_NAMES,
     ChartError,
+    ChartFiltersInfo,
     ChartInfo,
     extract_filters_from_form_data,
     GetChartInfoRequest,
@@ -87,6 +94,66 @@ FORM_DATA_OVERRIDE_EXCLUDED_FIELD_NAMES = (
     CHART_FORM_DATA_EXCLUDED_FIELD_NAMES
     | frozenset({"cache_key", "database", "database_name", "schema"})
 )
+
+
+async def _validate_chart_dataset_access(
+    result: ChartInfo, ctx: Context
+) -> ChartError | None:
+    """Validate that the chart's dataset is accessible to the current user.
+
+    Returns a ChartError if the dataset is not accessible, otherwise None.
+    Logs any non-fatal warnings (e.g., virtual dataset warnings) via ctx.
+    """
+    from superset.daos.chart import ChartDAO
+
+    if not result.id:
+        return None
+    chart = ChartDAO.find_by_id(result.id)
+    if not chart:
+        return None
+    validation_result = validate_chart_dataset(chart, check_access=True)
+    if not validation_result.is_valid:
+        await ctx.warning(
+            "Chart found but dataset is not accessible: %s" % (validation_result.error,)
+        )
+        return ChartError(
+            error=validation_result.error or "Chart's dataset is not accessible",
+            error_type="DatasetNotAccessible",
+        )
+    for warning in validation_result.warnings:
+        await ctx.warning("Dataset warning: %s" % (warning,))
+    return None
+
+
+async def _attach_dashboard_filters(
+    result: ChartInfo, dashboard_id: int, ctx: Context
+) -> ChartError | None:
+    """Resolve dashboard-scoped native filters and attach them to result.filters.
+
+    Returns a ChartError to surface to the caller on validation / access
+    failures, or None on success (including the no-filters case).
+    """
+    if not result.id:
+        return None
+    with event_logger.log_context(action="mcp.get_chart_info.dashboard_filters"):
+        try:
+            dashboard_filters = build_applied_dashboard_filters(dashboard_id, result.id)
+        except DashboardNotFoundError as exc:
+            await ctx.warning("Dashboard not found: %s" % (str(exc),))
+            return ChartError(error=str(exc), error_type="DashboardNotFound")
+        except ChartNotOnDashboardError as exc:
+            await ctx.warning("Chart not on dashboard: %s" % (str(exc),))
+            return ChartError(error=str(exc), error_type="ChartNotOnDashboard")
+        except SupersetSecurityException as exc:
+            await ctx.warning("Dashboard not accessible: %s" % (str(exc),))
+            return ChartError(error=str(exc), error_type="DashboardNotAccessible")
+
+        if dashboard_filters:
+            if result.filters is None:
+                result.filters = ChartFiltersInfo(dashboard_filters=dashboard_filters)
+            else:
+                result.filters.dashboard_filters = dashboard_filters
+    return None
 
 
 def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None:
@@ -178,6 +245,17 @@ async def get_chart_info(
     }
     ```
 
+    With dashboard context to resolve applied dashboard-level filters:
+    ```json
+    {
+        "identifier": 123,
+        "dashboard_id": 45
+    }
+    ```
+    When dashboard_id is provided, the response's filters.dashboard_filters
+    lists native filters (with column, operator, and value) that are in scope
+    for this chart on that dashboard.
+
     Returns chart details including name, type, and URL.
     """
     from superset.daos.chart import ChartDAO
@@ -247,23 +325,14 @@ async def get_chart_info(
         )
 
         # Validate the chart's dataset is accessible
-        if result.id:
-            chart = ChartDAO.find_by_id(result.id)
-            if chart:
-                validation_result = validate_chart_dataset(chart, check_access=True)
-                if not validation_result.is_valid:
-                    await ctx.warning(
-                        "Chart found but dataset is not accessible: %s"
-                        % (validation_result.error,)
-                    )
-                    return ChartError(
-                        error=validation_result.error
-                        or "Chart's dataset is not accessible",
-                        error_type="DatasetNotAccessible",
-                    )
-                # Log any warnings (e.g., virtual dataset warnings)
-                for warning in validation_result.warnings:
-                    await ctx.warning("Dataset warning: %s" % (warning,))
+        dataset_error = await _validate_chart_dataset_access(result, ctx)
+        if dataset_error is not None:
+            return dataset_error
+
+        if request.dashboard_id:
+            error = await _attach_dashboard_filters(result, request.dashboard_id, ctx)
+            if error is not None:
+                return error
     else:
         await ctx.warning("Chart retrieval failed: error=%s" % (str(result),))
 
