@@ -22,6 +22,16 @@ from sqlalchemy.exc import OperationalError
 
 from superset.app import AppRootMiddleware, create_app, SupersetApp
 from superset.initialization import SupersetAppInitializer
+from superset.middleware.legacy_prefix_redirect import LegacyPrefixRedirectMiddleware
+
+
+def _unwrap_to_app_root(app):
+    """Walk the WSGI middleware chain past the outermost
+    `LegacyPrefixRedirectMiddleware` (always installed) and return the
+    next layer. Lets the existing AppRootMiddleware-shape assertions
+    survive the Slice-5 outer-wrap change."""
+    assert isinstance(app.wsgi_app, LegacyPrefixRedirectMiddleware)
+    return app.wsgi_app.wsgi_app
 
 
 class TestSupersetApp:
@@ -202,7 +212,11 @@ class TestCreateAppRoot:
         with patch.dict(os.environ, env, clear=True):
             app = create_app()
 
-        assert not isinstance(app.wsgi_app, AppRootMiddleware)
+        # The outermost `LegacyPrefixRedirectMiddleware` is now always
+        # installed (Slice 5). Under root deployment, the next layer
+        # should NOT be `AppRootMiddleware`.
+        inner = _unwrap_to_app_root(app)
+        assert not isinstance(inner, AppRootMiddleware)
 
     @patch("superset.initialization.SupersetAppInitializer.init_app")
     def test_application_root_config_activates_middleware(self, mock_init_app):
@@ -216,8 +230,9 @@ class TestCreateAppRoot:
         ):
             app = create_app()
 
-        assert isinstance(app.wsgi_app, AppRootMiddleware)
-        assert app.wsgi_app.app_root == "/from-config"
+        inner = _unwrap_to_app_root(app)
+        assert isinstance(inner, AppRootMiddleware)
+        assert inner.app_root == "/from-config"
 
     @patch("superset.initialization.SupersetAppInitializer.init_app")
     def test_env_var_activates_middleware(self, mock_init_app):
@@ -228,8 +243,9 @@ class TestCreateAppRoot:
         with patch.dict(os.environ, env, clear=True):
             app = create_app()
 
-        assert isinstance(app.wsgi_app, AppRootMiddleware)
-        assert app.wsgi_app.app_root == "/from-env"
+        inner = _unwrap_to_app_root(app)
+        assert isinstance(inner, AppRootMiddleware)
+        assert inner.app_root == "/from-env"
 
     @patch("superset.initialization.SupersetAppInitializer.init_app")
     def test_env_var_takes_precedence_over_config(self, mock_init_app):
@@ -243,8 +259,9 @@ class TestCreateAppRoot:
         ):
             app = create_app()
 
-        assert isinstance(app.wsgi_app, AppRootMiddleware)
-        assert app.wsgi_app.app_root == "/from-env"
+        inner = _unwrap_to_app_root(app)
+        assert isinstance(inner, AppRootMiddleware)
+        assert inner.app_root == "/from-env"
 
     @patch("superset.initialization.SupersetAppInitializer.init_app")
     def test_param_takes_precedence_over_env_var(self, mock_init_app):
@@ -255,5 +272,6 @@ class TestCreateAppRoot:
         with patch.dict(os.environ, env, clear=True):
             app = create_app(superset_app_root="/from-param")
 
-        assert isinstance(app.wsgi_app, AppRootMiddleware)
-        assert app.wsgi_app.app_root == "/from-param"
+        inner = _unwrap_to_app_root(app)
+        assert isinstance(inner, AppRootMiddleware)
+        assert inner.app_root == "/from-param"

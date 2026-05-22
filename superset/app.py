@@ -40,6 +40,7 @@ from superset.extensions.local_extensions_watcher import (
     start_local_extensions_watcher_thread,
 )
 from superset.initialization import SupersetAppInitializer
+from superset.middleware.legacy_prefix_redirect import LegacyPrefixRedirectMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +77,18 @@ def create_app(
 
         app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
         app_initializer.init_app()
+
+        # Final WSGI wrap — must be outermost. `configure_middlewares()`
+        # ran inside `init_app()` and re-wrapped `app.wsgi_app` with
+        # AppRootMiddleware / ProxyFix / ChunkedEncodingFix /
+        # ADDITIONAL_MIDDLEWARE; wrapping after `init_app()` returns puts
+        # this shim outside all of them so it sees the raw inbound
+        # PATH_INFO and 308s legacy `/superset/*` paths before any other
+        # routing runs. Unconditional (independent of `app_root != "/"`)
+        # because legacy bookmarks exist under root deployments too.
+        # See PLAN.md "WSGI layering invariant" and the module docstring
+        # in `superset/middleware/legacy_prefix_redirect.py`.
+        app.wsgi_app = LegacyPrefixRedirectMiddleware(app.wsgi_app, app_root)
 
         # Set up LOCAL_EXTENSIONS file watcher when in debug mode
         if app.debug:
