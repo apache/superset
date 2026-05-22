@@ -1438,6 +1438,16 @@ class XYChartConfig(UnknownFieldCheckMixin):
         "Do NOT use adhoc_filters or raw SQL expressions.",
     )
     row_limit: int = Field(10000, description="Max data points", ge=1, le=50000)
+    series_limit: int | None = Field(
+        None,
+        description=(
+            "Max number of series to show when group_by is set. "
+            "Limits the distinct values rendered as separate lines/bars. "
+            "Only applies when group_by is specified."
+        ),
+        ge=1,
+        le=10000,
+    )
 
     @field_validator("group_by", mode="before")
     @classmethod
