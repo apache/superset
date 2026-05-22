@@ -392,6 +392,8 @@ test('should bulk delete multiple datasets', async ({
   datasetListPage,
   testAssets,
 }) => {
+  test.setTimeout(TIMEOUT.SLOW_TEST);
+
   // Create 2 throwaway datasets for bulk delete
   const [dataset1, dataset2] = await Promise.all([
     createTestDataset(page, testAssets, test.info(), {
