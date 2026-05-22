@@ -165,13 +165,9 @@ export const allEventHandlers = (
   } = transformedProps;
 
   // When a drill-down hierarchy is configured, left-click drills instead of
-  // emitting a cross-filter.
-  const fdAny = formData as Record<string, unknown>;
-  const drillHierarchy = (fdAny.drilldownHierarchy ?? fdAny.drilldown_hierarchy) as string[] | undefined;
-  const hasDrillHierarchy =
-    onDrillDown &&
-    Array.isArray(drillHierarchy) &&
-    drillHierarchy.length > 1;
+  // emitting a cross-filter. The DrillDownHost provides onDrillDown only when
+  // a hierarchy exists.
+  const hasDrillHierarchy = !!onDrillDown;
 
   const drillDownClickHandler =
     hasDrillHierarchy && groupby.length > 0

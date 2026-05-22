@@ -260,17 +260,15 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
       },
       onLegendScroll: this.handleLegendScroll,
       onChartStateChange: this.props.onChartStateChange,
-      onDrillDown: (...args: Parameters<NonNullable<ChartRendererProps['onDrillDown']>>) => {
-        // eslint-disable-next-line no-console
-        console.log('[DrillDown] ChartRenderer onDrillDown hook called', {
-          hasOnDrillDownProp: !!this.props.onDrillDown,
-          args,
-        });
-        if (this.props.onDrillDown) {
-          this.props.onDrillDown(...args);
-        }
-      },
     };
+
+    // Define onDrillDown as a property with a getter-like pattern
+    // so it reflects the current prop value at call time
+    Object.defineProperty(this.hooks, 'onDrillDown', {
+      get: () => this.props.onDrillDown || undefined,
+      enumerable: true,
+      configurable: true,
+    });
 
     // TODO: queriesResponse comes from Redux store but it's being edited by
     // the plugins, hence we need to clone it to avoid state mutation

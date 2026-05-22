@@ -40,7 +40,7 @@ const getAxisLabel = (
 
 export const xAxisMixin = {
   label: (state: ControlPanelState) => getAxisLabel(state?.form_data).label,
-  multi: false,
+  multi: true,
   description: (state: ControlPanelState) =>
     getAxisLabel(state?.form_data).description,
   validators: [validateNonEmpty],

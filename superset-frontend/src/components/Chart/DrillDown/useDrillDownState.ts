@@ -97,6 +97,7 @@ export function useDrillDownState({
   baseQueriesResponse,
 }: UseDrillDownStateArgs): UseDrillDownStateResult {
   const [drillStack, setDrillStack] = useState<DrillDownLevel[]>([]);
+  const [selectedLeaf, setSelectedLeaf] = useState<string | undefined>();
   const [drillData, setDrillData] = useState<QueryData[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -105,6 +106,7 @@ export function useDrillDownState({
   // e.g. the dashboard owner edited the chart and saved.
   useEffect(() => {
     setDrillStack([]);
+    setSelectedLeaf(undefined);
     setDrillData(null);
     setError(undefined);
   }, [formData.slice_id, formData.viz_type]);
@@ -112,7 +114,24 @@ export function useDrillDownState({
   const hierarchy = useMemo<string[]>(
     () => {
       const fd = formData as Record<string, unknown>;
-      return ensureIsArray(fd[HIERARCHY_FIELD] ?? fd[HIERARCHY_FIELD_CAMEL]) as string[];
+
+      // Option 1: x_axis is an array (multi-column, the new UX)
+      const xAxis = fd.x_axis ?? fd.xAxis;
+      if (Array.isArray(xAxis) && xAxis.length > 1) {
+        return xAxis as string[];
+      }
+
+      // Option 2: explicit drilldown_hierarchy field (legacy/separate control)
+      const drillLevels = ensureIsArray(fd[HIERARCHY_FIELD] ?? fd[HIERARCHY_FIELD_CAMEL]) as string[];
+      if (drillLevels.length > 0) {
+        const xAxisStr = (typeof xAxis === 'string' ? xAxis : undefined);
+        if (xAxisStr && !drillLevels.includes(xAxisStr)) {
+          return [xAxisStr, ...drillLevels];
+        }
+        return drillLevels;
+      }
+
+      return [];
     },
     [formData],
   );
@@ -183,15 +202,6 @@ export function useDrillDownState({
     setIsLoading(true);
     setError(undefined);
 
-    // eslint-disable-next-line no-console
-    console.log('[DrillDown] fetching drill data', {
-      currentDepth,
-      effectiveFormData_x_axis: (effectiveFormData as Record<string, unknown>).x_axis,
-      effectiveFormData_xAxis: (effectiveFormData as Record<string, unknown>).xAxis,
-      effectiveFormData_groupby: (effectiveFormData as Record<string, unknown>).groupby,
-      adhoc_filters_count: ensureIsArray((effectiveFormData as Record<string, unknown>).adhoc_filters).length,
-    });
-
     const [useLegacyApi] = getQuerySettings(effectiveFormData);
     getChartDataRequest({ formData: effectiveFormData })
       .then(({ response, json }) =>
@@ -221,10 +231,13 @@ export function useDrillDownState({
   const drillDown = useCallback<UseDrillDownStateResult['drillDown']>(
     (filters, label) => {
       setDrillStack(prev => {
-        // Only allow drilling if we have a next level configured.
+        // If we're at the last level, can't drill deeper — just record the selection
         if (prev.length >= hierarchy.length - 1) {
+          setSelectedLeaf(label);
           return prev;
         }
+        // Clear any previous leaf selection when drilling deeper
+        setSelectedLeaf(undefined);
         const nextColumn = hierarchy[prev.length];
         return [...prev, { column: nextColumn, filters, label }];
       });
@@ -234,15 +247,19 @@ export function useDrillDownState({
 
   const resetTo = useCallback((depth: number) => {
     setDrillStack(prev => prev.slice(0, depth));
+    setSelectedLeaf(undefined);
   }, []);
 
   const reset = useCallback(() => {
     setDrillStack([]);
+    setSelectedLeaf(undefined);
   }, []);
 
   return {
     isDrilling: currentDepth > 0,
     drillStack,
+    selectedLeaf,
+    hierarchy,
     effectiveFormData,
     effectiveQueriesResponse:
       currentDepth === 0 ? baseQueriesResponse : drillData,

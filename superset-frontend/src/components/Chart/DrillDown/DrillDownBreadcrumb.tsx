@@ -25,6 +25,8 @@ interface DrillDownBreadcrumbProps {
   hierarchy: string[];
   /** The drill levels the user has navigated through */
   drillStack: DrillDownLevel[];
+  /** Value selected at the deepest level (shown but not clickable) */
+  selectedLeaf?: string;
   /** Reset the drill-down to the given depth (0 = back to the start) */
   onJumpTo: (depth: number) => void;
 }
@@ -38,6 +40,7 @@ interface DrillDownBreadcrumbProps {
 export function DrillDownBreadcrumb({
   hierarchy,
   drillStack,
+  selectedLeaf,
   onJumpTo,
 }: DrillDownBreadcrumbProps) {
   const theme = useTheme();
@@ -50,7 +53,7 @@ export function DrillDownBreadcrumb({
     [onJumpTo],
   );
 
-  if (drillStack.length === 0) {
+  if (drillStack.length === 0 && !selectedLeaf) {
     return null;
   }
 
@@ -80,7 +83,7 @@ export function DrillDownBreadcrumb({
         {hierarchy[0] ?? ''}
       </span>
       {drillStack.map((level, index) => {
-        const isLast = index === drillStack.length - 1;
+        const isLast = index === drillStack.length - 1 && !selectedLeaf;
         return (
           <span key={index}>
             <span css={css`color: ${theme.colorTextTertiary}; margin: 0 2px;`}>›</span>
@@ -102,6 +105,12 @@ export function DrillDownBreadcrumb({
           </span>
         );
       })}
+      {selectedLeaf && (
+        <span>
+          <span css={css`color: ${theme.colorTextTertiary}; margin: 0 2px;`}>›</span>
+          <span>{selectedLeaf}</span>
+        </span>
+      )}
     </div>
   );
 }

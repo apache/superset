@@ -18,7 +18,6 @@
  */
 import { ComponentType, useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import {
-  ensureIsArray,
   QueryData,
   QueryFormData,
   BinaryQueryObjectFilterClause,
@@ -63,15 +62,11 @@ export function DrillDownHost({
 }: DrillDownHostProps) {
   const { formData, queriesResponse } = rendererProps;
 
-  // eslint-disable-next-line no-console
-  console.log('[DrillDown] DrillDownHost formData.drilldown_hierarchy =',
-    (formData as Record<string, unknown>).drilldown_hierarchy,
-    'formData.viz_type =', formData.viz_type,
-  );
-
   const {
     isDrilling,
     drillStack,
+    selectedLeaf,
+    hierarchy,
     effectiveFormData,
     effectiveQueriesResponse,
     isLoading,
@@ -85,69 +80,64 @@ export function DrillDownHost({
     baseQueriesResponse: queriesResponse,
   });
 
-  const hierarchy = useMemo(
-    () => {
-      const fd = formData as Record<string, unknown>;
-      return ensureIsArray(fd.drilldown_hierarchy ?? fd.drilldownHierarchy) as string[];
-    },
-    [formData],
-  );
-
-  // Plugins receive a no-op handler when drilling is unavailable so the
-  // click logic in eventHandlers.ts can detect "no drill" and fall back
-  // to cross-filter behavior.
   const onDrillDown = useMemo<OnDrillDownHook | undefined>(() => {
-    // eslint-disable-next-line no-console
-    console.log('[DrillDown] DrillDownHost computing onDrillDown', {
-      hasHierarchy,
-      hasMoreLevels,
-      hierarchy,
-    });
-    if (!hasHierarchy || !hasMoreLevels) {
+    if (!hasHierarchy) {
       return undefined;
     }
     return (filters, label) => {
-      // eslint-disable-next-line no-console
-      console.log('[DrillDown] drillDown called', { filters, label });
       drillDown(filters, label);
     };
-  }, [hasHierarchy, hasMoreLevels, drillDown, hierarchy]);
+  }, [hasHierarchy, drillDown]);
 
   const overlayProps = useMemo<Partial<ChartRendererProps>>(() => {
     if (!isDrilling) {
-      return {};
+      // Force re-render when returning to base level
+      return { triggerRender: true };
     }
-    // eslint-disable-next-line no-console
-    console.log('[DrillDown] overlayProps', {
-      isDrilling,
-      isLoading,
-      hasEffectiveData: !!effectiveQueriesResponse,
-      effectiveDataLength: effectiveQueriesResponse?.length,
-    });
     return {
       formData: effectiveFormData as QueryFormData,
-      // Tell the upstream renderer to use our drill-fetched data.
-      // We pass it via queriesResponse; the ChartRenderer clones it internally.
       queriesResponse: (effectiveQueriesResponse ?? null) as
         | QueryData[]
         | null,
-      // Keep the chart status as "rendered" so the renderer doesn't bail out;
-      // we render our own loading overlay instead.
       chartStatus: isLoading ? 'loading' : 'rendered',
       latestQueryFormData: effectiveFormData,
-      // Drill data is "owned" by the host; do not let the dashboard's stale
-      // detection swap it back to the original.
       chartIsStale: false,
-      // Drill mode emits no cross-filters; the click is consumed by drill.
-      emitCrossFilters: false,
+      triggerRender: true,
     };
   }, [isDrilling, effectiveFormData, effectiveQueriesResponse, isLoading]);
 
   const handleResetTo = useCallback(
     (depth: number) => {
       resetTo(depth);
+      // Update cross-filter to match the level we're jumping to
+      if (rendererProps.actions?.updateDataMask) {
+        if (depth === 0) {
+          // Going back to root — clear cross-filter entirely
+          rendererProps.actions.updateDataMask(rendererProps.chartId, {
+            extraFormData: { filters: [] },
+            filterState: { value: null, selectedValues: null },
+          });
+        } else {
+          // Going to an intermediate level — set cross-filter to that level's filter
+          const targetLevel = drillStack[depth - 1];
+          if (targetLevel) {
+            const filters = targetLevel.filters.map(f => ({
+              col: f.col,
+              op: 'IN' as const,
+              val: [f.val] as (string | number | boolean)[],
+            }));
+            rendererProps.actions.updateDataMask(rendererProps.chartId, {
+              extraFormData: { filters },
+              filterState: {
+                value: filters.length ? [targetLevel.label] : null,
+                selectedValues: filters.length ? [targetLevel.label] : null,
+              },
+            });
+          }
+        }
+      }
     },
-    [resetTo],
+    [resetTo, rendererProps.actions, rendererProps.chartId, drillStack],
   );
 
   if (!hasHierarchy) {
@@ -185,6 +175,7 @@ export function DrillDownHost({
         <DrillDownBreadcrumb
           hierarchy={hierarchy}
           drillStack={drillStack}
+          selectedLeaf={selectedLeaf}
           onJumpTo={handleResetTo}
         />
       </div>

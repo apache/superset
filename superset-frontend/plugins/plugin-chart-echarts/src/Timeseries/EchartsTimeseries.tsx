@@ -219,25 +219,9 @@ export default function EchartsTimeseries({
 
   const eventHandlers: EventHandlers = {
     click: props => {
-      // Drill-down takes priority over cross-filter when a hierarchy is configured
-      const fdAny = formData as Record<string, unknown>;
-      const drillHierarchy = (fdAny.drilldownHierarchy ?? fdAny.drilldown_hierarchy) as string[] | undefined;
-      const hasDrillHierarchy =
-        onDrillDown &&
-        Array.isArray(drillHierarchy) &&
-        drillHierarchy.length > 1;
-
-      // eslint-disable-next-line no-console
-      console.log('[DrillDown] click handler', {
-        hasDrillHierarchy,
-        hierarchy: (formData as Record<string, unknown>).drilldown_hierarchy,
-        hasDimensions,
-        onDrillDownDefined: typeof onDrillDown,
-        formDataKeys: Object.keys(formData),
-        groupby,
-        xAxisLabel: xAxis.label,
-        xAxisType: xAxis.type,
-      });
+      // Drill-down takes priority over cross-filter when a hierarchy is configured.
+      // The DrillDownHost provides onDrillDown only when a hierarchy exists.
+      const hasDrillHierarchy = !!onDrillDown;
 
       if (hasDrillHierarchy) {
         if (clickTimer.current) {
@@ -256,6 +240,10 @@ export default function EchartsTimeseries({
                 formattedVal: String(values[i]),
               });
             });
+            // Also emit cross-filter so other charts in the dashboard filter too
+            if (emitCrossFilters) {
+              handleChange(name);
+            }
           } else if (xAxis.type === AxisType.Category && props.data?.[0] != null) {
             // Bar chart with x_axis only (no groupby dimensions)
             drillFilters.push({
@@ -264,6 +252,10 @@ export default function EchartsTimeseries({
               val: props.data[0],
               formattedVal: String(props.data[0]),
             });
+            // Also emit cross-filter by x-axis value
+            if (emitCrossFilters) {
+              handleXAxisChange(props.data[0]);
+            }
           } else if (props.name) {
             // Fallback: use the event name (typically the x-axis label)
             drillFilters.push({
@@ -273,8 +265,6 @@ export default function EchartsTimeseries({
               formattedVal: String(props.name),
             });
           }
-          // eslint-disable-next-line no-console
-          console.log('[DrillDown] firing drillDown', { drillFilters, name });
           if (drillFilters.length > 0) {
             const label = drillFilters
               .map(f => f.formattedVal ?? String(f.val))
