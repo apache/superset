@@ -905,6 +905,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         self,
         query_obj: QueryObjectDict,
         mutate: bool = True,
+        mutation_context: Optional[dict[str, Any]] = None,
     ) -> QueryStringExtended:
         sqlaq = self.get_sqla_query(**query_obj)
         sql = self.database.compile_sqla_query(
@@ -916,7 +917,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         sql = self._apply_cte(sql, sqlaq.cte)
 
         if mutate:
-            sql = self.database.mutate_sql_based_on_config(sql)
+            sql = self.database.mutate_sql_based_on_config(
+                sql,
+                **(mutation_context or {}),
+            )
         return QueryStringExtended(
             applied_template_filters=sqlaq.applied_template_filters,
             applied_filter_columns=sqlaq.applied_filter_columns,

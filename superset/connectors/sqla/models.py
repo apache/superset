@@ -1586,9 +1586,16 @@ class SqlaTable(
 
         return or_(*groups)
 
-    def query(self, query_obj: QueryObjectDict) -> QueryResult:
+    def query(
+        self,
+        query_obj: QueryObjectDict,
+        mutation_context: dict[str, Any] | None = None,
+    ) -> QueryResult:
         qry_start_dttm = datetime.now()
-        query_str_ext = self.get_query_str_extended(query_obj)
+        query_str_ext = self.get_query_str_extended(
+            query_obj,
+            mutation_context=mutation_context,
+        )
         sql = query_str_ext.sql
         status = QueryStatus.SUCCESS
         errors = None

@@ -649,7 +649,12 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
     def get_reserved_words(self) -> set[str]:
         return self.get_dialect().preparer.reserved_words
 
-    def mutate_sql_based_on_config(self, sql_: str, is_split: bool = False) -> str:
+    def mutate_sql_based_on_config(
+        self,
+        sql_: str,
+        is_split: bool = False,
+        **kwargs: Any,
+    ) -> str:
         """
         Mutates the SQL query based on the app configuration.
 
@@ -666,6 +671,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 sql_,
                 security_manager=security_manager,
                 database=self,
+                **kwargs,
             )
         return sql_
 

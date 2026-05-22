@@ -264,6 +264,20 @@ class QueryContextProcessor:
         )
         return cache_key
 
+    def _get_sql_mutation_context(self) -> dict[str, Any]:
+        form_data = self._query_context.form_data or {}
+        slice_id = form_data.get("slice_id")
+        if slice_id is None and self._query_context.slice_:
+            slice_id = self._query_context.slice_.id
+
+        dashboard_id = form_data.get("dashboardId") or form_data.get("dashboard_id")
+
+        return {
+            "dashboard_id": dashboard_id,
+            "slice_id": slice_id,
+            "form_data": form_data,
+        }
+
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """Returns a pandas dataframe based on the query object"""
         query_context = self._query_context
@@ -276,7 +290,10 @@ class QueryContextProcessor:
             # todo(hugh): add logic to manage all sip68 models here
             result = query_context.datasource.exc_query(query_object.to_dict())
         else:
-            result = query_context.datasource.query(query_object.to_dict())
+            result = query_context.datasource.query(
+                query_object.to_dict(),
+                mutation_context=self._get_sql_mutation_context(),
+            )
             query = result.query + ";\n\n"
 
         df = result.df
@@ -685,7 +702,10 @@ class QueryContextProcessor:
             if isinstance(self._qc_datasource, Query):
                 result = self._qc_datasource.exc_query(query_object_clone_dct)
             else:
-                result = self._qc_datasource.query(query_object_clone_dct)
+                result = self._qc_datasource.query(
+                    query_object_clone_dct,
+                    mutation_context=self._get_sql_mutation_context(),
+                )
 
             queries.append(result.query)
             cache_keys.append(None)
