@@ -22,6 +22,7 @@ Unit tests for get_chart_preview MCP tool
 import importlib
 from types import SimpleNamespace
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -37,6 +38,9 @@ from superset.mcp_service.chart.schemas import (
     VegaLitePreview,
 )
 from superset.mcp_service.chart.tool.get_chart_preview import (
+    _build_chart_description,
+    _build_query_columns,
+    _build_query_metrics,
     _sanitize_chart_preview_for_llm_context,
     ASCIIPreviewStrategy,
     TablePreviewStrategy,
@@ -983,3 +987,97 @@ Market Share
 """
 
         # These demonstrate the expected ASCII formats for different chart types
+
+
+def test_build_query_columns_standard_groupby():
+    form_data = {"x_axis": "date", "groupby": ["region"]}
+    assert _build_query_columns(form_data) == ["date", "region"]
+
+
+def test_build_query_columns_pivot_table():
+    """Pivot tables use groupbyColumns/groupbyRows instead of groupby."""
+    form_data = {
+        "groupbyRows": ["product"],
+        "groupbyColumns": ["region"],
+        "metrics": [{"label": "SUM(sales)"}],
+    }
+    columns = _build_query_columns(form_data)
+    assert "product" in columns
+    assert "region" in columns
+
+
+def test_build_query_columns_mixed_timeseries_groupby_b():
+    """Mixed timeseries stores secondary groupby under groupby_b."""
+    form_data = {
+        "x_axis": "date",
+        "groupby": ["series_a"],
+        "groupby_b": ["series_b"],
+    }
+    columns = _build_query_columns(form_data)
+    assert "date" in columns
+    assert "series_a" in columns
+    assert "series_b" in columns
+
+
+def test_build_query_columns_no_duplicates():
+    form_data = {
+        "x_axis": "date",
+        "groupby": ["date", "region"],
+    }
+    columns = _build_query_columns(form_data)
+    assert columns.count("date") == 1
+
+
+def test_build_query_metrics_plural():
+    form_data = {"metrics": [{"label": "SUM(sales)"}, {"label": "COUNT(*)"}]}
+    assert _build_query_metrics(form_data) == [
+        {"label": "SUM(sales)"},
+        {"label": "COUNT(*)"},
+    ]
+
+
+def test_build_query_metrics_singular_for_pie():
+    """Pie charts use metric (singular) instead of metrics."""
+    form_data = {"metric": "SUM(amount)"}
+    assert _build_query_metrics(form_data) == ["SUM(amount)"]
+
+
+def test_build_query_metrics_mixed_timeseries():
+    """Mixed timeseries stores secondary metrics under metrics_b."""
+    form_data = {
+        "metrics": [{"label": "SUM(revenue)"}],
+        "metrics_b": [{"label": "AVG(cost)"}],
+    }
+    result = _build_query_metrics(form_data)
+    assert {"label": "SUM(revenue)"} in result
+    assert {"label": "AVG(cost)"} in result
+
+
+def test_build_query_metrics_empty():
+    assert _build_query_metrics({}) == []
+
+
+def test_build_query_columns_pivot_overlapping_rows_and_columns():
+    """Overlapping values in groupbyRows and groupbyColumns are deduplicated."""
+    form_data = {
+        "groupbyRows": ["country", "region"],
+        "groupbyColumns": ["region", "city"],
+    }
+    columns = _build_query_columns(form_data)
+    assert columns.count("region") == 1
+    assert "country" in columns
+    assert "city" in columns
+
+
+def test_build_chart_description_standard():
+    chart = MagicMock(viz_type="line", slice_name="Sales Trend", id=1)
+    desc = _build_chart_description(chart)
+    assert desc == "Preview of line: Sales Trend"
+
+
+def test_build_chart_description_handlebars():
+    chart = MagicMock(viz_type="handlebars", slice_name="My Template", id=2)
+    desc = _build_chart_description(chart)
+    assert "Handlebars" in desc
+    assert "raw underlying data" in desc
+    assert "template rendering" in desc
