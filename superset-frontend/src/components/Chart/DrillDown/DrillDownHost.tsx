@@ -140,10 +140,6 @@ export function DrillDownHost({
     [resetTo, rendererProps.actions, rendererProps.chartId, drillStack],
   );
 
-  if (!hasHierarchy) {
-    return <ChartRendererComponent {...rendererProps} />;
-  }
-
   const breadcrumbRef = useRef<HTMLDivElement>(null);
   const [breadcrumbHeight, setBreadcrumbHeight] = useState(0);
 
@@ -154,6 +150,10 @@ export function DrillDownHost({
       setBreadcrumbHeight(0);
     }
   }, [drillStack.length]);
+
+  if (!hasHierarchy) {
+    return <ChartRendererComponent {...rendererProps} />;
+  }
 
   // Reduce chart height by the breadcrumb height
   const adjustedHeight =
