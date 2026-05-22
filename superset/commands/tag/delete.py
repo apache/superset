@@ -94,10 +94,34 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
         self, object_type: ObjectType, object_id: int, exceptions: list[Any]
     ) -> None:
         """Validate that the current user has access to the target object."""
+        from superset import security_manager
+
         try:
             target_object = to_object_model(object_type, object_id)
-            if target_object and hasattr(target_object, "raise_for_access"):
-                target_object.raise_for_access()
+            if not target_object:
+                exceptions.append(
+                    TaggedObjectDeleteFailedError(
+                        f"Object not found: {object_type} {object_id}"
+                    )
+                )
+                return
+
+            # Use explicit security checks based on object type
+            if object_type == ObjectType.dashboard:
+                security_manager.raise_for_access(dashboard=target_object)
+            elif object_type == ObjectType.chart:
+                security_manager.raise_for_access(chart=target_object)
+            elif object_type == ObjectType.query:
+                security_manager.raise_for_access(query=target_object)
+            elif object_type == ObjectType.dataset:
+                security_manager.raise_for_access(datasource=target_object)
+            else:
+                # For unsupported object types, fail closed
+                exceptions.append(
+                    TaggedObjectDeleteFailedError(
+                        f"Access validation not supported for {object_type}"
+                    )
+                )
         except SupersetSecurityException:
             exceptions.append(
                 TaggedObjectDeleteFailedError(

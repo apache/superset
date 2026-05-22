@@ -1320,13 +1320,20 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         if not database:
             return self.response_404()
         data = DatabaseDAO.get_related_objects(pk)
+        # Filter charts to only include those the user can access
+        accessible_charts = [
+            chart
+            for chart in data["charts"]
+            if security_manager.can_access("can_read", "Chart")
+            and security_manager.is_owner(chart)
+        ]
         charts = [
             {
                 "id": chart.id,
                 "slice_name": chart.slice_name,
                 "viz_type": chart.viz_type,
             }
-            for chart in data["charts"]
+            for chart in accessible_charts
         ]
         # Filter dashboards to only include those the user can access
         accessible_dashboards = [
