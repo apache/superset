@@ -16,7 +16,7 @@
 # under the License.
 
 """
-Pydantic schemas for theme-related responses
+Pydantic schemas for theme-related MCP tool requests and responses.
 """
 
 from __future__ import annotations
@@ -42,6 +42,7 @@ from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
 from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
+    parse_json_or_passthrough,
 )
 from superset.utils import json as superset_json
 
@@ -303,3 +304,73 @@ def serialize_theme_object(obj: Any) -> ThemeInfo | None:
             created_on=getattr(obj, "created_on", None),
         )
     )
+
+
+def _json_data_to_str(v: Any) -> str:
+    """Accept a dict or JSON string; always return a JSON string."""
+    parsed = parse_json_or_passthrough(v, "json_data")
+    if isinstance(parsed, dict):
+        return superset_json.dumps(parsed)
+    return str(parsed)
+
+
+class CreateThemeRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    theme_name: str = Field(
+        ...,
+        description="Name of the theme to create.",
+    )
+    json_data: str | dict[str, Any] = Field(
+        ...,
+        description=(
+            "Theme configuration as a JSON string or a dict object. "
+            'Example: {"token": {"colorPrimary": "#1677ff"}}'
+        ),
+    )
+
+    @field_validator("json_data", mode="before")
+    @classmethod
+    def normalize_json_data(cls, v: Any) -> str:
+        return _json_data_to_str(v)
+
+
+class CreateThemeResponse(BaseModel):
+    id: int | None = Field(None, description="ID of the newly created theme.")
+    theme_name: str = Field(..., description="Name of the created theme.")
+    json_data: str = Field(..., description="JSON theme configuration that was stored.")
+    error: str | None = Field(None, description="Error message if creation failed.")
+
+
+class UpdateThemeRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: int = Field(..., description="ID of the theme to update.")
+    theme_name: str | None = Field(
+        None,
+        description="New name for the theme. Keeps the current name if not provided.",
+    )
+    json_data: str | dict[str, Any] | None = Field(
+        None,
+        description=(
+            "New theme configuration as a JSON string or dict. "
+            "Keeps the current configuration if not provided. "
+            'Example: {"token": {"colorPrimary": "#1677ff"}}'
+        ),
+    )
+
+    @field_validator("json_data", mode="before")
+    @classmethod
+    def normalize_json_data(cls, v: Any) -> str | None:
+        if v is None:
+            return None
+        return _json_data_to_str(v)
+
+
+class UpdateThemeResponse(BaseModel):
+    id: int | None = Field(None, description="ID of the updated theme.")
+    theme_name: str | None = Field(None, description="Name of the updated theme.")
+    json_data: str | None = Field(
+        None, description="JSON theme configuration that was stored."
+    )
+    error: str | None = Field(None, description="Error message if update failed.")
