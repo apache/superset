@@ -141,6 +141,9 @@ Tag Management:
 - list_tags: List tags with advanced filters (1-based pagination)
 - get_tag_info: Get detailed tag information by ID
 
+Plugin Management:
+- create_plugin: Register a new dynamic plugin by name, key, and bundle URL (requires DynamicPlugin write permission and DYNAMIC_PLUGINS feature flag)
+
 Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
 - get_database_info: Get detailed database connection info by ID (backend, capabilities)
@@ -718,6 +721,7 @@ from superset.mcp_service.explore.tool import (  # noqa: F401, E402
     generate_explore_link,
 )
 from superset.mcp_service.plugin.tool import (  # noqa: F401, E402
+    create_plugin,
     get_plugin_info,
     list_plugins,
 )

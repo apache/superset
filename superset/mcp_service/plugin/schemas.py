@@ -42,6 +42,10 @@ from superset.mcp_service.utils.schema_utils import (
     parse_json_or_model_list,
 )
 
+_NAME_MAX = 50
+_KEY_MAX = 50
+_URL_MAX = 1000
+
 DEFAULT_PLUGIN_COLUMNS = ["id", "name", "key", "bundle_url"]
 
 ALL_PLUGIN_COLUMNS = [
@@ -210,4 +214,66 @@ def serialize_plugin_object(plugin: Any) -> PluginInfo | None:
         bundle_url=getattr(plugin, "bundle_url", None),
         changed_on=getattr(plugin, "changed_on", None),
         created_on=getattr(plugin, "created_on", None),
+    )
+
+
+class CreatePluginRequest(BaseModel):
+    """Request schema for create_plugin."""
+
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=_NAME_MAX,
+        description="Human-friendly name for the plugin.",
+    )
+    key: str = Field(
+        ...,
+        min_length=1,
+        max_length=_KEY_MAX,
+        description=(
+            "Unique plugin key. Should match the package name from the plugin's "
+            "package.json (e.g. '@my-org/my-chart-plugin')."
+        ),
+    )
+    bundle_url: str = Field(
+        ...,
+        min_length=1,
+        max_length=_URL_MAX,
+        description=(
+            "Full URL pointing to the built plugin bundle "
+            "(e.g. a CDN-hosted JavaScript file)."
+        ),
+    )
+
+    @field_validator("name", "key")
+    @classmethod
+    def must_not_be_blank(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Field must not be blank")
+        return v.strip()
+
+    @field_validator("bundle_url")
+    @classmethod
+    def validate_bundle_url(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Field must not be blank")
+        if not (v.startswith("http://") or v.startswith("https://")):
+            raise ValueError("bundle_url must use http or https scheme")
+        return v
+
+
+class CreatePluginResponse(BaseModel):
+    """Response schema for create_plugin."""
+
+    id: int | None = Field(
+        None,
+        description="ID of the newly created plugin. None if creation failed.",
+    )
+    name: str | None = Field(None, description="Plugin name.")
+    key: str | None = Field(None, description="Plugin key.")
+    bundle_url: str | None = Field(None, description="Plugin bundle URL.")
+    error: str | None = Field(
+        None,
+        description="Error message if creation failed, otherwise null.",
     )
