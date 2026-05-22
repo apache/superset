@@ -879,7 +879,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         self._parsed.args["with_"] = None
         new_cte = exp.CTE(
             this=self._parsed.copy(),
-            alias=exp.TableAlias(this=exp.Identifier(this=alias, quoted=True)),
+            alias=exp.TableAlias(this=exp.Identifier(this=alias)),
         )
         return SQLStatement(
             ast=exp.With(expressions=[*existing_ctes, new_cte], this=None),
