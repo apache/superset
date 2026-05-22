@@ -37,14 +37,12 @@ from superset.mcp_service.dataset.schemas import (
     DatasetInfo,
     serialize_dataset_object,
 )
-from superset.mcp_service.utils.schema_utils import parse_request
 
 logger = logging.getLogger(__name__)
 
 
 @mcp.tool(tags=["mutate"])
 @mcp_auth_hook
-@parse_request(CreateDatasetRequest)
 def create_dataset(
     request: CreateDatasetRequest, ctx: Context
 ) -> DatasetInfo | DatasetError:
