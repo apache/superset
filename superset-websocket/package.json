@@ -33,7 +33,7 @@
     "@types/lodash": "^4.17.24",
     "@types/node": "^25.9.1",
     "@types/ws": "^8.18.1",
-    "@typescript-eslint/eslint-plugin": "^8.59.3",
+    "@typescript-eslint/eslint-plugin": "^8.59.4",
     "@typescript-eslint/parser": "^8.59.4",
     "eslint": "^10.4.0",
     "eslint-config-prettier": "^10.1.8",
@@ -41,11 +41,11 @@
     "globals": "^17.6.0",
     "jest": "^29.7.0",
     "prettier": "^3.8.3",
-    "ts-jest": "^29.4.9",
+    "ts-jest": "^29.4.10",
     "ts-node": "^10.9.2",
     "tscw-config": "^1.1.2",
     "typescript": "^5.9.3",
-    "typescript-eslint": "^8.59.3"
+    "typescript-eslint": "^8.59.4"
   },
   "engines": {
     "node": "^22.22.0",
