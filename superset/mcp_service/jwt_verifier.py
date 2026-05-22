@@ -62,11 +62,18 @@ _jwt_failure_reason: ContextVar[str | None] = ContextVar(
     "_jwt_failure_reason", default=None
 )
 
-_MCP_BROWSER_HELLO_HTML: str = (
-    _resource_files("superset.mcp_service")
-    .joinpath("hello.html")
-    .read_text(encoding="utf-8")
-)
+_MCP_BROWSER_HELLO_HTML: str | None = None
+
+
+def _get_browser_hello_html() -> str:
+    global _MCP_BROWSER_HELLO_HTML
+    if _MCP_BROWSER_HELLO_HTML is None:
+        _MCP_BROWSER_HELLO_HTML = (
+            _resource_files("superset.mcp_service")
+            .joinpath("hello.html")
+            .read_text(encoding="utf-8")
+        )
+    return _MCP_BROWSER_HELLO_HTML
 
 
 def _prefers_browser_html(conn: HTTPConnection) -> bool:
@@ -101,7 +108,7 @@ def _auth_error_handler(conn: HTTPConnection, exc: AuthenticationError) -> Respo
         - CVE-2022-29266, CVE-2019-7644: verbose JWT errors led to exploits
     """
     if _prefers_browser_html(conn):
-        return HTMLResponse(status_code=200, content=_MCP_BROWSER_HELLO_HTML)
+        return HTMLResponse(status_code=200, content=_get_browser_hello_html())
 
     # Log detailed reason server-side only
     logger.warning("JWT authentication failed: %s", exc)
