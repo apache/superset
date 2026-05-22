@@ -169,6 +169,8 @@ class UserRestApi(BaseSupersetApi):
 
     resource_name = "user"
     openapi_spec_tag = "User"
+    # Enable browser login for all user endpoints to support avatar access and other
+    # user-related functionality that may be called from browser contexts
     allow_browser_login = True
     openapi_spec_component_schemas = (UserResponseSchema,)
 

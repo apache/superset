@@ -229,7 +229,7 @@ class Datasource(BaseSupersetView):
             # Non-table types (query, saved_query) use a different access model;
             # passing them to raise_for_access(datasource=...) would check the
             # wrong attributes. Let get_samples() handle the lookup for those types.
-            if params["datasource_type"] == DatasourceType.TABLE:
+            if params["datasource_type"] == DatasourceType.TABLE.value:
                 try:
                     dataset = DatasourceDAO.get_datasource(
                         params["datasource_type"],
