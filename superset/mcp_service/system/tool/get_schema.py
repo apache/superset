@@ -56,6 +56,7 @@ from superset.mcp_service.mcp_core import ModelGetSchemaCore
 from superset.mcp_service.privacy import (
     PrivacyError,
     remove_chart_data_model_columns,
+    SELF_REFERENCING_FILTER_COLUMNS,
     user_can_view_data_model_metadata,
 )
 
@@ -77,6 +78,7 @@ def _get_chart_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
         search_columns=CHART_SEARCH_COLUMNS,
         default_sort="changed_on",
         default_sort_direction="desc",
+        exclude_filter_columns=set(SELF_REFERENCING_FILTER_COLUMNS),
         logger=logger,
     )
 
@@ -96,6 +98,7 @@ def _get_dataset_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
         search_columns=DATASET_SEARCH_COLUMNS,
         default_sort="changed_on",
         default_sort_direction="desc",
+        exclude_filter_columns=set(SELF_REFERENCING_FILTER_COLUMNS),
         logger=logger,
     )
 
@@ -115,6 +118,7 @@ def _get_dashboard_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
         search_columns=DASHBOARD_SEARCH_COLUMNS,
         default_sort="changed_on",
         default_sort_direction="desc",
+        exclude_filter_columns=set(SELF_REFERENCING_FILTER_COLUMNS),
         logger=logger,
     )
 
@@ -199,7 +203,7 @@ async def get_schema(
     # Get the appropriate core factory with defensive lookup
     factory = _SCHEMA_CORE_FACTORIES.get(request.model_type)
     if factory is None:
-        await ctx.error(f"Unsupported model_type: {request.model_type}")
+        await ctx.warning(f"Unsupported model_type: {request.model_type}")
         raise ValueError(
             f"Unsupported model_type: {request.model_type}. "
             f"Valid types are: {', '.join(_SCHEMA_CORE_FACTORIES.keys())}"

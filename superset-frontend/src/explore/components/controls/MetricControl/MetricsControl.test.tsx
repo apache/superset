@@ -62,7 +62,10 @@ function setup(overrides: Record<string, unknown> = {}) {
     ...defaultProps,
     ...overrides,
   };
-  const result = render(<MetricsControl {...props} />, { useDnd: true });
+  const result = render(<MetricsControl {...props} />, {
+    useDnd: true,
+    useRedux: true,
+  });
   return { onChange, ...result };
 }
 
@@ -107,7 +110,7 @@ test('accepts an edited metric from an AdhocMetricEditPopover', async () => {
   userEvent.click(metricLabel);
 
   await screen.findByText('aggregate');
-  selectOption('AVG', 'Select aggregate options');
+  await selectOption('AVG', 'Select aggregate options');
 
   await screen.findByText('AVG(value)');
 
@@ -166,7 +169,7 @@ test('does not remove custom SQL metric if savedMetrics changes', async () => {
       ]}
       datasource={undefined}
     />,
-    { useDnd: true },
+    { useDnd: true, useRedux: true },
   );
 
   expect(screen.getByText('old label')).toBeInTheDocument();

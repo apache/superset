@@ -22,7 +22,7 @@ Pydantic schemas for database-related responses
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Literal
+from typing import Annotated, Any, cast, Dict, List, Literal
 
 import humanize
 from pydantic import (
@@ -36,7 +36,10 @@ from pydantic import (
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.common.cache_schemas import MetadataCacheControl
+from superset.mcp_service.common.cache_schemas import (
+    CreatedByMeMixin,
+    MetadataCacheControl,
+)
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import PaginationInfo
@@ -55,7 +58,7 @@ class DatabaseFilter(ColumnOperator):
     value: The value to filter by (type depends on col and opr).
     """
 
-    col: Literal[
+    col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "database_name",
         "expose_in_sqllab",
         "allow_file_upload",
@@ -184,7 +187,7 @@ class DatabaseList(BaseModel):
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
 
-class ListDatabasesRequest(MetadataCacheControl):
+class ListDatabasesRequest(CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_databases with clear, unambiguous types."""
 
     filters: Annotated[
@@ -239,7 +242,10 @@ class ListDatabasesRequest(MetadataCacheControl):
     @classmethod
     def parse_filters(cls, v: Any) -> List[DatabaseFilter]:
         """Accept both JSON string and list of objects."""
-        return parse_json_or_model_list(v, DatabaseFilter, "filters")
+        return cast(
+            List[DatabaseFilter],
+            parse_json_or_model_list(v, DatabaseFilter, "filters"),
+        )
 
     @field_validator("select_columns", mode="before")
     @classmethod

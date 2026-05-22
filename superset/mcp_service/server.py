@@ -28,6 +28,7 @@ from collections.abc import Sequence
 from typing import Annotated, Any, Callable
 
 import uvicorn
+from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
@@ -40,11 +41,8 @@ from superset.mcp_service.middleware import (
     create_response_size_guard_middleware,
     GlobalErrorHandlerMiddleware,
     LoggingMiddleware,
+    RBACToolVisibilityMiddleware,
     StructuredContentStripperMiddleware,
-)
-from superset.mcp_service.privacy import (
-    tool_requires_data_model_metadata_access,
-    user_can_view_data_model_metadata,
 )
 from superset.mcp_service.storage import _create_redis_store
 from superset.utils import json
@@ -78,6 +76,34 @@ def _suppress_third_party_warnings() -> None:
     )
 
 
+class FastMCPValidationFilter(logging.Filter):
+    """Downgrade FastMCP's user-error logs from ERROR to WARNING.
+
+    FastMCP's server.py logs ValidationError and ToolError at ERROR level
+    via logger.exception() before our GlobalErrorHandlerMiddleware sees it.
+    These are user errors (LLM sent bad params, access denied, not found)
+    and are expected in normal MCP operation — they should not pollute
+    ERROR-level logs in Datadog.
+
+    Only "Error validating tool" messages are downgraded — these are
+    always Pydantic ValidationErrors (bad params from LLM). "Error calling
+    tool" messages are NOT downgraded because our middleware wraps both
+    user errors and system errors in ToolError, making it impossible to
+    distinguish them by exception type alone.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        # NOTE: This matches the literal log message from FastMCP's server.py
+        # (fastmcp/server/server.py line ~1245). If FastMCP changes this
+        # message format, this filter will stop working silently.
+        if record.levelno != logging.ERROR:
+            return True
+        if "Error validating tool" in record.getMessage():
+            record.levelno = logging.WARNING
+            record.levelname = "WARNING"
+        return True
+
+
 def configure_logging(debug: bool = False) -> None:
     """Configure logging for the MCP service."""
     import sys
@@ -105,6 +131,13 @@ def configure_logging(debug: bool = False) -> None:
 
         # Use logging instead of print to avoid stdout contamination
         logging.info("🔍 SQL Debug logging enabled")
+
+    # FastMCP's server.py logs ValidationError/ToolError at ERROR via
+    # logger.exception() before our middleware sees it. These are user errors
+    # (bad params from LLM) and should not pollute ERROR logs.
+    # Downgrade these specific messages from ERROR to WARNING.
+    fastmcp_server_logger = logging.getLogger("fastmcp.server.server")
+    fastmcp_server_logger.addFilter(FastMCPValidationFilter())
 
 
 def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
@@ -367,38 +400,33 @@ def _build_summary_serializer(max_desc: int) -> Any:
 def _tool_allowed_for_current_user(tool: Any) -> bool:
     """Return whether the current Flask user can see this tool in search results."""
     try:
-        from flask import current_app, g
+        from flask import g, has_app_context
 
-        if not current_app.config.get("MCP_RBAC_ENABLED", True):
-            return True
-
-        from superset import security_manager
         from superset.mcp_service.auth import (
-            CLASS_PERMISSION_ATTR,
+            _get_app_context_manager,
             get_user_from_request,
-            METHOD_PERMISSION_ATTR,
-            PERMISSION_PREFIX,
+            is_tool_visible_to_current_user,
         )
 
-        tool_func = getattr(tool, "fn", None)
-        if tool_requires_data_model_metadata_access(tool_func) and not (
-            user_can_view_data_model_metadata()
-        ):
-            return False
+        def _check() -> bool:
+            if not getattr(g, "user", None):
+                try:
+                    g.user = get_user_from_request()
+                except PermissionError:
+                    # Invalid credentials (bad API key) → deny all, matching
+                    # RBACToolVisibilityMiddleware's fail-closed behaviour.
+                    return False
+                except ValueError:
+                    # No auth source configured → only pass public tools
+                    # (those with no class-level permission requirement).
+                    func = getattr(tool, "fn", tool)
+                    return not getattr(func, "_class_permission_name", None)
+            return is_tool_visible_to_current_user(tool)
 
-        class_permission_name = getattr(tool_func, CLASS_PERMISSION_ATTR, None)
-        if not class_permission_name:
-            return True
-
-        if not getattr(g, "user", None):
-            try:
-                g.user = get_user_from_request()
-            except ValueError:
-                return False
-
-        method_permission_name = getattr(tool_func, METHOD_PERMISSION_ATTR, "read")
-        permission_name = f"{PERMISSION_PREFIX}{method_permission_name}"
-        return security_manager.can_access(permission_name, class_permission_name)
+        if has_app_context():
+            return _check()
+        with _get_app_context_manager():
+            return _check()
     except (AttributeError, RuntimeError, ValueError):
         logger.debug("Could not evaluate tool search permission", exc_info=True)
         return False
@@ -560,7 +588,7 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
             Use this to execute tools discovered via search_tools.
             """
             if name in {transform._call_tool_name, transform._search_tool_name}:
-                raise ValueError(
+                raise ToolError(
                     f"'{name}' is a synthetic search tool and cannot be "
                     f"called via the call_tool proxy"
                 )
@@ -675,11 +703,15 @@ def build_middleware_list() -> list[Middleware]:
 
     1. StructuredContentStripper — safety net, converts exceptions
        to safe ToolResult text for transports that can't encode errors
-    2. LoggingMiddleware — logs tool calls with success/failure status
-    3. GlobalErrorHandler — catches tool exceptions, raises ToolError
+    2. RBACToolVisibilityMiddleware — filters tools/list by RBAC;
+       positioned inside the Stripper so it sees full tool objects
+       (with outputSchema) before stripping occurs
+    3. LoggingMiddleware — logs tool calls with success/failure status
+    4. GlobalErrorHandler — catches tool exceptions, raises ToolError
     """
     return [
         StructuredContentStripperMiddleware(),
+        RBACToolVisibilityMiddleware(),
         LoggingMiddleware(),
         GlobalErrorHandlerMiddleware(),
     ]

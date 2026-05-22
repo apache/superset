@@ -45,7 +45,17 @@ if [ ${#js_ts_files[@]} -gt 0 ]; then
   # Skip custom OXC build in pre-commit for speed
   export SKIP_CUSTOM_OXC=true
   # Use quiet mode in pre-commit to reduce noise (only show errors)
-  npx oxlint --config oxlint.json --fix --quiet "${js_ts_files[@]}"
+  # Capture output so we can treat "No files found" (all files ignored by
+  # ignorePatterns) as success rather than a false-positive failure.
+  output=$(npx oxlint --config oxlint.json --fix --quiet "${js_ts_files[@]}" 2>&1) || {
+    if echo "$output" | grep -q "No files found"; then
+      echo "No files to lint after applying ignore patterns"
+      exit 0
+    fi
+    echo "$output" >&2
+    exit 1
+  }
+  [ -n "$output" ] && echo "$output"
 else
   echo "No JavaScript/TypeScript files to lint"
 fi

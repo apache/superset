@@ -17,6 +17,7 @@
  * under the License.
  */
 import type { AnyAction } from 'redux';
+import { SupersetClient } from '@superset-ui/core';
 import { defaultState } from 'src/explore/store';
 import exploreReducer, {
   ExploreState,
@@ -239,4 +240,108 @@ describe('reducers', () => {
       defaultState.form_data.y_axis_format,
     );
   });
+});
+
+test('fetchCompatibility ignores stale async responses', async () => {
+  const dispatch = jest.fn();
+
+  let resolveFirst: (value: {
+    json: {
+      result: {
+        compatible_metrics: string[];
+        compatible_dimensions: string[];
+      };
+    };
+  }) => void;
+  let resolveSecond: (value: {
+    json: {
+      result: {
+        compatible_metrics: string[];
+        compatible_dimensions: string[];
+      };
+    };
+  }) => void;
+
+  const firstPromise = new Promise<{
+    json: {
+      result: {
+        compatible_metrics: string[];
+        compatible_dimensions: string[];
+      };
+    };
+  }>(resolve => {
+    resolveFirst = resolve;
+  });
+  const secondPromise = new Promise<{
+    json: {
+      result: {
+        compatible_metrics: string[];
+        compatible_dimensions: string[];
+      };
+    };
+  }>(resolve => {
+    resolveSecond = resolve;
+  });
+
+  const postSpy = jest.spyOn(SupersetClient, 'post');
+  postSpy
+    .mockImplementationOnce(() => firstPromise as never)
+    .mockImplementationOnce(() => secondPromise as never);
+
+  const firstThunk = actions.fetchCompatibility(
+    'semantic_view',
+    7,
+    ['m1'],
+    ['d1'],
+  )(dispatch as any);
+  const secondThunk = actions.fetchCompatibility(
+    'semantic_view',
+    7,
+    ['m2'],
+    ['d2'],
+  )(dispatch as any);
+
+  resolveSecond!({
+    json: {
+      result: {
+        compatible_metrics: ['m2'],
+        compatible_dimensions: ['d2'],
+      },
+    },
+  });
+  await secondThunk;
+
+  resolveFirst!({
+    json: {
+      result: {
+        compatible_metrics: ['m1'],
+        compatible_dimensions: ['d1'],
+      },
+    },
+  });
+  await firstThunk;
+
+  const compatibilityActions = dispatch.mock.calls
+    .map(call => call[0])
+    .filter((action: AnyAction) => action.type === actions.SET_COMPATIBILITY);
+  const successfulActions = compatibilityActions.filter(
+    (action: AnyAction) => action.compatibilityLoading === false,
+  );
+
+  expect(successfulActions).toContainEqual(
+    expect.objectContaining({
+      compatibleMetrics: ['m2'],
+      compatibleDimensions: ['d2'],
+      compatibilityLoading: false,
+    }),
+  );
+  expect(successfulActions).not.toContainEqual(
+    expect.objectContaining({
+      compatibleMetrics: ['m1'],
+      compatibleDimensions: ['d1'],
+      compatibilityLoading: false,
+    }),
+  );
+
+  postSpy.mockRestore();
 });

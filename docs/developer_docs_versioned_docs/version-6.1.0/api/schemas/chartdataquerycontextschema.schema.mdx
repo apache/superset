@@ -1,0 +1,31 @@
+---
+id: chartdataquerycontextschema
+title: "ChartDataQueryContextSchema"
+description: ""
+sidebar_label: "ChartDataQueryContextSchema"
+hide_title: true
+hide_table_of_contents: true
+schema: true
+sample: {"custom_cache_timeout":0,"datasource":{"type":"table"},"force":true,"queries":[{"annotation_layers":[{"annotationType":"FORMULA","color":"string","descriptionColumns":["string"],"hideLine":true,"intervalEndColumn":"string","name":"string","opacity":"","overrides":{},"show":true,"showLabel":true,"showMarkers":true,"sourceType":"","style":"dashed","timeColumn":"string","titleColumn":"string","width":0}],"applied_time_extras":{"__time_range":"1 year ago : now"},"apply_fetch_values_predicate":true,"columns":[null],"datasource":{"type":"table"},"extras":{"column_order":["string"],"having":"string","instant_time_comparison_range":"string","relative_end":"today","relative_start":"today","time_grain_sqla":"P1D","transpile_to_dialect":true,"where":"string"},"filters":[{"col":"country","grain":"PT1M","isExtra":true,"op":"IN","val":["China","France","Japan"]}],"granularity":"string","group_others_when_limit_reached":false,"groupby":[null],"is_rowcount":true,"is_timeseries":true,"metrics":[null],"order_desc":true,"orderby":[["my_col_1",false],["my_col_2",true]],"post_processing":[{"operation":"aggregate","options":{"aggregates":{"age_mean":{"column":"age","operator":"mean"},"age_q1":{"column":"age","operator":"percentile","options":{"q":0.25}}},"groupby":["country","gender"]}}],"row_limit":0,"row_offset":0,"series_columns":[null],"series_limit":0,"time_offsets":["string"],"time_range":"Last week","time_shift":"string","timeseries_limit":0,"url_params":{}}]}
+custom_edit_url: null
+---
+
+import Schema from "@theme/Schema";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"ChartDataQueryContextSchema"}
+>
+</Heading>
+
+
+
+
+
+<Schema
+  {...require("./chartdataquerycontextschema.Schema.json")}
+>
+
+</Schema>

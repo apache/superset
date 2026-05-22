@@ -145,6 +145,11 @@ describe('RoleListEditModal', () => {
 
     render(<RoleListEditModal {...mockProps} />);
 
+    // Wait for user hydration to complete so setFieldsValue has populated
+    // the form with the fetched users before submitting.
+    await screen.findByText('johndoe');
+    await screen.findByText('janesmith');
+
     fireEvent.change(screen.getByTestId('role-name-input'), {
       target: { value: 'Updated Role' },
     });
@@ -164,6 +169,7 @@ describe('RoleListEditModal', () => {
         true,
       );
 
+      // updateRoleUsers is called with the hydrated user IDs
       const userArg = mockUpdateRoleUsers.mock.calls[0][1];
       expect(userArg).toEqual([5, 7]);
       expect(userArg.every((id: unknown) => typeof id === 'number')).toBe(true);
@@ -220,6 +226,8 @@ describe('RoleListEditModal', () => {
     expect(decodedQuery).toEqual({
       page_size: 100,
       page: 0,
+      order_column: 'id',
+      order_direction: 'asc',
       filters: [
         {
           col: 'roles',
