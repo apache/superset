@@ -152,7 +152,7 @@ export default function transformProps(
     };
   }, {});
 
-  const { setDataMask = () => {}, onContextMenu } = hooks;
+  const { setDataMask = () => {}, onContextMenu, onDrillDown } = hooks;
   const colorFn = CategoricalColorNamespace.getScale(colorScheme as string);
   const numberFormatter = getValueFormatter(
     metric,
@@ -335,6 +335,7 @@ export default function transformProps(
     groupby,
     selectedValues,
     onContextMenu,
+    onDrillDown,
     refs,
     coltypeMapping,
   };

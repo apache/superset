@@ -135,6 +135,15 @@ export interface ChartRendererProps {
   cacheBusterProp?: string;
   onChartStateChange?: (chartState: AgGridChartState) => void;
   suppressLoadingSpinner?: boolean;
+  /**
+   * Drill-down click handler injected by the DrillDownHost wrapper.
+   * Plugins receive this in their hooks bag and call it instead of
+   * emitting a cross-filter when a drill-down hierarchy is configured.
+   */
+  onDrillDown?: (
+    filters: import('@superset-ui/core').BinaryQueryObjectFilterClause[],
+    label: string,
+  ) => void;
 }
 
 // State interface
@@ -166,6 +175,15 @@ interface ChartHooks {
   setDataMask: (dataMask: DataMask) => void;
   onLegendScroll: (legendIndex: number) => void;
   onChartStateChange?: (chartState: AgGridChartState) => void;
+  /**
+   * Drill-down hook. When the chart has `drilldown_hierarchy` configured
+   * and the user clicks a data point, plugins call this with the filters
+   * identifying the click and a human-readable label for the breadcrumb.
+   */
+  onDrillDown?: (
+    filters: import('@superset-ui/core').BinaryQueryObjectFilterClause[],
+    label: string,
+  ) => void;
 }
 
 const BLANK = {};
@@ -242,6 +260,16 @@ class ChartRenderer extends Component<ChartRendererProps, ChartRendererState> {
       },
       onLegendScroll: this.handleLegendScroll,
       onChartStateChange: this.props.onChartStateChange,
+      onDrillDown: (...args: Parameters<NonNullable<ChartRendererProps['onDrillDown']>>) => {
+        // eslint-disable-next-line no-console
+        console.log('[DrillDown] ChartRenderer onDrillDown hook called', {
+          hasOnDrillDownProp: !!this.props.onDrillDown,
+          args,
+        });
+        if (this.props.onDrillDown) {
+          this.props.onDrillDown(...args);
+        }
+      },
     };
 
     // TODO: queriesResponse comes from Redux store but it's being edited by

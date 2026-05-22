@@ -45,6 +45,7 @@ import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { Dispatch } from 'redux';
 import ChartRenderer from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
+import { DrillDownHost } from './DrillDown/DrillDownHost';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
 
 export type ChartErrorType = Partial<ClientErrorObject>;
@@ -328,8 +329,9 @@ class Chart extends PureComponent<ChartProps, {}> {
     return (
       <div className="slice_container" data-test="slice-container">
         {this.shouldRenderChart() ? (
-          <ChartRenderer
+          <DrillDownHost
             {...this.props}
+            ChartRendererComponent={ChartRenderer}
             source={
               this.props.dashboardId
                 ? ChartSource.Dashboard

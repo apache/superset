@@ -58,6 +58,7 @@ export default function EchartsTimeseries({
   emitCrossFilters,
   coltypeMapping,
   onLegendScroll,
+  onDrillDown,
 }: TimeseriesChartTransformedProps) {
   const { stack } = formData;
   const echartRef = useRef<EchartsHandler | null>(null);
@@ -218,6 +219,72 @@ export default function EchartsTimeseries({
 
   const eventHandlers: EventHandlers = {
     click: props => {
+      // Drill-down takes priority over cross-filter when a hierarchy is configured
+      const fdAny = formData as Record<string, unknown>;
+      const drillHierarchy = (fdAny.drilldownHierarchy ?? fdAny.drilldown_hierarchy) as string[] | undefined;
+      const hasDrillHierarchy =
+        onDrillDown &&
+        Array.isArray(drillHierarchy) &&
+        drillHierarchy.length > 1;
+
+      // eslint-disable-next-line no-console
+      console.log('[DrillDown] click handler', {
+        hasDrillHierarchy,
+        hierarchy: (formData as Record<string, unknown>).drilldown_hierarchy,
+        hasDimensions,
+        onDrillDownDefined: typeof onDrillDown,
+        formDataKeys: Object.keys(formData),
+        groupby,
+        xAxisLabel: xAxis.label,
+        xAxisType: xAxis.type,
+      });
+
+      if (hasDrillHierarchy) {
+        if (clickTimer.current) {
+          clearTimeout(clickTimer.current);
+        }
+        clickTimer.current = setTimeout(() => {
+          const { seriesName: name } = props;
+          const drillFilters: BinaryQueryObjectFilterClause[] = [];
+          if (hasDimensions) {
+            const values = labelMap[name] ?? [];
+            groupby.forEach((dimension, i) => {
+              drillFilters.push({
+                col: dimension,
+                op: '==',
+                val: values[i],
+                formattedVal: String(values[i]),
+              });
+            });
+          } else if (xAxis.type === AxisType.Category && props.data?.[0] != null) {
+            // Bar chart with x_axis only (no groupby dimensions)
+            drillFilters.push({
+              col: xAxis.label,
+              op: '==',
+              val: props.data[0],
+              formattedVal: String(props.data[0]),
+            });
+          } else if (props.name) {
+            // Fallback: use the event name (typically the x-axis label)
+            drillFilters.push({
+              col: xAxis.label,
+              op: '==',
+              val: props.name,
+              formattedVal: String(props.name),
+            });
+          }
+          // eslint-disable-next-line no-console
+          console.log('[DrillDown] firing drillDown', { drillFilters, name });
+          if (drillFilters.length > 0) {
+            const label = drillFilters
+              .map(f => f.formattedVal ?? String(f.val))
+              .join(', ');
+            onDrillDown(drillFilters, label);
+          }
+        }, TIMER_DURATION);
+        return;
+      }
+
       // Allow cross-filter by dimensions OR by categorical X-axis (issue #25334)
       if (!hasDimensions && !canCrossFilterByXAxis) {
         return;

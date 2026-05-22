@@ -161,10 +161,47 @@ export const allEventHandlers = (
     selectedValues,
     coltypeMapping,
     formData,
+    onDrillDown,
   } = transformedProps;
+
+  // When a drill-down hierarchy is configured, left-click drills instead of
+  // emitting a cross-filter.
+  const fdAny = formData as Record<string, unknown>;
+  const drillHierarchy = (fdAny.drilldownHierarchy ?? fdAny.drilldown_hierarchy) as string[] | undefined;
+  const hasDrillHierarchy =
+    onDrillDown &&
+    Array.isArray(drillHierarchy) &&
+    drillHierarchy.length > 1;
+
+  const drillDownClickHandler =
+    hasDrillHierarchy && groupby.length > 0
+      ? (e: { name: string }) => {
+          const values = labelMap[e.name];
+          if (!values) return;
+          const drillFilters: BinaryQueryObjectFilterClause[] = [];
+          groupby.forEach((dimension, i) => {
+            drillFilters.push({
+              col: dimension,
+              op: '==',
+              val: values[i],
+              formattedVal: formatSeriesName(values[i], {
+                timeFormatter: getTimeFormatter(formData.dateFormat),
+                numberFormatter: getNumberFormatter(formData.numberFormat),
+                coltype: coltypeMapping?.[getColumnLabel(dimension)],
+              }),
+            });
+          });
+          const label = drillFilters
+            .map(f => f.formattedVal ?? String(f.val))
+            .join(', ');
+          onDrillDown(drillFilters, label);
+        }
+      : undefined;
+
   const eventHandlers: EventHandlers = {
-    click:
-      groupby.length > 0
+    click: drillDownClickHandler
+      ? drillDownClickHandler
+      : groupby.length > 0
         ? clickEventHandler(
             getCrossFilterDataMask(selectedValues, groupby, labelMap),
             setDataMask,

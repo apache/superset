@@ -318,6 +318,7 @@ const config: ControlPanelConfig = {
     sections.advancedAnalyticsControls,
     sections.annotationsAndLayersControls,
     sections.forecastIntervalControls,
+    sections.drilldownHierarchySection,
     {
       label: t('Chart Orientation'),
       expanded: true,

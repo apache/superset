@@ -48,6 +48,28 @@ export interface ContextMenuFilters {
   };
 }
 
+/**
+ * Payload emitted by a chart plugin when the user clicks on a data point
+ * while a drill-down hierarchy is configured. The host (ChartRenderer)
+ * uses this to advance to the next level of the hierarchy.
+ */
+export interface DrillDownEvent {
+  /**
+   * Filters identifying the clicked data point (e.g. country = "USA").
+   * These get appended to the chart's adhoc_filters when drilling down.
+   */
+  filters: BinaryQueryObjectFilterClause[];
+  /**
+   * Form-data field that holds the dimension being drilled (default 'groupby').
+   * For some plugins this is 'columns' (e.g. Sunburst).
+   */
+  groupbyFieldName?: string;
+  /**
+   * Form-data field for adhoc filters (default 'adhoc_filters').
+   */
+  adhocFilterFieldName?: string;
+}
+
 export enum AppSection {
   Explore = 'EXPLORE',
   Dashboard = 'DASHBOARD',
