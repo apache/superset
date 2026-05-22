@@ -25,6 +25,7 @@ from flask import g
 from superset.mcp_service.auth import (
     check_tool_permission,
     CLASS_PERMISSION_ATTR,
+    is_tool_visible_to_current_user,
     MCPPermissionDeniedError,
     METHOD_PERMISSION_ATTR,
     PERMISSION_PREFIX,
@@ -223,3 +224,122 @@ def app_context(app):
     """Provide Flask app context for tests needing g.user."""
     with app.app_context():
         yield
+
+
+# -- is_tool_visible_to_current_user --
+
+
+def _make_mock_tool(
+    class_perm: str | None = None,
+    method_perm: str | None = None,
+    fn: object | None = None,
+) -> MagicMock:
+    """Create a mock FastMCP Tool object for visibility tests."""
+    tool = MagicMock()
+    if fn is not None:
+        tool.fn = fn
+    elif class_perm is not None:
+        func = _make_tool_func(class_perm, method_perm)
+        tool.fn = func
+    else:
+        tool.fn = None
+    return tool
+
+
+def test_visibility_returns_true_when_rbac_disabled(app_context, app) -> None:
+    """is_tool_visible_to_current_user returns True when RBAC is disabled."""
+    app.config["MCP_RBAC_ENABLED"] = False
+    tool = _make_mock_tool(class_perm="Chart", method_perm="write")
+    try:
+        assert is_tool_visible_to_current_user(tool) is True
+    finally:
+        app.config["MCP_RBAC_ENABLED"] = True
+
+
+def test_visibility_returns_true_when_fn_is_none(app_context) -> None:
+    """Tools with fn=None (public/synthetic) are always visible."""
+    tool = _make_mock_tool()
+    assert is_tool_visible_to_current_user(tool) is True
+
+
+def test_visibility_public_tool_no_class_permission(app_context) -> None:
+    """Tools without class_permission_name are visible to all users."""
+    g.user = MagicMock(username="viewer")
+    func = _make_tool_func()  # no class permission
+    tool = MagicMock()
+    tool.fn = func
+    assert is_tool_visible_to_current_user(tool) is True
+
+
+def test_visibility_allowed_tool(app_context) -> None:
+    """Tools where security_manager grants access are visible."""
+    g.user = MagicMock(username="admin")
+    func = _make_tool_func(class_perm="Chart", method_perm="read")
+    tool = MagicMock()
+    tool.fn = func
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with patch("superset.security_manager", mock_sm):
+        result = is_tool_visible_to_current_user(tool)
+
+    assert result is True
+
+
+def test_visibility_denied_tool(app_context) -> None:
+    """Tools where security_manager denies access are hidden."""
+    g.user = MagicMock(username="viewer")
+    func = _make_tool_func(class_perm="Dashboard", method_perm="write")
+    tool = MagicMock()
+    tool.fn = func
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=False)
+    with patch("superset.security_manager", mock_sm):
+        result = is_tool_visible_to_current_user(tool)
+
+    assert result is False
+
+
+def test_visibility_data_model_metadata_denied(app_context) -> None:
+    """Tools requiring data-model metadata access are hidden when user lacks it."""
+    g.user = MagicMock(username="viewer")
+    func = _make_tool_func(class_perm="Dataset", method_perm="read")
+    func._requires_data_model_metadata_access = True  # type: ignore[attr-defined]
+    tool = MagicMock()
+    tool.fn = func
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with (
+        patch("superset.security_manager", mock_sm),
+        patch(
+            "superset.mcp_service.privacy.user_can_view_data_model_metadata",
+            return_value=False,
+        ),
+    ):
+        result = is_tool_visible_to_current_user(tool)
+
+    assert result is False
+
+
+def test_visibility_data_model_metadata_allowed(app_context) -> None:
+    """Tools requiring data-model metadata access are visible when user has it."""
+    g.user = MagicMock(username="alpha")
+    func = _make_tool_func(class_perm="Dataset", method_perm="read")
+    func._requires_data_model_metadata_access = True  # type: ignore[attr-defined]
+    tool = MagicMock()
+    tool.fn = func
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    with (
+        patch("superset.security_manager", mock_sm),
+        patch(
+            "superset.mcp_service.privacy.user_can_view_data_model_metadata",
+            return_value=True,
+        ),
+    ):
+        result = is_tool_visible_to_current_user(tool)
+
+    assert result is True

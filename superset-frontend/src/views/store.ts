@@ -22,12 +22,13 @@ import {
   createListenerMiddleware,
   StoreEnhancer,
 } from '@reduxjs/toolkit';
+import type { AnyAction } from 'redux';
 import {
   useDispatch,
   useSelector,
   type TypedUseSelectorHook,
 } from 'react-redux';
-import thunk from 'redux-thunk';
+import thunk, { type ThunkDispatch } from 'redux-thunk';
 import { api } from 'src/hooks/apiResources/queryApi';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
 import charts from 'src/components/Chart/chartReducer';
@@ -188,6 +189,14 @@ export type RootState = ReturnType<typeof store.getState>;
 // thunks resolve correctly), and `useAppSelector` infers `RootState` without
 // callers having to annotate every selector. Required ahead of the
 // react-redux v8+ bump, which tightens dispatch typing — see #39927.
-export type AppDispatch = typeof store.dispatch;
+//
+// AppDispatch is declared as ThunkDispatch & store.dispatch rather than
+// `typeof store.dispatch` because Superset annotates getMiddleware as
+// ConfigureStoreOptions['middleware'], which erases the middleware tuple type
+// and leaves store.dispatch typed as Dispatch<AnyAction>. The intersection
+// restores thunk support without requiring a wider refactor of the middleware
+// setup.
+export type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction> &
+  typeof store.dispatch;
 export const useAppDispatch: () => AppDispatch = useDispatch;
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;
