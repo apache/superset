@@ -423,6 +423,93 @@ class TestValidateAndCompileTier2:
         assert result.error_code == "DATASET_NOT_FOUND"
 
 
+@patch("superset.daos.dataset.DatasetDAO")
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_chart_returns_database_error_when_wrapped_in_query_failed(
+    mock_factory, mock_cmd_cls, mock_dataset_dao
+):
+    """ChartDataCommand converts OperationalError to a string inside
+    ChartDataQueryFailedError (no __cause__ set). _classify_as_database_error
+    should use db_engine_spec.extract_errors() to detect the DB error."""
+    from superset.commands.chart.exceptions import ChartDataQueryFailedError
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.validate.return_value = None
+
+    # Real scenario: __cause__ is NOT set, error is just a string
+    wrapped = ChartDataQueryFailedError(
+        "Error: (psycopg2.OperationalError) connection to server at '10.0.0.1',"
+        " port 5432 failed: FATAL: tenant not found"
+    )
+    mock_cmd_cls.return_value.run.side_effect = wrapped
+
+    # Mock the dataset's db_engine_spec to return GENERIC_DB_ENGINE_ERROR
+    mock_db = Mock()
+    mock_db.db_engine_spec.extract_errors.return_value = [
+        SupersetError(
+            error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
+            message="connection to server failed",
+            level=ErrorLevel.ERROR,
+            extra={"engine_name": "PostgreSQL"},
+        )
+    ]
+    mock_dataset = Mock()
+    mock_dataset.database = mock_db
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+
+    result = _compile_chart(
+        form_data={
+            "metrics": [{"label": "count", "expressionType": "SIMPLE"}],
+            "adhoc_filters": [],
+        },
+        dataset_id=1,
+    )
+
+    assert not result.success
+    assert "Database connection error" in result.error
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "database_connection_error"
+    assert result.error_obj.error_code == "DATABASE_CONNECTION_ERROR"
+    mock_db.db_engine_spec.extract_errors.assert_called_once()
+
+
+@patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
+@patch("superset.common.query_context_factory.QueryContextFactory")
+def test_compile_chart_returns_database_error_on_raw_sqlalchemy_error(
+    mock_factory, mock_cmd_cls
+):
+    """When SQLAlchemyError escapes unwrapped, _compile_chart should
+    catch it and return a database_connection_error."""
+    from sqlalchemy.exc import OperationalError
+
+    from superset.mcp_service.chart.compile import _compile_chart
+
+    mock_factory.return_value.create.return_value = Mock()
+    mock_cmd_cls.return_value.validate.return_value = None
+    mock_cmd_cls.return_value.run.side_effect = OperationalError(
+        "connection to server at '10.0.0.1', port 5432 failed: Connection timed out",
+        None,
+        None,
+    )
+
+    result = _compile_chart(
+        form_data={
+            "metrics": [{"label": "count", "expressionType": "SIMPLE"}],
+            "adhoc_filters": [],
+        },
+        dataset_id=1,
+    )
+
+    assert not result.success
+    assert "Database connection error" in result.error
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "database_connection_error"
+    assert result.error_obj.error_code == "DATABASE_CONNECTION_ERROR"
+
+
 @pytest.mark.parametrize(
     "config_factory",
     [

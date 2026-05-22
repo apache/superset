@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useState } from 'react';
-import { useDispatch } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 
 import { resetState } from 'src/SqlLab/actions/sqlLab';
 import {
@@ -69,7 +69,7 @@ const SqlEditorLeftBar = ({ queryEditorId }: SqlEditorLeftBarProps) => {
   const { db, catalog, schema, onDbChange, onCatalogChange, onSchemaChange } =
     dbSelectorProps;
 
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const shouldShowReset = window.location.search === '?reset=1';
 
   // Modal state for Database/Catalog/Schema selector
