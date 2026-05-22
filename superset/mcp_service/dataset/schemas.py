@@ -431,7 +431,8 @@ class CreateDatasetRequest(BaseModel):
         List[int] | None,
         Field(
             default=None,
-            description="Optional list of owner user IDs. Defaults to the calling user.",
+            description="Optional list of owner user IDs. "
+            "Defaults to the calling user.",
         ),
     ]
 
