@@ -1,0 +1,1 @@
+{"schema":{"properties":{"description":{"nullable":true,"type":"string"},"name":{"minLength":1,"type":"string"},"objects_to_tag":{"description":"Objects to tag","items":{},"type":"array"}},"type":"object","title":"TagRestApi.put"},"schemaType":"response"}

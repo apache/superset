@@ -1585,11 +1585,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 for metric in metric_names
             }
 
-            # When the original query has limit or offset we wont apply those
-            # to the subquery so we prevent data inconsistency due to missing records
-            # in the dataframes when performing the join
+            # The subquery drops row_offset (the offset period's own row ordering
+            # differs from the main query's, so applying the same offset would skew
+            # the join). It must still fetch enough rows to cover the main query's
+            # window, hence row_limit + row_offset when a chart limit is set.
             if query_object.row_limit or query_object.row_offset:
-                query_object_clone_dct["row_limit"] = app.config["ROW_LIMIT"]
+                if query_object.row_limit:
+                    query_object_clone_dct["row_limit"] = (
+                        query_object.row_limit + query_object.row_offset
+                    )
+                else:
+                    query_object_clone_dct["row_limit"] = app.config["ROW_LIMIT"]
                 query_object_clone_dct["row_offset"] = 0
 
             # Call the unified query method on the datasource
@@ -2054,12 +2060,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             default_schema = self.database.get_default_schema(self.catalog)
             try:
                 rls_applied = False
+                # ``id`` lives on concrete subclasses (e.g. SqlaTable), not on
+                # ExploreMixin itself. getattr keeps this safe for non-dataset
+                # subclasses (e.g. SQL Lab Query), which have no RLS to dedupe.
+                self_id = getattr(self, "id", None)
                 for statement in parsed_script.statements:
                     if apply_rls(
                         self.database,
                         self.catalog,
                         self.schema or default_schema or "",
                         statement,
+                        exclude_dataset_id=self_id,
                     ):
                         rls_applied = True
 
@@ -2275,7 +2286,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         col: "AdhocColumn",  # type: ignore  # noqa: F821
         force_type_check: bool = False,
         template_processor: Optional[BaseTemplateProcessor] = None,
-    ) -> ColumnElement:
+    ) -> tuple[ColumnElement, Optional[GenericDataType]]:
         raise NotImplementedError()
 
     def _get_top_groups(
@@ -2471,7 +2482,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if rls_filters:
             qry = qry.where(and_(*rls_filters))
 
-        with self.database.get_sqla_engine() as engine:
+        with self.database.get_sqla_engine(
+            catalog=self.catalog, schema=self.schema
+        ) as engine:
             sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
             sql = self._apply_cte(sql, cte)
 
@@ -2826,7 +2839,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     None,
                 )
                 if adhoc_col:
-                    col = self.adhoc_column_to_sqla(
+                    col, _unused = self.adhoc_column_to_sqla(
                         col=adhoc_col,
                         template_processor=template_processor,
                     )
@@ -2877,7 +2890,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         outer = literal_column(f"({selected})")
                         outer = self.make_sqla_column_compatible(outer, selected)
                 else:
-                    outer = self.adhoc_column_to_sqla(
+                    outer, _unused = self.adhoc_column_to_sqla(
                         col=selected,
                         template_processor=template_processor,
                     )
@@ -3005,6 +3018,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             op = utils.FilterOperator(flt["op"].upper())
             col_obj: Optional["TableColumn"] = None
             sqla_col: Optional[Column] = None
+            adhoc_generic_type: Optional[GenericDataType] = None
             is_metric_filter = (
                 False  # Track if this is a filter on a metric (needs HAVING clause)
             )
@@ -3012,7 +3026,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col_obj = dttm_col
             elif is_adhoc_column(flt_col):
                 try:
-                    sqla_col = self.adhoc_column_to_sqla(
+                    sqla_col, adhoc_generic_type = self.adhoc_column_to_sqla(
                         flt_col,
                         force_type_check=True,
                         template_processor=template_processor,
@@ -3026,6 +3040,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 col_obj = columns_by_name.get(cast(str, flt_col))
                 # If not found in columns, check if it's a metric
                 # This supports filtering on metric columns for any chart type
+                if col_obj is None:
+                    # Fall back to verbose_name so filters produced by
+                    # right-click "Drill to detail by" (which can pass a
+                    # column's verbose label) still resolve to a real column.
+                    col_obj = next(
+                        (c for c in self.columns if c.verbose_name == flt_col),
+                        None,
+                    )
                 if (
                     col_obj is None
                     and isinstance(flt_col, str)
@@ -3069,6 +3091,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     sqla_col = self.convert_tbl_column_to_sqla_col(
                         tbl_column=col_obj, template_processor=template_processor
                     )
+                # Parenthesize expression-based columns to prevent operator
+                # precedence issues (e.g. OR in a calculated column breaking
+                # surrounding AND filters). Same pattern as extras.where
+                # wrapping added in PR #38183.
+                if sqla_col is not None and (
+                    (col_obj and col_obj.expression) or is_adhoc_column(flt_col)
+                ):
+                    sqla_col = Grouping(sqla_col)
                 col_type = col_obj.type if col_obj else None
                 col_spec = db_engine_spec.get_column_spec(native_type=col_type)
                 is_list_target = op in (
@@ -3080,6 +3110,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                 if col_spec and not col_advanced_data_type:
                     target_generic_type = col_spec.generic_type
+                elif adhoc_generic_type is not None and not col_advanced_data_type:
+                    # Adhoc columns have no TableColumn metadata; fall back to
+                    # the generic type resolved by adhoc_column_to_sqla so
+                    # filter values get coerced to match the SQL expression
+                    # (e.g. numeric IN-lists stay unquoted when the expression
+                    # casts to BIGINT).
+                    target_generic_type = adhoc_generic_type
                 else:
                     target_generic_type = GenericDataType.STRING
                 eq = self.filter_values_handler(

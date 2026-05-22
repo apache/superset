@@ -58,7 +58,9 @@ import { ExploreAlert } from '../ExploreAlert';
 import useResizeDetectorByObserver from './useResizeDetectorByObserver';
 
 const extensionsRegistry = getExtensionsRegistry();
-const DefaultHeader: React.FC = ({ children }) => <>{children}</>;
+const DefaultHeader: React.FC<{ children?: React.ReactNode }> = ({
+  children,
+}) => <>{children}</>;
 
 export interface ExploreChartPanelProps {
   actions: {
@@ -305,7 +307,7 @@ const ExploreChartPanel = ({
         css={css`
           min-height: 0;
           flex: 1;
-          overflow: auto;
+          overflow: hidden;
         `}
         ref={chartPanelRef}
       >

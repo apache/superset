@@ -41,7 +41,7 @@ const config: ControlPanelConfig = {
             config: {
               type: 'CheckboxControl',
               label: t('Sort by series'),
-              default: false,
+              default: true,
               description: t(
                 'Sort results by series name in ascending order. ' +
                   'When combined with "Sort by metric", this acts as a tiebreaker ' +

@@ -166,7 +166,7 @@ greenlet==3.1.1
     #   apache-superset (pyproject.toml)
     #   shillelagh
     #   sqlalchemy
-gunicorn==23.0.0
+gunicorn==25.3.0
     # via apache-superset (pyproject.toml)
 h11==0.16.0
     # via wsproto
@@ -183,7 +183,9 @@ idna==3.10
     #   trio
     #   url-normalize
 isodate==0.7.2
-    # via apache-superset (pyproject.toml)
+    # via
+    #   apache-superset (pyproject.toml)
+    #   apache-superset-core
 itsdangerous==2.2.0
     # via
     #   flask
@@ -249,7 +251,6 @@ numpy==1.26.4
     #   bottleneck
     #   numexpr
     #   pandas
-    #   pyarrow
 odfpy==1.4.1
     # via pandas
 openapi-schema-validator==0.6.3
@@ -281,7 +282,7 @@ parsedatetime==2.6
     # via apache-superset (pyproject.toml)
 pgsanity==0.2.9
     # via apache-superset (pyproject.toml)
-pillow==12.1.1
+pillow==12.2.0
     # via apache-superset (pyproject.toml)
 platformdirs==4.3.8
     # via requests-cache
@@ -297,6 +298,7 @@ pyarrow==20.0.0
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
+    #   apache-superset-core
 pyasn1==0.6.3
     # via
     #   pyasn1-modules
@@ -340,7 +342,7 @@ python-dateutil==2.9.0.post0
     #   holidays
     #   pandas
     #   shillelagh
-python-dotenv==1.1.0
+python-dotenv==1.2.2
     # via apache-superset (pyproject.toml)
 pytz==2025.2
     # via
@@ -370,6 +372,8 @@ rfc3339-validator==0.1.4
     # via openapi-schema-validator
 rich==13.9.4
     # via flask-limiter
+rison==2.0.0
+    # via apache-superset (pyproject.toml)
 rpds-py==0.25.0
     # via
     #   jsonschema
@@ -380,7 +384,7 @@ selenium==4.32.0
     # via apache-superset (pyproject.toml)
 setuptools==80.9.0
     # via -r requirements/base.in
-shillelagh==1.4.3
+shillelagh==1.4.4
     # via apache-superset (pyproject.toml)
 simplejson==3.20.1
     # via apache-superset (pyproject.toml)

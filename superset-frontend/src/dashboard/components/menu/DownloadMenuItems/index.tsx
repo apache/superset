@@ -25,7 +25,7 @@ import {
   SupersetClient,
 } from '@superset-ui/core';
 import { MenuItem } from '@superset-ui/core/components/Menu';
-import contentDisposition from 'content-disposition';
+import { parse as parseContentDisposition } from 'content-disposition';
 import { useDownloadScreenshot } from 'src/dashboard/hooks/useDownloadScreenshot';
 import { MenuKeys } from 'src/dashboard/types';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
@@ -122,7 +122,7 @@ export const useDownloadMenuItems = (
 
       if (disposition) {
         try {
-          const parsed = contentDisposition.parse(disposition);
+          const parsed = parseContentDisposition(disposition);
           if (parsed?.parameters?.filename) {
             fileName = parsed.parameters.filename;
           }
