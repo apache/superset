@@ -2043,12 +2043,10 @@ class TestListDatasetsCreatedByMe:
         with pytest.raises(ValidationError, match="created_by_me"):
             ListDatasetsRequest(created_by_me=True, search="My tables")
 
-    def test_dataset_filter_rejects_created_by_fk(self):
-        """created_by_fk is not a public filter column; use created_by_me instead."""
-        from pydantic import ValidationError
-
-        with pytest.raises(ValidationError):
-            DatasetFilter(col="created_by_fk", opr="eq", value=1)
+    def test_dataset_filter_accepts_created_by_fk(self):
+        """created_by_fk is exposed for person-filtering via find_users."""
+        f = DatasetFilter(col="created_by_fk", opr="eq", value=1)
+        assert f.col == "created_by_fk"
 
 
 class TestListDatasetsOwnedByMe:
@@ -2115,14 +2113,10 @@ class TestListDatasetsRequestWrapper:
             assert f.col == col
 
     def test_dataset_filter_invalid_col_raises(self) -> None:
-        """Column names not in the Literal are rejected with a validation error.
-
-        This guards against LLMs passing ``created_by_fk`` or similar
-        internal column names that are not exposed as filter fields.
-        """
+        """Column names not in the Literal are rejected with a validation error."""
         from pydantic import ValidationError
 
-        for bad_col in ("created_by_fk", "id", "database_id", "owner"):
+        for bad_col in ("id", "database_id", "owner"):
             with pytest.raises(ValidationError):
                 DatasetFilter(col=bad_col, opr="eq", value="1")
 

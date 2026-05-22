@@ -1444,7 +1444,7 @@ test('x-axis formatter deduplicates consecutive identical labels for coarse time
   const chartProps = createTestChartProps({
     formData: {
       granularity_sqla: 'ds',
-      time_grain_sqla: TimeGranularity.YEAR,
+      timeGrainSqla: TimeGranularity.YEAR,
       xAxisTimeFormat: '%Y',
     },
     queriesData: [
@@ -1471,6 +1471,30 @@ test('x-axis formatter deduplicates consecutive identical labels for coarse time
   expect(label2).toBe('2004');
   expect(label3).toBe('2005');
   expect(label4).toBe('');
+});
+
+test('x-axis does not force showMaxLabel when no time grain is set', () => {
+  const data = [
+    { __timestamp: Date.UTC(2003, 0, 6), sales: 100 },
+    { __timestamp: Date.UTC(2004, 5, 15), sales: 200 },
+    { __timestamp: Date.UTC(2005, 4, 31), sales: 300 },
+  ];
+
+  const chartProps = createTestChartProps({
+    formData: {
+      granularity_sqla: 'ds',
+      timeGrainSqla: undefined,
+    },
+    queriesData: [
+      createTestQueryData(data, {
+        colnames: ['__timestamp', 'sales'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+      }),
+    ],
+  });
+
+  const xAxisResult = transformProps(chartProps).echartOptions.xAxis as any;
+  expect(xAxisResult.axisLabel.showMaxLabel).not.toBe(true);
 });
 
 test('numeric x coltype routes through the number formatter (not the time formatter)', () => {

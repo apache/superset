@@ -22,8 +22,8 @@ Pydantic schemas for chart-related responses
 from __future__ import annotations
 
 import difflib
-from datetime import datetime, timezone
-from typing import Annotated, Any, Dict, List, Literal, Protocol
+from datetime import datetime
+from typing import Annotated, Any, cast, Dict, List, Literal, Protocol
 
 import humanize
 from pydantic import (
@@ -50,7 +50,7 @@ from superset.mcp_service.common.cache_schemas import (
     OwnedByMeMixin,
     QueryCacheControl,
 )
-from superset.mcp_service.common.error_schemas import ChartGenerationError
+from superset.mcp_service.common.error_schemas import ChartGenerationError, MCPBaseError
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import (
@@ -146,7 +146,7 @@ class ChartInfo(BaseModel):
         ),
     )
     form_data_key: str | None = Field(
-        None,
+        default=None,
         description=(
             "Cache key used to retrieve unsaved form_data. When present, indicates "
             "the form_data came from cache (unsaved edits) rather than the saved chart."
@@ -183,16 +183,8 @@ class ChartInfo(BaseModel):
         return data
 
 
-class ChartError(BaseModel):
-    error: str = Field(..., description="Error message")
-    error_type: str = Field(..., description="Type of error")
-    timestamp: datetime = Field(
-        default_factory=lambda: datetime.now(timezone.utc),
-        description="Error timestamp",
-    )
-    model_config = ConfigDict(ser_json_timedelta="iso8601")
-
-    @field_validator("error")
+class ChartError(MCPBaseError):
+    @field_validator("message")
     @classmethod
     def sanitize_error_for_llm_context(cls, value: str) -> str:
         """Wrap error text before it is exposed to LLM context."""
@@ -285,6 +277,15 @@ class GetChartInfoRequest(BaseModel):
             "with this key. If provided, the tool returns the current unsaved "
             "configuration instead of the saved version. "
             "Can be used alone (without identifier) for unsaved charts."
+        ),
+    )
+    dashboard_id: int | None = Field(
+        default=None,
+        description=(
+            "When provided, resolves dashboard-level native filters that are in "
+            "scope for this chart on the given dashboard and returns them under "
+            "filters.dashboard_filters. Requires the chart to be on the dashboard "
+            "and the caller to have dashboard access."
         ),
     )
 
@@ -531,17 +532,18 @@ class ChartFilter(ColumnOperator):
     value: The value to filter by (type depends on col and opr).
     """
 
-    col: Literal[
+    col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "slice_name",
         "viz_type",
         "datasource_name",
+        "created_by_fk",
+        "changed_by_fk",
     ] = Field(
         ...,
-        description=(
-            "Column to filter on. Valid values: 'slice_name', 'viz_type', "
-            "'datasource_name'. Other column names are not valid filter columns "
-            "and will cause a validation error."
-        ),
+        description="Column to filter on. Use get_schema(model_type='chart') for "
+        "available filter columns. To filter by a person, first call find_users "
+        "to resolve a name to a user ID, then filter by created_by_fk or "
+        "changed_by_fk with that integer ID.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -739,6 +741,29 @@ class LegendConfig(BaseModel):
     position: Literal["top", "bottom", "left", "right"] | None = "right"
 
 
+class CurrencyFormat(BaseModel):
+    """Currency symbol and placement applied to numeric values."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    symbol: str = Field(
+        ...,
+        description="Currency code or symbol (e.g. 'USD', 'EUR', '$', '€')",
+        max_length=20,
+    )
+    symbol_position: Literal["prefix", "suffix"] = Field(
+        "prefix",
+        description="Whether to render the symbol before or after the value",
+        validation_alias=AliasChoices("symbol_position", "symbolPosition"),
+    )
+
+    def to_form_data(self) -> Dict[str, str]:
+        return {"symbol": self.symbol, "symbolPosition": self.symbol_position}
+
+
+LEGEND_POSITION_LITERAL = Literal["top", "bottom", "left", "right"]
+
+
 class FilterConfig(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -806,6 +831,30 @@ class FilterConfig(BaseModel):
         return self
 
 
+class SortByConfig(BaseModel):
+    """Sort specification with explicit direction.
+
+    Accepts either this object or a bare column-name string in `sort_by`
+    lists. Bare strings default to descending, which matches the
+    sort-by-metric "top N" pattern most commonly used for tables.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    column: str = Field(
+        ...,
+        min_length=1,
+        max_length=255,
+        validation_alias=AliasChoices("column", "col"),
+        description="Column to sort by",
+    )
+    ascending: bool = Field(
+        False,
+        description="Sort ascending. Defaults to False (descending) to match "
+        "the typical sort-by-metric top-N use case.",
+    )
+
+
 # Actual chart types
 class PieChartConfig(UnknownFieldCheckMixin):
     model_config = ConfigDict(extra="ignore", populate_by_name=True)
@@ -841,6 +890,27 @@ class PieChartConfig(UnknownFieldCheckMixin):
     )
     row_limit: int = Field(100, description="Max slices", ge=1, le=10000)
     number_format: str = Field("SMART_NUMBER", max_length=50)
+    date_format: str = Field(
+        "smart_date",
+        description="Date format for date dimension labels (e.g. 'smart_date', "
+        "'%Y-%m-%d')",
+        max_length=50,
+    )
+    currency_format: CurrencyFormat | None = Field(
+        None,
+        description="Currency symbol applied to the metric value",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). Defaults to 'supersetColors'."
+        ),
+        max_length=100,
+    )
+    legend_orientation: LEGEND_POSITION_LITERAL = Field(
+        "top", description="Legend placement around the chart"
+    )
     show_total: bool = Field(False, description="Show total in center")
     labels_outside: bool = True
     outer_radius: int = Field(70, description="Outer radius % (1-100)", ge=1, le=100)
@@ -892,6 +962,15 @@ class PivotTableChartConfig(UnknownFieldCheckMixin):
     )
     row_limit: int = Field(10000, description="Max cells", ge=1, le=50000)
     value_format: str = Field("SMART_NUMBER", max_length=50)
+    date_format: str | None = Field(
+        None,
+        description="Date format for date columns (e.g. 'smart_date', '%Y-%m-%d')",
+        max_length=50,
+    )
+    currency_format: CurrencyFormat | None = Field(
+        None,
+        description="Currency symbol applied to numeric metric values",
+    )
 
 
 class MixedTimeseriesChartConfig(UnknownFieldCheckMixin):
@@ -938,9 +1017,29 @@ class MixedTimeseriesChartConfig(UnknownFieldCheckMixin):
     )
     # Display options
     show_legend: bool = True
+    legend_orientation: LEGEND_POSITION_LITERAL = Field(
+        "top", description="Legend placement around the chart"
+    )
+    show_value: bool = Field(False, description="Show data labels on each data point")
     x_axis: AxisConfig | None = None
     y_axis: AxisConfig | None = None
     y_axis_secondary: AxisConfig | None = None
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors'). "
+            "When omitted, Superset's default scheme is used."
+        ),
+        max_length=100,
+    )
+    currency_format: CurrencyFormat | None = Field(
+        None,
+        description="Currency symbol applied to primary metric values",
+    )
+    currency_format_secondary: CurrencyFormat | None = Field(
+        None,
+        description="Currency symbol applied to secondary metric values",
+    )
     filters: List[FilterConfig] | None = Field(
         None,
         description="Structured filters (column/op/value). "
@@ -1116,6 +1215,27 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
         ),
         max_length=50,
     )
+    time_format: str | None = Field(
+        None,
+        description=(
+            "Date format string for trendline x-axis labels "
+            "(e.g. 'smart_date', '%Y-%m-%d'). Only applies when "
+            "show_trendline=True."
+        ),
+        max_length=50,
+    )
+    currency_format: CurrencyFormat | None = Field(
+        None,
+        description="Currency symbol applied to the metric value",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID for the trendline (e.g. 'supersetColors'). "
+            "When omitted, Superset's default scheme is used."
+        ),
+        max_length=100,
+    )
     start_y_axis_at_zero: bool = Field(
         True,
         description="Anchor trendline y-axis at zero",
@@ -1192,11 +1312,23 @@ class TableChartConfig(UnknownFieldCheckMixin):
         description="Structured filters (column/op/value). "
         "Do NOT use adhoc_filters or raw SQL expressions.",
     )
-    sort_by: List[str] | None = Field(
+    sort_by: List[str | SortByConfig] | None = Field(
         None,
+        description="Columns to sort by. Each entry is either a column-name "
+        "string (defaults to descending) or a SortByConfig object with "
+        "explicit `ascending`. Descending matches the sort-by-metric "
+        "top-N pattern most common for tables.",
         validation_alias=AliasChoices("sort_by", "order_by_cols", "order_by"),
     )
     row_limit: int = Field(1000, description="Max rows returned", ge=1, le=50000)
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID applied to conditional/cell formatting "
+            "(e.g. 'supersetColors')."
+        ),
+        max_length=100,
+    )
 
     @model_validator(mode="after")
     def validate_unique_column_labels(self) -> "TableChartConfig":
@@ -1278,12 +1410,44 @@ class XYChartConfig(UnknownFieldCheckMixin):
     x_axis: AxisConfig | None = None
     y_axis: AxisConfig | None = None
     legend: LegendConfig | None = None
+    x_axis_time_format: str | None = Field(
+        None,
+        description=(
+            "Date format for temporal x-axis labels (e.g. 'smart_date', "
+            "'%Y-%m-%d'). Only applies when the x-axis column is temporal."
+        ),
+        max_length=50,
+    )
+    show_value: bool = Field(False, description="Show data labels on each data point")
+    currency_format: CurrencyFormat | None = Field(
+        None,
+        description="Currency symbol applied to metric values",
+    )
+    color_scheme: str | None = Field(
+        None,
+        description=(
+            "Superset color scheme ID (e.g. 'supersetColors', 'lyftColors', "
+            "'googleCategory10c', 'd3Category10'). When omitted, Superset's "
+            "default scheme is used."
+        ),
+        max_length=100,
+    )
     filters: List[FilterConfig] | None = Field(
         None,
         description="Structured filters (column/op/value). "
         "Do NOT use adhoc_filters or raw SQL expressions.",
     )
     row_limit: int = Field(10000, description="Max data points", ge=1, le=50000)
+    series_limit: int | None = Field(
+        None,
+        description=(
+            "Max number of series to show when group_by is set. "
+            "Limits the distinct values rendered as separate lines/bars. "
+            "Only applies when group_by is specified."
+        ),
+        ge=1,
+        le=10000,
+    )
 
     @field_validator("group_by", mode="before")
     @classmethod
@@ -1394,7 +1558,10 @@ class ListChartsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
         """
         from superset.mcp_service.utils.schema_utils import parse_json_or_model_list
 
-        return parse_json_or_model_list(v, ChartFilter, "filters")
+        return cast(
+            List[ChartFilter],
+            parse_json_or_model_list(v, ChartFilter, "filters"),
+        )
 
     @field_validator("select_columns", mode="before")
     @classmethod
@@ -1555,7 +1722,14 @@ class GenerateChartRequest(QueryCacheControl):
 
 class GenerateExploreLinkRequest(FormDataCacheControl):
     dataset_id: int | str = Field(..., description="Dataset identifier (ID, UUID)")
-    config: ChartConfig = Field(..., description="Chart configuration")
+    config: ChartConfig | None = Field(
+        None,
+        description=(
+            "Chart configuration. Optional; omit to get a default "
+            "explore URL that opens the dataset in Superset without a "
+            "preconfigured chart."
+        ),
+    )
 
 
 class UpdateChartRequest(QueryCacheControl):
@@ -1872,6 +2046,12 @@ class GenerateChartResponse(BaseModel):
 
     # Navigation and context
     explore_url: str | None = Field(None, description="Edit chart in Superset")
+    chart_type_label: str | None = Field(
+        None,
+        description=(
+            "User-facing chart type label derived from the rendered visualization type"
+        ),
+    )
     embed_code: str | None = Field(None, description="HTML embed snippet")
     api_endpoints: Dict[str, str] = Field(
         default_factory=dict, description="Related API endpoints for data/updates"
@@ -2038,6 +2218,38 @@ class AdhocFilter(BaseModel):
     model_config = ConfigDict(extra="ignore")
 
 
+class AppliedDashboardFilter(BaseModel):
+    """A dashboard-level native filter resolved against a specific chart.
+
+    Returned when get_chart_info is called with a dashboard_id. Values come
+    from the filter's default state on the saved dashboard (not a permalink).
+    """
+
+    id: str | None = Field(None, description="Native filter ID")
+    name: str | None = Field(None, description="Filter display name")
+    filter_type: str | None = Field(
+        None, description="Native filter type (e.g. filter_select, filter_range)"
+    )
+    column: str | None = Field(None, description="Target column the filter applies to")
+    operator: str | None = Field(
+        None,
+        description=(
+            "Filter operator as stored in extra_form_data (e.g. 'IN', '==', 'LIKE', "
+            "or 'TIME_RANGE' for temporal filters with no target column)"
+        ),
+    )
+    value: Any | None = Field(
+        None, description="Filter value(s) from the default data mask"
+    )
+    status: str = Field(
+        ...,
+        description=(
+            "Whether the filter contributes to the chart query: 'applied', "
+            "'not_applied', or 'not_applied_uses_default_to_first_item_prequery'"
+        ),
+    )
+
+
 class ChartFiltersInfo(BaseModel):
     """Structured representation of all filters applied to a chart."""
 
@@ -2078,6 +2290,15 @@ class ChartFiltersInfo(BaseModel):
     having: str | None = Field(
         None,
         description="Custom HAVING clause applied to the chart query",
+    )
+    dashboard_filters: List[AppliedDashboardFilter] = Field(
+        default_factory=list,
+        description=(
+            "Dashboard-level native filters in scope for this chart on the "
+            "dashboard passed via get_chart_info's dashboard_id argument. Empty "
+            "when no dashboard_id was provided or no native filter targets this "
+            "chart."
+        ),
     )
 
 

@@ -643,7 +643,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Experimental with potential security/performance risks.
     # See SUPERSET_META_DB_LIMIT.
     # @lifecycle: testing
-    # @docs: https://superset.apache.org/docs/configuration/databases/#querying-across-databases
+    # @docs: https://superset.apache.org/user-docs/databases/supported/superset-meta-database
     "ENABLE_SUPERSET_META_DB": False,
     # Enable query cost estimation. Supported in Presto, Postgres, and BigQuery.
     # Requires `cost_estimate_enabled: true` in database `extra` attribute.
@@ -2011,7 +2011,10 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 # For workspaces with 10k+ channels, consider increasing to 10
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
 
-# The webdriver to use for generating reports. Use one of the following
+# The webdriver to use for generating reports when using Selenium (not Playwright).
+# This setting is ignored when PLAYWRIGHT_REPORTS_AND_THUMBNAILS is enabled, as
+# Playwright always uses Chromium regardless of this value.
+# Use one of the following:
 # firefox
 #   Requires: geckodriver and firefox installations
 #   Limitations: can be buggy at times
