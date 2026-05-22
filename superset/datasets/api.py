@@ -821,13 +821,19 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         if not dataset:
             return self.response_404()
         data = DatasetDAO.get_related_objects(dataset.id)
+        # Filter charts to only include those the user can access
+        accessible_charts = [
+            chart
+            for chart in data["charts"]
+            if security_manager.can_access_chart(chart)
+        ]
         charts = [
             {
                 "id": chart.id,
                 "slice_name": chart.slice_name,
                 "viz_type": chart.viz_type,
             }
-            for chart in data["charts"]
+            for chart in accessible_charts
         ]
         # Filter dashboards to only include those the user can access
         accessible_dashboards = [
