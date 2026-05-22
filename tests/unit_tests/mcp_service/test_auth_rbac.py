@@ -280,7 +280,7 @@ def test_visibility_allowed_tool(app_context) -> None:
 
     mock_sm = MagicMock()
     mock_sm.can_access = MagicMock(return_value=True)
-    with patch("superset.security_manager", mock_sm):
+    with patch("superset.mcp_service.auth.security_manager", mock_sm):
         result = is_tool_visible_to_current_user(tool)
 
     assert result is True
@@ -295,7 +295,7 @@ def test_visibility_denied_tool(app_context) -> None:
 
     mock_sm = MagicMock()
     mock_sm.can_access = MagicMock(return_value=False)
-    with patch("superset.security_manager", mock_sm):
+    with patch("superset.mcp_service.auth.security_manager", mock_sm):
         result = is_tool_visible_to_current_user(tool)
 
     assert result is False
@@ -312,7 +312,7 @@ def test_visibility_data_model_metadata_denied(app_context) -> None:
     mock_sm = MagicMock()
     mock_sm.can_access = MagicMock(return_value=True)
     with (
-        patch("superset.security_manager", mock_sm),
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
         patch(
             "superset.mcp_service.privacy.user_can_view_data_model_metadata",
             return_value=False,
@@ -334,7 +334,7 @@ def test_visibility_data_model_metadata_allowed(app_context) -> None:
     mock_sm = MagicMock()
     mock_sm.can_access = MagicMock(return_value=True)
     with (
-        patch("superset.security_manager", mock_sm),
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
         patch(
             "superset.mcp_service.privacy.user_can_view_data_model_metadata",
             return_value=True,
