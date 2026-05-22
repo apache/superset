@@ -673,6 +673,7 @@ from superset.mcp_service.action_log.tool import (  # noqa: F401, E402
     list_action_logs,
 )
 from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
+    create_layer_annotation,
     get_annotation_layer_info,
     get_layer_annotation_info,
     list_annotation_layers,

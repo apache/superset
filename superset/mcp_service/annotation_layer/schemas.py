@@ -365,3 +365,70 @@ def serialize_annotation(obj: Any) -> AnnotationInfo | None:
             layer_id=getattr(obj, "layer_id", None),
         )
     )
+class CreateLayerAnnotationRequest(BaseModel):
+    """Request schema for create_layer_annotation."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    layer_id: int = Field(
+        ...,
+        description="ID of the annotation layer to add the annotation to.",
+    )
+    short_descr: str = Field(
+        ...,
+        min_length=1,
+        max_length=500,
+        description="Short description / title of the annotation. "
+        "Must be unique within the annotation layer.",
+    )
+    start_dttm: datetime = Field(
+        ...,
+        description="Annotation start time in ISO 8601 format "
+        "(e.g. '2024-01-15T08:00:00').",
+    )
+    end_dttm: datetime = Field(
+        ...,
+        description="Annotation end time in ISO 8601 format "
+        "(e.g. '2024-01-15T09:00:00'). Must be >= start_dttm.",
+    )
+    long_descr: str | None = Field(
+        None,
+        description="Detailed description of the annotation (optional).",
+    )
+    json_metadata: str | None = Field(
+        None,
+        description="Optional JSON metadata string for the annotation.",
+    )
+
+
+class CreateLayerAnnotationResponse(BaseModel):
+    """Response schema for create_layer_annotation."""
+
+    id: int | None = Field(
+        None,
+        description="ID of the created annotation. None if creation failed.",
+    )
+    layer_id: int = Field(
+        ...,
+        description="ID of the annotation layer the annotation was added to.",
+    )
+    short_descr: str = Field(
+        ...,
+        description="Short description / title of the annotation.",
+    )
+    start_dttm: datetime | None = Field(
+        None,
+        description="Annotation start time.",
+    )
+    end_dttm: datetime | None = Field(
+        None,
+        description="Annotation end time.",
+    )
+    long_descr: str | None = Field(
+        None,
+        description="Detailed description of the annotation.",
+    )
+    error: str | None = Field(
+        None,
+        description="Error message if creation failed, otherwise null.",
+    )
