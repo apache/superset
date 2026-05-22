@@ -593,11 +593,13 @@ class TestUpdateChartPreview:
     @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
     @patch.object(update_chart_preview_module, "generate_explore_link")
     @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch.object(update_chart_preview_module, "_find_dataset")
     @patch("superset.mcp_service.auth.get_user_from_request")
     @pytest.mark.asyncio
     async def test_warns_when_previous_form_data_key_is_missing(
         self,
         mock_get_user_from_request,
+        mock_find_dataset,
         mock_get_previous_form_data,
         mock_generate_explore_link,
         mock_analyze_chart_capabilities,
@@ -610,6 +612,7 @@ class TestUpdateChartPreview:
         mock_user = Mock()
         mock_user.id = 1
         mock_get_user_from_request.return_value = mock_user
+        mock_find_dataset.return_value = _mock_dataset(id=3)
         mock_find_by_id.return_value = _mock_dataset(id=3)
         mock_validate_and_compile.return_value = Mock(success=True)
         mock_get_previous_form_data.return_value = None
@@ -654,11 +657,13 @@ class TestUpdateChartPreview:
     @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
     @patch.object(update_chart_preview_module, "generate_explore_link")
     @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch.object(update_chart_preview_module, "_find_dataset")
     @patch("superset.mcp_service.auth.get_user_from_request")
     @pytest.mark.asyncio
     async def test_preserves_previous_adhoc_filters_without_warning(
         self,
         mock_get_user_from_request,
+        mock_find_dataset,
         mock_get_previous_form_data,
         mock_generate_explore_link,
         mock_analyze_chart_capabilities,
@@ -671,6 +676,7 @@ class TestUpdateChartPreview:
         mock_user = Mock()
         mock_user.id = 1
         mock_get_user_from_request.return_value = mock_user
+        mock_find_dataset.return_value = _mock_dataset(id=3)
         mock_find_by_id.return_value = _mock_dataset(id=3)
         mock_validate_and_compile.return_value = Mock(success=True)
         cached_adhoc_filters = [
@@ -725,11 +731,13 @@ class TestUpdateChartPreview:
     @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
     @patch.object(update_chart_preview_module, "generate_explore_link")
     @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch.object(update_chart_preview_module, "_find_dataset")
     @patch("superset.mcp_service.auth.get_user_from_request")
     @pytest.mark.asyncio
     async def test_returns_requested_table_preview(
         self,
         mock_get_user_from_request,
+        mock_find_dataset,
         mock_get_previous_form_data,
         mock_generate_explore_link,
         mock_analyze_chart_capabilities,
@@ -743,6 +751,7 @@ class TestUpdateChartPreview:
         mock_user = Mock()
         mock_user.id = 1
         mock_get_user_from_request.return_value = mock_user
+        mock_find_dataset.return_value = _mock_dataset(id=3)
         mock_find_by_id.return_value = _mock_dataset(id=3)
         mock_validate_and_compile.return_value = Mock(success=True)
         mock_get_previous_form_data.return_value = {}

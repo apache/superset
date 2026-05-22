@@ -65,6 +65,7 @@ INVALID_FORM_DATA_KEY_WARNING = (
     "expired."
 )
 
+
 def _find_dataset(dataset_id: int | str) -> Any | None:
     """Look up a dataset by numeric ID or UUID and check access."""
     from superset.daos.dataset import DatasetDAO
