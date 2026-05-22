@@ -211,9 +211,7 @@ def is_tool_visible_to_current_user(tool: Any) -> bool:
         return check_tool_permission(tool_func, log_denial=False)
 
     except (AttributeError, RuntimeError, ValueError):
-        logger.debug(
-            "Could not evaluate tool visibility for current user", exc_info=True
-        )
+        logger.debug("Could not evaluate tool visibility for current user")
         return False
 
 
