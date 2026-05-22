@@ -832,6 +832,38 @@ class TestMapXYConfig:
         assert result["row_limit"] == 10000
 
     @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_series_limit(self, mock_is_temporal) -> None:
+        """Test that series_limit is mapped to form_data when set."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            group_by=[ColumnRef(name="region")],
+            series_limit=10,
+        )
+
+        result = map_xy_config(config)
+
+        assert result["series_limit"] == 10
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_no_series_limit_by_default(self, mock_is_temporal) -> None:
+        """Test that series_limit is omitted from form_data when not set."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+        )
+
+        result = map_xy_config(config)
+
+        assert "series_limit" not in result
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
     def test_map_xy_config_saved_metric(self, mock_is_temporal: Any) -> None:
         """Test XY config with saved metric emits string in metrics list"""
         mock_is_temporal.return_value = True
