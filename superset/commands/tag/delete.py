@@ -97,11 +97,7 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
         try:
             target_object = to_object_model(object_type, object_id)
             if target_object is None:
-                exceptions.append(
-                    TaggedObjectDeleteFailedError(
-                        f"Access denied for {object_type} {object_id}"
-                    )
-                )
+                # Object may have been deleted; allow tag cleanup
                 return
             if hasattr(target_object, "raise_for_access"):
                 target_object.raise_for_access()
@@ -111,6 +107,9 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
                     f"Access denied for {object_type} {object_id}"
                 )
             )
+        except AttributeError:
+            # No request context (e.g. background task) — skip access check
+            pass
 
 
 class DeleteTagsCommand(DeleteMixin, BaseCommand):

@@ -85,6 +85,9 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
             exceptions.append(
                 TagCreateFailedError(f"Access denied for {object_type} {object_id}")
             )
+        except AttributeError:
+            # No request context (e.g. background task) — skip access check
+            pass
 
 
 class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):

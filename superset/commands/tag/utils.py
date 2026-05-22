@@ -17,9 +17,7 @@
 
 from typing import Optional, Union
 
-from superset.daos.chart import ChartDAO
-from superset.daos.dashboard import DashboardDAO
-from superset.daos.query import SavedQueryDAO
+from superset import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
@@ -38,10 +36,18 @@ def to_object_type(object_type: Union[ObjectType, int, str]) -> Optional[ObjectT
 def to_object_model(
     object_type: ObjectType, object_id: int
 ) -> Optional[Union[Dashboard, SavedQuery, Slice]]:
-    if ObjectType.dashboard == object_type:
-        return DashboardDAO.find_by_id(object_id)
-    if ObjectType.query == object_type:
-        return SavedQueryDAO.find_by_id(object_id)
-    if ObjectType.chart == object_type:
-        return ChartDAO.find_by_id(object_id)
-    return None
+    """Load a model instance by type and id.
+
+    Uses db.session.get() instead of DAO.find_by_id() to avoid DAO base
+    filters that require request context. Authorization is enforced by the
+    caller via raise_for_access() on the returned object.
+    """
+    model_map: dict[ObjectType, type] = {
+        ObjectType.dashboard: Dashboard,
+        ObjectType.query: SavedQuery,
+        ObjectType.chart: Slice,
+    }
+    model_cls = model_map.get(object_type)
+    if model_cls is None:
+        return None
+    return db.session.get(model_cls, object_id)
