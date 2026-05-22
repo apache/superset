@@ -31,7 +31,18 @@ import {
   Temporal,
   Text,
 } from '@superset-ui/glyph-core';
-import type { GlyphArguments } from '@superset-ui/glyph-core/generators';
+import type { Argument } from '@superset-ui/glyph-core';
+import type {
+  GlyphArgConfig,
+  GlyphArguments,
+} from '@superset-ui/glyph-core/generators';
+
+// `new Map([...])` narrows its value type from the first tuple, which trips
+// up TS when an args map mixes Metric / Checkbox / Select entries. This
+// helper widens the value type to typeof Argument | GlyphArgConfig.
+type GlyphArgValue = typeof Argument | GlyphArgConfig;
+const glyphMap = (entries: Array<readonly [string, GlyphArgValue]>) =>
+  new Map<string, GlyphArgValue>(entries) as GlyphArguments;
 
 describe('getControlConfig - per argument type', () => {
   test('Select → SelectControl with options and clearable=false', () => {
@@ -59,7 +70,13 @@ describe('getControlConfig - per argument type', () => {
   });
 
   test('Int → SliderControl with min/max/step', () => {
-    const I = Int.with({ label: 'Limit', default: 50, min: 0, max: 1000, step: 5 });
+    const I = Int.with({
+      label: 'Limit',
+      default: 50,
+      min: 0,
+      max: 1000,
+      step: 5,
+    });
     const cfg = getControlConfig(I, 'limit');
     expect(cfg.type).toBe('SliderControl');
     expect(cfg.label).toBe('Limit');
@@ -102,7 +119,7 @@ describe('getControlConfig - per argument type', () => {
 
 describe('generateControlPanel', () => {
   test('produces Query and Chart Options sections', () => {
-    const args: GlyphArguments = new Map([
+    const args = glyphMap([
       ['metric', Metric],
       ['showLegend', Checkbox.with({ label: 'Legend', default: true })],
     ]);
@@ -121,7 +138,8 @@ describe('generateControlPanel', () => {
       s => s && 'label' in s && s.label === 'Query',
     );
     expect(querySection).toBeDefined();
-    const rows = (querySection as { controlSetRows: unknown[][] }).controlSetRows;
+    const rows = (querySection as { controlSetRows: unknown[][] })
+      .controlSetRows;
     expect(rows).toContainEqual(['metric']);
   });
 
@@ -131,7 +149,8 @@ describe('generateControlPanel', () => {
     const querySection = cp.controlPanelSections.find(
       s => s && 'label' in s && s.label === 'Query',
     );
-    const rows = (querySection as { controlSetRows: unknown[][] }).controlSetRows;
+    const rows = (querySection as { controlSetRows: unknown[][] })
+      .controlSetRows;
     expect(rows).toContainEqual(['groupby']);
   });
 
@@ -141,7 +160,8 @@ describe('generateControlPanel', () => {
     const querySection = cp.controlPanelSections.find(
       s => s && 'label' in s && s.label === 'Query',
     );
-    const rows = (querySection as { controlSetRows: unknown[][] }).controlSetRows;
+    const rows = (querySection as { controlSetRows: unknown[][] })
+      .controlSetRows;
     expect(rows).toContainEqual(['x_axis']);
     expect(rows).toContainEqual(['time_grain_sqla']);
   });
@@ -152,7 +172,8 @@ describe('generateControlPanel', () => {
     const querySection = cp.controlPanelSections.find(
       s => s && 'label' in s && s.label === 'Query',
     );
-    const rows = (querySection as { controlSetRows: unknown[][] }).controlSetRows;
+    const rows = (querySection as { controlSetRows: unknown[][] })
+      .controlSetRows;
     expect(rows).toContainEqual(['adhoc_filters']);
   });
 
@@ -194,7 +215,8 @@ describe('generateControlPanel', () => {
     const chartOpts = cp.controlPanelSections.find(
       s => s && 'label' in s && s.label === 'Chart Options',
     );
-    const row = (chartOpts as { controlSetRows: unknown[][] }).controlSetRows[0];
+    const row = (chartOpts as { controlSetRows: unknown[][] })
+      .controlSetRows[0];
     const item = (row as Array<{ config: Record<string, unknown> }>)[0];
     expect(item.config.visibility).toBe(visibility);
     expect(item.config.resetOnHide).toBe(true);
@@ -226,7 +248,8 @@ describe('generateControlPanel', () => {
     const chartOpts = cp.controlPanelSections.find(
       s => s && 'label' in s && s.label === 'Chart Options',
     );
-    const optRows = (chartOpts as { controlSetRows: unknown[][] }).controlSetRows;
+    const optRows = (chartOpts as { controlSetRows: unknown[][] })
+      .controlSetRows;
     expect(optRows).toContainEqual(['custom_chart_opt']);
   });
 });
@@ -389,7 +412,7 @@ describe('generateTransformProps', () => {
 
 describe('createGlyphPlugin', () => {
   test('returns both controlPanel and transformProps', () => {
-    const args: GlyphArguments = new Map([
+    const args = glyphMap([
       ['metric', Metric],
       ['show', Checkbox.with({ label: 'S', default: true })],
     ]);

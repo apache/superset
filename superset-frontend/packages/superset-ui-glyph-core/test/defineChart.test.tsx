@@ -33,6 +33,7 @@ import {
   Select,
   Text,
 } from '@superset-ui/glyph-core';
+import type { ChartDefinition } from '@superset-ui/glyph-core/defineChart';
 
 // Helper: instantiate a plugin and reach its controlPanel config.
 function instantiate(PluginClass: ReturnType<typeof defineChart>) {
@@ -422,10 +423,12 @@ describe('defineChart - overrides + formDataOverrides + onInit', () => {
   });
 
   test('formDataOverrides is preserved on controlPanel', () => {
-    const fdo = (formData: Record<string, unknown>) => ({
+    const fdo = ((formData: Record<string, unknown>) => ({
       ...formData,
       custom: 'extra',
-    });
+    })) as unknown as ChartDefinition<
+      Record<string, never>
+    >['formDataOverrides'];
     const Plugin = defineChart({
       metadata: { name: 'Test', thumbnail: MIN_THUMBNAIL },
       arguments: {},

@@ -27,6 +27,8 @@ import {
   Temporal,
   Text,
 } from '@superset-ui/glyph-core';
+import GlyphOptionsPanel from './GlyphOptionsPanel';
+import type { ExpandedControlPanelSectionConfig } from './ControlPanelsContainer';
 
 // Capture the props that Control receives so we can assert on them.
 const controlPropsCaptured: Array<Record<string, unknown>> = [];
@@ -55,9 +57,6 @@ jest.mock('./StashFormDataContainer', () => ({
   ),
 }));
 
-import GlyphOptionsPanel from './GlyphOptionsPanel';
-import type { ExpandedControlPanelSectionConfig } from './ControlPanelsContainer';
-
 function makeSection(controlSetRows: unknown[][]) {
   return {
     label: 'Chart Options',
@@ -65,11 +64,13 @@ function makeSection(controlSetRows: unknown[][]) {
   } as unknown as ExpandedControlPanelSectionConfig;
 }
 
-function defaultProps(overrides: Partial<Parameters<typeof GlyphOptionsPanel>[0]> = {}) {
+function defaultProps(
+  overrides: Partial<Parameters<typeof GlyphOptionsPanel>[0]> = {},
+) {
   return {
     glyphArgs: {},
     chartOptionsSection: makeSection([]),
-    formData: { viz_type: 'test' } as Parameters<
+    formData: { datasource: '1__table', viz_type: 'test' } as Parameters<
       typeof GlyphOptionsPanel
     >[0]['formData'],
     controls: {},
@@ -89,9 +90,7 @@ beforeEach(() => {
 
 describe('GlyphOptionsPanel - empty/null behavior', () => {
   test('returns null when there are no rows', () => {
-    const { container } = render(
-      <GlyphOptionsPanel {...defaultProps()} />,
-    );
+    const { container } = render(<GlyphOptionsPanel {...defaultProps()} />);
     expect(container.firstChild).toBeNull();
   });
 
@@ -117,9 +116,11 @@ describe('GlyphOptionsPanel - glyph-arg rendering', () => {
           chartOptionsSection: makeSection([
             [{ name: 'showLegend', config: { type: 'CheckboxControl' } }],
           ]),
-          formData: { viz_type: 'test', showLegend: true } as Parameters<
-            typeof GlyphOptionsPanel
-          >[0]['formData'],
+          formData: {
+            datasource: '1__table',
+            viz_type: 'test',
+            showLegend: true,
+          } as Parameters<typeof GlyphOptionsPanel>[0]['formData'],
         })}
       />,
     );
@@ -142,9 +143,11 @@ describe('GlyphOptionsPanel - glyph-arg rendering', () => {
           chartOptionsSection: makeSection([
             [{ name: 'title', config: { type: 'TextControl' } }],
           ]),
-          formData: { viz_type: 'test', title: 'From form data' } as Parameters<
-            typeof GlyphOptionsPanel
-          >[0]['formData'],
+          formData: {
+            datasource: '1__table',
+            viz_type: 'test',
+            title: 'From form data',
+          } as Parameters<typeof GlyphOptionsPanel>[0]['formData'],
           // controls has a STALE value - panel should ignore it
           controls: {
             title: {
@@ -229,6 +232,7 @@ describe('GlyphOptionsPanel - visibility (visibleWhen)', () => {
             [{ name: 'legendPosition', config: { type: 'SelectControl' } }],
           ]),
           formData: {
+            datasource: '1__table',
             viz_type: 'test',
             showLegend: false,
           } as Parameters<typeof GlyphOptionsPanel>[0]['formData'],
@@ -236,7 +240,9 @@ describe('GlyphOptionsPanel - visibility (visibleWhen)', () => {
       />,
     );
 
-    const posProps = controlPropsCaptured.find(p => p.name === 'legendPosition');
+    const posProps = controlPropsCaptured.find(
+      p => p.name === 'legendPosition',
+    );
     expect(posProps).toBeDefined();
     expect(posProps!.isVisible).toBe(false);
   });
@@ -263,6 +269,7 @@ describe('GlyphOptionsPanel - visibility (visibleWhen)', () => {
             [{ name: 'legendPosition', config: { type: 'SelectControl' } }],
           ]),
           formData: {
+            datasource: '1__table',
             viz_type: 'test',
             showLegend: true,
           } as Parameters<typeof GlyphOptionsPanel>[0]['formData'],
@@ -270,7 +277,9 @@ describe('GlyphOptionsPanel - visibility (visibleWhen)', () => {
       />,
     );
 
-    const posProps = controlPropsCaptured.find(p => p.name === 'legendPosition');
+    const posProps = controlPropsCaptured.find(
+      p => p.name === 'legendPosition',
+    );
     expect(posProps!.isVisible).toBe(true);
   });
 
@@ -377,7 +386,9 @@ describe('GlyphOptionsPanel - fallback to renderControl', () => {
     );
 
     // Glyph arg went through Control mock
-    expect(controlPropsCaptured.find(p => p.name === 'showLegend')).toBeDefined();
+    expect(
+      controlPropsCaptured.find(p => p.name === 'showLegend'),
+    ).toBeDefined();
     // Non-glyph item went through renderControl
     expect(renderControl).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'color_scheme' }),
@@ -406,9 +417,7 @@ describe('GlyphOptionsPanel - section header', () => {
     const Show = Checkbox.with({ label: 'Show', default: true });
     const section = {
       label: 'My Custom Section',
-      controlSetRows: [
-        [{ name: 'show', config: { type: 'CheckboxControl' } }],
-      ],
+      controlSetRows: [[{ name: 'show', config: { type: 'CheckboxControl' } }]],
     } as unknown as ExpandedControlPanelSectionConfig;
 
     render(
@@ -422,4 +431,3 @@ describe('GlyphOptionsPanel - section header', () => {
     expect(screen.getAllByText('My Custom Section').length).toBeGreaterThan(0);
   });
 });
-
