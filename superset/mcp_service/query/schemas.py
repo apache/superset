@@ -43,13 +43,14 @@ from superset.mcp_service.utils.schema_utils import (
     parse_json_or_model_list,
 )
 
-DEFAULT_QUERY_COLUMNS = ["id", "sql", "status", "start_time", "database_id", "schema"]
+DEFAULT_QUERY_COLUMNS = ["id", "status", "start_time", "database_id", "schema"]
 SORTABLE_QUERY_COLUMNS = [
     "id",
     "start_time",
     "end_time",
     "status",
     "database_id",
+    "changed_on",
 ]
 ALL_QUERY_COLUMNS = [
     "id",
@@ -248,15 +249,6 @@ class QueryError(BaseModel):
     error_type: str = Field(..., description="Type of error")
     timestamp: str | datetime | None = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
-
-    @classmethod
-    def create(cls, error: str, error_type: str) -> "QueryError":
-        """Create a standardized QueryError with timestamp."""
-        from datetime import datetime, timezone
-
-        return cls(
-            error=error, error_type=error_type, timestamp=datetime.now(timezone.utc)
-        )
 
 
 class GetQueryInfoRequest(BaseModel):

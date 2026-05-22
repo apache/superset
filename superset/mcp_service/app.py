@@ -157,7 +157,7 @@ SQL Lab Integration:
 - open_sql_lab_with_context: Generate SQL Lab URL with pre-filled sql
 - list_saved_queries: List saved SQL queries with filtering and search (1-based pagination)
 - get_saved_query_info: Get saved query details by ID or UUID
-- list_queries: List SQL query history with filtering and search (most recent first)
+- list_queries: List SQL query history with filtering and search (1-based pagination)
 - get_query_info: Get SQL query history details by ID
 
 Schema Discovery:

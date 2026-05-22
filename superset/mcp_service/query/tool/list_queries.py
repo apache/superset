@@ -66,7 +66,7 @@ async def list_queries(
     Results are ordered by start_time descending (most recent first) by default.
 
     Sortable columns for order_column: id, start_time, end_time, status,
-    database_id
+    database_id, changed_on
     """
     if ctx is None:
         raise RuntimeError("FastMCP context is required for list_queries")

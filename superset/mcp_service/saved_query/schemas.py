@@ -232,15 +232,6 @@ class SavedQueryError(BaseModel):
     timestamp: str | datetime | None = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
-    @classmethod
-    def create(cls, error: str, error_type: str) -> "SavedQueryError":
-        """Create a standardized SavedQueryError with timestamp."""
-        from datetime import datetime, timezone
-
-        return cls(
-            error=error, error_type=error_type, timestamp=datetime.now(timezone.utc)
-        )
-
 
 class GetSavedQueryInfoRequest(BaseModel):
     """Request schema for get_saved_query_info with support for ID or UUID."""

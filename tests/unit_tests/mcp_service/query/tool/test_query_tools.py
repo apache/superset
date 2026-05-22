@@ -269,3 +269,34 @@ async def test_list_queries_default_order_is_start_time_desc(mock_list, mcp_serv
         call_kwargs = mock_list.call_args
         assert call_kwargs.kwargs.get("order_column") == "start_time"
         assert call_kwargs.kwargs.get("order_direction") == "desc"
+
+
+@patch("superset.daos.query.QueryDAO.list")
+@pytest.mark.asyncio
+async def test_list_queries_select_columns_projects_fields(mock_list, mcp_server):
+    """select_columns limits which fields appear in each query result."""
+    query = create_mock_query()
+    query._mapping = {"id": query.id, "status": query.status}
+    mock_list.return_value = ([query], 1)
+    async with Client(mcp_server) as client:
+        request = ListQueriesRequest(
+            page=1, page_size=10, select_columns=["id", "status"]
+        )
+        result = await client.call_tool(
+            "list_queries", {"request": request.model_dump()}
+        )
+        data = json.loads(result.content[0].text)
+        assert data["queries"] is not None
+        q = data["queries"][0]
+        assert set(q.keys()) == {"id", "status"}
+        assert q["id"] == 1
+        assert q["status"] == "success"
+
+
+@pytest.mark.asyncio
+async def test_list_queries_invalid_order_column_raises(mcp_server):
+    """order_column not in SORTABLE_QUERY_COLUMNS must be rejected."""
+    request = ListQueriesRequest(page=1, page_size=10, order_column="tab_name")
+    async with Client(mcp_server) as client:
+        with pytest.raises(Exception, match="Invalid order_column"):
+            await client.call_tool("list_queries", {"request": request.model_dump()})
