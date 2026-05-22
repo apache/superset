@@ -519,14 +519,14 @@ def check_chart_data_access(chart: Any) -> "DatasetValidationResult":
     return validate_chart_dataset(chart, check_access=True)
 
 
-def _log_user_resolution_failure(exc: ValueError) -> None:
-    """Log a user-resolution ValueError at the appropriate level.
+def _log_user_resolution_failure(exc: ValueError | PermissionError) -> None:
+    """Log a user-resolution failure at the appropriate level.
 
     "No authenticated user found" is expected in unauthenticated/dev
     deployments (no JWT, no API key, no MCP_DEV_USERNAME configured) and
     during tools/list scanning — log at DEBUG to avoid ERROR noise.
-    All other ValueErrors (e.g. dev username not in DB) are genuine
-    credential failures and are logged at ERROR.
+    All other failures (e.g. dev username not in DB, permission denied) are
+    genuine credential failures and are logged at ERROR.
     """
     if "No authenticated user found" in str(exc):
         logger.debug("MCP: no auth source configured, unauthenticated request")
