@@ -49,7 +49,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture()
+@pytest.fixture
 def mcp_server() -> object:
     """Return the FastMCP app instance for use in MCP client tests."""
     return mcp
@@ -138,7 +138,7 @@ def _mock_dashboard(
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_dashboard_not_found(mock_find_by_id: Mock, mcp_server: object) -> None:
     """Returns a clear error when the target dashboard does not exist."""
     mock_find_by_id.return_value = None
@@ -157,7 +157,7 @@ async def test_dashboard_not_found(mock_find_by_id: Mock, mcp_server: object) ->
 
 @patch("superset.security_manager.raise_for_ownership")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_permission_denied(
     mock_find_by_id: Mock, mock_raise_for_ownership: Mock, mcp_server: object
 ) -> None:
@@ -203,7 +203,7 @@ async def test_permission_denied(
 @patch("superset.db.session.get")
 @patch("superset.security_manager.raise_for_ownership")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_chart_not_found(
     mock_find_by_id: Mock,
     mock_raise_for_ownership: Mock,
@@ -231,7 +231,7 @@ async def test_chart_not_found(
 @patch("superset.db.session.get")
 @patch("superset.security_manager.raise_for_ownership")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_chart_already_in_dashboard(
     mock_find_by_id: Mock,
     mock_raise_for_ownership: Mock,
@@ -261,7 +261,7 @@ async def test_chart_already_in_dashboard(
 @patch("superset.db.session.get")
 @patch("superset.security_manager.raise_for_ownership")
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_successful_add(
     mock_find_by_id: Mock,
     mock_raise_for_ownership: Mock,
