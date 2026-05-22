@@ -749,6 +749,7 @@ from superset.mcp_service.theme.tool import (  # noqa: F401, E402
     list_themes,
 )
 from superset.mcp_service.user.tool import (  # noqa: F401, E402
+    create_user,
     get_user_info,
     list_users,
 )

@@ -25,6 +25,7 @@ from typing import Annotated, Any, List, Literal
 from pydantic import (
     BaseModel,
     ConfigDict,
+    EmailStr,
     Field,
     field_validator,
     model_serializer,
@@ -299,4 +300,84 @@ def serialize_user_object(
         if roles is not None
         else None,
         changed_on=getattr(user, "changed_on", None),
+    )
+
+
+class CreateUserRequest(BaseModel):
+    """Request schema for create_user."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    username: str = Field(
+        ...,
+        min_length=1,
+        max_length=64,
+        description="Unique username for the new account.",
+    )
+    first_name: str = Field(
+        ...,
+        min_length=1,
+        max_length=64,
+        description="First name of the user.",
+    )
+    last_name: str = Field(
+        ...,
+        min_length=1,
+        max_length=64,
+        description="Last name of the user.",
+    )
+    email: EmailStr = Field(
+        ...,
+        description="Email address for the user account.",
+    )
+    password: str = Field(
+        ...,
+        min_length=1,
+        description="Plain-text password; will be hashed before storage.",
+    )
+    role_ids: list[int] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "List of role IDs to assign to the user. "
+            "At least one role is required. "
+            "Use get_instance_info to discover available roles and their IDs."
+        ),
+    )
+
+    @field_validator("username")
+    @classmethod
+    def username_must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("username must not be empty or whitespace")
+        return v.strip()
+
+    @field_validator("first_name")
+    @classmethod
+    def first_name_must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("first_name must not be empty or whitespace")
+        return v.strip()
+
+    @field_validator("last_name")
+    @classmethod
+    def last_name_must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("last_name must not be empty or whitespace")
+        return v.strip()
+
+
+class CreateUserResponse(BaseModel):
+    """Response schema for create_user — exposes only non-sensitive fields."""
+
+    id: int | None = Field(
+        None,
+        description="ID of the created user. None if creation failed.",
+    )
+    username: str | None = Field(None, description="Username of the created user.")
+    first_name: str | None = Field(None, description="First name of the created user.")
+    last_name: str | None = Field(None, description="Last name of the created user.")
+    error: str | None = Field(
+        None,
+        description="Error message if creation failed, otherwise null.",
     )
