@@ -632,6 +632,11 @@ class GlobalErrorHandlerMiddleware(Middleware):
         elif isinstance(error, HTTPException):
             # HTTP errors from screenshot endpoints or API calls
             raise ToolError(f"Service error in {tool_name}: {error.detail}") from error
+        elif isinstance(error, MCPPermissionDeniedError):
+            # MCP RBAC permission denied — convert to structured ToolError.
+            # Must come before the generic PermissionError branch because
+            # MCPPermissionDeniedError inherits from PermissionError.
+            raise ToolError(str(error)) from error
         elif isinstance(error, PermissionError):
             # Permission/authorization errors
             raise ToolError(
@@ -648,9 +653,6 @@ class GlobalErrorHandlerMiddleware(Middleware):
             raise ToolError(
                 f"Invalid request for {tool_name}: {_sanitize_error_for_logging(error)}"
             ) from error
-        elif isinstance(error, MCPPermissionDeniedError):
-            # MCP RBAC permission denied — convert to structured ToolError
-            raise ToolError(str(error)) from error
         elif isinstance(error, (ForbiddenError, SupersetSecurityException)):
             # Superset access denied — agent tried a tool it can't use
             raise ToolError(
