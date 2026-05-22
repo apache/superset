@@ -1632,6 +1632,7 @@ class SqlaTable(
                 self.catalog,
                 self.schema or None,
                 mutator=assign_column_label,
+                mutation_context=mutation_context,
             )
         except (SupersetErrorException, SupersetErrorsException):
             # SupersetError(s) exception should not be captured; instead, they should

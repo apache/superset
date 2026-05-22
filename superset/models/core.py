@@ -681,6 +681,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         catalog: str | None = None,
         schema: str | None = None,
         fetch_last_result: bool = False,
+        mutation_context: dict[str, Any] | None = None,
     ) -> tuple[Any, list[tuple[Any, ...]] | None, DbapiDescription | None]:
         """
         Internal method to execute SQL with mutation and logging.
@@ -718,6 +719,7 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
                 sql_ = self.mutate_sql_based_on_config(
                     statement.format(),
                     is_split=True,
+                    **(mutation_context or {}),
                 )
                 _log_query(sql_)
 
@@ -772,9 +774,14 @@ class Database(Model, AuditMixinNullable, ImportExportMixin):  # pylint: disable
         catalog: str | None = None,
         schema: str | None = None,
         mutator: Callable[[pd.DataFrame], None] | None = None,
+        mutation_context: dict[str, Any] | None = None,
     ) -> pd.DataFrame:
         cursor, rows, description = self._execute_sql_with_mutation_and_logging(
-            sql, catalog, schema, fetch_last_result=True
+            sql,
+            catalog,
+            schema,
+            fetch_last_result=True,
+            mutation_context=mutation_context,
         )
 
         df = None
