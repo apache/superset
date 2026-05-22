@@ -37,10 +37,12 @@ class ColumnMetadata(BaseModel):
     """Metadata for a selectable column."""
 
     name: str = Field(..., description="Column name to use in select_columns")
-    description: str | None = Field(None, description="Column description")
-    type: str | None = Field(None, description="Data type (str, int, datetime, etc.)")
+    description: str | None = Field(default=None, description="Column description")
+    type: str | None = Field(
+        default=None, description="Data type (str, int, datetime, etc.)"
+    )
     is_default: bool = Field(
-        False, description="Whether this column is included by default"
+        default=False, description="Whether this column is included by default"
     )
 
 

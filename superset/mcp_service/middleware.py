@@ -16,8 +16,10 @@
 # under the License.
 
 import logging
+import secrets
 import time
 from collections import defaultdict
+from contextvars import ContextVar
 from typing import Any, Awaitable, Callable, Dict, Protocol, Sequence
 
 import mcp.types as mt
@@ -25,7 +27,7 @@ from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.middleware import CallNext
 from fastmcp.tools.tool import Tool, ToolResult
-from flask import has_app_context
+from flask import g, has_app_context
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
 from starlette.exceptions import HTTPException
@@ -37,6 +39,12 @@ from superset.commands.exceptions import (
 )
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.extensions import event_logger
+from superset.mcp_service.auth import (
+    _get_app_context_manager,
+    get_user_from_request,
+    is_tool_visible_to_current_user,
+    MCPPermissionDeniedError,
+)
 from superset.mcp_service.constants import (
     DEFAULT_TOKEN_LIMIT,
     DEFAULT_WARN_THRESHOLD_PCT,
@@ -50,6 +58,7 @@ from superset.mcp_service.utils.token_utils import (
 from superset.utils.core import get_user_id
 
 logger = logging.getLogger(__name__)
+_mcp_call_id_var: ContextVar[str | None] = ContextVar("mcp_call_id", default=None)
 
 
 def _sanitize_error_for_logging(error: Exception) -> str:
@@ -129,6 +138,7 @@ _USER_ERROR_TYPES = (
     ToolError,
     ValidationError,
     PermissionError,
+    MCPPermissionDeniedError,
     ValueError,
     FileNotFoundError,
     CommandInvalidError,
@@ -245,11 +255,20 @@ class LoggingMiddleware(Middleware):
         )
         tool_name = getattr(context.message, "name", None)
 
+        mcp_call_id = secrets.token_hex(16)
+        _mcp_call_id_var.set(mcp_call_id)
         start_time = time.time()
         success = False
         try:
             result = await call_next(context)
             success = not self._is_error_response(result)
+            if isinstance(result, ToolResult):
+                existing_meta = result.meta or {}
+                result = ToolResult(
+                    content=result.content,
+                    meta={**existing_meta, "mcp_call_id": mcp_call_id},
+                    structured_content=result.structured_content,
+                )
             return result
         except Exception:
             success = False
@@ -265,6 +284,7 @@ class LoggingMiddleware(Middleware):
                     slice_id=slice_id,
                     referrer=None,
                     curated_payload={
+                        "mcp_call_id": mcp_call_id,
                         "tool": tool_name,
                         "agent_id": agent_id,
                         "params": _sanitize_params(params),
@@ -278,7 +298,7 @@ class LoggingMiddleware(Middleware):
             logger.info(
                 "MCP tool call: tool=%s, agent_id=%s, user_id=%s, method=%s, "
                 "dashboard_id=%s, slice_id=%s, dataset_id=%s, duration_ms=%s, "
-                "success=%s",
+                "success=%s, mcp_call_id=%s",
                 tool_name,
                 agent_id,
                 user_id,
@@ -288,6 +308,7 @@ class LoggingMiddleware(Middleware):
                 dataset_id,
                 duration_ms,
                 success,
+                mcp_call_id,
             )
 
     async def on_message(
@@ -391,12 +412,74 @@ class StructuredContentStripperMiddleware(Middleware):
             # unhandled exception — including ToolError from
             # GlobalErrorHandlerMiddleware, ValueError, TypeError, etc. —
             # will cause encoding failures on the wire.
+            mcp_call_id = _mcp_call_id_var.get(None)
             return ToolResult(
                 content=[mt.TextContent(type="text", text=f"Error: {e}")],
+                meta={"mcp_call_id": mcp_call_id} if mcp_call_id else None,
             )
         if isinstance(result, ToolResult) and result.structured_content is not None:
             result = ToolResult(content=result.content, meta=result.meta)
         return result
+
+
+class RBACToolVisibilityMiddleware(Middleware):
+    """Filter tools/list response based on current user's RBAC permissions.
+
+    Intercepts every ``tools/list`` request and removes tools the calling user
+    is not permitted to execute. Public tools (no ``class_permission_name``) and
+    tools whose permission check passes are included; all others are hidden.
+
+    Fail-open vs fail-closed behaviour:
+    - No auth context at all (no Flask context, no auth header, no dev user
+      configured) → fail open (return all tools). Call-time RBAC enforces.
+    - Auth was attempted but credentials are invalid (bad API key, dev
+      username not in DB, etc.) → fail closed (return empty list).
+    - Unexpected errors → fail open. Call-time RBAC still enforces.
+    """
+
+    async def on_list_tools(
+        self,
+        context: MiddlewareContext[mt.ListToolsRequest],
+        call_next: CallNext[mt.ListToolsRequest, list[Tool]],
+    ) -> list[Tool]:
+        tools = await call_next(context)
+
+        try:
+            with _get_app_context_manager():
+                # Use get_user_from_request directly rather than
+                # _setup_user_context, which carries per-call execution
+                # overhead (retry loop, session management, error logging)
+                # that is unnecessary and noisy during tools/list.
+                try:
+                    user = get_user_from_request()
+                except ValueError as exc:
+                    if "No authenticated user found" in str(exc):
+                        # No auth source configured at all → fail open.
+                        # No log: this is expected in dev/internal deployments.
+                        return tools
+                    # Auth was attempted (e.g. MCP_DEV_USERNAME set) but the
+                    # user was not found in the DB → fail closed
+                    logger.warning(
+                        "MCP tool list: credential failure, hiding all tools: %s",
+                        exc,
+                    )
+                    return []
+                except PermissionError as exc:
+                    # API key present but invalid/expired → fail closed
+                    logger.warning(
+                        "MCP tool list: credential failure, hiding all tools: %s",
+                        exc,
+                    )
+                    return []
+
+                if user is None:
+                    return tools  # no Flask app context → fail open
+                g.user = user
+                return [t for t in tools if is_tool_visible_to_current_user(t)]
+        except Exception:  # noqa: BLE001
+            # Unexpected setup errors (ImportError, etc.) → fail open.
+            # Call-time RBAC still enforces permissions.
+            return tools
 
 
 class GlobalErrorHandlerMiddleware(Middleware):
@@ -507,6 +590,9 @@ class GlobalErrorHandlerMiddleware(Middleware):
             raise ToolError(
                 f"Invalid request for {tool_name}: {_sanitize_error_for_logging(error)}"
             ) from error
+        elif isinstance(error, MCPPermissionDeniedError):
+            # MCP RBAC permission denied — convert to structured ToolError
+            raise ToolError(str(error)) from error
         elif isinstance(error, (ForbiddenError, SupersetSecurityException)):
             # Superset access denied — agent tried a tool it can't use
             raise ToolError(

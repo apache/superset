@@ -30,7 +30,8 @@ import ProgressBar from '@superset-ui/core/components/ProgressBar';
 import { t } from '@apache-superset/core/translation';
 import { QueryResponse, QueryState } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 
 import {
   queryEditorSetSql,
@@ -92,7 +93,7 @@ const QueryTable = ({
   latestQueryId,
 }: QueryTableProps) => {
   const theme = useTheme();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const [selectedQuery, setSelectedQuery] = useState<QueryResponse | null>(
     null,
   );

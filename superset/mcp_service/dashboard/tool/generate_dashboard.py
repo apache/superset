@@ -335,6 +335,15 @@ def generate_dashboard(  # noqa: C901
 
                 db.session.add(dashboard)
                 db.session.commit()  # pylint: disable=consider-using-transaction
+                try:
+                    db.session.refresh(dashboard)
+                except SQLAlchemyError:
+                    logger.warning(
+                        "Dashboard %s created but refresh failed; "
+                        "continuing with current values",
+                        dashboard.id,
+                        exc_info=True,
+                    )
             except SQLAlchemyError as db_err:
                 try:
                     db.session.rollback()  # pylint: disable=consider-using-transaction
@@ -405,6 +414,7 @@ def generate_dashboard(  # noqa: C901
 
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (
+            _humanize_timestamp,
             serialize_chart_summary,
             serialize_tag_object,
         )
@@ -418,6 +428,10 @@ def generate_dashboard(  # noqa: C901
             published=dashboard.published,
             created_on=dashboard.created_on,
             changed_on=dashboard.changed_on,
+            created_on_humanized=_humanize_timestamp(dashboard.created_on),
+            changed_on_humanized=_humanize_timestamp(dashboard.changed_on),
+            created_by=dashboard.created_by_name or None,
+            changed_by=dashboard.changed_by_name or None,
             uuid=str(dashboard.uuid) if dashboard.uuid else None,
             url=f"{get_superset_base_url()}/superset/dashboard/{dashboard.id}/",
             chart_count=len(request.chart_ids),
