@@ -22,6 +22,7 @@ Pydantic schemas for chart-related responses
 from __future__ import annotations
 
 import difflib
+import logging
 from datetime import datetime
 from typing import Annotated, Any, cast, Dict, List, Literal, Protocol
 
@@ -67,6 +68,8 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class ChartLike(Protocol):
@@ -573,7 +576,8 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
         from superset.mcp_service.chart.registry import display_name_for_viz_type
 
         _display_name = display_name_for_viz_type(_viz_type) if _viz_type else None
-    except Exception:
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("Failed to resolve display name for viz_type=%r: %s", _viz_type, exc)
         _display_name = None
 
     return sanitize_chart_info_for_llm_context(

@@ -172,7 +172,7 @@ class ChartTypePlugin(Protocol):
         """
         ...
 
-    def schema_error_hint(self) -> "ChartGenerationError | None":
+    def schema_error_hint(self) -> ChartGenerationError | None:
         """
         Return a user-friendly error for Pydantic discriminated-union parse failures.
 
