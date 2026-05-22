@@ -59,6 +59,7 @@ from superset.mcp_service.utils.oauth2_utils import (
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
+from superset.superset_typing import Column, Metric
 
 logger = logging.getLogger(__name__)
 
@@ -148,20 +149,87 @@ class ChartLike(Protocol):
     uuid: Any
 
 
-def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
-    """Build query columns list from form_data, including both x_axis and groupby."""
-    x_axis_config = form_data.get("x_axis")
-    groupby_columns: list[str] = form_data.get("groupby") or []
+def _build_query_columns(form_data: Dict[str, Any]) -> list[Column]:
+    """Build query columns list from form_data, including both x_axis and groupby.
 
-    columns = groupby_columns.copy()
+    Handles chart-type-specific keys:
+    - Standard charts: ``groupby`` + ``x_axis``
+    - Pivot tables: ``groupbyColumns`` + ``groupbyRows`` (when ``groupby`` is absent)
+    - Mixed timeseries: ``groupby_b`` (secondary groupby)
+    """
+    x_axis_config: Column | None = form_data.get("x_axis")
+    groupby_columns: list[Column] = form_data.get("groupby") or []
+
+    # Pivot tables store dimensions under groupbyColumns / groupbyRows
+    if not groupby_columns:
+        pivot_rows: list[Column] = form_data.get("groupbyRows") or []
+        pivot_cols: list[Column] = form_data.get("groupbyColumns") or []
+        groupby_columns = list(pivot_rows) + list(pivot_cols)
+
+    # Mixed timeseries stores secondary groupby under groupby_b
+    groupby_b: list[Column] = form_data.get("groupby_b") or []
+    for col in groupby_b:
+        if col not in groupby_columns:
+            groupby_columns.append(col)
+
+    # Deduplicate while preserving order
+    seen: set[str] = set()
+    columns: list[Column] = []
+
+    def _add_unique(col: Column) -> None:
+        key = col if isinstance(col, str) else col.get("label", str(col))
+        if key not in seen:
+            columns.append(col)
+            seen.add(key)
+
     if x_axis_config and isinstance(x_axis_config, str):
-        if x_axis_config not in columns:
-            columns.insert(0, x_axis_config)
+        _add_unique(x_axis_config)
     elif x_axis_config and isinstance(x_axis_config, dict):
         col_name = x_axis_config.get("column_name")
-        if col_name and col_name not in columns:
-            columns.insert(0, col_name)
+        if col_name and isinstance(col_name, str):
+            _add_unique(col_name)
+
+    for col in groupby_columns:
+        _add_unique(col)
+
     return columns
+
+
+def _build_query_metrics(form_data: Dict[str, Any]) -> list[Metric]:
+    """Extract metrics from form_data, handling chart-type variations.
+
+    Handles:
+    - ``metrics`` (plural) — most chart types
+    - ``metric`` (singular) — Pie charts
+    - ``metrics_b`` — secondary y-axis in Mixed Timeseries charts
+    """
+    metrics: list[Metric] = list(form_data.get("metrics") or [])
+    if not metrics:
+        singular: Metric | None = form_data.get("metric")
+        if singular:
+            metrics = [singular]
+
+    # Mixed timeseries stores the second y-axis metrics under metrics_b
+    metrics_b: list[Metric] = form_data.get("metrics_b") or []
+    for m in metrics_b:
+        if m not in metrics:
+            metrics.append(m)
+
+    return metrics
+
+
+def _build_chart_description(chart: ChartLike) -> str:
+    """Build a human-readable chart description, with hints for special chart types."""
+    base = (
+        f"Preview of {chart.viz_type or 'chart'}: "
+        f"{chart.slice_name or f'Chart {chart.id}'}"
+    )
+    if chart.viz_type == "handlebars":
+        base += (
+            ". Note: Handlebars charts use browser-side template rendering; "
+            "this preview shows the raw underlying data, not the rendered template"
+        )
+    return base
 
 
 class PreviewFormatStrategy:
@@ -1304,10 +1372,7 @@ async def _get_chart_preview_internal(  # noqa: C901
             chart_type=chart.viz_type or "unknown",
             explore_url=f"{get_superset_base_url()}/explore/?slice_id={chart.id}",
             content=content,
-            chart_description=(
-                f"Preview of {chart.viz_type or 'chart'}: "
-                f"{chart.slice_name or f'Chart {chart.id}'}"
-            ),
+            chart_description=_build_chart_description(chart),
             accessibility=accessibility,
             performance=performance,
         )
