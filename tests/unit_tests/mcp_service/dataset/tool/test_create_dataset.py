@@ -75,7 +75,7 @@ def _make_mock_dataset(
     return dataset
 
 
-@pytest.fixture
+@pytest.fixture()
 def mcp_server():
     return mcp
 
@@ -107,7 +107,7 @@ class TestCreateDataset:
             yield mock_dao, mock_sec
 
     @patch(_CMD_PATH)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_create_dataset_success(self, mock_command_class, mcp_server):
         """Happy path: tool creates dataset and returns DatasetInfo."""
         mock_dataset = _make_mock_dataset()
@@ -140,7 +140,7 @@ class TestCreateDataset:
         assert "owners" not in call_kwargs
 
     @patch(_CMD_PATH)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_create_dataset_with_owners(self, mock_command_class, mcp_server):
         """Owners list is forwarded to the command when supplied."""
         mock_dataset = _make_mock_dataset()
@@ -168,7 +168,7 @@ class TestCreateDataset:
         assert call_kwargs["owners"] == [5, 10]
 
     @patch(_CMD_PATH)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_create_dataset_already_exists(self, mock_command_class, mcp_server):
         """Returns DatasetExistsError when a dataset for the table already exists.
 
@@ -205,7 +205,7 @@ class TestCreateDataset:
         assert "error" in data
 
     @patch(_CMD_PATH)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_create_dataset_table_not_found(self, mock_command_class, mcp_server):
         """Returns TableNotFoundError when the physical table does not exist in the DB.
 
@@ -241,7 +241,7 @@ class TestCreateDataset:
         assert data["error_type"] == "TableNotFoundError"
 
     @patch(_CMD_PATH)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_create_dataset_unexpected_error(
         self, mock_command_class, mcp_server
     ):
@@ -266,7 +266,7 @@ class TestCreateDataset:
         assert data["error_type"] == "InternalError"
         assert "DB connection lost" in data["error"]
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_create_dataset_missing_required_fields(self, mcp_server):
         """Missing required fields raise a validation error before the tool runs."""
         async with Client(mcp_server) as client:
@@ -282,7 +282,7 @@ class TestCreateDataset:
                 )
 
     @patch(_CMD_PATH)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_create_dataset_returns_full_dataset_info(
         self, mock_command_class, mcp_server
     ):
@@ -335,7 +335,7 @@ class TestCreateDataset:
         assert len(data["metrics"]) == 1
         assert data["metrics"][0]["metric_name"] == "total_sales"
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_create_dataset_database_not_found(
         self, mock_dao_and_security, mcp_server
     ):
@@ -353,7 +353,7 @@ class TestCreateDataset:
         assert data["error_type"] == "DatabaseNotFoundError"
         assert "999" in data["error"]
 
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_create_dataset_access_denied(
         self, mock_dao_and_security, mcp_server
     ):
@@ -361,26 +361,31 @@ class TestCreateDataset:
         from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
         from superset.exceptions import SupersetSecurityException
 
-        _, mock_sec = mock_dao_and_security
-        mock_sec.raise_for_access.side_effect = SupersetSecurityException(
+        access_exc = SupersetSecurityException(
             SupersetError(
                 message="Access denied",
                 error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
                 level=ErrorLevel.ERROR,
             )
         )
+        # Patch _SEC_PATH explicitly inside the test with side_effect pre-configured
+        # so the raise_for_access mock is guaranteed to raise during the tool call.
+        # The autouse mock_dao_and_security fixture keeps the DAO mock active (database
+        # found), and this inner patch overrides the security manager mock only.
+        with patch(_SEC_PATH) as mock_sec_override:
+            mock_sec_override.raise_for_access.side_effect = access_exc
 
-        async with Client(mcp_server) as client:
-            result = await client.call_tool(
-                "create_dataset",
-                {"request": {"database_id": 1, "table_name": "secret_table"}},
-            )
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "create_dataset",
+                    {"request": {"database_id": 1, "table_name": "secret_table"}},
+                )
 
         data = json.loads(result.content[0].text)
         assert data["error_type"] == "AccessDeniedError"
 
     @patch(_CMD_PATH)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_create_dataset_no_schema(
         self, mock_command_class, mock_dao_and_security, mcp_server
     ):
@@ -403,7 +408,7 @@ class TestCreateDataset:
         assert "schema" not in call_kwargs
 
     @patch(_CMD_PATH)
-    @pytest.mark.asyncio
+    @pytest.mark.asyncio()
     async def test_create_dataset_with_catalog(
         self, mock_command_class, mock_dao_and_security, mcp_server
     ):
