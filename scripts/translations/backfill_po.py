@@ -69,6 +69,24 @@ DEFAULT_INDEX = TRANSLATIONS_DIR / "translation_index.json"
 DEFAULT_MODEL = "claude-sonnet-4-6"
 DEFAULT_BATCH_SIZE = 50
 
+_ASF_LICENSE_HEADER = """\
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""
+
 # Language names for the prompt, keyed by ISO code
 LANGUAGE_NAMES: dict[str, str] = {
     "ar": "Arabic",
@@ -93,6 +111,14 @@ LANGUAGE_NAMES: dict[str, str] = {
     "zh": "Chinese (Simplified)",
     "zh_TW": "Chinese (Traditional)",
 }
+
+
+def _ensure_license_header(po_path: Path) -> None:
+    """Prepend the ASF license header to the .po file if it is missing."""
+    content = po_path.read_text(encoding="utf-8")
+    if "Licensed to the Apache Software Foundation" not in content:
+        po_path.write_text(_ASF_LICENSE_HEADER + content, encoding="utf-8")
+        print(f"Added ASF license header to {po_path}", file=sys.stderr)
 
 
 def _lang_name(code: str) -> str:
@@ -509,6 +535,8 @@ def backfill(
     print("Loading translation index …", file=sys.stderr)
     with open(index_path, encoding="utf-8") as f:
         index: dict[str, Any] = json.load(f)
+
+    _ensure_license_header(po_path)
 
     print(f"Loading {po_path} …", file=sys.stderr)
     cat = polib.pofile(str(po_path))
