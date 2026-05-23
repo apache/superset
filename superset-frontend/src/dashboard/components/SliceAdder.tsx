@@ -118,7 +118,7 @@ const NewChartButtonContainer = styled.div`
   ${({ theme }) => css`
     display: flex;
     justify-content: flex-end;
-    padding-right: ${theme.sizeUnit * 2}px;
+    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px 0;
   `}
 `;
 

@@ -245,3 +245,17 @@ test('makeUrl should be idempotent with subdirectory prefix', async () => {
   const twice = makeUrl(once);
   expect(twice).toBe(once); // /superset/sqllab?new=true, NOT /superset/superset/sqllab?new=true
 });
+
+test('ensureAppRoot should fall back to application root when path is null or undefined', async () => {
+  const { ensureAppRoot } = await loadPathUtils('/superset/');
+
+  expect(ensureAppRoot(null)).toBe('/superset');
+  expect(ensureAppRoot(undefined)).toBe('/superset');
+});
+
+test('ensureAppRoot should fall back to "/" when path is null and no application root is configured', async () => {
+  const { ensureAppRoot } = await loadPathUtils();
+
+  expect(ensureAppRoot(null)).toBe('/');
+  expect(ensureAppRoot(undefined)).toBe('/');
+});
