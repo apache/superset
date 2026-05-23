@@ -49,6 +49,9 @@ def test_update_chart_ownership_enforced_for_regular_update(
     with pytest.raises(ChartForbiddenError):
         command.validate()
 
+    mock_find_by_id.assert_called_once_with(1)
+    mock_sm.raise_for_ownership.assert_called_once()
+
 
 @patch("superset.commands.chart.update.ChartDAO.find_by_id")
 @patch("superset.commands.chart.update.security_manager")
@@ -66,6 +69,7 @@ def test_update_chart_query_context_skips_ownership_check(
 
     # Should not raise — report workers can update query_context without ownership
     command.validate()
+    mock_find_by_id.assert_called_once_with(1)
     mock_sm.raise_for_ownership.assert_not_called()
 
 
@@ -88,4 +92,5 @@ def test_update_chart_owner_can_perform_regular_update(
     command = UpdateChartCommand(1, {"slice_name": "Renamed Chart"})
     command.validate()
 
+    mock_find_by_id.assert_called_once_with(1)
     mock_sm.raise_for_ownership.assert_called_once()
