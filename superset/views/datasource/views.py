@@ -235,8 +235,8 @@ class Datasource(BaseSupersetView):
             }:
                 try:
                     dataset = DatasourceDAO.get_datasource(
-                        params["datasource_type"],
-                        params["datasource_id"],
+                        datasource_type=params["datasource_type"],
+                        database_id_or_uuid=params["datasource_id"],
                     )
                 except (DatasourceNotFound, DatasourceTypeNotSupportedError):
                     return self.response_404()
