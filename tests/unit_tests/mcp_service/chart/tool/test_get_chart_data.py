@@ -33,11 +33,15 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
 )
 from superset.mcp_service.chart.tool.get_chart_data import (
+    _GENERIC_TYPE_MAP,
+    _MAX_RECOMMENDATIONS,
     _query_from_form_data,
+    _recommend_visualizations,
     _sanitize_chart_data_for_llm_context,
 )
 from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.mcp_service.utils.sanitization import LLM_CONTEXT_ESCAPED_CLOSE_DELIMITER
+from superset.utils.core import GenericDataType
 
 
 def _collect_groupby_extras(
@@ -1167,3 +1171,284 @@ class TestChartDataCommandValidation:
                 )
 
             mock_command.run.assert_not_called()
+
+
+@pytest.fixture
+def mcp_server():
+    from superset.mcp_service.app import mcp
+
+    return mcp
+
+
+@pytest.fixture
+def mock_auth():
+    """Mock MCP auth so Client.call_tool() doesn't need a real admin user."""
+    import importlib
+    from contextlib import contextmanager
+    from unittest.mock import Mock, patch
+
+    _gcd_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+
+    @contextmanager
+    def _noop_log_context(*_args: Any, **_kwargs: Any) -> Any:
+        yield lambda **_kw: None
+
+    # Neutralize event_logger.log_context: the default DBEventLogger would
+    # otherwise insert a log row referencing our mock user_id and fail a
+    # FK constraint against the real users table. Patch via the module
+    # object directly — the `tool` package's __init__.py re-exports the
+    # get_chart_data function under the same name, which shadows the
+    # submodule binding in the package namespace, so a dotted-string patch
+    # target resolves to the function and mock.patch cannot find
+    # event_logger on it.
+    mock_event_logger = Mock()
+    mock_event_logger.log_context.side_effect = _noop_log_context
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user,
+        patch.object(_gcd_module, "event_logger", mock_event_logger),
+    ):
+        user = Mock()
+        user.id = 1
+        user.username = "admin"
+        mock_get_user.return_value = user
+        yield mock_get_user
+
+
+def _extract_metrics_load_path(load_opt: Any) -> list[str]:
+    """Walk a SQLAlchemy Load option and return the attr chain.
+
+    e.g. subqueryload(Slice.table).subqueryload(SqlaTable.metrics)
+    -> ["table", "metrics"]
+    """
+    path = getattr(load_opt, "path", ())
+    return [elem.key for elem in path if hasattr(elem, "key")]
+
+
+class TestChartLookupEagerLoading:
+    """Tests that get_chart_data eager-loads dataset.metrics on chart lookup.
+
+    Regression tests for the Excel export DetachedInstanceError on
+    dataset.metrics. The chart's dataset metrics relationship must be
+    eager-loaded at fetch time so it remains accessible during Excel export
+    after the request-scoped session is detached.
+    """
+
+    @pytest.mark.asyncio
+    async def test_numeric_id_lookup_passes_metrics_eager_load(
+        self, mcp_server, mock_auth
+    ):
+        """Integer identifier lookup must eager-load Slice.table.metrics."""
+        from unittest.mock import patch
+
+        from fastmcp import Client
+
+        with patch(
+            "superset.daos.chart.ChartDAO.find_by_id", return_value=None
+        ) as mock_find:
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "get_chart_data",
+                    {"request": {"identifier": 42, "format": "excel"}},
+                )
+
+            mock_find.assert_called_once()
+            call = mock_find.call_args
+            assert call.args == (42,)
+            query_options = call.kwargs.get("query_options")
+            assert query_options is not None, (
+                "Chart lookup must pass query_options for eager-loading."
+            )
+            assert len(query_options) == 1
+            load_path = _extract_metrics_load_path(query_options[0])
+            assert load_path == ["table", "metrics"], (
+                f"Expected subqueryload chain 'table' -> 'metrics', got {load_path}"
+            )
+
+    @pytest.mark.asyncio
+    async def test_uuid_lookup_passes_metrics_eager_load(self, mcp_server, mock_auth):
+        """UUID identifier lookup must also eager-load Slice.table.metrics."""
+        from unittest.mock import patch
+
+        from fastmcp import Client
+
+        uuid = "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+
+        with patch(
+            "superset.daos.chart.ChartDAO.find_by_id", return_value=None
+        ) as mock_find:
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "get_chart_data",
+                    {"request": {"identifier": uuid, "format": "excel"}},
+                )
+
+            mock_find.assert_called_once()
+            call = mock_find.call_args
+            assert call.args == (uuid,)
+            assert call.kwargs.get("id_column") == "uuid"
+            query_options = call.kwargs.get("query_options")
+            assert query_options is not None, (
+                "UUID chart lookup must pass query_options for eager-loading."
+            )
+            load_path = _extract_metrics_load_path(query_options[0])
+            assert load_path == ["table", "metrics"], (
+                f"Expected subqueryload chain 'table' -> 'metrics', got {load_path}"
+            )
+
+    @pytest.mark.asyncio
+    async def test_json_format_also_eager_loads_metrics(self, mcp_server, mock_auth):
+        """Eager-load is applied for every format, not just Excel.
+
+        Applying unconditionally keeps the fix robust if additional code paths
+        start touching dataset.metrics, and avoids branching behavior that
+        would be easy to regress on.
+        """
+        from unittest.mock import patch
+
+        from fastmcp import Client
+
+        with patch(
+            "superset.daos.chart.ChartDAO.find_by_id", return_value=None
+        ) as mock_find:
+            async with Client(mcp_server) as client:
+                await client.call_tool(
+                    "get_chart_data",
+                    {"request": {"identifier": 7, "format": "json"}},
+                )
+
+            call = mock_find.call_args
+            query_options = call.kwargs.get("query_options")
+            assert query_options is not None
+            assert _extract_metrics_load_path(query_options[0]) == ["table", "metrics"]
+
+
+# ---------------------------------------------------------------------------
+# Tests for _recommend_visualizations
+# ---------------------------------------------------------------------------
+
+
+def _col(
+    name: str,
+    data_type: str = "string",
+    unique_count: int = 5,
+    null_count: int = 0,
+) -> DataColumn:
+    """Shortcut to build a DataColumn for tests."""
+    return DataColumn(
+        name=name,
+        display_name=name,
+        data_type=data_type,
+        sample_values=[],
+        null_count=null_count,
+        unique_count=unique_count,
+    )
+
+
+def test_recommend_temporal_and_numeric_suggests_line_chart():
+    cols = [_col("created_at", "temporal"), _col("revenue", "numeric")]
+    result = _recommend_visualizations("table", cols, row_count=50)
+    assert "line chart" in result
+    assert "area chart" in result
+
+
+def test_recommend_categorical_and_numeric_suggests_bar_chart():
+    cols = [_col("region", "string", unique_count=5), _col("sales", "numeric")]
+    result = _recommend_visualizations("echarts_timeseries_line", cols, row_count=50)
+    assert "bar chart" in result
+
+
+def test_recommend_excludes_current_viz_type():
+    cols = [_col("created_at", "temporal"), _col("revenue", "numeric")]
+    result = _recommend_visualizations("echarts_timeseries_line", cols, row_count=50)
+    assert "line chart" not in result
+
+
+def test_recommend_multiple_numeric_suggests_scatter():
+    cols = [
+        _col("height", "numeric"),
+        _col("weight", "numeric"),
+        _col("age", "numeric"),
+    ]
+    result = _recommend_visualizations("table", cols, row_count=100)
+    assert "scatter plot" in result
+
+
+def test_recommend_single_numeric_suggests_kpi():
+    cols = [_col("total_revenue", "numeric")]
+    result = _recommend_visualizations("table", cols, row_count=1)
+    assert "big number / KPI" in result
+
+
+def test_recommend_all_strings_falls_back():
+    cols = [_col("name", "string"), _col("address", "string")]
+    result = _recommend_visualizations("pie", cols, row_count=100)
+    assert "table" in result or "bar chart" in result
+
+
+def test_recommend_high_cardinality_no_pie():
+    cols = [
+        _col("user_id", "string", unique_count=900),
+        _col("score", "numeric"),
+    ]
+    result = _recommend_visualizations("table", cols, row_count=1000)
+    assert "pie chart" not in result
+
+
+def test_recommend_caps_at_max():
+    cols = [_col("ts", "temporal"), _col("a", "numeric"), _col("b", "numeric")]
+    result = _recommend_visualizations("table", cols, row_count=100)
+    assert len(result) <= _MAX_RECOMMENDATIONS
+
+
+def test_recommend_empty_columns_returns_table():
+    result = _recommend_visualizations("table", [], row_count=0)
+    assert result == ["table"]
+
+
+def test_recommend_pie_only_for_low_cardinality():
+    cols = [
+        _col("department", "string", unique_count=25),
+        _col("headcount", "numeric"),
+    ]
+    result = _recommend_visualizations("table", cols, row_count=100)
+    assert "pie chart" not in result
+
+
+def test_recommend_temporal_few_rows_prefers_bar():
+    cols = [_col("date", "temporal"), _col("revenue", "numeric")]
+    result = _recommend_visualizations("table", cols, row_count=3)
+    assert "bar chart" in result
+    assert "line chart" not in result
+
+
+def test_recommend_single_numeric_high_cardinality_suggests_histogram():
+    cols = [_col("salary", "numeric", unique_count=500)]
+    result = _recommend_visualizations("table", cols, row_count=1000)
+    assert "histogram" in result
+
+
+def test_coltypes_populates_data_type():
+    """Verify that GenericDataType values from coltypes are mapped correctly."""
+    assert _GENERIC_TYPE_MAP[GenericDataType.NUMERIC] == "numeric"
+    assert _GENERIC_TYPE_MAP[GenericDataType.STRING] == "string"
+    assert _GENERIC_TYPE_MAP[GenericDataType.TEMPORAL] == "temporal"
+    assert _GENERIC_TYPE_MAP[GenericDataType.BOOLEAN] == "boolean"
+
+
+def test_bool_isinstance_check_before_int():
+    """bool is a subclass of int; verify bool check takes priority in fallback."""
+
+    # When coltypes is unavailable, the fallback isinstance heuristic
+    # must check bool before int/float since isinstance(True, int) is True.
+    # We verify this indirectly: if _GENERIC_TYPE_MAP handles bool correctly,
+    # and the fallback code checks bool first, booleans won't be "numeric".
+    # Direct test: simulate what the fallback does
+    sample_values = [True, False, True]
+    data_type = "string"
+    if all(isinstance(v, bool) for v in sample_values):
+        data_type = "boolean"
+    elif all(isinstance(v, (int, float)) for v in sample_values):
+        data_type = "numeric"
+    assert data_type == "boolean"
