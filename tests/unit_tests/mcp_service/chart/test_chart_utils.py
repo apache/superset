@@ -31,6 +31,7 @@ from superset.mcp_service.chart.chart_utils import (
     create_metric_object,
     generate_chart_name,
     generate_explore_link,
+    get_table_chart_type_label,
     is_column_truly_temporal,
     map_config_to_form_data,
     map_filter_operator,
@@ -43,10 +44,32 @@ from superset.mcp_service.chart.schemas import (
     ColumnRef,
     FilterConfig,
     LegendConfig,
+    SortByConfig,
     TableChartConfig,
     XYChartConfig,
 )
 from superset.utils.core import FilterOperator, GenericDataType
+
+
+class TestGetTableChartTypeLabel:
+    """Test user-facing labels for table-family chart types."""
+
+    def test_regular_table_label(self) -> None:
+        assert get_table_chart_type_label("table") == "table chart"
+
+    def test_ag_grid_table_label(self) -> None:
+        assert get_table_chart_type_label("ag-grid-table") == (
+            "interactive table chart"
+        )
+
+    def test_non_table_viz_type_has_no_label(self) -> None:
+        assert get_table_chart_type_label("echarts_timeseries_bar") is None
+
+    def test_unknown_viz_type_has_no_label(self) -> None:
+        assert get_table_chart_type_label("my-custom-chart") is None
+
+    def test_missing_viz_type_has_no_label(self) -> None:
+        assert get_table_chart_type_label(None) is None
 
 
 class TestCreateMetricObject:
@@ -273,7 +296,7 @@ class TestMapTableConfig:
         assert result["adhoc_filters"][2]["comparator"] == ["Sports", "Racing"]
 
     def test_map_table_config_with_sort(self) -> None:
-        """Test table config mapping with sort"""
+        """Bare strings default to descending."""
         config = TableChartConfig(
             chart_type="table",
             columns=[ColumnRef(name="product")],
@@ -281,7 +304,26 @@ class TestMapTableConfig:
         )
 
         result = map_table_config(config)
-        assert result["order_by_cols"] == ["product", "revenue"]
+        assert result["order_by_cols"] == ['["product", false]', '["revenue", false]']
+
+    def test_map_table_config_with_sort_direction(self) -> None:
+        """SortByConfig entries honor the explicit ascending flag."""
+        config = TableChartConfig(
+            chart_type="table",
+            columns=[ColumnRef(name="product")],
+            sort_by=[
+                SortByConfig(column="product", ascending=True),
+                SortByConfig(column="revenue", ascending=False),
+                "category",
+            ],
+        )
+
+        result = map_table_config(config)
+        assert result["order_by_cols"] == [
+            '["product", true]',
+            '["revenue", false]',
+            '["category", false]',
+        ]
 
     def test_map_table_config_ag_grid_table(self) -> None:
         """Test table config mapping with AG Grid Interactive Table viz_type"""
@@ -552,7 +594,34 @@ class TestMapXYConfig:
 
         assert result["viz_type"] == "echarts_timeseries_scatter"
         assert result["show_legend"] is False
-        assert result["legend_orientation"] == "top"
+        assert result["legendOrientation"] == "top"
+
+    def test_map_xy_config_with_color_scheme(self) -> None:
+        """color_scheme propagates to form_data when set."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue")],
+            kind="line",
+            color_scheme="lyftColors",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["color_scheme"] == "lyftColors"
+
+    def test_map_xy_config_without_color_scheme(self) -> None:
+        """color_scheme key omitted when not set, leaving Superset default."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue")],
+            kind="line",
+        )
+
+        result = map_xy_config(config)
+
+        assert "color_scheme" not in result
 
     def test_map_xy_config_with_time_grain_month(self) -> None:
         """Test XY config mapping with monthly time grain"""
@@ -761,6 +830,38 @@ class TestMapXYConfig:
         result = map_xy_config(config)
 
         assert result["row_limit"] == 10000
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_series_limit(self, mock_is_temporal) -> None:
+        """Test that series_limit is mapped to form_data when set."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            group_by=[ColumnRef(name="region")],
+            series_limit=10,
+        )
+
+        result = map_xy_config(config)
+
+        assert result["series_limit"] == 10
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_no_series_limit_by_default(self, mock_is_temporal) -> None:
+        """Test that series_limit is omitted from form_data when not set."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+        )
+
+        result = map_xy_config(config)
+
+        assert "series_limit" not in result
 
     @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
     def test_map_xy_config_saved_metric(self, mock_is_temporal: Any) -> None:

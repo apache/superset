@@ -143,9 +143,10 @@ class TestOpenSqlLabWithContext:
             assert parsed.path == "/sqllab"
             assert params["dbid"] == ["7"]
             assert params["schema"] == ["analytics"]
-            assert params["title"] == [
-                sanitize_for_llm_context("Review this query", field_path=("title",))
+            assert params["name"] == [
+                sanitize_for_llm_context("Review this query", field_path=("name",))
             ]
+            assert "title" not in params
             assert params["sql"] == [
                 sanitize_for_llm_context(
                     "SELECT * FROM users LIMIT 10",
@@ -243,7 +244,7 @@ class TestOpenSqlLabWithContext:
         try:
             url = (
                 "https://superset.example.com/sqllab?"
-                "dbid=7&schema=analytics&sql=SELECT+1&title=Inspect+query"
+                "dbid=7&schema=analytics&sql=SELECT+1&name=Inspect+query"
             )
 
             response = mod._sanitize_sql_lab_response_for_llm_context(
@@ -261,13 +262,45 @@ class TestOpenSqlLabWithContext:
             assert params["sql"] == [
                 sanitize_for_llm_context("SELECT 1", field_path=("sql",))
             ]
-            assert params["title"] == [
-                sanitize_for_llm_context("Inspect query", field_path=("title",))
+            assert params["name"] == [
+                sanitize_for_llm_context("Inspect query", field_path=("name",))
             ]
             assert response.title == sanitize_for_llm_context(
                 "Inspect query",
                 field_path=("title",),
             )
+        finally:
+            _restore_modules(saved_modules)
+
+    def test_whitespace_only_title_is_dropped(self) -> None:
+        """Whitespace-only titles must not produce a blank-looking tab label."""
+        mod, saved_modules = _get_tool_module()
+        try:
+            request = OpenSqlLabRequest(
+                database_id=7,
+                sql="SELECT 1",
+                title="   ",
+            )
+
+            with (
+                patch(
+                    "superset.daos.database.DatabaseDAO.find_by_id",
+                    return_value=Mock(database_name="examples"),
+                ),
+                patch.object(
+                    mod.event_logger, "log_context", return_value=nullcontext()
+                ),
+                patch.object(
+                    mod,
+                    "get_superset_base_url",
+                    return_value="https://superset.example.com",
+                ),
+            ):
+                response = mod.open_sql_lab_with_context(request, _make_mock_ctx())
+
+            params = parse_qs(urlsplit(response.url).query)
+            assert "name" not in params
+            assert response.title is None
         finally:
             _restore_modules(saved_modules)
 
@@ -298,7 +331,8 @@ class TestOpenSqlLabWithContext:
                 field_path=("title",),
             )
             assert response.error == sanitize_for_llm_context(
-                "Database with ID 404 not found",
+                "Database with ID 404 not found."
+                " Use list_databases to get valid database IDs.",
                 field_path=("error",),
             )
         finally:

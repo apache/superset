@@ -869,6 +869,61 @@ class TestBuildQueryContextTimeseriesAndMixed:
         secondary_filters = queries[1].get("filters", [])
         assert {"col": "channel", "op": "==", "val": "organic"} in secondary_filters
 
+    @patch("superset.common.query_context_factory.QueryContextFactory")
+    @patch("superset.daos.datasource.DatasourceDAO.get_datasource")
+    def test_mixed_timeseries_adhoc_filters_b_replaces_primary_sql_clauses(
+        self, mock_get_ds, mock_factory_cls
+    ):
+        """Secondary adhoc filters should not inherit primary SQL where/having."""
+        mock_ds = Mock()
+        mock_ds.database.db_engine_spec.engine = "postgresql"
+        mock_get_ds.return_value = mock_ds
+
+        mock_factory = Mock()
+        mock_factory.create.return_value = Mock()
+        mock_factory_cls.return_value = mock_factory
+
+        form_data = {
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "viz_type": "mixed_timeseries",
+            "x_axis": "ds",
+            "metrics": ["sum__revenue"],
+            "groupby": [],
+            "metrics_b": ["count"],
+            "groupby_b": [],
+            "adhoc_filters": [
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SQL",
+                    "sqlExpression": "country = 'US'",
+                },
+                {
+                    "clause": "HAVING",
+                    "expressionType": "SQL",
+                    "sqlExpression": "SUM(revenue) > 100",
+                },
+            ],
+            "adhoc_filters_b": [
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SQL",
+                    "sqlExpression": "channel = 'organic'",
+                }
+            ],
+        }
+
+        with patch("superset.common.chart_data.ChartDataResultType") as mock_rt:
+            mock_rt.QUERY = "QUERY"
+            _build_query_context_from_form_data(form_data, chart=None)
+
+        primary, secondary = mock_factory.create.call_args[1]["queries"]
+        assert primary["where"] == "(country = 'US')"
+        assert primary["having"] == "(SUM(revenue) > 100)"
+        assert secondary["where"] == "(channel = 'organic')"
+        assert "country = 'US'" not in secondary["where"]
+        assert "having" not in secondary
+
 
 class TestResolveDatasourceName:
     """Tests for _resolve_datasource_name helper."""

@@ -243,6 +243,7 @@ def test_database_connection(
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
                 "supports_oauth2": True,
+                "supports_schemas": True,
             },
             "expose_in_sqllab": True,
             "extra": '{\n    "metadata_params": {},\n    "engine_params": {},\n    "metadata_cache_timeout": {},\n    "schemas_allowed_for_file_upload": []\n}\n',  # noqa: E501
@@ -332,6 +333,7 @@ def test_database_connection(
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
                 "supports_oauth2": True,
+                "supports_schemas": True,
             },
             "expose_in_sqllab": True,
             "force_ctas_schema": None,
@@ -2248,7 +2250,7 @@ def test_catalogs_with_oauth2(
     security_manager.get_catalogs_accessible_by_user.return_value = {"db2"}
 
     response = client.get("/api/v1/database/1/catalogs/")
-    assert response.status_code == 500
+    assert response.status_code == 403
     assert response.json == {
         "errors": [
             {
@@ -2349,7 +2351,7 @@ def test_schemas_with_oauth2(
     security_manager.get_schemas_accessible_by_user.return_value = {"schema2"}
 
     response = client.get("/api/v1/database/1/schemas/")
-    assert response.status_code == 500
+    assert response.status_code == 403
     assert response.json == {
         "errors": [
             {

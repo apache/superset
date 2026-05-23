@@ -22,6 +22,7 @@ import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { type DatabaseObject } from 'src/components';
 import { toQueryString } from 'src/utils/urlUtils';
 import DatasetPanel from './DatasetPanel';
 import { ITableColumn, IDatabaseTable, isIDatabaseTable } from './types';
@@ -39,9 +40,9 @@ interface IColumnProps {
    */
   tableName: string;
   /**
-   * Name of the schema
+   * Name of the schema (optional for databases that don't support schemas)
    */
-  schema: string;
+  schema?: string | null;
 }
 
 export interface IDatasetPanelWrapperProps {
@@ -58,6 +59,10 @@ export interface IDatasetPanelWrapperProps {
    */
   catalog?: string | null;
   schema?: string | null;
+  /**
+   * The selected database object (used to check engine capabilities)
+   */
+  database?: Partial<DatabaseObject> | null;
   setHasColumns?: Function;
   datasets?: DatasetObject[] | undefined;
 }
@@ -67,6 +72,7 @@ const DatasetPanelWrapper = ({
   dbId,
   catalog,
   schema,
+  database,
   setHasColumns,
   datasets,
 }: IDatasetPanelWrapperProps) => {
@@ -128,12 +134,13 @@ const DatasetPanelWrapper = ({
 
   useEffect(() => {
     tableNameRef.current = tableName;
-    if (tableName && schema && dbId) {
-      getTableMetadata({ tableName, dbId, schema });
+    const schemaRequired = database?.supports_schemas !== false;
+    if (tableName && dbId && (schema || !schemaRequired)) {
+      getTableMetadata({ tableName, dbId, schema: schema || undefined });
     }
     // getTableMetadata is a const and should not be in dependency array
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tableName, dbId, schema]);
+  }, [tableName, dbId, schema, database]);
 
   return (
     <DatasetPanel

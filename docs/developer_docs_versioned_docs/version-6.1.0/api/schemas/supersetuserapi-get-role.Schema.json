@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"type":"integer"},"name":{"maxLength":64,"type":"string"}},"required":["name"],"type":"object","title":"SupersetUserApi.get.Role"},"schemaType":"response"}
