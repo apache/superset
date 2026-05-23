@@ -260,6 +260,52 @@ test('table multi select retain all the values selected', async () => {
   expect(selections[1]).toHaveTextContent('table_c');
 });
 
+test('calls onTableSelectChange for schema-less database without schema', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
+  fetchMock.get(schemaApiRoute, { result: [] });
+  fetchMock.get(tablesApiRoute, getTableMockFunction());
+
+  const callback = jest.fn();
+  const props = createProps({
+    database: {
+      id: 1,
+      database_name: 'ydb',
+      backend: 'ydb',
+      supports_schemas: false,
+    },
+    schema: undefined,
+    onTableSelectChange: callback,
+  });
+
+  render(<TableSelector {...props} />, { useRedux: true, store });
+
+  const tableSelect = screen.getByRole('combobox', {
+    name: 'Select table or type to search tables',
+  });
+
+  await act(async () => {
+    await userEvent.click(tableSelect);
+  });
+
+  await waitFor(
+    () => {
+      expect(screen.getByText('table_a')).toBeInTheDocument();
+    },
+    { timeout: 10000 },
+  );
+
+  await act(async () => {
+    await userEvent.click(screen.getByText('table_a'));
+  });
+
+  await waitFor(
+    () => {
+      expect(callback).toHaveBeenCalled();
+    },
+    { timeout: 10000 },
+  );
+}, 15000);
+
 test('TableOption renders correct icons for different table types', () => {
   // Test regular table
   const tableTable = {

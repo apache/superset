@@ -77,6 +77,10 @@ const restrictedImportsRules = {
     name: 'query-string',
     message: 'Please use the URLSearchParams API instead of query-string.',
   },
+  'no-jest-mock-console': {
+    name: 'jest-mock-console',
+    message: 'Please use native Jest spies, i.e. jest.spyOn(console, "warn")',
+  }
 };
 
 module.exports = {

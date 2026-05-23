@@ -1,0 +1,31 @@
+---
+title: TimescaleDB
+sidebar_label: TimescaleDB
+description: "TimescaleDB is an open-source relational database for time-series and analytics, built on PostgreSQL."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"timescaledb","engine_name":"TimescaleDB","module":"timescaledb","documentation":{"description":"TimescaleDB is an open-source relational database for time-series and analytics, built on PostgreSQL.","logo":"timescale.png","homepage_url":"https://www.timescale.com/","categories":["ANALYTICAL_DATABASES","OPEN_SOURCE"],"pypi_packages":["psycopg2"],"connection_string":"postgresql://{username}:{password}@{host}:{port}/{database}","default_port":5432,"connection_examples":[{"description":"Timescale Cloud (SSL required)","connection_string":"postgresql://{username}:{password}@{host}:{port}/{database}?sslmode=require"}],"notes":"Uses the PostgreSQL driver. psycopg2 comes bundled with Superset.","docs_url":"https://docs.timescale.com/"},"time_grains":{"SECOND":true,"FIVE_SECONDS":true,"THIRTY_SECONDS":true,"MINUTE":true,"FIVE_MINUTES":true,"TEN_MINUTES":true,"FIFTEEN_MINUTES":true,"THIRTY_MINUTES":true,"HALF_HOUR":false,"HOUR":true,"SIX_HOURS":false,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":false,"WEEK_STARTING_MONDAY":false,"WEEK_ENDING_SATURDAY":false,"WEEK_ENDING_SUNDAY":false,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":false,"YEAR":true},"score":34,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":false,"supports_catalog":false,"supports_dynamic_catalog":false,"ssh_tunneling":true,"supports_file_upload":true,"query_cancelation":false,"query_cost_estimation":false,"sql_validation":false,"user_impersonation":false};
+
+<DatabasePage name="TimescaleDB" database={databaseInfo} />

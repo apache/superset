@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { usePrevious } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Global } from '@emotion/react';
@@ -136,7 +137,7 @@ const EditorWrapper = ({
   height,
   hotkeys,
 }: EditorWrapperProps) => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const queryEditor = useQueryEditor(queryEditorId, [
     'id',
     'dbId',
