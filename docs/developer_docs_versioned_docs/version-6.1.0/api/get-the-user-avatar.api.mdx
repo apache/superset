@@ -1,0 +1,68 @@
+---
+id: get-the-user-avatar
+title: "Get the user avatar"
+description: "Gets the avatar URL for the user with the given ID, or returns a 401 error if the user is unauthenticated."
+sidebar_label: "Get the user avatar"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFVttu3DYQ/ZXBoEBsVPbaqB8MBXlwHddxGiRGdo0UsAyHlmZXdCRSIUdrbwX9ezGUVnvxogUaoH2SeDs8Z3g4wwYz8qnTFWtrMMZLYg+cE6i5YuXg5vMHmFoXumpPDp4056E103MycPU2AuvAEdfOeFBwcnQM5Jx1oKerVdpDbVTNORnWqWLKDjHCSjlVEpPzGN82W0wmOcHVW7ArFIxQy0ilOMcIjSoJY5SRe51hhI6+19pRhjG7miL0aU6lwrhBXlQy1bPTZoZteyeTfWWNJy/jvxwdy2eTwBk4yrSjlIHtQOKVXwsNthGedGtTa5gMy6+qqkJEamtGj16wmjUulbMVOdbdziV5r2a0i2S07LEPj5Sy7EXPqqwK2liINyGw1uk/KYvhbBVkbQ0MMWkFcFPg+sJOycn/q+SjZZja2mQxyOkLd/JMGTjytnYpQWbJg7EM9Kw97xI1YHT7qpl4C2/EPncRPh+kNqNx2LszXaHMDGNM5TQjLNQDFatmt6u0a1fAwR9weTGBBHPmKh6NCpuqIree49Oj09ORqvRofjwSk4ya3pXtqDPLYWVmCUKSJAbg4B0keNaHPgQ3hl9JOXLw09n5+cV4fD/59PvFxwSxjQaG1wvOrVnjOHQMLHVZWcfLuPnEJGZpc3gzdB/OiPeEB/yAlKgDyEll5PybZktQgjEk2ItKEH4Glabk/T3bb2TaxOwnpnLa8N6S4KH4a29/f13yezVX43C2a7I3OlcHZI0X5YNa9aQ0w5Q4zYPYH5TabOiNl23YPkkR/nV5mE0nehI0f+1WtPKRALxOTEc6U6wGwlvh6CfZgg4LO9uTqfuvUfJXSZzbDGOcEYdUyjnG+I9yJGbk5suUWzsJ6c7I4PbN+iDDkNGcCluVZBg6pHBiHVBTOcs2tUUbj0aNQLVxI55sX6Cd155tuYSIcK6cVg9Fl0uWMF1Snqq64J4mRkimLuVO9035eLnbm/jvJpNrGHDaCIXNJt6g9wW5cWAFMiZVRirc1bWAiJZNkJ2h6teH2W0oN57S2mlejCV7diIfnwLUQzDLb9aVSvDef5lgX7rE190oDhk0iG4jWXzvaOrI5/8WpJVyOrUvC9+4rsj5YCvWLEl6vUu8082bH3ch8VyqUBr6inxJvKr8nfW2I7RWZf7bJ0cfAaZnHlWF0kYkBPM2/R26RVVp0XmMEfbPjnj1yFi7SndLU91i0zwoTzeuaFvp/l6TW2B8e7fydffC0V7+M4ynqvD0N0HZ+9wX7n3Y+RDaqaPvVGYRLlRRSwsj/EaLtYdSeye3ISSyQKobPUtTCil1ue5F7d/IOpcXE2zbvwAbdoIm
+sidebar_class_name: "get api-method"
+info_path: developer-docs/api/superset
+custom_edit_url: null
+hide_send_button: true
+show_extensions: true
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get the user avatar"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/user/{user_id}/avatar.png"}
+  context={"endpoint"}
+>
+
+</MethodEndpoint>
+
+
+
+Gets the avatar URL for the user with the given ID, or returns a 401 error if the user is unauthenticated.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  {...require("./get-the-user-avatar.ParamsDetails.json")}
+>
+
+</ParamsDetails>
+
+<RequestSchema
+  {...require("./get-the-user-avatar.RequestSchema.json")}
+>
+
+</RequestSchema>
+
+<StatusCodes
+  {...require("./get-the-user-avatar.StatusCodes.json")}
+>
+
+</StatusCodes>

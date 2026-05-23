@@ -40,8 +40,13 @@ from superset.mcp_service.chart.chart_utils import (
     map_config_to_form_data,
 )
 from superset.mcp_service.chart.compile import validate_and_compile
+from superset.mcp_service.chart.preview_utils import (
+    generate_preview_from_form_data,
+    SUPPORTED_FORM_DATA_PREVIEW_FORMATS,
+)
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
+    ChartError,
     PerformanceMetadata,
     UpdateChartPreviewRequest,
 )
@@ -229,9 +234,39 @@ def update_chart_preview(  # noqa: C901
             high_contrast_available=False,
         )
 
-        # Note: Screenshot-based previews are not supported.
-        # Use the explore_url to view the chart interactively.
         previews: Dict[str, Any] = {}
+        if request.generate_preview:
+            try:
+                with event_logger.log_context(
+                    action="mcp.update_chart_preview.preview"
+                ):
+                    for format_type in request.preview_formats:
+                        # URL previews are represented by explore_url/chart.url.
+                        # Screenshot-based previews are not supported.
+                        if format_type not in SUPPORTED_FORM_DATA_PREVIEW_FORMATS:
+                            continue
+
+                        preview_result = generate_preview_from_form_data(
+                            form_data=new_form_data,
+                            dataset_id=dataset.id,
+                            preview_format=format_type,
+                        )
+
+                        if isinstance(preview_result, ChartError):
+                            logger.warning(
+                                "Preview '%s' failed: %s",
+                                format_type,
+                                preview_result.error,
+                            )
+                        else:
+                            previews[format_type] = (
+                                preview_result.model_dump(mode="json")
+                                if hasattr(preview_result, "model_dump")
+                                else preview_result
+                            )
+
+            except (CommandException, ValueError, KeyError) as e:
+                logger.warning("Preview generation failed: %s", e)
 
         # Return enhanced data
         result = {

@@ -169,6 +169,7 @@ describe('RoleListEditModal', () => {
         true,
       );
 
+      // updateRoleUsers is called with the hydrated user IDs
       const userArg = mockUpdateRoleUsers.mock.calls[0][1];
       expect(userArg).toEqual([5, 7]);
       expect(userArg.every((id: unknown) => typeof id === 'number')).toBe(true);
@@ -225,6 +226,8 @@ describe('RoleListEditModal', () => {
     expect(decodedQuery).toEqual({
       page_size: 100,
       page: 0,
+      order_column: 'id',
+      order_direction: 'asc',
       filters: [
         {
           col: 'roles',
