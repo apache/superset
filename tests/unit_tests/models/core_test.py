@@ -547,10 +547,9 @@ def test_get_sqla_engine_caches_engine_per_url(mocker: MockerFixture) -> None:
     user-configured pools (e.g. via ``DB_CONNECTION_MUTATOR``) never persist
     state between requests.
 
-    This test asserts that two successive ``_get_sqla_engine(nullpool=False)``
-    calls against the same database/catalog/schema only invoke
-    ``create_engine`` once. It will fail until ``Database._get_sqla_engine``
-    grows a per-URL engine cache.
+    Exercises the production default path (``nullpool=True``) — every
+    in-tree callsite uses it — so the assertion would have caught a fix
+    that only engaged under ``nullpool=False``.
     """
     from superset.models.core import _ENGINE_CACHE, Database
 
@@ -564,13 +563,38 @@ def test_get_sqla_engine_caches_engine_per_url(mocker: MockerFixture) -> None:
     create_engine = mocker.patch("superset.models.core.create_engine")
 
     database = Database(database_name="my_db", sqlalchemy_uri="trino://")
-    database._get_sqla_engine(nullpool=False)
-    database._get_sqla_engine(nullpool=False)
+    database.id = 1  # Cache is keyed on id; skipped for unsaved instances.
+    database._get_sqla_engine()
+    database._get_sqla_engine()
 
     assert create_engine.call_count == 1, (
         "Database._get_sqla_engine should reuse the engine for the same URL "
         f"(create_engine called {create_engine.call_count} times)"
     )
+
+
+def test_get_sqla_engine_does_not_cache_unsaved_instances(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Two distinct unsaved ``Database`` instances (``id is None``) with the
+    same URI must not share a cache entry — they're different in-memory
+    objects and may have diverging config that isn't yet persisted.
+    """
+    from superset.models.core import _ENGINE_CACHE, Database
+
+    _ENGINE_CACHE.clear()
+    mocker.patch(
+        "superset.models.core.security_manager.find_user",
+        return_value=None,
+    )
+    create_engine = mocker.patch("superset.models.core.create_engine")
+
+    Database(database_name="db_a", sqlalchemy_uri="trino://")._get_sqla_engine()
+    Database(database_name="db_b", sqlalchemy_uri="trino://")._get_sqla_engine()
+
+    assert create_engine.call_count == 2
+    assert _ENGINE_CACHE == {}
 
 
 def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:

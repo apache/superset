@@ -24,6 +24,7 @@ from __future__ import annotations
 import builtins
 import logging
 import textwrap
+import threading
 from ast import literal_eval
 from contextlib import closing, contextmanager, nullcontext, suppress
 from copy import deepcopy
@@ -96,9 +97,12 @@ logger = logging.getLogger(__name__)
 
 # Per-process SQLAlchemy engine cache (#27897). Key is
 # (database_id, str(sqlalchemy_url), repr(sorted(engine_kwargs.items()))).
-# Populated only when ``nullpool=False`` — pooled engines are the only ones
-# that benefit from process-wide reuse.
-_ENGINE_CACHE: dict[tuple[Any, ...], Engine] = {}
+# Lock-guarded against the gunicorn-threaded check-then-set race on first
+# access. Cache is per-process, per-(URL + final engine_kwargs), so a
+# password rotation, host change, or DB_CONNECTION_MUTATOR producing
+# different kwargs naturally falls through to a fresh engine.
+_ENGINE_CACHE: dict[tuple[int, str, str], Engine] = {}
+_ENGINE_CACHE_LOCK = threading.Lock()
 
 if TYPE_CHECKING:
     from superset_core.queries.types import AsyncQueryHandle, QueryOptions, QueryResult
@@ -575,24 +579,31 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         # to be called once per process per URL so its connection pool can do
         # its job. Recreating the engine every call defeats the pool that
         # operators configure via ``DB_CONNECTION_MUTATOR`` (e.g. duckdb with a
-        # size-1 queue). Skip the cache when ``nullpool`` is True — those
-        # engines are intentionally poolless and there's nothing to reuse.
-        cache_key: tuple[Any, ...] | None = None
-        if not nullpool:
+        # size-1 queue). Cache regardless of ``nullpool``: even a NullPool
+        # engine has nontrivial construction cost (URL parsing, dialect
+        # resolution, connect_args setup, and re-running the mutator), and
+        # production callsites pass ``nullpool=True`` by default — gating the
+        # cache on ``not nullpool`` would leave it dormant everywhere it
+        # actually matters. Unsaved instances (``self.id is None``) are
+        # excluded so two distinct in-memory ``Database`` objects with the
+        # same URI can't collide on a shared cache entry.
+        cache_key: tuple[int, str, str] | None = None
+        if self.id is not None:
             cache_key = (
                 self.id,
                 str(sqlalchemy_url),
                 repr(sorted(engine_kwargs.items())),
             )
-            cached = _ENGINE_CACHE.get(cache_key)
-            if cached is not None:
-                return cached
+            with _ENGINE_CACHE_LOCK:
+                if cached := _ENGINE_CACHE.get(cache_key):
+                    return cached
         try:
             engine = create_engine(sqlalchemy_url, **engine_kwargs)
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
         if cache_key is not None:
-            _ENGINE_CACHE[cache_key] = engine
+            with _ENGINE_CACHE_LOCK:
+                _ENGINE_CACHE[cache_key] = engine
         return engine
 
     def add_database_to_signature(
