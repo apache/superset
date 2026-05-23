@@ -9927,9 +9927,8 @@ msgstr "Doseg"
 msgid "Range Inputs"
 msgstr "Razponi"
 
-#, fuzzy
 msgid "Range Type"
-msgstr "TIP OBDOBJA"
+msgstr "Tip obdobja"
 
 msgid "Range filter"
 msgstr "Filter obdobja"
@@ -9940,9 +9939,8 @@ msgstr "Vtičnik za filter obdobja z uporabo AntD"
 msgid "Range labels"
 msgstr "Oznake razponov"
 
-#, fuzzy
 msgid "Range type"
-msgstr "TIP OBDOBJA"
+msgstr "Tip obdobja"
 
 msgid "Ranges"
 msgstr "Razponi"
