@@ -26,7 +26,7 @@ import luminanceFromRGB from '../utils/luminanceFromRGB';
 export const MIN_CLUSTER_RADIUS_RATIO = 1 / 6;
 export const MAX_POINT_RADIUS_RATIO = 1 / 3;
 
-const isValidCanvasRadius = (value: number) =>
+export const isValidCanvasRadius = (value: number) =>
   Number.isFinite(value) && value > 0;
 
 interface GeoJSONLocation {

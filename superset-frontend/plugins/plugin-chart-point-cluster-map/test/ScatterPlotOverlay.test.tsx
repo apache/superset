@@ -18,8 +18,8 @@
  */
 
 import { render } from '@testing-library/react';
-import ScatterPlotOverlay from '../src/components/ScatterPlotOverlay';
-import {
+import ScatterPlotOverlay, {
+  isValidCanvasRadius,
   MIN_CLUSTER_RADIUS_RATIO,
   MAX_POINT_RADIUS_RATIO,
 } from '../src/components/ScatterPlotOverlay';
@@ -157,6 +157,18 @@ const MIN_VISIBLE_POINT_RADIUS =
   defaultProps.dotRadius * MIN_CLUSTER_RADIUS_RATIO;
 const MAX_VISIBLE_POINT_RADIUS =
   defaultProps.dotRadius * MAX_POINT_RADIUS_RATIO;
+
+test.each([
+  [1, true],
+  [0.1, true],
+  [0, false],
+  [-1, false],
+  [NaN, false],
+  [Infinity, false],
+  [-Infinity, false],
+])('validates canvas radius value %p', (value, expected) => {
+  expect(isValidCanvasRadius(value)).toBe(expected);
+});
 
 test('renders map with varying radius values in Pixels mode', () => {
   const locations = [
@@ -401,6 +413,11 @@ test.each(['Kilometers', 'Miles'])(
     expect(arcCalls[0][2]).toBe(MIN_VISIBLE_POINT_RADIUS);
     expect(arcCalls[1][2]).toBe(MIN_VISIBLE_POINT_RADIUS);
     expect(arcCalls[2][2]).toBeGreaterThan(MIN_VISIBLE_POINT_RADIUS);
+
+    const expectedLabel = pointRadiusUnit === 'Miles' ? '10mi' : '10km';
+    expect(redrawParams.ctx.fillText.mock.calls.map(call => call[0])).toEqual([
+      expectedLabel,
+    ]);
   },
 );
 
