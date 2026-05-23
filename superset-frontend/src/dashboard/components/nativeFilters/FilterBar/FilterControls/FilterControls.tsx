@@ -131,7 +131,7 @@ const StyledDivider = styled.div`
   margin: ${({ theme }) => theme.sizeUnit * 2}px 0;
 `;
 
-const StyledIcon = styled(Icons.UpOutlined)<{ isOpen: boolean }>`
+const StyledIcon = styled(Icons.UpOutlined) <{ isOpen: boolean }>`
   transform: ${({ isOpen }) => (isOpen ? 'rotate(0deg)' : 'rotate(180deg)')};
   transition: transform 0.2s ease;
   color: ${({ theme }) => theme.colorTextSecondary};
@@ -460,7 +460,7 @@ const FilterControls: FC<FilterControlsProps> = ({
         last={
           filtersInScope.length > 0 &&
           `${last.name}${last.emitterId}` ===
-            `${crossFilter.name}${crossFilter.emitterId}`
+          `${crossFilter.name}${crossFilter.emitterId}`
         }
       />
     ),
@@ -556,12 +556,7 @@ const FilterControls: FC<FilterControlsProps> = ({
       };
     });
 
-    return [
-      ...chartCustomizations,
-      ...dividerItems,
-      ...crossFilters,
-      ...nativeFiltersInScope,
-    ];
+    return [...nativeFiltersInScope, ...dividerItems, ...chartCustomizations];
   }, [
     filtersInScope,
     renderer,
@@ -576,46 +571,46 @@ const FilterControls: FC<FilterControlsProps> = ({
 
   const renderHorizontalContent = useCallback(
     () => (
-      <div
-        css={(theme: SupersetTheme) => css`
+      <>
+        <div
+          css={(theme: SupersetTheme) => css`
           padding: 0 ${theme.sizeUnit * 4}px;
           min-width: 0;
           flex: 1;
         `}
-      >
-        <DropdownContainer
-          items={items}
-          dropdownTriggerIcon={
-            <Icons.FilterOutlined
-              css={css`
+        >
+          <DropdownContainer
+            items={items}
+            dropdownTriggerIcon={
+              <Icons.FilterOutlined
+                css={css`
                 && {
                   margin-right: -4px;
                   display: flex;
                 }
               `}
-            />
-          }
-          dropdownTriggerText={t('More filters')}
-          dropdownTriggerCount={activeOverflowedFiltersInScope.length}
-          dropdownTriggerTooltip={
-            activeOverflowedFiltersInScope.length === 0
-              ? t('No applied filters')
-              : t(
+              />
+            }
+            dropdownTriggerText={t('More filters')}
+            dropdownTriggerCount={activeOverflowedFiltersInScope.length}
+            dropdownTriggerTooltip={
+              activeOverflowedFiltersInScope.length === 0
+                ? t('No applied filters')
+                : t(
                   'Applied filters: %s',
                   activeOverflowedFiltersInScope
                     .map(filter => filter.name)
                     .join(', '),
                 )
-          }
-          dropdownContent={
-            overflowedFiltersInScope.length ||
-            overflowedCrossFilters.length ||
-            (filtersOutOfScope.length && showCollapsePanel) ||
-            (customizationsOutOfScope.length && showCustomizationCollapsePanel)
-              ? () => (
+            }
+            dropdownContent={
+              overflowedFiltersInScope.length ||
+                (filtersOutOfScope.length && showCollapsePanel) ||
+                (customizationsOutOfScope.length && showCustomizationCollapsePanel)
+                ? () => (
                   <>
                     <FiltersDropdownContent
-                      overflowedCrossFilters={overflowedCrossFilters}
+                      overflowedCrossFilters={[]}
                       filtersInScope={overflowedFiltersInScope}
                       filtersOutOfScope={filtersOutOfScope}
                       renderer={renderer}
@@ -632,23 +627,59 @@ const FilterControls: FC<FilterControlsProps> = ({
                     )}
                   </>
                 )
-              : undefined
-          }
-          forceRender={hasRequiredFirst}
-          ref={popoverRef}
-          onOverflowingStateChange={({ overflowed: nextOverflowedIds }) => {
-            if (
-              nextOverflowedIds.length !== overflowedIds.length ||
-              overflowedIds.reduce(
-                (a, b, i) => a || b !== nextOverflowedIds[i],
-                false,
-              )
-            ) {
-              setOverflowedIds(nextOverflowedIds);
+                : undefined
             }
-          }}
-        />
-      </div>
+            forceRender={hasRequiredFirst}
+            ref={popoverRef}
+            onOverflowingStateChange={({ overflowed: nextOverflowedIds }) => {
+              if (
+                nextOverflowedIds.length !== overflowedIds.length ||
+                overflowedIds.reduce(
+                  (a, b, i) => a || b !== nextOverflowedIds[i],
+                  false,
+                )
+              ) {
+                setOverflowedIds(nextOverflowedIds);
+              }
+            }}
+          />
+        </div>
+        {selectedCrossFilters.length > 0 && (
+          <div
+            css={(theme: SupersetTheme) => css`
+            padding: 0 ${theme.sizeUnit}px;
+            flex-shrink: 0;
+          `}
+          >
+            <DropdownContainer
+              items={[]}
+              dropdownTriggerIcon={
+                <Icons.FilterOutlined
+                  css={css`
+                  && {
+                    margin-right: -4px;
+                    display: flex;
+                  }
+                `}
+                />
+              }
+              dropdownTriggerText={t('Cross filters')}
+              dropdownTriggerCount={selectedCrossFilters.length}
+              dropdownContent={() => (
+                <FiltersDropdownContent
+                  overflowedCrossFilters={selectedCrossFilters}
+                  filtersInScope={[]}
+                  filtersOutOfScope={[]}
+                  renderer={() => null}
+                  rendererCrossFilter={rendererCrossFilter}
+                  showCollapsePanel={false}
+                  forceRenderOutOfScope={false}
+                />
+              )}
+            />
+          </div>
+        )}
+      </>
     ),
     [
       items,

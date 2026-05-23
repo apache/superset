@@ -74,6 +74,7 @@ import {
   SelectFilterPlugin,
   RangeFilterPlugin,
   TimeFilterPlugin,
+  DateTimeFilterPlugin,
   TimeColumnFilterPlugin,
   TimeGrainFilterPlugin,
 } from 'src/filters/components';
@@ -95,10 +96,10 @@ export default class MainPreset extends Preset {
       FeatureFlag.ChartPluginsExperimental,
     )
       ? [
-          new BigNumberPeriodOverPeriodChartPlugin().configure({
-            key: VizType.BigNumberPeriodOverPeriod,
-          }),
-        ]
+        new BigNumberPeriodOverPeriodChartPlugin().configure({
+          key: VizType.BigNumberPeriodOverPeriod,
+        }),
+      ]
       : [];
 
     const agGridTablePlugin = isFeatureEnabled(FeatureFlag.AgGridTableEnabled)
@@ -174,6 +175,7 @@ export default class MainPreset extends Preset {
         new SelectFilterPlugin().configure({ key: FilterPlugins.Select }),
         new RangeFilterPlugin().configure({ key: FilterPlugins.Range }),
         new TimeFilterPlugin().configure({ key: FilterPlugins.Time }),
+        new DateTimeFilterPlugin().configure({ key: FilterPlugins.DateTime }),
         new TimeColumnFilterPlugin().configure({
           key: FilterPlugins.TimeColumn,
         }),

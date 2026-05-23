@@ -120,6 +120,11 @@ const FilterControlsWrapper = styled.div`
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 4}px;
     padding-top: 0; /* Works with other changes in PR https://github.com/apache/superset/pull/38646 to reduces space between filter header and 1st filter */
+  `}
+`;
+
+const ScrollableContent = styled.div`
+  ${({ theme }) => `
     // 108px padding to make room for buttons with position: absolute
     padding-bottom: ${theme.sizeUnit * 27}px;
   `}
@@ -300,10 +305,10 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
             </div>
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>
-              <>
-                <CrossFiltersVertical hideHeader={hasOnlyOneSectionType} />
+              <ScrollableContent>
                 {filterControls}
-              </>
+                <CrossFiltersVertical hideHeader={hasOnlyOneSectionType} />
+              </ScrollableContent>
             </div>
           )}
           {actions}
