@@ -187,10 +187,18 @@ def get_viz(
 
 
 def loads_request_json(request_json_data: str) -> dict[Any, Any]:
+    """Parse a JSON request payload, coercing non-objects to ``{}``.
+
+    Callers (notably ``get_form_data``) chain ``.update()`` / ``.get()`` on
+    the result assuming a dict. A bare scalar payload (``form_data=42``)
+    used to surface as ``TypeError: 'int' object is not iterable`` inside
+    ``event_logger.log_this`` and bubble out as 500.
+    """
     try:
-        return json.loads(request_json_data)
+        parsed = json.loads(request_json_data)
     except (TypeError, json.JSONDecodeError):
         return {}
+    return parsed if isinstance(parsed, dict) else {}
 
 
 def get_explore_redirect_url() -> str | None:
@@ -268,23 +276,26 @@ def get_explore_redirect_url() -> str | None:
         # `SQLAlchemyError` remains caught inside `CreateFormDataCommand.run`.
         return None
 
-    # Use `url_for` so subdirectory deployments inherit SCRIPT_NAME. The
-    # legacy `request.url.replace("/superset/explore", "/explore")` would
-    # strip the application-root segment and redirect outside the subdir.
-    query = parse.parse_qs(request.query_string.decode())
+    # Use `url_for` with the query as kwargs so subdirectory deployments
+    # inherit SCRIPT_NAME *and* CodeQL sees a sanctioned Flask URL builder
+    # (the prior `f"{url_for(...)}?{urlencode(...)}"` form tripped
+    # `py/url-redirection` because string concatenation isn't recognised
+    # as sanitization). The endpoint params here (slice_id, dataset_id,
+    # form_data_key, ...) are single-valued; we keep the first value if a
+    # caller ever repeats a key so `url_for` receives scalars, not lists.
+    query_multi = parse.parse_qs(request.query_string.decode())
     if form_data_key:
-        query.pop("form_data", None)
-        query["form_data_key"] = [form_data_key]
-    encoded_query = parse.urlencode(query, doseq=True)
-    target_path = url_for("ExploreView.root")
-    target_url = f"{target_path}?{encoded_query}" if encoded_query else target_path
+        query_multi.pop("form_data", None)
+        query_multi["form_data_key"] = [form_data_key]
+    query: dict[str, str] = {k: vals[0] for k, vals in query_multi.items() if vals}
+    target_url = url_for("ExploreView.root", **query)
 
     # Loop guard: if the current request is already at the redirect target
     # (same endpoint, same sorted query items), render the SPA instead of
     # 302-looping. Compare on `(endpoint, sorted_query_items)` rather than
     # `full_path` so SCRIPT_NAME (subdir deployment) is irrelevant.
     current_query_items = sorted(parse.parse_qsl(request.query_string.decode()))
-    target_query_items = sorted(parse.parse_qsl(encoded_query))
+    target_query_items = sorted(query.items())
     if (
         request.endpoint == "ExploreView.root"
         and current_query_items == target_query_items

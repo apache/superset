@@ -80,6 +80,29 @@ function assertSafeNavigationUrl(url: string): string {
   return url;
 }
 
+// Inline regex predicate. Mirrors `assertSafeNavigationUrl` exactly but as
+// a boolean test so CodeQL's data-flow analysis recognises it as a
+// sanitiser barrier at each `window.*` sink in `navigateTo` /
+// `navigateWithState`. Through-function sanitisers (`assertSafeNavigationUrl`)
+// are not in CodeQL's default model and tripped `js/client-side-*` even
+// though the throw path guaranteed safety.
+function isSafeNavigationUrl(url: string): boolean {
+  if (!SAFE_NAVIGATION_URL_RE.test(url) || url.includes('\\')) {
+    return false;
+  }
+  if (USERINFO_BEARING_SCHEME_RE.test(url)) {
+    try {
+      const parsed = new URL(url);
+      if (parsed.username || parsed.password) {
+        return false;
+      }
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
+
 /**
  * Imperative full-page navigation. Internal entry point for `redirect()`
  * and a handful of legacy callers; new code should prefer `<AppLink>` or
@@ -93,23 +116,36 @@ export function navigateTo(
   url: string,
   options?: { newWindow?: boolean; assign?: boolean },
 ): void {
-  let safe: string;
-  try {
-    safe = assertSafeNavigationUrl(ensureAppRoot(url));
-  } catch (err) {
-    // Full-page nav fallback: the user clicked something that resolved to
-    // the home page is better than landing on an attacker-controlled origin.
-    // eslint-disable-next-line no-console -- guarded surface, observable in dev.
-    console.error('navigationUtils.navigateTo refused unsafe URL:', url, err);
-    window.location.href = ensureAppRoot('/');
+  const target = ensureAppRoot(url);
+  // Inline regex check (not a function call) so CodeQL's data-flow
+  // analysis recognises the sanitiser barrier and propagates `target` as
+  // safe at each sink below. Mirrors `isSafeNavigationUrl` precisely.
+  if (
+    SAFE_NAVIGATION_URL_RE.test(target) &&
+    !target.includes('\\') &&
+    (!USERINFO_BEARING_SCHEME_RE.test(target) || isSafeNavigationUrl(target))
+  ) {
+    if (options?.newWindow) {
+      window.open(target, '_blank', NEW_TAB_FEATURES);
+    } else if (options?.assign) {
+      window.location.assign(target);
+    } else {
+      window.location.href = target;
+    }
     return;
   }
-  if (options?.newWindow) {
-    window.open(safe, '_blank', 'noopener noreferrer');
-  } else if (options?.assign) {
-    window.location.assign(safe);
-  } else {
-    window.location.href = safe;
+  // eslint-disable-next-line no-console -- guarded surface, observable in dev.
+  console.error('navigationUtils.navigateTo refused unsafe URL:', url);
+  // Fallback navigation: `ensureAppRoot('/')` resolves to the deployment
+  // home. Re-validated through the same inline gate so CodeQL sees the
+  // sanitiser at every `window.location.*` write in this function.
+  const home = ensureAppRoot('/');
+  if (
+    SAFE_NAVIGATION_URL_RE.test(home) &&
+    !home.includes('\\') &&
+    (!USERINFO_BEARING_SCHEME_RE.test(home) || isSafeNavigationUrl(home))
+  ) {
+    window.location.href = home;
   }
 }
 
@@ -127,22 +163,21 @@ export function navigateWithState(
   state: Record<string, unknown>,
   options?: { replace?: boolean },
 ): void {
-  let safe: string;
-  try {
-    safe = assertSafeNavigationUrl(ensureAppRoot(url));
-  } catch (err) {
+  const target = ensureAppRoot(url);
+  // Inline regex sanitiser (see `navigateTo` for rationale).
+  if (
+    !SAFE_NAVIGATION_URL_RE.test(target) ||
+    target.includes('\\') ||
+    (USERINFO_BEARING_SCHEME_RE.test(target) && !isSafeNavigationUrl(target))
+  ) {
     // eslint-disable-next-line no-console -- guarded surface, observable in dev.
-    console.error(
-      'navigationUtils.navigateWithState refused unsafe URL:',
-      url,
-      err,
-    );
+    console.error('navigationUtils.navigateWithState refused unsafe URL:', url);
     return;
   }
   if (options?.replace) {
-    window.history.replaceState(state, '', safe);
+    window.history.replaceState(state, '', target);
   } else {
-    window.history.pushState(state, '', safe);
+    window.history.pushState(state, '', target);
   }
 }
 

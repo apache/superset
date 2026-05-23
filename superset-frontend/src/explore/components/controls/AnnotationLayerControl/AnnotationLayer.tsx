@@ -45,7 +45,7 @@ import TextControl from 'src/explore/components/controls/TextControl';
 import CheckboxControl from 'src/explore/components/controls/CheckboxControl';
 import PopoverSection from '@superset-ui/core/components/PopoverSection';
 import ControlHeader from 'src/explore/components/ControlHeader';
-import { ensureAppRoot } from 'src/utils/navigationUtils';
+import { AppLink } from 'src/utils/navigationUtils';
 import {
   ANNOTATION_SOURCE_TYPES,
   ANNOTATION_TYPES,
@@ -145,13 +145,13 @@ const NotFoundContent = () => (
       description={
         <span>
           {t('Add an annotation layer')}{' '}
-          <a
-            href={ensureAppRoot('/annotationlayer/list')}
+          <AppLink
+            href="/annotationlayer/list"
             target="_blank"
             rel="noopener noreferrer"
           >
             {t('here')}
-          </a>
+          </AppLink>
           .
         </span>
       }

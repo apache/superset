@@ -563,7 +563,7 @@ test('renders dashboard crosslinks as navigable links', async () => {
       within(crosslinks).getByRole('link', {
         name: new RegExp(dashboard.dashboard_title),
       }),
-    ).toHaveAttribute('href', `/superset/dashboard/${dashboard.id}`);
+    ).toHaveAttribute('href', `/dashboard/${dashboard.id}`);
   });
 });
 

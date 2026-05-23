@@ -260,9 +260,6 @@ const DIRECT_DOM_NAV_SANCTIONED: string[] = [
   // assertSafeNavigationUrl guard.
   'src/dashboard/components/menu/ShareMenuItems/index.tsx',
   'src/explore/components/useExploreAdditionalActionsMenu/index.tsx',
-  // OAuth flow needs the popup handle returned by window.open so it can
-  // poll the child window for completion; the helper does not return it.
-  'src/components/ErrorMessage/OAuth2RedirectMessage.tsx',
   // SupersetClient login redirect: full-page reload to a server-built
   // `${appRoot}/login?next=...` URL inside the connection layer, before
   // navigationUtils is available.

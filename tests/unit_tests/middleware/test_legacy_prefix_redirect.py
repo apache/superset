@@ -388,9 +388,16 @@ def test_wrap_order_shim_outside_init_app_wraps(mock_init_app) -> None:
         ),
     ):
         app = create_app()
-    # Shim is still outermost, FakeInnerMiddleware sits inside.
+    # Shim is still outermost; FakeInnerMiddleware sits somewhere inside.
+    # `create_app()` also wraps ExtensionCacheMiddleware between the shim
+    # and the inner middleware, so walk the `wsgi_app` chain to find the
+    # fake — the layering invariant is "shim outside init_app's wraps,"
+    # not "shim's direct inner is init_app's outermost wrap."
     assert isinstance(app.wsgi_app, LegacyPrefixRedirectMiddleware)
-    assert isinstance(app.wsgi_app.wsgi_app, _FakeInnerMiddleware)
+    inner: object = app.wsgi_app.wsgi_app
+    while hasattr(inner, "wsgi_app") and not isinstance(inner, _FakeInnerMiddleware):
+        inner = inner.wsgi_app
+    assert isinstance(inner, _FakeInnerMiddleware)
 
 
 # ---------------------------------------------------------------------------

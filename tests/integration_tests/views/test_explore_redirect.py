@@ -64,8 +64,7 @@ class TestExploreRedirect(SupersetTestCase):
         """
         from superset.extensions import appbuilder
 
-        app = appbuilder.get_app
-        adapter = app.url_map.bind("")
+        adapter = appbuilder.app.url_map.bind("")
         endpoint, _ = adapter.match("/explore/", method="GET")
         assert endpoint == "ExploreView.root"
 
@@ -154,7 +153,9 @@ class TestExploreRedirect(SupersetTestCase):
         self.client.get(
             f"/explore/?slice_id=99&form_data={quote(json.dumps(form_data))}"
         )
-        assert mock_command_cls.call_args.kwargs["chart_id"] == 42
+        # ``CreateFormDataCommand(parameters)`` is called positionally with a
+        # ``CommandParameters`` dataclass; assert against ``args[0]`` not kwargs.
+        assert mock_command_cls.call_args.args[0].chart_id == 42
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @mock.patch("superset.commands.explore.form_data.create.CreateFormDataCommand.run")

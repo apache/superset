@@ -94,7 +94,8 @@ test('Slice 3a callsites: ensureAppRoot composes correctly under both deployment
   await applicationRootScenarios(DEPLOYMENTS, async ({ root }) => {
     const { ensureAppRoot } = await import('src/utils/navigationUtils');
     for (const callsite of CALLSITES) {
-      const expected = root === '' ? callsite.input : `${root}${callsite.input}`;
+      const expected =
+        root === '' ? callsite.input : `${root}${callsite.input}`;
       expect({
         deployment: root || '(root)',
         callsite: callsite.name,
