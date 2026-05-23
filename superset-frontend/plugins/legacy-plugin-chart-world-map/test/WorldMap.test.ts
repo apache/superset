@@ -511,7 +511,7 @@ test('assigns fill colors from sequential scheme when colorBy is metric', () => 
   expect(data.CAN.fillColor).toMatch(/^(#|rgb)/);
 });
 
-test('excludes countries with null metric value from data when colorBy is metric', () => {
+test('renders countries with null metric as no-data fill when colorBy is metric', () => {
   WorldMap(container, {
     ...baseProps,
     colorBy: ColorBy.Metric,
@@ -537,12 +537,16 @@ test('excludes countries with null metric value from data when colorBy is metric
     ],
   });
 
-  const data = lastDatamapConfig?.data as Record<string, unknown>;
+  const data = lastDatamapConfig?.data as Record<
+    string,
+    WorldMapDataEntry & { fillColor: string }
+  >;
   expect(data).toHaveProperty('USA');
-  expect(data).not.toHaveProperty('CAN');
+  expect(data).toHaveProperty('CAN');
+  expect(data.CAN.fillColor).toBe('#e0e0e0');
 });
 
-test('excludes countries with zero metric value from data when colorBy is metric', () => {
+test('renders countries with zero metric using the color scale when colorBy is metric', () => {
   WorldMap(container, {
     ...baseProps,
     colorBy: ColorBy.Metric,
@@ -568,9 +572,13 @@ test('excludes countries with zero metric value from data when colorBy is metric
     ],
   });
 
-  const data = lastDatamapConfig?.data as Record<string, unknown>;
-  expect(data).toHaveProperty('USA');
-  expect(data).not.toHaveProperty('MEX');
+  const data = lastDatamapConfig?.data as Record<
+    string,
+    WorldMapDataEntry & { fillColor: string }
+  >;
+  expect(data).toHaveProperty('MEX');
+  expect(data.MEX.fillColor).toMatch(/^(#|rgb)/);
+  expect(data.MEX.fillColor).not.toBe('#e0e0e0');
 });
 
 test('does not throw with empty data and metric coloring', () => {
