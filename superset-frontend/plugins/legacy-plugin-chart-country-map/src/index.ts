@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
+import { ChartLabel, ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import transformProps from './transformProps';
 import exampleUsa from './images/exampleUsa.jpg';
 import exampleUsaDark from './images/exampleUsa-dark.jpg';
@@ -37,7 +37,18 @@ const metadata = new ChartMetadata({
     { url: exampleUsa, urlDark: exampleUsaDark },
     { url: exampleGermany, urlDark: exampleGermanyDark },
   ],
-  name: t('Country Map'),
+  name: t('Country Map (Legacy)'),
+  // DEPRECATED: replaced by `country_map_v2` (plugin-chart-country-map).
+  // Existing dashboards continue to render against this plugin until users
+  // explicitly switch via the "Switch to new chart" button. Schedule:
+  // see SIP_DRAFT.md in the new plugin's directory.
+  label: ChartLabel.Deprecated,
+  labelExplanation: t(
+    'Replaced by the new Country Map chart, which uses the modern chart/data ' +
+      'endpoint, supports configurable worldview for disputed regions, and adds ' +
+      'composite + aggregated regional layers. Existing charts using this type ' +
+      'continue to work; new charts should use the modern Country Map.',
+  ),
   tags: [
     t('2D'),
     t('Comparison'),

@@ -1,0 +1,126 @@
+# Re-runs the Country Map plugin's build pipeline whenever its YAML
+# configs change, then opens a PR with the updated GeoJSON outputs.
+# Verifies the pipeline stays reproducible and surfaces cartographic
+# diffs to maintainers as legible GeoJSON, not opaque notebook JSON.
+
+name: country-map / regenerate outputs
+
+on:
+  pull_request:
+    paths:
+      - 'superset-frontend/plugins/plugin-chart-country-map/scripts/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  regen:
+    name: Regenerate GeoJSON + manifest
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Install build script deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+
+      - name: Run unit tests for build transforms
+        run: |
+          cd superset-frontend/plugins/plugin-chart-country-map/scripts
+          python -m unittest test_build -v
+
+      - name: Run build pipeline
+        run: |
+          cd superset-frontend/plugins/plugin-chart-country-map/scripts
+          ./build.sh
+
+      - name: Detect output drift
+        id: drift
+        run: |
+          if [ -n "$(git status --porcelain superset/static/assets/country-maps/ \
+                                            superset-frontend/plugins/plugin-chart-country-map/src/data/manifest.json)" ]; then
+            echo "drift=true" >> "$GITHUB_OUTPUT"
+            echo "Outputs differ from committed snapshot:"
+            git status --short superset/static/assets/country-maps/
+          else
+            echo "drift=false" >> "$GITHUB_OUTPUT"
+            echo "Outputs match committed snapshot — nothing to do."
+          fi
+
+      # Sticky comment: every push to a PR retriggers this workflow, so
+      # we'd otherwise stack a fresh drift comment on every commit.
+      # Look for an existing comment carrying our marker and edit it in
+      # place; only post a new one the first time.
+      - name: Comment on PR if drift (sticky)
+        if: steps.drift.outputs.drift == 'true' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          COMMIT: ${{ github.event.pull_request.head.sha }}
+        run: |
+          MARKER="<!-- country-map-drift-bot -->"
+          BODY="$MARKER
+          ⚠️ **Country Map**: drift detected between the locally committed GeoJSON outputs and what CI just regenerated for commit \`${COMMIT:0:7}\`. Either the YAML configs were updated without re-running \`./scripts/build.sh\`, OR mapshaper output differs cross-platform (macOS dev vs Linux CI). Investigate before merge.
+
+          _This comment is sticky and updated on every push; old drift comments are not stacked._"
+
+          # Find an existing sticky comment by marker
+          EXISTING=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+            --paginate --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id" \
+            | head -n1)
+
+          if [ -n "$EXISTING" ]; then
+            gh api -X PATCH "repos/${REPO}/issues/comments/${EXISTING}" -f body="$BODY"
+          else
+            gh pr comment "$PR_NUMBER" --repo "$REPO" --body "$BODY"
+          fi
+
+      # If a previous push had drift but this one doesn't, remove the
+      # sticky comment so the PR doesn't carry a stale warning.
+      - name: Clear sticky comment if drift resolved
+        if: steps.drift.outputs.drift == 'false' && github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          MARKER="<!-- country-map-drift-bot -->"
+          EXISTING=$(gh api "repos/${REPO}/issues/${PR_NUMBER}/comments" \
+            --paginate --jq ".[] | select(.body | contains(\"${MARKER}\")) | .id" \
+            | head -n1)
+          if [ -n "$EXISTING" ]; then
+            gh api -X DELETE "repos/${REPO}/issues/comments/${EXISTING}"
+          fi
+
+      # Informational only: cross-platform mapshaper output reproducibility
+      # is still being worked through. Don't block PRs on drift; surface
+      # via the comment above and a workflow summary.
+      - name: Summarize drift (informational)
+        if: steps.drift.outputs.drift == 'true' && github.event_name == 'pull_request'
+        run: |
+          {
+            echo "## Country Map: output drift detected (informational)";
+            echo "";
+            echo "Files differing from committed snapshot:";
+            echo '```';
+            git status --short superset/static/assets/country-maps/ \
+                               superset-frontend/plugins/plugin-chart-country-map/src/data/manifest.json;
+            echo '```';
+          } >> "$GITHUB_STEP_SUMMARY"

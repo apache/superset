@@ -70,8 +70,14 @@ superset-websocket/config.json
 node_modules
 npm-debug.log*
 superset/static/*
+!superset/static/assets/
 superset/static/assets/*
 !superset/static/assets/.gitkeep
+# Country Map plugin's generated GeoJSON outputs are committed so a
+# fresh ephemeral env can render the chart without first running the
+# build pipeline. See superset/static/assets/country-maps/README.md.
+!superset/static/assets/country-maps/
+!superset/static/assets/country-maps/**
 superset/static/uploads/*
 !superset/static/uploads/.gitkeep
 yarn-error.log

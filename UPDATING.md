@@ -24,6 +24,29 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Country Map plugin redesigned (legacy plugin deprecated)
+
+A new Country Map chart plugin (`@superset-ui/plugin-chart-country-map`, `viz_type='country_map_v2'`) replaces the legacy plugin (`@superset-ui/legacy-plugin-chart-country-map`, `viz_type='country_map'`). The legacy plugin is still installed and functional — existing dashboards continue to render unchanged — but is now badged as deprecated in the chart-type picker, with the display name "Country Map (Legacy)".
+
+**What changed:**
+- Modern `chart/data` endpoint instead of `explore_json` (full async / caching / semantic-layer integration)
+- Configurable per-deployment + per-chart **worldview** for disputed regions (default ships Natural Earth's `_ukr` worldview, which shows Crimea as Ukrainian and aligns with broadly-expected positions on Kosovo, Western Sahara, Palestine, Cyprus, Kashmir; configurable via `superset_config.COUNTRY_MAP.default_worldview`)
+- Both **Admin 0** (countries) **and Admin 1** (subdivisions) supported in one plugin (subsumes years of bespoke per-country submissions like French departments, Italian regions, Türkiye city map)
+- New **Aggregated regions** admin level (Türkiye NUTS-1, France/Italy/Philippines administrative regions)
+- New **composite maps** (e.g. France with overseas territories combining mainland + DROMs + 6 sister Admin 0 records)
+- Per-chart **region include/exclude**, **flying-islands toggle**, **name-language selector**
+- Build pipeline replaces the legacy Jupyter notebook with `mapshaper`-CLI-based reproducible scripts + 5 declarative YAML configs in `superset-frontend/plugins/plugin-chart-country-map/scripts/`
+
+**Migration behavior:**
+- Existing charts using `viz_type='country_map'` continue to render against the legacy plugin. No DB migrations needed.
+- The legacy plugin's chart picker entry shows the standard Deprecation badge with an explanation pointing at the new chart type.
+- Users can re-create existing charts using the modern plugin manually; an automated "Switch to new chart" button is planned.
+- The legacy plugin (and its committed `src/countries/*.geojson` assets) will be removed in a future major release once existing dashboards have migrated.
+
+**For maintainers / power users with custom modifications:**
+- The legacy plugin's Jupyter notebook (`scripts/Country Map GeoJSON Generator.ipynb`) is no longer the source of truth. Local touchups should be ported to the new plugin's YAML configs (`scripts/config/{name_overrides,flying_islands,territory_assignments,regional_aggregations,composite_maps}.yaml`) or, for genuine edge cases that don't fit YAML, to the `scripts/procedural/` escape-hatch directory.
+- See `superset-frontend/plugins/plugin-chart-country-map/SIP_DRAFT.md` for the full design rationale.
+
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:

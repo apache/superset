@@ -43,6 +43,11 @@ superset-frontend/cypress-base/
 superset-frontend/coverage/
 superset-frontend/.temp_cache/
 superset/static/assets/
+# …but ship the committed Country Map GeoJSON outputs, which live under
+# this otherwise webpack-managed path. Without this re-include the
+# country-map plugin gets a 404 fetching every map file in dockerized
+# deployments (including ephemeral PR previews).
+!superset/static/assets/country-maps/
 superset-websocket/dist/
 venv
 .venv

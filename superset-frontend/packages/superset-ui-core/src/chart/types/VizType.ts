@@ -30,6 +30,12 @@ export enum VizType {
   Chord = 'chord',
   Compare = 'compare',
   CountryMap = 'country_map',
+  // Modern replacement for CountryMap. Configurable worldview, Admin 0+1
+  // support, regional aggregations, composite maps, modern chart/data
+  // endpoint. Existing dashboards keep using `country_map` until users
+  // explicitly switch via the legacy plugin's "Switch to new chart"
+  // button. See plugin-chart-country-map/SIP_DRAFT.md.
+  CountryMapV2 = 'country_map_v2',
   Funnel = 'funnel',
   Gantt = 'gantt_chart',
   Gauge = 'gauge_chart',

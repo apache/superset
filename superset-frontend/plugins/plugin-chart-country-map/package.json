@@ -1,0 +1,55 @@
+{
+  "name": "@superset-ui/plugin-chart-country-map",
+  "version": "0.20.3",
+  "description": "Superset Chart - Configurable country/region choropleth map (replaces legacy-plugin-chart-country-map)",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/plugins/plugin-chart-country-map"
+  },
+  "keywords": [
+    "superset",
+    "geo",
+    "choropleth",
+    "map"
+  ],
+  "author": "Superset",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/apache/superset/issues"
+  },
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-country-map#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "d3-array": "^3.2.4",
+    "d3-color": "^3.1.0",
+    "d3-geo": "^3.1.0",
+    "d3-scale": "^4.0.2",
+    "d3-selection": "^3.0.0"
+  },
+  "peerDependencies": {
+    "@superset-ui/chart-controls": "*",
+    "@apache-superset/core": "*",
+    "@superset-ui/core": "*",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/d3-array": "^3.2.1",
+    "@types/d3-color": "^3.1.3",
+    "@types/d3-geo": "^3.1.0",
+    "@types/d3-scale": "^4.0.9",
+    "@types/d3-selection": "^3.0.11",
+    "@types/jest": "^30.0.0",
+    "jest": "^30.3.0"
+  }
+}
