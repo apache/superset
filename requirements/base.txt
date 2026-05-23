@@ -166,7 +166,7 @@ greenlet==3.1.1
     #   apache-superset (pyproject.toml)
     #   shillelagh
     #   sqlalchemy
-gunicorn==23.0.0
+gunicorn==25.3.0
     # via apache-superset (pyproject.toml)
 h11==0.16.0
     # via wsproto
@@ -183,7 +183,9 @@ idna==3.10
     #   trio
     #   url-normalize
 isodate==0.7.2
-    # via apache-superset (pyproject.toml)
+    # via
+    #   apache-superset (pyproject.toml)
+    #   apache-superset-core
 itsdangerous==2.2.0
     # via
     #   flask
@@ -296,6 +298,7 @@ pyarrow==20.0.0
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
+    #   apache-superset-core
 pyasn1==0.6.3
     # via
     #   pyasn1-modules
@@ -412,7 +415,7 @@ sqlalchemy-utils==0.42.0
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==28.10.0
+sqlglot==30.8.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core

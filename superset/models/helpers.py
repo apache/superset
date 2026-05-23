@@ -2060,12 +2060,17 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             default_schema = self.database.get_default_schema(self.catalog)
             try:
                 rls_applied = False
+                # ``id`` lives on concrete subclasses (e.g. SqlaTable), not on
+                # ExploreMixin itself. getattr keeps this safe for non-dataset
+                # subclasses (e.g. SQL Lab Query), which have no RLS to dedupe.
+                self_id = getattr(self, "id", None)
                 for statement in parsed_script.statements:
                     if apply_rls(
                         self.database,
                         self.catalog,
                         self.schema or default_schema or "",
                         statement,
+                        exclude_dataset_id=self_id,
                     ):
                         rls_applied = True
 
@@ -2477,7 +2482,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if rls_filters:
             qry = qry.where(and_(*rls_filters))
 
-        with self.database.get_sqla_engine() as engine:
+        with self.database.get_sqla_engine(
+            catalog=self.catalog, schema=self.schema
+        ) as engine:
             sql = str(qry.compile(engine, compile_kwargs={"literal_binds": True}))
             sql = self._apply_cte(sql, cte)
 

@@ -18,7 +18,7 @@
  */
 import 'src/public-path';
 
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { Global } from '@emotion/react';
@@ -66,20 +66,21 @@ const LazyDashboardPage = lazy(
     ),
 );
 
-const EmbededLazyDashboardPage = () => {
+const EmbeddedLazyDashboardPage = () => {
   const uiConfig = useUiConfig();
+  const emitDataMasks = uiConfig?.emitDataMasks;
 
-  // Emit data mask changes to the parent window
-  if (uiConfig?.emitDataMasks) {
+  // Emit data mask changes to the parent window. Subscribing inside an effect
+  // (rather than during render) ensures the unsubscribe runs on unmount,
+  // including StrictMode's dev-mode double-mount cycle.
+  useEffect(() => {
+    if (!emitDataMasks) return undefined;
     log('setting up Switchboard event emitter');
 
     let previousDataMask = store.getState().dataMask;
 
-    store.subscribe(() => {
-      const currentState = store.getState();
-      const currentDataMask = currentState.dataMask;
-
-      // Only emit if the dataMask has changed
+    return store.subscribe(() => {
+      const currentDataMask = store.getState().dataMask;
       if (previousDataMask !== currentDataMask) {
         Switchboard.emit('observeDataMask', {
           ...currentDataMask,
@@ -88,7 +89,7 @@ const EmbededLazyDashboardPage = () => {
         previousDataMask = currentDataMask;
       }
     });
-  }
+  }, [emitDataMasks]);
 
   return <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />;
 };
@@ -107,7 +108,7 @@ const EmbeddedRoute = () => (
     />
     <Suspense fallback={<Loading />}>
       <ErrorBoundary>
-        <EmbededLazyDashboardPage />
+        <EmbeddedLazyDashboardPage />
       </ErrorBoundary>
       <ToastContainer position="top" />
     </Suspense>

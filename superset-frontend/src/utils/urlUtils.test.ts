@@ -104,15 +104,10 @@ test('toQueryString should handle special characters in keys and values', () => 
 });
 
 test('getDashboardUrlParams should exclude edit parameter by default', () => {
-  // Mock window.location.search to include edit parameter
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: {
-      ...originalLocation,
-      search: '?edit=true&standalone=false&expand_filters=1',
-    },
-    writable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?edit=true&standalone=false&expand_filters=1',
+  } as Location);
 
   const urlParams = getDashboardUrlParams(['edit']);
   const paramNames = urlParams.map(([key]) => key);
@@ -121,20 +116,14 @@ test('getDashboardUrlParams should exclude edit parameter by default', () => {
   expect(paramNames).toContain('standalone');
   expect(paramNames).toContain('expand_filters');
 
-  // Restore original location
-  window.location = originalLocation;
+  locationSpy.mockRestore();
 });
 
 test('getDashboardUrlParams should exclude multiple parameters when provided', () => {
-  // Mock window.location.search with multiple parameters
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: {
-      ...originalLocation,
-      search: '?edit=true&standalone=false&debug=true&test=value',
-    },
-    writable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?edit=true&standalone=false&debug=true&test=value',
+  } as Location);
 
   const urlParams = getDashboardUrlParams(['edit', 'debug']);
   const paramNames = urlParams.map(([key]) => key);
@@ -144,36 +133,27 @@ test('getDashboardUrlParams should exclude multiple parameters when provided', (
   expect(paramNames).toContain('standalone');
   expect(paramNames).toContain('test');
 
-  // Restore original location
-  window.location = originalLocation;
+  locationSpy.mockRestore();
 });
 
 test('getUrlParam reads from window.location.search by default', () => {
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: { ...originalLocation, search: '?dashboard_page_id=from-window' },
-    writable: true,
-    configurable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?dashboard_page_id=from-window',
+  } as Location);
 
   expect(getUrlParam(URL_PARAMS.dashboardPageId)).toBe('from-window');
 
-  Object.defineProperty(window, 'location', {
-    value: originalLocation,
-    writable: true,
-    configurable: true,
-  });
+  locationSpy.mockRestore();
 });
 
 test('getUrlParam uses provided search string instead of window.location.search (Safari race condition fix)', () => {
   // Simulate Safari race condition: window.location.search is stale (empty),
   // but the correct search string is passed in from React Router's useLocation()
-  const originalLocation = window.location;
-  Object.defineProperty(window, 'location', {
-    value: { ...originalLocation, search: '' },
-    writable: true,
-    configurable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '',
+  } as Location);
 
   // Without the search override, window.location.search is stale — returns null (the bug)
   expect(getUrlParam(URL_PARAMS.dashboardPageId)).toBeNull();
@@ -183,9 +163,5 @@ test('getUrlParam uses provided search string instead of window.location.search 
     getUrlParam(URL_PARAMS.dashboardPageId, '?dashboard_page_id=correct-id'),
   ).toBe('correct-id');
 
-  Object.defineProperty(window, 'location', {
-    value: originalLocation,
-    writable: true,
-    configurable: true,
-  });
+  locationSpy.mockRestore();
 });

@@ -1478,3 +1478,46 @@ def test_success_state_report_sends_and_logs_success(
         ReportState.SUCCESS,
         error_message=None,
     )
+
+
+def test_get_url_for_csv_uses_post_processed_type(
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """Regression for #25538: when an alert/report generates a CSV for a
+    chart, the URL must request type=POST_PROCESSED so the chart's saved
+    filters (including time-range filters) are applied. The original report
+    described a chart with a "last 30 days" filter that returned only 14
+    rows in the UI, but the alert CSV came back with 219 rows (the entire
+    unfiltered table).
+
+    POST_PROCESSED is the marker that propagates the chart's query_context
+    -- including its time filter -- through to the CSV renderer. A
+    regression that switched to FULL or RAW would replicate the original
+    bug.
+    """
+    from datetime import datetime
+    from uuid import UUID
+
+    from superset.commands.report.execute import BaseReportState
+    from superset.common.chart_data import ChartDataResultFormat
+
+    app.config.update({"ALERT_REPORTS_EXECUTORS": {}})
+
+    report_schedule = create_report_schedule(mocker)
+    report_schedule.force_screenshot = False
+    report_schedule.chart_id = report_schedule.chart.id
+
+    state = BaseReportState(
+        report_schedule=report_schedule,
+        scheduled_dttm=datetime.now(),
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+    )
+
+    url = state._get_url(result_format=ChartDataResultFormat.CSV)
+
+    assert "format=csv" in url.lower(), f"expected csv format in URL: {url}"
+    assert "type=post_processed" in url.lower(), (
+        f"CSV report URL must use type=post_processed so chart filters "
+        f"(incl. time filters) are applied; got: {url}; see issue #25538"
+    )

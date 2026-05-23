@@ -41,7 +41,6 @@ jest.mock('src/core/editors', () => ({
     onBlur?: (v: string) => void;
   }) => (
     <textarea
-      role="textbox"
       defaultValue={value}
       onChange={e => onChange?.(e.target.value)}
       onBlur={e => onBlur?.(e.target.value)}

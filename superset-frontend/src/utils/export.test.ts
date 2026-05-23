@@ -18,7 +18,7 @@
  */
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
-import contentDisposition from 'content-disposition';
+import { parse as parseContentDisposition } from 'content-disposition';
 import handleResourceExport from './export';
 
 // Mock dependencies
@@ -35,7 +35,10 @@ jest.mock('@apache-superset/core/utils', () => ({
   },
 }));
 
-jest.mock('content-disposition');
+jest.mock('content-disposition', () => ({
+  parse: jest.fn(),
+  __esModule: true,
+}));
 
 // Default no-op mock for pathUtils; specific tests customize ensureAppRoot to simulate app root prefixing
 jest.mock('./pathUtils', () => ({
@@ -156,7 +159,7 @@ test('uses default filename when Content-Disposition is missing', async () => {
 });
 
 test('handles Content-Disposition parsing errors gracefully', async () => {
-  (contentDisposition.parse as jest.Mock).mockImplementationOnce(() => {
+  (parseContentDisposition as jest.Mock).mockImplementationOnce(() => {
     throw new Error('Invalid header');
   });
 
@@ -208,7 +211,7 @@ test('exports multiple resources with correct IDs', async () => {
 });
 
 test('parses filename from Content-Disposition with quotes', async () => {
-  (contentDisposition.parse as jest.Mock).mockReturnValueOnce({
+  (parseContentDisposition as jest.Mock).mockReturnValueOnce({
     type: 'attachment',
     parameters: { filename: 'my_custom_export.zip' },
   });
@@ -360,7 +363,7 @@ test('handles malformed Content-Disposition header', async () => {
   } as unknown as Response;
   (SupersetClient.get as jest.Mock).mockResolvedValue(mockResponse);
 
-  (contentDisposition.parse as jest.Mock).mockImplementationOnce(() => {
+  (parseContentDisposition as jest.Mock).mockImplementationOnce(() => {
     throw new Error('Parse error');
   });
 
