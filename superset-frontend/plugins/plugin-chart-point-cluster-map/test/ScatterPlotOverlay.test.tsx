@@ -373,6 +373,37 @@ test('renders map with Miles mode', () => {
   }).not.toThrow();
 });
 
+test.each(['Kilometers', 'Miles'])(
+  'falls back to default radius for non-positive %s values',
+  pointRadiusUnit => {
+    const locations = [
+      createLocation([100, 50], { radius: -5, cluster: false }),
+      createLocation([200, 50], { radius: 0, cluster: false }),
+      createLocation([300, 50], { radius: 10, cluster: false }),
+    ];
+
+    render(
+      <ScatterPlotOverlay
+        {...defaultProps}
+        locations={locations}
+        pointRadiusUnit={pointRadiusUnit}
+        zoom={10}
+      />,
+    );
+    const redrawParams = triggerRedraw();
+
+    const arcCalls = redrawParams.ctx.arc.mock.calls;
+
+    arcCalls.forEach(call => {
+      expect(Number.isFinite(call[2])).toBe(true);
+      expect(call[2]).toBeGreaterThan(0);
+    });
+    expect(arcCalls[0][2]).toBe(MIN_VISIBLE_POINT_RADIUS);
+    expect(arcCalls[1][2]).toBe(MIN_VISIBLE_POINT_RADIUS);
+    expect(arcCalls[2][2]).toBeGreaterThan(MIN_VISIBLE_POINT_RADIUS);
+  },
+);
+
 test('displays metric property labels on points', () => {
   const locations = [
     createLocation([100, 100], { radius: 50, metric: 123.456, cluster: false }),

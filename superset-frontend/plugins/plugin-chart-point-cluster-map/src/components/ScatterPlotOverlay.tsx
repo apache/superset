@@ -26,6 +26,9 @@ import luminanceFromRGB from '../utils/luminanceFromRGB';
 export const MIN_CLUSTER_RADIUS_RATIO = 1 / 6;
 export const MAX_POINT_RADIUS_RATIO = 1 / 3;
 
+const isValidCanvasRadius = (value: number) =>
+  Number.isFinite(value) && value > 0;
+
 interface GeoJSONLocation {
   geometry: {
     coordinates: [number, number];
@@ -352,8 +355,11 @@ function ScatterPlotOverlay({
                   : String(pointMetric);
               }
 
-              if (!pointRadius) {
+              if (!isValidCanvasRadius(pointRadius)) {
                 pointRadius = defaultRadius;
+                if (pointMetric === null) {
+                  pointLabel = undefined;
+                }
               }
 
               ctx.arc(
