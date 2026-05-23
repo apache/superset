@@ -245,3 +245,17 @@ test('ensureAppRoot should prefix unknown schemes instead of passing through', a
   // Unknown / custom schemes are treated as relative paths
   expect(ensureAppRoot('foo:bar')).toBe('/superset/foo:bar');
 });
+
+test('ensureAppRoot should fall back to application root when path is null or undefined', async () => {
+  const { ensureAppRoot } = await loadPathUtils('/superset/');
+
+  expect(ensureAppRoot(null)).toBe('/superset');
+  expect(ensureAppRoot(undefined)).toBe('/superset');
+});
+
+test('ensureAppRoot should fall back to "/" when path is null and no application root is configured', async () => {
+  const { ensureAppRoot } = await loadPathUtils();
+
+  expect(ensureAppRoot(null)).toBe('/');
+  expect(ensureAppRoot(undefined)).toBe('/');
+});
