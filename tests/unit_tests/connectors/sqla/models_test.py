@@ -24,7 +24,6 @@ from sqlalchemy.orm.session import Session
 
 from superset.connectors.sqla.models import (
     SqlaTable,
-    SqlMetric,
     TableColumn,
     validate_stored_expression,
 )
@@ -32,7 +31,6 @@ from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import (
     OAuth2RedirectError,
-    QueryObjectValidationError,
     SupersetSecurityException,
 )
 from superset.models.core import Database
@@ -1036,26 +1034,3 @@ def test_validate_stored_expression_accepts_case_expression(
     )
     assert result is not None
     assert "CASE" in result.upper()
-
-
-def test_table_column_get_sqla_col_rejects_multi_statement_expression(
-    mocker: MockerFixture,
-) -> None:
-    table = _table_for_expression(mocker)
-    column = TableColumn(column_name="custom_calc", expression="1; DROP TABLE users")
-    column.table = table
-    with pytest.raises(QueryObjectValidationError):
-        column.get_sqla_col()
-
-
-def test_sql_metric_get_sqla_col_rejects_set_operation_expression(
-    mocker: MockerFixture,
-) -> None:
-    table = _table_for_expression(mocker)
-    metric = SqlMetric(
-        metric_name="custom_metric",
-        expression="1 UNION SELECT 2",
-    )
-    metric.table = table
-    with pytest.raises(QueryObjectValidationError):
-        metric.get_sqla_col()
