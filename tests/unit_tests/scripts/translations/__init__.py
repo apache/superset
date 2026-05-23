@@ -14,6 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-Babel==2.9.1
-jinja2==3.1.6
-polib>=1.2.0

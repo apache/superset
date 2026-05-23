@@ -220,6 +220,7 @@ development = [
     "openapi-spec-validator",
     "parameterized",
     "pip",
+    "polib",  # used by scripts/translations/ and their unit tests
     "pre-commit",
     "progress>=1.5,<2",
     "psutil",
