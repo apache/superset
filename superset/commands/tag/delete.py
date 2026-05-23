@@ -18,6 +18,7 @@ import logging
 from functools import partial
 from typing import Any
 
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.tag.exceptions import (
     TagDeleteFailedError,
@@ -94,8 +95,6 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
         self, object_type: ObjectType, object_id: int, exceptions: list[Any]
     ) -> None:
         """Validate that the current user has access to the target object."""
-        from superset import security_manager
-
         # Skip base filter so we can distinguish "not found" from "no access"
         target_object = to_object_model(object_type, object_id, skip_base_filter=True)
         if not target_object:

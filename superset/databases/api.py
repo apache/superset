@@ -1320,27 +1320,15 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         if not database:
             return self.response_404()
         data = DatabaseDAO.get_related_objects(pk)
-        # Filter charts to only include those the user can access
-        accessible_charts = [
-            chart
-            for chart in data["charts"]
-            if security_manager.can_access_chart(chart)
-        ]
         charts = [
             {
                 "id": chart.id,
                 "slice_name": chart.slice_name,
                 "viz_type": chart.viz_type,
             }
-            for chart in accessible_charts
+            for chart in data["charts"]
+            if security_manager.can_access_chart(chart)
         ]
-        # Filter dashboards to only include those the user can access
-        accessible_dashboards = [
-            dashboard
-            for dashboard in data["dashboards"]
-            if security_manager.can_access_dashboard(dashboard)
-        ]
-
         dashboards = [
             {
                 "id": dashboard.id,
@@ -1348,7 +1336,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "slug": dashboard.slug,
                 "title": dashboard.dashboard_title,
             }
-            for dashboard in accessible_dashboards
+            for dashboard in data["dashboards"]
+            if security_manager.can_access_dashboard(dashboard)
         ]
         sqllab_tab_states = [
             {"id": tab_state.id, "label": tab_state.label, "active": tab_state.active}
