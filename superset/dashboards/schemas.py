@@ -274,14 +274,6 @@ class DatabaseSchema(Schema):
 
 
 class DashboardDatasetSchema(Schema):
-    _DATASOURCE_DEFINITION_FIELDS = (
-        "sql",
-        "select_star",
-        "fetch_values_predicate",
-        "template_params",
-        "params",
-    )
-
     id = fields.Int()
     uid = fields.Str()
     column_formats = fields.Dict()
@@ -325,17 +317,6 @@ class DashboardDatasetSchema(Schema):
         if security_manager.is_guest_user():
             del serialized["owners"]
             del serialized["database"]
-
-        if not security_manager.can_access(
-            "datasource_access", serialized.get("perm") or ""
-        ):
-            for key in self._DATASOURCE_DEFINITION_FIELDS:
-                serialized.pop(key, None)
-            for column in serialized.get("columns") or ():
-                column.pop("expression", None)
-            for metric in serialized.get("metrics") or ():
-                metric.pop("expression", None)
-
         return serialized
 
 

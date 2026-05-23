@@ -317,8 +317,12 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 assert excluded_key not in dataset
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_get_dashboard_datasets_strips_definition_without_datasource_access(self):
-        self.login(GAMMA_USERNAME)
+    @patch("superset.dashboards.api.security_manager.can_access_datasource")
+    def test_get_dashboard_datasets_strips_definition_without_datasource_access(
+        self, can_access_datasource_mock
+    ):
+        can_access_datasource_mock.return_value = False
+        self.login(ADMIN_USERNAME)
         uri = "api/v1/dashboard/world_health/datasets"
         response = self.get_assert_metric(uri, "get_datasets")
         assert response.status_code == 200
