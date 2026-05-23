@@ -269,7 +269,8 @@ test('sorts table when clicking column headers', async () => {
           call.url.includes('order_column') &&
           call.url.includes('changed_on_delta_humanized'),
       );
-    expect(lastModifiedSortCalls).toHaveLength(1);
+    const latestCall = lastModifiedSortCalls.at(-1);
+    expect(latestCall?.url).toContain('order_direction:asc');
   });
 });
 
