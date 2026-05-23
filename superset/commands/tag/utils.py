@@ -19,7 +19,6 @@ from typing import Any, Optional, Union
 
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
-from superset.daos.dataset import DatasetDAO
 from superset.daos.query import SavedQueryDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -46,5 +45,8 @@ def to_object_model(
     if ObjectType.chart == object_type:
         return ChartDAO.find_by_id(object_id)
     if ObjectType.dataset == object_type:
+        # Imported lazily to avoid a circular import via superset.views.base
+        from superset.daos.dataset import DatasetDAO
+
         return DatasetDAO.find_by_id(object_id)
     return None
