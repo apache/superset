@@ -570,15 +570,18 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         try:
             datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
             result = [
-                self._serialize_dashboard_dataset(dataset) for dataset in datasets
+                self._serialize_dashboard_dataset(datasource, payload)
+                for datasource, payload in datasets
             ]
             return self.response(200, result=result)
         except (TypeError, ValueError) as err:
             raise DatasetValidationError(err) from err
 
-    def _serialize_dashboard_dataset(self, dataset: Any) -> dict[str, Any]:
-        serialized = self.dashboard_dataset_schema.dump(dataset)
-        if not security_manager.can_access_datasource(dataset):
+    def _serialize_dashboard_dataset(
+        self, datasource: Any, payload: dict[str, Any]
+    ) -> dict[str, Any]:
+        serialized = self.dashboard_dataset_schema.dump(payload)
+        if not security_manager.can_access_datasource(datasource):
             for key in (
                 "sql",
                 "select_star",
