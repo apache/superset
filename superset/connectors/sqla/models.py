@@ -79,11 +79,13 @@ from superset.connectors.sqla.utils import (
 )
 from superset.daos.exceptions import DatasourceNotFound
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
     QueryObjectValidationError,
     SupersetGenericDBErrorException,
+    SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
 )
@@ -106,7 +108,7 @@ from superset.models.helpers import (
 )
 from superset.models.slice import Slice
 from superset.models.sql_types.base import CurrencyType
-from superset.sql.parse import sanitize_clause, Table
+from superset.sql.parse import sanitize_clause, SQLStatement, Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -886,8 +888,30 @@ def validate_stored_expression(
     if not expression:
         return expression
     engine = database.backend
+    wrapped = f"SELECT {expression}"
+
+    try:
+        parsed = SQLStatement(wrapped, engine)
+    except SupersetParseError as ex:
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                message=_("Custom SQL fields cannot contain multi-statement SQL."),
+                level=ErrorLevel.ERROR,
+            )
+        ) from ex
+
+    if parsed.is_set_operation():
+        raise SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
+                message=_("Custom SQL fields cannot contain set operations."),
+                level=ErrorLevel.ERROR,
+            )
+        )
+
     validated = validate_adhoc_subquery(
-        f"SELECT {expression}",
+        wrapped,
         database,
         catalog,
         schema or "",

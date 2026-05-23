@@ -986,51 +986,37 @@ def test_owners_data_includes_email(mocker: MockerFixture) -> None:
     }
 
 
-def _table_for_expression(mocker: MockerFixture) -> SqlaTable:
+def _database_for_expression(mocker: MockerFixture) -> Database:
     database = mocker.MagicMock(spec=Database)
     database.backend = "sqlite"
     database.allow_multi_catalog = False
-    table = SqlaTable(table_name="sales", database=database)
-    table.catalog = None
-    table.schema = None
-    return table
+    return database
 
 
 def test_validate_stored_expression_rejects_multi_statement(
     mocker: MockerFixture,
 ) -> None:
-    table = _table_for_expression(mocker)
+    database = _database_for_expression(mocker)
     with pytest.raises(SupersetSecurityException):
-        validate_stored_expression(
-            table.database,
-            table.catalog,
-            table.schema,
-            "1; DROP TABLE users",
-        )
+        validate_stored_expression(database, None, None, "1; DROP TABLE users")
 
 
 def test_validate_stored_expression_rejects_set_operation(
     mocker: MockerFixture,
 ) -> None:
-    table = _table_for_expression(mocker)
+    database = _database_for_expression(mocker)
     with pytest.raises(SupersetSecurityException):
         validate_stored_expression(
-            table.database,
-            table.catalog,
-            table.schema,
-            "1 UNION SELECT password FROM ab_user",
+            database, None, None, "1 UNION SELECT password FROM ab_user"
         )
 
 
 def test_validate_stored_expression_accepts_case_expression(
     mocker: MockerFixture,
 ) -> None:
-    table = _table_for_expression(mocker)
+    database = _database_for_expression(mocker)
     result = validate_stored_expression(
-        table.database,
-        table.catalog,
-        table.schema,
-        "CASE WHEN amount > 0 THEN 'a' ELSE 'b' END",
+        database, None, None, "CASE WHEN amount > 0 THEN 'a' ELSE 'b' END"
     )
     assert result is not None
     assert "CASE" in result.upper()
