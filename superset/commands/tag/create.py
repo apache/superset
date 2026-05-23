@@ -72,17 +72,13 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
         self, object_type: ObjectType, object_id: int, exceptions: list[Any]
     ) -> None:
         """Validate that the current user has access to the target object."""
-        from superset import security_manager
+        # Skip base filter so we can distinguish "not found" from "no access"
+        target_object = to_object_model(object_type, object_id, skip_base_filter=True)
+        if not target_object:
+            # Allow operation on stale references; no object to authorize against
+            return
 
         try:
-            target_object = to_object_model(object_type, object_id)
-            if not target_object:
-                exceptions.append(
-                    TagCreateFailedError(f"Object not found: {object_type} {object_id}")
-                )
-                return
-
-            # Use explicit security checks based on object type
             if object_type == ObjectType.dashboard:
                 security_manager.raise_for_access(dashboard=target_object)
             elif object_type == ObjectType.chart:
@@ -92,7 +88,6 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
             elif object_type == ObjectType.dataset:
                 security_manager.raise_for_access(datasource=target_object)
             else:
-                # For unsupported object types, fail closed
                 exceptions.append(
                     TagCreateFailedError(
                         f"Access validation not supported for {object_type}"
