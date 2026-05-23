@@ -40,8 +40,11 @@ export class EditDatasetModal extends Modal {
     // Use getByRole with specific name to target Edit Dataset dialog
     // The dialog has aria-labelledby that resolves to "edit Edit Dataset"
     this.specificLocator = page.getByRole('dialog', { name: /edit.*dataset/i });
-    // Scope tabs to modal's tablist to avoid matching tablists elsewhere on page
-    this.tabs = new Tabs(page, this.specificLocator.getByRole('tablist'));
+    // Scope tabs to modal dialog so nav getter finds .ant-tabs-nav as descendant
+    this.tabs = new Tabs(
+      page,
+      this.specificLocator.locator('.ant-tabs').first(),
+    );
   }
 
   /**

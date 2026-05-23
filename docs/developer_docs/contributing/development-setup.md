@@ -88,7 +88,6 @@ using our `docker compose` constructs to support production-type use-cases. For 
 environments, we recommend using [minikube](https://minikube.sigs.k8s.io/docs/start/) along
 our [installing on k8s](https://superset.apache.org/docs/installation/running-on-kubernetes)
 documentation.
-configured to be secure.
 :::
 
 ### Supported environment variables
@@ -485,7 +484,7 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 First, be sure you are using the following versions of Node.js and npm:
 
-- `Node.js`: Version 20
+- `Node.js`: Version 22 (LTS)
 - `npm`: Version 10
 
 We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
@@ -668,7 +667,7 @@ A series of checks will now run when you make a git commit.
 
 ## Linting
 
-See [how tos](./howtos#linting)
+See [how tos](./howtos.md#linting)
 
 ## GitHub Actions and `act`
 

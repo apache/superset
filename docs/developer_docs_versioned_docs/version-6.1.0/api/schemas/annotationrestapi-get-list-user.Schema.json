@@ -1,0 +1,1 @@
+{"schema":{"properties":{"first_name":{"maxLength":64,"type":"string"},"id":{"type":"integer"}},"required":["first_name"],"type":"object","title":"AnnotationRestApi.get_list.User"},"schemaType":"response"}

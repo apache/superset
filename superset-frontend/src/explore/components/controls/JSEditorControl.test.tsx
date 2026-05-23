@@ -45,10 +45,6 @@ jest.mock('src/core/editors', () => ({
   ),
 }));
 
-jest.mock('src/hooks/useDebounceValue', () => ({
-  useDebounceValue: (value: string) => value,
-}));
-
 const defaultProps = {
   name: 'echartOptions',
   label: 'EChart Options',

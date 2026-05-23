@@ -60,6 +60,12 @@ function UIFilters(
         filter.current?.clearFilter?.();
       });
     },
+    clearFilterById: (id: string) => {
+      const index = filters.findIndex(f => f.id === id);
+      if (index >= 0) {
+        filterRefs[index]?.current?.clearFilter?.();
+      }
+    },
   }));
 
   return (
@@ -81,7 +87,7 @@ function UIFilters(
             dateFilterValueType,
             min,
             max,
-            dropdownStyle,
+            popupStyle,
             autoComplete,
             inputName,
           },
@@ -114,7 +120,7 @@ function UIFilters(
                 paginate={paginate}
                 selects={selects}
                 loading={loading ?? false}
-                dropdownStyle={dropdownStyle}
+                dropdownStyle={popupStyle}
               />
             );
           }

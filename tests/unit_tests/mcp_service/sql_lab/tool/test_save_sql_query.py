@@ -228,9 +228,8 @@ class TestSaveSqlQueryToolLogic:
     from superset import db, etc.). We patch at the import source so that
     when the function runs, it picks up our mocks.
 
-    The @parse_request decorator injects ctx via get_context() and strips
-    __wrapped__, so we mock get_context and call the decorated function
-    directly (without unwrapping).
+    With passthrough decorators, we call the tool function directly
+    and pass a mock Context as the second argument.
     """
 
     @pytest.mark.anyio
@@ -248,6 +247,9 @@ class TestSaveSqlQueryToolLogic:
             mock_sq.id = 42
             mock_sq.label = "Revenue Query"
             mock_sq.sql = "SELECT SUM(revenue) FROM sales"
+            mock_sq.db_id = 1
+            mock_sq.schema = ""
+            mock_sq.description = ""
             mock_sq.catalog = None
 
             request = SaveSqlQueryRequest(
@@ -277,10 +279,6 @@ class TestSaveSqlQueryToolLogic:
             )
 
             with (
-                patch(
-                    "fastmcp.server.dependencies.get_context",
-                    return_value=mock_ctx,
-                ),
                 patch("superset.db", mock_db_session),
                 patch("superset.security_manager", mock_sm),
                 patch("superset.daos.query.SavedQueryDAO", mock_dao),
@@ -291,7 +289,7 @@ class TestSaveSqlQueryToolLogic:
                 patch("flask.g", mock_g),
                 patch.object(mod, "event_logger", mock_event_logger),
             ):
-                result = await mod.save_sql_query(request)
+                result = await mod.save_sql_query(request, mock_ctx)
 
                 assert result.id == 42
                 assert result.label == "Revenue Query"
@@ -333,10 +331,6 @@ class TestSaveSqlQueryToolLogic:
             )
 
             with (
-                patch(
-                    "fastmcp.server.dependencies.get_context",
-                    return_value=mock_ctx,
-                ),
                 patch("superset.db", mock_db_session),
                 patch("flask.g", mock_g),
                 patch.object(mod, "event_logger", mock_event_logger),
@@ -344,7 +338,7 @@ class TestSaveSqlQueryToolLogic:
                 from superset.exceptions import SupersetErrorException
 
                 with pytest.raises(SupersetErrorException, match="not found"):
-                    await mod.save_sql_query(request)
+                    await mod.save_sql_query(request, mock_ctx)
         finally:
             _restore_modules(saved)
 
@@ -382,10 +376,6 @@ class TestSaveSqlQueryToolLogic:
             )
 
             with (
-                patch(
-                    "fastmcp.server.dependencies.get_context",
-                    return_value=mock_ctx,
-                ),
                 patch("superset.db", mock_db_session),
                 patch("superset.security_manager", mock_sm),
                 patch("flask.g", mock_g),
@@ -394,7 +384,7 @@ class TestSaveSqlQueryToolLogic:
                 from superset.exceptions import SupersetSecurityException
 
                 with pytest.raises(SupersetSecurityException, match="Access denied"):
-                    await mod.save_sql_query(request)
+                    await mod.save_sql_query(request, mock_ctx)
         finally:
             _restore_modules(saved)
 
@@ -412,6 +402,9 @@ class TestSaveSqlQueryToolLogic:
             mock_sq.id = 10
             mock_sq.label = "Test"
             mock_sq.sql = "SELECT 1"
+            mock_sq.db_id = 1
+            mock_sq.schema = "public"
+            mock_sq.description = ""
             mock_sq.catalog = None
 
             request = SaveSqlQueryRequest(
@@ -443,10 +436,6 @@ class TestSaveSqlQueryToolLogic:
             )
 
             with (
-                patch(
-                    "fastmcp.server.dependencies.get_context",
-                    return_value=mock_ctx,
-                ),
                 patch("superset.db", mock_db_session),
                 patch("superset.security_manager", mock_sm),
                 patch("superset.daos.query.SavedQueryDAO", mock_dao),
@@ -457,7 +446,7 @@ class TestSaveSqlQueryToolLogic:
                 patch("flask.g", mock_g),
                 patch.object(mod, "event_logger", mock_event_logger),
             ):
-                result = await mod.save_sql_query(request)
+                result = await mod.save_sql_query(request, mock_ctx)
 
                 assert result.id == 10
                 call_attrs = mock_dao.create.call_args[1]["attributes"]
