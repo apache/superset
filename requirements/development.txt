@@ -677,6 +677,8 @@ ply==3.11
     # via
     #   -c requirements/base-constraint.txt
     #   jsonpath-ng
+polib==1.2.0
+    # via apache-superset
 polyline==2.0.2
     # via
     #   -c requirements/base-constraint.txt

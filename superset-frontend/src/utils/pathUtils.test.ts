@@ -389,3 +389,17 @@ test('ensureAppRoot keeps protocol-relative //evil.com behaviour unchanged (regr
   const { ensureAppRoot } = await loadPathUtils('/superset/');
   expect(ensureAppRoot('//evil.example.com')).toBe('//evil.example.com');
 });
+
+test('ensureAppRoot should fall back to application root when path is null or undefined', async () => {
+  const { ensureAppRoot } = await loadPathUtils('/superset/');
+
+  expect(ensureAppRoot(null)).toBe('/superset');
+  expect(ensureAppRoot(undefined)).toBe('/superset');
+});
+
+test('ensureAppRoot should fall back to "/" when path is null and no application root is configured', async () => {
+  const { ensureAppRoot } = await loadPathUtils();
+
+  expect(ensureAppRoot(null)).toBe('/');
+  expect(ensureAppRoot(undefined)).toBe('/');
+});

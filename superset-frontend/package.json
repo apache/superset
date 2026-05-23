@@ -43,6 +43,8 @@
     "build-instrumented": "cross-env NODE_ENV=production BABEL_ENV=instrumented webpack --mode=production --color",
     "build-storybook": "storybook build",
     "build-translation": "scripts/po2json.sh",
+    "translations:build-index": "python3 ../scripts/translations/build_translation_index.py",
+    "translations:backfill": "python3 ../scripts/translations/backfill_po.py",
     "bundle-stats": "cross-env BUNDLE_ANALYZER=true npm run build && npx open-cli ../superset/static/stats/statistics.html",
     "clear-npm": "mkdir -p /tmp/empty && rsync -a --delete /tmp/empty/ node_modules/ && rmdir node_modules /tmp/empty",
     "core:cover": "cross-env NODE_ENV=test NODE_OPTIONS=\"--max-old-space-size=4096\" jest --coverage --coverageThreshold='{\"global\":{\"statements\":100,\"branches\":100,\"functions\":100,\"lines\":100}}' --collectCoverageFrom='[\"packages/**/src/**/*.{js,ts}\", \"!packages/superset-core/**/*\"]' packages",
