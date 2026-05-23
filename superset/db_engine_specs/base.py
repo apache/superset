@@ -66,6 +66,7 @@ from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
     OAuth2TokenRefreshError,
+    SupersetParseError,
 )
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.sql.parse import (
@@ -682,7 +683,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
         # We need to commit here because we're going to raise an exception, which will
         # revert any non-commited changes.
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         # The state is passed to the OAuth2 provider, and sent back to Superset after
         # the user authorizes the access. The redirect endpoint in Superset can then
@@ -1369,8 +1370,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param sql: SQL query
         :return: Value of limit clause in query
         """
-        script = SQLScript(sql, engine=cls.engine)
-        return script.statements[-1].get_limit_value()
+        try:
+            script = SQLScript(sql, engine=cls.engine)
+            return script.statements[-1].get_limit_value()
+        except SupersetParseError:
+            # SQL with a malformed LIMIT clause (e.g. LIMIT without a value) is
+            # not parseable in sqlglot 30+, which now requires an expression arg.
+            return None
 
     @classmethod
     def get_cte_query(cls, sql: str) -> str | None:
