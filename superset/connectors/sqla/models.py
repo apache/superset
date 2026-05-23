@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import builtins
 import logging
+import re
 from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
@@ -81,6 +82,7 @@ from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.exceptions import (
     ColumnNotFoundException,
     DatasetInvalidPermissionEvaluationException,
+    QueryClauseValidationException,
     QueryObjectValidationError,
     SupersetGenericDBErrorException,
     SupersetSecurityException,
@@ -101,10 +103,11 @@ from superset.models.helpers import (
     ImportExportMixin,
     QueryResult,
     SQLA_QUERY_KEYS,
+    validate_adhoc_subquery,
 )
 from superset.models.slice import Slice
 from superset.models.sql_types.base import CurrencyType
-from superset.sql.parse import Table
+from superset.sql.parse import sanitize_clause, Table
 from superset.superset_typing import (
     AdhocColumn,
     AdhocMetric,
@@ -867,6 +870,35 @@ class AnnotationDatasource(BaseDatasource):
         raise NotImplementedError()
 
 
+def validate_stored_expression(
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+    expression: str | None,
+) -> str | None:
+    """
+    Apply the adhoc-expression validator to a stored column or metric expression.
+
+    Wrapping in a synthetic ``SELECT <expr>`` reuses the column-position parser
+    rules already enforced for adhoc expressions, so the same policy on
+    sub-queries, set operations, and multi-statement SQL applies to stored
+    expressions when they are written and again when they are turned into SQL.
+    """
+    if not expression:
+        return expression
+    engine = database.backend
+    validated = validate_adhoc_subquery(
+        f"SELECT {expression}",
+        database,
+        catalog,
+        schema or "",
+        engine,
+    )
+    sanitized = sanitize_clause(validated, engine)
+    _prefix, rest = re.split(r"SELECT\s+", sanitized, maxsplit=1, flags=re.IGNORECASE)
+    return rest.strip()
+
+
 class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model):
     """ORM object for table columns, each table can have multiple columns"""
 
@@ -1034,6 +1066,17 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
                             msg=msg,
                         )
                     ) from ex
+            try:
+                expression = validate_stored_expression(
+                    self.table.database,
+                    self.table.catalog,
+                    self.table.schema,
+                    expression,
+                )
+            except SupersetSecurityException as ex:
+                raise QueryObjectValidationError(ex.error.message) from ex
+            except QueryClauseValidationException as ex:
+                raise QueryObjectValidationError(ex.message) from ex
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
@@ -1081,6 +1124,17 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
                             msg=msg,
                         )
                     ) from ex
+            try:
+                expression = validate_stored_expression(
+                    self.table.database,
+                    self.table.catalog,
+                    self.table.schema,
+                    expression,
+                )
+            except SupersetSecurityException as ex:
+                raise QueryObjectValidationError(ex.error.message) from ex
+            except QueryClauseValidationException as ex:
+                raise QueryObjectValidationError(ex.message) from ex
             col = literal_column(expression, type_=type_)
         else:
             col = column(self.column_name, type_=type_)
@@ -1171,6 +1225,18 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
                         msg=msg,
                     )
                 ) from ex
+
+        try:
+            expression = validate_stored_expression(
+                self.table.database,
+                self.table.catalog,
+                self.table.schema,
+                expression,
+            )
+        except SupersetSecurityException as ex:
+            raise QueryObjectValidationError(ex.error.message) from ex
+        except QueryClauseValidationException as ex:
+            raise QueryObjectValidationError(ex.message) from ex
 
         sqla_col: ColumnClause = literal_column(expression)
         return self.table.database.make_sqla_column_compatible(sqla_col, label)

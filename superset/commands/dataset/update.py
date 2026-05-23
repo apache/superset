@@ -44,10 +44,14 @@ from superset.commands.dataset.exceptions import (
     DatasetUpdateFailedError,
     MultiCatalogDisabledValidationError,
 )
-from superset.connectors.sqla.models import SqlaTable
+from superset.connectors.sqla.models import SqlaTable, validate_stored_expression
 from superset.daos.dataset import DatasetDAO
 from superset.datasets.schemas import FolderSchema
-from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.exceptions import (
+    QueryClauseValidationException,
+    SupersetParseError,
+    SupersetSecurityException,
+)
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
@@ -212,9 +216,11 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         self._model = cast(SqlaTable, self._model)
         if columns := self._properties.get("columns"):
             self._validate_columns(columns, exceptions)
+            self._validate_expressions(columns, "columns", exceptions)
 
         if metrics := self._properties.get("metrics"):
             self._validate_metrics(metrics, exceptions)
+            self._validate_expressions(metrics, "metrics", exceptions)
 
         if folders := self._properties.get("folders"):
             valid_uuids: set[UUID] = set()
@@ -282,6 +288,44 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             ]
             if not DatasetDAO.validate_metrics_uniqueness(self._model_id, metric_names):
                 exceptions.append(DatasetMetricsExistsValidationError())
+
+    def _validate_expressions(
+        self,
+        items: list[dict[str, Any]],
+        label: str,
+        exceptions: list[ValidationError],
+    ) -> None:
+        """
+        Run each item's SQL expression through the parser-based validator that
+        already governs adhoc expressions, so stored column and metric
+        expressions cannot smuggle sub-queries, set operations, or
+        multi-statement SQL into chart queries.
+        """
+        self._model = cast(SqlaTable, self._model)
+        database = self._properties.get("database") or self._model.database
+        catalog = self._properties.get("catalog", self._model.catalog)
+        schema = self._properties.get("schema", self._model.schema)
+
+        for idx, item in enumerate(items):
+            expression = item.get("expression")
+            if not expression:
+                continue
+            try:
+                validate_stored_expression(database, catalog, schema, expression)
+            except SupersetSecurityException as ex:
+                exceptions.append(
+                    ValidationError(
+                        ex.error.message,
+                        field_name=f"{label}.{idx}.expression",
+                    )
+                )
+            except QueryClauseValidationException as ex:
+                exceptions.append(
+                    ValidationError(
+                        ex.message,
+                        field_name=f"{label}.{idx}.expression",
+                    )
+                )
 
     @staticmethod
     def _get_duplicates(data: list[dict[str, Any]], key: str) -> list[str]:

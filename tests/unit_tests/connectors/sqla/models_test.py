@@ -22,10 +22,19 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.session import Session
 
-from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.connectors.sqla.models import (
+    SqlaTable,
+    SqlMetric,
+    TableColumn,
+    validate_stored_expression,
+)
 from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DatasourceNotFound
-from superset.exceptions import OAuth2RedirectError
+from superset.exceptions import (
+    OAuth2RedirectError,
+    QueryObjectValidationError,
+    SupersetSecurityException,
+)
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.superset_typing import QueryObjectDict
@@ -977,3 +986,76 @@ def test_owners_data_includes_email(mocker: MockerFixture) -> None:
         "id": 1,
         "email": "john@example.com",
     }
+
+
+def _table_for_expression(mocker: MockerFixture) -> SqlaTable:
+    database = mocker.MagicMock(spec=Database)
+    database.backend = "sqlite"
+    database.allow_multi_catalog = False
+    table = SqlaTable(table_name="sales", database=database)
+    table.catalog = None
+    table.schema = None
+    return table
+
+
+def test_validate_stored_expression_rejects_multi_statement(
+    mocker: MockerFixture,
+) -> None:
+    table = _table_for_expression(mocker)
+    with pytest.raises(SupersetSecurityException):
+        validate_stored_expression(
+            table.database,
+            table.catalog,
+            table.schema,
+            "1; DROP TABLE users",
+        )
+
+
+def test_validate_stored_expression_rejects_set_operation(
+    mocker: MockerFixture,
+) -> None:
+    table = _table_for_expression(mocker)
+    with pytest.raises(SupersetSecurityException):
+        validate_stored_expression(
+            table.database,
+            table.catalog,
+            table.schema,
+            "1 UNION SELECT password FROM ab_user",
+        )
+
+
+def test_validate_stored_expression_accepts_case_expression(
+    mocker: MockerFixture,
+) -> None:
+    table = _table_for_expression(mocker)
+    result = validate_stored_expression(
+        table.database,
+        table.catalog,
+        table.schema,
+        "CASE WHEN amount > 0 THEN 'a' ELSE 'b' END",
+    )
+    assert result is not None
+    assert "CASE" in result.upper()
+
+
+def test_table_column_get_sqla_col_rejects_multi_statement_expression(
+    mocker: MockerFixture,
+) -> None:
+    table = _table_for_expression(mocker)
+    column = TableColumn(column_name="custom_calc", expression="1; DROP TABLE users")
+    column.table = table
+    with pytest.raises(QueryObjectValidationError):
+        column.get_sqla_col()
+
+
+def test_sql_metric_get_sqla_col_rejects_set_operation_expression(
+    mocker: MockerFixture,
+) -> None:
+    table = _table_for_expression(mocker)
+    metric = SqlMetric(
+        metric_name="custom_metric",
+        expression="1 UNION SELECT 2",
+    )
+    metric.table = table
+    with pytest.raises(QueryObjectValidationError):
+        metric.get_sqla_col()
