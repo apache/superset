@@ -1,0 +1,23 @@
+{
+    "compilerOptions": {
+        "target": "es2015",
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "jsx": "react",
+        "lib": [
+            "dom",
+            "es2015",
+            "es2017"
+        ],
+        "declaration": true,
+        "declarationDir": "./esm",
+        "outDir": "./esm",
+        "strict": false,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true
+    },
+    "include": [
+        "src/**/*"
+    ]
+}

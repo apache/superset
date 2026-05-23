@@ -1,0 +1,33 @@
+{
+    "name": "superset-plugin-chart-custom-date-picker",
+    "version": "0.1.0",
+    "description": "Custom Date Picker controls for Superset 6.0",
+    "main": "src/plugin/index.ts",
+    "module": "src/plugin/index.ts",
+    "types": "src/plugin/index.ts",
+    "src": "src/plugin/index.ts",
+    "sideEffects": false,
+    "scripts": {
+        "build": "tsc --build tsconfig.json && cp -r src/images esm/ || true && cp -r src/images lib/ || true",
+        "clean": "rm -rf lib esm tsconfig.tsbuildinfo",
+        "dev": "tsc --watch --preserveWatchOutput --build tsconfig.json"
+    },
+    "peerDependencies": {
+        "@ant-design/icons": "^5.0.0",
+        "@superset-ui/chart-controls": "*",
+        "@superset-ui/core": "*",
+        "antd": "^4.0.0 || ^5.0.0",
+        "dayjs": "*",
+        "process": "*",
+        "react": "^16.13.1 || ^17.0.0 || ^18.0.0",
+        "react-dom": "^16.13.1 || ^17.0.0 || ^18.0.0"
+    },
+    "devDependencies": {
+        "@superset-ui/chart-controls": "^0.20.3",
+        "@superset-ui/core": "^0.20.4",
+        "@superset-ui/style": "^0.14.23",
+        "@types/react": "^19.2.14",
+        "antd": "^5.29.3",
+        "typescript": "^5.9.3"
+    }
+}

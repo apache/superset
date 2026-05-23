@@ -1,0 +1,32 @@
+{
+    "name": "superset-plugin-chart-custom-controls",
+    "version": "0.1.0",
+    "description": "Custom interactive controls for Superset 6.0",
+    "main": "esm/plugin/index.js",
+    "module": "esm/plugin/index.js",
+    "types": "esm/plugin/index.d.ts",
+    "src": "src/plugin/index.ts",
+    "sideEffects": false,
+    "scripts": {
+        "build": "tsc --build tsconfig.json && mkdir -p esm/images && cp -r src/images/* esm/images/ && mkdir -p lib/images && cp -r src/images/* lib/images/",
+        "clean": "rm -rf lib esm tsconfig.tsbuildinfo",
+        "dev": "tsc --watch --preserveWatchOutput --build tsconfig.json"
+    },
+    "peerDependencies": {
+        "@ant-design/icons": "^5.0.0",
+        "@superset-ui/chart-controls": "*",
+        "@superset-ui/core": "*",
+        "antd": "^4.0.0 || ^5.0.0",
+        "process": "*",
+        "react": "^16.13.1 || ^17.0.0 || ^18.0.0",
+        "react-dom": "^16.13.1 || ^17.0.0 || ^18.0.0"
+    },
+    "devDependencies": {
+        "@superset-ui/chart-controls": "^0.20.3",
+        "@superset-ui/core": "^0.20.4",
+        "@superset-ui/style": "^0.14.23",
+        "@types/react": "^19.2.14",
+        "antd": "^5.29.3",
+        "typescript": "^5.9.3"
+    }
+}

@@ -89,6 +89,8 @@ import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import { ChartCustomizationPlugins, FilterPlugins } from 'src/constants';
 import AgGridTableChartPlugin from '@superset-ui/plugin-chart-ag-grid-table';
 import TimeTableChartPlugin from '../TimeTable';
+import { CustomDatePickerPlugin } from 'plugins/custom_controls/custom_datefilter/src/plugin';
+import { CustomControlsChartPlugin } from 'plugins/custom_controls/custom_filters/src/plugin';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -213,6 +215,8 @@ export default class MainPreset extends Preset {
         }).configure({ key: VizType.Cartodiagram }),
         ...experimentalPlugins,
         ...agGridTablePlugin,
+        new CustomDatePickerPlugin().configure({ key: 'custom_datepicker' }),
+        new CustomControlsChartPlugin().configure({ key: 'custom_controls' }),
       ],
     });
   }
