@@ -760,6 +760,54 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             db.session.delete(dashboard)
             db.session.commit()
 
+    def test_get_dashboards_admin_sees_existing_dashboards(self):
+        """Regression for #25890: GET /api/v1/dashboard/ as an Admin user should
+        return existing dashboards, not an empty list. The original report
+        showed an Admin getting {"count": 0, "ids": []} despite dashboards
+        existing in the database."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "regression_25890_dashboard", "regression-25890", [admin.id]
+        )
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/dashboard/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] >= 1, (
+                f"Admin received empty dashboard list despite "
+                f"{dashboard.dashboard_title!r} existing; see issue #25890"
+            )
+            titles = [d["dashboard_title"] for d in data["result"]]
+            assert dashboard.dashboard_title in titles, (
+                f"Admin list missing the inserted dashboard. Got titles: {titles}"
+            )
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    def test_get_charts_admin_sees_existing_charts(self):
+        """Regression for #25890: GET /api/v1/chart/ as an Admin user should
+        return existing charts, not an empty list."""
+        admin = self.get_user("admin")
+        chart = self.insert_chart("regression_25890_chart", [admin.id], 1, params="{}")
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/chart/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] >= 1, (
+                f"Admin received empty chart list despite "
+                f"{chart.slice_name!r} existing; see issue #25890"
+            )
+            names = [c["slice_name"] for c in data["result"]]
+            assert chart.slice_name in names, (
+                f"Admin list missing the inserted chart. Got slice_names: {names}"
+            )
+        finally:
+            db.session.delete(chart)
+            db.session.commit()
+
     def test_get_dashboards_filter(self):
         """
         Dashboard API: Test get dashboards filter

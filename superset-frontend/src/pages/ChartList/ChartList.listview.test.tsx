@@ -194,7 +194,7 @@ test('renders all required column headers', async () => {
   });
 
   const table = screen.getByTestId('listview-table');
-  const columnHeaders = table.querySelectorAll('[role="columnheader"]');
+  const columnHeaders = within(table).getAllByRole('columnheader');
 
   // All the table headers with default feature flags on
   const expectedHeaders = [

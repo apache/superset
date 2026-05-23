@@ -36,6 +36,42 @@ const versionsConfig = JSON.parse(fs.readFileSync(versionsConfigPath, 'utf8'));
 // Build plugins array dynamically based on disabled flags
 const dynamicPlugins = [];
 
+// Add user_docs (formerly the preset-classic default docs instance) as an
+// explicit plugin instance, so its versioned dirs follow the same
+// `<id>_versioned_docs` / `<id>_versioned_sidebars` / `<id>_versions.json`
+// naming as the other sections instead of the bare `versioned_*` prefix
+// Docusaurus uses for the default plugin id.
+if (!versionsConfig.user_docs.disabled) {
+  dynamicPlugins.push([
+    '@docusaurus/plugin-content-docs',
+    {
+      id: 'user_docs',
+      path: 'docs',
+      routeBasePath: 'user-docs',
+      sidebarPath: require.resolve('./sidebars.js'),
+      editUrl: ({ versionDocsDirPath, docPath }: { versionDocsDirPath: string; docPath: string }) => {
+        if (docPath === 'intro.md') {
+          return 'https://github.com/apache/superset/edit/master/README.md';
+        }
+        return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`;
+      },
+      remarkPlugins: [remarkImportPartial, remarkLocalizeBadges, remarkTechArticleSchema],
+      admonitions: {
+        keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
+        extendDefaults: true,
+      },
+      docItemComponent: '@theme/DocItem',
+      includeCurrentVersion: versionsConfig.user_docs.includeCurrentVersion,
+      lastVersion: versionsConfig.user_docs.lastVersion,
+      onlyIncludeVersions: versionsConfig.user_docs.onlyIncludeVersions,
+      versions: versionsConfig.user_docs.versions,
+      disableVersioning: false,
+      showLastUpdateAuthor: true,
+      showLastUpdateTime: true,
+    },
+  ]);
+}
+
 // Add components plugin if not disabled
 if (!versionsConfig.components.disabled) {
   dynamicPlugins.push([
@@ -703,29 +739,12 @@ const config: Config = {
     [
       '@docusaurus/preset-classic',
       {
-        docs: {
-          routeBasePath: 'user-docs',
-          sidebarPath: require.resolve('./sidebars.js'),
-          editUrl: ({ versionDocsDirPath, docPath }) => {
-            if (docPath === 'intro.md') {
-              return 'https://github.com/apache/superset/edit/master/README.md';
-            }
-            return `https://github.com/apache/superset/edit/master/docs/${versionDocsDirPath}/${docPath}`;
-          },
-          remarkPlugins: [remarkImportPartial, remarkLocalizeBadges, remarkTechArticleSchema],
-          admonitions: {
-            keywords: ['note', 'tip', 'info', 'warning', 'danger', 'resources'],
-            extendDefaults: true,
-          },
-          includeCurrentVersion: versionsConfig.docs.includeCurrentVersion,
-          lastVersion: versionsConfig.docs.lastVersion,  // Make 'next' the default
-          onlyIncludeVersions: versionsConfig.docs.onlyIncludeVersions,
-          versions: versionsConfig.docs.versions,
-          disableVersioning: false,
-          showLastUpdateAuthor: true,
-          showLastUpdateTime: true,
-          docItemComponent: '@theme/DocItem',
-        },
+        // The user-docs section is configured as an explicit plugin
+        // instance above (id: 'user_docs') rather than the preset's
+        // default docs slot, so that all four sections use parallel
+        // `<id>_versioned_docs` / `<id>_versioned_sidebars` /
+        // `<id>_versions.json` naming on disk.
+        docs: false,
         blog: {
           showReadingTime: true,
           // Please change this to your repo.

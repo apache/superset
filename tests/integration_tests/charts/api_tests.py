@@ -1237,6 +1237,76 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
                 chart["id"] for chart in data_by_name["result"]
             ), set(chart.id for chart in expected_charts)  # noqa: C401
 
+    def test_get_charts_changed_on_delta_humanized_sort_monotonic(self):
+        """Regression for #27500: sorting the chart list by
+        `changed_on_delta_humanized` desc must yield results whose underlying
+        `changed_on` timestamps are monotonically non-increasing. The original
+        report shows the humanized column visually out of order, suggesting
+        the sort key didn't actually reflect the timestamp."""
+        from datetime import datetime, timedelta
+
+        admin = self.get_user("admin")
+        # Insert two charts with distinct changed_on timestamps. Use raw UPDATE
+        # to force the values since assignment alone can be overridden by the
+        # before-update hook.
+        chart_older = self.insert_chart(
+            "regression_27500_older", [admin.id], 1, description="z"
+        )
+        chart_newer = self.insert_chart(
+            "regression_27500_newer", [admin.id], 1, description="z"
+        )
+        # Use timestamps whose humanized strings sort DIFFERENTLY from their
+        # real timestamps under a naive lexical sort. "3 hours ago" vs
+        # "5 hours ago": lexical-desc puts "5..." first (older), but
+        # timestamp-desc must put "3..." first (newer). If the API ever
+        # accidentally sorts by the humanized text instead of the column,
+        # this test fails. (Pairs like "now"/"2 days ago" don't discriminate
+        # because 'n' > '2' lexically agrees with newest-first.)
+        now = datetime.utcnow()
+        chart_older.changed_on = now - timedelta(hours=5)
+        chart_newer.changed_on = now - timedelta(hours=3)
+        db.session.commit()
+
+        try:
+            self.login(ADMIN_USERNAME)
+            arguments = {
+                "order_column": "changed_on_delta_humanized",
+                "order_direction": "desc",
+                "filters": [
+                    {
+                        "col": "slice_name",
+                        "opr": "sw",
+                        "value": "regression_27500_",
+                    }
+                ],
+            }
+            uri = f"api/v1/chart/?q={rison.dumps(arguments)}"
+            rv = self.get_assert_metric(uri, "get_list")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+
+            results = data["result"]
+            assert len(results) >= 2, f"expected at least 2 results, got {results}"
+
+            # The two inserted charts should appear in newest-first order.
+            indices = {
+                row["slice_name"]: i
+                for i, row in enumerate(results)
+                if row["slice_name"].startswith("regression_27500_")
+            }
+            ordering = [
+                row["slice_name"]
+                for row in results
+                if row["slice_name"].startswith("regression_27500_")
+            ]
+            assert (
+                indices["regression_27500_newer"] < indices["regression_27500_older"]
+            ), f"changed_on_delta_humanized desc sort is wrong: {ordering}; see #27500"
+        finally:
+            db.session.delete(chart_older)
+            db.session.delete(chart_newer)
+            db.session.commit()
+
     def test_get_charts_changed_on(self):
         """
         Dashboard API: Test get charts changed on

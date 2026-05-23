@@ -36,6 +36,7 @@ else:
 from flask import Flask, Response
 from werkzeug.exceptions import NotFound
 
+from superset.extensions.cache_middleware import ExtensionCacheMiddleware
 from superset.extensions.local_extensions_watcher import (
     start_local_extensions_watcher_thread,
 )
@@ -67,7 +68,6 @@ def create_app(
             or app.config["APPLICATION_ROOT"],
         )
         if app_root != "/":
-            app.wsgi_app = AppRootMiddleware(app.wsgi_app, app_root)
             # If not set, manually configure options that depend on the
             # value of app_root so things work out of the box
             if not app.config["STATIC_ASSETS_PREFIX"]:
@@ -78,17 +78,27 @@ def create_app(
         app_initializer = app.config.get("APP_INITIALIZER", SupersetAppInitializer)(app)
         app_initializer.init_app()
 
-        # Final WSGI wrap — must be outermost. `configure_middlewares()`
-        # ran inside `init_app()` and re-wrapped `app.wsgi_app` with
-        # AppRootMiddleware / ProxyFix / ChunkedEncodingFix /
-        # ADDITIONAL_MIDDLEWARE; wrapping after `init_app()` returns puts
-        # this shim outside all of them so it sees the raw inbound
+        # Must be applied before AppRootMiddleware so the path prefix
+        # is stripped before the extension asset path regex runs.
+        app.wsgi_app = ExtensionCacheMiddleware(app.wsgi_app)
+
+        if app_root != "/":
+            app.wsgi_app = AppRootMiddleware(app.wsgi_app, app_root)
+
+        # Final WSGI wrap — must be outermost so it sees the raw inbound
         # PATH_INFO and 308s legacy `/superset/*` paths before any other
         # routing runs. Unconditional (independent of `app_root != "/"`)
         # because legacy bookmarks exist under root deployments too.
         # See PLAN.md "WSGI layering invariant" and the module docstring
         # in `superset/middleware/legacy_prefix_redirect.py`.
-        app.wsgi_app = LegacyPrefixRedirectMiddleware(app.wsgi_app, app_root)
+        # mypy reads `app.wsgi_app` as `object` after the conditional
+        # `AppRootMiddleware` rewrap above — the LUB of the two branches
+        # widens it. The runtime type is always a WSGI callable; the
+        # `# type: ignore` is intentional.
+        app.wsgi_app = LegacyPrefixRedirectMiddleware(
+            app.wsgi_app,  # type: ignore[arg-type]
+            app_root,
+        )
 
         # Set up LOCAL_EXTENSIONS file watcher when in debug mode
         if app.debug:

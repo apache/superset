@@ -27,7 +27,8 @@ import {
 } from 'react';
 
 import AutoSizer from 'react-virtualized-auto-sizer';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { useHistory } from 'react-router-dom';
 import { pick } from 'lodash';
 import {
@@ -231,7 +232,7 @@ const ResultSet = ({
     canCopyClipboardSqlLab: canCopyClipboard,
   } = usePermissions();
   const history = useHistory();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const logAction = useLogAction({ queryId, sqlEditorId: query.sqlEditorId });
   const { showConfirm, ConfirmModal } = useConfirmModal();
 

@@ -388,7 +388,7 @@ grpcio==1.71.0
     #   grpcio-status
 grpcio-status==1.60.1
     # via google-api-core
-gunicorn==23.0.0
+gunicorn==25.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -985,7 +985,7 @@ sqlalchemy-utils==0.42.0
     #   apache-superset
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==28.10.0
+sqlglot==30.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
