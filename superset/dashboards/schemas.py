@@ -279,6 +279,7 @@ class DashboardDatasetSchema(Schema):
         "select_star",
         "fetch_values_predicate",
         "template_params",
+        "params",
     )
 
     id = fields.Int()

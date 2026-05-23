@@ -329,6 +329,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 "select_star",
                 "fetch_values_predicate",
                 "template_params",
+                "params",
             ]:
                 assert excluded_key not in dataset
             for column in dataset.get("columns") or []:
