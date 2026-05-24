@@ -335,6 +335,92 @@ npm run build-translation
 pybabel compile -d superset/translations
 ```
 
+### Backfilling missing translations with AI
+
+For languages with many untranslated strings, the repo includes a script that
+uses Claude AI to generate draft translations for any missing entries. All
+AI-generated strings are marked `#, fuzzy` and tagged with an attribution
+comment so that human reviewers know they need to be checked before merging.
+
+#### Prerequisites
+
+```bash
+pip install -r superset/translations/requirements.txt
+```
+
+Claude Code must be installed and authenticated (`claude --version` should
+work). The script calls `claude -p` internally — no separate API key is needed.
+
+#### Step 1 — Build the translation index
+
+The index captures every already-translated string in every language and
+serves as cross-language context for the AI. Rebuild it whenever `.po` files
+change significantly:
+
+```bash
+python scripts/translations/build_translation_index.py
+# Writes: superset/translations/translation_index.json
+```
+
+#### Step 2 — Preview with a dry run
+
+Check what would be translated without writing anything:
+
+```bash
+python scripts/translations/backfill_po.py --lang fr --limit 20 --dry-run
+```
+
+Output shows each string, its translation, and a context tag:
+- No tag — 3+ reference languages available (high confidence)
+- `[ctx:N]` — only N other languages have this string (lower confidence)
+- `[ctx:0]` — no other language has this string yet; English alone used
+
+#### Step 3 — Run the backfill
+
+```bash
+python scripts/translations/backfill_po.py --lang fr
+```
+
+Options:
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--lang LANG` | required | ISO language code (`fr`, `de`, `ja`, …) |
+| `--batch-size N` | 50 | Strings per Claude request |
+| `--limit N` | unlimited | Stop after N entries |
+| `--min-context N` | 0 | Skip entries with fewer than N reference translations |
+| `--model MODEL` | `claude-sonnet-4-6` | Claude model to use |
+| `--dry-run` | off | Print without writing |
+| `--no-fuzzy` | off | Don't mark entries as fuzzy |
+
+Use `--min-context 2` to skip strings that have fewer than 2 reference
+translations in other languages. Those strings are more likely to be ambiguous
+(short labels, UI fragments) where the correct meaning can't be inferred
+without additional context.
+
+#### Step 4 — Review and commit
+
+Open the target `.po` file and search for `fuzzy`. For each generated entry:
+
+1. Verify the translation is correct for the UI context.
+2. Remove the `# Machine-translated via backfill_po.py` comment and the
+   `#, fuzzy` flag line once you are satisfied.
+3. If the translation is wrong, correct the `msgstr` before removing the flag.
+4. Commit the `.po` file — do **not** commit `translation_index.json` (it is
+   gitignored and regenerated locally).
+
+#### Running via npm
+
+From `superset-frontend/`:
+
+```bash
+# Rebuild index
+npm run translations:build-index
+
+# Backfill (pass arguments after --)
+npm run translations:backfill -- --lang fr --dry-run
+```
+
 ## Linting
 
 ### Python

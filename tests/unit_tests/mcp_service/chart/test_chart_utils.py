@@ -594,7 +594,34 @@ class TestMapXYConfig:
 
         assert result["viz_type"] == "echarts_timeseries_scatter"
         assert result["show_legend"] is False
-        assert result["legend_orientation"] == "top"
+        assert result["legendOrientation"] == "top"
+
+    def test_map_xy_config_with_color_scheme(self) -> None:
+        """color_scheme propagates to form_data when set."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue")],
+            kind="line",
+            color_scheme="lyftColors",
+        )
+
+        result = map_xy_config(config)
+
+        assert result["color_scheme"] == "lyftColors"
+
+    def test_map_xy_config_without_color_scheme(self) -> None:
+        """color_scheme key omitted when not set, leaving Superset default."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue")],
+            kind="line",
+        )
+
+        result = map_xy_config(config)
+
+        assert "color_scheme" not in result
 
     def test_map_xy_config_with_time_grain_month(self) -> None:
         """Test XY config mapping with monthly time grain"""
@@ -803,6 +830,38 @@ class TestMapXYConfig:
         result = map_xy_config(config)
 
         assert result["row_limit"] == 10000
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_series_limit(self, mock_is_temporal) -> None:
+        """Test that series_limit is mapped to form_data when set."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+            group_by=[ColumnRef(name="region")],
+            series_limit=10,
+        )
+
+        result = map_xy_config(config)
+
+        assert result["series_limit"] == 10
+
+    @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
+    def test_map_xy_config_no_series_limit_by_default(self, mock_is_temporal) -> None:
+        """Test that series_limit is omitted from form_data when not set."""
+        mock_is_temporal.return_value = True
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="date"),
+            y=[ColumnRef(name="revenue", aggregate="SUM")],
+            kind="line",
+        )
+
+        result = map_xy_config(config)
+
+        assert "series_limit" not in result
 
     @patch("superset.mcp_service.chart.chart_utils.is_column_truly_temporal")
     def test_map_xy_config_saved_metric(self, mock_is_temporal: Any) -> None:
