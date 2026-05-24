@@ -1834,6 +1834,74 @@ class TestSecurityManager(SupersetTestCase):
     @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_denies_unresolved_schema(
+        self, mock_can_access, mock_is_owner, mock_query_datasources
+    ):
+        """
+        Regression test: with force_dataset_match=True, a query that
+        references a table without a resolvable schema (parser couldn't
+        infer one and the database has no default_schema) is denied
+        outright. Otherwise SqlaTable.query_datasources_by_name would drop
+        the schema filter and match a dataset in an unrelated schema while
+        the engine's search_path resolved the actual query against a
+        different schema.
+        """
+        database = get_example_database()
+        # default_schema_for_query returns None; the parser yields a Table
+        # with no schema either.
+        with patch.object(
+            database.db_engine_spec,
+            "get_default_schema_for_query",
+            return_value=None,
+        ):
+            query = Mock(
+                database=database,
+                schema=None,
+                sql="SELECT * FROM foo",
+                catalog=None,
+            )
+            # If the deny didn't fire first, query_datasources_by_name
+            # would return something matching across schemas.
+            mock_query_datasources.return_value = [
+                Mock(perm="[examples].[other_schema].[foo](id:1)")
+            ]
+            mock_can_access.return_value = False
+            mock_is_owner.return_value = False
+
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+                security_manager.raise_for_access(query=query, force_dataset_match=True)
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_denies_unparseable(
+        self, mock_can_access, mock_is_owner, mock_query_datasources
+    ):
+        """
+        Regression test: with force_dataset_match=True, a query whose AST
+        contains an unparseable statement (sqlglot exp.Command, e.g. a
+        stored-procedure call whose internal SQL is dynamic) is denied,
+        because the per-table check below cannot see tables referenced
+        inside such statements.
+        """
+        query = Mock(
+            database=get_example_database(),
+            schema="public",
+            # CALL on Postgres parses as exp.Command with no parseable
+            # literal, yielding zero extracted tables.
+            sql="CALL get_secret_data();",
+            catalog=None,
+        )
+        mock_query_datasources.return_value = []
+        mock_can_access.return_value = False
+        mock_is_owner.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+            security_manager.raise_for_access(query=query, force_dataset_match=True)
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
     def test_raise_for_access_default_keeps_schema_access(
         self, mock_can_access, mock_is_owner, mock_query_datasources
     ):

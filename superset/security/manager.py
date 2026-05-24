@@ -2938,14 +2938,35 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     cast(Query, query),
                     template_params,
                 )
+                parse_result = process_jinja_sql(query.sql, database, template_params)
+                # Under strict scoping, refuse any statement the parser
+                # could not fully model (sqlglot exp.Command). Such
+                # statements may reference tables via dynamic SQL or
+                # vendor syntax that extract_tables_from_statement cannot
+                # see, so the dataset-match check below would be blind to
+                # them. Fail closed.
+                if (
+                    force_dataset_match
+                    and parse_result.script.has_unparseable_statement
+                ):
+                    raise SupersetSecurityException(
+                        SupersetError(
+                            error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                            message=_(
+                                "SQL Lab cannot authorise a statement that "
+                                "could not be fully parsed. Qualify tables "
+                                "explicitly and avoid dynamic SQL inside "
+                                "stored-procedure or vendor-specific calls."
+                            ),
+                            level=ErrorLevel.ERROR,
+                        )
+                    )
                 tables = {
                     table_.qualify(
                         catalog=query.catalog or default_catalog,
                         schema=default_schema,
                     )
-                    for table_ in process_jinja_sql(
-                        query.sql, database, template_params
-                    ).tables
+                    for table_ in parse_result.tables
                 }
             elif table:
                 # Make sure table has the default catalog, if not specified.
@@ -2974,6 +2995,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     )
                     if schema_perm and self.can_access("schema_access", schema_perm):
                         continue
+
+                # Under strict scoping, refuse tables whose schema we could
+                # not pin down. query_datasources_by_name drops the schema
+                # filter when schema is None and would otherwise return
+                # SqlaTables in any schema, which the database engine may
+                # then resolve to a different schema via search_path. The
+                # dataset-match check would be against the wrong row.
+                if force_dataset_match and not table_.schema:
+                    denied.add(table_)
+                    continue
 
                 datasources = SqlaTable.query_datasources_by_name(
                     database,

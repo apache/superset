@@ -1364,6 +1364,23 @@ class SQLScript:
         """
         return ";\n".join(statement.format(comments) for statement in self.statements)
 
+    @property
+    def has_unparseable_statement(self) -> bool:
+        """
+        True if any statement in the script could not be fully modeled as an
+        AST. SQLGlot represents such statements as ``exp.Command`` and cannot
+        extract their internal table references reliably (e.g. dynamic SQL
+        inside a stored-procedure call). Per-table authorization checks
+        should treat these as opaque and refuse them under strict scoping.
+        """
+        for statement in self.statements:
+            if not isinstance(statement, SQLStatement):
+                # Non-sqlglot engines (e.g. KQL) are handled separately.
+                continue
+            if isinstance(statement._parsed, exp.Command):  # noqa: SLF001
+                return True
+        return False
+
     def get_settings(self) -> dict[str, str | bool]:
         """
         Return the settings for the SQL script.
