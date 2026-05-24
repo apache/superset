@@ -2866,6 +2866,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         catalog: Optional[str] = None,
         schema: Optional[str] = None,
         template_params: Optional[dict[str, Any]] = None,
+        force_dataset_match: bool = False,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -2880,6 +2881,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param catalog: Optional catalog name
         :param schema: Optional schema name
         :param template_params: Optional template parameters for Jinja templating
+        :param force_dataset_match: When True, the historical
+            ``catalog_access`` / ``schema_access`` fallthroughs in the
+            database+table / query branch are bypassed and every referenced
+            table must resolve to a registered Superset dataset the user
+            has ``datasource_access`` on (or owns). Call sites that execute
+            or return raw row data (SQL Lab, MetaDB) set this to True.
+            The default (False) preserves the historical semantics for
+            chart-data, dataset CRUD, ``/table_metadata/``, and
+            ``/select_star/``.
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
@@ -2943,15 +2953,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             denied = set()
 
-            # For raw SQL Lab queries we require that every referenced table
-            # resolve to a Superset dataset the user has access to. For the
-            # table-only call sites (table metadata, SELECT *, MetaDB) the
-            # historical catalog_access/schema_access fallthroughs are kept,
-            # since those endpoints don't return row data.
-            require_dataset_match = query is not None
-
+            # When the caller asks for strict scoping (SQL Lab raw queries,
+            # MetaDB) the historical catalog_access/schema_access fallthroughs
+            # are skipped and every referenced table must resolve to a
+            # registered Superset dataset the user can access. Other callers
+            # keep the existing semantics.
             for table_ in tables:
-                if not require_dataset_match:
+                if not force_dataset_match:
                     catalog_perm = self.get_catalog_perm(
                         database.database_name,
                         table_.catalog,
