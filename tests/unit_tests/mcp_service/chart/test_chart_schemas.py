@@ -727,6 +727,89 @@ class TestColumnRefSavedMetric:
             )
 
 
+class TestColumnRefSqlExpression:
+    """Test ColumnRef sql_expression support for calculated metrics."""
+
+    def test_sql_expression_defaults_to_none(self) -> None:
+        """A ColumnRef without an explicit sql_expression defaults to None,
+        leaving the existing SIMPLE / saved_metric paths unaffected."""
+        col = ColumnRef(name="revenue", aggregate="SUM")
+        assert col.sql_expression is None
+
+    def test_sql_expression_accepted(self) -> None:
+        """A ColumnRef accepts an inline SQL expression for calculated
+        metrics, preserving the supplied expression and label verbatim."""
+        col = ColumnRef(
+            name="profit_ratio",
+            sql_expression="SUM(profit) / NULLIF(SUM(sales), 0)",
+            label="Profit Ratio",
+        )
+        assert col.sql_expression == "SUM(profit) / NULLIF(SUM(sales), 0)"
+        assert col.label == "Profit Ratio"
+
+    def test_sql_expression_clears_aggregate(self) -> None:
+        """sql_expression takes over from aggregate, matching saved_metric behavior."""
+        col = ColumnRef(
+            name="profit_ratio",
+            sql_expression="SUM(profit) / SUM(sales)",
+            aggregate="SUM",
+        )
+        assert col.sql_expression == "SUM(profit) / SUM(sales)"
+        assert col.aggregate is None
+
+    def test_sql_expression_marks_as_metric(self) -> None:
+        """A ref with sql_expression set is treated as a valid metric ref by
+        the is_metric property, even without aggregate or saved_metric."""
+        col = ColumnRef(name="ratio", sql_expression="SUM(a)/SUM(b)")
+        assert col.is_metric is True
+
+    def test_sql_expression_and_saved_metric_are_mutually_exclusive(self) -> None:
+        """A ColumnRef can't be both a saved-metric reference AND a SQL calc."""
+        with pytest.raises(ValidationError, match="mutually exclusive"):
+            ColumnRef(
+                name="profit_ratio",
+                sql_expression="SUM(profit)/SUM(sales)",
+                saved_metric=True,
+            )
+
+    def test_sql_expression_in_xy_config(self) -> None:
+        """SQL-expression metrics work as the y-axis of an xy chart."""
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="order_date"),
+            y=[
+                ColumnRef(
+                    name="margin",
+                    sql_expression="SUM(profit) / NULLIF(SUM(sales), 0)",
+                    label="Margin",
+                )
+            ],
+        )
+        assert len(config.y) == 1
+        assert config.y[0].sql_expression == (
+            "SUM(profit) / NULLIF(SUM(sales), 0)"
+        )
+
+    def test_sql_expression_max_length_enforced(self) -> None:
+        """Enforce the 2000-char cap so callers can't slip arbitrarily
+        large SQL blobs through the metric field."""
+        with pytest.raises(ValidationError, match="at most 2000"):
+            ColumnRef(name="x", sql_expression="x" * 2001)
+
+    def test_sql_expression_whitespace_only_rejected(self) -> None:
+        """Blank-or-whitespace-only sql_expression is rejected at schema
+        validation time so it can't slip past is_metric and fail with a
+        cryptic SQL syntax error at query time."""
+        with pytest.raises(ValidationError, match="non-empty SQL fragment"):
+            ColumnRef(name="x", sql_expression="   ")
+
+    def test_sql_expression_is_stripped(self) -> None:
+        """Surrounding whitespace is trimmed so the stored expression is
+        always canonical, matching the REST API's behavior."""
+        col = ColumnRef(name="x", sql_expression="  SUM(a)/SUM(b)  ")
+        assert col.sql_expression == "SUM(a)/SUM(b)"
+
+
 class TestChartConfigValidation:
     """Tests for ChartConfig discriminated union validation via Pydantic."""
 

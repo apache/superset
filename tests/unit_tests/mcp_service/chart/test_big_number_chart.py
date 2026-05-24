@@ -94,6 +94,45 @@ class TestBigNumberChartConfig:
         assert is_valid is True
         assert error is None
 
+    def test_sql_expression_metric_accepted(self) -> None:
+        """SQL-expression metrics satisfy the big-number is_metric requirement."""
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(
+                name="profit_ratio",
+                sql_expression="SUM(profit) / NULLIF(SUM(sales), 0)",
+                label="Profit Ratio",
+            ),
+        )
+        assert config.metric.sql_expression == (
+            "SUM(profit) / NULLIF(SUM(sales), 0)"
+        )
+        assert config.metric.is_metric is True
+
+    def test_sql_expression_passes_pre_validation(self) -> None:
+        """SQL-expression metrics pass the schema_validator big-number guard."""
+        data = {
+            "chart_type": "big_number",
+            "metric": {
+                "name": "profit_ratio",
+                "sql_expression": "SUM(profit) / NULLIF(SUM(sales), 0)",
+            },
+        }
+        is_valid, error = SchemaValidator._pre_validate_big_number_config(data)
+        assert is_valid is True
+        assert error is None
+
+    def test_metric_without_aggregate_or_sql_or_saved_rejected(self) -> None:
+        """Bare ColumnRef (no aggregate, no sql_expression, no saved_metric)
+        is still rejected by the big_number guard."""
+        data = {
+            "chart_type": "big_number",
+            "metric": {"name": "revenue"},
+        }
+        is_valid, error = SchemaValidator._pre_validate_big_number_config(data)
+        assert is_valid is False
+        assert error.error_code == "MISSING_BIG_NUMBER_AGGREGATE"
+
     def test_with_subheader(self) -> None:
         config = BigNumberChartConfig(
             chart_type="big_number",

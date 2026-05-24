@@ -700,18 +700,59 @@ class ColumnRef(BaseModel):
         "(use get_dataset_info to see available metrics). "
         "When set, 'aggregate' is ignored.",
     )
+    sql_expression: str | None = Field(
+        None,
+        max_length=2000,
+        description=(
+            "Inline SQL expression for a calculated metric, e.g. "
+            "'SUM(profit) / NULLIF(SUM(sales), 0)'. Use for ratios, "
+            "growth rates, conversion percentages, and other formulas "
+            "that don't reduce to a single column + aggregate. When set, "
+            "'aggregate' is ignored; 'name' is used as the metric label."
+        ),
+    )
 
     @property
     def is_metric(self) -> bool:
-        """Whether this ref acts as a metric (has aggregate or is a saved metric)."""
-        return bool(self.aggregate) or self.saved_metric
+        """Whether this ref acts as a metric."""
+        return bool(self.aggregate) or self.saved_metric or bool(self.sql_expression)
 
     @model_validator(mode="after")
     def clear_aggregate_for_saved_metric(self) -> "ColumnRef":
-        """Clear aggregate when saved_metric is True since it's ignored."""
-        if self.saved_metric and self.aggregate is not None:
+        """Clear aggregate when saved_metric or sql_expression takes over."""
+        if (self.saved_metric or self.sql_expression) and self.aggregate is not None:
             self.aggregate = None
         return self
+
+    @model_validator(mode="after")
+    def disallow_saved_and_sql(self) -> "ColumnRef":
+        """saved_metric and sql_expression are mutually exclusive paths."""
+        if self.saved_metric and self.sql_expression:
+            raise ValueError(
+                "saved_metric and sql_expression are mutually exclusive — "
+                "pick one. saved_metric references a stored metric by name; "
+                "sql_expression embeds a calculation inline."
+            )
+        return self
+
+    @field_validator("sql_expression")
+    @classmethod
+    def strip_and_reject_blank_sql_expression(cls, v: str | None) -> str | None:
+        """Strip whitespace and reject blank-or-whitespace-only expressions.
+
+        Without this, ``sql_expression='   '`` would slip past the
+        ``is_metric`` check and fail later with a database SQL syntax
+        error. Failing here gives the caller a clear validation error.
+        """
+        if v is None:
+            return None
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError(
+                "sql_expression must contain a non-empty SQL fragment "
+                "(e.g. 'SUM(profit) / NULLIF(SUM(sales), 0)')."
+            )
+        return stripped
 
     @field_validator("name")
     @classmethod

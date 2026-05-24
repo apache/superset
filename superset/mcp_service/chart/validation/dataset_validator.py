@@ -87,6 +87,12 @@ class DatasetValidator:
         # Collect all column references
         column_refs = DatasetValidator._extract_column_references(config)
 
+        # Identify which refs are in metric positions. Only those refs may
+        # legitimately carry a sql_expression — a sql_expression on an
+        # x_axis / dimension / group_by is invalid (those positions need
+        # a real column name).
+        metric_ref_ids = DatasetValidator._get_metric_ref_ids(config)
+
         # Validate saved metrics exist in dataset metrics specifically
         invalid_saved = DatasetValidator._validate_saved_metrics(
             column_refs, dataset_context
@@ -96,7 +102,7 @@ class DatasetValidator:
 
         # Validate columns exist (skip saved metrics — already validated above)
         column_error = DatasetValidator._validate_columns_exist(
-            column_refs, dataset_context
+            column_refs, dataset_context, metric_ref_ids
         )
         if column_error:
             return False, column_error
@@ -116,7 +122,9 @@ class DatasetValidator:
 
     @staticmethod
     def _validate_columns_exist(
-        column_refs: List[ColumnRef], dataset_context: DatasetContext
+        column_refs: List[ColumnRef],
+        dataset_context: DatasetContext,
+        metric_ref_ids: set[int] | None = None,
     ) -> ChartGenerationError | None:
         """Validate that non-saved-metric column refs exist in the dataset.
 
@@ -126,7 +134,15 @@ class DatasetValidator:
         ``saved_metric=true``) would slip through and downstream code would
         emit ``SUM(sum_boys)`` as an ad-hoc SIMPLE metric, producing the
         broken-SQL pattern this validator is meant to prevent.
+
+        ``metric_ref_ids`` is the set of ``id(ref)`` values for refs in
+        metric positions. SQL-expression refs are only valid in metric
+        positions; if a ref carries ``sql_expression`` but isn't in a
+        metric slot (e.g., used as x_axis or group_by), it's flagged as
+        invalid here so the caller learns at Tier-1 instead of getting
+        a generic DB error later.
         """
+        metric_ref_ids = metric_ref_ids or set()
         column_names_lower = {
             col["name"].lower() for col in dataset_context.available_columns
         }
@@ -138,6 +154,17 @@ class DatasetValidator:
         saved_metric_typo: List[ColumnRef] = []
         for col_ref in column_refs:
             if col_ref.saved_metric:
+                continue
+            if col_ref.sql_expression:
+                # SQL-expression refs are only valid in metric positions.
+                # In a metric slot, the inline expression carries its own
+                # column references — skip dataset-column lookup. In a
+                # non-metric slot (x_axis, group_by, dimensions, etc.) the
+                # position needs a real column name, so flag as invalid
+                # at Tier 1 instead of failing later with a DB error.
+                if id(col_ref) in metric_ref_ids:
+                    continue
+                invalid_columns.append(col_ref)
                 continue
             name_lower = col_ref.name.lower()
             if name_lower in column_names_lower:
@@ -313,6 +340,48 @@ class DatasetValidator:
                 refs.append(ColumnRef(name=filter_config.column))
 
         return refs
+
+    @staticmethod
+    def _get_metric_ref_ids(config: Any) -> set[int]:  # noqa: C901
+        """Return ``id(ref)`` values for ColumnRefs sitting in metric slots.
+
+        A ``sql_expression`` only makes sense on a metric-bearing field
+        (XY ``y``, Pie ``metric``, BigNumber ``metric``, etc.). Used by
+        ``_validate_columns_exist`` to distinguish "metric carrying an
+        inline calc" from "x-axis/dimension carrying nonsense".
+
+        Identity comparison via ``id()`` is sufficient because the
+        validator runs on a single config instance per call — no aliasing
+        across configs to worry about.
+        """
+        ids: set[int] = set()
+
+        if isinstance(config, XYChartConfig):
+            for ref in config.y:
+                ids.add(id(ref))
+        elif isinstance(config, PieChartConfig):
+            ids.add(id(config.metric))
+        elif isinstance(config, PivotTableChartConfig):
+            for ref in config.metrics:
+                ids.add(id(ref))
+        elif isinstance(config, MixedTimeseriesChartConfig):
+            for ref in config.y:
+                ids.add(id(ref))
+            for ref in config.y_secondary:
+                ids.add(id(ref))
+        elif isinstance(config, HandlebarsChartConfig):
+            if config.metrics:
+                for ref in config.metrics:
+                    ids.add(id(ref))
+        elif isinstance(config, BigNumberChartConfig):
+            ids.add(id(config.metric))
+        elif isinstance(config, TableChartConfig):
+            # In a table, any column with an aggregate is acting as a metric.
+            for ref in config.columns:
+                if ref.aggregate or ref.saved_metric or ref.sql_expression:
+                    ids.add(id(ref))
+
+        return ids
 
     @staticmethod
     def _column_exists(column_name: str, dataset_context: DatasetContext) -> bool:

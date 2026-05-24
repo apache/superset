@@ -488,10 +488,27 @@ def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
 
     For saved metrics, returns the metric name as a plain string which
     Superset's query engine resolves via its metrics_by_name lookup.
+    For SQL-expression metrics, returns a SQL expression dict.
     For ad-hoc metrics, returns a SIMPLE expression dict.
     """
     if col.saved_metric:
         return col.name
+
+    if col.sql_expression:
+        # SQL-expression metric: arbitrary calculation, no single column.
+        # Useful for ratios (SUM(profit)/NULLIF(SUM(sales),0)),
+        # growth rates, conversion percentages, etc.
+        label = col.label or col.name
+        return {
+            "expressionType": "SQL",
+            "sqlExpression": col.sql_expression,
+            "label": label,
+            "optionName": f"metric_{col.name}",
+            "hasCustomLabel": bool(col.label),
+            "aggregate": None,
+            "column": None,
+            "datasourceWarning": False,
+        }
 
     # Ensure aggregate is valid - default to SUM if not specified or invalid
     valid_aggregates = {

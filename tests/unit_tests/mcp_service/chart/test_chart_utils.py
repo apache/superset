@@ -114,6 +114,38 @@ class TestCreateMetricObject:
         # saved_metric validator clears aggregate, result is plain string
         assert result == "total_revenue"
 
+    def test_create_metric_object_sql_expression_emits_sql_form(self) -> None:
+        """SQL-expression metrics emit Superset's SQL form_data shape."""
+        col = ColumnRef(
+            name="profit_ratio",
+            sql_expression="SUM(profit) / NULLIF(SUM(sales), 0)",
+            label="Profit Ratio",
+        )
+        result = create_metric_object(col)
+
+        assert isinstance(result, dict)
+        assert result["expressionType"] == "SQL"
+        assert result["sqlExpression"] == "SUM(profit) / NULLIF(SUM(sales), 0)"
+        assert result["label"] == "Profit Ratio"
+        assert result["optionName"] == "metric_profit_ratio"
+        assert result["hasCustomLabel"] is True
+        # SQL metrics don't carry an aggregate or a column reference
+        assert result["aggregate"] is None
+        assert result["column"] is None
+
+    def test_create_metric_object_sql_expression_uses_name_as_label_fallback(
+        self,
+    ) -> None:
+        """When no label is supplied, the SQL metric falls back to name."""
+        col = ColumnRef(
+            name="margin",
+            sql_expression="SUM(profit) / SUM(sales)",
+        )
+        result = create_metric_object(col)
+
+        assert result["label"] == "margin"
+        assert result["hasCustomLabel"] is False
+
 
 class TestMapFilterOperator:
     """Test map_filter_operator function"""

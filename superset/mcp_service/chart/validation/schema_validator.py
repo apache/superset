@@ -392,18 +392,32 @@ class SchemaValidator:
                 ],
                 error_code="INVALID_BIG_NUMBER_METRIC_TYPE",
             )
-        if not metric.get("aggregate") and not metric.get("saved_metric"):
+        sql_expression = metric.get("sql_expression")
+        if isinstance(sql_expression, str) and not sql_expression.strip():
+            # Treat whitespace-only as missing so the error message below
+            # surfaces the same way a missing-aggregate would, rather than
+            # letting the empty string slip through to fail at query time.
+            sql_expression = None
+
+        if (
+            not metric.get("aggregate")
+            and not metric.get("saved_metric")
+            and not sql_expression
+        ):
             return False, ChartGenerationError(
                 error_type="missing_metric_aggregate",
-                message="Big Number metric must include an aggregate function "
-                "or reference a saved metric",
-                details="The metric must have an 'aggregate' field "
-                "or 'saved_metric': true",
+                message="Big Number metric must include an aggregate function, "
+                "reference a saved metric, or provide a SQL expression",
+                details="The metric must have an 'aggregate' field, "
+                "'saved_metric': true, or 'sql_expression' set",
                 suggestions=[
                     "Add 'aggregate' to your metric: "
                     "{'name': 'col', 'aggregate': 'SUM'}",
                     "Or use a saved metric: "
                     "{'name': 'total_sales', 'saved_metric': true}",
+                    "Or use a SQL expression for calculated metrics: "
+                    "{'name': 'profit_ratio', "
+                    "'sql_expression': 'SUM(profit)/NULLIF(SUM(sales),0)'}",
                     "Valid aggregates: SUM, COUNT, AVG, MIN, MAX",
                 ],
                 error_code="MISSING_BIG_NUMBER_AGGREGATE",
