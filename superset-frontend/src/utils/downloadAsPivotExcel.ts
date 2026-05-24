@@ -17,6 +17,7 @@
  * under the License.
  */
 import { getNumberFormatterRegistry } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import { utils, writeFile } from 'xlsx';
 import type { WorkSheet } from 'xlsx';
 
@@ -66,7 +67,9 @@ export default function exportPivotExcel(
 ) {
   const table = document.querySelector(tableSelector);
   if (!table) {
-    console.error(`[exportPivotExcel] No element found for selector: "${tableSelector}"`);
+    logging.error(
+      `[exportPivotExcel] No element found for selector: "${tableSelector}"`,
+    );
     return;
   }
   // `raw: true` keeps every cell as the literal text rendered in the DOM.
