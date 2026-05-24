@@ -3109,15 +3109,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 allowed_datasets: Optional[list[int]] = guest_user.guest_token.get(
                     "datasets"
                 )
-                if allowed_datasets is not None:
-                    if (
-                        not isinstance(allowed_datasets, list)
-                        or not all(isinstance(d, int) for d in allowed_datasets)
-                        or datasource.id not in allowed_datasets
-                    ):
-                        raise SupersetSecurityException(
-                            self.get_datasource_access_error_object(datasource)
-                        )
+                if allowed_datasets is not None and (
+                    not isinstance(allowed_datasets, list)
+                    or not all(isinstance(d, int) for d in allowed_datasets)
+                    or datasource.id not in allowed_datasets
+                ):
+                    raise SupersetSecurityException(
+                        self.get_datasource_access_error_object(datasource)
+                    )
 
         if dashboard:
             if self.is_guest_user():
