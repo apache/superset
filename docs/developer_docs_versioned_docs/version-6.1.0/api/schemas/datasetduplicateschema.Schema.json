@@ -1,0 +1,1 @@
+{"schema":{"properties":{"base_model_id":{"type":"integer"},"table_name":{"maxLength":250,"minLength":1,"type":"string"}},"required":["base_model_id","table_name"],"type":"object","title":"DatasetDuplicateSchema"},"schemaType":"response"}

@@ -630,10 +630,17 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
             line-height: 1.3;
           `}
         >
-          {label}
+          {typeof label === 'function' ? (label as () => ReactNode)() : label}
         </span>{' '}
         {description && (
-          <Tooltip id={sectionId} title={description}>
+          <Tooltip
+            id={sectionId}
+            title={
+              typeof description === 'function'
+                ? (description as () => ReactNode)()
+                : description
+            }
+          >
             <Icons.InfoCircleOutlined css={iconStyles} />
           </Tooltip>
         )}
