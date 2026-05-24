@@ -159,6 +159,26 @@ test('TableRenderer renders grand total when both totals are enabled', () => {
   expect(grandTotalCells[0]).toHaveTextContent('4');
 });
 
+test('TableRenderer renders subvalue labels for row and column subtotals', () => {
+  const props = buildDefaultProps({
+    tableRenderer: 'Table With Subtotal',
+    tableOptions: {
+      rowSubtotalPosition: true,
+      colSubtotalPosition: true,
+    },
+  });
+  renderWithTheme(<TableRenderer {...props} />);
+
+  const subtotalLabels = Array.from(
+    document.querySelectorAll('.pvtSubtotalLabel'),
+  )
+    .map(cell => cell.textContent?.trim())
+    .filter(Boolean);
+
+  expect(subtotalLabels).toContain('Subvalue');
+  expect(subtotalLabels).not.toContain('Subtotal');
+});
+
 test('TableRenderer handles empty data gracefully', () => {
   const props = buildDefaultProps({ data: [] });
   renderWithTheme(<TableRenderer {...props} />);
