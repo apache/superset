@@ -18075,7 +18075,12 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
     };
 
     const rootNode = circularLayout.ROOT_ID;
-    const rootTreeItem: TreeItem = { key: 'ROOT_ID', title: 'Root', children: [], nodeType: 'TAB' };
+    const rootTreeItem: TreeItem = {
+      key: 'ROOT_ID',
+      title: 'Root',
+      children: [],
+      nodeType: 'TAB',
+    };
 
     expect(() => {
       buildTree(

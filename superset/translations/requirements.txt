@@ -16,3 +16,4 @@
 # under the License.
 Babel==2.9.1
 jinja2==3.1.6
+polib>=1.2.0

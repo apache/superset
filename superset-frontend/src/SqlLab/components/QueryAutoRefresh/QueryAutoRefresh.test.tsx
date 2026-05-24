@@ -53,7 +53,7 @@ describe('QueryAutoRefresh', () => {
   const refreshApi = 'glob:*/api/v1/query/updated_since?*';
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({ advanceTimers: true });
   });
 
   afterEach(() => {
