@@ -17,18 +17,22 @@
  * under the License.
  */
 import { logging } from '@apache-superset/core/utils';
-import { utils, writeFile } from 'xlsx';
+import exportPivotExcel from './downloadAsPivotExcel';
 
+jest.mock('@apache-superset/core/utils', () => ({
+  logging: { error: jest.fn() },
+}));
 
-export default function exportPivotExcel(
-  tableSelector: string,
-  fileName: string,
-) {
-  const table = document.querySelector(tableSelector);
-  if (!table) {
-    logging.error(`[exportPivotExcel] No element found for selector: "${tableSelector}"`);
-    return;
-  }
-  const workbook = utils.table_to_book(table);
-  writeFile(workbook, `${fileName}.xlsx`);
-}
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
+test('should log an error and return early when table element is not found', () => {
+  jest.spyOn(document, 'querySelector').mockReturnValue(null);
+
+  exportPivotExcel('.non-existent-selector', 'test-file');
+
+  expect(logging.error as jest.Mock).toHaveBeenCalledWith(
+    '[exportPivotExcel] No element found for selector: ".non-existent-selector"',
+  );
+});
