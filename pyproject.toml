@@ -66,7 +66,7 @@ dependencies = [
     "isodate",
     "jsonpath-ng>=1.6.1, <2",
     "Mako>=1.2.2",
-    "markdown>=3.0",
+    "markdown>=3.10.2",
     # marshmallow>=4 has issues: https://github.com/apache/superset/issues/33162
     "marshmallow>=3.0, <4",
     "marshmallow-union>=0.1",
