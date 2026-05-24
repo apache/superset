@@ -2943,21 +2943,29 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             denied = set()
 
-            for table_ in tables:
-                catalog_perm = self.get_catalog_perm(
-                    database.database_name,
-                    table_.catalog,
-                )
-                if catalog_perm and self.can_access("catalog_access", catalog_perm):
-                    continue
+            # For raw SQL Lab queries we require that every referenced table
+            # resolve to a Superset dataset the user has access to. For the
+            # table-only call sites (table metadata, SELECT *, MetaDB) the
+            # historical catalog_access/schema_access fallthroughs are kept,
+            # since those endpoints don't return row data.
+            require_dataset_match = query is not None
 
-                schema_perm = self.get_schema_perm(
-                    database.database_name,
-                    table_.catalog,
-                    table_.schema,
-                )
-                if schema_perm and self.can_access("schema_access", schema_perm):
-                    continue
+            for table_ in tables:
+                if not require_dataset_match:
+                    catalog_perm = self.get_catalog_perm(
+                        database.database_name,
+                        table_.catalog,
+                    )
+                    if catalog_perm and self.can_access("catalog_access", catalog_perm):
+                        continue
+
+                    schema_perm = self.get_schema_perm(
+                        database.database_name,
+                        table_.catalog,
+                        table_.schema,
+                    )
+                    if schema_perm and self.can_access("schema_access", schema_perm):
+                        continue
 
                 datasources = SqlaTable.query_datasources_by_name(
                     database,

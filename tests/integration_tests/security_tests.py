@@ -1740,15 +1740,24 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(datasource=datasource)
 
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
-    def test_raise_for_access_query(self, mock_can_access, mock_is_owner):
+    def test_raise_for_access_query(
+        self, mock_can_access, mock_is_owner, mock_query_datasources
+    ):
         query = Mock(
             database=get_example_database(),
             schema="bar",
             sql="SELECT * FROM foo",
             catalog=None,
         )
+        # SQL Lab now requires that every referenced table resolve to a
+        # Superset dataset; the mocked permission check is then applied to
+        # that dataset.
+        mock_query_datasources.return_value = [
+            Mock(perm="[examples].[bar].[foo](id:1)")
+        ]
 
         mock_can_access.return_value = True
         security_manager.raise_for_access(query=query)
@@ -1768,15 +1777,41 @@ class TestSecurityManager(SupersetTestCase):
                     sql="SELECT * FROM foo",
                 )
 
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
-    def test_raise_for_access_sql(self, mock_can_access, mock_is_owner):
+    def test_raise_for_access_sql(
+        self, mock_can_access, mock_is_owner, mock_query_datasources
+    ):
+        # SQL Lab queries (database + sql) must resolve to a Superset dataset
+        # before any per-dataset permission check applies.
+        mock_query_datasources.return_value = [
+            Mock(perm="[examples].[bar].[foo](id:1)")
+        ]
         mock_can_access.return_value = True
         mock_is_owner.return_value = True
         with override_user(security_manager.find_user("gamma")):
             security_manager.raise_for_access(
                 database=get_example_database(), schema="bar", sql="SELECT * FROM foo"
             )
+
+    def test_raise_for_access_query_requires_dataset_match(self):
+        """
+        Regression test: a user without database_access cannot run a SQL Lab
+        query against a table for which no Superset dataset exists, even if
+        they hold schema_access on the schema. Previously the schema_access
+        check short-circuited to allow this.
+        """
+        query = Mock(
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM table_with_no_dataset",
+            catalog=None,
+        )
+
+        with override_user(security_manager.find_user("gamma")):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+                security_manager.raise_for_access(query=query)
 
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
