@@ -27,6 +27,15 @@ runs:
     - name: Set up QEMU
       if: ${{ inputs.build == 'true' }}
       uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+      with:
+        # Pin the binfmt image to a specific QEMU release. The default
+        # (`tonistiigi/binfmt:latest`) is a moving target, and drift across
+        # QEMU's x86_64→aarch64 translator has been the proximate cause of
+        # intermittent `exit code: 132` (SIGILL) failures during the arm64
+        # leg of the multi-platform docker build — newer Node native modules
+        # emit instructions QEMU's user-mode emulation occasionally drops on
+        # the floor. Pinning a known-good release stabilises that path.
+        image: tonistiigi/binfmt:qemu-v8.1.5
 
     - name: Set up Docker Buildx
       if: ${{ inputs.build == 'true' }}
