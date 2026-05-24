@@ -2969,8 +2969,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     for table_ in parse_result.tables
                 }
             elif table:
-                # Make sure table has the default catalog, if not specified.
-                tables = {table.qualify(catalog=default_catalog)}
+                # Make sure table has the default catalog, and (when an
+                # under-qualified Table was passed) the database's default
+                # schema. Callers like MetaDB legitimately pass 2-part URIs
+                # ``db.table`` that mean "the database's default schema";
+                # resolving them against the engine spec lets those still
+                # match a registered dataset. If the engine cannot supply a
+                # default the strict-deny rule below fires and we fail closed.
+                table_catalog = table.catalog or default_catalog
+                schema_default = (
+                    None if table.schema else database.get_default_schema(table_catalog)
+                )
+                tables = {table.qualify(catalog=table_catalog, schema=schema_default)}
 
             denied = set()
 

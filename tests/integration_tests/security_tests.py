@@ -1923,6 +1923,42 @@ class TestSecurityManager(SupersetTestCase):
 
         security_manager.raise_for_access(query=query)
 
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_table_uses_default_schema(
+        self, mock_can_access, mock_is_owner, mock_query_datasources
+    ):
+        """
+        Regression test: under force_dataset_match=True, a caller that passes
+        an under-qualified Table (e.g. MetaDB's 2-part URI ``db.table``) is
+        resolved against the database's default schema before the strict
+        deny fires, so a user with datasource_access on the default-schema
+        dataset is not refused.
+        """
+        database = get_example_database()
+        with patch.object(
+            database.db_engine_spec,
+            "get_default_schema",
+            return_value="public",
+        ):
+            table = Table("foo", None, None)
+            mock_query_datasources.return_value = [
+                Mock(perm="[examples].[public].[foo](id:1)")
+            ]
+            mock_can_access.side_effect = lambda perm, _vm: perm == "datasource_access"
+            mock_is_owner.return_value = False
+            security_manager.raise_for_access(
+                database=database,
+                table=table,
+                force_dataset_match=True,
+            )
+            # query_datasources_by_name should have been called with the
+            # resolved default schema, not None.
+            mock_query_datasources.assert_called_once()
+            _args, kwargs = mock_query_datasources.call_args
+            assert kwargs.get("schema") == "public"
+
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")
     @patch("superset.security.SupersetSecurityManager.can_access_schema")
