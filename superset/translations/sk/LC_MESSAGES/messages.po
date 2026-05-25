@@ -10941,8 +10941,11 @@ msgstr "Odoslať"
 msgid "Subtitle"
 msgstr "Podtitulek"
 
-msgid "Subtotal"
-msgstr "Mezisoučet"
+msgid "Subvalue (%(aggfunc)s)"
+msgstr ""
+
+msgid "Subvalue (%(aggregatorName)s)"
+msgstr ""
 
 msgid "Success"
 msgstr "Úspech"
