@@ -19,6 +19,7 @@
 import { useEffect, useState } from 'react';
 // eslint-disable-next-line no-restricted-syntax
 import * as supersetCore from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
   authentication,
@@ -80,14 +81,29 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       views,
     };
 
-    const setup = async () => {
-      if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
-        await ExtensionsLoader.getInstance().initializeExtensions();
-      }
-      setInitialized(true);
+    // Isolate unhandled rejections that originate from extension code so they
+    // cannot crash the host application. Extensions load via Module Federation
+    // and their async failures (e.g. failed API calls, unhandled promise
+    // chains) would otherwise surface as uncaught rejections in the host.
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      // Always log so extension authors can diagnose failures.
+      logging.error('[extensions] Unhandled rejection from extension:', event.reason);
+      event.preventDefault();
     };
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
 
-    setup();
+    // Render the host immediately; extension bundles load in the background.
+    // ChatbotMount re-resolves reactively once the chatbot extension registers
+    // (via subscribeToLocation), so the bubble appears without blocking the UI.
+    setInitialized(true);
+
+    if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+      ExtensionsLoader.getInstance().initializeExtensions();
+    }
+
+    return () => {
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
   }, [initialized, userId]);
 
   if (!initialized) {

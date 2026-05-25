@@ -20,19 +20,12 @@
 /**
  * @fileoverview Views registration API for Superset extensions.
  *
- * This module provides functions for registering custom React views
- * at specific locations in the Superset UI. Views are registered as
- * module-level side effects at import time.
+ * Extensions register React views at named locations using `registerView`.
+ * Registrations happen as module-level side effects at import time.
  *
- * @example
- * ```typescript
- * import { views } from '@apache-superset/core';
- *
- * views.registerView(
- *   { id: 'my_ext.result_stats', name: 'Result Stats', location: 'sqllab.panels' },
- *   () => <ResultStatsPanel />,
- * );
- * ```
+ * Built-in locations:
+ *  - `sqllab.panels` / `sqllab.rightSidebar` / … — SQL Lab surface
+ *  - `superset.chatbot` — app-shell chatbot bubble (singleton; host renders one)
  */
 
 import { ReactElement } from 'react';
@@ -48,25 +41,37 @@ export interface View {
   name: string;
   /** Optional description of the view, for display in contribution manifests. */
   description?: string;
+  /**
+   * Optional icon identifier for the view, used in admin pickers and manifest
+   * listings. Static — set once at registerView() time.
+   * Dynamic icon states (e.g. notification badge) are the extension's concern.
+   */
+  icon?: string;
 }
 
 /**
  * Registers a custom view at a specific UI location.
  *
- * The view provider function is called when the UI renders the location,
- * and should return a React element to display.
- *
- * @param view The view descriptor (id and name).
- * @param location The location where this view should appear (e.g. "sqllab.panels").
+ * @param view The view descriptor (id, name, and optional icon/description).
+ * @param location The location where this view should appear.
  * @param provider A function that returns the React element to render.
  * @returns A Disposable that unregisters the view when disposed.
  *
- * @example
+ * @example SQL Lab panel
  * ```typescript
  * views.registerView(
  *   { id: 'my_ext.result_stats', name: 'Result Stats' },
  *   'sqllab.panels',
  *   () => <ResultStatsPanel />,
+ * );
+ * ```
+ *
+ * @example Chatbot bubble (`superset.chatbot` — singleton, host renders one)
+ * ```typescript
+ * views.registerView(
+ *   { id: 'my_ext.chatbot', name: 'My Chatbot', icon: 'Bubble' },
+ *   'superset.chatbot',
+ *   () => <ChatbotApp />,
  * );
  * ```
  */

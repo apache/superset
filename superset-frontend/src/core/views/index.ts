@@ -39,6 +39,27 @@ const viewRegistry: Map<
 
 const locationIndex: Map<string, Set<string>> = new Map();
 
+/** Listeners notified whenever a view is registered or unregistered at a location. */
+const locationListeners: Map<string, Set<() => void>> = new Map();
+
+const notifyListeners = (location: string) => {
+  locationListeners.get(location)?.forEach(fn => fn());
+};
+
+/**
+ * Subscribe to registration changes at a specific location.
+ * Returns an unsubscribe function.
+ */
+export const subscribeToLocation = (
+  location: string,
+  listener: () => void,
+): (() => void) => {
+  const listeners = locationListeners.get(location) ?? new Set();
+  listeners.add(listener);
+  locationListeners.set(location, listeners);
+  return () => listeners.delete(listener);
+};
+
 const registerView: typeof viewsApi.registerView = (
   view: View,
   location: string,
@@ -52,9 +73,12 @@ const registerView: typeof viewsApi.registerView = (
   ids.add(id);
   locationIndex.set(location, ids);
 
+  notifyListeners(location);
+
   return new Disposable(() => {
     viewRegistry.delete(id);
     locationIndex.get(location)?.delete(id);
+    notifyListeners(location);
   });
 };
 

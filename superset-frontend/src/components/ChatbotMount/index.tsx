@@ -30,30 +30,34 @@
  * this component renders nothing and the corner stays empty.
  */
 
+import { useState, useEffect } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { getActiveChatbot } from 'src/core/chatbot';
+import { subscribeToLocation } from 'src/core/views';
+import { CHATBOT_LOCATION } from 'src/views/contributions';
 
-/**
- * Margin from the viewport edges for the chatbot anchor, per SIP §3.2.
- */
 const CHATBOT_EDGE_MARGIN = 24;
 
 /**
  * Renders the active chatbot extension into a fixed bottom-right slot.
  *
- * Mounted once at the app root so the bubble is available consistently across
- * routes. Renders `null` when no chatbot extension is registered.
- *
- * Resolution happens once at mount: chatbot extensions are registered
- * synchronously during extension loading, before this component renders (it
- * sits inside `ExtensionsStartup`). Reacting to chatbots that register or
- * unregister at runtime — deactivate / uninstall / replace — is the extension
- * lifecycle work tracked separately under SIP §8 phase P1.
+ * Mounted once at the app root so the bubble persists across routes.
+ * Re-resolves when the chatbot registry changes (extension activated or
+ * deactivated at runtime via the P1.A lifecycle contract).
+ * Renders null when no chatbot extension is registered.
  */
 const ChatbotMount = () => {
   const theme = useTheme();
-  const activeChatbot = getActiveChatbot();
+  const [activeChatbot, setActiveChatbot] = useState(getActiveChatbot);
+
+  useEffect(
+    () =>
+      subscribeToLocation(CHATBOT_LOCATION, () =>
+        setActiveChatbot(getActiveChatbot()),
+      ),
+    [],
+  );
 
   if (!activeChatbot) {
     return null;
@@ -66,10 +70,7 @@ const ChatbotMount = () => {
         position: fixed;
         right: ${CHATBOT_EDGE_MARGIN}px;
         bottom: ${CHATBOT_EDGE_MARGIN}px;
-        /*
-         * Above dashboard content and the toast layer
-         * (toasts sit at zIndexPopupBase + 1), below modal dialogs.
-         */
+        /* Above dashboard content and the toast layer, below modal dialogs. */
         z-index: ${theme.zIndexPopupBase + 2};
       `}
     >
