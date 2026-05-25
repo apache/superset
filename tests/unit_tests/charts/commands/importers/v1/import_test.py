@@ -18,6 +18,7 @@
 
 import copy
 from collections.abc import Generator
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -285,6 +286,73 @@ def test_import_existing_chart_with_permission(
     # Assert that the can write to chart was checked
     mock_can_access.assert_called_once_with("can_write", "Chart")
     mock_can_access_chart.assert_called_once_with(slice)
+
+
+def test_import_soft_deleted_chart_overwrite_restores_in_place(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Overwrite-importing a soft-deleted chart must restore the row in place,
+    not hard-delete-and-replace. Otherwise out-of-archive references
+    (dashboard_slices junctions, report.chart_id) would cascade away.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_chart", return_value=True)
+
+    existing = (
+        session_with_data.query(Slice)
+        .filter(Slice.uuid == chart_config["uuid"])
+        .one_or_none()
+    )
+    assert existing is not None
+    original_id = existing.id
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    session_with_data.flush()
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+
+    with override_user(admin):
+        chart = import_chart(config, overwrite=True)
+
+    assert chart.id == original_id
+    assert chart.deleted_at is None
+
+
+def test_import_soft_deleted_chart_non_overwrite_raises(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Non-overwrite imports against a soft-deleted match must raise rather
+    than silently return the soft-deleted row. Returning it lets dashboard
+    imports re-attach to a soft-deleted chart, bypassing the explicit
+    restore command's ownership check.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    existing = (
+        session_with_data.query(Slice)
+        .filter(Slice.uuid == chart_config["uuid"])
+        .one_or_none()
+    )
+    assert existing is not None
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    session_with_data.flush()
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_chart(chart_config, overwrite=False)
+    assert "deleted" in str(excinfo.value).lower()
 
 
 def test_import_tag_logic_for_charts(session_with_schema: Session):

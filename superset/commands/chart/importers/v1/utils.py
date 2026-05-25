@@ -49,10 +49,7 @@ def import_chart(
     ignore_permissions: bool = False,
 ) -> Slice:
     can_write = ignore_permissions or security_manager.can_access("can_write", "Chart")
-    from superset.commands.importers.v1.utils import (
-        clear_soft_deleted_for_import,
-        find_existing_for_import,
-    )
+    from superset.commands.importers.v1.utils import find_existing_for_import
 
     user = get_user()
 
@@ -65,14 +62,22 @@ def import_chart(
                     "A chart already exists and user doesn't "
                     "have permissions to overwrite it"
                 )
-            # Permission check passed. Hard-delete a soft-deleted match
-            # now (after the check) so the fresh insert below doesn't
-            # collide on the UUID unique constraint.
+            # Restore a soft-deleted match in-place rather than
+            # hard-delete-and-replace: a hard delete cascades to
+            # dashboard_slices and other FK references, breaking the
+            # dashboards that previously embedded this chart. Setting
+            # config["id"] = existing.id routes import_from_dict
+            # through UPDATE, preserving the PK and all references.
             if existing.deleted_at is not None:
-                clear_soft_deleted_for_import(existing)
-            else:
-                config["id"] = existing.id
+                existing.deleted_at = None
+            config["id"] = existing.id
         elif not overwrite or not can_write:
+            if existing.deleted_at is not None:
+                raise ImportFailedError(
+                    "Chart exists but has been deleted. "
+                    "Restore it before re-importing, or "
+                    "re-run the import with overwrite=True."
+                )
             return existing
     elif not can_write:
         raise ImportFailedError(
