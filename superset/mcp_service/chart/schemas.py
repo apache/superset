@@ -1771,7 +1771,13 @@ class UpdateChartRequest(QueryCacheControl):
 
 
 class UpdateChartPreviewRequest(FormDataCacheControl):
-    form_data_key: str = Field(..., description="Existing form_data_key to update")
+    form_data_key: str | None = Field(
+        None,
+        description=(
+            "Existing form_data_key to update"
+            " (omit for fresh preview from config + dataset_id)"
+        ),
+    )
     dataset_id: int | str = Field(..., description="Dataset ID or UUID")
     config: ChartConfig = Field(..., description="Chart configuration")
     generate_preview: bool = True
