@@ -204,10 +204,7 @@ def import_dataset(  # noqa: C901
         "can_write",
         "Dataset",
     )
-    from superset.commands.importers.v1.utils import (
-        clear_soft_deleted_for_import,
-        find_existing_for_import,
-    )
+    from superset.commands.importers.v1.utils import find_existing_for_import
 
     user = get_user()
 
@@ -218,15 +215,23 @@ def import_dataset(  # noqa: C901
                     "A dataset already exists and user doesn't "
                     "have permissions to overwrite it"
                 )
-            # Permission check passed. Hard-delete a soft-deleted match
-            # after the check so the fresh insert below doesn't collide
-            # on the UUID unique constraint.
+        if not overwrite or not can_write:
             if existing.deleted_at is not None:
-                clear_soft_deleted_for_import(existing)
-            else:
-                config["id"] = existing.id
-        elif not overwrite or not can_write:
+                raise ImportFailedError(
+                    "Dataset exists but has been deleted. "
+                    "Restore it before re-importing, or "
+                    "re-run the import with overwrite=True."
+                )
             return existing
+        # Overwrite path. Restore a soft-deleted match in place rather
+        # than hard-delete-and-replace: a hard delete cascades through
+        # the chart back-reference and table_columns / sql_metrics,
+        # which the import would then need to reconstruct. Setting
+        # config["id"] = existing.id routes import_from_dict through
+        # UPDATE, preserving the PK and the dependent rows.
+        if existing.deleted_at is not None:
+            existing.deleted_at = None
+        config["id"] = existing.id
 
     elif not can_write:
         raise ImportFailedError(

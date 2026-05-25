@@ -227,6 +227,21 @@ SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes"
 Schedule the cutover in a quiet window. Runtime reads use only the single configured engine, so in a multi-worker deployment there is an unavoidable brief decrypt-outage between the migration commit and the last worker restarting with the new config — each migrator run is transactional, but the fleet-wide cutover is not zero-downtime.
 
 The migration is transactional (all-or-nothing) and idempotent — it can be safely re-run or resumed. Note that AES-GCM, unlike AES-CBC, does not support querying directly over encrypted columns; audit any code that filters on an encrypted column before switching. See the SIP at `docs/sip/authenticated-encryption-at-rest.md` for details.
+### Soft delete and restore for datasets
+
+`DELETE /api/v1/dataset/<id>` no longer hard-deletes the dataset. The row is marked with a `deleted_at` timestamp and hidden from all list, detail, and lookup endpoints. Datasets in this state are excluded from default queries and from relationship loads (e.g. `database.tables`).
+
+**No cascade in v1.** Soft-delete does not propagate to dependent charts or dashboards: they remain visible. Loading a chart whose dataset is soft-deleted surfaces a "datasource not found" error at chart-load time. Restore the dataset to recover.
+
+**Side-effect change for operators.** Because the row is no longer physically deleted, FAB `ab_view_menu` / permission-view rows tied to the dataset are also preserved. Downstream automation that relied on `DELETE /api/v1/dataset/<id>` cleaning up those rows must now react to the new `POST /api/v1/dataset/<uuid>/restore` lifecycle, or call the eventual hard-delete endpoint.
+
+**New endpoint** — `POST /api/v1/dataset/<uuid>/restore` clears `deleted_at` and returns the dataset to active state. Requires `can_write on Dataset` and ownership of the row (or admin). Soft-deleted datasets can also be listed via the new `dataset_deleted_state` rison filter (`deleted` or `active`).
+
+**Migration behavior:** existing role grants of `can_write on Dataset` cover the new restore endpoint automatically; no role migration is required.
+
+**Importer behavior change:** importing a dataset YAML whose UUID matches an existing **soft-deleted** dataset now:
+- With `overwrite=True`, restores the row in place (clears `deleted_at`, updates contents). The chart back-reference, `table_columns`, and `sql_metrics` are preserved.
+- With `overwrite=False`, raises `ImportFailedError` rather than silently returning the soft-deleted row. Restore the dataset explicitly or re-run the import with `overwrite=True`.
 
 ### Granular Export Controls
 

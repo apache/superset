@@ -20,6 +20,7 @@ import copy
 import io
 import re
 import uuid
+from datetime import datetime
 from typing import Any
 from unittest.mock import Mock, patch
 from urllib import request
@@ -1075,6 +1076,115 @@ def test_import_dataset_access_check(
 
     with pytest.raises(DatasetAccessDeniedError):
         import_dataset(config)
+
+
+def test_import_soft_deleted_dataset_overwrite_restores_in_place(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Overwrite-importing a soft-deleted dataset must restore the row in
+    place rather than hard-delete-and-replace. A hard delete would
+    cascade through the chart back-reference and table_columns /
+    sql_metrics rows; in-place restore preserves them.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    initial = import_dataset(config)
+    original_id = initial.id
+
+    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    db.session.flush()
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    with override_user(admin):
+        restored = import_dataset(config, overwrite=True)
+
+    assert restored.id == original_id
+    assert restored.deleted_at is None
+
+
+def test_import_soft_deleted_dataset_non_overwrite_raises(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Non-overwrite imports against a soft-deleted match must raise rather
+    than silently return the soft-deleted row. Returning it lets
+    dashboard / chart imports re-attach to a soft-deleted dataset,
+    bypassing the explicit restore command's ownership check.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    import_dataset(config)
+    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    db.session.flush()
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_dataset(config, overwrite=False)
+    assert "deleted" in str(excinfo.value).lower()
+
+
+def test_import_soft_deleted_dataset_ignore_permissions_restores_in_place(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    The example loader path: ignore_permissions=True with no logged-in
+    user. Previously the rewrite gated id-preservation on `user`, so this
+    path skipped both branches and INSERT collided on the UUID unique
+    index. The fix restores master's behavior: id is preserved on the
+    fallthrough overwrite path regardless of whether `user` is set.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    initial = import_dataset(config, ignore_permissions=True)
+    original_id = initial.id
+
+    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    db.session.flush()
+
+    restored = import_dataset(config, overwrite=True, ignore_permissions=True)
+    assert restored.id == original_id
+    assert restored.deleted_at is None
 
 
 @pytest.mark.parametrize(
