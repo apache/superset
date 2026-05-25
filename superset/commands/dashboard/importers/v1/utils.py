@@ -280,15 +280,19 @@ def import_dashboard(  # noqa: C901
         "can_write",
         "Dashboard",
     )
-    from superset.commands.importers.v1.utils import (
-        clear_soft_deleted_for_import,
-        find_existing_for_import,
-    )
+    from superset.commands.importers.v1.utils import find_existing_for_import
 
     user = get_user()
 
     if existing := find_existing_for_import(Dashboard, config["uuid"]):
-        if overwrite and can_write and user:
+        is_soft_deleted = existing.deleted_at is not None
+        # A re-import that matches a soft-deleted UUID is implicitly a
+        # restore-with-overwrite: bringing the dashboard back by
+        # uploading it again. Apply the same ownership check as the
+        # explicit overwrite path so non-owners cannot resurrect via
+        # re-import.
+        needs_mutation = overwrite or is_soft_deleted
+        if needs_mutation and can_write and user:
             if not security_manager.can_access_dashboard(existing) or (
                 user not in existing.owners and not security_manager.is_admin()
             ):
@@ -296,17 +300,18 @@ def import_dashboard(  # noqa: C901
                     "A dashboard already exists and user doesn't "
                     "have permissions to overwrite it"
                 )
-            # Permission check passed. If the existing row is
-            # soft-deleted, hard-delete it now so the fresh insert
-            # below doesn't collide on the UUID unique constraint.
-            # Destructive op happens *after* the permission check, not
-            # as a side effect of the lookup.
-            if existing.deleted_at is not None:
-                clear_soft_deleted_for_import(existing)
-            else:
-                config["id"] = existing.id
-        elif not overwrite or not can_write:
+        if not needs_mutation or not can_write:
             return existing
+        # Mutation path. Restore a soft-deleted match in place rather
+        # than hard-delete-and-replace: a hard delete cascades through
+        # dashboard_slices junctions and dashboard role / owner / tag
+        # associations, breaking the relationships the import would then
+        # need to reconstruct. Setting config["id"] = existing.id routes
+        # import_from_dict through UPDATE, preserving the PK and the
+        # dependent rows.
+        if is_soft_deleted:
+            existing.deleted_at = None
+        config["id"] = existing.id
     elif not can_write:
         raise ImportFailedError(
             "Dashboard doesn't exist and user doesn't "

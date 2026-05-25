@@ -18,6 +18,7 @@
 
 import copy
 from collections.abc import Generator
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -292,6 +293,152 @@ def test_import_new_dashboard_adds_importer_as_owner(
         result = import_dashboard(dashboard_config)
 
     assert user in result.owners
+
+
+def test_import_soft_deleted_dashboard_overwrite_restores_in_place(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Overwrite-importing a soft-deleted dashboard must restore the row in
+    place rather than hard-delete-and-replace. A hard delete cascades
+    through dashboard_slices junctions and role/owner/tag associations;
+    in-place restore preserves them.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(
+        security_manager, "can_access_dashboard", return_value=True
+    )
+
+    existing = (
+        session_with_data.query(Dashboard)
+        .filter(Dashboard.uuid == dashboard_config["uuid"])
+        .one_or_none()
+    )
+    assert existing is not None
+    original_id = existing.id
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    session_with_data.flush()
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    with override_user(admin):
+        dashboard = import_dashboard(dashboard_config, overwrite=True)
+
+    assert dashboard.id == original_id
+    assert dashboard.deleted_at is None
+
+
+def test_import_soft_deleted_dashboard_non_overwrite_restores_for_owner(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Non-overwrite re-import of a soft-deleted UUID is implicitly a
+    restore-and-update: the user is bringing the dashboard back by
+    uploading it again. The same ownership rule as the overwrite path
+    applies, so an owner (or admin) succeeds without setting
+    overwrite=True.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(
+        security_manager, "can_access_dashboard", return_value=True
+    )
+
+    existing = (
+        session_with_data.query(Dashboard)
+        .filter(Dashboard.uuid == dashboard_config["uuid"])
+        .one_or_none()
+    )
+    assert existing is not None
+    original_id = existing.id
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    session_with_data.flush()
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    with override_user(admin):
+        dashboard = import_dashboard(dashboard_config, overwrite=False)
+
+    assert dashboard.id == original_id
+    assert dashboard.deleted_at is None
+
+
+def test_import_soft_deleted_dashboard_non_overwrite_raises_for_non_owner(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Non-overwrite re-import that would resurrect a soft-deleted dashboard
+    must respect ownership: a non-owner without admin role cannot
+    restore-via-import. Mirrors the explicit /restore endpoint's check.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(
+        security_manager, "can_access_dashboard", return_value=True
+    )
+
+    existing = (
+        session_with_data.query(Dashboard)
+        .filter(Dashboard.uuid == dashboard_config["uuid"])
+        .one_or_none()
+    )
+    assert existing is not None
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    session_with_data.flush()
+
+    non_owner = User(
+        first_name="Bob",
+        last_name="Roe",
+        email="bob@example.org",
+        username="bob",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(non_owner):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_dashboard(dashboard_config, overwrite=False)
+    assert "permissions to overwrite" in str(excinfo.value)
+
+
+def test_import_soft_deleted_dashboard_ignore_permissions_restores_in_place(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    The example loader path: ignore_permissions=True with no logged-in
+    user. The needs_mutation gate must still trigger the overwrite path
+    so config["id"] is preserved on the fallthrough, otherwise the
+    example loader's re-import collides on the UUID unique index.
+    """
+    existing = (
+        session_with_data.query(Dashboard)
+        .filter(Dashboard.uuid == dashboard_config["uuid"])
+        .one_or_none()
+    )
+    assert existing is not None
+    original_id = existing.id
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    session_with_data.flush()
+
+    dashboard = import_dashboard(
+        dashboard_config, overwrite=True, ignore_permissions=True
+    )
+
+    assert dashboard.id == original_id
+    assert dashboard.deleted_at is None
 
 
 def test_import_tag_logic_for_dashboards(session_with_schema: Session):
