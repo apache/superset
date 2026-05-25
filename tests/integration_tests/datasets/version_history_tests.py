@@ -273,8 +273,7 @@ class TestDatasetRestoreApi(SupersetTestCase):
             (
                 row
                 for row in rows
-                if row.description == original_description
-                and row.operation_type != 2
+                if row.description == original_description and row.operation_type != 2
             ),
             None,
         )
