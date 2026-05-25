@@ -1318,11 +1318,20 @@ class ChartRestApi(BaseSupersetModelRestApi):
         from uuid import UUID
 
         from superset.daos.version import VersionDAO
+        from superset.exceptions import SupersetSecurityException
 
         try:
             entity_uuid = UUID(uuid_str)
         except ValueError:
             return self.response_400(message="Invalid UUID")
+
+        entity = VersionDAO.find_active_by_uuid(Slice, entity_uuid)
+        if entity is None:
+            return self.response_404()
+        try:
+            security_manager.raise_for_ownership(entity)
+        except SupersetSecurityException:
+            return self.response_403()
 
         versions = VersionDAO.list_versions(Slice, entity_uuid)
         if versions is None:
@@ -1387,6 +1396,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         from uuid import UUID
 
         from superset.daos.version import VersionDAO
+        from superset.exceptions import SupersetSecurityException
 
         try:
             entity_uuid = UUID(uuid_str)
@@ -1396,6 +1406,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
             version_uuid = UUID(version_uuid_str)
         except ValueError:
             return self.response_400(message="Invalid version UUID")
+
+        entity = VersionDAO.find_active_by_uuid(Slice, entity_uuid)
+        if entity is None:
+            return self.response_404()
+        try:
+            security_manager.raise_for_ownership(entity)
+        except SupersetSecurityException:
+            return self.response_403()
 
         snapshot = VersionDAO.get_version(Slice, entity_uuid, version_uuid)
         if snapshot is None:

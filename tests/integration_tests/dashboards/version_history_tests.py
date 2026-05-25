@@ -33,7 +33,7 @@ from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.utils import json as _json
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (  # noqa: F401
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -295,15 +295,21 @@ class TestDashboardVersionListApi(SupersetTestCase):
         rv = self._list_versions("not-a-uuid")
         assert rv.status_code == 400
 
-    @pytest.mark.skip(
-        reason=(
-            "Superset's default Gamma role has can_write on Dashboard — there "
-            "is no built-in no-write user to exercise the 403 branch for this "
-            "resource. See dataset tests (T028) for a working 403 check."
+    def test_list_versions_denies_non_owner(self) -> None:
+        """T056 — Alpha has ``can_write`` on Dashboard but doesn't own the
+        admin-owned fixture, so the row-level ownership check rejects."""
+        _persist_fixture_state()
+        dashboard: Dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "USA Births Names")
+            .first()
         )
-    )
-    def test_list_versions_denies_without_write_permission(self) -> None:
-        """A user without can_write on Dashboard gets 403."""
+        assert dashboard is not None
+        dashboard_uuid = str(dashboard.uuid)
+
+        self.login(ALPHA_USERNAME)
+        rv = self._list_versions(dashboard_uuid)
+        assert rv.status_code == 403
 
     def test_list_versions_admin_sees_all_entities(self) -> None:
         """FR-013: workspace admin can list versions for any entity."""

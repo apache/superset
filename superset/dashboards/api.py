@@ -2322,11 +2322,20 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         from uuid import UUID
 
         from superset.daos.version import VersionDAO
+        from superset.exceptions import SupersetSecurityException
 
         try:
             entity_uuid = UUID(uuid_str)
         except ValueError:
             return self.response_400(message="Invalid UUID")
+
+        entity = VersionDAO.find_active_by_uuid(Dashboard, entity_uuid)
+        if entity is None:
+            return self.response_404()
+        try:
+            security_manager.raise_for_ownership(entity)
+        except SupersetSecurityException:
+            return self.response_403()
 
         versions = VersionDAO.list_versions(Dashboard, entity_uuid)
         if versions is None:
@@ -2391,6 +2400,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         from uuid import UUID
 
         from superset.daos.version import VersionDAO
+        from superset.exceptions import SupersetSecurityException
 
         try:
             entity_uuid = UUID(uuid_str)
@@ -2400,6 +2410,14 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             version_uuid = UUID(version_uuid_str)
         except ValueError:
             return self.response_400(message="Invalid version UUID")
+
+        entity = VersionDAO.find_active_by_uuid(Dashboard, entity_uuid)
+        if entity is None:
+            return self.response_404()
+        try:
+            security_manager.raise_for_ownership(entity)
+        except SupersetSecurityException:
+            return self.response_403()
 
         snapshot = VersionDAO.get_version(Dashboard, entity_uuid, version_uuid)
         if snapshot is None:

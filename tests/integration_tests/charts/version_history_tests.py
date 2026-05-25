@@ -33,7 +33,7 @@ from superset.extensions import db
 from superset.models.slice import Slice
 from superset.utils import json as _json
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (  # noqa: F401
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -305,15 +305,19 @@ class TestChartVersionListApi(SupersetTestCase):
         rv = self._list_versions("not-a-uuid")
         assert rv.status_code == 400
 
-    @pytest.mark.skip(
-        reason=(
-            "Superset's default Gamma role has can_write on Chart — there is "
-            "no built-in no-write user to exercise the 403 branch for this "
-            "resource. See dataset tests (T028) for a working 403 check."
+    def test_list_versions_denies_non_owner(self) -> None:
+        """T056 — Alpha has ``can_write`` on Chart but doesn't own the
+        admin-owned fixture, so the row-level ownership check rejects."""
+        _persist_fixture_state()
+        chart: Slice = (
+            db.session.query(Slice).filter(Slice.slice_name == "Boys").first()
         )
-    )
-    def test_list_versions_denies_without_write_permission(self) -> None:
-        """A user without can_write on Chart gets 403."""
+        assert chart is not None
+        chart_uuid = str(chart.uuid)
+
+        self.login(ALPHA_USERNAME)
+        rv = self._list_versions(chart_uuid)
+        assert rv.status_code == 403
 
     def test_list_versions_admin_sees_all_entities(self) -> None:
         """FR-013: workspace admin can list versions for any entity."""
@@ -578,14 +582,17 @@ class TestChartRestoreApi(SupersetTestCase):
         chart.slice_name = original_name
         db.session.commit()
 
-    @pytest.mark.skip(
-        reason=(
-            "Per-entity ownership isn't enforced yet for the restore path — "
-            "raise_for_ownership is called inside validate(), but Gamma has "
-            "can_write on Chart so the admin-only assertion needs a custom "
-            "no-write user setup. See dataset tests (T039) for a working "
-            "403 check."
+    def test_restore_denies_non_owner(self) -> None:
+        """T056 — Alpha has ``can_write`` on Chart but isn't an owner of
+        the admin-owned fixture, so ``BaseRestoreVersionCommand.validate``
+        rejects with 403."""
+        _persist_fixture_state()
+        chart: Slice = (
+            db.session.query(Slice).filter(Slice.slice_name == "Boys").first()
         )
-    )
-    def test_restore_denies_without_write_permission(self) -> None:
-        """A user without can_write on Chart gets 403."""
+        assert chart is not None
+        chart_uuid = str(chart.uuid)
+
+        self.login(ALPHA_USERNAME)
+        rv = self._restore(chart_uuid, "00000000-0000-0000-0000-000000000001")
+        assert rv.status_code == 403

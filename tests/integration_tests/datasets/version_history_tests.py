@@ -32,7 +32,11 @@ from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.extensions import db
 from superset.utils import json as _json
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    ALPHA_USERNAME,
+    GAMMA_USERNAME,
+)
 from tests.integration_tests.fixtures.birth_names_dashboard import (  # noqa: F401
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
@@ -179,6 +183,24 @@ class TestDatasetVersionListApi(SupersetTestCase):
         table_uuid = str(table.uuid)
 
         self.login(GAMMA_USERNAME)
+        rv = self._list_versions(table_uuid)
+        assert rv.status_code == 403
+
+    def test_list_versions_denies_non_owner(self) -> None:
+        """T056 — Alpha has ``can_write`` on Dataset but isn't an owner of
+        the admin-owned fixture, so the row-level ownership check rejects.
+        Exercises the row-level branch specifically (the Gamma test above
+        only proves model-level denial via ``@protect()``)."""
+        _persist_fixture_state()
+        table: SqlaTable = (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.table_name == "birth_names")
+            .first()
+        )
+        assert table is not None
+        table_uuid = str(table.uuid)
+
+        self.login(ALPHA_USERNAME)
         rv = self._list_versions(table_uuid)
         assert rv.status_code == 403
 
