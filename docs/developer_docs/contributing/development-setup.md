@@ -88,7 +88,6 @@ using our `docker compose` constructs to support production-type use-cases. For 
 environments, we recommend using [minikube](https://minikube.sigs.k8s.io/docs/start/) along
 our [installing on k8s](https://superset.apache.org/docs/installation/running-on-kubernetes)
 documentation.
-configured to be secure.
 :::
 
 ### Supported environment variables

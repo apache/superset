@@ -274,13 +274,8 @@ class TestGetChartPreview:
             "performance",
         ]
 
-        # Additional fields that may be present for backward compatibility
+        # Versioning fields
         _ = [
-            "format",
-            "ascii_chart",
-            "table_data",
-            "width",
-            "height",
             "schema_version",
             "api_version",
         ]
@@ -756,10 +751,6 @@ class TestChartPreviewSanitization:
                 high_contrast_available=False,
             ),
             performance=PerformanceMetadata(query_duration_ms=8, cache_status="miss"),
-            format="ascii",
-            ascii_chart="North > South",
-            width=20,
-            height=5,
         )
 
         result = _sanitize_chart_preview_for_llm_context(preview)
@@ -770,7 +761,6 @@ class TestChartPreviewSanitization:
             "Preview of line: Regional Trend"
         )
         assert result.content.ascii_content == sanitize_for_llm_context("North > South")
-        assert result.ascii_chart == sanitize_for_llm_context("North > South")
         assert result.accessibility.alt_text == sanitize_for_llm_context(
             "Preview of Regional Trend"
         )
@@ -876,16 +866,11 @@ class TestChartPreviewSanitization:
                 high_contrast_available=False,
             ),
             performance=PerformanceMetadata(query_duration_ms=9, cache_status="miss"),
-            format="table",
-            table_data="Customer | Revenue\nAcme | 100",
         )
 
         result = _sanitize_chart_preview_for_llm_context(preview)
 
         assert result.content.table_data == sanitize_for_llm_context(
-            "Customer | Revenue\nAcme | 100"
-        )
-        assert result.table_data == sanitize_for_llm_context(
             "Customer | Revenue\nAcme | 100"
         )
         assert result.content.row_count == 1
