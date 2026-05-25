@@ -368,9 +368,16 @@ class TestDashboardRestoreApi(SupersetTestCase):
             .order_by(ver_cls.transaction_id.asc())
             .all()
         )
-        # Find the version whose snapshot has the original title.
+        # Find the version whose snapshot has the original title. Skip DELETE
+        # rows (operation_type=2) — the integration DB may carry shadow rows
+        # from prior fixture teardown cycles, and restoring to a DELETE state
+        # would re-delete the live entity.
         target_row = next(
-            (row for row in rows if row.dashboard_title == original_title),
+            (
+                row
+                for row in rows
+                if row.dashboard_title == original_title and row.operation_type != 2
+            ),
             None,
         )
         assert target_row is not None, (
