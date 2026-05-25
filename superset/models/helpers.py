@@ -252,6 +252,23 @@ class UUIDMixin:  # pylint: disable=too-few-public-methods
         UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
     )
 
+    @validates("uuid")
+    def _coerce_uuid(self, key: str, value: Any) -> Any:  # noqa: ARG002
+        # ``UUIDType`` only coerces on SQL bind / SQL result. Importers and
+        # ad-hoc construction (e.g., ``SqlMetric(uuid="…string…")``) leave
+        # the in-memory attribute as a ``str`` until the next DB round-trip
+        # refreshes it. SQLAlchemy-Continuum versioning on a child mapper
+        # (``TableColumn``, ``SqlMetric``) changes the post-INSERT
+        # attribute-expire behaviour enough that the refresh doesn't happen
+        # before the caller reads the attribute, breaking
+        # ``test_import_dataset``'s ``metric.uuid == uuid.UUID(...)``
+        # assertion (string-vs-UUID inequality). Coerce defensively here
+        # so callers always see a ``UUID``, regardless of where the value
+        # came from.
+        if isinstance(value, str):
+            return uuid.UUID(value)
+        return value
+
     @property
     def short_uuid(self) -> str:
         return str(self.uuid)[:8]
