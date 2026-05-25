@@ -562,6 +562,41 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
     This class is used for all engines with dialects that can be parsed using sqlglot.
     """
 
+    # Function names that mutate server-side state but appear in the AST as
+    # plain function calls inside a non-mutating wrapper. Used by
+    # ``is_mutating()`` to classify e.g. PostgreSQL large-object writers.
+    # Names are uppercased for comparison.
+    _MUTATING_FUNCTION_NAMES: frozenset[str] = frozenset(
+        {
+            "LO_FROM_BYTEA",
+            "LO_EXPORT",
+            "LO_IMPORT",
+            "LO_PUT",
+            "LO_CREATE",
+            "LOWRITE",
+        }
+    )
+
+    # PostgreSQL constructs that sqlglot represents as an opaque ``exp.Command``
+    # (no structured AST). Each can mutate server state or wrap a DML body that
+    # would otherwise be detected by node-type matching. Used by
+    # ``is_mutating()``.
+    _POSTGRES_MUTATING_COMMAND_NAMES: frozenset[str] = frozenset(
+        {
+            "DO",  # PL/pgSQL anonymous block
+            "PREPARE",  # PREPARE u AS UPDATE ... ; EXECUTE u
+            "EXECUTE",  # body is the prepared DML
+            "CALL",  # procedure body may mutate
+            "COPY",  # server-side file ingest into a table
+            "GRANT",
+            "REVOKE",
+            "SET",  # SET ROLE / SET SESSION AUTHORIZATION change effective user
+            "REFRESH",  # REFRESH MATERIALIZED VIEW
+            "REINDEX",
+            "VACUUM",
+        }
+    )
+
     def __init__(
         self,
         statement: str | None = None,
@@ -690,10 +725,37 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             exp.Drop,
             exp.TruncateTable,
             exp.Alter,
+            # sqlglot has structured nodes for these DML/DCL forms in
+            # PostgreSQL and other dialects; without them an opaque exp.Command
+            # check would still miss the structured-parse path.
+            exp.Copy,  # COPY <table> FROM/TO (server-side file ingest)
+            exp.Grant,
+            exp.Revoke,
         )
 
         for node_type in mutating_nodes:
             if self._parsed.find(node_type):
+                return True
+
+        # `SELECT ... INTO new_table FROM ...` parses as `exp.Select` with an
+        # `into` arg (Postgres-style CTAS variant). It creates a new table and
+        # therefore mutates schema.
+        if isinstance(self._parsed, exp.Select) and self._parsed.args.get("into"):
+            return True
+
+        # Function calls that mutate server-side state without an enclosing
+        # mutating AST node. Notable example: PostgreSQL large-object writers
+        # (`lo_export` writes to the server filesystem, `lo_from_bytea`/
+        # `lo_create`/`lo_put`/`lo_import`/`lowrite` mutate the pg_largeobject
+        # catalog). These appear as plain function calls inside an `exp.Select`
+        # and would otherwise pass the read-only gate.
+        for function in self._parsed.find_all(exp.Func):
+            name = (
+                function.name.upper()
+                if function.sql_name() == "ANONYMOUS"
+                else function.sql_name().upper()
+            )
+            if name in self._MUTATING_FUNCTION_NAMES:
                 return True
 
         # depending on the dialect (Oracle, MS SQL) the `ALTER` is parsed as a
@@ -701,14 +763,14 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         if isinstance(self._parsed, exp.Command) and self._parsed.name == "ALTER":
             return True  # pragma: no cover
 
+        # PostgreSQL constructs that sqlglot represents as an opaque
+        # `exp.Command` rather than a structured AST. Each of these can mutate
+        # state or wrap a DML body that would otherwise be detected.
         if (
             self._dialect == Dialects.POSTGRES
             and isinstance(self._parsed, exp.Command)
-            and self._parsed.name == "DO"
+            and self._parsed.name in self._POSTGRES_MUTATING_COMMAND_NAMES
         ):
-            # anonymous blocks can be written in many different languages (the default
-            # is PL/pgSQL), so parsing them it out of scope of this class; we just
-            # assume the anonymous block is mutating
             return True
 
         # Postgres runs DMLs prefixed by `EXPLAIN ANALYZE`, see
@@ -828,6 +890,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                         pass
             else:
                 present.add(function.name.upper())
+
+        # MySQL `@@<name>` syntax (also Oracle/SQL-Server `@@name`) parses as
+        # `exp.SessionParameter`, which is *not* a subclass of `exp.Func`, so
+        # the walk above misses it. Include those names so denylist entries
+        # like `version` or `hostname` match `SELECT @@version`.
+        for param in self._parsed.find_all(exp.SessionParameter):
+            present.add(param.name.upper())
 
         return any(function.upper() in present for function in functions)
 
