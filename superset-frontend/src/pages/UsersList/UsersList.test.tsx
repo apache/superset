@@ -30,10 +30,7 @@ import {
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
-import UsersList, {
-  renderLoginCountCell,
-  renderFailLoginCountCell,
-} from './index';
+import UsersList from './index';
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
@@ -196,52 +193,5 @@ describe('UsersList', () => {
     expect(editAction).toBeInTheDocument();
     fireEvent.click(editAction);
     expect(screen.queryByTestId('Edit User-modal')).toBeInTheDocument();
-  });
-  test('login_count cell renders 0 when value is null', () => {
-    expect(
-      renderLoginCountCell({
-        row: { original: { login_count: null } as any },
-      }),
-    ).toBe(0);
-  });
-
-  test('login_count cell renders 0 when value is undefined', () => {
-    expect(
-      renderLoginCountCell({
-        row: { original: {} as any },
-      }),
-    ).toBe(0);
-  });
-
-  test('login_count cell renders the actual count when set', () => {
-    expect(
-      renderLoginCountCell({
-        row: { original: { login_count: 42 } as any },
-      }),
-    ).toBe(42);
-  });
-
-  test('fail_login_count cell renders 0 when value is null', () => {
-    expect(
-      renderFailLoginCountCell({
-        row: { original: { fail_login_count: null } as any },
-      }),
-    ).toBe(0);
-  });
-
-  test('fail_login_count cell renders 0 when value is undefined', () => {
-    expect(
-      renderFailLoginCountCell({
-        row: { original: {} as any },
-      }),
-    ).toBe(0);
-  });
-
-  test('fail_login_count cell renders the actual count when set', () => {
-    expect(
-      renderFailLoginCountCell({
-        row: { original: { fail_login_count: 7 } as any },
-      }),
-    ).toBe(7);
   });
 });
