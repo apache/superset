@@ -810,7 +810,7 @@ class TestUpdateChartPreviewTool:
     )
     @pytest.mark.asyncio
     async def test_update_chart_preview_dataset_not_found(
-        self, mock_find_dataset, mcp_server
+        self, mock_find_dataset, mcp_server, mock_auth
     ):
         """Test that a non-existent dataset returns a clear error."""
 
@@ -838,6 +838,7 @@ class TestUpdateChartPreviewTool:
 class TestUpdateChartPreviewValidation:
     """Tier-1 validation gate and dataset access checks."""
 
+    @patch.object(update_chart_preview_module, "_find_dataset")
     @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch.object(update_chart_preview_module, "validate_and_compile")
@@ -849,8 +850,9 @@ class TestUpdateChartPreviewValidation:
         self,
         mock_create_form_data,
         mock_validate,
-        mock_find_dataset,
+        mock_find_by_id,
         unused_access_mock,
+        mock_find_dataset,
         mcp_server,
         mock_auth,
     ):
@@ -859,6 +861,7 @@ class TestUpdateChartPreviewValidation:
         from superset.mcp_service.common.error_schemas import ChartGenerationError
 
         mock_find_dataset.return_value = _mock_dataset(id=3)
+        mock_find_by_id.return_value = _mock_dataset(id=3)
         mock_validate.return_value = CompileResult(
             success=False,
             error="Column 'num_boys' does not exist in dataset",
@@ -896,6 +899,7 @@ class TestUpdateChartPreviewValidation:
             assert "sum_boys" in error["suggestions"]
             mock_create_form_data.assert_not_called()
 
+    @patch.object(update_chart_preview_module, "_find_dataset")
     @patch.object(update_chart_preview_module, "has_dataset_access", return_value=False)
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
@@ -905,13 +909,15 @@ class TestUpdateChartPreviewValidation:
     async def test_dataset_access_denied_short_circuits(
         self,
         mock_create_form_data,
-        mock_find_dataset,
+        mock_find_by_id,
         unused_access_mock,
+        mock_find_dataset,
         mcp_server,
         mock_auth,
     ):
         """has_dataset_access=False → DatasetNotAccessible, no cache write."""
         mock_find_dataset.return_value = _mock_dataset(id=3)
+        mock_find_by_id.return_value = _mock_dataset(id=3)
 
         config = TableChartConfig(
             chart_type="table", columns=[ColumnRef(name="region")]
