@@ -2109,23 +2109,6 @@ class ChartPreview(BaseModel):
     )
     performance: PerformanceMetadata = Field(description="Performance metrics")
 
-    # Backward compatibility fields (populated based on content type)
-    format: str | None = Field(
-        None, description="Format of the preview (ascii, table, vega_lite)"
-    )
-    ascii_chart: str | None = Field(
-        None, description="ASCII art chart for 'ascii' format"
-    )
-    table_data: str | None = Field(
-        None, description="Formatted table for 'table' format"
-    )
-    width: int | None = Field(
-        None, description="Width (pixels for images, characters for ASCII)"
-    )
-    height: int | None = Field(
-        None, description="Height (pixels for images, lines for ASCII)"
-    )
-
     # Inherit versioning
     schema_version: str = Field("2.0", description="Response schema version")
     api_version: str = Field("v1", description="MCP API version")
