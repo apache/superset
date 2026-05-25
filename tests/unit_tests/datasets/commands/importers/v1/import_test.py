@@ -361,6 +361,41 @@ def test_import_dataset_rejects_non_default_catalog_when_multi_catalog_disabled(
         import_dataset(config)
 
 
+def test_import_dataset_skips_catalog_validation_for_trusted_imports(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Trusted imports (ignore_permissions=True, e.g. example loading) bypass
+    catalog validation, so a non-default catalog does not abort the import even
+    when the target database has multi-catalog disabled.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    # the connection supports catalogs, defaults to "primary", multi-catalog off
+    engine_spec = database.db_engine_spec
+    mocker.patch.object(engine_spec, "supports_catalog", True)
+    mocker.patch.object(engine_spec, "get_default_catalog", return_value="primary")
+
+    config = {
+        "table_name": "my_table",
+        "schema": "my_schema",
+        "catalog": "other_catalog",
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    sqla_table = import_dataset(config, ignore_permissions=True)
+    assert sqla_table.catalog == "other_catalog"
+
+
 def test_import_command_surfaces_non_default_catalog_as_validation_error(
     mocker: MockerFixture, session: Session
 ) -> None:

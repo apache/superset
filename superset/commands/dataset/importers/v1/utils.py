@@ -161,7 +161,10 @@ def import_dataset(  # noqa: C901
             "Dataset doesn't exist and user doesn't have permission to create datasets"
         )
 
-    validate_catalog(config)
+    # Trusted imports (e.g. example loading) carry curated configs; only
+    # untrusted user imports validate the catalog, like the access checks below.
+    if not ignore_permissions:
+        validate_catalog(config)
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()
