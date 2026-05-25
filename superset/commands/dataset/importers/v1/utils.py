@@ -209,27 +209,27 @@ def import_dataset(  # noqa: C901
     user = get_user()
 
     if existing := find_existing_for_import(SqlaTable, config["uuid"]):
-        if overwrite and can_write and user:
+        is_soft_deleted = existing.deleted_at is not None
+        # A re-import that matches a soft-deleted UUID is implicitly a
+        # restore-with-overwrite: bringing the dataset back by uploading
+        # it again. Apply the same ownership check as the explicit
+        # overwrite path so non-owners cannot resurrect via re-import.
+        needs_mutation = overwrite or is_soft_deleted
+        if needs_mutation and can_write and user:
             if user not in existing.owners and not security_manager.is_admin():
                 raise ImportFailedError(
                     "A dataset already exists and user doesn't "
                     "have permissions to overwrite it"
                 )
-        if not overwrite or not can_write:
-            if existing.deleted_at is not None:
-                raise ImportFailedError(
-                    "Dataset exists but has been deleted. "
-                    "Restore it before re-importing, or "
-                    "re-run the import with overwrite=True."
-                )
+        if not needs_mutation or not can_write:
             return existing
-        # Overwrite path. Restore a soft-deleted match in place rather
+        # Mutation path. Restore a soft-deleted match in place rather
         # than hard-delete-and-replace: a hard delete cascades through
         # the chart back-reference and table_columns / sql_metrics,
         # which the import would then need to reconstruct. Setting
         # config["id"] = existing.id routes import_from_dict through
         # UPDATE, preserving the PK and the dependent rows.
-        if existing.deleted_at is not None:
+        if is_soft_deleted:
             existing.deleted_at = None
         config["id"] = existing.id
 

@@ -1122,15 +1122,59 @@ def test_import_soft_deleted_dataset_overwrite_restores_in_place(
     assert restored.deleted_at is None
 
 
-def test_import_soft_deleted_dataset_non_overwrite_raises(
+def test_import_soft_deleted_dataset_non_overwrite_restores_for_owner(
     mocker: MockerFixture,
     session: Session,
 ) -> None:
     """
-    Non-overwrite imports against a soft-deleted match must raise rather
-    than silently return the soft-deleted row. Returning it lets
-    dashboard / chart imports re-attach to a soft-deleted dataset,
-    bypassing the explicit restore command's ownership check.
+    Non-overwrite re-import of a soft-deleted UUID is implicitly a
+    restore-and-update: the user is bringing the dataset back by
+    uploading it again. The same ownership rule as the overwrite path
+    applies, so an owner (or admin) succeeds without setting
+    overwrite=True.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    initial = import_dataset(config)
+    original_id = initial.id
+
+    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    db.session.flush()
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    with override_user(admin):
+        restored = import_dataset(config, overwrite=False)
+
+    assert restored.id == original_id
+    assert restored.deleted_at is None
+
+
+def test_import_soft_deleted_dataset_non_overwrite_raises_for_non_owner(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Non-overwrite re-import that would resurrect a soft-deleted dataset
+    must respect ownership: a non-owner without admin role cannot
+    restore-via-import. Mirrors the explicit /restore endpoint's check.
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
 
@@ -1149,9 +1193,18 @@ def test_import_soft_deleted_dataset_non_overwrite_raises(
     existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
     db.session.flush()
 
-    with pytest.raises(ImportFailedError) as excinfo:
-        import_dataset(config, overwrite=False)
-    assert "deleted" in str(excinfo.value).lower()
+    non_owner = User(
+        first_name="Bob",
+        last_name="Roe",
+        email="bob@example.org",
+        username="bob",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(non_owner):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_dataset(config, overwrite=False)
+    assert "permissions to overwrite" in str(excinfo.value)
 
 
 def test_import_soft_deleted_dataset_ignore_permissions_restores_in_place(
