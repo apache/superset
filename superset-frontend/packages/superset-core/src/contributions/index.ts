@@ -23,7 +23,6 @@ import { Menu } from '../menus';
 
 export type { ChatbotView };
 
-
 export type SqlLabLocation =
   | 'leftSidebar'
   | 'rightSidebar'
