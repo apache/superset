@@ -257,7 +257,7 @@ test('fetches and displays remote options via fetchSelects on mount', async () =
   await waitFor(() => {
     expect(screen.getByText('Remote User')).toBeInTheDocument();
   });
-  expect(fetchSelects).toHaveBeenCalledWith('', 0, 50);
+  expect(fetchSelects).toHaveBeenCalledWith('', 0, 200);
 });
 
 test('shows No results when fetchSelects returns empty data', async () => {

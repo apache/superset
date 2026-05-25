@@ -19,12 +19,14 @@
 import {
   createRef,
   forwardRef,
+  useCallback,
   useImperativeHandle,
   useMemo,
   useState,
   RefObject,
 } from 'react';
 
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { withTheme } from '@apache-superset/core/theme';
 
 import type {
@@ -66,12 +68,24 @@ function UIFilters(
     {},
   );
 
+  const clearFilterAtIndex = useCallback(
+    (index: number) => {
+      filterRefs[index]?.current?.clearFilter?.();
+      updateFilterValue(index, undefined);
+      setTooltipLabels(prev => {
+        const next = { ...prev };
+        delete next[index];
+        return next;
+      });
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [updateFilterValue],
+  );
+
   useImperativeHandle(ref, () => ({
     clearFilters: () => {
-      filterRefs.forEach((filter, index) => {
-        filter.current?.clearFilter?.();
-        // Direct reset as safety net — ensures URL updates even if the ref
-        // is stale (e.g. filter value was hydrated from URL after page refresh).
+      filterRefs.forEach((_, index) => {
+        filterRefs[index]?.current?.clearFilter?.();
         updateFilterValue(index, undefined);
       });
       setTooltipLabels({});
@@ -79,13 +93,7 @@ function UIFilters(
     clearFilterById: (id: string) => {
       const index = filters.findIndex(f => f.id === id);
       if (index >= 0) {
-        filterRefs[index]?.current?.clearFilter?.();
-        updateFilterValue(index, undefined);
-        setTooltipLabels(prev => {
-          const next = { ...prev };
-          delete next[index];
-          return next;
-        });
+        clearFilterAtIndex(index);
       }
     },
   }));
@@ -93,6 +101,10 @@ function UIFilters(
   // Only the first search filter renders inline; subsequent ones are skipped
   // to keep one search box per page (multi-field search pages like Users would
   // otherwise show several input boxes in the header).
+  // NOTE: This means secondary search fields (e.g. Email/Username on Users,
+  // Group Key on RLS) are not currently accessible via the filter bar. Those
+  // pages previously relied on multiple inline inputs. This is a known UX
+  // trade-off — revisit if admin workflows require additional search fields.
   let searchFilterRendered = false;
 
   return (
@@ -114,16 +126,24 @@ function UIFilters(
             max,
             autoComplete,
             inputName,
+            popupStyle,
           },
           index,
         ) => {
           const initialValue = internalFilters?.[index]?.value;
           if (input === 'select') {
             const selectValue = initialValue as SelectOption | undefined;
-            // Use cached label — URL round-trip strips the label from internalFilters,
-            // leaving only the value (e.g. {value: 1} with no label field).
+            // Prefer cached label (survives URL round-trips where only the value
+            // is preserved). Fall back to the static selects list for cold loads.
+            const cachedLabel = tooltipLabels[index];
+            const staticFallback = cachedLabel
+              ? undefined
+              : selects?.find(s => s.value === selectValue?.value)?.label;
             const tooltipTitle = !!selectValue
-              ? tooltipLabels[index]
+              ? cachedLabel ||
+                (typeof staticFallback === 'string'
+                  ? staticFallback
+                  : undefined)
               : undefined;
             return (
               <span key={key} data-test="select-filter-container">
@@ -131,41 +151,38 @@ function UIFilters(
                   label={Header}
                   hasValue={!!selectValue}
                   tooltipTitle={tooltipTitle}
-                  onClear={() => {
-                    filterRefs[index]?.current?.clearFilter?.();
-                    updateFilterValue(index, undefined);
-                    setTooltipLabels(prev => {
-                      const next = { ...prev };
-                      delete next[index];
-                      return next;
-                    });
-                  }}
+                  onClear={() => clearFilterAtIndex(index)}
                 >
-                  <CompactSelectPanel
-                    ref={filterRefs[index]}
-                    selects={selects}
-                    fetchSelects={fetchSelects}
-                    value={initialValue as SelectOption | undefined}
-                    loading={loading ?? false}
-                    onSelect={(
-                      option: SelectOption | undefined,
-                      isClear?: boolean,
-                    ) => {
-                      if (option && !isClear) {
-                        setTooltipLabels(prev => ({
-                          ...prev,
-                          [index]:
-                            typeof option.label === 'string'
-                              ? option.label
-                              : String(option.value ?? ''),
-                        }));
-                      }
-                      if (onFilterUpdate && !isClear) {
-                        onFilterUpdate(option);
-                      }
-                      updateFilterValue(index, option);
-                    }}
-                  />
+                  {({ isOpen, onClose }) => (
+                    <CompactSelectPanel
+                      ref={filterRefs[index]}
+                      selects={selects}
+                      fetchSelects={fetchSelects}
+                      value={initialValue as SelectOption | undefined}
+                      loading={loading ?? false}
+                      isOpen={isOpen}
+                      onClose={onClose}
+                      panelStyle={popupStyle}
+                      onSelect={(
+                        option: SelectOption | undefined,
+                        isClear?: boolean,
+                      ) => {
+                        if (option && !isClear) {
+                          setTooltipLabels(prev => ({
+                            ...prev,
+                            [index]:
+                              typeof option.label === 'string'
+                                ? option.label
+                                : String(option.value ?? ''),
+                          }));
+                        }
+                        if (onFilterUpdate && !isClear) {
+                          onFilterUpdate(option);
+                        }
+                        updateFilterValue(index, option);
+                      }}
+                    />
+                  )}
                 </CompactFilterTrigger>
               </span>
             );
@@ -198,6 +215,14 @@ function UIFilters(
             const dateTooltip = hasDateValue
               ? (initialValue as (string | number)[])
                   .filter(Boolean)
+                  .map(v => {
+                    if (typeof v === 'number') {
+                      // unix milliseconds → human-readable date
+                      return extendedDayjs(v).format('MMM D, YYYY HH:mm');
+                    }
+                    // ISO string — already readable
+                    return String(v);
+                  })
                   .join(' – ')
               : undefined;
             return (
@@ -209,19 +234,20 @@ function UIFilters(
                 popupType="dialog"
                 onClear={() => {
                   filterRefs[index]?.current?.clearFilter?.();
-                  updateFilterValue(index, undefined);
                 }}
               >
-                <FilterPopoverContent>
-                  <DateRangeFilter
-                    ref={filterRefs[index]}
-                    Header={Header}
-                    initialValue={initialValue}
-                    name={id}
-                    onSubmit={value => updateFilterValue(index, value)}
-                    dateFilterValueType={dateFilterValueType || 'unix'}
-                  />
-                </FilterPopoverContent>
+                {({ onClose }) => (
+                  <FilterPopoverContent onClose={onClose}>
+                    <DateRangeFilter
+                      ref={filterRefs[index]}
+                      Header={Header}
+                      initialValue={initialValue}
+                      name={id}
+                      onSubmit={value => updateFilterValue(index, value)}
+                      dateFilterValueType={dateFilterValueType || 'unix'}
+                    />
+                  </FilterPopoverContent>
+                )}
               </CompactFilterTrigger>
             );
           }
@@ -243,20 +269,21 @@ function UIFilters(
                 popupType="dialog"
                 onClear={() => {
                   filterRefs[index]?.current?.clearFilter?.();
-                  updateFilterValue(index, undefined);
                 }}
               >
-                <FilterPopoverContent>
-                  <NumericalRangeFilter
-                    ref={filterRefs[index]}
-                    Header={Header}
-                    initialValue={initialValue}
-                    min={min}
-                    max={max}
-                    name={id}
-                    onSubmit={value => updateFilterValue(index, value)}
-                  />
-                </FilterPopoverContent>
+                {({ onClose }) => (
+                  <FilterPopoverContent onClose={onClose}>
+                    <NumericalRangeFilter
+                      ref={filterRefs[index]}
+                      Header={Header}
+                      initialValue={initialValue}
+                      min={min}
+                      max={max}
+                      name={id}
+                      onSubmit={value => updateFilterValue(index, value)}
+                    />
+                  </FilterPopoverContent>
+                )}
               </CompactFilterTrigger>
             );
           }

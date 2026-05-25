@@ -23,6 +23,7 @@ import {
   useRef,
   useState,
   useEffect,
+  type CSSProperties,
   type RefObject,
 } from 'react';
 import { debounce } from 'lodash';
@@ -37,19 +38,28 @@ import {
 import type { SelectOption, ListViewFilter as Filter } from '../types';
 import type { FilterHandler } from './types';
 
+// Show search box when there are more than this many static options.
+const SEARCH_THRESHOLD = 6;
+
+// Page size for async select fetches — large enough to avoid most pagination
+// issues while still being a bounded request. Full infinite-load pagination
+// is a future improvement.
+const ASYNC_PAGE_SIZE = 200;
+
 interface CompactSelectPanelProps {
   selects?: Filter['selects'];
   fetchSelects?: Filter['fetchSelects'];
   value?: SelectOption;
   onSelect: (option: SelectOption | undefined, isClear?: boolean) => void;
   onClose?: () => void;
-  /** Injected by CompactFilterTrigger via cloneElement — true when dropdown is open */
   isOpen?: boolean;
+  /** Forwarded from the filter config's popupStyle for per-filter width overrides */
+  panelStyle?: CSSProperties;
   /** External loading state from filter config */
   loading?: boolean;
 }
 
-const PanelContainer = styled.div`
+const PanelContainer = styled.div<{ $panelStyle?: CSSProperties }>`
   ${({ theme }) => css`
     min-width: 220px;
     max-width: 320px;
@@ -130,6 +140,7 @@ function CompactSelectPanel(
     onClose,
     isOpen,
     loading: externalLoading,
+    panelStyle,
   }: CompactSelectPanelProps,
   ref: RefObject<FilterHandler>,
 ) {
@@ -139,9 +150,6 @@ function CompactSelectPanel(
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const [remoteOptions, setRemoteOptions] = useState<SelectOption[]>([]);
   const [internalLoading, setInternalLoading] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<
-    SelectOption | undefined
-  >(value);
 
   const isLoading = externalLoading || internalLoading;
 
@@ -156,11 +164,6 @@ function CompactSelectPanel(
     },
     [debouncedSetSearch],
   );
-
-  // Sync selected state when external value changes (e.g. clearFilters called from parent)
-  useEffect(() => {
-    setSelectedOption(value);
-  }, [value]);
 
   // Focus search input when dropdown opens; reset search when it closes
   useEffect(() => {
@@ -183,7 +186,7 @@ function CompactSelectPanel(
     if (!fetchSelects) return;
     let cancelled = false;
     setInternalLoading(true);
-    fetchSelects(debouncedSearch, 0, 50)
+    fetchSelects(debouncedSearch, 0, ASYNC_PAGE_SIZE)
       .then(result => {
         if (!cancelled) setRemoteOptions(result?.data ?? []);
       })
@@ -200,7 +203,6 @@ function CompactSelectPanel(
 
   useImperativeHandle(ref, () => ({
     clearFilter: () => {
-      setSelectedOption(undefined);
       setSearch('');
       setDebouncedSearch('');
       onSelect(undefined, true);
@@ -216,15 +218,14 @@ function CompactSelectPanel(
         })
   ).filter(o => o != null);
 
-  // Show search for async selects or large static lists
-  const showSearch = !!fetchSelects || selects.length > 6;
+  const showSearch = !!fetchSelects || selects.length > SEARCH_THRESHOLD;
 
   // displayText is the actual rendered text of the clicked list item, captured
   // from the DOM via e.currentTarget.textContent. This is more reliable than
   // reading opt.label, which may be a styled ReactNode (e.g. for owner options)
   // rather than a plain string — causing tooltip to show the raw value instead.
   const handleSelect = (opt: SelectOption, displayText?: string) => {
-    const isDeselect = selectedOption?.value === opt.value;
+    const isDeselect = value?.value === opt.value;
     // Normalize to a plain object so the value can be safely serialized to
     // URL query params without circular-reference errors from emotion metadata
     // on styled ReactNode labels.
@@ -238,13 +239,12 @@ function CompactSelectPanel(
               : String(opt.value ?? '')),
           value: opt.value,
         };
-    setSelectedOption(next);
     onSelect(next, isDeselect);
     onClose?.();
   };
 
   return (
-    <PanelContainer>
+    <PanelContainer style={panelStyle}>
       {showSearch && (
         <SearchRow>
           <Input
@@ -272,10 +272,12 @@ function CompactSelectPanel(
         ) : displayOptions.length === 0 ? (
           <StatusText>{t('No results')}</StatusText>
         ) : (
-          displayOptions.map(opt => {
-            const isActive = selectedOption?.value === opt.value;
+          displayOptions.map((opt, i) => {
+            const isActive = value?.value === opt.value;
             const getDisplayText = (el: HTMLElement) =>
               el.textContent?.trim() || undefined;
+            const isFirst = i === 0;
+            const isLast = i === displayOptions.length - 1;
             return (
               <OptionItem
                 key={opt.value}
@@ -290,6 +292,17 @@ function CompactSelectPanel(
                   if (e.key === 'Enter' || e.key === ' ') {
                     e.preventDefault();
                     handleSelect(opt, getDisplayText(e.currentTarget));
+                  } else if (e.key === 'ArrowDown' && !isLast) {
+                    e.preventDefault();
+                    (
+                      e.currentTarget.nextElementSibling as HTMLElement | null
+                    )?.focus();
+                  } else if (e.key === 'ArrowUp' && !isFirst) {
+                    e.preventDefault();
+                    (
+                      e.currentTarget
+                        .previousElementSibling as HTMLElement | null
+                    )?.focus();
                   }
                 }}
               >

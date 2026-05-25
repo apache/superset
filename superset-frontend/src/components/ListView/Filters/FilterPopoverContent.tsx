@@ -23,10 +23,7 @@ import { Button } from '@superset-ui/core/components';
 
 interface FilterPopoverContentProps {
   children: ReactNode;
-  /** Injected by CompactFilterTrigger via cloneElement */
   onClose?: () => void;
-  /** Injected by CompactFilterTrigger via cloneElement — unused but accepted to avoid React unknown-prop warnings */
-  isOpen?: boolean;
 }
 
 const Wrapper = styled.div`

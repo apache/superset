@@ -20,103 +20,129 @@ import { render, screen } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import CompactFilterTrigger from './CompactFilterTrigger';
 
-const defaultProps = {
+// Base props without children — pass children as JSX to avoid no-children-prop lint rule.
+const baseProps = {
   label: 'Owner',
   hasValue: false,
   onClear: jest.fn(),
-  children: <div data-testid="filter-content">Filter content</div>,
 };
+
+const defaultChildren = jest.fn(() => (
+  <div data-testid="filter-content">Filter content</div>
+));
+
+function renderTrigger(
+  props: Partial<
+    typeof baseProps & {
+      hasValue: boolean;
+      tooltipTitle?: string;
+      popupType?: 'listbox' | 'dialog';
+    }
+  > = {},
+  children = defaultChildren,
+) {
+  return render(
+    <CompactFilterTrigger {...baseProps} {...props}>
+      {children}
+    </CompactFilterTrigger>,
+  );
+}
 
 beforeEach(() => {
   jest.clearAllMocks();
 });
 
 test('renders the label', () => {
-  render(<CompactFilterTrigger {...defaultProps} />);
+  renderTrigger();
   expect(screen.getByText('Owner')).toBeInTheDocument();
 });
 
 test('renders as inactive pill with down chevron when hasValue is false', () => {
-  render(<CompactFilterTrigger {...defaultProps} />);
+  renderTrigger();
   const pill = screen.getByTestId('compact-filter-pill');
   expect(pill).toBeInTheDocument();
+  // No clear button when inactive
+  expect(screen.queryByTestId('compact-filter-clear')).not.toBeInTheDocument();
 });
 
-test('renders active state with close icon when hasValue is true', () => {
-  render(<CompactFilterTrigger {...defaultProps} hasValue />);
-  expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+test('renders active state with clear button when hasValue is true', () => {
+  renderTrigger({ hasValue: true });
+  expect(
+    screen.getByRole('button', { name: /clear owner filter/i }),
+  ).toBeInTheDocument();
+});
+
+test('clear button has descriptive aria-label matching the filter name', () => {
+  renderTrigger({ hasValue: true });
+  const clearBtn = screen.getByTestId('compact-filter-clear');
+  expect(clearBtn).toHaveAttribute('aria-label', 'Clear Owner filter');
+});
+
+test('clear button is a separate element from the pill button', () => {
+  renderTrigger({ hasValue: true });
+  const pill = screen.getByTestId('compact-filter-pill');
+  const clearBtn = screen.getByTestId('compact-filter-clear');
+  // Buttons must not be nested
+  expect(pill).not.toContainElement(clearBtn);
+  expect(clearBtn).not.toContainElement(pill);
 });
 
 test('toggles aria-expanded when pill is clicked', async () => {
-  render(<CompactFilterTrigger {...defaultProps} />);
+  renderTrigger();
   const pill = screen.getByTestId('compact-filter-pill');
   expect(pill).toHaveAttribute('aria-expanded', 'false');
   await userEvent.click(pill);
   expect(pill).toHaveAttribute('aria-expanded', 'true');
 });
 
-test('calls onClear when clear icon is clicked', async () => {
+test('calls onClear when clear button is clicked', async () => {
   const onClear = jest.fn();
-  render(<CompactFilterTrigger {...defaultProps} hasValue onClear={onClear} />);
-  const closeIcon = screen.getByRole('button', { name: /close/i });
-  await userEvent.click(closeIcon);
+  renderTrigger({ hasValue: true, onClear } as any);
+  const clearBtn = screen.getByRole('button', { name: /clear owner filter/i });
+  await userEvent.click(clearBtn);
   expect(onClear).toHaveBeenCalledTimes(1);
 });
 
 test('does not render tooltip wrapper when tooltipTitle is absent', () => {
-  const { container } = render(<CompactFilterTrigger {...defaultProps} />);
-  // No ant-tooltip-open class expected when no tooltip
+  const { container } = renderTrigger();
   expect(container.querySelector('.ant-tooltip')).not.toBeInTheDocument();
 });
 
 test('shows active state indicators when hasValue and tooltipTitle are set', () => {
-  render(
-    <CompactFilterTrigger
-      {...defaultProps}
-      hasValue
-      tooltipTitle="Some Owner"
-    />,
-  );
-  // Active pill: close icon visible, aria-expanded starts closed
-  expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+  renderTrigger({ hasValue: true, tooltipTitle: 'Some Owner' });
+  expect(
+    screen.getByRole('button', { name: /clear owner filter/i }),
+  ).toBeInTheDocument();
   expect(screen.getByTestId('compact-filter-pill')).toHaveAttribute(
     'aria-expanded',
     'false',
   );
 });
 
-test('injects isOpen and onClose props into child element when dropdown opens', async () => {
-  const RecordingChild = jest.fn(() => (
-    <div data-testid="recording-child">content</div>
-  ));
-  render(
-    <CompactFilterTrigger {...defaultProps}>
-      <RecordingChild />
-    </CompactFilterTrigger>,
-  );
+test('calls children render prop with isOpen and onClose', async () => {
+  const children = jest.fn(() => <div data-testid="panel-content">panel</div>);
+  renderTrigger({}, children);
   const pill = screen.getByTestId('compact-filter-pill');
   await userEvent.click(pill);
-  // After opening, the child should receive isOpen=true and an onClose function
-  expect(RecordingChild).toHaveBeenLastCalledWith(
+  expect(children).toHaveBeenCalledWith(
     expect.objectContaining({ isOpen: true, onClose: expect.any(Function) }),
-    expect.anything(),
   );
 });
 
 test('sets aria-haspopup to listbox by default', () => {
-  render(<CompactFilterTrigger {...defaultProps} />);
+  renderTrigger();
   const pill = screen.getByTestId('compact-filter-pill');
   expect(pill).toHaveAttribute('aria-haspopup', 'listbox');
 });
 
 test('sets aria-haspopup to dialog when popupType is dialog', () => {
-  render(<CompactFilterTrigger {...defaultProps} popupType="dialog" />);
+  renderTrigger({ popupType: 'dialog' });
   const pill = screen.getByTestId('compact-filter-pill');
   expect(pill).toHaveAttribute('aria-haspopup', 'dialog');
 });
 
 test('closing dropdown resets aria-expanded to false', async () => {
-  render(<CompactFilterTrigger {...defaultProps} />);
+  renderTrigger();
   const pill = screen.getByTestId('compact-filter-pill');
   await userEvent.click(pill);
   expect(pill).toHaveAttribute('aria-expanded', 'true');
