@@ -227,6 +227,17 @@ SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes"
 Schedule the cutover in a quiet window. Runtime reads use only the single configured engine, so in a multi-worker deployment there is an unavoidable brief decrypt-outage between the migration commit and the last worker restarting with the new config — each migrator run is transactional, but the fleet-wide cutover is not zero-downtime.
 
 The migration is transactional (all-or-nothing) and idempotent — it can be safely re-run or resumed. Note that AES-GCM, unlike AES-CBC, does not support querying directly over encrypted columns; audit any code that filters on an encrypted column before switching. See the SIP at `docs/sip/authenticated-encryption-at-rest.md` for details.
+### Soft delete and restore for charts
+
+`DELETE /api/v1/chart/<id>` no longer hard-deletes the chart. The row is marked with a `deleted_at` timestamp and hidden from all list, detail, and lookup endpoints. Charts in this state are excluded from default queries and from relationship loads (e.g. `dashboard.slices`).
+
+**New endpoint** — `POST /api/v1/chart/<uuid>/restore` clears `deleted_at` and returns the chart to active state. Requires `can_write on Chart` and ownership of the row (or admin). Soft-deleted charts can also be listed via the new `chart_deleted_state` rison filter (`deleted` or `active`) by callers holding the same permission.
+
+**Migration behavior:** existing role grants of `can_write on Chart` cover the new restore endpoint automatically; no role migration is required.
+
+**Importer behavior change:** importing a chart YAML whose UUID matches an existing **soft-deleted** chart now:
+- With `overwrite=True`, restores the row in place (clears `deleted_at`, updates contents). Out-of-archive references (`dashboard_slices` junctions, `report.chart_id`) are preserved.
+- With `overwrite=False`, raises `ImportFailedError` rather than silently returning the soft-deleted row. Restore the chart explicitly or re-run the import with `overwrite=True`.
 
 ### Granular Export Controls
 
