@@ -265,8 +265,17 @@ class TestDatasetRestoreApi(SupersetTestCase):
             .order_by(ver_cls.transaction_id.asc())
             .all()
         )
+        # Skip DELETE rows (operation_type=2) — the integration DB may carry
+        # shadow rows from prior fixture teardown cycles, and restoring to a
+        # DELETE state would re-delete the live entity (same fix as the
+        # dashboard restore test).
         target_row = next(
-            (row for row in rows if row.description == original_description),
+            (
+                row
+                for row in rows
+                if row.description == original_description
+                and row.operation_type != 2
+            ),
             None,
         )
         assert target_row is not None, (
