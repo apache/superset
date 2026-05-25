@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import builtins
 import logging
-import re
 from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
@@ -876,7 +875,7 @@ def validate_stored_expression(
     catalog: str | None,
     schema: str | None,
     expression: str | None,
-) -> str | None:
+) -> None:
     """
     Apply the adhoc-expression validator to a stored column or metric expression.
 
@@ -886,7 +885,7 @@ def validate_stored_expression(
     expressions when they are saved.
     """
     if not expression:
-        return expression
+        return
     engine = database.backend
     wrapped = f"SELECT {expression}"
 
@@ -896,7 +895,9 @@ def validate_stored_expression(
         raise SupersetSecurityException(
             SupersetError(
                 error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
-                message=_("Custom SQL fields cannot contain multi-statement SQL."),
+                message=_(
+                    "Custom SQL fields cannot be parsed as a single SQL statement."
+                ),
                 level=ErrorLevel.ERROR,
             )
         ) from ex
@@ -910,16 +911,14 @@ def validate_stored_expression(
             )
         )
 
-    validated = validate_adhoc_subquery(
+    validate_adhoc_subquery(
         wrapped,
         database,
         catalog,
         schema or "",
         engine,
     )
-    sanitized = sanitize_clause(validated, engine)
-    _prefix, rest = re.split(r"SELECT\s+", sanitized, maxsplit=1, flags=re.IGNORECASE)
-    return rest.strip()
+    sanitize_clause(wrapped, engine)
 
 
 class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model):

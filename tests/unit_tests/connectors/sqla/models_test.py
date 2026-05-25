@@ -1015,8 +1015,6 @@ def test_validate_stored_expression_accepts_case_expression(
     mocker: MockerFixture,
 ) -> None:
     database = _database_for_expression(mocker)
-    result = validate_stored_expression(
+    validate_stored_expression(
         database, None, None, "CASE WHEN amount > 0 THEN 'a' ELSE 'b' END"
     )
-    assert result is not None
-    assert "CASE" in result.upper()
