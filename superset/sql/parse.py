@@ -800,14 +800,35 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param functions: List of functions to check for
         :return: True if any of the functions are present
         """
-        present = {
-            (
-                function.sql_name()
-                if function.sql_name() != "ANONYMOUS"
-                else function.name.upper()
-            )
-            for function in self._parsed.find_all(exp.Func)
-        }
+        # Build the set of SQL-level function names present in the AST. For
+        # Anonymous nodes the name is stored directly; for named Func nodes we
+        # use sql_name(). We also add dialect parser aliases so that functions
+        # that are normalised by a dialect (e.g. VERSION() -> CurrentVersion in
+        # Postgres, sql_name = CURRENT_VERSION) can still be matched by their
+        # original SQL name.
+        dialect_cls = Dialect.get_or_raise(self._dialect) if self._dialect else None
+        parser_cls = getattr(dialect_cls, "parser_class", None) if dialect_cls else None
+        parser_functions: dict[str, Any] = (
+            getattr(parser_cls, "FUNCTIONS", {}) if parser_cls is not None else {}
+        )
+
+        present: set[str] = set()
+        for function in self._parsed.find_all(exp.Func):
+            sql_name = function.sql_name()
+            if sql_name != "ANONYMOUS":
+                present.add(sql_name)
+                # Add any dialect-level aliases that resolve to the same class
+                # (e.g. 'VERSION' -> CurrentVersion when dialect is Postgres).
+                func_type = type(function)
+                for key, builder in parser_functions.items():
+                    try:
+                        if builder.__self__ is func_type:
+                            present.add(key)
+                    except AttributeError:
+                        pass
+            else:
+                present.add(function.name.upper())
+
         return any(function.upper() in present for function in functions)
 
     def check_tables_present(self, tables: set[str]) -> bool:
