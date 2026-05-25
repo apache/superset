@@ -17,8 +17,11 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { store } from 'src/views/store';
 
 type Extension = core.Extension;
 
@@ -99,6 +102,9 @@ class ExtensionsLoader {
       logging.error(
         `Failed to initialize extension ${extension.name}\n`,
         error,
+      );
+      store.dispatch(
+        addDangerToast(t('Extension "%s" failed to load.', extension.name)),
       );
     }
   }
