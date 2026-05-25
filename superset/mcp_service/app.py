@@ -778,6 +778,46 @@ from superset.mcp_service.user.tool import (  # noqa: F401, E402
     list_users,
 )
 
+#: Tool names exempt from the mcp_auth_hook protection check. Adding a tool
+#: here is a security-significant choice — review carefully. Entries are tools
+#: that intentionally run without authentication; ``generate_bug_report`` is
+#: public so users can collect diagnostics even when auth itself is broken.
+ALLOWED_UNPROTECTED: set[str] = {"generate_bug_report"}
+
+
+def assert_all_tools_protected(mcp_instance: FastMCP) -> None:
+    """Fail loudly at startup if any registered tool bypassed ``mcp_auth_hook``.
+
+    The fresh-app-context-per-call fix in #39385 only protects tools that
+    actually go through ``mcp_auth_hook``. This catches all three known bypass
+    paths (see #39395):
+
+    * ``@tool(protect=False)`` — the wrapper is skipped entirely.
+    * Silent fallback in ``create_tool_decorator`` (now fail-fast, but a future
+      regression could reintroduce it).
+    * Direct ``mcp.add_tool()`` calls that skip the decorator.
+
+    Raises:
+        RuntimeError: if any tool's underlying function lacks the
+            ``_mcp_auth_protected`` marker set by ``mcp_auth_hook``.
+    """
+    # FastMCP 3.x exposes components keyed as ``"<kind>:<name>@..."`` (tools,
+    # prompts, resources) in the local provider's component dict. Tool values
+    # are ``FunctionTool`` objects with ``.name`` and ``.fn`` attributes.
+    for key, component in mcp_instance.local_provider._components.items():
+        if not key.startswith("tool:"):
+            continue
+        name = getattr(component, "name", None) or key
+        fn = getattr(component, "fn", None)
+        if name in ALLOWED_UNPROTECTED:
+            continue
+        if not getattr(fn, "_mcp_auth_protected", False):
+            raise RuntimeError(
+                f"SECURITY: MCP tool '{name}' registered without mcp_auth_hook. "
+                f"All tools must use @tool() with protect=True or be explicitly "
+                f"allowlisted in ALLOWED_UNPROTECTED."
+            )
+
 
 def _remove_disabled_tools(disabled_tools: set[str]) -> None:
     """Remove tools listed in MCP_DISABLED_TOOLS from the global MCP instance.
@@ -918,6 +958,9 @@ def init_fastmcp_server(
 
     # Apply any additional configuration
     _apply_config(mcp, config)
+
+    # Final invariant: every tool must have gone through mcp_auth_hook.
+    assert_all_tools_protected(mcp)
 
     logger.info("Configured FastMCP instance: %s (auth=%s)", name, auth is not None)
     return mcp
