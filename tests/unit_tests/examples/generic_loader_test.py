@@ -16,6 +16,7 @@
 # under the License.
 """Tests for generic_loader.py UUID threading functionality."""
 
+import uuid
 from unittest.mock import MagicMock, patch
 
 
@@ -54,7 +55,7 @@ def test_load_parquet_table_sets_uuid_on_new_table(mock_db, mock_get_db):
             uuid=test_uuid,
         )
 
-    assert tbl.uuid == test_uuid
+    assert tbl.uuid == uuid.UUID(test_uuid)
 
 
 @patch("superset.examples.generic_loader.get_example_database")

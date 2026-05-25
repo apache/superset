@@ -264,9 +264,15 @@ class UUIDMixin:  # pylint: disable=too-few-public-methods
         # ``test_import_dataset``'s ``metric.uuid == uuid.UUID(...)``
         # assertion (string-vs-UUID inequality). Coerce defensively here
         # so callers always see a ``UUID``, regardless of where the value
-        # came from.
+        # came from. Pass non-UUID-shaped strings through unchanged so test
+        # mocks with placeholder strings (e.g. ``"dashboard-uuid-7"``)
+        # still work — the SQL bind layer will surface a clearer error
+        # if such a value is ever written to the DB.
         if isinstance(value, str):
-            return uuid.UUID(value)
+            try:
+                return uuid.UUID(value)
+            except (ValueError, AttributeError):
+                return value
         return value
 
     @property
