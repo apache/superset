@@ -359,17 +359,59 @@ def test_import_soft_deleted_chart_ignore_permissions_restores_in_place(
     assert chart.deleted_at is None
 
 
-def test_import_soft_deleted_chart_non_overwrite_raises(
+def test_import_soft_deleted_chart_non_overwrite_restores_for_owner(
     mocker: MockerFixture,
     session_with_data: Session,
 ) -> None:
     """
-    Non-overwrite imports against a soft-deleted match must raise rather
-    than silently return the soft-deleted row. Returning it lets dashboard
-    imports re-attach to a soft-deleted chart, bypassing the explicit
-    restore command's ownership check.
+    Non-overwrite re-import of a soft-deleted UUID is implicitly a
+    restore-and-update: the user is bringing the chart back by uploading
+    it again. The same ownership rule as the overwrite path applies, so
+    an owner (or admin) succeeds without setting overwrite=True.
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_chart", return_value=True)
+
+    existing = (
+        session_with_data.query(Slice)
+        .filter(Slice.uuid == chart_config["uuid"])
+        .one_or_none()
+    )
+    assert existing is not None
+    original_id = existing.id
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    session_with_data.flush()
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+
+    with override_user(admin):
+        chart = import_chart(config, overwrite=False)
+
+    assert chart.id == original_id
+    assert chart.deleted_at is None
+
+
+def test_import_soft_deleted_chart_non_overwrite_raises_for_non_owner(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Non-overwrite re-import that would resurrect a soft-deleted chart
+    must respect ownership: a non-owner without admin role cannot
+    restore-via-import. Mirrors the explicit /restore endpoint's check.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_chart", return_value=True)
 
     existing = (
         session_with_data.query(Slice)
@@ -380,9 +422,18 @@ def test_import_soft_deleted_chart_non_overwrite_raises(
     existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
     session_with_data.flush()
 
-    with pytest.raises(ImportFailedError) as excinfo:
-        import_chart(chart_config, overwrite=False)
-    assert "deleted" in str(excinfo.value).lower()
+    non_owner = User(
+        first_name="Bob",
+        last_name="Roe",
+        email="bob@example.org",
+        username="bob",
+        roles=[Role(name="Gamma")],
+    )
+
+    with override_user(non_owner):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_chart(chart_config, overwrite=False)
+    assert "permissions to overwrite" in str(excinfo.value)
 
 
 def test_import_tag_logic_for_charts(session_with_schema: Session):
