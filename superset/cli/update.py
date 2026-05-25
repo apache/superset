@@ -115,15 +115,19 @@ def re_encrypt_secrets(previous_secret_key: Optional[str] = None) -> None:
         "PREVIOUS_SECRET_KEY"
     )
     if previous_secret_key is None:
-        click.secho("A previous secret key must be provided", err=True)
-        sys.exit(1)
+        click.secho(
+            "No previous secret key provided; nothing to re-encrypt.",
+            fg="yellow",
+        )
+        return
     secrets_migrator = SecretsMigrator(previous_secret_key=previous_secret_key)
     try:
-        secrets_migrator.run()
-    except ValueError as exc:
-        click.secho(
-            f"An error occurred, "
-            f"probably an invalid previous secret key was provided. Error:[{exc}]",
-            err=True,
-        )
+        stats = secrets_migrator.run()
+    except Exception as exc:  # pylint: disable=broad-except
+        click.secho(f"Re-encryption failed: {exc}", err=True)
         sys.exit(1)
+    click.secho(
+        f"Re-encryption complete: {stats.re_encrypted} re-encrypted, "
+        f"{stats.skipped} skipped, {stats.null} null, {stats.failed} failed.",
+        fg="green",
+    )

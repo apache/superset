@@ -22,7 +22,7 @@ import { connect } from 'react-redux';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/theme';
+import { styled } from '@apache-superset/core/theme';
 import { Logger } from 'src/logger/LogUtils';
 import { EmptyState, Tooltip } from '@superset-ui/core/components';
 import { detectOS } from 'src/utils/common';
@@ -87,6 +87,11 @@ const StyledTab = styled.span`
 const TabTitle = styled.span`
   margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
   text-transform: none;
+`;
+
+const AddTabIconWrapper = styled.span`
+  display: inline-flex;
+  vertical-align: middle;
 `;
 
 // Get the user's OS
@@ -194,13 +199,9 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
               : t('New tab (Ctrl + t)')
           }
         >
-          <Icons.PlusCircleOutlined
-            iconSize="s"
-            css={css`
-              vertical-align: middle;
-            `}
-            data-test="add-tab-icon"
-          />
+          <AddTabIconWrapper>
+            <Icons.PlusCircleOutlined iconSize="s" data-test="add-tab-icon" />
+          </AddTabIconWrapper>
         </Tooltip>
       </StyledTab>
     );
@@ -241,13 +242,9 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
                 : t('New tab (Ctrl + t)')
             }
           >
-            <Icons.PlusOutlined
-              iconSize="l"
-              css={css`
-                vertical-align: middle;
-              `}
-              data-test="add-tab-icon"
-            />
+            <AddTabIconWrapper>
+              <Icons.PlusOutlined iconSize="l" data-test="add-tab-icon" />
+            </AddTabIconWrapper>
           </Tooltip>
         }
         items={tabItems}

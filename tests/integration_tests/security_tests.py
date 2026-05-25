@@ -24,7 +24,7 @@ from unittest.mock import Mock, patch, call, ANY
 from typing import Any
 
 import jwt
-import prison
+import rison
 import pytest
 
 from flask import current_app, g
@@ -1293,7 +1293,7 @@ class TestRolePermission(SupersetTestCase):
             "page": 0,
             "page_size": -1,
         }
-        NEW_FLASK_GET_SQL_DBS_REQUEST = f"/api/v1/database/?q={prison.dumps(arguments)}"  # noqa: N806
+        NEW_FLASK_GET_SQL_DBS_REQUEST = f"/api/v1/database/?q={rison.dumps(arguments)}"  # noqa: N806
         self.login(GAMMA_USERNAME)
         databases_json = self.client.get(NEW_FLASK_GET_SQL_DBS_REQUEST).json
         assert databases_json["count"] == 1

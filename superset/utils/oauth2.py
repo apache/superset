@@ -38,7 +38,7 @@ from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec
-    from superset.models.core import Database, DatabaseUserOAuth2Tokens
+    from superset.models.core import Database
 
 JWT_EXPIRATION = timedelta(minutes=5)
 
@@ -79,9 +79,11 @@ def generate_code_challenge(code_verifier: str) -> str:
 @backoff.on_exception(
     backoff.expo,
     AcquireDistributedLockFailedException,
-    factor=10,
+    factor=0.1,
     base=2,
-    max_tries=5,
+    max_tries=8,
+    raise_on_giveup=False,
+    giveup_log_level=logging.DEBUG,
 )
 def get_oauth2_access_token(
     config: OAuth2ClientConfig,
@@ -114,7 +116,7 @@ def get_oauth2_access_token(
         return token.access_token
 
     if token.refresh_token:
-        return refresh_oauth2_token(config, database_id, user_id, db_engine_spec, token)
+        return refresh_oauth2_token(config, database_id, user_id, db_engine_spec)
 
     # since the access token is expired and there's no refresh token, delete the entry
     db.session.delete(token)
@@ -127,8 +129,10 @@ def refresh_oauth2_token(
     database_id: int,
     user_id: int,
     db_engine_spec: type[BaseEngineSpec],
-    token: DatabaseUserOAuth2Tokens,
 ) -> str | None:
+    # pylint: disable=import-outside-toplevel
+    from superset.models.core import DatabaseUserOAuth2Tokens
+
     # Use longer TTL for OAuth2 token refresh (may involve network calls)
     with DistributedLock(
         namespace="refresh_oauth2_token",
@@ -136,19 +140,38 @@ def refresh_oauth2_token(
         user_id=user_id,
         database_id=database_id,
     ):
+        # Short circuit in case another request already deleted the token
+        token = (
+            db.session.query(DatabaseUserOAuth2Tokens)
+            .filter_by(user_id=user_id, database_id=database_id)
+            .one_or_none()
+        )
+        if token is None:
+            return None
+
+        if token.access_token and datetime.now() < token.access_token_expiration:
+            return token.access_token
+
+        if not token.refresh_token:
+            db.session.delete(token)
+            return None
+
         try:
             token_response = db_engine_spec.get_oauth2_fresh_token(
                 config,
                 token.refresh_token,
             )
-        except db_engine_spec.oauth2_exception:
+        except db_engine_spec.oauth2_exception as ex:
             # OAuth token is no longer valid, delete it and start OAuth2 dance
             logger.warning(
-                "OAuth2 token refresh failed for user=%s db=%s, deleting invalid token",
+                "OAuth2 token refresh failed for user=%s db=%s, "
+                "deleting token. Error: %s",
                 user_id,
                 database_id,
+                ex,
             )
             db.session.delete(token)
+            db.session.flush()
             raise
         except Exception:
             # non-OAuth related failure, log the exception

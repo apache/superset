@@ -40,7 +40,7 @@ import {
   GridReadyEvent,
   GridState,
   CellClickedEvent,
-  IMenuActionParams,
+  SelectionChangedEvent,
 } from '@superset-ui/core/components/ThemedAgGridReact';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -96,8 +96,9 @@ export interface AgGridTableProps {
   percentMetrics: string[];
   serverPageLength: number;
   hasServerPageLengthChanged: boolean;
-  handleCrossFilter: (event: CellClickedEvent | IMenuActionParams) => void;
-  isActiveFilterValue: (key: string, val: DataRecordValue) => boolean;
+  handleCellClicked: (event: CellClickedEvent) => void;
+  handleSelectionChanged: (event: SelectionChangedEvent) => void;
+  filters?: Record<string, DataRecordValue[]> | null;
   renderTimeComparisonDropdown: () => JSX.Element | null;
   cleanedTotals: DataRecord;
   showTotals: boolean;
@@ -135,8 +136,9 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     percentMetrics,
     serverPageLength,
     hasServerPageLengthChanged,
-    handleCrossFilter,
-    isActiveFilterValue,
+    handleCellClicked,
+    handleSelectionChanged,
+    filters,
     renderTimeComparisonDropdown,
     cleanedTotals,
     showTotals,
@@ -245,7 +247,7 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       [serverPagination, debouncedSearch, searchId],
     );
 
-    const handleColSort = (colId: string, sortDir: string) => {
+    const handleColSort = (colId: string, sortDir: string | null) => {
       const isSortable = shouldSort({
         colId,
         sortDir,
@@ -299,10 +301,12 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     };
 
     const handleColumnHeaderClick = useCallback(
-      params => {
+      (params: { column?: { colId?: string; sort?: string | null } }) => {
         const colId = params?.column?.colId;
         const sortDir = params?.column?.sort;
-        handleColSort(colId, sortDir);
+        if (colId && sortDir !== undefined) {
+          handleColSort(colId, sortDir);
+        }
       },
       [serverPagination, gridInitialState, percentMetrics, onSortChange],
     );
@@ -422,6 +426,15 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
       }
     }, [width]);
 
+    useEffect(() => {
+      if (
+        (!filters || Object.keys(filters).length === 0) &&
+        gridRef.current?.api?.getSelectedRows().length
+      ) {
+        gridRef.current.api.deselectAll();
+      }
+    }, [filters]);
+
     const onGridReady = (params: GridReadyEvent) => {
       // This will make columns fill the grid width
       params.api.sizeColumnsToFit();
@@ -500,7 +513,8 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
           onColumnGroupOpened={params => params.api.sizeColumnsToFit()}
           rowSelection="multiple"
           animateRows
-          onCellClicked={handleCrossFilter}
+          onCellClicked={handleCellClicked}
+          onSelectionChanged={handleSelectionChanged}
           onFilterChanged={handleFilterChanged}
           onStateUpdated={handleGridStateChange}
           initialState={gridInitialState}
@@ -592,7 +606,6 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
             initialSortState: getInitialSortState(
               serverPaginationData?.sortBy || [],
             ),
-            isActiveFilterValue,
             lastFilteredColumn: serverPaginationData?.lastFilteredColumn,
             lastFilteredInputPosition:
               serverPaginationData?.lastFilteredInputPosition,
