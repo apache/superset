@@ -185,6 +185,38 @@ def _force_parent_dirty_on_child_change(session: Session) -> None:
             # flag was redundant; safely skip. Hit by
             # ``test_create_dataset_item`` (POST /api/v1/dataset/).
             continue
+        _pin_audit_columns(parent)
+
+
+def _pin_audit_columns(parent: Any) -> None:
+    """Pin ``changed_by_fk`` and ``changed_on`` to their current in-memory
+    values on a flag-flushed parent.
+
+    ``changed_by_fk`` carries ``onupdate=get_user_id`` from ``AuditMixin``:
+    any UPDATE statement that doesn't explicitly set this column lets
+    SQLAlchemy invoke ``get_user_id()`` and write whoever ``g.user`` is
+    at flush time. When the flush is autoflush-triggered during an
+    earlier test's teardown (after the test user has been deleted from
+    ``ab_user``), the bumped value points at a non-existent row and the
+    parent UPDATE fails the FK to ``ab_user``. The same applies to
+    ``changed_on``'s ``onupdate=datetime.now`` (cosmetic only, but it's
+    cheap to pin together).
+
+    ``flag_modified`` on both columns marks them as having dirty
+    attribute history, which tells SQLAlchemy to use the in-memory
+    (previously-committed) values instead of invoking ``onupdate`` —
+    the parent UPDATE then carries the existing audit values rather
+    than whatever ``g.user`` resolves to during the synthetic flag
+    flush. Hits ``test_rls_filter_alters_no_role_user_birth_names_query``
+    and ``TestDatasetRestoreApi::test_restore_applies_scalar_field``
+    in CI's full-suite ordering (autoflush during teardown).
+    """
+    for audit_col in ("changed_by_fk", "changed_on"):
+        if hasattr(parent, audit_col):
+            try:
+                attributes.flag_modified(parent, audit_col)
+            except InvalidRequestError:
+                pass
 
 
 def _collect_parents_to_baseline(session: Session) -> dict[int, Any]:
