@@ -16,27 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+/**
+ * View locations for app-shell extension integration.
+ *
+ * These define locations that persist across all routes, mirroring the `app`
+ * scope of the `ViewContributions` manifest schema.
+ */
+export const AppViewLocations = {
+  app: {
+    chatbot: 'superset.chatbot',
+  },
+} as const;
 
-import { View } from '../views';
-import { Menu } from '../menus';
-
-export type SqlLabLocation =
-  | 'leftSidebar'
-  | 'rightSidebar'
-  | 'panels'
-  | 'editor'
-  | 'statusBar'
-  | 'results'
-  | 'queryHistory';
-
-/** Valid locations within the app shell (persist across all routes). */
-export type AppLocation = 'chatbot';
-
-export interface ViewContributions {
-  sqllab?: Partial<Record<SqlLabLocation, View[]>>;
-  app?: Partial<Record<AppLocation, View[]>>;
-}
-
-export interface MenuContributions {
-  sqllab?: Partial<Record<SqlLabLocation, Menu>>;
-}
+export const CHATBOT_LOCATION = AppViewLocations.app.chatbot;

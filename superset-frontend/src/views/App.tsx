@@ -39,6 +39,7 @@ import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
 import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
+import ChatbotMount from 'src/components/ChatbotMount';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 
@@ -112,6 +113,13 @@ const App = () => (
             </Route>
           ))}
         </Switch>
+        {/*
+          The singleton chatbot bubble. Rendered as a sibling of the route
+          Switch — inside ExtensionsStartup so chatbot extensions have been
+          loaded and registered, but outside the Switch so the bubble persists
+          across route changes (SIP §3.2).
+        */}
+        <ChatbotMount />
       </ExtensionsStartup>
       <ToastContainer />
     </RootContextProviders>
