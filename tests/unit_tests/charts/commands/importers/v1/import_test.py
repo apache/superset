@@ -329,6 +329,36 @@ def test_import_soft_deleted_chart_overwrite_restores_in_place(
     assert chart.deleted_at is None
 
 
+def test_import_soft_deleted_chart_ignore_permissions_restores_in_place(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    The example loader path: ignore_permissions=True with no logged-in
+    user. The if/elif structure must preserve config["id"] on the
+    fallthrough overwrite path so the example loader can re-import over
+    a soft-deleted match without colliding on the UUID unique index.
+    """
+    existing = (
+        session_with_data.query(Slice)
+        .filter(Slice.uuid == chart_config["uuid"])
+        .one_or_none()
+    )
+    assert existing is not None
+    original_id = existing.id
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    session_with_data.flush()
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+
+    chart = import_chart(config, overwrite=True, ignore_permissions=True)
+
+    assert chart.id == original_id
+    assert chart.deleted_at is None
+
+
 def test_import_soft_deleted_chart_non_overwrite_raises(
     mocker: MockerFixture,
     session_with_data: Session,
