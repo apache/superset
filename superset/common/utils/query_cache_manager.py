@@ -20,7 +20,7 @@ import logging
 from datetime import datetime, timezone
 from typing import Any
 
-from flask import current_app
+from flask import current_app, g, has_request_context
 from flask_caching import Cache
 from pandas import DataFrame
 
@@ -86,6 +86,8 @@ class QueryCacheManager:
         self.cache_value = cache_value
         self.sql_rowcount = sql_rowcount
         self.queried_dttm = queried_dttm
+        self.bq_memory_limited: bool = False
+        self.bq_memory_limited_row_count: int = 0
 
     # pylint: disable=too-many-arguments
     def set_query_result(
@@ -123,6 +125,15 @@ class QueryCacheManager:
                     )
                 self.is_loaded = True
 
+            # Capture BigQuery memory-limit flag so it survives cache hits
+            if has_request_context():
+                self.bq_memory_limited = getattr(g, "bq_memory_limited", False)
+                self.bq_memory_limited_row_count = getattr(
+                    g, "bq_memory_limited_row_count", 0
+                )
+                g.bq_memory_limited = False
+                g.bq_memory_limited_row_count = 0
+
             value = {
                 "df": self.df,
                 "query": self.query,
@@ -133,6 +144,8 @@ class QueryCacheManager:
                 "sql_rowcount": self.sql_rowcount,
                 "queried_dttm": self.queried_dttm,
                 "dttm": self.queried_dttm,  # Backwards compatibility
+                "bq_memory_limited": self.bq_memory_limited,
+                "bq_memory_limited_row_count": self.bq_memory_limited_row_count,
             }
             if self.is_loaded and key and self.status != QueryStatus.FAILED:
                 self.set(
@@ -193,6 +206,12 @@ class QueryCacheManager:
                     "queried_dttm", cache_value.get("dttm")
                 )
                 query_cache.cache_value = cache_value
+                query_cache.bq_memory_limited = cache_value.get(
+                    "bq_memory_limited", False
+                )
+                query_cache.bq_memory_limited_row_count = cache_value.get(
+                    "bq_memory_limited_row_count", 0
+                )
                 current_app.config["STATS_LOGGER"].incr("loaded_from_cache")
             except KeyError as ex:
                 logger.exception(ex)
