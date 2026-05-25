@@ -62,16 +62,7 @@ def import_chart(
                     "A chart already exists and user doesn't "
                     "have permissions to overwrite it"
                 )
-            # Restore a soft-deleted match in-place rather than
-            # hard-delete-and-replace: a hard delete cascades to
-            # dashboard_slices and other FK references, breaking the
-            # dashboards that previously embedded this chart. Setting
-            # config["id"] = existing.id routes import_from_dict
-            # through UPDATE, preserving the PK and all references.
-            if existing.deleted_at is not None:
-                existing.deleted_at = None
-            config["id"] = existing.id
-        elif not overwrite or not can_write:
+        if not overwrite or not can_write:
             if existing.deleted_at is not None:
                 raise ImportFailedError(
                     "Chart exists but has been deleted. "
@@ -79,6 +70,15 @@ def import_chart(
                     "re-run the import with overwrite=True."
                 )
             return existing
+        # Overwrite path. Restore a soft-deleted match in place rather
+        # than hard-delete-and-replace: a hard delete cascades to
+        # dashboard_slices and other FK references, breaking the
+        # dashboards that previously embedded this chart. Setting
+        # config["id"] = existing.id routes import_from_dict through
+        # UPDATE, preserving the PK and all references.
+        if existing.deleted_at is not None:
+            existing.deleted_at = None
+        config["id"] = existing.id
     elif not can_write:
         raise ImportFailedError(
             "Chart doesn't exist and user doesn't have permission to create charts"
