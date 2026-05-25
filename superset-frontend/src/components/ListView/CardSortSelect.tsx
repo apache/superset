@@ -52,6 +52,8 @@ export const CardSortSelect = ({
 
   const selectOptions = options.map(o => ({ label: o.label, value: o.value }));
 
+  const isNonDefault = currentValue.value !== options[0]?.value;
+
   const handleSelect = (option: SelectOption | undefined) => {
     if (!option) return;
     const original = options.find(o => o.value === option.value);
@@ -61,20 +63,38 @@ export const CardSortSelect = ({
     }
   };
 
+  const handleClear = () => {
+    const first = options[0];
+    if (first) {
+      setCurrentValue({ label: first.label, value: first.value });
+      onChange([{ id: first.id, desc: first.desc }]);
+    }
+  };
+
+  // Show the active sort value in the label so users can see the current sort
+  // without hovering — matches the previous inline-select UX.
+  const pillLabel = isNonDefault
+    ? `${t('Sort')}: ${String(currentValue.label)}`
+    : t('Sort');
+
   return (
     <span data-test="card-sort-select">
       <CompactFilterTrigger
-        label={t('Sort')}
-        hasValue={false}
-        onClear={() => {}}
-        tooltipTitle={String(currentValue.label)}
+        label={pillLabel}
+        hasValue={isNonDefault}
+        onClear={handleClear}
+        tooltipTitle={isNonDefault ? String(currentValue.label) : undefined}
       >
-        <CompactSelectPanel
-          ref={panelRef}
-          selects={selectOptions}
-          value={currentValue}
-          onSelect={handleSelect}
-        />
+        {({ isOpen, onClose }) => (
+          <CompactSelectPanel
+            ref={panelRef}
+            selects={selectOptions}
+            value={currentValue}
+            onSelect={handleSelect}
+            isOpen={isOpen}
+            onClose={onClose}
+          />
+        )}
       </CompactFilterTrigger>
     </span>
   );

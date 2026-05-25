@@ -17,33 +17,36 @@
  * under the License.
  */
 import {
-  cloneElement,
-  isValidElement,
   useEffect,
   useState,
-  type ReactElement,
   type ReactNode,
   type MouseEvent,
 } from 'react';
 import { useTheme, styled, css } from '@apache-superset/core/theme';
 import { Dropdown, Tooltip, Icons } from '@superset-ui/core/components';
 
-type FilterPanelInjectedProps = {
-  onClose?: () => void;
-  isOpen?: boolean;
+export type FilterPanelRenderProps = {
+  isOpen: boolean;
+  onClose: () => void;
 };
 
 interface CompactFilterTriggerProps {
   label: ReactNode;
   hasValue: boolean;
   onClear: () => void;
-  children: ReactNode;
+  /** Render prop: receives { isOpen, onClose } and returns the panel content. */
+  children: (props: FilterPanelRenderProps) => ReactNode;
   /** Shown as a hover tooltip when a value is selected (e.g. the selected label). */
   tooltipTitle?: string;
   /** ARIA popup role for the trigger button. Use 'listbox' for option panels,
    *  'dialog' for form panels (date range, numerical range). */
   popupType?: 'listbox' | 'dialog';
 }
+
+const TriggerWrapper = styled.span`
+  display: inline-flex;
+  align-items: center;
+`;
 
 const FilterPill = styled.button<{ $active: boolean }>`
   ${({ theme, $active }) => css`
@@ -87,6 +90,33 @@ const ActiveDot = styled.span`
   `}
 `;
 
+// Meets WCAG 2.5.5 target size (24×24 minimum) with explicit dimensions.
+const ClearButton = styled.button`
+  ${({ theme }) => css`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
+    margin-left: ${theme.sizeUnit / 2}px;
+    padding: 0;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: ${theme.colorPrimary};
+    border-radius: ${theme.borderRadiusSM}px;
+
+    &:hover {
+      background: ${theme.colorPrimaryBg};
+    }
+
+    &:focus-visible {
+      outline: 2px solid ${theme.colorPrimary};
+      outline-offset: 2px;
+    }
+  `}
+`;
+
 export default function CompactFilterTrigger({
   label,
   hasValue,
@@ -114,64 +144,57 @@ export default function CompactFilterTrigger({
     setOpen(false);
   };
 
-  const pill = (
-    <Tooltip
-      title={tooltipTitle}
-      open={!!tooltipTitle && !open && tooltipOpen}
-      onOpenChange={visible =>
-        setTooltipOpen(visible && !!tooltipTitle && !open)
-      }
-      mouseEnterDelay={0.5}
-      mouseLeaveDelay={0}
-    >
-      <FilterPill
-        $active={hasValue}
-        type="button"
-        data-test="compact-filter-pill"
-        aria-haspopup={popupType}
-        aria-expanded={open}
-        aria-label={typeof label === 'string' ? label : undefined}
-      >
-        {hasValue && <ActiveDot />}
-        <span>{label}</span>
-        {hasValue ? (
-          <Icons.CloseOutlined
-            iconSize="xs"
-            iconColor={theme.colorPrimary}
-            onClick={handleClear}
-          />
-        ) : (
-          <Icons.DownOutlined
-            iconSize="xs"
-            iconColor={theme.colorTextSecondary}
-          />
-        )}
-      </FilterPill>
-    </Tooltip>
-  );
+  const clearAriaLabel =
+    typeof label === 'string' ? `Clear ${label} filter` : 'Clear filter';
 
   return (
-    // destroyPopupOnHide intentionally omitted: keeping the popup mounted
-    // preserves filter component refs so external clearFilters() calls can
-    // reach the panel instance after it has been opened at least once.
-    <Dropdown
-      open={open}
-      onOpenChange={visible => {
-        setOpen(visible);
-        if (!visible) setTooltipOpen(false);
-      }}
-      trigger={['click']}
-      popupRender={() =>
-        isValidElement(children)
-          ? cloneElement(children as ReactElement<FilterPanelInjectedProps>, {
-              onClose: () => setOpen(false),
-              isOpen: open,
-            })
-          : (children as ReactElement)
-      }
-      placement="bottomLeft"
-    >
-      {pill}
-    </Dropdown>
+    <TriggerWrapper>
+      <Dropdown
+        open={open}
+        onOpenChange={visible => {
+          setOpen(visible);
+          if (!visible) setTooltipOpen(false);
+        }}
+        trigger={['click']}
+        popupRender={() => children({ isOpen: open, onClose: () => setOpen(false) })}
+        placement="bottomLeft"
+      >
+        <Tooltip
+          title={tooltipTitle}
+          open={!!tooltipTitle && !open && tooltipOpen}
+          onOpenChange={visible =>
+            setTooltipOpen(visible && !!tooltipTitle && !open)
+          }
+          mouseEnterDelay={0.5}
+          mouseLeaveDelay={0}
+        >
+          <FilterPill
+            $active={hasValue}
+            type="button"
+            data-test="compact-filter-pill"
+            aria-haspopup={popupType}
+            aria-expanded={open}
+            aria-label={typeof label === 'string' ? label : undefined}
+          >
+            {hasValue && <ActiveDot />}
+            <span>{label}</span>
+            <Icons.DownOutlined
+              iconSize="xs"
+              iconColor={hasValue ? theme.colorPrimary : theme.colorTextSecondary}
+            />
+          </FilterPill>
+        </Tooltip>
+      </Dropdown>
+      {hasValue && (
+        <ClearButton
+          type="button"
+          data-test="compact-filter-clear"
+          aria-label={clearAriaLabel}
+          onClick={handleClear}
+        >
+          <Icons.CloseOutlined iconSize="s" iconColor={theme.colorPrimary} />
+        </ClearButton>
+      )}
+    </TriggerWrapper>
   );
 }

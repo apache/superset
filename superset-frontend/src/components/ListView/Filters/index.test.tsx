@@ -124,7 +124,7 @@ test('renders a compact pill trigger for select filters', () => {
   expect(screen.getByText('Owner')).toBeInTheDocument();
 });
 
-test('select pill shows active state when a value is selected', () => {
+test('select pill shows active state (clear button) when a value is selected', () => {
   const filters = [
     {
       Header: 'Owner',
@@ -150,8 +150,46 @@ test('select pill shows active state when a value is selected', () => {
     />,
   );
 
-  // When a value is present, the clear (close) icon should be shown
-  expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: /clear owner filter/i }),
+  ).toBeInTheDocument();
+});
+
+test('select pill tooltip falls back to static selects on cold URL load (no cached label)', () => {
+  const filters = [
+    {
+      Header: 'Owner',
+      key: 'owner',
+      id: 'owner',
+      input: 'select' as const,
+      operator: ListViewFilterOperator.RelationOneMany,
+      selects: [
+        { label: 'Alice', value: 1 },
+        { label: 'Bob', value: 2 },
+      ],
+    },
+  ];
+
+  // Simulate cold URL load: value has only numeric value, no label in cache
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[
+        {
+          id: 'owner',
+          operator: ListViewFilterOperator.RelationOneMany,
+          value: { value: 1 } as any,
+        },
+      ]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  // The pill should be active (clear button visible) and the static label
+  // should be resolved as the tooltip source
+  expect(
+    screen.getByRole('button', { name: /clear owner filter/i }),
+  ).toBeInTheDocument();
 });
 
 test('datetime_range filter renders as CompactFilterTrigger with dialog aria-haspopup', () => {
@@ -204,7 +242,75 @@ test('datetime_range pill shows active state when value is set', () => {
     />,
   );
 
-  expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: /clear time range filter/i }),
+  ).toBeInTheDocument();
+});
+
+test('datetime_range tooltip formats unix timestamps as human-readable dates', () => {
+  const filters = [
+    {
+      Header: 'Time range',
+      key: 'time_range',
+      id: 'time_range',
+      input: 'datetime_range' as const,
+      operator: ListViewFilterOperator.Between,
+      dateFilterValueType: 'unix' as const,
+    },
+  ];
+
+  // Jan 1 2024 00:00:00 UTC in ms
+  const start = 1704067200000;
+  const end = 1735689599000;
+
+  const { container } = render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[
+        {
+          id: 'time_range',
+          operator: ListViewFilterOperator.Between,
+          value: [start, end],
+        },
+      ]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  // Should NOT contain raw unix timestamp numbers in the rendered output
+  expect(container.textContent).not.toContain(String(start));
+  expect(container.textContent).not.toContain(String(end));
+});
+
+test('datetime_range tooltip leaves ISO strings as-is', () => {
+  const filters = [
+    {
+      Header: 'Time range',
+      key: 'time_range',
+      id: 'time_range',
+      input: 'datetime_range' as const,
+      operator: ListViewFilterOperator.Between,
+    },
+  ];
+
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[
+        {
+          id: 'time_range',
+          operator: ListViewFilterOperator.Between,
+          value: ['2024-01-01T00:00:00.000Z', '2024-12-31T23:59:59.000Z'],
+        },
+      ]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  // Pill is active (clear button present)
+  expect(
+    screen.getByRole('button', { name: /clear time range filter/i }),
+  ).toBeInTheDocument();
 });
 
 test('numerical_range filter renders as CompactFilterTrigger with dialog aria-haspopup', () => {
@@ -257,7 +363,9 @@ test('numerical_range pill shows active state when value is set', () => {
     />,
   );
 
-  expect(screen.getByRole('button', { name: /close/i })).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: /clear age range filter/i }),
+  ).toBeInTheDocument();
 });
 
 test('renders only the first search filter when multiple search filters are configured', () => {
