@@ -111,19 +111,19 @@ test('open with Simple tab selected when there is no column selected', () => {
     getCurrentTab: jest.fn(),
     onChange: jest.fn(),
   });
-  expect(getByText('Saved')).toHaveAttribute('aria-selected', 'false');
+  expect(getByText('Calculated')).toHaveAttribute('aria-selected', 'false');
   expect(getByText('Simple')).toHaveAttribute('aria-selected', 'true');
   expect(getByText('Custom SQL')).toHaveAttribute('aria-selected', 'false');
 });
 
-test('open with Saved tab selected when there is a saved column selected', () => {
+test('open with Calculated tab selected when there is a saved column selected', () => {
   const { getByText } = renderPopover({
     columns: [{ column_name: 'year' }],
     editedColumn: { column_name: 'year', expression: 'year - 1' },
     getCurrentTab: jest.fn(),
     onChange: jest.fn(),
   });
-  expect(getByText('Saved')).toHaveAttribute('aria-selected', 'true');
+  expect(getByText('Calculated')).toHaveAttribute('aria-selected', 'true');
   expect(getByText('Simple')).toHaveAttribute('aria-selected', 'false');
   expect(getByText('Custom SQL')).toHaveAttribute('aria-selected', 'false');
 });
@@ -139,7 +139,7 @@ test('open with Custom SQL tab selected when there is a custom SQL selected', ()
     getCurrentTab: jest.fn(),
     onChange: jest.fn(),
   });
-  expect(getByText('Saved')).toHaveAttribute('aria-selected', 'false');
+  expect(getByText('Calculated')).toHaveAttribute('aria-selected', 'false');
   expect(getByText('Simple')).toHaveAttribute('aria-selected', 'false');
   expect(getByText('Custom SQL')).toHaveAttribute('aria-selected', 'true');
 });
@@ -283,7 +283,7 @@ test('Should filter saved expressions by column_name and verbose_name', async ()
   fireEvent.click(savedTab!);
 
   const combobox = screen.getByRole('combobox', {
-    name: 'Saved expressions',
+    name: 'Calculated columns',
   });
 
   await userEvent.type(combobox, 'revenue');

@@ -382,7 +382,7 @@ const ColumnSelectPopover = ({
     selectedMetric?.metric_name !== undefined ||
     adhocColumn?.sqlExpression !== initialAdhocColumn?.sqlExpression;
 
-  const savedExpressionsLabel = t('Saved expressions');
+  const savedExpressionsLabel = t('Calculated columns');
   const simpleColumnsLabel = t('Columns and metrics');
   const keywords = useMemo(
     () => sqlKeywords.concat(getColumnKeywords(columns)),
@@ -408,7 +408,7 @@ const ColumnSelectPopover = ({
             : [
                 {
                   key: TABS_KEYS.SAVED,
-                  label: t('Saved'),
+                  label: t('Calculated'),
                   children: (
                     <>
                       {calculatedColumns.length > 0 ? (
@@ -448,7 +448,7 @@ const ColumnSelectPopover = ({
                           title={
                             isTemporal
                               ? t('No temporal columns found')
-                              : t('No saved expressions found')
+                              : t('No calculated columns found')
                           }
                           description={
                             isTemporal
@@ -467,7 +467,7 @@ const ColumnSelectPopover = ({
                           title={
                             isTemporal
                               ? t('No temporal columns found')
-                              : t('No saved expressions found')
+                              : t('No calculated columns found')
                           }
                           description={
                             isTemporal ? (
