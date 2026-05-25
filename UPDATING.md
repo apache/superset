@@ -227,6 +227,15 @@ SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes"
 Schedule the cutover in a quiet window. Runtime reads use only the single configured engine, so in a multi-worker deployment there is an unavoidable brief decrypt-outage between the migration commit and the last worker restarting with the new config — each migrator run is transactional, but the fleet-wide cutover is not zero-downtime.
 
 The migration is transactional (all-or-nothing) and idempotent — it can be safely re-run or resumed. Note that AES-GCM, unlike AES-CBC, does not support querying directly over encrypted columns; audit any code that filters on an encrypted column before switching. See the SIP at `docs/sip/authenticated-encryption-at-rest.md` for details.
+### Soft delete and restore for dashboards
+
+`DELETE /api/v1/dashboard/<id>` no longer hard-deletes the dashboard. The row is marked with a `deleted_at` timestamp and hidden from all list, detail, and lookup endpoints (including the embedded-dashboard iframe path, which now returns 404 for soft-deleted parents).
+
+**New endpoint** — `POST /api/v1/dashboard/<uuid>/restore` clears `deleted_at` and returns the dashboard to active state. Requires `can_write on Dashboard` and ownership of the row (or admin). Soft-deleted dashboards can also be listed via the new `dashboard_deleted_state` rison filter (`deleted` or `active`).
+
+**Migration behavior:** existing role grants of `can_write on Dashboard` cover the new restore endpoint automatically; no role migration is required.
+
+**Slug uniqueness footgun.** `dashboards.slug` is a database-level unique constraint. Because soft-delete keeps the row in place, the slug of a soft-deleted dashboard remains reserved until the dashboard is either restored or hard-deleted by an admin. Users attempting to create a new dashboard with the same slug will receive a unique-constraint error; the workaround is to restore the soft-deleted dashboard, change its slug, then create the new one (or wait until the eventual hard-delete endpoint ships).
 
 ### Granular Export Controls
 

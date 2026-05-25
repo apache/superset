@@ -243,6 +243,9 @@ def delete_dashboard_slices_associations(dashboard: Dashboard) -> None:
 
 def delete_all_inserted_slices():
     try:
+        # Slice bypass is a no-op until Slice adopts SoftDeleteMixin
+        # (charts soft-delete branch); kept here so the cleanup helper
+        # stays correct after that branch lands.
         slices_to_delete: list[Slice] = (
             db.session.query(Slice)
             .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Slice}})
@@ -277,6 +280,9 @@ def delete_slice_users_associations(slice_: Slice) -> None:
 
 def delete_all_inserted_tables():
     try:
+        # SqlaTable bypass is a no-op until SqlaTable adopts
+        # SoftDeleteMixin (datasets soft-delete branch); kept here so the
+        # cleanup helper stays correct after that branch lands.
         tables_to_delete: list[SqlaTable] = (
             db.session.query(SqlaTable)
             .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
