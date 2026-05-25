@@ -57,6 +57,10 @@ interface UseDrillDownStateResult {
   isDrilling: boolean;
   /** The breadcrumb path showing where the user is in the hierarchy */
   drillStack: DrillDownLevel[];
+  /** Value selected at the deepest level (leaf) */
+  selectedLeaf?: string;
+  /** The computed hierarchy of column names */
+  hierarchy: string[];
   /** form_data adjusted for the current drill level */
   effectiveFormData: QueryFormData;
   /** Chart data for the current drill level (or base data when not drilling) */
@@ -96,20 +100,71 @@ export function useDrillDownState({
   formData,
   baseQueriesResponse,
 }: UseDrillDownStateArgs): UseDrillDownStateResult {
-  const [drillStack, setDrillStack] = useState<DrillDownLevel[]>([]);
-  const [selectedLeaf, setSelectedLeaf] = useState<string | undefined>();
+  // Storage key based on chart's slice_id so drill state survives
+  // re-mounts triggered by cross-filter cascades from other charts
+  const storageKey = `drilldown_${formData.slice_id ?? 'explore'}`;
+
+  const [drillStack, setDrillStackState] = useState<DrillDownLevel[]>(() => {
+    try {
+      const saved = sessionStorage.getItem(`${storageKey}_stack`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [selectedLeaf, setSelectedLeafState] = useState<string | undefined>(() => {
+    try {
+      return sessionStorage.getItem(`${storageKey}_leaf`) || undefined;
+    } catch {
+      return undefined;
+    }
+  });
+
+  const setDrillStack = useCallback(
+    (
+      updater: DrillDownLevel[] | ((prev: DrillDownLevel[]) => DrillDownLevel[]),
+    ) => {
+      setDrillStackState(prev => {
+        const next = typeof updater === 'function' ? updater(prev) : updater;
+        try {
+          if (next.length === 0) {
+            sessionStorage.removeItem(`${storageKey}_stack`);
+          } else {
+            sessionStorage.setItem(`${storageKey}_stack`, JSON.stringify(next));
+          }
+        } catch {
+          // ignore quota errors
+        }
+        return next;
+      });
+    },
+    [storageKey],
+  );
+
+  const setSelectedLeaf = useCallback(
+    (val: string | undefined) => {
+      setSelectedLeafState(val);
+      try {
+        if (val === undefined) {
+          sessionStorage.removeItem(`${storageKey}_leaf`);
+        } else {
+          sessionStorage.setItem(`${storageKey}_leaf`, val);
+        }
+      } catch {
+        // ignore quota errors
+      }
+    },
+    [storageKey],
+  );
+
   const [drillData, setDrillData] = useState<QueryData[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
-  // Reset whenever the underlying form_data (chart configuration) changes —
-  // e.g. the dashboard owner edited the chart and saved.
-  useEffect(() => {
-    setDrillStack([]);
-    setSelectedLeaf(undefined);
-    setDrillData(null);
-    setError(undefined);
-  }, [formData.slice_id, formData.viz_type]);
+  // Note: We intentionally do NOT reset drill stack on formData changes,
+  // because cross-filters from other charts cause formData reference updates
+  // and would wipe out the user's drill navigation. The drill state is
+  // ephemeral by design — it's lost on page refresh, which is acceptable.
 
   const hierarchy = useMemo<string[]>(
     () => {
@@ -118,6 +173,8 @@ export function useDrillDownState({
       // Option 1: x_axis is an array (multi-column, the new UX)
       const xAxis = fd.x_axis ?? fd.xAxis;
       if (Array.isArray(xAxis) && xAxis.length > 1) {
+        // eslint-disable-next-line no-console
+        console.log('[DrillDown] hierarchy from x_axis array:', xAxis);
         return xAxis as string[];
       }
 
@@ -131,6 +188,41 @@ export function useDrillDownState({
         return drillLevels;
       }
 
+      // Option 3: single x_axis or single groupby column — enable filtering to clicked value
+      // (treats the same column as both "level 0" and "level 1" so a click
+      // adds a filter and shows just the clicked bar)
+      // x_axis can be a string OR an array with one element
+      let xAxisStr: string | undefined;
+      if (typeof xAxis === 'string') {
+        xAxisStr = xAxis;
+      } else if (Array.isArray(xAxis) && xAxis.length === 1 && typeof xAxis[0] === 'string') {
+        xAxisStr = xAxis[0];
+      }
+      if (xAxisStr) {
+        // eslint-disable-next-line no-console
+        console.log('[DrillDown] hierarchy from single x_axis:', xAxisStr);
+        return [xAxisStr, xAxisStr];
+      }
+
+      const groupby = fd.groupby;
+      const groupbyArr = ensureIsArray(groupby) as string[];
+      if (groupbyArr.length === 1) {
+        // eslint-disable-next-line no-console
+        console.log('[DrillDown] hierarchy from single groupby:', groupbyArr);
+        return [groupbyArr[0], groupbyArr[0]];
+      }
+      if (groupbyArr.length > 1) {
+        // eslint-disable-next-line no-console
+        console.log('[DrillDown] hierarchy from multi groupby:', groupbyArr);
+        return groupbyArr;
+      }
+
+      // eslint-disable-next-line no-console
+      console.log('[DrillDown] no hierarchy for', fd.viz_type, 'slice', fd.slice_id,
+        'x_axis:', JSON.stringify(fd.x_axis),
+        'groupby:', JSON.stringify(fd.groupby),
+        'xAxis:', JSON.stringify(fd.xAxis),
+      );
       return [];
     },
     [formData],
@@ -201,6 +293,12 @@ export function useDrillDownState({
     let cancelled = false;
     setIsLoading(true);
     setError(undefined);
+
+    // eslint-disable-next-line no-console
+    console.log('[DrillDown] FETCHING for slice', formData.slice_id,
+      'depth', currentDepth,
+      'extra_form_data:', JSON.stringify((formData as Record<string, unknown>).extra_form_data),
+    );
 
     const [useLegacyApi] = getQuerySettings(effectiveFormData);
     getChartDataRequest({ formData: effectiveFormData })
