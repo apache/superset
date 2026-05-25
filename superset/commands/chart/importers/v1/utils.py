@@ -54,7 +54,13 @@ def import_chart(
     user = get_user()
 
     if existing := find_existing_for_import(Slice, config["uuid"]):
-        if overwrite and can_write and user:
+        is_soft_deleted = existing.deleted_at is not None
+        # A re-import that matches a soft-deleted UUID is implicitly a
+        # restore-with-overwrite: bringing the chart back by uploading
+        # it again. Apply the same ownership check as the explicit
+        # overwrite path so non-owners cannot resurrect via re-import.
+        needs_mutation = overwrite or is_soft_deleted
+        if needs_mutation and can_write and user:
             if not security_manager.can_access_chart(existing) or (
                 user not in existing.owners and not security_manager.is_admin()
             ):
@@ -62,21 +68,15 @@ def import_chart(
                     "A chart already exists and user doesn't "
                     "have permissions to overwrite it"
                 )
-        if not overwrite or not can_write:
-            if existing.deleted_at is not None:
-                raise ImportFailedError(
-                    "Chart exists but has been deleted. "
-                    "Restore it before re-importing, or "
-                    "re-run the import with overwrite=True."
-                )
+        if not needs_mutation or not can_write:
             return existing
-        # Overwrite path. Restore a soft-deleted match in place rather
+        # Mutation path. Restore a soft-deleted match in place rather
         # than hard-delete-and-replace: a hard delete cascades to
         # dashboard_slices and other FK references, breaking the
         # dashboards that previously embedded this chart. Setting
         # config["id"] = existing.id routes import_from_dict through
         # UPDATE, preserving the PK and all references.
-        if existing.deleted_at is not None:
+        if is_soft_deleted:
             existing.deleted_at = None
         config["id"] = existing.id
     elif not can_write:
