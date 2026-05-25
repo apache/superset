@@ -24,6 +24,7 @@ from superset import db
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
+from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import DatasourceType, get_example_default_schema
@@ -35,8 +36,14 @@ def get_table(
     schema: Optional[str] = None,
 ):
     schema = schema or get_example_default_schema()
+    # Bypass the soft-delete listener so the helper finds rows previously
+    # soft-deleted by other tests in the same session. Without the
+    # bypass, the listener hides them and a subsequent INSERT collides
+    # with the underlying (database_id, schema, table_name) unique
+    # constraint that survives soft-delete.
     return (
         db.session.query(SqlaTable)
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
         .filter_by(database_id=database.id, schema=schema, table_name=table_name)
         .one_or_none()
     )
@@ -60,6 +67,12 @@ def create_table_metadata(
             always_filter_main_dttm=False,
         )
         db.session.add(table)
+    elif table.deleted_at is not None:
+        # Restore a soft-deleted leftover from a prior test so the row is
+        # usable for this setup. Cleaning up via re-create-then-collide
+        # would fail on the underlying unique constraint that survives
+        # soft-delete.
+        table.deleted_at = None
     if fetch_values_predicate:
         table.fetch_values_predicate = fetch_values_predicate
     table.database = database
