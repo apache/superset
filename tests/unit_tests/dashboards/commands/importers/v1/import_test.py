@@ -306,9 +306,7 @@ def test_import_soft_deleted_dashboard_overwrite_restores_in_place(
     in-place restore preserves them.
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
-    mocker.patch.object(
-        security_manager, "can_access_dashboard", return_value=True
-    )
+    mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
 
     existing = (
         session_with_data.query(Dashboard)
@@ -347,9 +345,7 @@ def test_import_soft_deleted_dashboard_non_overwrite_restores_for_owner(
     overwrite=True.
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
-    mocker.patch.object(
-        security_manager, "can_access_dashboard", return_value=True
-    )
+    mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
 
     existing = (
         session_with_data.query(Dashboard)
@@ -386,9 +382,7 @@ def test_import_soft_deleted_dashboard_non_overwrite_raises_for_non_owner(
     restore-via-import. Mirrors the explicit /restore endpoint's check.
     """
     mocker.patch.object(security_manager, "can_access", return_value=True)
-    mocker.patch.object(
-        security_manager, "can_access_dashboard", return_value=True
-    )
+    mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
 
     existing = (
         session_with_data.query(Dashboard)
@@ -410,7 +404,37 @@ def test_import_soft_deleted_dashboard_non_overwrite_raises_for_non_owner(
     with override_user(non_owner):
         with pytest.raises(ImportFailedError) as excinfo:
             import_dashboard(dashboard_config, overwrite=False)
-    assert "permissions to overwrite" in str(excinfo.value)
+    assert "permissions to restore" in str(excinfo.value)
+
+
+def test_import_soft_deleted_dashboard_raises_when_caller_lacks_can_write(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Case B: re-import of a soft-deleted UUID by a caller without
+    can_write must raise, not silently return the soft-deleted row.
+
+    The dashboard endpoint already gates on can_write Dashboard, so the
+    primary way to hit this is a programmatic caller that bypassed the
+    endpoint or a service-account with no permissions. Either way the
+    correct response is a raise -- silently returning the soft-deleted
+    dashboard would let callers reattach to it and surface a hidden row.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    existing = (
+        session_with_data.query(Dashboard)
+        .filter(Dashboard.uuid == dashboard_config["uuid"])
+        .one_or_none()
+    )
+    assert existing is not None
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    session_with_data.flush()
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_dashboard(dashboard_config, overwrite=False)
+    assert "can_write" in str(excinfo.value)
 
 
 def test_import_soft_deleted_dashboard_ignore_permissions_restores_in_place(
