@@ -70,6 +70,7 @@ from superset.versioning.changes import (
     _ENTITY_KIND_BY_CLASS_NAME,
     version_changes_table,
 )
+from superset.versioning.queries import derive_version_uuid
 
 logger = logging.getLogger(__name__)
 
@@ -590,3 +591,359 @@ def _check_entity_tombstones(
                     "deletion_state": "soft_deleted" if deleted_at else None,
                 }
     return result
+
+
+# ---- T011: Permission filter (silent per AV-008) --------------------------
+
+
+def _filter_records_by_visibility(
+    records: list[dict[str, Any]],
+    requesting_user: Any,
+) -> list[dict[str, Any]]:
+    """Drop records whose source entity the requester can't read.
+
+    Per AV-008 the filter is silent: dropped records contribute no count
+    and no placeholder. Tombstoned entities (no live row) pass through
+    — the decorator step marks them ``entity_deleted: true`` and the
+    payload exposes no navigable ``entity_uuid``, so there's nothing
+    sensitive left to gate.
+
+    *requesting_user* is currently unused (the security manager reads
+    the current user from ``g``/Flask-Login). The parameter is kept on
+    the signature because (a) it documents the contract — this function
+    filters *for a specific user* — and (b) future work may make the
+    check explicit. ``None`` callers (CLI, Celery) skip the filter.
+    """
+    # pylint: disable=import-outside-toplevel,unused-argument
+    if not records or requesting_user is None:
+        return records
+
+    from superset import security_manager
+
+    distinct: set[tuple[str, int]] = {
+        (
+            _TABLE_KIND_TO_API.get(r["entity_kind"], r["entity_kind"]),
+            r["entity_id"],
+        )
+        for r in records
+    }
+    visible = _resolve_visibility(distinct, security_manager)
+    return [
+        r
+        for r in records
+        if visible.get(
+            (
+                _TABLE_KIND_TO_API.get(r["entity_kind"], r["entity_kind"]),
+                r["entity_id"],
+            ),
+            True,  # tombstone / unknown kind → pass through
+        )
+    ]
+
+
+def _resolve_visibility(
+    distinct_entities: set[tuple[str, int]],
+    security_manager: Any,
+) -> dict[tuple[str, int], bool]:
+    """Return ``{(api_kind, entity_id): can_read}`` for the live row of
+    each entity. Missing live rows (tombstoned) map to ``True`` — the
+    decorator handles the deleted-state messaging separately.
+    """
+    by_kind: dict[str, list[int]] = {}
+    for api_kind, entity_id in distinct_entities:
+        by_kind.setdefault(api_kind, []).append(entity_id)
+
+    visible: dict[tuple[str, int], bool] = {}
+    for api_kind, entity_ids in by_kind.items():
+        if api_kind not in _NAME_COLUMN:
+            for entity_id in entity_ids:
+                visible[(api_kind, entity_id)] = True
+            continue
+        model_cls = _load_shadow_model(_NAME_COLUMN[api_kind][0])
+        live_rows = (
+            db.session.query(model_cls)
+            .filter(model_cls.id.in_(entity_ids))  # type: ignore[attr-defined]
+            .all()
+        )
+        live_by_id = {row.id: row for row in live_rows}
+        for entity_id in entity_ids:
+            entity = live_by_id.get(entity_id)
+            if entity is None:
+                visible[(api_kind, entity_id)] = True
+                continue
+            visible[(api_kind, entity_id)] = _can_read(
+                api_kind, entity, security_manager
+            )
+    return visible
+
+
+def _can_read(api_kind: str, entity: Any, security_manager: Any) -> bool:
+    """Dispatch the security manager's per-kind read predicate."""
+    if api_kind == "Dashboard":
+        return bool(security_manager.can_access_dashboard(entity))
+    if api_kind == "Slice":
+        return bool(security_manager.can_access_chart(entity))
+    if api_kind == "SqlaTable":
+        return bool(security_manager.can_access_datasource(entity))
+    return True
+
+
+# ---- T012: Decorate records into the API shape ---------------------------
+
+
+_SUMMARY_VERBS: dict[str, str] = {
+    # The kind taxonomy from FR-016 mapped to past-tense verbs for the
+    # AV-012 "<entity_label> <verb>: <entity_name>" headline. "field" is
+    # the fallback for scalar changes that don't map to a named verb.
+    "filter": "filter changed",
+    "metric": "metric changed",
+    "dimension": "dimension changed",
+    "column": "column changed",
+    "chart": "chart changed",
+    "time_range": "time range changed",
+    "color_palette": "palette changed",
+    "restore": "restored",
+    "field": "updated",
+}
+
+
+def _decorate_records(
+    records: list[dict[str, Any]],
+    path_kind: str,
+    path_id: int,
+) -> list[dict[str, Any]]:
+    """Add the synthesized ActivityRecord fields to each record:
+    ``entity_kind`` (translated to API form), ``entity_uuid``,
+    ``entity_deleted``, ``entity_deletion_state``, ``source``,
+    ``summary``, ``impact``, ``version_uuid``, ``changed_by``.
+
+    Mutates and returns *records* for chaining. Records are expected to
+    already carry ``entity_name`` from :func:`_denormalize_entity_names`.
+    """
+    if not records:
+        return records
+
+    distinct: set[tuple[str, int]] = {
+        (
+            _TABLE_KIND_TO_API.get(r["entity_kind"], ""),
+            r["entity_id"],
+        )
+        for r in records
+        if _TABLE_KIND_TO_API.get(r["entity_kind"])
+    }
+    tombstones = _check_entity_tombstones(distinct)
+    uuids = _lookup_entity_uuids(distinct, tombstones)
+
+    for record in records:
+        api_kind = _TABLE_KIND_TO_API.get(record["entity_kind"], "")
+        entity_id = record["entity_id"]
+        tombstone = tombstones.get(
+            (api_kind, entity_id), {"deleted": True, "deletion_state": None}
+        )
+        entity_uuid = uuids.get((api_kind, entity_id))
+        is_self = api_kind == path_kind and entity_id == path_id
+
+        record["entity_kind"] = api_kind
+        record["entity_uuid"] = str(entity_uuid) if entity_uuid else None
+        record["entity_deleted"] = tombstone["deleted"]
+        record["entity_deletion_state"] = tombstone["deletion_state"]
+        record["source"] = "self" if is_self else "related"
+        record["version_uuid"] = (
+            str(derive_version_uuid(entity_uuid, record["transaction_id"]))
+            if entity_uuid
+            else None
+        )
+        record["changed_by"] = _changed_by_dict(record)
+
+        if is_self:
+            record["summary"] = ""
+            record["impact"] = None
+        else:
+            record["summary"] = _build_summary(api_kind, record)
+            record["impact"] = _compute_impact(path_kind, path_id, record)
+
+        # Strip the internal-only columns the API contract doesn't expose.
+        for key in (
+            "entity_id",
+            "sequence",
+            "user_id",
+            "changed_by_id",
+            "first_name",
+            "last_name",
+        ):
+            record.pop(key, None)
+    return records
+
+
+def _lookup_entity_uuids(
+    distinct: set[tuple[str, int]],
+    tombstones: dict[tuple[str, int], dict[str, Any]],
+) -> dict[tuple[str, int], Optional[UUID]]:
+    """Batch-fetch live ``uuid`` per ``(api_kind, entity_id)``. Tombstoned
+    entities are skipped (their ``entity_uuid`` is null per data-model.md).
+    """
+    result: dict[tuple[str, int], Optional[UUID]] = {}
+    by_kind: dict[str, list[int]] = {}
+    for api_kind, entity_id in distinct:
+        if tombstones.get((api_kind, entity_id), {}).get("deleted"):
+            continue
+        by_kind.setdefault(api_kind, []).append(entity_id)
+
+    for api_kind, entity_ids in by_kind.items():
+        if api_kind not in _NAME_COLUMN:
+            continue
+        model_cls = _load_shadow_model(_NAME_COLUMN[api_kind][0])
+        live_tbl = model_cls.__table__  # type: ignore[attr-defined]
+        rows = (
+            db.session.connection()
+            .execute(
+                sa.select(live_tbl.c.id, live_tbl.c.uuid).where(
+                    live_tbl.c.id.in_(entity_ids)
+                )
+            )
+            .all()
+        )
+        for row in rows:
+            result[(api_kind, row[0])] = row[1]
+    return result
+
+
+def _build_summary(api_kind: str, record: dict[str, Any]) -> str:
+    """Build the AV-012 headline for a related record:
+    ``"<Kind label> <verb>: <entity_name>"``."""
+    label = _API_KIND_LABEL.get(api_kind, api_kind)
+    verb = _SUMMARY_VERBS.get(record.get("kind", ""), "updated")
+    name = record.get("entity_name") or ""
+    return f"{label} {verb}: {name}" if name else f"{label} {verb}"
+
+
+def _changed_by_dict(record: dict[str, Any]) -> Optional[dict[str, Any]]:
+    """Project the user columns onto the ``changed_by`` shape, or
+    ``None`` when no Flask user was attached to the save (CLI / Celery)
+    or when the user has since been deleted from ``ab_user``.
+    """
+    if record.get("changed_by_id") is None:
+        return None
+    return {
+        "id": record["changed_by_id"],
+        "first_name": record.get("first_name"),
+        "last_name": record.get("last_name"),
+    }
+
+
+# ---- T013: Top-level orchestrator -----------------------------------------
+
+
+_DEFAULT_PAGE_SIZE = 25
+_MAX_PAGE_SIZE = 200
+
+
+def get_activity(
+    model_cls: type,
+    entity_uuid: UUID,
+    *,
+    since: Optional[datetime] = None,
+    until: Optional[datetime] = None,
+    include: str = "all",
+    page: int = 0,
+    page_size: int = _DEFAULT_PAGE_SIZE,
+    requesting_user: Any = None,
+) -> tuple[list[dict[str, Any]], int]:
+    """Cross-entity activity stream for one path entity.
+
+    Single polymorphic entry point. Dispatches on *model_cls* to
+    assemble the path entity's self records plus the transitive related-
+    entity records (charts attached to a dashboard, datasets a chart
+    pointed at, etc.) per data-model.md §"Query phases".
+
+    Returns ``(records, total_count)``. The count is post-visibility
+    (AV-008) and post-include-filter, not just the size of the returned
+    slice — clients paginate by passing ``page`` forward until
+    ``page * page_size >= count``.
+
+    Raises ``DashboardNotFoundError`` / ``ChartNotFoundError`` /
+    ``DatasetNotFoundError`` when the path entity doesn't exist (AV-009).
+    """
+    path_entity, path_id = _resolve_path_entity(model_cls, entity_uuid)
+    path_kind = model_cls.__name__
+
+    entity_windows = _resolve_scope(path_kind, path_id, include)
+    if not entity_windows:
+        return [], 0
+
+    raw = _fetch_change_records(entity_windows, since, until)
+    enriched = _denormalize_entity_names(raw)
+    decorated = _decorate_records(enriched, path_kind, path_id)
+    visible = _filter_records_by_visibility(decorated, requesting_user)
+
+    total = len(visible)
+    bounded_size = max(1, min(page_size, _MAX_PAGE_SIZE))
+    offset = max(0, page) * bounded_size
+    return visible[offset : offset + bounded_size], total
+
+
+def _resolve_scope(path_kind: str, path_id: int, include: str) -> list[EntityWindows]:
+    """Build the ``[(api_kind, entity_id, [windows])]`` list that
+    :func:`_fetch_change_records` consumes, branching by *path_kind* and
+    *include* mode."""
+    want_self = include in ("all", "self")
+    want_related = include in ("all", "related")
+
+    scope: list[EntityWindows] = []
+    if want_self:
+        scope.append((path_kind, path_id, [(0, None)]))
+    if want_related:
+        scope.extend(_resolve_related_scope(path_kind, path_id))
+    return scope
+
+
+def _resolve_related_scope(path_kind: str, path_id: int) -> list[EntityWindows]:
+    """Walk the dependency edges from the path entity to its related
+    entities. Per AV-004, datasets have no transitive layer in V2."""
+    if path_kind == "Dashboard":
+        return _dashboard_related_scope(path_id)
+    if path_kind == "Slice":
+        return _chart_related_scope(path_id)
+    return []
+
+
+def _dashboard_related_scope(dashboard_id: int) -> list[EntityWindows]:
+    """Charts on the dashboard during their attachment window, plus
+    datasets each chart pointed at during the intersection of (chart-
+    attachment, chart-on-dataset)."""
+    scope: list[EntityWindows] = []
+    chart_windows: dict[int, list[Window]] = {}
+    for slice_id, window in _charts_attached_to_dashboard(dashboard_id):
+        chart_windows.setdefault(slice_id, []).append(window)
+
+    for slice_id, attachment_windows in chart_windows.items():
+        scope.append(("Slice", slice_id, list(attachment_windows)))
+        for attachment in attachment_windows:
+            for dataset_id, chart_dataset_window in _datasets_used_by_chart(slice_id):
+                if (
+                    intersect := _intersect_windows(attachment, chart_dataset_window)
+                ) is not None:
+                    scope.append(("SqlaTable", dataset_id, [intersect]))
+    return _merge_entity_windows(scope)
+
+
+def _chart_related_scope(slice_id: int) -> list[EntityWindows]:
+    """Datasets the chart pointed at over its full history."""
+    scope: list[EntityWindows] = []
+    for dataset_id, window in _datasets_used_by_chart(slice_id):
+        scope.append(("SqlaTable", dataset_id, [window]))
+    return _merge_entity_windows(scope)
+
+
+def _merge_entity_windows(scope: list[EntityWindows]) -> list[EntityWindows]:
+    """Collapse repeated ``(api_kind, entity_id)`` entries by unioning
+    their window lists. The OR-clause builder in
+    :func:`_fetch_change_records` tolerates overlapping windows but
+    sending fewer of them to the SQL planner is friendlier."""
+    merged: dict[tuple[str, int], list[Window]] = {}
+    for api_kind, entity_id, windows in scope:
+        merged.setdefault((api_kind, entity_id), []).extend(windows)
+    return [
+        (api_kind, entity_id, windows)
+        for (api_kind, entity_id), windows in merged.items()
+    ]
