@@ -722,3 +722,41 @@ def test_time_range_bounded_whitespace_regex_invalid(time_range: str) -> None:
     """Reject expressions with 0 or 6+ spaces (fall back to DATETIME wrapping)."""
     result = get_since_until(time_range)
     assert result[0] is None, f"Expected '{time_range}' to NOT match bounded regex"
+
+
+def test_datetime_eval_does_not_emit_parsedatetime_debug_logs(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """
+    Regression for #33365: ``parsedatetime`` emits a noisy DEBUG record
+    (``parsedatetime:eval now with context - False, False``) every time
+    ``datetime_eval`` runs against a relative expression. In production
+    deployments running at DEBUG level this floods the logs — the user
+    report notes "this appears frequently" and a search of the issue
+    tracker turns up "dozens of places where people have posted a log
+    with that in it."
+
+    The fix is to silence the ``parsedatetime`` logger at module load
+    in ``superset/utils/date_parser.py`` (e.g.
+    ``logging.getLogger("parsedatetime").setLevel(logging.WARNING)``).
+    Their own DEBUG output is internal library chatter that Superset
+    does not surface to operators in any actionable way.
+
+    This test captures all log records at DEBUG level during a single
+    ``datetime_eval`` call and asserts that none of them come from the
+    ``parsedatetime`` logger. If the suppression is removed or bypassed,
+    the test fails immediately.
+    """
+    import logging
+
+    with caplog.at_level(logging.DEBUG):
+        datetime_eval("datetime('now')")
+
+    parsedatetime_records = [
+        r for r in caplog.records if r.name.startswith("parsedatetime")
+    ]
+    assert not parsedatetime_records, (
+        "parsedatetime emitted DEBUG records during datetime_eval — these "
+        "flood production logs. Records: "
+        + repr([(r.levelname, r.getMessage()) for r in parsedatetime_records])
+    )

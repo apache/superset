@@ -19,7 +19,7 @@
 Unit tests for MCP generate_chart tool
 """
 
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from sqlalchemy.orm.exc import DetachedInstanceError
@@ -37,6 +37,7 @@ from superset.mcp_service.chart.tool.generate_chart import (
     _compile_chart,
     _sanitize_generate_chart_form_data_for_llm_context,
     CompileResult,
+    generate_chart,
 )
 from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.utils import json as utils_json
@@ -44,6 +45,58 @@ from superset.utils import json as utils_json
 
 class TestGenerateChart:
     """Tests for generate_chart MCP tool."""
+
+    @pytest.mark.asyncio
+    async def test_generate_chart_returns_table_chart_type_label(self) -> None:
+        """Test chart generation response includes table chart type label."""
+        request = GenerateChartRequest(
+            dataset_id="1",
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="region")],
+            ),
+            preview_formats=["url"],
+        )
+        ctx = MagicMock()
+        ctx.info = AsyncMock()
+        ctx.debug = AsyncMock()
+        ctx.warning = AsyncMock()
+        ctx.error = AsyncMock()
+        ctx.report_progress = AsyncMock()
+        validation_result = Mock(
+            is_valid=True,
+            request=request,
+            warnings={},
+            error=None,
+        )
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_user.username = "admin"
+        mock_user.roles = []
+        mock_user.groups = []
+
+        with (
+            patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                return_value=mock_user,
+            ),
+            patch(
+                "superset.mcp_service.chart.validation.ValidationPipeline."
+                "validate_request_with_warnings",
+                return_value=validation_result,
+            ),
+            patch(
+                "superset.mcp_service.chart.chart_utils.generate_explore_link",
+                return_value=(
+                    "http://localhost:9001/explore/?"
+                    "form_data_key=test_form_data_key_123"
+                ),
+            ),
+            patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None),
+        ):
+            result = await generate_chart(request, ctx=ctx)
+
+        assert result.chart_type_label == "table chart"
 
     @pytest.mark.asyncio
     async def test_generate_chart_request_structure(self):

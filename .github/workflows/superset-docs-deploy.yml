@@ -17,6 +17,16 @@ on:
 
   workflow_dispatch: {}
 
+# Serialize deploys: the action pushes to apache/superset-site without
+# rebasing, so concurrent runs race on the final push and the loser fails
+# with `! [rejected] asf-site -> asf-site (fetch first)`. Cancel any
+# in-progress run as soon as a newer one starts — the destination repo
+# isn't touched until the final push step, so canceling mid-build is safe,
+# and the freshest content always wins.
+concurrency:
+  group: docs-deploy-asf-site
+  cancel-in-progress: true
+
 jobs:
   config:
     runs-on: ubuntu-24.04

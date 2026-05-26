@@ -39,8 +39,7 @@ class Firebolt(Dialect):
         UNARY_PARSERS = {
             **parser.Parser.UNARY_PARSERS,
             TokenType.NOT: lambda self: self.expression(
-                exp.Not,
-                this=self._parse_unary(),  # pylint: disable=protected-access
+                exp.Not(this=self._parse_unary()),  # pylint: disable=protected-access
             ),
         }
 
@@ -51,7 +50,7 @@ class Firebolt(Dialect):
             if not this:  # pragma: no cover
                 return this
 
-            return self.expression(exp.Not, this=self.expression(exp.Paren, this=this))
+            return self.expression(exp.Not(this=self.expression(exp.Paren(this=this))))
 
     class Generator(generator.Generator):
         """
@@ -98,7 +97,7 @@ class FireboltOld(Firebolt):
             parse_bracket: bool = False,
         ) -> exp.Join | None:
             if unnest := self._parse_unnest():
-                return self.expression(exp.Join, this=unnest)
+                return self.expression(exp.Join(this=unnest))
 
             return super()._parse_join(skip_join_token, parse_bracket)
 
@@ -112,9 +111,7 @@ class FireboltOld(Firebolt):
             offset = self._match_pair(TokenType.WITH, TokenType.ORDINALITY)
 
             return self.expression(
-                exp.Unnest,
-                expressions=expressions,
-                offset=offset,
+                exp.Unnest(expressions=expressions, offset=offset),
             )
 
     class Generator(Firebolt.Generator):

@@ -130,7 +130,7 @@ charset-normalizer==3.4.2
     # via
     #   -c requirements/base-constraint.txt
     #   requests
-click==8.2.1
+click==8.4.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -219,7 +219,7 @@ docstring-parser==0.17.0
     # via cyclopts
 docutils==0.22.2
     # via rich-rst
-duckdb==1.4.2
+duckdb==1.5.3
     # via
     #   apache-superset
     #   duckdb-engine
@@ -388,7 +388,7 @@ grpcio==1.71.0
     #   grpcio-status
 grpcio-status==1.60.1
     # via google-api-core
-gunicorn==23.0.0
+gunicorn==25.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -442,6 +442,7 @@ isodate==0.7.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+    #   apache-superset-core
 isort==6.0.1
     # via pylint
 itsdangerous==2.2.0
@@ -510,7 +511,7 @@ mako==1.3.11
     #   -c requirements/base-constraint.txt
     #   alembic
     #   apache-superset
-markdown==3.8.1
+markdown==3.10.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -676,6 +677,8 @@ ply==3.11
     # via
     #   -c requirements/base-constraint.txt
     #   jsonpath-ng
+polib==1.2.0
+    # via apache-superset
 polyline==2.0.2
     # via
     #   -c requirements/base-constraint.txt
@@ -715,6 +718,7 @@ pyarrow==20.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+    #   apache-superset-core
     #   db-dtypes
     #   pandas-gbq
 pyasn1==0.6.3
@@ -866,6 +870,8 @@ referencing==0.36.2
     #   jsonschema
     #   jsonschema-path
     #   jsonschema-specifications
+regex==2026.4.4
+    # via tiktoken
 requests==2.33.0
     # via
     #   -c requirements/base-constraint.txt
@@ -878,6 +884,7 @@ requests==2.33.0
     #   requests-cache
     #   requests-oauthlib
     #   shillelagh
+    #   tiktoken
     #   trino
 requests-cache==1.2.1
     # via
@@ -931,7 +938,7 @@ setuptools==80.9.0
     #   pydata-google-auth
     #   zope-event
     #   zope-interface
-shillelagh==1.4.3
+shillelagh==1.4.4
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -980,7 +987,7 @@ sqlalchemy-utils==0.42.0
     #   apache-superset
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==28.10.0
+sqlglot==30.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -999,10 +1006,12 @@ statsd==4.0.1
     # via apache-superset
 syntaqlite==0.1.0
     # via apache-superset
-tabulate==0.9.0
+tabulate==0.10.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+tiktoken==0.12.0
+    # via apache-superset
 tomli-w==1.2.0
     # via apache-superset-extensions-cli
 tomlkit==0.13.3

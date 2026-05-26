@@ -66,6 +66,7 @@ from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
     OAuth2TokenRefreshError,
+    SupersetParseError,
 )
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.sql.parse import (
@@ -577,6 +578,10 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Does the DB engine spec support cross-catalog queries?
     supports_cross_catalog_queries = False
 
+    # Does the DB engine support schemas? When set to False the schema selector is
+    # hidden in the dataset creation UI and schema is not required for table access.
+    supports_schemas = True
+
     # Does the engine supports OAuth 2.0? This requires logic to be added to one of the
     # the user impersonation methods to handle personal tokens.
     supports_oauth2 = False
@@ -678,7 +683,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
         # We need to commit here because we're going to raise an exception, which will
         # revert any non-commited changes.
-        db.session.commit()
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         # The state is passed to the OAuth2 provider, and sent back to Superset after
         # the user authorizes the access. The redirect endpoint in Superset can then
@@ -1365,8 +1370,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param sql: SQL query
         :return: Value of limit clause in query
         """
-        script = SQLScript(sql, engine=cls.engine)
-        return script.statements[-1].get_limit_value()
+        try:
+            script = SQLScript(sql, engine=cls.engine)
+            return script.statements[-1].get_limit_value()
+        except SupersetParseError:
+            # SQL with a malformed LIMIT clause (e.g. LIMIT without a value) is
+            # not parseable in sqlglot 30+, which now requires an expression arg.
+            return None
 
     @classmethod
     def get_cte_query(cls, sql: str) -> str | None:
@@ -2523,6 +2533,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             "disable_ssh_tunneling": cls.disable_ssh_tunneling,
             "supports_dynamic_catalog": cls.supports_dynamic_catalog,
             "supports_oauth2": cls.supports_oauth2,
+            "supports_schemas": cls.supports_schemas,
         }
 
     @classmethod

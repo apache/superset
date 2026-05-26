@@ -22,7 +22,7 @@ import logging
 import re
 from collections.abc import Hashable
 from datetime import datetime
-from typing import Any, Optional, TYPE_CHECKING
+from typing import Any, cast, Optional, TYPE_CHECKING
 
 import sqlalchemy as sqla
 from flask import current_app as app
@@ -53,7 +53,11 @@ from superset_core.queries.models import (
 )
 
 from superset import security_manager
-from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.exceptions import (
+    SupersetException,
+    SupersetParseError,
+    SupersetSecurityException,
+)
 from superset.explorables.base import TimeGrainDict
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.models.helpers import (
@@ -68,7 +72,7 @@ from superset.sql.parse import (
     Table,
 )
 from superset.sqllab.limiting_factor import LimitingFactor
-from superset.superset_typing import ExplorableData, QueryObjectDict
+from superset.superset_typing import DatasetColumnData, ExplorableData, QueryObjectDict
 from superset.utils import json
 from superset.utils.core import (
     GenericDataType,
@@ -98,6 +102,14 @@ class SqlTablesMixin:  # pylint: disable=too-few-public-methods
                 ).tables
             )
         except (SupersetSecurityException, SupersetParseError, TemplateError):
+            return []
+        except SupersetException as ex:
+            # Jinja macros such as ``{{ dataset(id) }}`` or ``{{ metric(...) }}``
+            # may reference resources that no longer exist (e.g. a deleted
+            # dataset). Surfacing the failure here would break list endpoints
+            # that include ``sql_tables`` in their payload, hiding every saved
+            # query from the user. Treat it as a parse failure instead.
+            logger.warning("Unable to extract tables from SQL via Jinja: %s", ex)
             return []
 
 
@@ -277,7 +289,7 @@ class Query(
             ],
             "filter_select": True,
             "name": self.tab_name,
-            "columns": [o.data for o in self.columns],
+            "columns": [cast(DatasetColumnData, o.data) for o in self.columns],
             "metrics": [],
             "id": self.id,
             "type": self.type,
