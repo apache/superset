@@ -473,3 +473,150 @@ class TestChartActivityView(SupersetTestCase):
             )
             dataset.description = original_description
             db.session.commit()
+
+
+class TestDatasetActivityView(SupersetTestCase):
+    """T033–T036 — ``GET /api/v1/dataset/<uuid>/activity/`` (US3).
+
+    Dataset activity = dataset's own edits only. **No** transitive layer
+    in V2 (AV-004) — even when charts use the dataset, those chart edits
+    do NOT appear here. ``?include=related`` and ``?include=all``
+    collapse to the same self-only stream as ``?include=self``.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _load_data(self, load_birth_names_dashboard_with_slices):  # noqa: PT004, F811
+        pass
+
+    def _activity(self, dataset_uuid: str, **query: Any) -> Any:
+        return self.client.get(
+            f"/api/v1/dataset/{dataset_uuid}/activity/",
+            query_string=query,
+        )
+
+    # ---- 4xx boundary cases ----
+
+    def test_dataset_activity_returns_404_for_unknown_uuid(self) -> None:
+        self.login(ADMIN_USERNAME)
+        rv = self._activity("00000000-0000-0000-0000-000000000000")
+        assert rv.status_code == 404
+
+    def test_dataset_activity_returns_400_for_invalid_uuid(self) -> None:
+        self.login(ADMIN_USERNAME)
+        rv = self._activity("not-a-uuid")
+        assert rv.status_code == 400
+
+    def test_dataset_activity_returns_400_for_invalid_include(self) -> None:
+        _persist_fixture_state()
+        dataset = _get_birth_names_dataset()
+        assert dataset is not None
+        self.login(ADMIN_USERNAME)
+        rv = self._activity(str(dataset.uuid), include="upstream")
+        assert rv.status_code == 400
+
+    def test_dataset_activity_denies_non_owner(self) -> None:
+        _persist_fixture_state()
+        dataset = _get_birth_names_dataset()
+        assert dataset is not None
+        self.login(ALPHA_USERNAME)
+        rv = self._activity(str(dataset.uuid))
+        assert rv.status_code == 403
+
+    # ---- 200 happy paths ----
+
+    def test_dataset_activity_returns_200_with_envelope_shape(self) -> None:
+        _persist_fixture_state()
+        dataset = _get_birth_names_dataset()
+        assert dataset is not None
+        self.login(ADMIN_USERNAME)
+        rv = self._activity(str(dataset.uuid))
+        assert rv.status_code == 200
+        body = _json.loads(rv.data.decode("utf-8"))
+        assert isinstance(body["result"], list)
+        assert isinstance(body["count"], int)
+
+    def test_dataset_activity_includes_dataset_self_edits(self) -> None:
+        """T036: the dataset's own scalar edits appear as ``source=self``,
+        ``entity_kind=SqlaTable``."""
+        _persist_fixture_state()
+        dataset = _get_birth_names_dataset()
+        assert dataset is not None
+        dataset_id = dataset.id
+        dataset_uuid = str(dataset.uuid)
+        original_description = dataset.description
+
+        try:
+            dataset.description = "edited self for dataset activity"
+            db.session.commit()
+
+            self.login(ADMIN_USERNAME)
+            rv = self._activity(dataset_uuid)
+            assert rv.status_code == 200
+            body = _json.loads(rv.data.decode("utf-8"))
+            self_records = [
+                r
+                for r in body["result"]
+                if r["entity_kind"] == "SqlaTable" and r["source"] == "self"
+            ]
+            got = [(r["entity_kind"], r["source"]) for r in body["result"]]
+            assert self_records, (
+                f"Expected ≥1 SqlaTable/self record from the dataset edit; got: {got}"
+            )
+        finally:
+            db.session.rollback()
+            dataset = (
+                db.session.query(SqlaTable).filter(SqlaTable.id == dataset_id).one()
+            )
+            dataset.description = original_description
+            db.session.commit()
+
+    def test_dataset_activity_excludes_chart_edits(self) -> None:
+        """T035 / AS-1 / AV-004: When a chart that uses the dataset is
+        edited, that edit does NOT appear in the dataset's activity stream.
+        Datasets are read-only upstream in V2."""
+        _persist_fixture_state()
+        dataset = _get_birth_names_dataset()
+        chart = db.session.query(Slice).filter(Slice.slice_name == "Girls").first()
+        assert dataset is not None
+        assert chart is not None
+        dataset_uuid = str(dataset.uuid)
+        chart_id = chart.id
+        chart_original_name = chart.slice_name
+
+        try:
+            # Edit the chart — generates a Slice change record. The
+            # dataset's activity MUST NOT surface it.
+            chart.slice_name = f"{chart_original_name} (edited from dataset test)"
+            db.session.commit()
+
+            self.login(ADMIN_USERNAME)
+            rv = self._activity(dataset_uuid)
+            assert rv.status_code == 200
+            body = _json.loads(rv.data.decode("utf-8"))
+            for record in body["result"]:
+                assert record["entity_kind"] == "SqlaTable", (
+                    "Non-dataset record leaked into dataset's activity "
+                    f"stream: {record}"
+                )
+                assert record["source"] == "self", (
+                    f"Dataset activity contains a related record: {record}"
+                )
+        finally:
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = chart_original_name
+            db.session.commit()
+
+    def test_dataset_activity_related_only_returns_empty(self) -> None:
+        """AV-004: datasets have no transitive layer. ``?include=related``
+        returns an empty result list because there are no related entities
+        to draw from."""
+        _persist_fixture_state()
+        dataset = _get_birth_names_dataset()
+        assert dataset is not None
+        self.login(ADMIN_USERNAME)
+        rv = self._activity(str(dataset.uuid), include="related")
+        assert rv.status_code == 200
+        body = _json.loads(rv.data.decode("utf-8"))
+        assert body["result"] == []
+        assert body["count"] == 0
