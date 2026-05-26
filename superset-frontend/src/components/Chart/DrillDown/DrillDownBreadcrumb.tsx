@@ -75,6 +75,12 @@ export function DrillDownBreadcrumb({
         role="button"
         tabIndex={0}
         onClick={handleClick(0)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            onJumpTo(0);
+          }
+        }}
         css={css`
           cursor: pointer;
           color: ${theme.colorPrimary};
@@ -94,6 +100,12 @@ export function DrillDownBreadcrumb({
                 role="button"
                 tabIndex={0}
                 onClick={handleClick(index + 1)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    onJumpTo(index + 1);
+                  }
+                }}
                 css={css`
                   cursor: pointer;
                   color: ${theme.colorPrimary};

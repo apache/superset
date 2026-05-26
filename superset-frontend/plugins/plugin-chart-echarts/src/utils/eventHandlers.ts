@@ -187,6 +187,17 @@ export const allEventHandlers = (
               }),
             });
           });
+          // Also emit cross-filter so other dashboard charts update
+          if (emitCrossFilters) {
+            const crossFilterMask = getCrossFilterDataMask(
+              selectedValues,
+              groupby,
+              labelMap,
+            )(e.name);
+            if (crossFilterMask?.dataMask) {
+              setDataMask(crossFilterMask.dataMask);
+            }
+          }
           const label = drillFilters
             .map(f => f.formattedVal ?? String(f.val))
             .join(', ');

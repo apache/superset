@@ -125,7 +125,7 @@ export default function transformProps(
     currencyFormats = {},
     currencyCodeColumn,
   } = datasource;
-  const { setDataMask = () => {}, onContextMenu, onDrillDown } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const BORDER_COLOR = theme.colorBgBase;
 
@@ -317,7 +317,6 @@ export default function transformProps(
     groupby,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
-    onDrillDown,
     refs,
     coltypeMapping,
   };

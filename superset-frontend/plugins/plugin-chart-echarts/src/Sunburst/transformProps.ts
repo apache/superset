@@ -239,7 +239,7 @@ export default function transformProps(
   const visWidth = containerWidth - padding.left - padding.right;
   const visHeight = containerHeight - padding.top - padding.bottom;
   const radius = Math.min(visWidth, visHeight) / 2;
-  const { setDataMask = () => {}, onContextMenu, onDrillDown } = hooks;
+  const { setDataMask = () => {}, onContextMenu } = hooks;
   const columnsLabelMap = new Map<string, string[]>();
   const metricLabel = getMetricLabel(metric);
   const secondaryMetricLabel = secondaryMetric
@@ -404,7 +404,6 @@ export default function transformProps(
     groupby,
     selectedValues: filterState.selectedValues || [],
     onContextMenu,
-    onDrillDown,
     refs,
     coltypeMapping,
   };

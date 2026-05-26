@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
   ensureIsArray,
@@ -218,7 +219,7 @@ export function useDrillDownState({
       })
       .catch(err => {
         if (!cancelled) {
-          setError(err?.message || 'Failed to load drill-down data');
+          setError(err?.message || t('Failed to load drill-down data'));
         }
       })
       .finally(() => {
