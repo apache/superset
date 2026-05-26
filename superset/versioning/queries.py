@@ -292,6 +292,8 @@ def list_change_records_batch(
 def list_versions(
     model_cls: type,
     entity_uuid: UUID,
+    *,
+    entity: Optional[Any] = None,
 ) -> Optional[list[dict[str, Any]]]:
     """Return the version history for the entity identified by *entity_uuid*.
 
@@ -305,10 +307,17 @@ def list_versions(
     ``1`` → update, ``2`` → delete). ``changed_by`` is the User row keyed
     off ``version_transaction.user_id``, or ``None`` when the save had no
     Flask user context (CLI, import, etc.).
+
+    Pass *entity* to skip the ``find_active_by_uuid`` lookup when the
+    caller has already resolved the entity (API handlers do this to enforce
+    ``raise_for_ownership`` before calling here). The skip saves one
+    ``WHERE uuid = ?`` query — that lookup isn't identity-map-cacheable
+    because ``uuid`` is a unique non-PK column.
     """
-    entity = find_active_by_uuid(model_cls, entity_uuid)
     if entity is None:
-        return None
+        entity = find_active_by_uuid(model_cls, entity_uuid)
+        if entity is None:
+            return None
 
     ver_tbl, tx_tbl, user_tbl = _resolve_version_tables(model_cls)
     stmt = (
@@ -350,7 +359,11 @@ def list_versions(
 
 
 def resolve_version_uuid(
-    model_cls: type, entity_uuid: UUID, version_uuid: UUID
+    model_cls: type,
+    entity_uuid: UUID,
+    version_uuid: UUID,
+    *,
+    entity: Optional[Any] = None,
 ) -> Optional[int]:
     """Translate a ``version_uuid`` into the 0-based ``version_number`` that
     :func:`superset.versioning.restore.restore_version` accepts, or ``None``
@@ -369,10 +382,14 @@ def resolve_version_uuid(
     practical N is at most a few hundred. If retention is ever
     disabled (``= 0``) on a heavily-edited entity, this loop is the
     place to revisit.
+
+    Pass *entity* to skip the ``find_active_by_uuid`` lookup; see
+    :func:`list_versions` for the rationale.
     """
-    entity = find_active_by_uuid(model_cls, entity_uuid)
     if entity is None:
-        return None
+        entity = find_active_by_uuid(model_cls, entity_uuid)
+        if entity is None:
+            return None
 
     ver_cls = version_class(model_cls)
     tx_ids = (
@@ -394,6 +411,8 @@ def get_version(
     model_cls: type,
     entity_uuid: UUID,
     version_uuid: UUID,
+    *,
+    entity: Optional[Any] = None,
 ) -> Optional[dict[str, Any]]:
     """Return the entity's state at the specified version as a dict.
 
@@ -406,15 +425,23 @@ def get_version(
 
     Returns ``None`` when either *entity_uuid* or *version_uuid* does not
     match — callers should translate to 404.
+
+    Pass *entity* to skip the ``find_active_by_uuid`` lookup; see
+    :func:`list_versions` for the rationale. The same *entity* is threaded
+    into :func:`resolve_version_uuid` to eliminate a second redundant
+    lookup on the same request.
     """
     # pylint: disable=import-outside-toplevel
     from superset.connectors.sqla.models import SqlaTable
 
-    entity = find_active_by_uuid(model_cls, entity_uuid)
     if entity is None:
-        return None
+        entity = find_active_by_uuid(model_cls, entity_uuid)
+        if entity is None:
+            return None
 
-    version_num = resolve_version_uuid(model_cls, entity_uuid, version_uuid)
+    version_num = resolve_version_uuid(
+        model_cls, entity_uuid, version_uuid, entity=entity
+    )
     if version_num is None:
         return None
 

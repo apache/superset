@@ -1333,7 +1333,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except SupersetSecurityException:
             return self.response_403()
 
-        versions = VersionDAO.list_versions(Slice, entity_uuid)
+        versions = VersionDAO.list_versions(Slice, entity_uuid, entity=entity)
         if versions is None:
             return self.response_404()
         from superset.versioning.etag import set_version_etag_by_uuid
@@ -1415,7 +1415,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except SupersetSecurityException:
             return self.response_403()
 
-        snapshot = VersionDAO.get_version(Slice, entity_uuid, version_uuid)
+        snapshot = VersionDAO.get_version(
+            Slice, entity_uuid, version_uuid, entity=entity
+        )
         if snapshot is None:
             return self.response_404()
         from superset.versioning.etag import set_version_etag_by_uuid
