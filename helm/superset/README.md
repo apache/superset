@@ -111,9 +111,6 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | init.resources | object | `{}` |  |
 | init.tolerations | list | `[]` |  |
 | init.topologySpreadConstraints | list | `[]` | TopologySpreadConstrains to be added to init job |
-| initImage.pullPolicy | string | `"IfNotPresent"` |  |
-| initImage.repository | string | `"apache/superset"` |  |
-| initImage.tag | string | `"dockerize"` |  |
 | nameOverride | string | `nil` | Provide a name to override the name of the chart |
 | nodeSelector | object | `{}` |  |
 | postgresql | object | see `values.yaml` | Configuration values for the postgresql dependency. ref: https://github.com/bitnami/charts/tree/main/bitnami/postgresql |
