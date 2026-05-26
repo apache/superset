@@ -28,7 +28,7 @@ from superset.mcp_service.app import mcp
 from superset.utils import json
 
 
-@pytest.fixture()
+@pytest.fixture
 def mcp_server():
     return mcp
 
@@ -113,7 +113,7 @@ def test_request_valid_json_metadata() -> None:
 # --- Tool logic tests ---
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_create_layer_annotation_success(mcp_server: object) -> None:
     """Happy path: annotation created, id and fields returned."""
     mock_annotation = _make_mock_annotation(id=42, short_descr="Deploy v2.0")
@@ -137,7 +137,7 @@ async def test_create_layer_annotation_success(mcp_server: object) -> None:
     assert data["error"] is None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_create_layer_annotation_layer_not_found(mcp_server: object) -> None:
     """AnnotationLayerNotFoundError returns structured error response."""
     from superset.commands.annotation_layer.exceptions import (
@@ -164,7 +164,7 @@ async def test_create_layer_annotation_layer_not_found(mcp_server: object) -> No
     assert "999" in data["error"]
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_create_layer_annotation_invalid_error(mcp_server: object) -> None:
     """AnnotationInvalidError (e.g. duplicate short_descr) returns structured error."""
     from superset.commands.annotation_layer.annotation.exceptions import (
@@ -192,7 +192,7 @@ async def test_create_layer_annotation_invalid_error(mcp_server: object) -> None
     assert data["error"] is not None
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_create_layer_annotation_create_failed(mcp_server: object) -> None:
     """AnnotationCreateFailedError is caught and returned as error response."""
     from superset.commands.annotation_layer.annotation.exceptions import (
@@ -218,7 +218,7 @@ async def test_create_layer_annotation_create_failed(mcp_server: object) -> None
     assert "Failed to create annotation" in data["error"]
 
 
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_create_layer_annotation_optional_fields_forwarded(
     mcp_server: object,
 ) -> None:
