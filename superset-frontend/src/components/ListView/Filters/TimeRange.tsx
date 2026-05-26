@@ -249,22 +249,23 @@ function TimeRangeFilter(
         <Button
           buttonStyle="primary"
           cta
-          disabled={!validTimeRange || lastFetched !== timeRangeValue}
+          disabled={!validTimeRange}
           key="apply"
-          onClick={() => {
+          onClick={async () => {
             if (timeRangeValue === NO_TIME_RANGE) {
               onSubmit(undefined);
-            } else {
-              // evalResponse is the backend-evaluated concrete range
-              // (e.g. "2024-05-20 00:00:00 : 2024-05-26 23:59:59").
-              // Submit as [start, end] so convertFilters can split it
-              // into gt + lt API filter pairs, matching what DateRange used to do.
-              const parts = evalResponse.split(' : ');
-              onSubmit(
-                parts.length === 2
-                  ? [parts[0].trim(), parts[1].trim()]
-                  : undefined,
-              );
+              onClose();
+              return;
+            }
+            // Fetch a fresh evaluation on click so APPLY isn't gated on the
+            // slow debounce. evalResponse may be stale if the user changed the
+            // value and clicked APPLY quickly.
+            const { value: actual, error } = await fetchTimeRange(timeRangeValue);
+            if (!error && actual && actual !== NO_TIME_RANGE) {
+              const parts = actual.split(' : ');
+              if (parts.length === 2) {
+                onSubmit([parts[0].trim(), parts[1].trim()]);
+              }
             }
             onClose();
           }}
