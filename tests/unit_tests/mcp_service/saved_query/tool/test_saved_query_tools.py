@@ -268,6 +268,7 @@ async def test_list_saved_queries_pagination_info(mock_list, mcp_server):
         )
         data = json.loads(result.content[0].text)
         assert data["total_count"] == 25
+        assert data["count"] == 3
         assert data["page_size"] == 3
         assert data["has_next"] is True
         assert data["has_previous"] is False
