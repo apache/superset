@@ -59,11 +59,13 @@ const FilterPill = styled.button<{ $active: boolean }>`
       background 0.2s,
       color 0.2s;
 
-    /* AntD anticon spans carry vertical-align: -0.125em from global styles;
-       force true flex centering inside the pill. */
+    /* AntD anticon spans carry vertical-align: -0.125em from global styles.
+       align-self centers the span within the pill; the inner flex+align-items
+       centers the svg within the span. */
     .anticon {
       display: flex;
       align-items: center;
+      align-self: center;
       line-height: 0;
     }
 
