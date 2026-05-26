@@ -319,6 +319,285 @@ class TestDashboardActivityView(SupersetTestCase):
             "cap is 200 per the OpenAPI schema"
         )
 
+    def test_activity_marks_hard_deleted_chart_with_tombstone(self) -> None:
+        """T042 / D-15: when a chart was on the dashboard and has since
+        been hard-deleted, the chart's historical change records still
+        surface in the dashboard's activity stream, marked with
+        ``entity_deleted: true`` and ``entity_uuid: null``. ``entity_name``
+        is preserved from the last shadow row so the UI can show
+        "(deleted) Girls" without a live row to query.
+
+        Hard-delete pattern: edit the chart (creates a Slice change
+        record), commit, then ``db.session.delete(chart); commit``.
+        Continuum end-stamps the M2M row but does not cascade-delete
+        the shadow rows, so the history is still reachable. The
+        activity-view's tombstone check (``_check_entity_tombstones``)
+        detects the missing live row and stamps the record."""
+        _persist_fixture_state()
+        dashboard = _get_birth_names_dashboard()
+        assert dashboard is not None
+        dashboard_uuid = str(dashboard.uuid)
+        chart_to_delete = (
+            db.session.query(Slice).filter(Slice.slice_name == "Girls").first()
+        )
+        assert chart_to_delete is not None
+        original_name = chart_to_delete.slice_name
+
+        try:
+            # Step 1: generate a chart-edit change record for "Girls".
+            chart_to_delete.slice_name = f"{original_name} (pre-delete edit)"
+            db.session.commit()
+
+            # Step 2: hard-delete the chart. The fixture's _cleanup will
+            # tolerate this — its `Slice.id.in_(slice_ids)` filter
+            # silently skips the missing row.
+            db.session.delete(chart_to_delete)
+            db.session.commit()
+
+            self.login(ADMIN_USERNAME)
+            rv = self._activity(dashboard_uuid)
+            assert rv.status_code == 200
+            body = _json.loads(rv.data.decode("utf-8"))
+            tombstoned = [
+                r
+                for r in body["result"]
+                if r["entity_kind"] == "Slice" and r["entity_deleted"] is True
+            ]
+            seen = [
+                (r["entity_kind"], r["entity_deleted"]) for r in body["result"][:10]
+            ]
+            assert tombstoned, (
+                "Expected ≥1 tombstoned Slice record after the chart was "
+                f"hard-deleted; got entity_deleted values: {seen}"
+            )
+            sample = tombstoned[0]
+            got_uuid = sample["entity_uuid"]
+            assert got_uuid is None, (
+                f"Hard-deleted entity should have null entity_uuid; got {got_uuid!r}"
+            )
+            assert sample["entity_name"], (
+                "entity_name should be recovered from the last shadow row; "
+                f"got empty: {sample!r}"
+            )
+        finally:
+            db.session.rollback()
+
+    def test_activity_excludes_records_after_retention_prune(self) -> None:
+        """T051 / AV-010: retention bounds the activity feed. After
+        ``_prune_old_versions_impl`` drops shadow / change-record rows
+        whose ``version_transaction.issued_at`` is older than the
+        retention cutoff, the activity stream stops surfacing them.
+
+        Test pattern: capture the highest ``version_transaction.id``
+        before our edits, edit a chart (creating a new transaction),
+        backdate that transaction's ``issued_at`` past the retention
+        cutoff, run the prune, and assert the chart-edit no longer
+        appears in the activity stream."""
+        # pylint: disable=import-outside-toplevel
+        from datetime import datetime, timedelta
+
+        import sqlalchemy as sa
+        from sqlalchemy_continuum import versioning_manager
+
+        from superset.tasks.version_history_retention import (
+            _prune_old_versions_impl,
+        )
+
+        _persist_fixture_state()
+        dashboard = _get_birth_names_dashboard()
+        assert dashboard is not None
+        dashboard_uuid = str(dashboard.uuid)
+        chart = db.session.query(Slice).filter(Slice.slice_name == "Boys").first()
+        assert chart is not None
+        chart_id = chart.id
+        original_name = chart.slice_name
+
+        tx_table = versioning_manager.transaction_cls.__table__
+
+        # Capture pre-edit max tx_id so we can identify the rows produced
+        # by THIS test (and not backdate anything else).
+        max_tx_before = (
+            db.session.connection()
+            .execute(sa.select(sa.func.max(tx_table.c.id)))
+            .scalar()
+            or 0
+        )
+
+        try:
+            chart.slice_name = f"{original_name} (retention test)"
+            db.session.commit()
+
+            # Backdate the new transactions to before the 30-day cutoff.
+            old_timestamp = datetime.utcnow() - timedelta(days=60)
+            db.session.connection().execute(
+                sa.update(tx_table)
+                .where(tx_table.c.id > max_tx_before)
+                .values(issued_at=old_timestamp)
+            )
+            db.session.commit()
+
+            # Snapshot the activity-record count BEFORE the prune. With
+            # ?page_size=200 + the highest possible page coverage, the
+            # count field is the post-visibility filtered total.
+            self.login(ADMIN_USERNAME)
+            rv_before = self._activity(dashboard_uuid, page_size="200")
+            assert rv_before.status_code == 200
+            count_before = _json.loads(rv_before.data.decode("utf-8"))["count"]
+
+            # Run the prune. The backdated tx rows are now > 30 days old
+            # and should be deleted. AV-010 requires the prune to remove
+            # at least the backdated transaction(s) we created.
+            stats = _prune_old_versions_impl(retention_days=30)
+            assert stats.get("pruned_transactions", 0) >= 1, (
+                f"Prune should have removed our backdated tx; stats={stats}"
+            )
+
+            # After the prune, the activity endpoint still works and the
+            # filtered count has DROPPED — change records joined to the
+            # pruned transactions are no longer in the result set (the
+            # join in _fetch_change_records drops them).
+            rv_after = self._activity(dashboard_uuid, page_size="200")
+            assert rv_after.status_code == 200
+            count_after = _json.loads(rv_after.data.decode("utf-8"))["count"]
+            assert count_after < count_before, (
+                f"Activity count should decrease after prune; "
+                f"before={count_before} after={count_after}"
+            )
+        finally:
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = original_name
+            db.session.commit()
+
+    def test_activity_pagination_is_deterministic_and_disjoint(self) -> None:
+        """T039 / SC-AV-002 (pragmatic interpretation): two consecutive
+        requests for the same page return identical results, and
+        consecutive pages do not overlap.
+
+        The spec's stricter "no skip/duplicate under concurrent writes"
+        is unprovable with offset pagination — new top-inserted records
+        shift every later page by one. Cursor pagination would solve
+        this and is deferred per plan §D-10. Under THIS pagination
+        scheme, the testable guarantees are: (a) the same request fired
+        twice produces the same page (request determinism), and (b)
+        page N and page N+1 share no record under the same request
+        round. Both come from the stable
+        ``(issued_at DESC, transaction_id DESC, sequence DESC)`` sort.
+        """
+        _persist_fixture_state()
+        dashboard = _get_birth_names_dashboard()
+        assert dashboard is not None
+        dashboard_uuid = str(dashboard.uuid)
+        self.login(ADMIN_USERNAME)
+
+        rv1a = self._activity(dashboard_uuid, page="0", page_size="25")
+        rv1b = self._activity(dashboard_uuid, page="0", page_size="25")
+        rv2 = self._activity(dashboard_uuid, page="1", page_size="25")
+        assert rv1a.status_code == 200
+        assert rv1b.status_code == 200
+        assert rv2.status_code == 200
+
+        page0_first = _json.loads(rv1a.data.decode("utf-8"))["result"]
+        page0_second = _json.loads(rv1b.data.decode("utf-8"))["result"]
+        page1 = _json.loads(rv2.data.decode("utf-8"))["result"]
+
+        # (a) Request determinism: same page twice → same records in same
+        #     order. Use (entity_kind, entity_id_internal_proxy, tx, seq)
+        #     fingerprint — entity_uuid + transaction_id is sufficient
+        #     since entity_id isn't in the API contract.
+        fingerprint = lambda r: (  # noqa: E731
+            r["entity_kind"],
+            r["entity_uuid"],
+            r["transaction_id"],
+            r["kind"],
+            tuple(r["path"]) if r["path"] else (),
+        )
+        assert [fingerprint(r) for r in page0_first] == [
+            fingerprint(r) for r in page0_second
+        ], "page=0 fired twice returned different records"
+
+        # (b) Page 0 and page 1 are disjoint under one request round.
+        page0_keys = {fingerprint(r) for r in page0_first}
+        page1_keys = {fingerprint(r) for r in page1}
+        overlap = page0_keys & page1_keys
+        assert not overlap, f"page=0 and page=1 returned overlapping records: {overlap}"
+
+    @pytest.mark.xfail(
+        reason=(
+            "AV-015 requires sc-103156's restore code to emit a synthetic "
+            "change record with kind='restore', path=['__meta__', "
+            "'restored_from'], and to_value carrying the source version_uuid "
+            "+ label. sc-103156's restore_version() currently does not emit "
+            "this — it relies on the diff capture for the field changes the "
+            "revert produces, which surface as kind='field' records. The "
+            "activity-view layer correctly passes through whatever kind "
+            "sc-103156 emits; this test will pass once the upstream "
+            "emission lands. Tracking via the AV-015 contract in the spec; "
+            "no code change required on the sc-107283 side."
+        ),
+        strict=True,
+    )
+    def test_activity_surfaces_dashboard_restore_event(self) -> None:
+        """T044 / AV-015: restoring a dashboard to a prior version surfaces
+        a ``kind='restore'`` record in the dashboard's own activity stream
+        (``source='self'``). The restore is emitted by sc-103156's restore
+        path and the activity layer passes it through without special-
+        casing."""
+        _persist_fixture_state()
+        dashboard = _get_birth_names_dashboard()
+        assert dashboard is not None
+        dashboard_uuid = str(dashboard.uuid)
+        dashboard_id = dashboard.id
+        original_title = dashboard.dashboard_title
+
+        try:
+            # Two edits → at least two restorable prior versions.
+            dashboard.dashboard_title = f"{original_title} v1"
+            db.session.commit()
+            dashboard.dashboard_title = f"{original_title} v2"
+            db.session.commit()
+
+            self.login(ADMIN_USERNAME)
+            # Find a prior version to restore to (version_number 0 is the
+            # baseline; we restore to whichever earlier version the list
+            # endpoint surfaces).
+            versions_rv = self.client.get(
+                f"/api/v1/dashboard/{dashboard_uuid}/versions/"
+            )
+            assert versions_rv.status_code == 200, versions_rv.data
+            versions = _json.loads(versions_rv.data.decode("utf-8"))["result"]
+            assert len(versions) >= 2, f"expected ≥2 versions, got {versions}"
+            target_version_uuid = versions[0]["version_uuid"]  # earliest
+
+            # Restore. The endpoint commits; finally clean up below.
+            restore_rv = self.client.post(
+                f"/api/v1/dashboard/{dashboard_uuid}"
+                f"/versions/{target_version_uuid}/restore"
+            )
+            assert restore_rv.status_code == 200, restore_rv.data
+
+            # Activity stream should now show a restore record on the
+            # dashboard itself.
+            rv = self._activity(dashboard_uuid, include="self")
+            assert rv.status_code == 200
+            body = _json.loads(rv.data.decode("utf-8"))
+            restore_records = [
+                r
+                for r in body["result"]
+                if r["kind"] == "restore" and r["entity_kind"] == "Dashboard"
+            ]
+            assert restore_records, (
+                "Expected at least one kind='restore' Dashboard record; "
+                f"got kinds: {[r['kind'] for r in body['result'][:10]]}"
+            )
+        finally:
+            db.session.rollback()
+            dashboard = (
+                db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+            )
+            dashboard.dashboard_title = original_title
+            db.session.commit()
+
 
 class TestChartActivityView(SupersetTestCase):
     """T028–T032 — ``GET /api/v1/chart/<uuid>/activity/`` (US2).
