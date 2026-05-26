@@ -1,0 +1,127 @@
+name: Scheduled Docker image refresh
+
+# Re-runs the Docker image build against the latest published release on a
+# weekly cadence. The code being built doesn't change — but the base image
+# layers (python:*-slim-trixie and its OS packages) DO get upstream
+# security patches between Superset releases, and those patches don't
+# reach our published images unless we rebuild.
+#
+# Without this workflow, `apache/superset:<latest>` lags behind upstream
+# Debian/Python base patches by whatever interval falls between Superset
+# releases (typically 3–6 weeks). With it, the lag drops to at most one
+# week regardless of release cadence.
+#
+# This is a security-hygiene cron, not a release. It overwrites the
+# existing tags for the most recent release (e.g. `apache/superset:5.0.0`
+# and `apache/superset:latest`) with bit-for-bit-equivalent contents
+# layered on a refreshed base. Image digests change; everything users
+# actually pin against (image content, code, deps) does not.
+
+on:
+  schedule:
+    # Mondays at 06:00 UTC — gives the weekend for upstream patches to
+    # settle and surfaces failures at the start of the work week so a
+    # human can react.
+    - cron: "0 6 * * 1"
+
+  # Manual trigger so operators can force a refresh on demand (e.g.
+  # immediately after a high-severity base-image CVE drops).
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# Serialize with itself AND with the release publisher — both push to the
+# same Docker Hub tags, so a race here could end with stale layers
+# winning.
+concurrency:
+  group: docker-publish-latest-release
+  cancel-in-progress: false
+
+jobs:
+  config:
+    runs-on: ubuntu-24.04
+    outputs:
+      has-secrets: ${{ steps.check.outputs.has-secrets }}
+      latest-release: ${{ steps.latest.outputs.tag }}
+    steps:
+      - name: Check for Docker Hub secrets
+        id: check
+        shell: bash
+        run: |
+          if [ -n "${DOCKERHUB_USER}" ]; then
+            echo "has-secrets=1" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          DOCKERHUB_USER: ${{ (secrets.DOCKERHUB_USER != '' && secrets.DOCKERHUB_TOKEN != '') || '' }}
+
+      - name: Look up latest published release
+        id: latest
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # `releases/latest` returns the latest non-prerelease, non-draft
+          # release — which is exactly what `apache/superset:latest`
+          # should reflect.
+          TAG=$(gh api repos/${{ github.repository }}/releases/latest --jq .tag_name)
+          if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
+            echo "::error::Could not determine latest release tag"
+            exit 1
+          fi
+          echo "Latest release: $TAG"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+  docker-rebuild:
+    needs: config
+    if: needs.config.outputs.has-secrets
+    name: docker-rebuild
+    runs-on: ubuntu-24.04
+    strategy:
+      # Mirror the same matrix the release publisher uses so every variant
+      # operators consume from Docker Hub gets the refreshed base.
+      matrix:
+        build_preset: ["dev", "lean", "py310", "websocket", "dockerize", "py311", "py312"]
+      fail-fast: false
+    steps:
+      - name: "Checkout release tag: ${{ needs.config.outputs.latest-release }}"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          ref: ${{ needs.config.outputs.latest-release }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup Docker Environment
+        uses: ./.github/actions/setup-docker
+        with:
+          dockerhub-user: ${{ secrets.DOCKERHUB_USER }}
+          dockerhub-token: ${{ secrets.DOCKERHUB_TOKEN }}
+          install-docker-compose: "false"
+          build: "true"
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: 20
+
+      - name: Setup supersetbot
+        uses: ./.github/actions/setup-supersetbot/
+
+      - name: Rebuild and push
+        env:
+          DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Reuses the same supersetbot invocation as the release
+          # publisher (`tag-release.yml`), so the resulting tags are
+          # identical to what a manual release dispatch would produce —
+          # just with a freshly-pulled base image layer underneath.
+          supersetbot docker \
+            --push \
+            --preset ${{ matrix.build_preset }} \
+            --context release \
+            --context-ref "${{ needs.config.outputs.latest-release }}" \
+            --force-latest \
+            --platform "linux/arm64" \
+            --platform "linux/amd64"
