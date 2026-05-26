@@ -620,3 +620,66 @@ class TestDatasetActivityView(SupersetTestCase):
         body = _json.loads(rv.data.decode("utf-8"))
         assert body["result"] == []
         assert body["count"] == 0
+
+
+class TestActivityOpenApiSpec(SupersetTestCase):
+    """T049 — confirm the three ``/activity/`` endpoints are surfaced by
+    FAB-generated OpenAPI at ``/api/v1/_openapi``.
+
+    ``base_api_tests.py::TestOpenApiSpec::test_open_api_spec`` already
+    validates the full spec's YAML correctness on every CI run. This
+    class adds activity-specific assertions: the paths exist, are
+    documented with the expected query parameters, and reference an
+    ``ActivityResponse``-shaped 200 response.
+    """
+
+    def _spec(self) -> dict[str, Any]:
+        self.login(ADMIN_USERNAME)
+        rv = self.client.get("/api/v1/_openapi")
+        assert rv.status_code == 200, rv.status_code
+        return _json.loads(rv.data.decode("utf-8"))
+
+    def test_three_activity_paths_appear_in_openapi(self) -> None:
+        """One path per endpoint family. Paths are keyed by the URL
+        template, not the method name, so the FAB-generated keys are
+        the ``/<uuid_str>/activity/`` route templates."""
+        spec = self._spec()
+        paths = spec.get("paths", {})
+        # FAB templates the path-arg as ``{uuid_str}`` in the OpenAPI dict.
+        expected = {
+            "/api/v1/dashboard/{uuid_str}/activity/",
+            "/api/v1/chart/{uuid_str}/activity/",
+            "/api/v1/dataset/{uuid_str}/activity/",
+        }
+        missing = expected - paths.keys()
+        assert not missing, f"missing activity paths in OpenAPI: {missing}"
+
+    def test_activity_endpoints_document_query_params(self) -> None:
+        """Each endpoint declares since / until / include / page /
+        page_size as query parameters. Spot-check on the dashboard
+        endpoint — the YAML docstring is the same shape across all
+        three so this assertion is sufficient."""
+        spec = self._spec()
+        op = spec["paths"]["/api/v1/dashboard/{uuid_str}/activity/"]["get"]
+        params = {p["name"]: p for p in op.get("parameters", [])}
+        for expected in ("since", "until", "include", "page", "page_size"):
+            assert expected in params, (
+                f"query param {expected!r} missing from dashboard /activity/"
+            )
+        # include enum is the published contract — verify it's correct.
+        include_param = params["include"]
+        assert include_param["in"] == "query"
+        assert set(include_param["schema"]["enum"]) == {"self", "related", "all"}
+
+    def test_activity_endpoints_declare_200_response(self) -> None:
+        """Each endpoint declares a 200 response. The exact schema
+        reference depends on how FAB resolves ``schema: ActivityResponseSchema``
+        in the YAML docstring; here we just confirm the 200 + the 4xx
+        error responses are all present."""
+        spec = self._spec()
+        op = spec["paths"]["/api/v1/dashboard/{uuid_str}/activity/"]["get"]
+        responses = op.get("responses", {})
+        for code in ("200", "400", "401", "403", "404"):
+            assert code in responses, (
+                f"response code {code} missing on dashboard /activity/"
+            )

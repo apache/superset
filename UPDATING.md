@@ -74,6 +74,70 @@ The array is empty for baseline (`operation_type=0`) transactions. `kind` enumer
 - Existing entity endpoints (`GET`/`PUT /api/v1/{chart,dashboard,dataset}/<pk>`) gain an `ETag` response header and the save response gains `old_version_uuid` / `new_version_uuid` body fields. No existing fields are removed or repurposed.
 - Version capture is always active — no feature flag.
 
+### Cross-entity activity stream for charts, dashboards, and datasets
+
+A read-only companion to the version-history endpoints (above). Each entity type gains an `/activity/` endpoint that returns a chronological stream of edits — the entity's own edits plus, for dashboards and charts, transitive edits to related entities during their association windows.
+
+**New endpoints** (per entity type):
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/api/v1/dashboard/<uuid>/activity/` | Dashboard own edits + edits to charts attached during their dashboard window + edits to datasets those charts pointed at during their chart window |
+| `GET` | `/api/v1/chart/<uuid>/activity/` | Chart own edits + edits to datasets the chart pointed at during association |
+| `GET` | `/api/v1/dataset/<uuid>/activity/` | Dataset own edits only (no transitive layer in V2) |
+
+**Query parameters** (all optional):
+
+| Param | Type | Default | Purpose |
+|---|---|---|---|
+| `since` | ISO 8601 datetime | — | Lower bound on `issued_at` |
+| `until` | ISO 8601 datetime | — | Upper bound on `issued_at` |
+| `include` | `self` \| `related` \| `all` | `all` | Filter to only the entity's own edits, only related edits, or both |
+| `page` | integer ≥ 0 | `0` | 0-based page index |
+| `page_size` | integer in `[1, 200]` | `25` | Records per page (clamped silently to 200) |
+
+**Response shape:**
+
+```json
+{
+  "result": [
+    {
+      "version_uuid": "...",
+      "entity_kind": "Slice",
+      "entity_uuid": "...",
+      "entity_name": "Top 10 Girls",
+      "entity_deleted": false,
+      "entity_deletion_state": null,
+      "source": "related",
+      "transaction_id": 1234,
+      "issued_at": "2026-05-26T12:00:00",
+      "changed_by": {"id": 5, "first_name": "Mike", "last_name": "Bridge"},
+      "kind": "filter",
+      "path": ["params", "adhoc_filters", "country"],
+      "from_value": null,
+      "to_value": "US",
+      "summary": "Chart filter changed: Top 10 Girls",
+      "impact": null
+    }
+  ],
+  "count": 47
+}
+```
+
+`count` is the total record count *after* the silent permission filter (see below), not the raw query size.
+
+**Authorisation:** reuses the resource's existing `can_write` permission. Workspace admins can read any entity's activity stream. The endpoint runs `raise_for_ownership` on the path entity — non-owners get `403`.
+
+**Silent permission filter (AV-008):** records whose source entity the requesting user can't read are silently dropped — no placeholder, no count contribution. The frontend cannot distinguish "no activity" from "you can't see this activity."
+
+**Tombstones (AV-009 / D-15):** when an activity record references a hard-deleted source entity, the record still appears with `entity_deleted: true`, `entity_uuid: null`, and `entity_name` recovered from the last shadow row.
+
+**Impact on external integrations:**
+
+- Pure read-only. No new tables, no new columns, no migrations. Reads sc-103156's shadow tables and the `version_changes` table.
+- No new save-path code paths — perf-validation gate confirms the activity-view branch does not regress sc-103156's SC-004 50ms-overhead budget.
+- No feature flag; the endpoints are always available once sc-103156's version-history feature is enabled.
+
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:
