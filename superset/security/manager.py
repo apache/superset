@@ -3217,7 +3217,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return (
                     self.session.query(self.user_model)
                     .options(*eager)
-                    .filter_by(email=email)
+                    .filter(self.user_model.email == email)
                     .one_or_none()
                 )
             except MultipleResultsFound:
