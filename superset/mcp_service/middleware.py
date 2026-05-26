@@ -388,7 +388,14 @@ class StructuredContentStripperMiddleware(Middleware):
         context: MiddlewareContext[mt.ListToolsRequest],
         call_next: CallNext[mt.ListToolsRequest, Sequence[Tool]],
     ) -> Sequence[Tool]:
-        tools = await call_next(context)
+        try:
+            tools = await call_next(context)
+        except Exception:
+            # ToolError raised by inner middleware (e.g. GlobalErrorHandlerMiddleware)
+            # cannot be encoded by the MCP SDK in a tools/list response — it expects a
+            # list, not an error object — causing "encoding without a string argument".
+            # Return an empty list; GlobalErrorHandlerMiddleware already logged it.
+            return []
         return [
             t.model_copy(update={"output_schema": None})
             if t.output_schema is not None
