@@ -349,7 +349,7 @@ function findMatchingNativeFilter(
 function buildExtraFormDataFilters(
   risonFilter: RisonFilter,
   columnName: string,
-): { col: string; op: string; val: unknown }[] {
+): QueryObjectFilterClause[] {
   const { operator, comparator } = risonFilter;
 
   if (operator === 'IN' || (operator === '==' && Array.isArray(comparator))) {
@@ -377,7 +377,13 @@ function buildExtraFormDataFilters(
     ];
   }
 
-  return [{ col: columnName, op: operator, val: comparator }];
+  return [
+    {
+      col: columnName,
+      op: operator,
+      val: comparator,
+    } as QueryObjectFilterClause,
+  ];
 }
 
 /**
