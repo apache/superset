@@ -17,7 +17,6 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
 import {
   BinaryQueryObjectFilterClause,
   ensureIsArray,
@@ -31,11 +30,6 @@ import {
 } from 'src/components/Chart/chartAction';
 import { getQuerySettings } from 'src/explore/exploreUtils';
 import { DrillDownLevel } from './types';
-import {
-  pushDrillLevel,
-  resetDrillTo,
-  setDrillLeaf,
-} from './drillDownSlice';
 
 /**
  * The form-data field name that stores the ordered list of drill columns.
@@ -54,8 +48,8 @@ const DEFAULT_ADHOC_FILTERS_FIELD = 'adhoc_filters';
 
 interface UseDrillDownStateArgs {
   formData: QueryFormData;
+  /** Original chart data, shown when the drill stack is empty */
   baseQueriesResponse?: QueryData[] | null;
-  chartId?: number;
 }
 
 interface UseDrillDownStateResult {
@@ -79,7 +73,6 @@ interface UseDrillDownStateResult {
   hasHierarchy: boolean;
   /** Whether there are more levels to drill into from the current state */
   hasMoreLevels: boolean;
-  cacheBuster: string;
   /**
    * Push a new level onto the drill stack. Called from the chart's click
    * handler with the filters that identify the clicked data point.
@@ -106,22 +99,72 @@ interface UseDrillDownStateResult {
 export function useDrillDownState({
   formData,
   baseQueriesResponse,
-  chartId,
 }: UseDrillDownStateArgs): UseDrillDownStateResult {
-  const dispatch = useDispatch();
+  // Storage key based on chart's slice_id so drill state survives
+  // re-mounts triggered by cross-filter cascades from other charts
+  const storageKey = `drilldown_${formData.slice_id ?? 'explore'}`;
 
-  // Read drill state from Redux (survives unmount/mount)
-  const reduxState = useSelector((state: Record<string, any>) =>
-    chartId !== undefined ? state.drillDown?.[chartId] : undefined,
+  const [drillStack, setDrillStackState] = useState<DrillDownLevel[]>(() => {
+    try {
+      const saved = sessionStorage.getItem(`${storageKey}_stack`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [selectedLeaf, setSelectedLeafState] = useState<string | undefined>(() => {
+    try {
+      return sessionStorage.getItem(`${storageKey}_leaf`) || undefined;
+    } catch {
+      return undefined;
+    }
+  });
+
+  const setDrillStack = useCallback(
+    (
+      updater: DrillDownLevel[] | ((prev: DrillDownLevel[]) => DrillDownLevel[]),
+    ) => {
+      setDrillStackState(prev => {
+        const next = typeof updater === 'function' ? updater(prev) : updater;
+        try {
+          if (next.length === 0) {
+            sessionStorage.removeItem(`${storageKey}_stack`);
+          } else {
+            sessionStorage.setItem(`${storageKey}_stack`, JSON.stringify(next));
+          }
+        } catch {
+          // ignore quota errors
+        }
+        return next;
+      });
+    },
+    [storageKey],
   );
-  const drillStack: DrillDownLevel[] = reduxState?.stack ?? [];
-  const selectedLeaf: string | undefined = reduxState?.selectedLeaf;
+
+  const setSelectedLeaf = useCallback(
+    (val: string | undefined) => {
+      setSelectedLeafState(val);
+      try {
+        if (val === undefined) {
+          sessionStorage.removeItem(`${storageKey}_leaf`);
+        } else {
+          sessionStorage.setItem(`${storageKey}_leaf`, val);
+        }
+      } catch {
+        // ignore quota errors
+      }
+    },
+    [storageKey],
+  );
 
   const [drillData, setDrillData] = useState<QueryData[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
-  // Force ChartRenderer to re-render when drill data or depth changes
-  const [cacheBuster, setCacheBuster] = useState('');
+
+  // Note: We intentionally do NOT reset drill stack on formData changes,
+  // because cross-filters from other charts cause formData reference updates
+  // and would wipe out the user's drill navigation. The drill state is
+  // ephemeral by design — it's lost on page refresh, which is acceptable.
 
   const hierarchy = useMemo<string[]>(
     () => {
@@ -188,10 +231,6 @@ export function useDrillDownState({
   const hasHierarchy = hierarchy.length > 0;
   const currentDepth = drillStack.length;
   const hasMoreLevels = hasHierarchy && currentDepth < hierarchy.length - 1;
-
-  useEffect(() => {
-    setCacheBuster(`drill-${currentDepth}-${Date.now()}`);
-  }, [drillData, currentDepth]);
 
   const effectiveFormData = useMemo<QueryFormData>(() => {
     if (currentDepth === 0) {
@@ -287,32 +326,32 @@ export function useDrillDownState({
     };
   }, [effectiveFormData, currentDepth]);
 
-  const drillDown = useCallback(
-    (filters: BinaryQueryObjectFilterClause[], label: string) => {
-      if (chartId === undefined) return;
-      if (drillStack.length >= hierarchy.length - 1) {
-        // At last level — set leaf
-        dispatch(setDrillLeaf({ chartId, leaf: label }));
-        return;
-      }
-      const nextColumn = hierarchy[drillStack.length];
-      dispatch(pushDrillLevel({ chartId, level: { column: nextColumn, filters, label } }));
+  const drillDown = useCallback<UseDrillDownStateResult['drillDown']>(
+    (filters, label) => {
+      setDrillStack(prev => {
+        // If we're at the last level, can't drill deeper — just record the selection
+        if (prev.length >= hierarchy.length - 1) {
+          setSelectedLeaf(label);
+          return prev;
+        }
+        // Clear any previous leaf selection when drilling deeper
+        setSelectedLeaf(undefined);
+        const nextColumn = hierarchy[prev.length];
+        return [...prev, { column: nextColumn, filters, label }];
+      });
     },
-    [chartId, dispatch, drillStack.length, hierarchy],
+    [hierarchy],
   );
 
-  const resetTo = useCallback(
-    (depth: number) => {
-      if (chartId === undefined) return;
-      dispatch(resetDrillTo({ chartId, depth }));
-    },
-    [chartId, dispatch],
-  );
+  const resetTo = useCallback((depth: number) => {
+    setDrillStack(prev => prev.slice(0, depth));
+    setSelectedLeaf(undefined);
+  }, []);
 
   const reset = useCallback(() => {
-    if (chartId === undefined) return;
-    dispatch(resetDrillTo({ chartId, depth: 0 }));
-  }, [chartId, dispatch]);
+    setDrillStack([]);
+    setSelectedLeaf(undefined);
+  }, []);
 
   return {
     isDrilling: currentDepth > 0,
@@ -326,7 +365,6 @@ export function useDrillDownState({
     error,
     hasHierarchy,
     hasMoreLevels,
-    cacheBuster,
     drillDown,
     resetTo,
     reset,

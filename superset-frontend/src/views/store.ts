@@ -128,8 +128,6 @@ const CombinedDatasourceReducers = (
   );
 };
 
-import drillDown from 'src/components/Chart/DrillDown/drillDownSlice';
-
 const reducers = {
   sqlLab: sqlLabReducer,
   localStorageUsageInKilobytes: noopReducer(0),
@@ -142,7 +140,6 @@ const reducers = {
   dashboardInfo,
   dashboardFilters,
   dataMask,
-  drillDown,
   nativeFilters,
   dashboardState,
   dashboardLayout,

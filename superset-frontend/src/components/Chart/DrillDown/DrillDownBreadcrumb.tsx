@@ -48,9 +48,6 @@ export function DrillDownBreadcrumb({
   const handleClick = useCallback(
     (depth: number) => (e: React.MouseEvent) => {
       e.preventDefault();
-      e.stopPropagation();
-      // eslint-disable-next-line no-console
-      console.log('[DrillDown] Breadcrumb clicked, depth:', depth);
       onJumpTo(depth);
     },
     [onJumpTo],
