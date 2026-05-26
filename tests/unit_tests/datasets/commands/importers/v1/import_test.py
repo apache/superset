@@ -1204,7 +1204,49 @@ def test_import_soft_deleted_dataset_non_overwrite_raises_for_non_owner(
     with override_user(non_owner):
         with pytest.raises(ImportFailedError) as excinfo:
             import_dataset(config, overwrite=False)
-    assert "permissions to overwrite" in str(excinfo.value)
+    assert "permissions to restore" in str(excinfo.value)
+
+
+def test_import_soft_deleted_dataset_raises_when_caller_lacks_can_write(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Case B: re-import of a soft-deleted UUID by a caller without
+    can_write must raise, not silently return the soft-deleted row.
+
+    Real-world scenario: a user has can_write Dashboard but not
+    can_write Dataset, and they import a dashboard zip that references
+    a soft-deleted dataset. Silently returning the row would let the
+    dashboard importer wire the dashboard's charts to a deleted dataset
+    and produce broken chart loads.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    # Seed a soft-deleted dataset with the matching UUID directly, so the
+    # test doesn't need to flip permissions mid-test.
+    existing = SqlaTable(
+        table_name="soft_deleted_dataset",
+        database_id=database.id,
+        uuid=config["uuid"],
+        deleted_at=datetime(2026, 1, 1, 12, 0, 0),
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_dataset(config, overwrite=False)
+    assert "can_write" in str(excinfo.value)
 
 
 def test_import_soft_deleted_dataset_ignore_permissions_restores_in_place(
