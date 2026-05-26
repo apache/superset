@@ -271,6 +271,54 @@ class TestDashboardActivityView(SupersetTestCase):
         rv = self._activity(str(dashboard.uuid), page_size="500")
         assert rv.status_code == 200
 
+    def test_activity_ordering_is_stable_by_issued_at_then_transaction_id(self) -> None:
+        """T040 / AV-006: records are ordered ``(issued_at DESC,
+        transaction_id DESC)``. When two records share ``issued_at`` the
+        tie-break is ``transaction_id`` — never random. We verify this by
+        asserting the result list is monotonically non-increasing on the
+        composite key, which would only hold under deterministic
+        ordering."""
+        _persist_fixture_state()
+        dashboard = _get_birth_names_dashboard()
+        assert dashboard is not None
+        self.login(ADMIN_USERNAME)
+        rv = self._activity(str(dashboard.uuid))
+        assert rv.status_code == 200
+        body = _json.loads(rv.data.decode("utf-8"))
+        records = body["result"]
+        # Each pair of adjacent records must satisfy (prev >= cur) on the
+        # composite (issued_at, transaction_id) — DESC ordering.
+        # ``records[1:]`` is intentionally one element shorter than
+        # ``records``; strict=False is the correct semantic for an
+        # adjacent-pair iteration.
+        for prev, cur in zip(records, records[1:], strict=False):
+            assert (prev["issued_at"], prev["transaction_id"]) >= (
+                cur["issued_at"],
+                cur["transaction_id"],
+            ), (
+                f"Ordering broke at adjacent pair: "
+                f"prev=({prev['issued_at']}, {prev['transaction_id']}) "
+                f"cur=({cur['issued_at']}, {cur['transaction_id']})"
+            )
+
+    def test_activity_page_size_caps_returned_records_at_200(self) -> None:
+        """T041: ``?page_size=500`` must return *at most* 200 records.
+        Pairs with the no-400 check above: that test confirms the
+        oversized request is accepted, this test confirms the response
+        is bounded as the contract guarantees (AV-019 / spec
+        ActivityResponseSchema documentation)."""
+        _persist_fixture_state()
+        dashboard = _get_birth_names_dashboard()
+        assert dashboard is not None
+        self.login(ADMIN_USERNAME)
+        rv = self._activity(str(dashboard.uuid), page_size="500")
+        assert rv.status_code == 200
+        body = _json.loads(rv.data.decode("utf-8"))
+        assert len(body["result"]) <= 200, (
+            f"page_size=500 returned {len(body['result'])} records; "
+            "cap is 200 per the OpenAPI schema"
+        )
+
 
 class TestChartActivityView(SupersetTestCase):
     """T028–T032 — ``GET /api/v1/chart/<uuid>/activity/`` (US2).
