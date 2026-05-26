@@ -16,9 +16,11 @@
 # under the License.
 import mimetypes
 from io import BytesIO
+from pathlib import Path
 from typing import Any
+from zipfile import is_zipfile, ZipFile
 
-from flask import request, send_file
+from flask import current_app, request, send_file
 from flask.wrappers import Response
 from flask_appbuilder.api import expose, protect, safe
 from marshmallow import ValidationError
@@ -31,8 +33,11 @@ from superset.extensions import security_manager
 from superset.extensions.schemas import ExtensionSettingsPutSchema
 from superset.extensions.utils import (
     build_extension_data,
+    get_bundle_files_from_zip,
     get_extensions,
+    get_loaded_extension,
 )
+from superset.utils.core import check_is_safe_zip
 from superset.views.base_api import BaseSupersetApi
 
 
@@ -43,6 +48,18 @@ class ExtensionsRestApi(BaseSupersetApi):
     # because these endpoints use cookie/session auth (allow_browser_login)
     # and include state-changing routes (settings PUT, upload POST, delete).
     csrf_exempt = False
+    class_permission_name = "Extensions"
+    base_permissions = [
+        "can_get_list",
+        "can_get",
+        "can_put",
+        "can_post",
+        "can_delete",
+        "can_content",
+        "can_info",
+        "can_get_settings",
+        "can_put_settings",
+    ]
 
     @expose("/_info", methods=("GET",))
     @protect()
@@ -166,6 +183,156 @@ class ExtensionsRestApi(BaseSupersetApi):
             return self.response_404()
         extension_data = build_extension_data(extension)
         return self.response(200, result=extension_data)
+
+    @protect()
+    @safe
+    @expose("/", methods=("POST",))
+    def post(self, **kwargs: Any) -> Response:
+        """Upload and install an extension bundle (.supx file).
+        ---
+        post:
+          summary: Upload a .supx extension bundle.
+          requestBody:
+            required: true
+            content:
+              multipart/form-data:
+                schema:
+                  type: object
+                  properties:
+                    bundle:
+                      type: string
+                      format: binary
+                      description: The .supx extension bundle file.
+          responses:
+            201:
+              description: Extension installed successfully.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not security_manager.is_admin():
+            return self.response(403, message="Admin access required.")
+
+        extensions_path = current_app.config.get("EXTENSIONS_PATH")
+        if not extensions_path:
+            return self.response(
+                400,
+                message=(
+                    "EXTENSIONS_PATH is not configured. Set it in superset_config.py "
+                    "to enable extension uploads."
+                ),
+            )
+
+        upload = request.files.get("bundle")
+        if not upload:
+            return self.response(
+                400, message="No file provided. Send a 'bundle' field."
+            )
+
+        if not upload.filename or not upload.filename.endswith(".supx"):
+            return self.response(400, message="File must have a .supx extension.")
+
+        stream = BytesIO(upload.read())
+        if not is_zipfile(stream):
+            return self.response(400, message="File is not a valid ZIP archive.")
+
+        stream.seek(0)
+        try:
+            with ZipFile(stream, "r") as zip_file:
+                check_is_safe_zip(zip_file)
+                files = list(get_bundle_files_from_zip(zip_file))
+                extension = get_loaded_extension(files, source_base_path="upload://")
+        except Exception as ex:  # pylint: disable=broad-except
+            return self.response(400, message=f"Invalid extension bundle: {ex}")
+
+        # Persist to EXTENSIONS_PATH so the extension survives restarts.
+        dest_dir = Path(extensions_path)
+        dest_dir.mkdir(parents=True, exist_ok=True)
+        dest_file = dest_dir / f"{extension.manifest.id}.supx"
+
+        stream.seek(0)
+        dest_file.write_bytes(stream.read())
+
+        return self.response(201, result=build_extension_data(extension))
+
+    @protect()
+    @safe
+    @expose("/<publisher>/<name>", methods=("DELETE",))
+    def delete(self, publisher: str, name: str, **kwargs: Any) -> Response:
+        """Delete an uploaded extension bundle.
+        ---
+        delete:
+          summary: Delete an extension by its publisher and name.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: publisher
+          - in: path
+            schema:
+              type: string
+            name: name
+          responses:
+            200:
+              description: Extension deleted.
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        if not security_manager.is_admin():
+            return self.response(403, message="Admin access required.")
+
+        composite_id = f"{publisher}.{name}"
+        extensions = get_extensions()
+        extension = extensions.get(composite_id)
+        if not extension:
+            return self.response_404()
+
+        # LOCAL_EXTENSIONS are managed via config — cannot be deleted through the UI.
+        local_paths = {
+            str((Path(p) / "dist").resolve())
+            for p in current_app.config.get("LOCAL_EXTENSIONS", [])
+        }
+        if extension.source_base_path in local_paths:
+            return self.response(
+                400,
+                message=(
+                    "Local extensions configured via LOCAL_EXTENSIONS cannot be "
+                    "deleted through the UI. Remove them from your configuration."
+                ),
+            )
+
+        # Locate and remove the .supx file from EXTENSIONS_PATH.
+        extensions_path = current_app.config.get("EXTENSIONS_PATH")
+        if not extensions_path:
+            return self.response(
+                400,
+                message="EXTENSIONS_PATH is not configured; cannot remove bundle file.",
+            )
+
+        supx_file = Path(extensions_path) / f"{composite_id}.supx"
+        if not supx_file.exists():
+            return self.response_404()
+
+        supx_file.unlink()
+        return self.response(200, message="Extension deleted.")
 
     @protect()
     @safe
