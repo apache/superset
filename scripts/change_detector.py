@@ -31,6 +31,7 @@ PATTERNS = {
         r"^superset/",
         r"^scripts/",
         r"^setup\.py",
+        r"^pyproject\.toml$",
         r"^requirements/.+\.txt",
         r"^.pylintrc",
     ],
