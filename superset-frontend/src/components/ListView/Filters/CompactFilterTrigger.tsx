@@ -153,7 +153,7 @@ export default function CompactFilterTrigger({
           <span>{label}</span>
           {hasValue ? (
             <Icons.CloseOutlined
-              iconSize="xs"
+              iconSize="s"
               iconColor={theme.colorPrimary}
               onClick={handleClear}
               data-test="compact-filter-clear"
@@ -163,7 +163,7 @@ export default function CompactFilterTrigger({
             />
           ) : (
             <Icons.DownOutlined
-              iconSize="xs"
+              iconSize="s"
               iconColor={theme.colorTextSecondary}
             />
           )}
