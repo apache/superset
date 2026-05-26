@@ -18,6 +18,22 @@
       "types": "./lib/authentication/index.d.ts",
       "default": "./lib/authentication/index.js"
     },
+    "./dashboard": {
+      "types": "./lib/dashboard/index.d.ts",
+      "default": "./lib/dashboard/index.js"
+    },
+    "./dataset": {
+      "types": "./lib/dataset/index.d.ts",
+      "default": "./lib/dataset/index.js"
+    },
+    "./explore": {
+      "types": "./lib/explore/index.d.ts",
+      "default": "./lib/explore/index.js"
+    },
+    "./navigation": {
+      "types": "./lib/navigation/index.d.ts",
+      "default": "./lib/navigation/index.js"
+    },
     "./commands": {
       "types": "./lib/commands/index.d.ts",
       "default": "./lib/commands/index.js"
