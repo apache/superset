@@ -60,6 +60,9 @@ LIST_ENDPOINT_MAX_MS = 1000  # SC-002
 RESTORE_ENDPOINT_MAX_MS = 3000  # SC-003
 SAVE_OVERHEAD_P95_MAX_MS = 50  # SC-004
 
+# Activity-view thresholds (sc-107283 §Success Criteria).
+ACTIVITY_ENDPOINT_P95_MAX_MS = 1500  # SC-AV-001
+
 
 def _save_chart_once(chart: Slice, suffix: str) -> None:
     """One ORM-level save path, mimicking what ChartDAO.update does."""
@@ -269,4 +272,165 @@ class PerfValidationTests(SupersetTestCase):
         assert overhead["p95"] < SAVE_OVERHEAD_P95_MAX_MS, (
             f"SC-004 failed: version-capture p95 overhead "
             f"{overhead['p95']:.2f}ms >= {SAVE_OVERHEAD_P95_MAX_MS}ms"
+        )
+
+    # ---- T045: Activity-view perf validation -----------------------------
+
+    def _seed_activity_history(self) -> str:
+        """Generate dense history on the birth_names dashboard so the
+        activity endpoint has something realistic to read.
+
+        T045's spec target is "25 charts × 3 dataset windows each". The
+        birth_names fixture has ~12 charts on a single dataset (no
+        multi-dataset support without a bespoke fixture). We approximate
+        the load by: (a) editing many charts on the dashboard, (b)
+        editing the dataset's description several times, (c) editing the
+        dashboard's own title once. That yields ~30+ change records
+        spanning all three entity kinds — enough to exercise the
+        decoration, visibility, and impact-batch paths without needing a
+        multi-dataset fixture builder. Returns the dashboard UUID.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.dashboard import Dashboard
+
+        dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title.like("USA Births%"))
+            .first()
+        )
+        dataset = (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.table_name == "birth_names")
+            .first()
+        )
+        assert dashboard is not None
+        assert dataset is not None
+        dashboard_uuid = str(dashboard.uuid)
+
+        # Many chart edits — most of the activity volume.
+        for chart in dashboard.slices[:12]:
+            chart.slice_name = f"{chart.slice_name[:48]}_perf"
+            db.session.commit()
+
+        # A handful of dataset edits — exercises the impact-batch path
+        # (Dashboard path + SqlaTable related).
+        for i in range(5):
+            dataset.description = f"perf seed iteration {i}"
+            db.session.commit()
+
+        # One dashboard self-edit.
+        dashboard.dashboard_title = f"{dashboard.dashboard_title}_perf"
+        db.session.commit()
+
+        return dashboard_uuid
+
+    def test_av_sc001_activity_endpoint_p95_under_1500ms(self) -> None:
+        """SC-AV-001: dashboard activity endpoint p95 < 1500ms across 50
+        invocations against a realistic history."""
+        self.login(ADMIN_USERNAME)
+
+        dashboard_uuid = self._seed_activity_history()
+        url = f"/api/v1/dashboard/{dashboard_uuid}/activity/"
+
+        # Warmup — JIT, mapper config, identity-map population.
+        for _ in range(3):
+            self.client.get(url)
+
+        timings: list[float] = []
+        for _ in range(50):
+            t0 = time.perf_counter()
+            response = self.client.get(url)
+            timings.append(time.perf_counter() - t0)
+            assert response.status_code == 200
+
+        stats = _timings_ms(timings)
+        body = response.get_json()
+        print(
+            f"\n[AV-SC-001] GET /dashboard/<uuid>/activity/ "
+            f"records_returned={len(body['result'])} count={body['count']}"
+        )
+        print(
+            f"[AV-SC-001]  p50={stats['p50']:.1f}ms  "
+            f"p95={stats['p95']:.1f}ms  max={stats['max']:.1f}ms  "
+            f"n={stats['n']}"
+        )
+        assert stats["p95"] < ACTIVITY_ENDPOINT_P95_MAX_MS, (
+            f"AV-SC-001 failed: activity endpoint p95 {stats['p95']:.1f}ms "
+            f">= {ACTIVITY_ENDPOINT_P95_MAX_MS}ms — profile the query "
+            f"plan and consider the T046 index migration (see "
+            f"specs/sc-107283/data-model.md §Possible additive indexes)"
+        )
+
+    def test_av_sc003_save_path_p95_unaffected_by_activity_view(self) -> None:
+        """AV-SC-003: the activity-view feature is read-only. Save path
+        p95 must remain within sc-103156's SC-004 budget (50ms version-
+        capture overhead) even with the activity tables in place.
+
+        We re-measure the same overhead SC-004 measures, with the
+        activity-view branch's code in scope, to catch any accidental
+        regression from a save-path coupling.
+        """
+        self.login(ADMIN_USERNAME)
+        # Seed some history so the M2M shadow + version_changes have
+        # enough rows that any pathological save-time read against them
+        # would surface.
+        self._seed_activity_history()
+
+        chart = db.session.query(Slice).first()
+        assert chart is not None
+
+        acc = [0.0]
+
+        def wrap_listener(original: Any) -> Any:
+            def wrapper(*args: Any, **kwargs: Any) -> Any:
+                t0 = time.perf_counter()
+                try:
+                    return original(*args, **kwargs)
+                finally:
+                    acc[0] += time.perf_counter() - t0
+
+            wrapper.__wrapped__ = original  # type: ignore[attr-defined]
+            return wrapper
+
+        session_target = sa.orm.session.Session
+        attached: list[tuple[str, Any]] = []
+        for event_name, listener in list(versioning_manager.session_listeners.items()):
+            sa.event.remove(session_target, event_name, listener)
+            wrapped = wrap_listener(listener)
+            sa.event.listen(session_target, event_name, wrapped)
+            attached.append((event_name, wrapped))
+
+        iterations = 50
+        warmup = 3
+        try:
+            for i in range(warmup):
+                _save_chart_once(chart, f"av_warm_{i}")
+                acc[0] = 0.0
+
+            overhead_timings: list[float] = []
+            for i in range(iterations):
+                acc[0] = 0.0
+                _save_chart_once(chart, f"av_run_{i}")
+                overhead_timings.append(acc[0])
+        finally:
+            for event_name, wrapped in attached:
+                sa.event.remove(session_target, event_name, wrapped)
+                sa.event.listen(
+                    session_target,
+                    event_name,
+                    wrapped.__wrapped__,
+                )
+
+        overhead = _timings_ms(overhead_timings)
+        print(
+            f"\n[AV-SC-003] save-path overhead with activity-view in scope: "
+            f"p50={overhead['p50']:.2f}ms  p95={overhead['p95']:.2f}ms  "
+            f"max={overhead['max']:.2f}ms"
+        )
+        assert overhead["p95"] < SAVE_OVERHEAD_P95_MAX_MS, (
+            f"AV-SC-003 failed: save-path p95 overhead "
+            f"{overhead['p95']:.2f}ms >= {SAVE_OVERHEAD_P95_MAX_MS}ms — "
+            f"the activity-view branch has regressed sc-103156's SC-004 "
+            f"budget; check for a new save-path read coupling."
         )
