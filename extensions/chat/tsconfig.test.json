@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@apache-superset/core": ["src/__tests__/sdkMock.ts"]
+    },
+    "typeRoots": [
+      "./node_modules/@types",
+      "../../superset-frontend/node_modules/@types"
+    ],
+    "types": ["jest", "node"]
+  },
+  "include": ["src"]
+}

@@ -1,0 +1,40 @@
+{
+  "publisher": "apache-superset",
+  "name": "reference-chatbot",
+  "displayName": "Reference Chatbot",
+  "description": "Canonical environment-validation chatbot extension for the superset.chatbot contribution area. Exercises registration, lifecycle, singleton resolution, commands, fault isolation, and streaming teardown. Not a product chatbot.",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "permissions": [],
+  "contributes": {
+    "views": {
+      "app": {
+        "chatbot": [
+          {
+            "id": "apache-superset.reference-chatbot",
+            "name": "Reference Chatbot",
+            "description": "Validates the chatbot extension environment end-to-end.",
+            "icon": "Bubble"
+          }
+        ]
+      }
+    },
+    "commands": [
+      {
+        "id": "core.chatbot__open",
+        "title": "Open chatbot",
+        "description": "Opens the reference chatbot panel."
+      },
+      {
+        "id": "core.chatbot__close",
+        "title": "Close chatbot",
+        "description": "Closes the reference chatbot panel."
+      },
+      {
+        "id": "core.chatbot__toggle",
+        "title": "Toggle chatbot",
+        "description": "Toggles the reference chatbot panel."
+      }
+    ]
+  }
+}
