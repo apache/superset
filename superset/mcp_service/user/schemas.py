@@ -341,7 +341,8 @@ class CreateUserRequest(BaseModel):
         description=(
             "List of role IDs to assign to the user. "
             "At least one role is required. "
-            "Use get_instance_info to discover available roles and their IDs."
+            "Role IDs are available from the Superset REST API: "
+            "GET /api/v1/security/roles/"
         ),
     )
 

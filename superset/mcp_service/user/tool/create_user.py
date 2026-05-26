@@ -20,7 +20,11 @@ import logging
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.extensions import event_logger
+from superset.extensions import (
+    db,
+    event_logger,
+    security_manager,  # avoids superset.__init__ → create_app bootstrap
+)
 from superset.mcp_service.user.schemas import CreateUserRequest, CreateUserResponse
 
 logger = logging.getLogger(__name__)
@@ -43,10 +47,12 @@ async def create_user(request: CreateUserRequest, ctx: Context) -> CreateUserRes
     password, and one or more roles. After creation, the user can log in
     with the supplied credentials.
 
-    Workflow:
-    1. Call get_instance_info to discover available role names and IDs
-    2. Call this tool with the desired credentials and role IDs
-    3. The returned ``id`` uniquely identifies the new user
+    To discover available role IDs, query the Superset REST API:
+    ``GET /api/v1/security/roles/``
+
+    Note: in deployments where user identity is managed by an external
+    provider (e.g. SSO / SCIM), role assignments may be overridden when
+    the user next authenticates through that provider.
     """
     await ctx.info(
         "Creating user: username=%r, email=%r, role_ids=%s"
@@ -54,12 +60,8 @@ async def create_user(request: CreateUserRequest, ctx: Context) -> CreateUserRes
     )
 
     try:
-        from superset import security_manager
-
         # Resolve role objects from the supplied IDs
         with event_logger.log_context(action="mcp.create_user.resolve_roles"):
-            from superset.extensions import db
-
             roles = []
             missing_ids = []
             for role_id in request.role_ids:
@@ -73,7 +75,8 @@ async def create_user(request: CreateUserRequest, ctx: Context) -> CreateUserRes
                 await ctx.warning("Role IDs not found: %s" % (missing_ids,))
                 return CreateUserResponse(
                     error="Role IDs not found: %s. "
-                    "Use get_instance_info to discover valid role IDs." % (missing_ids,)
+                    "Valid role IDs are available from GET /api/v1/security/roles/"
+                    % (missing_ids,)
                 )
 
         # Create the user via FAB security manager
