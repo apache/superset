@@ -63,7 +63,11 @@ const StyledRangeType = styled(Select)`
 
 const ContentWrapper = styled.div`
   ${({ theme }) => css`
+    width: 600px;
     padding: ${theme.sizeUnit * 3}px;
+    background: ${theme.colorBgElevated};
+    border-radius: ${theme.borderRadiusLG}px;
+    box-shadow: ${theme.boxShadowSecondary};
 
     .ant-row {
       margin-top: 8px;

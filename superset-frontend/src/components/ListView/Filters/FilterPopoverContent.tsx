@@ -32,6 +32,9 @@ const Wrapper = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${theme.sizeUnit * 2}px;
+    background: ${theme.colorBgElevated};
+    border-radius: ${theme.borderRadiusLG}px;
+    box-shadow: ${theme.boxShadowSecondary};
 
     /* Visually hide the redundant label — the pill already shows it, but keep it
        accessible to screen readers so filter inputs have a named context. */
