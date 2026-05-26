@@ -122,6 +122,8 @@ export default function CompactFilterTrigger({
     e.stopPropagation();
     onClear();
     setOpen(false);
+    tooltipSuppressedRef.current = true;
+    setTooltipOpen(false);
   };
 
   return (
