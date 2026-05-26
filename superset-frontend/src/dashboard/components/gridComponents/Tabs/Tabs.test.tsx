@@ -246,7 +246,7 @@ test('Removing a tab', async () => {
   expect(await screen.findByText('Delete dashboard tab?')).toBeInTheDocument();
 
   expect(props.deleteComponent).not.toHaveBeenCalled();
-  userEvent.click(screen.getByRole('button', { name: 'DELETE' }));
+  userEvent.click(screen.getByRole('button', { name: 'Delete' }));
   expect(props.deleteComponent).toHaveBeenCalled();
 });
 
