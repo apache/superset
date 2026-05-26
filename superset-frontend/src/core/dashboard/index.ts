@@ -47,11 +47,15 @@ function buildDashboardContext(): DashboardContext | undefined {
   const dataMask = (state as any).dataMask ?? {};
 
   const filters: FilterValue[] = Object.entries(dataMask)
-    .filter(([id]) => id in nativeFilters)
+    .filter(([id, mask]: [string, any]) => {
+      if (!(id in nativeFilters)) return false;
+      const value = mask?.filterState?.value;
+      return value !== null && value !== undefined;
+    })
     .map(([id, mask]: [string, any]) => ({
       filterId: id,
       label: nativeFilters[id]?.name ?? id,
-      value: mask?.filterState?.value ?? null,
+      value: mask.filterState.value,
     }));
 
   return {

@@ -30,6 +30,7 @@ import {
   SET_FORM_DATA,
   UPDATE_CHART_TITLE,
 } from 'src/explore/actions/exploreActions';
+import { SET_DATASOURCE } from 'src/explore/actions/datasourcesActions';
 import { store, RootState } from 'src/views/store';
 import { AnyListenerPredicate } from '@reduxjs/toolkit';
 import { createActionListener } from '../utils';
@@ -49,7 +50,7 @@ function buildChartContext(): ChartContext | undefined {
 
   return {
     chartId: slice?.slice_id ?? null,
-    chartName: slice?.slice_name ?? null,
+    chartName: exploreState.sliceName ?? slice?.slice_name ?? null,
     vizType,
     datasourceId: datasource?.id ?? null,
     datasourceName:
@@ -60,7 +61,8 @@ function buildChartContext(): ChartContext | undefined {
 const exploreChangePredicate: AnyListenerPredicate<RootState> = action =>
   action.type === HYDRATE_EXPLORE ||
   action.type === SET_FORM_DATA ||
-  action.type === UPDATE_CHART_TITLE;
+  action.type === UPDATE_CHART_TITLE ||
+  action.type === SET_DATASOURCE;
 
 const getCurrentChart: typeof exploreApi.getCurrentChart = () =>
   buildChartContext();

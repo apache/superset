@@ -35,8 +35,10 @@ const ChatbotMount = () => {
   );
 
   useEffect(() => {
+    let cancelled = false;
     SupersetClient.get({ endpoint: '/api/v1/extensions/settings' })
       .then(({ json }) => {
+        if (cancelled) return;
         const id = json.result?.active_chatbot_id ?? null;
         const enabled: Record<string, boolean> = json.result?.enabled ?? {};
         setAdminSelectedId(id);
@@ -46,6 +48,9 @@ const ChatbotMount = () => {
       .catch(() => {
         // Settings fetch failure is non-fatal — fall back to first-to-register.
       });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(

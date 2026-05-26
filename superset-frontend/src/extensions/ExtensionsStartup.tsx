@@ -79,6 +79,25 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
     }
   }, [location.pathname]);
 
+  // Isolate unhandled rejections from extension code for the lifetime of the
+  // app — registered once, never removed.
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      logging.error(
+        '[extensions] Unhandled rejection from extension:',
+        event.reason,
+      );
+      event.preventDefault();
+    };
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    return () => {
+      window.removeEventListener(
+        'unhandledrejection',
+        handleUnhandledRejection,
+      );
+    };
+  }, []);
+
   useEffect(() => {
     if (initialized) return;
 
@@ -105,20 +124,6 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       views,
     };
 
-    // Isolate unhandled rejections that originate from extension code so they
-    // cannot crash the host application. Extensions load via Module Federation
-    // and their async failures (e.g. failed API calls, unhandled promise
-    // chains) would otherwise surface as uncaught rejections in the host.
-    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      // Always log so extension authors can diagnose failures.
-      logging.error(
-        '[extensions] Unhandled rejection from extension:',
-        event.reason,
-      );
-      event.preventDefault();
-    };
-    window.addEventListener('unhandledrejection', handleUnhandledRejection);
-
     // Render the host immediately; extension bundles load in the background.
     // ChatbotMount re-resolves reactively once the chatbot extension registers
     // (via subscribeToLocation), so the bubble appears without blocking the UI.
@@ -127,13 +132,6 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
     if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
       ExtensionsLoader.getInstance().initializeExtensions();
     }
-
-    return () => {
-      window.removeEventListener(
-        'unhandledrejection',
-        handleUnhandledRejection,
-      );
-    };
   }, [initialized, userId]);
 
   if (!initialized) {

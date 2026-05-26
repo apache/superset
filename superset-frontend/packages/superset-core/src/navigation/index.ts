@@ -40,15 +40,19 @@ export type PageType =
 
 /**
  * Lightweight page descriptor: the current surface and the focused entity id,
- * if the surface has one (dashboard id, chart id, dataset id). Does not embed
- * full entity payloads — use the surface-specific namespace for those.
+ * if the surface has one (dashboard id or dataset id). Does not embed full
+ * entity payloads — use the surface-specific namespace for those.
+ *
+ * Note: Explore pages do not expose a chart entity id here because the chart
+ * id is query-string–based and may change without a pathname change. Use the
+ * `explore` namespace instead to track chart context on Explore pages.
  */
 export interface PageContext {
   pageType: PageType;
   /**
    * The numeric id of the primary entity on this page, if applicable.
-   * `null` when the surface has no focused entity, or when the entity is
-   * addressed by a non-numeric slug (e.g. dashboard accessed via slug URL).
+   * Populated for dashboard and dataset routes with a numeric id in the path.
+   * `null` for all other surfaces, slug-based dashboard URLs, or new charts.
    */
   entityId: number | null;
 }
@@ -81,8 +85,8 @@ export declare function getCurrentPage(): PageContext;
  *
  * @example
  * ```typescript
- * const sub = navigation.onDidChangePage(({ pageType, entityId }) => {
- *   chatbot.updateContext({ pageType, entityId });
+ * const sub = navigation.onDidChangePage(({ pageType }) => {
+ *   chatbot.updateContext({ pageType });
  * });
  * // later:
  * sub.dispose();
