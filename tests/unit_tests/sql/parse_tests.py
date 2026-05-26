@@ -3264,16 +3264,19 @@ def test_check_tables_present(sql: str, engine: str, expected: bool) -> None:
 
 
 @pytest.mark.parametrize(
-    "sql, denylist, expected",
+    "engine, sql, denylist, expected",
     [
-        # Schema-qualified denylist entry matches schema-qualified reference.
+        # Postgres: schema-qualified denylist entry matches schema-qualified
+        # reference.
         (
+            "postgresql",
             "SELECT * FROM information_schema.tables",
             {"information_schema.tables"},
             True,
         ),
         # ... and is case-insensitive.
         (
+            "postgresql",
             "SELECT * FROM INFORMATION_SCHEMA.TABLES",
             {"information_schema.tables"},
             True,
@@ -3282,11 +3285,13 @@ def test_check_tables_present(sql: str, engine: str, expected: bool) -> None:
         # of the same name in another schema. A user table named `tables`
         # remains queryable.
         (
+            "postgresql",
             "SELECT * FROM public.tables",
             {"information_schema.tables"},
             False,
         ),
         (
+            "postgresql",
             "SELECT * FROM tables",
             {"information_schema.tables"},
             False,
@@ -3294,45 +3299,109 @@ def test_check_tables_present(sql: str, engine: str, expected: bool) -> None:
         # Bare-name denylist entry still matches by table name only
         # (existing behavior, schema-agnostic).
         (
+            "postgresql",
             "SELECT * FROM pg_stat_activity",
             {"pg_stat_activity"},
             True,
         ),
         (
+            "postgresql",
             "SELECT * FROM pg_catalog.pg_stat_activity",
             {"pg_stat_activity"},
             True,
         ),
         # Mixed entries: one schema-qualified, one bare. Match either.
         (
+            "postgresql",
             "SELECT * FROM information_schema.columns",
             {"information_schema.tables", "information_schema.columns"},
             True,
         ),
         (
+            "postgresql",
             "SELECT * FROM pg_roles",
             {"information_schema.tables", "pg_roles"},
             True,
         ),
         # Negative control.
         (
+            "postgresql",
             "SELECT * FROM my_table",
             {"information_schema.tables", "pg_roles"},
+            False,
+        ),
+        # MySQL: the shipped DISALLOWED_SQL_TABLES['mysql'] entries are all
+        # schema-qualified (`mysql.user`, `performance_schema.threads`,
+        # `performance_schema.processlist`). Without schema-aware matching
+        # the entries are dead config. These cases pin the fix.
+        (
+            "mysql",
+            "SELECT user, host, authentication_string FROM mysql.user",
+            {"mysql.user"},
+            True,
+        ),
+        (
+            "mysql",
+            "SELECT * FROM performance_schema.threads",
+            {"performance_schema.threads"},
+            True,
+        ),
+        (
+            "mysql",
+            "SELECT * FROM performance_schema.processlist",
+            {"performance_schema.processlist"},
+            True,
+        ),
+        # MySQL must NOT block a user-authored table that shares the leaf
+        # name with the system view.
+        (
+            "mysql",
+            "SELECT * FROM mydb.user",
+            {"mysql.user"},
+            False,
+        ),
+        # MSSQL: same shape, `sys.*` entries are schema-qualified.
+        (
+            "mssql",
+            "SELECT name, password_hash FROM sys.sql_logins",
+            {"sys.sql_logins"},
+            True,
+        ),
+        (
+            "mssql",
+            "SELECT name, sid FROM sys.server_principals",
+            {"sys.server_principals"},
+            True,
+        ),
+        (
+            "mssql",
+            "SELECT * FROM sys.configurations",
+            {"sys.configurations"},
+            True,
+        ),
+        # MSSQL must NOT block a user-authored table sharing the leaf name.
+        (
+            "mssql",
+            "SELECT * FROM mydb.sql_logins",
+            {"sys.sql_logins"},
             False,
         ),
     ],
 )
 def test_check_tables_present_schema_qualified(
-    sql: str, denylist: set[str], expected: bool
+    engine: str, sql: str, denylist: set[str], expected: bool
 ) -> None:
     """
     `check_tables_present` must distinguish schema-qualified denylist
-    entries (e.g. `information_schema.tables`) from bare-name entries
-    (e.g. `pg_stat_activity`). Schema-qualified entries only match
-    schema-qualified references in the SQL; bare entries match the
-    table name regardless of schema.
+    entries (e.g. `information_schema.tables`, `mysql.user`,
+    `sys.sql_logins`) from bare-name entries (e.g. `pg_stat_activity`).
+    Schema-qualified entries only match schema-qualified references in
+    the SQL; bare entries match the table name regardless of schema.
+
+    Covers Postgres, MySQL, and MSSQL dialects so the shipped
+    DISALLOWED_SQL_TABLES entries for each remain effective.
     """
-    assert SQLScript(sql, "postgresql").check_tables_present(denylist) == expected
+    assert SQLScript(sql, engine).check_tables_present(denylist) == expected
 
 
 @pytest.mark.parametrize(
