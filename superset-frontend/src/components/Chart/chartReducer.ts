@@ -191,6 +191,12 @@ export default function chartReducer(
   if (action.type === actions.REMOVE_CHART) {
     return omit(charts, [action.key]);
   }
+  if (action.type === actions.REPLACE_CHART_STATE) {
+    // Used by the version-history preview flow to restore the captured
+    // pre-preview chart state on exit, discarding any query results that
+    // landed under this key while previewing a snapshot.
+    return { ...charts, [action.key]: action.state };
+  }
   if (action.type === actions.UPDATE_CHART_ID) {
     const { newId, key } = action;
     charts[newId] = {

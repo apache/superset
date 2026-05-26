@@ -19,7 +19,6 @@
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   addDangerToast,
   addSuccessToast,
@@ -32,6 +31,7 @@ import { useVersionList } from '../hooks/useVersionList';
 import { useRestoreVersion } from '../hooks/useRestoreVersion';
 import { formatChangeTitle } from '../utils/formatChangeTitle';
 import { formatVersionDate } from '../utils/formatVersionUser';
+import { reloadStrippingVersionUuid } from '../utils/restoreReload';
 
 /**
  * Renders above the dashboard grid while a historical version preview is
@@ -50,8 +50,16 @@ const DashboardPreviewBanner = () => {
   const { versions } = useVersionList('dashboard', dashboardUuid);
   const { restore, restoring } = useRestoreVersion('dashboard', dashboardUuid);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Has the user accumulated live, unsaved edits before opening preview?
+  // The dashboardState flag captures this for the dashboard side; we only
+  // surface the warning when restore would actually destroy something.
+  const hasUnsavedChanges = useSelector(
+    (state: RootState) => !!state.dashboardState?.hasUnsavedChanges,
+  );
 
-  if (!isFeatureEnabled(FeatureFlag.VersionHistory)) return null;
+  // Gating relies on ``versionPreview`` being non-null, which is only ever
+  // set by the version-history bridge — itself mounted only when the flag
+  // is on. No need to re-check the flag here.
   if (!versionPreview) return null;
 
   const { versionUuid } = versionPreview;
@@ -77,10 +85,9 @@ const DashboardPreviewBanner = () => {
       handleExit();
       // Reload so the dashboard hydrate runs against the restored backend
       // state — our Redux sliceEntities + dashboardLayout still hold the
-      // pre-restore values.
-      if (typeof window !== 'undefined') {
-        window.location.reload();
-      }
+      // pre-restore values. Strip ``?version_uuid`` first so the reloaded
+      // page does not re-enter preview of the version just restored.
+      reloadStrippingVersionUuid();
     } else {
       dispatch(
         addDangerToast(
@@ -107,6 +114,7 @@ const DashboardPreviewBanner = () => {
         summary={summary}
         date={date}
         restoring={restoring}
+        hasUnsavedChanges={hasUnsavedChanges}
         onConfirm={handleConfirmRestore}
         onCancel={() => setConfirmOpen(false)}
       />

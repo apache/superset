@@ -26,6 +26,9 @@ interface Props {
   summary: string;
   date: string;
   restoring: boolean;
+  // When true, the modal warns that unsaved live edits will be lost.
+  // Restore is then a destructive action and the user should know.
+  hasUnsavedChanges?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -36,10 +39,11 @@ const RestoreConfirmModal = ({
   summary,
   date,
   restoring,
+  hasUnsavedChanges,
   onConfirm,
   onCancel,
 }: Props) => {
-  const body =
+  const baseBody =
     entityType === 'dashboard'
       ? t(
           'Restoring will revert your dashboard to: "%(summary)s" (%(date)s). Your current version will be saved in version history and you can restore it again at any time.',
@@ -60,7 +64,14 @@ const RestoreConfirmModal = ({
       primaryButtonLoading={restoring}
       destroyOnHidden
     >
-      <p>{body}</p>
+      <p>{baseBody}</p>
+      {hasUnsavedChanges && (
+        <p data-test="restore-confirm-unsaved-warning">
+          <strong>
+            {t('You have unsaved changes that will be discarded by restoring.')}
+          </strong>
+        </p>
+      )}
     </Modal>
   );
 };

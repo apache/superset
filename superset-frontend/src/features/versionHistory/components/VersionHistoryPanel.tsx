@@ -31,12 +31,14 @@ import { useRestoreVersion } from '../hooks/useRestoreVersion';
 import { EntityType, Version } from '../types';
 import { formatChangeTitle } from '../utils/formatChangeTitle';
 import { formatVersionDate } from '../utils/formatVersionUser';
+import { reloadStrippingVersionUuid } from '../utils/restoreReload';
 import VersionList from './VersionList';
 import RestoreConfirmModal from './RestoreConfirmModal';
 
 interface Props {
   entityType: EntityType;
   uuid: string | null | undefined;
+  hasUnsavedChanges?: boolean;
   onOpenAsNew?: (version: Version) => void;
 }
 
@@ -44,7 +46,12 @@ interface Props {
 // but below toast notifications (which render at the antd default 1010+).
 const DRAWER_Z_INDEX = 1000;
 
-const VersionHistoryPanel = ({ entityType, uuid, onOpenAsNew }: Props) => {
+const VersionHistoryPanel = ({
+  entityType,
+  uuid,
+  hasUnsavedChanges,
+  onOpenAsNew,
+}: Props) => {
   const {
     isPanelOpen,
     closePanel,
@@ -53,7 +60,18 @@ const VersionHistoryPanel = ({ entityType, uuid, onOpenAsNew }: Props) => {
     exitPreview,
   } = useVersionHistory();
   const dispatch = useDispatch();
-  const { versions, loading, error } = useVersionList(entityType, uuid);
+  // Defer the list fetch until the panel actually opens — every chart and
+  // dashboard page render mounts this component, but most visits never
+  // open the drawer. Once opened, ``hasFetched`` stays true so subsequent
+  // closes don't drop the cached list.
+  const [hasFetched, setHasFetched] = useState(false);
+  if (isPanelOpen && !hasFetched) {
+    setHasFetched(true);
+  }
+  const { versions, loading, error } = useVersionList(
+    entityType,
+    hasFetched ? uuid : null,
+  );
   const { restore, restoring } = useRestoreVersion(entityType, uuid);
   const [pendingRestore, setPendingRestore] = useState<Version | null>(null);
 
@@ -89,10 +107,10 @@ const VersionHistoryPanel = ({ entityType, uuid, onOpenAsNew }: Props) => {
       exitPreview();
       // Reload so the in-memory chart/dashboard reflects the new live state
       // — the restore endpoint mutates the backend record but our Redux
-      // entity slice still holds the pre-restore data.
-      if (typeof window !== 'undefined') {
-        window.location.reload();
-      }
+      // entity slice still holds the pre-restore data. Strip
+      // ``?version_uuid`` first so the reloaded page does not re-enter
+      // preview of the version just restored.
+      reloadStrippingVersionUuid();
     } else {
       dispatch(
         addDangerToast(
@@ -149,6 +167,7 @@ const VersionHistoryPanel = ({ entityType, uuid, onOpenAsNew }: Props) => {
         summary={restoreContext?.summary ?? ''}
         date={restoreContext?.date ?? ''}
         restoring={restoring}
+        hasUnsavedChanges={hasUnsavedChanges}
         onConfirm={confirmRestore}
         onCancel={() => setPendingRestore(null)}
       />

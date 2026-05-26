@@ -261,12 +261,17 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     [formData, sliceName],
   );
 
+  // Skip the diff calc while previewing — ``currentFormData`` carries the
+  // snapshot's values via context, which would otherwise mark the chart
+  // as "altered" against the live original and surface a stale-edit
+  // warning the user can't act on.
   const formDiffs = useMemo(
-    () => getChartFormDiffs(originalFormData, currentFormData),
-    [originalFormData, currentFormData],
+    () =>
+      isPreviewing ? {} : getChartFormDiffs(originalFormData, currentFormData),
+    [isPreviewing, originalFormData, currentFormData],
   );
 
-  const hasUnsavedChanges = Object.keys(formDiffs).length > 0;
+  const hasUnsavedChanges = !isPreviewing && Object.keys(formDiffs).length > 0;
 
   const [menu, isDropdownVisible, setIsDropdownVisible, streamingExportState] =
     useExploreAdditionalActionsMenu(

@@ -1099,6 +1099,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     return (
       <ExploreVersionHistoryRoot
         chartUuid={chartUuid}
+        chartId={props.chart?.id ?? null}
         formData={props.form_data}
       >
         {tree}

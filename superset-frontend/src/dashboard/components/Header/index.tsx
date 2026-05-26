@@ -289,6 +289,13 @@ const HeaderInner = (): JSX.Element => {
       return start > end;
     }),
   );
+  // Block edit-mode entry and the save / title-change paths while the user
+  // is previewing a historical version — otherwise saving partially
+  // overwrites the live dashboard with snapshot values (layout, title,
+  // CSS are read from current Redux which is the snapshot during preview).
+  const isPreviewingVersion = useSelector(
+    (state: HeaderRootState) => !!state.dashboardState?.versionPreview,
+  );
   const ctrlYTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const ctrlZTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const previousThemeRef = useRef(dashboardInfo.theme);
@@ -394,12 +401,18 @@ const HeaderInner = (): JSX.Element => {
 
   const handleChangeText = useCallback(
     (nextText: string) => {
+      if (isPreviewingVersion) {
+        boundActionCreators.addDangerToast(
+          t('Exit preview before editing the dashboard'),
+        );
+        return;
+      }
       if (nextText && dashboardTitle !== nextText) {
         boundActionCreators.updateDashboardTitle(nextText);
         boundActionCreators.onChange();
       }
     },
-    [boundActionCreators, dashboardTitle],
+    [boundActionCreators, dashboardTitle, isPreviewingVersion],
   );
 
   const handleCtrlY = useCallback(() => {
@@ -432,6 +445,15 @@ const HeaderInner = (): JSX.Element => {
   }, [boundActionCreators, editMode]);
 
   const overwriteDashboard = useCallback(() => {
+    if (isPreviewingVersion) {
+      // Defensive guard: the Edit and Save buttons are disabled while
+      // previewing, but a future call site or keyboard shortcut should
+      // not be able to bypass that.
+      boundActionCreators.addDangerToast(
+        t('Exit preview before saving the dashboard'),
+      );
+      return;
+    }
     const currentColorNamespace =
       dashboardInfo?.metadata?.color_namespace || colorNamespace;
     const currentColorScheme =
@@ -496,6 +518,7 @@ const HeaderInner = (): JSX.Element => {
     dashboardInfo.roles,
     dashboardInfo.tags,
     dashboardTitle,
+    isPreviewingVersion,
     layout,
     refreshFrequency,
     shouldPersistRefreshFrequency,
@@ -589,10 +612,18 @@ const HeaderInner = (): JSX.Element => {
   );
 
   const handleEnterEditMode = useCallback(() => {
+    if (isPreviewingVersion) {
+      // Belt-and-suspenders: the button is disabled, but a stray caller
+      // should not be able to enter edit mode against a snapshot view.
+      boundActionCreators.addDangerToast(
+        t('Exit preview before editing the dashboard'),
+      );
+      return;
+    }
     toggleEditMode();
     boundActionCreators.clearDashboardHistory?.();
     boundActionCreators.setUnsavedChanges(false);
-  }, [toggleEditMode, boundActionCreators]);
+  }, [boundActionCreators, isPreviewingVersion, toggleEditMode]);
 
   const NavExtension = extensionsRegistry.get('dashboard.nav.right');
 
@@ -754,16 +785,30 @@ const HeaderInner = (): JSX.Element => {
           <div css={actionButtonsStyle}>
             {NavExtension && <NavExtension />}
             {userCanEdit && (
-              <Button
-                buttonStyle="secondary"
-                onClick={handleEnterEditMode}
-                data-test="edit-dashboard-button"
-                className="action-button"
-                css={editButtonStyle}
-                aria-label={t('Edit dashboard')}
+              <Tooltip
+                title={
+                  isPreviewingVersion
+                    ? t('Exit preview to edit the dashboard')
+                    : null
+                }
               >
-                {t('Edit dashboard')}
-              </Button>
+                {/* Wrap in a div so the disabled-button tooltip still
+                    triggers — antd tooltips don't fire on disabled
+                    buttons directly. */}
+                <div>
+                  <Button
+                    buttonStyle="secondary"
+                    onClick={handleEnterEditMode}
+                    disabled={isPreviewingVersion}
+                    data-test="edit-dashboard-button"
+                    className="action-button"
+                    css={editButtonStyle}
+                    aria-label={t('Edit dashboard')}
+                  >
+                    {t('Edit dashboard')}
+                  </Button>
+                </div>
+              </Tooltip>
             )}
           </div>
         )}
@@ -780,6 +825,7 @@ const HeaderInner = (): JSX.Element => {
       handleCtrlZ,
       handleEnterEditMode,
       hasUnsavedChanges,
+      isPreviewingVersion,
       overwriteDashboard,
       redoLength,
       undoLength,

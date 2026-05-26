@@ -113,6 +113,7 @@ export const RENDER_TRIGGERED = 'RENDER_TRIGGERED' as const;
 export const UPDATE_QUERY_FORM_DATA = 'UPDATE_QUERY_FORM_DATA' as const;
 export const UPDATE_CHART_ID = 'UPDATE_CHART_ID' as const;
 export const ADD_CHART = 'ADD_CHART' as const;
+export const REPLACE_CHART_STATE = 'REPLACE_CHART_STATE' as const;
 
 // Action interfaces
 export interface ChartUpdateStartedAction {
@@ -214,6 +215,12 @@ export interface AddChartAction {
   key: string | number;
 }
 
+export interface ReplaceChartStateAction {
+  type: typeof REPLACE_CHART_STATE;
+  key: string | number;
+  state: ChartState;
+}
+
 export type ChartAction =
   | ChartUpdateStartedAction
   | ChartUpdateSucceededAction
@@ -230,7 +237,8 @@ export type ChartAction =
   | RenderTriggeredAction
   | UpdateQueryFormDataAction
   | UpdateChartIdAction
-  | AddChartAction;
+  | AddChartAction
+  | ReplaceChartStateAction;
 
 // Type for thunk actions
 export type ChartThunkDispatch = ThunkDispatch<RootState, undefined, AnyAction>;
@@ -358,6 +366,18 @@ export function chartRenderingSucceeded(
 
 export function removeChart(key: string | number): RemoveChartAction {
   return { type: REMOVE_CHART, key };
+}
+
+/**
+ * Overwrites ``state.charts[key]`` with a previously captured snapshot.
+ * Used by the version-history preview flow to restore the live chart's
+ * query results / status after a preview re-query polluted them.
+ */
+export function replaceChartState(
+  key: string | number,
+  state: ChartState,
+): ReplaceChartStateAction {
+  return { type: REPLACE_CHART_STATE, key, state };
 }
 
 export function annotationQuerySuccess(
