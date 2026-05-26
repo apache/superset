@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState, type ReactNode, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type ReactNode, type MouseEvent } from 'react';
 import { useTheme, styled, css } from '@apache-superset/core/theme';
 import { Dropdown, Tooltip, Icons } from '@superset-ui/core/components';
 
@@ -91,6 +91,10 @@ export default function CompactFilterTrigger({
   const [open, setOpen] = useState(false);
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const theme = useTheme();
+  // Timestamp of when the dropdown last closed. Used to suppress the synthetic
+  // hover event some browsers (Brave) fire on newly-exposed elements when a
+  // popup disappears — without this the tooltip re-appears unprompted.
+  const dropdownClosedAtRef = useRef(0);
 
   // Close dropdown on window resize — AntD Dropdown doesn't reposition
   // itself on resize so the panel ends up detached from the pill.
@@ -112,7 +116,10 @@ export default function CompactFilterTrigger({
       open={open}
       onOpenChange={visible => {
         setOpen(visible);
-        if (!visible) setTooltipOpen(false);
+        if (!visible) {
+          dropdownClosedAtRef.current = Date.now();
+          setTooltipOpen(false);
+        }
       }}
       trigger={['click']}
       popupRender={() =>
@@ -124,9 +131,10 @@ export default function CompactFilterTrigger({
       <Tooltip
         title={tooltipTitle}
         open={!!tooltipTitle && !open && tooltipOpen}
-        onOpenChange={visible =>
-          setTooltipOpen(visible && !!tooltipTitle && !open)
-        }
+        onOpenChange={visible => {
+          if (visible && Date.now() - dropdownClosedAtRef.current < 400) return;
+          setTooltipOpen(visible && !!tooltipTitle && !open);
+        }}
         mouseEnterDelay={0.5}
         mouseLeaveDelay={0}
       >
