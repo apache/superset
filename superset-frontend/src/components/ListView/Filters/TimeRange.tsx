@@ -52,7 +52,7 @@ import type { FilterHandler } from './types';
 
 interface TimeRangeFilterProps {
   value?: string;
-  onSubmit: (value: string) => void;
+  onSubmit: (value: [string, string] | undefined) => void;
   onClose: () => void;
 }
 
@@ -187,7 +187,7 @@ function TimeRangeFilter(
 
   useImperativeHandle(ref, () => ({
     clearFilter: () => {
-      onSubmit(NO_TIME_RANGE);
+      onSubmit(undefined);
     },
   }));
 
@@ -252,7 +252,20 @@ function TimeRangeFilter(
           disabled={!validTimeRange}
           key="apply"
           onClick={() => {
-            onSubmit(timeRangeValue);
+            if (timeRangeValue === NO_TIME_RANGE) {
+              onSubmit(undefined);
+            } else {
+              // evalResponse is the backend-evaluated concrete range
+              // (e.g. "2024-05-20 00:00:00 : 2024-05-26 23:59:59").
+              // Submit as [start, end] so convertFilters can split it
+              // into gt + lt API filter pairs, matching what DateRange used to do.
+              const parts = evalResponse.split(' : ');
+              onSubmit(
+                parts.length === 2
+                  ? [parts[0].trim(), parts[1].trim()]
+                  : undefined,
+              );
+            }
             onClose();
           }}
         >

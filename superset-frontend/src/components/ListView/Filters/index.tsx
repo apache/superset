@@ -23,7 +23,6 @@ import {
   useEffect,
   useImperativeHandle,
   useMemo,
-  useRef,
   useState,
   RefObject,
 } from 'react';
@@ -37,7 +36,7 @@ import type {
   SelectOption,
 } from '../types';
 import type { FilterHandler } from './types';
-import { NO_TIME_RANGE, fetchTimeRange } from '@superset-ui/core';
+import { NO_TIME_RANGE } from '@superset-ui/core';
 import SearchFilter from './Search';
 import NumericalRangeFilter from './NumericalRange';
 import TimeRangeFilter from './TimeRange';
@@ -75,10 +74,6 @@ function UIFilters(
     Record<number, string>
   >({});
 
-  // Tracks which datetime_range values have already been fetched so we don't
-  // re-fire fetchTimeRange on every keystroke in an unrelated filter.
-  const fetchedTimeValRef = useRef<Record<number, string>>({});
-
   // On cold load, URL params restore values but not labels for fetchSelects filters.
   // Fetch the first page of options and cache the matching label so the tooltip works.
   useEffect(() => {
@@ -103,30 +98,25 @@ function UIFilters(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [internalFilters]);
 
-  // Re-evaluate whenever active datetime_range values change.
+  // Build datetime_range tooltips from the resolved [start, end] array value.
+  // TimeRangeFilter now submits concrete date strings so no async eval needed.
   useEffect(() => {
     filters.forEach((filter, index) => {
       if (filter.input !== 'datetime_range') return;
       const val = internalFilters?.[index]?.value;
-      const timeVal =
-        typeof val === 'string' && val !== NO_TIME_RANGE ? val : undefined;
-      if (!timeVal) {
-        delete fetchedTimeValRef.current[index];
+      if (Array.isArray(val) && val.length === 2) {
+        const tooltip = (val as string[]).join(' – ');
+        setTimeRangeTooltips(prev =>
+          prev[index] === tooltip ? prev : { ...prev, [index]: tooltip },
+        );
+      } else {
         setTimeRangeTooltips(prev => {
           if (!(index in prev)) return prev;
           const next = { ...prev };
           delete next[index];
           return next;
         });
-        return;
       }
-      if (fetchedTimeValRef.current[index] === timeVal) return;
-      fetchedTimeValRef.current[index] = timeVal;
-      fetchTimeRange(timeVal).then(({ value: actual, error }) => {
-        if (!error && actual) {
-          setTimeRangeTooltips(prev => ({ ...prev, [index]: actual }));
-        }
-      });
     });
   }, [filters, internalFilters]);
 
@@ -272,10 +262,23 @@ function UIFilters(
             );
           }
           if (input === 'datetime_range') {
-            const timeRangeValue =
-              typeof initialValue === 'string' ? initialValue : undefined;
-            const hasTimeValue =
-              !!timeRangeValue && timeRangeValue !== NO_TIME_RANGE;
+            // TimeRangeFilter submits [start, end] string arrays; undefined when cleared.
+            // Gracefully handle legacy string values from old URL state.
+            const resolvedRange =
+              Array.isArray(initialValue) && initialValue.length === 2
+                ? (initialValue as [string, string])
+                : null;
+            const legacyStringVal =
+              !resolvedRange &&
+              typeof initialValue === 'string' &&
+              initialValue !== NO_TIME_RANGE
+                ? initialValue
+                : null;
+            const hasTimeValue = !!(resolvedRange || legacyStringVal);
+            // Display value passed to the panel — join resolved array so the frame
+            // selector can recognise it as a Custom date range on reopen.
+            const panelValue =
+              resolvedRange?.join(' : ') ?? legacyStringVal ?? undefined;
             return (
               <CompactFilterTrigger
                 key={key}
@@ -283,7 +286,7 @@ function UIFilters(
                 hasValue={hasTimeValue}
                 tooltipTitle={
                   hasTimeValue
-                    ? (timeRangeTooltips[index] ?? timeRangeValue)
+                    ? (timeRangeTooltips[index] ?? panelValue)
                     : undefined
                 }
                 popupType="dialog"
@@ -294,7 +297,7 @@ function UIFilters(
                 {({ onClose }) => (
                   <TimeRangeFilter
                     ref={filterRefs[index]}
-                    value={timeRangeValue}
+                    value={panelValue}
                     onClose={onClose}
                     onSubmit={value => updateFilterValue(index, value)}
                   />
