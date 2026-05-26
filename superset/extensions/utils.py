@@ -234,6 +234,7 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
     manifest = extension.manifest
     extension_data: dict[str, Any] = {
         "id": manifest.id,
+        "publisher": manifest.publisher,
         "name": extension.name,
         "version": extension.version,
         "description": manifest.description or "",
