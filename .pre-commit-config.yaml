@@ -14,6 +14,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+# Install pre-push hooks too, not just pre-commit:
+#   pre-commit install --hook-type pre-push
+# (or this default applies automatically on `pre-commit install`)
+default_install_hook_types: [pre-commit, pre-push]
 repos:
   - repo: https://github.com/MarcoGorelli/auto-walrus
     rev: 0.3.4
@@ -93,6 +97,19 @@ repos:
         language: system
         files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
         exclude: ^superset-frontend/cypress-base\/
+        require_serial: true
+      - id: full-type-check-frontend
+        name: Full Type-Check (Frontend, pre-push)
+        # The pre-commit (per-file) variant catches most issues but `tsc <file>`
+        # bypasses some project-wide invariants. This runs the same check CI
+        # runs (`npm run type` -> `tsc --noEmit -p tsconfig.json`) so cross-file
+        # type errors are surfaced before they reach origin.
+        entry: bash -c 'cd superset-frontend && npm run type'
+        language: system
+        files: ^superset-frontend\/.*\.(js|jsx|ts|tsx)$
+        exclude: ^superset-frontend/cypress-base\/
+        pass_filenames: false
+        stages: [pre-push]
         require_serial: true
   # blacklist unsafe functions like make_url (see #19526)
   - repo: https://github.com/skorokithakis/blacklist-pre-commit-hook
