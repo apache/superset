@@ -173,7 +173,7 @@ test('calls onClose after a selection is made', async () => {
 test('clearFilter via ref resets selection and calls onSelect(undefined, true)', () => {
   const onSelect = jest.fn();
   const ref = createRef<FilterHandler>();
-  render(
+  const { rerender } = render(
     <CompactSelectPanel
       ref={ref}
       selects={SMALL_SELECTS}
@@ -191,6 +191,16 @@ test('clearFilter via ref resets selection and calls onSelect(undefined, true)',
   });
 
   expect(onSelect).toHaveBeenCalledWith(undefined, true);
+  // Component is fully controlled — visual deselection follows when the
+  // parent passes value={undefined} after receiving the onSelect callback.
+  rerender(
+    <CompactSelectPanel
+      ref={ref}
+      selects={SMALL_SELECTS}
+      value={undefined}
+      onSelect={onSelect}
+    />,
+  );
   expect(screen.getByText('Alice').closest('[role="option"]')).toHaveAttribute(
     'aria-selected',
     'false',
