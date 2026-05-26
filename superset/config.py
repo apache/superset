@@ -1878,6 +1878,29 @@ DISALLOWED_SQL_TABLES: dict[str, set[str]] = {
         "pg_stat_replication",
         "pg_stat_wal_receiver",
         "pg_user",
+        # The SQL-standard `information_schema` views expose table /
+        # column / privilege / view-definition metadata across the entire
+        # database role the connection user can see. Entries are
+        # schema-qualified so `check_tables_present` only matches when the
+        # query actually references `information_schema.<view>`, not any
+        # user table that happens to share a name.
+        "information_schema.tables",
+        "information_schema.columns",
+        "information_schema.schemata",
+        "information_schema.views",
+        "information_schema.routines",
+        "information_schema.role_table_grants",
+        "information_schema.role_column_grants",
+        "information_schema.role_routine_grants",
+        "information_schema.table_privileges",
+        "information_schema.column_privileges",
+        "information_schema.usage_privileges",
+        "information_schema.key_column_usage",
+        "information_schema.table_constraints",
+        "information_schema.referential_constraints",
+        "information_schema.view_table_usage",
+        "information_schema.applicable_roles",
+        "information_schema.enabled_roles",
     },
     "mysql": {
         "mysql.user",

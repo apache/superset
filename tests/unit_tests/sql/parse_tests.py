@@ -1105,7 +1105,15 @@ def test_split_kql(kql: str, expected: list[str]) -> None:
         ("postgresql", "DROP TABLE foo", True),
         ("postgresql", "EXPLAIN ANALYZE SELECT * FROM foo", False),
         ("postgresql", "EXPLAIN ANALYZE DELETE FROM foo", True),
-        ("postgresql", "SHOW search_path", False),
+        # SHOW reads server configuration (version, hba_file, ssl,
+        # search_path, etc.). It is information-disclosure equivalent to
+        # the read-side entries already in DISALLOWED_SQL_FUNCTIONS
+        # (pg_read_file, version, current_setting) and is gated alongside
+        # the writers so it is rejected when allow_dml=False.
+        ("postgresql", "SHOW search_path", True),
+        # SET search_path parses as exp.Set (a structured node), not
+        # exp.Command, so the SET-in-mutating-commands rule does NOT
+        # catch it. Pure GUC reads/writes stay non-mutating.
         ("postgresql", "SET search_path TO public", False),
         (
             "postgres",
@@ -1384,6 +1392,10 @@ def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
         ("SELECT lo_put(12345, 0, decode('00', 'hex'))", True),
         ("SELECT lo_create(0)", True),
         ("SELECT lowrite(12345, decode('00', 'hex'))", True),
+        # PostgreSQL sequence mutator. setval() looks like a read but
+        # advances sequence state for every subsequent nextval caller.
+        ("SELECT setval('public.my_seq', 1000)", True),
+        ("SELECT SETVAL('public.my_seq', 1)", True),
         # Read-side large-object functions are intentionally NOT classified
         # as mutating here. They are still blocked via the function denylist
         # (see DISALLOWED_SQL_FUNCTIONS) but they do not write state.
@@ -1428,6 +1440,14 @@ def test_is_mutating_postgres_function_and_select_into(
         ("REFRESH MATERIALIZED VIEW mv", True),
         ("REINDEX TABLE t", True),
         ("VACUUM t", True),
+        # SHOW commands disclose server configuration (version, hba_file,
+        # ssl, search_path, etc.). They are read-only but treated as gated
+        # so they are blocked by the same allow_dml=False gate that blocks
+        # the writers; this mirrors the existing read-side blocks in
+        # DISALLOWED_SQL_FUNCTIONS for pg_read_file, version(), etc.
+        ("SHOW search_path", True),
+        ("SHOW all", True),
+        ("SHOW server_version", True),
         # Pre-existing positive controls
         ("DO $$ BEGIN UPDATE t SET x = 1; END $$", True),
         ("EXPLAIN ANALYZE UPDATE t SET x = 1", True),
@@ -3241,6 +3261,78 @@ def test_check_tables_present(sql: str, engine: str, expected: bool) -> None:
     """
     tables = {"pg_stat_activity", "pg_roles", "pg_settings"}
     assert SQLScript(sql, engine).check_tables_present(tables) == expected
+
+
+@pytest.mark.parametrize(
+    "sql, denylist, expected",
+    [
+        # Schema-qualified denylist entry matches schema-qualified reference.
+        (
+            "SELECT * FROM information_schema.tables",
+            {"information_schema.tables"},
+            True,
+        ),
+        # ... and is case-insensitive.
+        (
+            "SELECT * FROM INFORMATION_SCHEMA.TABLES",
+            {"information_schema.tables"},
+            True,
+        ),
+        # Schema-qualified denylist entry does NOT match a bare-name table
+        # of the same name in another schema. A user table named `tables`
+        # remains queryable.
+        (
+            "SELECT * FROM public.tables",
+            {"information_schema.tables"},
+            False,
+        ),
+        (
+            "SELECT * FROM tables",
+            {"information_schema.tables"},
+            False,
+        ),
+        # Bare-name denylist entry still matches by table name only
+        # (existing behavior, schema-agnostic).
+        (
+            "SELECT * FROM pg_stat_activity",
+            {"pg_stat_activity"},
+            True,
+        ),
+        (
+            "SELECT * FROM pg_catalog.pg_stat_activity",
+            {"pg_stat_activity"},
+            True,
+        ),
+        # Mixed entries: one schema-qualified, one bare. Match either.
+        (
+            "SELECT * FROM information_schema.columns",
+            {"information_schema.tables", "information_schema.columns"},
+            True,
+        ),
+        (
+            "SELECT * FROM pg_roles",
+            {"information_schema.tables", "pg_roles"},
+            True,
+        ),
+        # Negative control.
+        (
+            "SELECT * FROM my_table",
+            {"information_schema.tables", "pg_roles"},
+            False,
+        ),
+    ],
+)
+def test_check_tables_present_schema_qualified(
+    sql: str, denylist: set[str], expected: bool
+) -> None:
+    """
+    `check_tables_present` must distinguish schema-qualified denylist
+    entries (e.g. `information_schema.tables`) from bare-name entries
+    (e.g. `pg_stat_activity`). Schema-qualified entries only match
+    schema-qualified references in the SQL; bare entries match the
+    table name regardless of schema.
+    """
+    assert SQLScript(sql, "postgresql").check_tables_present(denylist) == expected
 
 
 @pytest.mark.parametrize(

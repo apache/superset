@@ -574,6 +574,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             "LO_PUT",
             "LO_CREATE",
             "LOWRITE",
+            # PostgreSQL sequence mutators. `SELECT setval('seq', N)` looks
+            # like a read but changes sequence state for every subsequent
+            # `nextval` caller.
+            "SETVAL",
         }
     )
 
@@ -594,6 +598,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             "REFRESH",  # REFRESH MATERIALIZED VIEW
             "REINDEX",
             "VACUUM",
+            # SHOW reads server configuration (version, hba_file, ssl state,
+            # search_path, etc.). It does not mutate, but in a read-only
+            # context (`allow_dml=False`) it is information-disclosure
+            # equivalent to the read-side entries in DISALLOWED_SQL_FUNCTIONS
+            # which are also blocked. Treat as gated alongside the writers.
+            "SHOW",
         }
     )
 
@@ -904,11 +914,34 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Check if any of the given tables are present in the statement.
 
+        Denylist entries may be bare (``pg_stat_activity``) or
+        schema-qualified (``information_schema.tables``). Bare entries
+        match by table name regardless of schema; qualified entries
+        require the schema to match too. This lets us block all access
+        to ``information_schema`` without also blocking any
+        user-authored table that happens to be named ``tables``.
+
         :param tables: Set of table names to check for (case-insensitive)
-        :return: True if any of the tables are present
+        :return: True if any of the given tables is referenced
         """
-        present = {table.table.lower() for table in self.tables}
-        return any(table.lower() in present for table in tables)
+        present_bare: set[str] = set()
+        present_qualified: set[str] = set()
+        for t in self.tables:
+            bare = (t.table or "").lower()
+            if not bare:
+                continue
+            present_bare.add(bare)
+            if t.schema:
+                present_qualified.add(f"{t.schema.lower()}.{bare}")
+        for entry in tables:
+            needle = entry.lower()
+            if "." in needle:
+                if needle in present_qualified:
+                    return True
+            else:
+                if needle in present_bare:
+                    return True
+        return False
 
     def get_limit_value(self) -> int | None:
         """
