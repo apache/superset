@@ -20,6 +20,7 @@ import {
   forwardRef,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
   type RefObject,
@@ -96,21 +97,29 @@ const ContentWrapper = styled.div`
       margin-bottom: 8px;
     }
 
+    .control-anchor-to {
+      margin-top: 16px;
+    }
+
+    .control-anchor-to-datetime {
+      width: 217px;
+    }
+
     .footer {
-      display: flex;
-      justify-content: flex-end;
-      gap: ${theme.sizeUnit * 2}px;
+      text-align: right;
     }
   `}
 `;
 
-const ErrorWrapper = styled.span`
+const IconWrapper = styled.span`
   span {
     margin-right: ${({ theme }) => 2 * theme.sizeUnit}px;
     vertical-align: middle;
   }
   .text {
     vertical-align: middle;
+  }
+  .error {
     color: ${({ theme }) => theme.colorError};
   }
 `;
@@ -123,7 +132,8 @@ function TimeRangeFilter(
   const value = valueProp ?? defaultTimeFilter;
   const theme = useTheme();
 
-  const [frame, setFrame] = useState<FrameType>(() => guessFrame(value));
+  const guessedFrame = useMemo(() => guessFrame(value), [value]);
+  const [frame, setFrame] = useState<FrameType>(guessedFrame);
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [evalResponse, setEvalResponse] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState(false);
@@ -133,11 +143,11 @@ function TimeRangeFilter(
   // Reset editing state each time the panel opens so stale edits are discarded.
   useEffect(() => {
     if (isOpen && !prevIsOpen.current) {
-      setFrame(guessFrame(value));
+      setFrame(guessedFrame);
       setTimeRangeValue(value);
     }
     prevIsOpen.current = isOpen;
-  }, [isOpen, value]);
+  }, [isOpen, value, guessedFrame]);
 
   // Evaluate the committed value shown in "Actual time range".
   useEffect(() => {
@@ -234,10 +244,10 @@ function TimeRangeFilter(
           </div>
         )}
         {!validTimeRange && (
-          <ErrorWrapper>
+          <IconWrapper className="warning">
             <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
-            <span className="text">{evalResponse}</span>
-          </ErrorWrapper>
+            <span className="text error">{evalResponse}</span>
+          </IconWrapper>
         )}
       </div>
       <Divider />
