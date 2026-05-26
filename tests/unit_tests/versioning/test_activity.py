@@ -502,3 +502,32 @@ def test_can_read_dispatches_to_datasource_predicate() -> None:
     manager, so this is the right predicate for ``SqlaTable``."""
     assert _can_read("SqlaTable", object(), _StubSM(datasource=True)) is True
     assert _can_read("SqlaTable", object(), _StubSM(datasource=False)) is False
+
+
+# ---- Observability metric-key convention (T050 cross-coupling) ----------
+
+
+def test_metric_prefix_matches_versioning_namespace_convention() -> None:
+    """T050: cross-coupling sanity. The activity-view's instrumentation
+    prefix (``superset.activity_view.*``) must be a sibling of sc-103156's
+    eventual ``superset.versioning.*`` namespace, not nested under
+    a different root. Both endpoint families belong to the versioning
+    feature; their metrics should be discoverable from one Grafana
+    filter (``superset.activity_view.*`` OR ``superset.versioning.*``).
+
+    Locking the prefix in a test catches accidental drift in a code
+    review — a future PR renaming the prefix would fail this assertion
+    and require explicit acknowledgement.
+    """
+    from superset.versioning.activity import _METRIC_PREFIX
+
+    assert _METRIC_PREFIX == "superset.activity_view", (
+        f"Activity-view metrics prefix changed from "
+        f"'superset.activity_view' to {_METRIC_PREFIX!r}. If this was "
+        "intentional, update sc-103156's FR-027 instrumentation to "
+        "match the new convention OR document the new naming in plan §D-17."
+    )
+    # Sibling-namespace check: starts with the versioning-feature root.
+    assert _METRIC_PREFIX.startswith("superset."), (
+        "All Superset metrics live under 'superset.*'; activity_view must too."
+    )
