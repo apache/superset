@@ -46,28 +46,27 @@ export interface ActiveChatbot {
 /**
  * Resolves which single chatbot extension is currently active.
  *
- * Selection policy (P1):
+ * Selection policy:
  *  - If no chatbot is registered, returns `undefined` — the corner stays empty.
- *  - If one or more chatbots are registered, the first one to register wins.
+ *  - If `adminSelectedId` is provided and matches a registered chatbot, that one wins.
+ *  - Otherwise the first-to-register chatbot is used as a fallback.
  *
- * `Set` preserves insertion order, so "first to register" is deterministic.
- *
- * This is the P1 fallback policy. P2 introduces an admin "Default chatbot"
- * setting (SIP §4 option (c)); when that lands, the admin-selected id takes
- * precedence here and this first-to-register behavior remains only as the
- * fallback used when no admin setting is configured.
- *
+ * @param adminSelectedId The id stored in the admin "Default chatbot" setting, if any.
  * @returns The active chatbot's id and provider, or `undefined` if none.
  */
-export const getActiveChatbot = (): ActiveChatbot | undefined => {
+export const getActiveChatbot = (
+  adminSelectedId?: string | null,
+): ActiveChatbot | undefined => {
   const registeredIds = getRegisteredViewIds(CHATBOT_LOCATION);
   if (registeredIds.length === 0) {
     return undefined;
   }
 
-  // Deterministic first-to-register fallback. P2 will consult the admin
-  // "Default chatbot" setting before this point.
-  const [selectedId] = registeredIds;
+  const selectedId =
+    adminSelectedId && registeredIds.includes(adminSelectedId)
+      ? adminSelectedId
+      : registeredIds[0];
+
   const provider = getViewProvider(CHATBOT_LOCATION, selectedId);
   if (!provider) {
     return undefined;
