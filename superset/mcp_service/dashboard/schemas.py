@@ -524,6 +524,19 @@ class AddChartToDashboardResponse(BaseModel):
         ),
     )
 
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap error text before it is exposed to LLM context.
+
+        The error may echo user-supplied target_tab or dashboard-controlled tab
+        labels — both must be wrapped so the LLM treats them as data, not
+        instructions.
+        """
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
+
 
 class GenerateDashboardRequest(BaseModel):
     """Request schema for generating a dashboard."""
