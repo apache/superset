@@ -34,6 +34,7 @@ from typing import Any
 
 import pytest
 
+from superset.connectors.sqla.models import SqlaTable
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -44,6 +45,14 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (  # noqa: F4
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
+
+
+def _get_birth_names_dataset() -> SqlaTable:
+    return (
+        db.session.query(SqlaTable)
+        .filter(SqlaTable.table_name == "birth_names")
+        .first()
+    )
 
 
 def _persist_fixture_state() -> None:
@@ -261,3 +270,206 @@ class TestDashboardActivityView(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         rv = self._activity(str(dashboard.uuid), page_size="500")
         assert rv.status_code == 200
+
+
+class TestChartActivityView(SupersetTestCase):
+    """T028–T032 — ``GET /api/v1/chart/<uuid>/activity/`` (US2).
+
+    Chart activity = chart's own edits + datasets the chart pointed at
+    during association. **No** dashboard records — even when the chart
+    is on a dashboard, sibling-traversal is excluded per the spec's
+    Relationship Traversal section (T032).
+    """
+
+    @pytest.fixture(autouse=True)
+    def _load_data(self, load_birth_names_dashboard_with_slices):  # noqa: PT004, F811
+        pass
+
+    def _activity(self, chart_uuid: str, **query: Any) -> Any:
+        return self.client.get(
+            f"/api/v1/chart/{chart_uuid}/activity/",
+            query_string=query,
+        )
+
+    def _get_birth_names_chart(self) -> Slice:
+        return db.session.query(Slice).filter(Slice.slice_name == "Girls").first()
+
+    # ---- 4xx boundary cases ----
+
+    def test_chart_activity_returns_404_for_unknown_uuid(self) -> None:
+        self.login(ADMIN_USERNAME)
+        rv = self._activity("00000000-0000-0000-0000-000000000000")
+        assert rv.status_code == 404
+
+    def test_chart_activity_returns_400_for_invalid_uuid(self) -> None:
+        self.login(ADMIN_USERNAME)
+        rv = self._activity("not-a-uuid")
+        assert rv.status_code == 400
+
+    def test_chart_activity_returns_400_for_invalid_include(self) -> None:
+        _persist_fixture_state()
+        chart = self._get_birth_names_chart()
+        assert chart is not None
+        self.login(ADMIN_USERNAME)
+        rv = self._activity(str(chart.uuid), include="upstream")
+        assert rv.status_code == 400
+
+    def test_chart_activity_denies_non_owner(self) -> None:
+        """Same shape as the dashboard endpoint: Alpha lacks ownership
+        on the admin-fixture chart so raise_for_ownership returns 403."""
+        _persist_fixture_state()
+        chart = self._get_birth_names_chart()
+        assert chart is not None
+        self.login(ALPHA_USERNAME)
+        rv = self._activity(str(chart.uuid))
+        assert rv.status_code == 403
+
+    # ---- 200 happy paths ----
+
+    def test_chart_activity_returns_200_with_envelope_shape(self) -> None:
+        _persist_fixture_state()
+        chart = self._get_birth_names_chart()
+        assert chart is not None
+        self.login(ADMIN_USERNAME)
+        rv = self._activity(str(chart.uuid))
+        assert rv.status_code == 200
+        body = _json.loads(rv.data.decode("utf-8"))
+        assert isinstance(body["result"], list)
+        assert isinstance(body["count"], int)
+
+    def test_chart_activity_self_edit_appears_as_self_record(self) -> None:
+        """Editing the chart itself surfaces a ``source=self``,
+        ``entity_kind=Slice`` record."""
+        _persist_fixture_state()
+        chart = self._get_birth_names_chart()
+        assert chart is not None
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+        original_name = chart.slice_name
+
+        try:
+            chart.slice_name = f"{original_name} (edited self)"
+            db.session.commit()
+
+            self.login(ADMIN_USERNAME)
+            rv = self._activity(chart_uuid)
+            assert rv.status_code == 200
+            body = _json.loads(rv.data.decode("utf-8"))
+            self_records = [
+                r
+                for r in body["result"]
+                if r["entity_kind"] == "Slice" and r["source"] == "self"
+            ]
+            got = [(r["entity_kind"], r["source"]) for r in body["result"]]
+            assert self_records, (
+                f"Expected ≥1 Slice/self record from the chart edit; got: {got}"
+            )
+        finally:
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = original_name
+            db.session.commit()
+
+    def test_chart_activity_includes_dataset_edit_as_related(self) -> None:
+        """T030 / AS-1 of US2: editing the chart's dataset surfaces a
+        ``source=related``, ``entity_kind=SqlaTable`` record."""
+        _persist_fixture_state()
+        chart = self._get_birth_names_chart()
+        dataset = _get_birth_names_dataset()
+        assert chart is not None
+        assert dataset is not None
+        chart_uuid = str(chart.uuid)
+        dataset_id = dataset.id
+        original_description = dataset.description
+
+        try:
+            dataset.description = "edited for activity-view test"
+            db.session.commit()
+
+            self.login(ADMIN_USERNAME)
+            rv = self._activity(chart_uuid)
+            assert rv.status_code == 200
+            body = _json.loads(rv.data.decode("utf-8"))
+            related = [
+                r
+                for r in body["result"]
+                if r["entity_kind"] == "SqlaTable" and r["source"] == "related"
+            ]
+            assert related, (
+                "Expected at least one SqlaTable/related record from the "
+                "dataset edit; got: "
+                f"{[(r['entity_kind'], r['source']) for r in body['result']]}"
+            )
+        finally:
+            db.session.rollback()
+            dataset = (
+                db.session.query(SqlaTable).filter(SqlaTable.id == dataset_id).one()
+            )
+            dataset.description = original_description
+            db.session.commit()
+
+    def test_chart_activity_excludes_sibling_dashboards(self) -> None:
+        """T032: Even when the chart is on a dashboard, dashboard edits
+        do NOT appear in the chart's activity. Per the spec's Relationship
+        Traversal section: charts don't see "sideways" to the dashboards
+        they happen to be on."""
+        _persist_fixture_state()
+        chart = self._get_birth_names_chart()
+        dashboard = _get_birth_names_dashboard()
+        assert chart is not None
+        assert dashboard is not None
+        chart_uuid = str(chart.uuid)
+        dashboard_id = dashboard.id
+        original_title = dashboard.dashboard_title
+
+        try:
+            # Mutate the dashboard the chart is on — that edit MUST NOT
+            # appear in the chart's activity stream.
+            dashboard.dashboard_title = f"{original_title} (edited sibling)"
+            db.session.commit()
+
+            self.login(ADMIN_USERNAME)
+            rv = self._activity(chart_uuid)
+            assert rv.status_code == 200
+            body = _json.loads(rv.data.decode("utf-8"))
+            for record in body["result"]:
+                assert record["entity_kind"] != "Dashboard", (
+                    f"Dashboard edit leaked into chart's activity stream: {record}"
+                )
+        finally:
+            db.session.rollback()
+            dashboard = (
+                db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+            )
+            dashboard.dashboard_title = original_title
+            db.session.commit()
+
+    def test_chart_activity_include_self_excludes_related(self) -> None:
+        """``?include=self`` filters out the dataset records."""
+        _persist_fixture_state()
+        chart = self._get_birth_names_chart()
+        dataset = _get_birth_names_dataset()
+        assert chart is not None
+        assert dataset is not None
+        chart_uuid = str(chart.uuid)
+        dataset_id = dataset.id
+        original_description = dataset.description
+
+        try:
+            dataset.description = "edited (self filter test)"
+            db.session.commit()
+
+            self.login(ADMIN_USERNAME)
+            rv = self._activity(chart_uuid, include="self")
+            assert rv.status_code == 200
+            body = _json.loads(rv.data.decode("utf-8"))
+            for record in body["result"]:
+                assert record["source"] == "self"
+                assert record["entity_kind"] == "Slice"
+        finally:
+            db.session.rollback()
+            dataset = (
+                db.session.query(SqlaTable).filter(SqlaTable.id == dataset_id).one()
+            )
+            dataset.description = original_description
+            db.session.commit()
