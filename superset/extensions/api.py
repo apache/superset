@@ -18,10 +18,15 @@ import mimetypes
 from io import BytesIO
 from typing import Any
 
-from flask import send_file
+from flask import request, send_file
 from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
+from superset.extensions import security_manager
+from superset.extensions.settings import (
+    get_extension_settings,
+    update_extension_settings,
+)
 from superset.extensions.utils import (
     build_extension_data,
     get_extensions,
@@ -166,6 +171,53 @@ class ExtensionsRestApi(BaseApi):
             return self.response_404()
         extension_data = build_extension_data(extension)
         return self.response(200, result=extension_data)
+
+    @protect()
+    @safe
+    @expose("/settings", methods=("GET",))
+    def get_settings(self, **kwargs: Any) -> Response:
+        """Get global extension admin settings.
+        ---
+        get:
+          summary: Get extension admin settings (active chatbot, enabled flags).
+          responses:
+            200:
+              description: Extension settings
+        """
+        return self.response(200, result=get_extension_settings())
+
+    @protect()
+    @safe
+    @expose("/settings", methods=("PUT",))
+    def put_settings(self, **kwargs: Any) -> Response:
+        """Update global extension admin settings.
+        ---
+        put:
+          summary: Update extension admin settings.
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    active_chatbot_id:
+                      type: string
+                      nullable: true
+                    enabled:
+                      type: object
+                      additionalProperties:
+                        type: boolean
+          responses:
+            200:
+              description: Updated settings
+            403:
+              $ref: '#/components/responses/403'
+        """
+        if not security_manager.is_admin():
+            return self.response(403, message="Admin access required.")
+        body = request.get_json(silent=True) or {}
+        result = update_extension_settings(body)
+        return self.response(200, result=result)
 
     @protect()
     @safe
