@@ -23,7 +23,8 @@ chain — a dashboard's activity stream includes edits to charts that
 were attached to it AND edits to datasets those charts pointed at,
 each time-bounded by when the relationship was active.
 
-Three public entry points correspond to the three endpoint families:
+One public entry point — ``get_activity(model_cls, entity_uuid, ...)`` —
+dispatches on the first argument to serve all three endpoint families:
 
 * ``get_activity(Dashboard, dashboard_uuid, ...)`` — own edits + charts
   attached during their dashboard window + datasets those charts used

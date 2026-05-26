@@ -23,7 +23,7 @@ avoid triplicated definitions.
 
 from __future__ import annotations
 
-from marshmallow import fields, Schema
+from marshmallow import fields, Schema, validate
 
 
 class VersionChangedBySchema(Schema):
@@ -130,20 +130,66 @@ class VersionListResponseSchema(Schema):
 
 # ---- Cross-entity activity view (sc-107283) -------------------------------
 
+#: Allowed values for ``ActivityRecordSchema.entity_kind``. Mirrors the model
+#: classes registered with Continuum versioning (sc-103156).
+ACTIVITY_ENTITY_KINDS: tuple[str, ...] = ("Dashboard", "Slice", "SqlaTable")
+
+#: Allowed values for ``ActivityRecordSchema.source`` (spec AV-013).
+ACTIVITY_SOURCES: tuple[str, ...] = ("self", "related")
+
+#: Allowed values for ``ActivityRecordSchema.entity_deletion_state``.
+#: Hard-delete is communicated separately via ``entity_deleted=true``;
+#: the remaining state is the soft-delete sentinel (sc-103157).
+ACTIVITY_DELETION_STATES: tuple[str, ...] = ("soft_deleted",)
+
+#: Allowed values for ``ActivityRecordSchema.kind`` — mirrors the
+#: change-record taxonomy from sc-103156 FR-016. ``"field"`` is the
+#: fallback for scalar changes without a more specific category.
+ACTIVITY_CHANGE_KINDS: tuple[str, ...] = (
+    "filter",
+    "metric",
+    "dimension",
+    "column",
+    "chart",
+    "time_range",
+    "color_palette",
+    "restore",
+    "field",
+)
+
 
 class ActivityChangedBySchema(Schema):
-    """Subset of the User model included in each activity record.
+    """User attribution for an activity record.
 
-    Identical shape to :class:`VersionChangedBySchema` — kept as a separate
-    class so the activity-view contract can evolve independently of the
-    version-history contract if the two diverge later. ``null`` when the
-    saving user has been deleted from ``ab_user`` (sc-103156 §Session
-    2026-05-18 clarification).
+    The activity-view payload exposes only the display fields
+    (``id`` + given/family name); ``username`` is omitted by design (see
+    data-model.md §"ActivityRecord DTO"). ``null`` when the saving user
+    has been deleted from ``ab_user`` (sc-103156 §Session 2026-05-18
+    clarification).
     """
 
     id = fields.Integer()
     first_name = fields.String()
     last_name = fields.String()
+
+
+class ActivityImpactSchema(Schema):
+    """Dependent-count summary attached to ``source='related'`` records.
+
+    Synthesized server-side at the time of the activity query — it counts
+    siblings affected by the same upstream change at the same transaction
+    (e.g., how many charts on the requested dashboard pointed at the
+    dataset whose edit this record represents).
+    """
+
+    charts = fields.Integer(
+        metadata={
+            "description": (
+                "Number of sibling charts on the path entity affected by "
+                "the same related-record change at this transaction."
+            )
+        },
+    )
 
 
 class ActivityRecordSchema(Schema):
@@ -165,12 +211,8 @@ class ActivityRecordSchema(Schema):
         },
     )
     entity_kind = fields.String(
-        metadata={
-            "description": (
-                "Model class of the source entity: "
-                '``"Dashboard"`` | ``"Slice"`` | ``"SqlaTable"``.'
-            )
-        },
+        validate=validate.OneOf(ACTIVITY_ENTITY_KINDS),
+        metadata={"description": "Model class of the source entity."},
     )
     entity_uuid = fields.String(
         allow_none=True,
@@ -202,15 +244,16 @@ class ActivityRecordSchema(Schema):
     )
     entity_deletion_state = fields.String(
         allow_none=True,
+        validate=validate.OneOf(ACTIVITY_DELETION_STATES),
         metadata={
             "description": (
-                'Present + ``"soft_deleted"`` when the source entity has '
-                "non-null ``deleted_at`` (sc-103157). Absent or ``null`` "
-                "otherwise."
+                "Present when the source entity has non-null ``deleted_at`` "
+                "(sc-103157). Absent or ``null`` otherwise."
             )
         },
     )
     source = fields.String(
+        validate=validate.OneOf(ACTIVITY_SOURCES),
         metadata={
             "description": (
                 '``"self"`` if ``(entity_kind, entity_id)`` matches the '
@@ -236,15 +279,17 @@ class ActivityRecordSchema(Schema):
         },
     )
     kind = fields.String(
+        validate=validate.OneOf(ACTIVITY_CHANGE_KINDS),
         metadata={
             "description": (
-                "Change-record taxonomy enum from sc-103156 FR-016 "
-                "(``filter`` / ``metric`` / ``time_range`` / ``field`` / "
-                "``column`` / ``chart`` / ``restore`` / ...)."
+                "Change-record taxonomy enum from sc-103156 FR-016. "
+                "``field`` is the fallback for scalar changes without a "
+                "more specific category."
             )
         },
     )
-    path = fields.Raw(
+    path = fields.List(
+        fields.String(),
         metadata={
             "description": (
                 "JSON-pointer-style segment array (sc-103156 FR-019). "
@@ -269,7 +314,8 @@ class ActivityRecordSchema(Schema):
             )
         },
     )
-    impact = fields.Raw(
+    impact = fields.Nested(
+        ActivityImpactSchema,
         allow_none=True,
         metadata={
             "description": (
