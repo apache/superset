@@ -817,8 +817,11 @@ export function exploreJSON(
             ),
         );
         (queriesResponse as QueryData[]).forEach(response => {
-          if (response.warning) {
-            dispatch(addWarningToast(response.warning, { noDuplicate: true }));
+          const { warning } = response as QueryData & {
+            warning?: string | null;
+          };
+          if (warning) {
+            dispatch(addWarningToast(warning, { noDuplicate: true }));
           }
         });
         return dispatch(

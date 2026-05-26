@@ -16,12 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  useEffect,
-  useState,
-  type ReactNode,
-  type MouseEvent,
-} from 'react';
+import { useEffect, useState, type ReactNode, type MouseEvent } from 'react';
 import { useTheme, styled, css } from '@apache-superset/core/theme';
 import { Dropdown, Tooltip, Icons } from '@superset-ui/core/components';
 
@@ -156,7 +151,9 @@ export default function CompactFilterTrigger({
           if (!visible) setTooltipOpen(false);
         }}
         trigger={['click']}
-        popupRender={() => children({ isOpen: open, onClose: () => setOpen(false) })}
+        popupRender={() =>
+          children({ isOpen: open, onClose: () => setOpen(false) })
+        }
         placement="bottomLeft"
       >
         <Tooltip
@@ -180,7 +177,9 @@ export default function CompactFilterTrigger({
             <span>{label}</span>
             <Icons.DownOutlined
               iconSize="xs"
-              iconColor={hasValue ? theme.colorPrimary : theme.colorTextSecondary}
+              iconColor={
+                hasValue ? theme.colorPrimary : theme.colorTextSecondary
+              }
             />
           </FilterPill>
         </Tooltip>

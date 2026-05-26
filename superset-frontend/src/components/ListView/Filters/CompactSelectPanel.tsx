@@ -220,25 +220,18 @@ function CompactSelectPanel(
 
   const showSearch = !!fetchSelects || selects.length > SEARCH_THRESHOLD;
 
-  // displayText is the actual rendered text of the clicked list item, captured
-  // from the DOM via e.currentTarget.textContent. This is more reliable than
-  // reading opt.label, which may be a styled ReactNode (e.g. for owner options)
-  // rather than a plain string — causing tooltip to show the raw value instead.
   const handleSelect = (opt: SelectOption, displayText?: string) => {
     const isDeselect = value?.value === opt.value;
-    // Normalize to a plain object so the value can be safely serialized to
-    // URL query params without circular-reference errors from emotion metadata
-    // on styled ReactNode labels.
-    const next = isDeselect
-      ? undefined
-      : {
-          label:
-            displayText ||
-            (typeof opt.label === 'string'
-              ? opt.label
-              : String(opt.value ?? '')),
-          value: opt.value,
-        };
+    // Normalize to a plain string label for URL serialization:
+    // 1. String labels pass through unchanged.
+    // 2. ReactNode labels with a `title` field use that (set by callers for
+    //    options like owner-select where label contains name + email JSX).
+    // 3. Fall back to DOM text content, then stringified value.
+    const label =
+      typeof opt.label === 'string'
+        ? opt.label
+        : (opt.title ?? displayText ?? String(opt.value ?? ''));
+    const next = isDeselect ? undefined : { label, value: opt.value };
     onSelect(next, isDeselect);
     onClose?.();
   };
