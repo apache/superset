@@ -33,12 +33,20 @@ from superset.commands.report.exceptions import (
     ReportScheduleNameUniquenessValidationError,
     ReportScheduleNotFoundError,
     ReportScheduleUpdateFailedError,
+    ReportScheduleUserEmailNotFoundError,
 )
 from superset.daos.database import DatabaseDAO
 from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
-from superset.reports.models import ReportSchedule, ReportScheduleType, ReportState
+from superset.reports.models import (
+    ReportCreationMethod,
+    ReportRecipientType,
+    ReportSchedule,
+    ReportScheduleType,
+    ReportState,
+)
 from superset.utils import json
+from superset.utils.core import get_user_email
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -88,6 +96,26 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
             and not self._properties["active"]
         ):
             self._properties["last_state"] = ReportState.NOOP
+
+        # For reports created from charts or dashboards the recipient must always
+        # be the requesting user's own email address.
+        if (
+            self._model.creation_method
+            in (
+                ReportCreationMethod.CHARTS,
+                ReportCreationMethod.DASHBOARDS,
+            )
+            and "recipients" in self._properties
+        ):
+            if user_email := get_user_email():
+                self._properties["recipients"] = [
+                    {
+                        "type": ReportRecipientType.EMAIL,
+                        "recipient_config_json": {"target": user_email},
+                    }
+                ]
+            else:
+                exceptions.append(ReportScheduleUserEmailNotFoundError())
 
         # Validate name/type uniqueness if either is changing
         if name != self._model.name or report_type != self._model.type:
