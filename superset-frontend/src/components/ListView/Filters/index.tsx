@@ -289,7 +289,7 @@ function UIFilters(
                 }
                 popupType="dialog"
                 onClear={() => {
-                  filterRefs[index]?.current?.clearFilter?.();
+                  updateFilterValue(index, undefined);
                 }}
               >
                 {({ onClose }) => (
@@ -332,7 +332,7 @@ function UIFilters(
                 tooltipTitle={rangeTooltip}
                 popupType="dialog"
                 onClear={() => {
-                  filterRefs[index]?.current?.clearFilter?.();
+                  updateFilterValue(index, undefined);
                 }}
               >
                 {({ onClose }) => (
