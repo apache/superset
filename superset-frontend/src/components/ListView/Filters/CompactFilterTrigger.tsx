@@ -38,11 +38,6 @@ interface CompactFilterTriggerProps {
   popupType?: 'listbox' | 'dialog';
 }
 
-const TriggerWrapper = styled.span`
-  display: inline-flex;
-  align-items: center;
-`;
-
 const FilterPill = styled.button<{ $active: boolean }>`
   ${({ theme, $active }) => css`
     display: inline-flex;
@@ -85,33 +80,6 @@ const ActiveDot = styled.span`
   `}
 `;
 
-// Meets WCAG 2.5.5 target size (24×24 minimum) with explicit dimensions.
-const ClearButton = styled.button`
-  ${({ theme }) => css`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 24px;
-    min-height: 24px;
-    margin-left: ${theme.sizeUnit / 2}px;
-    padding: 0;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    color: ${theme.colorPrimary};
-    border-radius: ${theme.borderRadiusSM}px;
-
-    &:hover {
-      background: ${theme.colorPrimaryBg};
-    }
-
-    &:focus-visible {
-      outline: 2px solid ${theme.colorPrimary};
-      outline-offset: 2px;
-    }
-  `}
-`;
-
 export default function CompactFilterTrigger({
   label,
   hasValue,
@@ -139,61 +107,56 @@ export default function CompactFilterTrigger({
     setOpen(false);
   };
 
-  const clearAriaLabel =
-    typeof label === 'string' ? `Clear ${label} filter` : 'Clear filter';
-
   return (
-    <TriggerWrapper>
-      <Dropdown
-        open={open}
-        onOpenChange={visible => {
-          setOpen(visible);
-          if (!visible) setTooltipOpen(false);
-        }}
-        trigger={['click']}
-        popupRender={() =>
-          children({ isOpen: open, onClose: () => setOpen(false) })
+    <Dropdown
+      open={open}
+      onOpenChange={visible => {
+        setOpen(visible);
+        if (!visible) setTooltipOpen(false);
+      }}
+      trigger={['click']}
+      popupRender={() =>
+        children({ isOpen: open, onClose: () => setOpen(false) })
+      }
+      placement="bottomLeft"
+    >
+      <Tooltip
+        title={tooltipTitle}
+        open={!!tooltipTitle && !open && tooltipOpen}
+        onOpenChange={visible =>
+          setTooltipOpen(visible && !!tooltipTitle && !open)
         }
-        placement="bottomLeft"
+        mouseEnterDelay={0.5}
+        mouseLeaveDelay={0}
       >
-        <Tooltip
-          title={tooltipTitle}
-          open={!!tooltipTitle && !open && tooltipOpen}
-          onOpenChange={visible =>
-            setTooltipOpen(visible && !!tooltipTitle && !open)
-          }
-          mouseEnterDelay={0.5}
-          mouseLeaveDelay={0}
+        <FilterPill
+          $active={hasValue}
+          type="button"
+          data-test="compact-filter-pill"
+          aria-haspopup={popupType}
+          aria-expanded={open}
+          aria-label={typeof label === 'string' ? label : undefined}
         >
-          <FilterPill
-            $active={hasValue}
-            type="button"
-            data-test="compact-filter-pill"
-            aria-haspopup={popupType}
-            aria-expanded={open}
-            aria-label={typeof label === 'string' ? label : undefined}
-          >
-            {hasValue && <ActiveDot />}
-            <span>{label}</span>
-            <Icons.DownOutlined
+          {hasValue && <ActiveDot />}
+          <span>{label}</span>
+          {hasValue ? (
+            <Icons.CloseOutlined
               iconSize="xs"
-              iconColor={
-                hasValue ? theme.colorPrimary : theme.colorTextSecondary
+              iconColor={theme.colorPrimary}
+              onClick={handleClear}
+              data-test="compact-filter-clear"
+              aria-label={
+                typeof label === 'string' ? `Clear ${label} filter` : undefined
               }
             />
-          </FilterPill>
-        </Tooltip>
-      </Dropdown>
-      {hasValue && (
-        <ClearButton
-          type="button"
-          data-test="compact-filter-clear"
-          aria-label={clearAriaLabel}
-          onClick={handleClear}
-        >
-          <Icons.CloseOutlined iconSize="s" iconColor={theme.colorPrimary} />
-        </ClearButton>
-      )}
-    </TriggerWrapper>
+          ) : (
+            <Icons.DownOutlined
+              iconSize="xs"
+              iconColor={theme.colorTextSecondary}
+            />
+          )}
+        </FilterPill>
+      </Tooltip>
+    </Dropdown>
   );
 }

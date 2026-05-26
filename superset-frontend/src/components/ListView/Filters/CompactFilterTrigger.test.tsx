@@ -65,26 +65,22 @@ test('renders as inactive pill with down chevron when hasValue is false', () => 
   expect(screen.queryByTestId('compact-filter-clear')).not.toBeInTheDocument();
 });
 
-test('renders active state with clear button when hasValue is true', () => {
+test('renders active state with clear icon when hasValue is true', () => {
   renderTrigger({ hasValue: true });
-  expect(
-    screen.getByRole('button', { name: /clear owner filter/i }),
-  ).toBeInTheDocument();
+  expect(screen.getByTestId('compact-filter-clear')).toBeInTheDocument();
 });
 
-test('clear button has descriptive aria-label matching the filter name', () => {
+test('clear icon has descriptive aria-label matching the filter name', () => {
   renderTrigger({ hasValue: true });
-  const clearBtn = screen.getByTestId('compact-filter-clear');
-  expect(clearBtn).toHaveAttribute('aria-label', 'Clear Owner filter');
+  const clearIcon = screen.getByTestId('compact-filter-clear');
+  expect(clearIcon).toHaveAttribute('aria-label', 'Clear Owner filter');
 });
 
-test('clear button is a separate element from the pill button', () => {
+test('clear icon is rendered inside the pill button', () => {
   renderTrigger({ hasValue: true });
   const pill = screen.getByTestId('compact-filter-pill');
-  const clearBtn = screen.getByTestId('compact-filter-clear');
-  // Buttons must not be nested
-  expect(pill).not.toContainElement(clearBtn);
-  expect(clearBtn).not.toContainElement(pill);
+  const clearIcon = screen.getByTestId('compact-filter-clear');
+  expect(pill).toContainElement(clearIcon);
 });
 
 test('toggles aria-expanded when pill is clicked', async () => {
@@ -95,11 +91,11 @@ test('toggles aria-expanded when pill is clicked', async () => {
   expect(pill).toHaveAttribute('aria-expanded', 'true');
 });
 
-test('calls onClear when clear button is clicked', async () => {
+test('calls onClear when clear icon is clicked', async () => {
   const onClear = jest.fn();
   renderTrigger({ hasValue: true, onClear } as any);
-  const clearBtn = screen.getByRole('button', { name: /clear owner filter/i });
-  await userEvent.click(clearBtn);
+  const clearIcon = screen.getByTestId('compact-filter-clear');
+  await userEvent.click(clearIcon);
   expect(onClear).toHaveBeenCalledTimes(1);
 });
 
@@ -110,9 +106,7 @@ test('does not render tooltip wrapper when tooltipTitle is absent', () => {
 
 test('shows active state indicators when hasValue and tooltipTitle are set', () => {
   renderTrigger({ hasValue: true, tooltipTitle: 'Some Owner' });
-  expect(
-    screen.getByRole('button', { name: /clear owner filter/i }),
-  ).toBeInTheDocument();
+  expect(screen.getByTestId('compact-filter-clear')).toBeInTheDocument();
   expect(screen.getByTestId('compact-filter-pill')).toHaveAttribute(
     'aria-expanded',
     'false',
