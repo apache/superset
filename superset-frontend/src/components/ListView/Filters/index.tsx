@@ -260,11 +260,10 @@ function UIFilters(
                   filterRefs[index]?.current?.clearFilter?.();
                 }}
               >
-                {({ isOpen, onClose }) => (
+                {({ onClose }) => (
                   <TimeRangeFilter
                     ref={filterRefs[index]}
                     value={timeRangeValue}
-                    isOpen={isOpen}
                     onClose={onClose}
                     onSubmit={value => updateFilterValue(index, value)}
                   />

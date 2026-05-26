@@ -21,7 +21,6 @@ import {
   useEffect,
   useImperativeHandle,
   useMemo,
-  useRef,
   useState,
   type RefObject,
 } from 'react';
@@ -55,7 +54,6 @@ interface TimeRangeFilterProps {
   value?: string;
   onSubmit: (value: string) => void;
   onClose: () => void;
-  isOpen: boolean;
 }
 
 const StyledRangeType = styled(Select)`
@@ -125,29 +123,22 @@ const IconWrapper = styled.span`
 `;
 
 function TimeRangeFilter(
-  { value: valueProp, onSubmit, onClose, isOpen }: TimeRangeFilterProps,
+  { value: valueProp, onSubmit, onClose }: TimeRangeFilterProps,
   ref: RefObject<FilterHandler>,
 ) {
   const defaultTimeFilter = useDefaultTimeFilter();
   const value = valueProp ?? defaultTimeFilter;
   const theme = useTheme();
 
+  // guessedFrame is only used for the initial useState — value is stable at
+  // mount because CompactFilterTrigger uses destroyPopupOnHide, so the panel
+  // always mounts fresh with the current committed value.
   const guessedFrame = useMemo(() => guessFrame(value), [value]);
   const [frame, setFrame] = useState<FrameType>(guessedFrame);
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [evalResponse, setEvalResponse] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState(false);
   const [lastFetched, setLastFetched] = useState(value);
-  const prevIsOpen = useRef(false);
-
-  // Reset editing state each time the panel opens so stale edits are discarded.
-  useEffect(() => {
-    if (isOpen && !prevIsOpen.current) {
-      setFrame(guessedFrame);
-      setTimeRangeValue(value);
-    }
-    prevIsOpen.current = isOpen;
-  }, [isOpen, value, guessedFrame]);
 
   // Evaluate the committed value shown in "Actual time range".
   useEffect(() => {
