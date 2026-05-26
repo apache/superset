@@ -185,11 +185,33 @@ def _datasets_used_by_chart(slice_id: int) -> list[tuple[int, Window]]:
     """Return ``(datasource_id, window)`` for every dataset that *slice_id*
     has ever pointed at, with each association's validity window.
 
+    Single-slice form, used by :func:`_resolve_chart_scope` where there
+    is only one chart to walk. The dashboard-scope path calls
+    :func:`_batch_datasets_used_by_charts` instead so the query fires
+    once for all slices on the dashboard, not once per slice.
+
     Reads from ``slices_version`` (the chart parent shadow). Filters to
     ``datasource_type = 'table'`` because the activity view only follows
     the chart → ``SqlaTable`` dependency edge (not legacy/other
     datasources). Rows with ``operation_type = 2`` are excluded.
     """
+    return _batch_datasets_used_by_charts({slice_id}).get(slice_id, [])
+
+
+def _batch_datasets_used_by_charts(
+    slice_ids: set[int],
+) -> dict[int, list[tuple[int, Window]]]:
+    """Batch form of :func:`_datasets_used_by_chart`. Returns
+    ``{slice_id: [(dataset_id, window), ...]}`` in a single query so the
+    dashboard-scope walker doesn't fire one query per chart on the
+    dashboard. The previous per-slice shape became O(n_charts) round-
+    trips, which dominated ``get_activity`` latency on dashboards with
+    rich history (profile run 2026-05-26 showed `_resolve_scope`
+    accounting for ~1.9s out of 4s p95).
+    """
+    if not slice_ids:
+        return {}
+
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import version_class
 
@@ -200,11 +222,12 @@ def _datasets_used_by_chart(slice_id: int) -> list[tuple[int, Window]]:
         db.session.connection()
         .execute(
             sa.select(
+                slices_tbl.c.id,
                 slices_tbl.c.datasource_id,
                 slices_tbl.c.transaction_id,
                 slices_tbl.c.end_transaction_id,
             ).where(
-                slices_tbl.c.id == slice_id,
+                slices_tbl.c.id.in_(slice_ids),
                 slices_tbl.c.datasource_type == "table",
                 slices_tbl.c.operation_type != 2,
                 slices_tbl.c.datasource_id.is_not(None),
@@ -212,7 +235,10 @@ def _datasets_used_by_chart(slice_id: int) -> list[tuple[int, Window]]:
         )
         .all()
     )
-    return [(row[0], (row[1], row[2])) for row in rows]
+    grouped: dict[int, list[tuple[int, Window]]] = {}
+    for slice_id, dataset_id, start_tx, end_tx in rows:
+        grouped.setdefault(slice_id, []).append((dataset_id, (start_tx, end_tx)))
+    return grouped
 
 
 # ---- T007: Window intersection (pure) -------------------------------------
@@ -1141,11 +1167,14 @@ def _resolve_dashboard_scope(dashboard_id: int) -> list[EntityWindows]:
     for slice_id, window in _charts_attached_to_dashboard(dashboard_id):
         chart_windows.setdefault(slice_id, []).append(window)
 
+    # One query for the dataset-history of every chart on the dashboard,
+    # not one query per chart. The per-slice form was O(n_charts) round-
+    # trips which dominated p95 on rich dashboards.
+    dataset_windows_by_slice = _batch_datasets_used_by_charts(set(chart_windows))
+
     for slice_id, attachment_windows in chart_windows.items():
         scope.append(("Slice", slice_id, list(attachment_windows)))
-        # Fetch the chart's dataset history once per slice — it doesn't
-        # depend on which attachment window we're clipping against.
-        dataset_windows = _datasets_used_by_chart(slice_id)
+        dataset_windows = dataset_windows_by_slice.get(slice_id, [])
         for attachment in attachment_windows:
             for dataset_id, chart_dataset_window in dataset_windows:
                 if (
