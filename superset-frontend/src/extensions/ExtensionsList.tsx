@@ -27,7 +27,7 @@ import { ListView } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { CHATBOT_LOCATION } from 'src/views/contributions';
-import { getRegisteredViewIds } from 'src/core/views';
+import { getRegisteredViewIds, subscribeToLocation } from 'src/core/views';
 
 const PAGE_SIZE = 25;
 
@@ -66,6 +66,15 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     enabled: {},
   });
 
+  const [chatbotRegistryVersion, setChatbotRegistryVersion] = useState(0);
+  useEffect(
+    () =>
+      subscribeToLocation(CHATBOT_LOCATION, () =>
+        setChatbotRegistryVersion(v => v + 1),
+      ),
+    [],
+  );
+
   useEffect(() => {
     SupersetClient.get({ endpoint: '/api/v1/extensions/settings' })
       .then(({ json }) => setSettings(json.result))
@@ -98,7 +107,7 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   const chatbotExtensions = useMemo(() => {
     const chatbotIds = new Set(getRegisteredViewIds(CHATBOT_LOCATION));
     return resourceCollection.filter(ext => chatbotIds.has(ext.id));
-  }, [resourceCollection]);
+  }, [resourceCollection, chatbotRegistryVersion]);
 
   const columns = useMemo(
     () => [
@@ -117,11 +126,11 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         size: 'sm',
         id: 'enabled',
         Cell: ({
-          row: { original: { id, enabled } },
+          row: { original: { id } },
         }: any) => (
           <Switch
             data-test="toggle-enabled"
-            checked={settings.enabled[id] ?? enabled}
+            checked={settings.enabled[id] ?? true}
             onClick={(checked: boolean) => toggleEnabled(id, checked)}
             size="small"
           />
