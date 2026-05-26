@@ -151,38 +151,21 @@ function UIFilters(
     },
   }));
 
-  // Only the first search filter renders inline; subsequent ones are skipped
-  // to keep one search box per page (multi-field search pages like Users would
-  // otherwise show several input boxes in the header).
+  // Search always leads the filter bar regardless of declaration order.
+  // Only the first search filter renders; subsequent ones are skipped (see note below).
   // NOTE: This means secondary search fields (e.g. Email/Username on Users,
   // Group Key on RLS) are not currently accessible via the filter bar. Those
   // pages previously relied on multiple inline inputs. This is a known UX
   // trade-off — revisit if admin workflows require additional search fields.
   let searchFilterRendered = false;
 
-  return (
-    <>
-      {filters.map(
-        (
-          {
-            Header,
-            fetchSelects,
-            key,
-            id,
-            input,
-            selects,
-            toolTipDescription,
-            onFilterUpdate,
-            loading,
-            min,
-            max,
-            autoComplete,
-            inputName,
-            popupStyle,
-          },
-          index,
-        ) => {
-          const initialValue = internalFilters?.[index]?.value;
+  // Render in two passes: search first, then all other filter types.
+  const renderFilter = (_: (typeof filters)[number], index: number) => {
+    const {
+      Header, fetchSelects, key, id, input, selects, toolTipDescription,
+      onFilterUpdate, loading, min, max, autoComplete, inputName, popupStyle,
+    } = filters[index];
+    const initialValue = internalFilters?.[index]?.value;
           if (input === 'select') {
             const selectValue = initialValue as SelectOption | undefined;
             // Prefer cached label (survives URL round-trips where only the value
@@ -341,8 +324,18 @@ function UIFilters(
               </CompactFilterTrigger>
             );
           }
-          return null;
-        },
+    return null;
+  };
+
+  return (
+    <>
+      {/* Search first */}
+      {filters.map((_, index) =>
+        filters[index].input === 'search' ? renderFilter(filters[index], index) : null,
+      )}
+      {/* Then all other filter types */}
+      {filters.map((_, index) =>
+        filters[index].input !== 'search' ? renderFilter(filters[index], index) : null,
       )}
     </>
   );
