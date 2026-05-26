@@ -59,7 +59,7 @@ interface CompactSelectPanelProps {
   loading?: boolean;
 }
 
-const PanelContainer = styled.div<{ $panelStyle?: CSSProperties }>`
+const PanelContainer = styled.div`
   ${({ theme }) => css`
     min-width: 220px;
     max-width: 320px;

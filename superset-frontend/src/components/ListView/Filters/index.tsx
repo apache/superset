@@ -23,6 +23,7 @@ import {
   useEffect,
   useImperativeHandle,
   useMemo,
+  useRef,
   useState,
   RefObject,
 } from 'react';
@@ -74,6 +75,10 @@ function UIFilters(
     Record<number, string>
   >({});
 
+  // Tracks which datetime_range values have already been fetched so we don't
+  // re-fire fetchTimeRange on every keystroke in an unrelated filter.
+  const fetchedTimeValRef = useRef<Record<number, string>>({});
+
   // On cold load, URL params restore values but not labels for fetchSelects filters.
   // Fetch the first page of options and cache the matching label so the tooltip works.
   useEffect(() => {
@@ -106,6 +111,7 @@ function UIFilters(
       const timeVal =
         typeof val === 'string' && val !== NO_TIME_RANGE ? val : undefined;
       if (!timeVal) {
+        delete fetchedTimeValRef.current[index];
         setTimeRangeTooltips(prev => {
           if (!(index in prev)) return prev;
           const next = { ...prev };
@@ -114,6 +120,8 @@ function UIFilters(
         });
         return;
       }
+      if (fetchedTimeValRef.current[index] === timeVal) return;
+      fetchedTimeValRef.current[index] = timeVal;
       fetchTimeRange(timeVal).then(({ value: actual, error }) => {
         if (!error && actual) {
           setTimeRangeTooltips(prev => ({ ...prev, [index]: actual }));
@@ -176,7 +184,6 @@ function UIFilters(
             toolTipDescription,
             onFilterUpdate,
             loading,
-            dateFilterValueType,
             min,
             max,
             autoComplete,
