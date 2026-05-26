@@ -276,6 +276,37 @@ def import_dashboard(  # noqa: C901
     overwrite: bool = False,
     ignore_permissions: bool = False,
 ) -> Dashboard:
+    """Import a dashboard from a config dict, handling existing matches.
+
+    Permission model for an existing UUID match:
+
+    +--------------+---------------+---------------------+-----------------+
+    | Existing row | overwrite arg | Caller has perms?   | Outcome         |
+    +==============+===============+=====================+=================+
+    | alive        | False         | (n/a)               | return existing |
+    +--------------+---------------+---------------------+-----------------+
+    | alive        | True          | can_write + owner   | UPDATE in place |
+    +--------------+---------------+---------------------+-----------------+
+    | alive        | True          | can_write,          | raise           |
+    |              |               | not owner/admin     |                 |
+    +--------------+---------------+---------------------+-----------------+
+    | soft-deleted | False or True | can_write + owner   | restore + UPDATE|
+    +--------------+---------------+---------------------+-----------------+
+    | soft-deleted | False or True | can_write,          | raise           |
+    |              |               | not owner/admin     |                 |
+    +--------------+---------------+---------------------+-----------------+
+    | soft-deleted | False or True | not can_write       | raise (Case B)  |
+    +--------------+---------------+---------------------+-----------------+
+
+    Re-importing a soft-deleted UUID is implicitly a restore-with-update:
+    the user is bringing the dashboard back by uploading it again. We apply
+    the same ownership check as the explicit overwrite path so non-owners
+    cannot resurrect via re-import, and we raise rather than silently
+    returning a soft-deleted row to callers without write permission.
+
+    See specs/sc-103157-soft-deletes/bypass-primer.md for the cross-entity
+    rules this implementation follows.
+    """
     can_write = ignore_permissions or security_manager.can_access(
         "can_write",
         "Dashboard",
@@ -286,20 +317,23 @@ def import_dashboard(  # noqa: C901
 
     if existing := find_existing_for_import(Dashboard, config["uuid"]):
         is_soft_deleted = existing.deleted_at is not None
-        # A re-import that matches a soft-deleted UUID is implicitly a
-        # restore-with-overwrite: bringing the dashboard back by
-        # uploading it again. Apply the same ownership check as the
-        # explicit overwrite path so non-owners cannot resurrect via
-        # re-import.
         needs_mutation = overwrite or is_soft_deleted
         if needs_mutation and can_write and user:
             if not security_manager.can_access_dashboard(existing) or (
                 user not in existing.owners and not security_manager.is_admin()
             ):
                 raise ImportFailedError(
-                    "A dashboard already exists and user doesn't "
-                    "have permissions to overwrite it"
+                    "A dashboard already exists and user doesn't have "
+                    "permissions to "
+                    f"{'restore' if is_soft_deleted else 'overwrite'} it"
                 )
+        if needs_mutation and not can_write:
+            # Case B: would-be restore-via-import without write permission.
+            # Raise rather than silently returning the soft-deleted row.
+            raise ImportFailedError(
+                "Dashboard was deleted and re-import requires can_write "
+                "permission to restore it"
+            )
         if not needs_mutation or not can_write:
             return existing
         # Mutation path. Restore a soft-deleted match in place rather
