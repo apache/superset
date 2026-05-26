@@ -65,6 +65,7 @@ function buildDefaultProps(overrides: Record<string, unknown> = {}) {
     aggregatorName: 'Count',
     vals: [] as string[],
     aggregatorsFactory,
+    tableRenderer: 'Table With Subtotal',
     tableOptions: {},
     onContextMenu: jest.fn(),
     ...overrides,
