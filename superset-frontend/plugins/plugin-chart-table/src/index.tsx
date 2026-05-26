@@ -84,9 +84,9 @@ const TableChartPlugin = defineChart<Record<string, never>, TableChartProps>({
   buildQuery: (formData: any) => buildQuery(formData),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   transform: chartProps => transformProps(chartProps as any) as any,
-  render: ({ transformedProps }) => (
+  render: props => (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <TableChart {...(transformedProps as any)} />
+    <TableChart {...(props as any)} />
   ),
 });
 

@@ -231,9 +231,7 @@ const WordCloudChartPlugin = defineChart<Record<string, never>, WordCloudProps>(
     }),
     transform: chartProps => transformProps(chartProps as ChartProps),
     buildQuery: (formData: WordCloudFormData) => buildQuery(formData),
-    render: ({ transformedProps }) => (
-      <WordCloud {...(transformedProps as WordCloudProps)} />
-    ),
+    render: props => <WordCloud {...(props as WordCloudProps)} />,
   },
 );
 

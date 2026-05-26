@@ -67,7 +67,7 @@ const PivotTableChartPlugin = defineChart<
   transform: chartProps =>
     transformProps(chartProps as ChartProps<QueryFormData>),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  render: ({ transformedProps }) => <PivotTableChart {...(transformedProps as any)} />,
+  render: props => <PivotTableChart {...(props as any)} />,
 });
 
 export { PivotTableChartPlugin };
