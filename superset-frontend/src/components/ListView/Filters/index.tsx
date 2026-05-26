@@ -20,6 +20,7 @@ import {
   createRef,
   forwardRef,
   useCallback,
+  useEffect,
   useImperativeHandle,
   useMemo,
   useState,
@@ -35,7 +36,7 @@ import type {
   SelectOption,
 } from '../types';
 import type { FilterHandler } from './types';
-import { NO_TIME_RANGE } from '@superset-ui/core';
+import { NO_TIME_RANGE, fetchTimeRange } from '@superset-ui/core';
 import SearchFilter from './Search';
 import NumericalRangeFilter from './NumericalRange';
 import TimeRangeFilter from './TimeRange';
@@ -68,6 +69,35 @@ function UIFilters(
     {},
   );
 
+  // Evaluated human-readable labels for datetime_range pills (e.g. "2024-05-01 : 2024-05-31").
+  const [timeRangeTooltips, setTimeRangeTooltips] = useState<
+    Record<number, string>
+  >({});
+
+  // Re-evaluate whenever active datetime_range values change.
+  useEffect(() => {
+    filters.forEach((filter, index) => {
+      if (filter.input !== 'datetime_range') return;
+      const val = internalFilters?.[index]?.value;
+      const timeVal =
+        typeof val === 'string' && val !== NO_TIME_RANGE ? val : undefined;
+      if (!timeVal) {
+        setTimeRangeTooltips(prev => {
+          if (!(index in prev)) return prev;
+          const next = { ...prev };
+          delete next[index];
+          return next;
+        });
+        return;
+      }
+      fetchTimeRange(timeVal).then(({ value: actual, error }) => {
+        if (!error && actual) {
+          setTimeRangeTooltips(prev => ({ ...prev, [index]: actual }));
+        }
+      });
+    });
+  }, [filters, internalFilters]);
+
   const clearFilterAtIndex = useCallback(
     (index: number) => {
       filterRefs[index]?.current?.clearFilter?.();
@@ -89,6 +119,7 @@ function UIFilters(
         updateFilterValue(index, undefined);
       });
       setTooltipLabels({});
+      setTimeRangeTooltips({});
     },
     clearFilterById: (id: string) => {
       const index = filters.findIndex(f => f.id === id);
@@ -219,7 +250,11 @@ function UIFilters(
                 key={key}
                 label={Header}
                 hasValue={hasTimeValue}
-                tooltipTitle={hasTimeValue ? timeRangeValue : undefined}
+                tooltipTitle={
+                  hasTimeValue
+                    ? (timeRangeTooltips[index] ?? timeRangeValue)
+                    : undefined
+                }
                 popupType="dialog"
                 onClear={() => {
                   filterRefs[index]?.current?.clearFilter?.();
