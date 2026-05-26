@@ -20,14 +20,16 @@
 /**
  * @fileoverview Navigation namespace for Superset extensions (P3).
  *
- * Exposes stable routing and page-surface context to extensions.
- * Extensions use this namespace to react to page changes without polling.
+ * Exposes the current application surface so extensions can react to route
+ * changes without polling. Entity-level context (chart, dashboard, dataset)
+ * is intentionally not included here — use the surface-specific namespace
+ * (`explore`, `dashboard`, `dataset`) to retrieve entity payloads.
  */
 
 import { Event } from '../common';
 
 /**
- * The set of top-level application surfaces the chatbot is aware of.
+ * The set of top-level application surfaces.
  * `'other'` covers any route not explicitly enumerated.
  */
 export type PageType =
@@ -39,57 +41,31 @@ export type PageType =
   | 'other';
 
 /**
- * Lightweight page descriptor: the current surface and the focused entity id,
- * if the surface has one (dashboard id or dataset id). Does not embed full
- * entity payloads — use the surface-specific namespace for those.
- *
- * Note: Explore pages do not expose a chart entity id here because the chart
- * id is query-string–based and may change without a pathname change. Use the
- * `explore` namespace instead to track chart context on Explore pages.
- */
-export interface PageContext {
-  pageType: PageType;
-  /**
-   * The numeric id of the primary entity on this page, if applicable.
-   * Populated for dashboard and dataset routes with a numeric id in the path.
-   * `null` for all other surfaces, slug-based dashboard URLs, or new charts.
-   */
-  entityId: number | null;
-}
-
-/**
  * Returns the current page surface type.
  *
  * @example
  * ```typescript
  * const pageType = navigation.getPageType();
- * if (pageType === 'dashboard') { ... }
+ * if (pageType === 'dashboard') {
+ *   const ctx = dashboard.getCurrentDashboard();
+ * }
  * ```
  */
 export declare function getPageType(): PageType;
 
 /**
- * Returns lightweight context about the current page: surface type and focused
- * entity id. Does not embed entity payloads; use the surface namespace for those.
+ * Event fired whenever the user navigates to a different surface.
+ * Use the surface-specific namespace to read entity context after the event.
  *
  * @example
  * ```typescript
- * const { pageType, entityId } = navigation.getCurrentPage();
- * ```
- */
-export declare function getCurrentPage(): PageContext;
-
-/**
- * Event fired whenever the user navigates to a different page or entity.
- * Provides the new `PageContext` as the event payload.
- *
- * @example
- * ```typescript
- * const sub = navigation.onDidChangePage(({ pageType }) => {
- *   chatbot.updateContext({ pageType });
+ * const sub = navigation.onDidChangePage(pageType => {
+ *   if (pageType === 'dashboard') {
+ *     const ctx = dashboard.getCurrentDashboard();
+ *   }
  * });
  * // later:
  * sub.dispose();
  * ```
  */
-export declare const onDidChangePage: Event<PageContext>;
+export declare const onDidChangePage: Event<PageType>;

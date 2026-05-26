@@ -28,9 +28,8 @@ import type { navigation as navigationApi } from '@apache-superset/core';
 import { Disposable } from '../models';
 
 type PageType = navigationApi.PageType;
-type PageContext = navigationApi.PageContext;
 
-const listeners = new Set<(ctx: PageContext) => void>();
+const listeners = new Set<(pageType: PageType) => void>();
 
 function derivePageType(pathname: string): PageType {
   if (pathname.startsWith('/superset/dashboard/')) return 'dashboard';
@@ -43,51 +42,20 @@ function derivePageType(pathname: string): PageType {
   return 'other';
 }
 
-function extractEntityId(pathname: string, pageType: PageType): number | null {
-  if (pageType === 'dashboard') {
-    const m = pathname.match(/\/superset\/dashboard\/(\d+)/);
-    return m ? parseInt(m[1], 10) : null;
-  }
-  if (pageType === 'dataset') {
-    const m = pathname.match(/\/dataset\/(\d+)/);
-    return m ? parseInt(m[1], 10) : null;
-  }
-  return null;
-}
-
-let currentContext: PageContext = {
-  pageType: derivePageType(window.location.pathname),
-  entityId: null,
-};
-currentContext.entityId = extractEntityId(
-  window.location.pathname,
-  currentContext.pageType,
-);
+let currentPageType: PageType = derivePageType(window.location.pathname);
 
 /** Called by ExtensionsStartup whenever the React Router location changes. */
 export const notifyPageChange = (pathname: string): void => {
-  const pageType = derivePageType(pathname);
-  const entityId = extractEntityId(pathname, pageType);
-  const next: PageContext = { pageType, entityId };
-  if (
-    next.pageType === currentContext.pageType &&
-    next.entityId === currentContext.entityId
-  ) {
-    return;
-  }
-  currentContext = next;
+  const next = derivePageType(pathname);
+  if (next === currentPageType) return;
+  currentPageType = next;
   listeners.forEach(fn => fn(next));
 };
 
-const getPageType: typeof navigationApi.getPageType = () =>
-  currentContext.pageType;
-
-const getCurrentPage: typeof navigationApi.getCurrentPage = () => ({
-  ...currentContext,
-});
+const getPageType: typeof navigationApi.getPageType = () => currentPageType;
 
 const onDidChangePage: typeof navigationApi.onDidChangePage = (
-  listener: (ctx: PageContext) => void,
+  listener: (pageType: PageType) => void,
   thisArgs?: any,
 ): Disposable => {
   const bound = thisArgs ? listener.bind(thisArgs) : listener;
@@ -97,6 +65,5 @@ const onDidChangePage: typeof navigationApi.onDidChangePage = (
 
 export const navigation: typeof navigationApi = {
   getPageType,
-  getCurrentPage,
   onDidChangePage,
 };
