@@ -173,6 +173,9 @@ Dataset Management:
 - create_virtual_dataset: Save a SQL query as a virtual dataset for charting (requires write access)
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
+Tag Management:
+- create_tag: Create a new custom tag and optionally apply it to charts, dashboards, datasets, or queries (requires write access)
+
 Chart Management:
 - list_charts: List charts with advanced filters (1-based pagination)
 - get_chart_info: Get detailed chart information by ID
@@ -426,8 +429,9 @@ Input format:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
 - Write tools (generate_chart, generate_dashboard, update_chart, create_virtual_dataset,
-  save_sql_query, add_chart_to_existing_dashboard, update_chart_preview) require write
-  permissions. These tools are only listed for users who have the necessary access.
+  save_sql_query, add_chart_to_existing_dashboard, update_chart_preview, create_tag)
+  require write permissions. These tools are only listed for users who have the
+  necessary access.
   If a write tool does not appear in the tool list, the current user lacks write access.
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate
   from write access. A user may have SQL Lab access without having write access to charts

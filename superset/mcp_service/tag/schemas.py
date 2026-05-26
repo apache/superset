@@ -257,6 +257,7 @@ class CreateTagRequest(BaseModel):
     name: str = Field(
         ...,
         min_length=1,
+        max_length=250,
         description=(
             "Name for the new tag. Must be unique. "
             "Used to identify and reference the tag across Superset."
@@ -274,6 +275,24 @@ class CreateTagRequest(BaseModel):
             "'chart', 'dashboard', 'dataset', 'query'."
         ),
     )
+
+    @field_validator("name")
+    @classmethod
+    def name_must_not_be_blank(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("name must not be blank or whitespace-only")
+        return stripped
+
+    @field_validator("objects_to_tag")
+    @classmethod
+    def validate_object_ids(cls, v: list[tuple[str, int]]) -> list[tuple[str, int]]:
+        for obj_type, obj_id in v:
+            if obj_id < 1:
+                raise ValueError(
+                    f"object_id must be >= 1, got {obj_id} for type '{obj_type}'"
+                )
+        return v
 
 
 class CreateTagResponse(BaseModel):

@@ -47,7 +47,10 @@ async def create_tag(request: CreateTagRequest, ctx: Context) -> CreateTagRespon
     2. Optionally provide objects_to_tag to apply the tag immediately
     3. Use the returned ``id`` to reference the tag in future operations
     """
-    await ctx.info("Creating tag: name=%r" % (request.name,))
+    # name is already stripped by the schema validator
+    name = request.name
+
+    await ctx.info("Creating tag: name=%r" % (name,))
 
     try:
         from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
@@ -59,21 +62,23 @@ async def create_tag(request: CreateTagRequest, ctx: Context) -> CreateTagRespon
 
         with event_logger.log_context(action="mcp.create_tag.create"):
             properties = {
-                "name": request.name,
+                "name": name,
                 "description": request.description or "",
                 "objects_to_tag": request.objects_to_tag,
             }
+            # bulk_create=True preserves any existing tag/object relationships
+            # that are not included in this call (non-destructive create).
             objects_tagged, objects_skipped = CreateCustomTagWithRelationshipsCommand(
-                properties
+                properties, bulk_create=True
             ).run()
 
-        tag = TagDAO.find_by_name(request.name)
+        tag = TagDAO.find_by_name(name)
 
         await ctx.info(
             "Tag created: id=%s, name=%r, objects_tagged=%d, objects_skipped=%d"
             % (
                 tag.id if tag else None,
-                request.name,
+                name,
                 len(objects_tagged),
                 len(objects_skipped),
             )
@@ -81,10 +86,10 @@ async def create_tag(request: CreateTagRequest, ctx: Context) -> CreateTagRespon
 
         return CreateTagResponse(
             id=tag.id if tag else None,
-            name=request.name,
-            description=request.description,
-            objects_tagged=list(objects_tagged),
-            objects_skipped=list(objects_skipped),
+            name=name,
+            description=tag.description if tag else request.description,
+            objects_tagged=sorted(objects_tagged),
+            objects_skipped=sorted(objects_skipped),
         )
 
     except TagInvalidError as exc:
@@ -92,7 +97,7 @@ async def create_tag(request: CreateTagRequest, ctx: Context) -> CreateTagRespon
         await ctx.warning("Tag validation failed: %s" % (messages,))
         return CreateTagResponse(
             id=None,
-            name=request.name,
+            name=name,
             description=request.description,
             error=str(messages),
         )
@@ -100,7 +105,7 @@ async def create_tag(request: CreateTagRequest, ctx: Context) -> CreateTagRespon
         await ctx.error("Tag creation failed: %s" % (str(exc),))
         return CreateTagResponse(
             id=None,
-            name=request.name,
+            name=name,
             description=request.description,
             error=f"Failed to create tag: {exc}",
         )
