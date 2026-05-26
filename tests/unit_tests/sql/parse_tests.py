@@ -24,6 +24,7 @@ from sqlglot import Dialects, exp, parse_one
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
+    BaseSQLStatement,
     CTASMethod,
     extract_tables_from_statement,
     JinjaSQLResult,
@@ -3582,3 +3583,14 @@ def test_backtick_invalid_sql_still_fails() -> None:
     sql = "SELECT * FROM `table` WHERE"
     with pytest.raises(SupersetParseError):
         SQLScript(sql, "base")
+
+
+def test_base_sql_statement_is_destructive_raises_not_implemented() -> None:
+    """
+    BaseSQLStatement.is_destructive is abstract; both concrete subclasses
+    (SQLStatement and KustoKQLStatement) override it, so calling the base
+    implementation directly must raise. This exercises the abstract stub
+    so it stays exercised under coverage.
+    """
+    with pytest.raises(NotImplementedError):
+        BaseSQLStatement.is_destructive(object())  # type: ignore[arg-type]
