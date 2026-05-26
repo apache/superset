@@ -22,6 +22,7 @@ import {
   NEW_COMPONENTS_SOURCE_ID,
   DASHBOARD_HEADER_ID,
 } from '../util/constants';
+import { logging } from '@apache-superset/core/utils';
 import componentIsResizable from '../util/componentIsResizable';
 import findParentId from '../util/findParentId';
 import getComponentWidthFromDrop from '../util/getComponentWidthFromDrop';
@@ -131,7 +132,17 @@ const actionHandlers: Record<
   ): DashboardLayout {
     const restore = (action as unknown as { restoreLayout?: DashboardLayout })
       .restoreLayout;
-    return restore ?? state;
+    if (!restore) {
+      // No captured layout means the EXIT was dispatched without a
+      // matching ENTER. Returning ``state`` would leave the snapshot
+      // layout in place while ``versionPreview`` is null — log instead
+      // of silently keeping the wrong state.
+      logging.warn(
+        'layoutReducer: EXIT_VERSION_PREVIEW received without restoreLayout; ignoring.',
+      );
+      return state;
+    }
+    return restore;
   },
 
   [UPDATE_COMPONENTS](

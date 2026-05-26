@@ -98,12 +98,12 @@ const VersionItem = ({
       `}
     >
       <div
-        role="button"
+        role="option"
         tabIndex={0}
         onClick={onSelect}
         onKeyDown={handleKeyDown}
         data-test="version-history-item"
-        aria-pressed={selected}
+        aria-selected={selected}
         css={css`
           flex: 1;
           min-width: 0;

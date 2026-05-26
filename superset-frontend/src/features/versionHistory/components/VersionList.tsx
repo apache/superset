@@ -94,6 +94,11 @@ const VersionList = ({
       </div>
 
       <div
+        // Single-select list of historical versions. The rows below use
+        // ``role="option"`` + ``aria-selected``; this wrapper provides
+        // the listbox context.
+        role="listbox"
+        aria-label={t('Version history')}
         css={css`
           flex: 1;
           overflow-y: auto;

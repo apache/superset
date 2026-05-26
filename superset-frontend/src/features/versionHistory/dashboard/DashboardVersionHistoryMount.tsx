@@ -65,7 +65,7 @@ function DashboardPreviewBridge({
   const versionPreview = useSelector(
     (state: RootState) => state.dashboardState.versionPreview ?? null,
   );
-  const { snapshot } = useVersionSnapshot(
+  const { snapshot, error: snapshotError } = useVersionSnapshot(
     'dashboard',
     dashboardUuid,
     previewVersionUuid,
@@ -108,6 +108,24 @@ function DashboardPreviewBridge({
       lastAppliedRef.current = null;
     }
   }, [dispatch, previewVersionUuid, versionPreview]);
+
+  // Snapshot endpoint errored out (404 most often — version no longer
+  // visible to the user, or stale ?version_uuid in the URL). Without
+  // this branch the bridge would silently sit waiting for a snapshot
+  // that will never arrive, the URL param would stick around, and the
+  // next reload would re-enter the same failed state.
+  useEffect(() => {
+    if (previewVersionUuid && snapshotError) {
+      dispatch(
+        addDangerToast(
+          t('Could not load this version: %(detail)s', {
+            detail: snapshotError,
+          }),
+        ),
+      );
+      ctxRef.current.exitPreview();
+    }
+  }, [dispatch, previewVersionUuid, snapshotError]);
 
   useEffect(
     () => () => {

@@ -107,6 +107,13 @@ export async function forkDashboardFromSnapshot(
   const jsonMetadata = asString(snapshot.json_metadata);
   if (jsonMetadata) body.json_metadata = jsonMetadata;
   if (typeof snapshot.css === 'string') body.css = snapshot.css;
+  // Carry over user-visible scalars so the fork is recognizable.
+  if (typeof snapshot.description === 'string') {
+    body.description = snapshot.description;
+  }
+  if (typeof snapshot.published === 'boolean') {
+    body.published = snapshot.published;
+  }
 
   const { json } = await SupersetClient.post({
     endpoint: '/api/v1/dashboard/',

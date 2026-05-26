@@ -17,6 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
 
 import {
   FETCH_ALL_SLICES_FAILED,
@@ -56,7 +57,17 @@ export default function sliceEntitiesReducer(
     }
     case EXIT_VERSION_PREVIEW: {
       const restore = (action as VersionPreviewSwapAction).restoreSliceEntities;
-      return (restore as SliceEntitiesState) ?? state;
+      if (!restore) {
+        // No captured originals means the EXIT was dispatched without a
+        // matching ENTER. Returning ``state`` leaves the snapshot data
+        // visible while the rest of the app thinks preview is over —
+        // surface the bug instead of silently degrading.
+        logging.warn(
+          'sliceEntitiesReducer: EXIT_VERSION_PREVIEW received without restoreSliceEntities; ignoring.',
+        );
+        return state;
+      }
+      return restore as SliceEntitiesState;
     }
     case HYDRATE_DASHBOARD:
       return {

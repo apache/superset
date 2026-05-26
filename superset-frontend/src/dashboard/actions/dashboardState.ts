@@ -1738,5 +1738,10 @@ export const exitVersionPreview =
       restoreDashboardInfo: versionPreview.capturedDashboardInfo ?? null,
     });
     // Same reason as enter: drop the EXIT entry from undo history.
+    // Side-effect: any pre-preview undo stack is also wiped — the user
+    // cannot Ctrl+Z past the moment they entered preview after exiting.
+    // This is intentional: keeping a partial stack would let Undo
+    // walk back into snapshot state, which doesn't compose with the
+    // restored live layout.
     dispatch(UndoActionCreators.clearHistory());
   };

@@ -26,18 +26,44 @@ interface UseVersionSnapshotResult {
   error: string | null;
 }
 
+// Module-scoped cache of resolved snapshots, keyed by
+// ``{entityType}:{uuid}:{versionUuid}``. Snapshots are immutable —
+// restoring/forking creates a new version with a new UUID, so cache hits
+// are always safe and we avoid re-hitting the endpoint when the user
+// flips back and forth between two history rows.
+const snapshotCache = new Map<string, VersionSnapshot>();
+
+function cacheKey(
+  entityType: EntityType,
+  uuid: string,
+  versionUuid: string,
+): string {
+  return `${entityType}:${uuid}:${versionUuid}`;
+}
+
 export function useVersionSnapshot(
   entityType: EntityType,
   uuid: string | null | undefined,
   versionUuid: string | null | undefined,
 ): UseVersionSnapshotResult {
-  const [snapshot, setSnapshot] = useState<VersionSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<VersionSnapshot | null>(() => {
+    if (!uuid || !versionUuid) return null;
+    return snapshotCache.get(cacheKey(entityType, uuid, versionUuid)) ?? null;
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!uuid || !versionUuid) {
       setSnapshot(null);
+      return undefined;
+    }
+    const key = cacheKey(entityType, uuid, versionUuid);
+    const cached = snapshotCache.get(key);
+    if (cached) {
+      setSnapshot(cached);
+      setError(null);
+      setLoading(false);
       return undefined;
     }
     let cancelled = false;
@@ -53,6 +79,9 @@ export function useVersionSnapshot(
         // inside ``result``, not at the root.
         const result = (json as { result?: VersionSnapshot } | undefined)
           ?.result;
+        if (result) {
+          snapshotCache.set(key, result);
+        }
         setSnapshot(result ?? null);
       })
       .catch(e => {

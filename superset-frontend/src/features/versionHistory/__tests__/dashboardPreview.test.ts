@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { logging } from '@apache-superset/core/utils';
 import {
   ENTER_VERSION_PREVIEW,
   EXIT_VERSION_PREVIEW,
@@ -254,17 +255,21 @@ test('enterVersionPreview merges live slices when the snapshot omits them', () =
   };
   const dispatched: Array<{ type: string; [k: string]: unknown }> = [];
   const dispatch = (a: unknown) => {
-    if (a && typeof a === 'object' && 'type' in (a as Record<string, unknown>)) {
+    if (
+      a &&
+      typeof a === 'object' &&
+      'type' in (a as Record<string, unknown>)
+    ) {
       dispatched.push(a as { type: string });
     }
   };
-  const result = enterVersionPreview(
-    '11111111-2222-3333-4444-555555555555',
-    {
-      // No ``slices`` field — matches Mike's current backend payload.
-      position_json: '{"ROOT_ID":{"id":"root"},"GRID_ID":{"id":"grid"}}',
-    } as unknown as Parameters<typeof enterVersionPreview>[1],
-  )(dispatch as never, () => stateNoCapture as never);
+  const result = enterVersionPreview('11111111-2222-3333-4444-555555555555', {
+    // No ``slices`` field — matches Mike's current backend payload.
+    position_json: '{"ROOT_ID":{"id":"root"},"GRID_ID":{"id":"grid"}}',
+  } as unknown as Parameters<typeof enterVersionPreview>[1])(
+    dispatch as never,
+    () => stateNoCapture as never,
+  );
   expect(result).toBe(true);
   const enter = dispatched.find(a => a.type === ENTER_VERSION_PREVIEW)!;
   // Live slices must survive the swap.
@@ -297,16 +302,16 @@ test('enterVersionPreview lets snapshot slices override live entries on id colli
       dispatched.push(a as { type: string });
     }
   };
-  enterVersionPreview(
-    '33333333-4444-5555-6666-777777777777',
-    {
-      slices: [
-        { slice_id: 7, slice_name: 'Snapshot A' },
-        { slice_id: 42, slice_name: 'Snapshot only' },
-      ],
-      position_json: '{"ROOT_ID":{"id":"root"},"GRID_ID":{"id":"grid"}}',
-    } as unknown as Parameters<typeof enterVersionPreview>[1],
-  )(dispatch as never, () => state as never);
+  enterVersionPreview('33333333-4444-5555-6666-777777777777', {
+    slices: [
+      { slice_id: 7, slice_name: 'Snapshot A' },
+      { slice_id: 42, slice_name: 'Snapshot only' },
+    ],
+    position_json: '{"ROOT_ID":{"id":"root"},"GRID_ID":{"id":"grid"}}',
+  } as unknown as Parameters<typeof enterVersionPreview>[1])(
+    dispatch as never,
+    () => state as never,
+  );
   const enter = dispatched.find(a => a.type === ENTER_VERSION_PREVIEW)!;
   const merged = (
     enter.newSliceEntities as { slices: Record<number, { slice_name: string }> }
@@ -346,16 +351,16 @@ test('enterVersionPreview captures dashboardInfo scalars and emits a swap payloa
       dispatched.push(a as { type: string });
     }
   };
-  enterVersionPreview(
-    '44444444-5555-6666-7777-888888888888',
-    {
-      dashboard_title: 'Snapshot title',
-      description: 'Snapshot description',
-      css: '/* snapshot */',
-      published: false,
-      position_json: '{"ROOT_ID":{"id":"root"},"GRID_ID":{"id":"grid"}}',
-    } as unknown as Parameters<typeof enterVersionPreview>[1],
-  )(dispatch as never, () => state as never);
+  enterVersionPreview('44444444-5555-6666-7777-888888888888', {
+    dashboard_title: 'Snapshot title',
+    description: 'Snapshot description',
+    css: '/* snapshot */',
+    published: false,
+    position_json: '{"ROOT_ID":{"id":"root"},"GRID_ID":{"id":"grid"}}',
+  } as unknown as Parameters<typeof enterVersionPreview>[1])(
+    dispatch as never,
+    () => state as never,
+  );
   const enter = dispatched.find(a => a.type === ENTER_VERSION_PREVIEW)!;
   expect(enter.capturedDashboardInfo).toEqual({
     dashboard_title: 'Live title',
@@ -415,6 +420,47 @@ test('exitVersionPreview emits the captured dashboardInfo as restoreDashboardInf
   expect(exit.restoreDashboardInfo).toBe(captured);
 });
 
+test('sliceEntities reducer warns and returns state if EXIT lacks restoreSliceEntities', () => {
+  // The thunk always passes the captured originals on EXIT. If a future
+  // call site fires EXIT without them, returning ``state`` (the snapshot)
+  // would leave the dashboard in a half-exit. We log and keep state so
+  // the bug is visible.
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => undefined);
+  try {
+    const previewing = {
+      slices: { 1: { slice_id: 1, slice_name: 'Snapshot' } },
+      isLoading: false,
+      errorMessage: null,
+      lastUpdated: 7,
+    } as unknown as Parameters<typeof sliceEntitiesReducer>[0];
+    const out = sliceEntitiesReducer(previewing, {
+      type: EXIT_VERSION_PREVIEW,
+      // no restoreSliceEntities
+    } as unknown as Parameters<typeof sliceEntitiesReducer>[1]);
+    expect(out).toBe(previewing);
+    expect(warn).toHaveBeenCalled();
+  } finally {
+    warn.mockRestore();
+  }
+});
+
+test('dashboardLayout reducer warns and returns state if EXIT lacks restoreLayout', () => {
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => undefined);
+  try {
+    const previewing = {
+      ROOT_ID: { id: 'snapshot' },
+    } as unknown as Parameters<typeof dashboardLayoutReducer>[0];
+    const out = dashboardLayoutReducer(previewing, {
+      type: EXIT_VERSION_PREVIEW,
+      // no restoreLayout
+    } as unknown as unknown as Parameters<typeof dashboardLayoutReducer>[1]);
+    expect(out).toBe(previewing);
+    expect(warn).toHaveBeenCalled();
+  } finally {
+    warn.mockRestore();
+  }
+});
+
 test('enterVersionPreview bails when position_json lacks ROOT_ID/GRID_ID', () => {
   // Malformed layout should not be dispatched — the dashboard renderer
   // would otherwise crash trying to walk an empty structure.
@@ -425,7 +471,11 @@ test('enterVersionPreview bails when position_json lacks ROOT_ID/GRID_ID', () =>
   };
   const dispatched: Array<{ type: string }> = [];
   const dispatch = (a: unknown) => {
-    if (a && typeof a === 'object' && 'type' in (a as Record<string, unknown>)) {
+    if (
+      a &&
+      typeof a === 'object' &&
+      'type' in (a as Record<string, unknown>)
+    ) {
       dispatched.push(a as { type: string });
     }
   };
