@@ -64,20 +64,25 @@ const containerStyle: CSSProperties = {
  * Pick the property name on a feature that identifies it for data
  * lookups. Admin 1 uses `iso_3166_2`; Admin 0 uses `adm0_a3`. Some
  * dissolved/composite features may set their own `iso_3166_2`.
+ *
+ * Exported so unit tests can pin the key-resolution contract.
  */
-function featureKey(feature: Feature): string {
+export function featureKey(feature: Feature): string {
   const p = feature.properties || {};
   return p.iso_3166_2 || p.adm0_a3 || '';
 }
 
-function featureName(feature: Feature, language: string): string {
+/**
+ * Resolve a feature's display name in a requested NE language. Uses
+ * `name_<lang>` if present, otherwise the generic `name`. Exported so
+ * unit tests can pin the language-resolution contract.
+ */
+export function featureName(feature: Feature, language: string): string {
   const p = feature.properties || {};
-  // Try language-specific NAME_<lang> first, fall back to `name`.
   const langKey = `name_${language.toLowerCase()}`;
   return (p[langKey] as string) || p.name || '';
 }
 
-/**
 /**
  * Filter a feature collection by include/exclude lists + the
  * flying-islands toggle.
@@ -88,8 +93,10 @@ function featureName(feature: Feature, language: string): string {
  *   tagged as repositioned (`_flying: true`) — e.g. France's DROMs
  *   moved into insets near the mainland. Projection auto-refits to
  *   the remaining features.
+ *
+ * Exported so unit tests can exercise the predicate without rendering.
  */
-function filterFeatures(
+export function filterFeatures(
   features: Feature[],
   includes: string[],
   excludes: string[],
@@ -106,6 +113,29 @@ function filterFeatures(
   });
 }
 
+/**
+ * Resolve every color the renderer needs, with literal hex fallbacks
+ * for any antd-style theme token that the deployed Superset theme
+ * doesn't expose. Without these fallbacks, `setAttribute('fill',
+ * undefined)` on an SVG path triggers the browser's default fill of
+ * black — which manifested in the wild as a fully-black chart area.
+ *
+ * Exported so unit tests can pin both branches (token present, token
+ * missing) for every key.
+ */
+export function resolveColors(theme: Partial<Record<string, string>>) {
+  return {
+    fillFallback: theme.colorFillTertiary || '#f0f0f0',
+    schemeFallback: theme.colorFill || '#d9d9d9',
+    hoverFallback: theme.colorFillSecondary || '#bfbfbf',
+    stroke: theme.colorBorder || '#ffffff',
+    tooltipBg: theme.colorBgSpotlight || 'rgba(0, 0, 0, 0.85)',
+    tooltipFg: theme.colorTextLightSolid || '#ffffff',
+    errorFg: theme.colorErrorText || '#cf1322',
+    loadingFg: theme.colorTextSecondary || '#8c8c8c',
+  };
+}
+
 const CountryMap: FC<CountryMapTransformedProps> = props => {
   const {
     width,
@@ -119,21 +149,7 @@ const CountryMap: FC<CountryMapTransformedProps> = props => {
   } = props;
 
   const theme = useTheme();
-  // Each token has an explicit literal fallback. Without these, themes
-  // that don't expose a given antd token leave the corresponding
-  // `setAttribute('fill', undefined)` and the SVG defaults the path's
-  // fill to black — which is why the chart was rendering as a solid
-  // black box on the ephemeral build.
-  const colors = {
-    fillFallback: theme.colorFillTertiary || '#f0f0f0',
-    schemeFallback: theme.colorFill || '#d9d9d9',
-    hoverFallback: theme.colorFillSecondary || '#bfbfbf',
-    stroke: theme.colorBorder || '#ffffff',
-    tooltipBg: theme.colorBgSpotlight || 'rgba(0, 0, 0, 0.85)',
-    tooltipFg: theme.colorTextLightSolid || '#ffffff',
-    errorFg: theme.colorErrorText || '#cf1322',
-    loadingFg: theme.colorTextSecondary || '#8c8c8c',
-  };
+  const colors = resolveColors(theme);
   const tooltipStyle: CSSProperties = {
     position: 'absolute',
     pointerEvents: 'none',
