@@ -121,10 +121,21 @@ export function commonLayerProps({
         formData,
       });
 
-      if (event.leftButton && setDataMask !== undefined && crossFilters) {
+      // deck.gl v9 event shape: { type, offsetCenter, srcEvent, tapCount }.
+      // Older code checked event.leftButton / event.rightButton which no
+      // longer exist; dispatch on event.type and the underlying MouseEvent
+      // button instead.
+      const srcEvent = event?.srcEvent;
+      const isContextMenu =
+        event?.type === 'contextmenu' || srcEvent?.button === 2;
+      const isLeftClick =
+        event?.type === 'click' && (srcEvent?.button ?? 0) === 0;
+
+      if (isLeftClick && setDataMask !== undefined && crossFilters) {
         setDataMask(crossFilters.dataMask);
-      } else if (event.rightButton && onContextMenu !== undefined) {
-        onContextMenu(event.center.x, event.center.y, {
+      } else if (isContextMenu && onContextMenu !== undefined) {
+        const center = event?.offsetCenter ?? event?.center ?? { x: 0, y: 0 };
+        onContextMenu(center.x, center.y, {
           drillToDetail: [],
           crossFilter: crossFilters,
           drillBy: {},

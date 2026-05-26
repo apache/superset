@@ -1,0 +1,31 @@
+---
+id: chartdatapostprocessingoperation
+title: "ChartDataPostProcessingOperation"
+description: ""
+sidebar_label: "ChartDataPostProcessingOperation"
+hide_title: true
+hide_table_of_contents: true
+schema: true
+sample: {"operation":"aggregate","options":{"aggregates":{"age_mean":{"column":"age","operator":"mean"},"age_q1":{"column":"age","operator":"percentile","options":{"q":0.25}}},"groupby":["country","gender"]}}
+custom_edit_url: null
+---
+
+import Schema from "@theme/Schema";
+import Heading from "@theme/Heading";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"ChartDataPostProcessingOperation"}
+>
+</Heading>
+
+
+
+
+
+<Schema
+  {...require("./chartdatapostprocessingoperation.Schema.json")}
+>
+
+</Schema>

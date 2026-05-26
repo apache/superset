@@ -191,6 +191,14 @@ class ExecuteSqlResponse(BaseModel):
             "Check each entry in the statements array for per-statement data."
         ),
     )
+    template_warning: str | None = Field(
+        None,
+        description=(
+            "Warning when template_params was supplied but Jinja2 rendering "
+            "is disabled on this Superset instance. The query was executed "
+            "with literal '{{ var }}' placeholders unrendered."
+        ),
+    )
 
 
 class SaveSqlQueryRequest(BaseModel):
@@ -277,7 +285,26 @@ class OpenSqlLabRequest(BaseModel):
         description="SQL to pre-populate in the editor",
         validation_alias=AliasChoices("sql", "query"),
     )
-    title: str | None = Field(None, description="Title for the SQL Lab tab/query")
+    title: str | None = Field(
+        None,
+        description=(
+            "Title for the SQL Lab tab. Generate a succinct, descriptive label "
+            "(roughly 3-6 words) from the conversation context or the query "
+            "intent — e.g. 'Top customers by revenue Q3' — instead of leaving "
+            "the tab untitled. Avoid generic names like 'Untitled Query'."
+        ),
+        max_length=256,
+    )
+
+    @field_validator("title")
+    @classmethod
+    def title_strip_or_none(cls, v: str | None) -> str | None:
+        # Whitespace-only would render as a blank tab label; fall back to
+        # SQL Lab's default "Untitled Query N" naming instead.
+        if v is None:
+            return None
+        stripped = v.strip()
+        return stripped or None
 
 
 class SqlLabResponse(_SchemaFieldNormalizer):

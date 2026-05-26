@@ -1,0 +1,30 @@
+---
+id: datasets
+title: "Datasets"
+description: "Datasets"
+custom_edit_url: null
+---
+
+Manage datasets (tables) used for building charts.
+
+| Method | Endpoint | Path |
+|--------|----------|------|
+| `DELETE` | [Bulk delete datasets](./bulk-delete-datasets) | `/api/v1/dataset/` |
+| `GET` | [Get a list of datasets](./get-a-list-of-datasets) | `/api/v1/dataset/` |
+| `POST` | [Create a new dataset](./create-a-new-dataset) | `/api/v1/dataset/` |
+| `GET` | [Get metadata information about this API resource (dataset--info)](./get-metadata-information-about-this-api-resource-dataset-info) | `/api/v1/dataset/_info` |
+| `GET` | [Get a dataset](./get-a-dataset) | `/api/v1/dataset/{id_or_uuid}` |
+| `GET` | [Get charts and dashboards count associated to a dataset](./get-charts-and-dashboards-count-associated-to-a-dataset) | `/api/v1/dataset/{id_or_uuid}/related_objects` |
+| `DELETE` | [Delete a dataset](./delete-a-dataset) | `/api/v1/dataset/{pk}` |
+| `PUT` | [Update a dataset](./update-a-dataset) | `/api/v1/dataset/{pk}` |
+| `DELETE` | [Delete a dataset column](./delete-a-dataset-column) | `/api/v1/dataset/{pk}/column/{column_id}` |
+| `GET` | [Get dataset drill info](./get-dataset-drill-info) | `/api/v1/dataset/{pk}/drill_info/` |
+| `DELETE` | [Delete a dataset metric](./delete-a-dataset-metric) | `/api/v1/dataset/{pk}/metric/{metric_id}` |
+| `PUT` | [Refresh and update columns of a dataset](./refresh-and-update-columns-of-a-dataset) | `/api/v1/dataset/{pk}/refresh` |
+| `GET` | [Get distinct values from field data (dataset-distinct-column-name)](./get-distinct-values-from-field-data-dataset-distinct-column-name) | `/api/v1/dataset/distinct/{column_name}` |
+| `POST` | [Duplicate a dataset](./duplicate-a-dataset) | `/api/v1/dataset/duplicate` |
+| `GET` | [Download multiple datasets as YAML files](./download-multiple-datasets-as-yaml-files) | `/api/v1/dataset/export/` |
+| `POST` | [Retrieve a table by name, or create it if it does not exist](./retrieve-a-table-by-name-or-create-it-if-it-does-not-exist) | `/api/v1/dataset/get_or_create/` |
+| `POST` | [Import dataset(s) with associated databases](./import-dataset-s-with-associated-databases) | `/api/v1/dataset/import/` |
+| `GET` | [Get related fields data (dataset-related-column-name)](./get-related-fields-data-dataset-related-column-name) | `/api/v1/dataset/related/{column_name}` |
+| `PUT` | [Warm up the cache for each chart powered by the given table](./warm-up-the-cache-for-each-chart-powered-by-the-given-table) | `/api/v1/dataset/warm_up_cache` |
