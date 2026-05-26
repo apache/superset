@@ -99,13 +99,17 @@ function UIFilters(
   }, [internalFilters]);
 
   // Build datetime_range tooltips from the resolved [start, end] array value.
-  // TimeRangeFilter now submits concrete date strings so no async eval needed.
+  // Handles both ISO strings and unix-ms numbers.
   useEffect(() => {
     filters.forEach((filter, index) => {
       if (filter.input !== 'datetime_range') return;
       const val = internalFilters?.[index]?.value;
       if (Array.isArray(val) && val.length === 2) {
-        const tooltip = (val as string[]).join(' – ');
+        const fmt = (v: unknown) => {
+          const d = new Date(v as string | number);
+          return isNaN(d.getTime()) ? String(v) : d.toISOString().replace('T', ' ').slice(0, 19);
+        };
+        const tooltip = `${fmt(val[0])} – ${fmt(val[1])}`;
         setTimeRangeTooltips(prev =>
           prev[index] === tooltip ? prev : { ...prev, [index]: tooltip },
         );
@@ -164,6 +168,7 @@ function UIFilters(
     const {
       Header, fetchSelects, key, id, input, selects, toolTipDescription,
       onFilterUpdate, loading, min, max, autoComplete, inputName, popupStyle,
+      dateFilterValueType,
     } = filters[index];
     const initialValue = internalFilters?.[index]?.value;
           if (input === 'select') {
@@ -245,23 +250,33 @@ function UIFilters(
             );
           }
           if (input === 'datetime_range') {
-            // TimeRangeFilter submits [start, end] string arrays; undefined when cleared.
-            // Gracefully handle legacy string values from old URL state.
-            const resolvedRange =
-              Array.isArray(initialValue) && initialValue.length === 2
-                ? (initialValue as [string, string])
-                : null;
+            // dateFilterValueType absent or 'unix': column stores unix ms (e.g. Query History start_time).
+            // 'iso': column stores ISO date strings (e.g. UsersList created_on, ActionLog dttm).
+            const isUnixType = !dateFilterValueType || dateFilterValueType === 'unix';
+
+            // initialValue may be [ms, ms] (unix), ["iso","iso"] (iso), or legacy string.
+            // Always reconstruct panelValue as "ISO : ISO" so the TimeRange panel
+            // can parse it as a Custom date range regardless of storage type.
+            let resolvedIsoRange: [string, string] | null = null;
+            if (Array.isArray(initialValue) && initialValue.length === 2) {
+              if (typeof initialValue[0] === 'number') {
+                resolvedIsoRange = [
+                  new Date(initialValue[0]).toISOString(),
+                  new Date(initialValue[1] as number).toISOString(),
+                ];
+              } else if (typeof initialValue[0] === 'string') {
+                resolvedIsoRange = initialValue as [string, string];
+              }
+            }
             const legacyStringVal =
-              !resolvedRange &&
+              !resolvedIsoRange &&
               typeof initialValue === 'string' &&
               initialValue !== NO_TIME_RANGE
                 ? initialValue
                 : null;
-            const hasTimeValue = !!(resolvedRange || legacyStringVal);
-            // Display value passed to the panel — join resolved array so the frame
-            // selector can recognise it as a Custom date range on reopen.
+            const hasTimeValue = !!(resolvedIsoRange || legacyStringVal);
             const panelValue =
-              resolvedRange?.join(' : ') ?? legacyStringVal ?? undefined;
+              resolvedIsoRange?.join(' : ') ?? legacyStringVal ?? undefined;
             return (
               <CompactFilterTrigger
                 key={key}
@@ -282,7 +297,19 @@ function UIFilters(
                     ref={filterRefs[index]}
                     value={panelValue}
                     onClose={onClose}
-                    onSubmit={value => updateFilterValue(index, value)}
+                    onSubmit={value => {
+                      if (!value) {
+                        updateFilterValue(index, undefined);
+                      } else if (isUnixType) {
+                        // Convert ISO strings to unix ms for numeric columns
+                        updateFilterValue(index, [
+                          new Date(value[0]).getTime(),
+                          new Date(value[1]).getTime(),
+                        ]);
+                      } else {
+                        updateFilterValue(index, value);
+                      }
+                    }}
                   />
                 )}
               </CompactFilterTrigger>
