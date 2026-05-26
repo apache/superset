@@ -289,6 +289,17 @@ class PerfValidationTests(SupersetTestCase):
         spanning all three entity kinds — enough to exercise the
         decoration, visibility, and impact-batch paths without needing a
         multi-dataset fixture builder. Returns the dashboard UUID.
+
+        **Why this commits without rollback** (unlike the test bodies in
+        ``activity_view_tests.py``): the whole point of a perf seed is
+        that the rows it produces have actually been persisted, so the
+        endpoint hit that follows reads a realistic state of the
+        ``version_changes`` / shadow tables. T053's
+        ``try/finally``+``rollback`` convention is for tests that
+        assert on *which records were captured*; here the seed IS the
+        setup, not the unit under test. The fixture's session-scoped
+        ``_cleanup`` removes the dashboard / slices at session teardown,
+        which is when the shadow rows age out too.
         """
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlaTable

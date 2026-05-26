@@ -233,11 +233,14 @@ def _batch_datasets_used_by_charts(
                 slices_tbl.c.datasource_id.is_not(None),
             )
         )
+        .mappings()
         .all()
     )
     grouped: dict[int, list[tuple[int, Window]]] = {}
-    for slice_id, dataset_id, start_tx, end_tx in rows:
-        grouped.setdefault(slice_id, []).append((dataset_id, (start_tx, end_tx)))
+    for row in rows:
+        grouped.setdefault(row["id"], []).append(
+            (row["datasource_id"], (row["transaction_id"], row["end_transaction_id"]))
+        )
     return grouped
 
 
@@ -593,7 +596,7 @@ def _batch_chart_counts(
         slices_tbl.c.datasource_type == "table",
         slices_tbl.c.operation_type != 2,
     )
-    rows = db.session.connection().execute(stmt).all()
+    rows = db.session.connection().execute(stmt).mappings().all()
 
     # For each pair, collect the slice_ids whose two validity windows
     # both straddle target_tx. ``set`` dedupes within a pair.
@@ -602,12 +605,17 @@ def _batch_chart_counts(
     for dataset_id, target_tx in pairs:
         pairs_by_dataset.setdefault(dataset_id, []).append(target_tx)
 
-    for slice_id, ds_id, m_start, m_end, s_start, s_end in rows:
+    for row in rows:
+        ds_id = row["datasource_id"]
         for target_tx in pairs_by_dataset.get(ds_id, ()):
-            in_m2m = m_start <= target_tx and (m_end is None or m_end > target_tx)
-            in_slice = s_start <= target_tx and (s_end is None or s_end > target_tx)
+            in_m2m = row["m2m_start"] <= target_tx and (
+                row["m2m_end"] is None or row["m2m_end"] > target_tx
+            )
+            in_slice = row["slice_start"] <= target_tx and (
+                row["slice_end"] is None or row["slice_end"] > target_tx
+            )
             if in_m2m and in_slice:
-                matches.setdefault((ds_id, target_tx), set()).add(slice_id)
+                matches.setdefault((ds_id, target_tx), set()).add(row["slice_id"])
 
     return {pair: len(slice_ids) for pair, slice_ids in matches.items()}
 
