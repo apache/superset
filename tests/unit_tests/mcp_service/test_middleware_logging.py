@@ -20,6 +20,8 @@ Unit tests for LoggingMiddleware on_call_tool() and on_message() methods.
 
 Tests verify that:
 - on_call_tool() captures duration_ms and success status
+- on_call_tool() resolves call_tool proxy to actual tool name (mcp_tool)
+- on_call_tool() captures error_type on failure
 - on_message() logs non-tool messages without duration
 - _extract_context_info() extracts entity IDs from params
 """
@@ -65,7 +67,7 @@ class TestLoggingMiddlewareOnCallTool:
     @pytest.mark.asyncio
     async def test_on_call_tool_logs_duration_and_success(
         self, mock_get_user_id, mock_event_logger
-    ):
+    ) -> None:
         """on_call_tool records duration_ms and success=True on normal return."""
         middleware = LoggingMiddleware()
         ctx = _make_context(name="list_charts")
@@ -91,8 +93,8 @@ class TestLoggingMiddlewareOnCallTool:
     @pytest.mark.asyncio
     async def test_on_call_tool_logs_failure_on_exception(
         self, mock_get_user_id, mock_event_logger
-    ):
-        """on_call_tool records success=False when tool raises."""
+    ) -> None:
+        """on_call_tool records success=False and error_type when tool raises."""
         middleware = LoggingMiddleware()
         ctx = _make_context(name="execute_sql")
         call_next = AsyncMock(side_effect=ValueError("boom"))
@@ -104,6 +106,7 @@ class TestLoggingMiddlewareOnCallTool:
         mock_event_logger.log.assert_called_once()
         call_kwargs = mock_event_logger.log.call_args[1]
         assert call_kwargs["curated_payload"]["success"] is False
+        assert call_kwargs["curated_payload"]["error_type"] == "ValueError"
         assert call_kwargs["duration_ms"] >= 0
 
     @patch("superset.mcp_service.middleware.event_logger")
@@ -111,7 +114,7 @@ class TestLoggingMiddlewareOnCallTool:
     @pytest.mark.asyncio
     async def test_on_call_tool_logs_failure_on_tool_error(
         self, mock_get_user_id, mock_event_logger
-    ):
+    ) -> None:
         """on_call_tool records success=False when GlobalErrorHandler raises ToolError.
 
         This simulates the real middleware chain: GlobalErrorHandler catches
@@ -137,7 +140,7 @@ class TestLoggingMiddlewareOnCallTool:
     @pytest.mark.asyncio
     async def test_on_call_tool_includes_mcp_call_id_in_curated_payload(
         self, mock_get_user_id, mock_event_logger
-    ):
+    ) -> None:
         """on_call_tool adds mcp_call_id to curated_payload."""
         middleware = LoggingMiddleware()
         ctx = _make_context(name="list_charts")
@@ -155,7 +158,7 @@ class TestLoggingMiddlewareOnCallTool:
     @pytest.mark.asyncio
     async def test_on_call_tool_injects_mcp_call_id_into_tool_result_meta(
         self, mock_get_user_id, mock_event_logger
-    ):
+    ) -> None:
         """on_call_tool injects mcp_call_id into ToolResult.meta."""
         middleware = LoggingMiddleware()
         ctx = _make_context(name="list_charts")
@@ -173,7 +176,7 @@ class TestLoggingMiddlewareOnCallTool:
     @pytest.mark.asyncio
     async def test_on_call_tool_preserves_existing_meta(
         self, mock_get_user_id, mock_event_logger
-    ):
+    ) -> None:
         """on_call_tool merges mcp_call_id with existing ToolResult.meta."""
         middleware = LoggingMiddleware()
         ctx = _make_context(name="list_charts")
@@ -193,7 +196,7 @@ class TestLoggingMiddlewareOnCallTool:
     @pytest.mark.asyncio
     async def test_on_call_tool_extracts_entity_ids(
         self, mock_get_user_id, mock_event_logger
-    ):
+    ) -> None:
         """on_call_tool extracts dashboard_id, chart_id, dataset_id from params."""
         middleware = LoggingMiddleware()
         ctx = _make_context(
@@ -222,7 +225,7 @@ class TestLoggingMiddlewareOnMessage:
     @pytest.mark.asyncio
     async def test_on_message_logs_without_duration(
         self, mock_get_user_id, mock_event_logger
-    ):
+    ) -> None:
         """on_message logs with action=mcp_message and duration_ms=None."""
         middleware = LoggingMiddleware()
         ctx = _make_context(method="resources/read", name="instance/metadata")
@@ -240,12 +243,124 @@ class TestLoggingMiddlewareOnMessage:
         # on_message should NOT have success field
         assert "success" not in call_kwargs["curated_payload"]
 
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_no_error_type_on_success(
+        self, mock_get_user_id: MagicMock, mock_event_logger: MagicMock
+    ) -> None:
+        """on_call_tool omits error_type from payload on success."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="list_charts")
+        call_next = AsyncMock(return_value="ok")
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        payload = mock_event_logger.log.call_args[1]["curated_payload"]
+        assert "error_type" not in payload
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_resolves_call_tool_proxy(
+        self, mock_get_user_id: MagicMock, mock_event_logger: MagicMock
+    ) -> None:
+        """call_tool proxy is resolved to the actual tool name via mcp_tool."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(
+            name="call_tool",
+            params={"name": "list_datasets", "arguments": {"page": 1}},
+        )
+        call_next = AsyncMock(return_value="datasets")
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        payload = mock_event_logger.log.call_args[1]["curated_payload"]
+        assert payload["tool"] == "call_tool"
+        assert payload["mcp_tool"] == "list_datasets"
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_no_mcp_tool_for_direct_calls(
+        self, mock_get_user_id: MagicMock, mock_event_logger: MagicMock
+    ) -> None:
+        """Direct tool calls (not via proxy) omit mcp_tool from payload."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(name="list_charts")
+        call_next = AsyncMock(return_value="charts")
+
+        await middleware.on_call_tool(ctx, call_next)
+
+        payload = mock_event_logger.log.call_args[1]["curated_payload"]
+        assert payload["tool"] == "list_charts"
+        assert "mcp_tool" not in payload
+
+    @patch("superset.mcp_service.middleware.event_logger")
+    @patch("superset.mcp_service.middleware.get_user_id", return_value=42)
+    @pytest.mark.asyncio
+    async def test_on_call_tool_proxy_failure_captures_both_fields(
+        self, mock_get_user_id: MagicMock, mock_event_logger: MagicMock
+    ) -> None:
+        """call_tool proxy failure captures mcp_tool and error_type."""
+        middleware = LoggingMiddleware()
+        ctx = _make_context(
+            name="call_tool",
+            params={"name": "get_chart_data", "arguments": {"chart_id": 1}},
+        )
+        call_next = AsyncMock(side_effect=PermissionError("access denied"))
+
+        with pytest.raises(PermissionError):
+            await middleware.on_call_tool(ctx, call_next)
+
+        payload = mock_event_logger.log.call_args[1]["curated_payload"]
+        assert payload["tool"] == "call_tool"
+        assert payload["mcp_tool"] == "get_chart_data"
+        assert payload["success"] is False
+        assert payload["error_type"] == "PermissionError"
+
+
+class TestResolveToolName:
+    """Tests for LoggingMiddleware._resolve_tool_name()."""
+
+    def test_resolves_call_tool_proxy(self) -> None:
+        """Returns the real tool name when call_tool proxy is used."""
+        assert (
+            LoggingMiddleware._resolve_tool_name(
+                "call_tool", {"name": "list_datasets", "arguments": {}}
+            )
+            == "list_datasets"
+        )
+
+    def test_returns_none_for_direct_tool(self) -> None:
+        """Returns None for direct tool calls (not via proxy)."""
+        assert LoggingMiddleware._resolve_tool_name("list_charts", {"page": 1}) is None
+
+    def test_returns_none_when_name_missing(self) -> None:
+        """Returns None when call_tool params lack 'name'."""
+        assert LoggingMiddleware._resolve_tool_name("call_tool", {"foo": "bar"}) is None
+
+    def test_returns_none_for_empty_name(self) -> None:
+        """Returns None when call_tool params have empty 'name'."""
+        assert LoggingMiddleware._resolve_tool_name("call_tool", {"name": ""}) is None
+
+    def test_returns_none_for_non_string_name(self) -> None:
+        """Returns None when call_tool name param is not a string."""
+        assert LoggingMiddleware._resolve_tool_name("call_tool", {"name": 123}) is None
+
+    def test_returns_none_for_search_tools(self) -> None:
+        """search_tools proxy is not resolved (no underlying tool name)."""
+        assert (
+            LoggingMiddleware._resolve_tool_name("search_tools", {"query": "datasets"})
+            is None
+        )
+
 
 class TestExtractContextInfo:
     """Tests for LoggingMiddleware._extract_context_info()."""
 
     @patch("superset.mcp_service.middleware.get_user_id", return_value=99)
-    def test_extract_with_metadata_agent_id(self, mock_get_user_id):
+    def test_extract_with_metadata_agent_id(self, mock_get_user_id) -> None:
         """Extracts agent_id from context.metadata."""
         middleware = LoggingMiddleware()
         ctx = _make_context(metadata={"agent_id": "agent-123"})
@@ -261,7 +376,7 @@ class TestExtractContextInfo:
         "superset.mcp_service.middleware.get_user_id",
         side_effect=RuntimeError("no Flask request context"),
     )
-    def test_extract_handles_missing_user(self, mock_get_user_id):
+    def test_extract_handles_missing_user(self, mock_get_user_id) -> None:
         """Gracefully handles missing user context."""
         middleware = LoggingMiddleware()
         ctx = _make_context()
@@ -273,7 +388,7 @@ class TestExtractContextInfo:
         assert user_id is None
 
     @patch("superset.mcp_service.middleware.get_user_id", return_value=1)
-    def test_extract_slice_id_from_chart_id(self, mock_get_user_id):
+    def test_extract_slice_id_from_chart_id(self, mock_get_user_id) -> None:
         """Extracts slice_id from chart_id param (alias)."""
         middleware = LoggingMiddleware()
         ctx = _make_context(params={"chart_id": 55})
@@ -283,7 +398,7 @@ class TestExtractContextInfo:
         assert slice_id == 55
 
     @patch("superset.mcp_service.middleware.get_user_id", return_value=1)
-    def test_extract_slice_id_from_slice_id(self, mock_get_user_id):
+    def test_extract_slice_id_from_slice_id(self, mock_get_user_id) -> None:
         """Extracts slice_id from slice_id param (fallback)."""
         middleware = LoggingMiddleware()
         ctx = _make_context(params={"slice_id": 66})
@@ -296,7 +411,7 @@ class TestExtractContextInfo:
 class TestIsErrorResponse:
     """Tests for LoggingMiddleware._is_error_response()."""
 
-    def test_detects_error_schema_response(self):
+    def test_detects_error_schema_response(self) -> None:
         """Detects ToolResult containing a serialized error schema
         (ChartError, DashboardError, etc.) via "error_type" field."""
         middleware = LoggingMiddleware()
@@ -308,7 +423,7 @@ class TestIsErrorResponse:
         result = ToolResult(content=[mt.TextContent(type="text", text=error_json)])
         assert middleware._is_error_response(result) is True
 
-    def test_success_response_not_detected_as_error(self):
+    def test_success_response_not_detected_as_error(self) -> None:
         """Normal ToolResult is not detected as error."""
         middleware = LoggingMiddleware()
         result = ToolResult(
@@ -316,7 +431,7 @@ class TestIsErrorResponse:
         )
         assert middleware._is_error_response(result) is False
 
-    def test_empty_content_not_detected_as_error(self):
+    def test_empty_content_not_detected_as_error(self) -> None:
         """ToolResult with empty content is not detected as error."""
         middleware = LoggingMiddleware()
         assert middleware._is_error_response(ToolResult(content=[])) is False
@@ -326,7 +441,7 @@ class TestIsErrorResponse:
     @pytest.mark.asyncio
     async def test_on_call_tool_logs_failure_for_error_schema(
         self, mock_get_user_id, mock_event_logger
-    ):
+    ) -> None:
         """on_call_tool logs success=False when tool returns an
         error schema (e.g. ChartError)."""
         middleware = LoggingMiddleware()
@@ -366,7 +481,7 @@ class TestMiddlewareChainOrder:
     @pytest.mark.asyncio
     async def test_real_middleware_chain_logs_exception_as_failure(
         self, mock_get_user_id, mock_event_logger
-    ):
+    ) -> None:
         """Tool exception is logged as success=False through the
         real middleware chain from build_middleware_list()."""
         from superset.mcp_service.server import build_middleware_list
@@ -413,7 +528,7 @@ class TestMiddlewareChainOrder:
     @pytest.mark.asyncio
     async def test_real_middleware_chain_error_result_has_mcp_call_id(
         self, mock_get_user_id, mock_event_logger
-    ):
+    ) -> None:
         """When a tool raises, the error ToolResult from
         StructuredContentStripper still carries mcp_call_id in meta."""
         from superset.mcp_service.server import build_middleware_list
