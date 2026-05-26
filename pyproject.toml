@@ -447,6 +447,7 @@ requirement_txt_file = "requirements/base.txt"
 authorized_licenses = [
     "academic free license (afl)",
     "any-osi",
+    "apache-2.0",
     "apache license 2.0",
     "apache software",
     "apache software, bsd",
