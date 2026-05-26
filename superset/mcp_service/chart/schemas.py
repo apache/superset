@@ -577,7 +577,9 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
 
         _display_name = display_name_for_viz_type(_viz_type) if _viz_type else None
     except Exception as exc:  # noqa: BLE001
-        logger.debug("Failed to resolve display name for viz_type=%r: %s", _viz_type, exc)
+        logger.debug(
+            "Failed to resolve display name for viz_type=%r: %s", _viz_type, exc
+        )
         _display_name = None
 
     return sanitize_chart_info_for_llm_context(
