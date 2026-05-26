@@ -91,35 +91,20 @@ export function DrillDownHost({
 
   const overlayProps = useMemo<Partial<ChartRendererProps>>(() => {
     if (!isDrilling) {
-      // Going back to root — restore original formData & data
-      return {
-        formData: rendererProps.formData,
-        queriesResponse: rendererProps.queriesResponse,
-        latestQueryFormData: rendererProps.latestQueryFormData,
-        chartStatus: rendererProps.chartStatus,
-        triggerRender: true,
-      };
+      // Force re-render when returning to base level
+      return { triggerRender: true };
     }
     return {
       formData: effectiveFormData as QueryFormData,
       queriesResponse: (effectiveQueriesResponse ?? null) as
         | QueryData[]
         | null,
-      chartStatus: (isLoading || !effectiveQueriesResponse) ? 'loading' : 'rendered',
+      chartStatus: isLoading ? 'loading' : 'rendered',
       latestQueryFormData: effectiveFormData,
       chartIsStale: false,
       triggerRender: true,
     };
-  }, [
-    isDrilling,
-    effectiveFormData,
-    effectiveQueriesResponse,
-    isLoading,
-    rendererProps.formData,
-    rendererProps.queriesResponse,
-    rendererProps.latestQueryFormData,
-    rendererProps.chartStatus,
-  ]);
+  }, [isDrilling, effectiveFormData, effectiveQueriesResponse, isLoading]);
 
   const handleResetTo = useCallback(
     (depth: number) => {
