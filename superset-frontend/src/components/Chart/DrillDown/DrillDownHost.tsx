@@ -117,22 +117,25 @@ export function DrillDownHost({
             filterState: { value: null, selectedValues: null },
           });
         } else {
-          // Going to an intermediate level — set cross-filter to that level's filter
-          const targetLevel = drillStack[depth - 1];
-          if (targetLevel) {
-            const filters = targetLevel.filters.map(f => ({
-              col: f.col,
-              op: 'IN' as const,
-              val: [f.val] as (string | number | boolean)[],
-            }));
-            rendererProps.actions.updateDataMask(rendererProps.chartId, {
-              extraFormData: { filters },
-              filterState: {
-                value: filters.length ? [targetLevel.label] : null,
-                selectedValues: filters.length ? [targetLevel.label] : null,
-              },
-            });
-          }
+          // Going to an intermediate level — rebuild accumulated filters
+          // from all levels up to the target depth (mirroring effectiveFormData)
+          const accumulatedFilters = drillStack
+            .slice(0, depth)
+            .flatMap(level =>
+              level.filters.map(f => ({
+                col: f.col,
+                op: 'IN' as const,
+                val: [f.val] as (string | number | boolean)[],
+              })),
+            );
+          const labels = drillStack.slice(0, depth).map(l => l.label);
+          rendererProps.actions.updateDataMask(rendererProps.chartId, {
+            extraFormData: { filters: accumulatedFilters },
+            filterState: {
+              value: labels,
+              selectedValues: labels,
+            },
+          });
         }
       }
     },
