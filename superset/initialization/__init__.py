@@ -846,6 +846,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.security_manager_class = custom_sm
         appbuilder.init_app(self.superset_app, db.session)
 
+        # Ensure OpenAPI/Swagger endpoints respect prefix routing (Issue #33304)
+        app_root = self.superset_app.config.get("APPLICATION_ROOT") or os.environ.get("SUPERSET_APP_ROOT")
+        if app_root and app_root.strip("/"):
+            prefix = f"/{app_root.strip('/')}"
+            for blueprint in self.superset_app.blueprints.values():
+                if blueprint.name == "openapi":
+                    blueprint.url_prefix = f"{prefix}{blueprint.url_prefix or ''}"
+
     def configure_url_map_converters(self) -> None:
         #
         # Doing local imports here as model importing causes a reference to
