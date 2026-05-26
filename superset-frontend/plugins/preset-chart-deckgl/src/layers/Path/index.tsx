@@ -358,8 +358,8 @@ export default defineChart<Record<string, never>, any>({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   buildQuery: (formData: any) => buildQuery(formData as DeckPathFormData),
   transform: chartProps => transformProps(chartProps),
-  render: ({ transformedProps }) => (
+  render: props => (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <PathComponent {...(transformedProps as any)} />
+    <PathComponent {...(props as any)} />
   ),
 });

@@ -109,8 +109,8 @@ export default defineChart<Record<string, never>, any>({
     },
   ],
   transform: chartProps => transformProps(chartProps),
-  render: ({ transformedProps }) => (
+  render: props => (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <MultiComponent {...(transformedProps as any)} />
+    <MultiComponent {...(props as any)} />
   ),
 });

@@ -180,8 +180,8 @@ export default defineChart<Record<string, never>, any>({
   buildQuery: (formData: any) =>
     buildSpatialQuery(formData as DeckContourFormData),
   transform: chartProps => transformSpatialProps(chartProps),
-  render: ({ transformedProps }) => (
+  render: props => (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <ContourComponent {...(transformedProps as any)} />
+    <ContourComponent {...(props as any)} />
   ),
 });

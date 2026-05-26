@@ -84,8 +84,7 @@ import exampleDark from './images/example-dark.png';
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 export interface DeckScatterFormData
-  extends Omit<SpatialFormData, 'color_picker'>,
-    SqlaFormData {
+  extends Omit<SpatialFormData, 'color_picker'>, SqlaFormData {
   // Can be a string (legacy format) or an object with type and value
   point_radius_fixed?:
     | string // Legacy format: metric name directly
@@ -431,8 +430,8 @@ export default defineChart<Record<string, never>, any>({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   buildQuery: (formData: any) => buildQuery(formData as DeckScatterFormData),
   transform: chartProps => transformProps(chartProps),
-  render: ({ transformedProps }) => (
+  render: props => (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <ScatterComponent {...(transformedProps as any)} />
+    <ScatterComponent {...(props as any)} />
   ),
 });

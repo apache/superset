@@ -129,10 +129,11 @@ export default defineChart<Record<string, never>, any>({
     size: getStandardizedControls().shiftMetric(),
   }),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  buildQuery: (formData: any) => buildSpatialQuery(formData as DeckGridFormData),
+  buildQuery: (formData: any) =>
+    buildSpatialQuery(formData as DeckGridFormData),
   transform: chartProps => transformSpatialProps(chartProps),
-  render: ({ transformedProps }) => (
+  render: props => (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <GridComponent {...(transformedProps as any)} />
+    <GridComponent {...(props as any)} />
   ),
 });

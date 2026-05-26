@@ -153,8 +153,8 @@ export default defineChart<Record<string, never>, any>({
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   buildQuery: (formData: any) => buildSpatialQuery(formData as DeckHexFormData),
   transform: chartProps => transformSpatialProps(chartProps),
-  render: ({ transformedProps }) => (
+  render: props => (
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    <HexComponent {...(transformedProps as any)} />
+    <HexComponent {...(props as any)} />
   ),
 });

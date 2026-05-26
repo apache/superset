@@ -384,7 +384,5 @@ export default defineChart<Record<string, never>, any>({
   },
   buildQuery: (formData: any) => buildQuery(formData as DeckArcFormData),
   transform: chartProps => transformProps(chartProps),
-  render: ({ transformedProps }) => (
-    <ArcComponent {...(transformedProps as any)} />
-  ),
+  render: props => <ArcComponent {...(props as any)} />,
 });

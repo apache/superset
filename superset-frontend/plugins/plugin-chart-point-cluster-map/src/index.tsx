@@ -779,5 +779,6 @@ export default defineChart<Record<string, never>, any>({
   buildQuery: (formData: any) => buildQuery(formData as MapLibreFormData),
   transform: chartProps => transformProps(chartProps),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  render: ({ transformedProps }) => <MapLibre {...(transformedProps as any)} />,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  render: props => <MapLibre {...(props as any)} />,
 });
