@@ -395,7 +395,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         show={confirmModalOpen}
         onHide={handleConfirmModalClose}
         onHandledPrimaryAction={handleConfirmSave}
-        primaryButtonName={t('OK')}
+        primaryButtonName={t('Ok')}
         primaryButtonLoading={isSaving}
       >
         {getSaveDialog()}
