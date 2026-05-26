@@ -91,10 +91,12 @@ export default function CompactFilterTrigger({
   const [open, setOpen] = useState(false);
   const [tooltipOpen, setTooltipOpen] = useState(false);
   const theme = useTheme();
-  // Timestamp of when the dropdown last closed. Used to suppress the synthetic
-  // hover event some browsers (Brave) fire on newly-exposed elements when a
-  // popup disappears — without this the tooltip re-appears unprompted.
-  const dropdownClosedAtRef = useRef(0);
+  // Tracks whether tooltip should be suppressed after dropdown close.
+  // Brave (and some other browsers) fire a synthetic mouseover on newly-exposed
+  // elements when a popup disappears, triggering Tooltip onOpenChange(true)
+  // without real user intent. We suppress until the cursor actually leaves the
+  // pill (onMouseLeave), which is the first reliable "hover reset" signal.
+  const tooltipSuppressedRef = useRef(false);
 
   // Close dropdown on window resize — AntD Dropdown doesn't reposition
   // itself on resize so the panel ends up detached from the pill.
@@ -117,7 +119,7 @@ export default function CompactFilterTrigger({
       onOpenChange={visible => {
         setOpen(visible);
         if (!visible) {
-          dropdownClosedAtRef.current = Date.now();
+          tooltipSuppressedRef.current = true;
           setTooltipOpen(false);
         }
       }}
@@ -132,7 +134,7 @@ export default function CompactFilterTrigger({
         title={tooltipTitle}
         open={!!tooltipTitle && !open && tooltipOpen}
         onOpenChange={visible => {
-          if (visible && Date.now() - dropdownClosedAtRef.current < 400) return;
+          if (visible && tooltipSuppressedRef.current) return;
           setTooltipOpen(visible && !!tooltipTitle && !open);
         }}
         mouseEnterDelay={0.5}
@@ -145,6 +147,7 @@ export default function CompactFilterTrigger({
           aria-haspopup={popupType}
           aria-expanded={open}
           aria-label={typeof label === 'string' ? label : undefined}
+          onMouseLeave={() => { tooltipSuppressedRef.current = false; }}
         >
           {hasValue && <ActiveDot />}
           <span>{label}</span>
