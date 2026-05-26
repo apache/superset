@@ -25,7 +25,8 @@ import {
   type RefObject,
 } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { NO_TIME_RANGE, fetchTimeRange } from '@superset-ui/core';
+import { NO_TIME_RANGE, SupersetClient, fetchTimeRange } from '@superset-ui/core';
+import rison from 'rison';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
   Button,
@@ -257,15 +258,19 @@ function TimeRangeFilter(
               onClose();
               return;
             }
-            // Fetch a fresh evaluation on click so APPLY isn't gated on the
-            // slow debounce. evalResponse may be stale if the user changed the
-            // value and clicked APPLY quickly.
-            const { value: actual, error } = await fetchTimeRange(timeRangeValue);
-            if (!error && actual && actual !== NO_TIME_RANGE) {
-              const parts = actual.split(' : ');
-              if (parts.length === 2) {
-                onSubmit([parts[0].trim(), parts[1].trim()]);
+            // fetchTimeRange returns a formatted display string ("X ≤ col < Y"),
+            // not the raw since/until strings. Call the API directly to get them.
+            try {
+              const response = await SupersetClient.get({
+                endpoint: `/api/v1/time_range/?q=${rison.encode_uri(timeRangeValue)}`,
+              });
+              const since: string | undefined = response?.json?.result[0]?.since;
+              const until: string | undefined = response?.json?.result[0]?.until;
+              if (since !== undefined && until !== undefined) {
+                onSubmit([since, until]);
               }
+            } catch {
+              // leave filter unchanged on error
             }
             onClose();
           }}
