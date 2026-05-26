@@ -72,7 +72,6 @@ export function DrillDownHost({
     isLoading,
     error,
     hasHierarchy,
-    hasMoreLevels,
     drillDown,
     resetTo,
   } = useDrillDownState({

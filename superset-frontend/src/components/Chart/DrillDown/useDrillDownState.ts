@@ -57,6 +57,10 @@ interface UseDrillDownStateResult {
   isDrilling: boolean;
   /** The breadcrumb path showing where the user is in the hierarchy */
   drillStack: DrillDownLevel[];
+  /** Value selected at the deepest level */
+  selectedLeaf?: string;
+  /** The computed hierarchy of column names */
+  hierarchy: string[];
   /** form_data adjusted for the current drill level */
   effectiveFormData: QueryFormData;
   /** Chart data for the current drill level (or base data when not drilling) */
