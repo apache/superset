@@ -17,8 +17,8 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
+import { ChartProps } from '@superset-ui/core';
 import {
-  ControlPanelConfig,
   ControlSubSectionHeader,
   D3_FORMAT_DOCS,
   D3_FORMAT_OPTIONS,
@@ -26,93 +26,127 @@ import {
   sections,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
+import { defineChart } from '@superset-ui/glyph-core';
+import ReactRose from './ReactRose';
+import thumbnail from './images/thumbnail.png';
+import thumbnailDark from './images/thumbnail-dark.png';
+import example1 from './images/example1.jpg';
+import example1Dark from './images/example1-dark.jpg';
+import example2 from './images/example2.jpg';
+import example2Dark from './images/example2-dark.jpg';
 
-const config: ControlPanelConfig = {
-  controlPanelSections: [
-    sections.legacyTimeseriesTime,
-    {
-      label: t('Query'),
-      expanded: true,
-      controlSetRows: [
-        ['metrics'],
-        ['adhoc_filters'],
-        ['groupby'],
-        ['limit', 'timeseries_limit_metric'],
-        ['order_desc'],
-        [
-          {
-            name: 'contribution',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Contribution'),
-              default: false,
-              description: t('Compute the contribution to the total'),
-            },
+type RoseExtra = {
+  colorScheme: string;
+  dateTimeFormat: string;
+  numberFormat: string;
+  useAreaProportions: boolean;
+  useRichTooltip: boolean;
+  sliceId: number;
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default defineChart<any, RoseExtra>({
+  metadata: {
+    category: t('Ranking'),
+    description: t(
+      'A polar coordinate chart where the circle is broken into wedges of equal angle, and the value represented by any wedge is illustrated by its area, rather than its radius or sweep angle.',
+    ),
+    exampleGallery: [
+      { url: example1, urlDark: example1Dark },
+      { url: example2, urlDark: example2Dark },
+    ],
+    name: t('Nightingale Rose Chart'),
+    tags: [
+      t('Legacy'),
+      t('Advanced-Analytics'),
+      t('Circular'),
+      t('Multi-Layers'),
+      t('Pattern'),
+      t('Time'),
+      t('Trend'),
+    ],
+    thumbnail,
+    thumbnailDark,
+    useLegacyApi: true,
+  },
+  arguments: {},
+  prependSections: [sections.legacyTimeseriesTime],
+  additionalControls: {
+    queryBefore: [['metrics'], ['adhoc_filters'], ['groupby']],
+    query: [
+      ['limit', 'timeseries_limit_metric'],
+      ['order_desc'],
+      [
+        {
+          name: 'contribution',
+          config: {
+            type: 'CheckboxControl',
+            label: t('Contribution'),
+            default: false,
+            description: t('Compute the contribution to the total'),
           },
-        ],
-        ['row_limit', null],
+        },
       ],
-    },
-    {
-      label: t('Chart Options'),
-      expanded: true,
-      controlSetRows: [
-        ['color_scheme'],
-        [
-          {
-            name: 'number_format',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              label: t('Number format'),
-              renderTrigger: true,
-              default: 'SMART_NUMBER',
-              choices: D3_FORMAT_OPTIONS,
-              description: D3_FORMAT_DOCS,
-            },
+      ['row_limit', null],
+    ],
+    chartOptions: [
+      ['color_scheme'],
+      [
+        {
+          name: 'number_format',
+          config: {
+            type: 'SelectControl',
+            freeForm: true,
+            label: t('Number format'),
+            renderTrigger: true,
+            default: 'SMART_NUMBER',
+            choices: D3_FORMAT_OPTIONS,
+            description: D3_FORMAT_DOCS,
           },
-          {
-            name: 'date_time_format',
-            config: {
-              type: 'SelectControl',
-              freeForm: true,
-              label: t('Date Time Format'),
-              renderTrigger: true,
-              default: 'smart_date',
-              choices: D3_TIME_FORMAT_OPTIONS,
-              description: D3_FORMAT_DOCS,
-            },
+        },
+        {
+          name: 'date_time_format',
+          config: {
+            type: 'SelectControl',
+            freeForm: true,
+            label: t('Date Time Format'),
+            renderTrigger: true,
+            default: 'smart_date',
+            choices: D3_TIME_FORMAT_OPTIONS,
+            description: D3_FORMAT_DOCS,
           },
-        ],
-        [
-          {
-            name: 'rich_tooltip',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Rich Tooltip'),
-              renderTrigger: true,
-              default: true,
-              description: t(
-                'The rich tooltip shows a list of all series for that point in time',
-              ),
-            },
-          },
-          {
-            name: 'rose_area_proportion',
-            config: {
-              type: 'CheckboxControl',
-              label: t('Use Area Proportions'),
-              description: t(
-                'Check if the Rose Chart should use segment area instead of ' +
-                  'segment radius for proportioning',
-              ),
-              default: false,
-              renderTrigger: true,
-            },
-          },
-        ],
+        },
       ],
-    },
+      [
+        {
+          name: 'rich_tooltip',
+          config: {
+            type: 'CheckboxControl',
+            label: t('Rich Tooltip'),
+            renderTrigger: true,
+            default: true,
+            description: t(
+              'The rich tooltip shows a list of all series for that point in time',
+            ),
+          },
+        },
+        {
+          name: 'rose_area_proportion',
+          config: {
+            type: 'CheckboxControl',
+            label: t('Use Area Proportions'),
+            description: t(
+              'Check if the Rose Chart should use segment area instead of ' +
+                'segment radius for proportioning',
+            ),
+            default: false,
+            renderTrigger: true,
+          },
+        },
+      ],
+    ],
+  },
+  additionalSections: [
     {
       label: t('Advanced Analytics'),
       tabOverride: 'data',
@@ -232,6 +266,7 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        // eslint-disable-next-line react/jsx-key
         [<ControlSubSectionHeader>{t('Resample')}</ControlSubSectionHeader>],
         [
           {
@@ -279,6 +314,50 @@ const config: ControlPanelConfig = {
     groupby: getStandardizedControls().popAllColumns(),
     metrics: getStandardizedControls().popAllMetrics(),
   }),
-};
+  transform: (chartProps: ChartProps) => {
+    const { width, height, formData, queriesData } = chartProps;
+    const {
+      colorScheme,
+      dateTimeFormat,
+      numberFormat,
+      richTooltip,
+      roseAreaProportion,
+      sliceId,
+    } = formData as Record<string, unknown>;
 
-export default config;
+    return {
+      width,
+      height,
+      data: queriesData[0].data,
+      colorScheme: (colorScheme as string) ?? '',
+      dateTimeFormat: (dateTimeFormat as string) ?? 'smart_date',
+      numberFormat: (numberFormat as string) ?? 'SMART_NUMBER',
+      useAreaProportions: (roseAreaProportion as boolean) ?? false,
+      useRichTooltip: (richTooltip as boolean) ?? true,
+      sliceId: (sliceId as number) ?? 0,
+    };
+  },
+  render: ({
+    width,
+    height,
+    data,
+    colorScheme,
+    dateTimeFormat,
+    numberFormat,
+    useAreaProportions,
+    useRichTooltip,
+    sliceId,
+  }) => (
+    <ReactRose
+      width={width}
+      height={height}
+      data={data}
+      colorScheme={colorScheme}
+      dateTimeFormat={dateTimeFormat}
+      numberFormat={numberFormat}
+      useAreaProportions={useAreaProportions}
+      useRichTooltip={useRichTooltip}
+      sliceId={sliceId}
+    />
+  ),
+});
