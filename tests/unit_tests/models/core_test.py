@@ -597,6 +597,36 @@ def test_get_sqla_engine_does_not_cache_unsaved_instances(
     assert _ENGINE_CACHE == {}
 
 
+def test_engine_cache_evicted_on_update_and_delete(mocker: MockerFixture) -> None:
+    """
+    Regression for #27897: engines cached for a database must be evicted when
+    that database is updated or deleted so that stale connections (old password,
+    old host, old SSH tunnel) do not linger in memory across config changes.
+    """
+    from unittest.mock import MagicMock
+
+    from superset.models.core import (
+        _ENGINE_CACHE,
+        _ENGINE_CACHE_LOCK,
+        _evict_engine_cache,
+    )
+
+    # Seed the cache with two entries for database id=1 and one for id=2.
+    with _ENGINE_CACHE_LOCK:
+        _ENGINE_CACHE.clear()
+        _ENGINE_CACHE[(1, "postgresql://old-host/db", "")] = MagicMock()
+        _ENGINE_CACHE[(1, "postgresql://new-host/db", "")] = MagicMock()
+        _ENGINE_CACHE[(2, "postgresql://other/db", "")] = MagicMock()
+
+    db_instance = MagicMock()
+    db_instance.id = 1
+    _evict_engine_cache(mapper=None, connection=None, target=db_instance)
+
+    # Both id=1 entries gone; id=2 entry untouched.
+    assert not any(k[0] == 1 for k in _ENGINE_CACHE)
+    assert any(k[0] == 2 for k in _ENGINE_CACHE)
+
+
 def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     """
     Test user impersonation in `_get_sqla_engine`.

@@ -1379,6 +1379,30 @@ sqla.event.listen(Database, "after_update", security_manager.database_after_upda
 sqla.event.listen(Database, "after_delete", security_manager.database_after_delete)
 
 
+def _evict_engine_cache(
+    mapper: Any,  # noqa: ANN401
+    connection: Any,  # noqa: ANN401
+    target: "Database",
+) -> None:
+    """Evict all cached engines for a database when it is updated or deleted.
+
+    URL/kwargs changes already produce a new cache key, so stale engines are
+    never served to callers.  This eviction step is purely to reclaim memory:
+    without it, old engines for a renamed host or rotated password would linger
+    in _ENGINE_CACHE until the process restarted.
+    """
+    if target.id is None:
+        return
+    with _ENGINE_CACHE_LOCK:
+        stale = [k for k in _ENGINE_CACHE if k[0] == target.id]
+        for k in stale:
+            _ENGINE_CACHE.pop(k, None)
+
+
+sqla.event.listen(Database, "after_update", _evict_engine_cache)
+sqla.event.listen(Database, "after_delete", _evict_engine_cache)
+
+
 class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
     """
     Store OAuth2 tokens, for authenticating to DBs using user personal tokens.
