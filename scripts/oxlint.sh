@@ -55,7 +55,7 @@ if [ ${#js_ts_files[@]} -gt 0 ]; then
     echo "$output" >&2
     exit 1
   }
-  if [ -n "$output" ]; then echo "$output"; fi
+  [ -n "$output" ] && echo "$output"
 else
   echo "No JavaScript/TypeScript files to lint"
 fi
