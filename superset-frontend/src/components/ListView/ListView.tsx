@@ -75,19 +75,32 @@ const ListViewStyles = styled.div`
           column-gap: ${theme.sizeUnit * 2}px;
           row-gap: ${theme.sizeUnit * 2}px;
 
+          /* Search input — fixed width/height matching pill height, label hidden */
           [data-test='search-filter-container'] {
             width: ${theme.sizeUnit * 44}px;
             flex-shrink: 0;
             height: ${theme.controlHeight}px;
-            justify-content: center;
-
+            align-self: center;
+            /* Hide the FormLabel Flex wrapper entirely so it doesn't affect
+               the column's justify-content centering calculation. */
+            > .ant-flex {
+              display: none;
+            }
             label {
               display: none;
             }
-
             .ant-input-affix-wrapper {
               width: 100%;
+              height: 100%;
             }
+          }
+
+          /* Select filter pill wrappers — make them proper flex items so the
+             inline-flex button inside doesn't introduce line-box quirks. */
+          [data-test='select-filter-container'] {
+            display: flex;
+            align-items: center;
+            align-self: center;
           }
         }
       }
