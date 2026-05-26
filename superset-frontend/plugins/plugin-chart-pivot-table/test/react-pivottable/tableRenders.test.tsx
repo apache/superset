@@ -161,10 +161,12 @@ test('TableRenderer renders grand total when both totals are enabled', () => {
 
 test('TableRenderer renders subvalue labels for row and column subtotals', () => {
   const props = buildDefaultProps({
+    rows: ['color', 'shape'],
+    cols: ['value'],
     tableRenderer: 'Table With Subtotal',
     tableOptions: {
-      rowSubtotalPosition: true,
-      colSubtotalPosition: true,
+      rowSubTotals: true,
+      colSubTotals: true,
     },
   });
   renderWithTheme(<TableRenderer {...props} />);
