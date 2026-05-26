@@ -46,7 +46,7 @@ Built on top of sc-103156's shadow tables:
 
 The relationship-traversal logic and time-window intersection live here;
 sc-103156's read primitives (``find_active_by_uuid``,
-``derive_version_uuid``, ``_resolve_version_tables``) are reused as-is.
+``derive_version_uuid``) are reused as-is.
 
 See the spec at ``specs/sc-107283-versioning-activity-view/spec.md``
 (AV-001..AV-020) and the plan's decision log (D-01..D-19) for the
@@ -55,7 +55,6 @@ design rationale.
 
 from __future__ import annotations
 
-import logging
 from datetime import datetime
 from typing import Any, Optional
 from uuid import UUID
@@ -71,9 +70,6 @@ from superset.versioning.changes import (
     version_changes_table,
 )
 from superset.versioning.queries import derive_version_uuid
-
-logger = logging.getLogger(__name__)
-
 
 # ---- Kind translation -----------------------------------------------------
 
@@ -598,7 +594,6 @@ def _check_entity_tombstones(
 
 def _filter_records_by_visibility(
     records: list[dict[str, Any]],
-    requesting_user: Any,
 ) -> list[dict[str, Any]]:
     """Drop records whose source entity the requester can't read.
 
@@ -608,14 +603,14 @@ def _filter_records_by_visibility(
     payload exposes no navigable ``entity_uuid``, so there's nothing
     sensitive left to gate.
 
-    *requesting_user* is currently unused (the security manager reads
-    the current user from ``g``/Flask-Login). The parameter is kept on
-    the signature because (a) it documents the contract — this function
-    filters *for a specific user* — and (b) future work may make the
-    check explicit. ``None`` callers (CLI, Celery) skip the filter.
+    The requesting user is read from Flask-Login by the security manager
+    methods (``can_access_dashboard`` / ``can_access_chart`` /
+    ``can_access_datasource``); no explicit user parameter is threaded
+    through here. If a CLI/Celery bypass becomes necessary in the
+    future, add it then with a real call site.
     """
-    # pylint: disable=import-outside-toplevel,unused-argument
-    if not records or requesting_user is None:
+    # pylint: disable=import-outside-toplevel
+    if not records:
         return records
 
     from superset import security_manager
@@ -847,7 +842,6 @@ def get_activity(
     include: str = "all",
     page: int = 0,
     page_size: int = _DEFAULT_PAGE_SIZE,
-    requesting_user: Any = None,
 ) -> tuple[list[dict[str, Any]], int]:
     """Cross-entity activity stream for one path entity.
 
@@ -874,7 +868,7 @@ def get_activity(
     raw = _fetch_change_records(entity_windows, since, until)
     enriched = _denormalize_entity_names(raw)
     decorated = _decorate_records(enriched, path_kind, path_id)
-    visible = _filter_records_by_visibility(decorated, requesting_user)
+    visible = _filter_records_by_visibility(decorated)
 
     total = len(visible)
     bounded_size = max(1, min(page_size, _MAX_PAGE_SIZE))
@@ -918,8 +912,11 @@ def _dashboard_related_scope(dashboard_id: int) -> list[EntityWindows]:
 
     for slice_id, attachment_windows in chart_windows.items():
         scope.append(("Slice", slice_id, list(attachment_windows)))
+        # Fetch the chart's dataset history once per slice — it doesn't
+        # depend on which attachment window we're clipping against.
+        dataset_windows = _datasets_used_by_chart(slice_id)
         for attachment in attachment_windows:
-            for dataset_id, chart_dataset_window in _datasets_used_by_chart(slice_id):
+            for dataset_id, chart_dataset_window in dataset_windows:
                 if (
                     intersect := _intersect_windows(attachment, chart_dataset_window)
                 ) is not None:
