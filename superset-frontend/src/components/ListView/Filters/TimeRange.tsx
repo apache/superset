@@ -249,7 +249,7 @@ function TimeRangeFilter(
         <Button
           buttonStyle="primary"
           cta
-          disabled={!validTimeRange}
+          disabled={!validTimeRange || lastFetched !== timeRangeValue}
           key="apply"
           onClick={() => {
             if (timeRangeValue === NO_TIME_RANGE) {
