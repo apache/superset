@@ -433,7 +433,37 @@ def test_import_soft_deleted_chart_non_overwrite_raises_for_non_owner(
     with override_user(non_owner):
         with pytest.raises(ImportFailedError) as excinfo:
             import_chart(chart_config, overwrite=False)
-    assert "permissions to overwrite" in str(excinfo.value)
+    assert "permissions to restore" in str(excinfo.value)
+
+
+def test_import_soft_deleted_chart_raises_when_caller_lacks_can_write(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    Case B: re-import of a soft-deleted UUID by a caller without
+    can_write must raise, not silently return the soft-deleted row.
+
+    Real-world scenario: a user has can_write Dashboard but not
+    can_write Chart, and they import a dashboard zip that references a
+    soft-deleted chart. Silently returning the row would let the
+    dashboard importer reattach to it via chart_ids[uuid] = existing.id
+    and produce a dashboard with hidden (broken) charts.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    existing = (
+        session_with_data.query(Slice)
+        .filter(Slice.uuid == chart_config["uuid"])
+        .one_or_none()
+    )
+    assert existing is not None
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    session_with_data.flush()
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_chart(chart_config, overwrite=False)
+    assert "can_write" in str(excinfo.value)
 
 
 def test_import_tag_logic_for_charts(session_with_schema: Session):
