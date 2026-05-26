@@ -16,21 +16,249 @@
 # under the License.
 """Integration tests for the cross-entity activity-view API (sc-107283).
 
-Three test classes mirror the three endpoint families:
+US1 — dashboard activity stream: ``GET /api/v1/dashboard/<uuid>/activity/``.
+Tests for US2 (chart activity) and US3 (dataset activity) come in later
+phases.
 
-* ``TestDashboardActivityView`` — ``/api/v1/dashboard/<uuid>/activity/``
-  (US1, MVP — own + transitive chart-on-dashboard + dataset-via-chart).
-* ``TestChartActivityView`` — ``/api/v1/chart/<uuid>/activity/``
-  (US2 — own + datasets the chart pointed at during association).
-* ``TestDatasetActivityView`` — ``/api/v1/dataset/<uuid>/activity/``
-  (US3 — own edits only; no transitive layer in V2 per AV-004).
-
-All test classes use the existing ``load_birth_names_dashboard_with_slices``
-autouse fixture (plan §D-18). Per spec T053 / sc-103156 T062, every test
-that mutates a fixture entity wraps the test body in ``try``/``finally``
-with ``metadata_db.session.rollback()`` in the ``finally``.
+Per spec T053 / sc-103156 T062, every test that mutates a fixture entity
+wraps the test body in ``try``/``finally`` with
+``metadata_db.session.rollback()`` in the ``finally``. The rationale is
+documented in the spec — Continuum captures dirty mappers during
+autoflush, so leaving an instrumented attribute dirty pollutes
+downstream tests via the shadow tables.
 """
 
 from __future__ import annotations
 
-from tests.integration_tests.base_tests import SupersetTestCase  # noqa: F401
+from typing import Any
+
+import pytest
+
+from superset.extensions import db
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
+from superset.utils import json as _json
+from tests.integration_tests.base_tests import SupersetTestCase
+from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
+from tests.integration_tests.fixtures.birth_names_dashboard import (  # noqa: F401
+    load_birth_names_dashboard_with_slices,
+    load_birth_names_data,
+)
+
+
+def _persist_fixture_state() -> None:
+    """Force the fixture's pending INSERTs to commit so subsequent edits
+    produce *new* version rows instead of being batched into the
+    creation transaction. Mirrors the same helper in
+    ``tests/integration_tests/dashboards/version_history_tests.py``.
+    """
+    db.session.commit()
+
+
+def _get_birth_names_dashboard() -> Dashboard:
+    return (
+        db.session.query(Dashboard)
+        .filter(Dashboard.dashboard_title == "USA Births Names")
+        .first()
+    )
+
+
+class TestDashboardActivityView(SupersetTestCase):
+    """T017–T026 — ``GET /api/v1/dashboard/<uuid>/activity/`` (US1)."""
+
+    @pytest.fixture(autouse=True)
+    def _load_data(self, load_birth_names_dashboard_with_slices):  # noqa: PT004, F811
+        pass
+
+    def _activity(self, dashboard_uuid: str, **query: Any) -> Any:
+        qs = "&".join(f"{k}={v}" for k, v in query.items())
+        url = f"/api/v1/dashboard/{dashboard_uuid}/activity/"
+        if qs:
+            url = f"{url}?{qs}"
+        return self.client.get(url)
+
+    # ---- 4xx boundary cases ----
+
+    def test_activity_returns_404_for_unknown_uuid(self) -> None:
+        """AV-009: unknown path entity → 404."""
+        self.login(ADMIN_USERNAME)
+        rv = self._activity("00000000-0000-0000-0000-000000000000")
+        assert rv.status_code == 404
+
+    def test_activity_returns_400_for_invalid_uuid(self) -> None:
+        """A malformed UUID is rejected by the endpoint, not by Werkzeug."""
+        self.login(ADMIN_USERNAME)
+        rv = self._activity("not-a-uuid")
+        assert rv.status_code == 400
+
+    def test_activity_returns_400_for_invalid_include(self) -> None:
+        _persist_fixture_state()
+        dashboard = _get_birth_names_dashboard()
+        assert dashboard is not None
+        self.login(ADMIN_USERNAME)
+        rv = self._activity(str(dashboard.uuid), include="sibling")
+        assert rv.status_code == 400
+
+    def test_activity_returns_400_for_invalid_since(self) -> None:
+        _persist_fixture_state()
+        dashboard = _get_birth_names_dashboard()
+        assert dashboard is not None
+        self.login(ADMIN_USERNAME)
+        rv = self._activity(str(dashboard.uuid), since="yesterday")
+        assert rv.status_code == 400
+
+    def test_activity_denies_non_owner(self) -> None:
+        """Mirrors sc-103156 T056 — Alpha doesn't own the admin-fixture
+        dashboard, so raise_for_ownership rejects with 403 before the
+        activity layer runs."""
+        _persist_fixture_state()
+        dashboard = _get_birth_names_dashboard()
+        assert dashboard is not None
+        dashboard_uuid = str(dashboard.uuid)
+
+        self.login(ALPHA_USERNAME)
+        rv = self._activity(dashboard_uuid)
+        assert rv.status_code == 403
+
+    # ---- 200 happy paths ----
+
+    def test_activity_returns_200_with_envelope_shape(self) -> None:
+        """Smoke test: the endpoint returns the documented envelope shape
+        (``result`` list + ``count`` integer) even when the dashboard has
+        no activity yet."""
+        _persist_fixture_state()
+        dashboard = _get_birth_names_dashboard()
+        assert dashboard is not None
+        dashboard_uuid = str(dashboard.uuid)
+
+        self.login(ADMIN_USERNAME)
+        rv = self._activity(dashboard_uuid)
+        assert rv.status_code == 200
+        body = _json.loads(rv.data.decode("utf-8"))
+        assert "result" in body
+        assert "count" in body
+        assert isinstance(body["result"], list)
+        assert isinstance(body["count"], int)
+
+    def test_activity_includes_chart_edit_as_related(self) -> None:
+        """T018 / AS-1 of US1: editing a chart on the dashboard surfaces
+        the chart-edit record with ``entity_kind=Slice`` and
+        ``source=related``."""
+        _persist_fixture_state()
+        dashboard = _get_birth_names_dashboard()
+        assert dashboard is not None
+        dashboard_uuid = str(dashboard.uuid)
+        chart_on_dashboard = next(iter(dashboard.slices), None)
+        assert chart_on_dashboard is not None
+        chart_id = chart_on_dashboard.id
+        original_name = chart_on_dashboard.slice_name
+
+        try:
+            chart_on_dashboard.slice_name = f"{original_name} (edited)"
+            db.session.commit()
+
+            self.login(ADMIN_USERNAME)
+            rv = self._activity(dashboard_uuid)
+            assert rv.status_code == 200
+            body = _json.loads(rv.data.decode("utf-8"))
+            related = [
+                r
+                for r in body["result"]
+                if r["entity_kind"] == "Slice" and r["source"] == "related"
+            ]
+            assert related, (
+                "Expected at least one Slice/related record from the chart "
+                "edit; got: "
+                f"{[(r['entity_kind'], r['source']) for r in body['result']]}"
+            )
+            # Spot-check the carry-through of denormalized fields
+            sample = related[0]
+            assert sample["entity_uuid"] is not None
+            assert "transaction_id" in sample
+            assert "issued_at" in sample
+        finally:
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = original_name
+            db.session.commit()
+
+    def test_activity_include_self_excludes_related(self) -> None:
+        """T023 / AV-016: ``?include=self`` filters out related records."""
+        _persist_fixture_state()
+        dashboard = _get_birth_names_dashboard()
+        assert dashboard is not None
+        dashboard_uuid = str(dashboard.uuid)
+        chart_on_dashboard = next(iter(dashboard.slices), None)
+        assert chart_on_dashboard is not None
+        chart_id = chart_on_dashboard.id
+        original_name = chart_on_dashboard.slice_name
+
+        try:
+            chart_on_dashboard.slice_name = f"{original_name} (edited self)"
+            db.session.commit()
+
+            self.login(ADMIN_USERNAME)
+            rv = self._activity(dashboard_uuid, include="self")
+            assert rv.status_code == 200
+            body = _json.loads(rv.data.decode("utf-8"))
+            for record in body["result"]:
+                assert record["source"] == "self", (
+                    f"include=self leaked a non-self record: {record}"
+                )
+                assert record["entity_kind"] == "Dashboard"
+        finally:
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = original_name
+            db.session.commit()
+
+    def test_activity_include_related_excludes_self(self) -> None:
+        """T024 / AV-016: ``?include=related`` returns only related records."""
+        _persist_fixture_state()
+        dashboard = _get_birth_names_dashboard()
+        assert dashboard is not None
+        dashboard_uuid = str(dashboard.uuid)
+        original_title = dashboard.dashboard_title
+        dashboard_id = dashboard.id
+
+        try:
+            # Edit the dashboard's own field so we have a self record to
+            # filter out, and edit a chart on it so we have a related
+            # record to keep.
+            dashboard.dashboard_title = f"{original_title} (edited dash)"
+            db.session.commit()
+            chart_on_dashboard = next(iter(dashboard.slices), None)
+            assert chart_on_dashboard is not None
+            chart_id = chart_on_dashboard.id
+            chart_original_name = chart_on_dashboard.slice_name
+            chart_on_dashboard.slice_name = f"{chart_original_name} (edited chart)"
+            db.session.commit()
+
+            self.login(ADMIN_USERNAME)
+            rv = self._activity(dashboard_uuid, include="related")
+            assert rv.status_code == 200
+            body = _json.loads(rv.data.decode("utf-8"))
+            for record in body["result"]:
+                assert record["source"] == "related", (
+                    f"include=related leaked a self record: {record}"
+                )
+                assert record["entity_kind"] != "Dashboard"
+        finally:
+            db.session.rollback()
+            dashboard = (
+                db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+            )
+            dashboard.dashboard_title = original_title
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = chart_original_name
+            db.session.commit()
+
+    def test_activity_pagination_clamps_oversized_page_size(self) -> None:
+        """``?page_size=500`` is silently clamped to the contract max
+        (200) rather than rejected with 400."""
+        _persist_fixture_state()
+        dashboard = _get_birth_names_dashboard()
+        assert dashboard is not None
+        self.login(ADMIN_USERNAME)
+        rv = self._activity(str(dashboard.uuid), page_size="500")
+        assert rv.status_code == 200

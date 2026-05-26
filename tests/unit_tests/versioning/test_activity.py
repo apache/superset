@@ -30,7 +30,7 @@ by the integration suite in
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import Any, Optional
 
 import pytest
 
@@ -40,11 +40,16 @@ from superset.versioning.activity import (
     _can_read,
     _changed_by_dict,
     _compute_impact,
+    _DEFAULT_PAGE_SIZE,
     _intersect_windows,
+    _MAX_PAGE_SIZE,
     _merge_entity_windows,
     _resolve_scope,
+    _row_within_any_window,
     _TABLE_KIND_TO_API,
+    _union_windows,
     EntityWindows,
+    parse_activity_query_params,
     Window,
 )
 
@@ -142,6 +147,87 @@ def test_merge_entity_windows_preserves_singletons() -> None:
     ]
     merged = _merge_entity_windows(inputs)
     assert sorted(merged) == sorted(inputs)
+
+
+def test_merge_entity_windows_unions_overlapping_windows_for_one_entity() -> None:
+    """Same entity, many redundant attachment windows → collapsed to one.
+
+    This guards the SQLite expression-tree limit: a fixture that
+    re-creates a chart-on-dashboard association across many transactions
+    used to produce N separate OR branches in the fetch query (one per
+    redundant window). _merge_entity_windows must coalesce them.
+    """
+    scope: list[EntityWindows] = [
+        ("Slice", 1, [(10, 20)]),
+        ("Slice", 1, [(15, 25)]),  # overlaps
+        ("Slice", 1, [(25, 30)]),  # touches
+        ("Slice", 1, [(40, 50)]),  # disjoint
+    ]
+    merged = _merge_entity_windows(scope)
+    assert merged == [("Slice", 1, [(10, 30), (40, 50)])]
+
+
+# ---- _union_windows -------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "windows, expected",
+    [
+        # Disjoint windows pass through
+        ([(10, 20), (30, 40)], [(10, 20), (30, 40)]),
+        # Overlapping windows merge
+        ([(10, 20), (15, 25)], [(10, 25)]),
+        # Touching windows merge (half-open: [10,20) + [20,30) = [10,30))
+        ([(10, 20), (20, 30)], [(10, 30)]),
+        # Many overlapping windows collapse to one
+        ([(10, 20), (15, 25), (20, 30), (25, 35)], [(10, 35)]),
+        # Input order doesn't matter
+        ([(30, 40), (10, 20), (15, 25)], [(10, 25), (30, 40)]),
+        # Open-ended absorbs everything to the right
+        ([(10, None), (50, 60)], [(10, None)]),
+        # Open-ended at the right merges into open-ended
+        ([(10, 20), (15, None)], [(10, None)]),
+        # Empty input
+        ([], []),
+        # Single window pass-through
+        ([(5, 10)], [(5, 10)]),
+    ],
+)
+def test_union_windows(windows: list[Window], expected: list[Window]) -> None:
+    assert _union_windows(windows) == expected
+
+
+# ---- _row_within_any_window (Python post-filter for the fetch query) ------
+
+
+def test_row_in_window_inside() -> None:
+    assert _row_within_any_window({"transaction_id": 15}, [(10, 20)])
+
+
+def test_row_in_window_at_start_boundary_inclusive() -> None:
+    """Half-open: ``[10, 20)`` includes 10."""
+    assert _row_within_any_window({"transaction_id": 10}, [(10, 20)])
+
+
+def test_row_in_window_at_end_boundary_exclusive() -> None:
+    """Half-open: ``[10, 20)`` excludes 20."""
+    assert not _row_within_any_window({"transaction_id": 20}, [(10, 20)])
+
+
+def test_row_in_open_ended_window() -> None:
+    """``end=None`` means +∞."""
+    assert _row_within_any_window({"transaction_id": 999}, [(10, None)])
+
+
+def test_row_in_any_of_several_windows() -> None:
+    assert _row_within_any_window(
+        {"transaction_id": 50}, [(10, 20), (40, 60), (90, 100)]
+    )
+
+
+def test_row_in_no_windows_returns_false() -> None:
+    assert not _row_within_any_window({"transaction_id": 50}, [])
+    assert not _row_within_any_window({"transaction_id": 25}, [(10, 20), (30, 40)])
 
 
 # ---- Kind translation round-trip -----------------------------------------
@@ -257,3 +343,109 @@ def test_compute_impact_unknown_path_kind_yields_no_impact() -> None:
         "transaction_id": 100,
     }
     assert _compute_impact("SqlaTable", 1, record) is None
+
+
+# ---- parse_activity_query_params (shared API helper) ---------------------
+
+
+def test_parser_defaults_when_empty() -> None:
+    """No params → ``include='all'``, ``page=0``, ``page_size=DEFAULT``."""
+    params, error = parse_activity_query_params({})
+    assert error is None
+    assert params == {
+        "include": "all",
+        "page": 0,
+        "page_size": _DEFAULT_PAGE_SIZE,
+    }
+
+
+def test_parser_clamps_page_size_to_max() -> None:
+    """A request for more than the contract maximum is clamped, not 400'd
+    (silent clamp matches AV-019's bounded-payload guarantee)."""
+    params, error = parse_activity_query_params({"page_size": str(_MAX_PAGE_SIZE * 5)})
+    assert error is None
+    assert params is not None
+    assert params["page_size"] == _MAX_PAGE_SIZE
+
+
+def test_parser_accepts_iso_datetime_with_z_suffix() -> None:
+    """Python <3.11 fromisoformat rejects 'Z'; the parser tolerates it."""
+    params, error = parse_activity_query_params({"since": "2026-01-01T00:00:00Z"})
+    assert error is None
+    assert params is not None
+    assert params["since"].year == 2026
+
+
+def test_parser_rejects_invalid_include() -> None:
+    params, error = parse_activity_query_params({"include": "sibling"})
+    assert params is None
+    assert error is not None
+    assert "include" in error
+
+
+def test_parser_rejects_malformed_datetime() -> None:
+    params, error = parse_activity_query_params({"since": "yesterday"})
+    assert params is None
+    assert error is not None
+    assert "since" in error
+
+
+def test_parser_rejects_negative_page() -> None:
+    params, error = parse_activity_query_params({"page": "-1"})
+    assert params is None
+    assert error is not None
+    assert "page" in error
+
+
+def test_parser_rejects_zero_page_size() -> None:
+    params, error = parse_activity_query_params({"page_size": "0"})
+    assert params is None
+    assert error is not None
+    assert "page_size" in error
+
+
+# ---- _can_read per-kind dispatch -----------------------------------------
+
+
+class _StubSM:
+    """Stand-in for ``security_manager`` exposing only the three
+    activity-relevant predicates."""
+
+    def __init__(
+        self,
+        dashboard: bool = True,
+        chart: bool = True,
+        datasource: bool = True,
+    ) -> None:
+        self._dashboard = dashboard
+        self._chart = chart
+        self._datasource = datasource
+
+    def can_access_dashboard(self, _entity: Any) -> bool:
+        return self._dashboard
+
+    def can_access_chart(self, _entity: Any) -> bool:
+        return self._chart
+
+    def can_access_datasource(self, _entity: Any) -> bool:
+        return self._datasource
+
+
+def test_can_read_dispatches_to_dashboard_predicate() -> None:
+    """AV-008: Dashboard kind uses ``can_access_dashboard``."""
+    assert _can_read("Dashboard", object(), _StubSM(dashboard=True)) is True
+    assert _can_read("Dashboard", object(), _StubSM(dashboard=False)) is False
+
+
+def test_can_read_dispatches_to_chart_predicate() -> None:
+    """T025 / AV-008: a chart record gated by ``can_access_chart``."""
+    assert _can_read("Slice", object(), _StubSM(chart=True)) is True
+    assert _can_read("Slice", object(), _StubSM(chart=False)) is False
+
+
+def test_can_read_dispatches_to_datasource_predicate() -> None:
+    """A dataset record is gated by ``can_access_datasource`` — datasources
+    are the dataset-and-legacy ``BaseDatasource`` umbrella in the security
+    manager, so this is the right predicate for ``SqlaTable``."""
+    assert _can_read("SqlaTable", object(), _StubSM(datasource=True)) is True
+    assert _can_read("SqlaTable", object(), _StubSM(datasource=False)) is False

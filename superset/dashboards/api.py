@@ -255,6 +255,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "list_versions",
         "get_version",
         "restore_version",
+        "activity",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -2429,6 +2430,103 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         return set_version_etag_by_uuid(
             self.response(200, result=snapshot), Dashboard, entity_uuid
         )
+
+    @expose("/<uuid_str>/activity/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.activity",
+        log_to_statsd=False,
+    )
+    def activity(self, uuid_str: str) -> Response:
+        """Return the cross-entity activity stream for a dashboard.
+        ---
+        get:
+          summary: Activity stream — dashboard own edits + transitive
+            chart-on-dashboard and dataset-via-chart edits, time-bounded
+            by association windows
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Dashboard UUID
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: since
+            description: Lower bound on issued_at (ISO 8601, UTC)
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: until
+            description: Upper bound on issued_at (ISO 8601, UTC)
+          - in: query
+            schema:
+              type: string
+              enum: [self, related, all]
+              default: all
+            name: include
+          - in: query
+            schema:
+              type: integer
+              minimum: 0
+              default: 0
+            name: page
+          - in: query
+            schema:
+              type: integer
+              minimum: 1
+              maximum: 200
+              default: 25
+            name: page_size
+          responses:
+            200:
+              description: Activity stream ordered newest-first
+              content:
+                application/json:
+                  schema: ActivityResponseSchema
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        # pylint: disable=import-outside-toplevel
+        from uuid import UUID
+
+        from superset.daos.version import VersionDAO
+        from superset.exceptions import SupersetSecurityException
+        from superset.versioning import activity as activity_module
+        from superset.versioning.schemas import ActivityResponseSchema
+
+        try:
+            entity_uuid = UUID(uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid UUID")
+
+        params, error = activity_module.parse_activity_query_params(request.args)
+        if error is not None or params is None:
+            return self.response_400(message=error or "Invalid query parameters")
+
+        entity = VersionDAO.find_active_by_uuid(Dashboard, entity_uuid)
+        if entity is None:
+            return self.response_404()
+        try:
+            security_manager.raise_for_ownership(entity)
+        except SupersetSecurityException:
+            return self.response_403()
+
+        records, count = activity_module.get_activity(Dashboard, entity_uuid, **params)
+        payload = ActivityResponseSchema().dump({"result": records, "count": count})
+        return self.response(200, **payload)
 
     @expose(
         "/<uuid_str>/versions/<version_uuid_str>/restore",

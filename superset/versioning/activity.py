@@ -258,11 +258,20 @@ def _fetch_change_records(
     inside at least one of the entity's windows. ``since``/``until``
     further restrict by ``issued_at``.
 
-    No DB-level ``LIMIT``/``OFFSET`` here: per AV-008 the visibility
-    filter is applied after this query (records the requester can't read
-    are silently dropped and must not contribute to ``count``), so the
-    orchestrator paginates in Python over the filtered list. The
-    query is still bounded by the date filters and the entity scope.
+    Implementation: one SELECT per kind with ``entity_id IN (...)`` and
+    a wide ``transaction_id`` bound (the union of all windows for that
+    kind). Per-window precision is applied in Python afterward. This
+    keeps the SQL shape proportional to the number of *kinds* (≤3) and
+    the bound proportional to the union of windows, not the cross-
+    product of (entity, window) — which previously generated one OR
+    clause per (entity, window) pair and hit SQLite's
+    ``SQLITE_MAX_EXPR_DEPTH`` limit on dashboards with many slices
+    or many historical attachment windows.
+
+    Per AV-008 the visibility filter runs after this function (records
+    the requester can't read are silently dropped and must not
+    contribute to ``count``), so the orchestrator paginates in Python
+    over the filtered list — no DB-level ``LIMIT``/``OFFSET`` here.
 
     Returned rows are ordered by ``(issued_at DESC, transaction_id DESC,
     sequence DESC)`` — the secondary keys break ties for AV-006's
@@ -271,6 +280,48 @@ def _fetch_change_records(
     if not entity_window_tuples:
         return []
 
+    # Group windows by (table_kind, entity_id) and by table_kind for SQL
+    # narrowing. The fetch is per-kind; the post-filter is per-entity.
+    windows_by_entity: dict[tuple[str, int], list[Window]] = {}
+    ids_by_kind: dict[str, set[int]] = {}
+    for api_kind, entity_id, windows in entity_window_tuples:
+        table_kind = _API_KIND_TO_TABLE.get(api_kind)
+        if table_kind is None or not windows:
+            continue
+        ids_by_kind.setdefault(table_kind, set()).add(entity_id)
+        windows_by_entity.setdefault((table_kind, entity_id), []).extend(windows)
+
+    if not ids_by_kind:
+        return []
+
+    rows = _select_change_rows_for_kinds(ids_by_kind, since, until)
+    filtered = [
+        row
+        for row in rows
+        if _row_within_any_window(
+            row, windows_by_entity.get((row["entity_kind"], row["entity_id"]), [])
+        )
+    ]
+    filtered.sort(
+        key=lambda r: (
+            r["issued_at"].timestamp() if r["issued_at"] is not None else 0,
+            r["transaction_id"],
+            r["sequence"],
+        ),
+        reverse=True,
+    )
+    return filtered
+
+
+def _select_change_rows_for_kinds(
+    ids_by_kind: dict[str, set[int]],
+    since: Optional[datetime],
+    until: Optional[datetime],
+) -> list[dict[str, Any]]:
+    """Fire one SELECT per entity_kind with ``entity_id IN (...)``;
+    concatenate the results. Each SELECT joins ``version_transaction``
+    + ``ab_user`` so the orchestrator has the columns it needs for
+    decoration."""
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import versioning_manager
 
@@ -279,61 +330,55 @@ def _fetch_change_records(
     tx_tbl = versioning_manager.transaction_cls.__table__
     user_tbl = security_manager.user_model.__table__
     vc = version_changes_table
-
-    entity_clauses: list[Any] = []
-    for api_kind, entity_id, windows in entity_window_tuples:
-        table_kind = _API_KIND_TO_TABLE.get(api_kind)
-        if table_kind is None or not windows:
-            continue
-        for start_tx, end_tx in windows:
-            conds = [
-                vc.c.entity_kind == table_kind,
-                vc.c.entity_id == entity_id,
-                vc.c.transaction_id >= start_tx,
-            ]
-            if end_tx is not None:
-                conds.append(vc.c.transaction_id < end_tx)
-            entity_clauses.append(sa.and_(*conds))
-
-    if not entity_clauses:
-        return []
-
-    stmt = (
-        sa.select(
-            vc.c.transaction_id,
-            vc.c.entity_kind,
-            vc.c.entity_id,
-            vc.c.sequence,
-            vc.c.kind,
-            vc.c.path,
-            vc.c.from_value,
-            vc.c.to_value,
-            tx_tbl.c.issued_at,
-            tx_tbl.c.user_id,
-            user_tbl.c.id.label("changed_by_id"),
-            user_tbl.c.first_name,
-            user_tbl.c.last_name,
-        )
-        .select_from(
-            vc.join(tx_tbl, vc.c.transaction_id == tx_tbl.c.id).outerjoin(
-                user_tbl, tx_tbl.c.user_id == user_tbl.c.id
-            )
-        )
-        .where(sa.or_(*entity_clauses))
-        .order_by(
-            tx_tbl.c.issued_at.desc(),
-            vc.c.transaction_id.desc(),
-            vc.c.sequence.desc(),
-        )
+    join_tree = vc.join(tx_tbl, vc.c.transaction_id == tx_tbl.c.id).outerjoin(
+        user_tbl, tx_tbl.c.user_id == user_tbl.c.id
+    )
+    select_cols = (
+        vc.c.transaction_id,
+        vc.c.entity_kind,
+        vc.c.entity_id,
+        vc.c.sequence,
+        vc.c.kind,
+        vc.c.path,
+        vc.c.from_value,
+        vc.c.to_value,
+        tx_tbl.c.issued_at,
+        tx_tbl.c.user_id,
+        user_tbl.c.id.label("changed_by_id"),
+        user_tbl.c.first_name,
+        user_tbl.c.last_name,
     )
 
-    if since is not None:
-        stmt = stmt.where(tx_tbl.c.issued_at >= since)
-    if until is not None:
-        stmt = stmt.where(tx_tbl.c.issued_at < until)
+    out: list[dict[str, Any]] = []
+    for table_kind, entity_ids in ids_by_kind.items():
+        stmt = (
+            sa.select(*select_cols)
+            .select_from(join_tree)
+            .where(
+                vc.c.entity_kind == table_kind,
+                vc.c.entity_id.in_(entity_ids),
+            )
+        )
+        if since is not None:
+            stmt = stmt.where(tx_tbl.c.issued_at >= since)
+        if until is not None:
+            stmt = stmt.where(tx_tbl.c.issued_at < until)
+        out.extend(
+            dict(row) for row in db.session.connection().execute(stmt).mappings().all()
+        )
+    return out
 
-    rows = db.session.connection().execute(stmt).mappings().all()
-    return [dict(row) for row in rows]
+
+def _row_within_any_window(row: dict[str, Any], windows: list[Window]) -> bool:
+    """``True`` iff ``row['transaction_id']`` falls inside at least one
+    of *windows*. Half-open interval semantics match
+    :func:`_intersect_windows`."""
+    if not windows:
+        return False
+    tx_id = row["transaction_id"]
+    return any(
+        start <= tx_id and (end is None or tx_id < end) for start, end in windows
+    )
 
 
 # ---- T009: Denormalize entity name from the shadow row valid at tx --------
@@ -831,6 +876,74 @@ def _changed_by_dict(record: dict[str, Any]) -> Optional[dict[str, Any]]:
 
 _DEFAULT_PAGE_SIZE = 25
 _MAX_PAGE_SIZE = 200
+_VALID_INCLUDE_VALUES: frozenset[str] = frozenset({"self", "related", "all"})
+
+
+def parse_activity_query_params(
+    args: Any,
+) -> tuple[Optional[dict[str, Any]], Optional[str]]:
+    """Parse the ``since`` / ``until`` / ``include`` / ``page`` / ``page_size``
+    query parameters into the kwargs ``get_activity`` accepts.
+
+    Returns ``(kwargs, None)`` on success, ``(None, error_message)`` when
+    a parameter is malformed — the caller maps that to ``response_400``.
+    Shared across the three endpoint families (dashboards, charts,
+    datasets) so the parsing and 400-messaging stay consistent.
+    """
+    params: dict[str, Any] = {}
+
+    if since_raw := args.get("since"):
+        parsed_since = _parse_iso_datetime(since_raw)
+        if parsed_since is None:
+            return None, f"Invalid 'since' datetime: {since_raw!r}"
+        params["since"] = parsed_since
+
+    if until_raw := args.get("until"):
+        parsed_until = _parse_iso_datetime(until_raw)
+        if parsed_until is None:
+            return None, f"Invalid 'until' datetime: {until_raw!r}"
+        params["until"] = parsed_until
+
+    include = args.get("include", "all")
+    if include not in _VALID_INCLUDE_VALUES:
+        return (
+            None,
+            f"Invalid 'include' value: {include!r}; "
+            f"must be one of {sorted(_VALID_INCLUDE_VALUES)}",
+        )
+    params["include"] = include
+
+    page_str = args.get("page", "0")
+    try:
+        page = int(page_str)
+    except (TypeError, ValueError):
+        return None, f"Invalid 'page' value: {page_str!r}"
+    if page < 0:
+        return None, "Invalid 'page' value: must be >= 0"
+    params["page"] = page
+
+    page_size_str = args.get("page_size", str(_DEFAULT_PAGE_SIZE))
+    try:
+        page_size = int(page_size_str)
+    except (TypeError, ValueError):
+        return None, f"Invalid 'page_size' value: {page_size_str!r}"
+    if page_size < 1:
+        return None, "Invalid 'page_size' value: must be >= 1"
+    # The contract caps page_size at _MAX_PAGE_SIZE; clamp silently here
+    # so a `?page_size=500` request returns 200 records instead of a 400.
+    params["page_size"] = min(page_size, _MAX_PAGE_SIZE)
+
+    return params, None
+
+
+def _parse_iso_datetime(value: str) -> Optional[datetime]:
+    """Parse an ISO-8601 datetime string. Tolerates the trailing ``Z``
+    suffix that Python <3.11 ``fromisoformat`` rejects."""
+    candidate = value[:-1] + "+00:00" if value.endswith("Z") else value
+    try:
+        return datetime.fromisoformat(candidate)
+    except ValueError:
+        return None
 
 
 def get_activity(
@@ -866,9 +979,14 @@ def get_activity(
         return [], 0
 
     raw = _fetch_change_records(entity_windows, since, until)
-    enriched = _denormalize_entity_names(raw)
-    decorated = _decorate_records(enriched, path_kind, path_id)
-    visible = _filter_records_by_visibility(decorated)
+    # Visibility filter runs before decoration: it needs the raw
+    # ``entity_id`` column (which decoration strips), and dropping
+    # invisible records early means we don't pay for name lookup +
+    # tombstone probes + impact counts on records the requester
+    # can't see (AV-008's silent-filter contract).
+    visible_raw = _filter_records_by_visibility(raw)
+    enriched = _denormalize_entity_names(visible_raw)
+    visible = _decorate_records(enriched, path_kind, path_id)
 
     total = len(visible)
     bounded_size = max(1, min(page_size, _MAX_PAGE_SIZE))
@@ -895,13 +1013,13 @@ def _resolve_related_scope(path_kind: str, path_id: int) -> list[EntityWindows]:
     """Walk the dependency edges from the path entity to its related
     entities. Per AV-004, datasets have no transitive layer in V2."""
     if path_kind == "Dashboard":
-        return _dashboard_related_scope(path_id)
+        return _resolve_dashboard_scope(path_id)
     if path_kind == "Slice":
-        return _chart_related_scope(path_id)
+        return _resolve_chart_scope(path_id)
     return []
 
 
-def _dashboard_related_scope(dashboard_id: int) -> list[EntityWindows]:
+def _resolve_dashboard_scope(dashboard_id: int) -> list[EntityWindows]:
     """Charts on the dashboard during their attachment window, plus
     datasets each chart pointed at during the intersection of (chart-
     attachment, chart-on-dataset)."""
@@ -924,7 +1042,7 @@ def _dashboard_related_scope(dashboard_id: int) -> list[EntityWindows]:
     return _merge_entity_windows(scope)
 
 
-def _chart_related_scope(slice_id: int) -> list[EntityWindows]:
+def _resolve_chart_scope(slice_id: int) -> list[EntityWindows]:
     """Datasets the chart pointed at over its full history."""
     scope: list[EntityWindows] = []
     for dataset_id, window in _datasets_used_by_chart(slice_id):
@@ -934,13 +1052,47 @@ def _chart_related_scope(slice_id: int) -> list[EntityWindows]:
 
 def _merge_entity_windows(scope: list[EntityWindows]) -> list[EntityWindows]:
     """Collapse repeated ``(api_kind, entity_id)`` entries by unioning
-    their window lists. The OR-clause builder in
-    :func:`_fetch_change_records` tolerates overlapping windows but
-    sending fewer of them to the SQL planner is friendlier."""
+    their window lists, and collapse overlapping/touching windows
+    within each entity into one.
+
+    The OR-clause in :func:`_fetch_change_records` generates one branch
+    per (kind, id, window) tuple. Without the within-entity union, a
+    chart that's been attached-and-detached many times (or that
+    repeated fixture loads have populated the M2M shadow for) yields
+    a separate clause per redundant window — at ~10 entities × ~50
+    windows the SQL hits SQLite's ``SQLITE_MAX_EXPR_DEPTH`` (1000).
+    Merging here keeps the clause count proportional to the number of
+    *distinct* validity intervals, not the number of shadow rows.
+    """
     merged: dict[tuple[str, int], list[Window]] = {}
     for api_kind, entity_id, windows in scope:
         merged.setdefault((api_kind, entity_id), []).extend(windows)
     return [
-        (api_kind, entity_id, windows)
+        (api_kind, entity_id, _union_windows(windows))
         for (api_kind, entity_id), windows in merged.items()
     ]
+
+
+def _union_windows(windows: list[Window]) -> list[Window]:
+    """Sort + merge overlapping/touching half-open intervals.
+
+    Pure function — no DB. Touching ``[a, b)`` and ``[b, c)`` merge into
+    ``[a, c)``. ``end_tx = None`` (open-ended) absorbs everything to its
+    right. Returns a minimal disjoint cover of the input set.
+    """
+    if not windows:
+        return []
+    sorted_windows = sorted(windows, key=lambda w: w[0])
+    out: list[Window] = [sorted_windows[0]]
+    for start, end in sorted_windows[1:]:
+        prev_start, prev_end = out[-1]
+        if prev_end is None:
+            # Prior window is open-ended; it absorbs everything past.
+            continue
+        if start <= prev_end:
+            # Overlapping or touching — extend the prior window.
+            new_end: Optional[int] = None if end is None else max(prev_end, end)
+            out[-1] = (prev_start, new_end)
+        else:
+            out.append((start, end))
+    return out
