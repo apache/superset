@@ -119,8 +119,8 @@ export const MapViewControl: FC<MapViewConfigsControlProps> = ({
   };
 
   const popoverTitle = t('Extent');
-  const modeNameFitData = t('FIT DATA');
-  const modeNameCustom = t('CUSTOM');
+  const modeNameFitData = t('Fit data');
+  const modeNameCustom = t('Custom');
   const extentButtonText = t('Use current extent');
 
   const controlHeaderProps = {

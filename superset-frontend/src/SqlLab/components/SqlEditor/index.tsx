@@ -891,7 +891,7 @@ const SqlEditor: FC<Props> = ({
     callback(currentSQL.current);
   };
   const renderCopyQueryButton = () => (
-    <Button type="primary">{t('COPY QUERY')}</Button>
+    <Button type="primary">{t('Copy query')}</Button>
   );
 
   const renderDatasetWarning = () => (
