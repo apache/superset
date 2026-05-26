@@ -150,16 +150,20 @@ def _first_tab_from_groups(
 
 
 def _collect_available_tab_names(layout: Dict[str, Any]) -> list[str]:
-    """Collect display names (or IDs) of all TAB components in the layout."""
-    names: list[str] = []
+    """Collect display entries (label + component ID) for all TAB components.
+
+    Always includes the component ID so callers can retry unambiguously even
+    when multiple tabs share the same display name or a label is blank.
+    """
+    entries: list[str] = []
     for tabs_children in _collect_tabs_groups(layout):
         for tab_id in tabs_children:
             tab = layout.get(tab_id)
             if not tab or tab.get("type") != "TAB":
                 continue
             text = (tab.get("meta") or {}).get("text", "")
-            names.append(text if text else tab_id)
-    return names
+            entries.append(f"{text} ({tab_id})" if text else tab_id)
+    return entries
 
 
 def _find_tab_insert_target(
@@ -348,7 +352,7 @@ def _resolve_parent_container(
     if target_tab is not None and tab_target is None:
         available = _collect_available_tab_names(layout)
         if available:
-            tab_list = ", ".join(f"'{t}'" for t in available)
+            tab_list = ", ".join(available)
             return None, AddChartToDashboardResponse(
                 dashboard=None,
                 dashboard_url=None,

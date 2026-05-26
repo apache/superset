@@ -1118,9 +1118,11 @@ class TestAddChartToExistingDashboard:
             error = result.structured_content["error"]
             assert "Nonexistent Tab" in error
             assert "not found" in error
-            # Available tabs should be listed
+            # Available tabs listed with both label and component ID
             assert "Overview" in error
             assert "Details" in error
+            assert "TAB-tab1" in error
+            assert "TAB-tab2" in error
             # No layout mutation should have been persisted
             mock_update_command.assert_not_called()
 
@@ -1472,7 +1474,7 @@ class TestLayoutHelpers:
         assert _find_tab_insert_target({"ROOT_ID": {"type": "ROOT"}}) is None
 
     def test_collect_available_tab_names_returns_display_names(self):
-        """_collect_available_tab_names returns each tab's display text."""
+        """_collect_available_tab_names returns label + component ID for each tab."""
         layout = {
             "GRID_ID": {"children": ["TABS-x"], "type": "GRID"},
             "TABS-x": {"children": ["TAB-a", "TAB-b"], "type": "TABS"},
@@ -1480,10 +1482,10 @@ class TestLayoutHelpers:
             "TAB-b": {"children": [], "type": "TAB", "meta": {"text": "Details"}},
         }
         names = _collect_available_tab_names(layout)
-        assert names == ["Overview", "Details"]
+        assert names == ["Overview (TAB-a)", "Details (TAB-b)"]
 
     def test_collect_available_tab_names_falls_back_to_id(self):
-        """_collect_available_tab_names uses component ID when text is empty."""
+        """_collect_available_tab_names uses component ID only when text is empty."""
         layout = {
             "GRID_ID": {"children": ["TABS-x"], "type": "GRID"},
             "TABS-x": {"children": ["TAB-a"], "type": "TABS"},
@@ -1491,6 +1493,18 @@ class TestLayoutHelpers:
         }
         names = _collect_available_tab_names(layout)
         assert names == ["TAB-a"]
+
+    def test_collect_available_tab_names_duplicate_names(self):
+        """Duplicate display names are disambiguated by component ID in the entry."""
+        layout = {
+            "GRID_ID": {"children": ["TABS-x"], "type": "GRID"},
+            "TABS-x": {"children": ["TAB-a", "TAB-b"], "type": "TABS"},
+            "TAB-a": {"children": [], "type": "TAB", "meta": {"text": "Sales"}},
+            "TAB-b": {"children": [], "type": "TAB", "meta": {"text": "Sales"}},
+        }
+        names = _collect_available_tab_names(layout)
+        assert names == ["Sales (TAB-a)", "Sales (TAB-b)"]
+        assert names[0] != names[1]
 
     def test_collect_available_tab_names_no_tabs(self):
         """_collect_available_tab_names returns empty list for non-tabbed dashboards."""
