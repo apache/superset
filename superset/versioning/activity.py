@@ -303,11 +303,7 @@ def _fetch_change_records(
         )
     ]
     filtered.sort(
-        key=lambda r: (
-            r["issued_at"].timestamp() if r["issued_at"] is not None else 0,
-            r["transaction_id"],
-            r["sequence"],
-        ),
+        key=lambda r: (r["issued_at"], r["transaction_id"], r["sequence"]),
         reverse=True,
     )
     return filtered
@@ -879,61 +875,76 @@ _MAX_PAGE_SIZE = 200
 _VALID_INCLUDE_VALUES: frozenset[str] = frozenset({"self", "related", "all"})
 
 
-def parse_activity_query_params(
-    args: Any,
-) -> tuple[Optional[dict[str, Any]], Optional[str]]:
+class ActivityParamsError(ValueError):
+    """Raised by :func:`parse_activity_query_params` when a query param is
+    malformed. The endpoint catches this and maps to ``response_400``;
+    no other callers should depend on the exception type."""
+
+
+def parse_activity_query_params(args: Any) -> dict[str, Any]:
     """Parse the ``since`` / ``until`` / ``include`` / ``page`` / ``page_size``
     query parameters into the kwargs ``get_activity`` accepts.
 
-    Returns ``(kwargs, None)`` on success, ``(None, error_message)`` when
-    a parameter is malformed — the caller maps that to ``response_400``.
-    Shared across the three endpoint families (dashboards, charts,
-    datasets) so the parsing and 400-messaging stay consistent.
+    Raises :class:`ActivityParamsError` (subclass of ``ValueError``) when
+    a parameter is malformed. Shared across the three endpoint families
+    (dashboards, charts, datasets) so the parsing and 400-messaging stay
+    consistent.
     """
-    params: dict[str, Any] = {}
+    params: dict[str, Any] = {
+        "include": _parse_include(args.get("include", "all")),
+        "page": _parse_page(args.get("page", "0")),
+        "page_size": _parse_page_size(args.get("page_size")),
+    }
+    if (since := _parse_optional_iso(args.get("since"), name="since")) is not None:
+        params["since"] = since
+    if (until := _parse_optional_iso(args.get("until"), name="until")) is not None:
+        params["until"] = until
+    return params
 
-    if since_raw := args.get("since"):
-        parsed_since = _parse_iso_datetime(since_raw)
-        if parsed_since is None:
-            return None, f"Invalid 'since' datetime: {since_raw!r}"
-        params["since"] = parsed_since
 
-    if until_raw := args.get("until"):
-        parsed_until = _parse_iso_datetime(until_raw)
-        if parsed_until is None:
-            return None, f"Invalid 'until' datetime: {until_raw!r}"
-        params["until"] = parsed_until
+def _parse_optional_iso(raw: Optional[str], *, name: str) -> Optional[datetime]:
+    """Parse a missing-or-ISO-datetime field; ``None`` for missing,
+    ``ActivityParamsError`` for malformed."""
+    if not raw:
+        return None
+    parsed = _parse_iso_datetime(raw)
+    if parsed is None:
+        raise ActivityParamsError(f"Invalid {name!r} datetime: {raw!r}")
+    return parsed
 
-    include = args.get("include", "all")
-    if include not in _VALID_INCLUDE_VALUES:
-        return (
-            None,
-            f"Invalid 'include' value: {include!r}; "
-            f"must be one of {sorted(_VALID_INCLUDE_VALUES)}",
+
+def _parse_include(value: str) -> str:
+    if value not in _VALID_INCLUDE_VALUES:
+        raise ActivityParamsError(
+            f"Invalid 'include' value: {value!r}; "
+            f"must be one of {sorted(_VALID_INCLUDE_VALUES)}"
         )
-    params["include"] = include
+    return value
 
-    page_str = args.get("page", "0")
+
+def _parse_page(raw: str) -> int:
     try:
-        page = int(page_str)
-    except (TypeError, ValueError):
-        return None, f"Invalid 'page' value: {page_str!r}"
-    if page < 0:
-        return None, "Invalid 'page' value: must be >= 0"
-    params["page"] = page
+        value = int(raw)
+    except (TypeError, ValueError) as exc:
+        raise ActivityParamsError(f"Invalid 'page' value: {raw!r}") from exc
+    if value < 0:
+        raise ActivityParamsError("Invalid 'page' value: must be >= 0")
+    return value
 
-    page_size_str = args.get("page_size", str(_DEFAULT_PAGE_SIZE))
+
+def _parse_page_size(raw: Optional[str]) -> int:
+    """``page_size`` honours the default when missing, raises when invalid,
+    and silently clamps to ``_MAX_PAGE_SIZE`` (so ``?page_size=500``
+    returns 200 records instead of a 400)."""
+    if raw is None:
+        return _DEFAULT_PAGE_SIZE
     try:
-        page_size = int(page_size_str)
-    except (TypeError, ValueError):
-        return None, f"Invalid 'page_size' value: {page_size_str!r}"
-    if page_size < 1:
-        return None, "Invalid 'page_size' value: must be >= 1"
-    # The contract caps page_size at _MAX_PAGE_SIZE; clamp silently here
-    # so a `?page_size=500` request returns 200 records instead of a 400.
-    params["page_size"] = min(page_size, _MAX_PAGE_SIZE)
-
-    return params, None
+        value = int(raw)
+    except (TypeError, ValueError) as exc:
+        raise ActivityParamsError(f"Invalid 'page_size' value: {raw!r}") from exc
+    if value < 1:
+        raise ActivityParamsError("Invalid 'page_size' value: must be >= 1")
+    return min(value, _MAX_PAGE_SIZE)
 
 
 def _parse_iso_datetime(value: str) -> Optional[datetime]:
@@ -978,20 +989,20 @@ def get_activity(
     if not entity_windows:
         return [], 0
 
-    raw = _fetch_change_records(entity_windows, since, until)
     # Visibility filter runs before decoration: it needs the raw
     # ``entity_id`` column (which decoration strips), and dropping
     # invisible records early means we don't pay for name lookup +
     # tombstone probes + impact counts on records the requester
     # can't see (AV-008's silent-filter contract).
-    visible_raw = _filter_records_by_visibility(raw)
-    enriched = _denormalize_entity_names(visible_raw)
-    visible = _decorate_records(enriched, path_kind, path_id)
+    records = _fetch_change_records(entity_windows, since, until)
+    records = _filter_records_by_visibility(records)
+    records = _denormalize_entity_names(records)
+    records = _decorate_records(records, path_kind, path_id)
 
-    total = len(visible)
+    total = len(records)
     bounded_size = max(1, min(page_size, _MAX_PAGE_SIZE))
     offset = max(0, page) * bounded_size
-    return visible[offset : offset + bounded_size], total
+    return records[offset : offset + bounded_size], total
 
 
 def _resolve_scope(path_kind: str, path_id: int, include: str) -> list[EntityWindows]:

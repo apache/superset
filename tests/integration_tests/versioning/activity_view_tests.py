@@ -71,11 +71,10 @@ class TestDashboardActivityView(SupersetTestCase):
         pass
 
     def _activity(self, dashboard_uuid: str, **query: Any) -> Any:
-        qs = "&".join(f"{k}={v}" for k, v in query.items())
-        url = f"/api/v1/dashboard/{dashboard_uuid}/activity/"
-        if qs:
-            url = f"{url}?{qs}"
-        return self.client.get(url)
+        return self.client.get(
+            f"/api/v1/dashboard/{dashboard_uuid}/activity/",
+            query_string=query,
+        )
 
     # ---- 4xx boundary cases ----
 

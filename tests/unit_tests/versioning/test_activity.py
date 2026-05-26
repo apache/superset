@@ -48,6 +48,7 @@ from superset.versioning.activity import (
     _row_within_any_window,
     _TABLE_KIND_TO_API,
     _union_windows,
+    ActivityParamsError,
     EntityWindows,
     parse_activity_query_params,
     Window,
@@ -350,9 +351,7 @@ def test_compute_impact_unknown_path_kind_yields_no_impact() -> None:
 
 def test_parser_defaults_when_empty() -> None:
     """No params → ``include='all'``, ``page=0``, ``page_size=DEFAULT``."""
-    params, error = parse_activity_query_params({})
-    assert error is None
-    assert params == {
+    assert parse_activity_query_params({}) == {
         "include": "all",
         "page": 0,
         "page_size": _DEFAULT_PAGE_SIZE,
@@ -362,46 +361,42 @@ def test_parser_defaults_when_empty() -> None:
 def test_parser_clamps_page_size_to_max() -> None:
     """A request for more than the contract maximum is clamped, not 400'd
     (silent clamp matches AV-019's bounded-payload guarantee)."""
-    params, error = parse_activity_query_params({"page_size": str(_MAX_PAGE_SIZE * 5)})
-    assert error is None
-    assert params is not None
+    params = parse_activity_query_params({"page_size": str(_MAX_PAGE_SIZE * 5)})
     assert params["page_size"] == _MAX_PAGE_SIZE
 
 
 def test_parser_accepts_iso_datetime_with_z_suffix() -> None:
     """Python <3.11 fromisoformat rejects 'Z'; the parser tolerates it."""
-    params, error = parse_activity_query_params({"since": "2026-01-01T00:00:00Z"})
-    assert error is None
-    assert params is not None
+    params = parse_activity_query_params({"since": "2026-01-01T00:00:00Z"})
     assert params["since"].year == 2026
 
 
 def test_parser_rejects_invalid_include() -> None:
-    params, error = parse_activity_query_params({"include": "sibling"})
-    assert params is None
-    assert error is not None
-    assert "include" in error
+    with pytest.raises(ActivityParamsError, match="include"):
+        parse_activity_query_params({"include": "sibling"})
 
 
 def test_parser_rejects_malformed_datetime() -> None:
-    params, error = parse_activity_query_params({"since": "yesterday"})
-    assert params is None
-    assert error is not None
-    assert "since" in error
+    with pytest.raises(ActivityParamsError, match="since"):
+        parse_activity_query_params({"since": "yesterday"})
 
 
 def test_parser_rejects_negative_page() -> None:
-    params, error = parse_activity_query_params({"page": "-1"})
-    assert params is None
-    assert error is not None
-    assert "page" in error
+    with pytest.raises(ActivityParamsError, match="page"):
+        parse_activity_query_params({"page": "-1"})
 
 
 def test_parser_rejects_zero_page_size() -> None:
-    params, error = parse_activity_query_params({"page_size": "0"})
-    assert params is None
-    assert error is not None
-    assert "page_size" in error
+    with pytest.raises(ActivityParamsError, match="page_size"):
+        parse_activity_query_params({"page_size": "0"})
+
+
+def test_parser_error_is_a_value_error() -> None:
+    """``ActivityParamsError`` subclasses ``ValueError`` so callers that
+    only know about the standard library exception hierarchy still catch
+    it correctly."""
+    with pytest.raises(ValueError, match="include"):
+        parse_activity_query_params({"include": "nope"})
 
 
 # ---- _can_read per-kind dispatch -----------------------------------------

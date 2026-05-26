@@ -2512,9 +2512,10 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         except ValueError:
             return self.response_400(message="Invalid UUID")
 
-        params, error = activity_module.parse_activity_query_params(request.args)
-        if error is not None or params is None:
-            return self.response_400(message=error or "Invalid query parameters")
+        try:
+            params = activity_module.parse_activity_query_params(request.args)
+        except activity_module.ActivityParamsError as exc:
+            return self.response_400(message=str(exc))
 
         entity = VersionDAO.find_active_by_uuid(Dashboard, entity_uuid)
         if entity is None:
