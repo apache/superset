@@ -57,7 +57,7 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import Mapper, relationship
 from sqlalchemy.pool import NullPool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
@@ -1380,8 +1380,8 @@ sqla.event.listen(Database, "after_delete", security_manager.database_after_dele
 
 
 def _evict_engine_cache(
-    mapper: Any,  # noqa: ANN401
-    connection: Any,  # noqa: ANN401
+    mapper: Mapper,
+    connection: Connection,
     target: "Database",
 ) -> None:
     """Evict all cached engines for a database when it is updated or deleted.
