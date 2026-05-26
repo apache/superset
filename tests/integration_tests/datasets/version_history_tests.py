@@ -240,6 +240,26 @@ class TestDatasetRestoreApi(SupersetTestCase):
     def _load_data(self, load_birth_names_dashboard_with_slices):  # noqa: PT004, F811
         pass
 
+    def setUp(self) -> None:
+        # Reset session state before each test in this class so the restore
+        # path is exercised against a clean identity map rather than whatever
+        # half-flushed state a previous test in the full-suite run may have
+        # left behind. Specifically: a Postgres-only multi-test cascade (see
+        # the sc-103156 follow-up note) can leave Continuum's shadow-table
+        # session attributes in a state where the restore command's
+        # ``@transaction`` boundary unexpectedly raises and surfaces as 422
+        # "Dataset could not be updated." Rolling back + expiring all clears
+        # the cascade for this class' tests without modifying the upstream
+        # tests that cause it.
+        super().setUp()
+        db.session.rollback()
+        db.session.expire_all()
+
+    def tearDown(self) -> None:
+        db.session.rollback()
+        db.session.expire_all()
+        super().tearDown()
+
     def _restore(self, dataset_uuid: str, version_uuid: str) -> Any:
         return self.client.post(
             f"/api/v1/dataset/{dataset_uuid}/versions/{version_uuid}/restore"
