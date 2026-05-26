@@ -57,6 +57,9 @@ export const SingleQueryResultPane = ({
   rowLimit,
   rowLimitOptions,
   onRowLimitChange,
+  onDownloadCSV,
+  onDownloadXLSX,
+  onReload,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
   const { gridHeight, measuredRef } = useGridHeight();
@@ -83,6 +86,9 @@ export const SingleQueryResultPane = ({
         rowLimit={rowLimit}
         rowLimitOptions={rowLimitOptions}
         onRowLimitChange={onRowLimitChange}
+        onDownloadCSV={onDownloadCSV}
+        onDownloadXLSX={onDownloadXLSX}
+        onReload={onReload}
       />
       <GridContainer>
         <GridSizer ref={measuredRef}>

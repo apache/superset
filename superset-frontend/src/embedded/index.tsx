@@ -18,8 +18,8 @@
  */
 import 'src/public-path';
 
-import { lazy, Suspense } from 'react';
-import ReactDOM from 'react-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
 import { Global } from '@emotion/react';
 import { t } from '@apache-superset/core/translation';
@@ -66,20 +66,21 @@ const LazyDashboardPage = lazy(
     ),
 );
 
-const EmbededLazyDashboardPage = () => {
+const EmbeddedLazyDashboardPage = () => {
   const uiConfig = useUiConfig();
+  const emitDataMasks = uiConfig?.emitDataMasks;
 
-  // Emit data mask changes to the parent window
-  if (uiConfig?.emitDataMasks) {
+  // Emit data mask changes to the parent window. Subscribing inside an effect
+  // (rather than during render) ensures the unsubscribe runs on unmount,
+  // including StrictMode's dev-mode double-mount cycle.
+  useEffect(() => {
+    if (!emitDataMasks) return undefined;
     log('setting up Switchboard event emitter');
 
     let previousDataMask = store.getState().dataMask;
 
-    store.subscribe(() => {
-      const currentState = store.getState();
-      const currentDataMask = currentState.dataMask;
-
-      // Only emit if the dataMask has changed
+    return store.subscribe(() => {
+      const currentDataMask = store.getState().dataMask;
       if (previousDataMask !== currentDataMask) {
         Switchboard.emit('observeDataMask', {
           ...currentDataMask,
@@ -88,7 +89,7 @@ const EmbededLazyDashboardPage = () => {
         previousDataMask = currentDataMask;
       }
     });
-  }
+  }, [emitDataMasks]);
 
   return <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />;
 };
@@ -107,7 +108,7 @@ const EmbeddedRoute = () => (
     />
     <Suspense fallback={<Loading />}>
       <ErrorBoundary>
-        <EmbededLazyDashboardPage />
+        <EmbeddedLazyDashboardPage />
       </ErrorBoundary>
       <ToastContainer position="top" />
     </Suspense>
@@ -150,6 +151,8 @@ if (!window.parent || window.parent === window) {
 // }
 
 let displayedUnauthorizedToast = false;
+let root: Root | null = null;
+let started = false;
 
 /**
  * If there is a problem with the guest token, we will start getting
@@ -175,6 +178,8 @@ function guestUnauthorizedHandler() {
 }
 
 function start() {
+  if (started) return undefined;
+  started = true;
   const getMeWithRole = makeApi<void, { result: UserWithPermissionsAndRoles }>({
     method: 'GET',
     endpoint: '/api/v1/me/roles/',
@@ -189,16 +194,21 @@ function start() {
         type: USER_LOADED,
         user: result,
       });
-      ReactDOM.render(<EmbeddedApp />, appMountPoint);
+      if (!root) {
+        root = createRoot(appMountPoint);
+      }
+      root.render(<EmbeddedApp />);
     },
     err => {
-      // something is most likely wrong with the guest token
+      // something is most likely wrong with the guest token; reset the guard
+      // so a rehandshake with a valid token can retry.
       logging.error(err);
       showFailureMessage(
         t(
           'Something went wrong with embedded authentication. Check the dev console for details.',
         ),
       );
+      started = false;
     },
   );
 }
@@ -243,16 +253,11 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
       debug: debugMode,
     });
 
-    let started = false;
-
     Switchboard.defineMethod(
       'guestToken',
       ({ guestToken }: { guestToken: string }) => {
         setupGuestClient(guestToken);
-        if (!started) {
-          start();
-          started = true;
-        }
+        start();
       },
     );
 
@@ -322,7 +327,7 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
   }
 });
 
-// Clean up theme controller on page unload
+// Clean up theme controller and unmount React root on page unload
 window.addEventListener('beforeunload', () => {
   try {
     const controller = getThemeController();
@@ -332,6 +337,10 @@ window.addEventListener('beforeunload', () => {
     }
   } catch (error) {
     logging.warn('Failed to destroy theme controller:', error);
+  }
+  if (root) {
+    root.unmount();
+    root = null;
   }
 });
 

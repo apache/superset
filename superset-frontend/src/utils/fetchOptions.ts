@@ -28,6 +28,7 @@ interface FetchPaginatedOptions {
   setData: (data: any[]) => void;
   setLoadingState: Dispatch<SetStateAction<any>>;
   filters?: SupersetFilter[];
+  orderBy?: { column: string; direction: 'asc' | 'desc' };
   loadingKey: string;
   addDangerToast: (message: string) => void;
   errorMessage?: string;
@@ -38,6 +39,8 @@ interface QueryObj {
   page_size: number;
   page: number;
   filters?: SupersetFilter[];
+  order_column?: string;
+  order_direction?: 'asc' | 'desc';
 }
 
 interface SupersetFilter {
@@ -51,6 +54,7 @@ export const fetchPaginatedData = async ({
   pageSize = 100,
   setData,
   filters,
+  orderBy,
   setLoadingState,
   loadingKey,
   addDangerToast,
@@ -65,6 +69,10 @@ export const fetchPaginatedData = async ({
       };
       if (filters) {
         queryObj.filters = filters;
+      }
+      if (orderBy) {
+        queryObj.order_column = orderBy.column;
+        queryObj.order_direction = orderBy.direction;
       }
       const encodedQuery = rison.encode(queryObj);
 

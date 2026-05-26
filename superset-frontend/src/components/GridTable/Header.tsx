@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  type MouseEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import type { Column, GridApi } from 'ag-grid-community';
@@ -98,7 +104,7 @@ export const Header: React.FC<Params> = ({
   const [currentSort, setCurrentSort] = useState<string | null>(null);
   const [sortIndex, setSortIndex] = useState<number | null>();
   const onSort = useCallback(
-    event => {
+    (event: MouseEvent) => {
       sortOption.current = (sortOption.current + 1) % SORT_DIRECTION.length;
       const sort = SORT_DIRECTION[sortOption.current];
       setSort(sort, event.shiftKey);

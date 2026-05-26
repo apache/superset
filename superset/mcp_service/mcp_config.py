@@ -42,12 +42,32 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 MCP_SERVICE_HOST = "localhost"
 MCP_SERVICE_PORT = 5008
 
+# Bug-report support contact surfaced by the generate_bug_report tool. Each
+# deployment should override this in superset_config.py to point users at the
+# right channel (e.g. an internal support address, a vendor support team).
+# When unset, the tool falls back to a neutral default that points at the
+# user's Superset administrator and the Apache Superset issue tracker.
+MCP_BUG_REPORT_CONTACT: str | None = None
+
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
 
 # MCP RBAC - when True, tools with class_permission_name are checked
 # against the FAB security_manager before execution.
 MCP_RBAC_ENABLED = True
+
+# MCP Disabled Tools - a set of tool names to remove from the MCP server at
+# startup. Disabled tools are silently omitted from tool discovery, so AI
+# clients never see them. Use this when a Superset-provided tool conflicts with
+# a custom tool added via an extension and you want to suppress the built-in
+# version.
+#
+# Example:
+#   MCP_DISABLED_TOOLS = {"execute_sql", "health_check"}
+#
+# Extension-prefixed tools can also be disabled using their full name:
+#   MCP_DISABLED_TOOLS = {"extensions.myorg.myext.some_tool"}
+MCP_DISABLED_TOOLS: set[str] = set()
 
 # MCP JWT Debug Errors - controls server-side JWT debug logging.
 # When False (default), uses the default JWTVerifier with minimal logging.
@@ -59,12 +79,6 @@ MCP_RBAC_ENABLED = True
 # per RFC 6750 Section 3.1. This flag NEVER affects client-facing output.
 MCP_JWT_DEBUG_ERRORS = False
 
-# Enable parse_request decorator for MCP tools.
-# When True (default), tool requests are automatically parsed from JSON strings
-# to Pydantic models, working around a Claude Code double-serialization bug
-# (https://github.com/anthropics/claude-code/issues/5504).
-# Set to False to disable and let FastMCP handle request parsing natively.
-MCP_PARSE_REQUEST_ENABLED = True
 
 # Session configuration for local development
 MCP_SESSION_CONFIG = {
@@ -224,7 +238,6 @@ MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
     "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
     "excluded_tools": [  # Tools to skip size checking
         "health_check",  # Always small
-        "get_chart_preview",  # Returns URLs, not data
         "generate_explore_link",  # Returns URLs
         "open_sql_lab_with_context",  # Returns URLs
         "search_tools",  # Returns tool schemas for discovery (intentionally large)
@@ -286,7 +299,7 @@ MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
     "call_tool_name": "call_tool",  # Name of the call proxy tool
     "compact_schemas": True,  # Strip $defs/$ref (requires include_schemas=True)
     "max_description_length": 300,  # Truncate tool descriptions (0 = no truncation)
-    "include_schemas": False,  # False=summary mode (name+hint), True=full inputSchema
+    "include_schemas": True,  # full inputSchema in search results
 }
 
 
@@ -402,6 +415,7 @@ def get_mcp_config(app_config: Dict[str, Any] | None = None) -> Dict[str, Any]:
         "MCP_SERVICE_PORT": MCP_SERVICE_PORT,
         "MCP_DEBUG": MCP_DEBUG,
         "MCP_RBAC_ENABLED": MCP_RBAC_ENABLED,
+        "MCP_DISABLED_TOOLS": set(MCP_DISABLED_TOOLS),
         **MCP_SESSION_CONFIG,
         **MCP_CSRF_CONFIG,
     }
