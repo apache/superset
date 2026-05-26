@@ -43,6 +43,9 @@ export type SqlLabLocation =
   | 'results'
   | 'queryHistory';
 
+/** Valid locations within the app shell (persist across all routes). */
+export type AppLocation = 'chatbot';
+
 /**
  * Nested structure for view contributions by scope and location.
  * @example
@@ -55,6 +58,7 @@ export type SqlLabLocation =
  */
 export interface ViewContributions {
   sqllab?: Partial<Record<SqlLabLocation, View[]>>;
+  app?: Partial<Record<AppLocation, View[]>>;
 }
 
 /**

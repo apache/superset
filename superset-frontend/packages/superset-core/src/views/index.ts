@@ -48,6 +48,12 @@ export interface View {
   name: string;
   /** Optional description of the view, for display in contribution manifests. */
   description?: string;
+  /**
+   * Optional icon identifier for the view, used in admin pickers and manifest
+   * listings. Static — set once at registerView() time.
+   * Dynamic icon states (e.g. notification badge) are the extension's concern.
+   */
+  icon?: string;
 }
 
 /**
@@ -56,17 +62,26 @@ export interface View {
  * The view provider function is called when the UI renders the location,
  * and should return a React element to display.
  *
- * @param view The view descriptor (id and name).
+ * @param view The view descriptor (id, name, and optional icon/description).
  * @param location The location where this view should appear (e.g. "sqllab.panels").
  * @param provider A function that returns the React element to render.
  * @returns A Disposable that unregisters the view when disposed.
  *
- * @example
+ * @example SQL Lab panel
  * ```typescript
  * views.registerView(
  *   { id: 'my_ext.result_stats', name: 'Result Stats' },
  *   'sqllab.panels',
  *   () => <ResultStatsPanel />,
+ * );
+ * ```
+ *
+ * @example Chatbot bubble (`superset.chatbot` — singleton, host renders one)
+ * ```typescript
+ * views.registerView(
+ *   { id: 'my_ext.chatbot', name: 'My Chatbot', icon: 'Bubble' },
+ *   'superset.chatbot',
+ *   () => <ChatbotApp />,
  * );
  * ```
  */
@@ -75,6 +90,21 @@ export declare function registerView(
   location: string,
   provider: () => ReactElement,
 ): Disposable;
+
+/**
+ * Narrowed descriptor for chatbot contributions (`superset.chatbot` location).
+ *
+ * Extension authors should use this type when calling `registerView` for the
+ * chatbot area. It is identical to {@link View} but makes the registration
+ * intent explicit and allows future narrowing (e.g. required `icon`).
+ *
+ * @example
+ * ```typescript
+ * const chatbot: ChatbotView = { id: 'my_ext.chatbot', name: 'My Chatbot', icon: 'Bubble' };
+ * views.registerView(chatbot, 'superset.chatbot', () => <ChatbotApp />);
+ * ```
+ */
+export type ChatbotView = View;
 
 /**
  * Retrieves all views registered at a specific location.
