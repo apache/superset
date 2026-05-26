@@ -435,3 +435,31 @@ class TestMiddlewareChainOrder:
         assert result.meta is not None
         assert "mcp_call_id" in result.meta
         assert len(result.meta["mcp_call_id"]) == 32
+
+    @pytest.mark.asyncio
+    async def test_list_tools_exception_returns_empty_list(self):
+        """Exception during tools/list returns [] instead of causing encoding error.
+
+        ToolError raised by GlobalErrorHandlerMiddleware cannot be encoded
+        by the MCP SDK in a tools/list response, producing "encoding without
+        a string argument". StructuredContentStripperMiddleware.on_list_tools
+        must catch it and return an empty list.
+        """
+        from superset.mcp_service.server import build_middleware_list
+
+        middleware_list = build_middleware_list()
+
+        async def failing_list_tools(context: Any) -> Any:
+            raise ValueError("auth failed")
+
+        chain = failing_list_tools
+        for mw in reversed(middleware_list):
+            chain = partial(mw, call_next=chain)
+
+        ctx = _make_context(method="tools/list", name="")
+        result = await chain(ctx)
+
+        assert result == [], (
+            "on_list_tools must return [] on exception — "
+            "ToolError cannot be encoded in a tools/list response."
+        )
