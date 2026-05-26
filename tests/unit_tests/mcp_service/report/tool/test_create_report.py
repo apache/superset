@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
@@ -28,6 +28,17 @@ from superset.utils import json
 @pytest.fixture
 def mcp_server():
     return mcp
+
+
+@pytest.fixture(autouse=True)
+def mock_auth():
+    """Mock authentication for all tests in this module."""
+    with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_user.username = "admin"
+        mock_get_user.return_value = mock_user
+        yield mock_get_user
 
 
 def _make_mock_schedule(
