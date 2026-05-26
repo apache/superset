@@ -30,7 +30,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 msgid ""
 "\n"
@@ -697,6 +697,7 @@ msgstr "Kei te tīari kē tētahi pātengi raraunga me te ingoa ōrite."
 msgid "A date is required when using custom date shift"
 msgstr "E hiahiatia ana he rā ina whakamahi i te neke rā ritenga"
 
+#, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
 " the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas "
@@ -2365,6 +2366,9 @@ msgstr "Kaiwhakawhiti CC"
 
 #, fuzzy
 msgid "COPY QUERY"
+msgstr "Tārua URL pātai"
+
+msgid "Copy query"
 msgstr "Tārua URL pātai"
 
 msgid "CREATE TABLE AS"
@@ -4616,7 +4620,7 @@ msgstr "Mukua tēnei pouaka, ā, tiakihia kia kore ai tēnei karere."
 msgid "Delete user"
 msgstr "Muku kaiwhakamahi"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Delete user registration"
 msgstr "Kaiwhakamahi kua mukua: %s"
 
@@ -5970,6 +5974,7 @@ msgstr "Tawhā Taapiri"
 msgid "Extra data for JS"
 msgstr "Raraunga taapiri mō JS"
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata. Currently supports metadata of the "
 "format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
@@ -6001,6 +6006,9 @@ msgid "FEB"
 msgstr "HUI"
 
 msgid "FIT DATA"
+msgstr "WHAKAHĀNGAI RARAUNGA"
+
+msgid "Fit data"
 msgstr "WHAKAHĀNGAI RARAUNGA"
 
 msgid "FRI"
@@ -6444,6 +6452,7 @@ msgstr "Hōputu SQL"
 msgid "Format SQL query"
 msgstr "Hōputu SQL"
 
+#, python-brace-format
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
@@ -8437,7 +8446,7 @@ msgstr "Kāore anō he %s"
 msgid "No Data"
 msgstr "Kāore He Raraunga"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No Logs yet"
 msgstr "Kāore anō he %s"
 
@@ -8697,7 +8706,7 @@ msgstr "Kāore i roto i"
 msgid "Not null"
 msgstr "Ehara i te kore"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Not set"
 msgstr "Kāore anō he %s"
 
@@ -9485,7 +9494,7 @@ msgstr "Tēnā whakaūngia tō kupuhipa"
 msgid "Please enter your username"
 msgstr "Tāuru i te ingoa kaiwhakamahi o te kaiwhakamahi"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Please fix the following errors"
 msgstr "Kei a mātou ēnei kī: %s"
 
@@ -10188,11 +10197,11 @@ msgstr ""
 msgid "Reset columns"
 msgstr "Tautuhi anō i ngā tīwae"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset my password"
 msgstr "%s KUPUHIPA"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset password"
 msgstr "%s KUPUHIPA"
 
@@ -10424,9 +10433,7 @@ msgstr "E Rere Ana"
 
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
-msgstr ""
-"E whakahaere ana i te kīanga %(block_num)s i waho o "
-"%(block_count)s"
+msgstr "E whakahaere ana i te kīanga %(block_num)s i waho o %(block_count)s"
 
 msgid "SAT"
 msgstr "HĀT"
@@ -12796,6 +12803,7 @@ msgstr ""
 "Kāore i whirihorahia tika te metadata_params i te āpure Taapiri. He muhu "
 "te kī %(key)s."
 
+#, python-brace-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
 "%{key}s is invalid."
@@ -13521,7 +13529,7 @@ msgstr "I puta he take i te tāruatanga o ngā rārangi raraunga kua tīpakohia:
 msgid "There was an issue exporting the database"
 msgstr "I puta he take i te tāruatanga o te rārangi raraunga."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected charts"
 msgstr "I puta he take i te mukutanga o ngā kauwhata kua tīpakohia: %s"
 
@@ -13529,18 +13537,18 @@ msgstr "I puta he take i te mukutanga o ngā kauwhata kua tīpakohia: %s"
 msgid "There was an issue exporting the selected dashboards"
 msgstr "I puta he take i te mukutanga o ngā papatohu kua tīpakohia: "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected datasets"
 msgstr "I puta he take i te mukutanga o ngā rārangi raraunga kua tīpakohia: %s"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected themes"
 msgstr "I puta he take i te mukutanga o ngā tauira kua tīpakohia: %s"
 
 msgid "There was an issue favoriting this dashboard."
 msgstr "I puta he take i te whakamakauhanga o tēnei papatohu."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue fetching reports."
 msgstr "I puta he take i te tikitanga o tō kauwhata: %s"
 
@@ -15164,7 +15172,7 @@ msgstr "Kāore i taea te tirotiro i tō pātai"
 msgid "Waterfall Chart"
 msgstr "Kauwhata Rere Wai"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "We are unable to connect to your database."
 msgstr "Kāore e taea te hono ki te pātengi raraunga \"%(database)s\"."
 
@@ -15730,7 +15738,7 @@ msgstr "Āe, tuhirua huringa"
 msgid "You are adding tags to %s %ss"
 msgstr "E tāpiri ana koe i ngā tohu ki %s %ss"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "You are editing a query from the virtual dataset "
 msgstr "Kua tangohia 1 tīwae mai i te rārangi raraunga mariko"
 
@@ -16160,6 +16168,7 @@ msgstr "i raro (tauira:"
 msgid "beta"
 msgstr "Taapiri"
 
+#, python-brace-format
 msgid "between {down} and {up} {name}"
 msgstr "i waenga i {down} me {up} {name}"
 
@@ -16544,6 +16553,7 @@ msgstr "wāhanga whakamutunga:"
 msgid "left"
 msgstr "mauī"
 
+#, python-brace-format
 msgid "less than {min} {name}"
 msgstr "iti ake i {min} {name}"
 
@@ -16594,6 +16604,7 @@ msgstr "monotone"
 msgid "month"
 msgstr "marama"
 
+#, python-brace-format
 msgid "more than {max} {name}"
 msgstr "nui ake i {max} {name}"
 

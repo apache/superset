@@ -22,7 +22,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 msgid ""
 "\n"
@@ -688,7 +688,7 @@ msgstr "Een database met dezelfde naam bestaat al."
 msgid "A date is required when using custom date shift"
 msgstr ""
 
-#, fuzzy
+#, fuzzy, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
 " the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas "
@@ -2415,6 +2415,9 @@ msgstr "recente"
 
 #, fuzzy
 msgid "COPY QUERY"
+msgstr "Kopieer query URL"
+
+msgid "Copy query"
 msgstr "Kopieer query URL"
 
 msgid "CREATE TABLE AS"
@@ -4723,7 +4726,7 @@ msgstr "Verwijder deze container en sla op om dit bericht te verwijderen."
 msgid "Delete user"
 msgstr "Verwijder query"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Delete user registration"
 msgstr "Verwijderd: %s"
 
@@ -6110,6 +6113,7 @@ msgstr "Extra Parameters"
 msgid "Extra data for JS"
 msgstr "Extra data voor JS"
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata. Currently supports metadata of the "
 "format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
@@ -6143,6 +6147,9 @@ msgstr "FEB"
 
 #, fuzzy
 msgid "FIT DATA"
+msgstr "Bewerk de dataset"
+
+msgid "Fit data"
 msgstr "Bewerk de dataset"
 
 msgid "FRI"
@@ -6594,6 +6601,7 @@ msgstr "Formatteer SQL"
 msgid "Format SQL query"
 msgstr "Formatteer SQL"
 
+#, python-brace-format
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
@@ -8613,7 +8621,7 @@ msgstr "Nog geen %s"
 msgid "No Data"
 msgstr "Geen Data"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No Logs yet"
 msgstr "Nog geen %s"
 
@@ -8877,7 +8885,7 @@ msgstr "Niet in"
 msgid "Not null"
 msgstr "Niet null"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Not set"
 msgstr "Nog geen %s"
 
@@ -9684,7 +9692,7 @@ msgstr "Gelieve te bevestigen"
 msgid "Please enter your username"
 msgstr "Label voor uw zoekopdracht"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Please fix the following errors"
 msgstr "We hebben de volgende sleutels: %s"
 
@@ -10381,11 +10389,11 @@ msgstr ""
 msgid "Reset columns"
 msgstr "Selecteer kolom"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset my password"
 msgstr "%s WACHTWOORD"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset password"
 msgstr "%s WACHTWOORD"
 
@@ -13029,6 +13037,7 @@ msgstr ""
 "De metadata_params in Extra veld is niet correct geconfigureerd. De "
 "sleutel %(key)s is ongeldig."
 
+#, python-brace-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
 "%{key}s is invalid."
@@ -13769,7 +13778,7 @@ msgstr "Er was een probleem met het dupliceren van de geselecteerde datasets: %s
 msgid "There was an issue exporting the database"
 msgstr "Er was een probleem bij het dupliceren van de dataset."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected charts"
 msgstr "Er was een probleem met het verwijderen van de geselecteerde grafieken: %s"
 
@@ -13777,18 +13786,18 @@ msgstr "Er was een probleem met het verwijderen van de geselecteerde grafieken: 
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Er was een probleem met het verwijderen van de geselecteerde dashboards: "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected datasets"
 msgstr "Er was een probleem bij het verwijderen van de geselecteerde datasets: %s"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected themes"
 msgstr "Er was een probleem met het verwijderen van de geselecteerde templates: %s"
 
 msgid "There was an issue favoriting this dashboard."
 msgstr "Er was een probleem met het promoten van dit dashboard."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue fetching reports."
 msgstr "Er was een probleem bij het ophalen van uw grafiek: %s"
 
@@ -15426,7 +15435,7 @@ msgstr "Kon uw query niet controleren"
 msgid "Waterfall Chart"
 msgstr "Waterval Diagram"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "We are unable to connect to your database."
 msgstr "Kan geen verbinding maken met database “%(database)s”."
 
@@ -16008,7 +16017,7 @@ msgstr "Ja, wijzigingen overschrijven"
 msgid "You are adding tags to %s %ss"
 msgstr "U voegt labels toe aan %s %ss"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "You are editing a query from the virtual dataset "
 msgstr ""
 
@@ -16435,6 +16444,7 @@ msgstr "hieronder (voorbeeld:"
 msgid "beta"
 msgstr "Extra"
 
+#, python-brace-format
 msgid "between {down} and {up} {name}"
 msgstr "tussen {down} en {up} {name}"
 
@@ -16827,6 +16837,7 @@ msgstr "laatste partitie:"
 msgid "left"
 msgstr "links"
 
+#, python-brace-format
 msgid "less than {min} {name}"
 msgstr "minder dan {min} {name}"
 
@@ -16877,6 +16888,7 @@ msgstr "monotoon"
 msgid "month"
 msgstr "maand"
 
+#, python-brace-format
 msgid "more than {max} {name}"
 msgstr "meer dan {max} {name}"
 

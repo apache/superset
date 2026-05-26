@@ -27,7 +27,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 msgid ""
 "\n"
@@ -199,15 +199,15 @@ msgstr "\"%s\" назначен системной темной темой"
 msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" назначен системной светлой темой"
 
-#, no-python-format
+#, no-python-format, python-format
 msgid "% calculation"
 msgstr "Расчет долей"
 
-#, no-python-format
+#, no-python-format, python-format
 msgid "% of parent"
 msgstr "% родителя"
 
-#, no-python-format
+#, no-python-format, python-format
 msgid "% of total"
 msgstr "% итого"
 
@@ -2359,6 +2359,9 @@ msgstr "CC получатели"
 msgid "COPY QUERY"
 msgstr "СКОПИРОВАТЬ ЗАПРОС"
 
+msgid "Copy query"
+msgstr "СКОПИРОВАТЬ ЗАПРОС"
+
 msgid "CREATE TABLE AS"
 msgstr "CREATE TABLE AS"
 
@@ -2902,8 +2905,8 @@ msgid ""
 "Choose layers to hide from all deck.gl Multiple Layer charts in this "
 "dashboard."
 msgstr ""
-"Выберите слои, которые нужно скрыть во всех многослойных диаграммах deck.gl "
-"на этом дашборде."
+"Выберите слои, которые нужно скрыть во всех многослойных диаграммах "
+"deck.gl на этом дашборде."
 
 msgid "Choose notification method and recipients."
 msgstr "Выбрать способ уведомления и получателей"
@@ -3015,8 +3018,8 @@ msgid ""
 "Click on \"Add or edit filters and controls\" option in Settings to "
 "create new dashboard filters"
 msgstr ""
-"Нажмите \"Добавить/изменить фильтры и элементы управления\" в настройках, "
-"чтобы создать новые фильтры на дашборде"
+"Нажмите \"Добавить/изменить фильтры и элементы управления\" в настройках,"
+" чтобы создать новые фильтры на дашборде"
 
 msgid ""
 "Click on \"Create chart\" button in the control panel on the left to "
@@ -3599,7 +3602,7 @@ msgstr "Не удалось найти объект визуализации"
 msgid "Could not load database driver"
 msgstr "Не удалось загрузить драйвер базы данных"
 
-#, python-brace-format, python-format
+#, python-format
 msgid "Could not load database driver for: %(engine)s"
 msgstr "Не удалось загрузить драйвер базы данных для: %(engine)s"
 
@@ -5896,6 +5899,9 @@ msgstr "ФЕВ"
 msgid "FIT DATA"
 msgstr "АВТО"
 
+msgid "Fit data"
+msgstr "АВТО"
+
 msgid "FRI"
 msgstr "ПТ"
 
@@ -6045,8 +6051,8 @@ msgid ""
 "File handling is not supported in this browser. Please use a modern "
 "browser like Chrome or Edge."
 msgstr ""
-"Обработка файлов не поддерживается в этом браузере. Используйте современный "
-"браузер, например Chrome или Edge."
+"Обработка файлов не поддерживается в этом браузере. Используйте "
+"современный браузер, например Chrome или Edge."
 
 msgid "File settings"
 msgstr "Настройки файла"
@@ -10793,8 +10799,8 @@ msgstr ""
 "Выберите слои в порядке, в котором хотите их наложить. Первый выбранный "
 "слой окажется внизу. Слои позволяют объединять несколько визуализаций на "
 "одной карте. Каждый слой - это сохраненная диаграмма deck.gl (напр., "
-"точечные диаграммы, полигоны или дуги), которая отображает разные данные или "
-"выводы. Наслаивайте для выявления паттернов и связей в ваших данных."
+"точечные диаграммы, полигоны или дуги), которая отображает разные данные "
+"или выводы. Наслаивайте для выявления паттернов и связей в ваших данных."
 
 msgid "Select layers to hide"
 msgstr "Выберите слои, которые нужно скрыть"
@@ -11060,8 +11066,9 @@ msgid ""
 "and used in dashboard level time filters."
 msgstr ""
 "Назначает для этого датасета временной столбец по умолчанию. Он "
-"автоматически выбирается как столбец времени при создании диаграмм, которым "
-"требуется временное измерение, и используется в фильтрах времени на уровне дашборда."
+"автоматически выбирается как столбец времени при создании диаграмм, "
+"которым требуется временное измерение, и используется в фильтрах времени "
+"на уровне дашборда."
 
 msgid ""
 "Sets the hierarchy levels of the chart. Each level is\n"
@@ -12486,15 +12493,15 @@ msgid ""
 "load correctly."
 msgstr ""
 "URL изображения значка, который будет отображаться для точек GeoJSON. "
-"Обратите внимание: чтобы изображение загрузилось корректно, его URL должен "
-"соответствовать политике безопасности содержимого (CSP)."
+"Обратите внимание: чтобы изображение загрузилось корректно, его URL "
+"должен соответствовать политике безопасности содержимого (CSP)."
 
 msgid ""
 "The initial level (depth) of the tree. If set as -1 all nodes are "
 "expanded."
 msgstr ""
-"Начальный уровень (глубина) дерева. Если указать -1, "
-"будут раскрыты все узлы."
+"Начальный уровень (глубина) дерева. Если указать -1, будут раскрыты все "
+"узлы."
 
 msgid "The layer attribution"
 msgstr "Настройки слоя"
@@ -13225,7 +13232,6 @@ msgstr "Возникла проблема при экспорте выбранн
 msgid "There was an issue favoriting this dashboard."
 msgstr "Произошла ошибка при добавлении этого дашборда в избранное"
 
-#, python-format
 msgid "There was an issue fetching reports."
 msgstr "Возникла проблема при получении отчетов."
 
@@ -13483,8 +13489,8 @@ msgid ""
 "This is a default metrics folder. Its name cannot be changed or removed. "
 "It can stay empty but will only accept metric items."
 msgstr ""
-"Это папка мер по умолчанию. Ее имя нельзя изменить или удалить. Она может "
-"оставаться пустой, но будет принимать только элементы мер."
+"Это папка мер по умолчанию. Ее имя нельзя изменить или удалить. Она может"
+" оставаться пустой, но будет принимать только элементы мер."
 
 msgid "This is custom error message for a"
 msgstr "Это пользовательское сообщение об ошибке для a"
@@ -13633,7 +13639,6 @@ msgid ""
 msgstr ""
 "Все меры и столбцы будут перемещены в папки по умолчанию. Все "
 "пользовательские папки будут удалены."
-
 
 msgid "Threshold"
 msgstr "Порог"
@@ -13845,10 +13850,10 @@ msgid ""
 "queried and visualized. This database will hold all of your individual "
 "Google Sheets you choose to connect here."
 msgstr ""
-"Чтобы начать использовать Google Таблицы, сначала нужно создать базу данных. "
-"Базы данных используются для идентификации данных, чтобы их можно было "
-"запрашивать и визуализировать. Эта база данных будет содержать все отдельные "
-"таблицы Google Sheets, которые вы подключите здесь."
+"Чтобы начать использовать Google Таблицы, сначала нужно создать базу "
+"данных. Базы данных используются для идентификации данных, чтобы их можно"
+" было запрашивать и визуализировать. Эта база данных будет содержать все "
+"отдельные таблицы Google Sheets, которые вы подключите здесь."
 
 msgid ""
 "To enable multiple column sorting, hold down the ⇧ Shift key while "
@@ -14084,8 +14089,8 @@ msgid ""
 "Unable to create report: User email address is required but not found. "
 "Please ensure your user profile has a valid email address."
 msgstr ""
-"Не удалось создать отчет: адрес email пользователя обязателен, но не найден. "
-"Убедитесь, что профиль пользователя имеет корректный адрес email."
+"Не удалось создать отчет: адрес email пользователя обязателен, но не "
+"найден. Убедитесь, что профиль пользователя имеет корректный адрес email."
 
 msgid "Unable to decode value"
 msgstr "Не удалось декодировать значение"
@@ -14245,7 +14250,9 @@ msgid "Unsupported clause type: %(clause)s"
 msgstr "Неподдерживаемый оператор: %(clause)s"
 
 msgid "Unsupported file type. Please use CSV, Excel, or Columnar files."
-msgstr "Неподдерживаемый тип файла. Пожалуйста, используйте файлы CSV, Excel или колоночного формата."
+msgstr ""
+"Неподдерживаемый тип файла. Пожалуйста, используйте файлы CSV, Excel или "
+"колоночного формата."
 
 #, python-format
 msgid "Unsupported post processing operation: %(operation)s"
@@ -15580,11 +15587,12 @@ msgstr ""
 "мерами), которые соответствуют новому датасету, были сохранены."
 
 msgid "Your account is activated. You can log in with your credentials."
-msgstr "Ваша учетная запись активирована. Вы можете войти, используя свои учетные данные."
+msgstr ""
+"Ваша учетная запись активирована. Вы можете войти, используя свои учетные"
+" данные."
 
 msgid "Your changes will be lost if you leave without saving."
 msgstr "Ваши изменения будут потеряны, если вы уйдете без сохранения."
-
 
 msgid "Your chart is not up to date"
 msgstr "Диаграмма неактуальна"
@@ -16109,6 +16117,7 @@ msgstr "ожидается целое число"
 msgid "is false"
 msgstr "ложно"
 
+#, python-format
 msgid ""
 "is linked to %s charts that appear on %s dashboards and users have %s SQL"
 " Lab tabs using this database open. Are you sure you want to continue? "

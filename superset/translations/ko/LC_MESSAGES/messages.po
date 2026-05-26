@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 msgid ""
 "\n"
@@ -663,6 +663,7 @@ msgstr "같은 이름의 데이터베이스가 이미 존재합니다"
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
 " the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas "
@@ -1524,7 +1525,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid "An error occurred while fetching user values: %s"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while formatting SQL"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
@@ -2300,6 +2301,9 @@ msgstr ""
 
 #, fuzzy
 msgid "COPY QUERY"
+msgstr "Query 저장"
+
+msgid "Copy query"
 msgstr "Query 저장"
 
 msgid "CREATE TABLE AS"
@@ -3770,7 +3774,7 @@ msgid "Currently rendered: %s"
 msgstr ""
 
 msgid "Custom"
-msgstr ""
+msgstr "생성자"
 
 msgid "Custom Plugin"
 msgstr "커스텀 플러그인"
@@ -4569,7 +4573,7 @@ msgstr ""
 msgid "Delete user"
 msgstr "삭제"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Delete user registration"
 msgstr "삭제"
 
@@ -5902,6 +5906,7 @@ msgstr ""
 msgid "Extra data for JS"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata. Currently supports metadata of the "
 "format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
@@ -5928,6 +5933,9 @@ msgstr ""
 
 #, fuzzy
 msgid "FIT DATA"
+msgstr "차트 수정"
+
+msgid "Fit data"
 msgstr "차트 수정"
 
 msgid "FRI"
@@ -6359,6 +6367,7 @@ msgstr ""
 msgid "Format SQL query"
 msgstr "Query 저장"
 
+#, python-brace-format
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
@@ -10119,11 +10128,11 @@ msgstr ""
 msgid "Reset columns"
 msgstr "컬럼 목록"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset my password"
 msgstr "비밀번호"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset password"
 msgstr "비밀번호"
 
@@ -10520,7 +10529,7 @@ msgstr "차트 보기"
 msgid "Save changes to your chart?"
 msgstr "차트 보기"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Save changes to your dashboard?"
 msgstr "대시보드 추가"
 
@@ -11755,7 +11764,7 @@ msgstr ""
 msgid "Sort by %s"
 msgstr "대시보드 가져오기"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Sort by data"
 msgstr "대시보드 가져오기"
 
@@ -12707,6 +12716,7 @@ msgid ""
 "%(key)s is invalid."
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
 "%{key}s is invalid."
@@ -13320,11 +13330,11 @@ msgstr ""
 msgid "There was an issue duplicating the selected datasets: %s"
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the database"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected charts"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
@@ -13336,14 +13346,14 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid "There was an issue exporting the selected datasets"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected themes"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 msgid "There was an issue favoriting this dashboard."
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue fetching reports."
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
@@ -15351,7 +15361,7 @@ msgstr ""
 msgid "You are adding tags to %s %ss"
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "You are editing a query from the virtual dataset "
 msgstr ""
 
@@ -15728,6 +15738,7 @@ msgstr ""
 msgid "beta"
 msgstr ""
 
+#, python-brace-format
 msgid "between {down} and {up} {name}"
 msgstr ""
 
@@ -16129,6 +16140,7 @@ msgstr ""
 msgid "left"
 msgstr "삭제"
 
+#, python-brace-format
 msgid "less than {min} {name}"
 msgstr ""
 
@@ -16183,6 +16195,7 @@ msgstr "월"
 msgid "month"
 msgstr "월"
 
+#, python-brace-format
 msgid "more than {max} {name}"
 msgstr ""
 

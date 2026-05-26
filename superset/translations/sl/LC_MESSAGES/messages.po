@@ -27,7 +27,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 msgid ""
 "\n"
@@ -724,6 +724,7 @@ msgstr "Podatkovna baza z enakim imenom že obstaja."
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
 " the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas "
@@ -2402,6 +2403,9 @@ msgstr "V vednost (CC)"
 
 #, fuzzy
 msgid "COPY QUERY"
+msgstr "Kopiraj URL poizvedbe"
+
+msgid "Copy query"
 msgstr "Kopiraj URL poizvedbe"
 
 msgid "CREATE TABLE AS"
@@ -4657,7 +4661,7 @@ msgstr "Izbrišite ta okvir in shranite za odpravo tega sporočila."
 msgid "Delete user"
 msgstr "Izbriši poizvedbo"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Delete user registration"
 msgstr "Izbrisano: %s"
 
@@ -6045,6 +6049,7 @@ msgstr "Dodatni parametri"
 msgid "Extra data for JS"
 msgstr "Dodatni podatki za JS"
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata. Currently supports metadata of the "
 "format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
@@ -6077,6 +6082,9 @@ msgstr "FEB"
 
 #, fuzzy
 msgid "FIT DATA"
+msgstr "Uredi podatkovni set"
+
+msgid "Fit data"
 msgstr "Uredi podatkovni set"
 
 msgid "FRI"
@@ -6518,6 +6526,7 @@ msgstr "Oblikuj SQL"
 msgid "Format SQL query"
 msgstr "Oblikuj SQL"
 
+#, python-brace-format
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
@@ -8523,7 +8532,7 @@ msgstr "%s še ne obstajajo"
 msgid "No Data"
 msgstr "Ni podatkov"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No Logs yet"
 msgstr "%s še ne obstajajo"
 
@@ -8786,7 +8795,7 @@ msgstr "Ne vsebuje (NOT IN)"
 msgid "Not null"
 msgstr "Ni null (IS NOT NULL)"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Not set"
 msgstr "%s še ne obstajajo"
 
@@ -9580,7 +9589,7 @@ msgstr "Prosim, potrdite"
 msgid "Please enter your username"
 msgstr "Ime vaše poizvedbe"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Please fix the following errors"
 msgstr "Imamo naslednje ključe: %s"
 
@@ -10273,11 +10282,11 @@ msgstr ""
 msgid "Reset columns"
 msgstr "Izberite stolpec"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset my password"
 msgstr "%s GESLO"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset password"
 msgstr "%s GESLO"
 
@@ -12874,6 +12883,7 @@ msgstr ""
 "Metadata_params v polju Dodatno niso pravilno nastavljeni. Ključ %(key)s "
 "je neveljaven."
 
+#, python-brace-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
 "%{key}s is invalid."
@@ -13587,7 +13597,7 @@ msgstr "Pri dupliciranju izbranih podatkovnih setov je prišlo do težave: %s"
 msgid "There was an issue exporting the database"
 msgstr "Pri dupliciranju podatkovnega seta je prišlo do težave."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected charts"
 msgstr "Pri brisanju izbranih grafikonov je prišlo do težave: %s"
 
@@ -13595,18 +13605,18 @@ msgstr "Pri brisanju izbranih grafikonov je prišlo do težave: %s"
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Pri brisanju izbranih nadzornih plošč je prišlo do težave: "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected datasets"
 msgstr "Pri brisanju izbranih podatkovnih setov je prišlo do težave: %s"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected themes"
 msgstr "Pri brisanju izbranih predlog je prišlo do težave: %s"
 
 msgid "There was an issue favoriting this dashboard."
 msgstr "Pri uvrščanju nadzorne plošče med priljubljene je prišlo do težave."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue fetching reports."
 msgstr "Prišlo je do napake pri pridobivanju grafikona: %s"
 
@@ -15199,7 +15209,7 @@ msgstr "Poizvedbe ni bilo mogoče preveriti"
 msgid "Waterfall Chart"
 msgstr "Grafikon slapov"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "We are unable to connect to your database."
 msgstr "Povezava s podatkovno bazo \"%(database)s\" ni uspela."
 
@@ -15775,7 +15785,7 @@ msgstr "Da, prepiši spremembe"
 msgid "You are adding tags to %s %ss"
 msgstr "Oznake dodajate %s %ss"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "You are editing a query from the virtual dataset "
 msgstr ""
 
@@ -16194,6 +16204,7 @@ msgstr "v polju spodaj (primer:"
 msgid "beta"
 msgstr "Dodatno"
 
+#, python-brace-format
 msgid "between {down} and {up} {name}"
 msgstr "med {down} in {up} {name}"
 
@@ -16578,6 +16589,7 @@ msgstr "zadnja particija:"
 msgid "left"
 msgstr "levo"
 
+#, python-brace-format
 msgid "less than {min} {name}"
 msgstr "manj kot {min} {name}"
 
@@ -16628,6 +16640,7 @@ msgstr "monotone"
 msgid "month"
 msgstr "mesec"
 
+#, python-brace-format
 msgid "more than {max} {name}"
 msgstr "več kot {max} {name}"
 

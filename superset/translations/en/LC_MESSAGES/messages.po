@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 msgid ""
 "\n"
@@ -636,6 +636,7 @@ msgstr ""
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
 " the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas "
@@ -2151,6 +2152,9 @@ msgstr ""
 msgid "COPY QUERY"
 msgstr ""
 
+msgid "Copy query"
+msgstr ""
+
 msgid "CREATE TABLE AS"
 msgstr ""
 
@@ -2554,7 +2558,7 @@ msgstr ""
 msgid "Chart parameters are invalid."
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Chart properties"
 msgstr ""
 
@@ -4224,7 +4228,7 @@ msgstr ""
 msgid "Delete user"
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Delete user registration"
 msgstr ""
 
@@ -5474,6 +5478,7 @@ msgstr ""
 msgid "Extra data for JS"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata. Currently supports metadata of the "
 "format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
@@ -5499,6 +5504,9 @@ msgid "FEB"
 msgstr ""
 
 msgid "FIT DATA"
+msgstr ""
+
+msgid "Fit data"
 msgstr ""
 
 msgid "FRI"
@@ -5901,6 +5909,7 @@ msgstr ""
 msgid "Format SQL query"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
@@ -7586,7 +7595,7 @@ msgstr ""
 msgid "More"
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "More Options"
 msgstr ""
 
@@ -9738,7 +9747,7 @@ msgstr ""
 msgid "Save changes to your chart?"
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Save changes to your dashboard?"
 msgstr ""
 
@@ -9897,7 +9906,7 @@ msgstr ""
 msgid "Search in filters"
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Search owners"
 msgstr ""
 
@@ -9978,7 +9987,7 @@ msgstr ""
 msgid "Select Value"
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Select a CSS template"
 msgstr ""
 
@@ -11735,6 +11744,7 @@ msgid ""
 "%(key)s is invalid."
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
 "%{key}s is invalid."
@@ -14255,7 +14265,7 @@ msgstr ""
 msgid "You are adding tags to %s %ss"
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "You are editing a query from the virtual dataset "
 msgstr ""
 
@@ -14624,6 +14634,7 @@ msgstr ""
 msgid "beta"
 msgstr ""
 
+#, python-brace-format
 msgid "between {down} and {up} {name}"
 msgstr ""
 
@@ -14724,7 +14735,7 @@ msgstr ""
 msgid "dashboard"
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "dashboards"
 msgstr ""
 
@@ -14989,6 +15000,7 @@ msgstr ""
 msgid "left"
 msgstr ""
 
+#, python-brace-format
 msgid "less than {min} {name}"
 msgstr ""
 
@@ -15036,6 +15048,7 @@ msgstr ""
 msgid "month"
 msgstr ""
 
+#, python-brace-format
 msgid "more than {max} {name}"
 msgstr ""
 

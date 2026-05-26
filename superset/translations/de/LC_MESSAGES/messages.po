@@ -27,7 +27,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 msgid ""
 "\n"
@@ -723,6 +723,7 @@ msgstr "Eine Datenbank mit dem gleichen Namen existiert bereits."
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
 " the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas "
@@ -2448,6 +2449,9 @@ msgstr "CC-Empfänger"
 
 #, fuzzy
 msgid "COPY QUERY"
+msgstr "Abfrage-URL kopieren"
+
+msgid "Copy query"
 msgstr "Abfrage-URL kopieren"
 
 msgid "CREATE TABLE AS"
@@ -4765,7 +4769,7 @@ msgstr ""
 msgid "Delete user"
 msgstr "Abfrage löschen"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Delete user registration"
 msgstr "Gelöscht: %s"
 
@@ -6155,6 +6159,7 @@ msgstr "Zusätzliche Parameter"
 msgid "Extra data for JS"
 msgstr "Zusätzliche Daten für JS"
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata. Currently supports metadata of the "
 "format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
@@ -6187,6 +6192,9 @@ msgstr "FEB"
 
 #, fuzzy
 msgid "FIT DATA"
+msgstr "Datensatz bearbeiten"
+
+msgid "Fit data"
 msgstr "Datensatz bearbeiten"
 
 msgid "FRI"
@@ -6637,6 +6645,7 @@ msgstr "SQL formatieren"
 msgid "Format SQL query"
 msgstr "SQL formatieren"
 
+#, python-brace-format
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
@@ -8665,7 +8674,7 @@ msgstr "Noch keine %s"
 msgid "No Data"
 msgstr "Keine Daten"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No Logs yet"
 msgstr "Noch keine %s"
 
@@ -8933,7 +8942,7 @@ msgstr "Nicht in"
 msgid "Not null"
 msgstr "Nicht NULL"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Not set"
 msgstr "Noch keine %s"
 
@@ -9757,7 +9766,7 @@ msgstr "Bitte bestätigen"
 msgid "Please enter your username"
 msgstr "Beschriftung für Ihre Anfrage"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Please fix the following errors"
 msgstr "Wir haben folgende Schlüssel: %s"
 
@@ -10467,11 +10476,11 @@ msgstr ""
 msgid "Reset columns"
 msgstr "Spalte auswählen"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset my password"
 msgstr "%s PASSWORT"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset password"
 msgstr "%s PASSWORT"
 
@@ -13146,6 +13155,7 @@ msgstr ""
 "Die metadata_params im Feld Extra ist nicht ordnungsgemäß konfiguriert. "
 "Der Schlüssel %(key)s ist ungültig."
 
+#, python-brace-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
 "%{key}s is invalid."
@@ -13902,7 +13912,7 @@ msgstr ""
 msgid "There was an issue exporting the database"
 msgstr "Beim Duplizieren des Datensatzes ist ein Problem aufgetreten."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected charts"
 msgstr "Beim Löschen der ausgewählten Diagramme ist ein Problem aufgetreten: %s"
 
@@ -13910,18 +13920,18 @@ msgstr "Beim Löschen der ausgewählten Diagramme ist ein Problem aufgetreten: %
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Beim Löschen der ausgewählten Dashboards ist ein Problem aufgetreten: "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected datasets"
 msgstr "Beim Löschen der ausgewählten Datensätze ist ein Problem aufgetreten: %s"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected themes"
 msgstr "Beim Löschen der ausgewählten Vorlagen ist ein Problem aufgetreten: %s"
 
 msgid "There was an issue favoriting this dashboard."
 msgstr "Es gab ein Problem dabei, dieses Dashboard zu den Favoriten hinzuzufügen."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue fetching reports."
 msgstr "Beim Abrufen Ihres Diagramms ist ein Problem aufgetreten: %s"
 
@@ -15591,7 +15601,7 @@ msgstr "Ihre Abfrage konnte nicht überprüft werden"
 msgid "Waterfall Chart"
 msgstr "Wasserfall-Diagramm"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "We are unable to connect to your database."
 msgstr ""
 "Es konnte keine Verbindung zur Datenbank \"%(database)s\" hergestellt "
@@ -16178,7 +16188,7 @@ msgstr "Ja, Änderungen überschreiben"
 msgid "You are adding tags to %s %ss"
 msgstr "Sie fügen Tags zu %s %ss hinzu."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "You are editing a query from the virtual dataset "
 msgstr ""
 
@@ -16617,6 +16627,7 @@ msgstr "unten (Beispiel:"
 msgid "beta"
 msgstr "Extra"
 
+#, python-brace-format
 msgid "between {down} and {up} {name}"
 msgstr "zwischen {down} und {up} {name}"
 
@@ -17003,6 +17014,7 @@ msgstr "neueste Partition:"
 msgid "left"
 msgstr "Links"
 
+#, python-brace-format
 msgid "less than {min} {name}"
 msgstr "weniger als {min} {name}"
 
@@ -17053,6 +17065,7 @@ msgstr "monoton"
 msgid "month"
 msgstr "Monat"
 
+#, python-brace-format
 msgid "more than {max} {name}"
 msgstr "mehr als {max} {name}"
 

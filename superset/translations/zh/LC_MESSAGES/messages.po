@@ -27,7 +27,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 msgid ""
 "\n"
@@ -679,6 +679,7 @@ msgstr "已存在同名的数据库。"
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
 " the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas "
@@ -2331,6 +2332,9 @@ msgstr "最近"
 
 #, fuzzy
 msgid "COPY QUERY"
+msgstr "复制查询URL"
+
+msgid "Copy query"
 msgstr "复制查询URL"
 
 msgid "CREATE TABLE AS"
@@ -4631,7 +4635,7 @@ msgstr "删除此容器并保存以移除此消息。"
 msgid "Delete user"
 msgstr "删除查询"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Delete user registration"
 msgstr "已删除：%s"
 
@@ -6003,6 +6007,7 @@ msgstr "额外参数"
 msgid "Extra data for JS"
 msgstr "给JS的额外数据"
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata. Currently supports metadata of the "
 "format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
@@ -6033,6 +6038,9 @@ msgstr "二月"
 
 #, fuzzy
 msgid "FIT DATA"
+msgstr "编辑数据集"
+
+msgid "Fit data"
 msgstr "编辑数据集"
 
 msgid "FRI"
@@ -6474,6 +6482,7 @@ msgstr "格式化SQL"
 msgid "Format SQL query"
 msgstr "格式化SQL"
 
+#, python-brace-format
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
@@ -8537,7 +8546,7 @@ msgstr "还没有 %s"
 msgid "No Data"
 msgstr "没有数据"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No Logs yet"
 msgstr "还没有 %s"
 
@@ -8817,7 +8826,7 @@ msgstr "Not In"
 msgid "Not null"
 msgstr "非空"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Not set"
 msgstr "还没有 %s"
 
@@ -10305,11 +10314,11 @@ msgstr ""
 msgid "Reset columns"
 msgstr "选择列"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset my password"
 msgstr "%s 密码"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset password"
 msgstr "%s 密码"
 
@@ -12923,6 +12932,7 @@ msgid ""
 "%(key)s is invalid."
 msgstr "额外字段中的元数据参数配置不正确。键 %(key)s 无效。"
 
+#, python-brace-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
 "%{key}s is invalid."
@@ -13574,7 +13584,7 @@ msgstr "删除选定的数据集时出现问题：%s"
 msgid "There was an issue exporting the database"
 msgstr "删除选定的数据集时出现问题：%s"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected charts"
 msgstr "删除所选图表时出现问题：%s"
 
@@ -13582,18 +13592,18 @@ msgstr "删除所选图表时出现问题：%s"
 msgid "There was an issue exporting the selected dashboards"
 msgstr "删除所选看板时出现问题："
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected datasets"
 msgstr "删除选定的数据集时出现问题：%s"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected themes"
 msgstr "删除所选模板时出现问题：%s"
 
 msgid "There was an issue favoriting this dashboard."
 msgstr "收藏看板时候出现问题。"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue fetching reports."
 msgstr "获取您的图表时出现问题：%s"
 
@@ -15116,7 +15126,7 @@ msgstr "无法检查你的查询语句"
 msgid "Waterfall Chart"
 msgstr "瀑布图"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "We are unable to connect to your database."
 msgstr "不能连接到数据库\"%(database)s\""
 
@@ -15662,7 +15672,7 @@ msgstr "是的，覆盖"
 msgid "You are adding tags to %s %ss"
 msgstr "你给 %s %ss 添加了标签"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "You are editing a query from the virtual dataset "
 msgstr ""
 
@@ -16058,6 +16068,7 @@ msgstr "格式，比如："
 msgid "beta"
 msgstr "扩展"
 
+#, python-brace-format
 msgid "between {down} and {up} {name}"
 msgstr ""
 
@@ -16473,6 +16484,7 @@ msgstr "最新分区："
 msgid "left"
 msgstr "左"
 
+#, python-brace-format
 msgid "less than {min} {name}"
 msgstr ""
 
@@ -16528,6 +16540,7 @@ msgstr "单调性"
 msgid "month"
 msgstr "月"
 
+#, python-brace-format
 msgid "more than {max} {name}"
 msgstr ""
 

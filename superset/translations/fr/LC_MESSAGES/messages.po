@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 msgid ""
 "\n"
@@ -719,6 +719,7 @@ msgstr ""
 "Une date est requise lors de l’utilisation d’un décalage de date "
 "personnalisé"
 
+#, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
 " the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas "
@@ -1067,9 +1068,6 @@ msgstr "Ajouter un nouveau formateur de couleur"
 
 msgid "Add new formatter"
 msgstr "Ajouter un nouveau formateur"
-
-msgid "Add or edit filters"
-msgstr "Ajouter ou modifier des filtres"
 
 msgid "Add or edit display controls"
 msgstr "Ajouter ou modifier les contrôles d'affichage"
@@ -1482,9 +1480,7 @@ msgstr ""
 
 #, python-format
 msgid "An error occurred while creating %ss: %s"
-msgstr ""
-"Une erreur s'est produite durant la création de  %ss:"
-" %s"
+msgstr "Une erreur s'est produite durant la création de  %ss: %s"
 
 msgid "An error occurred while creating the copy link."
 msgstr "Une erreur s'est produite durant la création du lien."
@@ -1617,8 +1613,8 @@ msgstr ""
 #, python-format
 msgid "An error occurred while fetching theme datasource values: %s"
 msgstr ""
-"Une erreur s'est produite lors de la récupération des données "
-"de thèmes : %s"
+"Une erreur s'est produite lors de la récupération des données de thèmes :"
+" %s"
 
 msgid "An error occurred while fetching usage data"
 msgstr "Une erreur s'est produite lors de l'extraction des données d'utilisation"
@@ -2425,6 +2421,9 @@ msgstr "destinataires en copie"
 msgid "COPY QUERY"
 msgstr "Copier la requête"
 
+msgid "Copy query"
+msgstr "Copier la requête"
+
 msgid "CREATE TABLE AS"
 msgstr "CREATE TABLE AS"
 
@@ -2873,7 +2872,9 @@ msgid "Chart type requires a dataset"
 msgstr "Le type de graphique nécessite un ensemble de données"
 
 msgid "Chart was saved but could not be added to the selected tab."
-msgstr "Le graphique a été enregistré mais n'a pu être ajouté à l'knglet sélectionné."
+msgstr ""
+"Le graphique a été enregistré mais n'a pu être ajouté à l'knglet "
+"sélectionné."
 
 msgid "Chart width"
 msgstr "Largeur du graphique"
@@ -2990,9 +2991,7 @@ msgstr ""
 "gauche."
 
 msgid "Choose one of the available databases on the left panel."
-msgstr ""
-"Choisir l’une des bases de données disponibles dans le panneau de "
-"gauche."
+msgstr "Choisir l’une des bases de données disponibles dans le panneau de gauche."
 
 msgid "Choose sheet name"
 msgstr "choisir Nom de feuille"
@@ -4479,7 +4478,7 @@ msgstr "Valeur par défaut"
 msgid "Default color"
 msgstr "couleur par défaut"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Default datetime column"
 msgstr "Toujours filtrer sur la colonne temporelle principale"
 
@@ -6074,6 +6073,7 @@ msgstr "Paramètres supplémentaires"
 msgid "Extra data for JS"
 msgstr "Données supplémentaires pour JS"
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata. Currently supports metadata of the "
 "format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
@@ -6109,6 +6109,9 @@ msgstr "FEB"
 
 #, fuzzy
 msgid "FIT DATA"
+msgstr "Modifier l’ensemble de données"
+
+msgid "Fit data"
 msgstr "Modifier l’ensemble de données"
 
 msgid "FRI"
@@ -6575,6 +6578,7 @@ msgstr "Format D3"
 msgid "Format SQL query"
 msgstr "Exporter la requête"
 
+#, python-brace-format
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
@@ -8920,7 +8924,7 @@ msgstr "Pas dans"
 msgid "Not null"
 msgstr "Non nul"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Not set"
 msgstr "Pas encore de %s"
 
@@ -11093,9 +11097,9 @@ msgid "Secondary Metric"
 msgstr "Mesure secondaire"
 
 msgid "Secondary currency format"
-msgstr "Format de devise secondaire"
-"Nombre de pas entre les points de repère lors de l'affichage de l'échelle"
-" des X"
+msgstr ""
+"Format de devise secondaireNombre de pas entre les points de repère lors "
+"de l'affichage de l'échelle des X"
 
 msgid "Secondary y-axis Bounds"
 msgstr "Limites secondaires de l'axe des ordonnées"
@@ -13232,6 +13236,7 @@ msgstr ""
 "Le paramètre metadata_params dans Champ supplémentaire n'est pas "
 "correctement configuré. La clé %(key)s est invalide."
 
+#, python-brace-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
 "%{key}s is invalid."
@@ -14017,7 +14022,7 @@ msgstr ""
 msgid "There was an issue exporting the database"
 msgstr "Il y a eu un problème de duplication de l'ensemble de données."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected charts"
 msgstr ""
 "Il y a eu un problème lors de la suppression des graphiques sélectionnés "
@@ -14027,13 +14032,13 @@ msgstr ""
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Il y a eu un problème lors de la suppression des graphiques sélectionnés: "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected datasets"
 msgstr ""
 "Il y a eu un problème lors de la suppression des ensembles de données "
 "sélectionnés : %s"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected themes"
 msgstr ""
 "Il y a eu un problème lors de la suppression des modèles sélectionnées : "
@@ -14042,7 +14047,7 @@ msgstr ""
 msgid "There was an issue favoriting this dashboard."
 msgstr "Il y a eu un problème pour mettre ce tableau de bord en favori."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue fetching reports."
 msgstr "Une erreur s'est produite lors de la récupération de votre graphique : %s"
 
@@ -16778,6 +16783,7 @@ msgstr "ci-dessous (exemple :"
 msgid "beta"
 msgstr "bêta"
 
+#, python-brace-format
 msgid "between {down} and {up} {name}"
 msgstr "entre {down} et {up} {name}"
 
@@ -17174,6 +17180,7 @@ msgstr "dernière partition :"
 msgid "left"
 msgstr "restant"
 
+#, python-brace-format
 msgid "less than {min} {name}"
 msgstr "moins de {min} {name}"
 
@@ -17229,6 +17236,7 @@ msgstr "monotone"
 msgid "month"
 msgstr "mois"
 
+#, python-brace-format
 msgid "more than {max} {name}"
 msgstr "plus de {max} {name}"
 
@@ -17551,12 +17559,3 @@ msgstr "zone de zoom"
 
 msgid "© Layer attribution"
 msgstr "© Attribution de la couche"
-
-msgid "Show Value"
-msgstr "Afficher la valeur"
-
-msgid "Truncate Axis"
-msgstr "Tronquer l'axe"
-
-msgid "deck.gl charts"
-msgstr "Graphiques deck.gl"

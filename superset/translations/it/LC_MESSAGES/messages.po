@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 msgid ""
 "\n"
@@ -666,6 +666,7 @@ msgstr ""
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
 " the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas "
@@ -2323,6 +2324,9 @@ msgstr ""
 msgid "COPY QUERY"
 msgstr "Query vuota?"
 
+msgid "Copy query"
+msgstr "Query vuota?"
+
 msgid "CREATE TABLE AS"
 msgstr "Permetti CREATE TABLE AS"
 
@@ -3794,7 +3798,7 @@ msgid "Currently rendered: %s"
 msgstr ""
 
 msgid "Custom"
-msgstr ""
+msgstr "Descrizione"
 
 msgid "Custom Plugin"
 msgstr ""
@@ -4606,7 +4610,7 @@ msgstr ""
 msgid "Delete user"
 msgstr "Cancella"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Delete user registration"
 msgstr "Cancella"
 
@@ -5217,7 +5221,6 @@ msgstr "Modifica Dashboard"
 msgid "Edit Dataset "
 msgstr "Modifica Dataset"
 
-
 msgid "Edit Group"
 msgstr "Modifica Gruppo"
 
@@ -5227,14 +5230,11 @@ msgstr "Modifica Log"
 msgid "Edit Plugin"
 msgstr "Modifica Plugin"
 
-
 msgid "Edit Role"
 msgstr "Modifica Ruolo"
 
-
 msgid "Edit Rule"
 msgstr "Modifica Regola"
-
 
 msgid "Edit Tag"
 msgstr "Modifica Tag"
@@ -5953,6 +5953,7 @@ msgstr "Parametri"
 msgid "Extra data for JS"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata. Currently supports metadata of the "
 "format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
@@ -5980,6 +5981,9 @@ msgstr ""
 
 #, fuzzy
 msgid "FIT DATA"
+msgstr "Mostra database"
+
+msgid "Fit data"
 msgstr "Mostra database"
 
 msgid "FRI"
@@ -6415,6 +6419,7 @@ msgstr "Formato D3"
 msgid "Format SQL query"
 msgstr "Formato D3"
 
+#, python-brace-format
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
@@ -10228,11 +10233,11 @@ msgstr ""
 msgid "Reset columns"
 msgstr "Colonna del Tempo"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset my password"
 msgstr "Porta Broker"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset password"
 msgstr "Porta Broker"
 
@@ -11876,7 +11881,7 @@ msgstr ""
 msgid "Sort by %s"
 msgstr "Importa"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Sort by data"
 msgstr "Importa"
 
@@ -12830,6 +12835,7 @@ msgid ""
 "%(key)s is invalid."
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
 "%{key}s is invalid."
@@ -13446,11 +13452,11 @@ msgstr ""
 msgid "There was an issue duplicating the selected datasets: %s"
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the database"
 msgstr "Errore nel recupero dati"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected charts"
 msgstr "Errore nel recupero dati"
 
@@ -13462,14 +13468,14 @@ msgstr "Errore nel creare il datasource"
 msgid "There was an issue exporting the selected datasets"
 msgstr "Errore nel creare il datasource"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected themes"
 msgstr "Errore nel recupero dati"
 
 msgid "There was an issue favoriting this dashboard."
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue fetching reports."
 msgstr "Errore nel recupero dati"
 
@@ -15504,7 +15510,7 @@ msgstr ""
 msgid "You are adding tags to %s %ss"
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "You are editing a query from the virtual dataset "
 msgstr ""
 
@@ -15898,6 +15904,7 @@ msgstr ""
 msgid "beta"
 msgstr "Extra"
 
+#, python-brace-format
 msgid "between {down} and {up} {name}"
 msgstr ""
 
@@ -16298,6 +16305,7 @@ msgstr ""
 msgid "left"
 msgstr "Cancella"
 
+#, python-brace-format
 msgid "less than {min} {name}"
 msgstr ""
 
@@ -16353,6 +16361,7 @@ msgstr "mese"
 msgid "month"
 msgstr "mese"
 
+#, python-brace-format
 msgid "more than {max} {name}"
 msgstr ""
 

@@ -30,7 +30,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 msgid ""
 "\n"
@@ -724,6 +724,7 @@ msgstr ""
 "Es requereix una data quan s'utilitza un desplaçament de data "
 "personalitzat"
 
+#, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
 " the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas "
@@ -2424,6 +2425,9 @@ msgstr "Destinataris CC"
 
 #, fuzzy
 msgid "COPY QUERY"
+msgstr "Copiar URL de consulta"
+
+msgid "Copy query"
 msgstr "Copiar URL de consulta"
 
 msgid "CREATE TABLE AS"
@@ -4680,7 +4684,7 @@ msgstr "Elimina aquest contenidor i desa per eliminar aquest missatge."
 msgid "Delete user"
 msgstr "Eliminar usuari"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Delete user registration"
 msgstr "Usuari eliminat: %s"
 
@@ -6047,6 +6051,7 @@ msgstr "Paràmetres Extres"
 msgid "Extra data for JS"
 msgstr "Dades extres per JS"
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata. Currently supports metadata of the "
 "format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
@@ -6078,6 +6083,9 @@ msgid "FEB"
 msgstr "FEB"
 
 msgid "FIT DATA"
+msgstr "AJUSTAR DADES"
+
+msgid "Fit data"
 msgstr "AJUSTAR DADES"
 
 msgid "FRI"
@@ -6519,6 +6527,7 @@ msgstr "Formatar SQL"
 msgid "Format SQL query"
 msgstr "Formatar SQL"
 
+#, python-brace-format
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
@@ -8510,7 +8519,7 @@ msgstr "Cap %s encara"
 msgid "No Data"
 msgstr "Sense Dades"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No Logs yet"
 msgstr "Cap %s encara"
 
@@ -8773,7 +8782,7 @@ msgstr "No en"
 msgid "Not null"
 msgstr "No nul"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Not set"
 msgstr "Cap %s encara"
 
@@ -9572,7 +9581,7 @@ msgstr "Si us plau confirma la teva contrasenya"
 msgid "Please enter your username"
 msgstr "Introdueix el nom d'usuari de l'usuari"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Please fix the following errors"
 msgstr "Tenim les següents claus: %s"
 
@@ -10266,11 +10275,11 @@ msgstr ""
 msgid "Reset columns"
 msgstr "Restablir columnes"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset my password"
 msgstr "CONTRASENYA %s"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset password"
 msgstr "CONTRASENYA %s"
 
@@ -12904,6 +12913,7 @@ msgstr ""
 "Els metadata_params al camp Extra no estan configurats correctament. La "
 "clau %(key)s és invàlida."
 
+#, python-brace-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
 "%{key}s is invalid."
@@ -13634,7 +13644,7 @@ msgstr "Hi ha hagut un problema duplicant els datasets seleccionats: %s"
 msgid "There was an issue exporting the database"
 msgstr "Hi ha hagut un problema duplicant el dataset."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected charts"
 msgstr "Hi ha hagut un problema eliminant els gràfics seleccionats: %s"
 
@@ -13642,18 +13652,18 @@ msgstr "Hi ha hagut un problema eliminant els gràfics seleccionats: %s"
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Hi ha hagut un problema eliminant els dashboards seleccionats: "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected datasets"
 msgstr "Hi ha hagut un problema eliminant els datasets seleccionats: %s"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue exporting the selected themes"
 msgstr "Hi ha hagut un problema eliminant les plantilles seleccionades: %s"
 
 msgid "There was an issue favoriting this dashboard."
 msgstr "Hi ha hagut un problema marcant aquest dashboard com a favorit."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "There was an issue fetching reports."
 msgstr "Hi ha hagut un problema obtenint el teu gràfic: %s"
 
@@ -15275,7 +15285,7 @@ msgstr "No s'ha pogut comprovar la teva consulta"
 msgid "Waterfall Chart"
 msgstr "Gràfic de Cascada"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "We are unable to connect to your database."
 msgstr "No es pot connectar a la base de dades \"%(database)s\"."
 
@@ -15812,7 +15822,7 @@ msgstr "Sí, sobreescriure canvis"
 msgid "You are adding tags to %s %ss"
 msgstr "Estàs afegint etiquetes a %s %ss"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "You are editing a query from the virtual dataset "
 msgstr "Eliminada 1 columna del dataset virtual"
 
@@ -16242,6 +16252,7 @@ msgstr "a sota (exemple:"
 msgid "beta"
 msgstr "Extra"
 
+#, python-brace-format
 msgid "between {down} and {up} {name}"
 msgstr "entre {down} i {up} {name}"
 
@@ -16625,6 +16636,7 @@ msgstr "última partició:"
 msgid "left"
 msgstr "esquerra"
 
+#, python-brace-format
 msgid "less than {min} {name}"
 msgstr "menys de {min} {name}"
 
@@ -16675,6 +16687,7 @@ msgstr "monòton"
 msgid "month"
 msgstr "mes"
 
+#, python-brace-format
 msgid "more than {max} {name}"
 msgstr "més de {max} {name}"
 

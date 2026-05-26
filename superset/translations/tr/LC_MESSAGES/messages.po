@@ -30,7 +30,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.15.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 msgid ""
 "\n"
@@ -642,6 +642,7 @@ msgstr ""
 msgid "A date is required when using custom date shift"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "A dictionary with column names and their data types if you need to change"
 " the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas "
@@ -2208,6 +2209,9 @@ msgstr "son kullanılanlar"
 
 #, fuzzy
 msgid "COPY QUERY"
+msgstr "Sorgu URL’ini kopyala"
+
+msgid "Copy query"
 msgstr "Sorgu URL’ini kopyala"
 
 msgid "CREATE TABLE AS"
@@ -4381,7 +4385,7 @@ msgstr ""
 msgid "Delete user"
 msgstr "Sorguyu sil"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Delete user registration"
 msgstr "Silindi: %s"
 
@@ -5681,6 +5685,7 @@ msgstr ""
 msgid "Extra data for JS"
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "Extra data to specify table metadata. Currently supports metadata of the "
 "format: `{ \"certification\": { \"certified_by\": \"Data Platform Team\","
@@ -5707,6 +5712,9 @@ msgstr "ŞUB"
 
 #, fuzzy
 msgid "FIT DATA"
+msgstr "Verisetini düzenle"
+
+msgid "Fit data"
 msgstr "Verisetini düzenle"
 
 msgid "FRI"
@@ -6122,6 +6130,7 @@ msgstr ""
 msgid "Format SQL query"
 msgstr "SQL sorgusu"
 
+#, python-brace-format
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n "
 "represents a new line. ECharts compatibility:\n"
@@ -9700,11 +9709,11 @@ msgstr ""
 msgid "Reset columns"
 msgstr "Kolon seç"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset my password"
 msgstr "%s ŞİFRE"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Reset password"
 msgstr "%s ŞİFRE"
 
@@ -12150,6 +12159,7 @@ msgid ""
 "%(key)s is invalid."
 msgstr ""
 
+#, python-brace-format
 msgid ""
 "The metadata_params in Extra field is not configured correctly. The key "
 "%{key}s is invalid."
@@ -14739,7 +14749,7 @@ msgstr "Evet, değişiklikleri üstüne yaz"
 msgid "You are adding tags to %s %ss"
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "You are editing a query from the virtual dataset "
 msgstr ""
 
@@ -15114,6 +15124,7 @@ msgstr ""
 msgid "beta"
 msgstr ""
 
+#, python-brace-format
 msgid "between {down} and {up} {name}"
 msgstr ""
 
@@ -15490,6 +15501,7 @@ msgstr ""
 msgid "left"
 msgstr ""
 
+#, python-brace-format
 msgid "less than {min} {name}"
 msgstr ""
 
@@ -15537,6 +15549,7 @@ msgstr ""
 msgid "month"
 msgstr "ay"
 
+#, python-brace-format
 msgid "more than {max} {name}"
 msgstr ""
 
