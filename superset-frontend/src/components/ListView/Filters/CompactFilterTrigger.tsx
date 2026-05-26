@@ -53,10 +53,19 @@ const FilterPill = styled.button<{ $active: boolean }>`
     font-weight: ${$active ? 600 : 400};
     cursor: pointer;
     white-space: nowrap;
+    line-height: 1;
     transition:
       border-color 0.2s,
       background 0.2s,
       color 0.2s;
+
+    /* AntD anticon spans carry vertical-align: -0.125em from global styles;
+       force true flex centering inside the pill. */
+    .anticon {
+      display: flex;
+      align-items: center;
+      line-height: 0;
+    }
 
     &:hover {
       border-color: ${theme.colorPrimary};
