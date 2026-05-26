@@ -17,8 +17,11 @@
  * under the License.
  */
 import { SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { store } from 'src/views/store';
 
 type Extension = core.Extension;
 
@@ -35,6 +38,9 @@ class ExtensionsLoader {
   private extensionIndex: Map<string, Extension> = new Map();
 
   private initializationPromise: Promise<void> | null = null;
+
+  /** Disposables returned by contribution registrations, keyed by extension id. */
+  private extensionDisposables: Map<string, (() => void)[]> = new Map();
 
   // eslint-disable-next-line no-useless-constructor
   private constructor() {
@@ -88,7 +94,8 @@ class ExtensionsLoader {
   public async initializeExtension(extension: Extension) {
     try {
       if (extension.remoteEntry) {
-        await this.loadModule(extension);
+        const disposables = await this.loadModule(extension);
+        this.extensionDisposables.set(extension.id, disposables);
       }
       this.extensionIndex.set(extension.id, extension);
     } catch (error) {
@@ -96,7 +103,23 @@ class ExtensionsLoader {
         `Failed to initialize extension ${extension.name}\n`,
         error,
       );
+      store.dispatch(
+        addDangerToast(t('Extension "%s" failed to load.', extension.name)),
+      );
     }
+  }
+
+  /**
+   * Deactivates an extension by disposing all of its registered contributions
+   * and removing it from the index.
+   */
+  public deactivateExtension(id: string): void {
+    const disposables = this.extensionDisposables.get(id);
+    if (disposables) {
+      disposables.forEach(dispose => dispose());
+      this.extensionDisposables.delete(id);
+    }
+    this.extensionIndex.delete(id);
   }
 
   /**
@@ -104,7 +127,7 @@ class ExtensionsLoader {
    * The module's top-level side effects fire contribution registrations.
    * @param extension The extension to load.
    */
-  private async loadModule(extension: Extension): Promise<void> {
+  private async loadModule(extension: Extension): Promise<(() => void)[]> {
     const { remoteEntry, id } = extension;
 
     // Load the remote entry script
@@ -149,8 +172,33 @@ class ExtensionsLoader {
     await container.init(__webpack_share_scopes__.default);
 
     const factory = await container.get('./index');
-    // Execute the module factory - side effects fire registrations
-    factory();
+
+    // Intercept contribution registrations during module activation so we can
+    // collect the Disposables and drive cleanup on deactivation.
+    const collected: (() => void)[] = [];
+    const originalSuperset = window.superset;
+    window.superset = {
+      ...originalSuperset,
+      views: {
+        ...originalSuperset.views,
+        registerView: (
+          ...args: Parameters<typeof originalSuperset.views.registerView>
+        ) => {
+          const disposable = originalSuperset.views.registerView(...args);
+          collected.push(() => disposable.dispose());
+          return disposable;
+        },
+      },
+    };
+
+    try {
+      // Execute the module factory — side effects fire contribution registrations
+      factory();
+    } finally {
+      window.superset = originalSuperset;
+    }
+
+    return collected;
   }
 
   /**
