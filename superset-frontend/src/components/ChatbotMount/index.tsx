@@ -16,21 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-/**
- * @fileoverview Host mount point for the singleton `superset.chatbot`
- * contribution area.
- *
- * The host owns the slot: a fixed bottom-right anchor that persists across all
- * routes, with a managed z-index. The extension owns everything rendered
- * inside it — the collapsed bubble, the expanded panel, all open/close state,
- * animations, and behavior (SIP §3.2 "Component contract").
- *
- * Singleton resolution (which of possibly several registered chatbots renders)
- * is delegated to `getActiveChatbot`. If no chatbot extension is registered,
- * this component renders nothing and the corner stays empty.
- */
-
 import { useState, useEffect } from 'react';
+import { SupersetClient } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { getActiveChatbot } from 'src/core/chatbot';
@@ -39,24 +26,31 @@ import { CHATBOT_LOCATION } from 'src/views/contributions';
 
 const CHATBOT_EDGE_MARGIN = 24;
 
-/**
- * Renders the active chatbot extension into a fixed bottom-right slot.
- *
- * Mounted once at the app root so the bubble persists across routes.
- * Re-resolves when the chatbot registry changes (extension activated or
- * deactivated at runtime via the P1.A lifecycle contract).
- * Renders null when no chatbot extension is registered.
- */
 const ChatbotMount = () => {
   const theme = useTheme();
-  const [activeChatbot, setActiveChatbot] = useState(getActiveChatbot);
+  const [adminSelectedId, setAdminSelectedId] = useState<string | null>(null);
+  const [activeChatbot, setActiveChatbot] = useState(() =>
+    getActiveChatbot(null),
+  );
+
+  useEffect(() => {
+    SupersetClient.get({ endpoint: '/api/v1/extensions/settings' })
+      .then(({ json }) => {
+        const id = json.result?.active_chatbot_id ?? null;
+        setAdminSelectedId(id);
+        setActiveChatbot(getActiveChatbot(id));
+      })
+      .catch(() => {
+        // Settings fetch failure is non-fatal — fall back to first-to-register.
+      });
+  }, []);
 
   useEffect(
     () =>
       subscribeToLocation(CHATBOT_LOCATION, () =>
-        setActiveChatbot(getActiveChatbot()),
+        setActiveChatbot(getActiveChatbot(adminSelectedId)),
       ),
-    [],
+    [adminSelectedId],
   );
 
   if (!activeChatbot) {

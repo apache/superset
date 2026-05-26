@@ -18,10 +18,7 @@
  */
 
 import { View } from '../views';
-import type { ChatbotView } from '../views';
 import { Menu } from '../menus';
-
-export type { ChatbotView };
 
 export type SqlLabLocation =
   | 'leftSidebar'
