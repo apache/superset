@@ -39,8 +39,9 @@ from superset.versioning.activity import (
     _build_summary,
     _can_read,
     _changed_by_dict,
-    _compute_impact,
+    _collect_impact_pairs,
     _DEFAULT_PAGE_SIZE,
+    _impact_for_record,
     _intersect_windows,
     _MAX_PAGE_SIZE,
     _merge_entity_windows,
@@ -311,39 +312,96 @@ def test_can_read_returns_true_for_unsupported_kind() -> None:
     assert _can_read("UnknownKind", object(), _StubSecurityManager()) is True
 
 
-# ---- _compute_impact no-impact paths -------------------------------------
+# ---- _impact_for_record (pure, post-batch) -------------------------------
 
 
-def test_compute_impact_self_path_yields_no_impact() -> None:
-    """The chart-self case: a dashboard's chart-related record has no
-    further dependent layer (chart is a direct child of dashboard)."""
-    record = {
-        "entity_kind": "chart",
-        "entity_id": 5,
-        "transaction_id": 100,
-    }
-    assert _compute_impact("Dashboard", 1, record) is None
+def test_impact_for_record_dashboard_path_dataset_related_uses_count() -> None:
+    """The only path/related shape that carries impact: ``Dashboard`` →
+    ``SqlaTable``. The count comes from the pre-batched lookup."""
+    record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
+    counts = {(5, 100): 3}
+    assert _impact_for_record(record, "Dashboard", counts) == {"charts": 3}
 
 
-def test_compute_impact_chart_path_with_dataset_related_yields_no_impact() -> None:
-    """Chart → dataset: the chart itself is the only dependent of the
-    dataset edit, so no impact count."""
-    record = {
-        "entity_kind": "dataset",
-        "entity_id": 5,
-        "transaction_id": 100,
-    }
-    assert _compute_impact("Slice", 1, record) is None
+def test_impact_for_record_missing_count_yields_none() -> None:
+    """A pair the batch query didn't return (no matching siblings)
+    collapses to ``None`` rather than ``{"charts": 0}``."""
+    record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
+    assert _impact_for_record(record, "Dashboard", {}) is None
 
 
-def test_compute_impact_unknown_path_kind_yields_no_impact() -> None:
-    """Defensive fallthrough — any other shape returns no impact."""
-    record = {
-        "entity_kind": "dataset",
-        "entity_id": 5,
-        "transaction_id": 100,
-    }
-    assert _compute_impact("SqlaTable", 1, record) is None
+def test_impact_for_record_zero_count_yields_none() -> None:
+    """Explicit zero in the counts map is treated the same as missing —
+    no impact field on the wire."""
+    record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
+    assert _impact_for_record(record, "Dashboard", {(5, 100): 0}) is None
+
+
+def test_impact_for_record_dashboard_path_chart_related_yields_none() -> None:
+    """Dashboard → chart is a direct dependency; no further sibling
+    layer to count."""
+    record = {"entity_kind": "chart", "entity_id": 5, "transaction_id": 100}
+    assert _impact_for_record(record, "Dashboard", {(5, 100): 999}) is None
+
+
+def test_impact_for_record_chart_path_with_dataset_related_yields_none() -> None:
+    """Chart → dataset: the chart is itself the only dependent of the
+    dataset edit."""
+    record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
+    assert _impact_for_record(record, "Slice", {(5, 100): 999}) is None
+
+
+def test_impact_for_record_dataset_path_yields_none() -> None:
+    """Datasets have no transitive layer (AV-004)."""
+    record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
+    assert _impact_for_record(record, "SqlaTable", {(5, 100): 999}) is None
+
+
+# ---- _collect_impact_pairs -----------------------------------------------
+
+
+def test_collect_impact_pairs_dashboard_path_collects_only_datasets() -> None:
+    """The batched pre-query only needs ``(dataset_id, tx)`` pairs.
+    Chart-related and self records aren't relevant."""
+    records = [
+        {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100},
+        {"entity_kind": "dataset", "entity_id": 7, "transaction_id": 200},
+        {"entity_kind": "chart", "entity_id": 9, "transaction_id": 300},
+        {"entity_kind": "dashboard", "entity_id": 1, "transaction_id": 400},
+    ]
+    assert _collect_impact_pairs(records, "Dashboard") == {(5, 100), (7, 200)}
+
+
+def test_collect_impact_pairs_dedupes_repeated_pairs() -> None:
+    """Multiple change records for the same (dataset, tx) collapse to
+    one pair — the batch query computes the count once."""
+    records = [
+        {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100},
+        {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100},
+        {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100},
+    ]
+    pairs = _collect_impact_pairs(records, "Dashboard")
+    assert pairs == {(5, 100)}
+
+
+def test_collect_impact_pairs_chart_path_returns_empty() -> None:
+    """Chart paths have no dashboard layer to count siblings on, so the
+    batch never needs to fire."""
+    records = [
+        {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100},
+    ]
+    assert _collect_impact_pairs(records, "Slice") == set()
+
+
+def test_collect_impact_pairs_dataset_path_returns_empty() -> None:
+    records = [
+        {"entity_kind": "chart", "entity_id": 5, "transaction_id": 100},
+    ]
+    assert _collect_impact_pairs(records, "SqlaTable") == set()
+
+
+def test_collect_impact_pairs_empty_records_returns_empty() -> None:
+    assert _collect_impact_pairs([], "Dashboard") == set()
 
 
 # ---- parse_activity_query_params (shared API helper) ---------------------

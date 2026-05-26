@@ -497,52 +497,49 @@ def _denormalize_entity_names(records: list[dict[str, Any]]) -> list[dict[str, A
     return records
 
 
-# ---- T010: Sibling-count impact -------------------------------------------
+# ---- T010: Sibling-count impact (batched) ---------------------------------
 
 
-def _compute_impact(
-    path_kind: str, path_id: int, related_record: dict[str, Any]
-) -> Optional[dict[str, int]]:
-    """Synthesize the ``impact`` field for one ``source='related'`` record.
+def _collect_impact_pairs(
+    records: list[dict[str, Any]], path_kind: str
+) -> set[tuple[int, int]]:
+    """Distinct ``(dataset_id, transaction_id)`` pairs from *records*
+    that require an impact computation per data-model.md.
 
-    Per data-model.md §"``impact`` computation":
-
-    * ``path=Dashboard`` and the related entity is a ``Slice``: no impact
-      (the chart is a direct child of the dashboard; there's no further
-      dependent layer).
-    * ``path=Dashboard`` and the related entity is a ``SqlaTable``:
-      ``{"charts": N}`` where N is the count of distinct charts on the
-      path dashboard that pointed at the dataset at the change's
-      ``transaction_id``.
-    * ``path=Slice`` and the related entity is a ``SqlaTable``: no impact
-      (the chart is itself the only dependent of the dataset edit).
-    * Other shapes: no impact.
+    Only dashboard-path records whose related entity is a ``SqlaTable``
+    produce a non-null ``impact`` field; for any other shape this set
+    is empty and no DB query needs to fire.
     """
-    table_kind = related_record["entity_kind"]
-    api_kind = _TABLE_KIND_TO_API.get(table_kind)
-    if path_kind != "Dashboard" or api_kind != "SqlaTable":
-        return None
-
-    dataset_id = related_record["entity_id"]
-    target_tx = related_record["transaction_id"]
-    chart_count = _count_dashboard_charts_pointing_at_dataset_at_tx(
-        path_id, dataset_id, target_tx
-    )
-    if chart_count == 0:
-        return None
-    return {"charts": chart_count}
+    if path_kind != "Dashboard":
+        return set()
+    return {
+        (record["entity_id"], record["transaction_id"])
+        for record in records
+        if _TABLE_KIND_TO_API.get(record["entity_kind"]) == "SqlaTable"
+    }
 
 
-def _count_dashboard_charts_pointing_at_dataset_at_tx(
-    dashboard_id: int, dataset_id: int, target_tx: int
-) -> int:
-    """Count distinct slices that were both (a) on *dashboard_id* at
-    *target_tx* and (b) pointing at *dataset_id* at *target_tx*.
+def _batch_chart_counts(
+    dashboard_id: int, pairs: set[tuple[int, int]]
+) -> dict[tuple[int, int], int]:
+    """For every ``(dataset_id, target_tx)`` in *pairs*, count the
+    distinct charts that were both on *dashboard_id* and pointing at
+    *dataset_id* at *target_tx*.
 
-    Joins ``dashboard_slices_version`` ⨝ ``slices_version`` with the
-    validity-strategy predicate on each side (same shape as
-    :func:`superset.versioning.changes._dashboard_slice_uuids_at_tx`).
+    One SELECT against ``dashboard_slices_version`` ⨝ ``slices_version``,
+    pulling the (slice, dataset, validity-window) state for every slice
+    ever on the dashboard whose dataset matches one of the requested
+    dataset_ids. The Python loop then applies the validity-strategy
+    predicate per pair. Replaces the previous N+1 shape that fired one
+    COUNT per related record.
+
+    Returns ``{(dataset_id, target_tx): count}``; pairs whose count
+    would be zero are omitted so the caller's ``.get(key, 0)`` is
+    correct.
     """
+    if not pairs:
+        return {}
+
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import version_class
 
@@ -552,27 +549,63 @@ def _count_dashboard_charts_pointing_at_dataset_at_tx(
     m2m_tbl = metadata.tables.get("dashboard_slices_version")
     slices_tbl = version_class(Slice).__table__
     if m2m_tbl is None:
-        return 0
+        return {}
 
-    stmt = sa.select(sa.func.count(sa.distinct(m2m_tbl.c.slice_id))).where(
+    dataset_ids = {dataset_id for dataset_id, _ in pairs}
+    stmt = sa.select(
+        m2m_tbl.c.slice_id,
+        slices_tbl.c.datasource_id,
+        m2m_tbl.c.transaction_id.label("m2m_start"),
+        m2m_tbl.c.end_transaction_id.label("m2m_end"),
+        slices_tbl.c.transaction_id.label("slice_start"),
+        slices_tbl.c.end_transaction_id.label("slice_end"),
+    ).where(
         m2m_tbl.c.dashboard_id == dashboard_id,
-        m2m_tbl.c.transaction_id <= target_tx,
-        sa.or_(
-            m2m_tbl.c.end_transaction_id.is_(None),
-            m2m_tbl.c.end_transaction_id > target_tx,
-        ),
         m2m_tbl.c.operation_type != 2,
         slices_tbl.c.id == m2m_tbl.c.slice_id,
-        slices_tbl.c.datasource_id == dataset_id,
+        slices_tbl.c.datasource_id.in_(dataset_ids),
         slices_tbl.c.datasource_type == "table",
-        slices_tbl.c.transaction_id <= target_tx,
-        sa.or_(
-            slices_tbl.c.end_transaction_id.is_(None),
-            slices_tbl.c.end_transaction_id > target_tx,
-        ),
         slices_tbl.c.operation_type != 2,
     )
-    return int(db.session.connection().execute(stmt).scalar() or 0)
+    rows = db.session.connection().execute(stmt).all()
+
+    # For each pair, collect the slice_ids whose two validity windows
+    # both straddle target_tx. ``set`` dedupes within a pair.
+    matches: dict[tuple[int, int], set[int]] = {}
+    pairs_by_dataset: dict[int, list[int]] = {}
+    for dataset_id, target_tx in pairs:
+        pairs_by_dataset.setdefault(dataset_id, []).append(target_tx)
+
+    for slice_id, ds_id, m_start, m_end, s_start, s_end in rows:
+        for target_tx in pairs_by_dataset.get(ds_id, ()):
+            in_m2m = m_start <= target_tx and (m_end is None or m_end > target_tx)
+            in_slice = s_start <= target_tx and (s_end is None or s_end > target_tx)
+            if in_m2m and in_slice:
+                matches.setdefault((ds_id, target_tx), set()).add(slice_id)
+
+    return {pair: len(slice_ids) for pair, slice_ids in matches.items()}
+
+
+def _impact_for_record(
+    record: dict[str, Any],
+    path_kind: str,
+    counts: dict[tuple[int, int], int],
+) -> Optional[dict[str, int]]:
+    """Synthesize the ``impact`` field for one record using the pre-
+    fetched *counts* mapping. Pure function — no DB.
+
+    Per data-model.md §"``impact`` computation": only
+    ``path=Dashboard`` and ``related=SqlaTable`` shapes carry an
+    impact; everything else returns ``None``.
+    """
+    api_kind = _TABLE_KIND_TO_API.get(record["entity_kind"])
+    if path_kind != "Dashboard" or api_kind != "SqlaTable":
+        return None
+    key = (record["entity_id"], record["transaction_id"])
+    chart_count = counts.get(key, 0)
+    if chart_count == 0:
+        return None
+    return {"charts": chart_count}
 
 
 # ---- T014: Live-row existence + soft-delete state -------------------------
@@ -778,6 +811,11 @@ def _decorate_records(
     }
     tombstones = _check_entity_tombstones(distinct)
     uuids = _lookup_entity_uuids(distinct, tombstones)
+    # Pre-compute impact counts for the whole page in one batch query
+    # instead of one COUNT per related record (was N+1).
+    impact_counts = _batch_chart_counts(
+        path_id, _collect_impact_pairs(records, path_kind)
+    )
 
     for record in records:
         api_kind = _TABLE_KIND_TO_API.get(record["entity_kind"], "")
@@ -805,7 +843,7 @@ def _decorate_records(
             record["impact"] = None
         else:
             record["summary"] = _build_summary(api_kind, record)
-            record["impact"] = _compute_impact(path_kind, path_id, record)
+            record["impact"] = _impact_for_record(record, path_kind, impact_counts)
 
         # Strip the internal-only columns the API contract doesn't expose.
         for key in (
