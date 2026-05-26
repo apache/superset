@@ -20,8 +20,10 @@ import { logging } from '@apache-superset/core/utils';
 import {
   ENTER_VERSION_PREVIEW,
   EXIT_VERSION_PREVIEW,
+  SET_EDIT_MODE,
   enterVersionPreview,
   exitVersionPreview,
+  setEditMode,
 } from 'src/dashboard/actions/dashboardState';
 import dashboardStateReducer from 'src/dashboard/reducers/dashboardState';
 import sliceEntitiesReducer from 'src/dashboard/reducers/sliceEntities';
@@ -217,6 +219,80 @@ test('enterVersionPreview thunk preserves the original capture when switching A 
   // Critical: the captured originals are still the LIVE values, not A.
   expect(secondEnter.capturedSliceEntities).toBe(liveSlices);
   expect(secondEnter.capturedLayout).toBe(liveLayout);
+});
+
+test('setEditMode(true) refuses to enter edit mode while a version preview is active', () => {
+  // Defense-in-depth: the Header's Edit button is disabled while
+  // previewing, but the empty-tab / empty-dashboard / empty-grid CTAs
+  // dispatch setEditMode directly. The thunk catches all of them.
+  const state = {
+    dashboardState: {
+      versionPreview: {
+        versionUuid: '11111111-2222-3333-4444-555555555555',
+        capturedSliceEntities: { slices: {}, isLoading: false },
+        capturedLayout: { ROOT_ID: {}, GRID_ID: {} },
+      },
+    },
+  };
+  const dispatched: Array<{ type?: string; [k: string]: unknown }> = [];
+  const dispatch = (a: unknown) => {
+    if (a && typeof a === 'object') {
+      dispatched.push(a as { type?: string });
+    }
+    return a;
+  };
+  const result = setEditMode(true)(dispatch as never, () => state as never);
+  expect(result).toBeNull();
+  // No SET_EDIT_MODE action landed; a danger toast was dispatched.
+  expect(dispatched.find(a => a.type === SET_EDIT_MODE)).toBeUndefined();
+  expect(
+    dispatched.find(a => {
+      const { type } = a as { type?: string };
+      return typeof type === 'string' && type.includes('TOAST');
+    }),
+  ).toBeDefined();
+});
+
+test('setEditMode(true) dispatches SET_EDIT_MODE when no preview is active', () => {
+  const state = { dashboardState: { versionPreview: null } };
+  const dispatched: Array<{ type?: string }> = [];
+  const dispatch = (a: unknown) => {
+    if (a && typeof a === 'object') {
+      dispatched.push(a as { type?: string });
+    }
+    return a;
+  };
+  setEditMode(true)(dispatch as never, () => state as never);
+  expect(dispatched.find(a => a.type === SET_EDIT_MODE)).toEqual({
+    type: SET_EDIT_MODE,
+    editMode: true,
+  });
+});
+
+test('setEditMode(false) is unaffected by an active preview (exit edit always works)', () => {
+  // Only the ``true`` direction is gated — exiting edit mode while in
+  // preview should still be a no-op-or-allowed path.
+  const state = {
+    dashboardState: {
+      versionPreview: {
+        versionUuid: '11111111-2222-3333-4444-555555555555',
+        capturedSliceEntities: { slices: {}, isLoading: false },
+        capturedLayout: { ROOT_ID: {}, GRID_ID: {} },
+      },
+    },
+  };
+  const dispatched: Array<{ type?: string; editMode?: boolean }> = [];
+  const dispatch = (a: unknown) => {
+    if (a && typeof a === 'object') {
+      dispatched.push(a as { type?: string; editMode?: boolean });
+    }
+    return a;
+  };
+  setEditMode(false)(dispatch as never, () => state as never);
+  expect(dispatched.find(a => a.type === SET_EDIT_MODE)).toEqual({
+    type: SET_EDIT_MODE,
+    editMode: false,
+  });
 });
 
 test('exitVersionPreview thunk is a no-op when no preview is active', () => {

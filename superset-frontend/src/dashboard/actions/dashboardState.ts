@@ -256,15 +256,31 @@ export function toggleExpandSlice(sliceId: number): ToggleExpandSliceAction {
   return { type: TOGGLE_EXPAND_SLICE, sliceId };
 }
 
-export const SET_EDIT_MODE = 'SET_EDIT_MODE';
+export const SET_EDIT_MODE = 'SET_EDIT_MODE' as const;
 
 interface SetEditModeAction {
   type: typeof SET_EDIT_MODE;
   editMode: boolean;
 }
 
-export function setEditMode(editMode: boolean): SetEditModeAction {
-  return { type: SET_EDIT_MODE, editMode };
+export function setEditMode(editMode: boolean) {
+  // Thunk so we can read ``versionPreview`` and refuse to enter edit
+  // mode while a historical snapshot is shown. The Header gates the
+  // primary entry point with a disabled button + tooltip; this is the
+  // defense-in-depth for the other call sites (empty-state CTAs in
+  // DashboardGrid / DashboardBuilder / Tab) that dispatch this action
+  // directly. Returns the dispatched action when applied, ``null``
+  // when blocked, mirroring callers that don't read the return value.
+  return (
+    dispatch: AppDispatch,
+    getState: GetState,
+  ): SetEditModeAction | null => {
+    if (editMode && getState().dashboardState?.versionPreview) {
+      dispatch(addDangerToast(t('Exit preview to edit the dashboard')));
+      return null;
+    }
+    return dispatch({ type: SET_EDIT_MODE, editMode });
+  };
 }
 
 export const ON_CHANGE = 'ON_CHANGE';
