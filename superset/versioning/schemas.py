@@ -126,3 +126,172 @@ class VersionListResponseSchema(Schema):
 
     result = fields.List(fields.Nested(VersionListItemSchema))
     count = fields.Integer()
+
+
+# ---- Cross-entity activity view (sc-107283) -------------------------------
+
+
+class ActivityChangedBySchema(Schema):
+    """Subset of the User model included in each activity record.
+
+    Identical shape to :class:`VersionChangedBySchema` — kept as a separate
+    class so the activity-view contract can evolve independently of the
+    version-history contract if the two diverge later. ``null`` when the
+    saving user has been deleted from ``ab_user`` (sc-103156 §Session
+    2026-05-18 clarification).
+    """
+
+    id = fields.Integer()
+    first_name = fields.String()
+    last_name = fields.String()
+
+
+class ActivityRecordSchema(Schema):
+    """One change record in the activity stream.
+
+    One record per atomic field-level change. Fields mirror
+    data-model.md §"``ActivityRecord`` DTO" — see that doc for source
+    and required/optional details.
+    """
+
+    version_uuid = fields.String(
+        metadata={
+            "description": (
+                "Stable UUIDv5 identifier for the source version "
+                "(``derive_version_uuid(entity_uuid, transaction_id)``). "
+                "Identical to what ``/versions/<version_uuid>/`` would "
+                "return for the same change."
+            )
+        },
+    )
+    entity_kind = fields.String(
+        metadata={
+            "description": (
+                "Model class of the source entity: "
+                '``"Dashboard"`` | ``"Slice"`` | ``"SqlaTable"``.'
+            )
+        },
+    )
+    entity_uuid = fields.String(
+        allow_none=True,
+        metadata={
+            "description": (
+                "UUID of the source entity; ``null`` only when "
+                "``entity_deleted: true`` (the entity has been hard-deleted "
+                "since the change was recorded)."
+            )
+        },
+    )
+    entity_name = fields.String(
+        metadata={
+            "description": (
+                "Name of the source entity *at the time of the change* — "
+                "denormalized from the validity-strategy shadow row. "
+                "Survives entity rename / delete."
+            )
+        },
+    )
+    entity_deleted = fields.Boolean(
+        metadata={
+            "description": (
+                "True iff the source entity is hard-deleted "
+                "(no live row by ``entity_id``). False for live and "
+                "soft-deleted entities."
+            )
+        },
+    )
+    entity_deletion_state = fields.String(
+        allow_none=True,
+        metadata={
+            "description": (
+                'Present + ``"soft_deleted"`` when the source entity has '
+                "non-null ``deleted_at`` (sc-103157). Absent or ``null`` "
+                "otherwise."
+            )
+        },
+    )
+    source = fields.String(
+        metadata={
+            "description": (
+                '``"self"`` if ``(entity_kind, entity_id)`` matches the '
+                'path entity; else ``"related"``. Drives the frontend\'s '
+                "no-group-under-save rendering rule (AV-013)."
+            )
+        },
+    )
+    transaction_id = fields.Integer(
+        metadata={"description": "Stable secondary ordering key; never reused."},
+    )
+    issued_at = fields.DateTime(
+        metadata={"description": "UTC timestamp; primary ordering key (DESC)."},
+    )
+    changed_by = fields.Nested(
+        ActivityChangedBySchema,
+        allow_none=True,
+        metadata={
+            "description": (
+                "User who produced the change, or ``null`` when the saving "
+                "user no longer exists in ``ab_user``."
+            )
+        },
+    )
+    kind = fields.String(
+        metadata={
+            "description": (
+                "Change-record taxonomy enum from sc-103156 FR-016 "
+                "(``filter`` / ``metric`` / ``time_range`` / ``field`` / "
+                "``column`` / ``chart`` / ``restore`` / ...)."
+            )
+        },
+    )
+    path = fields.Raw(
+        metadata={
+            "description": (
+                "JSON-pointer-style segment array (sc-103156 FR-019). "
+                "Example: ``['params', 'adhoc_filters', 'country']``."
+            )
+        },
+    )
+    from_value = fields.Raw(
+        allow_none=True,
+        metadata={"description": "Prior value; ``null`` = didn't exist."},
+    )
+    to_value = fields.Raw(
+        allow_none=True,
+        metadata={"description": "New value; ``null`` = removed."},
+    )
+    summary = fields.String(
+        metadata={
+            "description": (
+                'Synthesized headline for ``source: "related"`` records — '
+                'e.g., ``"Dataset updated: Sales Transactions"`` '
+                '(AV-012). Absent for ``source: "self"`` records.'
+            )
+        },
+    )
+    impact = fields.Raw(
+        allow_none=True,
+        metadata={
+            "description": (
+                'Optional dependent-count for ``source: "related"`` '
+                'records — e.g., ``{"charts": 4}`` for a dataset edit '
+                "that affected 4 charts on the path dashboard at the "
+                'change\'s transaction. Absent for ``source: "self"`` '
+                "records and for related records without dependents."
+            )
+        },
+    )
+
+
+class ActivityResponseSchema(Schema):
+    """Envelope for activity-view responses."""
+
+    result = fields.List(fields.Nested(ActivityRecordSchema))
+    count = fields.Integer(
+        metadata={
+            "description": (
+                "Total record count across all pages (the filtered + "
+                "denormalized stream), not just the current page."
+            )
+        },
+    )
