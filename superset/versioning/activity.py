@@ -881,6 +881,61 @@ class ActivityParamsError(ValueError):
     no other callers should depend on the exception type."""
 
 
+class PathEntityResponseError(Exception):
+    """Carries a pre-built error ``Response`` from
+    :func:`resolve_endpoint_path_entity`. The endpoint catches this and
+    returns the carried response directly. The shape exists so the
+    UUID-parse + find-by-uuid + ownership-check dance can live in one
+    place across the three activity-view endpoint families."""
+
+    def __init__(self, response: Any) -> None:
+        super().__init__("PathEntityResponseError")
+        self.response = response
+
+
+def resolve_endpoint_path_entity(api: Any, model_cls: type, uuid_str: str) -> Any:
+    """Run the standard path-entity preflight for an activity endpoint:
+
+    1. Parse *uuid_str* into a UUID (or raise → 400).
+    2. Look up the live entity via ``VersionDAO.find_active_by_uuid``
+       (or raise → 404).
+    3. Run ``security_manager.raise_for_ownership`` (or raise → 403).
+
+    Returns the live entity on success. Raises
+    :class:`PathEntityResponseError` carrying the appropriate error
+    Response on any failure; the endpoint method should::
+
+        try:
+            entity = resolve_endpoint_path_entity(self, Dashboard, uuid_str)
+        except PathEntityResponseError as exc:
+            return exc.response
+
+    *api* is the FAB ``ModelRestApi`` instance — we call
+    ``api.response_400`` / ``api.response_403`` / ``api.response_404``
+    on it. Pass ``self`` from the endpoint method.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset import security_manager
+    from superset.daos.version import VersionDAO
+    from superset.exceptions import SupersetSecurityException
+
+    try:
+        entity_uuid = UUID(uuid_str)
+    except ValueError as exc:
+        raise PathEntityResponseError(api.response_400(message="Invalid UUID")) from exc
+
+    entity = VersionDAO.find_active_by_uuid(model_cls, entity_uuid)
+    if entity is None:
+        raise PathEntityResponseError(api.response_404())
+
+    try:
+        security_manager.raise_for_ownership(entity)
+    except SupersetSecurityException as exc:
+        raise PathEntityResponseError(api.response_403()) from exc
+
+    return entity
+
+
 def parse_activity_query_params(args: Any) -> dict[str, Any]:
     """Parse the ``since`` / ``until`` / ``include`` / ``page`` / ``page_size``
     query parameters into the kwargs ``get_activity`` accepts.

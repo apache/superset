@@ -2500,32 +2500,22 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         # pylint: disable=import-outside-toplevel
-        from uuid import UUID
-
-        from superset.daos.version import VersionDAO
-        from superset.exceptions import SupersetSecurityException
         from superset.versioning import activity as activity_module
         from superset.versioning.schemas import ActivityResponseSchema
 
         try:
-            entity_uuid = UUID(uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid UUID")
+            entity = activity_module.resolve_endpoint_path_entity(
+                self, Dashboard, uuid_str
+            )
+        except activity_module.PathEntityResponseError as exc:
+            return exc.response
 
         try:
             params = activity_module.parse_activity_query_params(request.args)
         except activity_module.ActivityParamsError as exc:
             return self.response_400(message=str(exc))
 
-        entity = VersionDAO.find_active_by_uuid(Dashboard, entity_uuid)
-        if entity is None:
-            return self.response_404()
-        try:
-            security_manager.raise_for_ownership(entity)
-        except SupersetSecurityException:
-            return self.response_403()
-
-        records, count = activity_module.get_activity(Dashboard, entity_uuid, **params)
+        records, count = activity_module.get_activity(Dashboard, entity.uuid, **params)
         payload = ActivityResponseSchema().dump({"result": records, "count": count})
         return self.response(200, **payload)
 
