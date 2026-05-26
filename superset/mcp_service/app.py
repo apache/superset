@@ -204,6 +204,9 @@ Task Management (requires GLOBAL_TASK_FRAMEWORK feature flag):
 - list_tasks: List background tasks with status filtering and pagination
 - get_task_info: Get task details by integer ID or UUID
 
+Theme Management:
+- create_theme: Create a new custom theme with Ant Design token styling (requires write access)
+
 System Information:
 - get_instance_info: Get instance-wide statistics, metadata, and current user identity
 - find_users: Resolve a person's name to user IDs for use as a filter value
@@ -426,8 +429,9 @@ Input format:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
 - Write tools (generate_chart, generate_dashboard, update_chart, create_virtual_dataset,
-  save_sql_query, add_chart_to_existing_dashboard, update_chart_preview) require write
-  permissions. These tools are only listed for users who have the necessary access.
+  save_sql_query, add_chart_to_existing_dashboard, update_chart_preview, create_theme)
+  require write permissions. These tools are only listed for users who have the necessary
+  access.
   If a write tool does not appear in the tool list, the current user lacks write access.
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate
   from write access. A user may have SQL Lab access without having write access to charts
