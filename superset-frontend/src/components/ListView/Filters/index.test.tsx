@@ -17,6 +17,7 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
+import userEvent from '@testing-library/user-event';
 import { ListViewFilterOperator } from '../types';
 import UIFilters from './index';
 
@@ -359,6 +360,70 @@ test('numerical_range pill shows active state when value is set', () => {
   expect(
     screen.getByRole('button', { name: /clear age range filter/i }),
   ).toBeInTheDocument();
+});
+
+test('datetime_range onClear calls updateFilterValue with undefined directly', async () => {
+  const updateFilterValue = jest.fn();
+  const filters = [
+    {
+      Header: 'Time range',
+      key: 'time_range',
+      id: 'time_range',
+      input: 'datetime_range' as const,
+      operator: ListViewFilterOperator.Between,
+    },
+  ];
+
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[
+        {
+          id: 'time_range',
+          operator: ListViewFilterOperator.Between,
+          value: 'Last week',
+        },
+      ]}
+      updateFilterValue={updateFilterValue}
+    />,
+  );
+
+  const clearIcon = screen.getByTestId('compact-filter-clear');
+  await userEvent.click(clearIcon);
+  expect(updateFilterValue).toHaveBeenCalledWith(0, undefined);
+});
+
+test('numerical_range onClear calls updateFilterValue with undefined directly', async () => {
+  const updateFilterValue = jest.fn();
+  const filters = [
+    {
+      Header: 'Age range',
+      key: 'age_range',
+      id: 'age_range',
+      input: 'numerical_range' as const,
+      operator: ListViewFilterOperator.Between,
+    },
+  ];
+
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[
+        {
+          id: 'age_range',
+          operator: ListViewFilterOperator.Between,
+          value: [18, 65],
+        },
+      ]}
+      updateFilterValue={updateFilterValue}
+    />,
+  );
+
+  const clearBtn = screen.getByRole('button', {
+    name: /clear age range filter/i,
+  });
+  await userEvent.click(clearBtn);
+  expect(updateFilterValue).toHaveBeenCalledWith(0, undefined);
 });
 
 test('renders only the first search filter when multiple search filters are configured', () => {

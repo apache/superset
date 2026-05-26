@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useEffect, useRef, useState, type ReactNode, type MouseEvent } from 'react';
+import { t } from '@apache-superset/core/translation';
 import { useTheme, styled, css } from '@apache-superset/core/theme';
 import { Dropdown, Tooltip, Icons } from '@superset-ui/core/components';
 
@@ -171,7 +172,7 @@ export default function CompactFilterTrigger({
               onClick={handleClear}
               data-test="compact-filter-clear"
               aria-label={
-                typeof label === 'string' ? `Clear ${label} filter` : undefined
+                typeof label === 'string' ? t('Clear %s filter', label) : undefined
               }
             />
           ) : (
