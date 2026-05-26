@@ -400,6 +400,17 @@ class CreateLayerAnnotationRequest(BaseModel):
         description="Optional JSON metadata string for the annotation.",
     )
 
+    @field_validator("json_metadata")
+    @classmethod
+    def validate_json_metadata(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        try:
+            json_utils.loads(v)
+        except (ValueError, TypeError) as exc:
+            raise ValueError("json_metadata must be valid JSON") from exc
+        return v
+
 
 class CreateLayerAnnotationResponse(BaseModel):
     """Response schema for create_layer_annotation."""
