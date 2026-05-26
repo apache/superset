@@ -299,7 +299,10 @@ test('checkIsApplyDisabled returns true when required filter is missing value in
   );
 });
 
-test('checkIsApplyDisabled handles filter count mismatch', () => {
+test('checkIsApplyDisabled enables Apply when Selected has a filter value not yet in Applied', () => {
+  // Regression: when a required filter's default isn't applied (Applied missing
+  // the entry) and the user types a value, Selected gains an entry Applied
+  // doesn't have. Apply must be enabled so the user can commit the value.
   const dataMaskSelected: DataMaskStateWithId = {
     'filter-1': {
       id: 'filter-1',
@@ -322,7 +325,7 @@ test('checkIsApplyDisabled handles filter count mismatch', () => {
   const filters = [createFilter('filter-1'), createFilter('filter-2')];
 
   expect(checkIsApplyDisabled(dataMaskSelected, dataMaskApplied, filters)).toBe(
-    true,
+    false,
   );
 });
 
