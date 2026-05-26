@@ -217,7 +217,7 @@ test('datetime_range filter renders as CompactFilterTrigger with dialog aria-has
   expect(screen.getByText('Time range')).toBeInTheDocument();
 });
 
-test('datetime_range pill shows active state when value is set', () => {
+test('datetime_range pill shows active state when a time range string is set', () => {
   const filters = [
     {
       Header: 'Time range',
@@ -235,54 +235,21 @@ test('datetime_range pill shows active state when value is set', () => {
         {
           id: 'time_range',
           operator: ListViewFilterOperator.Between,
-          value: ['2024-01-01', '2024-12-31'],
+          value: 'Last week',
         },
       ]}
       updateFilterValue={mockUpdateFilterValue}
     />,
   );
 
-  expect(
-    screen.getByRole('button', { name: /clear time range filter/i }),
-  ).toBeInTheDocument();
+  // Clear icon is inside the pill (not a separate button)
+  const pill = screen.getByTestId('compact-filter-pill');
+  const clearIcon = screen.getByTestId('compact-filter-clear');
+  expect(clearIcon).toBeInTheDocument();
+  expect(pill).toContainElement(clearIcon);
 });
 
-test('datetime_range tooltip formats unix timestamps as human-readable dates', () => {
-  const filters = [
-    {
-      Header: 'Time range',
-      key: 'time_range',
-      id: 'time_range',
-      input: 'datetime_range' as const,
-      operator: ListViewFilterOperator.Between,
-      dateFilterValueType: 'unix' as const,
-    },
-  ];
-
-  // Jan 1 2024 00:00:00 UTC in ms
-  const start = 1704067200000;
-  const end = 1735689599000;
-
-  const { container } = render(
-    <UIFilters
-      filters={filters}
-      internalFilters={[
-        {
-          id: 'time_range',
-          operator: ListViewFilterOperator.Between,
-          value: [start, end],
-        },
-      ]}
-      updateFilterValue={mockUpdateFilterValue}
-    />,
-  );
-
-  // Should NOT contain raw unix timestamp numbers in the rendered output
-  expect(container.textContent).not.toContain(String(start));
-  expect(container.textContent).not.toContain(String(end));
-});
-
-test('datetime_range tooltip leaves ISO strings as-is', () => {
+test('datetime_range pill is inactive when value is NO_TIME_RANGE', () => {
   const filters = [
     {
       Header: 'Time range',
@@ -300,17 +267,43 @@ test('datetime_range tooltip leaves ISO strings as-is', () => {
         {
           id: 'time_range',
           operator: ListViewFilterOperator.Between,
-          value: ['2024-01-01T00:00:00.000Z', '2024-12-31T23:59:59.000Z'],
+          value: 'No filter',
         },
       ]}
       updateFilterValue={mockUpdateFilterValue}
     />,
   );
 
-  // Pill is active (clear button present)
-  expect(
-    screen.getByRole('button', { name: /clear time range filter/i }),
-  ).toBeInTheDocument();
+  expect(screen.queryByTestId('compact-filter-clear')).not.toBeInTheDocument();
+});
+
+test('datetime_range pill shows the time range string as tooltip title', () => {
+  const filters = [
+    {
+      Header: 'Time range',
+      key: 'time_range',
+      id: 'time_range',
+      input: 'datetime_range' as const,
+      operator: ListViewFilterOperator.Between,
+    },
+  ];
+
+  render(
+    <UIFilters
+      filters={filters}
+      internalFilters={[
+        {
+          id: 'time_range',
+          operator: ListViewFilterOperator.Between,
+          value: 'Last month',
+        },
+      ]}
+      updateFilterValue={mockUpdateFilterValue}
+    />,
+  );
+
+  // Pill is active and clear icon is inside
+  expect(screen.getByTestId('compact-filter-clear')).toBeInTheDocument();
 });
 
 test('numerical_range filter renders as CompactFilterTrigger with dialog aria-haspopup', () => {

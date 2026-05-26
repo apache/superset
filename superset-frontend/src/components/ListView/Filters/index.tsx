@@ -26,7 +26,6 @@ import {
   RefObject,
 } from 'react';
 
-import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { withTheme } from '@apache-superset/core/theme';
 
 import type {
@@ -36,9 +35,10 @@ import type {
   SelectOption,
 } from '../types';
 import type { FilterHandler } from './types';
+import { NO_TIME_RANGE } from '@superset-ui/core';
 import SearchFilter from './Search';
-import DateRangeFilter from './DateRange';
 import NumericalRangeFilter from './NumericalRange';
+import TimeRangeFilter from './TimeRange';
 import CompactFilterTrigger from './CompactFilterTrigger';
 import CompactSelectPanel from './CompactSelectPanel';
 import FilterPopoverContent from './FilterPopoverContent';
@@ -210,43 +210,29 @@ function UIFilters(
             );
           }
           if (input === 'datetime_range') {
-            const hasDateValue =
-              Array.isArray(initialValue) && initialValue.some(Boolean);
-            const dateTooltip = hasDateValue
-              ? (initialValue as (string | number)[])
-                  .filter(Boolean)
-                  .map(v => {
-                    if (typeof v === 'number') {
-                      // unix milliseconds → human-readable date
-                      return extendedDayjs(v).format('MMM D, YYYY HH:mm');
-                    }
-                    // ISO string — already readable
-                    return String(v);
-                  })
-                  .join(' – ')
-              : undefined;
+            const timeRangeValue =
+              typeof initialValue === 'string' ? initialValue : undefined;
+            const hasTimeValue =
+              !!timeRangeValue && timeRangeValue !== NO_TIME_RANGE;
             return (
               <CompactFilterTrigger
                 key={key}
                 label={Header}
-                hasValue={hasDateValue}
-                tooltipTitle={dateTooltip}
+                hasValue={hasTimeValue}
+                tooltipTitle={hasTimeValue ? timeRangeValue : undefined}
                 popupType="dialog"
                 onClear={() => {
                   filterRefs[index]?.current?.clearFilter?.();
                 }}
               >
-                {({ onClose }) => (
-                  <FilterPopoverContent onClose={onClose}>
-                    <DateRangeFilter
-                      ref={filterRefs[index]}
-                      Header={Header}
-                      initialValue={initialValue}
-                      name={id}
-                      onSubmit={value => updateFilterValue(index, value)}
-                      dateFilterValueType={dateFilterValueType || 'unix'}
-                    />
-                  </FilterPopoverContent>
+                {({ isOpen, onClose }) => (
+                  <TimeRangeFilter
+                    ref={filterRefs[index]}
+                    value={timeRangeValue}
+                    isOpen={isOpen}
+                    onClose={onClose}
+                    onSubmit={value => updateFilterValue(index, value)}
+                  />
                 )}
               </CompactFilterTrigger>
             );
