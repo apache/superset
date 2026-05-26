@@ -73,11 +73,13 @@ export function DrillDownHost({
     error,
     hasHierarchy,
     hasMoreLevels,
+    cacheBuster,
     drillDown,
     resetTo,
   } = useDrillDownState({
     formData,
     baseQueriesResponse: queriesResponse,
+    chartId: rendererProps.chartId,
   });
 
   const onDrillDown = useMemo<OnDrillDownHook | undefined>(() => {
@@ -91,13 +93,12 @@ export function DrillDownHost({
 
   const overlayProps = useMemo<Partial<ChartRendererProps>>(() => {
     if (!isDrilling) {
-      // Going back to root — restore original formData & data
+      // Not drilling — pass through with triggerRender to force update
+      // Also set chartIsStale to trigger a fresh query from the dashboard
       return {
-        formData: rendererProps.formData,
-        queriesResponse: rendererProps.queriesResponse,
-        latestQueryFormData: rendererProps.latestQueryFormData,
-        chartStatus: rendererProps.chartStatus,
         triggerRender: true,
+        chartIsStale: true,
+        triggerQuery: true,
       };
     }
     return {
@@ -105,7 +106,7 @@ export function DrillDownHost({
       queriesResponse: (effectiveQueriesResponse ?? null) as
         | QueryData[]
         | null,
-      chartStatus: (isLoading || !effectiveQueriesResponse) ? 'loading' : 'rendered',
+      chartStatus: (isLoading || !effectiveQueriesResponse) ? 'loading' : 'success',
       latestQueryFormData: effectiveFormData,
       chartIsStale: false,
       triggerRender: true,
@@ -115,14 +116,12 @@ export function DrillDownHost({
     effectiveFormData,
     effectiveQueriesResponse,
     isLoading,
-    rendererProps.formData,
-    rendererProps.queriesResponse,
-    rendererProps.latestQueryFormData,
-    rendererProps.chartStatus,
   ]);
 
   const handleResetTo = useCallback(
     (depth: number) => {
+      // eslint-disable-next-line no-console
+      console.log('[DrillDown] handleResetTo', depth, 'hasUpdateDataMask:', !!rendererProps.actions?.updateDataMask, 'chartId:', rendererProps.chartId);
       resetTo(depth);
       // Update cross-filter to match the level we're jumping to
       if (rendererProps.actions?.updateDataMask) {
@@ -217,6 +216,7 @@ export function DrillDownHost({
           {...rendererProps}
           {...overlayProps}
           height={adjustedHeight}
+          cacheBusterProp={cacheBuster}
           onDrillDown={onDrillDown}
         />
       </div>
