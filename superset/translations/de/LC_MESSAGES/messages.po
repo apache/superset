@@ -5787,7 +5787,7 @@ msgstr "Engine-Parameter"
 
 msgid "Engine spec \"InvalidEngine\" does not support being configured via individual parameters."
 msgstr ""
-"Die Engine-Spezifikation \"%(engine_spec)s\" unterstützt keine Konfiguration über einzelne "
+"Die Engine-Spezifikation \"InvalidEngine\" unterstützt keine Konfiguration über einzelne "
 "Parameter."
 
 msgid "Enter CA_BUNDLE"
