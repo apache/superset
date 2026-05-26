@@ -79,18 +79,22 @@ class TestChartVersionCapture(SupersetTestCase):
 
         # Trigger a save (update a scalar field)
         original_name = chart.slice_name
-        chart.slice_name = "Girls (edited)"
-        db.session.commit()
+        chart_id = chart.id
 
-        rows = _get_version_rows(chart)
-        # Two rows: baseline (operation_type=0) + edit (operation_type=1)
-        assert len(rows) == 2, f"Expected 2 version rows, got {len(rows)}"
-        assert rows[0].operation_type == 0  # baseline
-        assert rows[1].operation_type == 1  # update
+        try:
+            chart.slice_name = "Girls (edited)"
+            db.session.commit()
 
-        # Cleanup
-        chart.slice_name = original_name
-        db.session.commit()
+            rows = _get_version_rows(chart)
+            # Two rows: baseline (operation_type=0) + edit (operation_type=1)
+            assert len(rows) == 2, f"Expected 2 version rows, got {len(rows)}"
+            assert rows[0].operation_type == 0  # baseline
+            assert rows[1].operation_type == 1  # update
+        finally:
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = original_name
+            db.session.commit()
 
     def test_two_saves_create_exactly_two_version_rows_after_baseline(self) -> None:
         """Second save adds exactly one more version row (no duplicate rows)."""
@@ -101,23 +105,26 @@ class TestChartVersionCapture(SupersetTestCase):
         assert chart is not None
 
         original_name = chart.slice_name
+        chart_id = chart.id
 
-        chart.slice_name = "Boys v1"
-        db.session.commit()
-        rows_after_first = _get_version_rows(chart)
-        # baseline + v1 = 2 rows
-        assert len(rows_after_first) == 2
+        try:
+            chart.slice_name = "Boys v1"
+            db.session.commit()
+            rows_after_first = _get_version_rows(chart)
+            # baseline + v1 = 2 rows
+            assert len(rows_after_first) == 2
 
-        chart.slice_name = "Boys v2"
-        db.session.commit()
-        rows_after_second = _get_version_rows(chart)
-        # baseline + v1 + v2 = 3 rows
-        assert len(rows_after_second) == 3
-        assert rows_after_second[-1].slice_name == "Boys v2"
-
-        # Cleanup
-        chart.slice_name = original_name
-        db.session.commit()
+            chart.slice_name = "Boys v2"
+            db.session.commit()
+            rows_after_second = _get_version_rows(chart)
+            # baseline + v1 + v2 = 3 rows
+            assert len(rows_after_second) == 3
+            assert rows_after_second[-1].slice_name == "Boys v2"
+        finally:
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = original_name
+            db.session.commit()
 
 
 class TestChartBaselineCapture(SupersetTestCase):
@@ -138,16 +145,20 @@ class TestChartBaselineCapture(SupersetTestCase):
         assert chart is not None
 
         pre_edit_name = chart.slice_name
-        chart.slice_name = "Top 10 Girl Name Share (baseline test)"
-        db.session.commit()
+        chart_id = chart.id
 
-        rows = _get_version_rows(chart)
-        assert rows[0].operation_type == 0  # baseline row
-        assert rows[0].slice_name == pre_edit_name  # pre-edit name preserved
+        try:
+            chart.slice_name = "Top 10 Girl Name Share (baseline test)"
+            db.session.commit()
 
-        # Cleanup
-        chart.slice_name = pre_edit_name
-        db.session.commit()
+            rows = _get_version_rows(chart)
+            assert rows[0].operation_type == 0  # baseline row
+            assert rows[0].slice_name == pre_edit_name  # pre-edit name preserved
+        finally:
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = pre_edit_name
+            db.session.commit()
 
     def test_baseline_row_is_at_position_zero_for_preexisting_entity(self) -> None:
         """When an entity has zero Continuum history (e.g. created before
@@ -163,35 +174,37 @@ class TestChartBaselineCapture(SupersetTestCase):
         chart_id = chart.id
         original_name = chart.slice_name
 
-        # Wipe this chart's Continuum history so our baseline listener has
-        # count==0 on the next save — simulating a pre-existing entity.
-        ver_cls = version_class(Slice)
-        db.session.query(ver_cls).filter(ver_cls.id == chart_id).delete(
-            synchronize_session=False
-        )
-        db.session.commit()
+        try:
+            # Wipe this chart's Continuum history so our baseline listener has
+            # count==0 on the next save — simulating a pre-existing entity.
+            ver_cls = version_class(Slice)
+            db.session.query(ver_cls).filter(ver_cls.id == chart_id).delete(
+                synchronize_session=False
+            )
+            db.session.commit()
 
-        chart.slice_name = "Participants (preexisting baseline test)"
-        db.session.commit()
+            chart.slice_name = "Participants (preexisting baseline test)"
+            db.session.commit()
 
-        rows = _get_version_rows(chart)
-        pairs = [(r.operation_type, r.transaction_id) for r in rows]
-        assert len(rows) == 2, f"Expected baseline + update; got {pairs}"
-        assert rows[0].operation_type == 0, (
-            f"Position 0 should be the baseline (op=0); got "
-            f"op={rows[0].operation_type} at tx={rows[0].transaction_id}"
-        )
-        assert rows[0].slice_name == original_name, (
-            "The baseline row must carry the pre-edit slice_name"
-        )
-        assert rows[0].transaction_id < rows[1].transaction_id, (
-            "Baseline's transaction_id must be less than the update's so it "
-            "sorts to position 0"
-        )
-
-        # Cleanup
-        chart.slice_name = original_name
-        db.session.commit()
+            rows = _get_version_rows(chart)
+            pairs = [(r.operation_type, r.transaction_id) for r in rows]
+            assert len(rows) == 2, f"Expected baseline + update; got {pairs}"
+            assert rows[0].operation_type == 0, (
+                f"Position 0 should be the baseline (op=0); got "
+                f"op={rows[0].operation_type} at tx={rows[0].transaction_id}"
+            )
+            assert rows[0].slice_name == original_name, (
+                "The baseline row must carry the pre-edit slice_name"
+            )
+            assert rows[0].transaction_id < rows[1].transaction_id, (
+                "Baseline's transaction_id must be less than the update's so it "
+                "sorts to position 0"
+            )
+        finally:
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = original_name
+            db.session.commit()
 
     def test_no_duplicate_baseline_on_subsequent_saves(self) -> None:
         """Subsequent saves do NOT add a second baseline row."""
@@ -203,19 +216,24 @@ class TestChartBaselineCapture(SupersetTestCase):
         )
         assert chart is not None
         original_name = chart.slice_name
+        chart_id = chart.id
 
-        chart.slice_name = "Top 10 Boy Name Share v1"
-        db.session.commit()
+        try:
+            chart.slice_name = "Top 10 Boy Name Share v1"
+            db.session.commit()
 
-        chart.slice_name = "Top 10 Boy Name Share v2"
-        db.session.commit()
+            chart.slice_name = "Top 10 Boy Name Share v2"
+            db.session.commit()
 
-        baseline_rows = [r for r in _get_version_rows(chart) if r.operation_type == 0]
-        assert len(baseline_rows) == 1, "Should have exactly one baseline row"
-
-        # Cleanup
-        chart.slice_name = original_name
-        db.session.commit()
+            baseline_rows = [
+                r for r in _get_version_rows(chart) if r.operation_type == 0
+            ]
+            assert len(baseline_rows) == 1, "Should have exactly one baseline row"
+        finally:
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = original_name
+            db.session.commit()
 
 
 class TestChartVersionListApi(SupersetTestCase):
@@ -237,30 +255,33 @@ class TestChartVersionListApi(SupersetTestCase):
         assert chart is not None
         original_name = chart.slice_name
         chart_uuid = str(chart.uuid)
+        chart_id = chart.id
 
-        for i in range(3):
-            chart.slice_name = f"Girls v{i}"
+        try:
+            for i in range(3):
+                chart.slice_name = f"Girls v{i}"
+                db.session.commit()
+
+            self.login(ADMIN_USERNAME)
+            rv = self._list_versions(chart_uuid)
+            assert rv.status_code == 200
+
+            body = _json.loads(rv.data.decode("utf-8"))
+            # Baseline + three updates = 4 rows; we only need to check the last 3
+            # are the updates we just made in order.
+            assert body["count"] == len(body["result"])
+            assert len(body["result"]) >= 3
+            for idx, entry in enumerate(body["result"]):
+                assert entry["version_number"] == idx
+                assert entry["issued_at"] is not None
+            # Timestamps are monotonically non-decreasing.
+            timestamps = [e["issued_at"] for e in body["result"]]
+            assert timestamps == sorted(timestamps)
+        finally:
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = original_name
             db.session.commit()
-
-        self.login(ADMIN_USERNAME)
-        rv = self._list_versions(chart_uuid)
-        assert rv.status_code == 200
-
-        body = _json.loads(rv.data.decode("utf-8"))
-        # Baseline + three updates = 4 rows; we only need to check the last 3
-        # are the updates we just made in order.
-        assert body["count"] == len(body["result"])
-        assert len(body["result"]) >= 3
-        for idx, entry in enumerate(body["result"]):
-            assert entry["version_number"] == idx
-            assert entry["issued_at"] is not None
-        # Timestamps are monotonically non-decreasing.
-        timestamps = [e["issued_at"] for e in body["result"]]
-        assert timestamps == sorted(timestamps)
-
-        # Cleanup
-        chart.slice_name = original_name
-        db.session.commit()
 
     def test_list_versions_empty_for_untouched_entity(self) -> None:
         """A chart with no version rows returns [] (not 404)."""
@@ -274,24 +295,28 @@ class TestChartVersionListApi(SupersetTestCase):
         db.session.add(chart)
         db.session.commit()
         chart_uuid = str(chart.uuid)
+        chart_id = chart.id
 
-        # Purge the INSERT version row so the history is genuinely empty.
-        ver_cls = version_class(Slice)
-        db.session.query(ver_cls).filter(ver_cls.id == chart.id).delete(
-            synchronize_session=False
-        )
-        db.session.commit()
+        try:
+            # Purge the INSERT version row so the history is genuinely empty.
+            ver_cls = version_class(Slice)
+            db.session.query(ver_cls).filter(ver_cls.id == chart_id).delete(
+                synchronize_session=False
+            )
+            db.session.commit()
 
-        self.login(ADMIN_USERNAME)
-        rv = self._list_versions(chart_uuid)
-        assert rv.status_code == 200
-        body = _json.loads(rv.data.decode("utf-8"))
-        assert body["count"] == 0
-        assert body["result"] == []
-
-        # Cleanup
-        db.session.delete(chart)
-        db.session.commit()
+            self.login(ADMIN_USERNAME)
+            rv = self._list_versions(chart_uuid)
+            assert rv.status_code == 200
+            body = _json.loads(rv.data.decode("utf-8"))
+            assert body["count"] == 0
+            assert body["result"] == []
+        finally:
+            db.session.rollback()
+            stale = db.session.query(Slice).filter(Slice.id == chart_id).one_or_none()
+            if stale is not None:
+                db.session.delete(stale)
+                db.session.commit()
 
     def test_list_versions_returns_404_for_unknown_uuid(self) -> None:
         """An unknown UUID returns 404."""
@@ -357,39 +382,42 @@ class TestChartRestoreApi(SupersetTestCase):
         )
         assert chart is not None
         chart_uuid = str(chart.uuid)
+        chart_id = chart.id
         original_name = chart.slice_name
 
-        # Produce two additional saves so version history is 0/1/2.
-        chart.slice_name = "Girls v1"
-        db.session.commit()
-        chart.slice_name = "Girls v2"
-        db.session.commit()
+        try:
+            # Produce two additional saves so version history is 0/1/2.
+            chart.slice_name = "Girls v1"
+            db.session.commit()
+            chart.slice_name = "Girls v2"
+            db.session.commit()
 
-        self.login(ADMIN_USERNAME)
-        rv_list = self._list(chart_uuid)
-        assert rv_list.status_code == 200
-        listing = _json.loads(rv_list.data.decode("utf-8"))
-        initial_count = listing["count"]
-        assert initial_count >= 3
-        target_uuid = listing["result"][0]["version_uuid"]
+            self.login(ADMIN_USERNAME)
+            rv_list = self._list(chart_uuid)
+            assert rv_list.status_code == 200
+            listing = _json.loads(rv_list.data.decode("utf-8"))
+            initial_count = listing["count"]
+            assert initial_count >= 3
+            target_uuid = listing["result"][0]["version_uuid"]
 
-        # Restore to the first version (the original "Girls" name).
-        rv = self._restore(chart_uuid, target_uuid)
-        assert rv.status_code == 200, rv.data
+            # Restore to the first version (the original "Girls" name).
+            rv = self._restore(chart_uuid, target_uuid)
+            assert rv.status_code == 200, rv.data
 
-        # Live state matches the restored snapshot.
-        db.session.expire_all()
-        chart = db.session.query(Slice).filter(Slice.uuid == chart.uuid).one()
-        assert chart.slice_name == original_name
+            # Live state matches the restored snapshot.
+            db.session.expire_all()
+            chart = db.session.query(Slice).filter(Slice.uuid == chart.uuid).one()
+            assert chart.slice_name == original_name
 
-        # A new version row was recorded (non-destructive).
-        rv_list2 = self._list(chart_uuid)
-        body = _json.loads(rv_list2.data.decode("utf-8"))
-        assert body["count"] == initial_count + 1
-
-        # Cleanup
-        chart.slice_name = original_name
-        db.session.commit()
+            # A new version row was recorded (non-destructive).
+            rv_list2 = self._list(chart_uuid)
+            body = _json.loads(rv_list2.data.decode("utf-8"))
+            assert body["count"] == initial_count + 1
+        finally:
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = original_name
+            db.session.commit()
 
     def test_restore_returns_404_for_unknown_uuid(self) -> None:
         self.login(ADMIN_USERNAME)
@@ -433,33 +461,36 @@ class TestChartRestoreApi(SupersetTestCase):
         )
         assert chart is not None
         chart_uuid = str(chart.uuid)
+        chart_id = chart.id
         original_name = chart.slice_name
 
-        chart.slice_name = "Girls (v1)"
-        db.session.commit()
+        try:
+            chart.slice_name = "Girls (v1)"
+            db.session.commit()
 
-        self.login(ADMIN_USERNAME)
-        listing = _json.loads(self._list(chart_uuid).data.decode("utf-8"))
-        assert listing["count"] >= 2
-        # The earliest entry should still hold the original slice_name.
-        first_version_uuid = listing["result"][0]["version_uuid"]
+            self.login(ADMIN_USERNAME)
+            listing = _json.loads(self._list(chart_uuid).data.decode("utf-8"))
+            assert listing["count"] >= 2
+            # The earliest entry should still hold the original slice_name.
+            first_version_uuid = listing["result"][0]["version_uuid"]
 
-        rv = self.client.get(
-            f"/api/v1/chart/{chart_uuid}/versions/{first_version_uuid}/"
-        )
-        assert rv.status_code == 200, rv.data
-        body = _json.loads(rv.data.decode("utf-8"))["result"]
-        assert body["slice_name"] == original_name
-        assert body["_version"]["version_uuid"] == first_version_uuid
-        assert body["_version"]["version_number"] == 0
-        # Live row unchanged.
-        db.session.expire_all()
-        live = db.session.query(Slice).filter(Slice.uuid == chart.uuid).one()
-        assert live.slice_name == "Girls (v1)"
-
-        # Cleanup
-        live.slice_name = original_name
-        db.session.commit()
+            rv = self.client.get(
+                f"/api/v1/chart/{chart_uuid}/versions/{first_version_uuid}/"
+            )
+            assert rv.status_code == 200, rv.data
+            body = _json.loads(rv.data.decode("utf-8"))["result"]
+            assert body["slice_name"] == original_name
+            assert body["_version"]["version_uuid"] == first_version_uuid
+            assert body["_version"]["version_number"] == 0
+            # Live row unchanged.
+            db.session.expire_all()
+            live = db.session.query(Slice).filter(Slice.uuid == chart.uuid).one()
+            assert live.slice_name == "Girls (v1)"
+        finally:
+            db.session.rollback()
+            live = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            live.slice_name = original_name
+            db.session.commit()
 
     def test_get_version_returns_404_for_unknown_entity(self) -> None:
         self.login(ADMIN_USERNAME)
@@ -499,53 +530,55 @@ class TestChartRestoreApi(SupersetTestCase):
         original_created_by = chart.created_by_fk
         before_changed_on = chart.changed_on
 
-        # Produce a second version to restore to.
-        chart.slice_name = "Girls v1"
-        db.session.commit()
+        try:
+            # Produce a second version to restore to.
+            chart.slice_name = "Girls v1"
+            db.session.commit()
 
-        ver_cls = version_class(Slice)
-        first_tx = (
-            db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == chart_id)
-            .order_by(ver_cls.transaction_id.asc())
-            .limit(1)
-            .scalar()
-        )
-        assert first_tx is not None
-        target_uuid = str(derive_version_uuid(entity_uuid, first_tx))
+            ver_cls = version_class(Slice)
+            first_tx = (
+                db.session.query(ver_cls.transaction_id)
+                .filter(ver_cls.id == chart_id)
+                .order_by(ver_cls.transaction_id.asc())
+                .limit(1)
+                .scalar()
+            )
+            assert first_tx is not None
+            target_uuid = str(derive_version_uuid(entity_uuid, first_tx))
 
-        rv = self.client.post(
-            f"/api/v1/chart/{chart_uuid}/versions/{target_uuid}/restore"
-        )
-        assert rv.status_code == 200, rv.data
+            rv = self.client.post(
+                f"/api/v1/chart/{chart_uuid}/versions/{target_uuid}/restore"
+            )
+            assert rv.status_code == 200, rv.data
 
-        db.session.expire_all()
-        chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            db.session.expire_all()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
 
-        # Live entity checks.
-        assert chart.slice_name == original_name
-        assert chart.created_by_fk == original_created_by
-        assert chart.changed_by_fk == admin_id, (
-            f"Expected changed_by_fk to be restoring user id={admin_id}, "
-            f"got {chart.changed_by_fk}"
-        )
-        if before_changed_on is not None and chart.changed_on is not None:
-            assert chart.changed_on >= before_changed_on
+            # Live entity checks.
+            assert chart.slice_name == original_name
+            assert chart.created_by_fk == original_created_by
+            assert chart.changed_by_fk == admin_id, (
+                f"Expected changed_by_fk to be restoring user id={admin_id}, "
+                f"got {chart.changed_by_fk}"
+            )
+            if before_changed_on is not None and chart.changed_on is not None:
+                assert chart.changed_on >= before_changed_on
 
-        # The new version row produced by the restore must attribute the
-        # change to the restoring user.
-        rv_list = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/")
-        assert rv_list.status_code == 200
-        body = _json.loads(rv_list.data.decode("utf-8"))
-        latest_entry = body["result"][-1]
-        assert latest_entry["changed_by"] is not None, (
-            "New version row should have a changed_by"
-        )
-        assert latest_entry["changed_by"]["id"] == admin_id
-
-        # Cleanup
-        chart.slice_name = original_name
-        db.session.commit()
+            # The new version row produced by the restore must attribute the
+            # change to the restoring user.
+            rv_list = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/")
+            assert rv_list.status_code == 200
+            body = _json.loads(rv_list.data.decode("utf-8"))
+            latest_entry = body["result"][-1]
+            assert latest_entry["changed_by"] is not None, (
+                "New version row should have a changed_by"
+            )
+            assert latest_entry["changed_by"]["id"] == admin_id
+        finally:
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = original_name
+            db.session.commit()
 
     def test_put_response_returns_old_and_new_version_numbers(self) -> None:
         """PUT /api/v1/chart/<id> response must include old_version and
@@ -558,29 +591,32 @@ class TestChartRestoreApi(SupersetTestCase):
         chart_id = chart.id
         original_name = chart.slice_name
 
-        ver_cls = version_class(Slice)
-        count_before = db.session.query(ver_cls).filter(ver_cls.id == chart_id).count()
-        expected_old = count_before - 1 if count_before > 0 else None
+        try:
+            ver_cls = version_class(Slice)
+            count_before = (
+                db.session.query(ver_cls).filter(ver_cls.id == chart_id).count()
+            )
+            expected_old = count_before - 1 if count_before > 0 else None
 
-        self.login(ADMIN_USERNAME)
-        rv = self.client.put(
-            f"/api/v1/chart/{chart_id}",
-            json={"slice_name": "put-response-version-test"},
-        )
-        assert rv.status_code == 200, rv.data
-        body = _json.loads(rv.data.decode("utf-8"))
-        assert body["id"] == chart_id
-        assert body["old_version"] == expected_old
-        assert body["new_version"] is not None
-        assert "old_transaction_id" in body
-        assert "new_transaction_id" in body
-        if body["old_transaction_id"] is not None:
-            assert body["new_transaction_id"] != body["old_transaction_id"]
-
-        # Cleanup
-        chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
-        chart.slice_name = original_name
-        db.session.commit()
+            self.login(ADMIN_USERNAME)
+            rv = self.client.put(
+                f"/api/v1/chart/{chart_id}",
+                json={"slice_name": "put-response-version-test"},
+            )
+            assert rv.status_code == 200, rv.data
+            body = _json.loads(rv.data.decode("utf-8"))
+            assert body["id"] == chart_id
+            assert body["old_version"] == expected_old
+            assert body["new_version"] is not None
+            assert "old_transaction_id" in body
+            assert "new_transaction_id" in body
+            if body["old_transaction_id"] is not None:
+                assert body["new_transaction_id"] != body["old_transaction_id"]
+        finally:
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = original_name
+            db.session.commit()
 
     def test_restore_denies_non_owner(self) -> None:
         """T056 — Alpha has ``can_write`` on Chart but isn't an owner of

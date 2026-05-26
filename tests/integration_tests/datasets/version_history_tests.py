@@ -106,30 +106,35 @@ class TestDatasetVersionListApi(SupersetTestCase):
         assert table is not None
         original_description = table.description
         table_uuid = str(table.uuid)
+        table_id = table.id
 
-        for i in range(3):
-            table.description = f"Test description v{i}"
+        try:
+            for i in range(3):
+                table.description = f"Test description v{i}"
+                db.session.commit()
+
+            self.login(ADMIN_USERNAME)
+            rv = self._list_versions(table_uuid)
+            assert rv.status_code == 200
+            body = _json.loads(rv.data.decode("utf-8"))
+            assert body["count"] == len(body["result"])
+            for idx, entry in enumerate(body["result"]):
+                assert entry["version_number"] == idx
+                assert entry["issued_at"] is not None
+            # issued_at is an RFC-1123 HTTP date ("Wed, 22 Apr 2026 …"); parse
+            # before checking monotonic order rather than sorting strings,
+            # which would reorder incorrectly across day-of-week boundaries.
+            from email.utils import parsedate_to_datetime
+
+            parsed = [parsedate_to_datetime(e["issued_at"]) for e in body["result"]]
+            assert parsed == sorted(parsed)
+        finally:
+            # Restore fixture state even if an assertion above failed (otherwise
+            # the polluted description cascades to later tests in the suite).
+            db.session.rollback()
+            table = db.session.query(SqlaTable).filter(SqlaTable.id == table_id).one()
+            table.description = original_description
             db.session.commit()
-
-        self.login(ADMIN_USERNAME)
-        rv = self._list_versions(table_uuid)
-        assert rv.status_code == 200
-        body = _json.loads(rv.data.decode("utf-8"))
-        assert body["count"] == len(body["result"])
-        for idx, entry in enumerate(body["result"]):
-            assert entry["version_number"] == idx
-            assert entry["issued_at"] is not None
-        # issued_at is an RFC-1123 HTTP date ("Wed, 22 Apr 2026 …"); parse
-        # before checking monotonic order rather than sorting strings,
-        # which would reorder incorrectly across day-of-week boundaries.
-        from email.utils import parsedate_to_datetime
-
-        parsed = [parsedate_to_datetime(e["issued_at"]) for e in body["result"]]
-        assert parsed == sorted(parsed)
-
-        # Cleanup
-        table.description = original_description
-        db.session.commit()
 
     def test_list_versions_empty_for_untouched_entity(self) -> None:
         """A dataset with no version rows returns [] (not 404)."""
@@ -141,23 +146,31 @@ class TestDatasetVersionListApi(SupersetTestCase):
         db.session.add(table)
         db.session.commit()
         table_uuid = str(table.uuid)
+        table_id = table.id
 
-        ver_cls = version_class(SqlaTable)
-        db.session.query(ver_cls).filter(ver_cls.id == table.id).delete(
-            synchronize_session=False
-        )
-        db.session.commit()
+        try:
+            ver_cls = version_class(SqlaTable)
+            db.session.query(ver_cls).filter(ver_cls.id == table_id).delete(
+                synchronize_session=False
+            )
+            db.session.commit()
 
-        self.login(ADMIN_USERNAME)
-        rv = self._list_versions(table_uuid)
-        assert rv.status_code == 200
-        body = _json.loads(rv.data.decode("utf-8"))
-        assert body["count"] == 0
-        assert body["result"] == []
-
-        # Cleanup
-        db.session.delete(table)
-        db.session.commit()
+            self.login(ADMIN_USERNAME)
+            rv = self._list_versions(table_uuid)
+            assert rv.status_code == 200
+            body = _json.loads(rv.data.decode("utf-8"))
+            assert body["count"] == 0
+            assert body["result"] == []
+        finally:
+            db.session.rollback()
+            stale = (
+                db.session.query(SqlaTable)
+                .filter(SqlaTable.id == table_id)
+                .one_or_none()
+            )
+            if stale is not None:
+                db.session.delete(stale)
+                db.session.commit()
 
     def test_list_versions_returns_404_for_unknown_uuid(self) -> None:
         """An unknown UUID returns 404."""
@@ -248,51 +261,60 @@ class TestDatasetRestoreApi(SupersetTestCase):
         table_id = table.id
         original_description = table.description
 
-        # Two more edits to produce a non-trivial history.
-        table.description = "restore-test v1"
-        db.session.commit()
-        table.description = "restore-test v2"
-        db.session.commit()
+        try:
+            # Two more edits to produce a non-trivial history.
+            table.description = "restore-test v1"
+            db.session.commit()
+            table.description = "restore-test v2"
+            db.session.commit()
 
-        ver_cls = version_class(SqlaTable)
-        rows = (
-            db.session.query(
-                ver_cls.transaction_id,
-                ver_cls.operation_type,
-                ver_cls.description,
+            ver_cls = version_class(SqlaTable)
+            rows = (
+                db.session.query(
+                    ver_cls.transaction_id,
+                    ver_cls.operation_type,
+                    ver_cls.description,
+                )
+                .filter(ver_cls.id == table_id)
+                .order_by(ver_cls.transaction_id.asc())
+                .all()
             )
-            .filter(ver_cls.id == table_id)
-            .order_by(ver_cls.transaction_id.asc())
-            .all()
-        )
-        # Skip DELETE rows (operation_type=2) — the integration DB may carry
-        # shadow rows from prior fixture teardown cycles, and restoring to a
-        # DELETE state would re-delete the live entity (same fix as the
-        # dashboard restore test).
-        target_row = next(
-            (
-                row
-                for row in rows
-                if row.description == original_description and row.operation_type != 2
-            ),
-            None,
-        )
-        assert target_row is not None, (
-            f"No version with original description; rows={rows}"
-        )
-        target_uuid = str(derive_version_uuid(entity_uuid, target_row.transaction_id))
+            # Skip DELETE rows (operation_type=2) — the integration DB may carry
+            # shadow rows from prior fixture teardown cycles, and restoring to a
+            # DELETE state would re-delete the live entity (same fix as the
+            # dashboard restore test).
+            target_row = next(
+                (
+                    row
+                    for row in rows
+                    if row.description == original_description
+                    and row.operation_type != 2
+                ),
+                None,
+            )
+            assert target_row is not None, (
+                f"No version with original description; rows={rows}"
+            )
+            target_uuid = str(
+                derive_version_uuid(entity_uuid, target_row.transaction_id)
+            )
 
-        self.login(ADMIN_USERNAME)
-        rv = self._restore(table_uuid, target_uuid)
-        assert rv.status_code == 200, rv.data
+            self.login(ADMIN_USERNAME)
+            rv = self._restore(table_uuid, target_uuid)
+            assert rv.status_code == 200, rv.data
 
-        db.session.expire_all()
-        table = db.session.query(SqlaTable).filter(SqlaTable.id == table_id).one()
-        assert table.description == original_description
-
-        # Cleanup
-        table.description = original_description
-        db.session.commit()
+            db.session.expire_all()
+            table = db.session.query(SqlaTable).filter(SqlaTable.id == table_id).one()
+            assert table.description == original_description
+        finally:
+            # Cleanup — guard fixture state against assertion failures cascading
+            # to later tests in the suite (saw this manifest on Postgres CI's
+            # full-suite ordering: a failure here left ``description="restore-test
+            # v2"`` on birth_names and polluted downstream tests).
+            db.session.rollback()
+            table = db.session.query(SqlaTable).filter(SqlaTable.id == table_id).one()
+            table.description = original_description
+            db.session.commit()
 
     def test_restore_with_column_edits_reverts_columns(self) -> None:
         """After editing a column's description, restoring an earlier version
@@ -314,39 +336,47 @@ class TestDatasetRestoreApi(SupersetTestCase):
         col_name = col.column_name
         original_col_description = col.description
 
-        # Snapshot target version before our column edit.
-        ver_cls = version_class(SqlaTable)
-        last_tx = (
-            db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == table_id)
-            .order_by(ver_cls.transaction_id.desc())
-            .limit(1)
-            .scalar()
-        )
-        assert last_tx is not None
-        target_uuid = str(derive_version_uuid(entity_uuid, last_tx))
+        try:
+            # Snapshot target version before our column edit.
+            ver_cls = version_class(SqlaTable)
+            last_tx = (
+                db.session.query(ver_cls.transaction_id)
+                .filter(ver_cls.id == table_id)
+                .order_by(ver_cls.transaction_id.desc())
+                .limit(1)
+                .scalar()
+            )
+            assert last_tx is not None
+            target_uuid = str(derive_version_uuid(entity_uuid, last_tx))
 
-        col.description = "restore-test column edit"
-        db.session.commit()
+            col.description = "restore-test column edit"
+            db.session.commit()
 
-        self.login(ADMIN_USERNAME)
-        rv = self._restore(table_uuid, target_uuid)
-        assert rv.status_code == 200, rv.data
+            self.login(ADMIN_USERNAME)
+            rv = self._restore(table_uuid, target_uuid)
+            assert rv.status_code == 200, rv.data
 
-        # JSON-snapshot restore reassigns child PKs, so look up by natural
-        # key (column_name) rather than the old id.
-        db.session.expire_all()
-        col = (
-            db.session.query(TableColumn)
-            .filter(TableColumn.table_id == table_id)
-            .filter(TableColumn.column_name == col_name)
-            .one()
-        )
-        assert col.description == original_col_description
-
-        # Cleanup
-        col.description = original_col_description
-        db.session.commit()
+            # JSON-snapshot restore reassigns child PKs, so look up by natural
+            # key (column_name) rather than the old id.
+            db.session.expire_all()
+            col = (
+                db.session.query(TableColumn)
+                .filter(TableColumn.table_id == table_id)
+                .filter(TableColumn.column_name == col_name)
+                .one()
+            )
+            assert col.description == original_col_description
+        finally:
+            db.session.rollback()
+            col = (
+                db.session.query(TableColumn)
+                .filter(TableColumn.table_id == table_id)
+                .filter(TableColumn.column_name == col_name)
+                .one_or_none()
+            )
+            if col is not None:
+                col.description = original_col_description
+                db.session.commit()
 
     def test_restore_adds_back_removed_column_and_drops_added_one(self) -> None:
         """After a snapshot is taken, removing an existing column and adding
@@ -546,46 +576,50 @@ class TestDatasetRestoreApi(SupersetTestCase):
         original_description = table.description
         original_col_names = sorted(c.column_name for c in table.columns)
 
-        # Capture a snapshot point now; make a change after.
-        ver_cls = version_class(SqlaTable)
-        target_tx = (
-            db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == table_id)
-            .order_by(ver_cls.transaction_id.desc())
-            .limit(1)
-            .scalar()
-        )
-        assert target_tx is not None
-        target_uuid = str(derive_version_uuid(entity_uuid, target_tx))
+        try:
+            # Capture a snapshot point now; make a change after.
+            ver_cls = version_class(SqlaTable)
+            target_tx = (
+                db.session.query(ver_cls.transaction_id)
+                .filter(ver_cls.id == table_id)
+                .order_by(ver_cls.transaction_id.desc())
+                .limit(1)
+                .scalar()
+            )
+            assert target_tx is not None
+            target_uuid = str(derive_version_uuid(entity_uuid, target_tx))
 
-        table.description = "edited after snapshot"
-        db.session.commit()
+            table.description = "edited after snapshot"
+            db.session.commit()
 
-        self.login(ADMIN_USERNAME)
-        rv = self.client.get(f"/api/v1/dataset/{table_uuid}/versions/{target_uuid}/")
-        assert rv.status_code == 200, rv.data
-        body = _json.loads(rv.data.decode("utf-8"))["result"]
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get(
+                f"/api/v1/dataset/{table_uuid}/versions/{target_uuid}/"
+            )
+            assert rv.status_code == 200, rv.data
+            body = _json.loads(rv.data.decode("utf-8"))["result"]
 
-        # Scalar fields reflect the snapshot, not the live edit.
-        assert body["description"] == original_description
-        assert body["_version"]["version_uuid"] == target_uuid
+            # Scalar fields reflect the snapshot, not the live edit.
+            assert body["description"] == original_description
+            assert body["_version"]["version_uuid"] == target_uuid
 
-        # Columns list matches original set.
-        snapshot_col_names = sorted(c["column_name"] for c in body["columns"])
-        assert snapshot_col_names == original_col_names
+            # Columns list matches original set.
+            snapshot_col_names = sorted(c["column_name"] for c in body["columns"])
+            assert snapshot_col_names == original_col_names
 
-        # Metrics reconstructed.
-        assert isinstance(body["metrics"], list)
-        assert all("metric_name" in m for m in body["metrics"])
+            # Metrics reconstructed.
+            assert isinstance(body["metrics"], list)
+            assert all("metric_name" in m for m in body["metrics"])
 
-        # Live row remains in its edited state.
-        db.session.expire_all()
-        live = db.session.query(SqlaTable).filter(SqlaTable.id == table_id).one()
-        assert live.description == "edited after snapshot"
-
-        # Cleanup
-        live.description = original_description
-        db.session.commit()
+            # Live row remains in its edited state.
+            db.session.expire_all()
+            live = db.session.query(SqlaTable).filter(SqlaTable.id == table_id).one()
+            assert live.description == "edited after snapshot"
+        finally:
+            db.session.rollback()
+            live = db.session.query(SqlaTable).filter(SqlaTable.id == table_id).one()
+            live.description = original_description
+            db.session.commit()
 
     def test_put_response_returns_old_and_new_version_numbers(self) -> None:
         """PUT /api/v1/dataset/<id> should include old_version and new_version
@@ -600,38 +634,41 @@ class TestDatasetRestoreApi(SupersetTestCase):
         table_id = table.id
         original_description = table.description
 
-        ver_cls = version_class(SqlaTable)
-        count_before = db.session.query(ver_cls).filter(ver_cls.id == table_id).count()
-        expected_old = count_before - 1 if count_before > 0 else None
+        try:
+            ver_cls = version_class(SqlaTable)
+            count_before = (
+                db.session.query(ver_cls).filter(ver_cls.id == table_id).count()
+            )
+            expected_old = count_before - 1 if count_before > 0 else None
 
-        self.login(ADMIN_USERNAME)
-        rv = self.client.put(
-            f"/api/v1/dataset/{table_id}",
-            json={"description": "version-number response test"},
-        )
-        assert rv.status_code == 200, rv.data
-        body = _json.loads(rv.data.decode("utf-8"))
-        assert body["id"] == table_id
-        assert "old_version" in body
-        assert "new_version" in body
-        assert "old_transaction_id" in body
-        assert "new_transaction_id" in body
-        assert body["old_version"] == expected_old
-        # new_version points to the live row post-commit. It is usually
-        # old_version + 1, but can equal old_version when retention pruning
-        # removed an older closed row in the same commit.
-        assert body["new_version"] is not None
-        assert body["new_version"] >= 0
-        # Transaction ids are stable identifiers, so a successful update
-        # always produces a new_transaction_id distinct from the previous
-        # one (when old_transaction_id is known).
-        if body["old_transaction_id"] is not None:
-            assert body["new_transaction_id"] != body["old_transaction_id"]
-
-        # Cleanup
-        table = db.session.query(SqlaTable).filter(SqlaTable.id == table_id).one()
-        table.description = original_description
-        db.session.commit()
+            self.login(ADMIN_USERNAME)
+            rv = self.client.put(
+                f"/api/v1/dataset/{table_id}",
+                json={"description": "version-number response test"},
+            )
+            assert rv.status_code == 200, rv.data
+            body = _json.loads(rv.data.decode("utf-8"))
+            assert body["id"] == table_id
+            assert "old_version" in body
+            assert "new_version" in body
+            assert "old_transaction_id" in body
+            assert "new_transaction_id" in body
+            assert body["old_version"] == expected_old
+            # new_version points to the live row post-commit. It is usually
+            # old_version + 1, but can equal old_version when retention pruning
+            # removed an older closed row in the same commit.
+            assert body["new_version"] is not None
+            assert body["new_version"] >= 0
+            # Transaction ids are stable identifiers, so a successful update
+            # always produces a new_transaction_id distinct from the previous
+            # one (when old_transaction_id is known).
+            if body["old_transaction_id"] is not None:
+                assert body["new_transaction_id"] != body["old_transaction_id"]
+        finally:
+            db.session.rollback()
+            table = db.session.query(SqlaTable).filter(SqlaTable.id == table_id).one()
+            table.description = original_description
+            db.session.commit()
 
     def test_restore_denies_without_write_permission(self) -> None:
         """Gamma is read-only on Dataset — 403 on restore."""

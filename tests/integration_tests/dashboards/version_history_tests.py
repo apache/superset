@@ -79,30 +79,36 @@ class TestDashboardVersionCapture(SupersetTestCase):
         )
         assert dashboard is not None
 
-        # Capture tx IDs that exist before this save — we'll verify that
-        # exactly ONE new tx_id with operation_type=1 appears after the save
-        # (comparing by tx_id makes the test robust against retention
-        # pruning of older rows).
-        tx_ids_before = {r.transaction_id for r in _get_version_rows(dashboard)}
-
         original_title = dashboard.dashboard_title
-        dashboard.dashboard_title = "USA Births Names (edited)"
-        db.session.commit()
+        dashboard_id = dashboard.id
 
-        rows_after = _get_version_rows(dashboard)
-        new_update_rows = [
-            r
-            for r in rows_after
-            if r.operation_type == 1 and r.transaction_id not in tx_ids_before
-        ]
-        assert len(new_update_rows) == 1, (
-            f"Expected 1 new update row from this save, got {len(new_update_rows)}"
-            " — possible no_autoflush regression"
-        )
+        try:
+            # Capture tx IDs that exist before this save — we'll verify that
+            # exactly ONE new tx_id with operation_type=1 appears after the save
+            # (comparing by tx_id makes the test robust against retention
+            # pruning of older rows).
+            tx_ids_before = {r.transaction_id for r in _get_version_rows(dashboard)}
 
-        # Cleanup
-        dashboard.dashboard_title = original_title
-        db.session.commit()
+            dashboard.dashboard_title = "USA Births Names (edited)"
+            db.session.commit()
+
+            rows_after = _get_version_rows(dashboard)
+            new_update_rows = [
+                r
+                for r in rows_after
+                if r.operation_type == 1 and r.transaction_id not in tx_ids_before
+            ]
+            assert len(new_update_rows) == 1, (
+                f"Expected 1 new update row from this save, got {len(new_update_rows)}"  # noqa: E501
+                " — possible no_autoflush regression"
+            )
+        finally:
+            db.session.rollback()
+            dashboard = (
+                db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+            )
+            dashboard.dashboard_title = original_title
+            db.session.commit()
 
     def test_second_save_adds_one_row(self) -> None:
         """Each subsequent save adds exactly one more version row."""
@@ -115,29 +121,34 @@ class TestDashboardVersionCapture(SupersetTestCase):
         assert dashboard is not None
 
         original_title = dashboard.dashboard_title
+        dashboard_id = dashboard.id
 
-        # Track tx IDs across saves; compare by tx_id to sidestep retention
-        # pruning of older rows.
-        tx_before_v1 = {r.transaction_id for r in _get_version_rows(dashboard)}
-        dashboard.dashboard_title = "USA Births Names v1"
-        db.session.commit()
-        tx_after_v1 = {r.transaction_id for r in _get_version_rows(dashboard)}
-        new_txs_v1 = tx_after_v1 - tx_before_v1
-        assert len(new_txs_v1) == 1, (
-            f"Expected 1 new tx from v1 save, got {len(new_txs_v1)}"
-        )
+        try:
+            # Track tx IDs across saves; compare by tx_id to sidestep retention
+            # pruning of older rows.
+            tx_before_v1 = {r.transaction_id for r in _get_version_rows(dashboard)}
+            dashboard.dashboard_title = "USA Births Names v1"
+            db.session.commit()
+            tx_after_v1 = {r.transaction_id for r in _get_version_rows(dashboard)}
+            new_txs_v1 = tx_after_v1 - tx_before_v1
+            assert len(new_txs_v1) == 1, (
+                f"Expected 1 new tx from v1 save, got {len(new_txs_v1)}"
+            )
 
-        dashboard.dashboard_title = "USA Births Names v2"
-        db.session.commit()
-        tx_after_v2 = {r.transaction_id for r in _get_version_rows(dashboard)}
-        new_txs_v2 = tx_after_v2 - tx_after_v1
-        assert len(new_txs_v2) == 1, (
-            f"Expected 1 new tx from v2 save, got {len(new_txs_v2)}"
-        )
-
-        # Cleanup
-        dashboard.dashboard_title = original_title
-        db.session.commit()
+            dashboard.dashboard_title = "USA Births Names v2"
+            db.session.commit()
+            tx_after_v2 = {r.transaction_id for r in _get_version_rows(dashboard)}
+            new_txs_v2 = tx_after_v2 - tx_after_v1
+            assert len(new_txs_v2) == 1, (
+                f"Expected 1 new tx from v2 save, got {len(new_txs_v2)}"
+            )
+        finally:
+            db.session.rollback()
+            dashboard = (
+                db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+            )
+            dashboard.dashboard_title = original_title
+            db.session.commit()
 
 
 class TestDashboardVersionRetention(SupersetTestCase):
@@ -233,30 +244,35 @@ class TestDashboardVersionListApi(SupersetTestCase):
         )
         assert dashboard is not None
         original_title = dashboard.dashboard_title
+        dashboard_id = dashboard.id
         dashboard_uuid = str(dashboard.uuid)
 
-        self.login(ADMIN_USERNAME)
-        rv = self._list_versions(dashboard_uuid)
-        assert rv.status_code == 200
-        assert "count" in _json.loads(rv.data.decode("utf-8"))
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self._list_versions(dashboard_uuid)
+            assert rv.status_code == 200
+            assert "count" in _json.loads(rv.data.decode("utf-8"))
 
-        for i in range(3):
-            dashboard.dashboard_title = f"USA Births Names v{i}"
+            for i in range(3):
+                dashboard.dashboard_title = f"USA Births Names v{i}"
+                db.session.commit()
+
+            rv = self._list_versions(dashboard_uuid)
+            assert rv.status_code == 200
+            body = _json.loads(rv.data.decode("utf-8"))
+            # Delta-based assertion — retention pruning from other tests can lower
+            # the absolute count, but each of our three saves must produce exactly
+            # one new entry. We compare by transaction_id instead.
+            assert len(body["result"]) == body["count"]
+            for idx, entry in enumerate(body["result"]):
+                assert entry["version_number"] == idx
+        finally:
+            db.session.rollback()
+            dashboard = (
+                db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+            )
+            dashboard.dashboard_title = original_title
             db.session.commit()
-
-        rv = self._list_versions(dashboard_uuid)
-        assert rv.status_code == 200
-        body = _json.loads(rv.data.decode("utf-8"))
-        # Delta-based assertion — retention pruning from other tests can lower
-        # the absolute count, but each of our three saves must produce exactly
-        # one new entry. We compare by transaction_id instead.
-        assert len(body["result"]) == body["count"]
-        for idx, entry in enumerate(body["result"]):
-            assert entry["version_number"] == idx
-
-        # Cleanup
-        dashboard.dashboard_title = original_title
-        db.session.commit()
 
     def test_list_versions_empty_for_untouched_entity(self) -> None:
         """A dashboard with no version rows returns [] (not 404)."""
@@ -265,23 +281,31 @@ class TestDashboardVersionListApi(SupersetTestCase):
         db.session.add(dashboard)
         db.session.commit()
         dashboard_uuid = str(dashboard.uuid)
+        dashboard_id = dashboard.id
 
-        ver_cls = version_class(Dashboard)
-        db.session.query(ver_cls).filter(ver_cls.id == dashboard.id).delete(
-            synchronize_session=False
-        )
-        db.session.commit()
+        try:
+            ver_cls = version_class(Dashboard)
+            db.session.query(ver_cls).filter(ver_cls.id == dashboard_id).delete(
+                synchronize_session=False
+            )
+            db.session.commit()
 
-        self.login(ADMIN_USERNAME)
-        rv = self._list_versions(dashboard_uuid)
-        assert rv.status_code == 200
-        body = _json.loads(rv.data.decode("utf-8"))
-        assert body["count"] == 0
-        assert body["result"] == []
-
-        # Cleanup
-        db.session.delete(dashboard)
-        db.session.commit()
+            self.login(ADMIN_USERNAME)
+            rv = self._list_versions(dashboard_uuid)
+            assert rv.status_code == 200
+            body = _json.loads(rv.data.decode("utf-8"))
+            assert body["count"] == 0
+            assert body["result"] == []
+        finally:
+            db.session.rollback()
+            stale = (
+                db.session.query(Dashboard)
+                .filter(Dashboard.id == dashboard_id)
+                .one_or_none()
+            )
+            if stale is not None:
+                db.session.delete(stale)
+                db.session.commit()
 
     def test_list_versions_returns_404_for_unknown_uuid(self) -> None:
         """An unknown UUID returns 404."""
@@ -355,57 +379,63 @@ class TestDashboardRestoreApi(SupersetTestCase):
         dashboard_id = dashboard.id
         entity_uuid = dashboard.uuid
 
-        # Make two more edits so we have a known non-trivial history to
-        # navigate: [initial, v1, v2].
-        dashboard.dashboard_title = "USA Births Names v1"
-        db.session.commit()
-        dashboard.dashboard_title = "USA Births Names v2"
-        db.session.commit()
+        try:
+            # Make two more edits so we have a known non-trivial history to
+            # navigate: [initial, v1, v2].
+            dashboard.dashboard_title = "USA Births Names v1"
+            db.session.commit()
+            dashboard.dashboard_title = "USA Births Names v2"
+            db.session.commit()
 
-        ver_cls = version_class(Dashboard)
-        rows = (
-            db.session.query(
-                ver_cls.transaction_id,
-                ver_cls.operation_type,
-                ver_cls.dashboard_title,
-                ver_cls.end_transaction_id,
+            ver_cls = version_class(Dashboard)
+            rows = (
+                db.session.query(
+                    ver_cls.transaction_id,
+                    ver_cls.operation_type,
+                    ver_cls.dashboard_title,
+                    ver_cls.end_transaction_id,
+                )
+                .filter(ver_cls.id == dashboard_id)
+                .order_by(ver_cls.transaction_id.asc())
+                .all()
             )
-            .filter(ver_cls.id == dashboard_id)
-            .order_by(ver_cls.transaction_id.asc())
-            .all()
-        )
-        # Find the version whose snapshot has the original title. Skip DELETE
-        # rows (operation_type=2) — the integration DB may carry shadow rows
-        # from prior fixture teardown cycles, and restoring to a DELETE state
-        # would re-delete the live entity.
-        target_row = next(
-            (
-                row
-                for row in rows
-                if row.dashboard_title == original_title and row.operation_type != 2
-            ),
-            None,
-        )
-        assert target_row is not None, (
-            f"Expected at least one version row with original title; rows={rows}"
-        )
-        target_uuid = str(derive_version_uuid(entity_uuid, target_row.transaction_id))
+            # Find the version whose snapshot has the original title. Skip DELETE
+            # rows (operation_type=2) — the integration DB may carry shadow rows
+            # from prior fixture teardown cycles, and restoring to a DELETE state
+            # would re-delete the live entity.
+            target_row = next(
+                (
+                    row
+                    for row in rows
+                    if row.dashboard_title == original_title and row.operation_type != 2
+                ),
+                None,
+            )
+            assert target_row is not None, (
+                f"Expected at least one version row with original title; rows={rows}"
+            )
+            target_uuid = str(
+                derive_version_uuid(entity_uuid, target_row.transaction_id)
+            )
 
-        self.login(ADMIN_USERNAME)
-        rv = self._restore(dashboard_uuid, target_uuid)
-        assert rv.status_code == 200, rv.data
+            self.login(ADMIN_USERNAME)
+            rv = self._restore(dashboard_uuid, target_uuid)
+            assert rv.status_code == 200, rv.data
 
-        db.session.expire_all()
-        dashboard = (
-            db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
-        )
-        assert dashboard.dashboard_title == original_title, (
-            f"Restore did not revert title; rows={rows}"
-        )
-
-        # Cleanup
-        dashboard.dashboard_title = original_title
-        db.session.commit()
+            db.session.expire_all()
+            dashboard = (
+                db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+            )
+            assert dashboard.dashboard_title == original_title, (
+                f"Restore did not revert title; rows={rows}"
+            )
+        finally:
+            db.session.rollback()
+            dashboard = (
+                db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+            )
+            dashboard.dashboard_title = original_title
+            db.session.commit()
 
     def test_restore_reattaches_chart_removed_after_snapshot(self) -> None:
         """After the target snapshot is captured, detaching a chart and saving
@@ -503,30 +533,31 @@ class TestDashboardRestoreApi(SupersetTestCase):
         dashboard_id = dashboard.id
         original_title = dashboard.dashboard_title
 
-        ver_cls = version_class(Dashboard)
-        count_before = (
-            db.session.query(ver_cls).filter(ver_cls.id == dashboard_id).count()
-        )
-        expected_old = count_before - 1 if count_before > 0 else None
+        try:
+            ver_cls = version_class(Dashboard)
+            count_before = (
+                db.session.query(ver_cls).filter(ver_cls.id == dashboard_id).count()
+            )
+            expected_old = count_before - 1 if count_before > 0 else None
 
-        self.login(ADMIN_USERNAME)
-        rv = self.client.put(
-            f"/api/v1/dashboard/{dashboard_id}",
-            json={"dashboard_title": "put-response-version-test"},
-        )
-        assert rv.status_code == 200, rv.data
-        body = _json.loads(rv.data.decode("utf-8"))
-        assert body["id"] == dashboard_id
-        assert body["old_version"] == expected_old
-        assert body["new_version"] is not None
-        assert "old_transaction_id" in body
-        assert "new_transaction_id" in body
-        if body["old_transaction_id"] is not None:
-            assert body["new_transaction_id"] != body["old_transaction_id"]
-
-        # Cleanup
-        dashboard = (
-            db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
-        )
-        dashboard.dashboard_title = original_title
-        db.session.commit()
+            self.login(ADMIN_USERNAME)
+            rv = self.client.put(
+                f"/api/v1/dashboard/{dashboard_id}",
+                json={"dashboard_title": "put-response-version-test"},
+            )
+            assert rv.status_code == 200, rv.data
+            body = _json.loads(rv.data.decode("utf-8"))
+            assert body["id"] == dashboard_id
+            assert body["old_version"] == expected_old
+            assert body["new_version"] is not None
+            assert "old_transaction_id" in body
+            assert "new_transaction_id" in body
+            if body["old_transaction_id"] is not None:
+                assert body["new_transaction_id"] != body["old_transaction_id"]
+        finally:
+            db.session.rollback()
+            dashboard = (
+                db.session.query(Dashboard).filter(Dashboard.id == dashboard_id).one()
+            )
+            dashboard.dashboard_title = original_title
+            db.session.commit()
