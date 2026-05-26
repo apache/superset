@@ -111,15 +111,6 @@ FEATURE_FLAGS = {
     "ENABLE_EXTENSIONS": True,
     "SEMANTIC_LAYERS": True,
 }
-
-# Allow CORS from the webpack dev server
-ENABLE_CORS = True
-CORS_OPTIONS = {
-    "supports_credentials": True,
-    "allow_headers": ["*"],
-    "resources": [r"/api/*"],
-    "origins": ["http://localhost:9000", "http://127.0.0.1:9000"],
-}
 EXTENSIONS_PATH = "/app/docker/extensions"
 ALERT_REPORTS_NOTIFICATION_DRY_RUN = True
 WEBDRIVER_BASEURL = f"http://superset_app{os.environ.get('SUPERSET_APP_ROOT', '/')}/"  # When using docker compose baseurl should be http://superset_nginx{ENV{BASEPATH}}/  # noqa: E501
