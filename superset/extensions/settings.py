@@ -21,7 +21,6 @@ from typing import Any
 
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
-from sqlalchemy.exc import IntegrityError
 
 from superset import db
 from superset.models.core import ExtensionEnabled, ExtensionSettings
@@ -65,20 +64,15 @@ def _upsert_settings_row(
         )
         db.session.execute(stmt)
     else:
-        # MySQL/MariaDB and other dialects: INSERT then UPDATE on conflict.
-        try:
-            db.session.execute(
-                ExtensionSettings.__table__.insert().values(
-                    id=_SETTINGS_ROW_ID, active_chatbot_id=active_chatbot_id
-                )
+        # MySQL/MariaDB: session.merge handles INSERT-or-UPDATE without rollback.
+        obj = db.session.get(ExtensionSettings, _SETTINGS_ROW_ID)
+        if obj is None:
+            obj = ExtensionSettings(
+                id=_SETTINGS_ROW_ID, active_chatbot_id=active_chatbot_id
             )
-        except IntegrityError:
-            db.session.rollback()
-            db.session.execute(
-                ExtensionSettings.__table__.update()
-                .where(ExtensionSettings.__table__.c.id == _SETTINGS_ROW_ID)
-                .values(active_chatbot_id=active_chatbot_id)
-            )
+            db.session.add(obj)
+        else:
+            obj.active_chatbot_id = active_chatbot_id
 
 
 def _upsert_enabled_flag(extension_id: str, enabled: bool) -> None:
@@ -105,22 +99,16 @@ def _upsert_enabled_flag(extension_id: str, enabled: bool) -> None:
         )
         db.session.execute(stmt)
     else:
-        # MySQL/MariaDB and other dialects: INSERT then UPDATE on conflict.
-        try:
-            db.session.execute(
-                ExtensionEnabled.__table__.insert().values(
-                    extension_id=extension_id, enabled=enabled
-                )
-            )
-        except IntegrityError:
-            db.session.rollback()
-            db.session.execute(
-                ExtensionEnabled.__table__.update()
-                .where(
-                    ExtensionEnabled.__table__.c.extension_id == extension_id
-                )
-                .values(enabled=enabled)
-            )
+        # MySQL/MariaDB: read-then-update without rollback.
+        obj = (
+            db.session.query(ExtensionEnabled)
+            .filter_by(extension_id=extension_id)
+            .first()
+        )
+        if obj is None:
+            db.session.add(ExtensionEnabled(extension_id=extension_id, enabled=enabled))
+        else:
+            obj.enabled = enabled
 
 
 @transaction()

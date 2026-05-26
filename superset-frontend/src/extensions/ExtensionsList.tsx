@@ -18,11 +18,20 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { css } from '@apache-superset/core/theme';
-import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { SupersetClient } from '@superset-ui/core';
-import { Select } from '@superset-ui/core/components';
+import { ConfirmStatusChange, Select, Tooltip } from '@superset-ui/core/components';
 import { Switch } from '@superset-ui/core/components/Switch';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { useListViewResource } from 'src/views/CRUD/hooks';
+import { createErrorHandler } from 'src/views/CRUD/utils';
 import { ListView } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -34,6 +43,7 @@ const PAGE_SIZE = 25;
 type Extension = {
   id: string;
   name: string;
+  publisher: string;
   enabled: boolean;
 };
 
@@ -51,6 +61,9 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   addDangerToast,
   addSuccessToast,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
   const {
     state: { loading, resourceCount, resourceCollection },
     fetchData,
@@ -107,7 +120,66 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   const chatbotExtensions = useMemo(() => {
     const chatbotIds = new Set(getRegisteredViewIds(CHATBOT_LOCATION));
     return resourceCollection.filter(ext => chatbotIds.has(ext.id));
+    // chatbotRegistryVersion is intentionally in deps to re-evaluate when views register
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resourceCollection, chatbotRegistryVersion]);
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.supx')) {
+      addDangerToast(t('File must have a .supx extension.'));
+      e.target.value = '';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('bundle', file);
+
+    setUploading(true);
+    SupersetClient.post({
+      endpoint: '/api/v1/extensions/',
+      body: formData,
+      headers: { Accept: 'application/json' },
+    })
+      .then(() => {
+        addSuccessToast(t('Extension installed successfully.'));
+        refreshData();
+      })
+      .catch(
+        createErrorHandler(errMsg =>
+          addDangerToast(
+            t('There was an issue installing the extension: %s', errMsg),
+          ),
+        ),
+      )
+      .finally(() => {
+        setUploading(false);
+        e.target.value = '';
+      });
+  };
+
+  const handleDelete = (extension: Extension) => {
+    const { publisher, name } = extension;
+    SupersetClient.delete({
+      endpoint: `/api/v1/extensions/${publisher}/${name}`,
+    }).then(
+      () => {
+        addSuccessToast(t('Deleted: %s', extension.name));
+        refreshData();
+      },
+      createErrorHandler(errMsg =>
+        addDangerToast(
+          t('There was an issue deleting %s: %s', extension.name, errMsg),
+        ),
+      ),
+    );
+  };
 
   const columns = useMemo(
     () => [
@@ -117,7 +189,9 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         size: 'lg',
         id: 'name',
         Cell: ({
-          row: { original: { name } },
+          row: {
+            original: { name },
+          },
         }: any) => name,
       },
       {
@@ -126,7 +200,9 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         size: 'sm',
         id: 'enabled',
         Cell: ({
-          row: { original: { id } },
+          row: {
+            original: { id },
+          },
         }: any) => (
           <Switch
             data-test="toggle-enabled"
@@ -134,6 +210,39 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
             onClick={(checked: boolean) => toggleEnabled(id, checked)}
             size="small"
           />
+        ),
+      },
+      {
+        Header: t('Actions'),
+        id: 'actions',
+        disableSortBy: true,
+        Cell: ({ row: { original } }: any) => (
+          <ConfirmStatusChange
+            title={t('Please confirm')}
+            description={
+              <>
+                {t('Are you sure you want to delete')} <b>{original.name}</b>?
+              </>
+            }
+            onConfirm={() => handleDelete(original)}
+          >
+            {(confirmDelete: () => void) => (
+              <Tooltip
+                id="delete-extension-tooltip"
+                title={t('Delete')}
+                placement="bottom"
+              >
+                <span
+                  role="button"
+                  tabIndex={0}
+                  className="action-button"
+                  onClick={confirmDelete}
+                >
+                  <Icons.DeleteOutlined iconSize="l" />
+                </span>
+              </Tooltip>
+            )}
+          </ConfirmStatusChange>
         ),
       },
     ],
@@ -148,11 +257,33 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   const menuData: SubMenuProps = {
     activeChild: 'Extensions',
     name: t('Extensions'),
-    buttons: [],
+    buttons: [
+      {
+        name: (
+          <Tooltip
+            id="import-extension-tooltip"
+            title={t('Import extension (.supx)')}
+            placement="bottomRight"
+          >
+            <Icons.DownloadOutlined iconSize="l" />
+          </Tooltip>
+        ),
+        buttonStyle: 'link',
+        onClick: handleUploadClick,
+        loading: uploading,
+      },
+    ],
   };
 
   return (
     <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".supx"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
       <SubMenu {...menuData} />
       {chatbotOptions.length > 1 && (
         <div style={{ padding: '16px 24px' }}>
@@ -167,7 +298,9 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
               saveSettings({ active_chatbot_id: (value as string) ?? null })
             }
             placeholder={t('First registered (automatic)')}
-            css={css`width: 280px;`}
+            css={css`
+              width: 280px;
+            `}
           />
         </div>
       )}
