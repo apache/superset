@@ -317,7 +317,16 @@ def _select_change_rows_for_kinds(
     """Fire one SELECT per entity_kind with ``entity_id IN (...)``;
     concatenate the results. Each SELECT joins ``version_transaction``
     + ``ab_user`` so the orchestrator has the columns it needs for
-    decoration."""
+    decoration.
+
+    Per-kind, not one query: SQLAlchemy's ``tuple_(entity_kind,
+    entity_id).in_(...)`` would collapse the three queries into one,
+    but its SQL emission is not portable across Postgres, MySQL, and
+    SQLite. The per-kind shape is the correct trade-off given
+    Superset's multi-dialect requirement (at most 3 round-trips per
+    request, bounded by the kind taxonomy). Do not "optimise" into a
+    composite-tuple IN clause without verifying the SQL on all three
+    dialects."""
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import versioning_manager
 
