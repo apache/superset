@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { FC, memo, useCallback, useMemo } from 'react';
+import { FC, memo, useCallback, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { DataMaskStateWithId } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
@@ -39,6 +39,7 @@ import FilterBarSettings from './FilterBarSettings';
 import crossFiltersSelector from './CrossFilters/selectors';
 import {
   getUrlFilterIndicators,
+  getUrlFilterIdentity,
   UrlFilterIndicator,
 } from './UrlFilters/selectors';
 import UrlFilterTag from './UrlFilters/UrlFilterTag';
@@ -127,18 +128,24 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
     [chartIds, chartLayoutItems, dataMask, verboseMaps],
   );
 
-  const activeUrlFilters = useMemo(() => getUrlFilterIndicators(), []);
+  const [activeUrlFilters, setActiveUrlFilters] = useState<
+    UrlFilterIndicator[]
+  >(() => getUrlFilterIndicators());
 
   const handleRemoveUrlFilter = useCallback(
     (filterToRemove: UrlFilterIndicator) => {
       const risonParam = getRisonFilterParam();
       if (!risonParam) return;
 
+      const removeId = getUrlFilterIdentity(filterToRemove.filter);
       const currentFilters = parseRisonFilters(risonParam);
       const remaining = currentFilters.filter(
-        f => f.subject !== filterToRemove.filter.subject,
+        f => getUrlFilterIdentity(f) !== removeId,
       );
       updateUrlWithUnmatchedFilters(remaining);
+      setActiveUrlFilters(prev =>
+        prev.filter(f => getUrlFilterIdentity(f.filter) !== removeId),
+      );
     },
     [],
   );
@@ -154,7 +161,7 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
         </UrlFilterTitle>
         {activeUrlFilters.map(filter => (
           <UrlFilterTag
-            key={filter.subject}
+            key={getUrlFilterIdentity(filter.filter)}
             filter={filter}
             orientation={FilterBarOrientation.Horizontal}
             onRemove={handleRemoveUrlFilter}

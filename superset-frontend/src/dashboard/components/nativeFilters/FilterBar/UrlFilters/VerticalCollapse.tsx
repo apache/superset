@@ -28,7 +28,7 @@ import {
   parseRisonFilters,
 } from 'src/dashboard/util/risonFilters';
 import UrlFilterTag from './UrlFilterTag';
-import { UrlFilterIndicator } from './selectors';
+import { UrlFilterIndicator, getUrlFilterIdentity } from './selectors';
 
 const UrlFiltersVerticalCollapse = (props: {
   urlFilters: UrlFilterIndicator[];
@@ -48,14 +48,15 @@ const UrlFiltersVerticalCollapse = (props: {
       const risonParam = getRisonFilterParam();
       if (!risonParam) return;
 
+      const removeId = getUrlFilterIdentity(filterToRemove.filter);
       const currentFilters = parseRisonFilters(risonParam);
       const remaining = currentFilters.filter(
-        f => f.subject !== filterToRemove.filter.subject,
+        f => getUrlFilterIdentity(f) !== removeId,
       );
 
       updateUrlWithUnmatchedFilters(remaining);
       setUrlFilters(prev =>
-        prev.filter(f => f.subject !== filterToRemove.subject),
+        prev.filter(f => getUrlFilterIdentity(f.filter) !== removeId),
       );
     },
     [],
@@ -131,7 +132,7 @@ const UrlFiltersVerticalCollapse = (props: {
     () =>
       urlFilters.map(filter => (
         <UrlFilterTag
-          key={filter.subject}
+          key={getUrlFilterIdentity(filter.filter)}
           filter={filter}
           orientation={FilterBarOrientation.Vertical}
           onRemove={handleRemoveFilter}

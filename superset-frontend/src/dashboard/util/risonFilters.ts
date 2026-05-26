@@ -135,7 +135,9 @@ export function parseRisonFilters(risonString: string): RisonFilter[] {
       return filters;
     }
 
-    // Handle NOT operator: NOT:(condition)
+    // Handle NOT operator: NOT:(condition). Falls through so regular keys at the
+    // same level are still picked up below (supports mixed payloads like
+    // `(country:USA,NOT:(status:archived))`).
     if (parsedObj.NOT && typeof parsedObj.NOT === 'object') {
       Object.entries(parsedObj.NOT as Record<string, unknown>).forEach(
         ([key, value]) => {
@@ -148,7 +150,6 @@ export function parseRisonFilters(risonString: string): RisonFilter[] {
           filters.push(filter);
         },
       );
-      return filters;
     }
 
     // Handle regular filters
@@ -252,16 +253,24 @@ export function risonFiltersToString(filters: RisonFilter[]): string {
     return '';
   }
 
-  const risonObject: Record<
-    string,
-    string | number | boolean | (string | number)[] | Record<string, unknown>
-  > = {};
+  type RisonValue =
+    | string
+    | number
+    | boolean
+    | (string | number)[]
+    | Record<string, unknown>;
+  const risonObject: Record<string, RisonValue> = {};
+  const notObject: Record<string, RisonValue> = {};
 
-  filters.forEach(filter => {
-    if (filter.operator === 'IN' && Array.isArray(filter.comparator)) {
-      risonObject[filter.subject] = filter.comparator;
-    } else if (filter.operator === '==') {
-      risonObject[filter.subject] = filter.comparator;
+  const encodePositive = (
+    target: Record<string, RisonValue>,
+    filter: RisonFilter,
+    op: string,
+  ) => {
+    if (op === 'IN' && Array.isArray(filter.comparator)) {
+      target[filter.subject] = filter.comparator;
+    } else if (op === '==') {
+      target[filter.subject] = filter.comparator;
     } else {
       const operatorMap: Record<string, string> = {
         '>': 'gt',
@@ -270,12 +279,27 @@ export function risonFiltersToString(filters: RisonFilter[]): string {
         '<=': 'lte',
         BETWEEN: 'between',
         LIKE: 'like',
+        ILIKE: 'ilike',
       };
+      const risonOp = operatorMap[op] || op;
+      target[filter.subject] = { [risonOp]: filter.comparator };
+    }
+  };
 
-      const risonOp = operatorMap[filter.operator] || filter.operator;
-      risonObject[filter.subject] = { [risonOp]: filter.comparator };
+  filters.forEach(filter => {
+    if (filter.operator === '!=') {
+      // Re-emit as NOT:(col:value) so parseRisonFilters can read it back.
+      encodePositive(notObject, filter, '==');
+    } else if (filter.operator === 'NOT IN') {
+      encodePositive(notObject, filter, 'IN');
+    } else {
+      encodePositive(risonObject, filter, filter.operator);
     }
   });
+
+  if (Object.keys(notObject).length > 0) {
+    risonObject.NOT = notObject;
+  }
 
   try {
     return rison.encode(risonObject);

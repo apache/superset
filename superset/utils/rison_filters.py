@@ -22,12 +22,40 @@ to Superset's adhoc_filters format.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, Optional, Union
 
 import prison
-from flask import request
+from flask import has_request_context, request
 
 logger = logging.getLogger(__name__)
+
+# SQL identifiers permitted in URL-supplied filter columns. Restricted to
+# alphanumeric/underscore (optionally schema-qualified) so OR-path SQL
+# generation never interpolates an attacker-controlled identifier verbatim.
+_SAFE_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*(\.[A-Za-z_][A-Za-z0-9_]*)?$")
+
+
+def _safe_identifier(name: Any) -> Optional[str]:
+    if isinstance(name, str) and _SAFE_IDENTIFIER_RE.match(name):
+        return name
+    return None
+
+
+def _quote_sql_literal(value: Any) -> Optional[str]:
+    """Quote a scalar value safely for SQL string interpolation.
+
+    - Strings: single-quoted with `'` escaped as `''` (SQL standard).
+    - Numeric / bool: rendered bare.
+    - Anything else (None, dict, list, etc.): rejected.
+    """
+    if isinstance(value, bool):
+        return "TRUE" if value else "FALSE"
+    if isinstance(value, (int, float)):
+        return str(value)
+    if isinstance(value, str):
+        return "'" + value.replace("'", "''") + "'"
+    return None
 
 
 class RisonFilterParser:
@@ -67,6 +95,10 @@ class RisonFilterParser:
             List of adhoc_filter dictionaries
         """
         if filter_string is None:
+            # Callers outside a Flask request context (CLI, async tasks, tests)
+            # would otherwise hit a RuntimeError on `request.args` access.
+            if not has_request_context():
+                return []
             filter_string = request.args.get("f")
 
         if not filter_string:
@@ -180,25 +212,41 @@ class RisonFilterParser:
         return []
 
     def _build_sql_condition(self, column: str, value: Any) -> Optional[str]:
+        # URL-supplied columns flow directly into a raw SQL expression in the
+        # OR path, so the identifier must match a strict whitelist or we drop
+        # the whole condition. Likewise, string literals get `'` escaped to
+        # `''` and unrecognised value types are rejected outright.
+        safe_column = _safe_identifier(column)
+        if safe_column is None:
+            logger.warning("Rejecting URL filter with unsafe column: %r", column)
+            return None
+
         if isinstance(value, list):
-            values_str = ", ".join(
-                [f"'{v}'" if isinstance(v, str) else str(v) for v in value]
-            )
-            return f"{column} IN ({values_str})"
+            quoted = [_quote_sql_literal(v) for v in value]
+            if any(q is None for q in quoted):
+                return None
+            return f"{safe_column} IN ({', '.join(quoted)})"  # type: ignore[arg-type]
 
         if isinstance(value, dict):
             operator_info = self._parse_operator_dict(value)
             if operator_info:
                 op, comp = operator_info
-                if op == "BETWEEN" and isinstance(comp, list):
-                    return f"{column} BETWEEN '{comp[0]}' AND '{comp[1]}'"
-                if op == "LIKE":
-                    return f"{column} LIKE '{comp}'"
-                comp_str = f"'{comp}'" if isinstance(comp, str) else str(comp)
-                return f"{column} {op} {comp_str}"
+                if op == "BETWEEN" and isinstance(comp, list) and len(comp) == 2:
+                    lo = _quote_sql_literal(comp[0])
+                    hi = _quote_sql_literal(comp[1])
+                    if lo is None or hi is None:
+                        return None
+                    return f"{safe_column} BETWEEN {lo} AND {hi}"
+                comp_str = _quote_sql_literal(comp)
+                if comp_str is None:
+                    return None
+                return f"{safe_column} {op} {comp_str}"
+            return None
 
-        val_str = f"'{value}'" if isinstance(value, str) else str(value)
-        return f"{column} = {val_str}"
+        val_str = _quote_sql_literal(value)
+        if val_str is None:
+            return None
+        return f"{safe_column} = {val_str}"
 
     def _handle_not_operator(self, not_value: Any) -> list[dict[str, Any]]:
         if isinstance(not_value, dict):

@@ -30,6 +30,17 @@ export interface UrlFilterIndicator {
   filter: RisonFilter;
 }
 
+/**
+ * Build a stable identity string for a URL filter so duplicates on the same
+ * column (e.g., multiple conditions on `country`) get distinct React keys and
+ * can be removed individually.
+ */
+export function getUrlFilterIdentity(filter: RisonFilter): string {
+  return `${filter.subject}|${filter.operator}|${JSON.stringify(
+    filter.comparator,
+  )}`;
+}
+
 function formatFilterValue(filter: RisonFilter): string {
   const { comparator, operator } = filter;
 
