@@ -102,18 +102,24 @@ async def get_report_info(
 
         return result
 
-    except Exception as e:
+    except Exception as exc:
+        logger.warning(
+            "Report information retrieval failed: identifier=%s, error=%s",
+            request.identifier,
+            str(exc),
+            exc_info=True,
+        )
         await ctx.error(
             "Report information retrieval failed: identifier=%s, error=%s, "
             "error_type=%s"
             % (
                 request.identifier,
-                str(e),
-                type(e).__name__,
+                str(exc),
+                type(exc).__name__,
             )
         )
         return ReportError(
-            error=f"Failed to get report info: {str(e)}",
+            error=f"Failed to get report info: {str(exc)}",
             error_type="InternalError",
             timestamp=datetime.now(timezone.utc),
         )
