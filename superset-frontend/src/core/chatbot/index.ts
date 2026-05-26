@@ -48,24 +48,35 @@ export interface ActiveChatbot {
  *
  * Selection policy:
  *  - If no chatbot is registered, returns `undefined` — the corner stays empty.
- *  - If `adminSelectedId` is provided and matches a registered chatbot, that one wins.
- *  - Otherwise the first-to-register chatbot is used as a fallback.
+ *  - Disabled chatbots (per `enabledMap`) are excluded before selection.
+ *  - If `adminSelectedId` matches an enabled registered chatbot, that one wins.
+ *  - Otherwise the first enabled chatbot in registration order is used as a fallback.
  *
  * @param adminSelectedId The id stored in the admin "Default chatbot" setting, if any.
+ * @param enabledMap Per-extension enabled flags from the admin settings API.
  * @returns The active chatbot's id and provider, or `undefined` if none.
  */
 export const getActiveChatbot = (
   adminSelectedId?: string | null,
+  enabledMap?: Record<string, boolean>,
 ): ActiveChatbot | undefined => {
   const registeredIds = getRegisteredViewIds(CHATBOT_LOCATION);
   if (registeredIds.length === 0) {
     return undefined;
   }
 
+  const candidates = enabledMap
+    ? registeredIds.filter(id => enabledMap[id] !== false)
+    : registeredIds;
+
+  if (candidates.length === 0) {
+    return undefined;
+  }
+
   const selectedId =
-    adminSelectedId && registeredIds.includes(adminSelectedId)
+    adminSelectedId && candidates.includes(adminSelectedId)
       ? adminSelectedId
-      : registeredIds[0];
+      : candidates[0];
 
   const provider = getViewProvider(CHATBOT_LOCATION, selectedId);
   if (!provider) {

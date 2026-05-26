@@ -21,6 +21,7 @@ from typing import Any
 
 from superset import db
 from superset.models.core import ExtensionEnabled, ExtensionSettings
+from superset.utils.decorators import transaction
 
 _SETTINGS_ROW_ID = 1
 
@@ -34,6 +35,7 @@ def get_extension_settings() -> dict[str, Any]:
     }
 
 
+@transaction()
 def update_extension_settings(body: dict[str, Any]) -> dict[str, Any]:
     row = db.session.get(ExtensionSettings, _SETTINGS_ROW_ID)
     if row is None:
@@ -51,5 +53,4 @@ def update_extension_settings(body: dict[str, Any]) -> dict[str, Any]:
                 db.session.add(flag)
             flag.enabled = bool(enabled)
 
-    db.session.commit()
     return get_extension_settings()

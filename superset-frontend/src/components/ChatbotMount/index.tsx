@@ -29,16 +29,19 @@ const CHATBOT_EDGE_MARGIN = 24;
 const ChatbotMount = () => {
   const theme = useTheme();
   const [adminSelectedId, setAdminSelectedId] = useState<string | null>(null);
+  const [enabledMap, setEnabledMap] = useState<Record<string, boolean>>({});
   const [activeChatbot, setActiveChatbot] = useState(() =>
-    getActiveChatbot(null),
+    getActiveChatbot(null, {}),
   );
 
   useEffect(() => {
     SupersetClient.get({ endpoint: '/api/v1/extensions/settings' })
       .then(({ json }) => {
         const id = json.result?.active_chatbot_id ?? null;
+        const enabled: Record<string, boolean> = json.result?.enabled ?? {};
         setAdminSelectedId(id);
-        setActiveChatbot(getActiveChatbot(id));
+        setEnabledMap(enabled);
+        setActiveChatbot(getActiveChatbot(id, enabled));
       })
       .catch(() => {
         // Settings fetch failure is non-fatal — fall back to first-to-register.
@@ -48,9 +51,9 @@ const ChatbotMount = () => {
   useEffect(
     () =>
       subscribeToLocation(CHATBOT_LOCATION, () =>
-        setActiveChatbot(getActiveChatbot(adminSelectedId)),
+        setActiveChatbot(getActiveChatbot(adminSelectedId, enabledMap)),
       ),
-    [adminSelectedId],
+    [adminSelectedId, enabledMap],
   );
 
   if (!activeChatbot) {
