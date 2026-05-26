@@ -28,6 +28,10 @@ from pytest_mock import MockerFixture
 
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils.oauth2 import (
+    decode_oauth2_state,
+    encode_oauth2_state,
+    generate_code_challenge,
+    generate_code_verifier,
     get_access_token_for_database,
     get_oauth2_access_token,
     get_oauth2_redirect_uri,

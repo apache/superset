@@ -38,11 +38,7 @@ from superset.superset_typing import OAuth2ClientConfig, OAuth2State
 
 if TYPE_CHECKING:
     from superset.db_engine_specs.base import BaseEngineSpec
-    from superset.models.core import (
-        Database,
-        DatabaseUserOAuth2Tokens,
-        UpstreamOAuthToken,
-    )
+    from superset.models.core import Database, UpstreamOAuthToken
 
 JWT_EXPIRATION = timedelta(minutes=5)
 
