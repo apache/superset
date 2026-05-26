@@ -247,29 +247,6 @@ def _validate_update_against_dataset(
             }
         )
 
-    # Column existence + fuzzy-match validation
-    # (mirrors generate_chart pipeline layer 2)
-    from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
-
-    is_col_valid, col_error = DatasetValidator.validate_against_dataset(
-        parsed_config, dataset.id
-    )
-    if not is_col_valid and col_error is not None:
-        logger.warning(
-            "update_chart column validation failed for chart %s: %s",
-            getattr(chart, "id", None),
-            col_error,
-        )
-        return GenerateChartResponse.model_validate(
-            {
-                "chart": None,
-                "error": col_error.model_dump(),
-                "success": False,
-                "schema_version": "2.0",
-                "api_version": "v1",
-            }
-        )
-
     compile_result = validate_and_compile(
         parsed_config, form_data, dataset, run_compile_check=run_compile_check
     )
