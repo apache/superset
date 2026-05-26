@@ -29,3 +29,16 @@ export const extensions: typeof extensionsApi = {
   getExtension,
   getAllExtensions,
 };
+
+const settingsListeners = new Set<() => void>();
+
+export const notifyExtensionSettingsChanged = (): void => {
+  settingsListeners.forEach(fn => fn());
+};
+
+export const subscribeToExtensionSettings = (
+  listener: () => void,
+): (() => void) => {
+  settingsListeners.add(listener);
+  return () => settingsListeners.delete(listener);
+};

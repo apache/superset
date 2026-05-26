@@ -17,7 +17,6 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { css } from '@apache-superset/core/theme';
 import {
   FunctionComponent,
   useCallback,
@@ -27,7 +26,7 @@ import {
   useState,
 } from 'react';
 import { SupersetClient } from '@superset-ui/core';
-import { ConfirmStatusChange, Select, Tooltip } from '@superset-ui/core/components';
+import { ConfirmStatusChange, Tooltip } from '@superset-ui/core/components';
 import { Switch } from '@superset-ui/core/components/Switch';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -37,6 +36,7 @@ import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { CHATBOT_LOCATION } from 'src/views/contributions';
 import { getRegisteredViewIds, subscribeToLocation } from 'src/core/views';
+import { notifyExtensionSettingsChanged } from 'src/core/extensions';
 
 const PAGE_SIZE = 25;
 
@@ -45,6 +45,7 @@ type Extension = {
   name: string;
   publisher: string;
   enabled: boolean;
+  deletable: boolean;
 };
 
 type ExtensionSettings = {
@@ -103,6 +104,7 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
       })
         .then(({ json }) => {
           setSettings(json.result);
+          notifyExtensionSettingsChanged();
           addSuccessToast(t('Settings saved.'));
         })
         .catch(() => addDangerToast(t('Failed to save extension settings.')));
@@ -112,17 +114,28 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
 
   const toggleEnabled = useCallback(
     (extensionId: string, enabled: boolean) => {
-      saveSettings({ enabled: { ...settings.enabled, [extensionId]: enabled } });
+      saveSettings({
+        enabled: { ...settings.enabled, [extensionId]: enabled },
+      });
     },
     [settings, saveSettings],
   );
 
-  const chatbotExtensions = useMemo(() => {
-    const chatbotIds = new Set(getRegisteredViewIds(CHATBOT_LOCATION));
-    return resourceCollection.filter(ext => chatbotIds.has(ext.id));
+  const setDefaultChatbot = useCallback(
+    (extensionId: string) => {
+      const next =
+        settings.active_chatbot_id === extensionId ? null : extensionId;
+      saveSettings({ active_chatbot_id: next });
+    },
+    [settings, saveSettings],
+  );
+
+  const chatbotIds = useMemo(
+    () => new Set(getRegisteredViewIds(CHATBOT_LOCATION)),
     // chatbotRegistryVersion is intentionally in deps to re-evaluate when views register
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resourceCollection, chatbotRegistryVersion]);
+    [chatbotRegistryVersion],
+  );
 
   const handleUploadClick = () => {
     fileInputRef.current?.click();
@@ -186,7 +199,6 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
       {
         Header: t('Name'),
         accessor: 'name',
-        size: 'lg',
         id: 'name',
         Cell: ({
           row: {
@@ -195,64 +207,94 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         }: any) => name,
       },
       {
-        Header: t('Enabled'),
-        accessor: 'enabled',
-        size: 'sm',
-        id: 'enabled',
-        Cell: ({
-          row: {
-            original: { id },
-          },
-        }: any) => (
-          <Switch
-            data-test="toggle-enabled"
-            checked={settings.enabled[id] ?? true}
-            onClick={(checked: boolean) => toggleEnabled(id, checked)}
-            size="small"
-          />
-        ),
-      },
-      {
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
-        Cell: ({ row: { original } }: any) => (
-          <ConfirmStatusChange
-            title={t('Please confirm')}
-            description={
-              <>
-                {t('Are you sure you want to delete')} <b>{original.name}</b>?
-              </>
-            }
-            onConfirm={() => handleDelete(original)}
-          >
-            {(confirmDelete: () => void) => (
+        Cell: ({ row: { original } }: any) => {
+          const { id, deletable } = original;
+          const isChatbot = chatbotIds.has(id);
+          const isDefault = settings.active_chatbot_id === id;
+          return (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Tooltip
-                id="delete-extension-tooltip"
-                title={t('Delete')}
+                id="toggle-enabled-tooltip"
+                title={t('Enable / Disable')}
                 placement="bottom"
               >
-                <span
-                  role="button"
-                  tabIndex={0}
-                  className="action-button"
-                  onClick={confirmDelete}
-                >
-                  <Icons.DeleteOutlined iconSize="l" />
-                </span>
+                <Switch
+                  data-test="toggle-enabled"
+                  checked={settings.enabled[id] ?? true}
+                  onClick={(checked: boolean) => toggleEnabled(id, checked)}
+                  size="small"
+                />
               </Tooltip>
-            )}
-          </ConfirmStatusChange>
-        ),
+              {isChatbot && (
+                <Tooltip
+                  id="set-default-chatbot-tooltip"
+                  title={
+                    isDefault
+                      ? t('Remove default')
+                      : t('Set as default chatbot')
+                  }
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    className="action-button"
+                    onClick={() => setDefaultChatbot(id)}
+                  >
+                    {isDefault ? (
+                      <Icons.StarFilled iconSize="l" />
+                    ) : (
+                      <Icons.StarOutlined iconSize="l" />
+                    )}
+                  </span>
+                </Tooltip>
+              )}
+              {deletable && (
+                <ConfirmStatusChange
+                  title={t('Please confirm')}
+                  description={
+                    <>
+                      {t('Are you sure you want to delete')}{' '}
+                      <b>{original.name}</b>?
+                    </>
+                  }
+                  onConfirm={() => handleDelete(original)}
+                >
+                  {(confirmDelete: () => void) => (
+                    <Tooltip
+                      id="delete-extension-tooltip"
+                      title={t('Delete')}
+                      placement="bottom"
+                    >
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        className="action-button"
+                        onClick={confirmDelete}
+                      >
+                        <Icons.DeleteOutlined iconSize="l" />
+                      </span>
+                    </Tooltip>
+                  )}
+                </ConfirmStatusChange>
+              )}
+            </span>
+          );
+        },
       },
     ],
-    [loading, settings, toggleEnabled],
+    [
+      loading,
+      settings,
+      chatbotIds,
+      toggleEnabled,
+      setDefaultChatbot,
+      handleDelete,
+    ],
   );
-
-  const chatbotOptions = chatbotExtensions.map(ext => ({
-    label: ext.name,
-    value: ext.id,
-  }));
 
   const menuData: SubMenuProps = {
     activeChild: 'Extensions',
@@ -285,25 +327,6 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         onChange={handleFileChange}
       />
       <SubMenu {...menuData} />
-      {chatbotOptions.length > 1 && (
-        <div style={{ padding: '16px 24px' }}>
-          <label htmlFor="chatbot-select" style={{ marginRight: 8 }}>
-            {t('Default chatbot')}
-          </label>
-          <Select
-            allowClear
-            options={chatbotOptions}
-            value={settings.active_chatbot_id ?? undefined}
-            onChange={value =>
-              saveSettings({ active_chatbot_id: (value as string) ?? null })
-            }
-            placeholder={t('First registered (automatic)')}
-            css={css`
-              width: 280px;
-            `}
-          />
-        </div>
-      )}
       <ListView<Extension>
         columns={columns}
         count={resourceCount}

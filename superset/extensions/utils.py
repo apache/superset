@@ -232,6 +232,10 @@ def get_loaded_extension(
 
 def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
     manifest = extension.manifest
+    local_paths = {
+        str((Path(p) / "dist").resolve())
+        for p in current_app.config.get("LOCAL_EXTENSIONS", [])
+    }
     extension_data: dict[str, Any] = {
         "id": manifest.id,
         "publisher": manifest.publisher,
@@ -239,6 +243,7 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
         "version": extension.version,
         "description": manifest.description or "",
         "dependencies": manifest.dependencies,
+        "deletable": extension.source_base_path not in local_paths,
     }
     if manifest.frontend:
         frontend = manifest.frontend

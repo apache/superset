@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { getActiveChatbot } from 'src/core/chatbot';
 import { subscribeToLocation } from 'src/core/views';
+import { subscribeToExtensionSettings } from 'src/core/extensions';
 import { CHATBOT_LOCATION } from 'src/views/contributions';
 
 const CHATBOT_EDGE_MARGIN = 24;
@@ -34,7 +35,7 @@ const ChatbotMount = () => {
     getActiveChatbot(null, {}),
   );
 
-  useEffect(() => {
+  const fetchSettings = useCallback(() => {
     let cancelled = false;
     SupersetClient.get({ endpoint: '/api/v1/extensions/settings' })
       .then(({ json }) => {
@@ -52,6 +53,10 @@ const ChatbotMount = () => {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => fetchSettings(), [fetchSettings]);
+
+  useEffect(() => subscribeToExtensionSettings(fetchSettings), [fetchSettings]);
 
   useEffect(
     () =>
