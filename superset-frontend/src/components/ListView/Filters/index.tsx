@@ -28,6 +28,7 @@ import {
 } from 'react';
 
 import { withTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 
 import type {
   ListViewFilterValue as FilterValue,
@@ -196,7 +197,7 @@ function UIFilters(
       const tooltipTitle = !!selectValue
         ? cachedLabel ||
           (typeof staticFallback === 'string' ? staticFallback : undefined)
-        : undefined;
+        : t('Choose...');
       return (
         <span key={key} data-test="select-filter-container">
           <CompactFilterTrigger
