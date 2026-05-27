@@ -57,7 +57,7 @@ def create_mock_report(
     return report
 
 
-@pytest.fixture()
+@pytest.fixture
 def mcp_server():
     return mcp
 
@@ -124,7 +124,7 @@ def test_list_reports_request_rejects_search_and_filters_together():
 
 
 @patch("superset.daos.report.ReportScheduleDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_reports_basic(mock_list, mcp_server):
     """Test basic report listing functionality."""
     report = create_mock_report()
@@ -147,7 +147,7 @@ async def test_list_reports_basic(mock_list, mcp_server):
 
 
 @patch("superset.daos.report.ReportScheduleDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_reports_with_search(mock_list, mcp_server):
     """Test report listing with search functionality."""
     report = create_mock_report(name="Weekly Alert")
@@ -166,7 +166,7 @@ async def test_list_reports_with_search(mock_list, mcp_server):
 
 
 @patch("superset.daos.report.ReportScheduleDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_reports_with_type_filter(mock_list, mcp_server):
     """Test report listing filtered by type."""
     report = create_mock_report(report_type="Alert")
@@ -188,7 +188,7 @@ async def test_list_reports_with_type_filter(mock_list, mcp_server):
 
 
 @patch("superset.daos.report.ReportScheduleDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_reports_does_not_expose_owners(mock_list, mcp_server):
     """Test that owners field is stripped by privacy controls."""
     report = create_mock_report()
@@ -210,7 +210,7 @@ async def test_list_reports_does_not_expose_owners(mock_list, mcp_server):
 
 
 @patch("superset.daos.report.ReportScheduleDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_reports_empty_results(mock_list, mcp_server):
     """Test report listing with no results."""
     mock_list.return_value = ([], 0)
@@ -227,7 +227,7 @@ async def test_list_reports_empty_results(mock_list, mcp_server):
 
 
 @patch("superset.daos.report.ReportScheduleDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_reports_api_error(mock_list, mcp_server):
     """Test error handling when DAO raises an exception."""
     mock_list.side_effect = ToolError("Report DAO error")
@@ -240,7 +240,7 @@ async def test_list_reports_api_error(mock_list, mcp_server):
 
 
 @patch("superset.daos.report.ReportScheduleDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_reports_without_request_uses_defaults(mock_list, mcp_server):
     """list_reports with no request payload should use default parameters."""
     mock_list.return_value = ([], 0)
@@ -253,7 +253,7 @@ async def test_list_reports_without_request_uses_defaults(mock_list, mcp_server)
 
 
 @patch("superset.daos.report.ReportScheduleDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_report_info_basic(mock_find, mcp_server):
     """Test basic get report info functionality."""
     report = create_mock_report()
@@ -274,7 +274,7 @@ async def test_get_report_info_basic(mock_find, mcp_server):
 
 
 @patch("superset.daos.report.ReportScheduleDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_report_info_alert_type(mock_find, mcp_server):
     """Test get report info for an Alert type schedule."""
     report = create_mock_report(report_type="Alert", name="Revenue Alert")
@@ -290,7 +290,7 @@ async def test_get_report_info_alert_type(mock_find, mcp_server):
 
 
 @patch("superset.daos.report.ReportScheduleDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_report_info_not_found(mock_find, mcp_server):
     """Test get report info when report does not exist."""
     mock_find.return_value = None
@@ -304,7 +304,7 @@ async def test_get_report_info_not_found(mock_find, mcp_server):
 
 
 @patch("superset.daos.report.ReportScheduleDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_report_info_with_dashboard(mock_find, mcp_server):
     """Test get report info with associated dashboard."""
     report = create_mock_report(dashboard_id=42)
@@ -320,7 +320,7 @@ async def test_get_report_info_with_dashboard(mock_find, mcp_server):
 
 
 @patch("superset.daos.report.ReportScheduleDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_report_info_with_chart(mock_find, mcp_server):
     """Test get report info with associated chart."""
     report = create_mock_report(chart_id=7)
@@ -349,7 +349,7 @@ def test_list_reports_request_rejects_invalid_order_column():
 
 
 @patch("superset.daos.report.ReportScheduleDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_report_info_humanized_timestamps(mock_find, mcp_server):
     """Test that changed_on_humanized and created_on_humanized are returned."""
     from datetime import datetime, timezone
@@ -371,7 +371,7 @@ async def test_get_report_info_humanized_timestamps(mock_find, mcp_server):
 
 
 @patch("superset.daos.report.ReportScheduleDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_reports_owned_by_me_passed_to_dao(mock_list, mcp_server):
     """owned_by_me=True is forwarded to the DAO layer."""
     mock_list.return_value = ([], 0)
@@ -382,14 +382,14 @@ async def test_list_reports_owned_by_me_passed_to_dao(mock_list, mcp_server):
 
     mock_list.assert_called_once()
     _, kwargs = mock_list.call_args
-    filters_arg = kwargs.get("filters", [])
-    assert any(
-        getattr(f, "col", None) == "owners.id" for f in filters_arg
-    ), "owned_by_me should inject an owners.id filter into the DAO call"
+    filters_arg = kwargs.get("column_operators", [])
+    assert any(getattr(f, "col", None) == "owners.id" for f in filters_arg), (
+        "owned_by_me should inject an owners.id filter into the DAO call"
+    )
 
 
 @patch("superset.daos.report.ReportScheduleDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_reports_created_by_me_passed_to_dao(mock_list, mcp_server):
     """created_by_me=True is forwarded to the DAO layer."""
     mock_list.return_value = ([], 0)
@@ -400,7 +400,7 @@ async def test_list_reports_created_by_me_passed_to_dao(mock_list, mcp_server):
 
     mock_list.assert_called_once()
     _, kwargs = mock_list.call_args
-    filters_arg = kwargs.get("filters", [])
-    assert any(
-        getattr(f, "col", None) == "created_by_fk" for f in filters_arg
-    ), "created_by_me should inject a created_by_fk filter into the DAO call"
+    filters_arg = kwargs.get("column_operators", [])
+    assert any(getattr(f, "col", None) == "created_by_fk" for f in filters_arg), (
+        "created_by_me should inject a created_by_fk filter into the DAO call"
+    )
