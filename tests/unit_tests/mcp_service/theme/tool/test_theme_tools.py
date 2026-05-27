@@ -212,6 +212,10 @@ async def test_get_theme_info_by_uuid(mock_find, mcp_server):
         assert data["id"] == 1
         assert data["uuid"] == "a1b2c3d4-5678-90ab-cdef-1234567890ab"
 
+    mock_find.assert_called_once_with(
+        "a1b2c3d4-5678-90ab-cdef-1234567890ab", id_column="uuid", query_options=None
+    )
+
 
 @patch("superset.daos.theme.ThemeDAO.find_by_id")
 @pytest.mark.asyncio

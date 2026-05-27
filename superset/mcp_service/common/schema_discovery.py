@@ -650,6 +650,9 @@ CSS_TEMPLATE_SORTABLE_COLUMNS = [
     "created_on",
 ]
 CSS_TEMPLATE_SEARCH_COLUMNS = ["template_name"]
+CSS_TEMPLATE_FILTER_COLUMNS: dict[str, list[str]] = {
+    "template_name": ["eq", "sw", "ilike"],
+}
 
 
 def get_css_template_columns() -> list[ColumnMetadata]:
@@ -676,6 +679,9 @@ THEME_SORTABLE_COLUMNS = [
     "created_on",
 ]
 THEME_SEARCH_COLUMNS = ["theme_name"]
+THEME_FILTER_COLUMNS: dict[str, list[str]] = {
+    "theme_name": ["eq", "sw", "ilike"],
+}
 
 
 def get_theme_columns() -> list[ColumnMetadata]:

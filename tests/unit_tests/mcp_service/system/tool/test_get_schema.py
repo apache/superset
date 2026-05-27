@@ -592,14 +592,9 @@ class TestSchemaDiscoveryConstants:
 class TestGetSchemaCssTemplateAndTheme:
     """Test get_schema tool for css_template and theme model types."""
 
-    @patch("superset.daos.css.CssTemplateDAO.get_filterable_columns_and_operators")
     @pytest.mark.asyncio
-    async def test_get_schema_css_template(self, mock_filters, mcp_server):
+    async def test_get_schema_css_template(self, mcp_server):
         """Test get_schema for css_template model type."""
-        mock_filters.return_value = {
-            "template_name": ["eq", "sw", "ilike"],
-        }
-
         async with Client(mcp_server) as client:
             result = await client.call_tool(
                 "get_schema", {"request": {"model_type": "css_template"}}
@@ -630,14 +625,15 @@ class TestGetSchemaCssTemplateAndTheme:
             assert "template_name" in info["sortable_columns"]
             assert "changed_on" in info["sortable_columns"]
 
-    @patch("superset.daos.theme.ThemeDAO.get_filterable_columns_and_operators")
-    @pytest.mark.asyncio
-    async def test_get_schema_theme(self, mock_filters, mcp_server):
-        """Test get_schema for theme model type."""
-        mock_filters.return_value = {
-            "theme_name": ["eq", "sw", "ilike"],
-        }
+            # filter_columns matches list_css_templates: only template_name
+            assert "template_name" in info["filter_columns"]
+            assert len(info["filter_columns"]) == 1, (
+                "filter_columns must match list_css_templates accepted filters"
+            )
 
+    @pytest.mark.asyncio
+    async def test_get_schema_theme(self, mcp_server):
+        """Test get_schema for theme model type."""
         async with Client(mcp_server) as client:
             result = await client.call_tool(
                 "get_schema", {"request": {"model_type": "theme"}}
@@ -664,6 +660,12 @@ class TestGetSchemaCssTemplateAndTheme:
             # sortable columns
             assert "theme_name" in info["sortable_columns"]
             assert "changed_on" in info["sortable_columns"]
+
+            # filter_columns matches list_themes: only theme_name
+            assert "theme_name" in info["filter_columns"]
+            assert len(info["filter_columns"]) == 1, (
+                "get_schema filter_columns must match list_themes accepted filters"
+            )
 
     def test_css_template_model_type_accepted(self):
         """css_template is a valid GetSchemaRequest model_type."""

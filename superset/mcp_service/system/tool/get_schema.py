@@ -35,6 +35,7 @@ from superset.mcp_service.common.schema_discovery import (
     CHART_SEARCH_COLUMNS,
     CHART_SORTABLE_COLUMNS,
     CSS_TEMPLATE_DEFAULT_COLUMNS,
+    CSS_TEMPLATE_FILTER_COLUMNS,
     CSS_TEMPLATE_SEARCH_COLUMNS,
     CSS_TEMPLATE_SORTABLE_COLUMNS,
     DASHBOARD_DEFAULT_COLUMNS,
@@ -56,6 +57,7 @@ from superset.mcp_service.common.schema_discovery import (
     GetSchemaResponse,
     ModelSchemaInfo,
     THEME_DEFAULT_COLUMNS,
+    THEME_FILTER_COLUMNS,
     THEME_SEARCH_COLUMNS,
     THEME_SORTABLE_COLUMNS,
 )
@@ -166,6 +168,7 @@ def _get_css_template_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
         search_columns=CSS_TEMPLATE_SEARCH_COLUMNS,
         default_sort="changed_on",
         default_sort_direction="desc",
+        filter_columns_override=CSS_TEMPLATE_FILTER_COLUMNS,
         logger=logger,
     )
 
@@ -184,6 +187,7 @@ def _get_theme_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
         search_columns=THEME_SEARCH_COLUMNS,
         default_sort="changed_on",
         default_sort_direction="desc",
+        filter_columns_override=THEME_FILTER_COLUMNS,
         logger=logger,
     )
 

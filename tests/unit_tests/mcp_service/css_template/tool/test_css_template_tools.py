@@ -57,13 +57,16 @@ def create_mock_css_template(
     template_id: int = 1,
     template_name: str = "my_template",
     css: str = "body { color: red; }",
+    uuid: str | None = None,
 ) -> MagicMock:
     """Factory function to create mock CSS template objects."""
     template = MagicMock()
     template.id = template_id
     template.template_name = template_name
     template.css = css
-    template.uuid = f"test-css-template-uuid-{template_id}"
+    template.uuid = (
+        uuid if uuid is not None else f"test-css-template-uuid-{template_id}"
+    )
     template.changed_on = None
     template.created_on = None
     return template
@@ -213,6 +216,27 @@ async def test_get_css_template_info_basic(mock_find, mcp_server):
         assert data["template_name"] == "my_template"
         assert data["uuid"] == "test-css-template-uuid-1"
         assert data["css"] == "body { color: red; }"
+
+
+@patch("superset.daos.css.CssTemplateDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_css_template_info_by_uuid(mock_find, mcp_server):
+    """Test get CSS template info by UUID."""
+    template = create_mock_css_template(uuid="a1b2c3d4-5678-90ab-cdef-1234567890ab")
+    mock_find.return_value = template
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_css_template_info",
+            {"request": {"identifier": "a1b2c3d4-5678-90ab-cdef-1234567890ab"}},
+        )
+        data = json.loads(result.content[0].text)
+        assert data["id"] == 1
+        assert data["uuid"] == "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+
+    mock_find.assert_called_once_with(
+        "a1b2c3d4-5678-90ab-cdef-1234567890ab", id_column="uuid", query_options=None
+    )
 
 
 @patch("superset.daos.css.CssTemplateDAO.find_by_id")
