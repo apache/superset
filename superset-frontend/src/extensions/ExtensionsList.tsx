@@ -18,7 +18,14 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { css } from '@apache-superset/core/theme';
-import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { Select } from '@superset-ui/core/components';
 import { Switch } from '@superset-ui/core/components/Switch';
@@ -87,24 +94,30 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
 
   const saveSettings = useCallback(
     (patch: Partial<ExtensionSettings>) => {
-      const next = { ...settingsRef.current, ...patch };
+      const previous = settingsRef.current;
+      const next = { ...previous, ...patch };
       setSettings(next);
       SupersetClient.put({
         endpoint: '/api/v1/extensions/settings',
         jsonPayload: next,
       })
-        .then(({ json }) => {
-          setSettings(json.result);
+        .then(() => {
           addSuccessToast(t('Settings saved.'));
         })
-        .catch(() => addDangerToast(t('Failed to save extension settings.')));
+        .catch(() => {
+          // Rollback optimistic update so UI stays consistent with server state.
+          setSettings(previous);
+          addDangerToast(t('Failed to save extension settings.'));
+        });
     },
     [addDangerToast, addSuccessToast],
   );
 
   const toggleEnabled = useCallback(
     (extensionId: string, enabled: boolean) => {
-      saveSettings({ enabled: { ...settingsRef.current.enabled, [extensionId]: enabled } });
+      saveSettings({
+        enabled: { ...settingsRef.current.enabled, [extensionId]: enabled },
+      });
     },
     [saveSettings],
   );
@@ -112,6 +125,9 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   const chatbotExtensions = useMemo(() => {
     const chatbotIds = new Set(getRegisteredViewIds(CHATBOT_LOCATION));
     return resourceCollection.filter(ext => chatbotIds.has(ext.id));
+    // chatbotRegistryVersion is intentionally in deps to re-evaluate when
+    // chatbot views register or deregister.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resourceCollection, chatbotRegistryVersion]);
 
   const columns = useMemo(
@@ -122,7 +138,9 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         size: 'lg',
         id: 'name',
         Cell: ({
-          row: { original: { name } },
+          row: {
+            original: { name },
+          },
         }: any) => name,
       },
       {
@@ -131,18 +149,20 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         size: 'sm',
         id: 'enabled',
         Cell: ({
-          row: { original: { id } },
+          row: {
+            original: { id },
+          },
         }: any) => (
           <Switch
             data-test="toggle-enabled"
             checked={settings.enabled[id] ?? true}
-            onClick={(checked: boolean) => toggleEnabled(id, checked)}
+            onChange={(checked: boolean) => toggleEnabled(id, checked)}
             size="small"
           />
         ),
       },
     ],
-    [loading, settings, toggleEnabled],
+    [settings, toggleEnabled],
   );
 
   const chatbotOptions = chatbotExtensions.map(ext => ({
@@ -172,7 +192,9 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
               saveSettings({ active_chatbot_id: (value as string) ?? null })
             }
             placeholder={t('First registered (automatic)')}
-            css={css`width: 280px;`}
+            css={css`
+              width: 280px;
+            `}
           />
         </div>
       )}
