@@ -1,0 +1,1 @@
+{"schema":{"properties":{"json_data":{"type":"string"},"theme_name":{"type":"string"}},"required":["json_data","theme_name"],"type":"object","title":"ThemeRestApi.post"},"schemaType":"response"}

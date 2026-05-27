@@ -32,11 +32,13 @@ from superset.mcp_service.chart.schemas import (
     ChartCapabilities,
     ChartSemantics,
     ColumnRef,
+    CurrencyFormat,
     FilterConfig,
     HandlebarsChartConfig,
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SortByConfig,
     TableChartConfig,
     XYChartConfig,
 )
@@ -466,9 +468,17 @@ def map_table_config(config: TableChartConfig) -> Dict[str, Any]:
     _add_adhoc_filters(form_data, config.filters)
 
     if config.sort_by:
-        form_data["order_by_cols"] = config.sort_by
+        form_data["order_by_cols"] = [
+            json.dumps(
+                [entry.column, entry.ascending]
+                if isinstance(entry, SortByConfig)
+                else [entry, False]
+            )
+            for entry in config.sort_by
+        ]
 
     form_data["row_limit"] = config.row_limit
+    add_color_scheme(form_data, config.color_scheme)
 
     return form_data
 
@@ -539,7 +549,35 @@ def add_legend_config(form_data: Dict[str, Any], config: XYChartConfig) -> None:
         if not config.legend.show:
             form_data["show_legend"] = False
         if config.legend.position:
-            form_data["legend_orientation"] = config.legend.position
+            # Canonical form_data key is camelCase; the echarts plugins read
+            # `legendOrientation` directly off form_data.
+            form_data["legendOrientation"] = config.legend.position
+
+
+def add_color_scheme(form_data: Dict[str, Any], color_scheme: str | None) -> None:
+    """Add color scheme to form_data when set."""
+    if color_scheme:
+        form_data["color_scheme"] = color_scheme
+
+
+def add_currency_format(
+    form_data: Dict[str, Any],
+    currency_format: CurrencyFormat | None,
+    key: str = "currency_format",
+) -> None:
+    """Add currency format to form_data under the given key when set."""
+    if currency_format:
+        form_data[key] = currency_format.to_form_data()
+
+
+def add_xy_data_label_options(
+    form_data: Dict[str, Any], config: XYChartConfig, x_is_temporal: bool
+) -> None:
+    """Apply XY-specific data-label and time-format options when set."""
+    if config.x_axis_time_format and x_is_temporal:
+        form_data["x_axis_time_format"] = config.x_axis_time_format
+    if config.show_value:
+        form_data["show_value"] = True
 
 
 def add_orientation_config(form_data: Dict[str, Any], config: XYChartConfig) -> None:
@@ -640,6 +678,12 @@ def _resolve_default_x_axis(
     return config.model_copy(update={"x": ColumnRef(name=dataset.main_dttm_col)})
 
 
+def _add_xy_limits(form_data: Dict[str, Any], config: XYChartConfig) -> None:
+    form_data["row_limit"] = config.row_limit
+    if config.series_limit is not None:
+        form_data["series_limit"] = config.series_limit
+
+
 def map_xy_config(
     config: XYChartConfig, dataset_id: int | str | None = None
 ) -> Dict[str, Any]:
@@ -704,7 +748,7 @@ def map_xy_config(
     if x_is_temporal:
         _ensure_temporal_adhoc_filter(form_data, config.x.name)
 
-    form_data["row_limit"] = config.row_limit
+    _add_xy_limits(form_data, config)
 
     # Add stacking configuration
     if getattr(config, "stacked", False):
@@ -714,6 +758,9 @@ def map_xy_config(
     add_axis_config(form_data, config)
     add_legend_config(form_data, config)
     add_orientation_config(form_data, config)
+    add_color_scheme(form_data, config.color_scheme)
+    add_currency_format(form_data, config.currency_format)
+    add_xy_data_label_options(form_data, config, x_is_temporal)
 
     return form_data
 
@@ -726,11 +773,13 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
         "viz_type": "pie",
         "groupby": [config.dimension.name],
         "metric": metric,
-        "color_scheme": "supersetColors",
+        "color_scheme": config.color_scheme or "supersetColors",
         "show_labels": config.show_labels,
         "show_legend": config.show_legend,
+        "legendOrientation": config.legend_orientation,
         "label_type": config.label_type,
         "number_format": config.number_format,
+        "date_format": config.date_format,
         "sort_by_metric": config.sort_by_metric,
         "row_limit": config.row_limit,
         "donut": config.donut,
@@ -738,9 +787,9 @@ def map_pie_config(config: PieChartConfig) -> Dict[str, Any]:
         "labels_outside": config.labels_outside,
         "outerRadius": config.outer_radius,
         "innerRadius": config.inner_radius,
-        "date_format": "smart_date",
     }
 
+    add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
 
     return form_data
@@ -766,6 +815,9 @@ def map_big_number_config(config: BigNumberChartConfig) -> Dict[str, Any]:
     if config.y_axis_format:
         form_data["y_axis_format"] = config.y_axis_format
 
+    add_color_scheme(form_data, config.color_scheme)
+    add_currency_format(form_data, config.currency_format)
+
     # Trendline-specific fields
     if viz_type == "big_number":
         # Big Number with trendline uses granularity_sqla for the temporal column
@@ -780,6 +832,9 @@ def map_big_number_config(config: BigNumberChartConfig) -> Dict[str, Any]:
 
         if config.compare_lag is not None:
             form_data["compare_lag"] = config.compare_lag
+
+        if config.time_format:
+            form_data["time_format"] = config.time_format
 
     _add_adhoc_filters(form_data, config.filters)
 
@@ -852,6 +907,10 @@ def map_pivot_table_config(config: PivotTableChartConfig) -> Dict[str, Any]:
         "row_limit": config.row_limit,
     }
 
+    if config.date_format:
+        form_data["date_format"] = config.date_format
+
+    add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
 
     return form_data
@@ -931,9 +990,19 @@ def map_mixed_timeseries_config(
         "yAxisIndexB": 1,
         # Display
         "show_legend": config.show_legend,
+        "legendOrientation": config.legend_orientation,
         "zoomable": True,
         "rich_tooltip": True,
     }
+
+    if config.show_value:
+        form_data["show_value"] = True
+
+    add_color_scheme(form_data, config.color_scheme)
+    add_currency_format(form_data, config.currency_format)
+    add_currency_format(
+        form_data, config.currency_format_secondary, key="currency_format_secondary"
+    )
 
     # Configure temporal handling
     configure_temporal_handling(form_data, x_is_temporal, config.time_grain)
@@ -1210,6 +1279,17 @@ def _resolve_viz_type(config: Any) -> str:
             "big_number" if show_trendline and temporal_column else "big_number_total"
         )
     return "unknown"
+
+
+TABLE_VIZ_TYPE_LABELS = {
+    "table": "table chart",
+    "ag-grid-table": "interactive table chart",
+}
+
+
+def get_table_chart_type_label(viz_type: str | None) -> str | None:
+    """Return a user-facing label for table-family Superset viz types."""
+    return TABLE_VIZ_TYPE_LABELS.get(viz_type) if viz_type is not None else None
 
 
 def analyze_chart_capabilities(chart: Any | None, config: Any) -> ChartCapabilities:

@@ -1,0 +1,87 @@
+name: Translation Regression Comment
+
+on:
+  workflow_run:
+    workflows: ["Translations"]
+    types: [completed]
+
+# This workflow posts a PR comment when the Translations workflow detects a
+# regression. It uses the workflow_run trigger so that it always runs in the
+# base-branch context and can safely be granted write permissions, even for
+# PRs from forks.
+#
+# IMPORTANT: This workflow must NEVER check out code from the PR branch.
+# All data comes from the artifact uploaded by the Translations workflow.
+
+permissions:
+  pull-requests: write
+  actions: read
+
+jobs:
+  post-comment:
+    runs-on: ubuntu-24.04
+    # Only act when the Translations workflow failed (which means a regression
+    # was detected — the workflow exits 1 on regression).
+    if: github.event.workflow_run.conclusion == 'failure'
+
+    steps:
+      - name: Download regression artifact
+        id: download
+        continue-on-error: true
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: translation-regression
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: /tmp/translation-regression
+
+      - name: Post or update PR comment
+        if: steps.download.outcome == 'success'
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            const fs = require('fs');
+
+            const prNumberFile = '/tmp/translation-regression/pr-number.txt';
+            const reportFile = '/tmp/translation-regression/regression-report.md';
+
+            if (!fs.existsSync(prNumberFile) || !fs.existsSync(reportFile)) {
+              console.log('Artifact files not found, skipping comment.');
+              return;
+            }
+
+            const prNumber = parseInt(fs.readFileSync(prNumberFile, 'utf8').trim(), 10);
+            if (!prNumber) {
+              console.log('Could not parse PR number, skipping comment.');
+              return;
+            }
+
+            const report = fs.readFileSync(reportFile, 'utf8');
+            const marker = '<!-- translation-regression-bot -->';
+            const body = `${marker}\n${report}`;
+
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+              console.log(`Updated existing comment ${existing.id} on PR #${prNumber}`);
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body,
+              });
+              console.log(`Created new comment on PR #${prNumber}`);
+            }
