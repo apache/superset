@@ -845,12 +845,18 @@ export function useDatabaseValidation() {
         if (typeof error.json === 'function') {
           return error.json().then(({ errors = [] }) => {
             const parsedErrors = errors
-              .filter((err: { error_type: string }) => {
+              .filter((err: { error_type: string; extra?: JsonObject }) => {
                 const allowed = [
                   'CONNECTION_MISSING_PARAMETERS_ERROR',
                   'CONNECTION_ACCESS_DENIED_ERROR',
                   'INVALID_PAYLOAD_SCHEMA_ERROR',
                 ];
+                // SSH-tunnel section errors carry their own ``ssh_tunnel``
+                // marker and need to surface during blur validation too,
+                // otherwise feature-gate failures become invisible
+                // blockers (the save guard would still trip but with no
+                // hint about why).
+                if (err.extra?.ssh_tunnel) return true;
                 return allowed.includes(err.error_type) || onCreate;
               })
               .reduce((acc: JsonObject, err2: any) => {
@@ -867,14 +873,23 @@ export function useDatabaseValidation() {
                 }
 
                 if (extra?.ssh_tunnel) {
+                  // Field-level errors come in via ``extra.missing``;
+                  // section-level errors (e.g. feature flag disabled) do
+                  // not name a specific field, so preserve the server
+                  // message under a reserved ``_error`` key so the SSH
+                  // form can render it instead of silently dropping it.
+                  const missingFields = extra.missing ?? [];
                   acc.ssh_tunnel = {
                     ...acc.ssh_tunnel,
                     ...Object.fromEntries(
-                      (extra.missing ?? []).map((field: string) => [
+                      missingFields.map((field: string) => [
                         field,
                         'This is a required field',
                       ]),
                     ),
+                    ...(missingFields.length === 0 && message
+                      ? { _error: message }
+                      : {}),
                   };
                   return acc;
                 }

@@ -915,14 +915,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       }
 
       const errors = await getValidation(dbToUpdate, true);
-      // ``getValidation`` returns ``[]`` on success, ``null`` for stale or
-      // unexpected responses, and a field-keyed object (e.g. for the
-      // duplicate ``database_name`` check) for blocking errors. Treat any
-      // non-empty object as blocking so server-side validations stop the
-      // save before React state has caught up.
-      const hasReturnedErrors = Array.isArray(errors)
-        ? errors.length > 0
-        : !isEmpty(errors);
+      // ``getValidation`` returns ``[]`` on success, a field-keyed object
+      // for blocking errors (e.g. the duplicate ``database_name`` check),
+      // and ``null`` for stale or unexpected responses. During save we
+      // cannot proceed without a usable result, so treat ``null`` as
+      // blocking too — only ``[]`` is a clean pass.
+      const hasReturnedErrors =
+        errors === null ||
+        (Array.isArray(errors) ? errors.length > 0 : !isEmpty(errors));
       if (!isEmpty(validationErrors) || hasReturnedErrors) {
         addDangerToast(
           t('Connection failed, please check your connection settings.'),

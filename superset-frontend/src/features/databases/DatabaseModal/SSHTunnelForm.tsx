@@ -20,6 +20,7 @@ import { useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { JsonObject } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
+import { Alert } from '@apache-superset/core/components';
 import {
   Form,
   FormLabel,
@@ -69,9 +70,22 @@ const SSHTunnelForm = ({
 }: SSHTunnelFormProps) => {
   const [usePassword, setUsePassword] = useState<AuthType>(AuthType.Password);
   const sshErrors = validationErrors?.ssh_tunnel || {};
+  const sshSectionError = sshErrors?._error;
 
   return (
     <Form>
+      {sshSectionError && (
+        <StyledRow gutter={16}>
+          <Col xs={24}>
+            <Alert
+              type="error"
+              showIcon
+              message={sshSectionError}
+              data-test="ssh-tunnel-section-error"
+            />
+          </Col>
+        </StyledRow>
+      )}
       <StyledRow gutter={16}>
         <Col xs={24} md={12}>
           <StyledDiv>
