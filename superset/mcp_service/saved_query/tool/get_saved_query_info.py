@@ -123,7 +123,7 @@ async def get_saved_query_info(
             )
         )
         return SavedQueryError(
-            error=f"Failed to get saved query info: {str(e)}",
+            error="Failed to get saved query info",
             error_type="InternalError",
             timestamp=datetime.now(timezone.utc),
         )
