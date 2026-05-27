@@ -79,6 +79,10 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     active_chatbot_id: null,
     enabled: {},
   });
+  // Always holds the latest settings value so saveSettings never closes over
+  // a stale snapshot when rapid toggles race against each other.
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
 
   const [chatbotRegistryVersion, setChatbotRegistryVersion] = useState(0);
   useEffect(
@@ -97,7 +101,8 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
 
   const saveSettings = useCallback(
     (patch: Partial<ExtensionSettings>) => {
-      const next = { ...settings, ...patch };
+      const next = { ...settingsRef.current, ...patch };
+      setSettings(next);
       SupersetClient.put({
         endpoint: '/api/v1/extensions/settings',
         jsonPayload: next,
@@ -109,25 +114,27 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         })
         .catch(() => addDangerToast(t('Failed to save extension settings.')));
     },
-    [settings, addDangerToast, addSuccessToast],
+    [addDangerToast, addSuccessToast],
   );
 
   const toggleEnabled = useCallback(
     (extensionId: string, enabled: boolean) => {
       saveSettings({
-        enabled: { ...settings.enabled, [extensionId]: enabled },
+        enabled: { ...settingsRef.current.enabled, [extensionId]: enabled },
       });
     },
-    [settings, saveSettings],
+    [saveSettings],
   );
 
   const setDefaultChatbot = useCallback(
     (extensionId: string) => {
       const next =
-        settings.active_chatbot_id === extensionId ? null : extensionId;
+        settingsRef.current.active_chatbot_id === extensionId
+          ? null
+          : extensionId;
       saveSettings({ active_chatbot_id: next });
     },
-    [settings, saveSettings],
+    [saveSettings],
   );
 
   const chatbotIds = useMemo(
