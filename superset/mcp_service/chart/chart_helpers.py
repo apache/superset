@@ -365,8 +365,8 @@ def _resolve_deck_gl_metrics(
         value = prf.get("value")
         if value:
             metrics.append(value)
-    elif _is_metric_ref(prf):
-        # Legacy deck_scatter: point_radius_fixed can be a bare metric key string
+    elif isinstance(prf, str) and _is_metric_ref(prf):
+        # Legacy deck_scatter: point_radius_fixed as a bare non-numeric metric key
         metrics.append(prf)
     return metrics
 
