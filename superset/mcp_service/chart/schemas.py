@@ -1771,7 +1771,13 @@ class UpdateChartRequest(QueryCacheControl):
 
 
 class UpdateChartPreviewRequest(FormDataCacheControl):
-    form_data_key: str = Field(..., description="Existing form_data_key to update")
+    form_data_key: str | None = Field(
+        None,
+        description=(
+            "Existing form_data_key to update"
+            " (omit for fresh preview from config + dataset_id)"
+        ),
+    )
     dataset_id: int | str = Field(..., description="Dataset ID or UUID")
     config: ChartConfig = Field(..., description="Chart configuration")
     generate_preview: bool = True
@@ -2108,23 +2114,6 @@ class ChartPreview(BaseModel):
         description="Accessibility information"
     )
     performance: PerformanceMetadata = Field(description="Performance metrics")
-
-    # Backward compatibility fields (populated based on content type)
-    format: str | None = Field(
-        None, description="Format of the preview (ascii, table, vega_lite)"
-    )
-    ascii_chart: str | None = Field(
-        None, description="ASCII art chart for 'ascii' format"
-    )
-    table_data: str | None = Field(
-        None, description="Formatted table for 'table' format"
-    )
-    width: int | None = Field(
-        None, description="Width (pixels for images, characters for ASCII)"
-    )
-    height: int | None = Field(
-        None, description="Height (pixels for images, lines for ASCII)"
-    )
 
     # Inherit versioning
     schema_version: str = Field("2.0", description="Response schema version")
