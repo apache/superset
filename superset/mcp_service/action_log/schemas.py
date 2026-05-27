@@ -66,7 +66,7 @@ class ActionLogFilter(ColumnOperator):
         description="Column to filter on.",
     )
     opr: ColumnOperatorEnum = Field(..., description="Operator to use.")
-    value: str | int | float | bool | list[str | int | float | bool] = Field(
+    value: str | int | float | bool | datetime | list[str | int | float | bool] = Field(
         ..., description="Value to filter by"
     )
 

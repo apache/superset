@@ -126,7 +126,9 @@ async def test_list_action_logs_default_7day_filter_applied(mock_list, mcp_serve
     dttm_applied = [f for f in filters_applied if f.get("col") == "dttm"]
     assert len(dttm_applied) == 1
     assert dttm_applied[0]["opr"] == "gte"
-    assert isinstance(dttm_applied[0]["value"], str)  # ISO string, not datetime
+    assert isinstance(
+        dttm_applied[0]["value"], str
+    )  # serialized to ISO string in JSON output
 
 
 @patch("superset.daos.log.LogDAO.list")

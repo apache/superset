@@ -90,7 +90,7 @@ async def list_action_logs(
         filters: list[ColumnOperator] = list(request.filters)
         has_dttm_filter = any(getattr(f, "col", None) == "dttm" for f in filters)
         if not has_dttm_filter:
-            cutoff = (datetime.now(timezone.utc) - timedelta(days=7)).isoformat()
+            cutoff = datetime.now(timezone.utc) - timedelta(days=7)
             default_filter = ActionLogFilter(
                 col="dttm",
                 opr=ColumnOperatorEnum.gte,

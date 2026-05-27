@@ -733,6 +733,36 @@ def _remove_disabled_tools(disabled_tools: set[str]) -> None:
             )
 
 
+def _remove_tool_quietly(tool_name: str, reason: str) -> None:
+    """Remove a single tool from the global MCP instance, ignoring missing-tool errors."""
+    try:
+        mcp.local_provider.remove_tool(tool_name)
+        logger.info("Disabled MCP tool: %s (%s)", tool_name, reason)
+    except KeyError:
+        pass
+
+
+def _apply_config_guards(flask_app: Any) -> None:
+    """Remove tools whose backing features are administratively disabled.
+
+    - Action-log tools: mirrors LogRestApi.is_enabled() which checks
+      FAB_ADD_SECURITY_VIEWS and SUPERSET_LOG_VIEW.
+    - Task tools: mirrors TaskRestApi conditional registration which checks
+      the GLOBAL_TASK_FRAMEWORK feature flag.
+    """
+    if not (
+        flask_app.config.get("FAB_ADD_SECURITY_VIEWS", True)
+        and flask_app.config.get("SUPERSET_LOG_VIEW", True)
+    ):
+        for tool_name in ("list_action_logs", "get_action_log_info"):
+            _remove_tool_quietly(tool_name, "logging disabled by config flags")
+
+    feature_flags: dict[str, Any] = flask_app.config.get("FEATURE_FLAGS", {})
+    if not feature_flags.get("GLOBAL_TASK_FRAMEWORK", False):
+        for tool_name in ("list_tasks", "get_task_info"):
+            _remove_tool_quietly(tool_name, "GLOBAL_TASK_FRAMEWORK not enabled")
+
+
 def init_fastmcp_server(
     name: str | None = None,
     instructions: str | None = None,
@@ -777,6 +807,7 @@ def init_fastmcp_server(
     # instructions never advertise tools that clients cannot actually call.
     disabled_tools: set[str] = flask_app.config.get("MCP_DISABLED_TOOLS", set())
     _remove_disabled_tools(disabled_tools)
+    _apply_config_guards(flask_app)
 
     if instructions is None:
         instructions = get_default_instructions(branding, disabled_tools)
