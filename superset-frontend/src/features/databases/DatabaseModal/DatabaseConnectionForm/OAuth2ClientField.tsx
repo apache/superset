@@ -42,6 +42,7 @@ export const OAuth2ClientField = ({
   changeMethods,
   db,
   default_value: defaultValue,
+  isPublic = true,
 }: FieldPropTypes) => {
   const encryptedExtra = JSON.parse(db?.masked_encrypted_extra || '{}');
   const [oauth2ClientInfo, setOauth2ClientInfo] = useState<OAuth2ClientInfo>({
@@ -58,6 +59,10 @@ export const OAuth2ClientField = ({
     scope:
       encryptedExtra.oauth2_client_info?.scope || defaultValue?.scope || '',
   });
+
+  if (db?.engine === 'gsheets' && isPublic) {
+    return null;
+  }
 
   const handleChange = (key: any) => (e: any) => {
     const updatedInfo = {

@@ -16,11 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useEffect, useState } from 'react';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { Form } from '@superset-ui/core/components';
 import { FormFieldOrder, FORM_FIELD_MAP } from './constants';
 import { formScrollableStyles, validatedFormStyles } from '../styles';
-import { DatabaseConnectionFormProps } from '../../types';
+import { DatabaseConnectionFormProps, DatabaseObject } from '../../types';
+
+const computeInitialIsPublic = (
+  database: Partial<DatabaseObject> | null | undefined,
+): boolean => {
+  if (!database || database.engine !== 'gsheets') return true;
+  if (
+    database.masked_encrypted_extra &&
+    database.masked_encrypted_extra !== '{}'
+  ) {
+    return false;
+  }
+  if (database.parameters?.service_account_info) return false;
+  return true;
+};
 
 const DatabaseConnectionForm = ({
   dbModel,
@@ -51,6 +66,16 @@ const DatabaseConnectionForm = ({
     };
     required?: string[];
   };
+
+  const [isPublic, setIsPublic] = useState<boolean>(() =>
+    computeInitialIsPublic(db),
+  );
+
+  // Re-derive when switching to a different database (e.g., async edit load)
+  useEffect(() => {
+    setIsPublic(computeInitialIsPublic(db));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- depend only on db identity
+  }, [db?.id, db?.engine]);
 
   return (
     <Form>
@@ -91,6 +116,8 @@ const DatabaseConnectionForm = ({
               sslForced,
               editNewDb,
               isValidating,
+              isPublic,
+              setIsPublic,
               placeholder: getPlaceholder ? getPlaceholder(field) : undefined,
             }),
           )}

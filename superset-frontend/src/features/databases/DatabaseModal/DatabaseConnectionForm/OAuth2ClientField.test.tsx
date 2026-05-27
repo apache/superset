@@ -180,4 +180,34 @@ describe('OAuth2ClientField', () => {
     expect(getByTestId('client-token-request-uri')).toHaveValue('');
     expect(getByTestId('client-scope')).toHaveValue('');
   });
+
+  test('renders nothing when engine is gsheets and isPublic is true', () => {
+    const props = {
+      ...defaultProps,
+      isPublic: true,
+      db: {
+        ...defaultProps.db,
+        engine: 'gsheets',
+      },
+    };
+
+    const { queryByText } = render(<OAuth2ClientField {...props} />);
+
+    expect(queryByText('OAuth2 client information')).not.toBeInTheDocument();
+  });
+
+  test('renders normally when engine is gsheets but isPublic is false', () => {
+    const props = {
+      ...defaultProps,
+      isPublic: false,
+      db: {
+        ...defaultProps.db,
+        engine: 'gsheets',
+      },
+    };
+
+    const { getByText } = render(<OAuth2ClientField {...props} />);
+
+    expect(getByText('OAuth2 client information')).toBeInTheDocument();
+  });
 });

@@ -33,9 +33,11 @@ export const TableCatalog = ({
   getValidation,
   validationErrors,
   db,
+  isPublic = true,
 }: FieldPropTypes) => {
   const tableCatalog = db?.catalog || [];
   const catalogError = validationErrors || {};
+  const showCredentialsHelper = db?.engine !== 'gsheets' || !isPublic;
   return (
     <StyledCatalogTable>
       <Typography.Title level={4} className="gsheet-title">
@@ -109,13 +111,15 @@ export const TableCatalog = ({
           + {t('Add sheet')}
         </StyledFooterButton>
       </div>
-      <div className="helper">
-        <div>
-          {t(
-            'In order to connect to non-public sheets you need to either provide a service account or configure an OAuth2 client.',
-          )}
+      {showCredentialsHelper && (
+        <div className="helper">
+          <div>
+            {t(
+              'In order to connect to non-public sheets you need to either provide a service account or configure an OAuth2 client.',
+            )}
+          </div>
         </div>
-      </div>
+      )}
     </StyledCatalogTable>
   );
 };

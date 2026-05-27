@@ -92,7 +92,12 @@ describe('EncryptedField', () => {
     isValidating: false,
     isEditMode: false,
     editNewDb: false,
-    db: createMockDb('gsheets'),
+    // Default to bigquery so existing credential-UI assertions aren't
+    // affected by the gsheets-specific public/private dropdown. New tests
+    // below override the engine to 'gsheets' to cover the dropdown gating.
+    db: createMockDb('bigquery'),
+    isPublic: false,
+    setIsPublic: jest.fn(),
   };
 
   // Use actual encryptedCredentialsMap for data-driven tests
@@ -300,7 +305,7 @@ describe('EncryptedField', () => {
 
       expectParametersChange(
         props.changeMethods,
-        'service_account_info', // gsheets default
+        'credentials_info', // bigquery default
         '',
       );
     });
@@ -357,7 +362,7 @@ describe('EncryptedField', () => {
       expect(screen.getByText('Service Account')).toBeInTheDocument();
 
       const textarea = screen.getByRole('textbox');
-      expect(textarea).toHaveAttribute('name', 'service_account_info');
+      expect(textarea).toHaveAttribute('name', 'credentials_info');
       expect(textarea).toHaveAttribute(
         'placeholder',
         'Paste content of service credentials JSON file here',
@@ -377,6 +382,98 @@ describe('EncryptedField', () => {
 
       const select = screen.getByRole('combobox');
       expect(select).toBeInTheDocument();
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('Google Sheets public/private dropdown', () => {
+    const gsheetsProps = {
+      ...defaultProps,
+      db: createMockDb('gsheets'),
+    };
+
+    test('renders the dropdown for gsheets', () => {
+      render(<EncryptedField {...gsheetsProps} isPublic />);
+
+      expect(
+        screen.getByText('Type of Google Sheets allowed'),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('Publicly shared sheets only'),
+      ).toBeInTheDocument();
+    });
+
+    test('does not render the dropdown for non-gsheets engines', () => {
+      render(<EncryptedField {...defaultProps} />);
+
+      expect(
+        screen.queryByText('Type of Google Sheets allowed'),
+      ).not.toBeInTheDocument();
+    });
+
+    test('hides credential inputs when isPublic is true', () => {
+      render(<EncryptedField {...gsheetsProps} isPublic />);
+
+      expect(
+        screen.queryByText(
+          'How do you want to enter service account credentials?',
+        ),
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Upload credentials')).not.toBeInTheDocument();
+      expect(screen.queryByText('Service Account')).not.toBeInTheDocument();
+    });
+
+    test('shows credential inputs when isPublic is false', () => {
+      render(<EncryptedField {...gsheetsProps} isPublic={false} />);
+
+      expect(
+        screen.getByText(
+          'How do you want to enter service account credentials?',
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByText('Upload credentials')).toBeInTheDocument();
+    });
+
+    test('hides credential textarea in edit mode when isPublic is true', () => {
+      render(<EncryptedField {...gsheetsProps} isPublic isEditMode />);
+
+      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      expect(screen.queryByText('Service Account')).not.toBeInTheDocument();
+    });
+
+    test('toggling back to public clears stored credentials', () => {
+      const setIsPublic = jest.fn();
+      const changeMethods = createMockChangeMethods();
+      render(
+        <EncryptedField
+          {...gsheetsProps}
+          changeMethods={changeMethods}
+          isPublic={false}
+          setIsPublic={setIsPublic}
+        />,
+      );
+
+      const dropdown = screen.getByText('Public and privately shared sheets');
+      fireEvent.mouseDown(dropdown);
+      fireEvent.click(screen.getByText('Publicly shared sheets only'));
+
+      expect(setIsPublic).toHaveBeenCalledWith(true);
+      expect(changeMethods.onParametersChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target: expect.objectContaining({
+            name: 'service_account_info',
+            value: '',
+          }),
+        }),
+      );
+      expect(changeMethods.onParametersChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target: expect.objectContaining({
+            name: 'oauth2_client_info',
+            value: '',
+          }),
+        }),
+      );
     });
   });
 });

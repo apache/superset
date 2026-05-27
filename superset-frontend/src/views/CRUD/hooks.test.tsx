@@ -25,6 +25,7 @@ import {
   useSingleViewResource,
   useFavoriteStatus,
   useChartEditModal,
+  useDatabaseValidation,
 } from './hooks';
 import type Chart from 'src/types/Chart';
 
@@ -736,4 +737,71 @@ test('useChartEditModal: handleChartUpdated leaves non-matching charts unchanged
     { id: 1, slice_name: 'A' },
     { id: 2, slice_name: 'B' },
   ]);
+});
+
+// useDatabaseValidation
+// Builds a SupersetClient.post rejection that mimics the validate_parameters
+// error envelope returned by the backend.
+function mockValidationError(errors: any[]) {
+  jest.spyOn(SupersetClient, 'post').mockRejectedValue({
+    json: () => Promise.resolve({ errors }),
+  });
+}
+
+test('useDatabaseValidation: drops CONNECTION_MISSING_PARAMETERS_ERROR on blur', async () => {
+  mockValidationError([
+    {
+      message: 'Missing host',
+      error_type: 'CONNECTION_MISSING_PARAMETERS_ERROR',
+      extra: { missing: ['host'] },
+    },
+  ]);
+
+  const { result } = renderHook(() => useDatabaseValidation());
+  const [, getValidation] = result.current;
+
+  await act(async () => {
+    // onCreate=false simulates a blur, not a submit
+    await getValidation({ parameters: {} } as any, false);
+  });
+
+  expect(result.current[0]).toEqual({});
+});
+
+test('useDatabaseValidation: surfaces CONNECTION_MISSING_PARAMETERS_ERROR on submit', async () => {
+  mockValidationError([
+    {
+      message: 'Missing host',
+      error_type: 'CONNECTION_MISSING_PARAMETERS_ERROR',
+      extra: { missing: ['host'] },
+    },
+  ]);
+
+  const { result } = renderHook(() => useDatabaseValidation());
+  const [, getValidation] = result.current;
+
+  await act(async () => {
+    await getValidation({ parameters: {} } as any, true);
+  });
+
+  expect(result.current[0]).toEqual({ host: 'This is a required field' });
+});
+
+test('useDatabaseValidation: keeps INVALID_PAYLOAD_SCHEMA_ERROR on blur', async () => {
+  mockValidationError([
+    {
+      message: 'Bad URL',
+      error_type: 'INVALID_PAYLOAD_SCHEMA_ERROR',
+      extra: { invalid: ['url'] },
+    },
+  ]);
+
+  const { result } = renderHook(() => useDatabaseValidation());
+  const [, getValidation] = result.current;
+
+  await act(async () => {
+    await getValidation({ parameters: {} } as any, false);
+  });
+
+  expect(result.current[0]).toEqual({ url: 'Bad URL' });
 });

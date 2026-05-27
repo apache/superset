@@ -51,13 +51,17 @@ export const EncryptedField = ({
   isEditMode,
   db,
   editNewDb,
+  isPublic = true,
+  setIsPublic,
 }: FieldPropTypes) => {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploadOption, setUploadOption] = useState<number>(
     CredentialInfoOptions.JsonUpload.valueOf(),
   );
   const { addDangerToast } = useToasts();
-  const showCredentialsInfo = !isEditMode;
+  const isGSheets = db?.engine === 'gsheets';
+  const showCredentialsInfo = !isEditMode && (!isGSheets || !isPublic);
+  const showCredentialsSection = !isGSheets || !isPublic;
   const encryptedField =
     db?.engine &&
     encryptedCredentialsMap[db.engine as keyof typeof encryptedCredentialsMap];
@@ -67,6 +71,19 @@ export const EncryptedField = ({
     paramValue && typeof paramValue === 'object'
       ? JSON.stringify(paramValue)
       : paramValue;
+
+  const handlePublicToggle = (value: string) => {
+    const nextIsPublic = value === 'true';
+    setIsPublic?.(nextIsPublic);
+    if (nextIsPublic) {
+      changeMethods.onParametersChange({
+        target: { name: 'service_account_info', value: '' },
+      });
+      changeMethods.onParametersChange({
+        target: { name: 'oauth2_client_info', value: '' },
+      });
+    }
+  };
 
   const readTextFile = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
@@ -87,6 +104,25 @@ export const EncryptedField = ({
 
   return (
     <CredentialInfoForm>
+      {isGSheets && (
+        <>
+          <FormLabel required>{t('Type of Google Sheets allowed')}</FormLabel>
+          <Select
+            value={isPublic ? 'true' : 'false'}
+            css={css`
+              width: 100%;
+            `}
+            onChange={value => handlePublicToggle(value as string)}
+            options={[
+              { value: 'true', label: t('Publicly shared sheets only') },
+              {
+                value: 'false',
+                label: t('Public and privately shared sheets'),
+              },
+            ]}
+          />
+        </>
+      )}
       {showCredentialsInfo && (
         <>
           <FormLabel>
@@ -111,9 +147,10 @@ export const EncryptedField = ({
           />
         </>
       )}
-      {uploadOption === CredentialInfoOptions.CopyPaste ||
-      isEditMode ||
-      editNewDb ? (
+      {showCredentialsSection &&
+      (uploadOption === CredentialInfoOptions.CopyPaste ||
+        isEditMode ||
+        editNewDb) ? (
         <div className="input-container">
           <FormLabel>{t('Service Account')}</FormLabel>
           <Input.TextArea

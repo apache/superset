@@ -323,6 +323,8 @@ export interface FieldPropTypes {
   defaultDBName?: string;
   editNewDb?: boolean;
   isValidating: boolean;
+  isPublic?: boolean;
+  setIsPublic?: (value: boolean) => void;
 }
 
 type ChangeMethodsType = FieldPropTypes['changeMethods'];
