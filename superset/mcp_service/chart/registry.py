@@ -210,9 +210,17 @@ def display_name_for_viz_type(viz_type: str) -> str | None:
     return None
 
 
-def get_registry() -> "_RegistryProxy":
-    """Return a proxy object for registry access (convenience wrapper)."""
-    return _RegistryProxy()
+def _reset_for_testing() -> None:
+    """Reset all registry state to defaults.
+
+    Only for use in tests that need a clean slate.  Calling this in production
+    will discard all registered plugins and any runtime filter configuration.
+    """
+    global _REGISTRY, _plugins_loaded, _plugins_load_failed, _filter_config
+    _REGISTRY = {}
+    _plugins_loaded = False
+    _plugins_load_failed = False
+    _filter_config = _PluginFilterConfig()
 
 
 class _RegistryProxy:
@@ -232,3 +240,11 @@ class _RegistryProxy:
 
     def display_name_for_viz_type(self, viz_type: str) -> str | None:
         return display_name_for_viz_type(viz_type)
+
+
+_PROXY = _RegistryProxy()
+
+
+def get_registry() -> "_RegistryProxy":
+    """Return the module-level registry proxy (convenience wrapper)."""
+    return _PROXY

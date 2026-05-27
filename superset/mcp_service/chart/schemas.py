@@ -572,15 +572,19 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
     filters_info = extract_filters_from_form_data(chart_form_data)
 
     _viz_type = getattr(chart, "viz_type", None)
-    try:
-        from superset.mcp_service.chart.registry import display_name_for_viz_type
-
-        _display_name = display_name_for_viz_type(_viz_type) if _viz_type else None
-    except Exception as exc:  # noqa: BLE001
-        logger.debug(
-            "Failed to resolve display name for viz_type=%r: %s", _viz_type, exc
-        )
-        _display_name = None
+    _display_name = None
+    if _viz_type:
+        try:
+            from superset.mcp_service.chart.registry import display_name_for_viz_type
+        except ImportError:
+            pass
+        else:
+            try:
+                _display_name = display_name_for_viz_type(_viz_type)
+            except Exception as exc:  # noqa: BLE001 — third-party plugins may raise
+                logger.debug(
+                    "Failed to resolve display name for viz_type=%r: %s", _viz_type, exc
+                )
 
     return sanitize_chart_info_for_llm_context(
         ChartInfo(
@@ -1471,6 +1475,14 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
         None,
         description="Filters to apply",
     )
+
+    @field_validator("temporal_column")
+    @classmethod
+    def sanitize_temporal_column(cls, v: str | None) -> str | None:
+        """Sanitize temporal column name to prevent SQL injection."""
+        return sanitize_user_input(
+            v, "Temporal column", max_length=255, allow_empty=True
+        )
 
     @model_validator(mode="after")
     def validate_trendline_fields(self) -> Self:
