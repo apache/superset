@@ -27,8 +27,11 @@ import {
   useSyncExternalStore,
 } from 'react';
 import { SupersetClient } from '@superset-ui/core';
-import { ConfirmStatusChange, Tooltip } from '@superset-ui/core/components';
-import { Switch } from '@superset-ui/core/components/Switch';
+import {
+  ConfirmStatusChange,
+  Switch,
+  Tooltip,
+} from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
@@ -102,18 +105,23 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
 
   const saveSettings = useCallback(
     (patch: Partial<ExtensionSettings>) => {
-      const next = { ...settingsRef.current, ...patch };
+      const previous = settingsRef.current;
+      const next = { ...previous, ...patch };
       setSettings(next);
+      notifyExtensionSettingsChanged(next);
       SupersetClient.put({
         endpoint: '/api/v1/extensions/settings',
         jsonPayload: next,
       })
-        .then(({ json }) => {
-          setSettings(json.result);
-          notifyExtensionSettingsChanged(json.result);
+        .then(() => {
           addSuccessToast(t('Settings saved.'));
         })
-        .catch(() => addDangerToast(t('Failed to save extension settings.')));
+        .catch(() => {
+          // Rollback optimistic update so UI stays consistent with server state.
+          setSettings(previous);
+          notifyExtensionSettingsChanged(previous);
+          addDangerToast(t('Failed to save extension settings.'));
+        });
     },
     [addDangerToast, addSuccessToast],
   );
@@ -232,7 +240,7 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
                 <Switch
                   data-test="toggle-enabled"
                   checked={settings.enabled[id] ?? true}
-                  onClick={(checked: boolean) => toggleEnabled(id, checked)}
+                  onChange={(checked: boolean) => toggleEnabled(id, checked)}
                   size="small"
                 />
               </Tooltip>
