@@ -63,7 +63,8 @@ async def list_queries(
 
     Returns recent queries executed by the current user (or all queries for
     admins), including SQL text, status, timing, and database information.
-    Results are ordered by start_time descending (most recent first) by default.
+    Results are ordered by changed_on descending by default (start_time is not
+    always populated for all query records).
 
     Sortable columns for order_column: id, start_time, end_time, status,
     database_id, changed_on
@@ -117,7 +118,7 @@ async def list_queries(
                 filters=request.filters,
                 search=request.search,
                 select_columns=request.select_columns,
-                order_column=request.order_column or "start_time",
+                order_column=request.order_column or "changed_on",
                 order_direction=request.order_direction,
                 page=max(request.page - 1, 0),
                 page_size=request.page_size,
