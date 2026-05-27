@@ -487,7 +487,17 @@ class AddChartToDashboardRequest(BaseModel):
     )
     chart_id: int = Field(..., description="ID of the chart to add to the dashboard")
     target_tab: str | None = Field(
-        None, description="Target tab name (if dashboard has tabs)"
+        None,
+        min_length=1,
+        description=(
+            "Tab to place the chart in. Accepts a tab display name "
+            "(e.g. 'Sales') or a tab component ID (e.g. 'TAB-abc123'). "
+            "Display-name matching is case-insensitive and strips all emoji; "
+            "component ID matching is case-sensitive and exact. "
+            "When not found, the error response lists all available tab names. "
+            "When omitted on a tabbed dashboard the chart is placed in the "
+            "first tab."
+        ),
     )
 
 
@@ -513,6 +523,19 @@ class AddChartToDashboardResponse(BaseModel):
             "Do NOT silently create a new dashboard — always confirm first."
         ),
     )
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap error text before it is exposed to LLM context.
+
+        The error may echo user-supplied target_tab or dashboard-controlled tab
+        labels — both must be wrapped so the LLM treats them as data, not
+        instructions.
+        """
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
 
 
 class GenerateDashboardRequest(BaseModel):
