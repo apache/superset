@@ -468,9 +468,12 @@ export function saveDashboardRequest(
     );
     const cleanedData: JsonObject = {
       ...data,
-      certified_by: certified_by || '',
-      certification_details:
-        certified_by && certification_details ? certification_details : '',
+      ...(certified_by !== undefined && {
+        certified_by,
+        certification_details: certified_by
+          ? (certification_details ?? '')
+          : '',
+      }),
       css: css || '',
       dashboard_title: dashboard_title || t('[ untitled dashboard ]'),
       owners: ensureIsArray(owners as JsonObject[]).map((o: JsonObject) =>
