@@ -613,6 +613,26 @@ def test_resolve_deck_gl_metrics_polygon_both_metric_and_prf():
     assert result == [base_metric, elevation_metric]
 
 
+def test_resolve_deck_gl_metrics_geojson_returns_empty():
+    # deck_geojson.query_obj() forces metrics=[] regardless of form_data
+    metric = {"expressionType": "SIMPLE", "aggregate": "SUM"}
+    result = _resolve_deck_gl_metrics(
+        {"size": metric, "metric": metric}, "deck_geojson"
+    )
+    assert result == []
+
+
+def test_resolve_deck_gl_metrics_scalar_size_excluded():
+    # Scalar size values (fixed display settings) must not be treated as metrics
+    result = _resolve_deck_gl_metrics({"size": "100"}, "deck_hex")
+    assert result == []
+
+
+def test_resolve_deck_gl_metrics_integer_size_excluded():
+    result = _resolve_deck_gl_metrics({"size": 100}, "deck_path")
+    assert result == []
+
+
 # ---------------------------------------------------------------------------
 # _deck_gl_null_filters (Fix 3)
 # ---------------------------------------------------------------------------
@@ -721,3 +741,40 @@ def test_build_query_dicts_deck_scatter_point_radius_fixed_metric(monkeypatch):
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
     assert queries[0]["metrics"] == [radius_metric]
+
+
+def test_build_query_dicts_deck_geojson_scalar_size_produces_no_metrics(monkeypatch):
+    # Regression: deck_geojson fixture has size='100' (scalar, not a metric).
+    # The fallback must produce metrics=[] to match DeckGeoJson.query_obj().
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_geojson",
+        "geojson": "geometry",
+        "size": "100",
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert queries[0]["metrics"] == []
+
+
+def test_build_query_dicts_deck_path_scalar_size_produces_no_metrics(monkeypatch):
+    # deck_path fixture also has size='100' — scalar must not become a metric.
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_path",
+        "line_column": "path_col",
+        "size": "100",
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert queries[0]["metrics"] == []

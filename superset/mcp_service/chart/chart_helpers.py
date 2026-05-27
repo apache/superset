@@ -306,17 +306,23 @@ def _deck_gl_null_filters(form_data: dict[str, Any]) -> list[dict[str, Any]]:
     return result
 
 
-def _resolve_deck_gl_metrics(form_data: dict[str, Any]) -> list[Any]:
+def _resolve_deck_gl_metrics(
+    form_data: dict[str, Any], viz_type: str = ""
+) -> list[Any]:
     """Extract metrics for Deck.gl chart types.
 
-    deck_scatter and deck_polygon can store metric-backed values in
-    point_radius_fixed (radius for scatter, elevation for polygon).
-    deck_polygon may have both a base metric and an elevation metric.
+    deck_geojson.query_obj() forces metrics=[] regardless of form_data.
+    For other types, size/metric must be dict metric references — scalar
+    values (e.g. "100") are fixed display settings, not query metrics.
+    deck_scatter and deck_polygon can additionally store metric-backed
+    values in point_radius_fixed (radius for scatter, elevation for polygon).
     """
+    if viz_type == "deck_geojson":
+        return []
     metrics: list[Any] = []
     for field in ("size", "metric"):
         m = form_data.get(field)
-        if m:
+        if isinstance(m, dict):
             metrics.append(m)
     prf = form_data.get("point_radius_fixed")
     if isinstance(prf, dict) and prf.get("type") == "metric":
@@ -531,7 +537,7 @@ def build_query_dicts_from_form_data(
     # metrics / groupby fields. Extract columns from the spatial controls.
     if viz_type.startswith("deck_"):
         deck_columns = resolve_deck_gl_columns(form_data)
-        deck_metrics = _resolve_deck_gl_metrics(form_data)
+        deck_metrics = _resolve_deck_gl_metrics(form_data, viz_type)
         qd = _build_single_query_dict(
             form_data,
             deck_columns,
