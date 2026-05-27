@@ -26,6 +26,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.privacy import USER_DIRECTORY_FIELDS
 from superset.mcp_service.rls.schemas import (
     ALL_RLS_COLUMNS,
     DEFAULT_RLS_COLUMNS,
@@ -92,11 +93,23 @@ async def list_rls_filters(
             logger=logger,
         )
 
+        # RLS 'roles' is valid filter data but lives in USER_DIRECTORY_FIELDS,
+        # so ModelListCore would raise ValueError for a column list that reduces
+        # to empty after privacy filtering (e.g. select_columns=["roles"]).
+        # Strip directory-field columns here; the bypass below restores them in
+        # the final serialized output from ALL_RLS_COLUMNS.
+        run_tool_columns = None
+        if request.select_columns:
+            non_directory = [
+                c for c in request.select_columns if c not in USER_DIRECTORY_FIELDS
+            ]
+            run_tool_columns = non_directory if non_directory else None
+
         with event_logger.log_context(action="mcp.list_rls_filters.query"):
             result = list_tool.run_tool(
                 filters=request.filters,
                 search=request.search,
-                select_columns=request.select_columns,
+                select_columns=run_tool_columns,
                 order_column=request.order_column,
                 order_direction=request.order_direction,
                 page=max(request.page - 1, 0),

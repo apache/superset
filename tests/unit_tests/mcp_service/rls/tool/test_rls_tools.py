@@ -159,6 +159,28 @@ async def test_list_rls_filters_returns_tables_and_roles(mock_list, mcp_server):
 
 @patch("superset.daos.security.RLSDAO.list")
 @pytest.mark.asyncio
+async def test_list_rls_filters_roles_only_select_columns(mock_list, mcp_server):
+    """Requesting only 'roles' must not raise ValueError from the privacy filter."""
+    rls_filter = create_mock_rls_filter()
+    mock_list.return_value = ([rls_filter], 1)
+
+    async with Client(mcp_server) as client:
+        request = ListRlsFiltersRequest(
+            page=1,
+            page_size=10,
+            select_columns=["roles"],
+        )
+        result = await client.call_tool(
+            "list_rls_filters", {"request": request.model_dump()}
+        )
+        data = json.loads(result.content[0].text)
+        item = data["rls_filters"][0]
+        assert "roles" in item
+        assert item["roles"][0]["name"] == "Alpha"
+
+
+@patch("superset.daos.security.RLSDAO.list")
+@pytest.mark.asyncio
 async def test_list_rls_filters_empty(mock_list, mcp_server):
     mock_list.return_value = ([], 0)
 
