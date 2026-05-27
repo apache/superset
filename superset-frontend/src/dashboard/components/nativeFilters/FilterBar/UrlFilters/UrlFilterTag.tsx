@@ -23,7 +23,7 @@ import { Tag } from 'src/components/Tag';
 import { Tooltip } from '@superset-ui/core/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { ellipsisCss } from '../CrossFilters/styles';
-import { UrlFilterIndicator } from './selectors';
+import { UrlFilterIndicator } from './urlFilterUtils';
 
 const StyledValue = styled.b`
   ${({ theme }) => `
@@ -70,7 +70,6 @@ const UrlFilterTag = (props: {
       `}
       closable
       onClose={() => onRemove(filter)}
-      editable
     >
       <Tooltip title={columnIsTruncated ? filter.subject : null}>
         <StyledColumn ref={columnRef}>{filter.subject}</StyledColumn>

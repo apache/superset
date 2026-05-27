@@ -17,18 +17,80 @@
  * under the License.
  */
 
-import { useMemo } from 'react';
-import { getUrlFilterIndicators } from './selectors';
+import { useCallback, useEffect, useState } from 'react';
+import { useDispatch } from 'react-redux';
+import { useHistory, useLocation } from 'react-router-dom';
+import { QueryObjectFilterClause } from '@superset-ui/core';
+import { removeDataMask, updateDataMask } from 'src/dataMask/actions';
+import {
+  getRisonFilterParam,
+  parseRisonFilters,
+  RISON_UNMATCHED_DATAMASK_ID,
+  risonFiltersToExtraFormDataFilters,
+  updateUrlWithUnmatchedFilters,
+} from 'src/dashboard/util/risonFilters';
+import {
+  getUrlFilterIdentity,
+  getUrlFilterIndicators,
+  UrlFilterIndicator,
+} from './urlFilterUtils';
 import UrlFiltersVerticalCollapse from './VerticalCollapse';
 
 const UrlFiltersVertical = () => {
-  const urlFilters = useMemo(() => getUrlFilterIndicators(), []);
+  const dispatch = useDispatch();
+  const history = useHistory();
+  const location = useLocation();
+  const [urlFilters, setUrlFilters] = useState<UrlFilterIndicator[]>(() =>
+    getUrlFilterIndicators(),
+  );
+
+  // Re-read chips whenever the URL changes (back/forward navigation, or a
+  // programmatic history.replace).
+  useEffect(() => {
+    setUrlFilters(getUrlFilterIndicators());
+  }, [location.search]);
+
+  const handleRemoveFilter = useCallback(
+    (filterToRemove: UrlFilterIndicator) => {
+      const risonParam = getRisonFilterParam();
+      if (!risonParam) return;
+
+      const removeId = getUrlFilterIdentity(filterToRemove.filter);
+      const currentFilters = parseRisonFilters(risonParam);
+      const remaining = currentFilters.filter(
+        f => getUrlFilterIdentity(f) !== removeId,
+      );
+
+      updateUrlWithUnmatchedFilters(remaining, history);
+      setUrlFilters(prev =>
+        prev.filter(f => getUrlFilterIdentity(f.filter) !== removeId),
+      );
+
+      if (remaining.length === 0) {
+        dispatch(removeDataMask(RISON_UNMATCHED_DATAMASK_ID));
+      } else {
+        const extraFormDataFilters: QueryObjectFilterClause[] =
+          risonFiltersToExtraFormDataFilters(remaining);
+        dispatch(
+          updateDataMask(RISON_UNMATCHED_DATAMASK_ID, {
+            extraFormData: { filters: extraFormDataFilters },
+          }),
+        );
+      }
+    },
+    [dispatch, history],
+  );
 
   if (!urlFilters.length) {
     return null;
   }
 
-  return <UrlFiltersVerticalCollapse urlFilters={urlFilters} />;
+  return (
+    <UrlFiltersVerticalCollapse
+      urlFilters={urlFilters}
+      onRemoveFilter={handleRemoveFilter}
+    />
+  );
 };
 
 export default UrlFiltersVertical;

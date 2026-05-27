@@ -17,116 +17,73 @@
  * under the License.
  */
 
-import { useMemo, useState, useCallback } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme, SupersetTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import {
-  updateUrlWithUnmatchedFilters,
-  getRisonFilterParam,
-  parseRisonFilters,
-} from 'src/dashboard/util/risonFilters';
 import UrlFilterTag from './UrlFilterTag';
-import { UrlFilterIndicator, getUrlFilterIdentity } from './selectors';
+import { UrlFilterIndicator, getUrlFilterIdentity } from './urlFilterUtils';
+
+const sectionContainerStyle = (theme: SupersetTheme) => css`
+  margin-bottom: ${theme.sizeUnit * 3}px;
+  padding: 0 ${theme.sizeUnit * 4}px;
+`;
+
+const sectionHeaderStyle = (theme: SupersetTheme) => css`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: ${theme.sizeUnit * 2}px 0;
+  cursor: pointer;
+  user-select: none;
+
+  &:hover {
+    background: ${theme.colorBgTextHover};
+    margin: 0 -${theme.sizeUnit * 2}px;
+    padding: ${theme.sizeUnit * 2}px;
+    border-radius: ${theme.borderRadius}px;
+  }
+`;
+
+const sectionTitleStyle = (theme: SupersetTheme) => css`
+  margin: 0;
+  font-size: ${theme.fontSize}px;
+  font-weight: ${theme.fontWeightStrong};
+  color: ${theme.colorText};
+  line-height: 1.3;
+  display: flex;
+  align-items: center;
+  gap: ${theme.sizeUnit}px;
+`;
+
+const sectionContentStyle = (theme: SupersetTheme) => css`
+  padding: ${theme.sizeUnit * 2}px 0;
+`;
+
+const dividerStyle = (theme: SupersetTheme) => css`
+  height: 1px;
+  background: ${theme.colorSplit};
+  margin: ${theme.sizeUnit * 2}px 0;
+`;
+
+const iconStyle = (open: boolean, theme: SupersetTheme) => css`
+  transform: ${open ? 'rotate(0deg)' : 'rotate(180deg)'};
+  transition: transform 0.2s ease;
+  color: ${theme.colorTextSecondary};
+`;
 
 const UrlFiltersVerticalCollapse = (props: {
   urlFilters: UrlFilterIndicator[];
+  onRemoveFilter: (filter: UrlFilterIndicator) => void;
 }) => {
-  const { urlFilters: initialFilters } = props;
+  const { urlFilters, onRemoveFilter } = props;
   const theme = useTheme();
   const [isOpen, setIsOpen] = useState(true);
-  const [urlFilters, setUrlFilters] =
-    useState<UrlFilterIndicator[]>(initialFilters);
 
   const toggleSection = useCallback(() => {
     setIsOpen(prev => !prev);
   }, []);
-
-  const handleRemoveFilter = useCallback(
-    (filterToRemove: UrlFilterIndicator) => {
-      const risonParam = getRisonFilterParam();
-      if (!risonParam) return;
-
-      const removeId = getUrlFilterIdentity(filterToRemove.filter);
-      const currentFilters = parseRisonFilters(risonParam);
-      const remaining = currentFilters.filter(
-        f => getUrlFilterIdentity(f) !== removeId,
-      );
-
-      updateUrlWithUnmatchedFilters(remaining);
-      setUrlFilters(prev =>
-        prev.filter(f => getUrlFilterIdentity(f.filter) !== removeId),
-      );
-    },
-    [],
-  );
-
-  const sectionContainerStyle = useCallback(
-    (theme: SupersetTheme) => css`
-      margin-bottom: ${theme.sizeUnit * 3}px;
-      padding: 0 ${theme.sizeUnit * 4}px;
-    `,
-    [],
-  );
-
-  const sectionHeaderStyle = useCallback(
-    (theme: SupersetTheme) => css`
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: ${theme.sizeUnit * 2}px 0;
-      cursor: pointer;
-      user-select: none;
-
-      &:hover {
-        background: ${theme.colorBgTextHover};
-        margin: 0 -${theme.sizeUnit * 2}px;
-        padding: ${theme.sizeUnit * 2}px;
-        border-radius: ${theme.borderRadius}px;
-      }
-    `,
-    [],
-  );
-
-  const sectionTitleStyle = useCallback(
-    (theme: SupersetTheme) => css`
-      margin: 0;
-      font-size: ${theme.fontSize}px;
-      font-weight: ${theme.fontWeightStrong};
-      color: ${theme.colorText};
-      line-height: 1.3;
-      display: flex;
-      align-items: center;
-      gap: ${theme.sizeUnit}px;
-    `,
-    [],
-  );
-
-  const sectionContentStyle = useCallback(
-    (theme: SupersetTheme) => css`
-      padding: ${theme.sizeUnit * 2}px 0;
-    `,
-    [],
-  );
-
-  const dividerStyle = useCallback(
-    (theme: SupersetTheme) => css`
-      height: 1px;
-      background: ${theme.colorSplit};
-      margin: ${theme.sizeUnit * 2}px 0;
-    `,
-    [],
-  );
-
-  const iconStyle = useCallback(
-    (open: boolean, theme: SupersetTheme) => css`
-      transform: ${open ? 'rotate(0deg)' : 'rotate(180deg)'};
-      transition: transform 0.2s ease;
-      color: ${theme.colorTextSecondary};
-    `,
-    [],
-  );
 
   const filterIndicators = useMemo(
     () =>
@@ -135,10 +92,10 @@ const UrlFiltersVerticalCollapse = (props: {
           key={getUrlFilterIdentity(filter.filter)}
           filter={filter}
           orientation={FilterBarOrientation.Vertical}
-          onRemove={handleRemoveFilter}
+          onRemove={onRemoveFilter}
         />
       )),
-    [urlFilters, handleRemoveFilter],
+    [urlFilters, onRemoveFilter],
   );
 
   if (!urlFilters.length) {

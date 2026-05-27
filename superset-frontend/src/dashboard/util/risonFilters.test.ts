@@ -21,8 +21,10 @@ import {
   injectRisonFiltersIntelligently,
   RisonFilter,
   parseRisonFilters,
+  risonFiltersToExtraFormDataFilters,
   risonFiltersToString,
   risonToAdhocFilters,
+  updateUrlWithUnmatchedFilters,
 } from './risonFilters';
 
 const mockNativeFilters: PartialFilters = {
@@ -322,4 +324,85 @@ test('should convert IN filters to Rison string', () => {
 
 test('should return empty string for empty filters', () => {
   expect(risonFiltersToString([])).toBe('');
+});
+
+test('risonFiltersToExtraFormDataFilters expands BETWEEN into two clauses', () => {
+  const filters: RisonFilter[] = [
+    { subject: 'country', operator: '==', comparator: 'USA' },
+    { subject: 'year', operator: 'BETWEEN', comparator: [2020, 2024] },
+  ];
+
+  expect(risonFiltersToExtraFormDataFilters(filters)).toEqual([
+    { col: 'country', op: 'IN', val: ['USA'] },
+    { col: 'year', op: '>=', val: 2020 },
+    { col: 'year', op: '<=', val: 2024 },
+  ]);
+});
+
+test('updateUrlWithUnmatchedFilters goes through history when supplied', () => {
+  const replace = jest.fn();
+  const history = { replace };
+
+  // Seed the URL so the function has something to read.
+  const originalLocation = window.location.href;
+  window.history.replaceState({}, '', '/superset/dashboard/1/?f=(country:USA)');
+
+  updateUrlWithUnmatchedFilters(
+    [{ subject: 'region', operator: '==', comparator: 'EMEA' }],
+    history,
+  );
+
+  expect(replace).toHaveBeenCalledTimes(1);
+  const call = replace.mock.calls[0][0];
+  expect(call.pathname).toBe('/superset/dashboard/1/');
+  expect(call.search).toContain('f=');
+  expect(call.search).toContain('region');
+
+  // Restore.
+  window.history.replaceState({}, '', originalLocation);
+});
+
+test('updateUrlWithUnmatchedFilters drops f= when no unmatched remain', () => {
+  const replace = jest.fn();
+  const originalLocation = window.location.href;
+  window.history.replaceState({}, '', '/superset/dashboard/1/?f=(country:USA)');
+
+  updateUrlWithUnmatchedFilters([], { replace });
+
+  expect(replace).toHaveBeenCalledTimes(1);
+  expect(replace.mock.calls[0][0].search).toBe('');
+
+  window.history.replaceState({}, '', originalLocation);
+});
+
+test('updateUrlWithUnmatchedFilters cleanup is observable by history readers', () => {
+  // Validates PR review item #3: the URL cleanup must go through a path
+  // that downstream history-readers (e.g. publishDataMask) observe. The
+  // raw window.history.replaceState fallback alone left react-router's
+  // history.location.search stale, causing publishDataMask to re-append
+  // the original f= on the next interaction.
+  //
+  // Stand in for react-router's history with a fake whose `.location`
+  // updates synchronously when .replace is called — same contract as
+  // react-router-dom's history.replace.
+  const fakeHistory = {
+    location: { pathname: '/superset/dashboard/1/', search: '?f=(country:USA)' },
+    replace(next: { pathname: string; search: string }) {
+      this.location = next;
+    },
+  };
+  const originalLocation = window.location.href;
+  window.history.replaceState({}, '', '/superset/dashboard/1/?f=(country:USA)');
+
+  updateUrlWithUnmatchedFilters(
+    [{ subject: 'sales', operator: '>', comparator: 1000 }],
+    fakeHistory,
+  );
+
+  // After cleanup, a reader of history.location.search (the same path
+  // publishDataMask uses) must NOT see the original matched filter.
+  expect(fakeHistory.location.search).not.toContain('country');
+  expect(fakeHistory.location.search).toContain('sales');
+
+  window.history.replaceState({}, '', originalLocation);
 });

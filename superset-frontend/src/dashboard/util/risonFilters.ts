@@ -24,6 +24,14 @@ import {
 } from '@superset-ui/core';
 import rison from 'rison';
 
+/**
+ * Synthetic dataMask key for URL Rison filters that don't match any native
+ * filter on the dashboard. Because no entry in `nativeFilters` claims this id,
+ * `getAllActiveFilters` falls through to `allSliceIds`, so the attached
+ * `extraFormData.filters` apply to every chart on the dashboard.
+ */
+export const RISON_UNMATCHED_DATAMASK_ID = '__rison_unmatched__';
+
 export interface RisonFilter {
   subject: string;
   operator: string;
@@ -309,11 +317,20 @@ export function risonFiltersToString(filters: RisonFilter[]): string {
   }
 }
 
+interface ReplaceHistory {
+  replace(location: { pathname: string; search: string }): void;
+}
+
 /**
- * Update the URL to remove successfully matched filters, keeping only unmatched ones
+ * Update the URL to remove successfully matched filters, keeping only unmatched ones.
+ * When a react-router history is supplied, the update goes through it so that
+ * components reading from `history.location` (e.g. `publishDataMask` in the
+ * filter bar) see the new search string. Otherwise falls back to a raw
+ * `window.history.replaceState`.
  */
 export function updateUrlWithUnmatchedFilters(
   unmatchedFilters: RisonFilter[],
+  history?: ReplaceHistory,
 ): void {
   try {
     const currentUrl = new URL(window.location.href);
@@ -329,11 +346,18 @@ export function updateUrlWithUnmatchedFilters(
       }
     }
 
-    window.history.replaceState(
-      window.history.state,
-      '',
-      currentUrl.toString(),
-    );
+    if (history) {
+      history.replace({
+        pathname: currentUrl.pathname,
+        search: currentUrl.search,
+      });
+    } else {
+      window.history.replaceState(
+        window.history.state,
+        '',
+        currentUrl.toString(),
+      );
+    }
   } catch (error) {
     console.warn('Failed to update URL with unmatched filters:', error);
   }
@@ -408,6 +432,19 @@ function buildExtraFormDataFilters(
       val: comparator,
     } as QueryObjectFilterClause,
   ];
+}
+
+/**
+ * Convert a list of Rison filters into the `{col, op, val}` clauses expected
+ * by `dataMask[id].extraFormData.filters`. Each filter uses its own subject
+ * as the column name.
+ */
+export function risonFiltersToExtraFormDataFilters(
+  filters: RisonFilter[],
+): QueryObjectFilterClause[] {
+  return filters.flatMap(filter =>
+    buildExtraFormDataFilters(filter, filter.subject),
+  );
 }
 
 /**

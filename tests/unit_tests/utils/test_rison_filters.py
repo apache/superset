@@ -130,3 +130,42 @@ def test_invalid_rison():
     parser = RisonFilterParser()
     assert parser.parse("invalid rison") == []
     assert parser.parse("(unclosed") == []
+
+
+def test_or_branch_escapes_string_literals():
+    """OR-branch SQL must escape apostrophes; otherwise a URL like
+    `(OR:!((name:'a''; DROP TABLE x; --')))` would inject."""
+    parser = RisonFilterParser()
+    result = parser.parse('(OR:!((name:"O\'Brien"),(role:admin)))')
+
+    assert len(result) == 1
+    sql = result[0]["sqlExpression"]
+    # Single quote inside the literal is doubled per SQL standard.
+    assert "'O''Brien'" in sql
+    assert "'admin'" in sql
+
+
+def test_or_branch_rejects_unsafe_identifiers():
+    """Columns that don't match a strict identifier whitelist drop the
+    condition rather than getting interpolated into SQL."""
+    parser = RisonFilterParser()
+    result = parser.parse('(OR:!(("col; DROP TABLE x":1),(role:admin)))')
+
+    # The unsafe column is dropped, the safe one remains.
+    assert len(result) == 1
+    sql = result[0]["sqlExpression"]
+    assert "DROP" not in sql
+    assert "role = 'admin'" in sql
+
+
+def test_or_branch_all_conditions_unsafe_returns_nothing():
+    parser = RisonFilterParser()
+    result = parser.parse('(OR:!(("col;1":1),("col;2":2)))')
+    assert result == []
+
+
+def test_or_branch_between_quotes_both_bounds():
+    parser = RisonFilterParser()
+    result = parser.parse("(OR:!((date:(between:!('2024-01-01','2024-12-31')))))")
+    sql = result[0]["sqlExpression"]
+    assert "date BETWEEN '2024-01-01' AND '2024-12-31'" in sql
