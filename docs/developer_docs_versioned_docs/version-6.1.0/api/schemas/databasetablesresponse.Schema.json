@@ -1,0 +1,1 @@
+{"schema":{"properties":{"extra":{"description":"Extra data used to specify column metadata","type":"object"},"type":{"description":"table or view","type":"string"},"value":{"description":"The table or view name","type":"string"}},"type":"object","title":"DatabaseTablesResponse"},"schemaType":"response"}

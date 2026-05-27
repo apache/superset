@@ -56,6 +56,19 @@ MCP_DEBUG = False
 # against the FAB security_manager before execution.
 MCP_RBAC_ENABLED = True
 
+# MCP Disabled Tools - a set of tool names to remove from the MCP server at
+# startup. Disabled tools are silently omitted from tool discovery, so AI
+# clients never see them. Use this when a Superset-provided tool conflicts with
+# a custom tool added via an extension and you want to suppress the built-in
+# version.
+#
+# Example:
+#   MCP_DISABLED_TOOLS = {"execute_sql", "health_check"}
+#
+# Extension-prefixed tools can also be disabled using their full name:
+#   MCP_DISABLED_TOOLS = {"extensions.myorg.myext.some_tool"}
+MCP_DISABLED_TOOLS: set[str] = set()
+
 # MCP JWT Debug Errors - controls server-side JWT debug logging.
 # When False (default), uses the default JWTVerifier with minimal logging.
 # When True, uses DetailedJWTVerifier with tiered logging:
@@ -330,10 +343,10 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
 
             auth_provider = DetailedJWTVerifier(**common_kwargs)
         else:
-            # Default JWTVerifier: minimal logging, generic error responses.
-            from fastmcp.server.auth.providers.jwt import JWTVerifier
+            # MCPJWTVerifier: minimal logging + browser-friendly error page.
+            from superset.mcp_service.jwt_verifier import MCPJWTVerifier
 
-            auth_provider = JWTVerifier(**common_kwargs)
+            auth_provider = MCPJWTVerifier(**common_kwargs)
 
         return auth_provider
     except Exception:
@@ -402,6 +415,7 @@ def get_mcp_config(app_config: Dict[str, Any] | None = None) -> Dict[str, Any]:
         "MCP_SERVICE_PORT": MCP_SERVICE_PORT,
         "MCP_DEBUG": MCP_DEBUG,
         "MCP_RBAC_ENABLED": MCP_RBAC_ENABLED,
+        "MCP_DISABLED_TOOLS": set(MCP_DISABLED_TOOLS),
         **MCP_SESSION_CONFIG,
         **MCP_CSRF_CONFIG,
     }

@@ -35,6 +35,7 @@ from superset.mcp_service.chart.chart_utils import (
     analyze_chart_capabilities,
     analyze_chart_semantics,
     generate_chart_name,
+    get_table_chart_type_label,
     map_config_to_form_data,
     validate_chart_dataset,
 )
@@ -43,6 +44,7 @@ from superset.mcp_service.chart.compile import (
     CompileResult,
     validate_and_compile,
 )
+from superset.mcp_service.chart.preview_utils import SUPPORTED_FORM_DATA_PREVIEW_FORMATS
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     CHART_FORM_DATA_EXCLUDED_FIELD_NAMES,
@@ -350,6 +352,20 @@ async def generate_chart(  # noqa: C901
                             "Chart creation failed - no chart ID returned"
                         )
 
+                    # Reload server-generated timestamps (created_on,
+                    # changed_on) so the serializer sees real values.
+                    from superset import db
+
+                    try:
+                        db.session.refresh(chart)
+                    except SQLAlchemyError:
+                        logger.warning(
+                            "Chart %s created but refresh failed; "
+                            "continuing with current values",
+                            chart.id,
+                            exc_info=True,
+                        )
+
                 await ctx.info(
                     "Chart created successfully: chart_id=%s, chart_name=%s"
                     % (
@@ -400,7 +416,7 @@ async def generate_chart(  # noqa: C901
                     )
 
                     execution_time = int((time.time() - start_time) * 1000)
-                    error = ChartGenerationError(
+                    error = compile_result.error_obj or ChartGenerationError(
                         error_type="compile_error",
                         message=(
                             "Chart query failed to execute. The chart was not saved."
@@ -530,7 +546,7 @@ async def generate_chart(  # noqa: C901
                     )
 
                     execution_time = int((time.time() - start_time) * 1000)
-                    error = ChartGenerationError(
+                    error = compile_result.error_obj or ChartGenerationError(
                         error_type="compile_error",
                         message=(
                             "Chart query failed to execute. "
@@ -630,11 +646,7 @@ async def generate_chart(  # noqa: C901
                             # For preview-only mode (save_chart=false)
                             # Note: Screenshot-based URL previews are not
                             # supported. Use explore_url to view interactively.
-                            if format_type in [
-                                "ascii",
-                                "table",
-                                "vega_lite",
-                            ]:
+                            if format_type in SUPPORTED_FORM_DATA_PREVIEW_FORMATS:
                                 # Generate preview from form data
                                 from superset.mcp_service.chart.preview_utils import (
                                     generate_preview_from_form_data,
@@ -749,6 +761,7 @@ async def generate_chart(  # noqa: C901
             "capabilities": capabilities.model_dump() if capabilities else None,
             "semantics": semantics.model_dump() if semantics else None,
             "explore_url": explore_url,
+            "chart_type_label": get_table_chart_type_label(form_data.get("viz_type")),
             # Form data fields - REQUIRED for chatbot/external client rendering
             "form_data": _sanitize_generate_chart_form_data_for_llm_context(form_data),
             "form_data_key": form_data_key,

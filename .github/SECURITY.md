@@ -33,13 +33,21 @@ We kindly ask you to include the following information in your report to assist 
 - Expected vs. Actual Behavior: A clear description of the intended system behavior versus the observed vulnerability.
 - Detailed Reproduction Steps: Clear, manual steps to reproduce the vulnerability.
 
+**Vulnerability Definition**
+
+Apache Superset considers a security vulnerability to be a demonstrable issue that has meaningful impact on confidentiality, integrity, or availability beyond the intended security model. Low-impact boundary variations or technical edge cases in existing access controls may be classified as hardening improvements rather than vulnerabilities, even if exploitable.
+
 **Out of Scope Vulnerabilities**
 
 To prioritize engineering efforts on genuine architectural risks, the following scenarios are explicitly out of scope and will not be issued a CVE:
-- Attacks requiring Admin privileges: (e.g., CSS injection, template manipulation, dashboard ownership overrides, or modifying global system settings). Per the CVE vulnerability definition in CNA Operational Rules 4.1, a qualifying vulnerability must allow violation of a security policy. The Admin role is a fully trusted operational boundary defined by Apache Superset's security policy; actions within this boundary do not violate that policy and are therefore considered intended capabilities 'by design,' not vulnerabilities.
-- Brute Force and Rate Limiting: Reports targeting a lack of resource exhaustion protections, generic rate-limiting, or volumetric Denial of Service (DoS) attempts.
-- Theoretical attack vectors: Issues without a demonstrable, reproducible exploit path.
-- Non-Exploitable Findings: Missing security headers, generic banner disclosures, or descriptive error messages that do not lead to a direct, documented exploit.
+- **Attacks requiring Admin privileges**: (e.g., CSS injection, template manipulation, dashboard ownership overrides, or modifying global system settings). Per the CVE vulnerability definition in CNA Operational Rules 4.1, a qualifying vulnerability must allow violation of a security policy. The Admin role is a fully trusted operational boundary defined by Apache Superset's security policy; actions within this boundary do not violate that policy and are therefore considered intended capabilities 'by design,' not vulnerabilities.
+- **Brute Force and Rate Limiting**: Reports targeting a lack of resource exhaustion protections, generic rate-limiting, or volumetric Denial of Service (DoS) attempts.
+- **Theoretical attack vectors**: Issues without a demonstrable, reproducible exploit path.
+- **Non-Exploitable Findings**: Missing security headers, generic banner disclosures, or descriptive error messages that do not lead to a direct, documented exploit.
+- **User enumeration**: API responses, timing differences, or error messages that reveal whether user accounts, IDs, dashboards, or datasets exist.
+- **Information disclosure (low impact)**: Software version disclosure, generic error messages, stack traces without sensitive data exposure, or system configuration details that don't enable further exploitation.
+- **Resource exhaustion requiring authentication**: Denial of Service attacks that require valid user credentials and don't bypass rate limiting or resource controls.
+- **Missing security headers**: Without demonstration of a concrete exploit scenario that leverages the missing header.
 
 **Outcome of Reports**
 

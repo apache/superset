@@ -78,6 +78,13 @@ jobs:
       - name: yarn install
         run: |
           yarn install --check-cache
+      - name: Lint docs links
+        # Fast source-level check for bare relative internal links
+        # like `[Foo](../foo)` that Docusaurus's onBrokenLinks
+        # setting can't catch. Runs in seconds; fails fast before
+        # the expensive build step.
+        run: |
+          yarn lint:docs-links
       - name: yarn typecheck
         run: |
           yarn typecheck

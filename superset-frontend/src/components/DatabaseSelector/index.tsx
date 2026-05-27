@@ -191,6 +191,8 @@ export function DatabaseSelector({
 }: DatabaseSelectorProps) {
   const showCatalogSelector = !!db?.allow_multi_catalog;
   const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
+  const showSchemaSelector =
+    (db?.supports_schemas ?? currentDb?.supports_schemas) !== false;
   const [errorPayload, setErrorPayload] = useState<SupersetError | null>();
   const [currentCatalog, setCurrentCatalog] = useState<
     CatalogOption | null | undefined
@@ -260,6 +262,12 @@ export function DatabaseSelector({
             database_name: row.database_name,
             backend: row.backend,
             allow_multi_catalog: row.allow_multi_catalog,
+            supports_schemas:
+              (
+                row as DatabaseObject & {
+                  engine_information?: { supports_schemas?: boolean };
+                }
+              ).engine_information?.supports_schemas !== false,
             order,
           }));
 
@@ -597,7 +605,7 @@ export function DatabaseSelector({
       {renderDatabaseSelect()}
       {renderError()}
       {showCatalogSelector && renderCatalogSelect()}
-      {renderSchemaSelect()}
+      {showSchemaSelector && renderSchemaSelect()}
     </DatabaseSelectorWrapper>
   );
 }
