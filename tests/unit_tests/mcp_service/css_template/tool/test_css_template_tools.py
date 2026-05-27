@@ -225,7 +225,7 @@ async def test_get_css_template_info_not_found(mock_find, mcp_server):
         result = await client.call_tool(
             "get_css_template_info", {"request": {"identifier": 999}}
         )
-        assert result.data["error_type"] == "not_found"
+        assert json.loads(result.content[0].text)["error_type"] == "not_found"
 
 
 def test_list_css_templates_request_search_and_filters_conflict():
