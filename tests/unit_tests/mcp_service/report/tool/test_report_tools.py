@@ -455,3 +455,23 @@ def test_serialize_report_object_none():
     from superset.mcp_service.report.schemas import serialize_report_object
 
     assert serialize_report_object(None) is None
+
+
+@patch("superset.daos.report.ReportScheduleDAO.list")
+@pytest.mark.asyncio
+async def test_list_reports_both_owned_and_created_by_me(mock_list, mcp_server):
+    """Both flags together inject a created_by_fk_or_owner OR filter."""
+    mock_list.return_value = ([], 0)
+
+    async with Client(mcp_server) as client:
+        request = ListReportsRequest(
+            page=1, page_size=10, owned_by_me=True, created_by_me=True
+        )
+        await client.call_tool("list_reports", {"request": request.model_dump()})
+
+    mock_list.assert_called_once()
+    _, kwargs = mock_list.call_args
+    filters_arg = kwargs.get("column_operators", [])
+    assert any(
+        getattr(f, "col", None) == "created_by_fk_or_owner" for f in filters_arg
+    ), "combined flags should use created_by_fk_or_owner OR filter"
