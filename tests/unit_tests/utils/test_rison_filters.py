@@ -133,10 +133,18 @@ def test_invalid_rison():
 
 
 def test_or_branch_escapes_string_literals():
-    """OR-branch SQL must escape apostrophes; otherwise a URL like
-    `(OR:!((name:'a''; DROP TABLE x; --')))` would inject."""
+    """OR-branch SQL must escape apostrophes; otherwise a value like
+    `O'Brien'); DROP TABLE x; --` could close out a literal and inject.
+
+    Bypasses the Rison parser (whose quoting rules complicate expressing
+    apostrophes in test inputs) and exercises `_handle_or_operator` with
+    a hand-built decoded payload — which is exactly what `_convert_to_adhoc_filters`
+    feeds it after a successful prison.loads.
+    """
     parser = RisonFilterParser()
-    result = parser.parse('(OR:!((name:"O\'Brien"),(role:admin)))')
+    result = parser._handle_or_operator(
+        [{"name": "O'Brien"}, {"role": "admin"}],
+    )
 
     assert len(result) == 1
     sql = result[0]["sqlExpression"]
@@ -149,7 +157,9 @@ def test_or_branch_rejects_unsafe_identifiers():
     """Columns that don't match a strict identifier whitelist drop the
     condition rather than getting interpolated into SQL."""
     parser = RisonFilterParser()
-    result = parser.parse('(OR:!(("col; DROP TABLE x":1),(role:admin)))')
+    result = parser._handle_or_operator(
+        [{"col; DROP TABLE x": 1}, {"role": "admin"}],
+    )
 
     # The unsafe column is dropped, the safe one remains.
     assert len(result) == 1
@@ -160,7 +170,9 @@ def test_or_branch_rejects_unsafe_identifiers():
 
 def test_or_branch_all_conditions_unsafe_returns_nothing():
     parser = RisonFilterParser()
-    result = parser.parse('(OR:!(("col;1":1),("col;2":2)))')
+    result = parser._handle_or_operator(
+        [{"col;1": 1}, {"col;2": 2}],
+    )
     assert result == []
 
 

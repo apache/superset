@@ -81,7 +81,7 @@ test('renders nothing when there is no f= param', () => {
 test('removing a chip dispatches updateDataMask with the remaining filters', async () => {
   renderAt('?f=(region:EMEA,channel:web)');
 
-  const closeButtons = screen.getAllByRole('img', { name: 'close' });
+  const closeButtons = screen.getAllByRole('img', { name: /close/i });
   expect(closeButtons).toHaveLength(2);
   await userEvent.click(closeButtons[0]);
 
@@ -105,7 +105,7 @@ test('removing a chip dispatches updateDataMask with the remaining filters', asy
 test('removing the last chip dispatches removeDataMask, not an empty update', async () => {
   renderAt('?f=(region:EMEA)');
 
-  await userEvent.click(screen.getByRole('img', { name: 'close' }));
+  await userEvent.click(screen.getByRole('img', { name: /close/i }));
 
   const removeCalls = mockDispatch.mock.calls
     .map(([action]) => action)

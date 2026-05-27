@@ -386,7 +386,10 @@ test('updateUrlWithUnmatchedFilters cleanup is observable by history readers', (
   // updates synchronously when .replace is called — same contract as
   // react-router-dom's history.replace.
   const fakeHistory = {
-    location: { pathname: '/superset/dashboard/1/', search: '?f=(country:USA)' },
+    location: {
+      pathname: '/superset/dashboard/1/',
+      search: '?f=(country:USA)',
+    },
     replace(next: { pathname: string; search: string }) {
       this.location = next;
     },
