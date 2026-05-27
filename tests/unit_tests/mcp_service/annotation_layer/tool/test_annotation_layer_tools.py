@@ -74,7 +74,7 @@ def make_annotation(
 # ---------------------------------------------------------------------------
 
 
-@pytest.fixture()
+@pytest.fixture
 def mcp_server():
     return mcp
 
@@ -137,7 +137,7 @@ class TestAnnotationFilterSchema:
 
 
 @patch("superset.daos.annotation_layer.AnnotationLayerDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_annotation_layers_basic(mock_list, mcp_server):
     """Basic listing returns structured response with annotation layers."""
     layer = make_layer()
@@ -157,7 +157,7 @@ async def test_list_annotation_layers_basic(mock_list, mcp_server):
 
 
 @patch("superset.daos.annotation_layer.AnnotationLayerDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_annotation_layers_empty(mock_list, mcp_server):
     """Empty result set returns zero count."""
     mock_list.return_value = ([], 0)
@@ -171,7 +171,7 @@ async def test_list_annotation_layers_empty(mock_list, mcp_server):
 
 
 @patch("superset.daos.annotation_layer.AnnotationLayerDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_annotation_layers_search(mock_list, mcp_server):
     """Search parameter is passed through to DAO."""
     layer = make_layer(name="Release Events")
@@ -190,7 +190,7 @@ async def test_list_annotation_layers_search(mock_list, mcp_server):
 
 
 @patch("superset.daos.annotation_layer.AnnotationLayerDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_annotation_layers_pagination(mock_list, mcp_server):
     """Pagination metadata is correctly computed."""
     mock_list.return_value = ([], 50)
@@ -217,7 +217,7 @@ async def test_list_annotation_layers_pagination(mock_list, mcp_server):
 
 
 @patch("superset.daos.annotation_layer.AnnotationLayerDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_annotation_layer_info_found(mock_find, mcp_server):
     """Returns annotation layer data when found."""
     mock_find.return_value = make_layer(layer_id=5, name="Prod Events")
@@ -235,7 +235,7 @@ async def test_get_annotation_layer_info_found(mock_find, mcp_server):
 
 
 @patch("superset.daos.annotation_layer.AnnotationLayerDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_annotation_layer_info_not_found(mock_find, mcp_server):
     """Returns error response when layer is not found."""
     mock_find.return_value = None
@@ -258,7 +258,7 @@ async def test_get_annotation_layer_info_not_found(mock_find, mcp_server):
 
 @patch("superset.daos.annotation_layer.AnnotationLayerDAO.find_by_id")
 @patch("superset.daos.annotation_layer.AnnotationDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_layer_annotations_basic(mock_list, mock_layer_find, mcp_server):
     """Annotations are listed and scoped to the specified layer."""
     mock_layer_find.return_value = make_layer(layer_id=1)
@@ -280,7 +280,7 @@ async def test_list_layer_annotations_basic(mock_list, mock_layer_find, mcp_serv
 
 @patch("superset.daos.annotation_layer.AnnotationLayerDAO.find_by_id")
 @patch("superset.daos.annotation_layer.AnnotationDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_layer_annotations_layer_id_filter_prepended(
     mock_list, mock_layer_find, mcp_server
 ):
@@ -308,7 +308,7 @@ async def test_list_layer_annotations_layer_id_filter_prepended(
 
 
 @patch("superset.daos.annotation_layer.AnnotationLayerDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_layer_annotations_layer_not_found(mock_layer_find, mcp_server):
     """Returns error when the layer does not exist."""
     mock_layer_find.return_value = None
@@ -326,7 +326,7 @@ async def test_list_layer_annotations_layer_not_found(mock_layer_find, mcp_serve
 
 @patch("superset.daos.annotation_layer.AnnotationLayerDAO.find_by_id")
 @patch("superset.daos.annotation_layer.AnnotationDAO.list")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_list_layer_annotations_only_returns_own_layer(
     mock_list, mock_layer_find, mcp_server
 ):
@@ -360,7 +360,7 @@ async def test_list_layer_annotations_only_returns_own_layer(
 
 @patch("superset.daos.annotation_layer.AnnotationLayerDAO.find_by_id")
 @patch("superset.daos.annotation_layer.AnnotationDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_layer_annotation_info_found(
     mock_ann_find, mock_layer_find, mcp_server
 ):
@@ -381,7 +381,7 @@ async def test_get_layer_annotation_info_found(
 
 
 @patch("superset.daos.annotation_layer.AnnotationLayerDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_layer_annotation_info_layer_not_found(mock_layer_find, mcp_server):
     """Returns error when the layer does not exist."""
     mock_layer_find.return_value = None
@@ -399,7 +399,7 @@ async def test_get_layer_annotation_info_layer_not_found(mock_layer_find, mcp_se
 
 @patch("superset.daos.annotation_layer.AnnotationLayerDAO.find_by_id")
 @patch("superset.daos.annotation_layer.AnnotationDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_layer_annotation_info_annotation_not_found(
     mock_ann_find, mock_layer_find, mcp_server
 ):
@@ -420,7 +420,7 @@ async def test_get_layer_annotation_info_annotation_not_found(
 
 @patch("superset.daos.annotation_layer.AnnotationLayerDAO.find_by_id")
 @patch("superset.daos.annotation_layer.AnnotationDAO.find_by_id")
-@pytest.mark.asyncio()
+@pytest.mark.asyncio
 async def test_get_layer_annotation_info_wrong_layer(
     mock_ann_find, mock_layer_find, mcp_server
 ):

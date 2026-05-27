@@ -40,7 +40,7 @@ from superset.mcp_service.utils.schema_utils import (
 )
 
 DEFAULT_LAYER_COLUMNS = ["id", "name", "descr"]
-DEFAULT_ANNOTATION_COLUMNS = ["id", "short_descr", "start_dttm", "end_dttm"]
+DEFAULT_ANNOTATION_COLUMNS = ["id", "short_descr", "start_dttm", "end_dttm", "layer_id"]
 
 
 class AnnotationLayerFilter(ColumnOperator):
