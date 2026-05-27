@@ -17,13 +17,13 @@
  * under the License.
  */
 import {
+  type ReactElement,
   useCallback,
   useEffect,
   useMemo,
   useState,
   useSyncExternalStore,
 } from 'react';
-import { ReactElement } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
@@ -33,7 +33,12 @@ import { subscribeToExtensionSettings } from 'src/core/extensions';
 
 const CHATBOT_EDGE_MARGIN = 24;
 
-// Renders the provider as a component so ErrorBoundary catches provider-level throws.
+/**
+ * Wraps the chatbot provider in a React component so that ErrorBoundary can
+ * catch synchronous throws from the provider function itself. Calling
+ * `provider()` inline (e.g. `{activeChatbot.provider()}`) would throw outside
+ * React's render boundary and crash the host.
+ */
 const ChatbotRenderer = ({ provider }: { provider: () => ReactElement }) =>
   provider();
 
@@ -58,7 +63,7 @@ const ChatbotMount = () => {
     SupersetClient.get({ endpoint: '/api/v1/extensions/settings' })
       .then(({ json }) => {
         if (cancelled) return;
-        applySettings(json.result);
+        applySettings(json.result ?? { active_chatbot_id: null, enabled: {} });
       })
       .catch(() => {
         // Settings fetch failure is non-fatal — fall back to first-to-register.

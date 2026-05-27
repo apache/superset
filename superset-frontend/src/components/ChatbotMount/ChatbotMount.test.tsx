@@ -89,3 +89,19 @@ test('isolates a failing chatbot so it does not crash the host', () => {
   // The host-owned error boundary catches the failure; render does not throw.
   expect(() => render(<ChatbotMount />)).not.toThrow();
 });
+
+test('isolates a chatbot whose provider function itself throws', () => {
+  disposables.push(
+    views.registerView(
+      { id: 'superset.chatbot', name: 'Superset Chatbot' },
+      CHATBOT_LOCATION,
+      () => {
+        throw new Error('provider blew up');
+      },
+    ),
+  );
+
+  // ChatbotRenderer wraps provider() in a component so ErrorBoundary catches
+  // synchronous throws from the provider function, not just from its output.
+  expect(() => render(<ChatbotMount />)).not.toThrow();
+});
