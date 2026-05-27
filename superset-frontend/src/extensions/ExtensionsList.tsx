@@ -110,7 +110,7 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
       })
         .then(({ json }) => {
           setSettings(json.result);
-          notifyExtensionSettingsChanged();
+          notifyExtensionSettingsChanged(json.result);
           addSuccessToast(t('Settings saved.'));
         })
         .catch(() => addDangerToast(t('Failed to save extension settings.')));

@@ -39,15 +39,20 @@ const ChatbotMount = () => {
   const [adminSelectedId, setAdminSelectedId] = useState<string | null | undefined>(undefined);
   const [enabledMap, setEnabledMap] = useState<Record<string, boolean>>({});
 
-  const fetchSettings = useCallback(() => {
+  const applySettings = useCallback(
+    (settings: { active_chatbot_id: string | null; enabled: Record<string, boolean> }) => {
+      setAdminSelectedId(settings.active_chatbot_id ?? null);
+      setEnabledMap(settings.enabled ?? {});
+    },
+    [],
+  );
+
+  useEffect(() => {
     let cancelled = false;
     SupersetClient.get({ endpoint: '/api/v1/extensions/settings' })
       .then(({ json }) => {
         if (cancelled) return;
-        const id = json.result?.active_chatbot_id ?? null;
-        const enabled: Record<string, boolean> = json.result?.enabled ?? {};
-        setAdminSelectedId(id);
-        setEnabledMap(enabled);
+        applySettings(json.result);
       })
       .catch(() => {
         // Settings fetch failure is non-fatal — fall back to first-to-register.
@@ -56,11 +61,9 @@ const ChatbotMount = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [applySettings]);
 
-  useEffect(() => fetchSettings(), [fetchSettings]);
-
-  useEffect(() => subscribeToExtensionSettings(fetchSettings), [fetchSettings]);
+  useEffect(() => subscribeToExtensionSettings(applySettings), [applySettings]);
 
   const registryVersion = useSyncExternalStore(
     subscribeToRegistry,

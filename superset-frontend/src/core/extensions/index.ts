@@ -30,14 +30,21 @@ export const extensions: typeof extensionsApi = {
   getAllExtensions,
 };
 
-const settingsListeners = new Set<() => void>();
+type ExtensionSettings = {
+  active_chatbot_id: string | null;
+  enabled: Record<string, boolean>;
+};
 
-export const notifyExtensionSettingsChanged = (): void => {
-  settingsListeners.forEach(fn => fn());
+const settingsListeners = new Set<(settings: ExtensionSettings) => void>();
+
+export const notifyExtensionSettingsChanged = (
+  settings: ExtensionSettings,
+): void => {
+  settingsListeners.forEach(fn => fn(settings));
 };
 
 export const subscribeToExtensionSettings = (
-  listener: () => void,
+  listener: (settings: ExtensionSettings) => void,
 ): (() => void) => {
   settingsListeners.add(listener);
   return () => settingsListeners.delete(listener);
