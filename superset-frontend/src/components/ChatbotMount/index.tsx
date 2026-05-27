@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useState, useEffect, useCallback } from 'react';
+import { ReactElement } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
@@ -27,12 +28,19 @@ import { CHATBOT_LOCATION } from 'src/views/contributions';
 
 const CHATBOT_EDGE_MARGIN = 24;
 
+type ActiveChatbot = { provider: () => ReactElement };
+
+// Renders the provider as a component so ErrorBoundary catches provider-level throws.
+const ChatbotRenderer = ({ provider }: { provider: () => ReactElement }) =>
+  provider();
+
 const ChatbotMount = () => {
   const theme = useTheme();
   const [adminSelectedId, setAdminSelectedId] = useState<string | null>(null);
   const [enabledMap, setEnabledMap] = useState<Record<string, boolean>>({});
-  const [activeChatbot, setActiveChatbot] = useState(() =>
-    getActiveChatbot(null, {}),
+  // null = settings not yet loaded; don't render anything until settings arrive.
+  const [activeChatbot, setActiveChatbot] = useState<ActiveChatbot | null>(
+    null,
   );
 
   const fetchSettings = useCallback(() => {
@@ -48,6 +56,7 @@ const ChatbotMount = () => {
       })
       .catch(() => {
         // Settings fetch failure is non-fatal — fall back to first-to-register.
+        setActiveChatbot(getActiveChatbot(null, {}));
       });
     return () => {
       cancelled = true;
@@ -81,7 +90,9 @@ const ChatbotMount = () => {
         z-index: ${theme.zIndexPopupBase + 2};
       `}
     >
-      <ErrorBoundary>{activeChatbot.provider()}</ErrorBoundary>
+      <ErrorBoundary>
+        <ChatbotRenderer provider={activeChatbot.provider} />
+      </ErrorBoundary>
     </div>
   );
 };
