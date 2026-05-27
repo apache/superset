@@ -743,3 +743,47 @@ def test_fetch_data_converts_bigquery_row_objects(mocker: MockerFixture) -> None
 
     assert result == [(1, "a"), (2, "b")]
     assert flask_g.bq_memory_limited is False
+
+def test_compile_bind_param_bigquery_string_literal() -> None:
+    """
+    Test that string literal bind parameters are compiled properly for BigQuery.
+    """
+    from sqlalchemy import select, table, column
+    from sqlalchemy_bigquery import BigQueryDialect
+    
+    # We must import BigQueryEngineSpec to ensure the @compiles decorator is executed
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec  # noqa: F401
+
+    t = table("my_table", column("my_col"))
+
+    # 1. Normal string
+    q1 = select(t).where(t.c.my_col == "Normal")
+    compiled1 = q1.compile(
+        dialect=BigQueryDialect(),
+        compile_kwargs={"literal_binds": True},
+    )
+    assert "'Normal'" in str(compiled1)
+
+    # 2. String with apostrophe
+    q2 = select(t).where(t.c.my_col == "O'Donnell")
+    compiled2 = q2.compile(
+        dialect=BigQueryDialect(),
+        compile_kwargs={"literal_binds": True},
+    )
+    assert "'O\\'Donnell'" in str(compiled2)
+
+    # 3. String with backslash
+    q3 = select(t).where(t.c.my_col == "Back\\slash")
+    compiled3 = q3.compile(
+        dialect=BigQueryDialect(),
+        compile_kwargs={"literal_binds": True},
+    )
+    assert "'Back\\\\slash'" in str(compiled3)
+
+    # 4. String with both
+    q4 = select(t).where(t.c.my_col == "Mixed\\'O")
+    compiled4 = q4.compile(
+        dialect=BigQueryDialect(),
+        compile_kwargs={"literal_binds": True},
+    )
+    assert "'Mixed\\\\\\'O'" in str(compiled4)
