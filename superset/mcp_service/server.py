@@ -32,6 +32,7 @@ from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
+from superset.mcp_service.jwt_verifier import BrowserHelloMiddleware
 from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
     MCP_STORE_CONFIG,
@@ -717,6 +718,24 @@ def build_middleware_list() -> list[Middleware]:
     ]
 
 
+def _build_starlette_middleware(flask_app: Any | None = None) -> list[Any]:
+    from starlette.middleware import Middleware as StarletteMiddleware
+
+    if flask_app is None:
+        from superset.mcp_service.flask_singleton import get_flask_app
+
+        flask_app = get_flask_app()
+    auth_enabled = flask_app.config.get("MCP_AUTH_ENABLED", False)
+    page_config = flask_app.config.get("MCP_HELLO_PAGE", None)
+    return [
+        StarletteMiddleware(
+            BrowserHelloMiddleware,
+            auth_enabled=auth_enabled,
+            page_config=page_config,
+        )
+    ]
+
+
 def run_server(
     host: str = "127.0.0.1",
     port: int = 5008,
@@ -794,6 +813,10 @@ def run_server(
     # Create EventStore for session management (Redis for multi-pod, None for in-memory)
     event_store = create_event_store(event_store_config)
 
+    starlette_middleware = _build_starlette_middleware(
+        flask_app if not use_factory_config else None
+    )
+
     env_key = f"FASTMCP_RUNNING_{port}"
     if not os.environ.get(env_key):
         os.environ[env_key] = "1"
@@ -807,6 +830,7 @@ def run_server(
                     transport="streamable-http",
                     event_store=event_store,
                     stateless_http=True,
+                    middleware=starlette_middleware,
                 )
                 uvicorn.run(app, host=host, port=port)
             else:
@@ -817,6 +841,7 @@ def run_server(
                     host=host,
                     port=port,
                     stateless_http=True,
+                    middleware=starlette_middleware,
                 )
         except Exception as e:
             logging.error("FastMCP failed: %s", e)
