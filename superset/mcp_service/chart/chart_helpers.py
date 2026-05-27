@@ -288,6 +288,58 @@ def _deck_gl_spatial_cols(spatial: dict[str, Any] | None) -> list[str]:
     return []
 
 
+def _deck_gl_tooltip_cols(tooltip_contents: list[Any] | None) -> list[str]:
+    """Return column names from Deck.gl tooltip_contents config."""
+    cols: list[str] = []
+    for item in tooltip_contents or []:
+        if isinstance(item, str):
+            cols.append(item)
+        elif isinstance(item, dict) and item.get("item_type") == "column":
+            col = item.get("column_name")
+            if isinstance(col, str) and col:
+                cols.append(col)
+    return cols
+
+
+def _deck_gl_null_filters(form_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Build IS NOT NULL simple filters for Deck.gl spatial and line columns.
+
+    Mirrors BaseDeckGLViz.add_null_filters() behavior: spatial control columns
+    and line_column are filtered for non-null values by default.
+    """
+    seen: set[str] = set()
+    result: list[dict[str, Any]] = []
+    for key in ("spatial", "start_spatial", "end_spatial"):
+        for col in _deck_gl_spatial_cols(form_data.get(key)):
+            if col not in seen:
+                seen.add(col)
+                result.append({"col": col, "op": "IS NOT NULL", "val": ""})
+    line_col = form_data.get("line_column")
+    if isinstance(line_col, str) and line_col and line_col not in seen:
+        result.append({"col": line_col, "op": "IS NOT NULL", "val": ""})
+    return result
+
+
+def _resolve_deck_gl_metrics(form_data: dict[str, Any]) -> list[Any]:
+    """Extract metrics for Deck.gl chart types.
+
+    deck_scatter and deck_polygon can store metric-backed values in
+    point_radius_fixed (radius for scatter, elevation for polygon).
+    deck_polygon may have both a base metric and an elevation metric.
+    """
+    metrics: list[Any] = []
+    for field in ("size", "metric"):
+        m = form_data.get(field)
+        if m:
+            metrics.append(m)
+    prf = form_data.get("point_radius_fixed")
+    if isinstance(prf, dict) and prf.get("type") == "metric":
+        value = prf.get("value")
+        if value:
+            metrics.append(value)
+    return metrics
+
+
 def resolve_deck_gl_columns(form_data: dict[str, Any]) -> list[str]:
     """Extract SQL column names for Deck.gl chart types from form_data.
 
@@ -316,6 +368,11 @@ def resolve_deck_gl_columns(form_data: dict[str, Any]) -> list[str]:
     for col in form_data.get("js_columns") or []:
         if isinstance(col, str):
             _add(col)
+
+    for col in _deck_gl_tooltip_cols(form_data.get("tooltip_contents")):
+        _add(col)
+
+    _add(form_data.get("cross_filter_column"))
 
     return columns
 
@@ -488,21 +545,19 @@ def build_query_dicts_from_form_data(
     # metrics / groupby fields. Extract columns from the spatial controls.
     if viz_type.startswith("deck_"):
         deck_columns = resolve_deck_gl_columns(form_data)
-        deck_metrics: list[Any] = []
-        for field in ("size", "metric"):
-            m = form_data.get(field)
-            if m:
-                deck_metrics.append(m)
-                break
-        return [
-            _build_single_query_dict(
-                form_data,
-                deck_columns,
-                deck_metrics,
-                row_limit=row_limit,
-                order_desc=order_desc,
-            )
-        ]
+        deck_metrics = _resolve_deck_gl_metrics(form_data)
+        qd = _build_single_query_dict(
+            form_data,
+            deck_columns,
+            deck_metrics,
+            row_limit=row_limit,
+            order_desc=order_desc,
+        )
+        if form_data.get("filter_nulls", True):
+            null_filters = _deck_gl_null_filters(form_data)
+            if null_filters:
+                qd["filters"] = [*(qd.get("filters") or []), *null_filters]
+        return [qd]
 
     is_timeseries = (
         viz_type.startswith("echarts_timeseries") or viz_type == "mixed_timeseries"
