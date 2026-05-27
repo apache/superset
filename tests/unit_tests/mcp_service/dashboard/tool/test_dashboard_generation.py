@@ -1066,7 +1066,7 @@ class TestAddChartToExistingDashboard:
     @pytest.mark.asyncio
     async def test_add_chart_target_tab_not_found(
         self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
-    ):
+    ) -> None:
         """target_tab specified but no matching tab → descriptive error listing
         available tabs, not a silent fallback to the first tab."""
         mock_dashboard = _mock_dashboard(id=3, title="Tabbed Dashboard")
@@ -1132,7 +1132,7 @@ class TestAddChartToExistingDashboard:
     @pytest.mark.asyncio
     async def test_add_chart_target_tab_on_non_tabbed_dashboard(
         self, mock_db_session, mock_find_dashboard, mock_update_command, mcp_server
-    ):
+    ) -> None:
         """target_tab on a dashboard with no tabs → descriptive error."""
         mock_dashboard = _mock_dashboard(id=5, title="Flat Dashboard")
         mock_dashboard.slices = []
@@ -1437,7 +1437,7 @@ class TestLayoutHelpers:
         }
         assert _find_tab_insert_target(layout, target_tab="Nonexistent Tab") is None
 
-    def test_find_tab_insert_target_empty_string_returns_none(self):
+    def test_find_tab_insert_target_empty_string_returns_none(self) -> None:
         """An empty-string target_tab is treated as specified-but-not-found,
         not as 'no tab requested', so it returns None rather than first tab."""
         layout = {
@@ -1447,7 +1447,7 @@ class TestLayoutHelpers:
         }
         assert _find_tab_insert_target(layout, target_tab="") is None
 
-    def test_find_tab_insert_target_tabs_under_root(self):
+    def test_find_tab_insert_target_tabs_under_root(self) -> None:
         """Test _find_tab_insert_target when TABS are under ROOT_ID (real layout)."""
         layout = {
             "ROOT_ID": {"children": ["TABS-xxx"], "type": "ROOT"},
@@ -1458,7 +1458,7 @@ class TestLayoutHelpers:
         }
         assert _find_tab_insert_target(layout) == "TAB-a"
 
-    def test_find_tab_insert_target_tabs_under_root_by_name(self):
+    def test_find_tab_insert_target_tabs_under_root_by_name(self) -> None:
         """Test _find_tab_insert_target matches tab name when TABS under ROOT_ID."""
         layout = {
             "ROOT_ID": {"children": ["TABS-xxx"], "type": "ROOT"},
@@ -1469,11 +1469,11 @@ class TestLayoutHelpers:
         }
         assert _find_tab_insert_target(layout, target_tab="Details") == "TAB-b"
 
-    def test_find_tab_insert_target_no_grid(self):
+    def test_find_tab_insert_target_no_grid(self) -> None:
         """Test _find_tab_insert_target with missing GRID_ID."""
         assert _find_tab_insert_target({"ROOT_ID": {"type": "ROOT"}}) is None
 
-    def test_collect_available_tab_names_returns_display_names(self):
+    def test_collect_available_tab_names_returns_display_names(self) -> None:
         """_collect_available_tab_names returns label + component ID for each tab."""
         layout = {
             "GRID_ID": {"children": ["TABS-x"], "type": "GRID"},
@@ -1484,7 +1484,7 @@ class TestLayoutHelpers:
         names = _collect_available_tab_names(layout)
         assert names == ["Overview (TAB-a)", "Details (TAB-b)"]
 
-    def test_collect_available_tab_names_falls_back_to_id(self):
+    def test_collect_available_tab_names_falls_back_to_id(self) -> None:
         """_collect_available_tab_names uses component ID only when text is empty."""
         layout = {
             "GRID_ID": {"children": ["TABS-x"], "type": "GRID"},
@@ -1494,7 +1494,7 @@ class TestLayoutHelpers:
         names = _collect_available_tab_names(layout)
         assert names == ["TAB-a"]
 
-    def test_collect_available_tab_names_duplicate_names(self):
+    def test_collect_available_tab_names_duplicate_names(self) -> None:
         """Duplicate display names are disambiguated by component ID in the entry."""
         layout = {
             "GRID_ID": {"children": ["TABS-x"], "type": "GRID"},
@@ -1506,7 +1506,7 @@ class TestLayoutHelpers:
         assert names == ["Sales (TAB-a)", "Sales (TAB-b)"]
         assert names[0] != names[1]
 
-    def test_collect_available_tab_names_no_tabs(self):
+    def test_collect_available_tab_names_no_tabs(self) -> None:
         """_collect_available_tab_names returns empty list for non-tabbed dashboards."""
         layout = {
             "GRID_ID": {"children": ["ROW-1"], "type": "GRID"},

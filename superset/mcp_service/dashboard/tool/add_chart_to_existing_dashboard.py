@@ -373,7 +373,7 @@ def _resolve_parent_container(
             ),
         )
 
-    return tab_target if tab_target else "GRID_ID", None
+    return (tab_target if tab_target else "GRID_ID", None)
 
 
 def _find_and_authorize_dashboard(
@@ -429,7 +429,7 @@ def _find_and_authorize_dashboard(
         destructiveHint=False,
     ),
 )
-def add_chart_to_existing_dashboard(  # noqa: C901
+def add_chart_to_existing_dashboard(  # noqa: C901 — complexity is structural (layout traversal + multi-step authorization), not accidental
     request: AddChartToDashboardRequest, ctx: Context
 ) -> AddChartToDashboardResponse:
     """
