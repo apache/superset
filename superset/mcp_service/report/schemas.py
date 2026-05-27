@@ -64,6 +64,7 @@ class ReportFilter(ColumnOperator):
         "active",
         "dashboard_id",
         "chart_id",
+        "created_by_fk",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='report') for "
