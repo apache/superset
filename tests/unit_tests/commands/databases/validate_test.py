@@ -397,7 +397,7 @@ def test_get_ssh_tunnel_errors_missing_required_fields(
     assert any(
         err.extra is not None
         and err.extra.get("ssh_tunnel") is True
-        and err.extra.get("missing") == ["password"]
+        and err.extra.get("missing") == ["password", "private_key"]
         for err in excinfo.value.errors
     )
 
@@ -446,6 +446,108 @@ def test_get_ssh_tunnel_errors_unencrypted_private_key_is_valid(
             "username": "ssh-user",
             "private_key": "----- KEY -----",
         },
+    }
+    command = ValidateDatabaseParametersCommand(properties)
+    command.run()
+
+
+def test_ssh_tunnel_forwarded_to_connection_test(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The SSH tunnel payload is forwarded into the connection test so
+    tunnel-only databases are reached through the tunnel rather than
+    pinged directly.
+    """
+    mocker.patch(
+        "superset.commands.database.validate.is_feature_enabled",
+        return_value=True,
+    )
+
+    database = mocker.MagicMock()
+    with database.get_sqla_engine() as engine:
+        engine.dialect.do_ping.return_value = True
+    DatabaseDAO = mocker.patch(  # noqa: N806
+        "superset.commands.database.validate.DatabaseDAO"
+    )
+    DatabaseDAO.validate_uniqueness.return_value = True
+    DatabaseDAO.build_db_for_connection_test.return_value = database
+
+    mocker.patch(
+        "superset.commands.database.validate.get_engine_spec",
+        return_value=mocker.MagicMock(
+            validate_parameters=mocker.MagicMock(return_value=[]),
+            build_sqlalchemy_uri=mocker.MagicMock(return_value="postgresql://"),
+            unmask_encrypted_extra=mocker.MagicMock(return_value="{}"),
+        ),
+    )
+
+    ssh_tunnel = {
+        "server_address": "ssh.example.com",
+        "server_port": 22,
+        "username": "ssh-user",
+        "password": "secret",
+    }
+    properties = {
+        "engine": "postgresql",
+        "parameters": {
+            "host": "localhost",
+            "port": 5432,
+            "username": "u",
+            "database": "d",
+        },
+        "ssh_tunnel": ssh_tunnel,
+    }
+    command = ValidateDatabaseParametersCommand(properties)
+    command.run()
+
+    DatabaseDAO.build_db_for_connection_test.assert_called_once()
+    assert (
+        DatabaseDAO.build_db_for_connection_test.call_args.kwargs["ssh_tunnel"]
+        == ssh_tunnel
+    )
+
+
+def test_get_ssh_tunnel_errors_skipped_when_parameters_ssh_false(
+    mocker: MockerFixture,
+) -> None:
+    """
+    An explicit ``parameters.ssh == False`` is authoritative and skips SSH
+    tunnel validation even when a stale ``ssh_tunnel`` object is still in
+    the payload — otherwise toggling SSH off after partial entry would
+    leave hidden validation errors blocking save.
+    """
+    DatabaseDAO = mocker.patch(  # noqa: N806
+        "superset.commands.database.validate.DatabaseDAO"
+    )
+    DatabaseDAO.validate_uniqueness.return_value = True
+
+    database = mocker.MagicMock()
+    with database.get_sqla_engine() as engine:
+        engine.dialect.do_ping.return_value = True
+    DatabaseDAO.build_db_for_connection_test.return_value = database
+
+    mocker.patch(
+        "superset.commands.database.validate.get_engine_spec",
+        return_value=mocker.MagicMock(
+            validate_parameters=mocker.MagicMock(return_value=[]),
+            build_sqlalchemy_uri=mocker.MagicMock(return_value="postgresql://"),
+            unmask_encrypted_extra=mocker.MagicMock(return_value="{}"),
+        ),
+    )
+
+    properties = {
+        "engine": "postgresql",
+        "database_name": "ok",
+        "parameters": {
+            "host": "localhost",
+            "port": 5432,
+            "username": "u",
+            "database": "d",
+            "ssh": False,
+        },
+        # Stale partial tunnel payload from before the user toggled off:
+        "ssh_tunnel": {"server_address": "ssh.example.com"},
     }
     command = ValidateDatabaseParametersCommand(properties)
     command.run()

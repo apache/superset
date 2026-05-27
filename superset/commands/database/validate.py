@@ -34,6 +34,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.extensions import event_logger
 from superset.models.core import Database
 from superset.utils import json
+from superset.utils.ssh_tunnel import unmask_password_info
 
 BYPASS_VALIDATION_ENGINES = {"bigquery", "datastore", "snowflake"}
 
@@ -111,11 +112,23 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         )
         if self._model and sqlalchemy_uri == self._model.safe_sqlalchemy_uri():
             sqlalchemy_uri = self._model.sqlalchemy_uri_decrypted
+
+        # Forward the SSH tunnel into the connection test so that
+        # tunnel-only databases are reached through the tunnel rather
+        # than directly, mirroring the existing test_connection flow.
+        ssh_tunnel_properties = self._properties.get("ssh_tunnel")
+        if ssh_tunnel_properties and self._model and self._model.ssh_tunnel:
+            ssh_tunnel_properties = unmask_password_info(
+                ssh_tunnel_properties,
+                self._model.ssh_tunnel,
+            )
+
         database = DatabaseDAO.build_db_for_connection_test(
             server_cert=self._properties.get("server_cert", ""),
             extra=self._properties.get("extra", "{}"),
             impersonate_user=self._properties.get("impersonate_user", False),
             encrypted_extra=json.dumps(encrypted_extra),
+            ssh_tunnel=ssh_tunnel_properties,
         )
         database.set_sqlalchemy_uri(sqlalchemy_uri)
         database.db_engine_spec.mutate_db_for_connection_test(database)
@@ -191,12 +204,18 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         ssh_tunnel = self._properties.get("ssh_tunnel") or {}
         parameters = self._properties.get("parameters") or {}
 
-        # SSH can be turned on via the dedicated tunnel payload OR the
-        # ``parameters.ssh`` flag the UI sets while the user is filling the
-        # form. Both paths must enforce the feature flag and the database
-        # port requirement, but as field-level errors so the modal can map
-        # them back to the right inputs.
-        ssh_enabled = bool(ssh_tunnel) or bool(parameters.get("ssh"))
+        # ``parameters.ssh`` is the UI toggle. When it's explicitly false the
+        # user has turned SSH off and any stale ``ssh_tunnel`` payload should
+        # be ignored — otherwise toggling off after partially filling the
+        # tunnel form would still trip validation. When the toggle is absent
+        # (older callers / save-time payloads) fall back to inferring from
+        # the presence of an ``ssh_tunnel`` object.
+        if "ssh" in parameters:
+            if not parameters.get("ssh"):
+                return errors
+            ssh_enabled = True
+        else:
+            ssh_enabled = bool(ssh_tunnel)
         if not ssh_enabled:
             return errors
 
@@ -243,7 +262,10 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                 )
             )
 
-        # Either password or private_key is required
+        # Either password or private_key is required. The active login
+        # method is a client-side toggle, so flag both fields as missing —
+        # the modal renders only one pane at a time and will surface the
+        # error on whichever field the user can see.
         has_password = bool(ssh_tunnel.get("password"))
         has_private_key = bool(ssh_tunnel.get("private_key"))
 
@@ -253,7 +275,10 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                     message=__("Must provide credentials for the SSH Tunnel"),
                     error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                     level=ErrorLevel.WARNING,
-                    extra={"missing": ["password"], "ssh_tunnel": True},
+                    extra={
+                        "missing": ["password", "private_key"],
+                        "ssh_tunnel": True,
+                    },
                 )
             )
 
