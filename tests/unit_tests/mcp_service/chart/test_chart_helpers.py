@@ -18,6 +18,9 @@
 from unittest.mock import MagicMock, patch
 
 from superset.mcp_service.chart.chart_helpers import (
+    _deck_gl_null_filters,
+    _deck_gl_tooltip_cols,
+    _resolve_deck_gl_metrics,
     apply_form_data_filters_to_query,
     build_query_dicts_from_form_data,
     extract_form_data_key_from_url,
@@ -495,3 +498,226 @@ def test_build_query_dicts_deck_path_with_row_limit(monkeypatch):
 
     assert queries[0]["columns"] == ["path_col"]
     assert queries[0]["row_limit"] == 50
+
+
+# ---------------------------------------------------------------------------
+# resolve_deck_gl_columns — tooltip_contents and cross_filter_column (Fix 1)
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_deck_gl_columns_with_tooltip_contents_strings():
+    form_data = {
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "tooltip_contents": ["name", "category"],
+    }
+    cols = resolve_deck_gl_columns(form_data)
+    assert "name" in cols
+    assert "category" in cols
+
+
+def test_resolve_deck_gl_columns_with_tooltip_contents_dict_items():
+    form_data = {
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "tooltip_contents": [
+            {"item_type": "column", "column_name": "city"},
+            {"item_type": "metric", "key": "sum__sales"},  # metric items ignored
+        ],
+    }
+    cols = resolve_deck_gl_columns(form_data)
+    assert "city" in cols
+    assert "sum__sales" not in cols
+
+
+def test_resolve_deck_gl_columns_with_cross_filter_column():
+    form_data = {
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "cross_filter_column": "region",
+    }
+    cols = resolve_deck_gl_columns(form_data)
+    assert "region" in cols
+
+
+def test_resolve_deck_gl_columns_tooltip_deduplicates_with_spatial():
+    form_data = {
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "tooltip_contents": ["lon"],  # already in spatial cols
+    }
+    cols = resolve_deck_gl_columns(form_data)
+    assert cols.count("lon") == 1
+
+
+# ---------------------------------------------------------------------------
+# _deck_gl_tooltip_cols
+# ---------------------------------------------------------------------------
+
+
+def test_deck_gl_tooltip_cols_strings():
+    assert _deck_gl_tooltip_cols(["city", "state"]) == ["city", "state"]
+
+
+def test_deck_gl_tooltip_cols_dict_column_items():
+    result = _deck_gl_tooltip_cols([{"item_type": "column", "column_name": "country"}])
+    assert result == ["country"]
+
+
+def test_deck_gl_tooltip_cols_skips_metric_items():
+    result = _deck_gl_tooltip_cols([{"item_type": "metric", "key": "sum__sales"}])
+    assert result == []
+
+
+def test_deck_gl_tooltip_cols_none():
+    assert _deck_gl_tooltip_cols(None) == []
+
+
+# ---------------------------------------------------------------------------
+# _resolve_deck_gl_metrics (Fix 2)
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_deck_gl_metrics_no_metrics():
+    assert _resolve_deck_gl_metrics({}) == []
+
+
+def test_resolve_deck_gl_metrics_size_field():
+    metric = {"expressionType": "SIMPLE", "aggregate": "COUNT", "column": None}
+    result = _resolve_deck_gl_metrics({"size": metric})
+    assert result == [metric]
+
+
+def test_resolve_deck_gl_metrics_metric_field():
+    metric = {"expressionType": "SIMPLE", "aggregate": "SUM"}
+    result = _resolve_deck_gl_metrics({"metric": metric})
+    assert result == [metric]
+
+
+def test_resolve_deck_gl_metrics_point_radius_fixed_metric():
+    prf_metric = {"expressionType": "SIMPLE", "aggregate": "AVG"}
+    prf = {"type": "metric", "value": prf_metric}
+    result = _resolve_deck_gl_metrics({"point_radius_fixed": prf})
+    assert result == [prf_metric]
+
+
+def test_resolve_deck_gl_metrics_point_radius_fixed_not_metric():
+    prf = {"type": "fix", "value": 100}
+    result = _resolve_deck_gl_metrics({"point_radius_fixed": prf})
+    assert result == []
+
+
+def test_resolve_deck_gl_metrics_polygon_both_metric_and_prf():
+    base_metric = {"expressionType": "SIMPLE", "aggregate": "SUM"}
+    elevation_metric = {"expressionType": "SIMPLE", "aggregate": "AVG"}
+    prf = {"type": "metric", "value": elevation_metric}
+    result = _resolve_deck_gl_metrics(
+        {"metric": base_metric, "point_radius_fixed": prf}
+    )
+    assert result == [base_metric, elevation_metric]
+
+
+# ---------------------------------------------------------------------------
+# _deck_gl_null_filters (Fix 3)
+# ---------------------------------------------------------------------------
+
+
+def test_deck_gl_null_filters_latlong():
+    form_data = {
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+    }
+    result = _deck_gl_null_filters(form_data)
+    assert result == [
+        {"col": "lon", "op": "IS NOT NULL", "val": ""},
+        {"col": "lat", "op": "IS NOT NULL", "val": ""},
+    ]
+
+
+def test_deck_gl_null_filters_arc_start_end():
+    form_data = {
+        "start_spatial": {"type": "latlong", "lonCol": "s_lon", "latCol": "s_lat"},
+        "end_spatial": {"type": "latlong", "lonCol": "e_lon", "latCol": "e_lat"},
+    }
+    result = _deck_gl_null_filters(form_data)
+    assert result == [
+        {"col": "s_lon", "op": "IS NOT NULL", "val": ""},
+        {"col": "s_lat", "op": "IS NOT NULL", "val": ""},
+        {"col": "e_lon", "op": "IS NOT NULL", "val": ""},
+        {"col": "e_lat", "op": "IS NOT NULL", "val": ""},
+    ]
+
+
+def test_deck_gl_null_filters_line_column():
+    form_data = {"line_column": "path_col"}
+    result = _deck_gl_null_filters(form_data)
+    assert result == [{"col": "path_col", "op": "IS NOT NULL", "val": ""}]
+
+
+def test_deck_gl_null_filters_empty():
+    assert _deck_gl_null_filters({}) == []
+
+
+def test_deck_gl_null_filters_geojson_no_filters():
+    # deck_geojson uses the geojson field which is not a spatial control
+    form_data = {"geojson": "geometry"}
+    assert _deck_gl_null_filters(form_data) == []
+
+
+# ---------------------------------------------------------------------------
+# build_query_dicts_from_form_data — null filters behavior (Fix 3)
+# ---------------------------------------------------------------------------
+
+
+def test_build_query_dicts_deck_scatter_adds_null_filters_by_default(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_scatter",
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert {"col": "lon", "op": "IS NOT NULL", "val": ""} in queries[0]["filters"]
+    assert {"col": "lat", "op": "IS NOT NULL", "val": ""} in queries[0]["filters"]
+
+
+def test_build_query_dicts_deck_scatter_filter_nulls_false(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_scatter",
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "filter_nulls": False,
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    null_filters = [
+        f for f in queries[0].get("filters", []) if f.get("op") == "IS NOT NULL"
+    ]
+    assert null_filters == []
+
+
+def test_build_query_dicts_deck_scatter_point_radius_fixed_metric(monkeypatch):
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    radius_metric = {
+        "expressionType": "SIMPLE",
+        "aggregate": "AVG",
+        "column": {"column_name": "radius"},
+    }
+    form_data = {
+        "viz_type": "deck_scatter",
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "point_radius_fixed": {"type": "metric", "value": radius_metric},
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert queries[0]["metrics"] == [radius_metric]
