@@ -718,14 +718,24 @@ def build_middleware_list() -> list[Middleware]:
     ]
 
 
-def _build_starlette_middleware(flask_app: Any | None = None) -> list[Any]:
+def _build_starlette_middleware(
+    flask_app: Any | None = None, auth_provider: Any | None = None
+) -> list[Any]:
     from starlette.middleware import Middleware as StarletteMiddleware
 
     if flask_app is None:
         from superset.mcp_service.flask_singleton import get_flask_app
 
         flask_app = get_flask_app()
-    auth_enabled = flask_app.config.get("MCP_AUTH_ENABLED", False)
+    # Auth is active if a non-None provider was returned (covers both
+    # MCP_AUTH_ENABLED and MCP_AUTH_FACTORY paths).
+    if auth_provider is not None:
+        auth_enabled = True
+    else:
+        auth_enabled = bool(
+            flask_app.config.get("MCP_AUTH_FACTORY")
+            or flask_app.config.get("MCP_AUTH_ENABLED", False)
+        )
     page_config = flask_app.config.get("MCP_HELLO_PAGE", None)
     return [
         StarletteMiddleware(
@@ -814,7 +824,8 @@ def run_server(
     event_store = create_event_store(event_store_config)
 
     starlette_middleware = _build_starlette_middleware(
-        flask_app if not use_factory_config else None
+        flask_app=flask_app if not use_factory_config else None,
+        auth_provider=auth_provider if not use_factory_config else None,
     )
 
     env_key = f"FASTMCP_RUNNING_{port}"
