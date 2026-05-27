@@ -177,17 +177,33 @@ class ExtensionsLoader {
     // collect the Disposables and drive cleanup on deactivation.
     const collected: (() => void)[] = [];
     const originalSuperset = window.superset;
+
+    const wrap = <TArgs extends unknown[]>(
+      fn: (...args: TArgs) => { dispose(): void },
+    ): ((...args: TArgs) => { dispose(): void }) =>
+      (...args: TArgs) => {
+        const disposable = fn(...args);
+        collected.push(() => disposable.dispose());
+        return disposable;
+      };
+
     window.superset = {
       ...originalSuperset,
+      commands: {
+        ...originalSuperset.commands,
+        registerCommand: wrap(originalSuperset.commands.registerCommand),
+      },
+      menus: {
+        ...originalSuperset.menus,
+        registerMenuItem: wrap(originalSuperset.menus.registerMenuItem),
+      },
+      editors: {
+        ...originalSuperset.editors,
+        registerEditor: wrap(originalSuperset.editors.registerEditor),
+      },
       views: {
         ...originalSuperset.views,
-        registerView: (
-          ...args: Parameters<typeof originalSuperset.views.registerView>
-        ) => {
-          const disposable = originalSuperset.views.registerView(...args);
-          collected.push(() => disposable.dispose());
-          return disposable;
-        },
+        registerView: wrap(originalSuperset.views.registerView),
       },
     };
 
