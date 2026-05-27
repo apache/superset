@@ -727,15 +727,10 @@ def _build_starlette_middleware(
         from superset.mcp_service.flask_singleton import get_flask_app
 
         flask_app = get_flask_app()
-    # Auth is active if a non-None provider was returned (covers both
-    # MCP_AUTH_ENABLED and MCP_AUTH_FACTORY paths).
-    if auth_provider is not None:
-        auth_enabled = True
-    else:
-        auth_enabled = bool(
-            flask_app.config.get("MCP_AUTH_FACTORY")
-            or flask_app.config.get("MCP_AUTH_ENABLED", False)
-        )
+    # Auth is active only when an instantiated provider was passed in.
+    # Config-flag presence is not sufficient — MCP_AUTH_FACTORY may return
+    # None, and use_factory_config auth lives outside Flask config entirely.
+    auth_enabled = auth_provider is not None
     app_name: str = flask_app.config.get("APP_NAME", "Superset")
     app_icon: str = flask_app.config.get("APP_ICON", "")
     base_page_config: dict[str, Any] = {
@@ -797,6 +792,9 @@ def run_server(
         logging.info("Creating MCP app from factory configuration...")
         factory_config = get_mcp_factory_config()
         mcp_instance = create_mcp_app(**factory_config)
+        # Capture the actual auth object so the hello page reflects real auth state
+        auth_provider = factory_config.get("auth")
+        flask_app = None
 
         # Apply tool search transform if configured
         tool_search_config = MCP_TOOL_SEARCH_CONFIG
@@ -842,8 +840,8 @@ def run_server(
     event_store = create_event_store(event_store_config)
 
     starlette_middleware = _build_starlette_middleware(
-        flask_app=flask_app if not use_factory_config else None,
-        auth_provider=auth_provider if not use_factory_config else None,
+        flask_app=flask_app,
+        auth_provider=auth_provider,
     )
 
     env_key = f"FASTMCP_RUNNING_{port}"
