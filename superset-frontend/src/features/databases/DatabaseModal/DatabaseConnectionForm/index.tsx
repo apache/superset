@@ -97,37 +97,46 @@ const DatabaseConnectionForm = ({
             (key: string) =>
               Object.keys(parameters.properties).includes(key) ||
               key === 'database_name',
-          ).map(field =>
+          ).map(field => {
+            // Render as JSX so each field's hooks live on its own fiber.
+            // Calling the component as a function (e.g. FORM_FIELD_MAP[field]({...}))
+            // makes the field's hooks register against this parent's fiber and
+            // breaks the rules of hooks once the parent owns its own state.
             // @ts-expect-error TODO: fix ComponentClass for SSHTunnelSwitchComponent not having call signature.
-            FORM_FIELD_MAP[field]({
-              required: parameters.required?.includes(field),
-              changeMethods: {
-                onParametersChange,
-                onChange,
-                onQueryChange,
-                onParametersUploadFileChange,
-                onAddTableCatalog,
-                onRemoveTableCatalog,
-                onExtraInputChange,
-                onEncryptedExtraInputChange,
-              },
-              validationErrors,
-              getValidation,
-              clearValidationErrors,
-              db,
-              key: field,
-              field,
-              default_value: parameters.properties[field]?.default,
-              description: parameters.properties[field]?.description,
-              isEditMode,
-              sslForced,
-              editNewDb,
-              isValidating,
-              isPublic,
-              setIsPublic,
-              placeholder: getPlaceholder ? getPlaceholder(field) : undefined,
-            }),
-          )}
+            const FieldComponent = FORM_FIELD_MAP[field];
+            return (
+              <FieldComponent
+                key={field}
+                required={parameters.required?.includes(field)}
+                changeMethods={{
+                  onParametersChange,
+                  onChange,
+                  onQueryChange,
+                  onParametersUploadFileChange,
+                  onAddTableCatalog,
+                  onRemoveTableCatalog,
+                  onExtraInputChange,
+                  onEncryptedExtraInputChange,
+                }}
+                validationErrors={validationErrors}
+                getValidation={getValidation}
+                clearValidationErrors={clearValidationErrors}
+                db={db}
+                field={field}
+                default_value={parameters.properties[field]?.default}
+                description={parameters.properties[field]?.description}
+                isEditMode={isEditMode}
+                sslForced={sslForced}
+                editNewDb={editNewDb}
+                isValidating={isValidating}
+                isPublic={isPublic}
+                setIsPublic={setIsPublic}
+                placeholder={
+                  getPlaceholder ? getPlaceholder(field) : undefined
+                }
+              />
+            );
+          })}
       </div>
     </Form>
   );
