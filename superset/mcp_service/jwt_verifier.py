@@ -270,23 +270,16 @@ class BrowserHelloMiddleware(BaseHTTPMiddleware):
         app: Any,
         auth_enabled: bool = False,
         page_config: dict[str, Any] | None = None,
-        mcp_path: str = "/mcp",
     ) -> None:
         super().__init__(app)
         self._html = _build_browser_hello_html(
             auth_enabled=auth_enabled, page_config=page_config
         )
-        self._mcp_path = mcp_path.rstrip("/")
 
     async def dispatch(
         self, request: Request, call_next: Callable[..., Any]
     ) -> Response:
-        path = request.url.path.rstrip("/")
-        if (
-            path in (self._mcp_path, "")
-            and request.method in ("GET", "HEAD")
-            and _prefers_browser_html(request)
-        ):
+        if request.method in ("GET", "HEAD") and _prefers_browser_html(request):
             return HTMLResponse(content=self._html, status_code=200)
         return await call_next(request)
 
