@@ -259,15 +259,15 @@ async def test_list_queries_pagination_info(mock_list, mcp_server):
 
 @patch("superset.daos.query.QueryDAO.list")
 @pytest.mark.asyncio
-async def test_list_queries_default_order_is_start_time_desc(mock_list, mcp_server):
-    """Test that default ordering is start_time descending."""
+async def test_list_queries_default_order_is_changed_on_desc(mock_list, mcp_server):
+    """Test that default ordering is changed_on descending."""
     mock_list.return_value = ([], 0)
     async with Client(mcp_server) as client:
         result = await client.call_tool("list_queries", {})
         assert result.content is not None
         mock_list.assert_called_once()
         call_kwargs = mock_list.call_args
-        assert call_kwargs.kwargs.get("order_column") == "start_time"
+        assert call_kwargs.kwargs.get("order_column") == "changed_on"
         assert call_kwargs.kwargs.get("order_direction") == "desc"
 
 
@@ -300,3 +300,17 @@ async def test_list_queries_invalid_order_column_raises(mcp_server):
     async with Client(mcp_server) as client:
         with pytest.raises(ValueError, match="Invalid order_column"):
             await client.call_tool("list_queries", {"request": request.model_dump()})
+
+
+@patch("superset.daos.query.QueryDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_query_info_internal_error(mock_find, mcp_server):
+    """When an unexpected exception is raised, get_query_info returns InternalError."""
+    mock_find.side_effect = RuntimeError("unexpected db failure")
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_query_info", {"request": {"identifier": 1}}
+        )
+        data = json.loads(result.content[0].text)
+        assert data["error_type"] == "InternalError"
+        assert data["error"] == "Failed to get query info"
