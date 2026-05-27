@@ -70,7 +70,7 @@ export function formatColumnValue(
   const { dataType, formatter, config = {}, currencyCodeColumn } = column;
   const isNumber = dataType === GenericDataType.Numeric;
   const smallNumberFormatter =
-    config.d3SmallNumberFormat === undefined
+    !config.d3SmallNumberFormat || config.d3SmallNumberFormat.trim() === ''
       ? formatter
       : config.currencyFormat
         ? new CurrencyFormatter({
