@@ -18,7 +18,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { css } from '@apache-superset/core/theme';
-import { FunctionComponent, useCallback, useEffect, useMemo, useState } from 'react';
+import { FunctionComponent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { Select } from '@superset-ui/core/components';
 import { Switch } from '@superset-ui/core/components/Switch';
@@ -65,6 +65,10 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     active_chatbot_id: null,
     enabled: {},
   });
+  // Always holds the latest settings value so saveSettings never closes over
+  // a stale snapshot when rapid toggles race against each other.
+  const settingsRef = useRef(settings);
+  settingsRef.current = settings;
 
   const [chatbotRegistryVersion, setChatbotRegistryVersion] = useState(0);
   useEffect(
@@ -83,7 +87,8 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
 
   const saveSettings = useCallback(
     (patch: Partial<ExtensionSettings>) => {
-      const next = { ...settings, ...patch };
+      const next = { ...settingsRef.current, ...patch };
+      setSettings(next);
       SupersetClient.put({
         endpoint: '/api/v1/extensions/settings',
         jsonPayload: next,
@@ -94,14 +99,14 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         })
         .catch(() => addDangerToast(t('Failed to save extension settings.')));
     },
-    [settings, addDangerToast, addSuccessToast],
+    [addDangerToast, addSuccessToast],
   );
 
   const toggleEnabled = useCallback(
     (extensionId: string, enabled: boolean) => {
-      saveSettings({ enabled: { ...settings.enabled, [extensionId]: enabled } });
+      saveSettings({ enabled: { ...settingsRef.current.enabled, [extensionId]: enabled } });
     },
-    [settings, saveSettings],
+    [saveSettings],
   );
 
   const chatbotExtensions = useMemo(() => {
