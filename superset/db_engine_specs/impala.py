@@ -17,8 +17,10 @@
 
 from __future__ import annotations
 
+import ipaddress
 import logging
 import re
+import socket
 import time
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
@@ -209,6 +211,10 @@ class ImpalaEngineSpec(BaseEngineSpec):
         """
         try:
             impala_host = query.database.url_object.host
+            resolved = ipaddress.ip_address(socket.gethostbyname(impala_host))
+            if resolved.is_private or resolved.is_loopback or resolved.is_link_local:
+                logger.warning("Blocked SSRF attempt to host: %s", impala_host)
+                return False
             url = f"http://{impala_host}:25000/cancel_query?query_id={cancel_query_id}"
             response = requests.post(url, timeout=3)
         except Exception:  # pylint: disable=broad-except
