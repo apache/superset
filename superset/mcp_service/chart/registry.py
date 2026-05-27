@@ -37,6 +37,7 @@ Usage::
 from __future__ import annotations
 
 import logging
+import sys
 import threading
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field
@@ -50,7 +51,7 @@ logger = logging.getLogger(__name__)
 _REGISTRY: dict[str, "ChartTypePlugin"] = {}
 _plugins_loaded = False
 _plugins_load_failed = False
-_plugins_lock = threading.Lock()
+_plugins_lock = threading.RLock()
 
 # ---------------------------------------------------------------------------
 # Plugin filter — replaced atomically by configure() at app startup.
@@ -81,11 +82,14 @@ def _ensure_plugins_loaded() -> None:
         return
     with _plugins_lock:
         if not _plugins_loaded and not _plugins_load_failed:
+            registry_before_import = dict(_REGISTRY)
             try:
                 import superset.mcp_service.chart.plugins  # noqa: F401
 
                 _plugins_loaded = True
             except Exception:
+                _REGISTRY.clear()
+                _REGISTRY.update(registry_before_import)
                 _plugins_load_failed = True
                 logger.exception(
                     "Failed to load built-in chart type plugins; "
@@ -217,10 +221,12 @@ def _reset_for_testing() -> None:
     will discard all registered plugins and any runtime filter configuration.
     """
     global _REGISTRY, _plugins_loaded, _plugins_load_failed, _filter_config
-    _REGISTRY = {}
-    _plugins_loaded = False
-    _plugins_load_failed = False
-    _filter_config = _PluginFilterConfig()
+    with _plugins_lock:
+        _REGISTRY = {}
+        _plugins_loaded = False
+        _plugins_load_failed = False
+        _filter_config = _PluginFilterConfig()
+        sys.modules.pop("superset.mcp_service.chart.plugins", None)
 
 
 class _RegistryProxy:

@@ -17,12 +17,17 @@
 
 """Tests for the chart type plugin registry."""
 
+import sys
+import threading
+from types import ModuleType
+
 import pytest
 
 import superset.mcp_service.chart.registry as registry_module
 from superset.mcp_service.chart.plugin import BaseChartPlugin
 from superset.mcp_service.chart.registry import (
     _RegistryProxy,
+    _reset_for_testing,
     all_types,
     display_name_for_viz_type,
     get,
@@ -121,6 +126,11 @@ def test_get_registry_returns_proxy():
     assert isinstance(get_registry(), _RegistryProxy)
 
 
+def test_plugins_lock_allows_register_during_lazy_import():
+    """The registry lock is re-entrant for plugin registration during import."""
+    assert isinstance(registry_module._plugins_lock, type(threading.RLock()))
+
+
 def test_registry_proxy_get():
     plugin = _FakePlugin()
     register(plugin)
@@ -160,7 +170,6 @@ def test_ensure_plugins_loaded_skips_when_load_failed(monkeypatch):
 
 def test_ensure_plugins_loaded_sets_failed_flag_on_error(monkeypatch):
     """A failed import sets _plugins_load_failed so subsequent calls are no-ops."""
-    import threading
     from unittest.mock import patch
 
     from superset.mcp_service.chart.registry import _ensure_plugins_loaded
@@ -175,3 +184,46 @@ def test_ensure_plugins_loaded_sets_failed_flag_on_error(monkeypatch):
 
     assert registry_module._plugins_load_failed is True
     assert registry_module._plugins_loaded is False
+
+
+def test_ensure_plugins_loaded_rolls_back_partial_registration(monkeypatch):
+    """A failed lazy import restores the registry to its previous state."""
+    from superset.mcp_service.chart.registry import _ensure_plugins_loaded
+
+    original_import = __import__
+    existing_plugin = _FakePlugin()
+    partial_plugin = _AnotherPlugin()
+
+    monkeypatch.setattr(registry_module, "_REGISTRY", {"fake": existing_plugin})
+    monkeypatch.setattr(registry_module, "_plugins_loaded", False)
+    monkeypatch.setattr(registry_module, "_plugins_load_failed", False)
+
+    def fail_plugin_import(name, globals=None, locals=None, fromlist=(), level=0):
+        if name == "superset.mcp_service.chart.plugins":
+            register(partial_plugin)
+            raise RuntimeError("plugin import failed")
+        return original_import(name, globals, locals, fromlist, level)
+
+    monkeypatch.setattr("builtins.__import__", fail_plugin_import)
+
+    _ensure_plugins_loaded()
+
+    assert registry_module._plugins_load_failed is True
+    assert registry_module._REGISTRY == {"fake": existing_plugin}
+
+
+def test_reset_for_testing_clears_cached_plugins_package(monkeypatch):
+    """Reset removes the plugins package so lazy loading can re-run registration."""
+    module_name = "superset.mcp_service.chart.plugins"
+
+    monkeypatch.setitem(sys.modules, module_name, ModuleType(module_name))
+    monkeypatch.setattr(registry_module, "_REGISTRY", {"fake": _FakePlugin()})
+    monkeypatch.setattr(registry_module, "_plugins_loaded", True)
+    monkeypatch.setattr(registry_module, "_plugins_load_failed", True)
+
+    _reset_for_testing()
+
+    assert registry_module._REGISTRY == {}
+    assert registry_module._plugins_loaded is False
+    assert registry_module._plugins_load_failed is False
+    assert module_name not in sys.modules

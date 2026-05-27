@@ -959,7 +959,9 @@ class FilterConfig(BaseModel):
         """Sanitize filter column name to prevent injection attacks."""
         # sanitize_user_input raises ValueError when allow_empty=False (default)
         # so the return value is guaranteed to be a non-None str
-        return sanitize_user_input(v, "Filter column", max_length=255)  # type: ignore[return-value]
+        return sanitize_user_input(
+            v, "Filter column", max_length=255, check_sql_keywords=True
+        )  # type: ignore[return-value]
 
     @field_validator("value")
     @classmethod
@@ -1481,7 +1483,11 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
     def sanitize_temporal_column(cls, v: str | None) -> str | None:
         """Sanitize temporal column name to prevent SQL injection."""
         return sanitize_user_input(
-            v, "Temporal column", max_length=255, allow_empty=True
+            v,
+            "Temporal column",
+            max_length=255,
+            check_sql_keywords=True,
+            allow_empty=True,
         )
 
     @model_validator(mode="after")
