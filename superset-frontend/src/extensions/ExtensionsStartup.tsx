@@ -18,8 +18,6 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-// eslint-disable-next-line no-restricted-syntax
-import * as supersetCore from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
@@ -27,7 +25,6 @@ import {
   core,
   commands,
   dashboard,
-  dataset,
   editors,
   explore,
   extensions,
@@ -48,7 +45,6 @@ declare global {
       core: typeof core;
       commands: typeof commands;
       dashboard: typeof dashboard;
-      dataset: typeof dataset;
       editors: typeof editors;
       explore: typeof explore;
       extensions: typeof extensions;
@@ -84,10 +80,7 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
   // browser's default error surfacing so host error reporting is unaffected.
   useEffect(() => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      logging.error(
-        '[extensions] Unhandled rejection:',
-        event.reason,
-      );
+      logging.error('[extensions] Unhandled rejection:', event.reason);
     };
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
     return () => {
@@ -107,14 +100,14 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       return;
     }
 
-    // Provide the implementations for @apache-superset/core
+    // Provide the implementations for @apache-superset/core.
+    // Namespaces are listed explicitly — do not spread the core package here,
+    // as that would leak un-contracted symbols onto window.superset.
     window.superset = {
-      ...supersetCore,
       authentication,
       core,
       commands,
       dashboard,
-      dataset,
       editors,
       explore,
       extensions,

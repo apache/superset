@@ -54,11 +54,14 @@ function buildDashboardContext(): DashboardContext | undefined {
       const value = mask?.filterState?.value;
       return value !== null && value !== undefined;
     })
-    .map(([id, mask]: [string, any]) => ({
-      filterId: id,
-      label: nativeFilters[id]?.name ?? id,
-      value: mask.filterState.value,
-    }));
+    .map(([id, mask]: [string, any]) => {
+      const raw = mask.filterState.value;
+      return {
+        filterId: id,
+        label: nativeFilters[id]?.name ?? id,
+        value: Array.isArray(raw) ? [...raw] : raw,
+      };
+    });
 
   return {
     dashboardId: info.id as number,

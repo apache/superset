@@ -27,7 +27,9 @@
 import type { explore as exploreApi } from '@apache-superset/core';
 import { HYDRATE_EXPLORE } from 'src/explore/actions/hydrateExplore';
 import {
+  CREATE_NEW_SLICE,
   SET_FORM_DATA,
+  SLICE_UPDATED,
   UPDATE_CHART_TITLE,
 } from 'src/explore/actions/exploreActions';
 import { SET_DATASOURCE } from 'src/explore/actions/datasourcesActions';
@@ -64,7 +66,9 @@ const exploreChangePredicate: AnyListenerPredicate<RootState> = action =>
   action.type === HYDRATE_EXPLORE ||
   action.type === SET_FORM_DATA ||
   action.type === UPDATE_CHART_TITLE ||
-  action.type === SET_DATASOURCE;
+  action.type === SET_DATASOURCE ||
+  action.type === CREATE_NEW_SLICE ||
+  action.type === SLICE_UPDATED;
 
 const getCurrentChart: typeof exploreApi.getCurrentChart = () =>
   buildChartContext();
