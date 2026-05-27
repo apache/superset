@@ -34,11 +34,13 @@ import {
 import { store, RootState } from 'src/views/store';
 import { AnyListenerPredicate } from '@reduxjs/toolkit';
 import { createActionListener } from '../utils';
+import { navigation } from '../navigation';
 
 type DashboardContext = dashboardApi.DashboardContext;
 type FilterValue = dashboardApi.FilterValue;
 
 function buildDashboardContext(): DashboardContext | undefined {
+  if (navigation.getPageType() !== 'dashboard') return undefined;
   const state = store.getState();
   const info = (state as any).dashboardInfo;
   if (!info?.id) return undefined;

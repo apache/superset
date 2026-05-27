@@ -34,10 +34,12 @@ import { SET_DATASOURCE } from 'src/explore/actions/datasourcesActions';
 import { store, RootState } from 'src/views/store';
 import { AnyListenerPredicate } from '@reduxjs/toolkit';
 import { createActionListener } from '../utils';
+import { navigation } from '../navigation';
 
 type ChartContext = exploreApi.ChartContext;
 
 function buildChartContext(): ChartContext | undefined {
+  if (navigation.getPageType() !== 'explore') return undefined;
   const state = store.getState();
   const exploreState = (state as any).explore;
   if (!exploreState) return undefined;
