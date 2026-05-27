@@ -58,11 +58,24 @@ def install_npm_packages(npm_cmd: str, root_dir: str, packages: list[str]) -> bo
 def convert_po_file(
     po_file: str, frontend_trans_dir: str, po2json_cmd: list[str]
 ) -> tuple[bool, str, str]:
-    locale_rel = os.path.relpath(po_file, start=os.path.dirname(os.path.dirname(po_file)))
-    json_dest = os.path.join(frontend_trans_dir, os.path.splitext(locale_rel)[0] + ".json")
+    locale_rel = os.path.relpath(
+        po_file, start=os.path.dirname(os.path.dirname(po_file))
+    )
+    json_dest = os.path.join(
+        frontend_trans_dir, os.path.splitext(locale_rel)[0] + ".json"
+    )
     os.makedirs(os.path.dirname(json_dest), exist_ok=True)
 
-    cmd = [*po2json_cmd, "--domain", "superset", "--format", "jed1.x", "--fuzzy", po_file, json_dest]
+    cmd = [
+        *po2json_cmd,
+        "--domain",
+        "superset",
+        "--format",
+        "jed1.x",
+        "--fuzzy",
+        po_file,
+        json_dest,
+    ]
     rc = run_command(cmd, timeout=60)
     if rc != 0:
         return False, po_file, f"po2json failed (rc={rc})"
@@ -74,7 +87,9 @@ def compile_translations() -> int:
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
     )
     translations_dir = os.path.join(root_dir, "superset", "translations")
-    frontend_trans_dir = os.path.join(root_dir, "superset-frontend", "src", "translations")
+    frontend_trans_dir = os.path.join(
+        root_dir, "superset-frontend", "src", "translations"
+    )
 
     try:
         import babel  # noqa: F401
@@ -89,12 +104,22 @@ def compile_translations() -> int:
         return 1
 
     if not os.path.isdir(translations_dir):
-        print(f"ERROR: translations directory not found: {translations_dir}", file=sys.stderr)
+        print(
+            f"ERROR: translations directory not found: {translations_dir}",
+            file=sys.stderr,
+        )
         return 1
 
     print("Step 1: Compiling .po files with pybabel...")
     rc = run_command(
-        [sys.executable, "-m", "babel.messages.frontend", "compile", "-d", translations_dir],
+        [
+            sys.executable,
+            "-m",
+            "babel.messages.frontend",
+            "compile",
+            "-d",
+            translations_dir,
+        ],
         cwd=root_dir,
     )
     if rc != 0:
@@ -118,7 +143,7 @@ def compile_translations() -> int:
             print("WARNING: npm install failed, falling back to npx.", file=sys.stderr)
 
     if os.path.isfile(po2json_bin):
-        po2json_cmd = [po2json_bin]
+        po2json_cmd: list[str] = [po2json_bin]
     else:
         po2json_cmd = [npx_cmd, "-y", "po2json"]
 
@@ -127,7 +152,9 @@ def compile_translations() -> int:
     else:
         prettier_cmd = [npx_cmd, "-y", "prettier"] if npx_cmd else None
 
-    po_files = glob.glob(os.path.join(translations_dir, "**", "*.po"), recursive=True)
+    po_files = glob.glob(
+        os.path.join(translations_dir, "**", "*.po"), recursive=True
+    )
     print(f"Step 3: Converting {len(po_files)} .po files to JSON (frontend path)...")
 
     failures: list[str] = []
@@ -146,15 +173,21 @@ def compile_translations() -> int:
                 print(f"  OK: {po_path}")
 
     if failures:
-        print(f"\nERROR: {len(failures)} file(s) failed conversion:", file=sys.stderr)
+        print(
+            f"\nERROR: {len(failures)} file(s) failed conversion:", file=sys.stderr
+        )
         for f in failures:
             print(f"  - {f}", file=sys.stderr)
         return 1
 
-    json_files = glob.glob(os.path.join(frontend_trans_dir, "**", "*.json"), recursive=True)
+    json_files = glob.glob(
+        os.path.join(frontend_trans_dir, "**", "*.json"), recursive=True
+    )
     if json_files and prettier_cmd:
         print(f"Step 4: Running prettier on {len(json_files)} JSON files...")
-        rc = run_command([*prettier_cmd, "--write", *json_files], cwd=root_dir, timeout=300)
+        rc = run_command(
+            [*prettier_cmd, "--write", *json_files], cwd=root_dir, timeout=300
+        )
         if rc != 0:
             print("WARNING: prettier step failed.", file=sys.stderr)
 
