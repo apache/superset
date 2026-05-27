@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState, useRef, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import type { QueryEditor, SqlLabRootState, Table } from 'src/SqlLab/types';
 import {
   ButtonGroup,
@@ -75,7 +76,7 @@ const Fade = styled.div`
 const TableElement = ({ table, ...props }: TableElementProps) => {
   const { dbId, catalog, schema, name, expanded, id } = table;
   const theme = useTheme();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const {
     currentData: tableMetadata,
     isSuccess: isMetadataSuccess,

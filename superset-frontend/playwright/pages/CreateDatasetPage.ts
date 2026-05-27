@@ -32,7 +32,7 @@ export class CreateDatasetPage {
    */
   private static readonly SELECTORS = {
     DATABASE: '[data-test="select-database"]',
-    SCHEMA: '[data-test="Select schema or type to search schemas"]',
+    SCHEMA: '[data-test="Select schema"]',
     TABLE: '[data-test="Select table or type to search tables"]',
   } as const;
 

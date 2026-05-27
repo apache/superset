@@ -1,0 +1,26 @@
+---
+id: tags
+title: "Tags"
+description: "Tags"
+custom_edit_url: null
+---
+
+Organize assets with tags.
+
+| Method | Endpoint | Path |
+|--------|----------|------|
+| `DELETE` | [Bulk delete tags](./bulk-delete-tags) | `/api/v1/tag/` |
+| `GET` | [Get a list of tags](./get-a-list-of-tags) | `/api/v1/tag/` |
+| `POST` | [Create a tag](./create-a-tag) | `/api/v1/tag/` |
+| `GET` | [Get metadata information about tag API endpoints](./get-metadata-information-about-tag-api-endpoints) | `/api/v1/tag/_info` |
+| `POST` | [Add tags to an object](./add-tags-to-an-object) | `/api/v1/tag/{object_type}/{object_id}/` |
+| `DELETE` | [Delete a tagged object](./delete-a-tagged-object) | `/api/v1/tag/{object_type}/{object_id}/{tag}/` |
+| `DELETE` | [Delete a tag](./delete-a-tag) | `/api/v1/tag/{pk}` |
+| `GET` | [Get a tag detail information](./get-a-tag-detail-information) | `/api/v1/tag/{pk}` |
+| `PUT` | [Update a tag](./update-a-tag) | `/api/v1/tag/{pk}` |
+| `DELETE` | [Delete tag by pk favorites](./delete-tag-by-pk-favorites) | `/api/v1/tag/{pk}/favorites/` |
+| `POST` | [Create tag by pk favorites](./create-tag-by-pk-favorites) | `/api/v1/tag/{pk}/favorites/` |
+| `POST` | [Bulk create tags and tagged objects](./bulk-create-tags-and-tagged-objects) | `/api/v1/tag/bulk_create` |
+| `GET` | [Get tag favorite status](./get-tag-favorite-status) | `/api/v1/tag/favorite_status/` |
+| `GET` | [Get all objects associated with a tag](./get-all-objects-associated-with-a-tag) | `/api/v1/tag/get_objects/` |
+| `GET` | [Get related fields data (tag-related-column-name)](./get-related-fields-data-tag-related-column-name) | `/api/v1/tag/related/{column_name}` |

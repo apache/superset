@@ -26,7 +26,6 @@ import logging
 import math
 from typing import Any, Dict, List
 
-from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.mcp_service.chart.schemas import (
     ASCIIPreview,
     ChartError,
@@ -35,6 +34,8 @@ from superset.mcp_service.chart.schemas import (
 )
 
 logger = logging.getLogger(__name__)
+
+SUPPORTED_FORM_DATA_PREVIEW_FORMATS = frozenset({"ascii", "table", "vega_lite"})
 
 
 def _build_query_columns(form_data: Dict[str, Any]) -> list[str]:
@@ -76,6 +77,7 @@ def generate_preview_from_form_data(
     """
     try:
         # Execute query to get data
+        from superset.commands.chart.data.get_data_command import ChartDataCommand
         from superset.connectors.sqla.models import SqlaTable
         from superset.extensions import db
 

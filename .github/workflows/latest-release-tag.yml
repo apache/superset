@@ -29,7 +29,7 @@ jobs:
 
     - name: Run latest-tag
       uses: ./.github/actions/latest-tag
-      if: (! ${{ steps.latest-tag.outputs.SKIP_TAG }} )
+      if: steps.latest-tag.outputs.SKIP_TAG != 'true'
       with:
         description: Superset latest release
         tag-name: latest
