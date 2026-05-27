@@ -94,3 +94,76 @@ test('getActiveChatbot stops resolving a chatbot once it is disposed', () => {
 
   expect(getActiveChatbot()).toBeUndefined();
 });
+
+test('getActiveChatbot honours the admin-pinned selection', () => {
+  const firstProvider = () => React.createElement('div', null, 'First');
+  const secondProvider = () => React.createElement('div', null, 'Second');
+  disposables.push(
+    views.registerView(
+      { id: 'first.chatbot', name: 'First Chatbot' },
+      CHATBOT_LOCATION,
+      firstProvider,
+    ),
+    views.registerView(
+      { id: 'second.chatbot', name: 'Second Chatbot' },
+      CHATBOT_LOCATION,
+      secondProvider,
+    ),
+  );
+
+  const active = getActiveChatbot('second.chatbot');
+  expect(active?.id).toBe('second.chatbot');
+  expect(active?.provider).toBe(secondProvider);
+});
+
+test('getActiveChatbot falls back to first-registered when pinned id is unknown', () => {
+  const provider = () => React.createElement('div', null, 'First');
+  disposables.push(
+    views.registerView(
+      { id: 'first.chatbot', name: 'First Chatbot' },
+      CHATBOT_LOCATION,
+      provider,
+    ),
+  );
+
+  // 'stale.chatbot' was once the admin pin but is no longer registered.
+  const active = getActiveChatbot('stale.chatbot');
+  expect(active?.id).toBe('first.chatbot');
+});
+
+test('getActiveChatbot excludes disabled extensions before applying admin pin', () => {
+  const firstProvider = () => React.createElement('div', null, 'First');
+  const secondProvider = () => React.createElement('div', null, 'Second');
+  disposables.push(
+    views.registerView(
+      { id: 'first.chatbot', name: 'First Chatbot' },
+      CHATBOT_LOCATION,
+      firstProvider,
+    ),
+    views.registerView(
+      { id: 'second.chatbot', name: 'Second Chatbot' },
+      CHATBOT_LOCATION,
+      secondProvider,
+    ),
+  );
+
+  // Admin pinned second, but second is disabled — should fall back to first.
+  const active = getActiveChatbot('second.chatbot', {
+    'second.chatbot': false,
+  });
+  expect(active?.id).toBe('first.chatbot');
+});
+
+test('getActiveChatbot returns undefined when all candidates are disabled', () => {
+  disposables.push(
+    views.registerView(
+      { id: 'superset.chatbot', name: 'Superset Chatbot' },
+      CHATBOT_LOCATION,
+      () => React.createElement('div', null, 'Chatbot'),
+    ),
+  );
+
+  expect(
+    getActiveChatbot(null, { 'superset.chatbot': false }),
+  ).toBeUndefined();
+});
