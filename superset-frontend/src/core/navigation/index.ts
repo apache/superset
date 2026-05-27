@@ -36,7 +36,7 @@ function derivePageType(pathname: string): PageType {
   if (pathname.startsWith('/explore/')) return 'explore';
   if (pathname.startsWith('/superset/explore/')) return 'explore';
   if (pathname.startsWith('/chart/add')) return 'explore';
-  if (pathname.startsWith('/sqllab/')) return 'sqllab';
+  if (pathname === '/sqllab' || pathname.startsWith('/sqllab/')) return 'sqllab';
   if (pathname.startsWith('/dataset/')) return 'dataset';
   if (pathname.startsWith('/superset/welcome/')) return 'home';
   return 'other';
