@@ -18,7 +18,6 @@
 """Get user info FastMCP tool."""
 
 import logging
-from datetime import datetime, timezone
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -105,8 +104,4 @@ async def get_user_info(
             "User information retrieval failed: identifier=%s, error=%s, error_type=%s"
             % (request.identifier, str(e), type(e).__name__)
         )
-        return UserError(
-            error=f"Failed to get user info: {str(e)}",
-            error_type="InternalError",
-            timestamp=datetime.now(timezone.utc),
-        )
+        raise

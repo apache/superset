@@ -246,18 +246,20 @@ class GetUserInfoRequest(BaseModel):
 
 
 def serialize_user_object(
-    user: Any, include_sensitive: bool = False
+    user: Any, include_sensitive: bool = False, include_roles: bool = True
 ) -> UserInfo | None:
     """Serialize a FAB User object into a UserInfo schema.
 
     Sensitive fields (email, roles) are only included when include_sensitive=True,
     which should reflect whether the caller has data model metadata access.
+    Set include_roles=False to skip the roles relationship traversal (avoids N+1
+    queries in list context where roles are never returned).
     """
     if not user:
         return None
 
     roles: list[str] | None = None
-    if include_sensitive:
+    if include_sensitive and include_roles:
         user_roles = getattr(user, "roles", None)
         if user_roles is not None:
             try:

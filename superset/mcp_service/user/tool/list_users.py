@@ -99,7 +99,13 @@ async def list_users(
             )
 
         def _serialize_user(obj: Any, cols: list[str] | None) -> UserInfo | None:
-            return serialize_user_object(obj, include_sensitive=can_view_sensitive)
+            # Only load the roles relationship when it is in the loaded column set.
+            # USER_DIRECTORY_FIELDS always strips roles in list context, so this
+            # avoids a per-user N+1 lazy-load.
+            include_roles = "roles" in (cols or [])
+            return serialize_user_object(
+                obj, include_sensitive=can_view_sensitive, include_roles=include_roles
+            )
 
         list_tool = ModelListCore(
             dao_class=UserDAO,

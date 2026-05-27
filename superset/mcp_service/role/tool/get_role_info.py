@@ -18,7 +18,6 @@
 """Get role info FastMCP tool."""
 
 import logging
-from datetime import datetime, timezone
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -92,8 +91,4 @@ async def get_role_info(
             "Role information retrieval failed: identifier=%s, error=%s, error_type=%s"
             % (request.identifier, str(e), type(e).__name__)
         )
-        return RoleError(
-            error=f"Failed to get role info: {str(e)}",
-            error_type="InternalError",
-            timestamp=datetime.now(timezone.utc),
-        )
+        raise

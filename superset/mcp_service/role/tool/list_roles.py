@@ -88,7 +88,7 @@ async def list_roles(
 
         from superset.daos.role import RoleDAO
 
-        def _serialize_role(obj: Any, cols: list[str] | None) -> RoleInfo | None:
+        def _serialize_role(obj: Any, _cols: list[str] | None) -> RoleInfo | None:
             return serialize_role_object(obj)
 
         list_tool = ModelListCore(
