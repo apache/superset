@@ -283,7 +283,7 @@ class BrowserHelloMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         path = request.url.path.rstrip("/")
         if (
-            path == self._mcp_path
+            path in (self._mcp_path, "")
             and request.method in ("GET", "HEAD")
             and _prefers_browser_html(request)
         ):

@@ -743,8 +743,16 @@ def _build_starlette_middleware(
         "server_key": app_name.lower().replace(" ", "-"),
         "app_name": app_name,
     }
-    if app_icon and app_icon.startswith(("http://", "https://")):
-        base_page_config["logo_url"] = app_icon
+    if app_icon:
+        if app_icon.startswith(("http://", "https://")):
+            base_page_config["logo_url"] = app_icon
+        elif app_icon.startswith("/"):
+            # Relative path — combine with Superset webserver address if configured
+            superset_addr = flask_app.config.get(
+                "SUPERSET_WEBSERVER_ADDRESS", ""
+            ).rstrip("/")
+            if superset_addr:
+                base_page_config["logo_url"] = f"{superset_addr}{app_icon}"
     mcp_hello_page: dict[str, Any] | None = flask_app.config.get("MCP_HELLO_PAGE", None)
     page_config: dict[str, Any] = {**base_page_config, **(mcp_hello_page or {})}
     return [
