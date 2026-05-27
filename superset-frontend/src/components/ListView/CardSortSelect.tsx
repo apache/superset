@@ -61,16 +61,13 @@ export const CardSortSelect = ({
     }
   };
 
-  // Sort is always active — always show the current option in the label.
-  const pillLabel = `${t('Sort')}: ${String(currentValue.label)}`;
-
   return (
     <span data-test="card-sort-select">
       <CompactFilterTrigger
-        label={pillLabel}
+        label={t('Sort')}
         hasValue={false}
         onClear={() => {}}
-        tooltipTitle={undefined}
+        tooltipTitle={String(currentValue.label)}
       >
         {({ isOpen, onClose }) => (
           <CompactSelectPanel

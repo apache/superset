@@ -36,7 +36,7 @@ const options = [
   },
 ];
 
-test('always shows the active sort label in the pill — never shows a clear button', () => {
+test('pill always shows "Sort" label with no value suffix and no clear button', () => {
   render(
     <CardSortSelect
       options={options}
@@ -44,12 +44,9 @@ test('always shows the active sort label in the pill — never shows a clear but
       initialSort={[{ id: 'title', desc: false }]}
     />,
   );
-  // Sort label always visible
-  expect(screen.getByText(/sort.*alphabetical/i)).toBeInTheDocument();
-  // No clear button — sort is always active, there is nothing to clear
-  expect(
-    screen.queryByTestId('compact-filter-clear'),
-  ).not.toBeInTheDocument();
+  expect(screen.getByText('Sort')).toBeInTheDocument();
+  expect(screen.queryByText(/sort.*alphabetical/i)).not.toBeInTheDocument();
+  expect(screen.queryByTestId('compact-filter-clear')).not.toBeInTheDocument();
   expect(screen.getByTestId('compact-filter-pill')).toHaveAttribute(
     'aria-expanded',
     'false',
@@ -64,21 +61,8 @@ test('no clear button even when a non-default sort is active', () => {
       initialSort={[{ id: 'changed_on', desc: true }]}
     />,
   );
-  expect(screen.getByText(/sort.*recently modified/i)).toBeInTheDocument();
-  expect(
-    screen.queryByTestId('compact-filter-clear'),
-  ).not.toBeInTheDocument();
-});
-
-test('shows sort label in pill when non-default sort is active', () => {
-  render(
-    <CardSortSelect
-      options={options}
-      onChange={jest.fn()}
-      initialSort={[{ id: 'changed_on', desc: true }]}
-    />,
-  );
-  expect(screen.getByText(/sort.*recently modified/i)).toBeInTheDocument();
+  expect(screen.getByText('Sort')).toBeInTheDocument();
+  expect(screen.queryByTestId('compact-filter-clear')).not.toBeInTheDocument();
 });
 
 test('clicking a sort option from the panel calls onChange with the correct id and desc', async () => {
@@ -91,27 +75,22 @@ test('clicking a sort option from the panel calls onChange with the correct id a
     />,
   );
 
-  // Pill initially shows the default sort label
-  expect(screen.getByText(/sort.*alphabetical/i)).toBeInTheDocument();
-
-  // Open the sort panel
   await userEvent.click(screen.getByTestId('compact-filter-pill'));
-  // Panel options are visible
   expect(screen.getByText('Recently modified')).toBeInTheDocument();
 
-  // Select a sort option
   await userEvent.click(screen.getByText('Recently modified'));
 
   expect(onChange).toHaveBeenCalledWith([{ id: 'changed_on', desc: true }]);
-  // Pill now shows the newly selected sort label
-  expect(screen.getByText(/sort.*recently modified/i)).toBeInTheDocument();
+  // Pill label stays "Sort" — value is in tooltip, not the label
+  expect(screen.getByText('Sort')).toBeInTheDocument();
 });
 
-test('selecting a different option from the panel updates the pill label', async () => {
+test('selecting a different option from the panel calls onChange with correct args', async () => {
+  const onChange = jest.fn();
   render(
     <CardSortSelect
       options={options}
-      onChange={jest.fn()}
+      onChange={onChange}
       initialSort={[{ id: 'title', desc: false }]}
     />,
   );
@@ -119,5 +98,5 @@ test('selecting a different option from the panel updates the pill label', async
   await userEvent.click(screen.getByTestId('compact-filter-pill'));
   await userEvent.click(screen.getByText('Least recently modified'));
 
-  expect(screen.getByText(/sort.*least recently modified/i)).toBeInTheDocument();
+  expect(onChange).toHaveBeenCalledWith([{ id: 'changed_on', desc: false }]);
 });
