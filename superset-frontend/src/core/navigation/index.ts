@@ -36,23 +36,31 @@ function derivePageType(pathname: string): PageType {
   if (pathname.startsWith('/explore/')) return 'explore';
   if (pathname.startsWith('/superset/explore/')) return 'explore';
   if (pathname.startsWith('/chart/add')) return 'explore';
-  if (pathname.startsWith('/sqllab/')) return 'sqllab';
+  if (pathname === '/sqllab' || pathname.startsWith('/sqllab/'))
+    return 'sqllab';
   if (pathname.startsWith('/dataset/')) return 'dataset';
   if (pathname.startsWith('/superset/welcome/')) return 'home';
   return 'other';
 }
 
-let currentPageType: PageType = derivePageType(window.location.pathname);
+let currentPageType: PageType | undefined;
+
+function getOrInitPageType(): PageType {
+  if (currentPageType === undefined) {
+    currentPageType = derivePageType(window.location.pathname);
+  }
+  return currentPageType;
+}
 
 /** Called by ExtensionsStartup whenever the React Router location changes. */
 export const notifyPageChange = (pathname: string): void => {
   const next = derivePageType(pathname);
-  if (next === currentPageType) return;
+  if (next === getOrInitPageType()) return;
   currentPageType = next;
   listeners.forEach(fn => fn(next));
 };
 
-const getPageType: typeof navigationApi.getPageType = () => currentPageType;
+const getPageType: typeof navigationApi.getPageType = () => getOrInitPageType();
 
 const onDidChangePage: typeof navigationApi.onDidChangePage = (
   listener: (pageType: PageType) => void,
