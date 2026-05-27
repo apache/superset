@@ -261,8 +261,13 @@ export default function SemanticLayerModal({
     }
   };
 
+  // Edit mode skips the type-picker step. Gating on this prevents the brief
+  // flash of the Create modal's first step while the existing layer is being
+  // fetched.
+  const isTypeStep = step === 'type' && !isEditMode;
+
   const handleSave = () => {
-    if (step === 'type') {
+    if (isTypeStep) {
       handleStepAdvance();
     } else {
       // Trigger validation UI and submit only from explicit save action.
@@ -320,7 +325,7 @@ export default function SemanticLayerModal({
 
   const title = isEditMode
     ? t('Edit %s', selectedTypeName || t('Semantic Layer'))
-    : step === 'type'
+    : isTypeStep
       ? t('New Semantic Layer')
       : t('Configure %s', selectedTypeName);
 
@@ -331,18 +336,16 @@ export default function SemanticLayerModal({
       onSave={handleSave}
       title={title}
       icon={isEditMode ? <Icons.EditOutlined /> : <Icons.PlusOutlined />}
-      width={step === 'type' ? MODAL_STANDARD_WIDTH : MODAL_MEDIUM_WIDTH}
+      width={isTypeStep ? MODAL_STANDARD_WIDTH : MODAL_MEDIUM_WIDTH}
       saveDisabled={
-        step === 'type' ? !selectedType : saving || !name.trim() || hasErrors
+        isTypeStep ? !selectedType : saving || !name.trim() || hasErrors
       }
-      saveText={
-        step === 'type' ? undefined : isEditMode ? t('Save') : t('Create')
-      }
+      saveText={isTypeStep ? undefined : isEditMode ? t('Save') : t('Create')}
       saveLoading={saving}
       contentLoading={loading}
     >
       <ModalContent>
-        {step === 'type' ? (
+        {isTypeStep ? (
           <ModalFormField label={t('Type')}>
             <Select
               ariaLabel={t('Semantic layer type')}
