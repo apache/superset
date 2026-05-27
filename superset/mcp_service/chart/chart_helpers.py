@@ -287,11 +287,30 @@ def _deck_gl_tooltip_cols(tooltip_contents: list[Any] | None) -> list[str]:
     return cols
 
 
-def _deck_gl_null_filters(form_data: dict[str, Any]) -> list[dict[str, Any]]:
-    """Build IS NOT NULL simple filters for Deck.gl spatial and line columns.
+def _is_metric_ref(value: Any) -> bool:
+    """Return True if value is a metric reference (dict or non-numeric string).
 
-    Mirrors BaseDeckGLViz.add_null_filters() behavior: spatial control columns
-    and line_column are filtered for non-null values by default.
+    Deck.gl size/metric fields hold either a dict metric definition or a
+    simple saved-metric string key (e.g. "count"). Scalar numeric strings
+    like "100" are fixed display settings and must not be treated as metrics.
+    """
+    if isinstance(value, dict):
+        return True
+    if isinstance(value, str) and value:
+        try:
+            float(value)
+            return False
+        except ValueError:
+            return True
+    return False
+
+
+def _deck_gl_null_filters(form_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Build IS NOT NULL simple filters for Deck.gl spatial and data columns.
+
+    Mirrors BaseDeckGLViz.add_null_filters() behavior: spatial control columns,
+    line_column, and the geojson column are filtered for non-null values by
+    default.
     """
     seen: set[str] = set()
     result: list[dict[str, Any]] = []
@@ -300,9 +319,11 @@ def _deck_gl_null_filters(form_data: dict[str, Any]) -> list[dict[str, Any]]:
             if col not in seen:
                 seen.add(col)
                 result.append({"col": col, "op": "IS NOT NULL", "val": ""})
-    line_col = form_data.get("line_column")
-    if isinstance(line_col, str) and line_col and line_col not in seen:
-        result.append({"col": line_col, "op": "IS NOT NULL", "val": ""})
+    for field in ("line_column", "geojson"):
+        data_col = form_data.get(field)
+        if isinstance(data_col, str) and data_col and data_col not in seen:
+            seen.add(data_col)
+            result.append({"col": data_col, "op": "IS NOT NULL", "val": ""})
     return result
 
 
@@ -312,8 +333,9 @@ def _resolve_deck_gl_metrics(
     """Extract metrics for Deck.gl chart types.
 
     deck_geojson.query_obj() forces metrics=[] regardless of form_data.
-    For other types, size/metric must be dict metric references — scalar
-    values (e.g. "100") are fixed display settings, not query metrics.
+    For other types, size/metric values are included when they are metric
+    references (dicts or non-numeric strings); numeric scalars like "100"
+    are fixed display settings and are excluded.
     deck_scatter and deck_polygon can additionally store metric-backed
     values in point_radius_fixed (radius for scatter, elevation for polygon).
     """
@@ -322,7 +344,7 @@ def _resolve_deck_gl_metrics(
     metrics: list[Any] = []
     for field in ("size", "metric"):
         m = form_data.get(field)
-        if isinstance(m, dict):
+        if _is_metric_ref(m):
             metrics.append(m)
     prf = form_data.get("point_radius_fixed")
     if isinstance(prf, dict) and prf.get("type") == "metric":
