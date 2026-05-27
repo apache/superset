@@ -75,7 +75,7 @@ async def list_plugins(
     try:
         from superset.mcp_service.plugin.dao import DynamicPluginDAO
 
-        def _serialize(obj: object, cols: list[str] | None) -> PluginInfo | None:
+        def _serialize(obj: object, cols: list[str]) -> PluginInfo | None:
             return serialize_plugin_object(obj)
 
         list_tool = ModelListCore(
