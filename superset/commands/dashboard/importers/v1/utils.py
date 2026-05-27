@@ -281,6 +281,11 @@ def import_dashboard(  # noqa: C901
 
     # Note: theme_id handling moved to higher level import logic
 
+    # Pop roles before handing config to import_from_dict — it's a
+    # relationship, not a column, and the standard SQLAlchemy import path
+    # doesn't resolve role *names* into role objects. We re-attach below.
+    role_names = config.pop("roles", None)
+
     for key, new_name in JSON_KEYS.items():
         if config.get(key) is not None:
             value = config.pop(key)
@@ -295,5 +300,26 @@ def import_dashboard(  # noqa: C901
 
     if (user := get_user()) and user not in dashboard.owners:
         dashboard.owners.append(user)
+
+    # Re-attach DASHBOARD_RBAC role assignments by name. Role IDs are
+    # environment-local; names are how exports cross environments. Roles
+    # that don't exist in the destination are skipped with a warning
+    # rather than failing the import — admins may need to create them
+    # before the access restriction takes effect.
+    if isinstance(role_names, list) and role_names:
+        resolved_roles = []
+        for name in role_names:
+            role = security_manager.find_role(name)
+            if role is not None:
+                resolved_roles.append(role)
+            else:
+                logger.warning(
+                    "Dashboard '%s': role %r referenced in export does not "
+                    "exist in this environment; access restriction will not "
+                    "be applied for that role",
+                    dashboard.dashboard_title,
+                    name,
+                )
+        dashboard.roles = resolved_roles
 
     return dashboard

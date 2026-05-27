@@ -185,6 +185,16 @@ class ExportDashboardsCommand(ExportModelsCommand):
         # Add theme UUID for proper cross-system imports
         payload["theme_uuid"] = str(model.theme.uuid) if model.theme else None
 
+        # Include role assignments (DASHBOARD_RBAC). Role IDs are
+        # environment-local, so emit names — the import side resolves them
+        # back to roles in the destination environment. The key is omitted
+        # entirely when there are no role restrictions; older import code
+        # treats "missing" as "no restriction" and an empty list could
+        # confuse importers that distinguish the two states.
+        role_names = sorted(role.name for role in (model.roles or []))
+        if role_names:
+            payload["roles"] = role_names
+
         payload["version"] = EXPORT_VERSION
 
         # Check if the TAGGING_SYSTEM feature is enabled
