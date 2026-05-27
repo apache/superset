@@ -25,7 +25,6 @@
 # (or when you no longer need the debug UI).
 
 from flask_appbuilder import expose
-from flask_appbuilder.security.decorators import has_access
 
 from superset.superset_typing import FlaskResponse
 from superset.views.base import BaseSupersetView
@@ -33,14 +32,20 @@ from superset.views.base import BaseSupersetView
 
 class ActivityDebugView(BaseSupersetView):
     """Serves the React shell for the throwaway activity-view debug page.
-    The React router (see ``superset-frontend/src/views/routes.tsx``)
-    handles the actual rendering."""
+
+    No auth decorator on the shell itself — the shell page exposes no
+    data of its own. The React component renders inside it and fires
+    calls to ``/api/v1/{resource}/{uuid}/activity/`` which gate access
+    via ``raise_for_ownership`` on the path entity. Anonymous users
+    who somehow land here will see the React UI and the API errors
+    surface inline as "error: 401 ...". That's a fine UX for a debug
+    tool — and avoids the FAB ``@has_access`` redirect-to-home
+    behavior that masked real failures earlier.
+    """
 
     route_base = "/activity-debug"
-    class_permission_name = "Database"
 
     @expose("/<resource>/<uuid>/")
     @expose("/<resource>/<uuid>")
-    @has_access
     def show(self, resource: str, uuid: str) -> FlaskResponse:  # noqa: ARG002
         return super().render_app_template()
