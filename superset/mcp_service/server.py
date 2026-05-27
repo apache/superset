@@ -736,7 +736,17 @@ def _build_starlette_middleware(
             flask_app.config.get("MCP_AUTH_FACTORY")
             or flask_app.config.get("MCP_AUTH_ENABLED", False)
         )
-    page_config = flask_app.config.get("MCP_HELLO_PAGE", None)
+    app_name: str = flask_app.config.get("APP_NAME", "Superset")
+    app_icon: str = flask_app.config.get("APP_ICON", "")
+    base_page_config: dict[str, Any] = {
+        "title": f"{app_name} MCP Server",
+        "server_key": app_name.lower().replace(" ", "-"),
+        "app_name": app_name,
+    }
+    if app_icon and app_icon.startswith(("http://", "https://")):
+        base_page_config["logo_url"] = app_icon
+    mcp_hello_page: dict[str, Any] | None = flask_app.config.get("MCP_HELLO_PAGE", None)
+    page_config: dict[str, Any] = {**base_page_config, **(mcp_hello_page or {})}
     return [
         StarletteMiddleware(
             BrowserHelloMiddleware,

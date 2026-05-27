@@ -114,6 +114,9 @@ _HTML_STYLES = """
       border-left: 3px solid #ddd;
       padding-left: 12px;
       margin-top: 24px;
+    }
+    .logo {
+      max-height: 48px; max-width: 200px; margin-bottom: 20px; display: block;
     }"""
 
 _DEFAULT_CLIENTS = [
@@ -164,6 +167,12 @@ def _build_browser_hello_html(
     server_key: str = cfg["server_key"]
     show_transport: bool = cfg["show_transport"]
     clients: list[str] = [html_module.escape(str(c)) for c in cfg["clients"]]
+    app_name: str = html_module.escape(str(cfg.get("app_name", "Apache Superset")))
+    logo_url: str | None = None
+    if logo_url_raw := cfg.get("logo_url"):
+        logo_url_stripped = str(logo_url_raw).strip()
+        if logo_url_stripped.startswith(("http://", "https://")):
+            logo_url = html_module.escape(logo_url_stripped)
 
     config_block = _build_config_snippet(auth_enabled, server_key, show_transport)
 
@@ -184,6 +193,9 @@ def _build_browser_hello_html(
         note = "Replace <code>&lt;this-url&gt;</code> with the full URL of this page."
 
     client_items = "\n".join(f"      <li>{c}</li>" for c in clients)
+    logo_html = (
+        f'<img src="{logo_url}" alt="{title}" class="logo">\n    ' if logo_url else ""
+    )
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -196,11 +208,11 @@ def _build_browser_hello_html(
 </head>
 <body>
   <div class="card">
-    <div class="badge">MCP API Endpoint</div>
+    {logo_html}<div class="badge">MCP API Endpoint</div>
     <h1>{title}</h1>
     <p>
       This is the <strong>Model Context Protocol (MCP)</strong> endpoint for
-      Apache Superset. It is an API designed for AI coding assistants —
+      {app_name}. It is an API designed for AI coding assistants —
       not a web page to browse directly.
     </p>
     <h2>How to connect</h2>
