@@ -17,11 +17,10 @@
  * under the License.
  */
 import { FC } from 'react';
-import { styled, t } from '@superset-ui/core';
-
-import { Typography } from 'src/components';
-import TagsList from 'src/components/Tags/TagsList';
-import TagType from 'src/types/TagType';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
+import { Typography } from '@superset-ui/core/components';
+import { type TagType, TagsList } from 'src/components';
 
 interface ColumnsPreviewProps {
   columns: string[];
@@ -41,7 +40,7 @@ const ColumnsPreview: FC<ColumnsPreviewProps> = ({
 
   return (
     <StyledDivContainer>
-      <Typography.Text type="secondary">Columns:</Typography.Text>
+      <Typography.Text type="secondary">{t('Columns')}:</Typography.Text>
       {columns.length === 0 ? (
         <p className="help-block">{t('Upload file to preview columns')}</p>
       ) : (

@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -18,5 +18,11 @@
  */
 
 export { default as CurrencyFormatter } from './CurrencyFormatter';
-export * from './CurrencyFormatter';
+export {
+  getCurrencySymbol,
+  normalizeCurrency,
+  hasMixedCurrencies,
+} from './CurrencyFormatter';
+export { AUTO_CURRENCY_SYMBOL, ISO_4217_REGEX } from './CurrencyFormats';
+export * from './types';
 export * from './utils';

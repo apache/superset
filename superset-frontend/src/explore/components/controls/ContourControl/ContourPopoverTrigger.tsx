@@ -47,10 +47,10 @@ const ContourPopoverTrigger = ({
     <ControlPopover
       trigger="click"
       content={popoverContent}
-      defaultVisible={visible}
-      visible={visible}
-      onVisibleChange={setVisibility}
-      destroyTooltipOnHide
+      defaultOpen={visible}
+      open={visible}
+      onOpenChange={setVisibility}
+      destroyOnHidden
     >
       {props.children}
     </ControlPopover>

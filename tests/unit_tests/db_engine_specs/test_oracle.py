@@ -31,7 +31,8 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 @pytest.mark.parametrize(
     "column_name,expected_result",
     [
-        ("This_Is_32_Character_Column_Name", "3b26974078683be078219674eeb8f5"),
+        # SHA-256 hash of 129 'a' characters with default HASH_ALGORITHM
+        ("a" * 129, "c12cb024a2e5551cca0e08fce8f1c5e314555cc3fef6329ee994a3db752166ae"),
         ("snake_label", "snake_label"),
         ("camelLabel", "camelLabel"),
     ],
@@ -100,7 +101,7 @@ def test_fetch_data() -> None:
         ("DateTime", """TO_DATE('2019-01-02T03:04:05', 'YYYY-MM-DD"T"HH24:MI:SS')"""),
         (
             "TimeStamp",
-            """TO_TIMESTAMP('2019-01-02T03:04:05.678900', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""",
+            """TO_TIMESTAMP('2019-01-02T03:04:05.678900', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')""",  # noqa: E501
         ),
         ("Other", None),
     ],
@@ -110,7 +111,7 @@ def test_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.oracle import OracleEngineSpec as spec
+    from superset.db_engine_specs.oracle import OracleEngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -124,6 +125,6 @@ def test_convert_dttm(
     ],
 )
 def test_denormalize_name(name: str, expected_result: str):
-    from superset.db_engine_specs.oracle import OracleEngineSpec as spec
+    from superset.db_engine_specs.oracle import OracleEngineSpec as spec  # noqa: N813
 
     assert spec.denormalize_name(oracle.dialect(), name) == expected_result

@@ -61,7 +61,7 @@ const AGGREGATES_OPTION: Aggregates = {
 };
 
 const AGGREGATE_RULE: PostProcessingAggregation = {
-  operation: 'aggregation',
+  operation: 'aggregate',
   options: {
     groupby: ['foo'],
     aggregates: AGGREGATES_OPTION,

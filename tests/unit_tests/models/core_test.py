@@ -16,19 +16,29 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
-
 from datetime import datetime
+from typing import Any, Callable
 
 import pytest
+from flask import current_app
 from pytest_mock import MockerFixture
+from sqlalchemy import (
+    Column,
+    Integer,
+    MetaData,
+    select,
+    Table as SqlalchemyTable,
+)
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.orm.session import Session
+from sqlalchemy.sql import Select
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.errors import SupersetErrorType
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.models.core import Database
-from superset.sql_parse import Table
+from superset.sql.parse import LimitMethod, Table
 from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -42,6 +52,29 @@ oauth2_client_info = {
         "scope": "refresh_token session:role:USERADMIN",
     }
 }
+
+
+@pytest.fixture
+def query() -> Select:
+    """
+    A nested query fixture used to test query optimization.
+    """
+    metadata = MetaData()
+    some_table = SqlalchemyTable(
+        "some_table",
+        metadata,
+        Column("a", Integer),
+        Column("b", Integer),
+        Column("c", Integer),
+    )
+
+    inner_select = select(some_table.c.a, some_table.c.b, some_table.c.c)
+    outer_select = select(inner_select.c.a, inner_select.c.b).where(
+        inner_select.c.a > 1,
+        inner_select.c.b == 2,
+    )
+
+    return outer_select
 
 
 def test_get_metrics(mocker: MockerFixture) -> None:
@@ -229,21 +262,6 @@ def test_table_column_database() -> None:
     assert TableColumn(database=database).database is database
 
 
-def test_get_prequeries(mocker: MockerFixture) -> None:
-    """
-    Tests for ``get_prequeries``.
-    """
-    mocker.patch.object(Database, "get_sqla_engine")
-    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
-    db_engine_spec.get_prequeries.return_value = ["set a=1", "set b=2"]
-
-    database = Database(database_name="db")
-    with database.get_raw_connection() as conn:
-        conn.cursor().execute.assert_has_calls(
-            [mocker.call("set a=1"), mocker.call("set b=2")]
-        )
-
-
 def test_catalog_cache() -> None:
     """
     Test the catalog cache.
@@ -301,7 +319,7 @@ def test_get_all_catalog_names(mocker: MockerFixture) -> None:
         inspector.bind.execute.return_value = [("examples",), ("other",)]
 
     assert database.get_all_catalog_names(force=True) == {"examples", "other"}
-    get_inspector.assert_called_with(ssh_tunnel=None)
+    get_inspector.assert_called_with()
 
 
 def test_get_all_schema_names_needs_oauth2(mocker: MockerFixture) -> None:
@@ -378,6 +396,121 @@ def test_get_all_catalog_names_needs_oauth2(mocker: MockerFixture) -> None:
     assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
 
 
+def test_get_all_table_names_in_schema_needs_oauth2(mocker: MockerFixture) -> None:
+    """
+    Test the `get_all_table_names_in_schema` method when OAuth2 is needed.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="snowflake://:@abcd1234.snowflakecomputing.com/db",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+
+    class DriverSpecificError(Exception):
+        """
+        A custom exception that is raised by the Snowflake driver.
+        """
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_exception",
+        DriverSpecificError,
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "get_table_names",
+        side_effect=DriverSpecificError("User needs to authenticate"),
+    )
+    mocker.patch.object(database, "get_inspector")
+    user = mocker.MagicMock()
+    user.id = 42
+    mocker.patch("superset.db_engine_specs.base.g", user=user)
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        database.get_all_table_names_in_schema(catalog=None, schema="public")
+
+    assert excinfo.value.message == "You don't have permission to access the data."
+    assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
+
+
+def test_get_all_view_names_in_schema_needs_oauth2(mocker: MockerFixture) -> None:
+    """
+    Test the `get_all_view_names_in_schema` method when OAuth2 is needed.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="snowflake://:@abcd1234.snowflakecomputing.com/db",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+
+    class DriverSpecificError(Exception):
+        """
+        A custom exception that is raised by the Snowflake driver.
+        """
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_exception",
+        DriverSpecificError,
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "get_view_names",
+        side_effect=DriverSpecificError("User needs to authenticate"),
+    )
+    mocker.patch.object(database, "get_inspector")
+    user = mocker.MagicMock()
+    user.id = 42
+    mocker.patch("superset.db_engine_specs.base.g", user=user)
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        database.get_all_view_names_in_schema(catalog=None, schema="public")
+
+    assert excinfo.value.message == "You don't have permission to access the data."
+    assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
+
+
+def test_get_all_materialized_view_names_in_schema_needs_oauth2(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the `get_all_materialized_view_names_in_schema` method when OAuth2 is needed.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="snowflake://:@abcd1234.snowflakecomputing.com/db",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+
+    class DriverSpecificError(Exception):
+        """
+        A custom exception that is raised by the Snowflake driver.
+        """
+
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_exception",
+        DriverSpecificError,
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "get_materialized_view_names",
+        side_effect=DriverSpecificError("User needs to authenticate"),
+    )
+    mocker.patch.object(database, "get_inspector")
+    user = mocker.MagicMock()
+    user.id = 42
+    mocker.patch("superset.db_engine_specs.base.g", user=user)
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        database.get_all_materialized_view_names_in_schema(
+            catalog=None, schema="public"
+        )
+
+    assert excinfo.value.message == "You don't have permission to access the data."
+    assert excinfo.value.error.error_type == SupersetErrorType.OAUTH2_REDIRECT
+
+
 def test_get_sqla_engine(mocker: MockerFixture) -> None:
     """
     Test `_get_sqla_engine`.
@@ -432,6 +565,31 @@ def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
     )
 
 
+def test_add_database_to_signature():
+    args = ["param1", "param2"]
+
+    def func_without_db(param1, param2):
+        pass
+
+    def func_with_db_start(database, param1, param2):
+        pass
+
+    def func_with_db_end(param1, param2, database):
+        pass
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="trino://",
+        impersonate_user=True,
+    )
+    args1 = database.add_database_to_signature(func_without_db, args.copy())
+    assert args1 == ["param1", "param2"]
+    args2 = database.add_database_to_signature(func_with_db_start, args.copy())
+    assert args2 == [database, "param1", "param2"]
+    args3 = database.add_database_to_signature(func_with_db_end, args.copy())
+    assert args3 == ["param1", "param2", database]
+
+
 @with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
 def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None:
     """
@@ -460,6 +618,142 @@ def test_get_sqla_engine_user_impersonation_email(mocker: MockerFixture) -> None
         make_url("trino:///"),
         connect_args={"user": "alice.doe", "source": "Apache Superset"},
     )
+
+
+def test_get_sqla_engine_registers_prequery_event_listener(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_sqla_engine registers a connect event listener for prequeries.
+
+    Engines returned by get_sqla_engine must automatically execute prequeries
+    (e.g. SET search_path) on every new connection, so that callers don't need
+    to remember to call get_prequeries() themselves.
+    """
+
+    mock_engine = mocker.MagicMock()
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=mock_engine)
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    db_engine_spec.get_prequeries.return_value = ['SET search_path = "my_schema"']
+    event_listen = mocker.patch("superset.models.core.sqla.event.listen")
+
+    database = Database(database_name="my_db", sqlalchemy_uri="postgresql://")
+    with database.get_sqla_engine(catalog="my_catalog", schema="my_schema"):
+        pass
+
+    db_engine_spec.get_prequeries.assert_called_once_with(
+        database=database,
+        catalog="my_catalog",
+        schema="my_schema",
+    )
+    event_listen.assert_called_once_with(mock_engine, "connect", mocker.ANY)
+
+    # Call the captured closure directly to verify cursor create → execute → close.
+    captured_fn = event_listen.call_args[0][2]
+    mock_dbapi_conn = mocker.MagicMock()
+    mock_cursor = mocker.MagicMock()
+    mock_dbapi_conn.cursor.return_value = mock_cursor
+    captured_fn(mock_dbapi_conn, None)
+    mock_cursor.execute.assert_called_once_with('SET search_path = "my_schema"')
+    mock_cursor.close.assert_called_once()
+
+
+def test_get_sqla_engine_prequery_cursor_closed_on_exception(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the cursor is always closed even when a prequery raises.
+    """
+    mock_engine = mocker.MagicMock()
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=mock_engine)
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    db_engine_spec.get_prequeries.return_value = ['SET search_path = "bad_schema"']
+    event_listen = mocker.patch("superset.models.core.sqla.event.listen")
+
+    database = Database(database_name="my_db", sqlalchemy_uri="postgresql://")
+    with database.get_sqla_engine(catalog=None, schema="bad_schema"):
+        pass
+
+    captured_fn = event_listen.call_args[0][2]
+    mock_dbapi_conn = mocker.MagicMock()
+    mock_cursor = mocker.MagicMock()
+    mock_cursor.execute.side_effect = Exception("invalid schema")
+    mock_dbapi_conn.cursor.return_value = mock_cursor
+
+    with pytest.raises(Exception, match="invalid schema"):
+        captured_fn(mock_dbapi_conn, None)
+
+    mock_cursor.close.assert_called_once()
+
+
+def test_get_sqla_engine_no_prequeries_no_event_listener(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_sqla_engine does not register an event listener when there
+    are no prequeries.
+    """
+    mock_engine = mocker.MagicMock()
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=mock_engine)
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    db_engine_spec.get_prequeries.return_value = []
+    event_listen = mocker.patch("superset.models.core.sqla.event.listen")
+
+    database = Database(database_name="my_db", sqlalchemy_uri="postgresql://")
+    with database.get_sqla_engine(catalog=None, schema=None):
+        pass
+
+    event_listen.assert_not_called()
+
+
+def test_get_raw_connection_executes_prequeries_exactly_once(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_raw_connection() runs prequeries exactly once through the
+    connect event listener registered by get_sqla_engine().
+
+    Previously get_raw_connection() had its own manual prequery loop AND
+    called get_sqla_engine() (which registers the listener), so prequeries
+    ran twice.  After removing the manual loop the listener is the sole
+    execution point — this test proves exactly-once semantics.
+    """
+    mock_engine = mocker.MagicMock()
+    mocker.patch.object(Database, "_get_sqla_engine", return_value=mock_engine)
+    db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
+    prequery = 'SET search_path = "my_schema"'
+    db_engine_spec.get_prequeries.return_value = [prequery]
+
+    # Capture the closure registered via sqla.event.listen.
+    captured_listeners: list[Callable[..., None]] = []
+    original_listen = mocker.patch("superset.models.core.sqla.event.listen")
+    original_listen.side_effect = lambda engine, event, fn: captured_listeners.append(
+        fn
+    )
+
+    # Simulate SQLAlchemy firing the "connect" event when raw_connection() is called.
+    mock_dbapi_conn = mocker.MagicMock()
+    mock_cursor = mocker.MagicMock()
+    mock_dbapi_conn.cursor.return_value = mock_cursor
+
+    def raw_connection_side_effect() -> Any:
+        for listener in captured_listeners:
+            listener(mock_dbapi_conn, None)
+        return mock_dbapi_conn
+
+    mock_engine.raw_connection.side_effect = raw_connection_side_effect
+
+    database = Database(database_name="my_db", sqlalchemy_uri="postgresql://")
+    with database.get_raw_connection(schema="my_schema"):
+        pass
+
+    # Exactly one prequery, exactly once — not twice, not zero.
+    mock_cursor.execute.assert_called_once_with(prequery)
+    mock_cursor.close.assert_called_once()
 
 
 def test_is_oauth2_enabled() -> None:
@@ -496,19 +790,101 @@ def test_get_oauth2_config(app_context: None) -> None:
         "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
         "scope": "refresh_token session:role:USERADMIN",
         "redirect_uri": "http://example.com/api/v1/database/oauth2/",
+        "request_content_type": "data",  # Default value from BaseEngineSpec
     }
 
 
-def test_raw_connection_oauth(mocker: MockerFixture) -> None:
+def test_get_oauth2_config_token_request_type_from_db_engine_specs(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    Test that DB Engine Spec overrides for ``oauth2_token_request_type`` are respected.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    mocker.patch.object(
+        database.db_engine_spec,
+        "oauth2_token_request_type",
+        "json",
+    )
+
+    database.encrypted_extra = json.dumps(oauth2_client_info)
+    assert database.get_oauth2_config() == {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "authorization_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/authorize",
+        "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
+        "scope": "refresh_token session:role:USERADMIN",
+        "redirect_uri": "http://example.com/api/v1/database/oauth2/",
+        "request_content_type": "json",
+    }
+
+
+def test_get_oauth2_config_custom_token_request_type_extra(app_context: None) -> None:
+    """
+    Test passing a custom ``token_request_type`` via ``encrypted_extra``
+    takes precedence.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    custom_oauth2_client_info = {
+        "oauth2_client_info": {
+            **oauth2_client_info["oauth2_client_info"],
+            "request_content_type": "json",
+        }
+    }
+
+    database.encrypted_extra = json.dumps(custom_oauth2_client_info)
+    assert database.get_oauth2_config() == {
+        "id": "my_client_id",
+        "secret": "my_client_secret",
+        "authorization_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/authorize",
+        "token_request_uri": "https://abcd1234.snowflakecomputing.com/oauth/token-request",
+        "scope": "refresh_token session:role:USERADMIN",
+        "redirect_uri": "http://example.com/api/v1/database/oauth2/",
+        "request_content_type": "json",
+    }
+
+
+def test_get_oauth2_config_redirect_uri_from_config(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that ``DATABASE_OAUTH2_REDIRECT_URI`` config takes precedence over
+    url_for default.
+    """
+    custom_redirect_uri = "https://custom.example.com/oauth/callback"
+    mocker.patch.dict(
+        "superset.utils.oauth2.app.config",
+        {"DATABASE_OAUTH2_REDIRECT_URI": custom_redirect_uri},
+    )
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+    database.encrypted_extra = json.dumps(oauth2_client_info)
+
+    config = database.get_oauth2_config()
+
+    assert config is not None
+    assert config["redirect_uri"] == custom_redirect_uri
+
+
+def test_raw_connection_oauth_engine(mocker: MockerFixture) -> None:
     """
     Test that we can start OAuth2 from `raw_connection()` errors.
 
-    Some databases that use OAuth2 need to trigger the flow when the connection is
-    created, rather than when the query runs. This happens when the SQLAlchemy engine
-    URI cannot be built without the user personal token.
+    With OAuth2, some databases will raise an exception when the engine is first created
+    (eg, BigQuery). Others, like, Snowflake, when the connection is created. And
+    finally, GSheets will raise an exception when the query is executed.
 
-    This test verifies that the exception is captured and raised correctly so that the
-    frontend can trigger the OAuth2 dance.
+    This tests verifies that when calling `raw_connection()` the OAuth2 flow is
+    triggered when the engine is created.
     """
     g = mocker.patch("superset.db_engine_specs.base.g")
     g.user = mocker.MagicMock()
@@ -520,7 +896,38 @@ def test_raw_connection_oauth(mocker: MockerFixture) -> None:
         sqlalchemy_uri="sqlite://",
         encrypted_extra=json.dumps(oauth2_client_info),
     )
-    database.db_engine_spec.oauth2_exception = OAuth2Error  # type: ignore
+    database.db_engine_spec.oauth2_exception = OAuth2Error
+    _get_sqla_engine = mocker.patch.object(database, "_get_sqla_engine")
+    _get_sqla_engine.side_effect = OAuth2Error("OAuth2 required")
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:
+        with database.get_raw_connection() as conn:
+            conn.cursor()
+    assert str(excinfo.value) == "You don't have permission to access the data."
+
+
+def test_raw_connection_oauth_connection(mocker: MockerFixture) -> None:
+    """
+    Test that we can start OAuth2 from `raw_connection()` errors.
+
+    With OAuth2, some databases will raise an exception when the engine is first created
+    (eg, BigQuery). Others, like, Snowflake, when the connection is created. And
+    finally, GSheets will raise an exception when the query is executed.
+
+    This tests verifies that when calling `raw_connection()` the OAuth2 flow is
+    triggered when the connection is created.
+    """
+    g = mocker.patch("superset.db_engine_specs.base.g")
+    g.user = mocker.MagicMock()
+    g.user.id = 42
+
+    database = Database(
+        id=1,
+        database_name="my_db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+    database.db_engine_spec.oauth2_exception = OAuth2Error
     get_sqla_engine = mocker.patch.object(database, "get_sqla_engine")
     get_sqla_engine().__enter__().raw_connection.side_effect = OAuth2Error(
         "OAuth2 required"
@@ -532,10 +939,52 @@ def test_raw_connection_oauth(mocker: MockerFixture) -> None:
     assert str(excinfo.value) == "You don't have permission to access the data."
 
 
+def test_raw_connection_oauth_execute(mocker: MockerFixture) -> None:
+    """
+    Test that we can start OAuth2 from `raw_connection()` errors.
+
+    With OAuth2, some databases will raise an exception when the engine is first created
+    (eg, BigQuery). Others, like, Snowflake, when the connection is created. And
+    finally, GSheets will raise an exception when the query is executed.
+
+    This tests verifies that when calling `raw_connection()` the OAuth2 flow is
+    triggered when the connection is created.
+    """
+    g = mocker.patch("superset.db_engine_specs.base.g")
+    g.user = mocker.MagicMock()
+    g.user.id = 42
+
+    database = Database(
+        id=1,
+        database_name="my_db",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=json.dumps(oauth2_client_info),
+    )
+    database.db_engine_spec.oauth2_exception = OAuth2Error
+    get_sqla_engine = mocker.patch.object(database, "get_sqla_engine")
+    get_sqla_engine().__enter__().raw_connection().cursor().execute.side_effect = (
+        OAuth2Error("OAuth2 required")
+    )
+
+    with pytest.raises(OAuth2RedirectError) as excinfo:  # noqa: PT012
+        with database.get_raw_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT 1")
+    assert str(excinfo.value) == "You don't have permission to access the data."
+
+
 def test_get_schema_access_for_file_upload() -> None:
     """
     Test the `get_schema_access_for_file_upload` method.
     """
+    # Skip if gsheets dialect is not available (Shillelagh not installed in Docker)
+    try:
+        from sqlalchemy import create_engine
+
+        create_engine("gsheets://")
+    except Exception:
+        pytest.skip("gsheets:// dialect not available (Shillelagh not installed)")
+
     database = Database(
         database_name="first-database",
         sqlalchemy_uri="gsheets://",
@@ -552,14 +1001,16 @@ def test_get_schema_access_for_file_upload() -> None:
     assert database.get_schema_access_for_file_upload() == {"public"}
 
 
-def test_engine_context_manager(mocker: MockerFixture) -> None:
+def test_engine_context_manager(mocker: MockerFixture, app_context: None) -> None:
     """
     Test the engine context manager.
     """
-    engine_context_manager = mocker.MagicMock()
-    mocker.patch(
-        "superset.models.core.config",
-        new={"ENGINE_CONTEXT_MANAGER": engine_context_manager},
+    from unittest.mock import MagicMock
+
+    engine_context_manager = MagicMock()
+    mocker.patch.dict(
+        current_app.config,
+        {"ENGINE_CONTEXT_MANAGER": engine_context_manager},
     )
     _get_sqla_engine = mocker.patch.object(Database, "_get_sqla_engine")
 
@@ -577,3 +1028,437 @@ def test_engine_context_manager(mocker: MockerFixture) -> None:
         source=None,
         sqlalchemy_uri="trino://",
     )
+
+
+def test_engine_oauth2(mocker: MockerFixture) -> None:
+    """
+    Test that we handle OAuth2 when `create_engine` fails.
+    """
+    database = Database(database_name="my_db", sqlalchemy_uri="trino://")
+    mocker.patch.object(database, "_get_sqla_engine", side_effect=Exception)
+    mocker.patch.object(database, "is_oauth2_enabled", return_value=True)
+    mocker.patch.object(database.db_engine_spec, "needs_oauth2", return_value=True)
+    start_oauth2_dance = mocker.patch.object(
+        database.db_engine_spec,
+        "start_oauth2_dance",
+        side_effect=OAuth2Error("OAuth2 required"),
+    )
+
+    with pytest.raises(OAuth2Error):
+        with database.get_sqla_engine("catalog", "schema"):
+            pass
+
+    start_oauth2_dance.assert_called_with(database)
+
+
+def test_purge_oauth2_tokens(session: Session) -> None:
+    """
+    Test the `purge_oauth2_tokens` method.
+    """
+    from flask_appbuilder.security.sqla.models import Role, User  # noqa: F401
+
+    from superset.models.core import Database, DatabaseUserOAuth2Tokens
+
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+
+    user = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="adoe",
+    )
+    session.add(user)
+    session.flush()
+
+    database1 = Database(database_name="my_oauth2_db", sqlalchemy_uri="sqlite://")
+    database2 = Database(database_name="my_other_oauth2_db", sqlalchemy_uri="sqlite://")
+    session.add_all([database1, database2])
+    session.flush()
+
+    tokens = [
+        DatabaseUserOAuth2Tokens(
+            user_id=user.id,
+            database_id=database1.id,
+            access_token="my_access_token",  # noqa: S106
+            access_token_expiration=datetime(2023, 1, 1),
+            refresh_token="my_refresh_token",  # noqa: S106
+        ),
+        DatabaseUserOAuth2Tokens(
+            user_id=user.id,
+            database_id=database2.id,
+            access_token="my_other_access_token",  # noqa: S106
+            access_token_expiration=datetime(2024, 1, 1),
+            refresh_token="my_other_refresh_token",  # noqa: S106
+        ),
+    ]
+    session.add_all(tokens)
+    session.flush()
+
+    assert len(session.query(DatabaseUserOAuth2Tokens).all()) == 2
+
+    token = (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database1.id)
+        .one()
+    )
+    assert token.user_id == user.id
+    assert token.database_id == database1.id
+    assert token.access_token == "my_access_token"  # noqa: S105
+    assert token.access_token_expiration == datetime(2023, 1, 1)
+    assert token.refresh_token == "my_refresh_token"  # noqa: S105
+
+    database1.purge_oauth2_tokens()
+
+    # confirm token was deleted
+    token = (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database1.id)
+        .one_or_none()
+    )
+    assert token is None
+
+    # make sure other DB tokens weren't deleted
+    token = (
+        session.query(DatabaseUserOAuth2Tokens)
+        .filter_by(database_id=database2.id)
+        .one()
+    )
+    assert token is not None
+
+    # make sure database was not deleted... just in case
+    database = session.query(Database).filter_by(id=database1.id).one()
+    assert database.name == "my_oauth2_db"
+
+
+def test_compile_sqla_query_no_optimization(query: Select) -> None:
+    """
+    Test the `compile_sqla_query` method.
+    """
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+    )
+
+    space = " "
+    #
+    assert (
+        database.compile_sqla_query(query, is_virtual=True)
+        == f"""SELECT anon_1.a, anon_1.b{space}
+FROM (SELECT some_table.a AS a, some_table.b AS b, some_table.c AS c{space}
+FROM some_table) AS anon_1{space}
+WHERE anon_1.a > 1 AND anon_1.b = 2"""  # noqa: S608
+    )
+
+
+@with_feature_flags(OPTIMIZE_SQL=True)
+def test_compile_sqla_query(query: Select) -> None:
+    """
+    Test the `compile_sqla_query` method.
+    """
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+    )
+
+    assert (
+        database.compile_sqla_query(query, is_virtual=True)
+        == """SELECT
+  anon_1.a,
+  anon_1.b
+FROM (
+  SELECT
+    some_table.a AS a,
+    some_table.b AS b,
+    some_table.c AS c
+  FROM some_table
+  WHERE
+    some_table.a > 1 AND some_table.b = 2
+) AS anon_1
+WHERE
+  TRUE AND TRUE"""
+    )
+
+
+def test_get_all_table_names_in_schema(mocker: MockerFixture) -> None:
+    """
+    Test the `get_all_table_names_in_schema` method.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+
+    mocker.patch.object(database, "get_inspector")
+    get_table_names = mocker.patch(
+        "superset.db_engine_specs.postgres.PostgresEngineSpec.get_table_names"
+    )
+    get_table_names.return_value = {"first_table", "second_table", "third_table"}
+
+    tables_list = database.get_all_table_names_in_schema(
+        catalog="examples",
+        schema="public",
+    )
+    assert sorted(tables_list) == sorted(
+        {
+            ("first_table", "public", "examples"),
+            ("second_table", "public", "examples"),
+            ("third_table", "public", "examples"),
+        }
+    )
+
+
+def test_get_all_view_names_in_schema(mocker: MockerFixture) -> None:
+    """
+    Test the `get_all_view_names_in_schema` method.
+    """
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="postgresql://user:password@host:5432/examples",
+    )
+
+    mocker.patch.object(database, "get_inspector")
+    get_view_names = mocker.patch(
+        "superset.db_engine_specs.base.BaseEngineSpec.get_view_names"
+    )
+    get_view_names.return_value = {"first_view", "second_view", "third_view"}
+
+    views_list = database.get_all_view_names_in_schema(
+        catalog="examples",
+        schema="public",
+    )
+    assert sorted(views_list) == sorted(
+        {
+            ("first_view", "public", "examples"),
+            ("second_view", "public", "examples"),
+            ("third_view", "public", "examples"),
+        }
+    )
+
+
+@pytest.mark.parametrize(
+    "sql, limit, force, method, expected",
+    [
+        (
+            "SELECT * FROM table",
+            100,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM table\nLIMIT 100",
+        ),
+        (
+            "SELECT * FROM table LIMIT 100",
+            10,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM table\nLIMIT 10",
+        ),
+        (
+            "SELECT * FROM table LIMIT 10",
+            100,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM table\nLIMIT 10",
+        ),
+        (
+            "SELECT * FROM table LIMIT 10",
+            100,
+            True,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM table\nLIMIT 100",
+        ),
+        (
+            "SELECT * FROM a  \t \n   ; \t  \n  ",
+            1000,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  *\nFROM a\nLIMIT 1000",
+        ),
+        (
+            "SELECT 'LIMIT 777'",
+            1000,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  'LIMIT 777'\nLIMIT 1000",
+        ),
+        (
+            "SELECT * FROM table",
+            1000,
+            False,
+            LimitMethod.FETCH_MANY,
+            "SELECT\n  *\nFROM table",
+        ),
+        (
+            "SELECT * FROM (SELECT * FROM a LIMIT 10) LIMIT 9999",
+            1000,
+            False,
+            LimitMethod.FORCE_LIMIT,
+            """SELECT
+  *
+FROM (
+  SELECT
+    *
+  FROM a
+  LIMIT 10
+)
+LIMIT 1000""",
+        ),
+        (
+            """
+SELECT
+    'LIMIT 777' AS a
+  , b
+FROM
+    table
+LIMIT 99990""",
+            1000,
+            None,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  'LIMIT 777' AS a,\n  b\nFROM table\nLIMIT 1000",
+        ),
+        (
+            """
+SELECT
+    'LIMIT 777' AS a
+  , b
+FROM
+table
+LIMIT         99990            ;""",
+            1000,
+            None,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  'LIMIT 777' AS a,\n  b\nFROM table\nLIMIT 1000",
+        ),
+        (
+            """
+SELECT
+    'LIMIT 777' AS a
+  , b
+FROM
+table
+LIMIT 99990, 999999""",
+            1000,
+            None,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  'LIMIT 777' AS a,\n  b\nFROM table\nLIMIT 1000\nOFFSET 99990",
+        ),
+        (
+            """
+SELECT
+    'LIMIT 777' AS a
+  , b
+FROM
+table
+LIMIT 99990
+OFFSET 999999""",
+            1000,
+            None,
+            LimitMethod.FORCE_LIMIT,
+            "SELECT\n  'LIMIT 777' AS a,\n  b\nFROM table\nLIMIT 1000\nOFFSET 999999",
+        ),
+    ],
+)
+def test_apply_limit_to_sql(
+    sql: str,
+    limit: int,
+    force: bool,
+    method: LimitMethod,
+    expected: str,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the `apply_limit_to_sql` method.
+    """
+    db = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
+    db_engine_spec = mocker.MagicMock(limit_method=method)
+    db.get_db_engine_spec = mocker.MagicMock(return_value=db_engine_spec)
+
+    limited = db.apply_limit_to_sql(sql, limit, force)
+    assert limited == expected
+
+
+def test_database_execute_delegates_to_sql_executor(mocker: MockerFixture) -> None:
+    """Test that Database.execute() delegates to SQLExecutor.execute()."""
+    from unittest.mock import MagicMock
+
+    mock_executor_class = mocker.patch("superset.sql.execution.SQLExecutor")
+    mock_executor = MagicMock()
+    mock_executor_class.return_value = mock_executor
+
+    mock_result = MagicMock()
+    mock_executor.execute.return_value = mock_result
+
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+    mock_options = MagicMock()
+
+    result = database.execute("SELECT 1", mock_options)
+
+    mock_executor_class.assert_called_once_with(database)
+    mock_executor.execute.assert_called_once_with("SELECT 1", mock_options)
+    assert result == mock_result
+
+
+def test_database_execute_without_options(mocker: MockerFixture) -> None:
+    """Test that Database.execute() works without options."""
+    from unittest.mock import MagicMock
+
+    mock_executor_class = mocker.patch("superset.sql.execution.SQLExecutor")
+    mock_executor = MagicMock()
+    mock_executor_class.return_value = mock_executor
+
+    mock_result = MagicMock()
+    mock_executor.execute.return_value = mock_result
+
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+
+    result = database.execute("SELECT 1")
+
+    mock_executor_class.assert_called_once_with(database)
+    mock_executor.execute.assert_called_once_with("SELECT 1", None)
+    assert result == mock_result
+
+
+def test_database_execute_async_delegates_to_sql_executor(
+    mocker: MockerFixture,
+) -> None:
+    """Test that Database.execute_async() delegates to SQLExecutor.execute_async()."""
+    from unittest.mock import MagicMock
+
+    mock_executor_class = mocker.patch("superset.sql.execution.SQLExecutor")
+    mock_executor = MagicMock()
+    mock_executor_class.return_value = mock_executor
+
+    mock_handle = MagicMock()
+    mock_executor.execute_async.return_value = mock_handle
+
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+    mock_options = MagicMock()
+
+    result = database.execute_async("SELECT 1", mock_options)
+
+    mock_executor_class.assert_called_once_with(database)
+    mock_executor.execute_async.assert_called_once_with("SELECT 1", mock_options)
+    assert result == mock_handle
+
+
+def test_database_execute_async_without_options(mocker: MockerFixture) -> None:
+    """Test that Database.execute_async() works without options."""
+    from unittest.mock import MagicMock
+
+    mock_executor_class = mocker.patch("superset.sql.execution.SQLExecutor")
+    mock_executor = MagicMock()
+    mock_executor_class.return_value = mock_executor
+
+    mock_handle = MagicMock()
+    mock_executor.execute_async.return_value = mock_handle
+
+    database = Database(database_name="test_db", sqlalchemy_uri="sqlite://")
+
+    result = database.execute_async("SELECT 1")
+
+    mock_executor_class.assert_called_once_with(database)
+    mock_executor.execute_async.assert_called_once_with("SELECT 1", None)
+    assert result == mock_handle

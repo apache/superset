@@ -1,0 +1,8 @@
+import React from "react";
+import { views } from "@apache-superset/core";
+
+views.registerView(
+  { id: "{{ id }}.example", name: "{{ display_name }}" },
+  "sqllab.panels",
+  () => <p>{{ display_name }}</p>,
+);

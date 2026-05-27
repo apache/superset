@@ -60,4 +60,12 @@ test('finestTemporalGrain', () => {
   expect(localTimeFormatter(new Date('2003-01-01 00:00:00Z').getTime())).toBe(
     '2002-12-31 19:00',
   );
+
+  const bigIntFormatter = finestTemporalGrain([
+    BigInt(1234567890123456789n),
+    BigInt(1234567890123456789n),
+  ]);
+  expect(bigIntFormatter(new Date('2003-01-01 00:00:00Z').getTime())).toBe(
+    '2003',
+  );
 });

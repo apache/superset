@@ -21,11 +21,12 @@ import {
   DataRecordValue,
   PartialFilters,
 } from '@superset-ui/core';
-import { ChartConfiguration } from 'src/dashboard/types';
+import { ChartConfiguration, ActiveFilters } from 'src/dashboard/types';
 
 export interface DashboardContextForExplore {
   labelsColor: Record<string, string>;
   labelsColorMap: Record<string, string>;
+  sharedLabelsColors: string[];
   colorScheme: string;
   chartConfiguration: ChartConfiguration;
   nativeFilters: PartialFilters;
@@ -39,5 +40,7 @@ export interface DashboardContextForExplore {
         };
       }
     | {};
+  activeFilters?: ActiveFilters;
   isRedundant?: boolean;
+  dashboardPageId?: string;
 }

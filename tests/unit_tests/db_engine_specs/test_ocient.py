@@ -45,7 +45,7 @@ MARSHALED_OCIENT_ERRORS: list[tuple[str, SupersetError]] = [
                 "issue_codes": [
                     {
                         "code": 1012,
-                        "message": "Issue 1012 - The username provided when connecting to a database is not valid.",
+                        "message": "Issue 1012 - The username provided when connecting to a database is not valid.",  # noqa: E501
                     }
                 ],
             },
@@ -54,7 +54,7 @@ MARSHALED_OCIENT_ERRORS: list[tuple[str, SupersetError]] = [
     (
         "The userid/password combination was not valid (Incorrect password for user)",
         SupersetError(
-            message="The user/password combination is not valid (Incorrect password for user).",
+            message="The user/password combination is not valid (Incorrect password for user).",  # noqa: E501
             error_type=SupersetErrorType.CONNECTION_INVALID_PASSWORD_ERROR,
             level=ErrorLevel.ERROR,
             extra={
@@ -62,7 +62,7 @@ MARSHALED_OCIENT_ERRORS: list[tuple[str, SupersetError]] = [
                 "issue_codes": [
                     {
                         "code": 1013,
-                        "message": "Issue 1013 - The password provided when connecting to a database is not valid.",
+                        "message": "Issue 1013 - The password provided when connecting to a database is not valid.",  # noqa: E501
                     }
                 ],
             },
@@ -79,7 +79,7 @@ MARSHALED_OCIENT_ERRORS: list[tuple[str, SupersetError]] = [
                 "issue_codes": [
                     {
                         "code": 1015,
-                        "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",
+                        "message": "Issue 1015 - Either the database is spelled incorrectly or does not exist.",  # noqa: E501
                     }
                 ],
             },
@@ -96,7 +96,7 @@ MARSHALED_OCIENT_ERRORS: list[tuple[str, SupersetError]] = [
                 "issue_codes": [
                     {
                         "code": 1007,
-                        "message": "Issue 1007 - The hostname provided can't be resolved.",
+                        "message": "Issue 1007 - The hostname provided can't be resolved.",  # noqa: E501
                     }
                 ],
             },
@@ -120,7 +120,7 @@ MARSHALED_OCIENT_ERRORS: list[tuple[str, SupersetError]] = [
         ),
     ),
     (
-        "An invalid connection string attribute was specified (failed to decrypt cipher text)",
+        "An invalid connection string attribute was specified (failed to decrypt cipher text)",  # noqa: E501
         SupersetError(
             message="Invalid Connection String: Expecting String of the form 'ocient://user:pass@host:port/database'.",
             error_type=SupersetErrorType.GENERIC_DB_ENGINE_ERROR,
@@ -130,16 +130,16 @@ MARSHALED_OCIENT_ERRORS: list[tuple[str, SupersetError]] = [
                 "issue_codes": [
                     {
                         "code": 1002,
-                        "message": "Issue 1002 - The database returned an unexpected error.",
+                        "message": "Issue 1002 - The database returned an unexpected error.",  # noqa: E501
                     }
                 ],
             },
         ),
     ),
     (
-        "There is a syntax error in your statement (extraneous input 'foo bar baz' expecting {<EOF>, 'trace', 'using'})",
+        "There is a syntax error in your statement (extraneous input 'foo bar baz' expecting {<EOF>, 'trace', 'using'})",  # noqa: E501
         SupersetError(
-            message="Syntax Error: extraneous input \"foo bar baz\" expecting \"{<EOF>, 'trace', 'using'}",
+            message="Syntax Error: extraneous input \"foo bar baz\" expecting \"{<EOF>, 'trace', 'using'}",  # noqa: E501
             error_type=SupersetErrorType.SYNTAX_ERROR,
             level=ErrorLevel.ERROR,
             extra={
@@ -154,9 +154,9 @@ MARSHALED_OCIENT_ERRORS: list[tuple[str, SupersetError]] = [
         ),
     ),
     (
-        "There is a syntax error in your statement (mismatched input 'to' expecting {<EOF>, 'trace', 'using'})",
+        "There is a syntax error in your statement (mismatched input 'to' expecting {<EOF>, 'trace', 'using'})",  # noqa: E501
         SupersetError(
-            message="Syntax Error: mismatched input \"to\" expecting \"{<EOF>, 'trace', 'using'}",
+            message="Syntax Error: mismatched input \"to\" expecting \"{<EOF>, 'trace', 'using'}",  # noqa: E501
             error_type=SupersetErrorType.SYNTAX_ERROR,
             level=ErrorLevel.ERROR,
             extra={
@@ -181,11 +181,11 @@ MARSHALED_OCIENT_ERRORS: list[tuple[str, SupersetError]] = [
                 "issue_codes": [
                     {
                         "code": 1003,
-                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                     },
                     {
                         "code": 1005,
-                        "message": "Issue 1005 - The table was deleted or renamed in the database.",
+                        "message": "Issue 1005 - The table was deleted or renamed in the database.",  # noqa: E501
                     },
                 ],
             },
@@ -202,11 +202,11 @@ MARSHALED_OCIENT_ERRORS: list[tuple[str, SupersetError]] = [
                 "issue_codes": [
                     {
                         "code": 1003,
-                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",
+                        "message": "Issue 1003 - There is a syntax error in the SQL query. Perhaps there was a misspelling or a typo.",  # noqa: E501
                     },
                     {
                         "code": 1004,
-                        "message": "Issue 1004 - The column was deleted or renamed in the database.",
+                        "message": "Issue 1004 - The column was deleted or renamed in the database.",  # noqa: E501
                     },
                 ],
             },
@@ -223,9 +223,9 @@ def test_connection_errors(msg: str, expected: SupersetError) -> None:
     assert result == [expected]
 
 
-def _generate_gis_type_sanitization_test_cases() -> (
-    list[tuple[str, int, Any, dict[str, Any]]]
-):
+def _generate_gis_type_sanitization_test_cases() -> list[
+    tuple[str, int, Any, dict[str, Any]]
+]:
     if not ocient_is_installed():
         return []
 

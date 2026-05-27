@@ -19,7 +19,7 @@ import logging
 from typing import Any
 
 from flask import request, Response
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from marshmallow import ValidationError
@@ -55,6 +55,7 @@ from superset.views.filters import (
     BaseFilterRelatedRoles,
     BaseFilterRelatedUsers,
     FilterRelatedOwners,
+    FilterRelatedTables,
 )
 
 logger = logging.getLogger(__name__)
@@ -135,6 +136,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
 
     allowed_rel_fields = {"tables", "roles", "created_by", "changed_by"}
     related_field_filters = {
+        "tables": RelatedFieldFilter("table_name", FilterRelatedTables),
         "changed_by": RelatedFieldFilter("first_name", FilterRelatedOwners),
     }
     base_related_field_filters = {
@@ -283,7 +285,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
 
         try:
             new_model = UpdateRLSRuleCommand(pk, item).run()
-            return self.response(201, id=new_model.id, result=item)
+            return self.response(200, id=new_model.id, result=item)
         except RolesNotFoundValidationError as ex:
             logger.error(
                 "Role not found while updating RLS rule %s: %s",
@@ -315,7 +317,7 @@ class RLSRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,

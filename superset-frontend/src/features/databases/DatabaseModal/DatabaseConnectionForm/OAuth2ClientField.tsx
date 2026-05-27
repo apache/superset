@@ -18,11 +18,17 @@
  */
 
 import { useState } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { Input, Collapse, FormItem } from '@superset-ui/core/components';
+import { CustomParametersChangeType, FieldPropTypes } from '../../types';
 
-import Collapse from 'src/components/Collapse';
-import { Input } from 'src/components/Input';
-import { FormItem } from 'src/components/Form';
-import { FieldPropTypes } from '../../types';
+const LABELS = {
+  CLIENT_ID: t('Client ID'),
+  SECRET: t('Client Secret'),
+  AUTH_URI: t('Authorization Request URI'),
+  TOKEN_URI: t('Token Request URI'),
+  SCOPE: t('Scope'),
+};
 
 interface OAuth2ClientInfo {
   id: string;
@@ -32,21 +38,26 @@ interface OAuth2ClientInfo {
   scope: string;
 }
 
-export const OAuth2ClientField = ({ changeMethods, db }: FieldPropTypes) => {
+export const OAuth2ClientField = ({
+  changeMethods,
+  db,
+  default_value: defaultValue,
+}: FieldPropTypes) => {
   const encryptedExtra = JSON.parse(db?.masked_encrypted_extra || '{}');
   const [oauth2ClientInfo, setOauth2ClientInfo] = useState<OAuth2ClientInfo>({
     id: encryptedExtra.oauth2_client_info?.id || '',
     secret: encryptedExtra.oauth2_client_info?.secret || '',
     authorization_request_uri:
-      encryptedExtra.oauth2_client_info?.authorization_request_uri || '',
+      encryptedExtra.oauth2_client_info?.authorization_request_uri ||
+      defaultValue?.authorization_request_uri ||
+      '',
     token_request_uri:
-      encryptedExtra.oauth2_client_info?.token_request_uri || '',
-    scope: encryptedExtra.oauth2_client_info?.scope || '',
+      encryptedExtra.oauth2_client_info?.token_request_uri ||
+      defaultValue?.token_request_uri ||
+      '',
+    scope:
+      encryptedExtra.oauth2_client_info?.scope || defaultValue?.scope || '',
   });
-
-  if (db?.engine_information?.supports_oauth2 !== true) {
-    return null;
-  }
 
   const handleChange = (key: any) => (e: any) => {
     const updatedInfo = {
@@ -56,57 +67,66 @@ export const OAuth2ClientField = ({ changeMethods, db }: FieldPropTypes) => {
 
     setOauth2ClientInfo(updatedInfo);
 
-    const event = {
+    const event: CustomParametersChangeType = {
       target: {
+        type: 'object',
         name: 'oauth2_client_info',
         value: updatedInfo,
       },
     };
-    changeMethods.onEncryptedExtraInputChange(event);
+    changeMethods.onParametersChange(event);
   };
 
   return (
-    <Collapse>
-      <Collapse.Panel header="OAuth2 client information" key="1">
-        <FormItem label="Client ID">
-          <Input
-            data-test="client-id"
-            value={oauth2ClientInfo.id}
-            onChange={handleChange('id')}
-          />
-        </FormItem>
-        <FormItem label="Client Secret">
-          <Input
-            data-test="client-secret"
-            type="password"
-            value={oauth2ClientInfo.secret}
-            onChange={handleChange('secret')}
-          />
-        </FormItem>
-        <FormItem label="Authorization Request URI">
-          <Input
-            data-test="client-authorization-request-uri"
-            placeholder="https://"
-            value={oauth2ClientInfo.authorization_request_uri}
-            onChange={handleChange('authorization_request_uri')}
-          />
-        </FormItem>
-        <FormItem label="Token Request URI">
-          <Input
-            data-test="client-token-request-uri"
-            placeholder="https://"
-            value={oauth2ClientInfo.token_request_uri}
-            onChange={handleChange('token_request_uri')}
-          />
-        </FormItem>
-        <FormItem label="Scope">
-          <Input
-            data-test="client-scope"
-            value={oauth2ClientInfo.scope}
-            onChange={handleChange('scope')}
-          />
-        </FormItem>
-      </Collapse.Panel>
-    </Collapse>
+    <Collapse
+      items={[
+        {
+          key: 'oauth2-client-information',
+          label: t('OAuth2 client information'),
+          children: (
+            <>
+              <FormItem label={LABELS.CLIENT_ID}>
+                <Input
+                  data-test="client-id"
+                  value={oauth2ClientInfo.id}
+                  onChange={handleChange('id')}
+                />
+              </FormItem>
+              <FormItem label={LABELS.SECRET}>
+                <Input
+                  data-test="client-secret"
+                  type="password"
+                  value={oauth2ClientInfo.secret}
+                  onChange={handleChange('secret')}
+                />
+              </FormItem>
+              <FormItem label={LABELS.AUTH_URI}>
+                <Input
+                  data-test="client-authorization-request-uri"
+                  placeholder="https://"
+                  value={oauth2ClientInfo.authorization_request_uri}
+                  onChange={handleChange('authorization_request_uri')}
+                />
+              </FormItem>
+              <FormItem label={LABELS.TOKEN_URI}>
+                <Input
+                  data-test="client-token-request-uri"
+                  placeholder="https://"
+                  value={oauth2ClientInfo.token_request_uri}
+                  onChange={handleChange('token_request_uri')}
+                />
+              </FormItem>
+              <FormItem label={LABELS.SCOPE}>
+                <Input
+                  data-test="client-scope"
+                  value={oauth2ClientInfo.scope}
+                  onChange={handleChange('scope')}
+                />
+              </FormItem>
+            </>
+          ),
+        },
+      ]}
+    />
   );
 };

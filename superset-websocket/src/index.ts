@@ -18,10 +18,10 @@
  */
 import * as http from 'http';
 import * as net from 'net';
-import WebSocket from 'ws';
-import { v4 as uuidv4 } from 'uuid';
+import WebSocket, { WebSocketServer } from 'ws';
+import { randomUUID } from 'crypto';
 import jwt, { Algorithm } from 'jsonwebtoken';
-import cookie from 'cookie';
+import { parse } from 'cookie';
 import Redis, { RedisOptions } from 'ioredis';
 import StatsD from 'hot-shots';
 
@@ -102,7 +102,7 @@ if (startServer && opts.jwtSecret.length < 32) {
 
 if (startServer && opts.jwtSecret.startsWith('CHANGE-ME')) {
   console.warn(
-    'WARNING: it appears you secret in your config.json is insecure',
+    'WARNING: it appears your secret in your config.json is insecure',
   );
   console.warn('DO NOT USE IN PRODUCTION');
 }
@@ -141,7 +141,7 @@ export const buildRedisOpts = (baseConfig: RedisConfig) => {
 // initialize servers
 const redis = new Redis(buildRedisOpts(opts.redis));
 const httpServer = http.createServer();
-export const wss = new WebSocket.Server({
+export const wss = new WebSocketServer({
   noServer: true,
   clientTracking: false,
 });
@@ -168,7 +168,7 @@ export const trackClient = (
 ): string => {
   statsd.increment('ws_connected_client');
 
-  const socketId = uuidv4();
+  const socketId = randomUUID();
   sockets[socketId] = socketInstance;
 
   if (channel in channels) {
@@ -238,10 +238,10 @@ export const subscribeToGlobalStream = async (
   while (true) {
     try {
       const reply = await redis.xread(
-        'BLOCK',
-        opts.redisStreamReadBlockMs,
         'COUNT',
         opts.redisStreamReadCount,
+        'BLOCK',
+        opts.redisStreamReadBlockMs,
         'STREAMS',
         stream,
         lastFirehoseId,
@@ -285,7 +285,7 @@ export const processStreamResults = (results: StreamResult[]): void => {
  * configured via 'jwtCookieName' in the config.
  */
 const readChannelId = (request: http.IncomingMessage): string => {
-  const cookies = cookie.parse(request.headers.cookie || '');
+  const cookies = parse(request.headers.cookie || '');
   const token = cookies[opts.jwtCookieName];
 
   if (!token) throw new Error('JWT not present');
@@ -466,7 +466,7 @@ export const cleanChannel = (channel: string) => {
 
 if (startServer) {
   // init server event listeners
-  wss.on('connection', function (ws) {
+  wss.on('connection', function (ws: WebSocket) {
     ws.on('error', console.error);
   });
   wss.on('connection', wsConnection);

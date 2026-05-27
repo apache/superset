@@ -91,13 +91,13 @@ Note also that `localhost` and `127.0.0.1` are not considered the same host. For
 The following config values must contain the same values in both the Flask app config and `config.json`:
 
 ```text
-GLOBAL_ASYNC_QUERIES_REDIS_CONFIG
+GLOBAL_ASYNC_QUERIES_CACHE_BACKEND
 GLOBAL_ASYNC_QUERIES_REDIS_STREAM_PREFIX
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME
 GLOBAL_ASYNC_QUERIES_JWT_SECRET
 ```
 
-More info on Superset configuration values for async queries: https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries
+More info on Superset configuration values for async queries: https://superset.apache.org/docs/contributing/misc#async-chart-queries
 
 ## StatsD monitoring
 

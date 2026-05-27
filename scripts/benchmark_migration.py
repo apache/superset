@@ -70,7 +70,7 @@ def extract_modified_tables(module: ModuleType) -> set[str]:
     return tables
 
 
-def find_models(module: ModuleType) -> list[type[Model]]:
+def find_models(module: ModuleType) -> list[type[Model]]:  # noqa: C901
     """
     Find all models in a migration script.
     """
@@ -94,7 +94,7 @@ def find_models(module: ModuleType) -> list[type[Model]]:
     # downgrade
     sqlalchemy_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
     engine = create_engine(sqlalchemy_uri)
-    Base = automap_base()
+    Base = automap_base()  # noqa: N806
     Base.prepare(engine, reflect=True)
     seen = set()
     while tables:
@@ -138,7 +138,7 @@ def find_models(module: ModuleType) -> list[type[Model]]:
 @click.option("--limit", default=1000, help="Maximum number of entities.")
 @click.option("--force", is_flag=True, help="Do not prompt for confirmation.")
 @click.option("--no-auto-cleanup", is_flag=True, help="Do not remove created models.")
-def main(
+def main(  # noqa: C901
     filepath: str, limit: int = 1000, force: bool = False, no_auto_cleanup: bool = False
 ) -> None:
     auto_cleanup = not no_auto_cleanup

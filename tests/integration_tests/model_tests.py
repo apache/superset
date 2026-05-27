@@ -35,12 +35,13 @@ from sqlalchemy.engine.url import make_url
 from sqlalchemy.types import DateTime  # noqa: F401
 
 import tests.integration_tests.test_app  # noqa: F401
-from superset import app, db as metadata_db
+from flask import current_app
+from superset import db as metadata_db
 from superset.db_engine_specs.postgres import PostgresEngineSpec  # noqa: F401
 from superset.common.db_query_status import QueryStatus
 from superset.models.core import Database
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.database import get_example_database
 
 from .base_tests import SupersetTestCase
@@ -53,6 +54,9 @@ from .fixtures.energy_dashboard import (
 class TestDatabaseModel(SupersetTestCase):
     @unittest.skipUnless(
         SupersetTestCase.is_module_installed("requests"), "requests not installed"
+    )
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
     )
     def test_database_schema_presto(self):
         sqlalchemy_uri = "presto://presto.airbnb.io:8080/hive/default"
@@ -108,7 +112,7 @@ class TestDatabaseModel(SupersetTestCase):
             assert "core_db" == db
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
+        SupersetTestCase.is_module_installed("mysqlclient"), "mysqlclient not installed"
     )
     def test_database_schema_mysql(self):
         sqlalchemy_uri = "mysql://root@localhost/superset"
@@ -123,7 +127,7 @@ class TestDatabaseModel(SupersetTestCase):
             assert "staging" == db
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
+        SupersetTestCase.is_module_installed("mysqlclient"), "mysqlclient not installed"
     )
     def test_database_impersonate_user(self):
         uri = "mysql://root@localhost"
@@ -142,6 +146,9 @@ class TestDatabaseModel(SupersetTestCase):
                 assert example_user.username != username
 
     @mock.patch("superset.models.core.create_engine")
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
+    )
     def test_impersonate_user_presto(self, mocked_create_engine):
         uri = "presto://localhost"
         principal_user = security_manager.find_user(username="gamma")
@@ -190,7 +197,7 @@ class TestDatabaseModel(SupersetTestCase):
             }
 
     @unittest.skipUnless(
-        SupersetTestCase.is_module_installed("MySQLdb"), "mysqlclient not installed"
+        SupersetTestCase.is_module_installed("mysqlclient"), "mysqlclient not installed"
     )
     @mock.patch("superset.models.core.create_engine")
     def test_adjust_engine_params_mysql(self, mocked_create_engine):
@@ -245,6 +252,12 @@ class TestDatabaseModel(SupersetTestCase):
             assert call_args[1]["connect_args"]["user"] == "gamma"
 
     @mock.patch("superset.models.core.create_engine")
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
+    )
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("thrift"), "thrift not installed"
+    )
     def test_impersonate_user_hive(self, mocked_create_engine):
         uri = "hive://localhost"
         principal_user = security_manager.find_user(username="gamma")
@@ -293,6 +306,9 @@ class TestDatabaseModel(SupersetTestCase):
             }
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @unittest.skipUnless(
+        SupersetTestCase.is_module_installed("pyhive"), "pyhive not installed"
+    )
     def test_select_star(self):
         db = get_example_database()
         table_name = "energy_usage"
@@ -307,12 +323,12 @@ class TestDatabaseModel(SupersetTestCase):
         # TODO(bkyryliuk): unify sql generation
         if db.backend == "presto":
             assert (
-                'SELECT\n  "source" AS "source",\n  "target" AS "target",\n  "value" AS "value"\nFROM "energy_usage"\nLIMIT 100'
+                'SELECT\n  "source" AS "source",\n  "target" AS "target",\n  "value" AS "value"\nFROM "energy_usage"\nLIMIT 100'  # noqa: E501
                 in sql
             )
         elif db.backend == "hive":
             assert (
-                "SELECT\n  `source`,\n  `target`,\n  `value`\nFROM `energy_usage`\nLIMIT 100"
+                "SELECT\n  `source`,\n  `target`,\n  `value`\nFROM `energy_usage`\nLIMIT 100"  # noqa: E501
                 in sql
             )
         else:
@@ -370,7 +386,7 @@ class TestDatabaseModel(SupersetTestCase):
             return_value={Exception: SupersetException}
         )
         mocked_create_engine.side_effect = Exception()
-        with self.assertRaises(SupersetException):
+        with self.assertRaises(SupersetException):  # noqa: PT027
             model._get_sqla_engine()
 
 
@@ -379,47 +395,66 @@ class TestSqlaTableModel(SupersetTestCase):
     def test_get_timestamp_expression(self):
         tbl = self.get_table(name="birth_names")
         ds_col = tbl.get_column("ds")
-        sqla_literal = ds_col.get_timestamp_expression(None)
-        assert str(sqla_literal.compile()) == "ds"
+        try:
+            sqla_literal = ds_col.get_timestamp_expression(None)
+            assert str(sqla_literal.compile()) == "ds"
 
-        sqla_literal = ds_col.get_timestamp_expression("P1D")
-        compiled = f"{sqla_literal.compile()}"
-        if tbl.database.backend == "mysql":
-            assert compiled == "DATE(ds)"
+            sqla_literal = ds_col.get_timestamp_expression("P1D")
+            compiled = f"{sqla_literal.compile()}"
+            if tbl.database.backend == "mysql":
+                assert compiled == "DATE(ds)"
 
-        prev_ds_expr = ds_col.expression
-        ds_col.expression = "DATE_ADD(ds, 1)"
-        sqla_literal = ds_col.get_timestamp_expression("P1D")
-        compiled = f"{sqla_literal.compile()}"
-        if tbl.database.backend == "mysql":
-            assert compiled == "DATE(DATE_ADD(ds, 1))"
-        ds_col.expression = prev_ds_expr
+            prev_ds_expr = ds_col.expression
+            ds_col.expression = "DATE_ADD(ds, 1)"
+            sqla_literal = ds_col.get_timestamp_expression("P1D")
+            compiled = f"{sqla_literal.compile()}"
+            if tbl.database.backend == "mysql":
+                assert compiled == "DATE(DATE_ADD(ds, 1))"
+            ds_col.expression = prev_ds_expr
+        finally:
+            # Discard the in-memory attribute history so the next session
+            # autoflush doesn't see this row as dirty. The test only
+            # exercises the in-memory compile path; any persisted write
+            # would be accidental. ``rollback`` rather than ``expire`` —
+            # the latter doesn't reliably clear SA's per-attribute history
+            # tracking for already-loaded objects.
+            metadata_db.session.rollback()
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_get_timestamp_expression_epoch(self):
         tbl = self.get_table(name="birth_names")
         ds_col = tbl.get_column("ds")
 
-        ds_col.expression = None
-        ds_col.python_date_format = "epoch_s"
-        sqla_literal = ds_col.get_timestamp_expression(None)
-        compiled = f"{sqla_literal.compile()}"
-        if tbl.database.backend == "mysql":
-            assert compiled == "from_unixtime(ds)"
+        try:
+            ds_col.expression = None
+            ds_col.python_date_format = "epoch_s"
+            sqla_literal = ds_col.get_timestamp_expression(None)
+            compiled = f"{sqla_literal.compile()}"
+            if tbl.database.backend == "mysql":
+                assert compiled == "from_unixtime(ds)"
 
-        ds_col.python_date_format = "epoch_s"
-        sqla_literal = ds_col.get_timestamp_expression("P1D")
-        compiled = f"{sqla_literal.compile()}"
-        if tbl.database.backend == "mysql":
-            assert compiled == "DATE(from_unixtime(ds))"
+            ds_col.python_date_format = "epoch_s"
+            sqla_literal = ds_col.get_timestamp_expression("P1D")
+            compiled = f"{sqla_literal.compile()}"
+            if tbl.database.backend == "mysql":
+                assert compiled == "DATE(from_unixtime(ds))"
 
-        prev_ds_expr = ds_col.expression
-        ds_col.expression = "DATE_ADD(ds, 1)"
-        sqla_literal = ds_col.get_timestamp_expression("P1D")
-        compiled = f"{sqla_literal.compile()}"
-        if tbl.database.backend == "mysql":
-            assert compiled == "DATE(from_unixtime(DATE_ADD(ds, 1)))"
-        ds_col.expression = prev_ds_expr
+            prev_ds_expr = ds_col.expression
+            ds_col.expression = "DATE_ADD(ds, 1)"
+            sqla_literal = ds_col.get_timestamp_expression("P1D")
+            compiled = f"{sqla_literal.compile()}"
+            if tbl.database.backend == "mysql":
+                assert compiled == "DATE(from_unixtime(DATE_ADD(ds, 1)))"
+            ds_col.expression = prev_ds_expr
+        finally:
+            # Discard the in-memory attribute history so the next session
+            # autoflush doesn't see this row as dirty —
+            # ``python_date_format`` isn't restored above and the test
+            # never commits, so the mutation would otherwise leak.
+            # ``rollback`` rather than ``expire`` — the latter doesn't
+            # reliably clear SA's per-attribute history tracking for
+            # already-loaded objects.
+            metadata_db.session.rollback()
 
     def query_with_expr_helper(self, is_timeseries, inner_join=True):
         tbl = self.get_table(name="birth_names")
@@ -432,11 +467,18 @@ class TestSqlaTableModel(SupersetTestCase):
             return None
         old_inner_join = spec.allows_joins
         spec.allows_joins = inner_join
-        arbitrary_gby = "state || gender || '_test'"
-        arbitrary_metric = dict(
+
+        # Use database-specific string concatenation syntax
+        arbitrary_gby = (
+            "CONCAT(state, gender, '_test')"
+            if get_example_database().backend == "mysql"
+            else "state || gender || '_test'"
+        )
+
+        arbitrary_metric = dict(  # noqa: C408
             label="arbitrary", expressionType="SQL", sqlExpression="SUM(num_boys)"
         )
-        query_obj = dict(
+        query_obj = dict(  # noqa: C408
             groupby=[arbitrary_gby, "name"],
             metrics=[arbitrary_metric],
             filter=[],
@@ -445,7 +487,7 @@ class TestSqlaTableModel(SupersetTestCase):
             granularity="ds",
             from_dttm=None,
             to_dttm=None,
-            extras=dict(time_grain_sqla="P1Y"),
+            extras=dict(time_grain_sqla="P1Y"),  # noqa: C408
             series_limit=15 if inner_join and is_timeseries else None,
         )
         qr = tbl.query(query_obj)
@@ -487,7 +529,7 @@ class TestSqlaTableModel(SupersetTestCase):
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_mutator(self):
         tbl = self.get_table(name="birth_names")
-        query_obj = dict(
+        query_obj = dict(  # noqa: C408
             groupby=[],
             metrics=None,
             filter=[],
@@ -504,16 +546,16 @@ class TestSqlaTableModel(SupersetTestCase):
         def mutator(*args, **kwargs):
             return "-- COMMENT\n" + args[0]
 
-        app.config["SQL_QUERY_MUTATOR"] = mutator
+        current_app.config["SQL_QUERY_MUTATOR"] = mutator
         sql = tbl.get_query_str(query_obj)
         assert "-- COMMENT" in sql
 
-        app.config["SQL_QUERY_MUTATOR"] = None
+        current_app.config["SQL_QUERY_MUTATOR"] = None
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_sql_mutator_different_params(self):
         tbl = self.get_table(name="birth_names")
-        query_obj = dict(
+        query_obj = dict(  # noqa: C408
             groupby=[],
             metrics=None,
             filter=[],
@@ -530,17 +572,17 @@ class TestSqlaTableModel(SupersetTestCase):
         def mutator(sql, database=None, **kwargs):
             return "-- COMMENT\n--" + "\n" + str(database) + "\n" + sql
 
-        app.config["SQL_QUERY_MUTATOR"] = mutator
+        current_app.config["SQL_QUERY_MUTATOR"] = mutator
         mutated_sql = tbl.get_query_str(query_obj)
         assert "-- COMMENT" in mutated_sql
         assert tbl.database.name in mutated_sql
 
-        app.config["SQL_QUERY_MUTATOR"] = None
+        current_app.config["SQL_QUERY_MUTATOR"] = None
 
     def test_query_with_non_existent_metrics(self):
         tbl = self.get_table(name="birth_names")
 
-        query_obj = dict(
+        query_obj = dict(  # noqa: C408
             groupby=[],
             metrics=["invalid"],
             filter=[],
@@ -552,14 +594,14 @@ class TestSqlaTableModel(SupersetTestCase):
             extras={},
         )
 
-        with self.assertRaises(Exception) as context:
+        with self.assertRaises(Exception) as context:  # noqa: PT027
             tbl.get_query_str(query_obj)
 
         assert "Metric 'invalid' does not exist", context.exception
 
     def test_query_label_without_group_by(self):
         tbl = self.get_table(name="birth_names")
-        query_obj = dict(
+        query_obj = dict(  # noqa: C408
             groupby=[],
             columns=[
                 "gender",
@@ -655,7 +697,7 @@ class TestSqlaTableModel(SupersetTestCase):
             datasource_id=tbl.id,
         )
         dashboard.slices.append(slc)
-        datasource_info = slc.datasource.data_for_slices([slc])
+        datasource_info = tbl.data_for_slices([slc])
         assert "database" in datasource_info
 
         # clean up and auto commit

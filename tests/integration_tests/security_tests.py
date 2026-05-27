@@ -24,20 +24,20 @@ from unittest.mock import Mock, patch, call, ANY
 from typing import Any
 
 import jwt
-import prison
+import rison
 import pytest
 
 from flask import current_app, g
 from flask_appbuilder.security.sqla.models import Role
 from superset.daos.datasource import DatasourceDAO  # noqa: F401
 from superset.models.dashboard import Dashboard
-from superset import app, appbuilder, db, security_manager, viz
+from superset import appbuilder, db, security_manager, viz
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.models.slice import Slice
-from superset.sql_parse import Table
+from superset.sql.parse import Table
 from superset.utils.core import (
     DatasourceType,
     backend,
@@ -52,6 +52,7 @@ from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import GAMMA_USERNAME
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.public_role import (
+    public_role_builtin,  # noqa: F401
     public_role_like_gamma,  # noqa: F401
     public_role_like_test_role,  # noqa: F401
 )
@@ -62,6 +63,11 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 from tests.integration_tests.fixtures.world_bank_dashboard import (
     load_world_bank_dashboard_with_slices,  # noqa: F401
     load_world_bank_data,  # noqa: F401
+)
+from tests.integration_tests.fixtures.users import (
+    create_gamma_user_group,  # noqa: F401
+    create_user_group_with_dar,  # noqa: F401
+    create_gamma_user_group_with_dar,  # noqa: F401
 )
 
 NEW_SECURITY_CONVERGE_VIEWS = (
@@ -544,7 +550,8 @@ class TestRolePermission(SupersetTestCase):
                 call(ANY, ANY, tmp_db1_view_menu),
                 call(ANY, ANY, table1_view_menu),
                 call(ANY, ANY, table2_view_menu),
-            ]
+            ],
+            any_order=True,
         )
 
         db.session.delete(slice1)
@@ -1191,7 +1198,7 @@ class TestRolePermission(SupersetTestCase):
         delete_schema_perm("[examples].[1]")
 
     def test_schemas_accessible_by_user_datasource_access(self):
-        # User has schema access to the datasource temp_schema.wb_health_population in examples DB.
+        # User has schema access to the datasource temp_schema.wb_health_population in examples DB.  # noqa: E501
         database = get_example_database()
         with self.client.application.test_request_context():
             with override_user(security_manager.find_user("gamma")):
@@ -1201,7 +1208,7 @@ class TestRolePermission(SupersetTestCase):
                 assert schemas == {"temp_schema"}
 
     def test_schemas_accessible_by_user_datasource_and_schema_access(self):
-        # User has schema access to the datasource temp_schema.wb_health_population in examples DB.
+        # User has schema access to the datasource temp_schema.wb_health_population in examples DB.  # noqa: E501
         create_schema_perm("[examples].[2]")
         with self.client.application.test_request_context():
             database = get_example_database()
@@ -1286,7 +1293,7 @@ class TestRolePermission(SupersetTestCase):
             "page": 0,
             "page_size": -1,
         }
-        NEW_FLASK_GET_SQL_DBS_REQUEST = f"/api/v1/database/?q={prison.dumps(arguments)}"
+        NEW_FLASK_GET_SQL_DBS_REQUEST = f"/api/v1/database/?q={rison.dumps(arguments)}"  # noqa: N806
         self.login(GAMMA_USERNAME)
         databases_json = self.client.get(NEW_FLASK_GET_SQL_DBS_REQUEST).json
         assert databases_json["count"] == 1
@@ -1336,7 +1343,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_cannot_menu("Upload a CSV", perm_set)
         self.assert_cannot_menu("ReportSchedule", perm_set)
         self.assert_cannot_menu("Alerts & Report", perm_set)
-        assert ("can_csv_upload", "Database") not in perm_set
+        assert ("can_upload", "Database") not in perm_set
 
     def assert_can_gamma(self, perm_set):
         self.assert_can_read("Dataset", perm_set)
@@ -1365,7 +1372,7 @@ class TestRolePermission(SupersetTestCase):
         self.assert_can_all("CssTemplate", perm_set)
         self.assert_can_all("Dataset", perm_set)
         self.assert_can_read("Database", perm_set)
-        assert ("can_csv_upload", "Database") in perm_set
+        assert ("can_upload", "Database") in perm_set
         self.assert_can_menu("Manage", perm_set)
         self.assert_can_menu("Annotation Layers", perm_set)
         self.assert_can_menu("CSS Templates", perm_set)
@@ -1433,6 +1440,104 @@ class TestRolePermission(SupersetTestCase):
             security_manager.find_permission_view_menu("can_read", "Dataset")
         )
 
+    def test_is_public_pvm(self):
+        """Test that _is_public_pvm correctly identifies Public role permissions."""
+        # Should include core dashboard viewing permissions
+        assert security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_read", "Dashboard")
+        )
+        assert security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_read", "Chart")
+        )
+        assert security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_dashboard", "Superset")
+        )
+        assert security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_explore_json", "Superset")
+        )
+
+        # Should NOT include write permissions on core objects
+        assert not security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_write", "Dashboard")
+        )
+        assert not security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu("can_write", "Chart")
+        )
+
+        # Should NOT include admin/alpha permissions
+        assert not security_manager._is_public_pvm(
+            security_manager.find_permission_view_menu(
+                "all_datasource_access", "all_datasource_access"
+            )
+        )
+
+    @pytest.mark.usefixtures("public_role_builtin")
+    def test_public_role_permissions(self):
+        """Test that Public role has the expected minimal permissions."""
+        public_perm_set = get_perm_tuples("Public")
+
+        # Core dashboard viewing - should be present
+        assert ("can_read", "Dashboard") in public_perm_set
+        assert ("can_read", "Chart") in public_perm_set
+        assert ("can_dashboard", "Superset") in public_perm_set
+        assert ("can_slice", "Superset") in public_perm_set
+        assert ("can_explore_json", "Superset") in public_perm_set
+        assert ("can_dashboard_permalink", "Superset") in public_perm_set
+
+        # Filter state for interactive dashboards
+        assert ("can_read", "DashboardFilterStateRestApi") in public_perm_set
+        assert ("can_write", "DashboardFilterStateRestApi") in public_perm_set
+
+        # Should NOT have write permissions on core objects
+        assert ("can_write", "Dashboard") not in public_perm_set
+        assert ("can_write", "Chart") not in public_perm_set
+        assert ("can_write", "Dataset") not in public_perm_set
+
+        # Should NOT have share permissions
+        assert ("can_share_dashboard", "Superset") not in public_perm_set
+        assert ("can_share_chart", "Superset") not in public_perm_set
+
+        # Should NOT have SQL Lab access
+        assert ("can_sqllab", "Superset") not in public_perm_set
+        assert ("menu_access", "SQL Lab") not in public_perm_set
+
+        # Should NOT have admin permissions
+        assert (
+            "all_datasource_access",
+            "all_datasource_access",
+        ) not in public_perm_set
+        assert ("all_database_access", "all_database_access") not in public_perm_set
+
+        # Should NOT have user management access
+        assert ("can_userinfo", "UserDBModelView") not in public_perm_set
+
+    @pytest.mark.usefixtures("public_role_builtin")
+    def test_public_role_more_restrictive_than_gamma(self):
+        """Test that Public role is more restrictive than Gamma."""
+        public_perm_set = get_perm_tuples("Public")
+        gamma_perm_set = get_perm_tuples("Gamma")
+
+        # Public should be a subset of Gamma (more restrictive)
+        # Note: Public has filter state write which Gamma also has
+        public_only = public_perm_set - gamma_perm_set
+
+        # These permissions are intentionally granted to Public even though
+        # Gamma doesn't have them. Annotation permissions are needed for
+        # charts with annotations to render properly for public users.
+        # Gamma doesn't have these because Annotation is in ALPHA_ONLY_VIEW_MENUS.
+        allowed_public_only_perms = {
+            ("can_read", "Annotation"),
+            ("can_read", "AnnotationLayerRestApi"),
+        }
+
+        unexpected_perms = public_only - allowed_public_only_perms
+        assert len(unexpected_perms) == 0, (
+            f"Public has unexpected permissions Gamma doesn't: {unexpected_perms}"
+        )
+
+        # Public should have significantly fewer permissions than Gamma
+        assert len(public_perm_set) < len(gamma_perm_set)
+
     def test_gamma_permissions_basic(self):
         self.assert_can_gamma(get_perm_tuples("Gamma"))
         self.assert_cannot_alpha(get_perm_tuples("Gamma"))
@@ -1466,12 +1571,16 @@ class TestRolePermission(SupersetTestCase):
         sql_lab_set = get_perm_tuples("sql_lab")
         assert sql_lab_set == {
             ("can_activate", "TabStateView"),
+            ("can_copy_clipboard", "Superset"),
             ("can_csv", "Superset"),
             ("can_delete_query", "TabStateView"),
             ("can_delete", "TabStateView"),
+            ("can_estimate_query_cost", "SQLLab"),
             ("can_execute_sql_query", "SQLLab"),
             ("can_export", "SavedQuery"),
             ("can_export_csv", "SQLLab"),
+            ("can_export_data", "Superset"),
+            ("can_format_sql", "SQLLab"),
             ("can_get", "TabStateView"),
             ("can_get_results", "SQLLab"),
             ("can_migrate_query", "TabStateView"),
@@ -1488,6 +1597,11 @@ class TestRolePermission(SupersetTestCase):
             ("menu_access", "Saved Queries"),
             ("menu_access", "SQL Editor"),
             ("menu_access", "SQL Lab"),
+            ("can_read", "SqlLabPermalinkRestApi"),
+            ("can_write", "SqlLabPermalinkRestApi"),
+            ("can_post", "TableSchemaView"),
+            ("can_expanded", "TableSchemaView"),
+            ("can_delete", "TableSchemaView"),
         }
 
         self.assert_cannot_alpha(sql_lab_set)
@@ -1531,6 +1645,7 @@ class TestRolePermission(SupersetTestCase):
             ["AuthDBView", "login"],
             ["AuthDBView", "logout"],
             ["CurrentUserRestApi", "get_me"],
+            ["CurrentUserRestApi", "update_me"],
             ["CurrentUserRestApi", "get_my_roles"],
             ["UserRestApi", "avatar"],
             # TODO (embedded) remove Dashboard:embedded after uuids have been shipped
@@ -1543,7 +1658,13 @@ class TestRolePermission(SupersetTestCase):
             ["SecurityApi", "login"],
             ["SecurityApi", "refresh"],
             ["SupersetIndexView", "index"],
+            ["SupersetIndexView", "patch_flask_locale"],
             ["DatabaseRestApi", "oauth2"],
+            ["SupersetAuthView", "login"],
+            ["SupersetAuthView", "logout"],
+            ["SupersetRegisterUserView", "register"],
+            ["SupersetRegisterUserView", "activation"],
+            ["RedirectView", "redirect_warning"],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:
@@ -1616,7 +1737,7 @@ class TestSecurityManager(SupersetTestCase):
         mock_can_access_schema.return_value = False
         mock_is_owner.return_value = False
 
-        with self.assertRaises(SupersetSecurityException):
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(datasource=datasource)
 
     @patch("superset.security.SupersetSecurityManager.is_owner")
@@ -1635,12 +1756,12 @@ class TestSecurityManager(SupersetTestCase):
         mock_can_access.return_value = False
         mock_is_owner.return_value = False
 
-        with self.assertRaises(SupersetSecurityException):
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(query=query)
 
     def test_raise_for_access_sql_fails(self):
         with override_user(security_manager.find_user("gamma")):
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(
                     database=get_example_database(),
                     schema="bar",
@@ -1672,7 +1793,7 @@ class TestSecurityManager(SupersetTestCase):
         mock_can_access_schema.return_value = False
         mock_is_owner.return_value = False
         with override_user(security_manager.find_user("gamma")):
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(query_context=query_context)
 
     @patch("superset.security.SupersetSecurityManager.can_access")
@@ -1685,7 +1806,7 @@ class TestSecurityManager(SupersetTestCase):
 
         mock_can_access.return_value = False
 
-        with self.assertRaises(SupersetSecurityException):
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(database=database, table=table)
 
     @patch("superset.security.SupersetSecurityManager.is_owner")
@@ -1703,7 +1824,7 @@ class TestSecurityManager(SupersetTestCase):
         mock_can_access_schema.return_value = False
         mock_is_owner.return_value = False
         with override_user(security_manager.find_user("gamma")):
-            with self.assertRaises(SupersetSecurityException):
+            with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                 security_manager.raise_for_access(viz=test_viz)
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
@@ -1748,7 +1869,7 @@ class TestSecurityManager(SupersetTestCase):
                 births.roles = []
 
                 # No dashboard roles.
-                with self.assertRaises(SupersetSecurityException):
+                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                     security_manager.raise_for_access(
                         **{
                             kwarg: Mock(
@@ -1764,7 +1885,7 @@ class TestSecurityManager(SupersetTestCase):
                 births.roles = [self.get_role("Gamma")]
 
                 # Undefined dashboard.
-                with self.assertRaises(SupersetSecurityException):
+                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                     security_manager.raise_for_access(
                         **{
                             kwarg: Mock(
@@ -1774,19 +1895,22 @@ class TestSecurityManager(SupersetTestCase):
                         }
                     )
 
-                # Undefined dashboard chart.
-                with self.assertRaises(SupersetSecurityException):
-                    security_manager.raise_for_access(
-                        **{
-                            kwarg: Mock(
-                                datasource=birth_names,
-                                form_data={"dashboardId": births.id},
-                            )
-                        }
-                    )
+                # Drill to Detail (no slice_id/chart_id): datasource on dashboard.
+                # Access is granted via DASHBOARD_RBAC — D2D is a valid operation
+                # for users who have dashboard access.
+                security_manager.raise_for_access(
+                    **{
+                        kwarg: Mock(
+                            datasource=birth_names,
+                            form_data={"dashboardId": births.id},
+                            slice_=None,
+                            queries=[],
+                        )
+                    }
+                )
 
                 # Ill-defined dashboard chart.
-                with self.assertRaises(SupersetSecurityException):
+                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                     security_manager.raise_for_access(
                         **{
                             kwarg: Mock(
@@ -1800,7 +1924,7 @@ class TestSecurityManager(SupersetTestCase):
                     )
 
                 # Dashboard chart not associated with said datasource.
-                with self.assertRaises(SupersetSecurityException):
+                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                     security_manager.raise_for_access(
                         **{
                             kwarg: Mock(
@@ -1827,7 +1951,7 @@ class TestSecurityManager(SupersetTestCase):
                 )
 
                 # Ill-defined native filter.
-                with self.assertRaises(SupersetSecurityException):
+                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                     security_manager.raise_for_access(
                         **{
                             kwarg: Mock(
@@ -1841,7 +1965,7 @@ class TestSecurityManager(SupersetTestCase):
                     )
 
                 # Native filter not associated with said datasource.
-                with self.assertRaises(SupersetSecurityException):
+                with self.assertRaises(SupersetSecurityException):  # noqa: PT027
                     security_manager.raise_for_access(
                         **{
                             kwarg: Mock(
@@ -1869,11 +1993,57 @@ class TestSecurityManager(SupersetTestCase):
                     }
                 )
 
-    def test_get_user_roles(self):
+    def test_get_admin_user_roles(self):
         admin = security_manager.find_user("admin")
         with override_user(admin):
             roles = security_manager.get_user_roles()
             assert admin.roles == roles
+
+    def test_get_gamma_user_roles(self):
+        admin = security_manager.find_user("gamma")
+        with override_user(admin):
+            roles = security_manager.get_user_roles()
+            assert admin.roles == roles
+
+    @pytest.mark.usefixtures("create_gamma_user_group")
+    def test_get_user_roles_with_groups(self):
+        user = security_manager.find_user("gamma_with_groups")
+        with override_user(user):
+            roles = security_manager.get_user_roles()
+            assert user.groups[0].roles == roles
+
+    @pytest.mark.usefixtures("create_gamma_user_group_with_dar")
+    def test_get_user_roles_with_groups_dar(self):
+        user = security_manager.find_user("gamma_with_groups")
+        with override_user(user):
+            role_names = [role.name for role in security_manager.get_user_roles()]
+            assert "Gamma" in role_names
+            assert "dar" in role_names
+            assert len(role_names) == 2
+
+    @pytest.mark.usefixtures("create_user_group_with_dar")
+    def test_user_view_menu_names_with_groups_dar(self):
+        user = security_manager.find_user("gamma_with_groups")
+        with override_user(user):
+            assert security_manager.user_view_menu_names("datasource_access") == {
+                "[examples].[birth_names](id:1)]"
+            }
+
+    @pytest.mark.usefixtures("create_gamma_user_group_with_dar")
+    def test_gamma_user_view_menu_names_with_groups_dar(self):
+        user = security_manager.find_user("gamma_with_groups")
+        with override_user(user):
+            # assert pvm for dar role
+            assert security_manager.user_view_menu_names("datasource_access") == {
+                "[examples].[birth_names](id:1)]"
+            }
+            # assert pvm for gamma role
+            assert security_manager.user_view_menu_names("can_external_metadata") == {
+                "Datasource"
+            }
+            assert security_manager.user_view_menu_names("can_recent_activity") == {
+                "Log"
+            }
 
     def test_get_anonymous_roles(self):
         with override_user(security_manager.get_anonymous_user()):
@@ -1897,13 +2067,11 @@ class TestSecurityManager(SupersetTestCase):
 
 class TestDatasources(SupersetTestCase):
     @patch("superset.security.SupersetSecurityManager.can_access_database")
-    @patch("superset.security.SupersetSecurityManager.get_session")
-    def test_get_user_datasources_admin(
-        self, mock_get_session, mock_can_access_database
-    ):
+    @patch("superset.security.SupersetSecurityManager.session")
+    def test_get_user_datasources_admin(self, mock_session, mock_can_access_database):
         Datasource = namedtuple("Datasource", ["database", "schema", "name"])
         mock_can_access_database.return_value = True
-        mock_get_session.query.return_value.filter.return_value.all.return_value = []
+        mock_session.query.return_value.filter.return_value.all.return_value = []
 
         with mock.patch.object(
             SqlaTable, "get_all_datasources"
@@ -1922,13 +2090,11 @@ class TestDatasources(SupersetTestCase):
                 ]
 
     @patch("superset.security.SupersetSecurityManager.can_access_database")
-    @patch("superset.security.SupersetSecurityManager.get_session")
-    def test_get_user_datasources_gamma(
-        self, mock_get_session, mock_can_access_database
-    ):
+    @patch("superset.security.SupersetSecurityManager.session")
+    def test_get_user_datasources_gamma(self, mock_session, mock_can_access_database):
         Datasource = namedtuple("Datasource", ["database", "schema", "name"])
         mock_can_access_database.return_value = False
-        mock_get_session.query.return_value.filter.return_value.all.return_value = []
+        mock_session.query.return_value.filter.return_value.all.return_value = []
 
         with mock.patch.object(
             SqlaTable, "get_all_datasources"
@@ -1943,14 +2109,14 @@ class TestDatasources(SupersetTestCase):
                 assert datasources == []
 
     @patch("superset.security.SupersetSecurityManager.can_access_database")
-    @patch("superset.security.SupersetSecurityManager.get_session")
+    @patch("superset.security.SupersetSecurityManager.session")
     def test_get_user_datasources_gamma_with_schema(
-        self, mock_get_session, mock_can_access_database
+        self, mock_session, mock_can_access_database
     ):
         Datasource = namedtuple("Datasource", ["database", "schema", "name"])
         mock_can_access_database.return_value = False
 
-        mock_get_session.query.return_value.filter.return_value.all.return_value = [
+        mock_session.query.return_value.filter.return_value.all.return_value = [
             Datasource("database1", "schema1", "table1"),
             Datasource("database1", "schema1", "table2"),
         ]
@@ -2055,7 +2221,7 @@ class TestGuestTokens(SupersetTestCase):
         guest_user = security_manager.get_guest_user_from_request(fake_request)
 
         assert guest_user is None
-        self.assertRaisesRegex(ValueError, "Guest token does not contain a user claim")
+        self.assertRaisesRegex(ValueError, "Guest token does not contain a user claim")  # noqa: PT027
 
     def test_get_guest_user_no_resource(self):
         user = {"username": "test_guest"}
@@ -2066,7 +2232,7 @@ class TestGuestTokens(SupersetTestCase):
         fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
         security_manager.get_guest_user_from_request(fake_request)
 
-        self.assertRaisesRegex(
+        self.assertRaisesRegex(  # noqa: PT027
             ValueError, "Guest token does not contain a resources claim"
         )
 
@@ -2095,7 +2261,7 @@ class TestGuestTokens(SupersetTestCase):
         guest_user = security_manager.get_guest_user_from_request(fake_request)
 
         assert guest_user is None
-        self.assertRaisesRegex(ValueError, "This is not a guest token.")
+        self.assertRaisesRegex(ValueError, "This is not a guest token.")  # noqa: PT027
 
     def test_get_guest_user_bad_audience(self):
         now = time.time()
@@ -2121,14 +2287,14 @@ class TestGuestTokens(SupersetTestCase):
         fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
         guest_user = security_manager.get_guest_user_from_request(fake_request)
 
-        self.assertRaisesRegex(jwt.exceptions.InvalidAudienceError, "Invalid audience")
+        self.assertRaisesRegex(jwt.exceptions.InvalidAudienceError, "Invalid audience")  # noqa: PT027
         assert guest_user is None
 
     @patch("superset.security.SupersetSecurityManager._get_current_epoch_time")
     def test_create_guest_access_token_callable_audience(self, get_time_mock):
         now = time.time()
         get_time_mock.return_value = now
-        app.config["GUEST_TOKEN_JWT_AUDIENCE"] = Mock(return_value="cool_code")
+        self.app.config["GUEST_TOKEN_JWT_AUDIENCE"] = Mock(return_value="cool_code")
 
         user = {"username": "test_guest"}
         resources = [{"some": "resource"}]
@@ -2141,7 +2307,7 @@ class TestGuestTokens(SupersetTestCase):
             algorithms=[self.app.config["GUEST_TOKEN_JWT_ALGO"]],
             audience="cool_code",
         )
-        app.config["GUEST_TOKEN_JWT_AUDIENCE"].assert_called_once()
+        self.app.config["GUEST_TOKEN_JWT_AUDIENCE"].assert_called_once()
         assert "cool_code" == decoded_token["aud"]
         assert "guest" == decoded_token["type"]
-        app.config["GUEST_TOKEN_JWT_AUDIENCE"] = None
+        self.app.config["GUEST_TOKEN_JWT_AUDIENCE"] = None

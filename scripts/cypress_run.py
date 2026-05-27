@@ -20,7 +20,7 @@ import os
 import subprocess
 from datetime import datetime
 
-XVFB_PRE_CMD = "xvfb-run --auto-servernum --server-args='-screen 0, 1024x768x24' "
+XVFB_PRE_CMD = "xvfb-run --auto-servernum --server-args='-screen 0, 1280x1024x24' "
 REPO = os.getenv("GITHUB_REPOSITORY") or "apache/superset"
 GITHUB_EVENT_NAME = os.getenv("GITHUB_EVENT_NAME") or "push"
 CYPRESS_RECORD_KEY = os.getenv("CYPRESS_RECORD_KEY") or ""
@@ -55,7 +55,9 @@ def run_cypress_for_test_file(
             group_id = f"matrix{group}-file{i}-{attempt}"
             cmd = (
                 f"{XVFB_PRE_CMD} "
-                f'{cypress_cmd} --spec "{test_file}" --browser {browser} '
+                f'{cypress_cmd} --spec "{test_file}" '
+                f"--config numTestsKeptInMemory=0 "
+                f"--browser {browser} "
                 f"--record --group {group_id} --tag {REPO},{GITHUB_EVENT_NAME} "
                 f"--ci-build-id {build_id} "
                 f"-- {chrome_flags}"
@@ -64,7 +66,9 @@ def run_cypress_for_test_file(
             os.environ.pop("CYPRESS_RECORD_KEY", None)
             cmd = (
                 f"{XVFB_PRE_CMD} "
-                f"{cypress_cmd} --browser {browser} "
+                f"{cypress_cmd} "
+                f"--browser {browser} "
+                f"--config numTestsKeptInMemory=0 "
                 f'--spec "{test_file}" '
                 f"-- {chrome_flags}"
             )
@@ -74,7 +78,7 @@ def run_cypress_for_test_file(
             print(f"DRY RUN: {cmd}")
             return 0
 
-        process = subprocess.Popen(
+        process = subprocess.Popen(  # noqa: S602
             cmd,
             shell=True,
             stdout=subprocess.PIPE,
@@ -135,14 +139,19 @@ def main() -> None:
 
     test_files = []
     file_count = 0
+    skipped_count = 0
     for root, _, files in os.walk(cypress_tests_path):
         for file in files:
             if file.endswith("test.ts") or file.endswith("test.js"):
+                # Skip files prefixed with _skip. (excluded by excludeSpecPattern)
+                if file.startswith("_skip."):
+                    skipped_count += 1
+                    continue
                 file_count += 1
                 test_files.append(
                     os.path.join(root, file).replace(cypress_base_full_path, "")
                 )
-    print(f"Found {file_count} test files.")
+    print(f"Found {file_count} test files ({skipped_count} skipped).")
 
     # Initialize groups for round-robin distribution
     groups: dict[int, list[str]] = {i: [] for i in range(args.parallelism)}

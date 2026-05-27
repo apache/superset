@@ -23,6 +23,7 @@ from typing import Any, Type, Union
 
 import sqlalchemy as sa
 from alembic import op
+from flask import current_app
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import Session
 
@@ -36,7 +37,7 @@ from superset.migrations.shared.security_converge import (
 )
 from superset.models.core import Database
 
-logger = logging.getLogger("alembic")
+logger = logging.getLogger("alembic.env")
 
 Base: Type[Any] = declarative_base()
 
@@ -150,11 +151,15 @@ def print_processed_batch(
     """
     elapsed_time = datetime.now() - start_time
     elapsed_seconds = elapsed_time.total_seconds()
-    elapsed_formatted = f"{int(elapsed_seconds // 3600):02}:{int((elapsed_seconds % 3600) // 60):02}:{int(elapsed_seconds % 60):02}"
+    elapsed_formatted = f"{int(elapsed_seconds // 3600):02}:{int((elapsed_seconds % 3600) // 60):02}:{int(elapsed_seconds % 60):02}"  # noqa: E501
     rows_processed = min(offset + batch_size, total_rows)
     logger.info(
-        f"{elapsed_formatted} - {rows_processed:,} of {total_rows:,} {model.__tablename__} rows processed "
-        f"({(rows_processed / total_rows) * 100:.2f}%)"
+        "%s - %s of %s %s rows processed (%s%%)",
+        elapsed_formatted,
+        f"{rows_processed:,}",
+        f"{total_rows:,}",
+        model.__tablename__,
+        f"{(rows_processed / total_rows) * 100:.2f}",
     )
 
 
@@ -179,7 +184,7 @@ def update_catalog_column(
     """
     start_time = datetime.now()
 
-    logger.info(f"Updating {database.database_name} models to catalog {catalog}")
+    logger.info("Updating %s models to catalog %s", database.database_name, catalog)
 
     for model, column in MODELS:
         # Get the total number of rows that match the condition
@@ -191,7 +196,9 @@ def update_catalog_column(
         )
 
         logger.info(
-            f"Total rows to be processed for {model.__tablename__}: {total_rows:,}"
+            "Total rows to be processed for %s: %s",
+            model.__tablename__,
+            f"{total_rows:,}",
         )
 
         batch_size = get_batch_size(session)
@@ -252,7 +259,7 @@ def update_schema_catalog_perms(
         catalog (str): The new catalog to set.
         downgrade (bool, optional): If True, reset the `catalog` and `catalog_perm` fields to None.
                                     Defaults to False.
-    """
+    """  # noqa: E501
     # Mapping of table id to schema permission
     mapping = {}
 
@@ -301,7 +308,7 @@ def delete_models_non_default_catalog(
     """
     start_time = datetime.now()
 
-    logger.info(f"Deleting models not in the default catalog: {catalog}")
+    logger.info("Deleting models not in the default catalog: %s", catalog)
 
     for model, column in MODELS:
         # Get the total number of rows that match the condition
@@ -313,7 +320,9 @@ def delete_models_non_default_catalog(
         )
 
         logger.info(
-            f"Total rows to be processed for {model.__tablename__}: {total_rows:,}"
+            "Total rows to be processed for %s: %s",
+            model.__tablename__,
+            f"{total_rows:,}",
         )
 
         batch_size = get_batch_size(session)
@@ -381,7 +390,17 @@ def upgrade_catalog_perms(engines: set[str] | None = None) -> None:
         # analytical DB. If we can't connect to the analytical DB during the migration
         # we should stop it, since we need the default catalog in order to update
         # existing models.
-        if default_catalog := database.get_default_catalog():
+        try:
+            default_catalog = database.get_default_catalog()
+        except GenericDBException as ex:
+            logger.warning(
+                "Error fetching default catalog for database %s: %s",
+                database.database_name,
+                ex,
+            )
+            continue
+
+        if default_catalog:
             upgrade_database_catalogs(database, default_catalog, session)
 
     session.flush()
@@ -415,9 +434,13 @@ def upgrade_database_catalogs(
     # update `schema_perm` and `catalog_perm` for tables and charts
     update_schema_catalog_perms(session, database, catalog_perm, default_catalog, False)
 
-    # add any new catalogs discovered and their schemas
-    new_catalog_pvms = add_non_default_catalogs(database, default_catalog, session)
-    pvms.update(new_catalog_pvms)
+    if (
+        not current_app.config["CATALOGS_SIMPLIFIED_MIGRATION"]
+        and not database.is_oauth2_enabled()
+    ):
+        # add any new catalogs discovered and their schemas
+        new_catalog_pvms = add_non_default_catalogs(database, default_catalog, session)
+        pvms.update(new_catalog_pvms)
 
     # add default catalog permission and permissions for any new found schemas, and also
     # permissions for new catalogs and their schemas
@@ -495,7 +518,9 @@ def upgrade_schema_perms(
             .filter_by(name=current_perm)
             .one_or_none()
         ):
-            existing_pvm.name = new_perm
+            # check that new_perm does not exist
+            if not session.query(ViewMenu).filter_by(name=new_perm).one_or_none():
+                existing_pvm.name = new_perm
         elif new_perm:
             # new schema discovered, need to create a new permission
             perms[new_perm] = ("schema_access",)
@@ -558,7 +583,17 @@ def downgrade_catalog_perms(engines: set[str] | None = None) -> None:
         ) or not db_engine_spec.supports_catalog:
             continue
 
-        if default_catalog := database.get_default_catalog():
+        try:
+            default_catalog = database.get_default_catalog()
+        except GenericDBException as ex:
+            logger.warning(
+                "Error fetching default catalog for database %s: %s",
+                database.database_name,
+                ex,
+            )
+            continue
+
+        if default_catalog:
             downgrade_database_catalogs(database, default_catalog, session)
 
     session.flush()
@@ -663,7 +698,9 @@ def downgrade_schema_perms(
                 None,
                 schema,
             )
-            pvms_to_rename.append((pvm, new_name))
+            # check to see if the new name already exists
+            if not session.query(ViewMenu).filter_by(name=new_name).one_or_none():
+                pvms_to_rename.append((pvm, new_name))
         else:
             # non-default catalog, delete schema perm
             pvms_to_delete.append(pvm)

@@ -18,16 +18,33 @@
  */
 
 import { useCallback, useMemo } from 'react';
-import { Tag } from 'antd';
+import { Tag } from 'src/components/Tag';
+import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
-  css,
   isAdhocColumn,
-  t,
-  useTheme,
 } from '@superset-ui/core';
-import RowCountLabel from 'src/explore/components/RowCountLabel';
-import Icons from 'src/components/Icons';
+import { css, useTheme } from '@apache-superset/core/theme';
+import RowCountLabel from 'src/components/RowCountLabel';
+import { Icons } from '@superset-ui/core/components/Icons';
+import { Tooltip } from '@superset-ui/core/components';
+import { CopyToClipboardButton } from 'src/explore/components/DataTableControl';
+import { TabularDataRow } from 'src/utils/common';
+import { usePermissions } from 'src/hooks/usePermissions';
+import DownloadDropdown from './DownloadDropdown';
+
+export type TableControlsProps = {
+  filters: BinaryQueryObjectFilterClause[];
+  setFilters: (filters: BinaryQueryObjectFilterClause[]) => void;
+  totalCount?: number;
+  loading: boolean;
+  onReload: () => void;
+  canDownload: boolean;
+  onDownloadCSV: () => void;
+  onDownloadXLSX: () => void;
+  data?: TabularDataRow[];
+  columnNames?: string[];
+};
 
 export default function TableControls({
   filters,
@@ -35,14 +52,14 @@ export default function TableControls({
   totalCount,
   loading,
   onReload,
-}: {
-  filters: BinaryQueryObjectFilterClause[];
-  setFilters: (filters: BinaryQueryObjectFilterClause[]) => void;
-  totalCount?: number;
-  loading: boolean;
-  onReload: () => void;
-}) {
+  canDownload,
+  onDownloadCSV,
+  onDownloadXLSX,
+  data,
+  columnNames,
+}: TableControlsProps) {
   const theme = useTheme();
+  const { canCopyClipboard: copyEnabled } = usePermissions();
   const filterMap: Record<string, BinaryQueryObjectFilterClause> = useMemo(
     () =>
       Object.assign(
@@ -57,10 +74,10 @@ export default function TableControls({
   );
 
   const removeFilter = useCallback(
-    colName => {
+    (colName: string) => {
       const updatedFilterMap = { ...filterMap };
       delete updatedFilterMap[colName];
-      setFilters([...Object.values(updatedFilterMap)]);
+      setFilters(Object.values(updatedFilterMap));
     },
     [filterMap, setFilters],
   );
@@ -81,41 +98,34 @@ export default function TableControls({
       css={css`
         display: flex;
         justify-content: space-between;
-        padding: ${theme.gridUnit / 2}px 0;
-        margin-bottom: ${theme.gridUnit * 2}px;
+        padding: ${theme.sizeUnit / 2}px 0;
+        margin-bottom: ${theme.sizeUnit * 2}px;
       `}
     >
       <div
         css={css`
           display: flex;
           flex-wrap: wrap;
-          margin-bottom: -${theme.gridUnit * 4}px;
         `}
       >
-        {filterTags.map(({ colName, val }) => (
+        {filterTags.map(({ colName, val }, index) => (
           <Tag
-            closable
-            onClose={removeFilter.bind(null, colName)}
+            editable
+            onDelete={removeFilter.bind(null, colName)}
+            index={index}
+            id={index}
             key={colName}
-            css={css`
-              height: ${theme.gridUnit * 6}px;
-              display: flex;
-              align-items: center;
-              padding: ${theme.gridUnit / 2}px ${theme.gridUnit * 2}px;
-              margin-right: ${theme.gridUnit * 4}px;
-              margin-bottom: ${theme.gridUnit * 4}px;
-              line-height: 1.2;
-            `}
+            name={`${colName}=${val}`}
             data-test="filter-col"
           >
             <span
               css={css`
-                margin-right: ${theme.gridUnit}px;
+                margin-right: ${theme.sizeUnit}px;
               `}
             >
               {colName}
             </span>
-            <strong data-test="filter-val">{val}</strong>
+            <strong data-test="filter-val">{String(val)}</strong>
           </Tag>
         ))}
       </div>
@@ -124,16 +134,38 @@ export default function TableControls({
           display: flex;
           align-items: center;
           height: min-content;
+          gap: ${theme.sizeUnit * 3}px;
         `}
       >
         <RowCountLabel loading={loading && !totalCount} rowcount={totalCount} />
-        <Icons.ReloadOutlined
-          iconColor={theme.colors.grayscale.light1}
-          iconSize="l"
-          aria-label={t('Reload')}
-          role="button"
-          onClick={onReload}
-        />
+        {canDownload && (
+          <DownloadDropdown
+            onDownloadCSV={onDownloadCSV}
+            onDownloadXLSX={onDownloadXLSX}
+          />
+        )}
+        {copyEnabled ? (
+          <CopyToClipboardButton data={data} columns={columnNames} />
+        ) : (
+          <Tooltip title={t("You don't have permission to copy to clipboard")}>
+            <span>
+              <CopyToClipboardButton
+                data={data}
+                columns={columnNames}
+                disabled
+              />
+            </span>
+          </Tooltip>
+        )}
+        <Tooltip title={t('Reload')}>
+          <Icons.ReloadOutlined
+            iconColor={theme.colorIcon}
+            iconSize="l"
+            aria-label={t('Reload')}
+            role="button"
+            onClick={onReload}
+          />
+        </Tooltip>
       </div>
     </div>
   );

@@ -37,7 +37,7 @@ from superset.utils import json  # noqa: E402
 
 Base = declarative_base()
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("alembic.env")
 
 
 class Slice(Base):  # type: ignore
@@ -96,7 +96,7 @@ def upgrade():
                     slc.datasource_type,
                 )
 
-    # need commit the updated values for Slice.datasource_type before creating constraint
+    # need commit the updated values for Slice.datasource_type before creating constraint  # noqa: E501
     session.commit()
 
     with op.batch_alter_table("slices") as batch_op:

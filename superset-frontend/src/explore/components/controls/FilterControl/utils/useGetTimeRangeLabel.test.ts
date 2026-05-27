@@ -16,13 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook } from '@testing-library/react-hooks';
-import { NO_TIME_RANGE } from '@superset-ui/core';
-import * as uiCore from '@superset-ui/core';
+import { renderHook, waitFor } from '@testing-library/react';
+import { NO_TIME_RANGE, fetchTimeRange } from '@superset-ui/core';
 import { Operators } from 'src/explore/constants';
 import { useGetTimeRangeLabel } from './useGetTimeRangeLabel';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  fetchTimeRange: jest.fn(),
+}));
+
+const mockedFetchTimeRange = fetchTimeRange as jest.Mock;
 
 test('should return empty object if operator is not TEMPORAL_RANGE', () => {
   const adhocFilter = new AdhocFilter({
@@ -64,9 +70,7 @@ test('should get "No filter" label', () => {
 });
 
 test('should get actualTimeRange and title', async () => {
-  jest
-    .spyOn(uiCore, 'fetchTimeRange')
-    .mockResolvedValue({ value: 'MOCK TIME' });
+  mockedFetchTimeRange.mockResolvedValue({ value: 'MOCK TIME' });
 
   const adhocFilter = new AdhocFilter({
     expressionType: ExpressionTypes.Simple,
@@ -76,17 +80,17 @@ test('should get actualTimeRange and title', async () => {
     clause: Clauses.Where,
   });
 
-  const { result } = await renderHook(() => useGetTimeRangeLabel(adhocFilter));
-  expect(result.current).toEqual({
-    actualTimeRange: 'MOCK TIME',
-    title: 'Last week',
+  const { result } = renderHook(() => useGetTimeRangeLabel(adhocFilter));
+  await waitFor(() => {
+    expect(result.current).toEqual({
+      actualTimeRange: 'MOCK TIME',
+      title: 'Last week',
+    });
   });
 });
 
 test('should get actualTimeRange and title when gets an error', async () => {
-  jest
-    .spyOn(uiCore, 'fetchTimeRange')
-    .mockResolvedValue({ error: 'MOCK ERROR' });
+  mockedFetchTimeRange.mockResolvedValue({ error: 'MOCK ERROR' });
 
   const adhocFilter = new AdhocFilter({
     expressionType: ExpressionTypes.Simple,
@@ -96,9 +100,11 @@ test('should get actualTimeRange and title when gets an error', async () => {
     clause: Clauses.Where,
   });
 
-  const { result } = await renderHook(() => useGetTimeRangeLabel(adhocFilter));
-  expect(result.current).toEqual({
-    actualTimeRange: 'temporal column (Last week)',
-    title: 'MOCK ERROR',
+  const { result } = renderHook(() => useGetTimeRangeLabel(adhocFilter));
+  await waitFor(() => {
+    expect(result.current).toEqual({
+      actualTimeRange: 'temporal column (Last week)',
+      title: 'MOCK ERROR',
+    });
   });
 });

@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import type { ReactNode } from 'react';
 import Owner from 'src/types/Owner';
 import { NotificationFormats } from 'src/features/reports/types';
 
@@ -45,6 +46,7 @@ export enum NotificationMethodOption {
   Email = 'Email',
   Slack = 'Slack',
   SlackV2 = 'SlackV2',
+  Webhook = 'Webhook',
 }
 
 export type SelectValue = {
@@ -84,14 +86,26 @@ export type Recipient = {
 
 export type MetaObject = {
   id?: number;
-  label?: string;
+  label?: ReactNode;
   value?: number | string;
+  [key: string]: unknown;
 };
 
 export type DashboardState = {
   activeTabs?: Array<string>;
-  dataMask?: Object;
+  dataMask?: object;
   anchor?: string;
+  nativeFilters?: Array<ExtraNativeFilter>;
+};
+
+export type ExtraNativeFilter = {
+  filterName?: string;
+  filterType?: string;
+  columnName?: string;
+  columnLabel?: string;
+  filterValues?: Array<any> | [];
+  nativeFilterId?: string | null;
+  optionFilterValues?: Array<any> | [];
 };
 
 export type Extra = {
@@ -162,6 +176,7 @@ export enum RecipientIconName {
   Email = 'Email',
   Slack = 'Slack',
   SlackV2 = 'SlackV2',
+  Webhook = 'Webhook',
 }
 export interface AlertsReportsConfig {
   ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT: number;
@@ -191,3 +206,43 @@ export enum ContentType {
   Dashboard = 'dashboard',
   Chart = 'chart',
 }
+
+export type NativeFilterObject = {
+  cascadeParentIds: any[];
+  chartsInScope: number[];
+  controlValues: {
+    defaultToFirstItem: boolean;
+    enableEmptyFilter: boolean;
+    inverseSelection: boolean;
+    multiSelect: boolean;
+    searchAllOptions: boolean;
+  };
+  defaultDataMask: {
+    extraFormData: Record<string, any>;
+    filterState: Record<string, any>;
+    ownState: Record<string, any>;
+  };
+  description: string;
+  filterType: string;
+  id: string;
+  name: string;
+  scope: {
+    excluded: any[];
+    rootPath: string[];
+  };
+  tabsInScope: string[];
+  adhoc_filters: any[];
+  targets: Array<{
+    column: {
+      name: string;
+    };
+    datasetId: number;
+  }>;
+  type: string;
+};
+
+export type DashboardTabsResponse = {
+  tab_tree: TabNode[];
+  all_tabs: Record<string, string>;
+  native_filters: Partial<Record<string, NativeFilterObject[]>>;
+};

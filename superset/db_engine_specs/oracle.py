@@ -20,15 +20,30 @@ from typing import Any, Optional
 from sqlalchemy import types
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 
 
 class OracleEngineSpec(BaseEngineSpec):
     engine = "oracle"
     engine_name = "Oracle"
-    limit_method = LimitMethod.WRAP_SQL
+
+    metadata = {
+        "description": "Oracle Database is a multi-model database management system.",
+        "logo": "oraclelogo.png",
+        "homepage_url": "https://www.oracle.com/database/",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["oracledb"],
+        "connection_string": "oracle://{username}:{password}@{hostname}:{port}",
+        "default_port": 1521,
+        "notes": "Previously used cx_Oracle, now uses oracledb.",
+        "docs_url": "https://cx-oracle.readthedocs.io/en/latest/user_guide/installation.html",
+    }
     force_column_alias_quotes = True
-    max_column_name_length = 30
+    max_column_name_length = 128
+    supports_multivalues_insert = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -51,8 +66,9 @@ class OracleEngineSpec(BaseEngineSpec):
         if isinstance(sqla_type, types.Date):
             return f"TO_DATE('{dttm.date().isoformat()}', 'YYYY-MM-DD')"
         if isinstance(sqla_type, types.TIMESTAMP):
-            return f"""TO_TIMESTAMP('{dttm
-                .isoformat(timespec="microseconds")}', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
+            return f"""TO_TIMESTAMP('{
+                dttm.isoformat(timespec="microseconds")
+            }', 'YYYY-MM-DD"T"HH24:MI:SS.ff6')"""
         if isinstance(sqla_type, types.DateTime):
             datetime_formatted = dttm.isoformat(timespec="seconds")
             return f"""TO_DATE('{datetime_formatted}', 'YYYY-MM-DD"T"HH24:MI:SS')"""

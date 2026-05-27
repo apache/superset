@@ -57,7 +57,7 @@ def upgrade():
             if not adhoc_filters_b:
                 params["adhoc_filters_b"] = []
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()
@@ -76,7 +76,7 @@ def downgrade():
             if not adhoc_filters_b:
                 del params["adhoc_filters_b"]
                 slc.params = json.dumps(params, sort_keys=True)
-        except Exception:
+        except Exception:  # noqa: S110
             pass
 
     session.commit()

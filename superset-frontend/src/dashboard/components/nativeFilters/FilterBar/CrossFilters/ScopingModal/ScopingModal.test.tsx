@@ -17,11 +17,11 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import userEvent from '@testing-library/user-event';
 import {
   render,
   screen,
   selectOption,
+  userEvent,
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
@@ -38,6 +38,9 @@ const INITIAL_STATE = {
     2: { id: 2 },
     3: { id: 3 },
     4: { id: 4 },
+  },
+  dashboardState: {
+    sliceIds: [1, 2, 3, 4],
   },
   dashboardInfo: {
     id: 1,
@@ -148,21 +151,19 @@ const setup = (props = DEFAULT_PROPS) =>
 
 const DASHBOARD_UPDATE_URL = 'glob:*api/v1/dashboard/1';
 beforeEach(() => {
-  fetchMock.put(DASHBOARD_UPDATE_URL, 200);
+  fetchMock.put(DASHBOARD_UPDATE_URL, 200, { name: DASHBOARD_UPDATE_URL });
 });
 
-afterEach(() => {
-  fetchMock.restore();
-});
+afterEach(() => fetchMock.clearHistory().removeRoutes());
 
-it('renders modal', () => {
+test('renders modal', () => {
   setup();
-  expect(screen.getByRole('dialog')).toBeVisible();
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
   expect(screen.getByTestId('scoping-tree-panel')).toBeInTheDocument();
   expect(screen.getByTestId('scoping-list-panel')).toBeInTheDocument();
 });
 
-it('switch currently edited chart scoping', async () => {
+test('switch currently edited chart scoping', async () => {
   setup();
   const withinScopingList = within(screen.getByTestId('scoping-list-panel'));
   expect(withinScopingList.getByText('All charts/global scoping')).toHaveClass(
@@ -177,7 +178,7 @@ it('switch currently edited chart scoping', async () => {
   });
 });
 
-it('scoping tree global and custom checks', () => {
+test('scoping tree global and custom checks', () => {
   setup();
 
   expect(
@@ -197,7 +198,7 @@ it('scoping tree global and custom checks', () => {
   ).toHaveLength(2);
 });
 
-it('add new custom scoping', async () => {
+test('add new custom scoping', async () => {
   setup();
 
   userEvent.click(screen.getByText('Add custom scoping'));
@@ -223,7 +224,7 @@ it('add new custom scoping', async () => {
   ).toHaveLength(2);
 });
 
-it('edit scope and save', async () => {
+test('edit scope and save', async () => {
   setup();
 
   // unselect chart 2 in global scoping
@@ -254,7 +255,7 @@ it('edit scope and save', async () => {
       within(screen.getByTestId('scoping-list-panel'))
         .getByText('chart 4')
         .closest('div')!,
-    ).getByLabelText('trash'),
+    ).getByLabelText('delete'),
   );
   expect(
     within(screen.getByTestId('scoping-list-panel')).queryByText('chart 4'),
@@ -262,11 +263,12 @@ it('edit scope and save', async () => {
 
   userEvent.click(screen.getByText('Save'));
 
-  await waitFor(() => fetchMock.called(DASHBOARD_UPDATE_URL));
+  await waitFor(() => fetchMock.callHistory.called(DASHBOARD_UPDATE_URL));
 
   expect(
     JSON.parse(
-      JSON.parse(fetchMock.lastCall()?.[1]?.body as string).json_metadata,
+      JSON.parse(fetchMock.callHistory.lastCall()?.options?.body as string)
+        .json_metadata,
     ),
   ).toEqual({
     chart_configuration: {

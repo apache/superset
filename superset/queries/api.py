@@ -18,7 +18,13 @@ import logging
 from typing import Any
 
 import backoff
-from flask_appbuilder.api import expose, protect, request, rison, safe
+from flask_appbuilder.api import (
+    expose,
+    protect,
+    request,
+    rison as parse_rison,
+    safe,
+)
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 
 from superset import db, event_logger
@@ -91,6 +97,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "user.id",
         "user.last_name",
         "start_time",
+        "start_running_time",
         "end_time",
         "tmp_table_name",
         "tracking_url",
@@ -135,6 +142,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
     order_columns = [
         "changed_on",
         "database.database_name",
+        "duration",
         "rows",
         "schema",
         "start_time",
@@ -162,6 +170,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
         "user",
         "start_time",
         "sql_editor_id",
+        "uuid",
     ]
 
     allowed_rel_fields = {"database", "user"}
@@ -170,7 +179,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
     @expose("/updated_since")
     @protect()
     @safe
-    @rison(queries_get_updated_since_schema)
+    @parse_rison(queries_get_updated_since_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
@@ -225,8 +234,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
-        f".stop_query",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.stop_query",
         log_to_statsd=False,
     )
     @backoff.on_exception(

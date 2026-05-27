@@ -26,8 +26,15 @@ from tests.integration_tests.test_app import app
     [
         "http://base-url",
         "http://base-url/",
+        "https://base-url",
+        "https://base-url/",
     ],
-    ids=["Without trailing slash", "With trailing slash"],
+    ids=[
+        "Without trailing slash (HTTP)",
+        "With trailing slash (HTTP)",
+        "Without trailing slash (HTTPS)",
+        "With trailing slash (HTTPS)",
+    ],
 )
 @mock.patch("superset.tasks.cache.request.Request")
 @mock.patch("superset.tasks.cache.request.urlopen")
@@ -52,13 +59,19 @@ def test_fetch_csrf_token(mock_urlopen, mock_request_cls, base_url, app_context)
 
     result_headers = fetch_csrf_token(headers)
 
+    expected_url = (
+        f"{base_url}/api/v1/security/csrf_token/"
+        if not base_url.endswith("/")
+        else f"{base_url}api/v1/security/csrf_token/"
+    )
+
     mock_request_cls.assert_called_with(
-        "http://base-url/api/v1/security/csrf_token/",
+        expected_url,
         headers=headers,
         method="GET",
     )
 
     assert result_headers["X-CSRF-Token"] == "csrf_token"
-    assert result_headers["Cookie"] == "new_session_cookie"
+    assert result_headers["Cookie"] == "session=new_session_cookie"  # Updated assertion
     # assert the same Request object is used
     mock_urlopen.assert_called_once_with(mock_request, timeout=mock.ANY)

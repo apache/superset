@@ -1,6 +1,6 @@
 {
   "name": "@superset-ui/legacy-plugin-chart-partition",
-  "version": "0.18.25",
+  "version": "0.20.3",
   "description": "Superset Legacy Chart - Partition",
   "keywords": [
     "superset"
@@ -30,10 +30,11 @@
   "peerDependencies": {
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
+    "@apache-superset/core": "*",
     "@testing-library/jest-dom": "*",
-    "@testing-library/react": "^12.1.5",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1"
+    "@testing-library/react": "^14.0.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "publishConfig": {
     "access": "public"

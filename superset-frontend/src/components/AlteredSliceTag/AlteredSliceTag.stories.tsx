@@ -16,16 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import AlteredSliceTag from '.';
-import { defaultProps } from './AlteredSliceTagMocks';
+import { AlteredSliceTag } from '.';
+import { defaultProps, expectedDiffs } from './AlteredSliceTagMocks';
 
 export default {
-  title: 'AlteredSliceTag',
+  title: 'Components/AlteredSliceTag',
 };
 
 export const InteractiveSliceTag = (args: any) => <AlteredSliceTag {...args} />;
 
 InteractiveSliceTag.args = {
   origFormData: defaultProps.origFormData,
-  currentFormData: defaultProps.currentFormData,
+  diffs: expectedDiffs,
 };

@@ -53,7 +53,9 @@ def test_convert_dttm(
     expected_result: Optional[str],
     dttm: datetime,  # noqa: F811
 ) -> None:
-    from superset.db_engine_specs.databend import DatabendEngineSpec as spec
+    from superset.db_engine_specs.databend import (
+        DatabendEngineSpec as spec,  # noqa: N813
+    )
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
@@ -115,7 +117,9 @@ def test_get_column_spec(
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
-    from superset.db_engine_specs.databend import DatabendConnectEngineSpec as spec
+    from superset.db_engine_specs.databend import (
+        DatabendConnectEngineSpec as spec,  # noqa: N813
+    )
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 
@@ -123,12 +127,15 @@ def test_get_column_spec(
 @pytest.mark.parametrize(
     "column_name,expected_result",
     [
-        ("time", "time_07cc69"),
-        ("count", "count_e2942a"),
+        # SHA-256 hash suffix (first 6 chars) with default HASH_ALGORITHM
+        ("time", "time_336074"),
+        ("count", "count_6c3549"),
     ],
 )
 def test_make_label_compatible(column_name: str, expected_result: str) -> None:
-    from superset.db_engine_specs.databend import DatabendConnectEngineSpec as spec
+    from superset.db_engine_specs.databend import (
+        DatabendConnectEngineSpec as spec,  # noqa: N813
+    )
 
     label = spec.make_label_compatible(column_name)
     assert label == expected_result

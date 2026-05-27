@@ -32,6 +32,7 @@ from superset.db_engine_specs.base import (
     BasicParametersMixin,
     BasicParametersType as BaseBasicParametersType,
     BasicPropertiesType as BaseBasicPropertiesType,
+    DatabaseCategory,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.network import is_hostname_valid, is_port_open
@@ -85,6 +86,35 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
         "couchbase://user:password@host[:port]?truststorepath=value?ssl=value"
     )
     parameters_schema = CouchbaseParametersSchema()
+
+    metadata = {
+        "description": (
+            "Couchbase is a distributed NoSQL document database with SQL++ support."
+        ),
+        "logo": "couchbase.svg",
+        "homepage_url": "https://www.couchbase.com/",
+        "categories": [DatabaseCategory.SEARCH_NOSQL, DatabaseCategory.OPEN_SOURCE],
+        "pypi_packages": ["couchbase-sqlalchemy"],
+        "connection_string": "couchbase://{username}:{password}@{host}:{port}?ssl=true",
+        "default_port": 8091,
+        "parameters": {
+            "username": "Couchbase username",
+            "password": "Couchbase password",
+            "host": "Couchbase host or connection string for cloud",
+            "port": "Couchbase port (default 8091)",
+            "database": "Couchbase database/bucket name",
+        },
+        "drivers": [
+            {
+                "name": "couchbase-sqlalchemy",
+                "pypi_package": "couchbase-sqlalchemy",
+                "connection_string": (
+                    "couchbase://{username}:{password}@{host}:{port}?ssl=true"
+                ),
+                "is_recommended": True,
+            },
+        ],
+    }
 
     _time_grain_expressions = {
         None: "{col}",
@@ -177,7 +207,7 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
     ) -> list[SupersetError]:
         """
         Couchbase local server needs hostname and port but on cloud we need only connection String along with credentials to connect.
-        """
+        """  # noqa: E501
         errors: list[SupersetError] = []
 
         required = {"host", "username", "password", "database"}
@@ -187,7 +217,7 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
         if missing := sorted(required - present):
             errors.append(
                 SupersetError(
-                    message=f'One or more parameters are missing: {", ".join(missing)}',
+                    message=f"One or more parameters are missing: {', '.join(missing)}",
                     error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
                     level=ErrorLevel.WARNING,
                     extra={"missing": missing},
@@ -197,7 +227,7 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
         host = parameters.get("host", None)
         if not host:
             return errors
-        # host can be a connection string in case of couchbase cloud. So Connection Check is not required in that case.
+        # host can be a connection string in case of couchbase cloud. So Connection Check is not required in that case.  # noqa: E501
         if not is_hostname_valid(host):
             errors.append(
                 SupersetError(

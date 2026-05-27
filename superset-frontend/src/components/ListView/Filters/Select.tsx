@@ -24,19 +24,22 @@ import {
   type RefObject,
 } from 'react';
 
-import { t } from '@superset-ui/core';
-import { Select } from 'src/components';
-import { Filter, SelectOption } from 'src/components/ListView/types';
-import { FormLabel } from 'src/components/Form';
-import AsyncSelect from 'src/components/Select/AsyncSelect';
-import { FilterContainer, BaseFilter, FilterHandler } from './Base';
+import { t } from '@apache-superset/core/translation';
+import { Select, AsyncSelect, FormLabel } from '@superset-ui/core/components';
+import { ListViewFilter as Filter, SelectOption } from '../types';
+import type { BaseFilter, FilterHandler } from './types';
+import { FilterContainer } from './Base';
+import { SELECT_WIDTH } from '../utils';
 
 interface SelectFilterProps extends BaseFilter {
   fetchSelects?: Filter['fetchSelects'];
   name?: string;
   onSelect: (selected: SelectOption | undefined, isClear?: boolean) => void;
+  optionFilterProps?: string[];
   paginate?: boolean;
   selects: Filter['selects'];
+  loading?: boolean;
+  dropdownStyle?: React.CSSProperties;
 }
 
 function SelectFilter(
@@ -46,15 +49,34 @@ function SelectFilter(
     fetchSelects,
     initialValue,
     onSelect,
+    optionFilterProps,
     selects = [],
+    loading = false,
+    dropdownStyle,
   }: SelectFilterProps,
   ref: RefObject<FilterHandler>,
 ) {
   const [selectedOption, setSelectedOption] = useState(initialValue);
 
-  const onChange = (selected: SelectOption) => {
+  const onChange = (selected: SelectOption, option?: SelectOption) => {
+    // antd's `onChange` (with `labelInValue`) passes the `{label, value}`
+    // labeled-value as the first arg and the full option (which carries
+    // `title` and any other fields) as the second. Options may supply a
+    // ReactNode label (e.g. OwnerSelectLabel for the chart list Owner
+    // filter). Since this object is serialized into the URL and rehydrated
+    // as the filter pill on return, we need a plain string. Prefer `title`
+    // (set by callers to the human-readable name) before falling back to
+    // the value.
     onSelect(
-      selected ? { label: selected.label, value: selected.value } : undefined,
+      selected
+        ? {
+            label:
+              typeof selected.label === 'string'
+                ? selected.label
+                : (option?.title ?? String(selected.value)),
+            value: selected.value,
+          }
+        : undefined,
     );
     setSelectedOption(selected);
   };
@@ -86,19 +108,27 @@ function SelectFilter(
     },
     [fetchSelects],
   );
-
+  const placeholder = t('Choose...');
   return (
-    <FilterContainer>
+    <FilterContainer
+      data-test="select-filter-container"
+      width={SELECT_WIDTH}
+      vertical
+      justify="center"
+      align="start"
+    >
+      <FormLabel>{Header}</FormLabel>
       {fetchSelects ? (
         <AsyncSelect
           allowClear
           ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
           data-test="filters-select"
-          header={<FormLabel>{Header}</FormLabel>}
           onChange={onChange}
           onClear={onClear}
           options={fetchAndFormatSelects}
-          placeholder={t('Select or type a value')}
+          optionFilterProps={optionFilterProps}
+          placeholder={placeholder}
+          dropdownStyle={dropdownStyle}
           showSearch
           value={selectedOption}
         />
@@ -107,14 +137,15 @@ function SelectFilter(
           allowClear
           ariaLabel={typeof Header === 'string' ? Header : name || t('Filter')}
           data-test="filters-select"
-          header={<FormLabel>{Header}</FormLabel>}
           labelInValue
           onChange={onChange}
           onClear={onClear}
           options={selects}
-          placeholder={t('Select or type a value')}
+          placeholder={placeholder}
+          dropdownStyle={dropdownStyle}
           showSearch
           value={selectedOption}
+          loading={loading}
         />
       )}
     </FilterContainer>

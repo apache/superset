@@ -25,13 +25,14 @@ export const DEFAULT_FORM_DATA: Partial<EchartsBubbleFormData> = {
   emitFilter: false,
   logXAis: false,
   logYAxis: false,
-  xAxisTitleMargin: 30,
-  yAxisTitleMargin: 30,
+  xAxisTitleMargin: 40,
+  yAxisTitleMargin: 50,
   truncateXAxis: false,
   truncateYAxis: false,
   xAxisBounds: [null, null],
   yAxisBounds: [null, null],
   xAxisLabelRotation: defaultXAxis.xAxisLabelRotation,
+  xAxisLabelInterval: defaultXAxis.xAxisLabelInterval,
   opacity: 0.6,
 };
 

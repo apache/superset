@@ -16,25 +16,31 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo } from 'react';
+import {
+  useCallback,
+  useMemo,
+  type MouseEvent as ReactMouseEvent,
+} from 'react';
 import { MinusSquareOutlined, PlusSquareOutlined } from '@ant-design/icons';
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocMetric,
   BinaryQueryObjectFilterClause,
+  Currency,
   CurrencyFormatter,
   DataRecordValue,
   FeatureFlag,
   getColumnLabel,
   getNumberFormatter,
   getSelectedText,
+  hasMixedCurrencies,
   isAdhocColumn,
   isFeatureEnabled,
   isPhysicalColumn,
+  normalizeCurrency,
   NumberFormatter,
-  styled,
-  t,
-  useTheme,
 } from '@superset-ui/core';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { aggregatorTemplates, PivotTable, sortAs } from './react-pivottable';
 import {
   FilterType,
@@ -55,23 +61,117 @@ const Styles = styled.div<PivotTableStylesProps>`
 `;
 
 const PivotTableWrapper = styled.div`
-  height: 100%;
-  max-width: inherit;
-  overflow: auto;
+  ${({ theme }) => `
+    height: 100%;
+    max-width: inherit;
+    overflow: auto;
+
+    /* Chrome/Safari/Edge webkit scrollbar styling */
+    &::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: ${theme.colorFillQuaternary};
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: ${theme.colorFillSecondary};
+      border-radius: ${theme.borderRadiusSM}px;
+
+      &:hover {
+        background: ${theme.colorFillTertiary};
+      }
+    }
+
+    &::-webkit-scrollbar-corner {
+      background: ${theme.colorFillQuaternary};
+    }
+
+    /* Firefox scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: ${theme.colorFillSecondary} ${theme.colorFillQuaternary};
+  `}
 `;
 
 const METRIC_KEY = t('Metric');
 const vals = ['value'];
 
 const StyledPlusSquareOutlined = styled(PlusSquareOutlined)`
-  stroke: ${({ theme }) => theme.colors.grayscale.light2};
+  stroke: ${({ theme }) => theme.colorBorderSecondary};
   stroke-width: 16px;
 `;
 
 const StyledMinusSquareOutlined = styled(MinusSquareOutlined)`
-  stroke: ${({ theme }) => theme.colors.grayscale.light2};
+  stroke: ${({ theme }) => theme.colorBorderSecondary};
   stroke-width: 16px;
 `;
+
+/** Aggregator with currency tracking support */
+interface CurrencyTrackingAggregator {
+  getCurrencies?: () => string[];
+}
+
+type BaseFormatter = NumberFormatter | CurrencyFormatter;
+
+/** Create formatter that handles AUTO mode with per-cell currency detection */
+const createCurrencyAwareFormatter = (
+  baseFormatter: BaseFormatter,
+  currencyConfig: Currency | undefined,
+  d3Format: string,
+  fallbackCurrency?: string,
+): ((value: number, aggregator?: CurrencyTrackingAggregator) => string) => {
+  const isAutoMode = currencyConfig?.symbol === 'AUTO';
+
+  return (value: number, aggregator?: CurrencyTrackingAggregator): string => {
+    // If not AUTO mode, use base formatter directly
+    if (!isAutoMode) {
+      return baseFormatter(value);
+    }
+
+    // AUTO mode: check aggregator for currency tracking
+    if (aggregator && typeof aggregator.getCurrencies === 'function') {
+      const currencies = aggregator.getCurrencies();
+
+      if (currencies && currencies.length > 0) {
+        if (hasMixedCurrencies(currencies)) {
+          return getNumberFormatter(d3Format)(value);
+        }
+
+        const detectedCurrency = normalizeCurrency(currencies[0]);
+        if (detectedCurrency && currencyConfig) {
+          const cellFormatter = new CurrencyFormatter({
+            currency: {
+              symbol: detectedCurrency,
+              symbolPosition: currencyConfig.symbolPosition,
+            },
+            d3Format,
+          });
+          return cellFormatter(value);
+        }
+      }
+    }
+
+    // Fallback: use detected_currency from API response if available
+    if (fallbackCurrency && currencyConfig) {
+      const normalizedFallback = normalizeCurrency(fallbackCurrency);
+      if (normalizedFallback) {
+        const fallbackFormatter = new CurrencyFormatter({
+          currency: {
+            symbol: normalizedFallback,
+            symbolPosition: currencyConfig.symbolPosition,
+          },
+          d3Format,
+        });
+        return fallbackFormatter(value);
+      }
+    }
+
+    // Final fallback to neutral format
+    return getNumberFormatter(d3Format)(value);
+  };
+};
 
 const aggregatorsFactory = (formatter: NumberFormatter) => ({
   Count: aggregatorTemplates.count(formatter),
@@ -143,6 +243,8 @@ export default function PivotTableChart(props: PivotTableProps) {
     rowSubTotals,
     valueFormat,
     currencyFormat,
+    currencyCodeColumn,
+    detectedCurrency,
     emitCrossFilters,
     setDataMask,
     selectedFilters,
@@ -158,15 +260,29 @@ export default function PivotTableChart(props: PivotTableProps) {
   } = props;
 
   const theme = useTheme();
-  const defaultFormatter = useMemo(
+
+  // Base formatter without currency-awareness (for non-AUTO mode or as fallback)
+  const baseFormatter = useMemo(
     () =>
-      currencyFormat?.symbol
+      currencyFormat?.symbol && currencyFormat.symbol !== 'AUTO'
         ? new CurrencyFormatter({
             currency: currencyFormat,
             d3Format: valueFormat,
           })
         : getNumberFormatter(valueFormat),
     [valueFormat, currencyFormat],
+  );
+
+  // Currency-aware formatter for AUTO mode support
+  const defaultFormatter = useMemo(
+    () =>
+      createCurrencyAwareFormatter(
+        baseFormatter,
+        currencyFormat,
+        valueFormat,
+        detectedCurrency ?? undefined,
+      ),
+    [baseFormatter, currencyFormat, valueFormat, detectedCurrency],
   );
   const customFormatsArray = useMemo(
     () =>
@@ -188,19 +304,31 @@ export default function PivotTableChart(props: PivotTableProps) {
       hasCustomMetricFormatters
         ? {
             [METRIC_KEY]: Object.fromEntries(
-              customFormatsArray.map(([metric, d3Format, currency]) => [
-                metric,
-                currency
-                  ? new CurrencyFormatter({
-                      currency,
-                      d3Format,
-                    })
-                  : getNumberFormatter(d3Format),
-              ]),
+              customFormatsArray.map(([metric, d3Format, currency]) => {
+                // Create base formatter
+                const metricBaseFormatter =
+                  currency && (currency as Currency).symbol !== 'AUTO'
+                    ? new CurrencyFormatter({
+                        currency: currency as Currency,
+                        d3Format: d3Format as string,
+                      })
+                    : getNumberFormatter(d3Format as string);
+
+                // Wrap with currency-aware formatter for AUTO mode support
+                return [
+                  metric,
+                  createCurrencyAwareFormatter(
+                    metricBaseFormatter,
+                    currency as Currency | undefined,
+                    d3Format as string,
+                    detectedCurrency ?? undefined,
+                  ),
+                ];
+              }),
             ),
           }
         : undefined,
-    [customFormatsArray, hasCustomMetricFormatters],
+    [customFormatsArray, hasCustomMetricFormatters, detectedCurrency],
   );
 
   const metricNames = useMemo(
@@ -221,12 +349,14 @@ export default function PivotTableChart(props: PivotTableProps) {
               ...record,
               [METRIC_KEY]: name,
               value: record[name],
+              // Mark currency column for per-cell currency detection in aggregators
+              __currencyColumn: currencyCodeColumn,
             }))
             .filter(record => record.value !== null),
         ],
         [],
       ),
-    [data, metricNames],
+    [data, metricNames, currencyCodeColumn],
   );
   const groupbyRows = useMemo(
     () => groupbyRowsRaw.map(getColumnLabel),
@@ -309,11 +439,22 @@ export default function PivotTableChart(props: PivotTableProps) {
     [groupbyColumnsRaw, groupbyRowsRaw, setDataMask],
   );
 
+  const isActiveFilterValue = useCallback(
+    (key: string, val: DataRecordValue) => {
+      if (!selectedFilters || !selectedFilters[key]) return false;
+      return selectedFilters[key].some((filterVal: DataRecordValue) => {
+        if (filterVal === val) return true;
+        if (filterVal instanceof Date && val instanceof Date) {
+          return filterVal.getTime() === val.getTime();
+        }
+        return false;
+      });
+    },
+    [selectedFilters],
+  );
+
   const getCrossFilterDataMask = useCallback(
     (value: { [key: string]: string }) => {
-      const isActiveFilterValue = (key: string, val: DataRecordValue) =>
-        !!selectedFilters && selectedFilters[key]?.includes(val);
-
       if (!value) {
         return undefined;
       }
@@ -370,12 +511,12 @@ export default function PivotTableChart(props: PivotTableProps) {
         isCurrentValueSelected: isActiveFilterValue(key, val),
       };
     },
-    [groupbyColumnsRaw, groupbyRowsRaw, selectedFilters],
+    [groupbyColumnsRaw, groupbyRowsRaw, isActiveFilterValue, selectedFilters],
   );
 
   const toggleFilter = useCallback(
     (
-      e: MouseEvent,
+      e: ReactMouseEvent,
       value: string,
       filters: FilterType,
       pivotData: Record<string, any>,
@@ -391,9 +532,6 @@ export default function PivotTableChart(props: PivotTableProps) {
         return;
       }
 
-      const isActiveFilterValue = (key: string, val: DataRecordValue) =>
-        !!selectedFilters && selectedFilters[key]?.includes(val);
-
       const filtersCopy = { ...filters };
       delete filtersCopy[METRIC_KEY];
 
@@ -403,16 +541,24 @@ export default function PivotTableChart(props: PivotTableProps) {
       }
 
       const [key, val] = filtersEntries[filtersEntries.length - 1];
+      const isMultiSelect = e.metaKey || e.ctrlKey;
 
-      let updatedFilters = { ...(selectedFilters || {}) };
-      // multi select
-      // if (selectedFilters && isActiveFilterValue(key, val)) {
-      //   updatedFilters[key] = selectedFilters[key].filter((x: DataRecordValue) => x !== val);
-      // } else {
-      //   updatedFilters[key] = [...(selectedFilters?.[key] || []), val];
-      // }
-      // single select
-      if (selectedFilters && isActiveFilterValue(key, val)) {
+      let updatedFilters = { ...selectedFilters };
+      if (isMultiSelect) {
+        if (isActiveFilterValue(key, val)) {
+          updatedFilters[key] = (selectedFilters?.[key] || []).filter(
+            (x: DataRecordValue) => {
+              if (x === val) return false;
+              if (x instanceof Date && val instanceof Date) {
+                return x.getTime() !== val.getTime();
+              }
+              return true;
+            },
+          );
+        } else {
+          updatedFilters[key] = [...(selectedFilters?.[key] || []), val];
+        }
+      } else if (isActiveFilterValue(key, val)) {
         updatedFilters = {};
       } else {
         updatedFilters = {
@@ -427,7 +573,7 @@ export default function PivotTableChart(props: PivotTableProps) {
       }
       handleChange(updatedFilters);
     },
-    [emitCrossFilters, selectedFilters, handleChange],
+    [emitCrossFilters, isActiveFilterValue, selectedFilters, handleChange],
   );
 
   const tableOptions = useMemo(
@@ -446,6 +592,9 @@ export default function PivotTableChart(props: PivotTableProps) {
       omittedHighlightHeaderGroups: [METRIC_KEY],
       cellColorFormatters: { [METRIC_KEY]: metricColorFormatters },
       dateFormatters,
+      cellBackgroundColor: theme.colorBgBase,
+      cellTextColor: theme.colorPrimaryText,
+      activeHeaderBackgroundColor: theme.colorPrimaryBg,
     }),
     [
       colTotals,
@@ -456,6 +605,9 @@ export default function PivotTableChart(props: PivotTableProps) {
       rowTotals,
       rowSubTotals,
       selectedFilters,
+      theme.colorBgBase,
+      theme.colorPrimaryBg,
+      theme.colorPrimaryText,
       toggleFilter,
     ],
   );
@@ -472,10 +624,10 @@ export default function PivotTableChart(props: PivotTableProps) {
 
   const handleContextMenu = useCallback(
     (
-      e: MouseEvent,
-      colKey: (string | number | boolean)[] | undefined,
-      rowKey: (string | number | boolean)[] | undefined,
-      dataPoint: { [key: string]: string },
+      e: ReactMouseEvent,
+      colKey?: string[],
+      rowKey?: string[],
+      dataPoint?: { [key: string]: string },
     ) => {
       if (onContextMenu) {
         e.preventDefault();
@@ -485,7 +637,7 @@ export default function PivotTableChart(props: PivotTableProps) {
           colKey.forEach((val, i) => {
             const col = cols[i];
             const formatter = dateFormatters[col];
-            const formattedVal = formatter?.(val as number) || String(val);
+            const formattedVal = formatter?.(Number(val)) || String(val);
             if (i > 0) {
               drillToDetailFilters.push({
                 col,
@@ -501,7 +653,7 @@ export default function PivotTableChart(props: PivotTableProps) {
           rowKey.forEach((val, i) => {
             const col = rows[i];
             const formatter = dateFormatters[col];
-            const formattedVal = formatter?.(val as number) || String(val);
+            const formattedVal = formatter?.(Number(val)) || String(val);
             drillToDetailFilters.push({
               col,
               op: '==',
@@ -513,7 +665,9 @@ export default function PivotTableChart(props: PivotTableProps) {
         }
         onContextMenu(e.clientX, e.clientY, {
           drillToDetail: drillToDetailFilters,
-          crossFilter: getCrossFilterDataMask(dataPoint),
+          crossFilter: dataPoint
+            ? getCrossFilterDataMask(dataPoint)
+            : undefined,
           drillBy: dataPoint && {
             filters: [
               {
@@ -538,7 +692,7 @@ export default function PivotTableChart(props: PivotTableProps) {
   );
 
   return (
-    <Styles height={height} width={width} margin={theme.gridUnit * 4}>
+    <Styles height={height} width={width} margin={theme.sizeUnit * 4}>
       <PivotTableWrapper>
         <PivotTable
           data={unpivotedData}

@@ -69,7 +69,7 @@ class TestPrestoValidator(SupersetTestCase):
         fetch_fn = self.database.db_engine_spec.fetch_data
         fetch_fn.side_effect = DatabaseError("dummy db error")
 
-        with self.assertRaises(PrestoSQLValidationError):
+        with self.assertRaises(PrestoSQLValidationError):  # noqa: PT027
             self.validator.validate(sql, None, schema, self.database)
 
     @patch("superset.utils.core.g")
@@ -81,7 +81,7 @@ class TestPrestoValidator(SupersetTestCase):
         fetch_fn = self.database.db_engine_spec.fetch_data
         fetch_fn.side_effect = Exception("a mysterious failure")
 
-        with self.assertRaises(Exception):
+        with self.assertRaises(Exception):  # noqa: B017, PT027
             self.validator.validate(sql, None, schema, self.database)
 
     @patch("superset.utils.core.g")

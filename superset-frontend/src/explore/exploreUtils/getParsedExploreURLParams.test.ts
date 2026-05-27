@@ -17,13 +17,28 @@
  * under the License.
  */
 
+import { VizType } from '@superset-ui/core';
 import { getParsedExploreURLParams } from './getParsedExploreURLParams';
 
 const EXPLORE_BASE_URL = 'http://localhost:9000/explore/';
+
+afterEach(() => {
+  jest.restoreAllMocks();
+});
+
 const setupLocation = (newUrl: string) => {
-  delete (window as any).location;
-  // @ts-ignore
-  window.location = new URL(newUrl);
+  const u = new URL(newUrl);
+  jest.spyOn(window, 'location', 'get').mockReturnValue({
+    href: u.href,
+    pathname: u.pathname,
+    search: u.search,
+    hash: u.hash,
+    origin: u.origin,
+    host: u.host,
+    hostname: u.hostname,
+    port: u.port,
+    protocol: u.protocol,
+  } as Location);
 };
 
 test('get form_data_key and slice_id from search params - url when moving from dashboard to explore', () => {
@@ -45,7 +60,7 @@ test('get datasource and viz type from form_data search param - url when creatin
     `${EXPLORE_BASE_URL}?form_data=%7B%22viz_type%22%3A%22big_number%22%2C%22datasource%22%3A%222__table%22%7D`,
   );
   expect(getParsedExploreURLParams().toString()).toEqual(
-    'viz_type=big_number&datasource_id=2&datasource_type=table',
+    `viz_type=${VizType.BigNumber}&datasource_id=2&datasource_type=table`,
   );
 });
 

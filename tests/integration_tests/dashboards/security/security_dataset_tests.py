@@ -16,11 +16,13 @@
 # under the License.
 """Unit tests for Superset"""
 
-import prison
 import pytest
-from flask import escape  # noqa: F401
+import rison
+from flask import (
+    current_app,
+    escape,  # noqa: F401
+)
 
-from superset import app
 from superset.daos.dashboard import DashboardDAO
 from superset.utils import json
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
@@ -37,7 +39,7 @@ from tests.integration_tests.fixtures.energy_dashboard import (
 class TestDashboardDatasetSecurity(DashboardTestCase):
     @pytest.fixture
     def load_dashboard(self):
-        with app.app_context():
+        with current_app.app_context():
             table = (
                 db.session.query(SqlaTable).filter_by(table_name="energy_usage").one()  # noqa: F405
             )
@@ -85,7 +87,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         }
 
         # assert
-        for dashboard_url, get_dashboard_response in responses_by_url.items():
+        for dashboard_url, get_dashboard_response in responses_by_url.items():  # noqa: B007
             self.assert200(get_dashboard_response)
 
     def test_get_dashboards__users_are_dashboards_owners(self):
@@ -187,7 +189,7 @@ class TestDashboardDatasetSecurity(DashboardTestCase):
         arguments = {
             "filters": [{"col": "dashboard_title", "opr": "sw", "value": title[0:8]}]
         }
-        uri = DASHBOARDS_API_URL_WITH_QUERY_FORMAT.format(prison.dumps(arguments))  # noqa: F405
+        uri = DASHBOARDS_API_URL_WITH_QUERY_FORMAT.format(rison.dumps(arguments))  # noqa: F405
         rv = self.client.get(uri)
         self.assert200(rv)
         data = json.loads(rv.data.decode("utf-8"))

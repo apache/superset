@@ -18,52 +18,61 @@
  */
 
 import '@testing-library/jest-dom';
-import { screen, render } from '@testing-library/react';
+import { screen, render, within } from '@testing-library/react';
 import { TooltipTable } from '@superset-ui/core';
 import { CSSProperties } from 'react';
 
 describe('TooltipTable', () => {
-  it('sets className', () => {
-    const { container } = render(<TooltipTable className="test-class" />);
-    expect(container.querySelector('[class="test-class"]')).toBeInTheDocument();
+  test('sets className', () => {
+    const { container } = render(
+      <TooltipTable className="test-class" data={[]} />,
+    );
+    expect(container.querySelector('.test-class')).toBeInTheDocument();
   });
 
-  it('renders empty table', () => {
-    const { container } = render(<TooltipTable />);
-    expect(container.querySelector('tbody')).toBeInTheDocument();
-    expect(container.querySelector('tr')).not.toBeInTheDocument();
+  test('renders empty table', () => {
+    render(<TooltipTable data={[]} />);
+    const table = screen.getByRole('table');
+    expect(table).toBeInTheDocument();
+    const rows = within(table).queryAllByRole('row');
+    expect(rows.length).toBe(1);
+    expect(rows[0]).toHaveTextContent(/No Data|empty/i);
   });
 
-  it('renders table with content', async () => {
+  test('renders table with content', async () => {
     const data = [
       {
         key: 'Cersei',
         keyColumn: 'Cersei',
         keyStyle: { padding: '10' },
         valueColumn: 2,
-        valueStyle: { textAlign: 'right' } as CSSProperties,
+        valueStyle: { textAlign: 'right' as CSSProperties['textAlign'] },
       },
       {
         key: 'Jaime',
         keyColumn: 'Jaime',
         keyStyle: { padding: '10' },
         valueColumn: 1,
-        valueStyle: { textAlign: 'right' } as CSSProperties,
+        valueStyle: { textAlign: 'right' as CSSProperties['textAlign'] },
       },
-      {
-        key: 'Tyrion',
-        keyStyle: { padding: '10' },
-        valueColumn: 2,
-      },
+      { key: 'Tyrion', keyStyle: { padding: '10' }, valueColumn: 2 },
     ];
 
     render(<TooltipTable data={data} />);
 
-    for await (const { key, valueColumn } of data) {
-      const keyCell = await screen.findByText(key);
-      const valueCell = keyCell?.nextSibling as HTMLElement;
-      expect(keyCell).toBeInTheDocument();
-      expect(valueCell?.textContent).toEqual(String(valueColumn));
-    }
+    await Promise.all(
+      data.map(async ({ keyColumn, key, valueColumn }) => {
+        const keyText = keyColumn ?? key;
+        const keyCell = await screen.findByText(keyText);
+        expect(keyCell).toBeInTheDocument();
+
+        const row = keyCell.closest('tr');
+        expect(row).toBeInTheDocument();
+
+        const cells = within(row!).getAllByRole('cell');
+        expect(cells[0]).toHaveTextContent(String(keyText));
+        expect(cells[1]).toHaveTextContent(String(valueColumn));
+      }),
+    );
   });
 });

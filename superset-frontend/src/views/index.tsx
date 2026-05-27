@@ -16,7 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import ReactDOM from 'react-dom';
-import App from './App';
+import 'src/public-path';
 
-ReactDOM.render(<App />, document.getElementById('app'));
+import { createRoot } from 'react-dom/client';
+import { logging } from '@apache-superset/core/utils';
+import initPreamble from 'src/preamble';
+
+const appMountPoint = document.getElementById('app');
+
+if (appMountPoint) {
+  const root = createRoot(appMountPoint);
+  (async () => {
+    try {
+      await initPreamble();
+    } finally {
+      const { default: App } = await import(/* webpackMode: "eager" */ './App');
+      root.render(<App />);
+    }
+  })().catch(err => {
+    logging.error('Unhandled error during app initialization', err);
+  });
+}

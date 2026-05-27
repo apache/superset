@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from superset.db_engine_specs.base import BaseEngineSpec, LimitMethod
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 
 
 class TeradataEngineSpec(BaseEngineSpec):
@@ -23,11 +23,36 @@ class TeradataEngineSpec(BaseEngineSpec):
 
     engine = "teradatasql"
     engine_name = "Teradata"
-    limit_method = LimitMethod.WRAP_SQL
+
+    metadata = {
+        "description": "Teradata is an enterprise data warehouse platform.",
+        "logo": "teradata.png",
+        "homepage_url": "https://www.teradata.com/",
+        "categories": [
+            DatabaseCategory.TRADITIONAL_RDBMS,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["teradatasqlalchemy"],
+        "connection_string": "teradatasql://{user}:{password}@{host}",
+        "default_port": 1025,
+        "drivers": [
+            {
+                "name": "teradatasqlalchemy (Recommended)",
+                "pypi_package": "teradatasqlalchemy",
+                "connection_string": "teradatasql://{user}:{password}@{host}",
+                "is_recommended": True,
+                "notes": "No ODBC drivers required.",
+            },
+            {
+                "name": "sqlalchemy-teradata (ODBC)",
+                "pypi_package": "sqlalchemy-teradata",
+                "is_recommended": False,
+                "notes": "Requires ODBC driver installation.",
+                "docs_url": "https://downloads.teradata.com/download/connectivity/odbc-driver/linux",
+            },
+        ],
+    }
     max_column_name_length = 30  # since 14.10 this is 128
-    allow_limit_clause = False
-    select_keywords = {"SELECT", "SEL"}
-    top_keywords = {"TOP", "SAMPLE"}
 
     _time_grain_expressions = {
         None: "{col}",

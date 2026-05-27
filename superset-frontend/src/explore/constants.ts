@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 
 export const AGGREGATES = {
   AVG: 'AVG',
@@ -83,8 +83,8 @@ export const OPERATOR_ENUM_TO_OPERATOR_TYPE: {
     display: t('use latest_partition template'),
     operation: 'LATEST PARTITION',
   },
-  [Operators.IsTrue]: { display: t('Is true'), operation: '==' },
-  [Operators.IsFalse]: { display: t('Is false'), operation: '==' },
+  [Operators.IsTrue]: { display: t('Is true'), operation: 'IS TRUE' },
+  [Operators.IsFalse]: { display: t('Is false'), operation: 'IS FALSE' },
   [Operators.TemporalRange]: {
     display: t('TEMPORAL_RANGE'),
     operation: 'TEMPORAL_RANGE',

@@ -26,6 +26,7 @@ from pytest_mock import MockerFixture
 
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.result_set import stringify_values, SupersetResultSet
+from superset.superset_typing import DbapiResult
 
 
 def test_column_names_as_bytes() -> None:
@@ -164,3 +165,82 @@ def test_timezone_series(mocker: MockerFixture) -> None:
         [pd.Timestamp("2023-01-01 00:00:00+0000", tz="UTC")]
     ]
     logger.exception.assert_not_called()
+
+
+def test_get_column_description_from_empty_data_using_cursor_description(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that we can handle get_column_decription from the cursor description
+    when data is empty
+    """
+    logger = mocker.patch("superset.result_set.logger")
+
+    data: DbapiResult = []
+    description = [(b"__time", "datetime", None, None, None, None, 1, 0, 255)]
+    result_set = SupersetResultSet(
+        data,
+        description,  # type: ignore
+        BaseEngineSpec,
+    )
+    assert any(col.get("column_name") == "__time" for col in result_set.columns)
+    logger.exception.assert_not_called()
+
+
+def test_empty_column_names_get_synthetic_names() -> None:
+    """
+    SQL Server returns an empty-string column name in cursor.description for
+    any un-aliased expression (e.g. ``SELECT COUNT(*) FROM t``).  An empty
+    field name is illegal in NumPy structured arrays and PyArrow tables.
+
+    SupersetResultSet must replace empty column names with synthetic names
+    so queries like ``SELECT COUNT(*) FROM t`` succeed on MSSQL.
+
+    Regression test for https://github.com/apache/superset/issues/23848
+    """
+    data = [(42,)]
+    description = [("", 3, None, None, None, None, None)]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+
+    assert result_set.columns[0]["column_name"] == "_col_0"
+    df = result_set.to_pandas_df()
+    assert list(df.columns) == ["_col_0"]
+    assert df["_col_0"].iloc[0] == 42
+
+
+def test_multiple_empty_column_names_get_unique_synthetic_names() -> None:
+    """
+    When several columns have empty names (e.g. ``SELECT COUNT(*), SUM(x)``
+    on MSSQL), each must receive a distinct synthetic name.
+    """
+    data = [(10, 20)]
+    description = [
+        ("", 3, None, None, None, None, None),
+        ("", 3, None, None, None, None, None),
+    ]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+
+    col_names = [c["column_name"] for c in result_set.columns]
+    assert len(col_names) == 2
+    assert len(set(col_names)) == 2  # all unique
+    df = result_set.to_pandas_df()
+    assert df.iloc[0].tolist() == [10, 20]
+
+
+def test_empty_column_names_do_not_rename_explicit_synthetic_names() -> None:
+    """
+    Synthetic names assigned to empty columns must not collide with explicit
+    user-selected names that already look like Superset fallbacks.
+    """
+    data = [(10, 20)]
+    description = [
+        ("", 3, None, None, None, None, None),
+        ("_col_0", 3, None, None, None, None, None),
+    ]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+
+    col_names = [c["column_name"] for c in result_set.columns]
+    assert col_names == ["_col_1", "_col_0"]
+    df = result_set.to_pandas_df()
+    assert list(df.columns) == ["_col_1", "_col_0"]
+    assert df.iloc[0].tolist() == [10, 20]

@@ -37,8 +37,8 @@ logger = logging.getLogger(__name__)
 @celery_app.task(name="cache_chart_thumbnail", soft_time_limit=300)
 def cache_chart_thumbnail(
     current_user: Optional[str],
-    chart_id: int,
-    force: bool = False,
+    chart_id: str,
+    force: bool,
     window_size: Optional[WindowSize] = None,
     thumb_size: Optional[WindowSize] = None,
 ) -> None:
@@ -55,7 +55,7 @@ def cache_chart_thumbnail(
     url = get_url_path("Superset.slice", slice_id=chart.id)
     logger.info("Caching chart: %s", url)
     _, username = get_executor(
-        executor_types=current_app.config["THUMBNAIL_EXECUTE_AS"],
+        executors=current_app.config["THUMBNAIL_EXECUTORS"],
         model=chart,
         current_user=current_user,
     )
@@ -64,10 +64,9 @@ def cache_chart_thumbnail(
         screenshot = ChartScreenshot(url, chart.digest)
         screenshot.compute_and_cache(
             user=user,
-            cache=thumbnail_cache,
-            force=force,
             window_size=window_size,
             thumb_size=thumb_size,
+            force=force,
         )
     return None
 
@@ -76,9 +75,10 @@ def cache_chart_thumbnail(
 def cache_dashboard_thumbnail(
     current_user: Optional[str],
     dashboard_id: int,
-    force: bool = False,
+    force: bool,
     thumb_size: Optional[WindowSize] = None,
     window_size: Optional[WindowSize] = None,
+    cache_key: str | None = None,
 ) -> None:
     # pylint: disable=import-outside-toplevel
     from superset.models.dashboard import Dashboard
@@ -92,7 +92,7 @@ def cache_dashboard_thumbnail(
 
     logger.info("Caching dashboard: %s", url)
     _, username = get_executor(
-        executor_types=current_app.config["THUMBNAIL_EXECUTE_AS"],
+        executors=current_app.config["THUMBNAIL_EXECUTORS"],
         model=dashboard,
         current_user=current_user,
     )
@@ -101,10 +101,10 @@ def cache_dashboard_thumbnail(
         screenshot = DashboardScreenshot(url, dashboard.digest)
         screenshot.compute_and_cache(
             user=user,
-            cache=thumbnail_cache,
-            force=force,
             window_size=window_size,
             thumb_size=thumb_size,
+            force=force,
+            cache_key=cache_key,
         )
 
 
@@ -113,7 +113,7 @@ def cache_dashboard_screenshot(  # pylint: disable=too-many-arguments
     username: str,
     dashboard_id: int,
     dashboard_url: str,
-    force: bool = True,
+    force: bool,
     cache_key: Optional[str] = None,
     guest_token: Optional[GuestToken] = None,
     thumb_size: Optional[WindowSize] = None,
@@ -135,7 +135,7 @@ def cache_dashboard_screenshot(  # pylint: disable=too-many-arguments
         current_user = security_manager.get_guest_user_from_token(guest_token)
     else:
         _, exec_username = get_executor(
-            executor_types=current_app.config["THUMBNAIL_EXECUTE_AS"],
+            executors=current_app.config["THUMBNAIL_EXECUTORS"],
             model=dashboard,
             current_user=username,
         )
@@ -145,9 +145,8 @@ def cache_dashboard_screenshot(  # pylint: disable=too-many-arguments
         screenshot = DashboardScreenshot(dashboard_url, dashboard.digest)
         screenshot.compute_and_cache(
             user=current_user,
-            cache=thumbnail_cache,
-            force=force,
             window_size=window_size,
             thumb_size=thumb_size,
             cache_key=cache_key,
+            force=force,
         )

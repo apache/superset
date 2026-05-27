@@ -16,12 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import userEvent from '@testing-library/user-event';
 import {
+  fireEvent,
   render,
   screen,
   within,
-  fireEvent,
+  userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
@@ -69,14 +69,20 @@ const adhocMetricB = {
 };
 
 test('renders with default props', () => {
-  render(<DndMetricSelect {...defaultProps} />, { useDnd: true });
+  render(<DndMetricSelect {...defaultProps} />, {
+    useDnd: true,
+    useRedux: true,
+  });
   expect(
     screen.getByText('Drop a column/metric here or click'),
   ).toBeInTheDocument();
 });
 
 test('renders with default props and multi = true', () => {
-  render(<DndMetricSelect {...defaultProps} multi />, { useDnd: true });
+  render(<DndMetricSelect {...defaultProps} multi />, {
+    useDnd: true,
+    useRedux: true,
+  });
   expect(
     screen.getByText('Drop columns/metrics here or click'),
   ).toBeInTheDocument();
@@ -86,6 +92,7 @@ test('render selected metrics correctly', () => {
   const metricValues = ['metric_a', 'metric_b', adhocMetricB];
   render(<DndMetricSelect {...defaultProps} value={metricValues} multi />, {
     useDnd: true,
+    useRedux: true,
   });
   expect(screen.getByText('metric_a')).toBeVisible();
   expect(screen.getByText('Metric B')).toBeVisible();
@@ -107,6 +114,7 @@ test('warn selected custom metric when metric gets removed from dataset', async 
     />,
     {
       useDnd: true,
+      useRedux: true,
     },
   );
 
@@ -159,6 +167,7 @@ test('warn selected custom metric when metric gets removed from dataset for sing
     />,
     {
       useDnd: true,
+      useRedux: true,
     },
   );
 
@@ -217,6 +226,7 @@ test('remove selected adhoc metric when column gets removed from dataset', async
     />,
     {
       useDnd: true,
+      useRedux: true,
     },
   );
 
@@ -259,6 +269,7 @@ test('update adhoc metric name when column label in dataset changes', () => {
     />,
     {
       useDnd: true,
+      useRedux: true,
     },
   );
 
@@ -304,6 +315,7 @@ test('can drag metrics', async () => {
   const metricValues = ['metric_a', 'metric_b', adhocMetricB];
   render(<DndMetricSelect {...defaultProps} value={metricValues} multi />, {
     useDnd: true,
+    useRedux: true,
   });
 
   expect(screen.getByText('metric_a')).toBeVisible();
@@ -334,13 +346,14 @@ test('cannot drop a duplicated item', () => {
   const { getByTestId } = render(
     <>
       <DatasourcePanelDragOption
-        value={{ metric_name: 'metric_a' }}
+        value={{ metric_name: 'metric_a', uuid: '1' }}
         type={DndItemType.Metric}
       />
       <DndMetricSelect {...defaultProps} value={metricValues} multi />
     </>,
     {
       useDnd: true,
+      useRedux: true,
     },
   );
 
@@ -362,7 +375,7 @@ test('can drop a saved metric when disallow_adhoc_metrics', () => {
   const { getByTestId } = render(
     <>
       <DatasourcePanelDragOption
-        value={{ metric_name: 'metric_a' }}
+        value={{ metric_name: 'metric_a', uuid: '1' }}
         type={DndItemType.Metric}
       />
       <DndMetricSelect
@@ -374,6 +387,7 @@ test('can drop a saved metric when disallow_adhoc_metrics', () => {
     </>,
     {
       useDnd: true,
+      useRedux: true,
     },
   );
 
@@ -395,15 +409,15 @@ test('cannot drop non-saved metrics when disallow_adhoc_metrics', () => {
   const { getByTestId, getAllByTestId } = render(
     <>
       <DatasourcePanelDragOption
-        value={{ metric_name: 'metric_a' }}
+        value={{ metric_name: 'metric_a', uuid: '1' }}
         type={DndItemType.Metric}
       />
       <DatasourcePanelDragOption
-        value={{ metric_name: 'metric_c' }}
+        value={{ metric_name: 'metric_c', uuid: '2' }}
         type={DndItemType.Metric}
       />
       <DatasourcePanelDragOption
-        value={{ column_name: 'column_1' }}
+        value={{ column_name: 'column_1', uuid: '3' }}
         type={DndItemType.Column}
       />
       <DndMetricSelect
@@ -415,6 +429,7 @@ test('cannot drop non-saved metrics when disallow_adhoc_metrics', () => {
     </>,
     {
       useDnd: true,
+      useRedux: true,
     },
   );
 
@@ -463,6 +478,7 @@ test('title changes on custom SQL text change', async () => {
     />,
     {
       useDnd: true,
+      useRedux: true,
     },
   );
 
@@ -489,22 +505,12 @@ test('title changes on custom SQL text change', async () => {
     'ant-tabs-tab-active',
   );
 
-  const container = screen.getByTestId('adhoc-metric-edit-tabs');
-  await waitFor(() => {
-    const textArea = container.getElementsByClassName(
-      'ace_text-input',
-    ) as HTMLCollectionOf<HTMLTextAreaElement>;
-    expect(textArea.length).toBe(1);
-    expect(textArea[0].value).toBe('');
-  });
+  // Wait for the editor to render after tab switch
+  const textArea = (await screen.findByRole('textbox')) as HTMLTextAreaElement;
 
   expect(screen.getByTestId('AdhocMetricEditTitle#trigger')).toHaveTextContent(
     'metric_a',
   );
-
-  const textArea = container.getElementsByClassName(
-    'ace_text-input',
-  )[0] as HTMLTextAreaElement;
 
   // Changing the ACE editor via pasting, since the component
   // handles the textarea value internally, and changing it doesn't

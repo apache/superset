@@ -17,8 +17,7 @@
  * under the License.
  */
 import { ReactElement } from 'react';
-import { DatasourceType } from '@superset-ui/core';
-import { exploreActions } from 'src/explore/actions/exploreActions';
+import { DatasourceType, VizType } from '@superset-ui/core';
 import { ChartStatus } from 'src/explore/types';
 import {
   DataTablesPaneProps,
@@ -27,7 +26,7 @@ import {
 } from '../types';
 
 const queryFormData = {
-  viz_type: 'heatmap',
+  viz_type: VizType.Heatmap,
   datasource: '34__table',
   slice_id: 456,
   url_params: {},
@@ -58,8 +57,11 @@ const datasource = {
   type: DatasourceType.Table,
   columns: [],
   metrics: [],
-  columnFormats: {},
-  verboseMap: {},
+  main_dttm_col: 'ds',
+  column_formats: {},
+  verbose_map: {},
+  datasource_name: null,
+  description: null,
 };
 
 export const createDataTablesPaneProps = (sliceId: number) =>
@@ -72,7 +74,7 @@ export const createDataTablesPaneProps = (sliceId: number) =>
     queryForce: false,
     chartStatus: 'rendered' as ChartStatus,
     onCollapseChange: jest.fn(),
-    actions: exploreActions,
+    setForceQuery: jest.fn(),
     canDownload: true,
   }) as DataTablesPaneProps;
 
@@ -88,16 +90,20 @@ export const createSamplesPaneProps = ({
   ({
     isRequest,
     datasource: { ...datasource, id: datasourceId },
+    queryFormData: {
+      ...queryFormData,
+      datasource: `${datasourceId}__table`,
+    },
     queryForce,
     isVisible: true,
-    actions: exploreActions,
+    setForceQuery: jest.fn(),
     canDownload: true,
   }) as SamplesPaneProps;
 
 export const createResultsPaneOnDashboardProps = ({
   sliceId,
   errorMessage,
-  vizType = 'table',
+  vizType = VizType.Table,
   queryForce = false,
   isRequest = true,
 }: {
@@ -116,7 +122,7 @@ export const createResultsPaneOnDashboardProps = ({
     },
     queryForce,
     isVisible: true,
-    actions: exploreActions,
+    setForceQuery: jest.fn(),
     errorMessage,
     canDownload: true,
   }) as ResultsPaneProps;

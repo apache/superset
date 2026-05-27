@@ -20,7 +20,7 @@ import {
   DEFAULT_SORT_SERIES_DATA,
   sections,
 } from '@superset-ui/chart-controls';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { LegendOrientation, LegendType } from '../types';
 import {
   OrientationType,
@@ -33,7 +33,7 @@ import {
 // } from '../constants';
 import { defaultXAxis } from '../defaults';
 
-// @ts-ignore
+// @ts-expect-error
 export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   // ...DEFAULT_LEGEND_FORM_DATA, // TODO: figure out why these break things for stories (e.g. Bubble Chart)
   // Here are the contents of DEFAULT_LEGEND_FORM_DATA:
@@ -44,9 +44,9 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   // ...DEFAULT_TITLE_FORM_DATA, // TODO: figure out why these break things for stories (e.g. Bubble Chart)
   // here are the contents of DEFAULT_TITLE_FORM_DATA:
   xAxisTitle: '',
-  xAxisTitleMargin: 0,
+  xAxisTitleMargin: 40,
   yAxisTitle: '',
-  yAxisTitleMargin: 0,
+  yAxisTitleMargin: 50,
   yAxisTitlePosition: 'Top',
   // Now that the weird bug workaround is over, here's the rest...
   ...DEFAULT_SORT_SERIES_DATA,
@@ -71,6 +71,8 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   seriesType: EchartsTimeseriesSeriesType.Line,
   stack: false,
   tooltipTimeFormat: 'smart_date',
+  xAxisTimeFormat: 'smart_date',
+  xAxisNumberFormat: 'SMART_NUMBER',
   truncateXAxis: true,
   truncateYAxis: false,
   yAxisBounds: [null, null],
@@ -78,6 +80,7 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   richTooltip: true,
   xAxisForceCategorical: false,
   xAxisLabelRotation: defaultXAxis.xAxisLabelRotation,
+  xAxisLabelInterval: defaultXAxis.xAxisLabelInterval,
   groupby: [],
   showValue: false,
   onlyTotal: false,

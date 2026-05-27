@@ -29,7 +29,7 @@ def test_boxplot_tukey():
         whisker_type=PostProcessingBoxplotWhiskerType.TUKEY,
         metrics=["cars"],
     )
-    columns = {column for column in df.columns}
+    columns = {column for column in df.columns}  # noqa: C416
     assert columns == {
         "cars__mean",
         "cars__median",
@@ -51,7 +51,7 @@ def test_boxplot_min_max():
         whisker_type=PostProcessingBoxplotWhiskerType.MINMAX,
         metrics=["cars"],
     )
-    columns = {column for column in df.columns}
+    columns = {column for column in df.columns}  # noqa: C416
     assert columns == {
         "cars__mean",
         "cars__median",
@@ -74,7 +74,7 @@ def test_boxplot_percentile():
         metrics=["cars"],
         percentiles=[1, 99],
     )
-    columns = {column for column in df.columns}
+    columns = {column for column in df.columns}  # noqa: C416
     assert columns == {
         "cars__mean",
         "cars__median",
@@ -136,7 +136,7 @@ def test_boxplot_type_coercion():
         metrics=["cars"],
     )
 
-    columns = {column for column in df.columns}
+    columns = {column for column in df.columns}  # noqa: C416
     assert columns == {
         "cars__mean",
         "cars__median",

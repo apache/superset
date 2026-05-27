@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
   CategoricalColorNamespace,
   DataRecordValue,
@@ -26,7 +27,6 @@ import {
   getTimeFormatter,
   getValueFormatter,
   NumberFormats,
-  t,
   tooltipHtml,
   ValueFormatter,
 } from '@superset-ui/core';
@@ -170,7 +170,7 @@ export default function transformProps(
     emitCrossFilters,
     datasource,
   } = chartProps;
-  const { data = [] } = queriesData[0];
+  const { data = [], detected_currency: detectedCurrency } = queriesData[0];
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
     groupby = [],
@@ -188,7 +188,12 @@ export default function transformProps(
     showTotal,
     sliceId,
   } = formData;
-  const { currencyFormats = {}, columnFormats = {} } = datasource;
+  const {
+    currencyFormats = {},
+    columnFormats = {},
+    verboseMap = {},
+    currencyCodeColumn,
+  } = datasource;
   const refs: Refs = {};
   const primaryValueFormatter = getValueFormatter(
     metric,
@@ -196,6 +201,10 @@ export default function transformProps(
     columnFormats,
     numberFormat,
     currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
   );
   const secondaryValueFormatter = secondaryMetric
     ? getValueFormatter(
@@ -204,6 +213,10 @@ export default function transformProps(
         columnFormats,
         numberFormat,
         currencyFormat,
+        undefined,
+        data,
+        currencyCodeColumn,
+        detectedCurrency,
       )
     : undefined;
 
@@ -216,10 +229,10 @@ export default function transformProps(
     });
   const minShowLabelAngle = (showLabelsThreshold || 0) * 3.6;
   const padding = {
-    top: theme.gridUnit * 3,
-    right: theme.gridUnit,
-    bottom: theme.gridUnit * 3,
-    left: theme.gridUnit,
+    top: theme.sizeUnit * 3,
+    right: theme.sizeUnit,
+    bottom: theme.sizeUnit * 3,
+    left: theme.sizeUnit,
   };
   const containerWidth = width;
   const containerHeight = height;
@@ -270,7 +283,9 @@ export default function transformProps(
   } else {
     linearColorScale(totalSecondaryValue / totalValue);
   }
-
+  const labelProps = {
+    color: theme.colorText,
+  };
   const traverse = (
     treeNodes: TreeNode[],
     path: string[],
@@ -312,7 +327,7 @@ export default function transformProps(
             opacity: OpacityEnum.SemiTransparent,
           },
           label: {
-            color: `rgba(0, 0, 0, ${OpacityEnum.SemiTransparent})`,
+            ...labelProps,
           },
         };
       }
@@ -334,8 +349,10 @@ export default function transformProps(
           secondaryValueFormatter,
           colorByCategory,
           totalValue,
-          metricLabel,
-          secondaryMetricLabel,
+          metricLabel: verboseMap[metricLabel] || metricLabel,
+          secondaryMetricLabel: secondaryMetricLabel
+            ? verboseMap[secondaryMetricLabel] || secondaryMetricLabel
+            : undefined,
         }),
     },
     series: [
@@ -350,10 +367,10 @@ export default function transformProps(
           },
         },
         label: {
+          ...labelProps,
           width: (radius * 0.6) / (columns.length || 1),
           show: showLabels,
           formatter,
-          color: theme.colors.grayscale.dark2,
           minAngle: minShowLabelAngle,
           overflow: 'breakAll',
         },
@@ -370,12 +387,12 @@ export default function transformProps(
             text: t('Total: %s', primaryValueFormatter(totalValue)),
             fontSize: 16,
             fontWeight: 'bold',
+            fill: theme.colorText,
           },
           z: 10,
         }
       : null,
   };
-
   return {
     formData,
     width,

@@ -19,7 +19,7 @@
 import { formatSelectOptions, formatSelectOptionsForRange } from '../../src';
 
 describe('formatSelectOptions', () => {
-  it('formats an array of options', () => {
+  test('formats an array of options', () => {
     expect(formatSelectOptions([1, 5, 10, 25, 50, 'unlimited'])).toEqual([
       [1, '1'],
       [5, '5'],
@@ -29,7 +29,7 @@ describe('formatSelectOptions', () => {
       ['unlimited', 'unlimited'],
     ]);
   });
-  it('formats a mix of values and already formated options', () => {
+  test('formats a mix of values and already formated options', () => {
     expect(
       formatSelectOptions<number | string>([
         [0, 'all'],
@@ -53,7 +53,7 @@ describe('formatSelectOptions', () => {
 });
 
 describe('formatSelectOptionsForRange', () => {
-  it('generates select options from a range', () => {
+  test('generates select options from a range', () => {
     expect(formatSelectOptionsForRange(1, 5)).toEqual([
       [1, '1'],
       [2, '2'],

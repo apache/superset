@@ -17,9 +17,9 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
-import { ErrorMessageComponentProps } from './types';
-import ErrorAlert from './ErrorAlert';
+import { t } from '@apache-superset/core/translation';
+import type { ErrorMessageComponentProps } from './types';
+import { ErrorAlert } from './ErrorAlert';
 
 interface SupersetParseErrorExtra {
   sql: string;
@@ -31,32 +31,35 @@ interface SupersetParseErrorExtra {
 /*
  * Component for showing syntax errors in SQL Lab.
  */
-function InvalidSQLErrorMessage({
+export function InvalidSQLErrorMessage({
   error,
-  source,
   subtitle,
+  closable,
 }: ErrorMessageComponentProps<SupersetParseErrorExtra>) {
-  const { extra, level } = error;
+  const { extra, level, message } = error;
 
   const { sql, line, column } = extra;
-  const lines = sql.split('\n');
-  const errorLine = line !== null ? lines[line - 1] : null;
-  const body = errorLine && (
+  const lines = sql?.split('\n');
+  let errorLine;
+  if (line !== null && Number.isInteger(line)) errorLine = lines[line - 1];
+  else if (lines?.length > 0) {
+    errorLine = lines[0];
+  }
+  const body = errorLine ? (
     <>
       <pre>{errorLine}</pre>
       {column !== null && <pre>{' '.repeat(column - 1)}^</pre>}
     </>
+  ) : (
+    message
   );
-
   return (
     <ErrorAlert
-      title={t('Unable to parse SQL')}
-      subtitle={subtitle}
-      level={level}
-      source={source}
-      body={body}
+      errorType={t('Unable to parse SQL')}
+      message={subtitle}
+      type={level}
+      description={body}
+      closable={closable}
     />
   );
 }
-
-export default InvalidSQLErrorMessage;

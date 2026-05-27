@@ -16,22 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
-import userEvent from '@testing-library/user-event';
-import TableControls from './DrillDetailTableControls';
+import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import TableControls, { TableControlsProps } from './DrillDetailTableControls';
 
 const setFilters = jest.fn();
 const onReload = jest.fn();
-const setup = (overrides: Record<string, any> = {}) => {
+const onDownloadCSV = jest.fn();
+const onDownloadXLSX = jest.fn();
+const setup = (overrides: Partial<TableControlsProps> = {}) => {
   const props = {
     filters: [],
     setFilters,
     onReload,
     loading: false,
     totalCount: 0,
+    canDownload: true,
+    onDownloadCSV,
+    onDownloadXLSX,
+    data: [],
+    columnNames: [],
     ...overrides,
   };
-  return render(<TableControls {...props} />);
+  return render(<TableControls {...props} />, { useRedux: true });
 };
 test('should render', () => {
   const { container } = setup();
@@ -102,7 +108,6 @@ test('should remove the filters on close', () => {
   expect(screen.getByText('platform')).toBeInTheDocument();
   expect(screen.getByText('GB')).toBeInTheDocument();
 
-  userEvent.click(screen.getByRole('img', { name: 'close' }));
-
+  userEvent.click(screen.getByLabelText('Close'));
   expect(setFilters).toHaveBeenCalledWith([]);
 });

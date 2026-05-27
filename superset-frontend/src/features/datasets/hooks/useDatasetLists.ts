@@ -17,11 +17,13 @@
  * under the License.
  */
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { SupersetClient, logging, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import rison from 'rison';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { DatasetObject } from 'src/features/datasets/AddDataset/types';
-import { DatabaseObject } from 'src/components/DatabaseSelector';
+import type { DatabaseObject } from 'src/components';
 
 /**
  * Retrieves all pages of dataset results
@@ -35,7 +37,8 @@ const useDatasetsList = (
   schema: string | null | undefined,
 ) => {
   const [datasets, setDatasets] = useState<DatasetObject[]>([]);
-  const encodedSchema = schema ? encodeURIComponent(schema) : undefined;
+  const supportsSchemas = db?.supports_schemas !== false;
+  const encodedSchema = schema ? encodeURIComponent(schema) : null;
 
   const getDatasetsList = useCallback(async (filters: object[]) => {
     let results: DatasetObject[] = [];
@@ -65,6 +68,7 @@ const useDatasetsList = (
       } catch (error) {
         addDangerToast(t('There was an error fetching dataset'));
         logging.error(t('There was an error fetching dataset'), error);
+        break;
       }
     }
 
@@ -74,14 +78,16 @@ const useDatasetsList = (
   useEffect(() => {
     const filters = [
       { col: 'database', opr: 'rel_o_m', value: db?.id },
-      { col: 'schema', opr: 'eq', value: encodedSchema },
+      ...(supportsSchemas
+        ? [{ col: 'schema', opr: 'eq', value: encodedSchema }]
+        : []),
       { col: 'sql', opr: 'dataset_is_null_or_empty', value: true },
     ];
 
-    if (schema) {
+    if (db?.id !== undefined && (schema || !supportsSchemas)) {
       getDatasetsList(filters);
     }
-  }, [db?.id, schema, encodedSchema, getDatasetsList]);
+  }, [db?.id, schema, encodedSchema, supportsSchemas, getDatasetsList]);
 
   const datasetNames = useMemo(
     () => datasets?.map(dataset => dataset.table_name),

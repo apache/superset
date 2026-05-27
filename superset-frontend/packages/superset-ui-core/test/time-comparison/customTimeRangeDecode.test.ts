@@ -20,7 +20,7 @@
 import { customTimeRangeDecode } from '@superset-ui/core';
 
 describe('customTimeRangeDecode', () => {
-  it('1) specific : specific', () => {
+  test('1) specific : specific', () => {
     expect(
       customTimeRangeDecode('2021-01-20T00:00:00 : 2021-01-27T00:00:00'),
     ).toEqual({
@@ -40,7 +40,7 @@ describe('customTimeRangeDecode', () => {
     });
   });
 
-  it('2) specific : relative', () => {
+  test('2) specific : relative', () => {
     expect(
       customTimeRangeDecode(
         '2021-01-20T00:00:00 : DATEADD(DATETIME("2021-01-20T00:00:00"), 7, day)',
@@ -62,7 +62,7 @@ describe('customTimeRangeDecode', () => {
     });
   });
 
-  it('3) relative : specific', () => {
+  test('3) relative : specific', () => {
     expect(
       customTimeRangeDecode(
         'DATEADD(DATETIME("2021-01-27T00:00:00"), -7, day) : 2021-01-27T00:00:00',
@@ -84,7 +84,7 @@ describe('customTimeRangeDecode', () => {
     });
   });
 
-  it('4) relative : relative (now)', () => {
+  test('4) relative : relative (now)', () => {
     expect(
       customTimeRangeDecode(
         'DATEADD(DATETIME("now"), -7, day) : DATEADD(DATETIME("now"), 7, day)',
@@ -106,7 +106,7 @@ describe('customTimeRangeDecode', () => {
     });
   });
 
-  it('5) relative : relative (date/time)', () => {
+  test('5) relative : relative (date/time)', () => {
     expect(
       customTimeRangeDecode(
         'DATEADD(DATETIME("2021-01-27T00:00:00"), -7, day) : DATEADD(DATETIME("2021-01-27T00:00:00"), 7, day)',
@@ -128,7 +128,7 @@ describe('customTimeRangeDecode', () => {
     });
   });
 
-  it('6) specific : relative (now)', () => {
+  test('6) specific : relative (now)', () => {
     expect(
       customTimeRangeDecode('now : DATEADD(DATETIME("now"), 7, day)'),
     ).toEqual({
@@ -148,7 +148,7 @@ describe('customTimeRangeDecode', () => {
     });
   });
 
-  it('7) default', () => {
+  test('7) default', () => {
     const SEVEN_DAYS_AGO = new Date();
     const MIDNIGHT = new Date();
     SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
@@ -174,7 +174,7 @@ describe('customTimeRangeDecode', () => {
     });
   });
 
-  it('8) relative : relative return default', () => {
+  test('8) relative : relative return default', () => {
     const SEVEN_DAYS_AGO = new Date();
     SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
 
@@ -185,6 +185,84 @@ describe('customTimeRangeDecode', () => {
         'DATEADD(DATETIME("2021-01-26T00:00:00"), -55, day) : DATEADD(DATETIME("2021-01-27T00:00:00"), 7, day)',
       ),
     ).toEqual({
+      customRange: {
+        sinceDatetime: SEVEN_DAYS_AGO.setDate(
+          SEVEN_DAYS_AGO.getDate() - 7,
+        ).toString(),
+        sinceMode: 'relative',
+        sinceGrain: 'day',
+        sinceGrainValue: -7,
+        untilDatetime: MIDNIGHT.toString(),
+        untilMode: 'specific',
+        untilGrain: 'day',
+        untilGrainValue: 7,
+        anchorMode: 'now',
+        anchorValue: 'now',
+      },
+      matchedFlag: false,
+    });
+  });
+
+  test('9) empty string returns default', () => {
+    const SEVEN_DAYS_AGO = new Date();
+    SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
+
+    const MIDNIGHT = new Date();
+    MIDNIGHT.setHours(0, 0, 0, 0);
+
+    expect(customTimeRangeDecode('')).toEqual({
+      customRange: {
+        sinceDatetime: SEVEN_DAYS_AGO.setDate(
+          SEVEN_DAYS_AGO.getDate() - 7,
+        ).toString(),
+        sinceMode: 'relative',
+        sinceGrain: 'day',
+        sinceGrainValue: -7,
+        untilDatetime: MIDNIGHT.toString(),
+        untilMode: 'specific',
+        untilGrain: 'day',
+        untilGrainValue: 7,
+        anchorMode: 'now',
+        anchorValue: 'now',
+      },
+      matchedFlag: false,
+    });
+  });
+
+  test('10) both undefined returns default', () => {
+    const SEVEN_DAYS_AGO = new Date();
+    SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
+
+    const MIDNIGHT = new Date();
+    MIDNIGHT.setHours(0, 0, 0, 0);
+
+    expect(customTimeRangeDecode('undefined : undefined')).toEqual({
+      customRange: {
+        sinceDatetime: SEVEN_DAYS_AGO.setDate(
+          SEVEN_DAYS_AGO.getDate() - 7,
+        ).toString(),
+        sinceMode: 'relative',
+        sinceGrain: 'day',
+        sinceGrainValue: -7,
+        untilDatetime: MIDNIGHT.toString(),
+        untilMode: 'specific',
+        untilGrain: 'day',
+        untilGrainValue: 7,
+        anchorMode: 'now',
+        anchorValue: 'now',
+      },
+      matchedFlag: false,
+    });
+  });
+
+  test('11) 1 side undefined returns default', () => {
+    const SEVEN_DAYS_AGO = new Date();
+    SEVEN_DAYS_AGO.setHours(0, 0, 0, 0);
+
+    const MIDNIGHT = new Date();
+    MIDNIGHT.setHours(0, 0, 0, 0);
+
+    expect(customTimeRangeDecode('undefined : now')).toEqual({
       customRange: {
         sinceDatetime: SEVEN_DAYS_AGO.setDate(
           SEVEN_DAYS_AGO.getDate() - 7,

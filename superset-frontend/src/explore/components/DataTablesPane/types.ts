@@ -16,67 +16,72 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactElement } from 'react';
-import {
-  Datasource,
-  GenericDataType,
-  JsonObject,
-  QueryFormData,
-} from '@superset-ui/core';
-import { ExploreActions } from 'src/explore/actions/exploreActions';
-import { ChartStatus } from 'src/explore/types';
+import { JsonObject, LatestQueryFormData } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
+import type { ChartStatus, Datasource } from 'src/explore/types';
 
 export enum ResultTypes {
   Results = 'results',
   Samples = 'samples',
 }
 
+type SetForceQueryAction = (force: boolean) => void;
 export interface DataTablesPaneProps {
-  queryFormData: QueryFormData;
+  queryFormData: LatestQueryFormData;
   datasource: Datasource;
   queryForce: boolean;
   ownState?: JsonObject;
-  chartStatus: ChartStatus;
+  chartStatus: ChartStatus | null;
   onCollapseChange: (isOpen: boolean) => void;
-  errorMessage?: JSX.Element;
-  actions: ExploreActions;
+  errorMessage?: React.ReactNode;
+  setForceQuery: SetForceQueryAction;
   canDownload: boolean;
 }
 
 export interface ResultsPaneProps {
   isRequest: boolean;
-  queryFormData: QueryFormData;
+  queryFormData: LatestQueryFormData;
   queryForce: boolean;
   ownState?: JsonObject;
-  errorMessage?: ReactElement;
-  actions?: ExploreActions;
+  errorMessage?: React.ReactNode;
+  setForceQuery?: SetForceQueryAction;
   dataSize?: number;
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
   canDownload: boolean;
+  // Optional map of column/metric name -> verbose label
+  columnDisplayNames?: Record<string, string>;
 }
 
 export interface SamplesPaneProps {
   isRequest: boolean;
   datasource: Datasource;
+  queryFormData: LatestQueryFormData;
   queryForce: boolean;
-  actions?: ExploreActions;
-  dataSize?: number;
-  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
+  setForceQuery?: SetForceQueryAction;
   isVisible: boolean;
   canDownload: boolean;
 }
 
-export interface TableControlsProps {
+export interface DrillControlsProps {
+  onDownloadCSV?: () => void;
+  onDownloadXLSX?: () => void;
+  onReload?: () => void;
+}
+
+export interface TableControlsProps extends DrillControlsProps {
   data: Record<string, any>[];
   // {datasource.id}__{datasource.type}, eg: 1__table
-  datasourceId: string;
+  datasourceId?: string;
   onInputChange: (input: string) => void;
   columnNames: string[];
   columnTypes: GenericDataType[];
   isLoading: boolean;
   rowcount: number;
   canDownload: boolean;
+  rowLimit?: number;
+  rowLimitOptions?: { value: number; label: string }[];
+  onRowLimitChange?: (limit: number) => void;
 }
 
 export interface QueryResultInterface {
@@ -86,11 +91,15 @@ export interface QueryResultInterface {
   data: Record<string, any>[][];
 }
 
-export interface SingleQueryResultPaneProp extends QueryResultInterface {
+export interface SingleQueryResultPaneProp
+  extends QueryResultInterface, DrillControlsProps {
   // {datasource.id}__{datasource.type}, eg: 1__table
-  datasourceId: string;
-  dataSize?: number;
-  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
+  datasourceId?: string;
   isVisible: boolean;
   canDownload: boolean;
+  // Optional map of column/metric name -> verbose label
+  columnDisplayNames?: Record<string, string>;
+  rowLimit?: number;
+  rowLimitOptions?: { value: number; label: string }[];
+  onRowLimitChange?: (limit: number) => void;
 }

@@ -18,8 +18,11 @@
  */
 
 import { MemoryRouter } from 'react-router-dom';
-import { FeatureFlag, JsonResponse, SupersetClient } from '@superset-ui/core';
-import * as uiCore from '@superset-ui/core';
+import {
+  JsonResponse,
+  SupersetClient,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 
@@ -48,17 +51,19 @@ const mockSaveFavoriteStatus = jest.fn();
 const mockHandleBulkDashboardExport = jest.fn();
 const mockOnDelete = jest.fn();
 
-let isFeatureEnabledMock: jest.MockInstance<boolean, [feature: FeatureFlag]>;
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockedIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 beforeAll(() => {
-  isFeatureEnabledMock = jest
-    .spyOn(uiCore, 'isFeatureEnabled')
-    .mockImplementation(() => true);
+  mockedIsFeatureEnabled.mockReturnValue(true);
 });
 
 afterAll(() => {
-  // @ts-ignore
-  isFeatureEnabledMock.mockClear();
+  mockedIsFeatureEnabled.mockClear();
 });
 
 beforeEach(() => {
@@ -79,27 +84,27 @@ beforeEach(() => {
   );
 });
 
-it('Renders the dashboard title', () => {
+test('Renders the dashboard title', () => {
   const titleElement = screen.getByText('Sample Dashboard');
   expect(titleElement).toBeInTheDocument();
 });
 
-it('Renders the certification details', () => {
+test('Renders the certification details', () => {
   const certificationDetailsElement = screen.getByLabelText(/certified/i);
   expect(certificationDetailsElement).toBeInTheDocument();
 });
 
-it('Renders the published status', () => {
+test('Renders the published status', () => {
   const publishedElement = screen.getByText(/published/i);
   expect(publishedElement).toBeInTheDocument();
 });
 
-it('Renders the modified date', () => {
+test('Renders the modified date', () => {
   const modifiedDateElement = screen.getByText('Modified 2 days ago');
   expect(modifiedDateElement).toBeInTheDocument();
 });
 
-it('should fetch thumbnail when dashboard has no thumbnail URL and feature flag is enabled', async () => {
+test('should fetch thumbnail when dashboard has no thumbnail URL and feature flag is enabled', async () => {
   const mockGet = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: { result: { thumbnail_url: '/new-thumbnail.png' } },
   } as unknown as JsonResponse);

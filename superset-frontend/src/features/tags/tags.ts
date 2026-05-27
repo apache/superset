@@ -18,7 +18,8 @@
  */
 import { JsonObject, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
-import Tag from 'src/types/TagType';
+import { TagType } from 'src/components';
+import { TagTypeEnum } from 'src/components/Tag/TagType';
 
 export const OBJECT_TYPES_VALUES = Object.freeze([
   'dashboard',
@@ -43,7 +44,7 @@ const map_object_type_to_id = (objectType: string) => {
     const msg = `objectType ${objectType} is invalid`;
     throw new Error(msg);
   }
-  return OBJECT_TYPE_ID_MAP[objectType];
+  return OBJECT_TYPE_ID_MAP[objectType as keyof typeof OBJECT_TYPE_ID_MAP];
 };
 
 export function fetchAllTags(
@@ -74,11 +75,10 @@ export function fetchTags(
   {
     objectType,
     objectId,
-    includeTypes = false,
   }: {
     objectType: string;
     objectId: number;
-    includeTypes: boolean;
+    includeTypes?: boolean;
   },
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
@@ -94,13 +94,17 @@ export function fetchTags(
     endpoint: `/api/v1/${objectType}/${objectId}`,
   })
     .then(({ json }) =>
-      callback(json.result.tags.filter((tag: Tag) => tag.type === 1)),
+      callback(
+        json.result.tags.filter(
+          (tag: TagType) => tag.type === TagTypeEnum.Custom,
+        ),
+      ),
     )
     .catch(response => error(response));
 }
 export function deleteTaggedObjects(
   { objectType, objectId }: { objectType: string; objectId: number },
-  tag: Tag,
+  tag: TagType,
   callback: (text: string) => void,
   error: (response: string) => void,
 ) {
@@ -128,7 +132,7 @@ export function deleteTaggedObjects(
 }
 
 export function deleteTags(
-  tags: Tag[],
+  tags: TagType[],
   callback: (text: string) => void,
   error: (response: string) => void,
 ) {
@@ -151,11 +155,10 @@ export function addTag(
   {
     objectType,
     objectId,
-    includeTypes = false,
   }: {
     objectType: string;
     objectId: number;
-    includeTypes: boolean;
+    includeTypes?: boolean;
   },
   tag: string,
   callback: (text: string) => void,
@@ -179,25 +182,8 @@ export function addTag(
     .catch(response => error(response));
 }
 
-export function fetchObjects(
-  { tags = '', types }: { tags: string; types: string | null },
-  callback: (json: JsonObject) => void,
-  error: (response: Response) => void,
-) {
-  let url = `/api/v1/tag/get_objects/?tags=${tags}`;
-  if (types) {
-    url += `&types=${types}`;
-  }
-  SupersetClient.get({ endpoint: url })
-    .then(({ json }) => callback(json.result))
-    .catch(response => error(response));
-}
-
 export function fetchObjectsByTagIds(
-  {
-    tagIds = [],
-    types,
-  }: { tagIds: number[] | undefined; types: string | null },
+  { tagIds = [], types }: { tagIds: number[] | string; types: string | null },
   callback: (json: JsonObject) => void,
   error: (response: Response) => void,
 ) {

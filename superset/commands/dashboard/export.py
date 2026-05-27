@@ -25,6 +25,7 @@ from collections.abc import Iterator
 import yaml
 
 from superset.commands.chart.export import ExportChartsCommand
+from superset.commands.tag.export import ExportTagsCommand
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.dashboard.importers.v1.utils import find_chart_uuids
 from superset.daos.dashboard import DashboardDAO
@@ -33,9 +34,11 @@ from superset.commands.dataset.export import ExportDatasetsCommand
 from superset.daos.dataset import DatasetDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.tags.models import TagType
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
 from superset.utils import json
+from superset.extensions import feature_flag_manager  # Import the feature flag manager
 
 logger = logging.getLogger(__name__)
 
@@ -83,7 +86,7 @@ def append_charts(position: dict[str, Any], charts: set[Slice]) -> dict[str, Any
             "parents": ["ROOT_ID", "GRID_ID"],
         }
 
-    for chart_hash, chart in zip(chart_hashes, charts):
+    for chart_hash, chart in zip(chart_hashes, charts, strict=False):
         position[chart_hash] = {
             "children": [],
             "id": chart_hash,
@@ -112,6 +115,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
         return f"dashboards/{file_name}.yaml"
 
     @staticmethod
+    # ruff: noqa: C901
     def _file_content(model: Dashboard) -> str:
         payload = model.export_to_dict(
             recursive=False,
@@ -142,6 +146,27 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     if dataset:
                         target["datasetUuid"] = str(dataset.uuid)
 
+        # Replace display control dataset references with uuid.
+        # datasetId is intentionally preserved alongside datasetUuid so that
+        # bundles remain importable by older versions that do not yet understand
+        # datasetUuid for display-control targets.
+        for customization in (
+            payload.get("metadata", {}).get("chart_customization_config") or []
+        ):
+            for target in customization.get("targets") or []:
+                dataset_id = target.get("datasetId")
+                if dataset_id is not None:
+                    dataset = DatasetDAO.find_by_id(dataset_id)
+                    if dataset:
+                        target["datasetUuid"] = str(dataset.uuid)
+                    else:
+                        logger.warning(
+                            "Dashboard '%s': display control target references "
+                            "missing dataset %s; datasetUuid will not be set",
+                            model.dashboard_title,
+                            dataset_id,
+                        )
+
         # the mapping between dashboard -> charts is inferred from the position
         # attribute, so if it's not present we need to add a default config
         if not payload.get("position"):
@@ -157,12 +182,21 @@ class ExportDashboardsCommand(ExportModelsCommand):
         if orphan_charts:
             payload["position"] = append_charts(payload["position"], orphan_charts)
 
+        # Add theme UUID for proper cross-system imports
+        payload["theme_uuid"] = str(model.theme.uuid) if model.theme else None
+
         payload["version"] = EXPORT_VERSION
+
+        # Check if the TAGGING_SYSTEM feature is enabled
+        if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+            tags = model.tags if hasattr(model, "tags") else []
+            payload["tags"] = [tag.name for tag in tags if tag.type == TagType.custom]
 
         file_content = yaml.safe_dump(payload, sort_keys=False)
         return file_content
 
     @staticmethod
+    # ruff: noqa: C901
     def _export(
         model: Dashboard, export_related: bool = True
     ) -> Iterator[tuple[str, Callable[[], str]]]:
@@ -173,7 +207,21 @@ class ExportDashboardsCommand(ExportModelsCommand):
 
         if export_related:
             chart_ids = [chart.id for chart in model.slices]
-            yield from ExportChartsCommand(chart_ids).run()
+            dashboard_ids = model.id
+            command = ExportChartsCommand(chart_ids)
+            command.disable_tag_export()
+            yield from command.run()
+            command.enable_tag_export()
+            if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
+                yield from ExportTagsCommand.export(
+                    dashboard_ids=dashboard_ids, chart_ids=chart_ids
+                )
+
+            # Export related theme
+            if model.theme:
+                from superset.commands.theme.export import ExportThemesCommand
+
+                yield from ExportThemesCommand([model.theme.id]).run()
 
         payload = model.export_to_dict(
             recursive=False,
@@ -199,6 +247,17 @@ class ExportDashboardsCommand(ExportModelsCommand):
             ):
                 for target in native_filter.get("targets", []):
                     dataset_id = target.pop("datasetId", None)
+                    if dataset_id is not None:
+                        dataset = DatasetDAO.find_by_id(dataset_id)
+                        if dataset:
+                            yield from ExportDatasetsCommand([dataset_id]).run()
+
+            # Export datasets referenced by display controls
+            for customization in (
+                payload.get("metadata", {}).get("chart_customization_config") or []
+            ):
+                for target in customization.get("targets") or []:
+                    dataset_id = target.get("datasetId")
                     if dataset_id is not None:
                         dataset = DatasetDAO.find_by_id(dataset_id)
                         if dataset:
