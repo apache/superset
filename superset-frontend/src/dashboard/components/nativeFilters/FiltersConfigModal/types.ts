@@ -54,6 +54,7 @@ export interface NativeFiltersFormItem {
   time_grains?: string[];
   type: typeof NativeFilterType.NativeFilter;
   description: string;
+  datasourceType?: string;
 }
 export interface NativeFilterDivider {
   id: string;
@@ -92,6 +93,7 @@ export interface ChartCustomizationsFormItem {
   time_grains?: string[];
   type: typeof NativeFilterType.NativeFilter;
   description: string;
+  datasourceType?: string;
   datasetInfo?: {
     label: string | ReactNode;
     value: number;

@@ -130,6 +130,9 @@ export const createHandleSave =
       if (formInputs.dataset) {
         target.datasetId = formInputs.dataset.value;
       }
+      if (formInputs.datasourceType) {
+        target.datasourceType = formInputs.datasourceType;
+      }
       if (formInputs.dataset && formInputs.column) {
         target.column = { name: formInputs.column };
       }
