@@ -27,6 +27,9 @@ type ListenerEntry = {
 
 const capturedListeners: ListenerEntry[] = [];
 
+// Declared before jest.mock so the factory closure can reference it.
+let mockState: Record<string, unknown>;
+
 jest.mock('src/views/store', () => ({
   store: { getState: () => mockState, dispatch: jest.fn() },
   listenerMiddleware: {
@@ -47,11 +50,6 @@ jest.mock('src/views/store', () => ({
 jest.mock('../navigation', () => ({
   navigation: { getPageType: jest.fn(() => 'dashboard') },
 }));
-
-// ---------------------------------------------------------------------------
-// Mutable state — tests mutate this before calling getCurrentDashboard.
-// ---------------------------------------------------------------------------
-let mockState: Record<string, unknown>;
 
 function dispatch(actionType: string) {
   const action = { type: actionType };
