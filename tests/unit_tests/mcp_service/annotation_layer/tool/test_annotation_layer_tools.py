@@ -330,9 +330,11 @@ async def test_list_layer_annotations_layer_not_found(mock_layer_find, mcp_serve
 async def test_list_layer_annotations_only_returns_own_layer(
     mock_list, mock_layer_find, mcp_server
 ):
-    """layer_id matches in both response header and returned annotations."""
+    """Annotations from other layers are excluded; response contains only layer_id=1."""
     mock_layer_find.return_value = make_layer(layer_id=1)
     ann = make_annotation(annotation_id=10, layer_id=1)
+    ann_other = make_annotation(annotation_id=20, layer_id=2)
+    # Simulate DAO applying the layer_id filter: only layer_id=1 annotation returned
     mock_list.return_value = ([ann], 1)
 
     async with Client(mcp_server) as client:
@@ -342,10 +344,13 @@ async def test_list_layer_annotations_only_returns_own_layer(
         )
 
     data = json.loads(result.content[0].text)
-    # Response header reflects the requested layer
     assert data["layer_id"] == 1
-    # Returned annotations belong to the requested layer
-    assert data["annotations"][0]["layer_id"] == 1
+    # All returned annotations belong to the requested layer
+    assert all(a["layer_id"] == 1 for a in data["annotations"])
+    # The annotation from layer_id=2 is not present
+    annotation_ids = [a["id"] for a in data["annotations"]]
+    assert ann_other.id not in annotation_ids
+    assert ann.id in annotation_ids
 
 
 # ---------------------------------------------------------------------------

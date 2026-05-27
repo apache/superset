@@ -18,7 +18,6 @@
 """List annotations within a layer FastMCP tool."""
 
 import logging
-from datetime import datetime, timezone
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -142,8 +141,4 @@ async def list_layer_annotations(
             "Annotation listing failed: layer_id=%s, error=%s, error_type=%s"
             % (request.layer_id, str(e), type(e).__name__)
         )
-        return AnnotationLayerError(
-            error=f"Failed to list annotations: {str(e)}",
-            error_type="InternalError",
-            timestamp=datetime.now(timezone.utc),
-        )
+        raise
