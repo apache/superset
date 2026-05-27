@@ -39,6 +39,22 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql import column as sql_column, select, sqltypes
 from sqlalchemy.sql.expression import table as sql_table
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.sql.elements import BindParameter
+
+
+@compiles(BindParameter, "bigquery")
+def compile_bind_param_bigquery(element: BindParameter, compiler: Any, **kw: Any) -> str:
+    """
+    BigQuery does not support standard SQL '' escaping natively for adjacent string literals,
+    which causes 400 POST syntax errors on filters with apostrophes.
+    We override the bind parameter compilation to use \\' instead.
+    """
+    if kw.get("literal_binds") and isinstance(element.value, str):
+        val = element.value.replace("'", "\\'")
+        return f"'{val}'"
+    return compiler.visit_bindparam(element, **kw)
+
 
 from superset.constants import TimeGrain
 from superset.databases.schemas import encrypted_field_properties, EncryptedString
