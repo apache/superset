@@ -27,8 +27,7 @@ import {
   useState,
 } from 'react';
 import { SupersetClient } from '@superset-ui/core';
-import { Select } from '@superset-ui/core/components';
-import { Switch } from '@superset-ui/core/components/Switch';
+import { Select, Switch } from '@superset-ui/core/components';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { ListView } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
