@@ -61,8 +61,8 @@ async def list_action_logs(
     Returns audit log entries recording user interactions with dashboards and
     charts. Defaults to the last 7 days to avoid pulling large result sets.
 
-    ADMIN-ONLY: This tool requires admin privileges. Non-admin users will
-    receive a permission error.
+    Requires the Log permission (controlled by Superset's RBAC). Users without
+    that permission will receive a permission error.
 
     Sortable columns for order_column: id, dttm
     Filter columns: action, user_id, dashboard_id, slice_id, dttm

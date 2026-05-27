@@ -53,7 +53,8 @@ async def get_action_log_info(
     Returns the action, user_id, timestamp (dttm), dashboard_id, slice_id,
     and JSON payload for the specified log record.
 
-    ADMIN-ONLY: This tool requires admin privileges.
+    Requires the Log permission (controlled by Superset's RBAC). Users without
+    that permission will receive a permission error.
 
     Use list_action_logs to discover log IDs.
     """
