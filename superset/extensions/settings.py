@@ -42,8 +42,7 @@ def _upsert_settings_row(
     active_chatbot_id: str | None,
 ) -> None:
     """Upsert the singleton settings row without a read-then-insert race."""
-    bind = db.session.get_bind()
-    dialect = bind.dialect.name
+    dialect = db.session.get_bind().dialect.name
     if dialect == "postgresql":
         stmt = (
             pg_insert(ExtensionSettings)
@@ -54,7 +53,7 @@ def _upsert_settings_row(
             )
         )
         db.session.execute(stmt)
-    else:
+    elif dialect == "sqlite":
         stmt = (
             sqlite_insert(ExtensionSettings)
             .values(id=_SETTINGS_ROW_ID, active_chatbot_id=active_chatbot_id)
@@ -64,12 +63,21 @@ def _upsert_settings_row(
             )
         )
         db.session.execute(stmt)
+    else:
+        # MySQL/MariaDB: session.merge handles INSERT-or-UPDATE without rollback.
+        obj = db.session.get(ExtensionSettings, _SETTINGS_ROW_ID)
+        if obj is None:
+            obj = ExtensionSettings(
+                id=_SETTINGS_ROW_ID, active_chatbot_id=active_chatbot_id
+            )
+            db.session.add(obj)
+        else:
+            obj.active_chatbot_id = active_chatbot_id
 
 
 def _upsert_enabled_flag(extension_id: str, enabled: bool) -> None:
     """Upsert a per-extension enabled flag without a read-then-insert race."""
-    bind = db.session.get_bind()
-    dialect = bind.dialect.name
+    dialect = db.session.get_bind().dialect.name
     if dialect == "postgresql":
         stmt = (
             pg_insert(ExtensionEnabled)
@@ -80,7 +88,7 @@ def _upsert_enabled_flag(extension_id: str, enabled: bool) -> None:
             )
         )
         db.session.execute(stmt)
-    else:
+    elif dialect == "sqlite":
         stmt = (
             sqlite_insert(ExtensionEnabled)
             .values(extension_id=extension_id, enabled=enabled)
@@ -90,6 +98,17 @@ def _upsert_enabled_flag(extension_id: str, enabled: bool) -> None:
             )
         )
         db.session.execute(stmt)
+    else:
+        # MySQL/MariaDB: read-then-update without rollback.
+        obj = (
+            db.session.query(ExtensionEnabled)
+            .filter_by(extension_id=extension_id)
+            .first()
+        )
+        if obj is None:
+            db.session.add(ExtensionEnabled(extension_id=extension_id, enabled=enabled))
+        else:
+            obj.enabled = enabled
 
 
 @transaction()
