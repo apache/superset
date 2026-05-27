@@ -427,6 +427,7 @@ export function Table<RecordType extends object>(
     bordered,
     expandable: {
       childrenColumnName,
+      ...rest.expandable,
     },
   };
 

@@ -216,6 +216,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             TabStateView,
         )
         from superset.views.sqla import (
+            FoldersPOCView,
             RowLevelSecurityView,
             TableModelView,
         )
@@ -341,6 +342,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
 
         appbuilder.add_view(
+            FoldersPOCView,
+            "Folders POC",
+            label=_("Folders POC"),
+            icon="fa-folder",
+            category="",
+            category_icon="",
+        )
+
+        appbuilder.add_view(
             RolesListView,
             "List Roles",
             label=_("List Roles"),
@@ -450,6 +460,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(SavedQueryView)
         appbuilder.add_view_no_menu(SqllabView)
         appbuilder.add_view_no_menu(Superset)
+        appbuilder.add_view_no_menu(FoldersPOCView)
         appbuilder.add_view_no_menu(TableModelView)
         appbuilder.add_view_no_menu(TableSchemaView)
         appbuilder.add_view_no_menu(TabStateView)

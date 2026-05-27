@@ -28,6 +28,7 @@ import {
 import { styled } from '@apache-superset/core/theme';
 import { Table, TableSize } from '@superset-ui/core/components/Table';
 import { TableRowSelection, SorterResult } from 'antd/es/table/interface';
+import type { ExpandableConfig } from 'antd/es/table/interface';
 import { mapColumns, mapRows } from './utils';
 
 interface TableCollectionProps<T extends object> {
@@ -53,6 +54,7 @@ interface TableCollectionProps<T extends object> {
   onPageChange?: (page: number, pageSize: number) => void;
   isPaginationSticky?: boolean;
   showRowCount?: boolean;
+  expandable?: ExpandableConfig<object>;
 }
 
 const StyledTable = styled(Table)<{
@@ -177,6 +179,7 @@ function TableCollection<T extends object>({
   onPageChange,
   isPaginationSticky = false,
   showRowCount = true,
+  expandable,
 }: TableCollectionProps<T>) {
   const mappedColumns = useMemo(
     () => mapColumns<T>(columns, headerGroups, columnsForWrapText),
@@ -304,6 +307,7 @@ function TableCollection<T extends object>({
       isPaginationSticky={isPaginationSticky}
       showRowCount={showRowCount}
       rowClassName={getRowClassName}
+      expandable={expandable}
       components={{
         header: {
           cell: (props: HTMLAttributes<HTMLTableCellElement>) => (

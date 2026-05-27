@@ -46,3 +46,14 @@ class TableModelView(BaseSupersetView):
     @has_access
     def list(self) -> FlaskResponse:
         return super().render_app_template()
+
+
+class FoldersPOCView(BaseSupersetView):
+    route_base = "/folders-poc"
+    class_permission_name = "Dataset"
+    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
+
+    @expose("/")
+    @has_access
+    def list(self) -> FlaskResponse:
+        return super().render_app_template()

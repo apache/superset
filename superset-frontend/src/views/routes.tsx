@@ -86,6 +86,10 @@ const DatasetList = lazy(
   () => import(/* webpackChunkName: "DatasetList" */ 'src/pages/DatasetList'),
 );
 
+const FoldersPOC = lazy(
+  () => import(/* webpackChunkName: "FoldersPOC" */ 'src/pages/FoldersPOC'),
+);
+
 const DatasetCreation = lazy(
   () =>
     import(
@@ -242,6 +246,10 @@ export const routes: Routes = [
   {
     path: '/tablemodelview/list/',
     Component: DatasetList,
+  },
+  {
+    path: '/folders-poc/',
+    Component: FoldersPOC,
   },
   {
     path: '/databaseview/list/',
