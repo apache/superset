@@ -29,7 +29,7 @@ from superset.mcp_service.constants import (
     DEFAULT_TOKEN_LIMIT,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
-from superset.mcp_service.jwt_verifier import DetailedJWTVerifier, MCPJWTVerifier
+from superset.mcp_service.jwt_verifier import DetailedJWTVerifier
 
 logger = logging.getLogger(__name__)
 
@@ -404,8 +404,8 @@ def _build_jwt_verifier(
         # RFC 6750 Section 3.1.
         return DetailedJWTVerifier(**common_kwargs)
 
-    # MCPJWTVerifier: minimal logging + browser-friendly error page.
-    return MCPJWTVerifier(**common_kwargs)
+    # Default JWTVerifier: minimal logging, generic error responses.
+    return JWTVerifier(**common_kwargs)
 
 
 def default_user_resolver(app: Any, access_token: Any) -> str | None:
