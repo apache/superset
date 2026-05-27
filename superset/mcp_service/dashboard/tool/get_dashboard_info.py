@@ -24,6 +24,7 @@ about a specific dashboard.
 
 import logging
 from datetime import datetime, timezone
+from typing import Any
 
 from fastmcp import Context
 from flask import g, has_request_context
@@ -114,7 +115,7 @@ def _get_permalink_state(permalink_key: str) -> DashboardPermalinkValue | None:
 )
 async def get_dashboard_info(
     request: GetDashboardInfoRequest, ctx: Context
-) -> DashboardInfo | DashboardError:
+) -> dict[str, Any] | DashboardError:
     """
     Get dashboard metadata by ID, UUID, or slug.
 
@@ -246,6 +247,10 @@ async def get_dashboard_info(
                     result.published,
                     result.is_permalink_state,
                 )
+            )
+            return result.model_dump(
+                mode="json",
+                context={"select_columns": request.select_columns},
             )
         else:
             await ctx.warning(
