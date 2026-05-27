@@ -123,6 +123,14 @@ async def test_list_tasks_with_status_filter(mock_list, mcp_server):
     assert len(data["tasks"]) == 1
     assert data["tasks"][0]["status"] == "pending"
 
+    # Verify the filter was forwarded to the DAO
+    call_kwargs = mock_list.call_args.kwargs
+    col_operators = call_kwargs.get("column_operators", [])
+    status_filters = [f for f in col_operators if getattr(f, "col", None) == "status"]
+    assert len(status_filters) == 1
+    assert status_filters[0].opr.value == "eq"
+    assert status_filters[0].value == "pending"
+
 
 @patch("superset.daos.tasks.TaskDAO.list")
 @pytest.mark.asyncio
@@ -205,6 +213,9 @@ async def test_get_task_info_by_uuid(mock_find, mcp_server):
     data = json.loads(result.content[0].text)
     assert data["id"] == 10
     assert data["status"] == "success"
+
+    # Verify the DAO was called with id_column="uuid" for UUID-style identifiers
+    mock_find.assert_called_once_with(task_uuid, id_column="uuid", query_options=None)
 
 
 @patch("superset.daos.tasks.TaskDAO.find_by_id")

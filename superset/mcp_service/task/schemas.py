@@ -226,7 +226,15 @@ class GetTaskInfoRequest(BaseModel):
 def serialize_task_object(task: Any) -> TaskInfo | None:
     if not task:
         return None
+    from datetime import timezone
+
     uuid_val = getattr(task, "uuid", None)
+    changed_on = getattr(task, "changed_on", None)
+    if isinstance(changed_on, datetime) and changed_on.tzinfo is None:
+        changed_on = changed_on.replace(tzinfo=timezone.utc)
+    created_on = getattr(task, "created_on", None)
+    if isinstance(created_on, datetime) and created_on.tzinfo is None:
+        created_on = created_on.replace(tzinfo=timezone.utc)
     return TaskInfo(
         id=getattr(task, "id", None),
         uuid=str(uuid_val) if uuid_val is not None else None,
@@ -235,6 +243,6 @@ def serialize_task_object(task: Any) -> TaskInfo | None:
         task_name=getattr(task, "task_name", None),
         status=getattr(task, "status", None),
         scope=getattr(task, "scope", None),
-        changed_on=getattr(task, "changed_on", None),
-        created_on=getattr(task, "created_on", None),
+        changed_on=changed_on,
+        created_on=created_on,
     )
