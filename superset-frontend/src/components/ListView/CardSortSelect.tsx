@@ -52,10 +52,6 @@ export const CardSortSelect = ({
 
   const selectOptions = options.map(o => ({ label: o.label, value: o.value }));
 
-  // Sort always has an active value — the control is meaningless without one.
-  // Show the active option in the label so users always know what sort is applied.
-  const isNonDefault = currentValue.value !== options[0]?.value;
-
   const handleSelect = (option: SelectOption | undefined) => {
     if (!option) return;
     const original = options.find(o => o.value === option.value);
@@ -65,26 +61,15 @@ export const CardSortSelect = ({
     }
   };
 
-  const handleClear = () => {
-    const first = options[0];
-    if (first) {
-      setCurrentValue({ label: first.label, value: first.value });
-      onChange([{ id: first.id, desc: first.desc }]);
-    }
-  };
-
-  // Always show the active sort name so users can see what's applied.
-  // The pill is always "active" (hasValue=true) because a sort is always in
-  // effect — there is no "no sort" state. Clearing resets to options[0], not
-  // to an unsorted state, so we only hide the X when already at the default.
+  // Sort is always active — always show the current option in the label.
   const pillLabel = `${t('Sort')}: ${String(currentValue.label)}`;
 
   return (
     <span data-test="card-sort-select">
       <CompactFilterTrigger
         label={pillLabel}
-        hasValue={isNonDefault}
-        onClear={handleClear}
+        hasValue={false}
+        onClear={() => {}}
         tooltipTitle={undefined}
       >
         {({ isOpen, onClose }) => (

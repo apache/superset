@@ -36,7 +36,7 @@ const options = [
   },
 ];
 
-test('shows current sort label in pill even when at default (options[0])', () => {
+test('always shows the active sort label in the pill — never shows a clear button', () => {
   render(
     <CardSortSelect
       options={options}
@@ -44,9 +44,9 @@ test('shows current sort label in pill even when at default (options[0])', () =>
       initialSort={[{ id: 'title', desc: false }]}
     />,
   );
-  // Label always shows the active sort
+  // Sort label always visible
   expect(screen.getByText(/sort.*alphabetical/i)).toBeInTheDocument();
-  // No clear icon when at default — clearing would be a no-op
+  // No clear button — sort is always active, there is nothing to clear
   expect(
     screen.queryByTestId('compact-filter-clear'),
   ).not.toBeInTheDocument();
@@ -56,7 +56,7 @@ test('shows current sort label in pill even when at default (options[0])', () =>
   );
 });
 
-test('shows clear icon inside pill when sort is non-default', () => {
+test('no clear button even when a non-default sort is active', () => {
   render(
     <CardSortSelect
       options={options}
@@ -64,25 +64,7 @@ test('shows clear icon inside pill when sort is non-default', () => {
       initialSort={[{ id: 'changed_on', desc: true }]}
     />,
   );
-  const pill = screen.getByTestId('compact-filter-pill');
-  const clearIcon = screen.getByTestId('compact-filter-clear');
-  expect(clearIcon).toBeInTheDocument();
-  // X must be inside the pill, not a sibling
-  expect(pill).toContainElement(clearIcon);
-});
-
-test('clear icon resets sort to options[0] and calls onChange', async () => {
-  const onChange = jest.fn();
-  render(
-    <CardSortSelect
-      options={options}
-      onChange={onChange}
-      initialSort={[{ id: 'changed_on', desc: true }]}
-    />,
-  );
-  await userEvent.click(screen.getByTestId('compact-filter-clear'));
-  expect(onChange).toHaveBeenCalledWith([{ id: 'title', desc: false }]);
-  // After clearing, X should disappear (sort is back at default)
+  expect(screen.getByText(/sort.*recently modified/i)).toBeInTheDocument();
   expect(
     screen.queryByTestId('compact-filter-clear'),
   ).not.toBeInTheDocument();
