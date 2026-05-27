@@ -674,6 +674,18 @@ def test_resolve_deck_gl_metrics_string_metric_field():
     assert result == ["sum__sales"]
 
 
+def test_resolve_deck_gl_metrics_string_point_radius_fixed():
+    # Legacy deck_scatter: point_radius_fixed as a bare metric key string
+    result = _resolve_deck_gl_metrics({"point_radius_fixed": "count"}, "deck_scatter")
+    assert result == ["count"]
+
+
+def test_resolve_deck_gl_metrics_numeric_point_radius_fixed_excluded():
+    # Numeric string point_radius_fixed is a fixed pixel radius, not a metric
+    result = _resolve_deck_gl_metrics({"point_radius_fixed": "100"}, "deck_scatter")
+    assert result == []
+
+
 # ---------------------------------------------------------------------------
 # _deck_gl_null_filters (Fix 3)
 # ---------------------------------------------------------------------------
@@ -852,6 +864,24 @@ def test_build_query_dicts_deck_hex_string_metric(monkeypatch):
         "viz_type": "deck_hex",
         "spatial": {"type": "geohash", "geohashCol": "geo"},
         "size": "count",
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert queries[0]["metrics"] == ["count"]
+
+
+def test_build_query_dicts_deck_scatter_string_point_radius_fixed(monkeypatch):
+    # Legacy deck_scatter with point_radius_fixed as a bare metric key string
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_scatter",
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "point_radius_fixed": "count",
         "adhoc_filters": [],
     }
 
