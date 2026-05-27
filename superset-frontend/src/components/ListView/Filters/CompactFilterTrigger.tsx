@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useRef, useState, type ReactNode, type MouseEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type MouseEvent,
+} from 'react';
 import { t } from '@apache-superset/core/translation';
 import { useTheme, styled, css } from '@apache-superset/core/theme';
 import { Dropdown, Tooltip, Icons } from '@superset-ui/core/components';
@@ -161,7 +167,9 @@ export default function CompactFilterTrigger({
           aria-haspopup={popupType}
           aria-expanded={open}
           aria-label={typeof label === 'string' ? label : undefined}
-          onMouseLeave={() => { tooltipSuppressedRef.current = false; }}
+          onMouseLeave={() => {
+            tooltipSuppressedRef.current = false;
+          }}
         >
           {hasValue && <ActiveDot />}
           <span>{label}</span>
@@ -172,7 +180,9 @@ export default function CompactFilterTrigger({
               onClick={handleClear}
               data-test="compact-filter-clear"
               aria-label={
-                typeof label === 'string' ? t('Clear %s filter', label) : undefined
+                typeof label === 'string'
+                  ? t('Clear %s filter', label)
+                  : undefined
               }
             />
           ) : (

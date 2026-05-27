@@ -107,7 +107,9 @@ function UIFilters(
       if (Array.isArray(val) && val.length === 2) {
         const fmt = (v: unknown) => {
           const d = new Date(v as string | number);
-          return isNaN(d.getTime()) ? String(v) : d.toISOString().replace('T', ' ').slice(0, 19);
+          return isNaN(d.getTime())
+            ? String(v)
+            : d.toISOString().replace('T', ' ').slice(0, 19);
         };
         const tooltip = `${fmt(val[0])} – ${fmt(val[1])}`;
         setTimeRangeTooltips(prev =>
@@ -166,191 +168,199 @@ function UIFilters(
   // Render in two passes: search first, then all other filter types.
   const renderFilter = (_: (typeof filters)[number], index: number) => {
     const {
-      Header, fetchSelects, key, id, input, selects, toolTipDescription,
-      onFilterUpdate, loading, min, max, autoComplete, inputName, popupStyle,
+      Header,
+      fetchSelects,
+      key,
+      id,
+      input,
+      selects,
+      toolTipDescription,
+      onFilterUpdate,
+      loading,
+      min,
+      max,
+      autoComplete,
+      inputName,
+      popupStyle,
       dateFilterValueType,
     } = filters[index];
     const initialValue = internalFilters?.[index]?.value;
-          if (input === 'select') {
-            const selectValue = initialValue as SelectOption | undefined;
-            // Prefer cached label (survives URL round-trips where only the value
-            // is preserved). Fall back to the static selects list for cold loads.
-            const cachedLabel = tooltipLabels[index];
-            const staticFallback = cachedLabel
-              ? undefined
-              : selects?.find(s => s.value === selectValue?.value)?.label;
-            const tooltipTitle = !!selectValue
-              ? cachedLabel ||
-                (typeof staticFallback === 'string'
-                  ? staticFallback
-                  : undefined)
-              : undefined;
-            return (
-              <span key={key} data-test="select-filter-container">
-                <CompactFilterTrigger
-                  label={Header}
-                  hasValue={!!selectValue}
-                  tooltipTitle={tooltipTitle}
-                  onClear={() => clearFilterAtIndex(index)}
-                >
-                  {({ isOpen, onClose }) => (
-                    <CompactSelectPanel
-                      ref={filterRefs[index]}
-                      selects={selects}
-                      fetchSelects={fetchSelects}
-                      value={initialValue as SelectOption | undefined}
-                      loading={loading ?? false}
-                      isOpen={isOpen}
-                      onClose={onClose}
-                      panelStyle={popupStyle}
-                      onSelect={(
-                        option: SelectOption | undefined,
-                        isClear?: boolean,
-                      ) => {
-                        if (option && !isClear) {
-                          setTooltipLabels(prev => ({
-                            ...prev,
-                            [index]:
-                              typeof option.label === 'string'
-                                ? option.label
-                                : String(option.value ?? ''),
-                          }));
-                        }
-                        if (onFilterUpdate && !isClear) {
-                          onFilterUpdate(option);
-                        }
-                        updateFilterValue(index, option);
-                      }}
-                    />
-                  )}
-                </CompactFilterTrigger>
-              </span>
-            );
+    if (input === 'select') {
+      const selectValue = initialValue as SelectOption | undefined;
+      // Prefer cached label (survives URL round-trips where only the value
+      // is preserved). Fall back to the static selects list for cold loads.
+      const cachedLabel = tooltipLabels[index];
+      const staticFallback = cachedLabel
+        ? undefined
+        : selects?.find(s => s.value === selectValue?.value)?.label;
+      const tooltipTitle = !!selectValue
+        ? cachedLabel ||
+          (typeof staticFallback === 'string' ? staticFallback : undefined)
+        : undefined;
+      return (
+        <span key={key} data-test="select-filter-container">
+          <CompactFilterTrigger
+            label={Header}
+            hasValue={!!selectValue}
+            tooltipTitle={tooltipTitle}
+            onClear={() => clearFilterAtIndex(index)}
+          >
+            {({ isOpen, onClose }) => (
+              <CompactSelectPanel
+                ref={filterRefs[index]}
+                selects={selects}
+                fetchSelects={fetchSelects}
+                value={initialValue as SelectOption | undefined}
+                loading={loading ?? false}
+                isOpen={isOpen}
+                onClose={onClose}
+                panelStyle={popupStyle}
+                onSelect={(
+                  option: SelectOption | undefined,
+                  isClear?: boolean,
+                ) => {
+                  if (option && !isClear) {
+                    setTooltipLabels(prev => ({
+                      ...prev,
+                      [index]:
+                        typeof option.label === 'string'
+                          ? option.label
+                          : String(option.value ?? ''),
+                    }));
+                  }
+                  if (onFilterUpdate && !isClear) {
+                    onFilterUpdate(option);
+                  }
+                  updateFilterValue(index, option);
+                }}
+              />
+            )}
+          </CompactFilterTrigger>
+        </span>
+      );
+    }
+    if (input === 'search' && typeof Header === 'string') {
+      if (searchFilterRendered) return null;
+      searchFilterRendered = true;
+      return (
+        <SearchFilter
+          ref={filterRefs[index]}
+          Header={Header}
+          initialValue={initialValue}
+          key={key}
+          name={inputName ?? id}
+          toolTipDescription={toolTipDescription}
+          onSubmit={(value: string) => {
+            if (onFilterUpdate) {
+              onFilterUpdate(value);
+            }
+
+            updateFilterValue(index, value);
+          }}
+          autoComplete={autoComplete}
+        />
+      );
+    }
+    if (input === 'datetime_range') {
+      // dateFilterValueType absent or 'unix': column stores unix ms (e.g. Query History start_time).
+      // 'iso': column stores ISO date strings (e.g. UsersList created_on, ActionLog dttm).
+      const isUnixType = !dateFilterValueType || dateFilterValueType === 'unix';
+
+      // initialValue may be [ms, ms] (unix), ["iso","iso"] (iso), or legacy string.
+      // Always reconstruct panelValue as "ISO : ISO" so the TimeRange panel
+      // can parse it as a Custom date range regardless of storage type.
+      let resolvedIsoRange: [string, string] | null = null;
+      if (Array.isArray(initialValue) && initialValue.length === 2) {
+        if (typeof initialValue[0] === 'number') {
+          resolvedIsoRange = [
+            new Date(initialValue[0]).toISOString(),
+            new Date(initialValue[1] as number).toISOString(),
+          ];
+        } else if (typeof initialValue[0] === 'string') {
+          resolvedIsoRange = initialValue as [string, string];
+        }
+      }
+      const legacyStringVal =
+        !resolvedIsoRange &&
+        typeof initialValue === 'string' &&
+        initialValue !== NO_TIME_RANGE
+          ? initialValue
+          : null;
+      const hasTimeValue = !!(resolvedIsoRange || legacyStringVal);
+      const panelValue =
+        resolvedIsoRange?.join(' : ') ?? legacyStringVal ?? undefined;
+      return (
+        <CompactFilterTrigger
+          key={key}
+          label={Header}
+          hasValue={hasTimeValue}
+          tooltipTitle={
+            hasTimeValue ? (timeRangeTooltips[index] ?? panelValue) : undefined
           }
-          if (input === 'search' && typeof Header === 'string') {
-            if (searchFilterRendered) return null;
-            searchFilterRendered = true;
-            return (
-              <SearchFilter
+          popupType="dialog"
+          onClear={() => {
+            updateFilterValue(index, undefined);
+          }}
+        >
+          {({ onClose }) => (
+            <TimeRangeFilter
+              ref={filterRefs[index]}
+              value={panelValue}
+              onClose={onClose}
+              onSubmit={value => {
+                if (!value) {
+                  updateFilterValue(index, undefined);
+                } else if (isUnixType) {
+                  // Convert ISO strings to unix ms for numeric columns
+                  updateFilterValue(index, [
+                    new Date(value[0]).getTime(),
+                    new Date(value[1]).getTime(),
+                  ]);
+                } else {
+                  updateFilterValue(index, value);
+                }
+              }}
+            />
+          )}
+        </CompactFilterTrigger>
+      );
+    }
+    if (input === 'numerical_range') {
+      const hasRangeValue =
+        Array.isArray(initialValue) &&
+        initialValue.some(v => v !== null && v !== undefined);
+      const rangeTooltip = hasRangeValue
+        ? (initialValue as (number | null | undefined)[])
+            .filter(v => v !== null && v !== undefined)
+            .join(' – ')
+        : undefined;
+      return (
+        <CompactFilterTrigger
+          key={key}
+          label={Header}
+          hasValue={hasRangeValue}
+          tooltipTitle={rangeTooltip}
+          popupType="dialog"
+          onClear={() => {
+            updateFilterValue(index, undefined);
+          }}
+        >
+          {({ onClose }) => (
+            <FilterPopoverContent onClose={onClose}>
+              <NumericalRangeFilter
                 ref={filterRefs[index]}
                 Header={Header}
                 initialValue={initialValue}
-                key={key}
-                name={inputName ?? id}
-                toolTipDescription={toolTipDescription}
-                onSubmit={(value: string) => {
-                  if (onFilterUpdate) {
-                    onFilterUpdate(value);
-                  }
-
-                  updateFilterValue(index, value);
-                }}
-                autoComplete={autoComplete}
+                min={min}
+                max={max}
+                name={id}
+                onSubmit={value => updateFilterValue(index, value)}
               />
-            );
-          }
-          if (input === 'datetime_range') {
-            // dateFilterValueType absent or 'unix': column stores unix ms (e.g. Query History start_time).
-            // 'iso': column stores ISO date strings (e.g. UsersList created_on, ActionLog dttm).
-            const isUnixType = !dateFilterValueType || dateFilterValueType === 'unix';
-
-            // initialValue may be [ms, ms] (unix), ["iso","iso"] (iso), or legacy string.
-            // Always reconstruct panelValue as "ISO : ISO" so the TimeRange panel
-            // can parse it as a Custom date range regardless of storage type.
-            let resolvedIsoRange: [string, string] | null = null;
-            if (Array.isArray(initialValue) && initialValue.length === 2) {
-              if (typeof initialValue[0] === 'number') {
-                resolvedIsoRange = [
-                  new Date(initialValue[0]).toISOString(),
-                  new Date(initialValue[1] as number).toISOString(),
-                ];
-              } else if (typeof initialValue[0] === 'string') {
-                resolvedIsoRange = initialValue as [string, string];
-              }
-            }
-            const legacyStringVal =
-              !resolvedIsoRange &&
-              typeof initialValue === 'string' &&
-              initialValue !== NO_TIME_RANGE
-                ? initialValue
-                : null;
-            const hasTimeValue = !!(resolvedIsoRange || legacyStringVal);
-            const panelValue =
-              resolvedIsoRange?.join(' : ') ?? legacyStringVal ?? undefined;
-            return (
-              <CompactFilterTrigger
-                key={key}
-                label={Header}
-                hasValue={hasTimeValue}
-                tooltipTitle={
-                  hasTimeValue
-                    ? (timeRangeTooltips[index] ?? panelValue)
-                    : undefined
-                }
-                popupType="dialog"
-                onClear={() => {
-                  updateFilterValue(index, undefined);
-                }}
-              >
-                {({ onClose }) => (
-                  <TimeRangeFilter
-                    ref={filterRefs[index]}
-                    value={panelValue}
-                    onClose={onClose}
-                    onSubmit={value => {
-                      if (!value) {
-                        updateFilterValue(index, undefined);
-                      } else if (isUnixType) {
-                        // Convert ISO strings to unix ms for numeric columns
-                        updateFilterValue(index, [
-                          new Date(value[0]).getTime(),
-                          new Date(value[1]).getTime(),
-                        ]);
-                      } else {
-                        updateFilterValue(index, value);
-                      }
-                    }}
-                  />
-                )}
-              </CompactFilterTrigger>
-            );
-          }
-          if (input === 'numerical_range') {
-            const hasRangeValue =
-              Array.isArray(initialValue) &&
-              initialValue.some(v => v !== null && v !== undefined);
-            const rangeTooltip = hasRangeValue
-              ? (initialValue as (number | null | undefined)[])
-                  .filter(v => v !== null && v !== undefined)
-                  .join(' – ')
-              : undefined;
-            return (
-              <CompactFilterTrigger
-                key={key}
-                label={Header}
-                hasValue={hasRangeValue}
-                tooltipTitle={rangeTooltip}
-                popupType="dialog"
-                onClear={() => {
-                  updateFilterValue(index, undefined);
-                }}
-              >
-                {({ onClose }) => (
-                  <FilterPopoverContent onClose={onClose}>
-                    <NumericalRangeFilter
-                      ref={filterRefs[index]}
-                      Header={Header}
-                      initialValue={initialValue}
-                      min={min}
-                      max={max}
-                      name={id}
-                      onSubmit={value => updateFilterValue(index, value)}
-                    />
-                  </FilterPopoverContent>
-                )}
-              </CompactFilterTrigger>
-            );
-          }
+            </FilterPopoverContent>
+          )}
+        </CompactFilterTrigger>
+      );
+    }
     return null;
   };
 
@@ -358,11 +368,15 @@ function UIFilters(
     <>
       {/* Search first */}
       {filters.map((_, index) =>
-        filters[index].input === 'search' ? renderFilter(filters[index], index) : null,
+        filters[index].input === 'search'
+          ? renderFilter(filters[index], index)
+          : null,
       )}
       {/* Then all other filter types */}
       {filters.map((_, index) =>
-        filters[index].input !== 'search' ? renderFilter(filters[index], index) : null,
+        filters[index].input !== 'search'
+          ? renderFilter(filters[index], index)
+          : null,
       )}
     </>
   );
