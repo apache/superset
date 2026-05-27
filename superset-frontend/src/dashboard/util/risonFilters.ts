@@ -346,17 +346,22 @@ export function updateUrlWithUnmatchedFilters(
       }
     }
 
+    // Always keep window.history in sync so callers that read
+    // `window.location.search` (e.g. `getRisonFilterParam`) see the update.
+    // With a real `BrowserRouter`, `history.replace` would do this too — but
+    // under a `createMemoryHistory` (used in tests, or in some embedded
+    // contexts) it does not, and we'd leak the stale URL into the next
+    // `getRisonFilterParam()` call.
+    window.history.replaceState(
+      window.history.state,
+      '',
+      currentUrl.toString(),
+    );
     if (history) {
       history.replace({
         pathname: currentUrl.pathname,
         search: currentUrl.search,
       });
-    } else {
-      window.history.replaceState(
-        window.history.state,
-        '',
-        currentUrl.toString(),
-      );
     }
   } catch (error) {
     console.warn('Failed to update URL with unmatched filters:', error);
