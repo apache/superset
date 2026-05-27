@@ -46,17 +46,19 @@ def apply_rls(
         example, after converting a physical dataset with RLS to virtual).
     :returns: True if any RLS predicates were actually applied, False otherwise.
     """
-    # There are two ways to insert RLS: either replacing the table with a subquery
-    # that has the RLS, or appending the RLS to the ``WHERE`` clause. The former is
-    # safer, but not supported in all databases.
-    method = database.db_engine_spec.get_rls_method()
+    # There are three ways to insert RLS:
+    #   - replace the table with a subquery containing the RLS (safest, but not
+    #     supported in all databases)
+    #   - append the RLS to the ``WHERE`` clause via AST transformation
+    #   - splice the RLS into the original SQL string (preserves dialect-specific
+    #     syntax that the sqlglot generator would otherwise transpile)
+    method = database.db_engine_spec.rls_method
 
-    # collect all RLS predicates for all tables in the query
-    predicates: dict[Table, list[Any]] = {}
+    predicates: dict[Table, list[str]] = {}
     for table in parsed_statement.tables:
         table = table.qualify(catalog=catalog, schema=schema)
-        predicates[table] = [
-            parsed_statement.parse_predicate(predicate)
+        raw_predicates = [
+            predicate
             for predicate in get_predicates_for_table(
                 table,
                 database,
@@ -65,6 +67,7 @@ def apply_rls(
             )
             if predicate
         ]
+        predicates[table] = raw_predicates
 
     has_predicates = any(predicates.values())
     parsed_statement.apply_rls(catalog, schema, predicates, method)

@@ -21,7 +21,7 @@ from sqlalchemy import types
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
-from superset.sql.parse import LimitMethod
+from superset.sql.parse import LimitMethod, RLSMethod
 
 
 class FirebirdEngineSpec(BaseEngineSpec):
@@ -52,6 +52,8 @@ class FirebirdEngineSpec(BaseEngineSpec):
 
     # Firebird uses FIRST to limit: `SELECT FIRST 10 * FROM table`
     limit_method = LimitMethod.FETCH_MANY
+
+    rls_method = RLSMethod.AS_PREDICATE_SPLICE
 
     _time_grain_expressions = {
         None: "{col}",

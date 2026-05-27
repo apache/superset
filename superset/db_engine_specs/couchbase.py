@@ -35,6 +35,7 @@ from superset.db_engine_specs.base import (
     DatabaseCategory,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.sql.parse import RLSMethod
 from superset.utils.network import is_hostname_valid, is_port_open
 
 
@@ -82,6 +83,7 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
     default_driver = "couchbase"
     allows_joins = False
     allows_subqueries = False
+    rls_method = RLSMethod.AS_PREDICATE
     sqlalchemy_uri_placeholder = (
         "couchbase://user:password@host[:port]?truststorepath=value?ssl=value"
     )

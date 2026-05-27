@@ -28,6 +28,7 @@ from superset.db_engine_specs.exceptions import (
     SupersetDBAPIOperationalError,
     SupersetDBAPIProgrammingError,
 )
+from superset.sql.parse import RLSMethod
 
 logger = logging.getLogger()
 
@@ -39,6 +40,7 @@ class ElasticSearchEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-metho
     allows_joins = False
     allows_subqueries = True
     allows_sql_comments = False
+    rls_method = RLSMethod.AS_PREDICATE_SPLICE
 
     metadata = {
         "description": (

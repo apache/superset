@@ -20,6 +20,7 @@ from sqlalchemy.types import TypeEngine
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.sql.parse import RLSMethod
 
 
 class PinotEngineSpec(BaseEngineSpec):
@@ -30,6 +31,7 @@ class PinotEngineSpec(BaseEngineSpec):
     allows_joins = False
     allows_alias_in_select = False
     allows_alias_in_orderby = False
+    rls_method = RLSMethod.AS_PREDICATE
 
     # pinotdb only sets cursor.description when the response contains
     # columnDataTypes, which Pinot omits for zero-row results.

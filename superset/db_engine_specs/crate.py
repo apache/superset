@@ -23,6 +23,7 @@ from sqlalchemy import types
 
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
+from superset.sql.parse import RLSMethod
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
@@ -67,6 +68,8 @@ class CrateEngineSpec(BaseEngineSpec):
         TimeGrain.QUARTER: "DATE_TRUNC('quarter', {col})",
         TimeGrain.YEAR: "DATE_TRUNC('year', {col})",
     }
+
+    rls_method = RLSMethod.AS_PREDICATE_SPLICE
 
     @classmethod
     def epoch_to_dttm(cls) -> str:

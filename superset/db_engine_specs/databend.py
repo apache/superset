@@ -39,6 +39,7 @@ from superset.db_engine_specs.base import (
 )
 from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.sql.parse import RLSMethod
 from superset.utils.core import GenericDataType
 from superset.utils.hashing import hash_from_str
 from superset.utils.network import is_hostname_valid, is_port_open
@@ -54,6 +55,8 @@ class DatabendBaseEngineSpec(BaseEngineSpec):
 
     time_secondary_columns = True
     time_groupby_inline = True
+
+    rls_method = RLSMethod.AS_PREDICATE_SPLICE
 
     _time_grain_expressions = {
         None: "{col}",
