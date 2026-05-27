@@ -24,7 +24,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal
 
-import humanize
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -41,6 +40,7 @@ from superset.mcp_service.system.schemas import (
     PaginationInfo,
     TagInfo as BaseTagInfo,
 )
+from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
@@ -213,13 +213,6 @@ class GetTagInfoRequest(BaseModel):
     ]
 
 
-def _humanize_timestamp(dt: datetime | None) -> str | None:
-    if dt is None:
-        return None
-    now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
-    return humanize.naturaltime(now - dt)
-
-
 def serialize_tag_object(tag: Any) -> TagInfo | None:
     if not tag:
         return None
@@ -234,5 +227,5 @@ def serialize_tag_object(tag: Any) -> TagInfo | None:
         type=type_str,
         description=getattr(tag, "description", None),
         changed_on=getattr(tag, "changed_on", None),
-        changed_on_humanized=_humanize_timestamp(getattr(tag, "changed_on", None)),
+        changed_on_humanized=humanize_timestamp(getattr(tag, "changed_on", None)),
     )
