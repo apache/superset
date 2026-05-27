@@ -16,41 +16,61 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+} from 'react';
+import { ReactElement } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { getActiveChatbot } from 'src/core/chatbot';
 import { subscribeToRegistry, getRegistryVersion } from 'src/core/views';
+import { subscribeToExtensionSettings } from 'src/core/extensions';
 
 const CHATBOT_EDGE_MARGIN = 24;
 
+// Renders the provider as a component so ErrorBoundary catches provider-level throws.
+const ChatbotRenderer = ({ provider }: { provider: () => ReactElement }) =>
+  provider();
+
 const ChatbotMount = () => {
   const theme = useTheme();
-  // undefined = settings not yet loaded; don't render anything until settings arrive.
-  const [adminSelectedId, setAdminSelectedId] = useState<
-    string | null | undefined
-  >(undefined);
+  const [adminSelectedId, setAdminSelectedId] = useState<string | null>(null);
   const [enabledMap, setEnabledMap] = useState<Record<string, boolean>>({});
+
+  const applySettings = useCallback(
+    (settings: {
+      active_chatbot_id: string | null;
+      enabled: Record<string, boolean>;
+    }) => {
+      setAdminSelectedId(settings.active_chatbot_id ?? null);
+      setEnabledMap(settings.enabled ?? {});
+    },
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
     SupersetClient.get({ endpoint: '/api/v1/extensions/settings' })
       .then(({ json }) => {
         if (cancelled) return;
-        const id = json.result?.active_chatbot_id ?? null;
-        const enabled: Record<string, boolean> = json.result?.enabled ?? {};
-        setAdminSelectedId(id);
-        setEnabledMap(enabled);
+        applySettings(json.result);
       })
       .catch(() => {
         // Settings fetch failure is non-fatal — fall back to first-to-register.
+        // enabledMap stays {} which getActiveChatbot treats as all-enabled.
         setAdminSelectedId(null);
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [applySettings]);
+
+  useEffect(() => subscribeToExtensionSettings(applySettings), [applySettings]);
 
   const registryVersion = useSyncExternalStore(
     subscribeToRegistry,
@@ -58,10 +78,7 @@ const ChatbotMount = () => {
   );
 
   const activeChatbot = useMemo(
-    () =>
-      adminSelectedId === undefined
-        ? null
-        : getActiveChatbot(adminSelectedId, enabledMap),
+    () => getActiveChatbot(adminSelectedId, enabledMap),
     [adminSelectedId, enabledMap, registryVersion],
   );
 
@@ -80,7 +97,9 @@ const ChatbotMount = () => {
         z-index: ${theme.zIndexPopupBase + 2};
       `}
     >
-      <ErrorBoundary>{activeChatbot.provider()}</ErrorBoundary>
+      <ErrorBoundary>
+        <ChatbotRenderer provider={activeChatbot.provider} />
+      </ErrorBoundary>
     </div>
   );
 };
