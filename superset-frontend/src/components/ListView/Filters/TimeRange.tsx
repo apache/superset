@@ -25,7 +25,11 @@ import {
   type RefObject,
 } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { NO_TIME_RANGE, SupersetClient, fetchTimeRange } from '@superset-ui/core';
+import {
+  NO_TIME_RANGE,
+  SupersetClient,
+  fetchTimeRange,
+} from '@superset-ui/core';
 import rison from 'rison';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
@@ -264,8 +268,10 @@ function TimeRangeFilter(
               const response = await SupersetClient.get({
                 endpoint: `/api/v1/time_range/?q=${rison.encode_uri(timeRangeValue)}`,
               });
-              const since: string | undefined = response?.json?.result[0]?.since;
-              const until: string | undefined = response?.json?.result[0]?.until;
+              const since: string | undefined =
+                response?.json?.result[0]?.since;
+              const until: string | undefined =
+                response?.json?.result[0]?.until;
               if (since !== undefined && until !== undefined) {
                 onSubmit([since, until]);
               }
