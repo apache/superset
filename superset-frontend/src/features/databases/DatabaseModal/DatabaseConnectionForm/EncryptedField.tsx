@@ -29,7 +29,7 @@ import {
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { DatabaseParameters, FieldPropTypes } from '../../types';
+import { DatabaseParameters, Engines, FieldPropTypes } from '../../types';
 import { infoTooltip, CredentialInfoForm } from '../styles';
 
 enum CredentialInfoOptions {
@@ -59,7 +59,7 @@ export const EncryptedField = ({
     CredentialInfoOptions.JsonUpload.valueOf(),
   );
   const { addDangerToast } = useToasts();
-  const isGSheets = db?.engine === 'gsheets';
+  const isGSheets = db?.engine === Engines.GSheet;
   const showCredentialsInfo = !isEditMode && (!isGSheets || !isPublic);
   const showCredentialsSection = !isGSheets || !isPublic;
   const encryptedField =
@@ -76,10 +76,21 @@ export const EncryptedField = ({
     const nextIsPublic = value === 'true';
     setIsPublic?.(nextIsPublic);
     if (nextIsPublic) {
+      // Clear in-flight `parameters.*` so the save-time merge in
+      // DatabaseModal/index.tsx doesn't write them into masked_encrypted_extra.
       changeMethods.onParametersChange({
         target: { name: 'service_account_info', value: '' },
       });
       changeMethods.onParametersChange({
+        target: { name: 'oauth2_client_info', value: '' },
+      });
+      // Also clear any previously-stored values from masked_encrypted_extra
+      // itself (loaded in edit mode), since the save-time merge preserves
+      // existing keys and only overwrites them when `parameters.*` is truthy.
+      changeMethods.onEncryptedExtraInputChange({
+        target: { name: 'service_account_info', value: '' },
+      });
+      changeMethods.onEncryptedExtraInputChange({
         target: { name: 'oauth2_client_info', value: '' },
       });
     }

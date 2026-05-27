@@ -285,14 +285,25 @@ export function dbReducer(
           [action.payload.name]: actionPayloadJson,
         }),
       };
-    case ActionType.EncryptedExtraInputChange:
+    case ActionType.EncryptedExtraInputChange: {
+      const parsed = JSON.parse(trimmedState.masked_encrypted_extra || '{}');
+      if (
+        action.payload.value === '' ||
+        action.payload.value === null ||
+        action.payload.value === undefined
+      ) {
+        // Treat empty values as a request to remove the key entirely so the
+        // backend doesn't keep a stale credential under masked_encrypted_extra
+        // (which is preserved key-by-key at save time).
+        delete parsed[action.payload.name as string];
+      } else {
+        parsed[action.payload.name as string] = action.payload.value;
+      }
       return {
         ...trimmedState,
-        masked_encrypted_extra: JSON.stringify({
-          ...JSON.parse(trimmedState.masked_encrypted_extra || '{}'),
-          [action.payload.name]: action.payload.value,
-        }),
+        masked_encrypted_extra: JSON.stringify(parsed),
       };
+    }
     case ActionType.ExtraInputChange:
       if (
         action.payload.name === 'schema_cache_timeout' ||

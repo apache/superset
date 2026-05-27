@@ -458,6 +458,8 @@ describe('EncryptedField', () => {
       fireEvent.click(screen.getByText('Publicly shared sheets only'));
 
       expect(setIsPublic).toHaveBeenCalledWith(true);
+
+      // Clears in-flight `parameters.*` so the save-time merge does nothing.
       expect(changeMethods.onParametersChange).toHaveBeenCalledWith(
         expect.objectContaining({
           target: expect.objectContaining({
@@ -467,6 +469,25 @@ describe('EncryptedField', () => {
         }),
       );
       expect(changeMethods.onParametersChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target: expect.objectContaining({
+            name: 'oauth2_client_info',
+            value: '',
+          }),
+        }),
+      );
+
+      // Also clears `masked_encrypted_extra` keys directly so previously
+      // stored credentials don't survive a toggle in edit mode.
+      expect(changeMethods.onEncryptedExtraInputChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target: expect.objectContaining({
+            name: 'service_account_info',
+            value: '',
+          }),
+        }),
+      );
+      expect(changeMethods.onEncryptedExtraInputChange).toHaveBeenCalledWith(
         expect.objectContaining({
           target: expect.objectContaining({
             name: 'oauth2_client_info',

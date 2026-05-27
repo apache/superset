@@ -17,10 +17,14 @@
  * under the License.
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { Input, Collapse, FormItem } from '@superset-ui/core/components';
-import { CustomParametersChangeType, FieldPropTypes } from '../../types';
+import {
+  CustomParametersChangeType,
+  Engines,
+  FieldPropTypes,
+} from '../../types';
 
 const LABELS = {
   CLIENT_ID: t('Client ID'),
@@ -44,23 +48,36 @@ export const OAuth2ClientField = ({
   default_value: defaultValue,
   isPublic = true,
 }: FieldPropTypes) => {
-  const encryptedExtra = JSON.parse(db?.masked_encrypted_extra || '{}');
-  const [oauth2ClientInfo, setOauth2ClientInfo] = useState<OAuth2ClientInfo>({
-    id: encryptedExtra.oauth2_client_info?.id || '',
-    secret: encryptedExtra.oauth2_client_info?.secret || '',
-    authorization_request_uri:
-      encryptedExtra.oauth2_client_info?.authorization_request_uri ||
-      defaultValue?.authorization_request_uri ||
-      '',
-    token_request_uri:
-      encryptedExtra.oauth2_client_info?.token_request_uri ||
-      defaultValue?.token_request_uri ||
-      '',
-    scope:
-      encryptedExtra.oauth2_client_info?.scope || defaultValue?.scope || '',
-  });
+  const deriveOauth2ClientInfo = (): OAuth2ClientInfo => {
+    const encryptedExtra = JSON.parse(db?.masked_encrypted_extra || '{}');
+    return {
+      id: encryptedExtra.oauth2_client_info?.id || '',
+      secret: encryptedExtra.oauth2_client_info?.secret || '',
+      authorization_request_uri:
+        encryptedExtra.oauth2_client_info?.authorization_request_uri ||
+        defaultValue?.authorization_request_uri ||
+        '',
+      token_request_uri:
+        encryptedExtra.oauth2_client_info?.token_request_uri ||
+        defaultValue?.token_request_uri ||
+        '',
+      scope:
+        encryptedExtra.oauth2_client_info?.scope || defaultValue?.scope || '',
+    };
+  };
 
-  if (db?.engine === 'gsheets' && isPublic) {
+  const [oauth2ClientInfo, setOauth2ClientInfo] = useState<OAuth2ClientInfo>(
+    deriveOauth2ClientInfo,
+  );
+
+  // Re-sync local state when masked_encrypted_extra changes (e.g., when the
+  // gsheets dropdown toggles back to private after we cleared stored creds).
+  useEffect(() => {
+    setOauth2ClientInfo(deriveOauth2ClientInfo());
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- depend only on the serialized DB-side credentials
+  }, [db?.masked_encrypted_extra]);
+
+  if (db?.engine === Engines.GSheet && isPublic) {
     return null;
   }
 

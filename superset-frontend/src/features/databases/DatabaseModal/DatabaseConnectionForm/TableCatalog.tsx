@@ -25,7 +25,7 @@ import {
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { StyledFooterButton, StyledCatalogTable } from '../styles';
-import { CatalogObject, FieldPropTypes } from '../../types';
+import { CatalogObject, Engines, FieldPropTypes } from '../../types';
 
 export const TableCatalog = ({
   required,
@@ -37,7 +37,7 @@ export const TableCatalog = ({
 }: FieldPropTypes) => {
   const tableCatalog = db?.catalog || [];
   const catalogError = validationErrors || {};
-  const showCredentialsHelper = db?.engine !== 'gsheets' || !isPublic;
+  const showCredentialsHelper = db?.engine !== Engines.GSheet || !isPublic;
   return (
     <StyledCatalogTable>
       <Typography.Title level={4} className="gsheet-title">

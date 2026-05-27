@@ -21,12 +21,16 @@ import { SupersetTheme } from '@apache-superset/core/theme';
 import { Form } from '@superset-ui/core/components';
 import { FormFieldOrder, FORM_FIELD_MAP } from './constants';
 import { formScrollableStyles, validatedFormStyles } from '../styles';
-import { DatabaseConnectionFormProps, DatabaseObject } from '../../types';
+import {
+  DatabaseConnectionFormProps,
+  DatabaseObject,
+  Engines,
+} from '../../types';
 
 const computeInitialIsPublic = (
   database: Partial<DatabaseObject> | null | undefined,
 ): boolean => {
-  if (!database || database.engine !== 'gsheets') return true;
+  if (!database || database.engine !== Engines.GSheet) return true;
   if (
     database.masked_encrypted_extra &&
     database.masked_encrypted_extra !== '{}'
@@ -71,11 +75,14 @@ const DatabaseConnectionForm = ({
     computeInitialIsPublic(db),
   );
 
-  // Re-derive when switching to a different database (e.g., async edit load)
+  // Re-derive when switching to a different database, when the engine
+  // changes, or when masked_encrypted_extra arrives async on edit load.
+  // The setter is a no-op when the result is unchanged, so this is safe to
+  // run on every masked_encrypted_extra update.
   useEffect(() => {
     setIsPublic(computeInitialIsPublic(db));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- depend only on db identity
-  }, [db?.id, db?.engine]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally narrowed
+  }, [db?.id, db?.engine, db?.masked_encrypted_extra]);
 
   return (
     <Form>

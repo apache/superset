@@ -1761,6 +1761,28 @@ describe('dbReducer', () => {
     });
   });
 
+  test('it removes the key from masked_encrypted_extra when value is empty', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.EncryptedExtraInputChange,
+      payload: { name: 'service_account_info', value: '' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        masked_encrypted_extra: JSON.stringify({
+          service_account_info: { type: 'service_account' },
+          other: 'keep-me',
+        }),
+      },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      masked_encrypted_extra: '{"other":"keep-me"}',
+    });
+  });
+
   test('it will set state to payload from extra input change when checkbox', () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraInputChange,

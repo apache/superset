@@ -210,4 +210,38 @@ describe('OAuth2ClientField', () => {
 
     expect(getByText('OAuth2 client information')).toBeInTheDocument();
   });
+
+  test('re-syncs local state when masked_encrypted_extra is cleared', () => {
+    const props = {
+      ...defaultProps,
+      db: {
+        ...defaultProps.db,
+        engine: 'gsheets',
+      },
+      isPublic: false,
+    };
+
+    const { getByTestId, getByText, rerender } = render(
+      <OAuth2ClientField {...props} />,
+    );
+
+    fireEvent.click(getByText('OAuth2 client information'));
+    expect(getByTestId('client-id')).toHaveValue('test-id');
+
+    // Simulate the gsheets dropdown toggling to "public" — the parent
+    // dispatches an EncryptedExtraInputChange that drops the
+    // oauth2_client_info key from masked_encrypted_extra.
+    rerender(
+      <OAuth2ClientField
+        {...props}
+        db={{
+          ...props.db,
+          masked_encrypted_extra: '{}',
+        }}
+      />,
+    );
+
+    expect(getByTestId('client-id')).toHaveValue('');
+    expect(getByTestId('client-secret')).toHaveValue('');
+  });
 });
