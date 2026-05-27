@@ -29,6 +29,7 @@ import base64
 import logging
 import time
 from contextvars import ContextVar
+from importlib.resources import files as _resource_files
 from typing import Any, cast
 
 from authlib.jose.errors import (
@@ -45,7 +46,7 @@ from starlette.authentication import AuthenticationError
 from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
 from starlette.requests import HTTPConnection
-from starlette.responses import JSONResponse
+from starlette.responses import HTMLResponse, JSONResponse, Response
 
 from superset.utils import json
 
@@ -61,21 +62,54 @@ _jwt_failure_reason: ContextVar[str | None] = ContextVar(
     "_jwt_failure_reason", default=None
 )
 
+_MCP_BROWSER_HELLO_HTML: str | None = None
 
-def _json_auth_error_handler(
-    conn: HTTPConnection, exc: AuthenticationError
-) -> JSONResponse:
-    """JSON 401 error handler for authentication failures.
 
-    Per RFC 6750 Section 3.1, error responses MUST NOT leak server
-    configuration or token claim values. Only generic error codes are
-    returned to clients. Detailed failure reasons are logged server-side
-    only for debugging.
+def _get_browser_hello_html() -> str:
+    global _MCP_BROWSER_HELLO_HTML
+    if _MCP_BROWSER_HELLO_HTML is None:
+        _MCP_BROWSER_HELLO_HTML = (
+            _resource_files("superset.mcp_service")
+            .joinpath("hello.html")
+            .read_text(encoding="utf-8")
+        )
+    return _MCP_BROWSER_HELLO_HTML
+
+
+def _prefers_browser_html(conn: HTTPConnection) -> bool:
+    """Return True when the request looks like a browser navigation.
+
+    Checks both the HTTP method (GET/HEAD only) and the Accept header
+    (text/html present, application/json and text/event-stream absent).
+    Case-insensitive to handle unusual but valid header values.
+    """
+    if conn.scope.get("method") not in ("GET", "HEAD"):
+        return False
+    accept = conn.headers.get("accept", "").lower()
+    return (
+        "text/html" in accept
+        and "application/json" not in accept
+        and "text/event-stream" not in accept
+    )
+
+
+def _auth_error_handler(conn: HTTPConnection, exc: AuthenticationError) -> Response:
+    """Auth error handler for unauthenticated MCP requests.
+
+    Returns a friendly HTML page for browser navigation requests so users
+    who open the MCP URL in a browser see setup instructions instead of a
+    raw JSON 401.
+
+    For all other clients (API, SSE, non-GET methods) returns a standard
+    JSON 401 per RFC 6750 Section 3.1.
 
     References:
         - RFC 6750 Section 3.1: https://datatracker.ietf.org/doc/html/rfc6750#section-3.1
         - CVE-2022-29266, CVE-2019-7644: verbose JWT errors led to exploits
     """
+    if _prefers_browser_html(conn):
+        return HTMLResponse(status_code=200, content=_get_browser_hello_html())
+
     # Log detailed reason server-side only
     logger.warning("JWT authentication failed: %s", exc)
 
@@ -89,6 +123,28 @@ def _json_auth_error_handler(
             "WWW-Authenticate": 'Bearer error="invalid_token"',
         },
     )
+
+
+class MCPJWTVerifier(JWTVerifier):
+    """JWTVerifier with Superset MCP auth error handling.
+
+    Provides browser-friendly HTML responses for unauthenticated browser
+    navigation requests (GET/HEAD with Accept: text/html), while maintaining
+    RFC 6750-compliant JSON 401 responses for API and SSE clients.
+
+    Use this as the base for all Superset JWT verifiers so the browser hello
+    page is active regardless of which verifier variant is configured.
+    """
+
+    def get_middleware(self) -> list[Any]:
+        return [
+            Middleware(
+                AuthenticationMiddleware,
+                backend=BearerAuthBackend(self),
+                on_error=_auth_error_handler,
+            ),
+            Middleware(AuthContextMiddleware),
+        ]
 
 
 class DetailedBearerAuthBackend(BearerAuthBackend):
@@ -124,7 +180,7 @@ class DetailedBearerAuthBackend(BearerAuthBackend):
         return None
 
 
-class DetailedJWTVerifier(JWTVerifier):
+class DetailedJWTVerifier(MCPJWTVerifier):
     """
     JWT verifier with tiered server-side logging for each validation step.
 
@@ -300,7 +356,7 @@ class DetailedJWTVerifier(JWTVerifier):
             Middleware(
                 AuthenticationMiddleware,
                 backend=DetailedBearerAuthBackend(self),
-                on_error=_json_auth_error_handler,
+                on_error=_auth_error_handler,
             ),
             Middleware(AuthContextMiddleware),
         ]
