@@ -26,6 +26,7 @@ HTTP responses always return generic errors per RFC 6750 Section 3.1.
 """
 
 import base64
+import html as html_module
 import logging
 import time
 from collections.abc import Callable
@@ -137,6 +138,10 @@ _DEFAULT_HELLO_PAGE_CONFIG: dict[str, Any] = {
 def _build_config_snippet(
     auth_enabled: bool, server_key: str, show_transport: bool
 ) -> str:
+    # superset.utils.json.dumps() ensures the key is a valid JSON string.
+    from superset.utils import json as superset_json
+
+    key_json = superset_json.dumps(server_key)
     inner_parts = ['      "url": "&lt;this-url&gt;"']
     if show_transport:
         inner_parts.append('      "transport": "streamable-http"')
@@ -147,7 +152,7 @@ def _build_config_snippet(
             "      }"
         )
     inner = ",\n".join(inner_parts)
-    return f'{{\n  "mcpServers": {{\n    "{server_key}": {{\n{inner}\n    }}\n  }}\n}}'
+    return f'{{\n  "mcpServers": {{\n    {key_json}: {{\n{inner}\n    }}\n  }}\n}}'
 
 
 def _build_browser_hello_html(
@@ -155,10 +160,10 @@ def _build_browser_hello_html(
     page_config: dict[str, Any] | None = None,
 ) -> str:
     cfg = {**_DEFAULT_HELLO_PAGE_CONFIG, **(page_config or {})}
-    title: str = cfg["title"]
+    title: str = html_module.escape(str(cfg["title"]))
     server_key: str = cfg["server_key"]
     show_transport: bool = cfg["show_transport"]
-    clients: list[str] = cfg["clients"]
+    clients: list[str] = [html_module.escape(str(c)) for c in cfg["clients"]]
 
     config_block = _build_config_snippet(auth_enabled, server_key, show_transport)
 
@@ -253,16 +258,23 @@ class BrowserHelloMiddleware(BaseHTTPMiddleware):
         app: Any,
         auth_enabled: bool = False,
         page_config: dict[str, Any] | None = None,
+        mcp_path: str = "/mcp",
     ) -> None:
         super().__init__(app)
         self._html = _build_browser_hello_html(
             auth_enabled=auth_enabled, page_config=page_config
         )
+        self._mcp_path = mcp_path.rstrip("/")
 
     async def dispatch(
         self, request: Request, call_next: Callable[..., Any]
     ) -> Response:
-        if request.method in ("GET", "HEAD") and _prefers_browser_html(request):
+        path = request.url.path.rstrip("/")
+        if (
+            path == self._mcp_path
+            and request.method in ("GET", "HEAD")
+            and _prefers_browser_html(request)
+        ):
             return HTMLResponse(content=self._html, status_code=200)
         return await call_next(request)
 
