@@ -21,6 +21,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.exceptions import ToolError
 from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
@@ -298,7 +299,7 @@ async def test_list_queries_invalid_order_column_raises(mcp_server):
     """order_column not in SORTABLE_QUERY_COLUMNS must be rejected."""
     request = ListQueriesRequest(page=1, page_size=10, order_column="tab_name")
     async with Client(mcp_server) as client:
-        with pytest.raises(ValueError, match="Invalid order_column"):
+        with pytest.raises(ToolError, match="Invalid order_column"):
             await client.call_tool("list_queries", {"request": request.model_dump()})
 
 
