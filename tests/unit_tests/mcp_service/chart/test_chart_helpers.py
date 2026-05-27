@@ -20,6 +20,7 @@ from unittest.mock import MagicMock, patch
 from superset.mcp_service.chart.chart_helpers import (
     _deck_gl_null_filters,
     _deck_gl_tooltip_cols,
+    _is_metric_ref,
     _resolve_deck_gl_metrics,
     apply_form_data_filters_to_query,
     build_query_dicts_from_form_data,
@@ -570,6 +571,35 @@ def test_deck_gl_tooltip_cols_none():
 
 
 # ---------------------------------------------------------------------------
+# _is_metric_ref
+# ---------------------------------------------------------------------------
+
+
+def test_is_metric_ref_dict():
+    assert _is_metric_ref({"expressionType": "SIMPLE"}) is True
+
+
+def test_is_metric_ref_string_key():
+    assert _is_metric_ref("count") is True
+    assert _is_metric_ref("sum__sales") is True
+
+
+def test_is_metric_ref_numeric_string_excluded():
+    assert _is_metric_ref("100") is False
+    assert _is_metric_ref("3.14") is False
+    assert _is_metric_ref("0") is False
+
+
+def test_is_metric_ref_integer_excluded():
+    assert _is_metric_ref(100) is False
+
+
+def test_is_metric_ref_none_and_empty():
+    assert _is_metric_ref(None) is False
+    assert _is_metric_ref("") is False
+
+
+# ---------------------------------------------------------------------------
 # _resolve_deck_gl_metrics (Fix 2)
 # ---------------------------------------------------------------------------
 
@@ -623,7 +653,7 @@ def test_resolve_deck_gl_metrics_geojson_returns_empty():
 
 
 def test_resolve_deck_gl_metrics_scalar_size_excluded():
-    # Scalar size values (fixed display settings) must not be treated as metrics
+    # Numeric string size values (fixed display settings) must not be metrics
     result = _resolve_deck_gl_metrics({"size": "100"}, "deck_hex")
     assert result == []
 
@@ -631,6 +661,17 @@ def test_resolve_deck_gl_metrics_scalar_size_excluded():
 def test_resolve_deck_gl_metrics_integer_size_excluded():
     result = _resolve_deck_gl_metrics({"size": 100}, "deck_path")
     assert result == []
+
+
+def test_resolve_deck_gl_metrics_string_metric_included():
+    # Non-numeric string metrics (saved metric keys) must be preserved
+    result = _resolve_deck_gl_metrics({"size": "count"}, "deck_hex")
+    assert result == ["count"]
+
+
+def test_resolve_deck_gl_metrics_string_metric_field():
+    result = _resolve_deck_gl_metrics({"metric": "sum__sales"}, "deck_arc")
+    assert result == ["sum__sales"]
 
 
 # ---------------------------------------------------------------------------
@@ -673,10 +714,12 @@ def test_deck_gl_null_filters_empty():
     assert _deck_gl_null_filters({}) == []
 
 
-def test_deck_gl_null_filters_geojson_no_filters():
-    # deck_geojson uses the geojson field which is not a spatial control
+def test_deck_gl_null_filters_geojson_column():
+    # geojson column gets an IS NOT NULL filter just like spatial columns
     form_data = {"geojson": "geometry"}
-    assert _deck_gl_null_filters(form_data) == []
+    assert _deck_gl_null_filters(form_data) == [
+        {"col": "geometry", "op": "IS NOT NULL", "val": ""}
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -778,3 +821,40 @@ def test_build_query_dicts_deck_path_scalar_size_produces_no_metrics(monkeypatch
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
     assert queries[0]["metrics"] == []
+
+
+def test_build_query_dicts_deck_geojson_adds_geojson_null_filter(monkeypatch):
+    # deck_geojson should add IS NOT NULL on the geojson column when filter_nulls
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_geojson",
+        "geojson": "geometry_col",
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert {"col": "geometry_col", "op": "IS NOT NULL", "val": ""} in queries[0][
+        "filters"
+    ]
+
+
+def test_build_query_dicts_deck_hex_string_metric(monkeypatch):
+    # Non-numeric string size (saved metric key) must be included as a metric
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_hex",
+        "spatial": {"type": "geohash", "geohashCol": "geo"},
+        "size": "count",
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert queries[0]["metrics"] == ["count"]
