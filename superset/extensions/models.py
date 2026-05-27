@@ -14,34 +14,24 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Add extension_settings and extension_enabled tables.
 
-Revision ID: b2c3d4e5f6a7
-Revises: a1b2c3d4e5f6
-Create Date: 2026-05-25 00:00:00.000000
+"""SQLAlchemy models for extension settings persistence."""
 
-"""
-
-import sqlalchemy as sa
-from alembic import op
-
-revision = "b2c3d4e5f6a7"
-down_revision = "a1b2c3d4e5f6"
+from flask_appbuilder import Model
+from sqlalchemy import Boolean, Column, Integer, String
 
 
-def upgrade() -> None:
-    op.create_table(
-        "extension_settings",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("active_chatbot_id", sa.String(250), nullable=True),
-    )
-    op.create_table(
-        "extension_enabled",
-        sa.Column("extension_id", sa.String(250), primary_key=True),
-        sa.Column("enabled", sa.Boolean(), nullable=False, server_default=sa.true()),
-    )
+class ExtensionSettings(Model):  # pylint: disable=too-few-public-methods
+    """Global admin settings for extensions (singleton row, id=1)."""
+
+    __tablename__ = "extension_settings"
+    id = Column(Integer, primary_key=True)
+    active_chatbot_id = Column(String(250), nullable=True)
 
 
-def downgrade() -> None:
-    op.drop_table("extension_enabled")
-    op.drop_table("extension_settings")
+class ExtensionEnabled(Model):  # pylint: disable=too-few-public-methods
+    """Per-extension enable/disable flag."""
+
+    __tablename__ = "extension_enabled"
+    extension_id = Column(String(250), primary_key=True)
+    enabled = Column(Boolean, nullable=False, default=True)

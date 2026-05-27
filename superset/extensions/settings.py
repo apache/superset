@@ -23,7 +23,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from superset import db
-from superset.models.core import ExtensionEnabled, ExtensionSettings
+from superset.extensions.models import ExtensionEnabled, ExtensionSettings
 from superset.utils.decorators import transaction
 
 _SETTINGS_ROW_ID = 1
