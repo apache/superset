@@ -145,7 +145,7 @@ def test_registry_proxy_display_name_for_viz_type():
 
 
 def test_ensure_plugins_loaded_skips_when_load_failed(monkeypatch):
-    """When _plugins_load_failed is set, _ensure_plugins_loaded returns without importing."""
+    """_ensure_plugins_loaded returns immediately when _plugins_load_failed is set."""
     from superset.mcp_service.chart.registry import _ensure_plugins_loaded
 
     monkeypatch.setattr(registry_module, "_plugins_loaded", False)
