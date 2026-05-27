@@ -39,26 +39,26 @@ const viewRegistry: Map<
 
 const locationIndex: Map<string, Set<string>> = new Map();
 
-/** Listeners notified whenever a view is registered or unregistered at a location. */
-const locationListeners: Map<string, Set<() => void>> = new Map();
-
-const notifyListeners = (location: string) => {
-  locationListeners.get(location)?.forEach(fn => fn());
-};
-
 /**
- * Subscribe to registration changes at a specific location.
- * Returns an unsubscribe function.
+ * Monotonic version of the view registry. Bumped on every registration or
+ * disposal so consumers can re-derive state via React's `useSyncExternalStore`.
  */
-export const subscribeToLocation = (
-  location: string,
-  listener: () => void,
-): (() => void) => {
-  const listeners = locationListeners.get(location) ?? new Set();
-  listeners.add(listener);
-  locationListeners.set(location, listeners);
-  return () => listeners.delete(listener);
+let registryVersion = 0;
+const registrySubscribers = new Set<() => void>();
+
+const notifyRegistry = () => {
+  registryVersion += 1;
+  registrySubscribers.forEach(fn => fn());
 };
+
+export const subscribeToRegistry = (listener: () => void): (() => void) => {
+  registrySubscribers.add(listener);
+  return () => {
+    registrySubscribers.delete(listener);
+  };
+};
+
+export const getRegistryVersion = () => registryVersion;
 
 const registerView: typeof viewsApi.registerView = (
   view: View,
@@ -70,7 +70,6 @@ const registerView: typeof viewsApi.registerView = (
   const previousLocation = viewRegistry.get(id)?.location;
   if (previousLocation && previousLocation !== location) {
     locationIndex.get(previousLocation)?.delete(id);
-    notifyListeners(previousLocation);
   }
 
   viewRegistry.set(id, { view, location, provider });
@@ -79,13 +78,13 @@ const registerView: typeof viewsApi.registerView = (
   ids.add(id);
   locationIndex.set(location, ids);
 
-  notifyListeners(location);
+  notifyRegistry();
 
   return new Disposable(() => {
     const registeredLocation = viewRegistry.get(id)?.location ?? location;
     viewRegistry.delete(id);
     locationIndex.get(registeredLocation)?.delete(id);
-    notifyListeners(registeredLocation);
+    notifyRegistry();
   });
 };
 

@@ -24,6 +24,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { ConfirmStatusChange, Tooltip } from '@superset-ui/core/components';
@@ -35,7 +36,11 @@ import { ListView } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { CHATBOT_LOCATION } from 'src/views/contributions';
-import { getRegisteredViewIds, subscribeToLocation } from 'src/core/views';
+import {
+  getRegisteredViewIds,
+  subscribeToRegistry,
+  getRegistryVersion,
+} from 'src/core/views';
 import { notifyExtensionSettingsChanged } from 'src/core/extensions';
 
 const PAGE_SIZE = 25;
@@ -84,13 +89,9 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
-  const [chatbotRegistryVersion, setChatbotRegistryVersion] = useState(0);
-  useEffect(
-    () =>
-      subscribeToLocation(CHATBOT_LOCATION, () =>
-        setChatbotRegistryVersion(v => v + 1),
-      ),
-    [],
+  const registryVersion = useSyncExternalStore(
+    subscribeToRegistry,
+    getRegistryVersion,
   );
 
   useEffect(() => {
@@ -139,9 +140,9 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
 
   const chatbotIds = useMemo(
     () => new Set(getRegisteredViewIds(CHATBOT_LOCATION)),
-    // chatbotRegistryVersion is intentionally in deps to re-evaluate when views register
+    // registryVersion is intentionally in deps to re-evaluate when views register
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [chatbotRegistryVersion],
+    [registryVersion],
   );
 
   const handleUploadClick = () => {
