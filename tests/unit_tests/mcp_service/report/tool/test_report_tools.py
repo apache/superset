@@ -404,3 +404,54 @@ async def test_list_reports_created_by_me_passed_to_dao(mock_list, mcp_server):
     assert any(getattr(f, "col", None) == "created_by_fk" for f in filters_arg), (
         "created_by_me should inject a created_by_fk filter into the DAO call"
     )
+
+
+@patch("superset.daos.report.ReportScheduleDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_report_info_exception_returns_internal_error(mock_find, mcp_server):
+    """Unexpected exception from DAO returns ReportError with InternalError type."""
+    mock_find.side_effect = RuntimeError("DB connection lost")
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_report_info", {"request": {"identifier": 1}}
+        )
+        data = json.loads(result.content[0].text)
+        assert data["error_type"] == "InternalError"
+        assert "DB connection lost" in data["error"]
+
+
+def test_report_error_create_classmethod():
+    """ReportError.create() produces a timestamped error object."""
+    from superset.mcp_service.report.schemas import ReportError
+
+    err = ReportError.create(error="something went wrong", error_type="TestError")
+    assert err.error == "something went wrong"
+    assert err.error_type == "TestError"
+    assert err.timestamp is not None
+
+
+def test_humanize_timestamp_naive_datetime():
+    """_humanize_timestamp handles naive datetimes by assuming UTC."""
+    from datetime import datetime
+
+    from superset.mcp_service.report.schemas import _humanize_timestamp
+
+    naive_dt = datetime(2024, 1, 1, 12, 0, 0)
+    result = _humanize_timestamp(naive_dt)
+    assert result is not None
+    assert isinstance(result, str)
+
+
+def test_humanize_timestamp_none():
+    """_humanize_timestamp returns None for None input."""
+    from superset.mcp_service.report.schemas import _humanize_timestamp
+
+    assert _humanize_timestamp(None) is None
+
+
+def test_serialize_report_object_none():
+    """serialize_report_object returns None when passed None."""
+    from superset.mcp_service.report.schemas import serialize_report_object
+
+    assert serialize_report_object(None) is None
