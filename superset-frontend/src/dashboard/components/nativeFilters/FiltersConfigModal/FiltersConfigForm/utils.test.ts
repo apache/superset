@@ -31,6 +31,8 @@ import {
   mostUsedDataset,
   doesColumnMatchFilterType,
   getTimeGrainOptions,
+  mapSemanticTypeToGenericDataType,
+  doesChartMatchFilterDatasource,
 } from './utils';
 
 // Test hasTemporalColumns - validates time range pre-filter visibility logic
@@ -302,4 +304,76 @@ test('getTimeGrainOptions falls back to value when tuple label is empty', () => 
     { value: 'P1D', label: 'P1D' },
     { value: 'P1W', label: 'Week' },
   ]);
+});
+
+test('mapSemanticTypeToGenericDataType maps numeric semantic types', () => {
+  expect(mapSemanticTypeToGenericDataType('int64')).toBe(
+    GenericDataType.Numeric,
+  );
+  expect(mapSemanticTypeToGenericDataType('decimal128(10,2)')).toBe(
+    GenericDataType.Numeric,
+  );
+});
+
+test('mapSemanticTypeToGenericDataType maps temporal semantic types', () => {
+  expect(mapSemanticTypeToGenericDataType('timestamp[ms]')).toBe(
+    GenericDataType.Temporal,
+  );
+  expect(mapSemanticTypeToGenericDataType('date32[day]')).toBe(
+    GenericDataType.Temporal,
+  );
+});
+
+test('mapSemanticTypeToGenericDataType maps string and boolean semantic types', () => {
+  expect(mapSemanticTypeToGenericDataType('string')).toBe(
+    GenericDataType.String,
+  );
+  expect(mapSemanticTypeToGenericDataType('bool')).toBe(
+    GenericDataType.Boolean,
+  );
+});
+
+test('mapSemanticTypeToGenericDataType returns undefined for unknown types', () => {
+  expect(mapSemanticTypeToGenericDataType('struct<a:int64>')).toBeUndefined();
+  expect(mapSemanticTypeToGenericDataType(undefined)).toBeUndefined();
+});
+
+test('doesChartMatchFilterDatasource requires matching datasource type for equal IDs', () => {
+  const loadedDatasets = {
+    '7__table': { id: 7, datasource_type: 'table' },
+    '7__semantic_view': { id: 7, datasource_type: 'semantic_view' },
+  } as unknown as DatasourcesState;
+
+  expect(
+    doesChartMatchFilterDatasource(
+      '7__table',
+      loadedDatasets,
+      7,
+      'semantic_view',
+    ),
+  ).toBe(false);
+  expect(
+    doesChartMatchFilterDatasource(
+      '7__semantic_view',
+      loadedDatasets,
+      7,
+      'semantic_view',
+    ),
+  ).toBe(true);
+});
+
+test('doesChartMatchFilterDatasource falls back to datasource UID parsing', () => {
+  const loadedDatasets = {} as DatasourcesState;
+
+  expect(
+    doesChartMatchFilterDatasource('7__semantic_view', loadedDatasets, 7),
+  ).toBe(false);
+  expect(
+    doesChartMatchFilterDatasource(
+      '7__semantic_view',
+      loadedDatasets,
+      7,
+      'semantic_view',
+    ),
+  ).toBe(true);
 });

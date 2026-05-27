@@ -38,6 +38,7 @@ export interface NativeFilterScope {
 export interface NativeFilterTarget {
   datasetId: number;
   column: NativeFilterColumn;
+  datasourceType?: string;
 
   // maybe someday support this?
   // show values from these columns in the filter options selector

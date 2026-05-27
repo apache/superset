@@ -531,11 +531,11 @@ def _convert_query_object_filter(
     dimension = all_dimensions[col]
 
     val_str = filter_["val"]
-    value: FilterValues | frozenset[FilterValues]
+    value: FilterValues | tuple[FilterValues, ...]
     if val_str is None:
         value = None
     elif isinstance(val_str, (list, tuple)):
-        value = frozenset(val_str)
+        value = tuple(val_str)
     else:
         value = val_str
 
@@ -567,7 +567,10 @@ def _convert_query_object_filter(
 
     value = _coerce_filter_value(value, dimension)
 
-    # Map QueryObject operators to semantic layer operators
+    # Map QueryObject operators to semantic layer operators. The Operator enum
+    # exposes only LIKE, so ILIKE collapses to LIKE here; case-insensitivity is
+    # delegated to the semantic-view backend (e.g. via collation), matching the
+    # spec where pattern matching semantics are implementation-defined.
     operator_mapping = {
         FilterOperator.EQUALS.value: Operator.EQUALS,
         FilterOperator.NOT_EQUALS.value: Operator.NOT_EQUALS,
@@ -577,6 +580,8 @@ def _convert_query_object_filter(
         FilterOperator.LESS_THAN_OR_EQUALS.value: Operator.LESS_THAN_OR_EQUAL,
         FilterOperator.IN.value: Operator.IN,
         FilterOperator.NOT_IN.value: Operator.NOT_IN,
+        FilterOperator.ILIKE.value: Operator.LIKE,
+        FilterOperator.NOT_ILIKE.value: Operator.NOT_LIKE,
         FilterOperator.LIKE.value: Operator.LIKE,
         FilterOperator.NOT_LIKE.value: Operator.NOT_LIKE,
         FilterOperator.IS_NULL.value: Operator.IS_NULL,
@@ -599,11 +604,11 @@ def _convert_query_object_filter(
 
 
 def _coerce_filter_value(
-    value: FilterValues | frozenset[FilterValues],
+    value: FilterValues | tuple[FilterValues, ...],
     dimension: Dimension,
-) -> FilterValues | frozenset[FilterValues]:
-    if isinstance(value, frozenset):
-        return frozenset(_coerce_scalar_filter_value(v, dimension) for v in value)
+) -> FilterValues | tuple[FilterValues, ...]:
+    if isinstance(value, tuple):
+        return tuple(_coerce_scalar_filter_value(v, dimension) for v in value)
     return _coerce_scalar_filter_value(value, dimension)
 
 

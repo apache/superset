@@ -363,12 +363,39 @@ def test_convert_query_object_filter_in(mock_datasource: MagicMock) -> None:
 
     result = _convert_query_object_filter(filter_, all_dimensions)
 
+    # IN values are converted to a tuple (not a set) so input order is preserved
+    # downstream — semantic-view backends may rely on it for stable plans.
     assert result == {
         Filter(
             type=PredicateType.WHERE,
             column=all_dimensions["category"],
             operator=Operator.IN,
-            value=frozenset({"Electronics", "Books"}),
+            value=("Electronics", "Books"),
+        )
+    }
+
+
+def test_convert_query_object_filter_ilike(mock_datasource: MagicMock) -> None:
+    """
+    Test conversion of ILIKE filter.
+    """
+    all_dimensions = {
+        dim.name: dim for dim in mock_datasource.implementation.dimensions
+    }
+    filter_: ValidatedQueryObjectFilterClause = {
+        "op": FilterOperator.ILIKE.value,
+        "col": "category",
+        "val": "%book%",
+    }
+
+    result = _convert_query_object_filter(filter_, all_dimensions)
+
+    assert result == {
+        Filter(
+            type=PredicateType.WHERE,
+            column=all_dimensions["category"],
+            operator=Operator.LIKE,
+            value="%book%",
         )
     }
 
@@ -1262,7 +1289,7 @@ def test_convert_query_object_filter_coerces_in_integer_values() -> None:
             type=PredicateType.WHERE,
             column=all_dimensions["order_id__amount"],
             operator=Operator.IN,
-            value=frozenset({58, 61}),
+            value=(58, 61),
         )
     }
 
@@ -2983,8 +3010,9 @@ def test_coerce_integer_rejects_non_integer_float() -> None:
 
 
 def test_coerce_integer_rejects_other_types() -> None:
+    bad_value: Any = [1]
     with pytest.raises(ValueError, match="Invalid integer value"):
-        _coerce_scalar_filter_value([1], _dim(pa.int64()))
+        _coerce_scalar_filter_value(bad_value, _dim(pa.int64()))
 
 
 @pytest.mark.parametrize(
@@ -3008,8 +3036,9 @@ def test_coerce_floating_invalid_string_raises() -> None:
 
 
 def test_coerce_floating_rejects_other_types() -> None:
+    bad_value: Any = [1.0]
     with pytest.raises(ValueError, match="Invalid numeric value"):
-        _coerce_scalar_filter_value([1.0], _dim(pa.float64()))
+        _coerce_scalar_filter_value(bad_value, _dim(pa.float64()))
 
 
 def test_coerce_date_from_datetime() -> None:
