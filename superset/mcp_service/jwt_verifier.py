@@ -28,6 +28,7 @@ HTTP responses always return generic errors per RFC 6750 Section 3.1.
 import base64
 import logging
 import time
+from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any, cast
 
@@ -44,7 +45,8 @@ from mcp.server.auth.middleware.bearer_auth import BearerAuthBackend
 from starlette.authentication import AuthenticationError
 from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
-from starlette.requests import HTTPConnection
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import HTTPConnection, Request
 from starlette.responses import HTMLResponse, JSONResponse, Response
 
 from superset.utils import json
@@ -61,13 +63,7 @@ _jwt_failure_reason: ContextVar[str | None] = ContextVar(
     "_jwt_failure_reason", default=None
 )
 
-_MCP_BROWSER_HELLO_HTML = """<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Superset MCP Server</title>
-  <style>
+_HTML_STYLES = """
     *, *::before, *::after { box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -117,47 +113,110 @@ _MCP_BROWSER_HELLO_HTML = """<!DOCTYPE html>
       border-left: 3px solid #ddd;
       padding-left: 12px;
       margin-top: 24px;
-    }
+    }"""
+
+_DEFAULT_CLIENTS = [
+    "Claude Desktop",
+    "Claude Code (CLI)",
+    "Cursor",
+]
+
+_DEFAULT_HELLO_PAGE_CONFIG: dict[str, Any] = {
+    # Page heading and browser tab title
+    "title": "Superset MCP Server",
+    # Key name used in the mcpServers config snippet (e.g. "superset", "my-company")
+    "server_key": "superset",
+    # Include "transport": "streamable-http" in the config snippet.
+    # Recommended: Claude Desktop defaults to SSE so the transport must be explicit.
+    "show_transport": True,
+    # Supported MCP clients listed on the page
+    "clients": _DEFAULT_CLIENTS,
+}
+
+
+def _build_config_snippet(
+    auth_enabled: bool, server_key: str, show_transport: bool
+) -> str:
+    inner_parts = ['      "url": "&lt;this-url&gt;"']
+    if show_transport:
+        inner_parts.append('      "transport": "streamable-http"')
+    if auth_enabled:
+        inner_parts.append(
+            '      "headers": {\n'
+            '        "Authorization": "Bearer &lt;your-api-key&gt;"\n'
+            "      }"
+        )
+    inner = ",\n".join(inner_parts)
+    return f'{{\n  "mcpServers": {{\n    "{server_key}": {{\n{inner}\n    }}\n  }}\n}}'
+
+
+def _build_browser_hello_html(
+    auth_enabled: bool,
+    page_config: dict[str, Any] | None = None,
+) -> str:
+    cfg = {**_DEFAULT_HELLO_PAGE_CONFIG, **(page_config or {})}
+    title: str = cfg["title"]
+    server_key: str = cfg["server_key"]
+    show_transport: bool = cfg["show_transport"]
+    clients: list[str] = cfg["clients"]
+
+    config_block = _build_config_snippet(auth_enabled, server_key, show_transport)
+
+    if auth_enabled:
+        connect_desc = (
+            "Add the following to your MCP client configuration, "
+            "replacing the URL and API key with your actual values:"
+        )
+        note = (
+            "Replace <code>&lt;this-url&gt;</code> with the full URL of this page and "
+            "<code>&lt;your-api-key&gt;</code> with a valid API key or JWT token."
+        )
+    else:
+        connect_desc = (
+            "Add the following to your MCP client configuration, "
+            "replacing the URL with your actual server URL:"
+        )
+        note = "Replace <code>&lt;this-url&gt;</code> with the full URL of this page."
+
+    client_items = "\n".join(f"      <li>{c}</li>" for c in clients)
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title}</title>
+  <style>{_HTML_STYLES}
   </style>
 </head>
 <body>
   <div class="card">
     <div class="badge">MCP API Endpoint</div>
-    <h1>Superset MCP Server</h1>
+    <h1>{title}</h1>
     <p>
       This is the <strong>Model Context Protocol (MCP)</strong> endpoint for
       Apache Superset. It is an API designed for AI coding assistants —
       not a web page to browse directly.
     </p>
     <h2>How to connect</h2>
-    <p>Add the following to your MCP client configuration,
-    replacing the URL and API key with your actual values:</p>
-    <pre><code>{
-  "mcpServers": {
-    "superset": {
-      "url": "&lt;this-url&gt;",
-      "transport": "streamable-http",
-      "headers": {
-        "Authorization": "Bearer &lt;your-api-key&gt;"
-      }
-    }
-  }
-}</code></pre>
+    <p>{connect_desc}</p>
+    <pre><code>{config_block}</code></pre>
     <h2>Supported clients</h2>
     <p>This endpoint works with any MCP-compatible client, including:</p>
     <ul style="color:#444;margin:0 0 20px;padding-left:20px;">
-      <li>Claude Desktop</li>
-      <li>Claude Code (CLI)</li>
-      <li>Cursor</li>
+{client_items}
       <li>Any client that supports the <code>streamable-http</code> transport</li>
     </ul>
     <div class="note">
-      Replace <code>&lt;this-url&gt;</code> with the full URL of this page and
-      <code>&lt;your-api-key&gt;</code> with a valid Superset API key or JWT token.
+      {note}
     </div>
   </div>
 </body>
 </html>"""
+
+
+# Pre-built for _auth_error_handler (auth-required context, default config)
+_MCP_BROWSER_HELLO_HTML = _build_browser_hello_html(auth_enabled=True)
 
 
 def _prefers_browser_html(conn: HTTPConnection) -> bool:
@@ -175,6 +234,37 @@ def _prefers_browser_html(conn: HTTPConnection) -> bool:
         and "application/json" not in accept
         and "text/event-stream" not in accept
     )
+
+
+class BrowserHelloMiddleware(BaseHTTPMiddleware):
+    """Starlette middleware that returns a browser-friendly hello page.
+
+    Intercepts GET/HEAD requests with a browser Accept header before they
+    reach FastMCP's router (which returns 405 for GET). Works regardless
+    of whether MCP_AUTH_ENABLED is True or False.
+
+    When auth_enabled=True the page includes Bearer token setup instructions.
+    When auth_enabled=False the page omits the Authorization header from the
+    config snippet since no credentials are required.
+    """
+
+    def __init__(
+        self,
+        app: Any,
+        auth_enabled: bool = False,
+        page_config: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(app)
+        self._html = _build_browser_hello_html(
+            auth_enabled=auth_enabled, page_config=page_config
+        )
+
+    async def dispatch(
+        self, request: Request, call_next: Callable[..., Any]
+    ) -> Response:
+        if request.method in ("GET", "HEAD") and _prefers_browser_html(request):
+            return HTMLResponse(content=self._html, status_code=200)
+        return await call_next(request)
 
 
 def _auth_error_handler(conn: HTTPConnection, exc: AuthenticationError) -> Response:
