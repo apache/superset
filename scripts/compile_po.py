@@ -56,7 +56,7 @@ def install_npm_packages(npm_cmd: str, root_dir: str, packages: list[str]) -> bo
 
 
 def convert_po_file(
-    po_file: str, frontend_trans_dir: str, po2json_cmd: list[str], npx_cmd: str | None
+    po_file: str, frontend_trans_dir: str, po2json_cmd: list[str]
 ) -> tuple[bool, str, str]:
     locale_rel = os.path.relpath(po_file, start=os.path.dirname(os.path.dirname(po_file)))
     json_dest = os.path.join(frontend_trans_dir, os.path.splitext(locale_rel)[0] + ".json")
@@ -134,7 +134,7 @@ def compile_translations() -> int:
     max_workers = min(8, (os.cpu_count() or 1) * 2)
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         futures = {
-            executor.submit(convert_po_file, f, frontend_trans_dir, po2json_cmd, npx_cmd): f
+            executor.submit(convert_po_file, f, frontend_trans_dir, po2json_cmd): f
             for f in po_files
         }
         for future in as_completed(futures):
