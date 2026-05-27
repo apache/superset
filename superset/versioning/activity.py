@@ -88,11 +88,24 @@ _TABLE_KIND_TO_API: dict[str, str] = {
 _API_KIND_TO_TABLE: dict[str, str] = dict(_ENTITY_KIND_BY_CLASS_NAME)
 
 # Human-readable label for AV-012 summary headlines
-# ("Dataset updated: Sales Transactions"). Keyed by the API kind.
+# ("Dataset updated: Sales Transactions"). Keyed by the internal API kind
+# (Python class name; matches ``model_cls.__name__``).
 _API_KIND_LABEL: dict[str, str] = {
     "Dashboard": "Dashboard",
     "Slice": "Chart",
     "SqlaTable": "Dataset",
+}
+
+# User-facing lowercase rendering of the kind. This is what appears in
+# the JSON response's ``entity_kind`` field and the
+# ``ActivityRecordSchema.entity_kind`` enum. Internal code keeps the
+# Python class-name form because it matches ``model_cls.__name__`` and is
+# convenient for dispatch — translation happens at serialization time
+# only, in :func:`_decorate_records`.
+_USER_FACING_KIND: dict[str, str] = {
+    "Dashboard": "dashboard",
+    "Slice": "chart",
+    "SqlaTable": "dataset",
 }
 
 # 404 exception class per API kind. Each accepts a string positional arg
@@ -862,7 +875,10 @@ def _decorate_records(
         entity_uuid = uuids.get((api_kind, entity_id))
         is_self = api_kind == path_kind and entity_id == path_id
 
-        record["entity_kind"] = api_kind
+        # Emit the user-facing form ("dashboard"/"chart"/"dataset") on the
+        # wire; the internal class-name (api_kind) is kept above for the
+        # remaining decoration steps that key off model_cls.__name__.
+        record["entity_kind"] = _USER_FACING_KIND.get(api_kind, api_kind)
         record["entity_uuid"] = str(entity_uuid) if entity_uuid else None
         record["entity_deleted"] = tombstone["deleted"]
         record["entity_deletion_state"] = tombstone["deletion_state"]

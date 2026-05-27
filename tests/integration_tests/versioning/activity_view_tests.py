@@ -172,7 +172,7 @@ class TestDashboardActivityView(SupersetTestCase):
             related = [
                 r
                 for r in body["result"]
-                if r["entity_kind"] == "Slice" and r["source"] == "related"
+                if r["entity_kind"] == "chart" and r["source"] == "related"
             ]
             assert related, (
                 "Expected at least one Slice/related record from the chart "
@@ -213,7 +213,7 @@ class TestDashboardActivityView(SupersetTestCase):
                 assert record["source"] == "self", (
                     f"include=self leaked a non-self record: {record}"
                 )
-                assert record["entity_kind"] == "Dashboard"
+                assert record["entity_kind"] == "dashboard"
         finally:
             db.session.rollback()
             chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
@@ -250,7 +250,7 @@ class TestDashboardActivityView(SupersetTestCase):
                 assert record["source"] == "related", (
                     f"include=related leaked a self record: {record}"
                 )
-                assert record["entity_kind"] != "Dashboard"
+                assert record["entity_kind"] != "dashboard"
         finally:
             db.session.rollback()
             dashboard = (
@@ -361,7 +361,7 @@ class TestDashboardActivityView(SupersetTestCase):
             tombstoned = [
                 r
                 for r in body["result"]
-                if r["entity_kind"] == "Slice" and r["entity_deleted"] is True
+                if r["entity_kind"] == "chart" and r["entity_deleted"] is True
             ]
             seen = [
                 (r["entity_kind"], r["entity_deleted"]) for r in body["result"][:10]
@@ -584,7 +584,7 @@ class TestDashboardActivityView(SupersetTestCase):
             restore_records = [
                 r
                 for r in body["result"]
-                if r["kind"] == "restore" and r["entity_kind"] == "Dashboard"
+                if r["kind"] == "restore" and r["entity_kind"] == "dashboard"
             ]
             assert restore_records, (
                 "Expected at least one kind='restore' Dashboard record; "
@@ -685,7 +685,7 @@ class TestChartActivityView(SupersetTestCase):
             self_records = [
                 r
                 for r in body["result"]
-                if r["entity_kind"] == "Slice" and r["source"] == "self"
+                if r["entity_kind"] == "chart" and r["source"] == "self"
             ]
             got = [(r["entity_kind"], r["source"]) for r in body["result"]]
             assert self_records, (
@@ -720,7 +720,7 @@ class TestChartActivityView(SupersetTestCase):
             related = [
                 r
                 for r in body["result"]
-                if r["entity_kind"] == "SqlaTable" and r["source"] == "related"
+                if r["entity_kind"] == "dataset" and r["source"] == "related"
             ]
             assert related, (
                 "Expected at least one SqlaTable/related record from the "
@@ -760,7 +760,7 @@ class TestChartActivityView(SupersetTestCase):
             assert rv.status_code == 200
             body = _json.loads(rv.data.decode("utf-8"))
             for record in body["result"]:
-                assert record["entity_kind"] != "Dashboard", (
+                assert record["entity_kind"] != "dashboard", (
                     f"Dashboard edit leaked into chart's activity stream: {record}"
                 )
         finally:
@@ -792,7 +792,7 @@ class TestChartActivityView(SupersetTestCase):
             body = _json.loads(rv.data.decode("utf-8"))
             for record in body["result"]:
                 assert record["source"] == "self"
-                assert record["entity_kind"] == "Slice"
+                assert record["entity_kind"] == "chart"
         finally:
             db.session.rollback()
             dataset = (
@@ -883,7 +883,7 @@ class TestDatasetActivityView(SupersetTestCase):
             self_records = [
                 r
                 for r in body["result"]
-                if r["entity_kind"] == "SqlaTable" and r["source"] == "self"
+                if r["entity_kind"] == "dataset" and r["source"] == "self"
             ]
             got = [(r["entity_kind"], r["source"]) for r in body["result"]]
             assert self_records, (
@@ -921,7 +921,7 @@ class TestDatasetActivityView(SupersetTestCase):
             assert rv.status_code == 200
             body = _json.loads(rv.data.decode("utf-8"))
             for record in body["result"]:
-                assert record["entity_kind"] == "SqlaTable", (
+                assert record["entity_kind"] == "dataset", (
                     "Non-dataset record leaked into dataset's activity "
                     f"stream: {record}"
                 )

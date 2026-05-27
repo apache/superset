@@ -103,7 +103,7 @@ A read-only companion to the version-history endpoints (above). Each entity type
   "result": [
     {
       "version_uuid": "...",
-      "entity_kind": "Slice",
+      "entity_kind": "chart",
       "entity_uuid": "...",
       "entity_name": "Top 10 Girls",
       "entity_deleted": false,

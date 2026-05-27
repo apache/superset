@@ -130,9 +130,12 @@ class VersionListResponseSchema(Schema):
 
 # ---- Cross-entity activity view (sc-107283) -------------------------------
 
-#: Allowed values for ``ActivityRecordSchema.entity_kind``. Mirrors the model
-#: classes registered with Continuum versioning (sc-103156).
-ACTIVITY_ENTITY_KINDS: tuple[str, ...] = ("Dashboard", "Slice", "SqlaTable")
+#: Allowed values for ``ActivityRecordSchema.entity_kind``. User-facing
+#: lowercase strings; the activity layer's internal kind dispatch keys off
+#: ``model_cls.__name__`` (``Dashboard`` / ``Slice`` / ``SqlaTable``) and
+#: translates to these labels at the JSON boundary in
+#: :func:`superset.versioning.activity._decorate_records`.
+ACTIVITY_ENTITY_KINDS: tuple[str, ...] = ("dashboard", "chart", "dataset")
 
 #: Allowed values for ``ActivityRecordSchema.source`` (spec AV-013).
 ACTIVITY_SOURCES: tuple[str, ...] = ("self", "related")
@@ -212,7 +215,12 @@ class ActivityRecordSchema(Schema):
     )
     entity_kind = fields.String(
         validate=validate.OneOf(ACTIVITY_ENTITY_KINDS),
-        metadata={"description": "Model class of the source entity."},
+        metadata={
+            "description": (
+                "User-facing kind of the source entity: one of "
+                '``"dashboard"`` / ``"chart"`` / ``"dataset"``.'
+            )
+        },
     )
     entity_uuid = fields.String(
         allow_none=True,
