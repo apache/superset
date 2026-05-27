@@ -37,6 +37,7 @@ def _isolated_registry(monkeypatch):
     """Run each test against a clean registry without touching the real one."""
     monkeypatch.setattr(registry_module, "_REGISTRY", {})
     monkeypatch.setattr(registry_module, "_plugins_loaded", True)
+    monkeypatch.setattr(registry_module, "_plugins_load_failed", False)
 
 
 class _FakePlugin(BaseChartPlugin):
@@ -141,3 +142,36 @@ def test_registry_proxy_display_name_for_viz_type():
     register(_FakePlugin())
     assert get_registry().display_name_for_viz_type("fake_viz") == "Fake Viz"
     assert get_registry().display_name_for_viz_type("unknown") is None
+
+
+def test_ensure_plugins_loaded_skips_when_load_failed(monkeypatch):
+    """When _plugins_load_failed is set, _ensure_plugins_loaded returns without importing."""
+    from superset.mcp_service.chart.registry import _ensure_plugins_loaded
+
+    monkeypatch.setattr(registry_module, "_plugins_loaded", False)
+    monkeypatch.setattr(registry_module, "_plugins_load_failed", True)
+
+    # If the function tried to import, the real plugins module would load and flip
+    # _plugins_loaded to True. The circuit breaker should prevent that.
+    _ensure_plugins_loaded()
+
+    assert registry_module._plugins_loaded is False
+
+
+def test_ensure_plugins_loaded_sets_failed_flag_on_error(monkeypatch):
+    """A failed import sets _plugins_load_failed so subsequent calls are no-ops."""
+    import threading
+    from unittest.mock import patch
+
+    from superset.mcp_service.chart.registry import _ensure_plugins_loaded
+
+    monkeypatch.setattr(registry_module, "_plugins_loaded", False)
+    monkeypatch.setattr(registry_module, "_plugins_load_failed", False)
+    monkeypatch.setattr(registry_module, "_plugins_lock", threading.Lock())
+
+    # Setting the module to None in sys.modules causes ImportError on import.
+    with patch.dict("sys.modules", {"superset.mcp_service.chart.plugins": None}):
+        _ensure_plugins_loaded()
+
+    assert registry_module._plugins_load_failed is True
+    assert registry_module._plugins_loaded is False

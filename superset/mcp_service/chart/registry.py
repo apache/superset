@@ -49,6 +49,7 @@ logger = logging.getLogger(__name__)
 
 _REGISTRY: dict[str, "ChartTypePlugin"] = {}
 _plugins_loaded = False
+_plugins_load_failed = False
 _plugins_lock = threading.Lock()
 
 # ---------------------------------------------------------------------------
@@ -75,17 +76,21 @@ def _ensure_plugins_loaded() -> None:
     even when callers (tests, chart_utils, validators) import this module
     directly without first importing app.py.
     """
-    global _plugins_loaded
-    if _plugins_loaded:
+    global _plugins_loaded, _plugins_load_failed
+    if _plugins_loaded or _plugins_load_failed:
         return
     with _plugins_lock:
-        if not _plugins_loaded:
+        if not _plugins_loaded and not _plugins_load_failed:
             try:
                 import superset.mcp_service.chart.plugins  # noqa: F401
 
                 _plugins_loaded = True
             except Exception:
-                logger.exception("Failed to load built-in chart type plugins")
+                _plugins_load_failed = True
+                logger.exception(
+                    "Failed to load built-in chart type plugins; "
+                    "further lookups will return None"
+                )
 
 
 def configure(
@@ -146,11 +151,12 @@ def register(plugin: "ChartTypePlugin") -> None:
     """Register a chart type plugin in the global registry."""
     if not plugin.chart_type:
         raise ValueError(f"{type(plugin).__name__} must define a non-empty chart_type")
-    if plugin.chart_type in _REGISTRY:
-        logger.warning(
-            "Overwriting existing plugin for chart_type=%r", plugin.chart_type
-        )
-    _REGISTRY[plugin.chart_type] = plugin
+    with _plugins_lock:
+        if plugin.chart_type in _REGISTRY:
+            logger.warning(
+                "Overwriting existing plugin for chart_type=%r", plugin.chart_type
+            )
+        _REGISTRY[plugin.chart_type] = plugin
     logger.debug("Registered chart plugin: %r", plugin.chart_type)
 
 
