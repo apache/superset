@@ -36,7 +36,7 @@ const options = [
   },
 ];
 
-test('shows no clear icon when sort is at default (options[0])', () => {
+test('shows current sort label in pill even when at default (options[0])', () => {
   render(
     <CardSortSelect
       options={options}
@@ -44,6 +44,9 @@ test('shows no clear icon when sort is at default (options[0])', () => {
       initialSort={[{ id: 'title', desc: false }]}
     />,
   );
+  // Label always shows the active sort
+  expect(screen.getByText(/sort.*alphabetical/i)).toBeInTheDocument();
+  // No clear icon when at default — clearing would be a no-op
   expect(
     screen.queryByTestId('compact-filter-clear'),
   ).not.toBeInTheDocument();
@@ -94,4 +97,45 @@ test('shows sort label in pill when non-default sort is active', () => {
     />,
   );
   expect(screen.getByText(/sort.*recently modified/i)).toBeInTheDocument();
+});
+
+test('clicking a sort option from the panel calls onChange with the correct id and desc', async () => {
+  const onChange = jest.fn();
+  render(
+    <CardSortSelect
+      options={options}
+      onChange={onChange}
+      initialSort={[{ id: 'title', desc: false }]}
+    />,
+  );
+
+  // Pill initially shows the default sort label
+  expect(screen.getByText(/sort.*alphabetical/i)).toBeInTheDocument();
+
+  // Open the sort panel
+  await userEvent.click(screen.getByTestId('compact-filter-pill'));
+  // Panel options are visible
+  expect(screen.getByText('Recently modified')).toBeInTheDocument();
+
+  // Select a sort option
+  await userEvent.click(screen.getByText('Recently modified'));
+
+  expect(onChange).toHaveBeenCalledWith([{ id: 'changed_on', desc: true }]);
+  // Pill now shows the newly selected sort label
+  expect(screen.getByText(/sort.*recently modified/i)).toBeInTheDocument();
+});
+
+test('selecting a different option from the panel updates the pill label', async () => {
+  render(
+    <CardSortSelect
+      options={options}
+      onChange={jest.fn()}
+      initialSort={[{ id: 'title', desc: false }]}
+    />,
+  );
+
+  await userEvent.click(screen.getByTestId('compact-filter-pill'));
+  await userEvent.click(screen.getByText('Least recently modified'));
+
+  expect(screen.getByText(/sort.*least recently modified/i)).toBeInTheDocument();
 });
