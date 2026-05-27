@@ -23,10 +23,6 @@ from superset.commands.database.exceptions import (
     DatabaseTestConnectionFailedError,
     InvalidParametersError,
 )
-from superset.commands.database.ssh_tunnel.exceptions import (
-    SSHTunnelDatabasePortError,
-    SSHTunnelingNotEnabledError,
-)
 from superset.commands.database.validate import ValidateDatabaseParametersCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
@@ -306,7 +302,9 @@ def test_command_duplicate_database_name_bypass_engine(
 
 def test_validate_ssh_tunnel_feature_disabled(mocker: MockerFixture) -> None:
     """
-    Enabling SSH tunnel without the feature flag raises an error.
+    Enabling SSH tunnel without the feature flag surfaces a field-level
+    SupersetError tagged with ``ssh_tunnel`` so the modal can map it back
+    to the SSH tunnel section instead of throwing a hard 400 toast.
     """
     mocker.patch(
         "superset.commands.database.validate.is_feature_enabled",
@@ -318,17 +316,28 @@ def test_validate_ssh_tunnel_feature_disabled(mocker: MockerFixture) -> None:
         "ssh_tunnel": {"server_address": "localhost"},
     }
     command = ValidateDatabaseParametersCommand(properties)
-    with pytest.raises(SSHTunnelingNotEnabledError):
+    with pytest.raises(InvalidParametersError) as excinfo:
         command.run()
+    assert any(
+        err.extra is not None and err.extra.get("ssh_tunnel") is True
+        for err in excinfo.value.errors
+    )
 
 
 def test_validate_ssh_tunnel_missing_db_port(mocker: MockerFixture) -> None:
     """
-    SSH tunneling requires a database port.
+    SSH tunneling requires a database port; the error is surfaced via the
+    top-level ``missing`` extra so it lands on the database port input.
     """
     mocker.patch(
         "superset.commands.database.validate.is_feature_enabled",
         return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.database.validate.get_engine_spec",
+        return_value=mocker.MagicMock(
+            validate_parameters=mocker.MagicMock(return_value=[]),
+        ),
     )
 
     properties = {
@@ -337,8 +346,14 @@ def test_validate_ssh_tunnel_missing_db_port(mocker: MockerFixture) -> None:
         "parameters": {"host": "localhost"},
     }
     command = ValidateDatabaseParametersCommand(properties)
-    with pytest.raises(SSHTunnelDatabasePortError):
+    with pytest.raises(InvalidParametersError) as excinfo:
         command.run()
+    assert any(
+        err.extra is not None
+        and "port" in (err.extra.get("missing") or [])
+        and not err.extra.get("ssh_tunnel")
+        for err in excinfo.value.errors
+    )
 
 
 def test_get_ssh_tunnel_errors_missing_required_fields(
@@ -387,21 +402,33 @@ def test_get_ssh_tunnel_errors_missing_required_fields(
     )
 
 
-def test_get_ssh_tunnel_errors_private_key_without_password(
+def test_get_ssh_tunnel_errors_unencrypted_private_key_is_valid(
     mocker: MockerFixture,
 ) -> None:
     """
-    Providing a private_key without private_key_password raises a missing
-    parameters error.
+    An unencrypted private key (no ``private_key_password``) is a valid
+    SSH tunnel credential — validation should not flag it as missing.
     """
     mocker.patch(
         "superset.commands.database.validate.is_feature_enabled",
         return_value=True,
     )
+
+    database = mocker.MagicMock()
+    with database.get_sqla_engine() as engine:
+        engine.dialect.do_ping.return_value = True
+    DatabaseDAO = mocker.patch(  # noqa: N806
+        "superset.commands.database.validate.DatabaseDAO"
+    )
+    DatabaseDAO.validate_uniqueness.return_value = True
+    DatabaseDAO.build_db_for_connection_test.return_value = database
+
     mocker.patch(
         "superset.commands.database.validate.get_engine_spec",
         return_value=mocker.MagicMock(
             validate_parameters=mocker.MagicMock(return_value=[]),
+            build_sqlalchemy_uri=mocker.MagicMock(return_value="postgresql://"),
+            unmask_encrypted_extra=mocker.MagicMock(return_value="{}"),
         ),
     )
 
@@ -421,15 +448,7 @@ def test_get_ssh_tunnel_errors_private_key_without_password(
         },
     }
     command = ValidateDatabaseParametersCommand(properties)
-    with pytest.raises(InvalidParametersError) as excinfo:
-        command.run()
-
-    assert any(
-        err.extra is not None
-        and err.extra.get("ssh_tunnel") is True
-        and err.extra.get("missing") == ["private_key_password"]
-        for err in excinfo.value.errors
-    )
+    command.run()
 
 
 def test_get_ssh_tunnel_errors_skipped_when_not_enabled(
@@ -519,8 +538,12 @@ def test_validate_ssh_tunnel_feature_disabled_via_parameters_ssh(
         "ssh_tunnel": {},
     }
     command = ValidateDatabaseParametersCommand(properties)
-    with pytest.raises(SSHTunnelingNotEnabledError):
+    with pytest.raises(InvalidParametersError) as excinfo:
         command.run()
+    assert any(
+        err.extra is not None and err.extra.get("ssh_tunnel") is True
+        for err in excinfo.value.errors
+    )
 
 
 def test_ssh_tunnel_missing_message_is_interpolated(

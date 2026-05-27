@@ -834,7 +834,9 @@ export function useDatabaseValidation() {
           body: JSON.stringify(transformDB(database)),
           headers: { 'Content-Type': 'application/json' },
         });
-        if (!isLatest()) return [];
+        // Stale responses return ``null`` so callers can tell the result
+        // apart from a real, current outcome and skip caching it.
+        if (!isLatest()) return null;
         setValidationErrors(null);
         setIsValidating(false);
         setHasValidated(true);
@@ -896,7 +898,7 @@ export function useDatabaseValidation() {
                 return acc;
               }, {});
 
-            if (!isLatest()) return parsedErrors;
+            if (!isLatest()) return null;
             setValidationErrors(parsedErrors);
             setIsValidating(false);
             setHasValidated(true);
