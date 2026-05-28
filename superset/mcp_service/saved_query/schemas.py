@@ -57,11 +57,13 @@ ALL_SAVED_QUERY_COLUMNS = [
     "label",
     "db_id",
     "schema",
+    "catalog",
     "uuid",
     "sql",
     "description",
     "changed_on",
     "created_on",
+    "last_run",
 ]
 
 
@@ -73,7 +75,7 @@ class SavedQueryFilter(ColumnOperator):
     value: The value to filter by (type depends on col and opr).
     """
 
-    col: Literal["label", "db_id", "schema"] = Field(
+    col: Literal["label", "db_id", "schema", "catalog", "created_by_fk"] = Field(
         ...,
         description="Column to filter on.",
     )
@@ -93,11 +95,15 @@ class SavedQueryInfo(BaseModel):
     sql: str | None = Field(None, description="SQL query text")
     db_id: int | None = Field(None, description="Database connection ID")
     schema: str | None = Field(None, description="Database schema name")
+    catalog: str | None = Field(None, description="Database catalog name")
     description: str | None = Field(None, description="User-provided description")
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
     )
     created_on: str | datetime | None = Field(None, description="Creation timestamp")
+    last_run: str | datetime | None = Field(
+        None, description="Timestamp of last execution"
+    )
     model_config = ConfigDict(
         from_attributes=True,
         ser_json_timedelta="iso8601",
@@ -255,7 +261,9 @@ def serialize_saved_query_object(saved_query: Any) -> SavedQueryInfo | None:
         sql=getattr(saved_query, "sql", None),
         db_id=getattr(saved_query, "db_id", None),
         schema=getattr(saved_query, "schema", None),
+        catalog=getattr(saved_query, "catalog", None),
         description=getattr(saved_query, "description", None),
         changed_on=getattr(saved_query, "changed_on", None),
         created_on=getattr(saved_query, "created_on", None),
+        last_run=getattr(saved_query, "last_run", None),
     )

@@ -17,6 +17,7 @@
 
 
 import logging
+from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -44,7 +45,7 @@ class TestSavedQueryFilterSchema:
             SavedQueryFilter(col="not_a_real_column", opr="eq", value="test")
 
     def test_user_id_is_rejected_as_filter_column(self):
-        """user_id is an internal field and should not be a filter column."""
+        """user_id is not a filter column; use created_by_fk instead."""
         with pytest.raises(ValidationError):
             SavedQueryFilter(col="user_id", opr="eq", value=1)
 
@@ -63,6 +64,16 @@ class TestSavedQueryFilterSchema:
         f = SavedQueryFilter(col="schema", opr="eq", value="public")
         assert f.col == "schema"
 
+    def test_valid_catalog_filter_accepted(self):
+        """catalog is a valid filter column."""
+        f = SavedQueryFilter(col="catalog", opr="eq", value="my_catalog")
+        assert f.col == "catalog"
+
+    def test_valid_created_by_fk_filter_accepted(self):
+        """created_by_fk enables filtering by the owner user ID."""
+        f = SavedQueryFilter(col="created_by_fk", opr="eq", value=42)
+        assert f.col == "created_by_fk"
+
 
 def create_mock_saved_query(
     saved_query_id: int = 1,
@@ -70,8 +81,10 @@ def create_mock_saved_query(
     sql: str = "SELECT 1",
     db_id: int = 1,
     schema: str = "public",
+    catalog: str | None = None,
     description: str = "Test query",
     uuid: str = "test-uuid-1234",
+    last_run: datetime | None = None,
 ) -> MagicMock:
     """Factory function to create mock saved query objects with sensible defaults."""
     saved_query = MagicMock()
@@ -80,10 +93,12 @@ def create_mock_saved_query(
     saved_query.sql = sql
     saved_query.db_id = db_id
     saved_query.schema = schema
+    saved_query.catalog = catalog
     saved_query.description = description
     saved_query.uuid = uuid
     saved_query.changed_on = None
     saved_query.created_on = None
+    saved_query.last_run = last_run
     return saved_query
 
 

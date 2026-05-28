@@ -55,18 +55,21 @@ SORTABLE_QUERY_COLUMNS = [
 ALL_QUERY_COLUMNS = [
     "id",
     "sql",
+    "executed_sql",
     "status",
     "start_time",
     "end_time",
     "rows",
     "database_id",
     "schema",
+    "catalog",
     "tab_name",
     "error_message",
     "client_id",
     "limit",
     "progress",
     "changed_on",
+    "user_id",
 ]
 
 DEFAULT_QUERY_PAGE_SIZE = 25
@@ -80,7 +83,7 @@ class QueryFilter(ColumnOperator):
     value: The value to filter by (type depends on col and opr).
     """
 
-    col: Literal["status", "database_id", "schema"] = Field(
+    col: Literal["status", "database_id", "schema", "user_id", "start_time"] = Field(
         ...,
         description="Column to filter on.",
     )
@@ -95,7 +98,10 @@ class QueryFilter(ColumnOperator):
 
 class QueryInfo(BaseModel):
     id: int | None = Field(None, description="Query ID")
-    sql: str | None = Field(None, description="SQL query text")
+    sql: str | None = Field(None, description="SQL query text as submitted")
+    executed_sql: str | None = Field(
+        None, description="Actual SQL executed after templating/CTAS rewriting"
+    )
     status: str | None = Field(None, description="Query execution status")
     start_time: float | None = Field(
         None, description="Query start time (seconds since epoch)"
@@ -106,6 +112,7 @@ class QueryInfo(BaseModel):
     rows: int | None = Field(None, description="Number of rows returned or affected")
     database_id: int | None = Field(None, description="Database connection ID")
     schema: str | None = Field(None, description="Database schema name")
+    catalog: str | None = Field(None, description="Database catalog name")
     tab_name: str | None = Field(None, description="SQL Lab tab name")
     error_message: str | None = Field(None, description="Error message if query failed")
     client_id: str | None = Field(None, description="Client-assigned query identifier")
@@ -114,6 +121,7 @@ class QueryInfo(BaseModel):
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
     )
+    user_id: int | None = Field(None, description="ID of the user who ran the query")
     model_config = ConfigDict(
         from_attributes=True,
         ser_json_timedelta="iso8601",
@@ -267,16 +275,19 @@ def serialize_query_object(query: Any) -> QueryInfo | None:
     return QueryInfo(
         id=getattr(query, "id", None),
         sql=getattr(query, "sql", None),
+        executed_sql=getattr(query, "executed_sql", None),
         status=getattr(query, "status", None),
         start_time=getattr(query, "start_time", None),
         end_time=getattr(query, "end_time", None),
         rows=getattr(query, "rows", None),
         database_id=getattr(query, "database_id", None),
         schema=getattr(query, "schema", None),
+        catalog=getattr(query, "catalog", None),
         tab_name=getattr(query, "tab_name", None),
         error_message=getattr(query, "error_message", None),
         client_id=getattr(query, "client_id", None),
         limit=getattr(query, "limit", None),
         progress=getattr(query, "progress", None),
         changed_on=getattr(query, "changed_on", None),
+        user_id=getattr(query, "user_id", None),
     )

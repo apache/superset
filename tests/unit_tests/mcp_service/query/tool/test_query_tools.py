@@ -43,11 +43,6 @@ class TestQueryFilterSchema:
         with pytest.raises(ValidationError):
             QueryFilter(col="not_a_real_column", opr="eq", value="test")
 
-    def test_user_id_is_rejected_as_filter_column(self):
-        """user_id is an internal field and should not be a filter column."""
-        with pytest.raises(ValidationError):
-            QueryFilter(col="user_id", opr="eq", value=1)
-
     def test_valid_status_filter_accepted(self):
         """status is a valid filter column."""
         f = QueryFilter(col="status", opr="eq", value="success")
@@ -63,36 +58,52 @@ class TestQueryFilterSchema:
         f = QueryFilter(col="schema", opr="eq", value="public")
         assert f.col == "schema"
 
+    def test_valid_user_id_filter_accepted(self):
+        """user_id filter enables admin-level filtering by user."""
+        f = QueryFilter(col="user_id", opr="eq", value=42)
+        assert f.col == "user_id"
+
+    def test_valid_start_time_filter_accepted(self):
+        """start_time filter enables time-range queries."""
+        f = QueryFilter(col="start_time", opr="gt", value=1700000000.0)
+        assert f.col == "start_time"
+
 
 def create_mock_query(
     query_id: int = 1,
     sql: str = "SELECT * FROM table",
+    executed_sql: str | None = None,
     status: str = "success",
     start_time: float = 1700000000.0,
     end_time: float = 1700000001.0,
     rows: int = 100,
     database_id: int = 1,
     schema: str = "public",
+    catalog: str | None = None,
     tab_name: str = "SQL Lab 1",
     error_message: str | None = None,
     client_id: str = "abc123",
+    user_id: int | None = 1,
 ) -> MagicMock:
     """Factory function to create mock query objects with sensible defaults."""
     query = MagicMock()
     query.id = query_id
     query.sql = sql
+    query.executed_sql = executed_sql
     query.status = status
     query.start_time = start_time
     query.end_time = end_time
     query.rows = rows
     query.database_id = database_id
     query.schema = schema
+    query.catalog = catalog
     query.tab_name = tab_name
     query.error_message = error_message
     query.client_id = client_id
     query.limit = 1000
     query.progress = 100
     query.changed_on = None
+    query.user_id = user_id
     return query
 
 
