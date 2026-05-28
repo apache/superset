@@ -300,10 +300,17 @@ def _sanitize_annotation_layer_for_llm_context(
 
 def _sanitize_annotation_for_llm_context(info: AnnotationInfo) -> AnnotationInfo:
     payload = info.model_dump(mode="python")
-    for field_name in ("short_descr", "long_descr", "json_metadata"):
+    for field_name in ("short_descr", "long_descr"):
         payload[field_name] = sanitize_for_llm_context(
             payload.get(field_name), field_path=(field_name,)
         )
+    # json_metadata is an arbitrary user-controlled JSON blob; pass no exclusions so
+    # every string leaf is wrapped regardless of key name (e.g. "url", "uuid").
+    payload["json_metadata"] = sanitize_for_llm_context(
+        payload.get("json_metadata"),
+        field_path=("json_metadata",),
+        excluded_field_names=frozenset(),
+    )
     return AnnotationInfo.model_validate(payload)
 
 
