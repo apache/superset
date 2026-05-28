@@ -22,7 +22,7 @@ import logging
 import os
 import traceback
 from datetime import datetime
-from typing import Any, Callable, cast
+from typing import Any, Callable, cast, Iterable
 
 from flask import (
     abort,
@@ -428,12 +428,11 @@ def get_default_spinner_svg() -> str | None:
         "loading.svg",
     )
 
-    if not os.path.exists(svg_path):
-        return None
-
     try:
         with open(svg_path, "r", encoding="utf-8") as f:
             return f.read().strip()
+    except FileNotFoundError:
+        return None
     except (OSError, UnicodeDecodeError) as e:
         logger.warning("Could not load default spinner SVG: %s", e)
         return None
@@ -452,7 +451,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     # should not expose API TOKEN to frontend
     frontend_config = {
         k: (
-            list(app.config.get(k))
+            list(cast(Iterable[Any], app.config.get(k)))
             if isinstance(app.config.get(k), set)
             else app.config.get(k)
         )
