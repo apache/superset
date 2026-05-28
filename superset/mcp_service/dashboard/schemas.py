@@ -310,6 +310,8 @@ DEFAULT_GET_DASHBOARD_INFO_COLUMNS: List[str] = [
     "native_filters",
     "cross_filters_enabled",
     "is_permalink_state",
+    "permalink_key",
+    "filter_state",
 ]
 
 

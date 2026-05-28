@@ -365,7 +365,8 @@ class TestGetChartInfoPrivacy:
         assert result["datasource_name"] is None
         assert result["datasource_type"] is None
         assert result["filters"] is None
-        assert result["form_data"] is None
+        # form_data is excluded from default select_columns, so it won't be in result
+        assert "form_data" not in result
 
     def test_form_data_override_does_not_double_sanitize(self) -> None:
         """Saved chart fields stay single-wrapped after unsaved overrides."""
