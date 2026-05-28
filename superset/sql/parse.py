@@ -54,6 +54,12 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+# Fallback parse-length bound applied when no Flask app context is active
+# (Alembic migrations, scripts, isolated unit tests). The runtime value is
+# read from `SQL_MAX_PARSE_LENGTH` in app config.
+_DEFAULT_MAX_PARSE_LENGTH: int | None = 1_000_000
+
+
 # mapping between DB engine specs and sqlglot dialects
 SQLGLOT_DIALECTS = {
     "base": Dialects.DIALECT,
@@ -572,6 +578,31 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         super().__init__(statement, engine, ast)
 
     @classmethod
+    def _check_script_length(cls, script: str, engine: str) -> None:
+        """
+        Reject scripts longer than the configured maximum length before they
+        reach the parser.
+        """
+        try:
+            from flask import current_app
+
+            max_length = current_app.config.get(
+                "SQL_MAX_PARSE_LENGTH", _DEFAULT_MAX_PARSE_LENGTH
+            )
+        except RuntimeError:
+            max_length = _DEFAULT_MAX_PARSE_LENGTH
+
+        if max_length is not None and len(script) > max_length:
+            raise SupersetParseError(
+                script,
+                engine,
+                message=(
+                    f"SQL script length ({len(script)} characters) exceeds "
+                    f"the configured maximum of {max_length}."
+                ),
+            )
+
+    @classmethod
     def _parse(cls, script: str, engine: str) -> list[exp.Expression]:
         """
         Parse helper.
@@ -581,6 +612,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         supports backticks natively. This handles cases like "Other" database type
         where users may have MySQL-compatible syntax with backtick-quoted table names.
         """
+        cls._check_script_length(script, engine)
         dialect = SQLGLOT_DIALECTS.get(engine)
         try:
             statements = sqlglot.parse(script, dialect=dialect)
