@@ -287,9 +287,8 @@ async def test_list_users_search_and_filters_mutually_exclusive(mcp_server):
             },
         )
 
-    data = json.loads(result.content[0].text)
-    # Pydantic validation error should surface as an error result
-    assert "error" in data or result.is_error
+    # Rejected at schema validation time, so FastMCP returns is_error=True
+    assert result.is_error
 
 
 # ---------------------------------------------------------------------------

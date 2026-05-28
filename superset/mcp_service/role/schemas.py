@@ -28,6 +28,7 @@ from pydantic import (
     Field,
     field_validator,
     model_serializer,
+    model_validator,
     PositiveInt,
 )
 
@@ -71,6 +72,13 @@ class RoleFilter(ColumnOperator):
 class RoleInfo(BaseModel):
     id: int | None = Field(None, description="Role ID")
     name: str | None = Field(None, description="Role name")
+    permissions: list[str] | None = Field(
+        None,
+        description=(
+            "Permission names assigned to this role "
+            "(only populated by get_role_info, not list_roles)"
+        ),
+    )
     model_config = ConfigDict(
         from_attributes=True,
         ser_json_timedelta="iso8601",
@@ -184,6 +192,16 @@ class ListRolesRequest(BaseModel):
         """Accept JSON array, list, or comma-separated string."""
         return parse_json_or_list(v, "select_columns")
 
+    @model_validator(mode="after")
+    def validate_search_and_filters(self) -> "ListRolesRequest":
+        if self.search and self.filters:
+            raise ValueError(
+                "Cannot use both 'search' and 'filters' parameters simultaneously. "
+                "Use either 'search' for text-based searching or 'filters' for "
+                "precise column-based filtering, but not both."
+            )
+        return self
+
 
 class RoleError(BaseModel):
     error: str = Field(..., description="Error message")
@@ -214,11 +232,26 @@ class GetRoleInfoRequest(BaseModel):
     ]
 
 
-def serialize_role_object(role: Any) -> RoleInfo | None:
-    """Serialize a FAB Role object into a RoleInfo schema."""
+def serialize_role_object(
+    role: Any, include_permissions: bool = False
+) -> RoleInfo | None:
+    """Serialize a FAB Role object into a RoleInfo schema.
+
+    Set include_permissions=True for get_role_info; leave False for list_roles
+    to avoid a per-role N+1 permissions lazy-load.
+    """
     if not role:
         return None
+    permissions: list[str] | None = None
+    if include_permissions:
+        raw_perms = getattr(role, "permissions", None)
+        if raw_perms is not None:
+            try:
+                permissions = [p.name for p in raw_perms if hasattr(p, "name")]
+            except (AttributeError, TypeError):
+                permissions = None
     return RoleInfo(
         id=getattr(role, "id", None),
         name=getattr(role, "name", None),
+        permissions=permissions,
     )

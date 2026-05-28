@@ -62,12 +62,15 @@ async def get_role_info(
     try:
         from superset.daos.role import RoleDAO
 
+        def _serializer(obj: object) -> RoleInfo | None:
+            return serialize_role_object(obj, include_permissions=True)
+
         with event_logger.log_context(action="mcp.get_role_info.lookup"):
             get_tool = ModelGetInfoCore(
                 dao_class=RoleDAO,
                 output_schema=RoleInfo,
                 error_schema=RoleError,
-                serializer=serialize_role_object,
+                serializer=_serializer,
                 supports_slug=False,
                 logger=logger,
             )

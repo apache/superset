@@ -28,8 +28,10 @@ from pydantic import (
     Field,
     field_validator,
     model_serializer,
+    model_validator,
     PositiveInt,
 )
+from sqlalchemy.orm.exc import DetachedInstanceError
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
@@ -215,6 +217,16 @@ class ListUsersRequest(BaseModel):
         """Accept JSON array, list, or comma-separated string."""
         return parse_json_or_list(v, "select_columns")
 
+    @model_validator(mode="after")
+    def validate_search_and_filters(self) -> "ListUsersRequest":
+        if self.search and self.filters:
+            raise ValueError(
+                "Cannot use both 'search' and 'filters' parameters simultaneously. "
+                "Use either 'search' for text-based searching or 'filters' for "
+                "precise column-based filtering, but not both."
+            )
+        return self
+
 
 class UserError(BaseModel):
     error: str = Field(..., description="Error message")
@@ -264,7 +276,7 @@ def serialize_user_object(
         if user_roles is not None:
             try:
                 roles = [r.name for r in user_roles if hasattr(r, "name")]
-            except Exception:  # noqa: BLE001
+            except (AttributeError, DetachedInstanceError):
                 roles = None
 
     return UserInfo(

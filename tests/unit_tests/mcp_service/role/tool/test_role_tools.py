@@ -28,11 +28,19 @@ from superset.mcp_service.role.schemas import ListRolesRequest, RoleFilter
 from superset.utils import json
 
 
-def create_mock_role(role_id: int = 1, name: str = "Admin") -> MagicMock:
+def create_mock_role(
+    role_id: int = 1, name: str = "Admin", permissions: list[str] | None = None
+) -> MagicMock:
     """Factory for mock FAB Role objects."""
     role = MagicMock()
     role.id = role_id
     role.name = name
+    mock_permissions = []
+    for perm_name in permissions or []:
+        perm = MagicMock()
+        perm.name = perm_name
+        mock_permissions.append(perm)
+    role.permissions = mock_permissions
     return role
 
 
@@ -197,7 +205,7 @@ async def test_list_roles_select_columns_filters_output(mock_list, mcp_server):
 
 @pytest.mark.asyncio
 async def test_list_roles_search_and_filters_mutually_exclusive(mcp_server):
-    """search and filters cannot be used together."""
+    """search and filters cannot be used together (rejected at schema validation)."""
     async with Client(mcp_server) as client:
         result = await client.call_tool(
             "list_roles",
@@ -209,8 +217,7 @@ async def test_list_roles_search_and_filters_mutually_exclusive(mcp_server):
             },
         )
 
-    data = json.loads(result.content[0].text)
-    assert "error" in data or result.is_error
+    assert result.is_error
 
 
 # ---------------------------------------------------------------------------
@@ -250,9 +257,9 @@ async def test_get_role_info_not_found(mock_find, mcp_server):
 
 @patch("superset.daos.role.RoleDAO.find_by_id")
 @pytest.mark.asyncio
-async def test_get_role_info_returns_id_and_name(mock_find, mcp_server):
-    """get_role_info returns exactly id and name."""
-    role = create_mock_role(role_id=3, name="Gamma")
+async def test_get_role_info_returns_id_name_and_permissions(mock_find, mcp_server):
+    """get_role_info returns id, name, and permissions."""
+    role = create_mock_role(role_id=3, name="Gamma", permissions=["can_read on Chart"])
     mock_find.return_value = role
 
     async with Client(mcp_server) as client:
@@ -261,3 +268,18 @@ async def test_get_role_info_returns_id_and_name(mock_find, mcp_server):
     data = json.loads(result.content[0].text)
     assert data["id"] == 3
     assert data["name"] == "Gamma"
+    assert data["permissions"] == ["can_read on Chart"]
+
+
+@patch("superset.daos.role.RoleDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_role_info_permissions_empty_when_no_perms(mock_find, mcp_server):
+    """get_role_info returns an empty permissions list for roles with no permissions."""
+    role = create_mock_role(role_id=4, name="Viewer", permissions=[])
+    mock_find.return_value = role
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("get_role_info", {"request": {"identifier": 4}})
+
+    data = json.loads(result.content[0].text)
+    assert data["permissions"] == []
