@@ -334,8 +334,12 @@ class CreateDatasetRequest(BaseModel):
         ),
     ]
     schema: Annotated[
-        str,
-        Field(description="Schema (namespace) where the table lives, e.g. 'public'"),
+        str | None,
+        Field(
+            default=None,
+            description="Schema (namespace) where the table lives, e.g. 'public'. "
+            "Omit or pass None for databases without schema namespaces (e.g. SQLite).",
+        ),
     ]
     table_name: Annotated[
         str,

@@ -214,26 +214,23 @@ class TestCreateDataset:
     async def test_create_dataset_unexpected_error(
         self, mock_command_class, mcp_server
     ):
-        """Unexpected exceptions are caught and returned as InternalError."""
+        """Unexpected exceptions are re-raised as ToolError (handled by middleware)."""
         mock_command = MagicMock()
         mock_command.run.side_effect = RuntimeError("DB connection lost")
         mock_command_class.return_value = mock_command
 
         async with Client(mcp_server) as client:
-            result = await client.call_tool(
-                "create_dataset",
-                {
-                    "request": {
-                        "database_id": 1,
-                        "schema": "public",
-                        "table_name": "orders",
-                    }
-                },
-            )
-
-        data = json.loads(result.content[0].text)
-        assert data["error_type"] == "InternalError"
-        assert "DB connection lost" in data["error"]
+            with pytest.raises(ToolError):
+                await client.call_tool(
+                    "create_dataset",
+                    {
+                        "request": {
+                            "database_id": 1,
+                            "schema": "public",
+                            "table_name": "orders",
+                        }
+                    },
+                )
 
     @pytest.mark.asyncio
     async def test_create_dataset_missing_required_fields(self, mcp_server):
