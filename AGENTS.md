@@ -54,11 +54,11 @@ Common pre-commit failures:
 
 ## Security and Threat Model
 
-Before evaluating any code path for security issues, read [`.github/SECURITY.md`](.github/SECURITY.md). It is the canonical, authoritative source for Apache Superset's security model and is referenced by both human reporters and automated scanners.
+Before evaluating any code path for security issues, read [`SECURITY.md`](SECURITY.md). It is the canonical, authoritative source for Apache Superset's security model and is referenced by both human reporters and automated scanners.
 
 In short, the test for whether a finding is in scope is one question:
 
-> *Does it let a principal perform an action the role and capability matrix in `.github/SECURITY.md` does not entitle them to?*
+> *Does it let a principal perform an action the role and capability matrix in `SECURITY.md` does not entitle them to?*
 
 If yes, it is in scope. If no, it is not.
 
@@ -68,15 +68,17 @@ The three trust boundaries are:
 2. **The operator** owns deployment-time decisions (secrets, network exposure, feature-flag selection, connector and codec choices, notification destinations, third-party plugins). Misconfiguration at this layer is a deployment defect, not a Superset vulnerability.
 3. **The codebase** is responsible for enforcing the role and capability matrix across its product surface. Failures of that enforcement, anywhere, are in scope regardless of which endpoint or component contains them.
 
+The security model assumes that operator-controlled infrastructure, including the metadata database, cache backends, message brokers, secret stores, and deployment environment, remains within the operator's trust boundary. Vulnerabilities must demonstrate a security boundary violation by an attacker who does not already control those systems.
+
 The canonical authorization pattern in this codebase is `@has_access_api` (Flask-AppBuilder) at the route level plus `security_manager.raise_for_access(...)` at the object level, with DAO `base_filters` where listing is involved. Code following both gates is not a finding **on authorization grounds** by itself; code that omits the per-object gate on a route that returns or mutates a specific object is. Code following both gates can still contain injection, SSRF, XSS, or other classes of finding unrelated to authorization, which are evaluated separately.
 
-The full role and capability matrix, in-scope and out-of-scope class lists, and CVE aggregation rules are in [`.github/SECURITY.md`](.github/SECURITY.md). Defer to that document for any specifics.
+The full role and capability matrix, in-scope and out-of-scope class lists, and CVE aggregation rules are in [`SECURITY.md`](SECURITY.md). Defer to that document for any specifics.
 
 **Requirements for findings filed by automated tooling**
 
 Automated scanners (LLM-based code scanners, static analyzers, dependency tools) that file findings against this codebase must, in each finding, name:
 
-1. The specific role and capability matrix row in [`.github/SECURITY.md`](.github/SECURITY.md) the finding believes is violated.
+1. The specific role and capability matrix row in [`SECURITY.md`](SECURITY.md) the finding believes is violated.
 2. The principal the finding assumes the attacker holds (Public, Gamma, sql_lab, Alpha, Admin, Embedded guest token, or a custom role with explicit capability grants).
 
 Findings that cannot identify both should be filed as questions, not vulnerabilities. This requirement exists to ensure every reported issue is testable against the published security model and to keep speculative or pattern-match-only reports out of the triage queue.
@@ -157,7 +159,7 @@ The Developer Portal auto-generates MDX documentation from Storybook stories. **
 ## Architecture Patterns
 
 ### Security & Features
-- **Security model**: see the top-level [Security and Threat Model](#security-and-threat-model) section and [`.github/SECURITY.md`](.github/SECURITY.md)
+- **Security model**: see the top-level [Security and Threat Model](#security-and-threat-model) section and [`SECURITY.md`](SECURITY.md)
 - **RBAC**: Role-based access via Flask-AppBuilder
 - **Feature flags**: Control feature rollouts
 - **Row-level security**: SQL-based data access control

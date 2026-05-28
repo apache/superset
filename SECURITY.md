@@ -1,3 +1,22 @@
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
 # Security Policy
 
 This is a project of the [Apache Software Foundation](https://apache.org) and follows the
@@ -89,6 +108,7 @@ If yes, it is in scope. If no, it is out of scope. The lists below apply that te
 
 - Any action an Admin role can perform through documented configuration, API, or UI. The Admin role is a trusted operational principal by policy. Per MITRE CNA Operational Rules 4.1, a qualifying vulnerability must violate a security policy; behavior within a documented trust boundary does not.
 - Deployment or operator decisions: the values of secrets and tokens, whether internal networks are reachable from the server, which database connectors or cache backends are enabled, which feature flags are set, where notifications are delivered, and which third-party plugins are loaded.
+- Compromise, modification, or malicious control of trusted backend infrastructure. Apache Superset assumes the integrity of its metastore, cache backends (for example Redis or Memcached), message brokers, secret stores, and other operator-managed infrastructure. Findings that require an attacker to read from, write to, or otherwise tamper with these systems, including injecting malicious state, serialized objects, cache entries, task metadata, configuration, or database records, are post-compromise scenarios and do not constitute vulnerabilities in Apache Superset itself. A finding remains in scope only if an unprivileged user can cause such modification through a vulnerability in Apache Superset.
 - Code paths whose intended purpose is example data, demos, fixtures, local development, or documentation, rather than the production runtime.
 - How a downstream application (spreadsheet program, email client, browser handling user-downloaded files) interprets output Apache Superset produced for it.
 - Findings without a reproducible proof of concept against a supported release. The burden of demonstrating exploitability rests with the reporter; findings closed for lack of a proof of concept may be refiled if one is later produced.
