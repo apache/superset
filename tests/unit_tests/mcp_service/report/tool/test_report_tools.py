@@ -475,3 +475,45 @@ async def test_list_reports_both_owned_and_created_by_me(mock_list, mcp_server):
     assert any(
         getattr(f, "col", None) == "created_by_fk_or_owner" for f in filters_arg
     ), "combined flags should use created_by_fk_or_owner OR filter"
+
+
+@patch("superset.daos.report.ReportScheduleDAO.list")
+@pytest.mark.asyncio
+async def test_columns_available_are_serializable(mock_list, mcp_server):
+    """Every column in columns_available must be serializable by ReportInfo.
+
+    Regression test: columns_available must not advertise SQLAlchemy-only fields
+    (e.g. timezone, sql, email_subject) that ReportInfo cannot serialize.
+    Requesting such a column previously returned an empty report entry {}.
+    """
+    from superset.mcp_service.privacy import USER_DIRECTORY_FIELDS
+    from superset.mcp_service.report.schemas import ReportInfo
+
+    report = create_mock_report()
+    mock_list.return_value = ([report], 1)
+
+    serializable_cols = [
+        col
+        for col in ReportInfo.model_fields.keys()
+        if col not in USER_DIRECTORY_FIELDS
+    ]
+
+    async with Client(mcp_server) as client:
+        request = ListReportsRequest(
+            page=1, page_size=10, select_columns=serializable_cols
+        )
+        result = await client.call_tool(
+            "list_reports", {"request": request.model_dump()}
+        )
+        data = json.loads(result.content[0].text)
+
+    assert data["reports"] is not None
+    assert len(data["reports"]) == 1
+    report_entry = data["reports"][0]
+    for col in serializable_cols:
+        assert col in report_entry, (
+            f"Column {col!r} listed in columns_available but missing from response"
+        )
+
+    # columns_available must match the ReportInfo serializable fields
+    assert set(data["columns_available"]) == set(serializable_cols)

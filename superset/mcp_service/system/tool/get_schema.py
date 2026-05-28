@@ -53,7 +53,7 @@ from superset.mcp_service.common.schema_discovery import (
     get_dashboard_columns,
     get_database_columns,
     get_dataset_columns,
-    get_report_columns,
+    get_report_info_columns,
     get_theme_columns,
     GetSchemaRequest,
     GetSchemaResponse,
@@ -198,7 +198,7 @@ def _get_theme_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
 
 
 def _get_report_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
-    """Create report schema core with dynamically extracted columns."""
+    """Create report schema core with ReportInfo-derived columns."""
     # Lazy import to avoid circular dependency at module load time
     from superset.daos.report import ReportScheduleDAO
 
@@ -206,7 +206,7 @@ def _get_report_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
         model_type="report",
         dao_class=ReportScheduleDAO,
         output_schema=ModelSchemaInfo,
-        select_columns=get_report_columns(),
+        select_columns=get_report_info_columns(),
         sortable_columns=REPORT_SORTABLE_COLUMNS,
         default_columns=REPORT_DEFAULT_COLUMNS,
         search_columns=REPORT_SEARCH_COLUMNS,

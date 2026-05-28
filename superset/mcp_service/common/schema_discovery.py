@@ -755,4 +755,72 @@ def get_report_columns() -> list[ColumnMetadata]:
     )
 
 
+def _annotation_to_type_str(annotation: Any) -> str:
+    """Extract a simple type string from a Python type annotation."""
+    import types as _builtin_types
+    import typing
+
+    if annotation is None:
+        return "str"
+
+    # Python 3.10+ union syntax: X | Y | None → extract first non-None
+    if isinstance(annotation, _builtin_types.UnionType):
+        non_none = [a for a in annotation.__args__ if a is not type(None)]
+        return _annotation_to_type_str(non_none[0]) if non_none else "str"
+
+    # typing.Union (e.g. Optional[X] or Union[X, Y, None])
+    if getattr(annotation, "__origin__", None) is typing.Union:
+        non_none = [a for a in annotation.__args__ if a is not type(None)]
+        return _annotation_to_type_str(non_none[0]) if non_none else "str"
+
+    # Generic list/dict
+    origin = getattr(annotation, "__origin__", None)
+    if origin is list:
+        return "list"
+    if origin is dict:
+        return "dict"
+
+    _simple: dict[type, str] = {
+        int: "int",
+        str: "str",
+        bool: "bool",
+        float: "float",
+    }
+    if annotation in _simple:
+        return _simple[annotation]
+
+    from datetime import datetime
+
+    if annotation is datetime:
+        return "datetime"
+
+    return "str"
+
+
+def get_report_info_columns() -> list[ColumnMetadata]:
+    """Get column metadata derived from the ReportInfo serializer fields.
+
+    Uses ReportInfo.model_fields as the authoritative source so that
+    get_schema(model_type='report') advertises only columns that
+    list_reports can actually serialize.
+    """
+    from superset.mcp_service.privacy import USER_DIRECTORY_FIELDS
+    from superset.mcp_service.report.schemas import ReportInfo
+
+    columns = []
+    for name, field_info in ReportInfo.model_fields.items():
+        if name in USER_DIRECTORY_FIELDS:
+            continue
+        col_type = _annotation_to_type_str(field_info.annotation)
+        columns.append(
+            ColumnMetadata(
+                name=name,
+                description=field_info.description,
+                type=col_type,
+                is_default=name in REPORT_DEFAULT_COLUMNS,
+            )
+        )
+    return columns
+
+
 REPORT_ALL_COLUMNS: list[str] = []
