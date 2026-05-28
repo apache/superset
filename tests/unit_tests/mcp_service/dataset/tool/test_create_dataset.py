@@ -52,6 +52,8 @@ def _make_mock_dataset(
     dataset.owners = []
     dataset.is_virtual = False
     dataset.database_id = 1
+    dataset.certified_by = None
+    dataset.certification_details = None
     dataset.schema_perm = f"[{database_name}].[{schema}]"
     dataset.url = f"/tablemodelview/edit/{dataset_id}"
     dataset.database = MagicMock()
@@ -87,26 +89,34 @@ def mock_auth():
 class TestCreateDataset:
     """Tests for the create_dataset MCP tool."""
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
-    async def test_create_dataset_success(self, mock_command_class, mcp_server):
+    async def test_create_dataset_success(self, mcp_server):
         """Happy path: tool creates dataset and returns DatasetInfo."""
         mock_dataset = _make_mock_dataset()
         mock_command = MagicMock()
         mock_command.run.return_value = mock_dataset
-        mock_command_class.return_value = mock_command
 
-        async with Client(mcp_server) as client:
-            result = await client.call_tool(
-                "create_dataset",
-                {
-                    "request": {
-                        "database_id": 1,
-                        "schema": "public",
-                        "table_name": "orders",
-                    }
-                },
-            )
+        with (
+            patch(
+                "superset.commands.dataset.create.CreateDatasetCommand",
+                return_value=mock_command,
+            ) as mock_command_class,
+            patch(
+                "superset.mcp_service.utils.url_utils.get_superset_base_url",
+                return_value="http://localhost:8088",
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "create_dataset",
+                    {
+                        "request": {
+                            "database_id": 1,
+                            "schema": "public",
+                            "table_name": "orders",
+                        }
+                    },
+                )
 
         assert result.content is not None
         data = json.loads(result.content[0].text)
@@ -121,27 +131,35 @@ class TestCreateDataset:
         assert call_kwargs["table_name"] == "orders"
         assert "owners" not in call_kwargs
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
-    async def test_create_dataset_with_owners(self, mock_command_class, mcp_server):
+    async def test_create_dataset_with_owners(self, mcp_server):
         """Owners list is forwarded to the command when supplied."""
         mock_dataset = _make_mock_dataset()
         mock_command = MagicMock()
         mock_command.run.return_value = mock_dataset
-        mock_command_class.return_value = mock_command
 
-        async with Client(mcp_server) as client:
-            result = await client.call_tool(
-                "create_dataset",
-                {
-                    "request": {
-                        "database_id": 2,
-                        "schema": "sales",
-                        "table_name": "transactions",
-                        "owners": [5, 10],
-                    }
-                },
-            )
+        with (
+            patch(
+                "superset.commands.dataset.create.CreateDatasetCommand",
+                return_value=mock_command,
+            ) as mock_command_class,
+            patch(
+                "superset.mcp_service.utils.url_utils.get_superset_base_url",
+                return_value="http://localhost:8088",
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "create_dataset",
+                    {
+                        "request": {
+                            "database_id": 2,
+                            "schema": "sales",
+                            "table_name": "transactions",
+                            "owners": [5, 10],
+                        }
+                    },
+                )
 
         data = json.loads(result.content[0].text)
         assert data["id"] == 42
@@ -149,9 +167,8 @@ class TestCreateDataset:
         call_kwargs = mock_command_class.call_args[0][0]
         assert call_kwargs["owners"] == [5, 10]
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
-    async def test_create_dataset_already_exists(self, mock_command_class, mcp_server):
+    async def test_create_dataset_already_exists(self, mcp_server):
         """Returns DatasetError when a dataset for the table already exists."""
         from superset.commands.dataset.exceptions import DatasetExistsValidationError
         from superset.sql.parse import Table
@@ -160,27 +177,29 @@ class TestCreateDataset:
         mock_command.run.side_effect = DatasetExistsValidationError(
             Table("orders", "public", None)
         )
-        mock_command_class.return_value = mock_command
 
-        async with Client(mcp_server) as client:
-            result = await client.call_tool(
-                "create_dataset",
-                {
-                    "request": {
-                        "database_id": 1,
-                        "schema": "public",
-                        "table_name": "orders",
-                    }
-                },
-            )
+        with patch(
+            "superset.commands.dataset.create.CreateDatasetCommand",
+            return_value=mock_command,
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "create_dataset",
+                    {
+                        "request": {
+                            "database_id": 1,
+                            "schema": "public",
+                            "table_name": "orders",
+                        }
+                    },
+                )
 
         data = json.loads(result.content[0].text)
         assert data["error_type"] == "DatasetExistsError"
         assert "error" in data
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
-    async def test_create_dataset_table_not_found(self, mock_command_class, mcp_server):
+    async def test_create_dataset_table_not_found(self, mcp_server):
         """Returns DatasetError when the physical table does not exist in the DB."""
         from superset.commands.dataset.exceptions import TableNotFoundValidationError
         from superset.sql.parse import Table
@@ -189,44 +208,47 @@ class TestCreateDataset:
         mock_command.run.side_effect = TableNotFoundValidationError(
             Table("missing_table", "public", None)
         )
-        mock_command_class.return_value = mock_command
 
-        async with Client(mcp_server) as client:
-            result = await client.call_tool(
-                "create_dataset",
-                {
-                    "request": {
-                        "database_id": 1,
-                        "schema": "public",
-                        "table_name": "missing_table",
-                    }
-                },
-            )
+        with patch(
+            "superset.commands.dataset.create.CreateDatasetCommand",
+            return_value=mock_command,
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "create_dataset",
+                    {
+                        "request": {
+                            "database_id": 1,
+                            "schema": "public",
+                            "table_name": "missing_table",
+                        }
+                    },
+                )
 
         data = json.loads(result.content[0].text)
         assert data["error_type"] == "TableNotFoundError"
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
-    async def test_create_dataset_unexpected_error(
-        self, mock_command_class, mcp_server
-    ):
+    async def test_create_dataset_unexpected_error(self, mcp_server):
         """Unexpected exceptions are caught and returned as InternalError."""
         mock_command = MagicMock()
         mock_command.run.side_effect = RuntimeError("DB connection lost")
-        mock_command_class.return_value = mock_command
 
-        async with Client(mcp_server) as client:
-            result = await client.call_tool(
-                "create_dataset",
-                {
-                    "request": {
-                        "database_id": 1,
-                        "schema": "public",
-                        "table_name": "orders",
-                    }
-                },
-            )
+        with patch(
+            "superset.commands.dataset.create.CreateDatasetCommand",
+            return_value=mock_command,
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "create_dataset",
+                    {
+                        "request": {
+                            "database_id": 1,
+                            "schema": "public",
+                            "table_name": "orders",
+                        }
+                    },
+                )
 
         data = json.loads(result.content[0].text)
         assert data["error_type"] == "InternalError"
@@ -247,11 +269,8 @@ class TestCreateDataset:
                     },
                 )
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
-    async def test_create_dataset_returns_full_dataset_info(
-        self, mock_command_class, mcp_server
-    ):
+    async def test_create_dataset_returns_full_dataset_info(self, mcp_server):
         """The returned DatasetInfo includes columns, metrics, and all core fields."""
         mock_dataset = _make_mock_dataset(
             dataset_id=99, table_name="sales", schema="dw"
@@ -277,19 +296,28 @@ class TestCreateDataset:
 
         mock_command = MagicMock()
         mock_command.run.return_value = mock_dataset
-        mock_command_class.return_value = mock_command
 
-        async with Client(mcp_server) as client:
-            result = await client.call_tool(
-                "create_dataset",
-                {
-                    "request": {
-                        "database_id": 1,
-                        "schema": "dw",
-                        "table_name": "sales",
-                    }
-                },
-            )
+        with (
+            patch(
+                "superset.commands.dataset.create.CreateDatasetCommand",
+                return_value=mock_command,
+            ),
+            patch(
+                "superset.mcp_service.utils.url_utils.get_superset_base_url",
+                return_value="http://localhost:8088",
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "create_dataset",
+                    {
+                        "request": {
+                            "database_id": 1,
+                            "schema": "dw",
+                            "table_name": "sales",
+                        }
+                    },
+                )
 
         data = json.loads(result.content[0].text)
         assert data["id"] == 99

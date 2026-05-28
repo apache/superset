@@ -25,12 +25,12 @@ the resulting dataset_id directly into generate_chart.
 """
 
 import logging
-from datetime import datetime, timezone
+from typing import Any
 
 from fastmcp import Context
+from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.mcp_service.app import mcp
-from superset.mcp_service.auth import mcp_auth_hook
+from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
     CreateDatasetRequest,
     DatasetError,
@@ -41,9 +41,17 @@ from superset.mcp_service.dataset.schemas import (
 logger = logging.getLogger(__name__)
 
 
-@mcp.tool(tags=["mutate"])
-@mcp_auth_hook
-def create_dataset(
+@tool(
+    tags=["mutate"],
+    class_permission_name="Dataset",
+    method_permission_name="write",
+    annotations=ToolAnnotations(
+        title="Create dataset",
+        readOnlyHint=False,
+        destructiveHint=False,
+    ),
+)
+async def create_dataset(
     request: CreateDatasetRequest, ctx: Context
 ) -> DatasetInfo | DatasetError:
     """Register a physical table as a Superset dataset.
@@ -55,10 +63,10 @@ def create_dataset(
 
     Required fields:
     - database_id: ID of the existing database connection
-    - schema: Schema/namespace where the table lives (e.g. "public")
     - table_name: Exact name of the physical table to register
 
     Optional fields:
+    - schema: Schema/namespace where the table lives (e.g. "public")
     - owners: List of user IDs to set as owners (defaults to calling user)
 
     Example:
@@ -73,6 +81,10 @@ def create_dataset(
     Returns DatasetInfo on success or DatasetError on failure.
     Use list_databases to find the correct database_id.
     """
+    await ctx.info(
+        "Creating dataset: database_id=%s, schema=%r, table_name=%r"
+        % (request.database_id, request.schema, request.table_name)
+    )
     try:
         from superset.commands.dataset.create import CreateDatasetCommand
         from superset.commands.dataset.exceptions import (
@@ -82,7 +94,7 @@ def create_dataset(
             TableNotFoundValidationError,
         )
 
-        dataset_properties = {
+        dataset_properties: dict[str, Any] = {
             "database": request.database_id,
             "schema": request.schema,
             "table_name": request.table_name,
@@ -90,15 +102,15 @@ def create_dataset(
         if request.owners is not None:
             dataset_properties["owners"] = request.owners
 
-        command = CreateDatasetCommand(dataset_properties)
-        dataset = command.run()
+        with event_logger.log_context(action="mcp.create_dataset"):
+            command = CreateDatasetCommand(dataset_properties)
+            dataset = command.run()
 
         result = serialize_dataset_object(dataset)
         if result is None:
-            return DatasetError(
+            return DatasetError.create(
                 error="Dataset was created but could not be serialized",
                 error_type="SerializationError",
-                timestamp=datetime.now(timezone.utc),
             )
 
         logger.info(
@@ -110,33 +122,21 @@ def create_dataset(
         return result
 
     except DatasetExistsValidationError as e:
-        return DatasetError(
-            error=str(e),
-            error_type="DatasetExistsError",
-            timestamp=datetime.now(timezone.utc),
-        )
+        await ctx.error("Dataset already exists: %s" % (str(e),))
+        return DatasetError.create(error=str(e), error_type="DatasetExistsError")
     except TableNotFoundValidationError as e:
-        return DatasetError(
-            error=str(e),
-            error_type="TableNotFoundError",
-            timestamp=datetime.now(timezone.utc),
-        )
+        await ctx.error("Table not found: %s" % (str(e),))
+        return DatasetError.create(error=str(e), error_type="TableNotFoundError")
     except DatasetInvalidError as e:
-        return DatasetError(
-            error=str(e),
-            error_type="ValidationError",
-            timestamp=datetime.now(timezone.utc),
-        )
+        await ctx.error("Dataset validation failed: %s" % (str(e),))
+        return DatasetError.create(error=str(e), error_type="ValidationError")
     except DatasetCreateFailedError as e:
-        return DatasetError(
-            error=str(e),
-            error_type="CreateFailedError",
-            timestamp=datetime.now(timezone.utc),
-        )
+        await ctx.error("Dataset creation failed: %s" % (str(e),))
+        return DatasetError.create(error=str(e), error_type="CreateFailedError")
     except Exception as e:
         logger.error("Failed to create dataset: %s", e, exc_info=True)
-        return DatasetError(
+        await ctx.error("Unexpected error: %s: %s" % (type(e).__name__, str(e)))
+        return DatasetError.create(
             error=f"Failed to create dataset: {str(e)}",
             error_type="InternalError",
-            timestamp=datetime.now(timezone.utc),
         )

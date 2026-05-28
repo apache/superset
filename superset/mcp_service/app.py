@@ -555,6 +555,8 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     get_chart_data,
     get_chart_info,
     get_chart_preview,
+    get_chart_sql,
+    get_chart_type_schema,
     list_charts,
     update_chart,
     update_chart_preview,
@@ -565,10 +567,16 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     get_dashboard_info,
     list_dashboards,
 )
+from superset.mcp_service.database.tool import (  # noqa: F401, E402
+    get_database_info,
+    list_databases,
+)
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
     create_dataset,
+    create_virtual_dataset,
     get_dataset_info,
     list_datasets,
+    query_dataset,
 )
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
     generate_explore_link,
@@ -576,6 +584,7 @@ from superset.mcp_service.explore.tool import (  # noqa: F401, E402
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,
     open_sql_lab_with_context,
+    save_sql_query,
 )
 from superset.mcp_service.system import (  # noqa: F401, E402
     prompts as system_prompts,

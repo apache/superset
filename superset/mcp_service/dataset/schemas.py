@@ -334,8 +334,12 @@ class CreateDatasetRequest(BaseModel):
         ),
     ]
     schema: Annotated[
-        str,
-        Field(description="Schema (namespace) where the table lives, e.g. 'public'"),
+        str | None,
+        Field(
+            default=None,
+            description="Schema (namespace) where the table lives, e.g. 'public'. "
+            "Optional: omit to use the database default schema.",
+        ),
     ]
     table_name: Annotated[
         str,
