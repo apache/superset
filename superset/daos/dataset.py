@@ -424,6 +424,18 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             .one_or_none()
         )
 
+    @staticmethod
+    def get_table_by_schema_and_name(
+        database_id: int, schema: str | None, table_name: str
+    ) -> SqlaTable | None:
+        # Filter by schema as well so callers can disambiguate datasets that
+        # share a ``table_name`` across schemas (#30377).
+        return (
+            db.session.query(SqlaTable)
+            .filter_by(database_id=database_id, schema=schema, table_name=table_name)
+            .one_or_none()
+        )
+
     @classmethod
     def get_filterable_columns_and_operators(cls) -> Dict[str, List[str]]:
         filterable = super().get_filterable_columns_and_operators()

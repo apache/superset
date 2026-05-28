@@ -2983,6 +2983,62 @@ class TestDatasetApi(SupersetTestCase):
         with examples_db.get_sqla_engine() as engine:
             engine.execute("DROP TABLE test_create_sqla_table_api")
 
+    def test_get_or_create_dataset_disambiguates_by_schema(self):
+        """
+        Dataset API: Regression test for #30377.
+
+        ``get_or_create`` must filter on ``schema`` as well as ``table_name``.
+        Otherwise:
+
+        - Two pre-existing datasets sharing a ``table_name`` across different
+          schemas make ``one_or_none()`` raise ``MultipleResultsFound`` → 500.
+        - A single existing dataset in schema A is wrongly returned when the
+          caller asks for the same ``table_name`` in schema B (false positive).
+        """
+        self.login(ADMIN_USERNAME)
+        admin_id = self.get_user("admin").id
+        examples_db = get_example_database()
+        table_name = "test_get_or_create_schema_disambiguation"
+
+        ds_schema_a = self.insert_dataset(
+            table_name, [admin_id], examples_db, schema="schema_a"
+        )
+        ds_schema_b = self.insert_dataset(
+            table_name, [admin_id], examples_db, schema="schema_b"
+        )
+
+        # Case 1: ask for an existing schema — must return that exact dataset,
+        # not raise MultipleResultsFound.
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={
+                "table_name": table_name,
+                "schema": "schema_a",
+                "database_id": examples_db.id,
+            },
+        )
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["result"] == {
+            "table_id": ds_schema_a.id
+        }
+
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={
+                "table_name": table_name,
+                "schema": "schema_b",
+                "database_id": examples_db.id,
+            },
+        )
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["result"] == {
+            "table_id": ds_schema_b.id
+        }
+
+        # Cleanup the seed rows; the "new schema" path creates an additional
+        # dataset that the test_client owns — also handed off to teardown.
+        self.items_to_delete = [ds_schema_a, ds_schema_b]
+
     @pytest.mark.usefixtures(
         "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
     )
