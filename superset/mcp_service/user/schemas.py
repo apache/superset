@@ -36,7 +36,10 @@ from sqlalchemy.orm.exc import DetachedInstanceError
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import PaginationInfo
-from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.mcp_service.utils import (
+    escape_llm_context_delimiters,
+    sanitize_for_llm_context,
+)
 from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
@@ -281,11 +284,15 @@ def serialize_user_object(
 
     return UserInfo(
         id=getattr(user, "id", None),
-        username=getattr(user, "username", None),
-        first_name=getattr(user, "first_name", None),
-        last_name=getattr(user, "last_name", None),
+        username=escape_llm_context_delimiters(getattr(user, "username", None)),
+        first_name=escape_llm_context_delimiters(getattr(user, "first_name", None)),
+        last_name=escape_llm_context_delimiters(getattr(user, "last_name", None)),
         active=getattr(user, "active", None),
-        email=getattr(user, "email", None) if include_sensitive else None,
-        roles=roles,
+        email=escape_llm_context_delimiters(getattr(user, "email", None))
+        if include_sensitive
+        else None,
+        roles=[escape_llm_context_delimiters(r) for r in roles]
+        if roles is not None
+        else None,
         changed_on=getattr(user, "changed_on", None),
     )
