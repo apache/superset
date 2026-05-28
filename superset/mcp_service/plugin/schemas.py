@@ -277,3 +277,61 @@ class CreatePluginResponse(BaseModel):
         None,
         description="Error message if creation failed, otherwise null.",
     )
+
+
+class UpdatePluginRequest(BaseModel):
+    """Request schema for update_plugin."""
+
+    id: int = Field(..., description="ID of the plugin to update.")
+    name: str | None = Field(
+        None,
+        min_length=1,
+        description="New human-friendly name for the plugin.",
+    )
+    key: str | None = Field(
+        None,
+        min_length=1,
+        description=(
+            "New unique plugin key. Should match the package name from the "
+            "plugin's package.json (e.g. '@my-org/my-chart-plugin')."
+        ),
+    )
+    bundle_url: str | None = Field(
+        None,
+        min_length=1,
+        description=(
+            "New full URL pointing to the built plugin bundle "
+            "(e.g. a CDN-hosted JavaScript file)."
+        ),
+    )
+
+    @field_validator("name", "key", "bundle_url")
+    @classmethod
+    def must_not_be_blank(cls, v: str | None) -> str | None:
+        if v is not None and not v.strip():
+            raise ValueError("Field must not be blank")
+        return v.strip() if v is not None else v
+
+    @model_validator(mode="after")
+    def at_least_one_field(self) -> "UpdatePluginRequest":
+        if self.name is None and self.key is None and self.bundle_url is None:
+            raise ValueError(
+                "At least one of 'name', 'key', or 'bundle_url' must be provided."
+            )
+        return self
+
+
+class UpdatePluginResponse(BaseModel):
+    """Response schema for update_plugin."""
+
+    id: int | None = Field(
+        None,
+        description="ID of the updated plugin. None if the update failed.",
+    )
+    name: str | None = Field(None, description="Plugin name.")
+    key: str | None = Field(None, description="Plugin key.")
+    bundle_url: str | None = Field(None, description="Plugin bundle URL.")
+    error: str | None = Field(
+        None,
+        description="Error message if update failed, otherwise null.",
+    )

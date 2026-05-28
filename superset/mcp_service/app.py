@@ -143,6 +143,7 @@ Tag Management:
 
 Plugin Management:
 - create_plugin: Register a new dynamic plugin by name, key, and bundle URL (requires DynamicPlugin write permission and DYNAMIC_PLUGINS feature flag)
+- update_plugin: Update an existing dynamic plugin's name, key, or bundle URL by ID (requires DynamicPlugin write permission and DYNAMIC_PLUGINS feature flag)
 
 Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
@@ -724,6 +725,7 @@ from superset.mcp_service.plugin.tool import (  # noqa: F401, E402
     create_plugin,
     get_plugin_info,
     list_plugins,
+    update_plugin,
 )
 from superset.mcp_service.query.tool import (  # noqa: F401, E402
     get_query_info,
