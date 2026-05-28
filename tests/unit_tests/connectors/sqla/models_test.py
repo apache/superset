@@ -1018,3 +1018,24 @@ def test_validate_stored_expression_accepts_case_expression(
     validate_stored_expression(
         database, None, None, "CASE WHEN amount > 0 THEN 'a' ELSE 'b' END"
     )
+
+
+def test_validate_stored_expression_rejects_subquery(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With ``ALLOW_ADHOC_SUBQUERY=False`` (the default), a stored
+    expression that contains a sub-query is rejected by the same
+    ``validate_adhoc_subquery`` gate that already covers adhoc SQL.
+    Locks in the sub-query branch so a future refactor that
+    removes the ``validate_adhoc_subquery`` call gets a red test.
+    """
+    database = _database_for_expression(mocker)
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    with pytest.raises(SupersetSecurityException):
+        validate_stored_expression(
+            database,
+            None,
+            None,
+            "(SELECT password FROM ab_user LIMIT 1)",
+        )

@@ -302,6 +302,11 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         multi-statement SQL into chart queries.
         """
         self._model = cast(SqlaTable, self._model)
+        # `_validate_dataset_source` runs first and rebinds
+        # `self._properties["database"]` from the request's `database_id`
+        # to the resolved `Database` model when the user is repointing the
+        # dataset; otherwise the key is absent and we fall back to the
+        # currently-bound database on the model.
         database = self._properties.get("database") or self._model.database
         catalog = self._properties.get("catalog", self._model.catalog)
         schema = self._properties.get("schema", self._model.schema)
@@ -312,17 +317,15 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                 continue
             try:
                 validate_stored_expression(database, catalog, schema, expression)
-            except SupersetSecurityException as ex:
-                exceptions.append(
-                    ValidationError(
-                        ex.error.message,
-                        field_name=f"{label}.{idx}.expression",
-                    )
+            except (SupersetSecurityException, QueryClauseValidationException) as ex:
+                message = (
+                    ex.error.message
+                    if isinstance(ex, SupersetSecurityException)
+                    else ex.message
                 )
-            except QueryClauseValidationException as ex:
                 exceptions.append(
                     ValidationError(
-                        ex.message,
+                        message,
                         field_name=f"{label}.{idx}.expression",
                     )
                 )
