@@ -27,6 +27,7 @@ from dataclasses import dataclass
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
 import sqlglot
+from flask import current_app, has_app_context
 from jinja2 import nodes, Template
 from sqlglot import exp
 from sqlglot.dialects.dialect import (
@@ -56,8 +57,39 @@ logger = logging.getLogger(__name__)
 
 # Fallback parse-length bound applied when no Flask app context is active
 # (Alembic migrations, scripts, isolated unit tests). The runtime value is
-# read from `SQL_MAX_PARSE_LENGTH` in app config.
-_DEFAULT_MAX_PARSE_LENGTH: int | None = 1_000_000
+# read from `SQL_MAX_PARSE_LENGTH` in app config; keep these two in sync.
+_DEFAULT_MAX_PARSE_LENGTH: int = 1_000_000
+
+
+def _check_script_length(script: str, engine: str | None) -> None:
+    """
+    Reject scripts whose UTF-8 byte length exceeds the configured maximum
+    before they reach sqlglot. Sits at every code path in this module that
+    hands a string to ``sqlglot.parse`` or ``sqlglot.parse_one`` so the
+    bound cannot be bypassed by a direct caller.
+
+    The check is in bytes, not Unicode code points, because the
+    threat model is parser memory and CPU on the encoded payload that
+    sqlglot ingests.
+    """
+    if has_app_context():
+        max_length = current_app.config.get(
+            "SQL_MAX_PARSE_LENGTH", _DEFAULT_MAX_PARSE_LENGTH
+        )
+    else:
+        max_length = _DEFAULT_MAX_PARSE_LENGTH
+
+    if max_length is None:
+        return
+    if (byte_length := len(script.encode("utf-8"))) > max_length:
+        raise SupersetParseError(
+            script,
+            engine,
+            message=(
+                f"SQL script length ({byte_length} bytes) exceeds the "
+                f"configured maximum of {max_length} bytes."
+            ),
+        )
 
 
 # mapping between DB engine specs and sqlglot dialects
@@ -578,31 +610,6 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         super().__init__(statement, engine, ast)
 
     @classmethod
-    def _check_script_length(cls, script: str, engine: str) -> None:
-        """
-        Reject scripts longer than the configured maximum length before they
-        reach the parser.
-        """
-        try:
-            from flask import current_app
-
-            max_length = current_app.config.get(
-                "SQL_MAX_PARSE_LENGTH", _DEFAULT_MAX_PARSE_LENGTH
-            )
-        except RuntimeError:
-            max_length = _DEFAULT_MAX_PARSE_LENGTH
-
-        if max_length is not None and len(script) > max_length:
-            raise SupersetParseError(
-                script,
-                engine,
-                message=(
-                    f"SQL script length ({len(script)} characters) exceeds "
-                    f"the configured maximum of {max_length}."
-                ),
-            )
-
-    @classmethod
     def _parse(cls, script: str, engine: str) -> list[exp.Expression]:
         """
         Parse helper.
@@ -612,7 +619,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         supports backticks natively. This handles cases like "Other" database type
         where users may have MySQL-compatible syntax with backtick-quoted table names.
         """
-        cls._check_script_length(script, engine)
+        _check_script_length(script, engine)
         dialect = SQLGLOT_DIALECTS.get(engine)
         try:
             statements = sqlglot.parse(script, dialect=dialect)
@@ -982,6 +989,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param predicate: The predicate to parse.
         :return: The parsed predicate.
         """
+        _check_script_length(predicate, self.engine)
         return sqlglot.parse_one(predicate, dialect=self._dialect)
 
     def apply_rls(
@@ -1508,8 +1516,10 @@ def extract_tables_from_statement(
         if not literal:
             return set()
 
+        pseudo_sql = f"SELECT {literal.this}"
+        _check_script_length(pseudo_sql, None)
         try:
-            pseudo_query = sqlglot.parse_one(f"SELECT {literal.this}", dialect=dialect)
+            pseudo_query = sqlglot.parse_one(pseudo_sql, dialect=dialect)
         except ParseError:
             return set()
         sources = pseudo_query.find_all(exp.Table)
@@ -1699,6 +1709,7 @@ def transpile_to_dialect(
     # Get source dialect (default to generic if not specified)
     source_dialect = SQLGLOT_DIALECTS.get(source_engine) if source_engine else Dialect
 
+    _check_script_length(sql, source_engine)
     try:
         parsed = sqlglot.parse_one(sql, dialect=source_dialect)
         return Dialect.get_or_raise(target_dialect).generate(
