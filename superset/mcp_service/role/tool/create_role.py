@@ -18,9 +18,11 @@
 import logging
 
 from fastmcp import Context
+from flask_appbuilder.security.sqla.models import PermissionView
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.extensions import event_logger
+from superset import security_manager
+from superset.extensions import db, event_logger
 from superset.mcp_service.role.schemas import CreateRoleRequest, CreateRoleResponse
 
 logger = logging.getLogger(__name__)
@@ -54,11 +56,6 @@ async def create_role(request: CreateRoleRequest, ctx: Context) -> CreateRoleRes
     )
 
     try:
-        from flask_appbuilder.security.sqla.models import PermissionView
-
-        from superset import security_manager
-        from superset.extensions import db
-
         # Reject creation if role already exists
         existing = security_manager.find_role(request.name)
         if existing is not None:
@@ -84,8 +81,9 @@ async def create_role(request: CreateRoleRequest, ctx: Context) -> CreateRoleRes
                     % sorted(missing)
                 )
 
-            role.permissions = pvms
-            db.session.commit()
+            with event_logger.log_context(action="mcp.create_role.assign_permissions"):
+                role.permissions = pvms
+                db.session.commit()
 
         await ctx.info("Role created: id=%s, name=%r" % (role.id, role.name))
         return CreateRoleResponse(id=role.id, name=role.name)

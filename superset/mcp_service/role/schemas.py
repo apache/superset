@@ -297,3 +297,32 @@ class CreateRoleResponse(BaseModel):
         None,
         description="Error message if role creation failed, otherwise null.",
     )
+
+
+class UpdateRoleRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: int = Field(..., description="ID of the role to update.")
+    name: str | None = Field(
+        None,
+        description=(
+            "New name for the role. Must be unique. Omit to keep the current name."
+        ),
+    )
+    permission_ids: list[int] | None = Field(
+        None,
+        description=(
+            "Replacement list of PermissionView IDs for the role. "
+            "Replaces the full existing permission set — partial updates are "
+            "not supported. Omit to leave permissions unchanged."
+        ),
+    )
+
+
+class UpdateRoleResponse(BaseModel):
+    id: int | None = Field(None, description="ID of the updated role.")
+    name: str | None = Field(None, description="Name of the updated role.")
+    error: str | None = Field(
+        None,
+        description="Error message if role update failed, otherwise null.",
+    )

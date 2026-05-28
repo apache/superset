@@ -18,9 +18,11 @@
 from .create_role import create_role
 from .get_role_info import get_role_info
 from .list_roles import list_roles
+from .update_role import update_role
 
 __all__ = [
     "create_role",
     "get_role_info",
     "list_roles",
+    "update_role",
 ]
