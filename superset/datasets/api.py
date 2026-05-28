@@ -1099,13 +1099,21 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response(400, message=ex.messages)
         table_name = body["table_name"]
         database_id = body["database_id"]
-        # Honour the request's ``schema`` so we don't (a) raise 500 on
-        # ``MultipleResultsFound`` when datasets share a ``table_name`` across
-        # schemas, or (b) silently return an existing dataset from the wrong
-        # schema as a false positive (#30377).
-        schema = body.get("schema")
+        # Look up using the full ``(database_id, catalog, schema, table_name)``
+        # uniqueness key so we don't (a) raise 500 on ``MultipleResultsFound``
+        # when datasets share a ``table_name`` across schemas/catalogs, or
+        # (b) silently return an existing dataset from the wrong schema as a
+        # false positive (#30377). Empty-string schema/catalog are normalised
+        # to ``None`` to match how the rest of Superset treats them; catalog
+        # falls back to the database's default when not supplied, mirroring
+        # ``DatasetDAO.validate_uniqueness``.
+        schema = body.get("schema") or None
+        database = DatasetDAO.get_database_by_id(database_id)
+        catalog = body.get("catalog") or (
+            database.get_default_catalog() if database else None
+        )
         if table := DatasetDAO.get_table_by_schema_and_name(
-            database_id, schema, table_name
+            database_id, schema, table_name, catalog=catalog
         ):
             return self.response(200, result={"table_id": table.id})
 

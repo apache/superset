@@ -426,13 +426,22 @@ class DatasetDAO(BaseDAO[SqlaTable]):
 
     @staticmethod
     def get_table_by_schema_and_name(
-        database_id: int, schema: str | None, table_name: str
+        database_id: int,
+        schema: str | None,
+        table_name: str,
+        catalog: str | None = None,
     ) -> SqlaTable | None:
-        # Filter by schema as well so callers can disambiguate datasets that
-        # share a ``table_name`` across schemas (#30377).
+        # Filter by the full ``(database_id, catalog, schema, table_name)``
+        # uniqueness key so callers can disambiguate datasets that share a
+        # ``table_name`` across schemas or catalogs (#30377).
         return (
             db.session.query(SqlaTable)
-            .filter_by(database_id=database_id, schema=schema, table_name=table_name)
+            .filter_by(
+                database_id=database_id,
+                catalog=catalog,
+                schema=schema,
+                table_name=table_name,
+            )
             .one_or_none()
         )
 
