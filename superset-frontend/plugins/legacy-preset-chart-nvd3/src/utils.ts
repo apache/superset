@@ -279,17 +279,19 @@ export function tipFactory(layer) {
       if (!d) {
         return '';
       }
-      const title =
+      const rawTitle =
         d[layer.titleColumn] && d[layer.titleColumn].length > 0
           ? `${d[layer.titleColumn]} - ${layer.name}`
           : layer.name;
-      const body = Array.isArray(layer.descriptionColumns)
+      const rawBody = Array.isArray(layer.descriptionColumns)
         ? layer.descriptionColumns.map(c => d[c])
         : Object.values(d);
 
-      return `<div><strong>${title}</strong></div><br/><div>${body.join(
-        ', ',
-      )}</div>`;
+      return dompurify.sanitize(
+        `<div><strong>${rawTitle}</strong></div><br/><div>${rawBody.join(
+          ', ',
+        )}</div>`,
+      );
     });
 }
 
