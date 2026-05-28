@@ -41,8 +41,8 @@ from superset.mcp_service.tag.schemas import (
 logger = logging.getLogger(__name__)
 
 DEFAULT_TAG_COLUMNS = ["id", "name", "type"]
-SORTABLE_TAG_COLUMNS = ["id", "name", "changed_on"]
-ALL_TAG_COLUMNS = ["id", "name", "type", "description", "changed_on"]
+SORTABLE_TAG_COLUMNS = ["id", "name", "changed_on", "created_on"]
+ALL_TAG_COLUMNS = ["id", "name", "type", "description", "changed_on", "created_on"]
 
 _DEFAULT_LIST_TAGS_REQUEST = ListTagsRequest()
 
@@ -67,7 +67,7 @@ async def list_tags(
     Tag types: custom (user-created), type (implicit by object type),
     owner (implicit by ownership), favorited_by (implicit by favorites).
 
-    Sortable columns for order_column: id, name, changed_on
+    Sortable columns for order_column: id, name, changed_on, created_on
     """
     if ctx is None:
         raise RuntimeError("FastMCP context is required for list_tags")

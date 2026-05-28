@@ -79,6 +79,10 @@ class TagInfo(BaseTagInfo):
     changed_on_humanized: str | None = Field(
         None, description="Humanized modification time"
     )
+    created_on: str | datetime | None = Field(None, description="Creation timestamp")
+    created_on_humanized: str | None = Field(
+        None, description="Humanized creation time"
+    )
     model_config = ConfigDict(
         from_attributes=True,
         ser_json_timedelta="iso8601",
@@ -228,4 +232,6 @@ def serialize_tag_object(tag: Any) -> TagInfo | None:
         description=getattr(tag, "description", None),
         changed_on=getattr(tag, "changed_on", None),
         changed_on_humanized=humanize_timestamp(getattr(tag, "changed_on", None)),
+        created_on=getattr(tag, "created_on", None),
+        created_on_humanized=humanize_timestamp(getattr(tag, "created_on", None)),
     )
