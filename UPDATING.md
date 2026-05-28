@@ -231,9 +231,13 @@ The migration is transactional (all-or-nothing) and idempotent — it can be saf
 
 `DELETE /api/v1/dashboard/<id>` no longer hard-deletes the dashboard. The row is marked with a `deleted_at` timestamp and hidden from all list, detail, and lookup endpoints (including the embedded-dashboard iframe path, which now returns 404 for soft-deleted parents).
 
-**New endpoint** — `POST /api/v1/dashboard/<uuid>/restore` clears `deleted_at` and returns the dashboard to active state. Requires `can_write on Dashboard` and ownership of the row (or admin). Soft-deleted dashboards can also be listed via the new `dashboard_deleted_state` rison filter (`deleted` or `active`).
+**New endpoint** — `POST /api/v1/dashboard/<uuid>/restore` clears `deleted_at` and returns the dashboard to active state. Requires `can_write on Dashboard` and ownership of the row (or admin). Soft-deleted dashboards can also be surfaced in the list endpoint via the new `dashboard_deleted_state` rison filter: `include` returns both live and soft-deleted rows, `only` returns just the soft-deleted ones. Any other value is ignored.
 
-**Migration behavior:** existing role grants of `can_write on Dashboard` cover the new restore endpoint automatically; no role migration is required.
+**Permissions migration:** existing role grants of `can_write on Dashboard` cover the new restore endpoint automatically; no role migration is required.
+
+**Schema migration:** the migration adds a nullable `deleted_at` column and an index on it (`ix_dashboards_deleted_at`) to the `dashboards` table. The column add is instant; the index build runs inline (no `CONCURRENTLY`) and may briefly block reads on the `dashboards` table for the duration of the build on large Postgres deployments. MySQL InnoDB builds the index online (no blocking).
+
+**Importer behavior:** importing a dashboard YAML whose UUID matches an existing **soft-deleted** dashboard is treated as an implicit restore-with-update. The owner (or an admin) gets the dashboard back in place — `deleted_at` is cleared and the contents from the upload are applied — preserving the original PK and all relationship rows (`dashboard_slices` junctions, role grants, owners, tags). Non-owners get `ImportFailedError`. Callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
 
 **Slug uniqueness footgun.** `dashboards.slug` is a database-level unique constraint. Because soft-delete keeps the row in place, the slug of a soft-deleted dashboard remains reserved until the dashboard is either restored or hard-deleted by an admin. Users attempting to create a new dashboard with the same slug will receive a unique-constraint error; the workaround is to restore the soft-deleted dashboard, change its slug, then create the new one (or wait until the eventual hard-delete endpoint ships).
 
