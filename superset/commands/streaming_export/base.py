@@ -223,13 +223,18 @@ class BaseStreamingCSVExportCommand(BaseCommand):
             # Merge database to prevent DetachedInstanceError
             merged_database = session.merge(database)
 
+            # Apply db-engine-spec / config SQL transforms (e.g. strip trailing
+            # semicolons that Trino rejects) so the streaming path matches what
+            # SQL Lab and chart-data already do. See #40465.
+            mutated_sql = merged_database.mutate_sql_based_on_config(sql)
+
             with merged_database.get_sqla_engine(
                 catalog=catalog, schema=schema
             ) as engine:
                 with engine.connect() as connection:
                     result_proxy = connection.execution_options(
                         stream_results=True
-                    ).execute(text(sql))
+                    ).execute(text(mutated_sql))
 
                     columns = list(result_proxy.keys())
 
