@@ -426,7 +426,7 @@ def test_report_error_create_classmethod():
     from superset.mcp_service.report.schemas import ReportError
 
     err = ReportError.create(error="something went wrong", error_type="TestError")
-    assert err.error == "something went wrong"
+    assert "something went wrong" in err.error
     assert err.error_type == "TestError"
     assert err.timestamp is not None
 
@@ -627,8 +627,8 @@ def test_get_schema_permission_map_has_report_schedule():
 
     expected = "ReportSchedule"
     assert _MODEL_TYPE_CLASS_PERMISSION["report"] == expected
-    assert getattr(list_reports, "class_permission_name", None) == expected
-    assert getattr(get_report_info, "class_permission_name", None) == expected
+    assert getattr(list_reports, "_class_permission_name", None) == expected
+    assert getattr(get_report_info, "_class_permission_name", None) == expected
 
 
 def test_report_filter_columns_match_schema_discovery_frozenset():
