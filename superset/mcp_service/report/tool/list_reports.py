@@ -31,8 +31,6 @@ if TYPE_CHECKING:
 from superset.daos.base import ColumnOperator
 from superset.extensions import event_logger
 from superset.mcp_service.common.schema_discovery import (
-    get_all_column_names,
-    get_report_columns,
     REPORT_DEFAULT_COLUMNS,
     REPORT_SEARCH_COLUMNS,
     REPORT_SORTABLE_COLUMNS,
@@ -161,7 +159,7 @@ async def list_reports(
             search_columns=REPORT_SEARCH_COLUMNS,
             list_field_name="reports",
             output_list_schema=ReportList,
-            all_columns=get_all_column_names(get_report_columns()),
+            all_columns=list(ReportInfo.model_fields.keys()),
             sortable_columns=REPORT_SORTABLE_COLUMNS,
             logger=logger,
         )
