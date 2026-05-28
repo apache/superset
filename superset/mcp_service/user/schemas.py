@@ -382,3 +382,72 @@ class CreateUserResponse(BaseModel):
         None,
         description="Error message if creation failed, otherwise null.",
     )
+
+
+class UpdateUserRequest(BaseModel):
+    """Request schema for update_user."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: int = Field(
+        ...,
+        description="ID of the user to update.",
+    )
+    first_name: str | None = Field(
+        None,
+        min_length=1,
+        max_length=64,
+        description="New first name. Omit to leave unchanged.",
+    )
+    last_name: str | None = Field(
+        None,
+        min_length=1,
+        max_length=64,
+        description="New last name. Omit to leave unchanged.",
+    )
+    email: EmailStr | None = Field(
+        None,
+        description="New email address. Omit to leave unchanged.",
+    )
+    password: str | None = Field(
+        None,
+        min_length=1,
+        description=(
+            "New plain-text password; will be hashed before storage. "
+            "Omit to leave unchanged."
+        ),
+    )
+    role_ids: list[int] | None = Field(
+        None,
+        min_length=1,
+        description=(
+            "New list of role IDs to assign to the user. "
+            "Replaces all existing roles. At least one role is required if provided. "
+            "Omit to leave roles unchanged. "
+            "Role IDs are available from the Superset REST API: "
+            "GET /api/v1/security/roles/"
+        ),
+    )
+    active: bool | None = Field(
+        None,
+        description=(
+            "Set to true to activate or false to deactivate the account. "
+            "Omit to leave unchanged."
+        ),
+    )
+
+
+class UpdateUserResponse(BaseModel):
+    """Response schema for update_user — exposes only non-sensitive fields."""
+
+    id: int | None = Field(
+        None,
+        description="ID of the updated user. None if update failed.",
+    )
+    username: str | None = Field(None, description="Username of the updated user.")
+    first_name: str | None = Field(None, description="First name of the updated user.")
+    last_name: str | None = Field(None, description="Last name of the updated user.")
+    error: str | None = Field(
+        None,
+        description="Error message if update failed, otherwise null.",
+    )

@@ -18,9 +18,11 @@
 from .create_user import create_user
 from .get_user_info import get_user_info
 from .list_users import list_users
+from .update_user import update_user
 
 __all__ = [
     "create_user",
+    "update_user",
     "list_users",
     "get_user_info",
 ]

@@ -752,6 +752,7 @@ from superset.mcp_service.user.tool import (  # noqa: F401, E402
     create_user,
     get_user_info,
     list_users,
+    update_user,
 )
 
 
