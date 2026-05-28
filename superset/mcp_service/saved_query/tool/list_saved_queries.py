@@ -30,7 +30,6 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.extensions import event_logger
 from superset.mcp_service.mcp_core import ModelListCore
 from superset.mcp_service.saved_query.schemas import (
-    ALL_SAVED_QUERY_COLUMNS,
     DEFAULT_SAVED_QUERY_COLUMNS,
     ListSavedQueriesRequest,
     SavedQueryError,
@@ -108,7 +107,7 @@ async def list_saved_queries(
             search_columns=["label", "description", "sql"],
             list_field_name="saved_queries",
             output_list_schema=SavedQueryList,
-            all_columns=ALL_SAVED_QUERY_COLUMNS,
+            all_columns=list(SavedQueryInfo.model_fields.keys()),
             sortable_columns=SORTABLE_SAVED_QUERY_COLUMNS,
             logger=logger,
         )

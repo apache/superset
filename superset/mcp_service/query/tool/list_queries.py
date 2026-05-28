@@ -30,7 +30,6 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.extensions import event_logger
 from superset.mcp_service.mcp_core import ModelListCore
 from superset.mcp_service.query.schemas import (
-    ALL_QUERY_COLUMNS,
     DEFAULT_QUERY_COLUMNS,
     ListQueriesRequest,
     QueryError,
@@ -108,7 +107,7 @@ async def list_queries(
             search_columns=["tab_name", "sql"],
             list_field_name="queries",
             output_list_schema=QueryList,
-            all_columns=ALL_QUERY_COLUMNS,
+            all_columns=list(QueryInfo.model_fields.keys()),
             sortable_columns=SORTABLE_QUERY_COLUMNS,
             logger=logger,
         )
