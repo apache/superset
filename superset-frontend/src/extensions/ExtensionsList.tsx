@@ -218,7 +218,7 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
             <>
               {isChatbot && (
                 <Tooltip
-                  id="set-chatbot-tooltip"
+                  id={`set-chatbot-tooltip-${original.id}`}
                   title={
                     isDefault
                       ? t('Clear default chatbot')
@@ -229,8 +229,14 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
                   <span
                     role="button"
                     tabIndex={0}
+                    data-test="set-default-chatbot"
                     className="action-button"
                     onClick={() => handleSetDefaultChatbot(original)}
+                    onKeyDown={(e: React.KeyboardEvent) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        handleSetDefaultChatbot(original);
+                      }
+                    }}
                   >
                     {isDefault ? (
                       <Icons.StarFilled iconSize="l" />
@@ -252,15 +258,21 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
               >
                 {(confirmDelete: () => void) => (
                   <Tooltip
-                    id="delete-extension-tooltip"
+                    id={`delete-extension-tooltip-${original.id}`}
                     title={t('Delete')}
                     placement="bottom"
                   >
                     <span
                       role="button"
                       tabIndex={0}
+                      data-test="delete-extension"
                       className="action-button"
                       onClick={confirmDelete}
+                      onKeyDown={(e: React.KeyboardEvent) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          confirmDelete();
+                        }
+                      }}
                     >
                       <Icons.DeleteOutlined iconSize="l" />
                     </span>
@@ -272,7 +284,7 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         },
       },
     ],
-    [loading, activeChatbotId, chatbotExtensionIds, handleSetDefaultChatbot],
+    [activeChatbotId, chatbotExtensionIds, handleSetDefaultChatbot],
   );
 
   const menuData: SubMenuProps = {
