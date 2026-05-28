@@ -681,6 +681,11 @@ REPORT_SORTABLE_COLUMNS = [
     "created_on",
 ]
 REPORT_SEARCH_COLUMNS = ["name", "description"]
+# Allowlist of filter columns exposed via get_schema and accepted by ReportFilter.
+# Must stay in sync with the Literal in ReportFilter.col (schemas.py).
+REPORT_FILTER_COLUMNS: frozenset[str] = frozenset(
+    {"name", "type", "active", "dashboard_id", "chart_id", "created_by_fk"}
+)
 REPORT_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "changed_on_humanized": ColumnMetadata(
         name="changed_on_humanized",

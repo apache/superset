@@ -59,6 +59,7 @@ from superset.mcp_service.common.schema_discovery import (
     GetSchemaResponse,
     ModelSchemaInfo,
     REPORT_DEFAULT_COLUMNS,
+    REPORT_FILTER_COLUMNS,
     REPORT_SEARCH_COLUMNS,
     REPORT_SORTABLE_COLUMNS,
     THEME_DEFAULT_COLUMNS,
@@ -213,6 +214,7 @@ def _get_report_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
         default_sort="changed_on",
         default_sort_direction="desc",
         exclude_filter_columns=set(SELF_REFERENCING_FILTER_COLUMNS),
+        include_filter_columns=REPORT_FILTER_COLUMNS,
         logger=logger,
     )
 
