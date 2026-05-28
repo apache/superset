@@ -413,25 +413,28 @@ def get_default_spinner_svg() -> str | None:
     Returns:
         str | None: SVG content as string, or None if file not found
     """
-    try:
-        # Path to frontend source SVG file (used by both frontend and backend)
-        svg_path = os.path.join(
-            os.path.dirname(__file__),
-            "..",
-            "..",
-            "superset-frontend",
-            "packages",
-            "superset-ui-core",
-            "src",
-            "components",
-            "assets",
-            "images",
-            "loading.svg",
-        )
+    # Path to frontend source SVG file (used by both frontend and backend)
+    svg_path = os.path.join(
+        os.path.dirname(__file__),
+        "..",
+        "..",
+        "superset-frontend",
+        "packages",
+        "superset-ui-core",
+        "src",
+        "components",
+        "assets",
+        "images",
+        "loading.svg",
+    )
 
+    if not os.path.exists(svg_path):
+        return None
+
+    try:
         with open(svg_path, "r", encoding="utf-8") as f:
             return f.read().strip()
-    except (FileNotFoundError, OSError, UnicodeDecodeError) as e:
+    except (OSError, UnicodeDecodeError) as e:
         logger.warning("Could not load default spinner SVG: %s", e)
         return None
 

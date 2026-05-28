@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, mock_open, patch
 
 from superset.themes.types import ThemeMode
 from superset.views.base import (
@@ -832,3 +832,53 @@ class TestBrandAppNameFallback:
 
         # Should handle gracefully and use default title
         assert result["default_title"] == "Superset"
+
+
+class TestGetDefaultSpinnerSvg:
+    """Test get_default_spinner_svg function"""
+
+    @patch("superset.views.base.os.path.exists")
+    @patch("superset.views.base.logger")
+    def test_get_default_spinner_svg_file_missing(self, mock_logger, mock_exists):
+        """Test that missing spinner asset returns None silently without warning log"""
+        from superset.views.base import get_default_spinner_svg
+
+        mock_exists.return_value = False
+
+        result = get_default_spinner_svg()
+
+        assert result is None
+        # Verify that no warning was logged
+        mock_logger.warning.assert_not_called()
+
+    @patch("superset.views.base.os.path.exists")
+    @patch("superset.views.base.logger")
+    @patch("builtins.open")
+    def test_get_default_spinner_svg_other_error(
+        self, mock_open, mock_logger, mock_exists
+    ):
+        """Test that other unexpected errors during loading log a warning"""
+        from superset.views.base import get_default_spinner_svg
+
+        mock_exists.return_value = True
+        mock_open.side_effect = PermissionError("Permission denied")
+
+        result = get_default_spinner_svg()
+
+        assert result is None
+        # Verify that a warning was logged
+        mock_logger.warning.assert_called_once()
+        warning_msg = mock_logger.warning.call_args[0][0]
+        assert "Could not load default spinner SVG" in warning_msg
+
+    @patch("superset.views.base.os.path.exists")
+    @patch("builtins.open", new_callable=mock_open, read_data="<svg>spinner</svg>")
+    def test_get_default_spinner_svg_success(self, mock_open, mock_exists):
+        """Test that successfully reading SVG returns the content"""
+        from superset.views.base import get_default_spinner_svg
+
+        mock_exists.return_value = True
+
+        result = get_default_spinner_svg()
+
+        assert result == "<svg>spinner</svg>"
