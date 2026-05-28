@@ -193,3 +193,148 @@ class CreateReportResponse(BaseModel):
         None,
         description="Error message if creation failed, otherwise null.",
     )
+
+
+class UpdateReportRequest(BaseModel):
+    """Request schema for update_report. All fields except id are optional."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: int = Field(
+        ...,
+        description=(
+            "ID of the report schedule to update. "
+            "Use list_reports or the id returned by create_report."
+        ),
+    )
+    name: str | None = Field(
+        None,
+        max_length=150,
+        description="New name for the schedule. Omit to keep the current name.",
+    )
+    type: str | None = Field(
+        None,
+        description=(
+            "Change the schedule type: 'Report' or 'Alert'. "
+            "Omit to keep the current type."
+        ),
+    )
+    crontab: str | None = Field(
+        None,
+        description=(
+            "New cron expression for the schedule "
+            "(e.g., '0 9 * * 1' for every Monday at 9 AM). "
+            "Omit to keep the current schedule."
+        ),
+    )
+    description: str | None = Field(
+        None,
+        description="New description. Omit to keep the current description.",
+    )
+    active: bool | None = Field(
+        None,
+        description=(
+            "Set to True to enable or False to disable the schedule. "
+            "Omit to keep the current state."
+        ),
+    )
+    timezone: str | None = Field(
+        None,
+        description=(
+            "New timezone for interpreting the cron schedule "
+            "(e.g., 'America/New_York'). Omit to keep the current timezone."
+        ),
+    )
+    recipients: list[RecipientConfig] | None = Field(
+        None,
+        description=(
+            "Replacement list of notification recipients. "
+            "Replaces the entire recipient list when provided. "
+            "Omit to keep the current recipients."
+        ),
+    )
+    dashboard_id: int | None = Field(
+        None,
+        description=(
+            "ID of the dashboard to attach this schedule to. "
+            "Omit to keep the current dashboard association."
+        ),
+    )
+    chart_id: int | None = Field(
+        None,
+        description=(
+            "ID of the chart to attach this schedule to. "
+            "Omit to keep the current chart association."
+        ),
+    )
+    database_id: int | None = Field(
+        None,
+        description=(
+            "ID of the database for the alert condition. "
+            "Required when changing type to 'Alert'."
+        ),
+    )
+    sql: str | None = Field(
+        None,
+        description=(
+            "New SQL query for the alert condition. Omit to keep the current query."
+        ),
+    )
+
+    @field_validator("type")
+    @classmethod
+    def type_must_be_valid(cls, v: str | None) -> str | None:
+        if v is not None and v not in (valid_types := {"Report", "Alert"}):
+            raise ValueError(
+                f"Invalid type {v!r}. Must be one of: {sorted(valid_types)}"
+            )
+        return v
+
+    @field_validator("name")
+    @classmethod
+    def name_must_not_be_empty(cls, v: str | None) -> str | None:
+        if v is not None and not v.strip():
+            raise ValueError("name must not be empty")
+        return v.strip() if v is not None else v
+
+    @field_validator("crontab")
+    @classmethod
+    def crontab_must_not_be_empty(cls, v: str | None) -> str | None:
+        if v is not None and not v.strip():
+            raise ValueError("crontab must not be empty")
+        return v.strip() if v is not None else v
+
+
+class UpdateReportResponse(BaseModel):
+    """Response schema for update_report."""
+
+    id: int | None = Field(
+        None,
+        description="ID of the updated report schedule. None if update failed.",
+    )
+    name: str | None = Field(
+        None,
+        description="Name of the schedule after the update.",
+    )
+    type: str | None = Field(
+        None,
+        description="Type of the schedule ('Report' or 'Alert').",
+    )
+    crontab: str | None = Field(
+        None,
+        description="Cron expression for the schedule.",
+    )
+    active: bool | None = Field(
+        None,
+        description="Whether the schedule is active.",
+    )
+    url: str | None = Field(
+        None,
+        description=(
+            "URL to manage the report schedule in Superset. None if update failed."
+        ),
+    )
+    error: str | None = Field(
+        None,
+        description="Error message if update failed, otherwise null.",
+    )

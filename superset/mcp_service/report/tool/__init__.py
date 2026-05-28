@@ -16,5 +16,6 @@
 # under the License.
 
 from .create_report import create_report
+from .update_report import update_report
 
-__all__ = ["create_report"]
+__all__ = ["create_report", "update_report"]
