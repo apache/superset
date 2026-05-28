@@ -3000,11 +3000,22 @@ class TestDatasetApi(SupersetTestCase):
         examples_db = get_example_database()
         table_name = "test_get_or_create_schema_disambiguation"
 
+        # ``fetch_metadata=False`` so the helper doesn't try to introspect
+        # ``schema_a`` / ``schema_b`` against the real example DB — those
+        # schemas only need to exist as metadata rows for this test.
         ds_schema_a = self.insert_dataset(
-            table_name, [admin_id], examples_db, schema="schema_a"
+            table_name,
+            [admin_id],
+            examples_db,
+            schema="schema_a",
+            fetch_metadata=False,
         )
         ds_schema_b = self.insert_dataset(
-            table_name, [admin_id], examples_db, schema="schema_b"
+            table_name,
+            [admin_id],
+            examples_db,
+            schema="schema_b",
+            fetch_metadata=False,
         )
 
         # Case 1: ask for an existing schema — must return that exact dataset,
