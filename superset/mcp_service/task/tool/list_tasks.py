@@ -60,7 +60,7 @@ async def list_tasks(
     they are subscribed to (task creators are auto-subscribed). Admins see all
     tasks.
 
-    Sortable columns for order_column: id, changed_on, created_on, status
+    Sortable columns for order_column: task_type, scope, status, created_on, changed_on, started_at, ended_at
     Filter columns: task_type, status, scope
     Search columns (via search=): task_type, task_key, task_name, status, scope
 
@@ -108,7 +108,7 @@ async def list_tasks(
                 filters=request.filters,
                 search=request.search,
                 select_columns=request.select_columns,
-                order_column=request.order_column,
+                order_column=request.order_column or "created_on",
                 order_direction=request.order_direction,
                 page=max(request.page - 1, 0),
                 page_size=request.page_size,

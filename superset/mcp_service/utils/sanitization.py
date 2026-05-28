@@ -118,14 +118,16 @@ def sanitize_for_llm_context(
     *,
     field_path: tuple[str, ...] = (),
     excluded_field_names: frozenset[str] | None = None,
-    wrap_dict_keys: bool = False,
 ) -> Any:
     """
     Recursively wrap user-controlled strings before placing them in LLM context.
 
     Strings are wrapped in explicit untrusted-content delimiters unless the
     current field name is part of the shared operational exclusion policy.
-    Container shapes and non-string values are preserved.
+    Container shapes and non-string values are preserved.  String dict keys
+    are only delimiter-escaped (not wrapped) to keep the original structure
+    navigable; any UNTRUSTED-CONTENT tokens embedded in a key are replaced
+    with their escaped forms so they cannot prematurely close a value wrapper.
 
     Args:
         value: The value to sanitize.
@@ -133,13 +135,6 @@ def sanitize_for_llm_context(
         excluded_field_names: Field names whose values are only delimiter-escaped
             rather than wrapped.  Defaults to LLM_CONTEXT_EXCLUDED_FIELD_NAMES.
             Pass ``frozenset()`` to wrap every string leaf without exclusions.
-        wrap_dict_keys: When ``True``, string dict keys are also wrapped in
-            UNTRUSTED-CONTENT delimiters instead of being only
-            delimiter-escaped.  Use this when the entire payload is
-            user-controlled and key names cannot be trusted (e.g. log JSON
-            blobs where a key like ``"ignore previous instructions"`` could
-            inject prompt text).  Defaults to ``False`` to preserve backward
-            compatibility.
     """
     excluded_names = (
         LLM_CONTEXT_EXCLUDED_FIELD_NAMES
@@ -149,11 +144,6 @@ def sanitize_for_llm_context(
     normalized_exclusions = frozenset(
         _normalize_field_name(field_name) for field_name in excluded_names
     )
-
-    def _sanitize_key(key: Any) -> Any:
-        if wrap_dict_keys and isinstance(key, str):
-            return _wrap_llm_context_string(key)
-        return _escape_llm_context_dict_key(key)
 
     def _sanitize(current_value: Any, current_path: tuple[str, ...]) -> Any:
         current_field_name = current_path[-1] if current_path else ""
@@ -167,7 +157,7 @@ def sanitize_for_llm_context(
 
         if isinstance(current_value, dict):
             return {
-                _sanitize_key(key): _sanitize(
+                _escape_llm_context_dict_key(key): _sanitize(
                     nested_value,
                     (*current_path, str(key)),
                 )

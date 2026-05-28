@@ -52,7 +52,15 @@ ALL_TASK_COLUMNS: list[str] = [
     "changed_on",
     "created_on",
 ]
-TASK_SORTABLE_COLUMNS: list[str] = ["id", "changed_on", "created_on", "status"]
+TASK_SORTABLE_COLUMNS: list[str] = [
+    "task_type",
+    "scope",
+    "status",
+    "created_on",
+    "changed_on",
+    "started_at",
+    "ended_at",
+]
 
 
 class TaskColumnFilter(ColumnOperator):
@@ -156,7 +164,7 @@ class ListTasksRequest(BaseModel):
     ]
     order_column: Annotated[
         str | None,
-        Field(default=None, description="Column to sort by (default: changed_on)"),
+        Field(default=None, description="Column to sort by (default: created_on)"),
     ]
     order_direction: Annotated[
         Literal["asc", "desc"],

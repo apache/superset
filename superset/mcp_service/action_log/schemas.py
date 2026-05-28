@@ -258,21 +258,18 @@ class GetActionLogInfoRequest(BaseModel):
 
 
 def _sanitize_log_json(raw: Any) -> Any:
-    """Parse the stored log JSON string and sanitize string leaves and keys.
+    """Parse the stored log JSON string and sanitize string leaves.
 
     Preserves the JSON shape so callers can inspect individual fields; wraps
-    every string leaf AND every string dict key in UNTRUSTED-CONTENT delimiters
-    so the payload cannot inject instructions into the LLM context even via
-    crafted field names (e.g. ``{"ignore previous instructions": "..."}``)
+    every string leaf in UNTRUSTED-CONTENT delimiters so the payload cannot
+    inject instructions into the LLM context. Dict keys are delimiter-escaped
+    (not wrapped) to keep the structure navigable.
     Falls back to sanitizing the raw string when it is not valid JSON.
 
     Passes excluded_field_names=frozenset() so that no field name is exempted
     from wrapping — the entire blob is user-controlled and must be treated as
     untrusted, including fields like 'url', 'schema', and 'uuid' that the
     default exclusion list would otherwise only escape rather than wrap.
-
-    Passes wrap_dict_keys=True so that string keys are also wrapped instead of
-    only having their delimiter tokens escaped.
     """
     if raw is None:
         return None
@@ -289,7 +286,6 @@ def _sanitize_log_json(raw: Any) -> Any:
         parsed,
         field_path=("json",),
         excluded_field_names=frozenset(),
-        wrap_dict_keys=True,
     )
 
 
