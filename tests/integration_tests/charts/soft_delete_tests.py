@@ -22,7 +22,7 @@ from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models.slice import Slice
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
 
@@ -373,4 +373,34 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
 
         # Cleanup
         _hard_delete_dashboard_for_charts_test(dashboard_id)
+        _hard_delete_chart(chart_id)
+
+    def test_restore_chart_by_non_admin_owner(self):
+        """Non-admin owners can restore their own soft-deleted charts.
+
+        The unit-level restore command tests mock security; this
+        integration test exercises the FAB security wiring end-to-end
+        so a future change that breaks the owner check on a non-admin
+        path can't slip through.
+        """
+        alpha = self.get_user(ALPHA_USERNAME)
+        alpha_id = alpha.id
+
+        chart = self.insert_chart("alpha_owned_chart", [alpha_id], 1)
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+
+        self.login(ALPHA_USERNAME)
+        rv = self.client.delete(f"/api/v1/chart/{chart_id}")
+        assert rv.status_code == 200
+
+        rv = self.client.post(f"/api/v1/chart/{chart_uuid}/restore")
+        assert rv.status_code == 200, rv.data
+
+        db.session.expire_all()
+        restored = db.session.query(Slice).filter(Slice.id == chart_id).one_or_none()
+        assert restored is not None
+        assert restored.deleted_at is None
+
+        # Cleanup
         _hard_delete_chart(chart_id)
