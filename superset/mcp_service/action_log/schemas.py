@@ -35,6 +35,7 @@ from pydantic import (
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import PaginationInfo
+from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
@@ -104,7 +105,9 @@ class ActionLogInfo(BaseModel):
     dttm: str | datetime | None = Field(None, description="Timestamp of the action")
     dashboard_id: int | None = Field(None, description="Associated dashboard ID")
     slice_id: int | None = Field(None, description="Associated chart/slice ID")
-    json: str | None = Field(None, description="JSON payload of the action")
+    json: Any = Field(
+        None, description="JSON payload of the action (user-controlled, sanitized)"
+    )
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -248,6 +251,28 @@ class GetActionLogInfoRequest(BaseModel):
     ]
 
 
+def _sanitize_log_json(raw: Any) -> Any:
+    """Parse the stored log JSON string and sanitize string leaves.
+
+    Preserves the JSON shape so callers can inspect individual fields; wraps
+    every string leaf in UNTRUSTED-CONTENT delimiters so the payload cannot
+    inject instructions into the LLM context.  Falls back to sanitizing the
+    raw string when it is not valid JSON.
+    """
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        try:
+            from superset.utils import json as json_utils  # noqa: PLC0415
+
+            parsed = json_utils.loads(raw)
+        except (ValueError, TypeError):
+            parsed = raw
+    else:
+        parsed = raw
+    return sanitize_for_llm_context(parsed, field_path=("json",))
+
+
 def serialize_action_log_object(log: Any) -> ActionLogInfo | None:
     if not log:
         return None
@@ -263,5 +288,5 @@ def serialize_action_log_object(log: Any) -> ActionLogInfo | None:
         dttm=dttm,
         dashboard_id=getattr(log, "dashboard_id", None),
         slice_id=getattr(log, "slice_id", None),
-        json=getattr(log, "json", None),
+        json=_sanitize_log_json(getattr(log, "json", None)),
     )

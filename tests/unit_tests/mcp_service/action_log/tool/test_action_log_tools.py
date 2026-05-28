@@ -222,3 +222,56 @@ async def test_get_action_log_info_not_found(mock_find, mcp_server):
 
     data = json.loads(result.content[0].text)
     assert data["error_type"] == "not_found"
+
+
+@patch("superset.daos.log.LogDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_action_log_info_json_payload_sanitized(mock_find, mcp_server):
+    """The json field is sanitized: string leaves are wrapped in UNTRUSTED-CONTENT."""
+    log = create_mock_log(
+        log_id=1,
+        json_payload=(
+            '{"event_name": "explore_slice",'
+            ' "filters": [{"col": "name", "val": "inject me"}]}'
+        ),
+    )
+    mock_find.return_value = log
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_action_log_info", {"request": {"identifier": 1}}
+        )
+
+    data = json.loads(result.content[0].text)
+    payload = data.get("json")
+    # Parsed JSON shape is preserved (dict, not raw string)
+    assert isinstance(payload, dict)
+    # String leaves are wrapped in UNTRUSTED-CONTENT delimiters
+    event_name = payload.get("event_name", "")
+    assert "<UNTRUSTED-CONTENT>" in event_name
+    assert "explore_slice" in event_name
+    assert "</UNTRUSTED-CONTENT>" in event_name
+
+
+@patch("superset.daos.log.LogDAO.list")
+@pytest.mark.asyncio
+async def test_list_action_logs_json_payload_sanitized(mock_list, mcp_server):
+    """list_action_logs also sanitizes the json field in each entry."""
+    log = create_mock_log(
+        log_id=5,
+        json_payload='{"event_name": "dashboard_load", "user_input": "inject me"}',
+    )
+    mock_list.return_value = ([log], 1)
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "list_action_logs",
+            {"request": {"select_columns": ["id", "action", "json"]}},
+        )
+
+    data = json.loads(result.content[0].text)
+    payload = data["action_logs"][0].get("json")
+    assert isinstance(payload, dict)
+    event_name_value = payload.get("event_name", "")
+    assert "<UNTRUSTED-CONTENT>" in event_name_value
+    assert "dashboard_load" in event_name_value
