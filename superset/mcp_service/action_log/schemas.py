@@ -67,9 +67,9 @@ class ActionLogFilter(ColumnOperator):
         description="Column to filter on.",
     )
     opr: ColumnOperatorEnum = Field(..., description="Operator to use.")
-    value: str | int | float | bool | datetime | list[str | int | float | bool] = Field(
-        ..., description="Value to filter by"
-    )
+    value: (
+        str | int | float | bool | datetime | list[str | int | float | bool | datetime]
+    ) = Field(..., description="Value to filter by")
 
     @model_validator(mode="after")
     def normalize_dttm_value(self) -> "ActionLogFilter":
@@ -78,21 +78,27 @@ class ActionLogFilter(ColumnOperator):
         Pydantic's left-to-right union matching keeps ISO strings as str when
         str appears before datetime in the union.  This validator parses them so
         the DAO always receives a typed datetime for TIMESTAMP column comparisons.
+        Both scalar and list values are normalized so dttm IN (...) is also safe.
 
         Replaces a trailing 'Z' with '+00:00' before parsing because
         datetime.fromisoformat does not accept the 'Z' suffix on Python < 3.11.
         """
-        if self.col == "dttm" and isinstance(self.value, str):
+
+        def _parse(val: str) -> datetime | str:
             try:
-                val = self.value
-                if val.endswith("Z"):
-                    val = val[:-1] + "+00:00"
-                parsed = datetime.fromisoformat(val)
-                if parsed.tzinfo is None:
-                    parsed = parsed.replace(tzinfo=timezone.utc)
-                self.value = parsed
+                s = val[:-1] + "+00:00" if val.endswith("Z") else val
+                parsed = datetime.fromisoformat(s)
+                return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
             except ValueError:
-                pass
+                return val
+
+        if self.col == "dttm":
+            if isinstance(self.value, str):
+                self.value = _parse(self.value)
+            elif isinstance(self.value, list):
+                self.value = [
+                    _parse(v) if isinstance(v, str) else v for v in self.value
+                ]
         return self
 
 
@@ -258,6 +264,11 @@ def _sanitize_log_json(raw: Any) -> Any:
     every string leaf in UNTRUSTED-CONTENT delimiters so the payload cannot
     inject instructions into the LLM context.  Falls back to sanitizing the
     raw string when it is not valid JSON.
+
+    Passes excluded_field_names=frozenset() so that no field name is exempted
+    from wrapping — the entire blob is user-controlled and must be treated as
+    untrusted, including fields like 'url', 'schema', and 'uuid' that the
+    default exclusion list would otherwise only escape rather than wrap.
     """
     if raw is None:
         return None
@@ -270,7 +281,9 @@ def _sanitize_log_json(raw: Any) -> Any:
             parsed = raw
     else:
         parsed = raw
-    return sanitize_for_llm_context(parsed, field_path=("json",))
+    return sanitize_for_llm_context(
+        parsed, field_path=("json",), excluded_field_names=frozenset()
+    )
 
 
 def serialize_action_log_object(log: Any) -> ActionLogInfo | None:
