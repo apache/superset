@@ -31,9 +31,9 @@ on:
 permissions:
   contents: read
 
-# Serialize with itself AND with the release publisher — both push to the
-# same Docker Hub tags, so a race here could end with stale layers
-# winning.
+# Serialize with itself and with the release publisher (tag-release.yml) —
+# both push to the same Docker Hub tags, so a race could end with stale
+# layers winning. Both workflows must declare this group for the lock to work.
 concurrency:
   group: docker-publish-latest-release
   cancel-in-progress: false
