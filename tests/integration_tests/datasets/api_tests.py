@@ -2995,6 +2995,14 @@ class TestDatasetApi(SupersetTestCase):
         - A single existing dataset in schema A is wrongly returned when the
           caller asks for the same ``table_name`` in schema B (false positive).
         """
+        # SQLite's test schema carries a legacy single-column unique constraint
+        # on ``tables.table_name`` that contradicts the modern composite
+        # ``(database_id, catalog, schema, table_name)`` key, so inserting two
+        # datasets that share a ``table_name`` fails at INSERT regardless of
+        # schema. Postgres and MySQL behave correctly.
+        if get_main_database().backend == "sqlite":
+            return
+
         self.login(ADMIN_USERNAME)
         admin_id = self.get_user("admin").id
         examples_db = get_example_database()
