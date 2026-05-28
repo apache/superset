@@ -42,6 +42,8 @@ def _make_mock_dataset(
     dataset.table_name = table_name
     dataset.schema = schema
     dataset.description = None
+    dataset.certified_by = None
+    dataset.certification_details = None
     dataset.changed_by_name = "admin"
     dataset.changed_on = None
     dataset.changed_on_humanized = None
@@ -51,6 +53,7 @@ def _make_mock_dataset(
     dataset.tags = []
     dataset.owners = []
     dataset.is_virtual = False
+    dataset.is_favorite = None
     dataset.database_id = 1
     dataset.schema_perm = f"[{database_name}].[{schema}]"
     dataset.url = f"/tablemodelview/edit/{dataset_id}"

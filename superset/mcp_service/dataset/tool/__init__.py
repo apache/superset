@@ -24,7 +24,7 @@ from .query_dataset import query_dataset
 __all__ = [
     "create_dataset",
     "create_virtual_dataset",
-    "list_datasets",
     "get_dataset_info",
+    "list_datasets",
     "query_dataset",
 ]
