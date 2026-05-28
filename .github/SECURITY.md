@@ -89,7 +89,7 @@ If yes, it is in scope. If no, it is out of scope. The lists below apply that te
 - Deployment or operator decisions: the values of secrets and tokens, whether internal networks are reachable from the server, which database connectors or cache backends are enabled, which feature flags are set, where notifications are delivered, and which third-party plugins are loaded.
 - Code paths whose intended purpose is example data, demos, fixtures, local development, or documentation, rather than the production runtime.
 - How a downstream application (spreadsheet program, email client, browser handling user-downloaded files) interprets output Apache Superset produced for it.
-- Theoretical attack vectors without a demonstrable, reproducible exploit against a supported release.
+- Findings without a reproducible proof of concept against a supported release. The burden of demonstrating exploitability rests with the reporter; findings closed for lack of a proof of concept may be refiled if one is later produced.
 - Brute force, rate limiting, denial of service, or resource exhaustion that does not bypass a documented control.
 - Missing security headers, banner or version disclosure, user or object enumeration through error messages or timing, and similar low-impact information disclosure that does not enable a further concrete exploit.
 - Hardening suggestions that improve defense in depth but do not violate the security model.
