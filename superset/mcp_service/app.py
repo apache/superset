@@ -175,6 +175,7 @@ Dataset Management:
 
 Tag Management:
 - create_tag: Create a new custom tag and optionally apply it to charts, dashboards, datasets, or queries (requires write access)
+- update_tag: Rename a tag or update its description (requires write access)
 
 Chart Management:
 - list_charts: List charts with advanced filters (1-based pagination)
@@ -429,7 +430,8 @@ Input format:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
 - Write tools (generate_chart, generate_dashboard, update_chart, create_virtual_dataset,
-  save_sql_query, add_chart_to_existing_dashboard, update_chart_preview, create_tag)
+  save_sql_query, add_chart_to_existing_dashboard, update_chart_preview, create_tag,
+  update_tag)
   require write permissions. These tools are only listed for users who have the
   necessary access.
   If a write tool does not appear in the tool list, the current user lacks write access.
@@ -761,6 +763,7 @@ from superset.mcp_service.tag.tool import (  # noqa: F401, E402
     create_tag,
     get_tag_info,
     list_tags,
+    update_tag,
 )
 from superset.mcp_service.task.tool import (  # noqa: F401, E402
     get_task_info,

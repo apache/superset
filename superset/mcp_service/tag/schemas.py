@@ -316,3 +316,47 @@ class CreateTagResponse(BaseModel):
         None,
         description="Error message if creation failed, otherwise null.",
     )
+
+
+class UpdateTagRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: int = Field(..., description="ID of the tag to update.")
+    name: str | None = Field(
+        None,
+        min_length=1,
+        max_length=250,
+        description=(
+            "New name for the tag. Omit to keep the existing name. "
+            "Must be unique across all tags."
+        ),
+    )
+    description: str | None = Field(
+        None,
+        description=(
+            "New description for the tag. Omit to keep the existing description."
+        ),
+    )
+
+    @field_validator("name")
+    @classmethod
+    def name_must_not_be_blank(cls, v: str | None) -> str | None:
+        if v is not None:
+            stripped = v.strip()
+            if not stripped:
+                raise ValueError("name must not be blank or whitespace-only")
+            return stripped
+        return v
+
+
+class UpdateTagResponse(BaseModel):
+    id: int | None = Field(
+        None,
+        description="ID of the updated tag. None if update failed.",
+    )
+    name: str | None = Field(None, description="Tag name after update.")
+    description: str | None = Field(None, description="Tag description after update.")
+    error: str | None = Field(
+        None,
+        description="Error message if update failed, otherwise null.",
+    )

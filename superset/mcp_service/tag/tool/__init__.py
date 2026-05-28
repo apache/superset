@@ -18,9 +18,11 @@
 from .create_tag import create_tag
 from .get_tag_info import get_tag_info
 from .list_tags import list_tags
+from .update_tag import update_tag
 
 __all__ = [
     "create_tag",
     "get_tag_info",
     "list_tags",
+    "update_tag",
 ]
