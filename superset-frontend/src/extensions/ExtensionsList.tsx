@@ -136,22 +136,25 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
       });
   };
 
-  const handleDelete = (extension: Extension) => {
-    const { publisher, name } = extension;
-    SupersetClient.delete({
-      endpoint: `/api/v1/extensions/${publisher}/${name}`,
-    }).then(
-      () => {
-        addSuccessToast(t('Deleted: %s', extension.name));
-        refreshData();
-      },
-      createErrorHandler(errMsg =>
-        addDangerToast(
-          t('There was an issue deleting %s: %s', extension.name, errMsg),
+  const handleDelete = useCallback(
+    (extension: Extension) => {
+      const { publisher, name } = extension;
+      SupersetClient.delete({
+        endpoint: `/api/v1/extensions/${publisher}/${name}`,
+      }).then(
+        () => {
+          addSuccessToast(t('Deleted: %s', extension.name));
+          refreshData();
+        },
+        createErrorHandler(errMsg =>
+          addDangerToast(
+            t('There was an issue deleting %s: %s', extension.name, errMsg),
+          ),
         ),
-      ),
-    );
-  };
+      );
+    },
+    [addDangerToast, addSuccessToast, refreshData],
+  );
 
   const handleSetDefaultChatbot = useCallback(
     (extension: Extension) => {
@@ -284,7 +287,7 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         },
       },
     ],
-    [activeChatbotId, chatbotExtensionIds, handleSetDefaultChatbot],
+    [activeChatbotId, chatbotExtensionIds, handleSetDefaultChatbot, handleDelete],
   );
 
   const menuData: SubMenuProps = {

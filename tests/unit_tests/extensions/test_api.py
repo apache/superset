@@ -234,6 +234,33 @@ class TestPostEndpoint:
         assert resp.status_code == 409
         assert "local extension" in resp.json["message"]
 
+    def test_hostile_manifest_id_rejected(
+        self, client: Any, full_api_access: None, mocker: Any, tmp_path: Path
+    ) -> None:
+        """A crafted manifest.id with path traversal must not escape EXTENSIONS_PATH."""
+        mocker.patch(
+            "superset.extensions.api.security_manager.is_admin", return_value=True
+        )
+        mocker.patch.dict(
+            "flask.current_app.config",
+            {"EXTENSIONS_PATH": str(tmp_path), "LOCAL_EXTENSIONS": []},
+        )
+        fake_ext = _make_fake_extension("../../tmp/evil")
+        mocker.patch(
+            "superset.extensions.api.get_bundle_files_from_zip", return_value=[]
+        )
+        mocker.patch(
+            "superset.extensions.api.get_loaded_extension", return_value=fake_ext
+        )
+        supx = _make_supx("../../tmp/evil")
+        resp = client.post(
+            "/api/v1/extensions/",
+            data={"bundle": (io.BytesIO(supx), "ext.supx")},
+            content_type="multipart/form-data",
+        )
+        assert resp.status_code == 400
+        assert "Invalid extension id" in resp.json["message"]
+
     def test_happy_path_returns_201(
         self, client: Any, full_api_access: None, mocker: Any, tmp_path: Path
     ) -> None:
