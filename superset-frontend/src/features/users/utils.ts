@@ -51,7 +51,7 @@ export const getUserDisplayLabel = (user: {
 }): string =>
   [user.first_name, user.last_name].filter(Boolean).join(' ') ||
   user.username ||
-  'N/A';
+  t('N/A');
 
 export const atLeastOneRoleOrGroup =
   (fieldToCheck: 'roles' | 'groups') =>
