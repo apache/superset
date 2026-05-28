@@ -231,13 +231,13 @@ The migration is transactional (all-or-nothing) and idempotent — it can be saf
 
 `DELETE /api/v1/chart/<id>` no longer hard-deletes the chart. The row is marked with a `deleted_at` timestamp and hidden from all list, detail, and lookup endpoints. Charts in this state are excluded from default queries and from relationship loads (e.g. `dashboard.slices`).
 
-**New endpoint** — `POST /api/v1/chart/<uuid>/restore` clears `deleted_at` and returns the chart to active state. Requires `can_write on Chart` and ownership of the row (or admin). Soft-deleted charts can also be listed via the new `chart_deleted_state` rison filter (`deleted` or `active`) by callers holding the same permission.
+**New endpoint** — `POST /api/v1/chart/<uuid>/restore` clears `deleted_at` and returns the chart to active state. Requires `can_write on Chart` and ownership of the row (or admin). Soft-deleted charts can also be surfaced in the list endpoint via the new `chart_deleted_state` rison filter: `include` returns both live and soft-deleted rows, `only` returns just the soft-deleted ones. Any other value is ignored.
 
-**Migration behavior:** existing role grants of `can_write on Chart` cover the new restore endpoint automatically; no role migration is required.
+**Permissions migration:** existing role grants of `can_write on Chart` cover the new restore endpoint automatically; no role migration is required.
 
-**Importer behavior change:** importing a chart YAML whose UUID matches an existing **soft-deleted** chart now:
-- With `overwrite=True`, restores the row in place (clears `deleted_at`, updates contents). Out-of-archive references (`dashboard_slices` junctions, `report.chart_id`) are preserved.
-- With `overwrite=False`, raises `ImportFailedError` rather than silently returning the soft-deleted row. Restore the chart explicitly or re-run the import with `overwrite=True`.
+**Schema migration:** the migration adds a nullable `deleted_at` column and an index on it (`ix_slices_deleted_at`) to the `slices` table. The column add is instant; the index build runs inline (no `CONCURRENTLY`) and may briefly block reads on the `slices` table for the duration of the build on large Postgres deployments. MySQL InnoDB builds the index online (no blocking).
+
+**Importer behavior:** importing a chart YAML whose UUID matches an existing **soft-deleted** chart is treated as an implicit restore-with-update. The owner (or an admin) gets the chart back in place — `deleted_at` is cleared and the contents from the upload are applied — preserving the original PK and all out-of-archive references (`dashboard_slices` junctions, `report.chart_id`, tag rows). Non-owners get `ImportFailedError`. Callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
 
 ### Granular Export Controls
 
