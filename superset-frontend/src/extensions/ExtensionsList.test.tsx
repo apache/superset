@@ -63,10 +63,14 @@ jest.mock('src/features/home/SubMenu', () => ({
 // withToasts is the outermost HOC — pass through so callers can inject toast fns.
 jest.mock('src/components/MessageToasts/withToasts', () => (C: any) => C);
 
+jest.mock('src/views/contributions', () => ({
+  CHATBOT_LOCATION: 'superset.chatbot',
+}));
 
 jest.mock('src/core/views', () => ({
   getRegisteredViewIds: jest.fn(() => []),
-  subscribeToLocation: jest.fn(() => () => undefined),
+  subscribeToRegistry: jest.fn(() => () => undefined),
+  getRegistryVersion: jest.fn(() => 0),
 }));
 
 jest.mock('src/core/extensions', () => ({
@@ -97,8 +101,20 @@ const mockPut = SupersetClient.put as jest.Mock;
 const mockDelete = SupersetClient.delete as jest.Mock;
 
 const EXTENSIONS = [
-  { id: 'acme.chatbot', name: 'chatbot', publisher: 'acme', enabled: true },
-  { id: 'acme.widget', name: 'widget', publisher: 'acme', enabled: true },
+  {
+    id: 'acme.chatbot',
+    name: 'chatbot',
+    publisher: 'acme',
+    enabled: true,
+    deletable: true,
+  },
+  {
+    id: 'acme.widget',
+    name: 'widget',
+    publisher: 'acme',
+    enabled: true,
+    deletable: false,
+  },
 ];
 
 const mockFetchData = jest.fn();
@@ -141,7 +157,9 @@ function uploadFile(input: HTMLInputElement, file: File) {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockGet.mockResolvedValue({ json: { result: { active_chatbot_id: null } } });
+  mockGet.mockResolvedValue({
+    json: { result: { active_chatbot_id: null, enabled: {} } },
+  });
   setupHook();
 });
 
@@ -151,7 +169,6 @@ beforeEach(() => {
 
 test('renders the import button in the submenu', () => {
   renderList();
-  // SubMenu stub renders each button's `name` node — the button wraps the icon tooltip
   expect(screen.getByTestId('submenu')).toBeInTheDocument();
 });
 
@@ -163,12 +180,11 @@ test('renders extension names in the table', async () => {
   });
 });
 
-test('renders a delete button for each extension', async () => {
+test('renders delete button only for deletable extensions', async () => {
   renderList();
   await waitFor(() => {
-    expect(screen.getAllByTestId('delete-extension')).toHaveLength(
-      EXTENSIONS.length,
-    );
+    // Only acme.chatbot has deletable: true
+    expect(screen.getAllByTestId('delete-extension')).toHaveLength(1);
   });
 });
 
@@ -176,7 +192,7 @@ test('clicking delete opens confirmation dialog', async () => {
   renderList();
   await waitFor(() => screen.getByText('chatbot'));
 
-  await userEvent.click(screen.getAllByTestId('delete-extension')[0]);
+  await userEvent.click(screen.getByTestId('delete-extension'));
 
   await waitFor(() => {
     expect(screen.getByText(/are you sure you want to delete/i)).toBeInTheDocument();
@@ -188,12 +204,11 @@ test('typing DELETE in confirmation modal triggers delete API call', async () =>
   renderList();
   await waitFor(() => screen.getByText('chatbot'));
 
-  await userEvent.click(screen.getAllByTestId('delete-extension')[0]);
+  await userEvent.click(screen.getByTestId('delete-extension'));
 
   const confirmInput = await screen.findByTestId('delete-modal-input');
   fireEvent.change(confirmInput, { target: { value: 'DELETE' } });
 
-  // The DeleteModal confirm button is labelled "Delete" and sits in a dialog.
   const modal = screen.getByRole('dialog');
   const confirmBtn = within(modal)
     .getAllByRole('button', { name: /^delete$/i })
@@ -215,7 +230,6 @@ test('star button shown only for extensions registered as chatbot views', async 
   renderList();
   await waitFor(() => screen.getByText('chatbot'));
 
-  // Only acme.chatbot is a chatbot — only one star button should appear
   expect(screen.getAllByTestId('set-default-chatbot')).toHaveLength(1);
 });
 
@@ -233,7 +247,9 @@ test('clicking star calls PUT settings with the extension id', async () => {
     expect(mockPut).toHaveBeenCalledWith(
       expect.objectContaining({
         endpoint: '/api/v1/extensions/settings',
-        jsonPayload: { active_chatbot_id: 'acme.chatbot' },
+        jsonPayload: expect.objectContaining({
+          active_chatbot_id: 'acme.chatbot',
+        }),
       }),
     );
   });
