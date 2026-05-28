@@ -29,6 +29,10 @@ from superset.mcp_service.annotation_layer.schemas import (
     ListLayerAnnotationsRequest,
 )
 from superset.mcp_service.app import mcp
+from superset.mcp_service.utils.sanitization import (
+    LLM_CONTEXT_CLOSE_DELIMITER,
+    LLM_CONTEXT_OPEN_DELIMITER,
+)
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
@@ -38,6 +42,10 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
+
+def _wrapped(value: str) -> str:
+    return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
 
 
 def make_layer(
@@ -153,7 +161,7 @@ async def test_list_annotation_layers_basic(mock_list, mcp_server):
     assert data["annotation_layers"] is not None
     assert len(data["annotation_layers"]) == 1
     assert data["annotation_layers"][0]["id"] == 1
-    assert data["annotation_layers"][0]["name"] == "My Layer"
+    assert data["annotation_layers"][0]["name"] == _wrapped("My Layer")
 
 
 @patch("superset.daos.annotation_layer.AnnotationLayerDAO.list")
@@ -184,7 +192,7 @@ async def test_list_annotation_layers_search(mock_list, mcp_server):
         )
 
     data = json.loads(result.content[0].text)
-    assert data["annotation_layers"][0]["name"] == "Release Events"
+    assert data["annotation_layers"][0]["name"] == _wrapped("Release Events")
     call_kwargs = mock_list.call_args.kwargs
     assert call_kwargs["search"] == "release"
 
@@ -230,7 +238,7 @@ async def test_get_annotation_layer_info_found(mock_find, mcp_server):
 
     data = json.loads(result.content[0].text)
     assert data["id"] == 5
-    assert data["name"] == "Prod Events"
+    assert data["name"] == _wrapped("Prod Events")
     mock_find.assert_called_once_with(5, query_options=None)
 
 
@@ -377,7 +385,7 @@ async def test_get_layer_annotation_info_found(
     data = json.loads(result.content[0].text)
     assert data["id"] == 10
     assert data["layer_id"] == 1
-    assert data["short_descr"] == "Deploy"
+    assert data["short_descr"] == _wrapped("Deploy")
 
 
 @patch("superset.daos.annotation_layer.AnnotationLayerDAO.find_by_id")
