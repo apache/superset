@@ -51,7 +51,7 @@ def compile_bind_param_bigquery(element: BindParameter, compiler: Any, **kw: Any
     We override the bind parameter compilation to use \\' instead.
     """
     if kw.get("literal_binds") and isinstance(element.value, str):
-        val = element.value.replace("'", "\\'")
+        val = element.value.replace("\\", "\\\\").replace("'", "\\'")
         return f"'{val}'"
     return compiler.visit_bindparam(element, **kw)
 
