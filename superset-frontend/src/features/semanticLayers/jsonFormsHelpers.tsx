@@ -193,12 +193,20 @@ function DynamicFieldControl(props: ControlProps) {
     : undefined;
 
   if (enumValues && enumValues.length > 0) {
+    // Honour ``x-enumNames`` when present so labels can differ from values
+    // (e.g. MetricFlow's mode picker maps "full" / "cube" to human strings).
+    const enumNames = Array.isArray(schema['x-enumNames'])
+      ? (schema['x-enumNames'] as unknown[])
+      : undefined;
     // The backend returns these as a set, so order is undefined. Sort by
     // label so the dropdown is stable and alphabetised.
     const options = enumValues
-      .map(value => ({
+      .map((value, index) => ({
         value: value as string | number,
-        label: String(value),
+        label:
+          enumNames?.[index] !== undefined
+            ? String(enumNames[index])
+            : String(value),
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
     const tooltip = (props.uischema?.options as Record<string, unknown>)
