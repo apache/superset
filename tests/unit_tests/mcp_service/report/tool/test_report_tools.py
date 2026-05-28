@@ -140,7 +140,7 @@ async def test_list_reports_basic(mock_list, mcp_server):
         assert data["reports"] is not None
         assert len(data["reports"]) == 1
         assert data["reports"][0]["id"] == 1
-        assert data["reports"][0]["name"] == "Daily Sales Report"
+        assert "Daily Sales Report" in data["reports"][0]["name"]
         assert data["reports"][0]["type"] == "Report"
         assert data["reports"][0]["active"] is True
         assert data["reports"][0]["crontab"] == "0 9 * * *"
@@ -162,7 +162,7 @@ async def test_list_reports_with_search(mock_list, mcp_server):
         data = json.loads(result.content[0].text)
         assert data["reports"] is not None
         assert len(data["reports"]) == 1
-        assert data["reports"][0]["name"] == "Weekly Alert"
+        assert "Weekly Alert" in data["reports"][0]["name"]
 
 
 @patch("superset.daos.report.ReportScheduleDAO.list")
@@ -266,7 +266,7 @@ async def test_get_report_info_basic(mock_find, mcp_server):
         assert result.content is not None
         data = json.loads(result.content[0].text)
         assert data["id"] == 1
-        assert data["name"] == "Daily Sales Report"
+        assert "Daily Sales Report" in data["name"]
         assert data["type"] == "Report"
         assert data["active"] is True
         assert data["crontab"] == "0 9 * * *"
@@ -286,7 +286,7 @@ async def test_get_report_info_alert_type(mock_find, mcp_server):
         )
         data = json.loads(result.content[0].text)
         assert data["type"] == "Alert"
-        assert data["name"] == "Revenue Alert"
+        assert "Revenue Alert" in data["name"]
 
 
 @patch("superset.daos.report.ReportScheduleDAO.find_by_id")

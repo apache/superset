@@ -44,6 +44,7 @@ from superset.mcp_service.common.cache_schemas import (
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import PaginationInfo
+from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
@@ -278,8 +279,14 @@ def serialize_report_object(report: Any) -> ReportInfo | None:
 
     return ReportInfo(
         id=getattr(report, "id", None),
-        name=getattr(report, "name", None),
-        description=getattr(report, "description", None),
+        name=sanitize_for_llm_context(
+            getattr(report, "name", None),
+            field_path=("name",),
+        ),
+        description=sanitize_for_llm_context(
+            getattr(report, "description", None),
+            field_path=("description",),
+        ),
         type=getattr(report, "type", None),
         active=getattr(report, "active", None),
         crontab=getattr(report, "crontab", None),
