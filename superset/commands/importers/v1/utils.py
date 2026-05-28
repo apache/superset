@@ -404,16 +404,15 @@ def get_resource_mappings_batched(
 
 
 def find_existing_for_import(model_cls: type[Any], uuid: str) -> Any | None:
-    """Look up an existing row by UUID for an import operation,
-    bypassing the soft-delete visibility filter so soft-deleted matches
-    are returned too.
+    """Look up an existing row by UUID for an import, including soft-deleted matches.
 
-    Side-effect-free: returns the row as-is whether it's live or
-    soft-deleted (or ``None`` if no row exists). The caller is
-    responsible for deciding what to do with a soft-deleted match —
-    typically calling :func:`clear_soft_deleted_for_import` to remove
-    it before re-import, but only after the caller has validated
-    overwrite/permission decisions.
+    Bypasses the soft-delete visibility filter so a soft-deleted row with
+    the matching UUID is returned, not hidden. Side-effect-free: returns
+    the row as-is whether it's live or soft-deleted (or ``None`` if no
+    row exists). The caller is responsible for deciding what to do with
+    a soft-deleted match — typically calling
+    :func:`clear_soft_deleted_for_import` to remove it before re-import,
+    but only after the caller has validated overwrite/permission decisions.
 
     Splitting the lookup from the destructive cleanup keeps the
     destructive action explicit at the call site, so a future change
@@ -429,8 +428,7 @@ def find_existing_for_import(model_cls: type[Any], uuid: str) -> Any | None:
 
 
 def clear_soft_deleted_for_import(existing: Any) -> None:
-    """Hard-delete a soft-deleted row so a subsequent import of the
-    same UUID does not collide with the unique constraint.
+    """Hard-delete a soft-deleted row to free its UUID for re-import.
 
     Uses ``db.session.delete()`` rather than a raw Core ``DELETE`` so
     the ORM ``after_delete`` event listeners fire. Cleanup that depends
