@@ -289,25 +289,44 @@ class ExtensionsRestApi(BaseApi):
         except Exception as ex:  # pylint: disable=broad-except
             return self.response(400, message=f"Invalid extension bundle: {ex}")
 
+        # Validate the manifest id before using it as a filename component.
+        # The id is publisher.name (e.g. "acme.chatbot"); each segment must pass
+        # _validate_segment so a crafted bundle cannot write outside EXTENSIONS_PATH
+        # even though the admin is trusted — defence-in-depth against third-party
+        # bundles the admin did not author.
+        manifest_id: str = extension.manifest.id
+        id_parts = manifest_id.split(".", 1)
+        if len(id_parts) != 2 or not all(  # noqa: PLR2004
+            _validate_segment(p) for p in id_parts
+        ):
+            return self.response(
+                400,
+                message=(
+                    f"Invalid extension id '{manifest_id}' in manifest. "
+                    "Expected '<publisher>.<name>' with alphanumeric, hyphen, "
+                    "or underscore characters only."
+                ),
+            )
+
         # Reject bundles whose manifest id collides with a LOCAL_EXTENSIONS entry.
         local_ids = {
             Path(p).name for p in current_app.config.get("LOCAL_EXTENSIONS", [])
         }
-        if extension.manifest.id in local_ids:
+        if manifest_id in local_ids:
             return self.response(
                 409,
                 message=(
-                    f"Extension '{extension.manifest.id}' is already installed as a "
+                    f"Extension '{manifest_id}' is already installed as a "
                     "local extension. Remove it from LOCAL_EXTENSIONS before uploading."
                 ),
             )
 
         # Persist to EXTENSIONS_PATH so the extension survives restarts.
-        # Destination path is derived from the validated manifest id, not the
-        # uploaded filename, so the upload filename cannot escape EXTENSIONS_PATH.
+        # Destination filename is built from the validated manifest id, not from the
+        # uploaded filename, so neither can escape EXTENSIONS_PATH.
         dest_dir = Path(extensions_path)
         dest_dir.mkdir(parents=True, exist_ok=True)
-        dest_file = dest_dir / f"{extension.manifest.id}.supx"
+        dest_file = dest_dir / f"{manifest_id}.supx"
 
         stream.seek(0)
         dest_file.write_bytes(stream.read())
@@ -389,6 +408,9 @@ class ExtensionsRestApi(BaseApi):
     @expose("/settings", methods=("GET",))
     def get_settings(self, **kwargs: Any) -> Response:
         """Get global extension admin settings.
+
+        No admin gate here by design: authenticated non-admin users need these
+        settings so the ChatbotMount can read active_chatbot_id on every page.
         ---
         get:
           summary: Get extension admin settings (active chatbot, enabled flags).
