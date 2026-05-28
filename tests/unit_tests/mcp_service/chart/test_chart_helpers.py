@@ -888,3 +888,85 @@ def test_build_query_dicts_deck_scatter_string_point_radius_fixed(monkeypatch):
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
     assert queries[0]["metrics"] == ["count"]
+
+
+def test_build_query_dicts_deck_hex_orderby_when_metrics_present(monkeypatch):
+    # Mirrors BaseDeckGLViz.query_obj(): orderby set from first metric (desc by default)
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    metric = {"expressionType": "SIMPLE", "aggregate": "COUNT", "column": None}
+    form_data = {
+        "viz_type": "deck_hex",
+        "spatial": {"type": "geohash", "geohashCol": "geo"},
+        "size": metric,
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert queries[0]["orderby"] == [(metric, False)]
+
+
+def test_build_query_dicts_deck_scatter_no_orderby_without_metrics(monkeypatch):
+    # No metrics → no orderby (pure spatial column query)
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_scatter",
+        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert "orderby" not in queries[0]
+
+
+def test_build_query_dicts_deck_arc_time_grain(monkeypatch):
+    # deck_arc with time_grain_sqla → is_timeseries, granularity, extras set
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_arc",
+        "spatial": {"type": "latlong", "lonCol": "start_lon", "latCol": "start_lat"},
+        "end_spatial": {
+            "type": "latlong",
+            "lonCol": "end_lon",
+            "latCol": "end_lat",
+        },
+        "granularity_sqla": "ts",
+        "time_grain_sqla": "P1D",
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert queries[0]["is_timeseries"] is True
+    assert queries[0]["granularity"] == "ts"
+    assert queries[0].get("extras", {}).get("time_grain_sqla") == "P1D"
+
+
+def test_build_query_dicts_deck_geojson_ignores_time_grain(monkeypatch):
+    # deck_geojson is not in _DECK_TIMESERIES_VIZ_TYPES; time grain fields not added
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data = {
+        "viz_type": "deck_geojson",
+        "geojson": "geometry",
+        "granularity_sqla": "ts",
+        "time_grain_sqla": "P1D",
+        "adhoc_filters": [],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    assert "is_timeseries" not in queries[0]
+    assert queries[0].get("extras", {}).get("time_grain_sqla") is None

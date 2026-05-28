@@ -546,6 +546,12 @@ def _build_mixed_timeseries_secondary(
     return qd
 
 
+# Deck.gl viz types that conditionally set is_timeseries from time_grain_sqla
+_DECK_TIMESERIES_VIZ_TYPES: frozenset[str] = frozenset(
+    {"deck_arc", "deck_path", "deck_polygon", "deck_scatter", "deck_screengrid"}
+)
+
+
 def build_query_dicts_from_form_data(
     form_data: dict[str, Any],
     datasource_id: Any,
@@ -584,6 +590,15 @@ def build_query_dicts_from_form_data(
             row_limit=row_limit,
             order_desc=order_desc,
         )
+        if deck_metrics:
+            # Mirror BaseDeckGLViz.query_obj(): order by first metric descending
+            qd["orderby"] = [(deck_metrics[0], not form_data.get("order_desc", True))]
+        if viz_type in _DECK_TIMESERIES_VIZ_TYPES and (
+            time_grain := form_data.get("time_grain_sqla")
+        ):
+            qd["is_timeseries"] = True
+            qd["granularity"] = form_data.get("granularity_sqla")
+            qd.setdefault("extras", {})["time_grain_sqla"] = time_grain
         if form_data.get("filter_nulls", True):
             null_filters = _deck_gl_null_filters(form_data)
             if null_filters:
