@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo, useReducer, useCallback } from 'react';
-import { useAppDispatch } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { t } from '@apache-superset/core/translation';
 import {
   Table,

@@ -28,7 +28,7 @@ import {
 
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { shallowEqual, useSelector } from 'react-redux';
-import { useAppDispatch } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { useHistory } from 'react-router-dom';
 import { pick } from 'lodash';
 import {
