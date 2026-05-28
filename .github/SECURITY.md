@@ -39,7 +39,7 @@ This section defines what Apache Superset considers a security issue and what it
 
 The model is intentionally written in terms of principals, trust boundaries, and capability surface rather than in terms of specific files, functions, or libraries. New code paths inherit the model automatically.
 
-**Trust Boundaries**
+### Trust Boundaries
 
 Apache Superset's threat model assumes three trust boundaries.
 
@@ -47,9 +47,9 @@ Apache Superset's threat model assumes three trust boundaries.
 
 2. *The operator* is whoever deploys, configures, and runs Apache Superset. Behaviors that depend on deployment-time decisions are the operator's responsibility, not Apache Superset's. This includes the values of secrets, the network reachability of the application and its data sources, the choice of database connectors and cache backends, the selection of feature flags, the destinations of notifications, and the trust placed in third-party plugins. Defaults that fail closed are the responsibility of the Apache Superset codebase. Defaults that fail open must be accompanied by a documented hardening requirement; applying that hardening is the operator's responsibility, while shipping an undocumented or unflagged fail-open default is a codebase issue.
 
-3. *The Apache Superset codebase* is responsible for enforcing the role and capability matrix below across its product surface. A failure to enforce, anywhere in that surface, is in scope. Apache Superset is not, by default, a SQL or database firewall; configurable hardening that operators can layer on top of the matrix is treated separately under *Vulnerability Scope* below.
+3. *The Apache Superset codebase* is responsible for enforcing the role and capability matrix below across its product surface. A failure to enforce, anywhere in that surface, is in scope. The codebase's commitments are limited to the role and capability matrix and to controls Apache Superset's own documentation (this file and the linked Security documentation) explicitly positions as security boundaries; configurable hardening that operators can layer on top is treated separately under *Vulnerability Scope* below.
 
-**Roles and Capabilities**
+### Roles and Capabilities
 
 Apache Superset ships with the following first-class principals. Detailed permission definitions live in the [Security documentation](https://superset.apache.org/docs/security).
 
@@ -59,13 +59,13 @@ Apache Superset ships with the following first-class principals. Detailed permis
 | Gamma | only granted datasets | own charts and dashboards on granted datasets | no by default (requires the `sql_lab` role) | no | no |
 | Alpha | all data sources | own charts, dashboards, and datasets | no by default (requires the `sql_lab` role) | data upload to existing databases only | no |
 | Admin | all | all | yes | yes | yes |
-| Embedded guest token | data sources bound to the dashboards in the token's resources claim | no | no | no | no |
+| Embedded guest token | data sources reachable through the embedded dashboards the token authorizes | no | no | no | no |
 
 The `sql_lab` role is *additive*: it grants the SQL Lab permission set on top of the base role above, and is the only path by which Gamma or Alpha gain SQL execution capability. Database access is still scoped per the base role's grants. Admin includes SQL Lab access by default.
 
 Deployments may grant or revoke individual view-menu permissions, which shifts the boundary for that deployment but does not redefine the model. Any custom role created by an operator inherits the same principle: its capabilities are whatever the operator has explicitly granted it. The Public principal follows the same rule: operators may grant the Public role read access to specific datasets or dashboards (typically for anonymous reporting use cases), which shifts the boundary for that deployment without redefining the model.
 
-**Vulnerability Scope**
+### Vulnerability Scope
 
 The test for whether a finding is in scope is a single question:
 
@@ -94,7 +94,7 @@ If yes, it is in scope. If no, it is out of scope. The lists below apply that te
 - Findings without a reproducible proof of concept against a supported release. The burden of demonstrating exploitability rests with the reporter; findings closed for lack of a proof of concept may be refiled if one is later produced.
 - Brute force, rate limiting, denial of service, or resource exhaustion that does not bypass a documented control.
 - Missing security headers, banner or version disclosure, user or object enumeration through error messages or timing, and similar low-impact information disclosure that does not enable a further concrete exploit.
-- Bypasses of configurable defense-in-depth hardening that Apache Superset does not document as a security boundary. Operator-deployable filters such as SQL function or table denylists, URI restrictions on already-authorized database connectors, and similar belt-and-braces controls are provided to let operators layer hardening on top of the role and capability matrix, not as firewall-grade guarantees the codebase commits to. Findings against such hardening are improvements, not vulnerabilities, unless the documentation positions the specific control as security-relevant.
+- Bypasses of configurable defense-in-depth hardening that Apache Superset does not document as a security boundary. Apache Superset is not a SQL or database firewall: operator-deployable filters such as SQL function or table denylists, URI restrictions on already-authorized database connectors, and similar belt-and-braces controls are provided to let operators layer hardening on top of the role and capability matrix, not as firewall-grade guarantees the codebase commits to. Findings against such hardening are improvements, not vulnerabilities, unless the documentation positions the specific control as security-relevant.
 - Hardening suggestions that improve defense in depth but do not violate the security model.
 
 Findings in third-party dependencies fall into two cases. A finding in a transitive dependency, or in an operator-selected dependency that Apache Superset does not ship, is out of scope and should be reported to the dependency's maintainers. A finding caused by Apache Superset pinning a known-vulnerable version of a direct dependency it ships, or using a dependency in a way that creates a vulnerability the dependency itself does not have, remains in scope. Dependency findings in the official Apache Superset Docker image that fall into the first case can be remediated by extending the image at release time.
@@ -103,13 +103,7 @@ When uncertain whether a finding falls in scope, please file it through the repo
 
 **Outcome of Reports**
 
-Reports that are deemed out-of-scope for a CVE but represent valid security best practices or hardening opportunities may be converted into public GitHub issues. This allows the community to contribute to the general hardening of the platform even when a specific vulnerability threshold is not met.
-
-Note that Apache Superset is not responsible for any third-party dependencies that may
-have security issues. Any vulnerabilities found in third-party dependencies should be
-reported to the maintainers of those projects. Results from security scans of Apache
-Superset dependencies found on its official Docker image can be remediated at release time
-by extending the image itself.
+Reports that are deemed out of scope for a CVE but represent valid security best practices or hardening opportunities are typically converted into public GitHub issues, where the community can contribute fixes alongside the maintainers. The triage decision and reasoning are communicated back to the reporter in either case.
 
 **Vulnerability Aggregation & CVE Attribution**
 
