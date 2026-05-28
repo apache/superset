@@ -170,18 +170,52 @@ export function areDependenciesSatisfied(
  * Renderer for fields marked `x-dynamic` in the JSON Schema.
  * Shows a loading spinner inside the input while the schema is being
  * refreshed with dynamic values from the backend.
+ *
+ * Enum-typed fields (e.g. the Snowflake ``schema`` dropdown) get an explicit
+ * Antd Select so the ``loading``/``disabled`` props work natively — wrapping
+ * TextControl with ``inputProps.suffix`` doesn't reach the underlying Select.
  */
 function DynamicFieldControl(props: ControlProps) {
   const { refreshingSchema, formData: cfgData } = props.config ?? {};
-  const deps = (props.schema as Record<string, unknown>)?.['x-dependsOn'];
+  const schema = props.schema as Record<string, unknown>;
+  const deps = schema?.['x-dependsOn'];
   const refreshing =
-    refreshingSchema &&
+    !!refreshingSchema &&
     Array.isArray(deps) &&
     areDependenciesSatisfied(
       deps as string[],
       (cfgData as Record<string, unknown>) ?? {},
       props.rootSchema,
     );
+
+  const enumValues = Array.isArray(schema.enum)
+    ? (schema.enum as unknown[])
+    : undefined;
+
+  if (enumValues && enumValues.length > 0) {
+    const options = enumValues.map(value => ({
+      value: value as string | number,
+      label: String(value),
+    }));
+    const tooltip = (props.uischema?.options as Record<string, unknown>)
+      ?.tooltip as string | undefined;
+    const placeholder = (props.uischema?.options as Record<string, unknown>)
+      ?.placeholderText as string | undefined;
+    return (
+      <Form.Item label={props.label} tooltip={tooltip}>
+        <Select
+          value={(props.data as string | number | undefined) ?? undefined}
+          onChange={value => props.handleChange(props.path, value)}
+          options={options}
+          style={{ width: '100%' }}
+          disabled={!props.enabled || refreshing}
+          loading={refreshing}
+          allowClear
+          placeholder={refreshing ? t('Loading...') : placeholder}
+        />
+      </Form.Item>
+    );
+  }
 
   if (!refreshing) {
     return TextControl(props);
@@ -199,8 +233,12 @@ function DynamicFieldControl(props: ControlProps) {
 }
 const DynamicFieldRenderer = withJsonFormsControlProps(DynamicFieldControl);
 const dynamicFieldEntry = {
+  // Rank 6 so we beat ``@great-expectations`` ``EnumControl`` (rank 4) — when
+  // a field is both ``x-dynamic`` and has an ``enum`` (e.g. the Snowflake
+  // ``schema`` dropdown), the plain EnumControl would otherwise win and
+  // bypass our loading / dependency-clearing behavior entirely.
   tester: rankWith(
-    3,
+    6,
     and(
       isStringControl,
       schemaMatches(

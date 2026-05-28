@@ -296,6 +296,11 @@ export default function SemanticLayerModal({
       if (snapshot === lastDepSnapshotRef.current) return;
       lastDepSnapshotRef.current = snapshot;
 
+      // Flip the loading state immediately so dependent fields are disabled
+      // through the debounce window — otherwise the user keeps seeing the
+      // stale options for ~500ms before the request even fires.
+      setRefreshingSchema(true);
+
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
       debounceTimerRef.current = setTimeout(() => {
         fetchConfigSchema(selectedType, data);
@@ -312,12 +317,37 @@ export default function SemanticLayerModal({
       data: Record<string, unknown>;
       errors?: ErrorObject[];
     }) => {
-      setFormData(data);
+      // When a dependency of a dynamic field changes, clear that field's
+      // value so we don't carry a stale selection across the refresh (e.g.
+      // ``schema=PUBLIC`` lingering after the user switches database).
+      const dynamicDeps = dynamicDepsRef.current;
+      let nextData = data;
+      if (Object.keys(dynamicDeps).length > 0) {
+        const cleared: Record<string, unknown> = {};
+        for (const [field, deps] of Object.entries(dynamicDeps)) {
+          // Self-deps don't count — a field shouldn't wipe its own value
+          // every time the user picks something in it.
+          const externalDeps = deps.filter(dep => dep !== field);
+          if (externalDeps.length === 0) continue;
+          const depsChanged = externalDeps.some(
+            dep =>
+              JSON.stringify(formData[dep]) !== JSON.stringify(data[dep]),
+          );
+          if (depsChanged && data[field] !== undefined && data[field] !== '') {
+            cleared[field] = undefined;
+          }
+        }
+        if (Object.keys(cleared).length > 0) {
+          nextData = { ...data, ...cleared };
+        }
+      }
+
+      setFormData(nextData);
       errorsRef.current = errors ?? [];
       setHasErrors(errorsRef.current.length > 0);
-      maybeRefreshSchema(data);
+      maybeRefreshSchema(nextData);
     },
-    [maybeRefreshSchema],
+    [maybeRefreshSchema, formData],
   );
 
   const selectedTypeName =
