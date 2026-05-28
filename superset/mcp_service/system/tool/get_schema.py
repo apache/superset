@@ -305,6 +305,14 @@ async def get_schema(
                 tool_name="get_schema",
             )
 
+    if request.model_type == "report":
+        from superset import is_feature_enabled
+
+        if not is_feature_enabled("ALERT_REPORTS"):
+            raise ValueError(
+                "The Alerts & Reports feature is disabled on this instance."
+            )
+
     can_view_data_model_metadata = user_can_view_data_model_metadata()
     if not can_view_data_model_metadata and request.model_type in {
         "dataset",

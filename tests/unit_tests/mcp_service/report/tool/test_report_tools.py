@@ -615,3 +615,37 @@ async def test_columns_available_are_serializable(mock_list, mcp_server):
 
     # columns_available must match the ReportInfo serializable fields
     assert set(data["columns_available"]) == set(serializable_cols)
+
+
+def test_get_schema_permission_map_has_report_schedule():
+    """_MODEL_TYPE_CLASS_PERMISSION["report"] must match the class_permission_name
+    declared on the report tools, so the schema tool gates on the same permission.
+    """
+    from superset.mcp_service.report.tool.get_report_info import get_report_info
+    from superset.mcp_service.report.tool.list_reports import list_reports
+    from superset.mcp_service.system.tool.get_schema import _MODEL_TYPE_CLASS_PERMISSION
+
+    expected = "ReportSchedule"
+    assert _MODEL_TYPE_CLASS_PERMISSION["report"] == expected
+    assert getattr(list_reports, "class_permission_name", None) == expected
+    assert getattr(get_report_info, "class_permission_name", None) == expected
+
+
+def test_report_filter_columns_match_schema_discovery_frozenset():
+    """ReportFilter.col Literal values must stay in sync with REPORT_FILTER_COLUMNS.
+
+    This prevents silent drift where one side is updated but not the other.
+    """
+    import typing
+
+    from superset.mcp_service.common.schema_discovery import REPORT_FILTER_COLUMNS
+    from superset.mcp_service.report.schemas import ReportFilter
+
+    col_annotation = ReportFilter.model_fields["col"].annotation
+    # Unwrap Literal[...] to get the set of allowed values
+    literal_values = set(typing.get_args(col_annotation))
+    assert literal_values == REPORT_FILTER_COLUMNS, (
+        f"ReportFilter.col Literal {literal_values} does not match "
+        f"REPORT_FILTER_COLUMNS {REPORT_FILTER_COLUMNS}. "
+        "Update both together to stay in sync."
+    )

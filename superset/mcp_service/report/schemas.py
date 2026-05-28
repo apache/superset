@@ -244,6 +244,12 @@ class ReportError(BaseModel):
     timestamp: str | datetime | None = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str) -> str:
+        """Wrap error text before it is exposed to LLM context."""
+        return sanitize_for_llm_context(value, field_path=("error",))
+
     @classmethod
     def create(cls, error: str, error_type: str) -> "ReportError":
         """Create a standardized ReportError with timestamp."""
@@ -292,7 +298,7 @@ def serialize_report_object(report: Any) -> ReportInfo | None:
         crontab=getattr(report, "crontab", None),
         dashboard_id=getattr(report, "dashboard_id", None),
         chart_id=getattr(report, "chart_id", None),
-        owners=getattr(report, "owners", None),
+        owners=None,
         changed_on=getattr(report, "changed_on", None),
         changed_on_humanized=_humanize_timestamp(getattr(report, "changed_on", None)),
         created_on=getattr(report, "created_on", None),

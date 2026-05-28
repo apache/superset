@@ -20,7 +20,7 @@ List reports (alerts & reports) FastMCP tool.
 """
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -28,7 +28,6 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 if TYPE_CHECKING:
     from superset.reports.models import ReportSchedule
 
-from superset.daos.base import ColumnOperator
 from superset.extensions import event_logger
 from superset.mcp_service.common.schema_discovery import (
     REPORT_DEFAULT_COLUMNS,
@@ -46,52 +45,6 @@ from superset.mcp_service.report.schemas import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-class ReportListCore(ModelListCore[ReportList]):
-    """ModelListCore subclass for ReportSchedule.
-
-    Overrides ``_prepend_self_lookup_filters`` to use ``owners.id`` (the real
-    ReportSchedule M2M filter column) instead of the generic ``owner`` sentinel.
-    When both flags are set a single ``created_by_fk_or_owner`` OR filter is used,
-    matching the semantics of the base class and handled by
-    ``ReportScheduleDAO.apply_column_operators``.
-    """
-
-    @staticmethod
-    def _prepend_self_lookup_filters(
-        filters: Any,
-        created_by_me: bool,
-        owned_by_me: bool,
-        user: Any,
-    ) -> Any:
-        """Inject report-specific self-lookup filters.
-
-        Uses ``owners.id`` for ``owned_by_me`` and ``created_by_fk_or_owner`` for
-        the combined case so that results are a union (OR), not an intersection.
-        """
-        if not (created_by_me or owned_by_me):
-            return filters
-
-        if not user or not getattr(user, "is_authenticated", False):
-            raise ValueError("This operation requires an authenticated user")
-
-        user_id: int = user.id
-        extra: ColumnOperator
-        if created_by_me and owned_by_me:
-            extra = ColumnOperator(
-                col="created_by_fk_or_owner", opr="eq", value=user_id
-            )
-        elif created_by_me:
-            extra = ColumnOperator(col="created_by_fk", opr="eq", value=user_id)
-        else:
-            extra = ColumnOperator(col="owners.id", opr="eq", value=user_id)
-
-        if filters is None:
-            return [extra]
-        if isinstance(filters, list):
-            return [extra] + filters
-        return [extra, filters]
 
 
 _DEFAULT_LIST_REPORTS_REQUEST = ListReportsRequest()
@@ -157,7 +110,7 @@ async def list_reports(
         ) -> ReportInfo | None:
             return serialize_report_object(obj)
 
-        list_tool = ReportListCore(
+        list_tool = ModelListCore(
             dao_class=ReportScheduleDAO,
             output_schema=ReportInfo,
             item_serializer=_serialize_report,
@@ -168,6 +121,7 @@ async def list_reports(
             output_list_schema=ReportList,
             all_columns=list(ReportInfo.model_fields.keys()),
             sortable_columns=REPORT_SORTABLE_COLUMNS,
+            owner_filter_column="owners.id",
             logger=logger,
         )
 

@@ -149,6 +149,7 @@ class ModelListCore(BaseCore, Generic[L]):
         logger: logging.Logger | None = None,
         all_columns: List[str] | None = None,
         sortable_columns: List[str] | None = None,
+        owner_filter_column: str = "owner",
     ) -> None:
         super().__init__(logger)
         self.dao_class = dao_class
@@ -165,6 +166,7 @@ class ModelListCore(BaseCore, Generic[L]):
         self._sortable_columns = filter_user_directory_columns(
             sortable_columns if sortable_columns else []
         )
+        self._owner_filter_column = owner_filter_column
 
     @property
     def all_columns(self) -> List[str]:
@@ -207,8 +209,8 @@ class ModelListCore(BaseCore, Generic[L]):
                 f"Allowed columns: {', '.join(self._sortable_columns)}"
             )
 
-    @staticmethod
     def _prepend_self_lookup_filters(
+        self,
         filters: Any,
         created_by_me: bool,
         owned_by_me: bool,
@@ -237,7 +239,9 @@ class ModelListCore(BaseCore, Generic[L]):
         elif created_by_me:
             extra = ColumnOperator(col="created_by_fk", opr="eq", value=user_id)
         else:
-            extra = ColumnOperator(col="owner", opr="eq", value=user_id)
+            extra = ColumnOperator(
+                col=self._owner_filter_column, opr="eq", value=user_id
+            )
 
         if filters is None:
             return [extra]
