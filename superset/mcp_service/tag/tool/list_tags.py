@@ -42,7 +42,16 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_TAG_COLUMNS = ["id", "name", "type"]
 SORTABLE_TAG_COLUMNS = ["id", "name", "changed_on", "created_on"]
-ALL_TAG_COLUMNS = ["id", "name", "type", "description", "changed_on", "created_on"]
+ALL_TAG_COLUMNS = [
+    "id",
+    "name",
+    "type",
+    "description",
+    "changed_on",
+    "changed_on_humanized",
+    "created_on",
+    "created_on_humanized",
+]
 
 _DEFAULT_LIST_TAGS_REQUEST = ListTagsRequest()
 

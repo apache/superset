@@ -98,7 +98,7 @@ async def test_list_tags_basic(mock_list, mcp_server):
         assert data["tags"] is not None
         assert len(data["tags"]) == 1
         assert data["tags"][0]["id"] == 1
-        assert data["tags"][0]["name"] == "finance"
+        assert "finance" in data["tags"][0]["name"]
 
 
 @patch("superset.daos.tag.TagDAO.list")
@@ -123,7 +123,7 @@ async def test_list_tags_with_search(mock_list, mcp_server):
         request = ListTagsRequest(page=1, page_size=10, search="sales")
         result = await client.call_tool("list_tags", {"request": request.model_dump()})
         data = json.loads(result.content[0].text)
-        assert data["tags"][0]["name"] == "sales"
+        assert "sales" in data["tags"][0]["name"]
 
 
 @patch("superset.daos.tag.TagDAO.list")
@@ -188,9 +188,24 @@ async def test_get_tag_info_basic(mock_find, mcp_server):
         assert result.content is not None
         data = json.loads(result.content[0].text)
         assert data["id"] == 1
-        assert data["name"] == "finance"
+        assert "finance" in data["name"]
         assert data["type"] == "custom"
-        assert data["description"] == "Finance related"
+        assert "Finance related" in data["description"]
+
+
+@patch("superset.daos.tag.TagDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_tag_info_sanitizes_user_controlled_fields(mock_find, mcp_server):
+    """name and description are wrapped in UNTRUSTED-CONTENT for LLM data boundary."""
+    tag = create_mock_tag()
+    mock_find.return_value = tag
+    async with Client(mcp_server) as client:
+        result = await client.call_tool("get_tag_info", {"request": {"identifier": 1}})
+        data = json.loads(result.content[0].text)
+        assert "<UNTRUSTED-CONTENT>" in data["name"]
+        assert "</UNTRUSTED-CONTENT>" in data["name"]
+        assert "<UNTRUSTED-CONTENT>" in data["description"]
+        assert "</UNTRUSTED-CONTENT>" in data["description"]
 
 
 @patch("superset.daos.tag.TagDAO.find_by_id")

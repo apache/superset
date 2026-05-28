@@ -41,6 +41,7 @@ from superset.mcp_service.system.schemas import (
     TagInfo as BaseTagInfo,
 )
 from superset.mcp_service.utils.response_utils import humanize_timestamp
+from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
 from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
@@ -217,6 +218,17 @@ class GetTagInfoRequest(BaseModel):
     ]
 
 
+def _sanitize_tag_info_for_llm_context(tag_info: TagInfo) -> TagInfo:
+    """Wrap user-controlled tag fields before LLM exposure."""
+    payload = tag_info.model_dump(mode="python")
+    for field_name in ("name", "description"):
+        payload[field_name] = sanitize_for_llm_context(
+            payload.get(field_name),
+            field_path=(field_name,),
+        )
+    return TagInfo(**payload)
+
+
 def serialize_tag_object(tag: Any) -> TagInfo | None:
     if not tag:
         return None
@@ -225,13 +237,15 @@ def serialize_tag_object(tag: Any) -> TagInfo | None:
     if (raw_type := getattr(tag, "type", None)) is not None:
         type_str = raw_type.name if hasattr(raw_type, "name") else str(raw_type)
 
-    return TagInfo(
-        id=getattr(tag, "id", None),
-        name=getattr(tag, "name", None),
-        type=type_str,
-        description=getattr(tag, "description", None),
-        changed_on=getattr(tag, "changed_on", None),
-        changed_on_humanized=humanize_timestamp(getattr(tag, "changed_on", None)),
-        created_on=getattr(tag, "created_on", None),
-        created_on_humanized=humanize_timestamp(getattr(tag, "created_on", None)),
+    return _sanitize_tag_info_for_llm_context(
+        TagInfo(
+            id=getattr(tag, "id", None),
+            name=getattr(tag, "name", None),
+            type=type_str,
+            description=getattr(tag, "description", None),
+            changed_on=getattr(tag, "changed_on", None),
+            changed_on_humanized=humanize_timestamp(getattr(tag, "changed_on", None)),
+            created_on=getattr(tag, "created_on", None),
+            created_on_humanized=humanize_timestamp(getattr(tag, "created_on", None)),
+        )
     )

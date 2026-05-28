@@ -119,6 +119,10 @@ Dashboard Management:
 - generate_dashboard: Create a dashboard from chart IDs
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard
 
+Tag Management:
+- list_tags: List tags with advanced filters (1-based pagination)
+- get_tag_info: Get detailed tag information by ID
+
 Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
 - get_database_info: Get detailed database connection info by ID (backend, capabilities)
