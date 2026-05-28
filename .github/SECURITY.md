@@ -43,9 +43,9 @@ The model is intentionally written in terms of principals, trust boundaries, and
 
 Apache Superset's threat model assumes three trust boundaries.
 
-1. *The Admin role* is a fully trusted operational principal. Anything an Admin can do through the documented user interface, REST API, or configuration system is an intended capability, not a vulnerability, even if individually powerful or destructive. The Admin role is, by policy, equivalent to operating-system-level trust over the Superset application.
+1. *The Admin role* is a fully trusted operational principal. Anything an Admin can do through the documented user interface, REST API, or configuration system is an intended capability, not a vulnerability, even if individually powerful or destructive. The Admin role is, by policy, equivalent to operating-system-level trust over the Apache Superset application. This is unavoidable rather than aspirational: an Admin can, for example, register new database connections of arbitrary type, execute arbitrary SQL through SQL Lab, render Jinja templates that resolve to SQL or rendered HTML, and override application configuration. Granting Admin is functionally equivalent to granting shell access on the host, which is the reasoning behind treating it as a trust boundary in the sense of MITRE CNA Operational Rules 4.1.
 
-2. *The operator* is whoever deploys, configures, and runs Apache Superset. Behaviors that depend on deployment-time decisions are the operator's responsibility, not Apache Superset's. This includes the values of secrets, the network reachability of the application and its data sources, the choice of database connectors and cache backends, the selection of feature flags, the destinations of notifications, and the trust placed in third-party plugins. Default values that require operator hardening are documented; failing to apply that hardening is a deployment defect, not a Superset vulnerability.
+2. *The operator* is whoever deploys, configures, and runs Apache Superset. Behaviors that depend on deployment-time decisions are the operator's responsibility, not Apache Superset's. This includes the values of secrets, the network reachability of the application and its data sources, the choice of database connectors and cache backends, the selection of feature flags, the destinations of notifications, and the trust placed in third-party plugins. Defaults that fail closed are the responsibility of the Apache Superset codebase. Defaults that fail open must be accompanied by a documented hardening requirement; applying that hardening is the operator's responsibility, while shipping an undocumented or unflagged fail-open default is a codebase issue.
 
 3. *The Apache Superset codebase* is responsible for enforcing the role and capability matrix below across its product surface (REST API, web UI, SQL Lab, embedded SDK, notification system, server-side workers). A failure to enforce, anywhere in that surface, is in scope.
 
@@ -62,7 +62,7 @@ Apache Superset ships with the following first-class principals. Detailed permis
 | Admin | all | all | yes | yes | yes |
 | Embedded guest token | only datasets bound to the embedded dashboard | no | no | no | no |
 
-Deployments may grant or revoke individual view-menu permissions, which shifts the boundary for that deployment but does not redefine the model. Any custom role created by an operator inherits the same principle: its capabilities are whatever the operator has explicitly granted it.
+Deployments may grant or revoke individual view-menu permissions, which shifts the boundary for that deployment but does not redefine the model. Any custom role created by an operator inherits the same principle: its capabilities are whatever the operator has explicitly granted it. The Public principal follows the same rule: operators may grant the Public role read access to specific datasets or dashboards (typically for anonymous reporting use cases), which shifts the boundary for that deployment without redefining the model.
 
 **Vulnerability Scope**
 
@@ -78,7 +78,8 @@ If yes, it is in scope. If no, it is out of scope. The lists below apply that te
 - A user supplies input that the codebase should sanitize or parameterize but does not, causing arbitrary SQL, template code, or scripts to execute. Includes injection through Jinja templates, SQL-construction paths, and any field the codebase passes to a query engine or template engine.
 - A user bypasses authentication, fixates or reuses another user's session, or reaches an authenticated endpoint without logging in.
 - An embedded guest token authorizes actions outside the dashboard it was issued for, or can be forged, replayed, or escalated to a higher principal.
-- Apache Superset, acting on behalf of an unprivileged user, fetches an outbound URL the user controls in a feature the codebase is responsible for restricting (server-side request forgery).
+- Apache Superset, acting on behalf of an unprivileged user, fetches an outbound URL the user controls in a feature where Apache Superset itself, not the operator, controls the outbound destination set (server-side request forgery).
+- An Apache Superset default fails open without an accompanying documented hardening requirement. The codebase is responsible for shipping fail-closed defaults or for documenting the hardening required when a default fails open; failures of that responsibility are in scope (see *Trust Boundaries*).
 - A user causes a script to execute in another user's browser through a field the codebase renders to that other user (cross-site scripting), or causes cross-origin leakage of authenticated session state or data.
 - A user reaches a route, page, or API endpoint that requires a role they do not have.
 
@@ -93,7 +94,7 @@ If yes, it is in scope. If no, it is out of scope. The lists below apply that te
 - Missing security headers, banner or version disclosure, user or object enumeration through error messages or timing, and similar low-impact information disclosure that does not enable a further concrete exploit.
 - Hardening suggestions that improve defense in depth but do not violate the security model.
 
-Reports targeting third-party dependencies are out of scope for Apache Superset itself and should be reported to the maintainers of those projects. Dependency findings in the official Apache Superset Docker image can be remediated at release time by extending the image.
+Findings in third-party dependencies fall into two cases. A finding in a transitive dependency, or in an operator-selected dependency that Apache Superset does not ship, is out of scope and should be reported to the dependency's maintainers. A finding caused by Apache Superset pinning a known-vulnerable version of a direct dependency it ships, or using a dependency in a way that creates a vulnerability the dependency itself does not have, remains in scope. Dependency findings in the official Apache Superset Docker image that fall into the first case can be remediated by extending the image at release time.
 
 When uncertain whether a finding falls in scope, please file it through the reporting process above. The triage team will classify it and explain the reasoning if it is closed as out of scope.
 

@@ -68,9 +68,18 @@ The three trust boundaries are:
 2. **The operator** owns deployment-time decisions (secrets, network exposure, feature-flag selection, connector and codec choices, notification destinations, third-party plugins). Misconfiguration at this layer is a deployment defect, not a Superset vulnerability.
 3. **The codebase** is responsible for enforcing the role and capability matrix across its product surface. Failures of that enforcement, anywhere, are in scope regardless of which endpoint or component contains them.
 
-The canonical authorization pattern in this codebase is `@has_access_api` (Flask-AppBuilder) at the route level plus `security_manager.raise_for_access(...)` at the object level, with DAO `base_filters` where listing is involved. Code following both gates is not a finding by itself; code that omits the per-object gate on a route that returns or mutates a specific object is.
+The canonical authorization pattern in this codebase is `@has_access_api` (Flask-AppBuilder) at the route level plus `security_manager.raise_for_access(...)` at the object level, with DAO `base_filters` where listing is involved. Code following both gates is not a finding **on authorization grounds** by itself; code that omits the per-object gate on a route that returns or mutates a specific object is. Code following both gates can still contain injection, SSRF, XSS, or other classes of finding unrelated to authorization, which are evaluated separately.
 
 The full role and capability matrix, in-scope and out-of-scope class lists, and CVE aggregation rules are in [`.github/SECURITY.md`](.github/SECURITY.md). Defer to that document for any specifics.
+
+**Requirements for findings filed by automated tooling**
+
+Automated scanners (LLM-based code scanners, static analyzers, dependency tools) that file findings against this codebase must, in each finding, name:
+
+1. The specific role and capability matrix row in [`.github/SECURITY.md`](.github/SECURITY.md) the finding believes is violated.
+2. The principal the finding assumes the attacker holds (Public, Gamma, sql_lab, Alpha, Admin, Embedded guest token, or a custom role with explicit capability grants).
+
+Findings that cannot identify both should be filed as questions, not vulnerabilities. This requirement exists to ensure every reported issue is testable against the published security model and to keep speculative or pattern-match-only reports out of the triage queue.
 
 ## Key Directories
 
