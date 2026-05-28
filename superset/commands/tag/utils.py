@@ -17,7 +17,9 @@
 
 from typing import Optional, Union
 
-from superset import db
+from superset import db, security_manager
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.models.sql_lab import SavedQuery
@@ -40,7 +42,7 @@ def to_object_model(
 
     Uses db.session.get() instead of DAO.find_by_id() to avoid DAO base
     filters that require request context. Authorization is enforced by the
-    caller via raise_for_access() on the returned object.
+    caller via raise_for_object_access() on the returned object.
     """
     model_map: dict[ObjectType, type] = {
         ObjectType.dashboard: Dashboard,
@@ -51,3 +53,34 @@ def to_object_model(
     if model_cls is None:
         return None
     return db.session.get(model_cls, object_id)
+
+
+def raise_for_object_access(
+    object_type: ObjectType,
+    target_object: Union[Dashboard, SavedQuery, Slice],
+) -> None:
+    """Raise SupersetSecurityException if the current user can't access target_object.
+
+    Dispatches per object type because only Dashboard exposes
+    ``raise_for_access`` on the model itself; charts route through
+    ``security_manager`` and SavedQuery has no model-level access method
+    (its API uses a creator-scoped base filter).
+    """
+    if object_type == ObjectType.dashboard:
+        security_manager.raise_for_access(dashboard=target_object)
+    elif object_type == ObjectType.chart:
+        security_manager.raise_for_access(chart=target_object)
+    elif object_type == ObjectType.query:
+        if security_manager.is_admin():
+            return
+        if (
+            not target_object.created_by
+            or target_object.created_by != security_manager.current_user
+        ):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+                    message=f"Access denied for {object_type} {target_object.id}",
+                    level=ErrorLevel.ERROR,
+                )
+            )

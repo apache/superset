@@ -26,7 +26,11 @@ from superset.commands.tag.exceptions import (
     TagInvalidError,
     TagNotFoundError,
 )
-from superset.commands.tag.utils import to_object_model, to_object_type
+from superset.commands.tag.utils import (
+    raise_for_object_access,
+    to_object_model,
+    to_object_type,
+)
 from superset.daos.tag import TagDAO
 from superset.exceptions import SupersetSecurityException
 from superset.tags.models import ObjectType
@@ -99,17 +103,13 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
             if target_object is None:
                 # Object may have been deleted; allow tag cleanup
                 return
-            if hasattr(target_object, "raise_for_access"):
-                target_object.raise_for_access()
+            raise_for_object_access(object_type, target_object)
         except SupersetSecurityException:
             exceptions.append(
                 TaggedObjectDeleteFailedError(
                     f"Access denied for {object_type} {object_id}"
                 )
             )
-        except AttributeError:
-            # No request context (e.g. background task) — skip access check
-            pass
 
 
 class DeleteTagsCommand(DeleteMixin, BaseCommand):
