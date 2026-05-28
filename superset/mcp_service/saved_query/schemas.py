@@ -320,6 +320,70 @@ class CreateSavedQueryRequest(BaseModel):
         return v.strip()
 
 
+class UpdateSavedQueryRequest(BaseModel):
+    """Request schema for update_saved_query."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: int = Field(..., description="ID of the saved query to update.")
+    label: str | None = Field(
+        None,
+        min_length=1,
+        max_length=256,
+        description="New name for the saved query (optional).",
+    )
+    sql: str | None = Field(None, description="New SQL query text (optional).")
+    db_id: int | None = Field(
+        None,
+        description="New database connection ID (optional).",
+    )
+    schema: str | None = Field(
+        None,
+        description="New database schema (optional).",
+    )
+    description: str | None = Field(
+        None,
+        description="New description (optional).",
+    )
+    template_parameters: str | None = Field(
+        None,
+        description=("New JSON string of Jinja2 template parameters (optional)."),
+    )
+
+    @field_validator("sql")
+    @classmethod
+    def sql_not_empty(cls, v: str | None) -> str | None:
+        if v is not None and not v.strip():
+            raise ValueError("sql must not be empty")
+        return v.strip() if v is not None else v
+
+    @field_validator("label")
+    @classmethod
+    def label_not_empty(cls, v: str | None) -> str | None:
+        if v is not None and not v.strip():
+            raise ValueError("label must not be empty")
+        return v.strip() if v is not None else v
+
+
+class UpdateSavedQueryResponse(BaseModel):
+    """Response schema for update_saved_query."""
+
+    id: int | None = Field(
+        None,
+        description="Saved query ID. None if update failed.",
+    )
+    label: str | None = Field(None, description="Name of the saved query.")
+    sql: str | None = Field(None, description="SQL query text stored.")
+    db_id: int | None = Field(None, description="Database ID used.")
+    schema: str | None = Field(None, description="Database schema (if set).")
+    description: str | None = Field(None, description="Query description (if set).")
+    url: str | None = Field(
+        None,
+        description=("URL to open this saved query in SQL Lab. None if update failed."),
+    )
+    error: str | None = Field(None, description="Error message if update failed.")
+
+
 class CreateSavedQueryResponse(BaseModel):
     """Response schema for create_saved_query."""
 

@@ -188,6 +188,7 @@ SQL Lab Integration:
 - execute_sql: Execute SQL queries and get results (requires database_id and SQL access)
 - save_sql_query: Save a SQL query to Saved Queries list (requires write access)
 - create_saved_query: Create a saved query with label, SQL, and optional schema/description (requires write access)
+- update_saved_query: Update an existing saved query's label, SQL, db, schema, or description (requires write access)
 - open_sql_lab_with_context: Generate SQL Lab URL with pre-filled sql
 - list_saved_queries: List saved SQL queries with filtering and search (1-based pagination)
 - get_saved_query_info: Get saved query details by ID or UUID
@@ -427,8 +428,8 @@ Input format:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
 - Write tools (generate_chart, generate_dashboard, update_chart, create_virtual_dataset,
-  save_sql_query, create_saved_query, add_chart_to_existing_dashboard, update_chart_preview)
-  require write permissions. These tools are only listed for users who have the necessary
+  save_sql_query, create_saved_query, update_saved_query, add_chart_to_existing_dashboard,
+  update_chart_preview) require write permissions. These tools are only listed for users who have the necessary
   access. If a write tool does not appear in the tool list, the current user lacks write
   access.
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate
@@ -739,6 +740,7 @@ from superset.mcp_service.saved_query.tool import (  # noqa: F401, E402
     create_saved_query,
     get_saved_query_info,
     list_saved_queries,
+    update_saved_query,
 )
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,

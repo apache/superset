@@ -22,6 +22,7 @@ from superset.commands.exceptions import (
     CreateFailedError,
     DeleteFailedError,
     ImportFailedError,
+    UpdateFailedError,
 )
 
 
@@ -43,3 +44,7 @@ class SavedQueryInvalidError(CommandInvalidError):
 
 class SavedQueryCreateFailedError(CreateFailedError):
     message = _("Saved query could not be created.")
+
+
+class SavedQueryUpdateFailedError(UpdateFailedError):
+    message = _("Saved query could not be updated.")

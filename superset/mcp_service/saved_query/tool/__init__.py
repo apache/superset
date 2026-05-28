@@ -22,9 +22,13 @@ from superset.mcp_service.saved_query.tool.get_saved_query_info import (
     get_saved_query_info,
 )
 from superset.mcp_service.saved_query.tool.list_saved_queries import list_saved_queries
+from superset.mcp_service.saved_query.tool.update_saved_query import (
+    update_saved_query,
+)
 
 __all__ = [
     "create_saved_query",
     "get_saved_query_info",
     "list_saved_queries",
+    "update_saved_query",
 ]
