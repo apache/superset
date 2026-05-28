@@ -92,7 +92,7 @@ async def list_tags(
     try:
         from superset.daos.tag import TagDAO
 
-        def _serialize_tag(obj: object, _cols: list[str] | None) -> TagInfo | None:
+        def _serialize_tag(obj: object, cols: list[str] | None) -> TagInfo | None:
             return serialize_tag_object(obj)
 
         list_tool = ModelListCore(
