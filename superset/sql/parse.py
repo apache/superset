@@ -927,9 +927,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         present_bare: set[str] = set()
         present_qualified: set[str] = set()
         for t in self.tables:
-            bare = (t.table or "").lower()
-            if not bare:
-                continue
+            bare = t.table.lower()
             present_bare.add(bare)
             if t.schema:
                 present_qualified.add(f"{t.schema.lower()}.{bare}")
