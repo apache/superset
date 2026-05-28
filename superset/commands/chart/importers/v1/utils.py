@@ -109,13 +109,28 @@ def import_chart(
         if not needs_mutation or not can_write:
             return existing
         # Mutation path. Restore a soft-deleted match in place rather
-        # than hard-delete-and-replace: a hard delete cascades to
+        # than hard-delete-and-replace: a hard delete would cascade to
         # dashboard_slices and other FK references, breaking the
-        # dashboards that previously embedded this chart. Setting
-        # config["id"] = existing.id routes import_from_dict through
-        # UPDATE, preserving the PK and all references.
+        # dashboards that previously embedded this chart.
+        #
+        # How the restore lands as an UPDATE: clearing
+        # existing.deleted_at marks the in-session row dirty and the
+        # explicit flush emits the deleted_at = NULL UPDATE before
+        # Slice.import_from_dict (below) does its own query-by-uuid
+        # lookup. Without the flush we would be relying on autoflush
+        # ahead of that internal query — correct under default session
+        # config but a hidden contract; the explicit flush makes it
+        # robust. The lookup then finds the now-live row (the listener
+        # filters deleted_at IS NULL) and import_from_dict applies the
+        # config as field updates on the existing object, preserving
+        # the PK. Note: config["id"] is set defensively, but
+        # ImportExportMixin.import_from_dict strips it today because
+        # Slice.export_fields does not contain "id"; what actually
+        # binds to the existing row is the uuid uniqueness constraint
+        # used inside import_from_dict.
         if is_soft_deleted:
             existing.deleted_at = None
+            db.session.flush()
         config["id"] = existing.id
     elif not can_write:
         raise ImportFailedError(
