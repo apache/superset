@@ -27,7 +27,7 @@ import {
 import { sanitizeHtml } from './series';
 
 const seriesTypeRegex = new RegExp(
-  `(.+)(${ForecastSeriesEnum.ForecastLower}|${ForecastSeriesEnum.ForecastTrend}|${ForecastSeriesEnum.ForecastUpper})$`,
+  `(.+)(${ForecastSeriesEnum.ForecastLower}|${ForecastSeriesEnum.ForecastTrend}|${ForecastSeriesEnum.ForecastUpper}|${ForecastSeriesEnum.Anomaly})$`,
 );
 export const extractForecastSeriesContext = (
   seriesName: OptionName,
@@ -78,6 +78,8 @@ export const extractForecastValuesFromTooltipParams = (
         forecastValues.forecastLower = numericValue;
       if (context.type === ForecastSeriesEnum.ForecastUpper)
         forecastValues.forecastUpper = numericValue;
+      if (context.type === ForecastSeriesEnum.Anomaly)
+        forecastValues.anomaly = numericValue;
     }
   });
   return values;
@@ -89,6 +91,7 @@ export const formatForecastTooltipSeries = ({
   forecastTrend,
   forecastLower,
   forecastUpper,
+  anomaly,
   marker,
   formatter,
 }: ForecastValue & {
@@ -113,6 +116,10 @@ export const formatForecastTooltipSeries = ({
         forecastLower + forecastUpper,
       )})`;
     }
+  }
+  if (typeof anomaly === 'number') {
+    if (value) value += ' ';
+    value += `⚠ anomaly`;
   }
   return [name, value];
 };
@@ -158,6 +165,7 @@ export function reorderForecastSeries(row: SeriesOption[]): SeriesOption[] {
     [ForecastSeriesEnum.ForecastUpper]: 2,
     [ForecastSeriesEnum.ForecastTrend]: 3,
     [ForecastSeriesEnum.Observation]: 4,
+    [ForecastSeriesEnum.Anomaly]: 5,
   };
 
   // Check if any item needs reordering

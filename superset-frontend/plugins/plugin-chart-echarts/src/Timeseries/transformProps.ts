@@ -220,6 +220,7 @@ export default function transformProps(
     colorScheme,
     contributionMode,
     forecastEnabled,
+    anomalyDetectionEnabled,
     groupby,
     legendOrientation,
     legendType,
@@ -324,7 +325,8 @@ export default function transformProps(
   const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
     {
-      fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
+      fillNeighborValue:
+        stack && !forecastEnabled && !anomalyDetectionEnabled ? 0 : undefined,
       xAxis: xAxisLabel,
       extraMetricLabels,
       stack,

@@ -16,13 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import {
+  PostProcessingAnomalyDetection,
+  getXAxisLabel,
+} from '@superset-ui/core';
+import { PostProcessingFactory } from './types';
 
-export * from './sections';
-export * from './advancedAnalytics';
-export * from './annotationsAndLayers';
-export * from './anomalyDetection';
-export * from './forecastInterval';
-export * from './chartTitle';
-export * from './echartsTimeSeriesQuery';
-export * from './timeComparison';
-export * from './matrixify';
+export const anomalyDetectionOperator: PostProcessingFactory<
+  PostProcessingAnomalyDetection
+> = (formData, queryObject) => {
+  const xAxisLabel = getXAxisLabel(formData);
+  if (formData.anomalyDetectionEnabled && xAxisLabel) {
+    return {
+      operation: 'anomaly_detection',
+      options: {
+        method: formData.anomalyDetectionMethod || 'zscore',
+        rolling_window: parseInt(formData.anomalyDetectionRollingWindow, 10),
+        sensitivity: parseFloat(formData.anomalyDetectionSensitivity),
+        index: xAxisLabel,
+      },
+    };
+  }
+  return undefined;
+};
