@@ -24,11 +24,12 @@ from flask_appbuilder.api import rison as parse_rison
 from flask_appbuilder.security.decorators import has_access_api
 from flask_babel import lazy_gettext as _
 
-from superset import db, event_logger
+from superset import db, event_logger, security_manager
 from superset.commands.chart.exceptions import (
     TimeRangeAmbiguousError,
     TimeRangeParseFailError,
 )
+from superset.exceptions import SupersetSecurityException
 from superset.legacy import update_time_range
 from superset.models.slice import Slice
 from superset.superset_typing import FlaskResponse
@@ -89,6 +90,14 @@ class Api(BaseSupersetView):
         if slice_id := request.args.get("slice_id"):
             slc = db.session.query(Slice).filter_by(id=slice_id).one_or_none()
             if slc:
+                # Normalise unauthorised access to the same 404 the modern
+                # ChartRestApi.get returns, so callers cannot distinguish
+                # "chart does not exist" from "chart exists but is denied"
+                # by status code.
+                try:
+                    security_manager.raise_for_access(chart=slc)
+                except SupersetSecurityException:
+                    return self.json_response({}, 404)
                 form_data = slc.form_data.copy()
 
         update_time_range(form_data)
