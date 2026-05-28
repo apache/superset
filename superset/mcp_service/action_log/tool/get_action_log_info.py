@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.daos.log import LogDAO
 from superset.extensions import event_logger
 from superset.mcp_service.action_log.schemas import (
     ActionLogError,
@@ -61,8 +62,6 @@ async def get_action_log_info(
     await ctx.info("Retrieving action log: identifier=%s" % (request.identifier,))
 
     try:
-        from superset.daos.log import LogDAO
-
         with event_logger.log_context(action="mcp.get_action_log_info.lookup"):
             get_tool = ModelGetInfoCore(
                 dao_class=LogDAO,

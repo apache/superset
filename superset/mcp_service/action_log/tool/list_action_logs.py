@@ -24,6 +24,7 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+from superset.daos.log import LogDAO
 from superset.extensions import event_logger
 from superset.mcp_service.action_log.schemas import (
     ActionLogError,
@@ -84,8 +85,6 @@ async def list_action_logs(
     )
 
     try:
-        from superset.daos.log import LogDAO
-
         # Inject default 7-day dttm filter unless caller already provides one
         filters: list[ColumnOperator] = list(request.filters)
         has_dttm_filter = any(getattr(f, "col", None) == "dttm" for f in filters)

@@ -48,8 +48,6 @@ def _run(coro):
 
 def test_mcp_app_imports_successfully():
     """Test that the MCP app can be imported without errors."""
-    from superset.mcp_service.app import mcp
-
     assert mcp is not None
 
     tools = _run(mcp.list_tools())
@@ -61,8 +59,6 @@ def test_mcp_app_imports_successfully():
 
 def test_mcp_prompts_registered():
     """Test that MCP prompts are registered."""
-    from superset.mcp_service.app import mcp
-
     prompts = _run(mcp.list_prompts())
     assert len(prompts) > 0
 
@@ -74,8 +70,6 @@ def test_mcp_resources_registered():
     They require __init__.py in parent packages for find_packages() to include
     them in distributions. This test ensures all expected resources are found.
     """
-    from superset.mcp_service.app import mcp
-
     resources = _run(mcp.list_resources())
     assert len(resources) > 0, "No MCP resources registered"
 
@@ -205,8 +199,6 @@ def test_disabled_tools_read_from_flask_app_config() -> None:
     """MCP_DISABLED_TOOLS is read from flask_app.config, matching the standard
     Superset pattern where users set overrides in superset_config.py, which
     create_app() loads into Flask config before any command runs."""
-    from superset.mcp_service.app import init_fastmcp_server, mcp
-
     flask_app = _make_flask_app_mock({"health_check"})
 
     with (

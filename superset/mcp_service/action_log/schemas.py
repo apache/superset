@@ -40,6 +40,7 @@ from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
 )
+from superset.utils import json as json_utils
 
 DEFAULT_LOG_COLUMNS: list[str] = ["id", "action", "user_id", "dttm"]
 ALL_LOG_COLUMNS: list[str] = [
@@ -111,8 +112,9 @@ class ActionLogInfo(BaseModel):
     dttm: str | datetime | None = Field(None, description="Timestamp of the action")
     dashboard_id: int | None = Field(None, description="Associated dashboard ID")
     slice_id: int | None = Field(None, description="Associated chart/slice ID")
-    json: Any = Field(
-        None, description="JSON payload of the action (user-controlled, sanitized)"
+    json: str | None = Field(
+        None,
+        description="JSON payload (user-controlled, wrapped in UNTRUSTED-CONTENT)",
     )
 
     model_config = ConfigDict(
@@ -123,8 +125,6 @@ class ActionLogInfo(BaseModel):
 
     def model_post_init(self, __context: Any) -> None:
         if isinstance(self.dttm, datetime) and self.dttm.tzinfo is None:
-            from datetime import timezone
-
             object.__setattr__(self, "dttm", self.dttm.replace(tzinfo=timezone.utc))
 
     @model_serializer(mode="wrap")
@@ -239,8 +239,6 @@ class ActionLogError(BaseModel):
 
     @classmethod
     def create(cls, error: str, error_type: str) -> "ActionLogError":
-        from datetime import timezone
-
         return cls(
             error=error,
             error_type=error_type,
@@ -257,33 +255,31 @@ class GetActionLogInfoRequest(BaseModel):
     ]
 
 
-def _sanitize_log_json(raw: Any) -> Any:
-    """Parse the stored log JSON string and sanitize string leaves.
+def _sanitize_log_json(raw: Any) -> str | None:
+    """Serialize the log JSON blob to a canonical string and wrap it in
+    UNTRUSTED-CONTENT delimiters.
 
-    Preserves the JSON shape so callers can inspect individual fields; wraps
-    every string leaf in UNTRUSTED-CONTENT delimiters so the payload cannot
-    inject instructions into the LLM context. Dict keys are delimiter-escaped
-    (not wrapped) to keep the structure navigable.
-    Falls back to sanitizing the raw string when it is not valid JSON.
-
-    Passes excluded_field_names=frozenset() so that no field name is exempted
-    from wrapping — the entire blob is user-controlled and must be treated as
-    untrusted, including fields like 'url', 'schema', and 'uuid' that the
-    default exclusion list would otherwise only escape rather than wrap.
+    The entire JSON blob — keys and values alike — is user-controlled and must
+    be treated as untrusted. Wrapping the canonical JSON string (rather than
+    processing individual dict leaves) closes the dict-key injection gap: no
+    key can inject instructions because every byte of the blob is enclosed
+    within the trust boundary.
+    Falls back to wrapping the raw string when the payload is not valid JSON.
     """
     if raw is None:
         return None
     if isinstance(raw, str):
         try:
-            from superset.utils import json as json_utils  # noqa: PLC0415
-
-            parsed = json_utils.loads(raw)
+            canonical = json_utils.dumps(json_utils.loads(raw))
         except (ValueError, TypeError):
-            parsed = raw
+            canonical = raw
     else:
-        parsed = raw
+        try:
+            canonical = json_utils.dumps(raw)
+        except (ValueError, TypeError):
+            canonical = str(raw)
     return sanitize_for_llm_context(
-        parsed,
+        canonical,
         field_path=("json",),
         excluded_field_names=frozenset(),
     )
@@ -294,8 +290,6 @@ def serialize_action_log_object(log: Any) -> ActionLogInfo | None:
         return None
     dttm = getattr(log, "dttm", None)
     if isinstance(dttm, datetime) and dttm.tzinfo is None:
-        from datetime import timezone
-
         dttm = dttm.replace(tzinfo=timezone.utc)
     return ActionLogInfo(
         id=getattr(log, "id", None),

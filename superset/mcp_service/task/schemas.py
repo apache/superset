@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -213,8 +213,6 @@ class TaskError(BaseModel):
 
     @classmethod
     def create(cls, error: str, error_type: str) -> "TaskError":
-        from datetime import timezone
-
         return cls(
             error=error,
             error_type=error_type,
@@ -234,8 +232,6 @@ class GetTaskInfoRequest(BaseModel):
 def serialize_task_object(task: Any) -> TaskInfo | None:
     if not task:
         return None
-    from datetime import timezone
-
     uuid_val = getattr(task, "uuid", None)
     changed_on = getattr(task, "changed_on", None)
     if isinstance(changed_on, datetime) and changed_on.tzinfo is None:

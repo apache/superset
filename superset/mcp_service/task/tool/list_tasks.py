@@ -22,6 +22,7 @@ import logging
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.daos.tasks import TaskDAO
 from superset.extensions import event_logger
 from superset.mcp_service.mcp_core import ModelListCore
 from superset.mcp_service.task.schemas import (
@@ -82,7 +83,6 @@ async def list_tasks(
     )
 
     try:
-        from superset.daos.tasks import TaskDAO
 
         def _serialize(obj: object, cols: list[str] | None) -> TaskInfo | None:
             return serialize_task_object(obj)

@@ -23,6 +23,7 @@ from datetime import datetime, timezone
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.daos.tasks import TaskDAO
 from superset.extensions import event_logger
 from superset.mcp_service.mcp_core import ModelGetInfoCore
 from superset.mcp_service.task.schemas import (
@@ -68,8 +69,6 @@ async def get_task_info(
     await ctx.info("Retrieving task: identifier=%s" % (request.identifier,))
 
     try:
-        from superset.daos.tasks import TaskDAO
-
         with event_logger.log_context(action="mcp.get_task_info.lookup"):
             # ModelGetInfoCore handles int ID and UUID string automatically.
             # TaskDAO.base_filter (TaskFilter) enforces subscription-based access.

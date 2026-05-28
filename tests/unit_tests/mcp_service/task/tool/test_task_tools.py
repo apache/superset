@@ -19,7 +19,7 @@
 
 import uuid
 from datetime import datetime, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
@@ -63,8 +63,6 @@ def mcp_server():
 
 @pytest.fixture(autouse=True)
 def mock_auth():
-    from unittest.mock import Mock
-
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
         mock_user = Mock()
         mock_user.id = 1
