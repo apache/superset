@@ -155,7 +155,7 @@ msgid " to mark a column as a time column"
 msgstr " um eine Spalte als Zeitspalte zu markieren"
 
 msgid " to open SQL Lab. From there you can save the query as a dataset."
-msgstr ", um SQL-Lab zu öffnen. Von dort aus können Sie die Abfrage als Dataset speichern."
+msgstr ", um SQL-Lab zu öffnen. Von dort aus können Sie die Abfrage als Datensatz speichern."
 
 msgid " to see details."
 msgstr ", um Details anzuzeigen."
@@ -243,13 +243,13 @@ msgstr ""
 "Bitte überprüfen Sie Ihre Anfrage.\n"
 "Fehler: %(ex)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s %s"
-msgstr "%s%s"
+msgstr "%s %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s ENCRYPTED EXTRA"
-msgstr "Sicherheit extra"
+msgstr "%s VERSCHLÜSSELT EXTRA"
 
 #, python-format
 msgid "%s Error"
@@ -259,9 +259,9 @@ msgstr "%s Fehler"
 msgid "%s PASSWORD"
 msgstr "%s PASSWORT"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s Physical"
-msgstr "Physisch"
+msgstr "%s Physisch"
 
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
@@ -317,27 +317,27 @@ msgstr[1] ""
 msgid "%s column(s)"
 msgstr "%s Spalte(n)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
-msgstr[0] "Vor 1 Tag"
-msgstr[1] ""
+msgstr[0] "vor %s Tag"
+msgstr[1] "vor %s Tagen"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s hr ago"
 msgid_plural "%s hr ago"
-msgstr[0] "%s Zeile"
-msgstr[1] "%s Zeilen"
+msgstr[0] "vor %s Stunde"
+msgstr[1] "vor %s Stunden"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s imported"
-msgstr "Datensatz importiert"
+msgstr "%s importiert"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s item"
 msgid_plural "%s items"
-msgstr[0] "%s Option(en)"
-msgstr[1] ""
+msgstr[0] "%s Element"
+msgstr[1] "%s Elemente"
 
 #, python-format
 msgid "%s item(s)"
@@ -350,17 +350,17 @@ msgstr ""
 "%s Elemente konnten nicht getaggt werden, weil Sie nicht über Bearbeitungsrechte für alle "
 "ausgewählten Objekte verfügen."
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "Metrik anzeigen"
-msgstr[1] ""
+msgstr[0] "%s Metrik"
+msgstr[1] "%s Metriken"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s min ago"
 msgid_plural "%s min ago"
-msgstr[0] "vor 1 Monat"
-msgstr[1] ""
+msgstr[0] "vor % Minute"
+msgstr[1] "vor %s Minuten"
 
 #, python-format
 msgid "%s operator(s)"
@@ -376,37 +376,37 @@ msgstr[1] "%s Optionen"
 msgid "%s option(s)"
 msgstr "%s Option(en)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "Spalten anpassen"
-msgstr[1] ""
+msgstr[0] "%s von %s Spalte"
+msgstr[1] "%s von %s Spalten"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "Metrik anzeigen"
-msgstr[1] ""
+msgstr[0] "%s von %s Metrik"
+msgstr[1] "%s von %s Metriken"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s out of %s selected"
-msgstr "%s ausgewählt"
+msgstr "%s von %s ausgewählt"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s recipients"
 msgstr "%s Empfänger"
 
 #, python-format
 msgid "%s record"
 msgid_plural "%s records..."
-msgstr[0] "%s Datensatz"
-msgstr[1] "%s Datensätze..."
+msgstr[0] "%s Eintrag"
+msgstr[1] "%s Einträge..."
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s record..."
 msgid_plural "%s records..."
-msgstr[0] "%s Fehler"
-msgstr[1] ""
+msgstr[0] "%s Eintrag..."
+msgstr[1] "%s Einträge..."
 
 #, python-format
 msgid "%s row"
@@ -417,18 +417,18 @@ msgstr[1] "%s Zeilen"
 #, fuzzy, python-format
 msgid "%s s ago"
 msgid_plural "%s s ago"
-msgstr[0] "Vor 30 Tagen"
-msgstr[1] ""
+msgstr[0] "vor %ss"
+msgstr[1] "vor %ss"
 
 #, python-format
 msgid "%s saved metric(s)"
 msgstr "%s gespeicherte Metrik(en)"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%s second"
 msgid_plural "%s seconds"
-msgstr[0] "5 Sekunden"
-msgstr[1] ""
+msgstr[0] "%s Sekunde"
+msgstr[1] "%s Sekunden"
 
 #, python-format
 msgid "%s semantic view(s) added"
@@ -520,9 +520,9 @@ msgstr ""
 msgid "... and %d more"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "... and %s more records"
-msgstr "Suche %s Datensätze"
+msgstr "... und %s weitere Einträge"
 
 #, python-format
 msgid "... and %s others"
@@ -586,7 +586,7 @@ msgid "1 year start frequency"
 msgstr "jährlich zum Jahresbeginn"
 
 msgid "10 minute"
-msgstr "10 Minuten"
+msgstr "10 MinutSuche %s Datensätzeen"
 
 msgid "10 seconds"
 msgstr "10 Sekunden"
@@ -657,7 +657,7 @@ msgstr "2D"
 msgid "3 letter code of the country"
 msgstr "3-Buchstaben-Code des Landes"
 
-msgid "3 years"
+msgid "3 years"Suche %s Datensätze
 msgstr "3 Jahre"
 
 msgid "3 years ago"
@@ -881,7 +881,7 @@ msgid "A report named \"%(name)s\" already exists"
 msgstr "Ein Bericht mit dem Namen \"%(name)s\" ist bereits vorhanden"
 
 msgid "A reusable dataset will be saved with your chart."
-msgstr "Ein wiederverwendbares Dataset wird mit Ihrem Diagramm gespeichert."
+msgstr "Ein wiederverwendbarer Datensatz wird mit Ihrem Diagramm gespeichert."
 
 msgid "A set of parameters that become available in the query using Jinja templating syntax"
 msgstr ""
@@ -912,34 +912,31 @@ msgstr ""
 "Werten zu verstehen.\n"
 "          Diese Zwischenwerte können entweder zeitbasiert oder kategoriebasiert sein."
 
-#, fuzzy
 msgid "A-Z"
-msgstr "Schlüssel a-z"
+msgstr "A-Z"
 
 msgid "AND"
 msgstr "UND"
 
-#, fuzzy
 msgid "API Key Created"
-msgstr "wurde erstellt"
+msgstr "API-Schlüssel erstellt"
 
-#, fuzzy
 msgid "API Keys"
-msgstr "Privater Schlüssel"
+msgstr "API-Schlüssel"
 
-#, fuzzy
 msgid "API key created successfully"
-msgstr "Der Bericht wurde erstellt"
+msgstr "API-Schlüssel erfolgreich erstellt"
 
-#, fuzzy
 msgid "API key name is required"
-msgstr "Name ist erforderlich"
+msgstr "API-Schlüsselname ist erforderlich"
 
 msgid "API key revoked successfully"
-msgstr ""
+msgstr "API-Schlüssel erfolgreich widerrufen"
 
 msgid "API keys allow scoped programmatic access to Superset."
 msgstr ""
+"API-Schlüssel ermöglichen einen programmgesteuerten Zugriff auf Superset "
+"mit eingeschränkten Zugriffsrechten."
 
 msgid "APPLY"
 msgstr "ANWENDEN"
@@ -953,13 +950,11 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AUG"
 
-#, fuzzy
 msgid "Aborted"
-msgstr "Gestartet"
+msgstr "Abgebrochen"
 
-#, fuzzy
 msgid "Aborting"
-msgstr "In Bearbeitung"
+msgstr "Wird abgebrochen"
 
 msgid "About"
 msgstr "Über"
@@ -1059,7 +1054,7 @@ msgid "Add a Plugin"
 msgstr "Ein Plugin hinzufügen"
 
 msgid "Add a dataset"
-msgstr "Ein Dataset hinzufügen"
+msgstr "Einen Datensatz hinzufügen"
 
 msgid "Add a new tab"
 msgstr "Eine neue Registerkarte hinzufügen"
@@ -1089,10 +1084,10 @@ msgid "Add another notification method"
 msgstr "Eine weitere Benachrichtigungsmethode hinzufügen"
 
 msgid "Add calculated columns to dataset in \"Edit datasource\" modal"
-msgstr "Berechnete Spalten im Dialog \"Datenquelle bearbeiten\" zum Dataset hinzufügen"
+msgstr "Berechnete Spalten im Dialog \"Datenquelle bearbeiten\" zum Datensatz hinzufügen"
 
 msgid "Add calculated temporal columns to dataset in \"Edit datasource\" modal"
-msgstr "Berechnete Zeitspalten im Dialog \"Datenquelle bearbeiten\" zum Dataset hinzufügen"
+msgstr "Berechnete Zeitspalten im Dialog \"Datenquelle bearbeiten\" zum Datensatz hinzufügen"
 
 msgid "Add certification details for this dashboard"
 msgstr "Zertifizierungsdetails für dieses Dashboard hinzufügen"
@@ -1100,9 +1095,8 @@ msgstr "Zertifizierungsdetails für dieses Dashboard hinzufügen"
 msgid "Add color for positive/negative change"
 msgstr "Farbe für positive/negative Veränderung hinzufügen"
 
-#, fuzzy
 msgid "Add colors to cell bars for +/- for all columns"
-msgstr "Farben zu den Zellenbalken für +/- hinzufügen"
+msgstr "Farben zu den Zellenbalken für +/- für alle Spalten hinzufügen"
 
 msgid "Add cross-filter"
 msgstr "Kreuzfilter hinzufügen"
@@ -1111,7 +1105,7 @@ msgid "Add custom scoping"
 msgstr "Benutzerdefiniertes Scoping hinzufügen"
 
 msgid "Add dataset columns here to group the pivot table columns."
-msgstr "Fügen Sie hier Dataset-Spalten hinzu, um die Pivot-Tabellenspalten zu gruppieren."
+msgstr "Fügen Sie hier Datensatzspalten hinzu, um die Pivot-Tabellenspalten zu gruppieren."
 
 msgid "Add delivery method"
 msgstr "Übermittlungsmethode hinzufügen"
@@ -1159,7 +1153,7 @@ msgid "Add metric"
 msgstr "Metrik hinzufügen"
 
 msgid "Add metrics to dataset in \"Edit datasource\" modal"
-msgstr "Fügen Sie Metriken im Dialog \"Datenquelle bearbeiten\" zum Dataset hinzu"
+msgstr "Fügen Sie Metriken im Dialog \"Datenquelle bearbeiten\" zum Datensatz hinzu"
 
 msgid "Add new color formatter"
 msgstr "Neuen Farbformatierer hinzufügen"
@@ -1213,8 +1207,8 @@ msgstr "Hinzugefügt"
 #, python-format
 msgid "Added 1 new column to the virtual dataset"
 msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Dem virtuellen Dataset wurde 1 neue Spalte hinzugefügt"
-msgstr[1] "Dem virtuellen Dataset wurden %s neue Spalten hinzugefügt"
+msgstr[0] "Dem virtuellen Datensatz wurde 1 neue Spalte hinzugefügt"
+msgstr[1] "Dem virtuellen Datensatz wurden %s neue Spalten hinzugefügt"
 
 #, python-format
 msgid "Added to 1 dashboard"
@@ -1302,7 +1296,7 @@ msgid "":
 "After making the changes, copy the query and paste in the virtual dataset SQL snippet settings."
 msgstr ""
 "Kopieren Sie die Abfrage nach den Änderungen und fügen Sie sie in die Einstellungen für das SQL-"
-"Snippet des virtuellen Datasets ein."
+"Snippet des virtuellen Datensatzes ein."
 
 msgid "Aggregate"
 msgstr "Aggregieren"
@@ -1433,9 +1427,8 @@ msgstr "Alle Diagramme"
 msgid "All charts/global scoping"
 msgstr "Alle Diagramme/Global Scoping"
 
-#, fuzzy
 msgid "All dimensions"
-msgstr "Dimensionen"
+msgstr "Alle Dimensionen"
 
 msgid "All filters"
 msgstr "Alle Filter"
@@ -1444,7 +1437,7 @@ msgid "All panels"
 msgstr "Alle Bereiche"
 
 msgid "All records"
-msgstr "Alle Datensätze"
+msgstr "Alle Einträge"
 
 msgid "Allow CREATE TABLE AS"
 msgstr "CREATE TABLE AS zulassen"
@@ -1555,7 +1548,7 @@ msgid "An error occurred"
 msgstr "Ein Fehler ist aufgetreten"
 
 msgid "An error occurred saving dataset"
-msgstr "Beim Speichern des Datasets ist ein Fehler aufgetreten"
+msgstr "Beim Speichern des Datensatzes ist ein Fehler aufgetreten"
 
 msgid "An error occurred when running alert query"
 msgstr "Bei der Ausführung der Alarm-Abfrage ist ein Fehler aufgetreten"
@@ -1611,11 +1604,11 @@ msgstr ""
 "Beim Erweitern des Tabellenschemas ist ein Fehler aufgetreten. Wenden Sie sich an Ihre*n "
 "Administrator*in."
 
-#, fuzzy, python-format
-msgid "An error occurred while fetching %s"
-msgstr "Beim Abrufen von %s ist ein Fehler aufgetreten: %s"
-
 #, python-format
+msgid "An error occurred while fetching %s"
+msgstr "Beim Abrufen von %s ist ein Fehler aufgetreten"
+
+#, fuzzy, python-format
 msgid "An error occurred while fetching %s info: %s"
 msgstr "Beim Abrufen von %s ist ein Fehler aufgetreten: %s"
 
@@ -1653,9 +1646,8 @@ msgstr "Beim Abrufen verfügbarer CSS-Vorlagen ist ein Fehler aufgetreten"
 msgid "An error occurred while fetching chart owners values: %s"
 msgstr "Beim Abrufen von Diagrammbesitzer*innenwerten ist ein Fehler aufgetreten: %s"
 
-#, fuzzy
 msgid "An error occurred while fetching connections"
-msgstr "Fehler bei Abruf von Funktionsnamen."
+msgstr "Beim Abrufen von Verbindungen ist ein Fehler aufgetreten"
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching created by values: %s"
@@ -1682,11 +1674,11 @@ msgstr "Beim Abrufen von Datenbankwerten ist ein Fehler aufgetreten: %s"
 
 #, python-format
 msgid "An error occurred while fetching dataset datasource values: %s"
-msgstr "Beim Abrufen von Werten aus der Datenquelle des Datasets ist ein Fehler aufgetreten: %s"
+msgstr "Beim Abrufen von Werten aus der Datenquelle des Datensatzes ist ein Fehler aufgetreten: %s"
 
 #, python-format
 msgid "An error occurred while fetching dataset related data: %s"
-msgstr "Beim Abrufen der Daten des Datasets ist ein Fehler aufgetreten: %s"
+msgstr "Beim Abrufen der Daten des Datensatzes ist ein Fehler aufgetreten: %s"
 
 msgid "An error occurred while fetching function names."
 msgstr "Fehler bei Abruf von Funktionsnamen."
@@ -1765,7 +1757,7 @@ msgid "An error occurred while loading the SQL"
 msgstr "Beim Laden des SQL ist ein Fehler aufgetreten"
 
 msgid "An error occurred while overwriting the dataset"
-msgstr "Beim Überschreiben des Datasets ist ein Fehler aufgetreten"
+msgstr "Beim Überschreiben des Datensatzes ist ein Fehler aufgetreten"
 
 msgid "An error occurred while parsing the key."
 msgstr "Beim Parsen des Schlüssels ist ein Fehler aufgetreten."
@@ -2091,7 +2083,7 @@ msgid "Are you sure you want to delete the selected users?"
 msgstr "Möchten Sie die ausgewählten Benutzer*innen wirklich löschen?"
 
 msgid "Are you sure you want to overwrite this dataset?"
-msgstr "Möchten Sie dieses Dataset wirklich überschreiben?"
+msgstr "Möchten Sie diesen Datensatz wirklich überschreiben?"
 
 msgid ""
 "Are you sure you want to remove the system dark theme? The application will fall back to the "
@@ -2703,7 +2695,7 @@ msgid "Cannot access the query"
 msgstr "Zugriff auf die Abfrage nicht möglich"
 
 msgid "Cannot delete a database that has datasets attached"
-msgstr "Eine Datenbank mit verknüpften Datasets kann nicht gelöscht werden"
+msgstr "Eine Datenbank mit verknüpften Datensätzen kann nicht gelöscht werden"
 
 msgid "Cannot delete system themes"
 msgstr "Systemdesigns können nicht gelöscht werden"
@@ -2848,14 +2840,14 @@ msgid ""
 "Changing the dataset may break the chart if the chart relies on columns or metadata that does "
 "not exist in the target dataset"
 msgstr ""
-"Eine Änderung des Datasets kann zu Fehlern im Diagramm führen, wenn dieses auf Spalten oder "
-"Metadaten basiert, die im Zieldataset nicht vorhanden sind"
+"Eine Änderung des Datensatzes kann zu Fehlern im Diagramm führen, wenn dieses auf Spalten oder "
+"Metadaten basiert, die im Zieldatensatz nicht vorhanden sind"
 
 msgid ""
 "Changing these settings will affect all charts using this dataset, including charts owned by "
 "other people."
 msgstr ""
-"Eine Änderung dieser Einstellungen wirkt sich auf alle Diagramme aus, die dieses Dataset "
+"Eine Änderung dieser Einstellungen wirkt sich auf alle Diagramme aus, die diesen Datensatz "
 "verwenden, einschließlich der Diagramme anderer Nutzer."
 
 msgid "Changing this Dashboard is forbidden"
@@ -2868,10 +2860,10 @@ msgid "Changing this control takes effect instantly"
 msgstr "Das Ändern dieses Steuerelements wird sofort wirksam"
 
 msgid "Changing this dataset is forbidden"
-msgstr "Das Ändern dieses Datasets ist verboten"
+msgstr "Das Ändern dieses Datensatzes ist verboten"
 
 msgid "Changing this dataset is forbidden."
-msgstr "Das Ändern dieses Datasets ist verboten."
+msgstr "Das Ändern dieses Datensatzes ist verboten."
 
 msgid "Changing this datasource is forbidden"
 msgstr "Das Ändern dieser Datenquelle ist verboten"
@@ -3010,7 +3002,7 @@ msgid "Chart type"
 msgstr "Diagrammtyp"
 
 msgid "Chart type requires a dataset"
-msgstr "Diagrammtyp erfordert ein Dataset"
+msgstr "Diagrammtyp erfordert einen Datensatz"
 
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr ""
@@ -3123,7 +3115,7 @@ msgid "Choose numbers between %(min)s and %(max)s"
 msgstr "Wählen Sie Zahlen zwischen %(min)s und %(max)s"
 
 msgid "Choose one of the available databases from the panel on the left."
-msgstr "Wählen Sie einen der verfügbaren Datasets aus dem Bereich auf der linken Seite."
+msgstr "Wählen Sie einen der verfügbaren Datensätze aus dem Bereich auf der linken Seite."
 
 msgid "Choose one of the available databases on the left panel."
 msgstr "Wählen Sie eine der verfügbaren Datenbanken auf der linken Seite."
@@ -3185,7 +3177,7 @@ msgid ""
 "Classic row-by-column spreadsheet like view of a dataset. Use tables to showcase a view into "
 "the underlying data or to show aggregated metrics."
 msgstr ""
-"Klassische Zeilen-für-Spalten-Tabellenansicht eines Datasets. Verwenden Sie Tabellen, um eine "
+"Klassische Zeilen-für-Spalten-Tabellenansicht eines Datensatzes. Verwenden Sie Tabellen, um eine "
 "Ansicht der zugrunde liegenden Daten oder aggregierter Metriken anzuzeigen."
 
 msgid "Clause"
@@ -3501,7 +3493,7 @@ msgstr "Der Ordner für Spalten darf nur Spaltenelemente enthalten"
 
 #, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
-msgstr "Im Dataset fehlende Spalten: %(invalid_columns)s"
+msgstr "Fehlende Spalten im Datensatz: %(invalid_columns)s"
 
 #, python-format
 msgid "Columns missing in datasource: %(invalid_columns)s"
@@ -3898,7 +3890,7 @@ msgid ""
 "Create a dataset to begin visualizing your data as a chart or go to\n"
 "          SQL Lab to query your data."
 msgstr ""
-"Erstellen Sie ein Dataset, um mit der Visualisierung Ihrer Daten als Diagramm zu beginnen, oder "
+"Erstellen Sie einen Datensatz, um mit der Visualisierung Ihrer Daten als Diagramm zu beginnen, oder "
 "wechseln Sie zu\n"
 "          SQL-Lab, um Ihre Daten abzufragen."
 
@@ -3909,7 +3901,7 @@ msgid "Create a new chart"
 msgstr "Neues Diagramm erstellen"
 
 msgid "Create and explore dataset"
-msgstr "Dataset erstellen and erkunden"
+msgstr "Datensatz erstellen and erkunden"
 
 msgid "Create chart"
 msgstr "Diagramm erstellen"
@@ -3918,7 +3910,7 @@ msgid "Create dataframe index"
 msgstr "DataFrame-Index erstellen"
 
 msgid "Create dataset"
-msgstr "Dataset erstellen"
+msgstr "Datensatz erstellen"
 
 msgid "Create new chart"
 msgstr "Neues Diagramm erstellen"
@@ -3959,7 +3951,7 @@ msgid "Cross-filter column"
 msgstr "Kreuzfilterung aktivieren"
 
 msgid "Cross-filter will be applied to all of the charts that use this dataset."
-msgstr "Der Kreuzfilter wird auf alle Diagramme angewendet, die dieses Dataset verwenden."
+msgstr "Der Kreuzfilter wird auf alle Diagramme angewendet, die diesen Datensatz verwenden."
 
 msgid "Cross-filtering is not enabled for this dashboard."
 msgstr "Die Kreuzfilterung ist für dieses Dashboard nicht aktiviert."
@@ -4030,7 +4022,7 @@ msgid "Custom SQL"
 msgstr "Benutzerdefiniertes SQL"
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
-msgstr "Benutzerdefinierte SQL-Ad-hoc-Metriken sind für diesen Datasatz nicht aktiviert"
+msgstr "Benutzerdefinierte SQL-Ad-hoc-Metriken sind für diesen Datensatz nicht aktiviert"
 
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr ""
@@ -4428,67 +4420,67 @@ msgid "Databases"
 msgstr "Datenbanken"
 
 msgid "Dataset"
-msgstr "Dataset"
+msgstr "Datensatz"
 
 #, python-format
 msgid "Dataset %(table)s already exists"
-msgstr "Das Dataset %(table)s existiert bereits"
+msgstr "Der Datensatz %(table)s existiert bereits"
 
 msgid "Dataset Name"
-msgstr "Dataset-Name"
+msgstr "Datensatzname"
 
 msgid "Dataset column delete failed."
-msgstr "Fehler beim Löschen der Dataset-Spalte."
+msgstr "Fehler beim Löschen der Datensatzspalte."
 
 msgid "Dataset column not found."
-msgstr "Dataset-Spalte nicht gefunden."
+msgstr "Datensatzspalte nicht gefunden."
 
 msgid "Dataset could not be created."
-msgstr "Dataset konnte nicht erstellt werden."
+msgstr "Datensatz konnte nicht erstellt werden."
 
 msgid "Dataset could not be duplicated."
-msgstr "Das Dataset konnte nicht dupliziert werden."
+msgstr "Der Datensatz konnte nicht dupliziert werden."
 
 msgid "Dataset could not be updated."
-msgstr "Das Dataset konnte nicht aktualisiert werden."
+msgstr "Der Datensatz konnte nicht aktualisiert werden."
 
 msgid "Dataset does not exist"
-msgstr "Das Dataset existiert nicht"
+msgstr "Der Datensatz existiert nicht"
 
 msgid "Dataset is required"
-msgstr "Dataset ist erforderlich"
+msgstr "Datensatz ist erforderlich"
 
 msgid "Dataset metric delete failed."
-msgstr "Fehler beim Löschen der Dataset-Metrik."
+msgstr "Fehler beim Löschen der Datensatzmetrik."
 
 msgid "Dataset metric not found."
-msgstr "Dataset-Metrik nicht gefunden."
+msgstr "Datensatzmetrik nicht gefunden."
 
 msgid "Dataset name"
-msgstr "Dataset-Name"
+msgstr "Datensatzname"
 
 msgid "Dataset parameters are invalid."
-msgstr "Die Dataset-Parameter sind ungültig."
+msgstr "Die Datensatzparameter sind ungültig."
 
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
-msgstr "Das Dataset-Schema ist ungültig, verursacht durch: %(error)s"
+msgstr "Das Datensatzschema ist ungültig, verursacht durch: %(error)s"
 
 msgid "Datasets"
-msgstr "Datasets"
+msgstr "Datensätze"
 
 msgid ""
 "Datasets can be created from database tables or SQL queries. Select a database table to the "
 "left or "
 msgstr ""
-"Datasets können aus Datenbanktabellen oder SQL-Abfragen erstellt werden. Wählen Sie links "
+"Datensätze können aus Datenbanktabellen oder SQL-Abfragen erstellt werden. Wählen Sie links "
 "eine Datenbanktabelle aus oder "
 
 msgid "Datasets could not be deleted."
-msgstr "Die Datasets konnten nicht gelöscht werden."
+msgstr "Die Datensätze konnten nicht gelöscht werden."
 
 msgid "Datasets do not contain a temporal column"
-msgstr "Die Datasets enthalten keine temporale Spalte"
+msgstr "Die Datensätze enthalten keine temporale Spalte"
 
 msgid "Datasource"
 msgstr "Datenquelle"
@@ -4881,8 +4873,8 @@ msgstr[1] "%(num)d Dashboards gelöscht"
 #, python-format
 msgid "Deleted %(num)d dataset"
 msgid_plural "Deleted %(num)d datasets"
-msgstr[0] "%(num)d Dataset gelöscht"
-msgstr[1] "%(num)d Datasets gelöscht"
+msgstr[0] "%(num)d Datensatz gelöscht"
+msgstr[1] "%(num)d Datensätze gelöscht"
 
 #, python-format
 msgid "Deleted %(num)d report schedule"
@@ -5367,7 +5359,7 @@ msgstr ""
 "und Metriken eine eindeutige Beschriftung haben."
 
 msgid "Duplicate dataset"
-msgstr "Dataset duplizieren"
+msgstr "Datensatz duplizieren"
 
 #, python-format
 msgid "Duplicate folder name: %s"
@@ -5400,7 +5392,7 @@ msgid ""
 "Note this defaults to the dataset's timeout if undefined."
 msgstr ""
 "Dauer (in Sekunden) des Caching-Timeouts für dieses Diagramm. Setzen Sie diesen auf -1 um das "
-"Coaching zu umgehen. Beachten Sie, dass standardmäßig das Timeout des Datasets verwendet wird, "
+"Coaching zu umgehen. Beachten Sie, dass standardmäßig das Timeout des Datensatzes verwendet wird, "
 "wenn kein Wert definiert wurde."
 
 msgid ""
@@ -5460,7 +5452,7 @@ msgid "Dynamically search all filter values"
 msgstr "Alle Filterwerte dynamisch durchsuchen"
 
 msgid "Dynamically select grouping columns from a dataset"
-msgstr "Gruppierungsspalten dynamisch aus einem Dataset auswählen"
+msgstr "Gruppierungsspalten dynamisch aus einem Datensatz auswählen"
 
 msgid "ECharts"
 msgstr "ECharts"
@@ -5504,7 +5496,7 @@ msgid "Edit Dashboard"
 msgstr "Dashboard bearbeiten"
 
 msgid "Edit Dataset "
-msgstr "Dataset bearbeiten "
+msgstr "Datensatz bearbeiten "
 
 msgid "Edit Group"
 msgstr "Gruppe bearbeiten"
@@ -5815,7 +5807,7 @@ msgid "Enter fullscreen"
 msgstr "Vollbildmodus aktivieren"
 
 msgid "Enter minimum and maximum values for the range filter"
-msgstr "Mindest- und Höchstwer für den Bereichsfilter eingeben"
+msgstr "Mindest- und Höchstwert für den Bereichsfilter eingeben"
 
 msgid "Enter report name"
 msgstr "Name des Berichts"
@@ -5948,7 +5940,7 @@ msgid "Error reading Excel file"
 msgstr "Fehler beim Lesen einer Excel-Datei"
 
 msgid "Error saving dataset"
-msgstr "Fehler beim Speichern des Datasets"
+msgstr "Fehler beim Speichern des Datensatzes"
 
 msgid "Error unfaving chart"
 msgstr "Fehler beim Entfernen des Diagramms aus den Favoriten"
@@ -5968,7 +5960,7 @@ msgstr "Fehler beim Abrufen von Rollen"
 
 #, python-format
 msgid "Error while rendering virtual dataset query: %(msg)s"
-msgstr "Fehler bei Anzeige der virtuellen Datasetabfrage: %(msg)s"
+msgstr "Fehler bei Anzeige der virtuellen Datensatzabfrage: %(msg)s"
 
 #, python-format
 msgid "Error: %(error)s"
@@ -6052,7 +6044,7 @@ msgid "Execution log"
 msgstr "Aktionsprotokoll"
 
 msgid "Existing dataset"
-msgstr "Vorhandenes Dataset"
+msgstr "Vorhandener Datensatz"
 
 msgid "Exit fullscreen"
 msgstr "Vollbildanzeige beenden"
@@ -6683,7 +6675,7 @@ msgid "Form data not found in cache, reverting to chart metadata."
 msgstr "Formulardaten nicht im Cache gefunden, es wird auf Diagramm-Metadaten zurückgesetzt."
 
 msgid "Form data not found in cache, reverting to dataset metadata."
-msgstr "Formulardaten nicht im Cache gefunden. Es wird auf Dataset-Metadaten zurückgesetzt."
+msgstr "Formulardaten nicht im Cache gefunden. Es wird auf Datensatzmetadaten zurückgesetzt."
 
 #, fuzzy
 msgid "Format"
@@ -7154,7 +7146,7 @@ msgid "Import database from file"
 msgstr "Datenbank aus Datei importieren"
 
 msgid "Import dataset failed for an unknown reason"
-msgstr "Fehler beim Importieren des Datasatzes aus unbekanntem Grund"
+msgstr "Fehler beim Importieren des Datensatzes aus unbekanntem Grund"
 
 msgid "Import queries"
 msgstr "Abfragen importieren"
@@ -8526,8 +8518,8 @@ msgstr "Geändert %s"
 #, python-format
 msgid "Modified 1 column in the virtual dataset"
 msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Eine Spalte im virtuellen Dataset geändert"
-msgstr[1] "%s Spalten im virtuellen Dataset geändert"
+msgstr[0] "Eine Spalte im virtuellen Datensatz geändert"
+msgstr[1] "%s Spalten im virtuellen Datensatz geändert"
 
 msgid "Modified by"
 msgstr "Geändert durch"
@@ -8710,10 +8702,10 @@ msgid "New chart"
 msgstr "Neues Diagramm"
 
 msgid "New dataset"
-msgstr "Neues Dataset"
+msgstr "Neuer Datensatz"
 
 msgid "New dataset name"
-msgstr "Name des neuen Datasets"
+msgstr "Name des neuen Datensatzes"
 
 msgid "New header"
 msgstr "Neue Überschrift"
@@ -8851,7 +8843,7 @@ msgid "No items"
 msgstr "Keine Elemente"
 
 msgid "No matching records found"
-msgstr "Es wurden keine passenden Datensätze gefunden"
+msgstr "Es wurden keine passenden Einträge gefunden"
 
 msgid "No matching results found"
 msgstr "Es wurden keine passenden Ergebnisse gefunden"
@@ -8861,7 +8853,7 @@ msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Bisher wurden diesem Dashboard noch keine Filter hinzugefügt."
 
 msgid "No records found"
-msgstr "Keine Datensätze gefunden"
+msgstr "Keine Einträge gefunden"
 
 msgid "No results"
 msgstr "Keine Ergebnisse"
@@ -9834,7 +9826,7 @@ msgstr ""
 
 #, python-format
 msgid "Please specify the Dataset ID for the ``%(name)s`` metric in the Jinja macro."
-msgstr "Bitte geben Sie die Dataset-ID für die Metrik ``%(name)s`` im Jinja-Makro an."
+msgstr "Bitte geben Sie die Datensatz-ID für die Metrik ``%(name)s`` im Jinja-Makro an."
 
 msgid "Please use 3 different metric labels"
 msgstr "Bitte verwenden Sie 3 verschiedene metrische Beschriftungen"
@@ -10176,7 +10168,7 @@ msgid "Ratio"
 msgstr "Verhältnis"
 
 msgid "Raw records"
-msgstr "Rohdatensätze"
+msgstr "Roheinträge"
 
 msgid "Recently modified"
 msgstr "Kürzlich geändert"
@@ -10337,8 +10329,8 @@ msgstr "Tabellenvorschau entfernen"
 #, python-format
 msgid "Removed 1 column from the virtual dataset"
 msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Eine Spalte aus dem virtuellen Dataset entfernt"
-msgstr[1] "%s Spalten aus dem virtuellen Dataset entfernt"
+msgstr[0] "Eine Spalte aus dem virtuellen Datensatz entfernt"
+msgstr[1] "%s Spalten aus dem virtuellen Datensatz entfernt"
 
 msgid "Rename tab"
 msgstr "Registerkarte umbenennen"
@@ -10618,7 +10610,7 @@ msgid ""
 "will bypass dataset level checks. If no roles are defined, regular access permissions apply."
 msgstr ""
 "Rollen ist eine Liste, die den Zugriff auf das Dashboard definiert. Wenn Sie einer Rolle "
-"Zugriff auf ein Dashboard gewähren, werden Prüfungen auf Datasetebene umgangen. Wenn keine "
+"Zugriff auf ein Dashboard gewähren, werden Prüfungen auf Datensatzebene umgangen. Wenn keine "
 "Rollen definiert sind, werden die generellen Berechtigungen angewendet."
 
 msgid ""
@@ -10626,7 +10618,7 @@ msgid ""
 "will bypass dataset level checks.If no roles are defined, regular access permissions apply."
 msgstr ""
 "Rollen ist eine Liste, die den Zugriff auf das Dashboard definiert. Wenn Sie einer Rolle "
-"Zugriff auf ein Dashboard gewähren, werden Prüfungen auf Datasetebene umgangen. Wenn keine "
+"Zugriff auf ein Dashboard gewähren, werden Prüfungen auf Datensatzebene umgangen. Wenn keine "
 "Rollen definiert sind, werden die generellen Berechtigungen angewendet."
 
 msgid "Rolling Function"
@@ -10675,8 +10667,8 @@ msgid ""
 msgstr ""
 "Zeilenbegrenzung: Die Prozentsätze werden auf der Grundlage der abgerufenen "
 "Datenuntermenge berechnet, wobei die Zeilenbegrenzung berücksichtigt wird. "
-"Alle Datensätze: Die Prozentsätze werden auf der Grundlage des gesamten "
-"Datasets berechnet, wobei die Zeilenbegrenzung ignoriert wird."
+"Alle Einträge: Die Prozentsätze werden auf der Grundlage des gesamten "
+"Datensatzes berechnet, wobei die Zeilenbegrenzung ignoriert wird."
 
 msgid "Row containing the headers to use as column names (0 is first line of data)."
 msgstr ""
@@ -10856,7 +10848,7 @@ msgid "Samples"
 msgstr "Beispiele"
 
 msgid "Samples for dataset could not be retrieved."
-msgstr "Beispiele für das Dataset konnten nicht abgerufen werden."
+msgstr "Beispiele für den Datensatz konnten nicht abgerufen werden."
 
 msgid "Samples for datasource could not be retrieved."
 msgstr "Beispiele für die Datenquelle konnten nicht abgerufen werden."
@@ -10923,13 +10915,13 @@ msgid "Save dashboard"
 msgstr "Dashboard speichern"
 
 msgid "Save dataset"
-msgstr "Dataset speichern"
+msgstr "Datensatz speichern"
 
 msgid "Save for this session"
 msgstr "Für diese Sitzung speichern"
 
 msgid "Save or Overwrite Dataset"
-msgstr "Dataset speichern oder überschreiben"
+msgstr "Datensatz speichern oder überschreiben"
 
 msgid "Save query"
 msgstr "Abfrage speichern"
@@ -10938,7 +10930,7 @@ msgid "Save this API key securely"
 msgstr ""
 
 msgid "Save this query as a virtual dataset to continue exploring"
-msgstr "Speichern Sie diese Abfrage als virtuelles Dataset, um mit der Analyse fortzufahren"
+msgstr "Speichern Sie diese Abfrage als virtuellen Datensatz, um mit der Analyse fortzufahren"
 
 msgid "Saved"
 msgstr "Gespeichert"
@@ -11046,7 +11038,7 @@ msgstr "Suche"
 
 #, python-format
 msgid "Search %s records"
-msgstr "Suche %s Datensätze"
+msgstr "Suche %s Einträge"
 
 msgid "Search / Filter"
 msgstr "Suchen / Filtern"
@@ -11201,7 +11193,7 @@ msgid "Select a database"
 msgstr "Datenbank auswählen"
 
 msgid "Select a database table and create dataset"
-msgstr "Datenbanktabelle auswählen und Dataset erstellen"
+msgstr "Datenbanktabelle auswählen und Datensatz erstellen"
 
 msgid "Select a database table."
 msgstr "Wählen Sie eine Datenbanktabelle aus."
@@ -11347,7 +11339,7 @@ msgstr ""
 "Anforderungen Ihre Datenbanken haben "
 
 msgid "Select dataset source"
-msgstr "Dataset-Quelle auswählen"
+msgstr "Datensatzquelle auswählen"
 
 msgid "Select datetime column"
 msgstr "Datums-/Uhrzeitspalte auswählen"
@@ -11429,7 +11421,7 @@ msgid "Select or type currency symbol"
 msgstr "Währungssymbol auswählen oder eingeben"
 
 msgid "Select or type dataset name"
-msgstr "Dataset-Namen auswählen oder eingeben"
+msgstr "Datensatznamen auswählen oder eingeben"
 
 msgid "Select owners"
 msgstr "Besitzer auswählen"
@@ -11492,7 +11484,7 @@ msgstr ""
 "Wählen Sie die Diagramme aus, auf die Sie in diesem Dashboard Kreuzfilter anwenden möchten. "
 "Wenn Sie die Auswahl eines Diagramms aufheben, wird es bei der Anwendung von Kreuzfiltern auf "
 "ein beliebiges Diagramm im Dashboard nicht mehr gefiltert. Sie können \"Alle Diagramme\" "
-"auswählen, um Kreuzfilter auf alle Diagramme anzuwenden, die dasselbe Dataset verwenden oder "
+"auswählen, um Kreuzfilter auf alle Diagramme anzuwenden, die denselben Datensatz verwenden oder "
 "denselben Spaltennamen im Dashboard enthalten."
 
 msgid ""
@@ -11502,7 +11494,7 @@ msgid ""
 msgstr ""
 "Wählen Sie die Diagramme aus, auf die Sie bei der Interaktion mit diesem Diagramm Kreuzfilter "
 "anwenden möchten. Sie können \"Alle Diagramme\" auswählen, um Filter auf alle Diagramme "
-"anzuwenden, die dasselbe Dataset verwenden oder denselben Spaltennamen im Dashboard enthalten."
+"anzuwenden, die denselben Datensatz verwenden oder denselben Spaltennamen im Dashboard enthalten."
 
 msgid "Select the color used for values that indicate an increase in the chart"
 msgstr ""
@@ -11767,7 +11759,7 @@ msgid ""
 "Sets the default temporal column for this dataset. Automatically selected as the time column "
 "when building charts that require a time dimension and used in dashboard level time filters."
 msgstr ""
-"Legt die Standard-Zeitspalte für dieses Dataset fest. Diese Spalte wird beim Erstellen von "
+"Legt die Standard-Zeitspalte für diesen Datensatz fest. Diese Spalte wird beim Erstellen von "
 "Diagrammen, die eine Zeitdimension erfordern, automatisch als Zeitspalte ausgewählt und in "
 "Zeitfiltern auf Dashboard-Ebene verwendet."
 
@@ -12084,7 +12076,7 @@ msgid "Simple"
 msgstr "Einfach"
 
 msgid "Simple ad-hoc metrics are not enabled for this dataset"
-msgstr "Einfache Ad-hoc-Metriken sind für dieses Dataset nicht aktiviert"
+msgstr "Einfache Ad-hoc-Metriken sind für diesen Datensatz nicht aktiviert"
 
 msgid "Single"
 msgstr "Einzeln"
@@ -13095,13 +13087,13 @@ msgid "The database was not found."
 msgstr "Datenbank nicht gefunden."
 
 msgid "The dataset associated with this chart no longer exists"
-msgstr "Das diesem Diagramm zugeordnete Dataset existiert nicht mehr"
+msgstr "Der diesem Diagramm zugeordnete Datensatz existiert nicht mehr"
 
 msgid "The dataset column/metric that returns the values on your chart's x-axis."
-msgstr "Die Spalte/Metrik des Datasets, das die Werte auf der x-Achse Ihres Diagramms liefert."
+msgstr "Die Spalte/Metrik des Datensatzes, das die Werte auf der x-Achse Ihres Diagramms liefert."
 
 msgid "The dataset column/metric that returns the values on your chart's y-axis."
-msgstr "Die Spalte/Metrik des Datasets, das die Werte auf der y-Achse Ihres Diagramms liefert."
+msgstr "Die Spalte/Metrik des Datensatzes, das die Werte auf der y-Achse Ihres Diagramms liefert."
 
 msgid ""
 "The dataset columns will be automatically synced\n"
@@ -13119,14 +13111,14 @@ msgid ""
 "                here may affect other charts\n"
 "                in undesirable ways."
 msgstr ""
-"Die hier verfügbar gemachte Dataset-Konfiguration\n"
-"                wirkt sich auf alle Diagramme aus, die dieses Dataset verwenden.\n"
+"Die hier verfügbar gemachte Datensatz-Konfiguration\n"
+"                wirkt sich auf alle Diagramme aus, die diesen Datensatz verwenden.\n"
 "                Achten Sie darauf, dass das hier vorgenommene Einstellungs-\n"
 "                änderungen sich in unerwünschter Weise\n"
 "                auf andere Diagramme auswirken können."
 
 msgid "The dataset has been saved"
-msgstr "Das Dataset wurde gespeichert"
+msgstr "Der Datensatz wurde gespeichert"
 
 msgid "The datasource couldn't be loaded"
 msgstr "Datenquelle konnte nicht geladen werden"
@@ -13223,7 +13215,7 @@ msgid ""
 "          It helps visualize patterns, clusters, and outliers in the data and provides\n"
 "          insights into its shape, central tendency, and spread."
 msgstr ""
-"Das Histogramm zeigt die Verteilung eines Datasets an, indem es die Häufigkeit oder Anzahl "
+"Das Histogramm zeigt die Verteilung eines Datensatzes an, indem es die Häufigkeit oder Anzahl "
 "der Werte in verschiedenen Bereichen oder Bins darstellt. Es hilft dabei, Muster, Cluster und "
 "Ausreißer in den Daten zu visualisieren und liefert Einblicke in deren Form, zentrale Tendenz "
 "und Streuung."
@@ -13878,10 +13870,10 @@ msgid "There was an error duplicating the role. Please, try again."
 msgstr "Beim Duplizieren der Rolle ist ein Problem aufgetreten. Bitte versuchen Sie es erneut."
 
 msgid "There was an error fetching dataset"
-msgstr "Fehler beim Abrufen des Datasets"
+msgstr "Fehler beim Abrufen des Datensatzes"
 
 msgid "There was an error fetching dataset's related objects"
-msgstr "Beim Abrufen der zugehörigen Objekte des Datasets ist ein Fehler aufgetreten"
+msgstr "Beim Abrufen der zugehörigen Objekte des Datensatzes ist ein Fehler aufgetreten"
 
 #, python-format
 msgid "There was an error fetching the favorite status: %s"
@@ -14059,7 +14051,7 @@ msgid "There was an issue previewing the selected query. %s"
 msgstr "Bei der Vorschau der ausgewählten Abfrage ist ein Problem aufgetreten. %s"
 
 msgid "These are the datasets this filter will be applied to."
-msgstr "Dies sind die Datasets, auf die dieser Filter angewendet wird."
+msgstr "Dies sind die Datensätze, auf die dieser Filter angewendet wird."
 
 msgid ""
 "This JSON object is generated dynamically when clicking the save or overwrite button in the "
@@ -14106,7 +14098,7 @@ msgstr ""
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns with the same name."
 msgstr ""
-"Dieses Diagramm wendet Kreuzfilter auf Diagramme an, deren Datasets Spalten mit demselben Namen "
+"Dieses Diagramm wendet Kreuzfilter auf Diagramme an, deren Datensätze Spalten mit demselben Namen "
 "enthalten."
 
 msgid "This chart has been moved to a different filter scope."
@@ -14123,7 +14115,7 @@ msgstr "Dieses Diagramm wird extern verwaltet und kann nicht in Superset bearbei
 
 msgid "This chart might be incompatible with the filter (datasets don't match)"
 msgstr ""
-"Dieses Diagramm ist möglicherweise nicht mit dem Filter kompatibel (Datasets stimmen nicht "
+"Dieses Diagramm ist möglicherweise nicht mit dem Filter kompatibel (Datensätze stimmen nicht "
 "überein)"
 
 msgid "This chart type is not supported when using an unsaved query as a chart source. "
@@ -14138,7 +14130,7 @@ msgstr ""
 "kompatibel."
 
 msgid "This column might be incompatible with current dataset"
-msgstr "Diese Spalte ist möglicherweise nicht mit dem aktuellen Dataset kompatibel"
+msgstr "Diese Spalte ist möglicherweise nicht mit dem aktuellen Datensatz kompatibel"
 
 msgid "This column must contain date/time information."
 msgstr "Diese Spalte muss Datums-/Uhrzeitinformationen enthalten."
@@ -14230,7 +14222,7 @@ msgid ""
 msgstr ""
 
 msgid "This dataset is managed externally, and can't be edited in Superset"
-msgstr "Dieses Dataset wird extern verwaltet und kann nicht in Superset bearbeitet werden"
+msgstr "Dieser Datensatz wird extern verwaltet und kann nicht in Superset bearbeitet werden"
 
 msgid "This defines the element to be plotted on the chart"
 msgstr "Definiert das Element, das im Diagramm dargestellt werden soll"
@@ -14396,14 +14388,14 @@ msgstr ""
 "überprüfen Sie bitte, ob das Gast-Token korrekt generiert wird."
 
 msgid "This table already has a dataset"
-msgstr "Diese Tabelle hat bereits ein Dataset"
+msgstr "Diese Tabelle hat bereits ein Datensatz"
 
 msgid ""
 "This table already has a dataset associated with it. You can only associate one dataset with a "
 "table.\n"
 msgstr ""
-"Dieser Tabelle ist bereits einem Dataset zugeordnet. Sie können einer Tabelle nur einen "
-"Datasatz zuordnen.\n"
+"Dieser Tabelle ist bereits einem Datensatz zugeordnet. Sie können einer Tabelle nur einen "
+"Datensatz zuordnen.\n"
 
 msgid "This theme is set locally"
 msgstr "Dieses Design ist lokal eingestellt"
@@ -14537,7 +14529,7 @@ msgstr "Zeitspalten"
 
 #, python-format
 msgid "Time column \"%(col)s\" does not exist in dataset"
-msgstr "Die Zeitspalte \"%(col)s\" ist im Dataset nicht vorhanden"
+msgstr "Die Zeitspalte \"%(col)s\" ist im Datensatz nicht vorhanden"
 
 msgid "Time column chart customization plugin"
 msgstr "Plugin zur Anpassung von Zeitsäulendiagrammen"
@@ -14974,7 +14966,7 @@ msgid ""
 "has a properly configured time column."
 msgstr ""
 "Die Zeitspalte für den zeitlichen Vergleich konnte nicht ermittelt werden. Bitte stellen Sie "
-"sicher, dass Ihr Dataset über eine korrekt konfigurierte Zeitspalte verfügt."
+"sicher, dass Ihr Datensatz über eine korrekt konfigurierte Zeitspalte verfügt."
 
 msgid "Unable to load columns for the selected table. Please select a different table."
 msgstr ""
@@ -15145,7 +15137,7 @@ msgid "Unsupported time grain: %(time_grain)s"
 msgstr "Nicht unterstütztes Zeitraster: %(time_grain)s"
 
 msgid "Untitled Dataset"
-msgstr "Unbenanntes Dataset"
+msgstr "Unbenannter Datensatz"
 
 msgid "Untitled Query"
 msgstr "Unbenannte Abfrage"
@@ -15478,7 +15470,7 @@ msgid "View All »"
 msgstr "Alle ansehen »"
 
 msgid "View Dataset"
-msgstr "Dataset anzeigen"
+msgstr "Datensatz anzeigen"
 
 msgid "View all charts"
 msgstr "Alle Diagramme anzeigen"
@@ -15516,13 +15508,13 @@ msgid "Virtual (SQL)"
 msgstr "Virtuell (SQL)"
 
 msgid "Virtual dataset query cannot be empty"
-msgstr "Die virtuelle Datasetabfrage darf nicht leer sein"
+msgstr "Die virtuelle Datensatzabfrage darf nicht leer sein"
 
 msgid "Virtual dataset query cannot consist of multiple statements"
-msgstr "Die virtuelle Datasetabfrage kann nicht aus mehreren Anweisungen bestehen"
+msgstr "Die virtuelle Datensatzabfrage kann nicht aus mehreren Anweisungen bestehen"
 
 msgid "Virtual dataset query must be read-only"
-msgstr "Die virtuelle Datasetabfrage muss schreibgeschützt sein"
+msgstr "Die virtuelle Datensatzabfrage muss schreibgeschützt sein"
 
 msgid "Visual Tweaks"
 msgstr "Visuelle Optimierungen"
@@ -15653,7 +15645,7 @@ msgstr "Warnung!"
 
 msgid "Warning! Changing the dataset may break the chart if the metadata does not exist."
 msgstr ""
-"Achtung! Das Ändern des Datasets kann zu Fehlern im Diagramm führen, wenn die Metadaten nicht "
+"Achtung! Das Ändern des Datensatzes kann zu Fehlern im Diagramm führen, wenn die Metadaten nicht "
 "vorhanden sind."
 
 msgid ""
@@ -15693,7 +15685,7 @@ msgid "We were unable to activate or deactivate this report."
 msgstr "Wir konnten diesen Bericht nicht aktivieren oder deaktivieren."
 
 msgid "We were unable to carry over any controls when switching to this new dataset."
-msgstr "Beim Wechsel zu diesem neuen Dataset konnten wir keine Steuerelemente übernehmen."
+msgstr "Beim Wechsel zu diesem neuen Datensatz konnten wir keine Steuerelemente übernehmen."
 
 #, python-format
 msgid ""
@@ -15810,7 +15802,7 @@ msgstr ""
 "Bei der Angabe von SQL fungiert die Datenquelle als Ansicht. Superset verwendet diese Anweisung "
 "als Unterabfrage, während die generierten übergeordneten Abfragen gruppiert und gefiltert "
 "werden. Wenn Änderungen an Ihrer SQL-Abfrage vorgenommen werden, werden die Spalten in Ihrem "
-"Dataset beim Speichern des Datasets synchronisiert."
+"Datensatz beim Speichern des Datensatzes synchronisiert."
 
 msgid ""
 "When the secondary temporal columns are filtered, apply the same filter to the main datetime "
@@ -16210,7 +16202,7 @@ msgstr "Sie fügen Tags zu %s %ss hinzu"
 
 #, fuzzy
 msgid "You are editing a query from the virtual dataset "
-msgstr "Sie bearbeiten gerade eine Abfrage aus dem virtuellen Dataset "
+msgstr "Sie bearbeiten gerade eine Abfrage aus dem virtuellen Datensatz "
 
 msgid ""
 "You are importing one or more charts that already exist. Overwriting might cause you to lose "
@@ -16240,7 +16232,7 @@ msgid ""
 "You are importing one or more datasets that already exist. Overwriting might cause you to lose "
 "some of your work. Are you sure you want to overwrite?"
 msgstr ""
-"Sie importieren eine oder mehrere Datenbanken, die bereits vorhanden sind. Das Überschreiben "
+"Sie importieren einen oder mehrere Datensätze, die bereits vorhanden sind. Das Überschreiben "
 "kann dazu führen, dass Sie einen Teil Ihrer Arbeit verlieren. Sind Sie sicher, dass Sie diese "
 "überschreiben möchten?"
 
@@ -16349,7 +16341,7 @@ msgid "You don't have access to this dashboard."
 msgstr "Sie haben keinen Zugriff auf dieses Dashboard."
 
 msgid "You don't have access to this dataset."
-msgstr "Sie haben keinen Zugriff auf dieses Dataset."
+msgstr "Sie haben keinen Zugriff auf diesen Datensatz."
 
 msgid "You don't have access to this embedded dashboard config."
 msgstr "Sie haben keinen Zugriff auf diese eingebettete Dashboard-Konfiguration."
@@ -16431,8 +16423,8 @@ msgid ""
 "You must be a dataset owner in order to edit. Please reach out to a dataset owner to request "
 "modifications or edit access."
 msgstr ""
-"Sie müssen ein(e) Datasetbesitzer*in sein, um bearbeiten zu können. Bitte wenden Sie sich an "
-"eine(n) Datasetbesitzer*in, um Änderungs- oder Bearbeitungszugriff zu erhalten."
+"Sie müssen ein(e) Datensatzbesitzer*in sein, um bearbeiten zu können. Bitte wenden Sie sich an "
+"eine(n) Datensatzbesitzer*in, um Änderungs- oder Bearbeitungszugriff zu erhalten."
 
 msgid "You must pick a name for the new dashboard"
 msgstr "Sie müssen einen Namen für das neue Dashboard auswählen"
@@ -16461,8 +16453,8 @@ msgid ""
 "You've changed datasets. Any controls with data (columns, metrics) that match this new dataset "
 "have been retained."
 msgstr ""
-"Sie haben Datasets geändert. Alle Steuerelemente mit Daten (Spalten, Metriken), die diesem "
-"neuen Dataset entsprechen, wurden beibehalten."
+"Sie haben Datensätze geändert. Alle Steuerelemente mit Daten (Spalten, Metriken), die diesem "
+"neuen Datensatz entsprechen, wurden beibehalten."
 
 msgid "Your account is activated. You can log in with your credentials."
 msgstr "Ihr Konto ist aktiviert. Sie können sich mit Ihren Zugangsdaten anmelden."
@@ -16540,7 +16532,7 @@ msgid "[Longitude] and [Latitude] must be set"
 msgstr "[Longitude] und [Latitude] müssen eingestellt sein"
 
 msgid "[Missing Dataset]"
-msgstr "[Fehlendes Dataset]"
+msgstr "[Fehlender Datensatz]"
 
 msgid "[Untitled]"
 msgstr "[Unbenannt]"
@@ -16752,7 +16744,7 @@ msgid "create a new chart"
 msgstr "neues Diagramm erstellen"
 
 msgid "create dataset from SQL query"
-msgstr "Dataset aus SQL-Abfrage erstellen"
+msgstr "Datensatz aus SQL-Abfrage erstellen"
 
 msgid "crontab"
 msgstr "crontab"
@@ -16788,10 +16780,10 @@ msgid "databases"
 msgstr "Datenbanken"
 
 msgid "dataset"
-msgstr "Dataset"
+msgstr "Datensatz"
 
 msgid "dataset name"
-msgstr "Dataset-Name"
+msgstr "Datensatzname"
 
 #, fuzzy
 msgid "datasets"
@@ -17059,7 +17051,7 @@ msgid ""
 "Deleting the dataset will break those objects."
 msgstr ""
 "ist mit %s Diagrammen verknüpft, die auf %s Dashboards angezeigt werden. Sind Sie sicher, dass "
-"Sie fortfahren möchten? Durch das Löschen des Datasets werden diese Objekte beschädigt."
+"Sie fortfahren möchten? Durch das Löschen des Datensatzes werden diese Objekte beschädigt."
 
 msgid "is not"
 msgstr "ist nicht"
