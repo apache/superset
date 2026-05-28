@@ -654,6 +654,20 @@ CSS_TEMPLATE_FILTER_COLUMNS: dict[str, list[str]] = {
     "template_name": ["eq", "sw", "ilike"],
     "created_by_fk": ["eq"],
 }
+CSS_TEMPLATE_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
+    "created_by_name": ColumnMetadata(
+        name="created_by_name",
+        description="Username of the creator",
+        type="str",
+        is_default=False,
+    ),
+    "changed_by_name": ColumnMetadata(
+        name="changed_by_name",
+        description="Username of the last modifier",
+        type="str",
+        is_default=False,
+    ),
+}
 
 
 def get_css_template_columns() -> list[ColumnMetadata]:
@@ -663,7 +677,9 @@ def get_css_template_columns() -> list[ColumnMetadata]:
     return get_columns_from_model(
         CssTemplate,
         CSS_TEMPLATE_DEFAULT_COLUMNS,
-        exclude_columns=set(USER_DIRECTORY_FIELDS),
+        CSS_TEMPLATE_EXTRA_COLUMNS,
+        exclude_columns=set(USER_DIRECTORY_FIELDS)
+        - {"created_by_name", "changed_by_name"},
     )
 
 

@@ -28,10 +28,18 @@ from superset.mcp_service.css_template.schemas import (
     CssTemplateFilter,
     ListCssTemplatesRequest,
 )
+from superset.mcp_service.utils.sanitization import (
+    LLM_CONTEXT_CLOSE_DELIMITER,
+    LLM_CONTEXT_OPEN_DELIMITER,
+)
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+
+def _wrapped(value: str) -> str:
+    return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
 
 
 class TestCssTemplateFilterSchema:
@@ -116,7 +124,7 @@ async def test_list_css_templates_basic(mock_list, mcp_server):
         assert data["css_templates"] is not None
         assert len(data["css_templates"]) == 1
         assert data["css_templates"][0]["id"] == 1
-        assert data["css_templates"][0]["template_name"] == "my_template"
+        assert data["css_templates"][0]["template_name"] == _wrapped("my_template")
 
 
 @patch("superset.daos.css.CssTemplateDAO.list")
@@ -152,7 +160,7 @@ async def test_list_css_templates_with_search(mock_list, mcp_server):
         )
         data = json.loads(result.content[0].text)
         assert len(data["css_templates"]) == 1
-        assert data["css_templates"][0]["template_name"] == "dark_theme_css"
+        assert data["css_templates"][0]["template_name"] == _wrapped("dark_theme_css")
 
 
 @patch("superset.daos.css.CssTemplateDAO.list")
@@ -170,7 +178,7 @@ async def test_list_css_templates_with_select_columns_css(mock_list, mcp_server)
             "list_css_templates", {"request": request.model_dump()}
         )
         data = json.loads(result.content[0].text)
-        assert data["css_templates"][0]["css"] == "body { margin: 0; }"
+        assert data["css_templates"][0]["css"] == _wrapped("body { margin: 0; }")
 
 
 @patch("superset.daos.css.CssTemplateDAO.list")
@@ -222,11 +230,11 @@ async def test_get_css_template_info_basic(mock_find, mcp_server):
         assert result.content is not None
         data = json.loads(result.content[0].text)
         assert data["id"] == 1
-        assert data["template_name"] == "my_template"
+        assert data["template_name"] == _wrapped("my_template")
         assert data["uuid"] == "test-css-template-uuid-1"
-        assert data["css"] == "body { color: red; }"
-        assert data["created_by_name"] == "admin"
-        assert data["changed_by_name"] == "admin"
+        assert data["css"] == _wrapped("body { color: red; }")
+        assert data["created_by_name"] == _wrapped("admin")
+        assert data["changed_by_name"] == _wrapped("admin")
 
 
 @patch("superset.daos.css.CssTemplateDAO.find_by_id")

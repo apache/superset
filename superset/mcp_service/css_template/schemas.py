@@ -38,6 +38,7 @@ from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import MetadataCacheControl
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import PaginationInfo
+from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
 from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
@@ -242,17 +243,32 @@ class GetCssTemplateInfoRequest(MetadataCacheControl):
     ]
 
 
+def _sanitize_css_template_info_for_llm_context(
+    css_template_info: CssTemplateInfo,
+) -> CssTemplateInfo:
+    """Wrap CSS template user-controlled fields before LLM exposure."""
+    payload = css_template_info.model_dump(mode="python")
+    for field_name in ("template_name", "css", "created_by_name", "changed_by_name"):
+        payload[field_name] = sanitize_for_llm_context(
+            payload.get(field_name),
+            field_path=(field_name,),
+        )
+    return CssTemplateInfo.model_validate(payload)
+
+
 def serialize_css_template_object(obj: Any) -> CssTemplateInfo | None:
     if not obj:
         return None
 
-    return CssTemplateInfo(
-        id=getattr(obj, "id", None),
-        uuid=str(getattr(obj, "uuid", "")) if getattr(obj, "uuid", None) else None,
-        template_name=getattr(obj, "template_name", None),
-        css=getattr(obj, "css", None),
-        changed_on=getattr(obj, "changed_on", None),
-        created_on=getattr(obj, "created_on", None),
-        created_by_name=getattr(obj, "created_by_name", None) or None,
-        changed_by_name=getattr(obj, "changed_by_name", None) or None,
+    return _sanitize_css_template_info_for_llm_context(
+        CssTemplateInfo(
+            id=getattr(obj, "id", None),
+            uuid=str(getattr(obj, "uuid", "")) if getattr(obj, "uuid", None) else None,
+            template_name=getattr(obj, "template_name", None),
+            css=getattr(obj, "css", None),
+            changed_on=getattr(obj, "changed_on", None),
+            created_on=getattr(obj, "created_on", None),
+            created_by_name=getattr(obj, "created_by_name", None) or None,
+            changed_by_name=getattr(obj, "changed_by_name", None) or None,
+        )
     )

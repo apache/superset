@@ -38,6 +38,7 @@ from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import MetadataCacheControl
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import PaginationInfo
+from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
 from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
@@ -252,6 +253,23 @@ class GetThemeInfoRequest(MetadataCacheControl):
     ]
 
 
+def _sanitize_theme_info_for_llm_context(
+    theme_info: ThemeInfo,
+) -> ThemeInfo:
+    """Wrap theme user-controlled fields before LLM exposure."""
+    payload = theme_info.model_dump(mode="python")
+    payload["theme_name"] = sanitize_for_llm_context(
+        payload.get("theme_name"),
+        field_path=("theme_name",),
+    )
+    if payload.get("json_data") is not None:
+        payload["json_data"] = sanitize_for_llm_context(
+            payload["json_data"],
+            field_path=("json_data",),
+        )
+    return ThemeInfo.model_validate(payload)
+
+
 def serialize_theme_object(obj: Any) -> ThemeInfo | None:
     if not obj:
         return None
@@ -266,14 +284,16 @@ def serialize_theme_object(obj: Any) -> ThemeInfo | None:
             except (TypeError, ValueError):
                 pass
 
-    return ThemeInfo(
-        id=getattr(obj, "id", None),
-        uuid=str(getattr(obj, "uuid", "")) if getattr(obj, "uuid", None) else None,
-        theme_name=getattr(obj, "theme_name", None),
-        json_data=parsed_json_data,
-        is_system=getattr(obj, "is_system", None),
-        is_system_default=getattr(obj, "is_system_default", None),
-        is_system_dark=getattr(obj, "is_system_dark", None),
-        changed_on=getattr(obj, "changed_on", None),
-        created_on=getattr(obj, "created_on", None),
+    return _sanitize_theme_info_for_llm_context(
+        ThemeInfo(
+            id=getattr(obj, "id", None),
+            uuid=str(getattr(obj, "uuid", "")) if getattr(obj, "uuid", None) else None,
+            theme_name=getattr(obj, "theme_name", None),
+            json_data=parsed_json_data,
+            is_system=getattr(obj, "is_system", None),
+            is_system_default=getattr(obj, "is_system_default", None),
+            is_system_dark=getattr(obj, "is_system_dark", None),
+            changed_on=getattr(obj, "changed_on", None),
+            created_on=getattr(obj, "created_on", None),
+        )
     )

@@ -28,10 +28,18 @@ from superset.mcp_service.theme.schemas import (
     ListThemesRequest,
     ThemeFilter,
 )
+from superset.mcp_service.utils.sanitization import (
+    LLM_CONTEXT_CLOSE_DELIMITER,
+    LLM_CONTEXT_OPEN_DELIMITER,
+)
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+
+def _wrapped(value: str) -> str:
+    return f"{LLM_CONTEXT_OPEN_DELIMITER}\n{value}\n{LLM_CONTEXT_CLOSE_DELIMITER}"
 
 
 class TestThemeFilterSchema:
@@ -128,7 +136,7 @@ async def test_list_themes_basic(mock_list, mcp_server):
         assert data["themes"] is not None
         assert len(data["themes"]) == 1
         assert data["themes"][0]["id"] == 1
-        assert data["themes"][0]["theme_name"] == "light_theme"
+        assert data["themes"][0]["theme_name"] == _wrapped("light_theme")
         assert data["themes"][0]["uuid"] == "test-theme-uuid-1"
 
 
@@ -161,7 +169,7 @@ async def test_list_themes_with_search(mock_list, mcp_server):
         )
         data = json.loads(result.content[0].text)
         assert len(data["themes"]) == 1
-        assert data["themes"][0]["theme_name"] == "dark_theme"
+        assert data["themes"][0]["theme_name"] == _wrapped("dark_theme")
 
 
 @patch("superset.daos.theme.ThemeDAO.list")
@@ -211,9 +219,9 @@ async def test_get_theme_info_basic(mock_find, mcp_server):
         assert result.content is not None
         data = json.loads(result.content[0].text)
         assert data["id"] == 1
-        assert data["theme_name"] == "light_theme"
+        assert data["theme_name"] == _wrapped("light_theme")
         assert data["uuid"] == "test-theme-uuid-1"
-        assert data["json_data"] == {"primaryColor": "#1890ff"}
+        assert data["json_data"]["primaryColor"] == _wrapped("#1890ff")
 
 
 @patch("superset.daos.theme.ThemeDAO.find_by_id")
