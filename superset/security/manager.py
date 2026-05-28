@@ -1646,10 +1646,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             and pvm.permission.name not in self.READ_ONLY_PERMISSION
         ):
             return True
-        if pvm.view_menu.name == "ApiKey" and current_app.config.get(
-            "FAB_API_KEY_ENABLED", False
-        ):
-            return True
         return (
             pvm.view_menu.name in self.ADMIN_ONLY_VIEW_MENUS
             or pvm.permission.name in self.ADMIN_ONLY_PERMISSIONS
