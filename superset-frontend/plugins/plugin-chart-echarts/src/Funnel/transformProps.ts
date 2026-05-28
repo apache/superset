@@ -238,8 +238,6 @@ export default function transformProps(
     formatter,
     show: showLabels,
     color: theme.colorText,
-    textBorderColor: theme.colorBgBase,
-    textBorderWidth: 1,
   };
 
   const series: FunnelSeriesOption[] = [
