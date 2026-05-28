@@ -56,11 +56,12 @@ Apache Superset ships with the following first-class principals. Detailed permis
 | Principal | Read data | Write objects | Execute SQL | Manage databases | Manage users, roles, RLS |
 |---|---|---|---|---|---|
 | Public (anonymous) | none by default | no | no | no | no |
-| Gamma | only granted datasets | own and explicitly shared | no | no | no |
-| sql_lab | only granted datasets | no | yes, against granted databases | no | no |
-| Alpha | only granted datasets | only granted objects | yes, against granted databases | no | no |
+| Gamma | only granted datasets | own charts and dashboards on granted datasets | no by default (requires the `sql_lab` role) | no | no |
+| Alpha | all data sources | own charts, dashboards, and datasets | no by default (requires the `sql_lab` role) | data upload to existing databases only | no |
 | Admin | all | all | yes | yes | yes |
-| Embedded guest token | only datasets bound to the embedded dashboard | no | no | no | no |
+| Embedded guest token | data sources bound to the dashboards in the token's resources claim | no | no | no | no |
+
+The `sql_lab` role is *additive*: it grants the SQL Lab permission set on top of the base role above, and is the only path by which Gamma or Alpha gain SQL execution capability. Database access is still scoped per the base role's grants. Admin includes SQL Lab access by default.
 
 Deployments may grant or revoke individual view-menu permissions, which shifts the boundary for that deployment but does not redefine the model. Any custom role created by an operator inherits the same principle: its capabilities are whatever the operator has explicitly granted it. The Public principal follows the same rule: operators may grant the Public role read access to specific datasets or dashboards (typically for anonymous reporting use cases), which shifts the boundary for that deployment without redefining the model.
 
