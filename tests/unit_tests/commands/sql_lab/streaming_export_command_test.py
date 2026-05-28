@@ -38,6 +38,9 @@ def _setup_sqllab_mocks(
     mock_session = MagicMock()
     mock_db_base.session.return_value.__enter__.return_value = mock_session
     mock_session.merge.return_value = mock_query.database
+    # Pass-through mutator so ``text(mutated_sql)`` receives the raw SQL
+    # unchanged in existing tests (see #40465).
+    mock_query.database.mutate_sql_based_on_config.side_effect = lambda s: s
 
     mock_db_sqllab = mocker.patch(
         "superset.commands.sql_lab.streaming_export_command.db"
