@@ -132,6 +132,7 @@ def _make_flask_app_mock(
     flask_app.config.get.side_effect = lambda key, default=None: _config.get(
         key, default
     )
+    flask_app.config.__getitem__.side_effect = _config.__getitem__
     return flask_app
 
 

@@ -768,8 +768,8 @@ def _apply_config_guards(flask_app: Any) -> set[str]:
     removed: set[str] = set()
 
     if not (
-        flask_app.config.get("FAB_ADD_SECURITY_VIEWS", True)
-        and flask_app.config.get("SUPERSET_LOG_VIEW", True)
+        flask_app.config["FAB_ADD_SECURITY_VIEWS"]
+        and flask_app.config["SUPERSET_LOG_VIEW"]
     ):
         for tool_name in ("list_action_logs", "get_action_log_info"):
             _remove_tool_quietly(tool_name, "logging disabled by config flags")
