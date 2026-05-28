@@ -20,7 +20,6 @@ export * as common from './common';
 export * as authentication from './authentication';
 export * as commands from './commands';
 export * as dashboard from './dashboard';
-export * as dataset from './dataset';
 export * as editors from './editors';
 export * as explore from './explore';
 export * as extensions from './extensions';
