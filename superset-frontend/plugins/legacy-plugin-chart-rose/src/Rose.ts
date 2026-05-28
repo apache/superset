@@ -147,11 +147,11 @@ function Rose(element: HTMLElement, props: RoseProps): void {
   function legendData(adatum: RoseData) {
     return adatum[times[0]].map((v: RoseDataEntry, i: number) => ({
       disabled: state.disabled[i],
-      // nvd3-fork's legend currently renders `key` via .text(), so raw
-      // markup would be escaped today. Sanitize at the data boundary
-      // anyway: it makes the safety property a local invariant rather
-      // than depending on the vendored legend's render choice.
-      key: sanitizeHtml(v.name),
+      // Keep the raw name as `key` so it matches the value used for arc
+      // fills (colorFn is called with d.name on arcs and d.key on the
+      // legend). nvd3-fork's legend renders `key` via .text(), so the
+      // raw value is escaped at the DOM sink.
+      key: v.name,
     }));
   }
 
