@@ -143,7 +143,14 @@ async def list_reports(
     )
 
     try:
+        from superset import is_feature_enabled
         from superset.daos.report import ReportScheduleDAO
+
+        if not is_feature_enabled("ALERT_REPORTS"):
+            return ReportError.create(
+                error="The Alerts & Reports feature is disabled on this instance.",
+                error_type="FeatureDisabled",
+            )
 
         def _serialize_report(
             obj: "ReportSchedule | None", cols: list[str] | None

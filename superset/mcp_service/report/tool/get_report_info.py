@@ -70,7 +70,14 @@ async def get_report_info(
     )
 
     try:
+        from superset import is_feature_enabled
         from superset.daos.report import ReportScheduleDAO
+
+        if not is_feature_enabled("ALERT_REPORTS"):
+            return ReportError.create(
+                error="The Alerts & Reports feature is disabled on this instance.",
+                error_type="FeatureDisabled",
+            )
 
         with event_logger.log_context(action="mcp.get_report_info.lookup"):
             get_tool = ModelGetInfoCore(
