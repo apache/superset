@@ -343,7 +343,10 @@ class CreateDatasetRequest(BaseModel):
     ]
     table_name: Annotated[
         str,
-        Field(description="Name of the physical table to register as a dataset"),
+        Field(
+            min_length=1,
+            description="Name of the physical table to register as a dataset",
+        ),
     ]
     owners: Annotated[
         List[int] | None,

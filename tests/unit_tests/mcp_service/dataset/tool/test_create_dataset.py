@@ -211,6 +211,32 @@ class TestCreateDataset:
 
     @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
+    async def test_create_dataset_invalid_error(self, mock_command_class, mcp_server):
+        """DatasetInvalidError is returned as ValidationError type."""
+        from superset.commands.dataset.exceptions import DatasetInvalidError
+
+        mock_command = MagicMock()
+        mock_command.run.side_effect = DatasetInvalidError()
+        mock_command_class.return_value = mock_command
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "create_dataset",
+                {
+                    "request": {
+                        "database_id": 1,
+                        "schema": "public",
+                        "table_name": "orders",
+                    }
+                },
+            )
+
+        data = json.loads(result.content[0].text)
+        assert data["error_type"] == "ValidationError"
+        assert "error" in data
+
+    @patch("superset.commands.dataset.create.CreateDatasetCommand")
+    @pytest.mark.asyncio
     async def test_create_dataset_unexpected_error(
         self, mock_command_class, mcp_server
     ):
