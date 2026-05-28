@@ -9143,9 +9143,7 @@ msgid "No data"
 msgstr "Aucune donnée"
 
 msgid "No data after filtering or data is NULL for the latest time record"
-msgstr ""
-"Pas de données après le filtrage ou données NULLES pour le dernier "
-"enregistrement temporel"
+msgstr "Aucune donnée à afficher avec le filtrage courant"
 
 msgid "No data in file"
 msgstr "Pas de données dans le fichier"
