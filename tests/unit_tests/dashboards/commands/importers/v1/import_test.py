@@ -301,10 +301,19 @@ def test_import_soft_deleted_dashboard_overwrite_restores_in_place(
 ) -> None:
     """
     Overwrite-importing a soft-deleted dashboard must restore the row in
-    place rather than hard-delete-and-replace. A hard delete cascades
-    through dashboard_slices junctions and role/owner/tag associations;
-    in-place restore preserves them.
+    place rather than hard-delete-and-replace. A hard delete would
+    cascade through dashboard_slices junctions; in-place restore
+    preserves them.
+
+    Asserts not just that the PK survives, but that the
+    ``dashboard_slices`` junction rows do too — that's the whole point
+    of restore-in-place vs delete-and-replace, so a regression that
+    re-introduces the hard-delete shape must trip this test.
     """
+    from superset.connectors.sqla.models import Database, SqlaTable
+    from superset.models.dashboard import dashboard_slices
+    from superset.models.slice import Slice
+
     mocker.patch.object(security_manager, "can_access", return_value=True)
     mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
 
@@ -315,6 +324,36 @@ def test_import_soft_deleted_dashboard_overwrite_restores_in_place(
     )
     assert existing is not None
     original_id = existing.id
+
+    # Attach a chart via the dashboard_slices M2M before soft-delete so
+    # we can assert the junction row survives the restore-in-place.
+    dataset = SqlaTable(
+        table_name="junction_test_table",
+        database=Database(database_name="junction_test_db", sqlalchemy_uri="sqlite://"),
+    )
+    session_with_data.add(dataset)
+    session_with_data.flush()
+    chart = Slice(
+        slice_name="junction_test_chart",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    session_with_data.add(chart)
+    session_with_data.flush()
+    existing.slices.append(chart)
+    session_with_data.flush()
+    chart_id = chart.id
+
+    junction_before = (
+        session_with_data.query(dashboard_slices)
+        .filter(
+            dashboard_slices.c.dashboard_id == original_id,
+            dashboard_slices.c.slice_id == chart_id,
+        )
+        .count()
+    )
+    assert junction_before == 1, "junction row precondition not established"
+
     existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
     session_with_data.flush()
 
@@ -331,6 +370,22 @@ def test_import_soft_deleted_dashboard_overwrite_restores_in_place(
 
     assert dashboard.id == original_id
     assert dashboard.deleted_at is None
+
+    # The junction row survived the restore — if a future regression
+    # switched back to delete-and-replace, this row would have been
+    # cascaded away.
+    junction_after = (
+        session_with_data.query(dashboard_slices)
+        .filter(
+            dashboard_slices.c.dashboard_id == original_id,
+            dashboard_slices.c.slice_id == chart_id,
+        )
+        .count()
+    )
+    assert junction_after == 1, (
+        "dashboard_slices junction was lost across restore-via-import; "
+        "Option C requires in-place restore, not delete-and-replace"
+    )
 
 
 def test_import_soft_deleted_dashboard_non_overwrite_restores_for_owner(

@@ -337,14 +337,29 @@ def import_dashboard(  # noqa: C901
         if not needs_mutation or not can_write:
             return existing
         # Mutation path. Restore a soft-deleted match in place rather
-        # than hard-delete-and-replace: a hard delete cascades through
-        # dashboard_slices junctions and dashboard role / owner / tag
-        # associations, breaking the relationships the import would then
-        # need to reconstruct. Setting config["id"] = existing.id routes
-        # import_from_dict through UPDATE, preserving the PK and the
-        # dependent rows.
+        # than hard-delete-and-replace: a hard delete would cascade
+        # through dashboard_slices junctions and DashboardRoles / owner
+        # / tag associations, breaking the relationships the import
+        # would then need to reconstruct.
+        #
+        # How the restore lands as an UPDATE: clearing
+        # existing.deleted_at marks the in-session row dirty and the
+        # explicit flush emits the deleted_at = NULL UPDATE before
+        # Dashboard.import_from_dict (below) does its own query-by-uuid
+        # lookup. Without the flush we would be relying on autoflush
+        # ahead of that internal query — correct under default session
+        # config but a hidden contract; the explicit flush makes it
+        # robust. The lookup then finds the now-live row (the listener
+        # filters deleted_at IS NULL) and import_from_dict applies the
+        # config as field updates on the existing object, preserving
+        # the PK. Note: config["id"] is set defensively, but
+        # ImportExportMixin.import_from_dict strips it today because
+        # Dashboard.export_fields does not contain "id"; what actually
+        # binds to the existing row is the uuid uniqueness constraint
+        # used inside import_from_dict.
         if is_soft_deleted:
             existing.deleted_at = None
+            db.session.flush()
         config["id"] = existing.id
     elif not can_write:
         raise ImportFailedError(
