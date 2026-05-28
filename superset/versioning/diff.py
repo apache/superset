@@ -43,11 +43,25 @@ an app context or DB.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any, Callable, Optional
 
 from superset.utils import json as _json
+
+logger = logging.getLogger(__name__)
+
+# Per-field recursion depth caps for the leaf-level diff walker.
+# A cap is a usefulness bound, not a safety bound: it controls how deep
+# into a nested JSON value the engine emits per-leaf records before
+# stopping and treating the sub-tree as an opaque value. Values are
+# tuned to the field's semantic shape — layout meta is shallow
+# (text/sizes/colors), json_metadata and chart params can carry deep
+# structures (native filters, adhoc filter sub-queries).
+_LAYOUT_META_DIFF_DEPTH = 3
+_JSON_METADATA_DIFF_DEPTH = 6
+_SLICE_PARAMS_DIFF_DEPTH = 6
 
 # Columns that are always excluded from change records, regardless of
 # what ``__versioned__`` says. ``id`` / ``uuid`` are stable identifiers
@@ -215,6 +229,66 @@ def _diff_scalar(
         from_value=from_value,
         to_value=to_value,
     )
+
+
+def _recursive_leaf_diff(
+    kind: str,
+    path_prefix: list[Any],
+    pre: Any,
+    post: Any,
+    *,
+    max_depth: int,
+) -> list[ChangeRecord]:
+    """Walk matched dict structures and emit one ``ChangeRecord`` per
+    changed leaf.
+
+    Recursion rules:
+
+    * Both sides equal (per :func:`_values_equivalent`) → no record.
+    * Both sides ``dict`` AND recursion depth below ``max_depth`` →
+      recurse into each key, extending the path by the key.
+    * All other cases (scalar mismatch, list on either side, mismatched
+      types, both dicts but depth-capped) → emit one leaf record with
+      ``from_value`` / ``to_value`` carrying the raw pre/post values.
+
+    Lists are treated as opaque on purpose — positional paths break on
+    reorder and most lists in Superset's JSON blobs (adhoc filters,
+    metrics, dataset columns) already have a dedicated natural-key
+    walker upstream that emits per-element records with the right
+    identity.
+
+    A depth-cap hit on dict-vs-dict emits a debug log so production
+    tuning can see when a field's cap is too tight to capture all
+    meaningful change.
+    """
+
+    def _walk(pre: Any, post: Any, path: list[Any], depth: int) -> list[ChangeRecord]:
+        if _values_equivalent(pre, post):
+            return []
+        if depth < max_depth and isinstance(pre, dict) and isinstance(post, dict):
+            records: list[ChangeRecord] = []
+            for key in sorted(set(pre) | set(post)):
+                records.extend(
+                    _walk(pre.get(key), post.get(key), [*path, key], depth + 1)
+                )
+            return records
+        if isinstance(pre, dict) and isinstance(post, dict):
+            logger.debug(
+                "version_changes: depth cap %d hit at path=%s — sub-tree "
+                "emitted as opaque leaf",
+                max_depth,
+                path,
+            )
+        return [
+            ChangeRecord(
+                kind=kind,
+                path=list(path),
+                from_value=pre,
+                to_value=post,
+            )
+        ]
+
+    return _walk(pre, post, path_prefix, 0)
 
 
 def _diff_list_by_natural_key(
@@ -389,24 +463,30 @@ def diff_slice_params(
                 )
             )
         elif kind:
-            # scalar first-class kind (time_range, color_palette) —
-            # single record carrying the whole value
-            records.append(
-                ChangeRecord(
+            # scalar first-class kind (time_range, color_palette).
+            # For genuinely scalar values the recursion emits one leaf
+            # record exactly as before; for the unusual case of a dict
+            # value (custom viz params) it recurses to the leaf.
+            records.extend(
+                _recursive_leaf_diff(
                     kind=kind,
-                    path=["params", key],
-                    from_value=from_v,
-                    to_value=to_v,
+                    path_prefix=["params", key],
+                    pre=from_v,
+                    post=to_v,
+                    max_depth=_SLICE_PARAMS_DIFF_DEPTH,
                 )
             )
         else:
-            # unknown params sub-key: generic field change
-            records.append(
-                ChangeRecord(
+            # unknown params sub-key: generic field change, recursed
+            # to the leaf so a deep custom-viz option doesn't ship its
+            # whole sub-tree on both sides.
+            records.extend(
+                _recursive_leaf_diff(
                     kind="field",
-                    path=["params", key],
-                    from_value=from_v,
-                    to_value=to_v,
+                    path_prefix=["params", key],
+                    pre=from_v,
+                    post=to_v,
+                    max_depth=_SLICE_PARAMS_DIFF_DEPTH,
                 )
             )
     return records
@@ -456,24 +536,26 @@ def diff_json_field(
     to_value: Any,
     *,
     exclude_keys: frozenset[str] = frozenset(),
+    max_depth: int = _JSON_METADATA_DIFF_DEPTH,
 ) -> list[ChangeRecord]:
     """Diff a TEXT column that stores a JSON dict, emitting one record
-    per top-level key whose value changed.
+    per changed leaf.
 
     Used for ``Dashboard.json_metadata`` (``position_json`` has its
     own structural diff via :func:`diff_dashboard_layout`). Saving the
     blob verbatim into ``from_value`` / ``to_value`` would swamp the
-    change log with multi-KB strings on every save; walking the parsed
-    dict at the top level reduces noise to "what changed".
+    change log with multi-KB strings on every save; recursing into the
+    parsed dict reduces noise to "exactly which leaf changed".
 
     *exclude_keys* names sub-keys that are frontend-derived /
     auto-stamped on save and don't carry user-authored signal. Same
     rationale as the ``audit`` parameter on
     :func:`scalar_fields_for` for the parent-column level.
 
-    Path is ``[field_name, key]``, mirroring ``diff_slice_params``'s
-    ``["params", key]`` shape so renderers can use a single addressing
-    scheme across the chart and dashboard sides.
+    Path is ``[field_name, key, ...]`` for leaf records, mirroring
+    :func:`diff_slice_params`'s ``["params", key, ...]`` shape so
+    renderers can use a single addressing scheme across the chart
+    and dashboard sides.
     """
     from_p = _coerce_params(from_value)
     to_p = _coerce_params(to_value)
@@ -481,16 +563,13 @@ def diff_json_field(
     for key in sorted(set(from_p) | set(to_p)):
         if key in exclude_keys:
             continue
-        from_v = from_p.get(key)
-        to_v = to_p.get(key)
-        if _values_equivalent(from_v, to_v):
-            continue
-        records.append(
-            ChangeRecord(
+        records.extend(
+            _recursive_leaf_diff(
                 kind="field",
-                path=[field_name, key],
-                from_value=from_v,
-                to_value=to_v,
+                path_prefix=[field_name, key],
+                pre=from_p.get(key),
+                post=to_p.get(key),
+                max_depth=max_depth,
             )
         )
     return records
@@ -608,52 +687,67 @@ def _diff_layout_node(
     node_id: str,
     pre_node: Optional[dict[str, Any]],
     post_node: Optional[dict[str, Any]],
-) -> Optional[ChangeRecord]:
-    """Diff one component slot in the layout dict and return a record for
-    the logical action — add, remove, move, edit — or ``None`` when the
-    slot is unchanged or holds an unknown component type.
+) -> list[ChangeRecord]:
+    """Diff one component slot in the layout dict and return records for
+    the logical action — add, remove, move, edit.
+
+    add / remove / move emit a single record carrying the minimal node
+    payload (so the renderer can describe the affected component).
+    edit recurses into the node's ``meta`` dict and emits one record per
+    changed leaf, capped at ``_LAYOUT_META_DIFF_DEPTH``.
+
+    Returns an empty list when the slot is unchanged or holds an unknown
+    component type.
     """
     node_for_kind = post_node or pre_node or {}
     kind = _LAYOUT_TYPE_TO_KIND.get(node_for_kind.get("type") or "")
     if kind is None:
-        return None  # unknown component type — skip rather than emit garbage
+        return []  # unknown component type — skip rather than emit garbage
 
     if pre_node is None and post_node is not None:
-        return ChangeRecord(
-            kind=kind,
-            path=["add", kind, node_id],
-            from_value=None,
-            to_value=_layout_node_payload(post_node),
-        )
+        return [
+            ChangeRecord(
+                kind=kind,
+                path=["add", kind, node_id],
+                from_value=None,
+                to_value=_layout_node_payload(post_node),
+            )
+        ]
     if post_node is None and pre_node is not None:
-        return ChangeRecord(
-            kind=kind,
-            path=["remove", kind, node_id],
-            from_value=_layout_node_payload(pre_node),
-            to_value=None,
-        )
+        return [
+            ChangeRecord(
+                kind=kind,
+                path=["remove", kind, node_id],
+                from_value=_layout_node_payload(pre_node),
+                to_value=None,
+            )
+        ]
 
     # Both present — check move first, then edit.
     assert pre_node is not None
     assert post_node is not None
     pre_parent = _layout_parent_id(pre_node)
     if pre_parent != (post_parent := _layout_parent_id(post_node)):
-        return ChangeRecord(
-            kind=kind,
-            path=["move", kind, node_id],
-            from_value={**_layout_node_payload(pre_node), "parent": pre_parent},
-            to_value={**_layout_node_payload(post_node), "parent": post_parent},
-        )
+        return [
+            ChangeRecord(
+                kind=kind,
+                path=["move", kind, node_id],
+                from_value={**_layout_node_payload(pre_node), "parent": pre_parent},
+                to_value={**_layout_node_payload(post_node), "parent": post_parent},
+            )
+        ]
 
-    pre_meta = _meta_excluding_position(pre_node)
-    if pre_meta != (post_meta := _meta_excluding_position(post_node)):
-        return ChangeRecord(
-            kind=kind,
-            path=["edit", kind, node_id],
-            from_value={**_layout_node_payload(pre_node), "meta": pre_meta},
-            to_value={**_layout_node_payload(post_node), "meta": post_meta},
-        )
-    return None
+    # Edit: recurse into meta and emit one record per changed leaf.
+    # Path shape ["edit", kind, node_id, <leaf_key>, ...] — the "meta"
+    # segment is dropped because every "edit" record is meta-keyed by
+    # construction (parents drive move, type/id are stable).
+    return _recursive_leaf_diff(
+        kind=kind,
+        path_prefix=["edit", kind, node_id],
+        pre=_meta_excluding_position(pre_node),
+        post=_meta_excluding_position(post_node),
+        max_depth=_LAYOUT_META_DIFF_DEPTH,
+    )
 
 
 def diff_dashboard_layout(
@@ -687,11 +781,9 @@ def diff_dashboard_layout(
     post_nodes = _layout_nodes(post)
     records: list[ChangeRecord] = []
     for node_id in sorted(set(pre_nodes) | set(post_nodes)):
-        record = _diff_layout_node(
-            node_id, pre_nodes.get(node_id), post_nodes.get(node_id)
+        records.extend(
+            _diff_layout_node(node_id, pre_nodes.get(node_id), post_nodes.get(node_id))
         )
-        if record is not None:
-            records.append(record)
     return records
 
 

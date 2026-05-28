@@ -33,8 +33,12 @@ from typing import Any
 
 from superset.utils import json as _json
 from superset.versioning.diff import (
+    _diff_layout_node,
+    _LAYOUT_META_DIFF_DEPTH,
+    _recursive_leaf_diff,
     ChangeRecord,
     diff_dashboard,
+    diff_dashboard_layout,
     diff_dashboard_slices,
     diff_dataset,
     diff_dataset_columns,
@@ -1082,3 +1086,285 @@ def test_empty_state_emits_nothing() -> None:
     assert diff_dataset_columns([], []) == []
     assert diff_dataset_metrics([], []) == []
     assert diff_dashboard_slices([], []) == []
+
+
+# ---------------------------------------------------------------------------
+# (g) Shape B — leaf-level recursion into nested JSON values
+# ---------------------------------------------------------------------------
+
+
+def test_recursive_leaf_diff_emits_one_record_per_changed_leaf() -> None:
+    """Two leaves change inside the same dict → two records, each
+    carrying just the changed leaf value (not the whole sub-tree)."""
+    pre = {"a": 1, "b": {"c": "old", "d": "same"}}
+    post = {"a": 2, "b": {"c": "new", "d": "same"}}
+    records = _recursive_leaf_diff(
+        kind="field", path_prefix=["root"], pre=pre, post=post, max_depth=10
+    )
+    paths = {tuple(r.path): (r.from_value, r.to_value) for r in records}
+    assert paths == {
+        ("root", "a"): (1, 2),
+        ("root", "b", "c"): ("old", "new"),
+    }
+
+
+def test_recursive_leaf_diff_equivalent_inputs_emit_nothing() -> None:
+    """No record when sides are equal — including the None-vs-empty
+    equivalence carved out by ``_values_equivalent``."""
+    assert _recursive_leaf_diff("field", [], {"x": 1}, {"x": 1}, max_depth=5) == []
+    assert _recursive_leaf_diff("field", [], None, "", max_depth=5) == []
+
+
+def test_recursive_leaf_diff_treats_list_as_opaque_leaf() -> None:
+    """A list on either side is emitted as a single leaf — positional
+    paths would break under reorder, so we don't recurse into lists."""
+    pre = {"items": [1, 2, 3]}
+    post = {"items": [1, 2, 3, 4]}
+    records = _recursive_leaf_diff(
+        kind="field", path_prefix=["x"], pre=pre, post=post, max_depth=10
+    )
+    assert len(records) == 1
+    assert records[0].path == ["x", "items"]
+    assert records[0].from_value == [1, 2, 3]
+    assert records[0].to_value == [1, 2, 3, 4]
+
+
+def test_recursive_leaf_diff_emits_leaf_on_type_mismatch() -> None:
+    """Dict on one side, scalar/None on the other → leaf record carrying
+    both raw values. No recursion possible across the mismatch."""
+    records = _recursive_leaf_diff(
+        kind="field", path_prefix=["x"], pre=None, post={"a": 1}, max_depth=5
+    )
+    assert records == [
+        ChangeRecord(kind="field", path=["x"], from_value=None, to_value={"a": 1})
+    ]
+
+
+def test_recursive_leaf_diff_depth_cap_emits_opaque_subtree() -> None:
+    """When recursion hits the depth cap with dicts on both sides, the
+    sub-tree is emitted as a single leaf rather than walked deeper."""
+    pre = {"a": {"b": {"c": "old"}}}
+    post = {"a": {"b": {"c": "new"}}}
+    # max_depth=1 means: recurse into the top dict (a), then stop.
+    # The sub-tree under "a" is emitted as one opaque leaf.
+    records = _recursive_leaf_diff(
+        kind="field", path_prefix=[], pre=pre, post=post, max_depth=1
+    )
+    assert len(records) == 1
+    assert records[0].path == ["a"]
+    assert records[0].from_value == {"b": {"c": "old"}}
+    assert records[0].to_value == {"b": {"c": "new"}}
+
+
+def test_diff_json_field_recurses_into_nested_dict() -> None:
+    """Single nested leaf change inside ``json_metadata`` produces one
+    record at the leaf path — NOT one record carrying the whole
+    top-level sub-tree on both sides."""
+    pre = _json.dumps(
+        {
+            "native_filter_configuration": {
+                "NATIVE_FILTER-abc": {
+                    "defaultDataMask": {
+                        "filterState": {"value": ["US"]},
+                    }
+                }
+            }
+        }
+    )
+    post = _json.dumps(
+        {
+            "native_filter_configuration": {
+                "NATIVE_FILTER-abc": {
+                    "defaultDataMask": {
+                        "filterState": {"value": ["CA"]},
+                    }
+                }
+            }
+        }
+    )
+    records = diff_json_field("json_metadata", pre, post)
+    assert len(records) == 1
+    assert records[0].path == [
+        "json_metadata",
+        "native_filter_configuration",
+        "NATIVE_FILTER-abc",
+        "defaultDataMask",
+        "filterState",
+        "value",
+    ]
+    assert records[0].from_value == ["US"]
+    assert records[0].to_value == ["CA"]
+
+
+def test_diff_json_field_emits_one_record_per_leaf_when_multiple_change() -> None:
+    """Two leaves change inside the same nested sub-tree → two records,
+    NOT one record carrying both leaves' diff."""
+    pre = _json.dumps({"settings": {"theme": "light", "density": "compact"}})
+    post = _json.dumps({"settings": {"theme": "dark", "density": "comfortable"}})
+    records = diff_json_field("json_metadata", pre, post)
+    paths = {tuple(r.path): (r.from_value, r.to_value) for r in records}
+    assert paths == {
+        ("json_metadata", "settings", "theme"): ("light", "dark"),
+        ("json_metadata", "settings", "density"): ("compact", "comfortable"),
+    }
+
+
+def test_diff_layout_node_edit_emits_leaf_record_not_whole_node() -> None:
+    """The dashboard-header-text case that motivated Shape B: editing
+    one meta field emits a record at the leaf path with from/to carrying
+    only the changed string — not the surrounding layout-node object."""
+    pre_node: dict[str, Any] = {
+        "id": "HEADER-id-1",
+        "type": "HEADER",
+        "meta": {"text": "VERSION 2!", "background": "WHITE", "headerSize": "MEDIUM"},
+        "parents": ["ROOT_ID", "GRID_ID"],
+        "children": [],
+    }
+    post_node: dict[str, Any] = deepcopy(pre_node)
+    post_node["meta"]["text"] = "HEADER!"
+    records = _diff_layout_node("HEADER-id-1", pre_node, post_node)
+    assert len(records) == 1
+    assert records[0].path == ["edit", "header", "HEADER-id-1", "text"]
+    assert records[0].from_value == "VERSION 2!"
+    assert records[0].to_value == "HEADER!"
+    assert records[0].kind == "header"
+
+
+def test_diff_layout_node_edit_emits_one_record_per_changed_leaf() -> None:
+    """Multiple meta fields change in one save → multiple records."""
+    pre_node: dict[str, Any] = {
+        "id": "HEADER-id-1",
+        "type": "HEADER",
+        "meta": {"text": "Old", "headerSize": "MEDIUM"},
+        "parents": ["ROOT_ID", "GRID_ID"],
+        "children": [],
+    }
+    post_node: dict[str, Any] = deepcopy(pre_node)
+    post_node["meta"]["text"] = "New"
+    post_node["meta"]["headerSize"] = "LARGE"
+    records = _diff_layout_node("HEADER-id-1", pre_node, post_node)
+    paths = {tuple(r.path) for r in records}
+    assert paths == {
+        ("edit", "header", "HEADER-id-1", "text"),
+        ("edit", "header", "HEADER-id-1", "headerSize"),
+    }
+
+
+def test_diff_layout_node_add_remove_move_unchanged_shape() -> None:
+    """Shape B doesn't touch add/remove/move — those still emit single
+    records carrying minimal node payloads."""
+    chart_node = {
+        "id": "CHART-x",
+        "type": "CHART",
+        "meta": {"chartId": 42, "sliceName": "Sales", "uuid": "u-1"},
+        "parents": ["ROOT_ID"],
+        "children": [],
+    }
+    # Add
+    added = _diff_layout_node("CHART-x", None, chart_node)
+    assert len(added) == 1
+    assert added[0].path == ["add", "chart", "CHART-x"]
+    assert added[0].from_value is None
+    assert added[0].to_value == {
+        "id": "CHART-x",
+        "type": "CHART",
+        "name": "Sales",
+        "chartId": 42,
+        "uuid": "u-1",
+    }
+
+    # Remove
+    removed = _diff_layout_node("CHART-x", chart_node, None)
+    assert len(removed) == 1
+    assert removed[0].path == ["remove", "chart", "CHART-x"]
+    assert removed[0].to_value is None
+
+    # Move
+    moved_node = deepcopy(chart_node)
+    moved_node["parents"] = ["GRID_ID"]
+    moved = _diff_layout_node("CHART-x", chart_node, moved_node)
+    assert len(moved) == 1
+    assert moved[0].path == ["move", "chart", "CHART-x"]
+
+
+def test_diff_dashboard_layout_aggregates_records_across_nodes() -> None:
+    """End-to-end: multiple node edits in one save produce one set of
+    leaf records, ordered by node_id."""
+    pre = _json.dumps(
+        {
+            "HEADER-a": {"id": "HEADER-a", "type": "HEADER", "meta": {"text": "A"}},
+            "HEADER-b": {"id": "HEADER-b", "type": "HEADER", "meta": {"text": "B"}},
+        }
+    )
+    post = _json.dumps(
+        {
+            "HEADER-a": {"id": "HEADER-a", "type": "HEADER", "meta": {"text": "A2"}},
+            "HEADER-b": {"id": "HEADER-b", "type": "HEADER", "meta": {"text": "B2"}},
+        }
+    )
+    records = diff_dashboard_layout(pre, post)
+    paths = {tuple(r.path) for r in records}
+    assert paths == {
+        ("edit", "header", "HEADER-a", "text"),
+        ("edit", "header", "HEADER-b", "text"),
+    }
+
+
+def test_diff_layout_node_edit_respects_depth_cap() -> None:
+    """A meta value deeper than ``_LAYOUT_META_DIFF_DEPTH`` is emitted
+    as an opaque sub-tree rather than walked further. Confirms the
+    cap is wired through from the constant — not a property of the
+    helper alone."""
+    deep_subtree_pre: dict[str, Any] = {"l1": {"l2": {"l3": {"l4": "old"}}}}
+    deep_subtree_post: dict[str, Any] = {"l1": {"l2": {"l3": {"l4": "new"}}}}
+    pre_node: dict[str, Any] = {
+        "id": "X",
+        "type": "HEADER",
+        "meta": {"deep": deep_subtree_pre},
+        "parents": ["ROOT_ID"],
+        "children": [],
+    }
+    post_node: dict[str, Any] = deepcopy(pre_node)
+    post_node["meta"]["deep"] = deep_subtree_post
+    records = _diff_layout_node("X", pre_node, post_node)
+    # Path is ["edit", "header", "X", <recurse...>]. _LAYOUT_META_DIFF_DEPTH=3
+    # bounds the recursion starting from the meta dict, so the deepest
+    # path captures at most 3 levels below "X". The leaf is emitted as
+    # an opaque sub-tree at the cap.
+    assert len(records) == 1
+    assert len(records[0].path) <= 3 + _LAYOUT_META_DIFF_DEPTH
+    # The opaque leaf must still carry the entire change as from/to so
+    # restoration is lossless even when the cap fires.
+    assert "old" in str(records[0].from_value)
+    assert "new" in str(records[0].to_value)
+
+
+def test_diff_slice_params_unknown_key_recurses_to_leaf() -> None:
+    """An unknown ``params`` sub-key carrying a nested dict no longer
+    emits the whole sub-tree on both sides — only the changed leaf."""
+    pre = _json.dumps(
+        {
+            "custom_viz_options": {
+                "axis": {"y": {"format": "%d"}, "x": {"format": ".2f"}}
+            }
+        }
+    )
+    post = _json.dumps(
+        {
+            "custom_viz_options": {
+                "axis": {"y": {"format": "%.2f"}, "x": {"format": ".2f"}}
+            }
+        }
+    )
+    records = diff_slice_params(pre, post)
+    assert len(records) == 1
+    assert records[0].path == [
+        "params",
+        "custom_viz_options",
+        "axis",
+        "y",
+        "format",
+    ]
+    assert records[0].from_value == "%d"
+    assert records[0].to_value == "%.2f"
+    assert records[0].kind == "field"
