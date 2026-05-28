@@ -30,6 +30,7 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
+from superset.mcp_service.auth import MCPPermissionDeniedError
 from superset.mcp_service.common.schema_discovery import (
     CHART_DEFAULT_COLUMNS,
     CHART_SEARCH_COLUMNS,
@@ -205,10 +206,21 @@ _SCHEMA_CORE_FACTORIES: dict[
     "theme": _get_theme_schema_core,
 }
 
+# Maps each model type to the FAB class permission name used by its tools.
+# Used for per-model-type inline RBAC checks instead of a single static
+# class_permission_name on the @tool decorator.
+_MODEL_TYPE_CLASS_PERMISSION: dict[ModelType, str] = {
+    "chart": "Chart",
+    "dataset": "Dataset",
+    "dashboard": "Dashboard",
+    "database": "Database",
+    "css_template": "CssTemplate",
+    "theme": "Theme",
+}
+
 
 @tool(
     tags=["discovery"],
-    class_permission_name="Dataset",
     annotations=ToolAnnotations(
         title="Get schema",
         readOnlyHint=True,
@@ -239,6 +251,25 @@ async def get_schema(
         Comprehensive schema information for the requested model type
     """
     await ctx.info(f"Getting schema for model_type={request.model_type}")
+
+    # Per-model-type RBAC check (replaces the static class_permission_name on @tool,
+    # which wrongly gated all schema types behind Dataset permission).
+    class_permission = _MODEL_TYPE_CLASS_PERMISSION.get(request.model_type)
+    if class_permission:
+        from flask import current_app, g
+
+        from superset import security_manager
+
+        if current_app.config.get("MCP_RBAC_ENABLED", True) and not (
+            security_manager.can_access("can_read", class_permission)
+        ):
+            user_str = getattr(getattr(g, "user", None), "username", None)
+            raise MCPPermissionDeniedError(
+                permission_name="can_read",
+                view_name=class_permission,
+                user=user_str,
+                tool_name="get_schema",
+            )
 
     can_view_data_model_metadata = user_can_view_data_model_metadata()
     if not can_view_data_model_metadata and request.model_type in {

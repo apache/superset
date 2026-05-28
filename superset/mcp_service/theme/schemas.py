@@ -234,6 +234,12 @@ class ThemeError(BaseModel):
     timestamp: str | datetime | None = Field(None, description="Error timestamp")
     model_config = ConfigDict(ser_json_timedelta="iso8601")
 
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str) -> str:
+        """Wrap error text before it is exposed to LLM context."""
+        return sanitize_for_llm_context(value, field_path=("error",))
+
     @classmethod
     def create(cls, error: str, error_type: str) -> "ThemeError":
         """Create a standardized ThemeError with timestamp."""

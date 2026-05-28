@@ -681,3 +681,24 @@ class TestGetSchemaCssTemplateAndTheme:
         """theme is a valid GetSchemaRequest model_type."""
         request = GetSchemaRequest(model_type="theme")
         assert request.model_type == "theme"
+
+
+class TestGetSchemaPermissionMap:
+    """Verify that _MODEL_TYPE_CLASS_PERMISSION covers css_template and theme."""
+
+    def test_css_template_permission_entry(self):
+        """css_template must map to CssTemplate FAB class."""
+        assert (
+            get_schema_module._MODEL_TYPE_CLASS_PERMISSION["css_template"]
+            == "CssTemplate"
+        )
+
+    def test_theme_permission_entry(self):
+        """theme must map to Theme FAB class."""
+        assert get_schema_module._MODEL_TYPE_CLASS_PERMISSION["theme"] == "Theme"
+
+    def test_all_schema_factory_types_covered(self):
+        """Every key in _SCHEMA_CORE_FACTORIES must have a permission entry."""
+        factories = set(get_schema_module._SCHEMA_CORE_FACTORIES.keys())
+        perms = set(get_schema_module._MODEL_TYPE_CLASS_PERMISSION.keys())
+        assert factories == perms
