@@ -255,7 +255,9 @@ def serialize_role_object(
                 permissions = None
     return RoleInfo(
         id=getattr(role, "id", None),
-        name=escape_llm_context_delimiters(getattr(role, "name", None)),
+        name=sanitize_for_llm_context(
+            getattr(role, "name", None), field_path=("name",)
+        ),
         permissions=[escape_llm_context_delimiters(p) for p in permissions]
         if permissions is not None
         else None,

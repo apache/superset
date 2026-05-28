@@ -285,13 +285,17 @@ def serialize_user_object(
     return UserInfo(
         id=getattr(user, "id", None),
         username=escape_llm_context_delimiters(getattr(user, "username", None)),
-        first_name=escape_llm_context_delimiters(getattr(user, "first_name", None)),
-        last_name=escape_llm_context_delimiters(getattr(user, "last_name", None)),
+        first_name=sanitize_for_llm_context(
+            getattr(user, "first_name", None), field_path=("first_name",)
+        ),
+        last_name=sanitize_for_llm_context(
+            getattr(user, "last_name", None), field_path=("last_name",)
+        ),
         active=getattr(user, "active", None),
         email=escape_llm_context_delimiters(getattr(user, "email", None))
         if include_sensitive
         else None,
-        roles=[escape_llm_context_delimiters(r) for r in roles]
+        roles=[sanitize_for_llm_context(r, field_path=("roles",)) for r in roles]
         if roles is not None
         else None,
         changed_on=getattr(user, "changed_on", None),
