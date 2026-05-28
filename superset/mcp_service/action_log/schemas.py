@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Annotated, Any, Literal
 
 from pydantic import (
@@ -69,6 +69,24 @@ class ActionLogFilter(ColumnOperator):
     value: str | int | float | bool | datetime | list[str | int | float | bool] = Field(
         ..., description="Value to filter by"
     )
+
+    @model_validator(mode="after")
+    def normalize_dttm_value(self) -> "ActionLogFilter":
+        """Normalize string dttm values to datetime to avoid VARCHAR bind mismatch.
+
+        Pydantic's left-to-right union matching keeps ISO strings as str when
+        str appears before datetime in the union.  This validator parses them so
+        the DAO always receives a typed datetime for TIMESTAMP column comparisons.
+        """
+        if self.col == "dttm" and isinstance(self.value, str):
+            try:
+                parsed = datetime.fromisoformat(self.value)
+                if parsed.tzinfo is None:
+                    parsed = parsed.replace(tzinfo=timezone.utc)
+                self.value = parsed
+            except ValueError:
+                pass
+        return self
 
 
 class ActionLogInfo(BaseModel):

@@ -151,7 +151,8 @@ async def test_list_action_logs_explicit_dttm_filter_skips_default(
     dttm_filters = [f for f in col_operators if getattr(f, "col", None) == "dttm"]
     # Only the user-provided filter, not the injected default
     assert len(dttm_filters) == 1
-    assert dttm_filters[0].value == "2020-01-01T00:00:00"
+    # model_validator normalizes ISO strings to timezone-aware datetime objects
+    assert dttm_filters[0].value == datetime(2020, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
 
 
 @patch("superset.daos.log.LogDAO.list")

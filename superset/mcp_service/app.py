@@ -174,6 +174,14 @@ SQL Lab Integration:
 Schema Discovery:
 - get_schema: Get schema metadata for chart/dataset/dashboard (columns, filters)
 
+Action Logs (requires SUPERSET_LOG_VIEW and FAB_ADD_SECURITY_VIEWS):
+- list_action_logs: List user action logs with filtering and pagination (defaults to last 7 days)
+- get_action_log_info: Get a single action log entry by integer ID
+
+Task Management (requires GLOBAL_TASK_FRAMEWORK feature flag):
+- list_tasks: List background tasks with status filtering and pagination
+- get_task_info: Get task details by integer ID or UUID
+
 System Information:
 - get_instance_info: Get instance-wide statistics, metadata, and current user identity
 - find_users: Resolve a person's name to user IDs for use as a filter value
@@ -742,8 +750,11 @@ def _remove_tool_quietly(tool_name: str, reason: str) -> None:
         pass
 
 
-def _apply_config_guards(flask_app: Any) -> None:
+def _apply_config_guards(flask_app: Any) -> set[str]:
     """Remove tools whose backing features are administratively disabled.
+
+    Returns the set of tool names that were removed so that callers can exclude
+    them from generated instructions.
 
     - Action-log tools: mirrors LogRestApi.is_enabled() which checks
       FAB_ADD_SECURITY_VIEWS and SUPERSET_LOG_VIEW.
@@ -752,18 +763,24 @@ def _apply_config_guards(flask_app: Any) -> None:
       all Superset enablement paths (DEFAULT_FEATURE_FLAGS, GET_FEATURE_FLAGS_FUNC,
       IS_FEATURE_ENABLED_FUNC, etc.) are respected.
     """
+    removed: set[str] = set()
+
     if not (
         flask_app.config.get("FAB_ADD_SECURITY_VIEWS", True)
         and flask_app.config.get("SUPERSET_LOG_VIEW", True)
     ):
         for tool_name in ("list_action_logs", "get_action_log_info"):
             _remove_tool_quietly(tool_name, "logging disabled by config flags")
+            removed.add(tool_name)
 
     from superset.extensions import feature_flag_manager  # noqa: PLC0415
 
     if not feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
         for tool_name in ("list_tasks", "get_task_info"):
             _remove_tool_quietly(tool_name, "GLOBAL_TASK_FRAMEWORK not enabled")
+            removed.add(tool_name)
+
+    return removed
 
 
 def init_fastmcp_server(
@@ -810,10 +827,13 @@ def init_fastmcp_server(
     # instructions never advertise tools that clients cannot actually call.
     disabled_tools: set[str] = flask_app.config.get("MCP_DISABLED_TOOLS", set())
     _remove_disabled_tools(disabled_tools)
-    _apply_config_guards(flask_app)
+    config_guard_removed = _apply_config_guards(flask_app)
 
     if instructions is None:
-        instructions = get_default_instructions(branding, disabled_tools)
+        # Merge MCP_DISABLED_TOOLS with config-guard removals so the instructions
+        # never advertise tools that have been suppressed by either mechanism.
+        all_disabled = disabled_tools | config_guard_removed
+        instructions = get_default_instructions(branding, all_disabled)
 
     # Configure the global mcp instance with provided settings.
     # Tools are already registered on this instance via @tool decorator imports above.

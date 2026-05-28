@@ -280,6 +280,10 @@ def test_no_disabled_tools_returns_full_instructions() -> None:
 
     assert "- execute_sql:" in full
     assert "- health_check:" in full
+    assert "- list_action_logs:" in full
+    assert "- get_action_log_info:" in full
+    assert "- list_tasks:" in full
+    assert "- get_task_info:" in full
     assert full == also_full
 
 
@@ -343,6 +347,35 @@ def test_task_tools_removed_when_global_task_framework_disabled(
     removed = {call.args[0] for call in mock_remove.call_args_list}
     assert "list_tasks" in removed
     assert "get_task_info" in removed
+
+
+def test_config_guard_tools_excluded_from_instructions() -> None:
+    """Config-guard removed tools must be passed to get_default_instructions so
+    the instructions never advertise tools that are disabled by config flags."""
+    flask_app = _make_flask_app_mock(set(), log_view=False)
+
+    captured: list[str] = []
+
+    def fake_get_instructions(
+        branding: str = "Apache Superset",
+        disabled_tools: set[str] | None = None,
+    ) -> str:
+        captured.append(str(disabled_tools))
+        return f"instructions for {branding}"
+
+    with (
+        patch("superset.mcp_service.flask_singleton.app", flask_app),
+        patch.object(mcp.local_provider, "remove_tool"),
+        patch(
+            "superset.mcp_service.app.get_default_instructions",
+            fake_get_instructions,
+        ),
+    ):
+        init_fastmcp_server()
+
+    assert len(captured) == 1
+    assert "list_action_logs" in captured[0]
+    assert "get_action_log_info" in captured[0]
 
 
 def test_instructions_generated_after_disabled_tools_removed() -> None:
