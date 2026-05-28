@@ -145,13 +145,13 @@ def _build_config_snippet(
     from superset.utils import json as superset_json
 
     key_json = superset_json.dumps(server_key)
-    inner_parts = ['      "url": "&lt;this-url&gt;"']
+    inner_parts = ['      "url": "<this-url>"']
     if show_transport:
         inner_parts.append('      "transport": "streamable-http"')
     if auth_enabled:
         inner_parts.append(
             '      "headers": {\n'
-            '        "Authorization": "Bearer &lt;your-api-key&gt;"\n'
+            '        "Authorization": "Bearer <your-api-key>"\n'
             "      }"
         )
     inner = ",\n".join(inner_parts)
@@ -174,7 +174,11 @@ def _build_browser_hello_html(
         if logo_url_stripped.startswith(("http://", "https://")):
             logo_url = html_module.escape(logo_url_stripped)
 
-    config_block = _build_config_snippet(auth_enabled, server_key, show_transport)
+    # html.escape() ensures server_key and all other content in the snippet
+    # cannot break out of the <pre><code> block (json.dumps does not escape HTML).
+    config_block = html_module.escape(
+        _build_config_snippet(auth_enabled, server_key, show_transport)
+    )
 
     if auth_enabled:
         connect_desc = (
@@ -182,8 +186,8 @@ def _build_browser_hello_html(
             "replacing the URL and API key with your actual values:"
         )
         note = (
-            "Replace <code>&lt;this-url&gt;</code> with the full URL of this page and "
-            "<code>&lt;your-api-key&gt;</code> with a valid API key or JWT token."
+            "Replace <code>&lt;this-url&gt;</code> with the full URL of this page "
+            "and <code>&lt;your-api-key&gt;</code> with a valid API key or JWT token."
         )
     else:
         connect_desc = (

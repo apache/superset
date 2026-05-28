@@ -748,7 +748,13 @@ def _build_starlette_middleware(
             ).rstrip("/")
             if superset_addr:
                 base_page_config["logo_url"] = f"{superset_addr}{app_icon}"
-    mcp_hello_page: dict[str, Any] | None = flask_app.config.get("MCP_HELLO_PAGE", None)
+    mcp_hello_page = flask_app.config.get("MCP_HELLO_PAGE")
+    if mcp_hello_page is not None and not isinstance(mcp_hello_page, dict):
+        logger.warning(
+            "MCP_HELLO_PAGE must be a dict, ignoring value of type %s",
+            type(mcp_hello_page).__name__,
+        )
+        mcp_hello_page = None
     page_config: dict[str, Any] = {**base_page_config, **(mcp_hello_page or {})}
     return [
         StarletteMiddleware(
