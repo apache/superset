@@ -678,6 +678,7 @@ from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
     get_layer_annotation_info,
     list_annotation_layers,
     list_layer_annotations,
+    update_layer_annotation,
 )
 from superset.mcp_service.chart import (  # noqa: F401, E402
     prompts as chart_prompts,
