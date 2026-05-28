@@ -748,7 +748,9 @@ def _apply_config_guards(flask_app: Any) -> None:
     - Action-log tools: mirrors LogRestApi.is_enabled() which checks
       FAB_ADD_SECURITY_VIEWS and SUPERSET_LOG_VIEW.
     - Task tools: mirrors TaskRestApi conditional registration which checks
-      the GLOBAL_TASK_FRAMEWORK feature flag.
+      the GLOBAL_TASK_FRAMEWORK feature flag via feature_flag_manager so that
+      all Superset enablement paths (DEFAULT_FEATURE_FLAGS, GET_FEATURE_FLAGS_FUNC,
+      IS_FEATURE_ENABLED_FUNC, etc.) are respected.
     """
     if not (
         flask_app.config.get("FAB_ADD_SECURITY_VIEWS", True)
@@ -757,8 +759,9 @@ def _apply_config_guards(flask_app: Any) -> None:
         for tool_name in ("list_action_logs", "get_action_log_info"):
             _remove_tool_quietly(tool_name, "logging disabled by config flags")
 
-    feature_flags: dict[str, Any] = flask_app.config.get("FEATURE_FLAGS", {})
-    if not feature_flags.get("GLOBAL_TASK_FRAMEWORK", False):
+    from superset.extensions import feature_flag_manager  # noqa: PLC0415
+
+    if not feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
         for tool_name in ("list_tasks", "get_task_info"):
             _remove_tool_quietly(tool_name, "GLOBAL_TASK_FRAMEWORK not enabled")
 
