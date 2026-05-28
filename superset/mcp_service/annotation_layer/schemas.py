@@ -443,3 +443,86 @@ class CreateLayerAnnotationResponse(BaseModel):
         None,
         description="Error message if creation failed, otherwise null.",
     )
+
+
+class UpdateLayerAnnotationRequest(BaseModel):
+    """Request schema for update_layer_annotation."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    layer_id: int = Field(
+        ...,
+        description="ID of the annotation layer the annotation belongs to.",
+    )
+    annotation_id: int = Field(
+        ...,
+        description="ID of the annotation to update.",
+    )
+    short_descr: str | None = Field(
+        None,
+        min_length=1,
+        max_length=500,
+        description="New short description / title. "
+        "Must be unique within the annotation layer.",
+    )
+    start_dttm: datetime | None = Field(
+        None,
+        description="New annotation start time in ISO 8601 format.",
+    )
+    end_dttm: datetime | None = Field(
+        None,
+        description="New annotation end time in ISO 8601 format. "
+        "Must be >= start_dttm.",
+    )
+    long_descr: str | None = Field(
+        None,
+        description="New detailed description (optional).",
+    )
+    json_metadata: str | None = Field(
+        None,
+        description="New JSON metadata string (optional).",
+    )
+
+    @field_validator("json_metadata")
+    @classmethod
+    def validate_json_metadata(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        try:
+            json.loads(v)
+        except (ValueError, TypeError) as exc:
+            raise ValueError("json_metadata must be valid JSON") from exc
+        return v
+
+
+class UpdateLayerAnnotationResponse(BaseModel):
+    """Response schema for update_layer_annotation."""
+
+    id: int | None = Field(
+        None,
+        description="ID of the updated annotation. None if update failed.",
+    )
+    layer_id: int = Field(
+        ...,
+        description="ID of the annotation layer.",
+    )
+    short_descr: str | None = Field(
+        None,
+        description="Short description / title of the annotation.",
+    )
+    start_dttm: datetime | None = Field(
+        None,
+        description="Annotation start time.",
+    )
+    end_dttm: datetime | None = Field(
+        None,
+        description="Annotation end time.",
+    )
+    long_descr: str | None = Field(
+        None,
+        description="Detailed description of the annotation.",
+    )
+    error: str | None = Field(
+        None,
+        description="Error message if update failed, otherwise null.",
+    )

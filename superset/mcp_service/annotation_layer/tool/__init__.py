@@ -20,6 +20,7 @@ from .get_annotation_layer_info import get_annotation_layer_info
 from .get_layer_annotation_info import get_layer_annotation_info
 from .list_annotation_layers import list_annotation_layers
 from .list_layer_annotations import list_layer_annotations
+from .update_layer_annotation import update_layer_annotation
 
 __all__ = [
     "list_annotation_layers",
@@ -27,4 +28,5 @@ __all__ = [
     "list_layer_annotations",
     "get_layer_annotation_info",
     "create_layer_annotation",
+    "update_layer_annotation",
 ]

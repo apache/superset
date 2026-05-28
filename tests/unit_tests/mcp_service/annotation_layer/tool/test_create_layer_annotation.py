@@ -247,3 +247,221 @@ async def test_create_layer_annotation_optional_fields_forwarded(
     props = mock_command_cls.call_args[0][0]
     assert props["long_descr"] == "DB connectivity lost"
     assert props["json_metadata"] == '{"severity": "high"}'
+
+
+# ---------------------------------------------------------------------------
+# update_layer_annotation tests
+# ---------------------------------------------------------------------------
+
+
+from superset.mcp_service.annotation_layer.schemas import (  # noqa: E402
+    UpdateLayerAnnotationRequest,
+)
+
+
+def _make_update_request(**kwargs) -> UpdateLayerAnnotationRequest:
+    defaults: dict[str, object] = {
+        "layer_id": 1,
+        "annotation_id": 42,
+    }
+    defaults.update(kwargs)
+    return UpdateLayerAnnotationRequest(**defaults)
+
+
+# --- Schema tests ---
+
+
+def test_update_request_valid() -> None:
+    req = _make_update_request()
+    assert req.layer_id == 1
+    assert req.annotation_id == 42
+    assert req.short_descr is None
+
+
+def test_update_request_short_descr_too_long() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError):
+        _make_update_request(short_descr="x" * 501)
+
+
+def test_update_request_invalid_json_metadata_fails() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="json_metadata must be valid JSON"):
+        _make_update_request(json_metadata="not-json{")
+
+
+def test_update_request_valid_json_metadata() -> None:
+    req = _make_update_request(json_metadata='{"key": "value"}')
+    assert req.json_metadata == '{"key": "value"}'
+
+
+# --- Tool logic tests ---
+
+
+@pytest.mark.asyncio
+async def test_update_layer_annotation_success(mcp_server: object) -> None:
+    """Happy path: annotation updated, id and fields returned."""
+    mock_annotation = _make_mock_annotation(id=42, short_descr="Fixed title")
+    mock_command = MagicMock()
+    mock_command.run.return_value = mock_annotation
+
+    with patch(
+        "superset.commands.annotation_layer.annotation.update.UpdateAnnotationCommand",
+        return_value=mock_command,
+    ):
+        async with Client(mcp_server) as client:
+            request = _make_update_request(short_descr="Fixed title")
+            result = await client.call_tool(
+                "update_layer_annotation", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] == 42
+    assert data["layer_id"] == 1
+    assert data["short_descr"] == "Fixed title"
+    assert data["error"] is None
+
+
+@pytest.mark.asyncio
+async def test_update_layer_annotation_not_found(mcp_server: object) -> None:
+    """AnnotationNotFoundError returns structured error response."""
+    from superset.commands.annotation_layer.annotation.exceptions import (
+        AnnotationNotFoundError,
+    )
+
+    mock_command = MagicMock()
+    mock_command.run.side_effect = AnnotationNotFoundError()
+
+    with patch(
+        "superset.commands.annotation_layer.annotation.update.UpdateAnnotationCommand",
+        return_value=mock_command,
+    ):
+        async with Client(mcp_server) as client:
+            request = _make_update_request(annotation_id=999)
+            result = await client.call_tool(
+                "update_layer_annotation", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+    assert "999" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_layer_annotation_layer_not_found(mcp_server: object) -> None:
+    """AnnotationLayerNotFoundError returns structured error response."""
+    from superset.commands.annotation_layer.exceptions import (
+        AnnotationLayerNotFoundError,
+    )
+
+    mock_command = MagicMock()
+    mock_command.run.side_effect = AnnotationLayerNotFoundError()
+
+    with patch(
+        "superset.commands.annotation_layer.annotation.update.UpdateAnnotationCommand",
+        return_value=mock_command,
+    ):
+        async with Client(mcp_server) as client:
+            request = _make_update_request(layer_id=999)
+            result = await client.call_tool(
+                "update_layer_annotation", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+    assert "999" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_layer_annotation_invalid_error(mcp_server: object) -> None:
+    """AnnotationInvalidError (e.g. duplicate short_descr) returns structured error."""
+    from superset.commands.annotation_layer.annotation.exceptions import (
+        AnnotationInvalidError,
+        AnnotationUniquenessValidationError,
+    )
+
+    invalid_exc = AnnotationInvalidError()
+    invalid_exc.append(AnnotationUniquenessValidationError())
+    mock_command = MagicMock()
+    mock_command.run.side_effect = invalid_exc
+
+    with patch(
+        "superset.commands.annotation_layer.annotation.update.UpdateAnnotationCommand",
+        return_value=mock_command,
+    ):
+        async with Client(mcp_server) as client:
+            request = _make_update_request(short_descr="Duplicate")
+            result = await client.call_tool(
+                "update_layer_annotation", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+
+
+@pytest.mark.asyncio
+async def test_update_layer_annotation_update_failed(mcp_server: object) -> None:
+    """AnnotationUpdateFailedError is caught and returned as error response."""
+    from superset.commands.annotation_layer.annotation.exceptions import (
+        AnnotationUpdateFailedError,
+    )
+
+    mock_command = MagicMock()
+    mock_command.run.side_effect = AnnotationUpdateFailedError()
+
+    with patch(
+        "superset.commands.annotation_layer.annotation.update.UpdateAnnotationCommand",
+        return_value=mock_command,
+    ):
+        async with Client(mcp_server) as client:
+            request = _make_update_request()
+            result = await client.call_tool(
+                "update_layer_annotation", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+    assert "Failed to update annotation" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_layer_annotation_only_provided_fields_forwarded(
+    mcp_server: object,
+) -> None:
+    """Only non-None fields are forwarded to UpdateAnnotationCommand."""
+    mock_annotation = _make_mock_annotation(id=42)
+    mock_command_instance = MagicMock()
+    mock_command_instance.run.return_value = mock_annotation
+    mock_command_cls = MagicMock(return_value=mock_command_instance)
+
+    with patch(
+        "superset.commands.annotation_layer.annotation.update.UpdateAnnotationCommand",
+        mock_command_cls,
+    ):
+        async with Client(mcp_server) as client:
+            request = _make_update_request(
+                short_descr="New title",
+                long_descr="Updated description",
+            )
+            await client.call_tool(
+                "update_layer_annotation", {"request": request.model_dump()}
+            )
+
+    # annotation_id is the first positional arg, properties is the second
+    call_args = mock_command_cls.call_args
+    annotation_id_arg = call_args[0][0]
+    props = call_args[0][1]
+
+    assert annotation_id_arg == 42
+    assert props["short_descr"] == "New title"
+    assert props["long_descr"] == "Updated description"
+    # Fields not provided should not be in properties
+    assert "start_dttm" not in props
+    assert "end_dttm" not in props
+    assert "json_metadata" not in props
