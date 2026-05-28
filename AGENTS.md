@@ -52,6 +52,26 @@ Common pre-commit failures:
 - **External API exposure** - Use UUIDs in public APIs instead of internal integer IDs
 - **Existing models** - Add UUID fields alongside integer IDs for gradual migration
 
+## Security and Threat Model
+
+Before evaluating any code path for security issues, read [`.github/SECURITY.md`](.github/SECURITY.md). It is the canonical, authoritative source for Apache Superset's security model and is referenced by both human reporters and automated scanners.
+
+In short, the test for whether a finding is in scope is one question:
+
+> *Does it let a principal perform an action the role and capability matrix in `.github/SECURITY.md` does not entitle them to?*
+
+If yes, it is in scope. If no, it is not.
+
+The three trust boundaries are:
+
+1. **The Admin role** is a fully trusted operational principal. Anything an Admin can do through documented configuration, API, or UI is an intended capability, not a vulnerability.
+2. **The operator** owns deployment-time decisions (secrets, network exposure, feature-flag selection, connector and codec choices, notification destinations, third-party plugins). Misconfiguration at this layer is a deployment defect, not a Superset vulnerability.
+3. **The codebase** is responsible for enforcing the role and capability matrix across its product surface. Failures of that enforcement, anywhere, are in scope regardless of which endpoint or component contains them.
+
+The canonical authorization pattern in this codebase is `@has_access_api` (Flask-AppBuilder) at the route level plus `security_manager.raise_for_access(...)` at the object level, with DAO `base_filters` where listing is involved. Code following both gates is not a finding by itself; code that omits the per-object gate on a route that returns or mutates a specific object is.
+
+The full role and capability matrix, in-scope and out-of-scope class lists, and CVE aggregation rules are in [`.github/SECURITY.md`](.github/SECURITY.md). Defer to that document for any specifics.
+
 ## Key Directories
 
 ```
@@ -128,6 +148,7 @@ The Developer Portal auto-generates MDX documentation from Storybook stories. **
 ## Architecture Patterns
 
 ### Security & Features
+- **Security model**: see the top-level [Security and Threat Model](#security-and-threat-model) section and [`.github/SECURITY.md`](.github/SECURITY.md)
 - **RBAC**: Role-based access via Flask-AppBuilder
 - **Feature flags**: Control feature rollouts
 - **Row-level security**: SQL-based data access control
