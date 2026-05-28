@@ -93,4 +93,22 @@ describe("guest token refresh", () => {
     expect(timing).toBeGreaterThan(MIN_REFRESH_WAIT_MS);
     expect(timing).toBe(DEFAULT_TOKEN_EXP_MS - REFRESH_TIMING_BUFFER_MS);
   });
+
+  it("falls back to default timing for a completely malformed token", () => {
+    const timing = getGuestTokenRefreshTiming("not-a-jwt");
+
+    expect(timing).toBe(DEFAULT_TOKEN_EXP_MS - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("falls back to default timing for an empty string token", () => {
+    const timing = getGuestTokenRefreshTiming("");
+
+    expect(timing).toBe(DEFAULT_TOKEN_EXP_MS - REFRESH_TIMING_BUFFER_MS);
+  });
+
+  it("falls back to default timing for a token with invalid base64 payload", () => {
+    const timing = getGuestTokenRefreshTiming("header.!!!invalid-base64!!!.signature");
+
+    expect(timing).toBe(DEFAULT_TOKEN_EXP_MS - REFRESH_TIMING_BUFFER_MS);
+  });
 });
