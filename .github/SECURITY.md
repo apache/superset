@@ -47,7 +47,7 @@ Apache Superset's threat model assumes three trust boundaries.
 
 2. *The operator* is whoever deploys, configures, and runs Apache Superset. Behaviors that depend on deployment-time decisions are the operator's responsibility, not Apache Superset's. This includes the values of secrets, the network reachability of the application and its data sources, the choice of database connectors and cache backends, the selection of feature flags, the destinations of notifications, and the trust placed in third-party plugins. Defaults that fail closed are the responsibility of the Apache Superset codebase. Defaults that fail open must be accompanied by a documented hardening requirement; applying that hardening is the operator's responsibility, while shipping an undocumented or unflagged fail-open default is a codebase issue.
 
-3. *The Apache Superset codebase* is responsible for enforcing the role and capability matrix below across its product surface (REST API, web UI, SQL Lab, embedded SDK, notification system, server-side workers). A failure to enforce, anywhere in that surface, is in scope.
+3. *The Apache Superset codebase* is responsible for enforcing the role and capability matrix below across its product surface. It is also responsible for correctly enforcing any security control that Apache Superset documents and exposes for operator configuration. The operator decides whether to enable a given control; the codebase decides how it is enforced. A failure to enforce, whether in the role and capability matrix or in any documented control, is in scope regardless of which principal triggers it.
 
 **Roles and Capabilities**
 
@@ -81,6 +81,7 @@ If yes, it is in scope. If no, it is out of scope. The lists below apply that te
 - An embedded guest token authorizes actions outside the dashboard it was issued for, or can be forged, replayed, or escalated to a higher principal.
 - Apache Superset, acting on behalf of an unprivileged user, fetches an outbound URL the user controls in a feature where Apache Superset itself, not the operator, controls the outbound destination set (server-side request forgery).
 - An Apache Superset default fails open without an accompanying documented hardening requirement. The codebase is responsible for shipping fail-closed defaults or for documenting the hardening required when a default fails open; failures of that responsibility are in scope (see *Trust Boundaries*).
+- A user evades a security control that Apache Superset documents and exposes for operator configuration. When the codebase implements a control (validator, sanitizer, restriction, allowlist or denylist) and exposes its configuration to operators, the codebase must enforce that control as documented. Bypasses are in scope regardless of which principal triggers them, including Admin, since the operator's configuration of the control is the policy the codebase failed to enforce.
 - A user causes a script to execute in another user's browser through a field the codebase renders to that other user (cross-site scripting), or causes cross-origin leakage of authenticated session state or data.
 - A user reaches a route, page, or API endpoint that requires a role they do not have.
 
