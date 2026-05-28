@@ -40,6 +40,7 @@ from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
+from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import get_user
@@ -239,6 +240,10 @@ def import_dataset(  # noqa: C901
     from superset.commands.importers.v1.utils import find_existing_for_import
 
     user = get_user()
+    # Tracks whether we entered the soft-deleted mutation path so the
+    # downstream `sync` decision (below) can reflect that an
+    # implicit-restore re-import is a clean replacement, not a merge.
+    is_soft_deleted_match = False
 
     if existing := find_existing_for_import(SqlaTable, config["uuid"]):
         is_soft_deleted = existing.deleted_at is not None
@@ -262,13 +267,30 @@ def import_dataset(  # noqa: C901
         if not needs_mutation or not can_write:
             return existing
         # Mutation path. Restore a soft-deleted match in place rather
-        # than hard-delete-and-replace: a hard delete cascades through
-        # the chart back-reference and table_columns / sql_metrics,
-        # which the import would then need to reconstruct. Setting
-        # config["id"] = existing.id routes import_from_dict through
-        # UPDATE, preserving the PK and the dependent rows.
+        # than hard-delete-and-replace: a hard delete would cascade
+        # through the chart back-reference and the delete-orphan
+        # child relationships (table_columns, sql_metrics), which the
+        # import would then need to reconstruct.
+        #
+        # How the restore lands as an UPDATE: clearing
+        # existing.deleted_at marks the in-session row dirty and the
+        # explicit flush emits the deleted_at = NULL UPDATE before
+        # SqlaTable.import_from_dict (below) does its own query-by-
+        # uuid lookup. Without the flush we would be relying on
+        # autoflush ahead of that internal query — correct under
+        # default session config but a hidden contract; the explicit
+        # flush makes it robust. The lookup then finds the now-live
+        # row (the listener filters deleted_at IS NULL) and
+        # import_from_dict applies the config as field updates on the
+        # existing object, preserving the PK. Note: config["id"] is
+        # set defensively, but ImportExportMixin.import_from_dict
+        # strips it today because SqlaTable.export_fields does not
+        # contain "id"; what actually binds to the existing row is
+        # the uuid uniqueness constraint used inside import_from_dict.
         if is_soft_deleted:
             existing.deleted_at = None
+            db.session.flush()
+            is_soft_deleted_match = True
         config["id"] = existing.id
 
     elif not can_write:
@@ -301,7 +323,12 @@ def import_dataset(  # noqa: C901
                     attributes["extra"] = None
 
     # should we delete columns and metrics not present in the current import?
-    sync = ["columns", "metrics"] if overwrite else []
+    # Restore-via-import of a soft-deleted dataset is implicitly a clean
+    # replacement (Option C): the user is bringing the dataset back by
+    # uploading it again, so children present in the live DB but absent
+    # from the upload should be removed, not silently merged. This matches
+    # what an explicit overwrite would do.
+    sync = ["columns", "metrics"] if (overwrite or is_soft_deleted_match) else []
 
     # should we also load data into the dataset?
     data_uri = config.get("data")
@@ -318,7 +345,16 @@ def import_dataset(  # noqa: C901
         # `examples.public.users`, resulting in a conflict.
         #
         # When that happens, we return the original dataset, unmodified.
-        dataset = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+        # Bypasses the visibility filter so a soft-deleted duplicate can
+        # be located too — without the bypass the listener would hide
+        # the row and the `.one()` would raise NoResultFound, masking
+        # the original MultipleResultsFound.
+        dataset = (
+            db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+            .filter_by(uuid=config["uuid"])
+            .one()
+        )
 
     if dataset.id is None:
         db.session.flush()

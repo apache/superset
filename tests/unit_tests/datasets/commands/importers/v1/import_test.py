@@ -1249,6 +1249,69 @@ def test_import_soft_deleted_dataset_raises_when_caller_lacks_can_write(
     assert "can_write" in str(excinfo.value)
 
 
+def test_import_soft_deleted_dataset_restore_removes_orphan_children(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Restoring a soft-deleted dataset via re-import (non-overwrite,
+    Option C) syncs columns and metrics — children present in the live
+    row but absent from the uploaded config are removed, not silently
+    merged.
+
+    Without forcing sync on the implicit-restore path, ``sync=[]``
+    would mean "upsert by UUID, leave non-matching children alone",
+    so the restored dataset would carry stale columns from before the
+    soft-delete. That's a surprising merge of two states; treating
+    re-import as a clean replacement is what an explicit ``overwrite``
+    would do anyway.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    initial = import_dataset(config)
+    original_id = initial.id
+
+    existing = db.session.query(SqlaTable).filter_by(uuid=config["uuid"]).one()
+    # Add an orphan column that the upload doesn't know about.
+    orphan = TableColumn(
+        column_name="orphan_col",
+        type="STRING",
+        table=existing,
+    )
+    db.session.add(orphan)
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    db.session.flush()
+    orphan_uuid = orphan.uuid
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    with override_user(admin):
+        restored = import_dataset(config, overwrite=False)
+
+    assert restored.id == original_id
+    assert restored.deleted_at is None
+    assert orphan_uuid not in {c.uuid for c in restored.columns}, (
+        "orphan column survived restore-via-import; the implicit-restore "
+        "path must force sync so re-import is a clean replacement"
+    )
+
+
 def test_import_soft_deleted_dataset_ignore_permissions_restores_in_place(
     mocker: MockerFixture,
     session: Session,
