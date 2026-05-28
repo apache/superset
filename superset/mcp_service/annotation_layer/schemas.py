@@ -39,6 +39,7 @@ from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
 )
+from superset.utils import json as json_utils
 
 DEFAULT_LAYER_COLUMNS = ["id", "name", "descr"]
 DEFAULT_ANNOTATION_COLUMNS = ["id", "short_descr", "start_dttm", "end_dttm", "layer_id"]
@@ -298,18 +299,40 @@ def _sanitize_annotation_layer_for_llm_context(
     return AnnotationLayerInfo.model_validate(payload)
 
 
+def _sanitize_annotation_json_metadata(raw: Any) -> str | None:
+    """Canonicalize and sanitize the json_metadata blob before LLM exposure.
+
+    Serializing to a canonical JSON string first prevents dict-key injection:
+    keys are rendered as quoted string literals inside the wrapped value rather
+    than being able to escape the delimiter context.
+    """
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        try:
+            canonical: str = json_utils.dumps(json_utils.loads(raw))
+        except (ValueError, TypeError):
+            canonical = raw
+    else:
+        try:
+            canonical = json_utils.dumps(raw)
+        except (ValueError, TypeError):
+            canonical = str(raw)
+    return sanitize_for_llm_context(
+        canonical,
+        field_path=("json_metadata",),
+        excluded_field_names=frozenset(),
+    )
+
+
 def _sanitize_annotation_for_llm_context(info: AnnotationInfo) -> AnnotationInfo:
     payload = info.model_dump(mode="python")
     for field_name in ("short_descr", "long_descr"):
         payload[field_name] = sanitize_for_llm_context(
             payload.get(field_name), field_path=(field_name,)
         )
-    # json_metadata is an arbitrary user-controlled JSON blob; pass no exclusions so
-    # every string leaf is wrapped regardless of key name (e.g. "url", "uuid").
-    payload["json_metadata"] = sanitize_for_llm_context(
-        payload.get("json_metadata"),
-        field_path=("json_metadata",),
-        excluded_field_names=frozenset(),
+    payload["json_metadata"] = _sanitize_annotation_json_metadata(
+        payload.get("json_metadata")
     )
     return AnnotationInfo.model_validate(payload)
 
