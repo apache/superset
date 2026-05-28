@@ -27,6 +27,7 @@ import {
   getTimeFormatter,
   getNumberFormatter,
   CategoricalColorNamespace,
+  sanitizeHtml,
 } from '@superset-ui/core';
 
 interface RoseDataEntry {
@@ -146,24 +147,32 @@ function Rose(element: HTMLElement, props: RoseProps): void {
   function legendData(adatum: RoseData) {
     return adatum[times[0]].map((v: RoseDataEntry, i: number) => ({
       disabled: state.disabled[i],
-      key: v.name,
+      // nvd3-fork's legend currently renders `key` via .text(), so raw
+      // markup would be escaped today. Sanitize at the data boundary
+      // anyway: it makes the safety property a local invariant rather
+      // than depending on the vendored legend's render choice.
+      key: sanitizeHtml(v.name),
     }));
   }
 
   function tooltipData(d: ArcDatum, i: number, adatum: RoseData) {
     const timeIndex = Math.floor(d.arcId / numGroups);
+    // nvd3-fork's nv.models.tooltip renders the `key` strings via .html(),
+    // so any HTML in user-controlled column values would execute. Pass the
+    // keys through sanitizeHtml to strip dangerous markup while preserving
+    // legitimate text content.
     const series = useRichTooltip
       ? adatum[times[timeIndex]]
           .filter(v => !state.disabled[v.id % numGroups])
           .map(v => ({
-            key: v.name,
+            key: sanitizeHtml(v.name),
             value: v.value,
             color: colorFn(v.name, sliceId),
             highlight: v.id === d.arcId,
           }))
       : [
           {
-            key: d.name,
+            key: sanitizeHtml(d.name),
             value: d.val,
             color: colorFn(d.name, sliceId),
           },

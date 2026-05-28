@@ -152,7 +152,7 @@ export function generateMultiLineTooltipContent(d, xFormatter, yFormatters) {
 
   d.series.forEach((series, i) => {
     const yFormatter = yFormatters[i];
-    const key = getFormattedKey(series.key, false);
+    const key = getFormattedKey(series.key, true);
     tooltip +=
       "<tr><td class='legend-color-guide'>" +
       `<div style="background-color: ${series.color};"></div></td>` +
@@ -162,7 +162,7 @@ export function generateMultiLineTooltipContent(d, xFormatter, yFormatters) {
 
   tooltip += '</tbody></table>';
 
-  return tooltip;
+  return dompurify.sanitize(tooltip);
 }
 
 export function generateTimePivotTooltip(d, xFormatter, yFormatter) {
@@ -223,7 +223,7 @@ export function generateBubbleTooltipContent({
   s += createHTMLRow(getLabel(sizeField), sizeFormatter(point.size));
   s += '</table>';
 
-  return s;
+  return dompurify.sanitize(s);
 }
 
 // shouldRemove indicates whether the nvtooltips should be removed from the DOM
@@ -262,11 +262,16 @@ export function wrapTooltip(chart) {
       : chart;
   const tooltipGeneratorFunc = tooltipLayer.tooltip.contentGenerator();
   tooltipLayer.tooltip.contentGenerator(d => {
-    let tooltip = `<div>`;
-    tooltip += tooltipGeneratorFunc(d);
-    tooltip += '</div>';
-
-    return tooltip;
+    // The nvd3-fork default contentGenerator builds tooltip HTML with
+    // unescaped series keys (and feeds them into the tooltip's `.html()`
+    // sink at render time). Run the final string through DOMPurify so
+    // charts that do NOT install a custom contentGenerator (Line, Bar,
+    // Area, Pie, BoxPlot, etc.) cannot execute stored payloads in
+    // column or series names. Custom contentGenerators set elsewhere in
+    // this module already return sanitized output, making this a
+    // belt-and-braces wrap.
+    const tooltip = `<div>${tooltipGeneratorFunc(d)}</div>`;
+    return dompurify.sanitize(tooltip);
   });
 }
 
