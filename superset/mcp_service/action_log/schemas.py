@@ -77,10 +77,16 @@ class ActionLogFilter(ColumnOperator):
         Pydantic's left-to-right union matching keeps ISO strings as str when
         str appears before datetime in the union.  This validator parses them so
         the DAO always receives a typed datetime for TIMESTAMP column comparisons.
+
+        Replaces a trailing 'Z' with '+00:00' before parsing because
+        datetime.fromisoformat does not accept the 'Z' suffix on Python < 3.11.
         """
         if self.col == "dttm" and isinstance(self.value, str):
             try:
-                parsed = datetime.fromisoformat(self.value)
+                val = self.value
+                if val.endswith("Z"):
+                    val = val[:-1] + "+00:00"
+                parsed = datetime.fromisoformat(val)
                 if parsed.tzinfo is None:
                     parsed = parsed.replace(tzinfo=timezone.utc)
                 self.value = parsed
