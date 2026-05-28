@@ -52,6 +52,26 @@ class TestThemeFilterSchema:
         with pytest.raises(ValidationError):
             ThemeFilter(col="json_data", opr="eq", value="{}")
 
+    def test_is_system_filter_accepted(self):
+        """is_system is a valid filter column for distinguishing system themes."""
+        f = ThemeFilter(col="is_system", opr="eq", value=True)
+        assert f.col == "is_system"
+
+    def test_is_system_default_filter_accepted(self):
+        """is_system_default is a valid filter column."""
+        f = ThemeFilter(col="is_system_default", opr="eq", value=True)
+        assert f.col == "is_system_default"
+
+    def test_is_system_dark_filter_accepted(self):
+        """is_system_dark is a valid filter column."""
+        f = ThemeFilter(col="is_system_dark", opr="eq", value=False)
+        assert f.col == "is_system_dark"
+
+    def test_created_by_fk_filter_accepted(self):
+        """created_by_fk is a valid filter column for filtering by creator."""
+        f = ThemeFilter(col="created_by_fk", opr="eq", value=1)
+        assert f.col == "created_by_fk"
+
 
 def create_mock_theme(
     theme_id: int = 1,
@@ -193,7 +213,7 @@ async def test_get_theme_info_basic(mock_find, mcp_server):
         assert data["id"] == 1
         assert data["theme_name"] == "light_theme"
         assert data["uuid"] == "test-theme-uuid-1"
-        assert data["json_data"] == '{"primaryColor": "#1890ff"}'
+        assert data["json_data"] == {"primaryColor": "#1890ff"}
 
 
 @patch("superset.daos.theme.ThemeDAO.find_by_id")

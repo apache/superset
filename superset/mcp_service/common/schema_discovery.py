@@ -652,6 +652,7 @@ CSS_TEMPLATE_SORTABLE_COLUMNS = [
 CSS_TEMPLATE_SEARCH_COLUMNS = ["template_name"]
 CSS_TEMPLATE_FILTER_COLUMNS: dict[str, list[str]] = {
     "template_name": ["eq", "sw", "ilike"],
+    "created_by_fk": ["eq"],
 }
 
 
@@ -681,6 +682,10 @@ THEME_SORTABLE_COLUMNS = [
 THEME_SEARCH_COLUMNS = ["theme_name"]
 THEME_FILTER_COLUMNS: dict[str, list[str]] = {
     "theme_name": ["eq", "sw", "ilike"],
+    "is_system": ["eq"],
+    "is_system_default": ["eq"],
+    "is_system_dark": ["eq"],
+    "created_by_fk": ["eq"],
 }
 
 

@@ -52,12 +52,19 @@ class TestCssTemplateFilterSchema:
         with pytest.raises(ValidationError):
             CssTemplateFilter(col="css", opr="eq", value="body {}")
 
+    def test_created_by_fk_filter_accepted(self):
+        """created_by_fk is a valid filter column for filtering by creator."""
+        f = CssTemplateFilter(col="created_by_fk", opr="eq", value=1)
+        assert f.col == "created_by_fk"
+
 
 def create_mock_css_template(
     template_id: int = 1,
     template_name: str = "my_template",
     css: str = "body { color: red; }",
     uuid: str | None = None,
+    created_by_name: str | None = "admin",
+    changed_by_name: str | None = "admin",
 ) -> MagicMock:
     """Factory function to create mock CSS template objects."""
     template = MagicMock()
@@ -69,6 +76,8 @@ def create_mock_css_template(
     )
     template.changed_on = None
     template.created_on = None
+    template.created_by_name = created_by_name
+    template.changed_by_name = changed_by_name
     return template
 
 
@@ -216,6 +225,8 @@ async def test_get_css_template_info_basic(mock_find, mcp_server):
         assert data["template_name"] == "my_template"
         assert data["uuid"] == "test-css-template-uuid-1"
         assert data["css"] == "body { color: red; }"
+        assert data["created_by_name"] == "admin"
+        assert data["changed_by_name"] == "admin"
 
 
 @patch("superset.daos.css.CssTemplateDAO.find_by_id")

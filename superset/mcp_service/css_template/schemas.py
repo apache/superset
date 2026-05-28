@@ -52,9 +52,12 @@ class CssTemplateFilter(ColumnOperator):
     value: The value to filter by (type depends on col and opr).
     """
 
-    col: Literal["template_name"] = Field(
+    col: Literal["template_name", "created_by_fk"] = Field(
         ...,
-        description="Column to filter on.",
+        description="Column to filter on. Use get_schema(model_type='css_template') "
+        "for available filter columns. To filter by creator, first call find_users "
+        "to resolve a name to a user ID, then filter by created_by_fk with "
+        "that integer ID.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -77,6 +80,10 @@ class CssTemplateInfo(BaseModel):
         None, description="Last modification timestamp"
     )
     created_on: str | datetime | None = Field(None, description="Creation timestamp")
+    created_by_name: str | None = Field(None, description="Username of the creator")
+    changed_by_name: str | None = Field(
+        None, description="Username of the last modifier"
+    )
 
     model_config = ConfigDict(
         from_attributes=True,
@@ -246,4 +253,6 @@ def serialize_css_template_object(obj: Any) -> CssTemplateInfo | None:
         css=getattr(obj, "css", None),
         changed_on=getattr(obj, "changed_on", None),
         created_on=getattr(obj, "created_on", None),
+        created_by_name=getattr(obj, "created_by_name", None) or None,
+        changed_by_name=getattr(obj, "changed_by_name", None) or None,
     )

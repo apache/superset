@@ -625,9 +625,10 @@ class TestGetSchemaCssTemplateAndTheme:
             assert "template_name" in info["sortable_columns"]
             assert "changed_on" in info["sortable_columns"]
 
-            # filter_columns matches list_css_templates: only template_name
+            # filter_columns matches list_css_templates accepted filters
             assert "template_name" in info["filter_columns"]
-            assert len(info["filter_columns"]) == 1, (
+            assert "created_by_fk" in info["filter_columns"]
+            assert len(info["filter_columns"]) == 2, (
                 "filter_columns must match list_css_templates accepted filters"
             )
 
@@ -661,9 +662,13 @@ class TestGetSchemaCssTemplateAndTheme:
             assert "theme_name" in info["sortable_columns"]
             assert "changed_on" in info["sortable_columns"]
 
-            # filter_columns matches list_themes: only theme_name
+            # filter_columns matches list_themes accepted filters
             assert "theme_name" in info["filter_columns"]
-            assert len(info["filter_columns"]) == 1, (
+            assert "is_system" in info["filter_columns"]
+            assert "is_system_default" in info["filter_columns"]
+            assert "is_system_dark" in info["filter_columns"]
+            assert "created_by_fk" in info["filter_columns"]
+            assert len(info["filter_columns"]) == 5, (
                 "get_schema filter_columns must match list_themes accepted filters"
             )
 

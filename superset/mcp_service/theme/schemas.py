@@ -42,6 +42,7 @@ from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
 )
+from superset.utils import json as superset_json
 
 
 class ThemeFilter(ColumnOperator):
@@ -52,9 +53,18 @@ class ThemeFilter(ColumnOperator):
     value: The value to filter by (type depends on col and opr).
     """
 
-    col: Literal["theme_name"] = Field(
+    col: Literal[
+        "theme_name",
+        "is_system",
+        "is_system_default",
+        "is_system_dark",
+        "created_by_fk",
+    ] = Field(
         ...,
-        description="Column to filter on.",
+        description="Column to filter on. Use get_schema(model_type='theme') for "
+        "available filter columns. To filter by creator, first call find_users "
+        "to resolve a name to a user ID, then filter by created_by_fk with "
+        "that integer ID.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -69,9 +79,9 @@ class ThemeInfo(BaseModel):
     id: int | None = Field(None, description="Theme ID")
     uuid: str | None = Field(None, description="Theme UUID")
     theme_name: str | None = Field(None, description="Theme display name")
-    json_data: str | None = Field(
+    json_data: Dict[str, Any] | None = Field(
         None,
-        description="Theme JSON configuration data",
+        description="Theme token configuration as a parsed dictionary",
     )
     is_system: bool | None = Field(None, description="Whether this is a system theme")
     is_system_default: bool | None = Field(
@@ -246,11 +256,21 @@ def serialize_theme_object(obj: Any) -> ThemeInfo | None:
     if not obj:
         return None
 
+    parsed_json_data: Dict[str, Any] | None = None
+    if (raw_json_data := getattr(obj, "json_data", None)) is not None:
+        if isinstance(raw_json_data, dict):
+            parsed_json_data = raw_json_data
+        elif isinstance(raw_json_data, str):
+            try:
+                parsed_json_data = superset_json.loads(raw_json_data)
+            except (TypeError, ValueError):
+                pass
+
     return ThemeInfo(
         id=getattr(obj, "id", None),
         uuid=str(getattr(obj, "uuid", "")) if getattr(obj, "uuid", None) else None,
         theme_name=getattr(obj, "theme_name", None),
-        json_data=getattr(obj, "json_data", None),
+        json_data=parsed_json_data,
         is_system=getattr(obj, "is_system", None),
         is_system_default=getattr(obj, "is_system_default", None),
         is_system_dark=getattr(obj, "is_system_dark", None),
