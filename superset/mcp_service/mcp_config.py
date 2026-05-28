@@ -343,10 +343,10 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
 
             auth_provider = DetailedJWTVerifier(**common_kwargs)
         else:
-            # Default JWTVerifier: minimal logging, generic error responses.
-            from fastmcp.server.auth.providers.jwt import JWTVerifier
+            # MCPJWTVerifier: minimal logging + browser-friendly error page.
+            from superset.mcp_service.jwt_verifier import MCPJWTVerifier
 
-            auth_provider = JWTVerifier(**common_kwargs)
+            auth_provider = MCPJWTVerifier(**common_kwargs)
 
         return auth_provider
     except Exception:
