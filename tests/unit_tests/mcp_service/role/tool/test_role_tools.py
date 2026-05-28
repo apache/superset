@@ -21,6 +21,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.exceptions import ToolError
 from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
@@ -205,19 +206,18 @@ async def test_list_roles_select_columns_filters_output(mock_list, mcp_server):
 
 @pytest.mark.asyncio
 async def test_list_roles_search_and_filters_mutually_exclusive(mcp_server):
-    """search and filters cannot be used together (rejected at schema validation)."""
-    async with Client(mcp_server) as client:
-        result = await client.call_tool(
-            "list_roles",
-            {
-                "request": {
-                    "search": "Admin",
-                    "filters": [{"col": "name", "opr": "eq", "value": "Admin"}],
-                }
-            },
-        )
-
-    assert result.is_error
+    """search and filters cannot be used together — raises ToolError."""
+    with pytest.raises(ToolError):
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "list_roles",
+                {
+                    "request": {
+                        "search": "Admin",
+                        "filters": [{"col": "name", "opr": "eq", "value": "Admin"}],
+                    }
+                },
+            )
 
 
 # ---------------------------------------------------------------------------

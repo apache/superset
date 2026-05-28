@@ -22,6 +22,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.exceptions import ToolError
 from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
@@ -275,20 +276,18 @@ async def test_list_users_empty_result(mock_list, mcp_server):
 
 @pytest.mark.asyncio
 async def test_list_users_search_and_filters_mutually_exclusive(mcp_server):
-    """search and filters cannot be used together."""
-    async with Client(mcp_server) as client:
-        result = await client.call_tool(
-            "list_users",
-            {
-                "request": {
-                    "search": "alice",
-                    "filters": [{"col": "active", "opr": "eq", "value": True}],
-                }
-            },
-        )
-
-    # Rejected at schema validation time, so FastMCP returns is_error=True
-    assert result.is_error
+    """search and filters cannot be used together — raises ToolError."""
+    with pytest.raises(ToolError):
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "list_users",
+                {
+                    "request": {
+                        "search": "alice",
+                        "filters": [{"col": "active", "opr": "eq", "value": True}],
+                    }
+                },
+            )
 
 
 # ---------------------------------------------------------------------------
