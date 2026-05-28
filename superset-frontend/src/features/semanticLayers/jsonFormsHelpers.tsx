@@ -193,10 +193,14 @@ function DynamicFieldControl(props: ControlProps) {
     : undefined;
 
   if (enumValues && enumValues.length > 0) {
-    const options = enumValues.map(value => ({
-      value: value as string | number,
-      label: String(value),
-    }));
+    // The backend returns these as a set, so order is undefined. Sort by
+    // label so the dropdown is stable and alphabetised.
+    const options = enumValues
+      .map(value => ({
+        value: value as string | number,
+        label: String(value),
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
     const tooltip = (props.uischema?.options as Record<string, unknown>)
       ?.tooltip as string | undefined;
     const placeholder = (props.uischema?.options as Record<string, unknown>)
