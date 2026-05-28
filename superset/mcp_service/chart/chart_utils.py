@@ -369,6 +369,8 @@ def map_config_to_form_data(
     plugin = get_registry().get(chart_type) if chart_type else None
 
     if plugin is None:
+        if chart_type is None:
+            raise ValueError(f"Unsupported config type: {type(config)}")
         raise ValueError(
             f"Unsupported config type: {type(config)} (chart_type={chart_type!r})"
         )

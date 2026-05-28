@@ -47,9 +47,9 @@ class PivotTableChartPlugin(BaseChartPlugin):
     ) -> ChartGenerationError | None:
         missing_fields = []
 
-        if "rows" not in config:
+        if not config.get("rows"):
             missing_fields.append("'rows' (row grouping columns)")
-        if "metrics" not in config:
+        if not config.get("metrics"):
             missing_fields.append("'metrics' (aggregation metrics)")
 
         if missing_fields:
