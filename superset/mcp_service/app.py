@@ -206,6 +206,7 @@ Task Management (requires GLOBAL_TASK_FRAMEWORK feature flag):
 
 Theme Management:
 - create_theme: Create a new custom theme with Ant Design token styling (requires write access)
+- update_theme: Update an existing theme's name or token configuration (requires write access)
 
 System Information:
 - get_instance_info: Get instance-wide statistics, metadata, and current user identity
@@ -429,7 +430,8 @@ Input format:
 {_instance_info_role_bullet}- ALWAYS check the user's roles BEFORE suggesting write operations (creating datasets,
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
 - Write tools (generate_chart, generate_dashboard, update_chart, create_virtual_dataset,
-  save_sql_query, add_chart_to_existing_dashboard, update_chart_preview, create_theme)
+  save_sql_query, add_chart_to_existing_dashboard, update_chart_preview, create_theme,
+  update_theme)
   require write permissions. These tools are only listed for users who have the necessary
   access.
   If a write tool does not appear in the tool list, the current user lacks write access.
@@ -769,6 +771,7 @@ from superset.mcp_service.theme.tool import (  # noqa: F401, E402
     create_theme,
     get_theme_info,
     list_themes,
+    update_theme,
 )
 from superset.mcp_service.user.tool import (  # noqa: F401, E402
     get_user_info,

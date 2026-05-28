@@ -18,9 +18,11 @@
 from .create_theme import create_theme
 from .get_theme_info import get_theme_info
 from .list_themes import list_themes
+from .update_theme import update_theme
 
 __all__ = [
     "create_theme",
     "get_theme_info",
     "list_themes",
+    "update_theme",
 ]
