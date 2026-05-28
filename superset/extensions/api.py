@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import mimetypes
+import re
 from io import BytesIO
 from pathlib import Path
 from typing import Any
@@ -36,6 +37,19 @@ from superset.extensions.utils import (
     get_loaded_extension,
 )
 from superset.utils.core import check_is_safe_zip
+
+# Allowlist for publisher and name path parameters — alphanumeric, hyphens,
+# underscores only. Rejects path-traversal attempts (../), URL-encoded slashes,
+# and any other characters that could escape EXTENSIONS_PATH.
+_SEGMENT_RE = re.compile(r"^[A-Za-z0-9_-]+$")
+
+# Default 10 MB server-side upload limit; can be overridden via config.
+_DEFAULT_MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+
+
+def _validate_segment(value: str) -> bool:
+    """Return True if *value* is a safe publisher or name segment."""
+    return bool(_SEGMENT_RE.match(value))
 
 
 class ExtensionsRestApi(BaseApi):
@@ -180,7 +194,8 @@ class ExtensionsRestApi(BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
-        # Reconstruct composite ID from publisher and name
+        if not _validate_segment(publisher) or not _validate_segment(name):
+            return self.response(400, message="Invalid publisher or name.")
         composite_id = f"{publisher}.{name}"
         extensions = get_extensions()
         extension = extensions.get(composite_id)
@@ -249,7 +264,19 @@ class ExtensionsRestApi(BaseApi):
         if not upload.filename or not upload.filename.endswith(".supx"):
             return self.response(400, message="File must have a .supx extension.")
 
-        stream = BytesIO(upload.read())
+        max_bytes: int = current_app.config.get(
+            "EXTENSIONS_MAX_UPLOAD_SIZE", _DEFAULT_MAX_UPLOAD_BYTES
+        )
+        raw = upload.read(max_bytes + 1)
+        if len(raw) > max_bytes:
+            return self.response(
+                400,
+                message=(
+                    f"File exceeds the maximum allowed size of {max_bytes} bytes."
+                ),
+            )
+
+        stream = BytesIO(raw)
         if not is_zipfile(stream):
             return self.response(400, message="File is not a valid ZIP archive.")
 
@@ -262,7 +289,22 @@ class ExtensionsRestApi(BaseApi):
         except Exception as ex:  # pylint: disable=broad-except
             return self.response(400, message=f"Invalid extension bundle: {ex}")
 
+        # Reject bundles whose manifest id collides with a LOCAL_EXTENSIONS entry.
+        local_ids = {
+            Path(p).name for p in current_app.config.get("LOCAL_EXTENSIONS", [])
+        }
+        if extension.manifest.id in local_ids:
+            return self.response(
+                409,
+                message=(
+                    f"Extension '{extension.manifest.id}' is already installed as a "
+                    "local extension. Remove it from LOCAL_EXTENSIONS before uploading."
+                ),
+            )
+
         # Persist to EXTENSIONS_PATH so the extension survives restarts.
+        # Destination path is derived from the validated manifest id, not the
+        # uploaded filename, so the upload filename cannot escape EXTENSIONS_PATH.
         dest_dir = Path(extensions_path)
         dest_dir.mkdir(parents=True, exist_ok=True)
         dest_file = dest_dir / f"{extension.manifest.id}.supx"
@@ -303,6 +345,9 @@ class ExtensionsRestApi(BaseApi):
         """
         if not security_manager.is_admin():
             return self.response(403, message="Admin access required.")
+
+        if not _validate_segment(publisher) or not _validate_segment(name):
+            return self.response(400, message="Invalid publisher or name.")
 
         composite_id = f"{publisher}.{name}"
         extensions = get_extensions()
@@ -429,7 +474,8 @@ class ExtensionsRestApi(BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
-        # Reconstruct composite ID from publisher and name
+        if not _validate_segment(publisher) or not _validate_segment(name):
+            return self.response(400, message="Invalid publisher or name.")
         composite_id = f"{publisher}.{name}"
         extensions = get_extensions()
         extension = extensions.get(composite_id)
