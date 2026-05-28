@@ -298,9 +298,9 @@ class CreateRLSFilterRequest(BaseModel):
 class CreateRLSFilterResponse(BaseModel):
     id: int | None = Field(
         None,
-        description="Created RLS filter ID. None if creation failed.",
+        description="RLS filter ID. None if the operation failed.",
     )
-    name: str = Field(..., description="Name of the RLS filter.")
+    name: str | None = Field(None, description="Name of the RLS filter.")
     filter_type: str | None = Field(None, description="Filter type: Regular or Base.")
     clause: str | None = Field(None, description="SQL WHERE clause of the filter.")
     tables: list[int] = Field(
@@ -315,5 +315,53 @@ class CreateRLSFilterResponse(BaseModel):
     description: str | None = Field(None, description="Description of the filter.")
     error: str | None = Field(
         None,
-        description="Error message if creation failed, otherwise null.",
+        description="Error message if the operation failed, otherwise null.",
+    )
+
+
+class UpdateRLSFilterRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: int = Field(..., description="ID of the RLS filter rule to update.")
+    name: str | None = Field(
+        None,
+        min_length=1,
+        description="New name for the RLS filter rule. Omit to keep existing.",
+    )
+    filter_type: Literal["Regular", "Base"] | None = Field(
+        None,
+        description=(
+            "New filter type. Omit to keep existing. "
+            '"Regular" hides rows from the specified roles unless the clause matches. '
+            '"Base" shows only rows where the clause matches to the specified roles.'
+        ),
+    )
+    tables: list[int] | None = Field(
+        None,
+        description=(
+            "New list of table IDs this filter applies to. "
+            "Omit to keep existing. Pass [] to remove all tables."
+        ),
+    )
+    roles: list[int] | None = Field(
+        None,
+        description=(
+            "New list of role IDs that see this filter applied. "
+            "Omit to keep existing. Pass [] to remove all roles."
+        ),
+    )
+    clause: str | None = Field(
+        None,
+        min_length=1,
+        description=(
+            "New SQL WHERE clause. Omit to keep existing. Example: \"region = 'EMEA'\"."
+        ),
+    )
+    group_key: str | None = Field(
+        None,
+        description="New group key. Omit to keep existing.",
+    )
+    description: str | None = Field(
+        None,
+        description="New description. Omit to keep existing.",
     )

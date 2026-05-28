@@ -729,6 +729,7 @@ from superset.mcp_service.rls.tool import (  # noqa: F401, E402
     create_rls_filter,
     get_rls_filter_info,
     list_rls_filters,
+    update_rls_filter,
 )
 from superset.mcp_service.role.tool import (  # noqa: F401, E402
     get_role_info,

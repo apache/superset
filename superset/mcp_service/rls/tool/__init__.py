@@ -18,9 +18,11 @@
 from .create_rls_filter import create_rls_filter
 from .get_rls_filter_info import get_rls_filter_info
 from .list_rls_filters import list_rls_filters
+from .update_rls_filter import update_rls_filter
 
 __all__ = [
     "create_rls_filter",
     "get_rls_filter_info",
     "list_rls_filters",
+    "update_rls_filter",
 ]
