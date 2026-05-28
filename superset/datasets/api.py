@@ -1103,15 +1103,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         # uniqueness key so we don't (a) raise 500 on ``MultipleResultsFound``
         # when datasets share a ``table_name`` across schemas/catalogs, or
         # (b) silently return an existing dataset from the wrong schema as a
-        # false positive (#30377). Empty-string schema/catalog are normalised
-        # to ``None`` to match how the rest of Superset treats them; catalog
-        # falls back to the database's default when not supplied, mirroring
-        # ``DatasetDAO.validate_uniqueness``.
+        # false positive (#30377). Empty-string schema/catalog normalise to
+        # ``None`` so blank request values match datasets stored with NULL.
+        # We pass the request's catalog literally rather than falling back to
+        # ``database.get_default_catalog()`` because existing datasets created
+        # before multi-catalog support landed are stored with ``catalog=None``
+        # — applying the default would miss them.
         schema = body.get("schema") or None
-        database = DatasetDAO.get_database_by_id(database_id)
-        catalog = body.get("catalog") or (
-            database.get_default_catalog() if database else None
-        )
+        catalog = body.get("catalog") or None
         if table := DatasetDAO.get_table_by_schema_and_name(
             database_id, schema, table_name, catalog=catalog
         ):
