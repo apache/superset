@@ -16,26 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  DataLayerConf,
-  LayerConf,
-  WfsLayerConf,
-  WmsLayerConf,
-  XyzLayerConf,
-} from './types';
+export const TIMESLIDER_HEIGHT = 28;
 
-export const isWmsLayerConf = (
-  layerConf: LayerConf,
-): layerConf is WmsLayerConf => layerConf.type === 'WMS';
+export enum TimesliderTooltipFormat {
+  DATE,
+  TIME,
+  DATETIME,
+}
 
-export const isWfsLayerConf = (
-  layerConf: LayerConf,
-): layerConf is WfsLayerConf => layerConf.type === 'WFS';
+export enum GeometryFormat {
+  GEOJSON = 'GEOJSON',
+  WKB = 'WKB',
+  WKT = 'WKT',
+}
 
-export const isXyzLayerConf = (
-  layerConf: LayerConf,
-): layerConf is XyzLayerConf => layerConf.type === 'XYZ';
+// copy of
+// superset-frontend/plugins/plugin-chart-echarts/src/constants.ts
+export const NULL_STRING = '<NULL>';
 
-export const isDataLayerConf = (
-  layerConf: LayerConf,
-): layerConf is DataLayerConf => layerConf.type === 'DATA';
+export const SELECTION_LAYER_NAME = 'thematic-selection-layer';
+export const LAYER_NAME_PROP = 'layerName';
+export const SELECTION_BACKGROUND_OPACITY = 0.5;
+export const FULL_OPACITY = 1;

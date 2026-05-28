@@ -22,10 +22,14 @@ import OSM from 'ol/source/OSM.js';
 import TileLayer from 'ol/layer/Tile.js';
 import View from 'ol/View.js';
 import { ChartConfig } from '../../src/types';
-import { fitMapToCharts } from '../../src/util/mapUtil';
+import {
+  fitMapToData,
+  wkbToGeoJSON,
+  wktToGeoJSON,
+} from '../../src/util/mapUtil';
 
 describe('mapUtil', () => {
-  describe('fitMapToCharts', () => {
+  describe('fitMapToData', () => {
     test('changes the center of the map', () => {
       const chartConfig: ChartConfig = {
         type: 'FeatureCollection',
@@ -106,11 +110,54 @@ describe('mapUtil', () => {
       });
 
       // should set center
-      fitMapToCharts(olMap, chartConfig);
+      fitMapToData(olMap, chartConfig);
 
       const updatedCenter = olMap.getView().getCenter();
 
       expect(initialCenter).not.toEqual(updatedCenter);
+    });
+  });
+
+  describe('wkbToGeoJSON', () => {
+    test('converts WKB to GeoJSON', () => {
+      const wkb = '0101000020E610000000000000000020400000000000804A40';
+      const geoJSON = wkbToGeoJSON(wkb);
+      expect(geoJSON).toEqual({
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [8, 53],
+        },
+        properties: null,
+      });
+    });
+  });
+
+  describe('wktToGeoJSON', () => {
+    test('converts WKT to GeoJSON', () => {
+      const wkt = 'POINT(8 53)';
+      const geoJSON = wktToGeoJSON(wkt);
+      expect(geoJSON).toEqual({
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [8, 53],
+        },
+        properties: null,
+      });
+    });
+
+    test('handles SRID in WKT', () => {
+      const wkt = 'SRID=4326;POINT(8 53)';
+      const geoJSON = wktToGeoJSON(wkt);
+      expect(geoJSON).toEqual({
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [8, 53],
+        },
+        properties: null,
+      });
     });
   });
 });

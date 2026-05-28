@@ -21,7 +21,10 @@
  * Util for layer related operations.
  */
 
+import { FilterState } from '@superset-ui/core';
 import OlParser from 'geostyler-openlayers-parser';
+import Feature from 'ol/Feature';
+import Map from 'ol/Map';
 import TileLayer from 'ol/layer/Tile';
 import TileWMS from 'ol/source/TileWMS';
 import { bbox as bboxStrategy } from 'ol/loadingstrategy';
@@ -29,9 +32,21 @@ import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import XyzSource from 'ol/source/XYZ';
 import GeoJSON from 'ol/format/GeoJSON';
-import { WmsLayerConf, WfsLayerConf, LayerConf, XyzLayerConf } from '../types';
-import { isWfsLayerConf, isWmsLayerConf, isXyzLayerConf } from '../typeguards';
+import {
+  WmsLayerConf,
+  WfsLayerConf,
+  LayerConf,
+  XyzLayerConf,
+  DataLayerConf,
+} from '../types';
+import {
+  isDataLayerConf,
+  isWfsLayerConf,
+  isWmsLayerConf,
+  isXyzLayerConf,
+} from '../typeguards';
 import { isVersionBelow } from './serviceUtil';
+import { LAYER_NAME_PROP, SELECTION_LAYER_NAME } from '../constants';
 
 /**
  * Create a WMS layer.
@@ -138,6 +153,36 @@ export const createWfsLayer = async (wfsLayerConf: WfsLayerConf) => {
 };
 
 /**
+ * Create a DATA layer.
+ *
+ * @param dataLayerConf The layer configuration
+ * @param featureCollection The featureCollection for the layer source
+ *
+ * @returns The created DATA layer
+ */
+export const createDataLayer = async (dataLayerConf: DataLayerConf) => {
+  const { attribution, style } = dataLayerConf;
+  const dataSource = new VectorSource({
+    attributions: attribution,
+  });
+
+  let writeStyleResult;
+  if (style) {
+    const olParser = new OlParser();
+    writeStyleResult = await olParser.writeStyle(style);
+    if (writeStyleResult.errors) {
+      console.warn('Could not create ol-style', writeStyleResult.errors);
+      return undefined;
+    }
+  }
+
+  return new VectorLayer({
+    source: dataSource,
+    style: writeStyleResult?.output,
+  });
+};
+
+/**
  * Create a layer instance with the provided configuration.
  *
  * @param layerConf The layer configuration
@@ -152,8 +197,71 @@ export const createLayer = async (layerConf: LayerConf) => {
     layer = await createWfsLayer(layerConf);
   } else if (isXyzLayerConf(layerConf)) {
     layer = createXyzLayer(layerConf);
+  } else if (isDataLayerConf(layerConf)) {
+    layer = await createDataLayer(layerConf);
   } else {
     console.warn('Provided layerconfig is not recognized');
   }
   return layer;
+};
+
+export const removeSelectionLayer = (olMap: Map) => {
+  const selectionLayer = olMap
+    .getLayers()
+    .getArray()
+    .filter(l => l.get(LAYER_NAME_PROP) === SELECTION_LAYER_NAME)
+    .pop();
+  if (selectionLayer) {
+    olMap.removeLayer(selectionLayer);
+  }
+};
+
+export const getSelectedFeatures = (
+  dataLayers: VectorLayer<VectorSource>[],
+  filterState: FilterState,
+  crossFilterColumn: string,
+) => {
+  let selectedFeatures: Feature[] = [];
+  if (
+    filterState.selectedValues !== null &&
+    filterState.selectedValues !== undefined &&
+    dataLayers
+  ) {
+    selectedFeatures = dataLayers.flatMap(dataLayer =>
+      dataLayer
+        .getSource()!
+        .getFeatures()
+        .filter(f =>
+          filterState.selectedValues.includes(f.get(crossFilterColumn)),
+        ),
+    );
+  }
+  return selectedFeatures;
+};
+
+export const setSelectionBackgroundOpacity = (
+  dataLayers: VectorLayer<VectorSource>[],
+  opacity: number,
+) => {
+  dataLayers.forEach(dataLayer => {
+    dataLayer.setOpacity(opacity);
+  });
+};
+
+export const createSelectionLayer = (
+  dataLayers: VectorLayer<VectorSource>[],
+  features: Feature[],
+) => {
+  const selectionLayer = new VectorLayer({
+    source: new VectorSource({
+      features,
+    }),
+  });
+  selectionLayer.set(LAYER_NAME_PROP, SELECTION_LAYER_NAME);
+  // TODO how can we handle multiple data layers?
+  const layerStyle = dataLayers[0].getStyle();
+  if (layerStyle) {
+    selectionLayer.setStyle(layerStyle);
+  }
+  return selectionLayer;
 };
