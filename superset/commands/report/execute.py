@@ -346,6 +346,7 @@ class BaseReportState:
         """
         Get one tab url
         """
+        force = "true" if self._report_schedule.force_screenshot else "false"
         permalink_key = CreateDashboardPermalinkCommand(
             dashboard_id=str(self._report_schedule.dashboard.uuid),
             state=dashboard_state,
@@ -354,6 +355,7 @@ class BaseReportState:
         return get_url_path(
             "Superset.dashboard_permalink",
             key=permalink_key,
+            force=force,
             user_friendly=user_friendly,
         )
 
