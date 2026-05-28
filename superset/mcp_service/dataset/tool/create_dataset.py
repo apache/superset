@@ -81,12 +81,13 @@ async def create_dataset(
     Returns DatasetInfo on success or DatasetError on failure.
     Use list_databases to find the correct database_id.
     """
-    # Normalize schema: strip whitespace and treat blank strings as None
+    # Normalize schema and table_name: strip whitespace, treat blank schema as None
     schema = request.schema.strip() if request.schema else None
+    table_name = request.table_name.strip()
 
     await ctx.info(
         "Registering physical table as dataset: database_id=%s, table=%s.%s"
-        % (request.database_id, schema, request.table_name)
+        % (request.database_id, schema, table_name)
     )
 
     try:
@@ -100,7 +101,7 @@ async def create_dataset(
 
         dataset_properties: dict[str, object] = {
             "database": request.database_id,
-            "table_name": request.table_name,
+            "table_name": table_name,
         }
         if schema is not None:
             dataset_properties["schema"] = schema
@@ -118,8 +119,7 @@ async def create_dataset(
             )
 
         await ctx.info(
-            "Dataset registered: id=%s, table=%s.%s"
-            % (dataset.id, schema, request.table_name)
+            "Dataset registered: id=%s, table=%s.%s" % (dataset.id, schema, table_name)
         )
         return result
 
