@@ -39,6 +39,7 @@ import {
   getLabelsColorMap,
 } from '@superset-ui/core';
 import { ParentSize } from '@visx/responsive';
+import { css } from '@apache-superset/core/theme';
 import Tabs from '@superset-ui/core/components/Tabs';
 import DashboardGrid from 'src/dashboard/containers/DashboardGrid';
 import {
@@ -375,10 +376,32 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     [activeKey, childIds, dashboardLayout, handleFocus, renderTabBar, tabIndex],
   );
 
+  // The version-history banner + chart grid share a flex column so the
+  // dashboard parent's ``.grid-container > div:first-of-type { height:
+  // 100% !important }`` rule (DashboardBuilder.tsx) targets THIS
+  // wrapper, not the banner. Without this wrapper the banner — added
+  // as the first child of ``.grid-container`` — inherited the 100%
+  // height and pushed the chart grid ~1700px below it.
   return (
     <div className="grid-container" data-test="grid-container">
-      <DashboardPreviewBanner />
-      <ParentSize>{renderParentSizeChildren}</ParentSize>
+      <div
+        data-test="grid-container-banner-wrapper"
+        css={css`
+          display: flex;
+          flex-direction: column;
+          height: 100%;
+        `}
+      >
+        <DashboardPreviewBanner />
+        <div
+          css={css`
+            flex: 1;
+            min-height: 0;
+          `}
+        >
+          <ParentSize>{renderParentSizeChildren}</ParentSize>
+        </div>
+      </div>
     </div>
   );
 };

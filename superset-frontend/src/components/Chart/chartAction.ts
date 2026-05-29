@@ -836,9 +836,12 @@ export function exploreJSON(
               }),
             ),
         );
+        // ``warning`` is emitted by the backend on legacy endpoints but is
+        // not modeled on ``ChartDataResponseResult``; narrow via cast.
         (queriesResponse as QueryData[]).forEach(response => {
-          if (response.warning) {
-            dispatch(addWarningToast(response.warning, { noDuplicate: true }));
+          const {warning} = (response as unknown as { warning?: string });
+          if (warning) {
+            dispatch(addWarningToast(warning, { noDuplicate: true }));
           }
         });
         return dispatch(

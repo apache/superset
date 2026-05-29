@@ -55,7 +55,11 @@ if [ ${#js_ts_files[@]} -gt 0 ]; then
     echo "$output" >&2
     exit 1
   }
-  [ -n "$output" ] && echo "$output"
+  # ``[ -n "" ] && echo`` returns 1 under ``set -e`` because the test
+  # itself fails when output is empty, which made the script exit
+  # non-zero on a clean ``--quiet`` run with no warnings. Print only
+  # when there's output without letting the test propagate failure.
+  if [ -n "$output" ]; then echo "$output"; fi
 else
   echo "No JavaScript/TypeScript files to lint"
 fi

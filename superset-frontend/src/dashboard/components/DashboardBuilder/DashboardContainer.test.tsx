@@ -160,6 +160,28 @@ afterEach(() => {
   setInScopeStatusMock.mockRestore();
 });
 
+test('grid-container has a wrapper as :first-of-type div, never the version-history banner', async () => {
+  // Regression for the empty-region preview bug: DashboardBuilder
+  // applies ``.grid-container > div:first-of-type { height: 100% !important }``
+  // to size the ParentSize wrapper. Mounting the DashboardPreviewBanner
+  // as the first child of ``.grid-container`` made the banner inherit
+  // that rule, stretching to 1700px and pushing the chart grid down
+  // by the same amount. The intermediate wrapper isolates the rule.
+  const { container } = setup();
+  const grid = container.querySelector('[data-test="grid-container"]');
+  expect(grid).not.toBeNull();
+  const firstDivChild = Array.from(grid!.children).find(
+    el => el.tagName === 'DIV',
+  );
+  expect(firstDivChild).not.toBeNull();
+  // The first div child of grid-container must be our wrapper. If a
+  // future refactor places the banner (or any other element) first,
+  // this assertion catches it before the visual regression ships.
+  expect(firstDivChild!.getAttribute('data-test')).toBe(
+    'grid-container-banner-wrapper',
+  );
+});
+
 test('calculates chartsInScope correctly for filters', async () => {
   setup();
 
