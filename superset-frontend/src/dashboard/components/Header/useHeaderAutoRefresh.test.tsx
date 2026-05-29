@@ -85,7 +85,7 @@ const renderHeaderAutoRefresh = (
   return { result, props };
 };
 
-test('forceRefresh passes a non-zero interval by default so fetchCharts staggers the requests', async () => {
+test('forceRefresh passes the default stagger interval (5000ms) when no config is provided', async () => {
   const { result, props } = renderHeaderAutoRefresh();
 
   await act(async () => {
@@ -98,7 +98,7 @@ test('forceRefresh passes a non-zero interval by default so fetchCharts staggers
     props.onRefresh.mock.calls[0];
   expect(chartIds).toEqual([1, 2]);
   expect(force).toBe(true);
-  expect(interval).toBeGreaterThan(0);
+  expect(interval).toBe(5000);
   expect(dashboardId).toBe(100);
 });
 
