@@ -62,7 +62,16 @@ async def update_report(
 
     try:
         # Deferred to avoid circular imports with the @tool decorator initialization
+        from superset import is_feature_enabled
+
+        if not is_feature_enabled("ALERT_REPORTS"):
+            return UpdateReportResponse(
+                id=None,
+                error="The ALERT_REPORTS feature is not enabled on this instance.",
+            )
+
         from superset.commands.report.exceptions import (
+            ReportScheduleForbiddenError,
             ReportScheduleInvalidError,
             ReportScheduleNotFoundError,
             ReportScheduleUpdateFailedError,
@@ -91,6 +100,21 @@ async def update_report(
                 for r in request.recipients
             ]
 
+        # Track which fields the caller explicitly provided (including intentional
+        # None values so callers can clear nullable fields like database_id).
+        explicitly_set = request.model_fields_set - {"id"}
+
+        _prop_to_field: dict[str, str] = {
+            "name": "name",
+            "crontab": "crontab",
+            "active": "active",
+            "description": "description",
+            "timezone": "timezone",
+            "dashboard": "dashboard_id",
+            "chart": "chart_id",
+            "database": "database_id",
+            "sql": "sql",
+        }
         all_props: dict[str, Any] = {
             "name": request.name,
             "crontab": request.crontab,
@@ -102,15 +126,17 @@ async def update_report(
             "database": request.database_id,
             "sql": request.sql,
         }
-        if request.type is not None:
-            all_props["type"] = (
+        properties: dict[str, Any] = {
+            k: v for k, v in all_props.items() if _prop_to_field[k] in explicitly_set
+        }
+        if "type" in explicitly_set and request.type is not None:
+            properties["type"] = (
                 ReportScheduleType.ALERT
                 if request.type == "Alert"
                 else ReportScheduleType.REPORT
             )
-        if recipients is not None:
-            all_props["recipients"] = recipients
-        properties = {k: v for k, v in all_props.items() if v is not None}
+        if "recipients" in explicitly_set and recipients is not None:
+            properties["recipients"] = recipients
 
         with event_logger.log_context(action="mcp.update_report.update"):
             schedule = UpdateReportScheduleCommand(request.id, properties).run()
@@ -136,6 +162,16 @@ async def update_report(
         return UpdateReportResponse(
             id=None,
             error=f"Report schedule with id={request.id} not found.",
+        )
+    except ReportScheduleForbiddenError:
+        await ctx.warning(
+            "Forbidden: caller does not own report schedule id=%s" % (request.id,)
+        )
+        return UpdateReportResponse(
+            id=None,
+            error=(
+                f"You do not have permission to update report schedule id={request.id}."
+            ),
         )
     except ReportScheduleInvalidError as exc:
         messages = exc.normalized_messages()

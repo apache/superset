@@ -107,6 +107,29 @@ def test_create_report_request_empty_crontab_fails() -> None:
         )
 
 
+def test_create_report_request_invalid_crontab_fails() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="Invalid cron expression"):
+        CreateReportRequest(
+            name="Test",
+            type="Report",
+            crontab="not-a-valid-cron",
+        )
+
+
+def test_recipient_config_invalid_email() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="Invalid email address"):
+        RecipientConfig(type="Email", target="not-an-email")
+
+
+def test_recipient_config_valid_email() -> None:
+    r = RecipientConfig(type="Email", target="user@example.com")
+    assert r.target == "user@example.com"
+
+
 def test_recipient_config_invalid_type() -> None:
     from pydantic import ValidationError
 
@@ -224,6 +247,28 @@ async def test_create_report_create_failed_error(mcp_server: object) -> None:
     assert data["id"] is None
     assert data["error"] is not None
     assert "Failed to create report schedule" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_create_report_alert_reports_flag_disabled(mcp_server: object) -> None:
+    """When ALERT_REPORTS is disabled the tool returns an error."""
+    with patch("superset.is_feature_enabled", return_value=False):
+        async with Client(mcp_server) as client:
+            request = CreateReportRequest(
+                name="Test Report",
+                type="Report",
+                crontab="0 9 * * 1",
+                dashboard_id=1,
+                recipients=[RecipientConfig(type="Email", target="user@example.com")],
+            )
+            result = await client.call_tool(
+                "create_report", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+    assert "ALERT_REPORTS" in data["error"]
 
 
 @pytest.mark.asyncio

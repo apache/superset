@@ -62,6 +62,19 @@ async def create_report(
 
     try:
         # Deferred to avoid circular imports with the @tool decorator initialization
+        from superset import is_feature_enabled
+
+        if not is_feature_enabled("ALERT_REPORTS"):
+            return CreateReportResponse(
+                id=None,
+                name=request.name,
+                type=request.type,
+                crontab=request.crontab,
+                active=request.active,
+                url=None,
+                error="The ALERT_REPORTS feature is not enabled on this instance.",
+            )
+
         from superset.commands.report.create import CreateReportScheduleCommand
         from superset.commands.report.exceptions import (
             ReportScheduleCreateFailedError,

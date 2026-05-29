@@ -15,7 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+import re
+
+from croniter import croniter
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+_EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 
 
 class RecipientConfig(BaseModel):
@@ -54,6 +59,19 @@ class RecipientConfig(BaseModel):
         if not v.strip():
             raise ValueError("target must not be empty")
         return v.strip()
+
+    @model_validator(mode="after")
+    def validate_email_target(self) -> "RecipientConfig":
+        if self.type != "Email":
+            return self
+        invalid = [
+            addr.strip()
+            for addr in re.split(r"[,;]", self.target)
+            if addr.strip() and not _EMAIL_REGEX.match(addr.strip())
+        ]
+        if invalid:
+            raise ValueError(f"Invalid email address(es): {', '.join(invalid)}")
+        return self
 
 
 class CreateReportRequest(BaseModel):
@@ -154,10 +172,13 @@ class CreateReportRequest(BaseModel):
 
     @field_validator("crontab")
     @classmethod
-    def crontab_must_not_be_empty(cls, v: str) -> str:
+    def crontab_must_be_valid(cls, v: str) -> str:
         if not v.strip():
             raise ValueError("crontab must not be empty")
-        return v.strip()
+        stripped = v.strip()
+        if not croniter.is_valid(stripped):
+            raise ValueError(f"Invalid cron expression: {stripped!r}")
+        return stripped
 
 
 class CreateReportResponse(BaseModel):
@@ -299,10 +320,15 @@ class UpdateReportRequest(BaseModel):
 
     @field_validator("crontab")
     @classmethod
-    def crontab_must_not_be_empty(cls, v: str | None) -> str | None:
-        if v is not None and not v.strip():
+    def crontab_must_be_valid(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        if not v.strip():
             raise ValueError("crontab must not be empty")
-        return v.strip() if v is not None else v
+        stripped = v.strip()
+        if not croniter.is_valid(stripped):
+            raise ValueError(f"Invalid cron expression: {stripped!r}")
+        return stripped
 
 
 class UpdateReportResponse(BaseModel):

@@ -112,6 +112,13 @@ def test_update_report_request_empty_crontab_fails() -> None:
         UpdateReportRequest(id=1, crontab="   ")
 
 
+def test_update_report_request_invalid_crontab_fails() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="Invalid cron expression"):
+        UpdateReportRequest(id=1, crontab="not-a-valid-cron")
+
+
 def test_update_report_response_defaults() -> None:
     resp = UpdateReportResponse()
     assert resp.id is None
@@ -141,7 +148,7 @@ async def test_update_report_success(mcp_server: object) -> None:
         async with Client(mcp_server) as client:
             request = UpdateReportRequest(id=42, name="Updated Report", active=False)
             result = await client.call_tool(
-                "update_report", {"request": request.model_dump()}
+                "update_report", {"request": request.model_dump(exclude_unset=True)}
             )
             data = json.loads(result.content[0].text)
 
@@ -167,7 +174,7 @@ async def test_update_report_not_found(mcp_server: object) -> None:
         async with Client(mcp_server) as client:
             request = UpdateReportRequest(id=999)
             result = await client.call_tool(
-                "update_report", {"request": request.model_dump()}
+                "update_report", {"request": request.model_dump(exclude_unset=True)}
             )
             data = json.loads(result.content[0].text)
 
@@ -197,7 +204,7 @@ async def test_update_report_validation_error(mcp_server: object) -> None:
         async with Client(mcp_server) as client:
             request = UpdateReportRequest(id=1, name="Duplicate Name")
             result = await client.call_tool(
-                "update_report", {"request": request.model_dump()}
+                "update_report", {"request": request.model_dump(exclude_unset=True)}
             )
             data = json.loads(result.content[0].text)
 
@@ -220,7 +227,7 @@ async def test_update_report_update_failed_error(mcp_server: object) -> None:
         async with Client(mcp_server) as client:
             request = UpdateReportRequest(id=1, crontab="0 9 * * 1")
             result = await client.call_tool(
-                "update_report", {"request": request.model_dump()}
+                "update_report", {"request": request.model_dump(exclude_unset=True)}
             )
             data = json.loads(result.content[0].text)
 
@@ -252,7 +259,7 @@ async def test_update_report_partial_fields_only_sends_provided(
             # Only updating crontab; name/type/etc. all omitted
             request = UpdateReportRequest(id=10, crontab="0 8 * * 5")
             result = await client.call_tool(
-                "update_report", {"request": request.model_dump()}
+                "update_report", {"request": request.model_dump(exclude_unset=True)}
             )
             data = json.loads(result.content[0].text)
 
@@ -263,6 +270,77 @@ async def test_update_report_partial_fields_only_sends_provided(
     assert "name" not in call_props
     assert "type" not in call_props
     assert "dashboard" not in call_props
+
+
+@pytest.mark.asyncio
+async def test_update_report_alert_reports_flag_disabled(mcp_server: object) -> None:
+    """When ALERT_REPORTS is disabled the tool returns an error."""
+    with patch("superset.is_feature_enabled", return_value=False):
+        async with Client(mcp_server) as client:
+            request = UpdateReportRequest(id=1, name="Updated")
+            result = await client.call_tool(
+                "update_report", {"request": request.model_dump(exclude_unset=True)}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+    assert "ALERT_REPORTS" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_report_forbidden_error(mcp_server: object) -> None:
+    """ReportScheduleForbiddenError is caught and returned as a structured error."""
+    from superset.commands.report.exceptions import ReportScheduleForbiddenError
+
+    mock_command = MagicMock()
+    mock_command.run.side_effect = ReportScheduleForbiddenError()
+
+    with patch(
+        "superset.commands.report.update.UpdateReportScheduleCommand",
+        return_value=mock_command,
+    ):
+        async with Client(mcp_server) as client:
+            request = UpdateReportRequest(id=7, name="Someone Else's Report")
+            result = await client.call_tool(
+                "update_report", {"request": request.model_dump(exclude_unset=True)}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+    assert "permission" in data["error"].lower()
+
+
+@pytest.mark.asyncio
+async def test_update_report_explicit_null_clears_field(mcp_server: object) -> None:
+    """An explicitly null database_id is passed to the command to clear the field."""
+    mock_schedule = _make_mock_schedule(id=3, name="Report")
+    mock_command = MagicMock()
+    mock_command.run.return_value = mock_schedule
+
+    with (
+        patch(
+            "superset.commands.report.update.UpdateReportScheduleCommand",
+            return_value=mock_command,
+        ) as mock_cmd_cls,
+        patch(
+            "superset.mcp_service.utils.url_utils.get_superset_base_url",
+            return_value="http://localhost:8088",
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            # Explicit database_id=None should clear the field, not be dropped
+            result = await client.call_tool(
+                "update_report",
+                {"request": {"id": 3, "database_id": None}},
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] == 3
+    call_props = mock_cmd_cls.call_args[0][1]
+    assert "database" in call_props
+    assert call_props["database"] is None
 
 
 @pytest.mark.asyncio
@@ -288,7 +366,7 @@ async def test_update_report_recipients_replaced(mcp_server: object) -> None:
                 recipients=[RecipientConfig(type="Slack", target="#new-channel")],
             )
             result = await client.call_tool(
-                "update_report", {"request": request.model_dump()}
+                "update_report", {"request": request.model_dump(exclude_unset=True)}
             )
             data = json.loads(result.content[0].text)
 
