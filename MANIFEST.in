@@ -21,7 +21,6 @@ include README.md
 include superset-frontend/package.json
 recursive-include superset/examples *
 recursive-include superset/migrations *
-recursive-include superset/mcp_service *.html
 recursive-include superset/templates *
 recursive-include superset/translations *
 recursive-include superset/static *
