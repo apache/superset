@@ -19,7 +19,11 @@ from unittest.mock import patch
 import pytest
 from sqlalchemy import literal, select
 
-from superset.commands.datasource.list import GetCombinedDatasourceListCommand
+from superset.commands.datasource.list import (
+    _dataset_schema,
+    _semantic_view_schema,
+    GetCombinedDatasourceListCommand,
+)
 
 
 def test_parse_filters_semantic_view_requires_dataset_operator() -> None:
@@ -160,3 +164,57 @@ def test_run_raises_for_invalid_sort_column(order_column: str) -> None:
     ):
         with pytest.raises(ValueError, match=f"Invalid order column: {order_column}"):
             command.run()
+
+
+def test_serialize_rows_injects_rls_filters_for_datasets() -> None:
+    """Ensure combined datasource list includes `rls_filters` summaries for datasets."""
+
+    # simple row-like objects returned by paginate_combined_query
+    row_cls = type("Row", (), {})
+    ds_row = row_cls()
+    ds_row.item_id = 1
+    ds_row.source_type = "database"
+
+    sv_row = row_cls()
+    sv_row.item_id = 2
+    sv_row.source_type = "semantic_layer"
+
+    dataset_dict = {
+        "id": 1,
+        "table_name": "ds1",
+        "source_type": "database",
+    }
+    sv_dict = {
+        "id": 2,
+        "table_name": "sv1",
+        "source_type": "semantic_layer",
+    }
+
+    rls_summary = {"id": 11, "name": "test", "filter_type": "Base", "group_key": ""}
+
+    with (
+        patch(
+            "superset.commands.datasource.list.DatasourceDAO.fetch_datasets_by_ids",
+            return_value={1: object()},
+        ),
+        patch(
+            "superset.commands.datasource.list.DatasourceDAO.fetch_semantic_views_by_ids",
+            return_value={2: object()},
+        ),
+        patch.object(_dataset_schema, "dump", return_value=dataset_dict),
+        patch.object(_semantic_view_schema, "dump", return_value=sv_dict),
+        patch(
+            "superset.commands.datasource.list.DatasetDAO.get_rls_filters_for_datasets",
+            return_value={1: [rls_summary]},
+        ),
+    ):
+        result = GetCombinedDatasourceListCommand._serialize_rows([ds_row, sv_row])
+
+    # dataset entry should have rls_filters injected
+    ds_item = next(x for x in result if x["id"] == 1)
+    assert "rls_filters" in ds_item
+    assert ds_item["rls_filters"] == [rls_summary]
+
+    # semantic view entry should not have rls_filters injected
+    sv_item = next(x for x in result if x["id"] == 2)
+    assert "rls_filters" not in sv_item
