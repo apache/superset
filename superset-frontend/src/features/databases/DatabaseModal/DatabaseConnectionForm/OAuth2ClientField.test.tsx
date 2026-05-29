@@ -244,4 +244,21 @@ describe('OAuth2ClientField', () => {
     expect(getByTestId('client-id')).toHaveValue('');
     expect(getByTestId('client-secret')).toHaveValue('');
   });
+
+  test.each([
+    ['the literal string "null"', 'null'],
+    ['malformed JSON', 'not json'],
+    ['a JSON primitive', '42'],
+    ['a JSON array', '[1, 2, 3]'],
+  ])('mounts safely when masked_encrypted_extra is %s', (_label, value) => {
+    const props = {
+      ...defaultProps,
+      db: {
+        ...defaultProps.db,
+        masked_encrypted_extra: value,
+      },
+    };
+
+    expect(() => render(<OAuth2ClientField {...props} />)).not.toThrow();
+  });
 });

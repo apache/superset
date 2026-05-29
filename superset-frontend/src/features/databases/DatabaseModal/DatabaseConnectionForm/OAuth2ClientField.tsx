@@ -49,20 +49,31 @@ export const OAuth2ClientField = ({
   isPublic = true,
 }: FieldPropTypes) => {
   const deriveOauth2ClientInfo = (): OAuth2ClientInfo => {
-    const encryptedExtra = JSON.parse(db?.masked_encrypted_extra || '{}');
+    // `masked_encrypted_extra` is user/backend-supplied and historically
+    // sometimes the string "null" — JSON.parse('null') returns null, and
+    // malformed JSON throws. Defend against both so a single bad value
+    // can't crash the component.
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(db?.masked_encrypted_extra || '{}');
+    } catch {
+      parsed = {};
+    }
+    const encryptedExtra =
+      parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+        ? (parsed as { oauth2_client_info?: Partial<OAuth2ClientInfo> })
+        : {};
+    const info = encryptedExtra.oauth2_client_info;
     return {
-      id: encryptedExtra.oauth2_client_info?.id || '',
-      secret: encryptedExtra.oauth2_client_info?.secret || '',
+      id: info?.id || '',
+      secret: info?.secret || '',
       authorization_request_uri:
-        encryptedExtra.oauth2_client_info?.authorization_request_uri ||
+        info?.authorization_request_uri ||
         defaultValue?.authorization_request_uri ||
         '',
       token_request_uri:
-        encryptedExtra.oauth2_client_info?.token_request_uri ||
-        defaultValue?.token_request_uri ||
-        '',
-      scope:
-        encryptedExtra.oauth2_client_info?.scope || defaultValue?.scope || '',
+        info?.token_request_uri || defaultValue?.token_request_uri || '',
+      scope: info?.scope || defaultValue?.scope || '',
     };
   };
 

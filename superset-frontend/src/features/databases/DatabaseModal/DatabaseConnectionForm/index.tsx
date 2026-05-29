@@ -27,7 +27,7 @@ import {
   Engines,
 } from '../../types';
 
-const computeInitialIsPublic = (
+export const computeInitialIsPublic = (
   database: Partial<DatabaseObject> | null | undefined,
 ): boolean => {
   if (!database || database.engine !== Engines.GSheet) return true;
@@ -38,6 +38,15 @@ const computeInitialIsPublic = (
     return false;
   }
   if (database.parameters?.service_account_info) return false;
+  // OAuth2-only gsheets connections store creds under
+  // `parameters.oauth2_client_info` rather than (or in addition to)
+  // `masked_encrypted_extra` during edit; respect that too.
+  if (
+    (database.parameters as { oauth2_client_info?: unknown })
+      ?.oauth2_client_info
+  ) {
+    return false;
+  }
   return true;
 };
 
