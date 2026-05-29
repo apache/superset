@@ -19,6 +19,20 @@
 
 export type EntityType = 'chart' | 'dashboard';
 
+/** Entity kinds the activity endpoint can reference. Open enum on purpose:
+ * the backend may surface kinds we don't render yet — unknown values should
+ * fall back to a generic icon/label rather than crash. */
+export type ActivityEntityKind = 'dashboard' | 'chart' | 'dataset';
+
+/** Activity rows are either changes the viewed entity made itself
+ * (``self``) or upstream changes from a different entity that this one
+ * depends on (``related`` — e.g. a dataset edit that touched a chart on
+ * this dashboard). */
+export type ActivitySource = 'self' | 'related';
+
+/** ``include`` query param accepted by the activity endpoint. */
+export type ActivityInclude = 'self' | 'related' | 'all';
+
 export interface Change {
   kind: string;
   path: string[];
@@ -31,6 +45,32 @@ export interface ChangedBy {
   username: string;
   first_name: string;
   last_name: string;
+}
+
+/** A single row returned by ``/api/v1/{entity}/{uuid}/activity/``. Structurally
+ * a superset of ``Change`` so it can flow through ``summarizeChange`` without
+ * conversion. */
+export interface ActivityRecord {
+  version_uuid: string;
+  entity_kind: ActivityEntityKind;
+  entity_uuid: string | null;
+  entity_name: string;
+  entity_deleted: boolean;
+  entity_deletion_state: 'soft_deleted' | null;
+  source: ActivitySource;
+  transaction_id: number;
+  issued_at: string;
+  changed_by: ChangedBy | null;
+  // Open enum — handle unknown values defensively.
+  kind: string;
+  // Shape B variable depth — do NOT branch on ``path.length === N``.
+  path: string[];
+  from_value: unknown;
+  to_value: unknown;
+  // Pre-rendered summary. Always populated for ``source:'related'``; empty
+  // string for ``source:'self'`` (those reconstruct from kind/path).
+  summary: string;
+  impact: { charts: number } | null;
 }
 
 export interface Version {

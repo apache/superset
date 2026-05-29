@@ -81,7 +81,11 @@ function fieldLabelFor(fieldName: string): string {
 }
 
 export function summarizeChange(c: Change): string {
-  if (c.path.length === 3 && LAYOUT_VERBS.has(String(c.path[0]))) {
+  // Layout-verb shape: ``path = [verb, kind, id, ...maybeDeeper]``. With
+  // Shape B leaf-recursion an ``edit`` may extend into the layout meta
+  // (e.g. ``['edit', 'chart', 'chart-1', 'meta', 'sliceName']``) — accept
+  // any path length >= 3 here rather than locking to exactly 3.
+  if (c.path.length >= 3 && LAYOUT_VERBS.has(String(c.path[0]))) {
     const verb = String(c.path[0]);
     const kind = localizedKind(String(c.path[1]));
     const payload =
@@ -102,6 +106,11 @@ export function summarizeChange(c: Change): string {
         ? t('Moved %(kind)s "%(name)s"', { kind, name })
         : t('Moved %(kind)s', { kind });
     }
+    // ``edit`` with a deeper path — surface the leaf field for context.
+    if (c.path.length > 3) {
+      const detail = fieldLabelFor(String(c.path[c.path.length - 1]));
+      return t('Edited %(kind)s %(detail)s', { kind, detail });
+    }
     return name
       ? t('Edited %(kind)s "%(name)s"', { kind, name })
       : t('Edited %(kind)s', { kind });
@@ -110,9 +119,13 @@ export function summarizeChange(c: Change): string {
   const isAdd = c.from_value == null && c.to_value != null;
   const isRemove = c.from_value != null && c.to_value == null;
 
-  if (c.path.length === 2 && (c.kind === 'column' || c.kind === 'metric')) {
+  // Shape A column/metric leaf — ``path = [<collection>, <name>]`` with
+  // ``kind`` identifying the dataset member type. Variable-depth Shape B
+  // payloads don't fall into this branch because their ``kind`` is
+  // ``field``/``json``.
+  if (c.path.length >= 2 && (c.kind === 'column' || c.kind === 'metric')) {
     const kind = localizedKind(c.kind);
-    const name = String(c.path[1]);
+    const name = String(c.path[c.path.length - 1]);
     if (isAdd) return t('Added %(kind)s "%(name)s"', { kind, name });
     if (isRemove) return t('Removed %(kind)s "%(name)s"', { kind, name });
     return t('Changed %(kind)s "%(name)s"', { kind, name });
