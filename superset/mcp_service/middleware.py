@@ -185,18 +185,17 @@ _SENSITIVE_PARAM_KEYS = frozenset(
 
 
 def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
-    """Remove sensitive fields from params before logging."""
+    """Remove sensitive fields from params before logging; recurses into dicts."""
     if not isinstance(params, dict):
         return params
-    result: dict[str, Any] = {}
-    for k, v in params.items():
-        if k.lower() in _SENSITIVE_PARAM_KEYS:
-            result[k] = "[REDACTED]"
-        elif k == "arguments" and isinstance(v, dict):
-            result[k] = _sanitize_params(v)
-        else:
-            result[k] = v
-    return result
+    return {
+        k: "[REDACTED]"
+        if k.lower() in _SENSITIVE_PARAM_KEYS
+        else _sanitize_params(v)
+        if isinstance(v, dict)
+        else v
+        for k, v in params.items()
+    }
 
 
 class LoggingMiddleware(Middleware):

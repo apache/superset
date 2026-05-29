@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Unit tests for list_users and get_user_info MCP tools."""
+"""Unit tests for user MCP tools."""
 
 import importlib
 from unittest.mock import MagicMock, Mock, patch
@@ -26,7 +26,12 @@ from fastmcp.exceptions import ToolError
 from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
-from superset.mcp_service.user.schemas import ListUsersRequest, UserFilter
+from superset.mcp_service.user.schemas import (
+    CreateUserRequest,
+    ListUsersRequest,
+    UpdateUserRequest,
+    UserFilter,
+)
 from superset.utils import json
 
 list_users_module = importlib.import_module("superset.mcp_service.user.tool.list_users")
@@ -74,7 +79,7 @@ def mcp_server():
 def mock_auth():
     """Mock authentication for all tests."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        mock_user = Mock()
+        mock_user = MagicMock()
         mock_user.id = 1
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
@@ -447,3 +452,287 @@ async def test_get_user_info_user_controlled_fields_are_wrapped_in_untrusted_con
     assert "<UNTRUSTED-CONTENT>" in data["last_name"]
     assert injected_first in data["first_name"]
     assert injected_last in data["last_name"]
+
+
+# ---------------------------------------------------------------------------
+# create_user / update_user helper factories
+# ---------------------------------------------------------------------------
+
+
+def _make_mock_user(
+    user_id: int = 42,
+    username: str = "jdoe",
+    first_name: str = "John",
+    last_name: str = "Doe",
+    email: str = "jdoe@example.com",
+) -> MagicMock:
+    user = MagicMock()
+    user.id = user_id
+    user.username = username
+    user.first_name = first_name
+    user.last_name = last_name
+    user.email = email
+    return user
+
+
+def _make_mock_role(role_id: int = 1, name: str = "Alpha") -> MagicMock:
+    role = MagicMock()
+    role.id = role_id
+    role.name = name
+    return role
+
+
+# ---------------------------------------------------------------------------
+# create_user
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_create_user_success(mcp_server: object) -> None:
+    """Happy path: user created, non-sensitive fields returned."""
+    mock_user = _make_mock_user()
+    mock_role = _make_mock_role()
+
+    with (
+        patch("superset.mcp_service.user.tool.create_user.db") as mock_db,
+        patch("superset.mcp_service.user.tool.create_user.security_manager") as mock_sm,
+    ):
+        mock_db.session.get.return_value = mock_role
+        mock_sm.role_model = MagicMock()
+        mock_sm.add_user.return_value = mock_user
+
+        async with Client(mcp_server) as client:
+            request = CreateUserRequest(
+                username="jdoe",
+                first_name="John",
+                last_name="Doe",
+                email="jdoe@example.com",
+                password="secret123",  # noqa: S106
+                role_ids=[1],
+            )
+            result = await client.call_tool(
+                "create_user", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] == 42
+    assert data["username"] == "jdoe"
+    assert data["first_name"] == "John"
+    assert data["last_name"] == "Doe"
+    assert data["error"] is None
+
+
+@pytest.mark.asyncio
+async def test_create_user_response_omits_sensitive_fields(mcp_server: object) -> None:
+    """Response must not contain email, password, or role data."""
+    mock_user = _make_mock_user()
+    mock_role = _make_mock_role()
+
+    with (
+        patch("superset.mcp_service.user.tool.create_user.db") as mock_db,
+        patch("superset.mcp_service.user.tool.create_user.security_manager") as mock_sm,
+    ):
+        mock_db.session.get.return_value = mock_role
+        mock_sm.role_model = MagicMock()
+        mock_sm.add_user.return_value = mock_user
+
+        async with Client(mcp_server) as client:
+            request = CreateUserRequest(
+                username="jdoe",
+                first_name="John",
+                last_name="Doe",
+                email="jdoe@example.com",
+                password="secret123",  # noqa: S106
+                role_ids=[1],
+            )
+            result = await client.call_tool(
+                "create_user", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert "email" not in data
+    assert "password" not in data
+    assert "roles" not in data
+
+
+@pytest.mark.asyncio
+async def test_create_user_missing_role(mcp_server: object) -> None:
+    """When a role ID does not exist, an error response is returned."""
+    with (
+        patch("superset.mcp_service.user.tool.create_user.db") as mock_db,
+        patch("superset.mcp_service.user.tool.create_user.security_manager") as mock_sm,
+    ):
+        mock_db.session.get.return_value = None  # role not found
+        mock_sm.role_model = MagicMock()
+
+        async with Client(mcp_server) as client:
+            request = CreateUserRequest(
+                username="jdoe",
+                first_name="John",
+                last_name="Doe",
+                email="jdoe@example.com",
+                password="secret123",  # noqa: S106
+                role_ids=[999],
+            )
+            result = await client.call_tool(
+                "create_user", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+    assert "999" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_create_user_add_user_failure(mcp_server: object) -> None:
+    """When security_manager.add_user returns falsy, an error response is returned."""
+    mock_role = _make_mock_role()
+
+    with (
+        patch("superset.mcp_service.user.tool.create_user.db") as mock_db,
+        patch("superset.mcp_service.user.tool.create_user.security_manager") as mock_sm,
+    ):
+        mock_db.session.get.return_value = mock_role
+        mock_sm.role_model = MagicMock()
+        mock_sm.add_user.return_value = False
+
+        async with Client(mcp_server) as client:
+            request = CreateUserRequest(
+                username="duplicate",
+                first_name="John",
+                last_name="Doe",
+                email="dup@example.com",
+                password="secret123",  # noqa: S106
+                role_ids=[1],
+            )
+            result = await client.call_tool(
+                "create_user", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+
+
+# ---------------------------------------------------------------------------
+# update_user
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_update_user_success(mcp_server: object) -> None:
+    """Happy path: user updated, non-sensitive fields returned."""
+    mock_user = _make_mock_user(first_name="Jane")
+
+    with (
+        patch("superset.mcp_service.user.tool.update_user.UserDAO") as mock_dao,
+        patch("superset.mcp_service.user.tool.update_user.security_manager") as mock_sm,
+    ):
+        mock_dao.get_by_id.return_value = mock_user
+        mock_sm.update_user.return_value = mock_user
+
+        async with Client(mcp_server) as client:
+            request = UpdateUserRequest(id=42, first_name="Jane")
+            result = await client.call_tool(
+                "update_user", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] == 42
+    assert data["username"] == "jdoe"
+    assert data["first_name"] == "Jane"
+    assert data["error"] is None
+
+
+@pytest.mark.asyncio
+async def test_update_user_response_omits_sensitive_fields(mcp_server: object) -> None:
+    """Response must not contain email, password, or role data."""
+    mock_user = _make_mock_user()
+
+    with (
+        patch("superset.mcp_service.user.tool.update_user.UserDAO") as mock_dao,
+        patch("superset.mcp_service.user.tool.update_user.security_manager") as mock_sm,
+    ):
+        mock_dao.get_by_id.return_value = mock_user
+        mock_sm.update_user.return_value = mock_user
+
+        async with Client(mcp_server) as client:
+            request = UpdateUserRequest(id=42, last_name="Smith")
+            result = await client.call_tool(
+                "update_user", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert "email" not in data
+    assert "password" not in data
+    assert "roles" not in data
+
+
+@pytest.mark.asyncio
+async def test_update_user_not_found(mcp_server: object) -> None:
+    """When user ID does not exist, an error response is returned."""
+    from sqlalchemy.exc import NoResultFound
+
+    with patch("superset.mcp_service.user.tool.update_user.UserDAO") as mock_dao:
+        mock_dao.get_by_id.side_effect = NoResultFound()
+
+        async with Client(mcp_server) as client:
+            request = UpdateUserRequest(id=9999)
+            result = await client.call_tool(
+                "update_user", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+    assert "9999" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_user_missing_role(mcp_server: object) -> None:
+    """When a supplied role ID does not exist, an error response is returned."""
+    mock_user = _make_mock_user()
+
+    with (
+        patch("superset.mcp_service.user.tool.update_user.UserDAO") as mock_dao,
+        patch("superset.mcp_service.user.tool.update_user.db") as mock_db,
+        patch("superset.mcp_service.user.tool.update_user.security_manager") as mock_sm,
+    ):
+        mock_dao.get_by_id.return_value = mock_user
+        mock_db.session.get.return_value = None  # role not found
+        mock_sm.role_model = MagicMock()
+
+        async with Client(mcp_server) as client:
+            request = UpdateUserRequest(id=42, role_ids=[999])
+            result = await client.call_tool(
+                "update_user", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+    assert "999" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_user_update_failure(mcp_server: object) -> None:
+    """When security_manager.update_user returns False, an error is returned."""
+    mock_user = _make_mock_user()
+
+    with (
+        patch("superset.mcp_service.user.tool.update_user.UserDAO") as mock_dao,
+        patch("superset.mcp_service.user.tool.update_user.security_manager") as mock_sm,
+    ):
+        mock_dao.get_by_id.return_value = mock_user
+        mock_sm.update_user.return_value = False
+
+        async with Client(mcp_server) as client:
+            request = UpdateUserRequest(id=42, email="taken@example.com")
+            result = await client.call_tool(
+                "update_user", {"request": request.model_dump()}
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None

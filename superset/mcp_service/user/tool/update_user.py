@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import logging
-
 from fastmcp import Context
 from flask import current_app
 from flask_appbuilder.security.sqla.models import User
@@ -31,8 +29,6 @@ from superset.extensions import (
     security_manager,  # avoids superset.__init__ → create_app bootstrap
 )
 from superset.mcp_service.user.schemas import UpdateUserRequest, UpdateUserResponse
-
-logger = logging.getLogger(__name__)
 
 
 def _apply_field_updates(user: User, request: UpdateUserRequest) -> None:

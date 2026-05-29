@@ -15,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import logging
-
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
@@ -26,8 +24,6 @@ from superset.extensions import (
     security_manager,  # avoids superset.__init__ → create_app bootstrap
 )
 from superset.mcp_service.user.schemas import CreateUserRequest, CreateUserResponse
-
-logger = logging.getLogger(__name__)
 
 
 @tool(
@@ -55,8 +51,7 @@ async def create_user(request: CreateUserRequest, ctx: Context) -> CreateUserRes
     the user next authenticates through that provider.
     """
     await ctx.info(
-        "Creating user: username=%r, email=%r, role_ids=%s"
-        % (request.username, request.email, request.role_ids)
+        "Creating user: username=%r, role_ids=%s" % (request.username, request.role_ids)
     )
 
     try:
