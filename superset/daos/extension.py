@@ -16,6 +16,7 @@
 # under the License.
 from typing import Any
 
+from sqlalchemy.dialects.mysql import insert as mysql_insert
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
@@ -23,6 +24,72 @@ from superset import db
 from superset.extensions.models import ExtensionEnabled, ExtensionSettings
 
 SETTINGS_ROW_ID = 1
+
+
+def _upsert_extension_settings_row(active_chatbot_id: str | None) -> None:
+    """Dialect-aware single-statement upsert for the singleton settings row."""
+    dialect = db.session.get_bind().dialect.name
+    if dialect == "postgresql":
+        stmt = (
+            pg_insert(ExtensionSettings)
+            .values(id=SETTINGS_ROW_ID, active_chatbot_id=active_chatbot_id)
+            .on_conflict_do_update(
+                index_elements=["id"],
+                set_={"active_chatbot_id": active_chatbot_id},
+            )
+        )
+    elif dialect == "sqlite":
+        stmt = (
+            sqlite_insert(ExtensionSettings)
+            .values(id=SETTINGS_ROW_ID, active_chatbot_id=active_chatbot_id)
+            .on_conflict_do_update(
+                index_elements=["id"],
+                set_={"active_chatbot_id": active_chatbot_id},
+            )
+        )
+    elif dialect in ("mysql", "mariadb"):
+        stmt = mysql_insert(ExtensionSettings).values(
+            id=SETTINGS_ROW_ID, active_chatbot_id=active_chatbot_id
+        )
+        stmt = stmt.on_duplicate_key_update(active_chatbot_id=active_chatbot_id)
+    else:
+        raise NotImplementedError(
+            f"ExtensionSettings upsert not implemented for dialect '{dialect}'."
+        )
+    db.session.execute(stmt)
+
+
+def _upsert_extension_enabled_row(extension_id: str, enabled: bool) -> None:
+    """Dialect-aware single-statement upsert for a per-extension enabled flag."""
+    dialect = db.session.get_bind().dialect.name
+    if dialect == "postgresql":
+        stmt = (
+            pg_insert(ExtensionEnabled)
+            .values(extension_id=extension_id, enabled=enabled)
+            .on_conflict_do_update(
+                index_elements=["extension_id"],
+                set_={"enabled": enabled},
+            )
+        )
+    elif dialect == "sqlite":
+        stmt = (
+            sqlite_insert(ExtensionEnabled)
+            .values(extension_id=extension_id, enabled=enabled)
+            .on_conflict_do_update(
+                index_elements=["extension_id"],
+                set_={"enabled": enabled},
+            )
+        )
+    elif dialect in ("mysql", "mariadb"):
+        stmt = mysql_insert(ExtensionEnabled).values(
+            extension_id=extension_id, enabled=enabled
+        )
+        stmt = stmt.on_duplicate_key_update(enabled=enabled)
+    else:
+        raise NotImplementedError(
+            f"ExtensionEnabled upsert not implemented for dialect '{dialect}'."
+        )
+    db.session.execute(stmt)
 
 
 class ExtensionSettingsDAO:
@@ -33,6 +100,10 @@ class ExtensionSettingsDAO:
       (currently active_chatbot_id).
     * extension_enabled  — one row per extension id with a boolean
       enabled flag.
+
+    All writes use a single dialect-native upsert statement so concurrent
+    callers cannot race a read-then-insert window into a duplicate-key
+    error or a lost update.
     """
 
     @staticmethod
@@ -46,75 +117,8 @@ class ExtensionSettingsDAO:
 
     @staticmethod
     def upsert_active_chatbot_id(active_chatbot_id: str | None) -> None:
-        """Upsert the singleton settings row."""
-        dialect = db.session.get_bind().dialect.name
-        if dialect == "postgresql":
-            stmt = (
-                pg_insert(ExtensionSettings)
-                .values(id=SETTINGS_ROW_ID, active_chatbot_id=active_chatbot_id)
-                .on_conflict_do_update(
-                    index_elements=["id"],
-                    set_={"active_chatbot_id": active_chatbot_id},
-                )
-            )
-            db.session.execute(stmt)
-        elif dialect == "sqlite":
-            stmt = (
-                sqlite_insert(ExtensionSettings)
-                .values(id=SETTINGS_ROW_ID, active_chatbot_id=active_chatbot_id)
-                .on_conflict_do_update(
-                    index_elements=["id"],
-                    set_={"active_chatbot_id": active_chatbot_id},
-                )
-            )
-            db.session.execute(stmt)
-        else:
-            # MySQL/MariaDB: read-then-update path. The enclosing @transaction
-            # gives session/commit management but not concurrency serialisation;
-            # native ON DUPLICATE KEY UPDATE is added in a follow-up.
-            obj = db.session.get(ExtensionSettings, SETTINGS_ROW_ID)
-            if obj is None:
-                obj = ExtensionSettings(
-                    id=SETTINGS_ROW_ID, active_chatbot_id=active_chatbot_id
-                )
-                db.session.add(obj)
-            else:
-                obj.active_chatbot_id = active_chatbot_id
+        _upsert_extension_settings_row(active_chatbot_id)
 
     @staticmethod
     def upsert_enabled_flag(extension_id: str, enabled: bool) -> None:
-        """Upsert a per-extension enabled flag."""
-        dialect = db.session.get_bind().dialect.name
-        if dialect == "postgresql":
-            stmt = (
-                pg_insert(ExtensionEnabled)
-                .values(extension_id=extension_id, enabled=enabled)
-                .on_conflict_do_update(
-                    index_elements=["extension_id"],
-                    set_={"enabled": enabled},
-                )
-            )
-            db.session.execute(stmt)
-        elif dialect == "sqlite":
-            stmt = (
-                sqlite_insert(ExtensionEnabled)
-                .values(extension_id=extension_id, enabled=enabled)
-                .on_conflict_do_update(
-                    index_elements=["extension_id"],
-                    set_={"enabled": enabled},
-                )
-            )
-            db.session.execute(stmt)
-        else:
-            # MySQL/MariaDB: read-then-update path (see note above).
-            obj = (
-                db.session.query(ExtensionEnabled)
-                .filter_by(extension_id=extension_id)
-                .first()
-            )
-            if obj is None:
-                db.session.add(
-                    ExtensionEnabled(extension_id=extension_id, enabled=enabled)
-                )
-            else:
-                obj.enabled = enabled
+        _upsert_extension_enabled_row(extension_id, enabled)
