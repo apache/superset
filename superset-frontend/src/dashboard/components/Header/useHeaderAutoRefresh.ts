@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useRef } from 'react';
-import { useStore } from 'react-redux';
+import { useSelector, useStore } from 'react-redux';
 import { ChartState } from 'src/explore/types';
 import {
   LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
@@ -27,6 +27,12 @@ import { useAutoRefreshTabPause } from 'src/dashboard/hooks/useAutoRefreshTabPau
 import { useRealTimeDashboard } from 'src/dashboard/hooks/useRealTimeDashboard';
 import { useAutoRefreshContext } from 'src/dashboard/contexts/AutoRefreshContext';
 import { AutoRefreshStatus } from 'src/dashboard/types/autoRefresh';
+import { RootState } from 'src/dashboard/types';
+
+// Fallback used when the server config is missing the manual stagger value
+// (for example when running against an older backend). Matches the default
+// shipped in superset/config.py.
+const DEFAULT_MANUAL_REFRESH_STAGGER_MS = 5000;
 
 type RefreshLogEventPayload = {
   action: string;
@@ -79,6 +85,16 @@ export const useHeaderAutoRefresh = ({
   logEvent,
 }: HeaderAutoRefreshProps): HeaderAutoRefreshResult => {
   const store = useStore<AutoRefreshStoreState>();
+  // Read the manual-refresh stagger window from the server config. A value
+  // of 0 keeps the older behavior where every chart request fires at the
+  // same time; any non-zero value routes through the staggered branch of
+  // fetchCharts.
+  const manualRefreshStaggerMs = useSelector<RootState, number>(
+    state =>
+      (state.dashboardInfo?.common?.conf
+        ?.SUPERSET_DASHBOARD_MANUAL_REFRESH_STAGGER_MS as number | undefined) ??
+      DEFAULT_MANUAL_REFRESH_STAGGER_MS,
+  );
   const { startAutoRefresh, endAutoRefresh, setRefreshInFlight } =
     useAutoRefreshContext();
   const {
@@ -145,7 +161,7 @@ export const useHeaderAutoRefresh = ({
       let innerPromise: Promise<unknown>;
       if (!suppressSpinners) {
         innerPromise = Promise.resolve(
-          onRefresh(chartsToRefresh, force, 0, dashboardId),
+          onRefresh(chartsToRefresh, force, interval, dashboardId),
         );
       } else if (updateLastRefreshTime) {
         innerPromise = Promise.resolve(
@@ -326,15 +342,15 @@ export const useHeaderAutoRefresh = ({
     if (isLoading) {
       return Promise.resolve();
     }
-    return executeRefresh(chartIds, true, false, 0, {
+    return executeRefresh(chartIds, true, false, manualRefreshStaggerMs, {
       action: LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
       metadata: {
         force: true,
-        interval: 0,
+        interval: manualRefreshStaggerMs,
         chartCount: chartIds.length,
       },
     });
-  }, [chartIds, executeRefresh, isLoading]);
+  }, [chartIds, executeRefresh, isLoading, manualRefreshStaggerMs]);
 
   const handlePauseToggle = useCallback(() => {
     if (isPaused) {
