@@ -173,7 +173,7 @@ def _stub_validate_deps(mocker: MockerFixture) -> None:
         ".validate_unique_creation_method",
         return_value=True,
     )
-    mocker.patch.object(CreateReportScheduleCommand, "populate_owners", return_value=[])
+    mocker.patch("superset.commands.report.create.populate_subjects")
 
 
 def test_validate_alert_missing_database_key(mocker: MockerFixture) -> None:

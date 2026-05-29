@@ -79,11 +79,6 @@ def _setup_mocks(mocker: MockerFixture, model: Mock) -> None:
         UpdateReportScheduleCommand,
         "validate_report_frequency",
     )
-    mocker.patch.object(
-        UpdateReportScheduleCommand,
-        "compute_owners",
-        return_value=[],
-    )
     mocker.patch(
         "superset.commands.report.update.compute_subjects",
     )
@@ -435,7 +430,7 @@ def test_ownership_check_raises_forbidden(mocker: MockerFixture) -> None:
     model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
     _setup_mocks(mocker, model)
     mocker.patch(
-        "superset.commands.report.update.security_manager.raise_for_ownership",
+        "superset.commands.report.update.security_manager.raise_for_editorship",
         side_effect=SupersetSecurityException(
             SupersetError(
                 message="Forbidden",
