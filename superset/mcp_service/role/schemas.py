@@ -277,6 +277,8 @@ class CreateRoleRequest(BaseModel):
 
     name: str = Field(
         ...,
+        min_length=1,
+        max_length=_ROLE_NAME_MAX_LEN,
         description="Name for the new role. Must be unique.",
     )
     permission_ids: list[int] = Field(
@@ -288,6 +290,14 @@ class CreateRoleRequest(BaseModel):
             "Leave empty to create a role with no permissions."
         ),
     )
+
+    @field_validator("name")
+    @classmethod
+    def name_must_not_be_blank(cls, v: str) -> str:
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("name must not be empty or whitespace")
+        return stripped
 
 
 class CreateRoleResponse(BaseModel):
@@ -305,6 +315,7 @@ class UpdateRoleRequest(BaseModel):
     id: int = Field(..., description="ID of the role to update.")
     name: str | None = Field(
         None,
+        max_length=_ROLE_NAME_MAX_LEN,
         description=(
             "New name for the role. Must be unique. Omit to keep the current name."
         ),
@@ -317,6 +328,16 @@ class UpdateRoleRequest(BaseModel):
             "not supported. Omit to leave permissions unchanged."
         ),
     )
+
+    @field_validator("name")
+    @classmethod
+    def name_must_not_be_blank(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        stripped = v.strip()
+        if not stripped:
+            raise ValueError("name must not be empty or whitespace")
+        return stripped
 
 
 class UpdateRoleResponse(BaseModel):

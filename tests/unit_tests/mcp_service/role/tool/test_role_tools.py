@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Unit tests for list_roles and get_role_info MCP tools."""
+"""Unit tests for role MCP tools (list_roles, get_role_info, create_role, update_role)."""
 
 from unittest.mock import MagicMock, Mock, patch
 
@@ -23,9 +23,15 @@ import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
 from pydantic import ValidationError
+from sqlalchemy.exc import IntegrityError
 
 from superset.mcp_service.app import mcp
-from superset.mcp_service.role.schemas import ListRolesRequest, RoleFilter
+from superset.mcp_service.role.schemas import (
+    CreateRoleRequest,
+    ListRolesRequest,
+    RoleFilter,
+    UpdateRoleRequest,
+)
 from superset.utils import json
 
 
@@ -62,7 +68,7 @@ def mock_auth():
 
 
 # ---------------------------------------------------------------------------
-# Schema validation tests
+# Schema validation tests — RoleFilter / ListRolesRequest
 # ---------------------------------------------------------------------------
 
 
@@ -334,3 +340,441 @@ async def test_get_role_info_role_name_is_wrapped_in_untrusted_content(
     assert data["name"] != injected_name
     assert "<UNTRUSTED-CONTENT>" in data["name"]
     assert injected_name in data["name"]
+
+
+# ---------------------------------------------------------------------------
+# Schema validation tests — CreateRoleRequest
+# ---------------------------------------------------------------------------
+
+
+def test_create_role_request_valid() -> None:
+    req = CreateRoleRequest(name="Analyst", permission_ids=[1, 2])
+    assert req.name == "Analyst"
+    assert req.permission_ids == [1, 2]
+
+
+def test_create_role_request_strips_whitespace() -> None:
+    req = CreateRoleRequest(name="  Analyst  ")
+    assert req.name == "Analyst"
+
+
+def test_create_role_request_empty_name_fails() -> None:
+    with pytest.raises(ValidationError):
+        CreateRoleRequest(name="")
+
+
+def test_create_role_request_whitespace_only_name_fails() -> None:
+    with pytest.raises(ValidationError):
+        CreateRoleRequest(name="   ")
+
+
+def test_create_role_request_name_too_long_fails() -> None:
+    with pytest.raises(ValidationError):
+        CreateRoleRequest(name="a" * 65)
+
+
+def test_create_role_request_name_max_length_ok() -> None:
+    req = CreateRoleRequest(name="a" * 64)
+    assert len(req.name) == 64
+
+
+def test_create_role_request_default_empty_permissions() -> None:
+    req = CreateRoleRequest(name="Admin")
+    assert req.permission_ids == []
+
+
+# ---------------------------------------------------------------------------
+# Schema validation tests — UpdateRoleRequest
+# ---------------------------------------------------------------------------
+
+
+def test_update_role_request_valid() -> None:
+    req = UpdateRoleRequest(id=1, name="New Name", permission_ids=[3, 4])
+    assert req.id == 1
+    assert req.name == "New Name"
+    assert req.permission_ids == [3, 4]
+
+
+def test_update_role_request_strips_whitespace() -> None:
+    req = UpdateRoleRequest(id=1, name="  Trimmed  ")
+    assert req.name == "Trimmed"
+
+
+def test_update_role_request_name_too_long_fails() -> None:
+    with pytest.raises(ValidationError):
+        UpdateRoleRequest(id=1, name="x" * 65)
+
+
+def test_update_role_request_name_whitespace_only_fails() -> None:
+    with pytest.raises(ValidationError):
+        UpdateRoleRequest(id=1, name="   ")
+
+
+def test_update_role_request_omit_name_ok() -> None:
+    req = UpdateRoleRequest(id=1)
+    assert req.name is None
+    assert req.permission_ids is None
+
+
+# ---------------------------------------------------------------------------
+# Helpers for create_role / update_role tool tests
+# ---------------------------------------------------------------------------
+
+
+def _make_role(role_id: int = 1, name: str = "Analyst") -> MagicMock:
+    role = MagicMock()
+    role.id = role_id
+    role.name = name
+    role.permissions = []
+    return role
+
+
+def _make_pvm(pvm_id: int) -> MagicMock:
+    pvm = MagicMock()
+    pvm.id = pvm_id
+    return pvm
+
+
+# ---------------------------------------------------------------------------
+# create_role tool tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_create_role_success_no_permissions(mcp_server: object) -> None:
+    """Role is created and committed when no permission_ids are supplied."""
+    new_role = _make_role(role_id=5, name="Analyst")
+
+    with (
+        patch("superset.mcp_service.role.tool.create_role.security_manager") as mock_sm,
+        patch("superset.mcp_service.role.tool.create_role.db") as mock_db,
+    ):
+        mock_sm.find_role.return_value = None
+        mock_sm.add_role.return_value = new_role
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "create_role",
+                {"request": CreateRoleRequest(name="Analyst").model_dump()},
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] == 5
+    assert data["name"] == "Analyst"
+    assert data["error"] is None
+    mock_db.session.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_create_role_success_with_permissions(mcp_server: object) -> None:
+    """Role is created, permissions assigned, and session committed."""
+    new_role = _make_role(role_id=7, name="Editor")
+    pvm1 = _make_pvm(10)
+    pvm2 = _make_pvm(20)
+
+    with (
+        patch("superset.mcp_service.role.tool.create_role.security_manager") as mock_sm,
+        patch("superset.mcp_service.role.tool.create_role.db") as mock_db,
+    ):
+        mock_sm.find_role.return_value = None
+        mock_sm.add_role.return_value = new_role
+        mock_db.session.query.return_value.filter.return_value.all.return_value = [
+            pvm1,
+            pvm2,
+        ]
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "create_role",
+                {
+                    "request": CreateRoleRequest(
+                        name="Editor", permission_ids=[10, 20]
+                    ).model_dump()
+                },
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] == 7
+    assert data["name"] == "Editor"
+    assert data["error"] is None
+    assert new_role.permissions == [pvm1, pvm2]
+    mock_db.session.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_create_role_duplicate(mcp_server: object) -> None:
+    """Returns structured error when role already exists."""
+    existing = _make_role(role_id=3, name="Analyst")
+
+    with patch(
+        "superset.mcp_service.role.tool.create_role.security_manager"
+    ) as mock_sm:
+        mock_sm.find_role.return_value = existing
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "create_role",
+                {"request": CreateRoleRequest(name="Analyst").model_dump()},
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+    assert "already exists" in data["error"]
+    assert "3" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_create_role_missing_permission_ids_warned(mcp_server: object) -> None:
+    """Warns about missing permission IDs and still creates the role."""
+    new_role = _make_role(role_id=9, name="Partial")
+    found_pvm = _make_pvm(10)
+
+    with (
+        patch("superset.mcp_service.role.tool.create_role.security_manager") as mock_sm,
+        patch("superset.mcp_service.role.tool.create_role.db") as mock_db,
+    ):
+        mock_sm.find_role.return_value = None
+        mock_sm.add_role.return_value = new_role
+        # Only pvm 10 found; pvm 99 is missing
+        mock_db.session.query.return_value.filter.return_value.all.return_value = [
+            found_pvm
+        ]
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "create_role",
+                {
+                    "request": CreateRoleRequest(
+                        name="Partial", permission_ids=[10, 99]
+                    ).model_dump()
+                },
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] == 9
+    assert data["error"] is None
+    assert new_role.permissions == [found_pvm]
+
+
+@pytest.mark.asyncio
+async def test_create_role_integrity_error_race_condition(mcp_server: object) -> None:
+    """IntegrityError on concurrent creation returns structured duplicate error."""
+    conflicting_role = _make_role(role_id=11, name="Racing")
+
+    with (
+        patch("superset.mcp_service.role.tool.create_role.security_manager") as mock_sm,
+        patch("superset.mcp_service.role.tool.create_role.db") as mock_db,
+    ):
+        mock_sm.find_role.side_effect = [None, conflicting_role]
+        mock_sm.add_role.return_value = _make_role(role_id=12, name="Racing")
+        mock_db.session.commit.side_effect = IntegrityError(
+            "UNIQUE constraint failed", None, None
+        )
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "create_role",
+                {"request": CreateRoleRequest(name="Racing").model_dump()},
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+    assert "already exists" in data["error"]
+    mock_db.session.rollback.assert_called_once()
+
+
+# ---------------------------------------------------------------------------
+# update_role tool tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_update_role_success_rename(mcp_server: object) -> None:
+    """Role is renamed and committed."""
+    role = _make_role(role_id=1, name="OldName")
+
+    with (
+        patch("superset.mcp_service.role.tool.update_role.security_manager") as mock_sm,
+        patch("superset.mcp_service.role.tool.update_role.db") as mock_db,
+        patch(
+            "superset.mcp_service.role.tool.update_role.current_app"
+        ) as mock_app,
+    ):
+        mock_sm.find_roles_by_id.return_value = [role]
+        mock_sm.find_role.return_value = None
+        mock_app.config = {"AUTH_ROLE_ADMIN": "Admin", "AUTH_ROLE_PUBLIC": "Public"}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_role",
+                {"request": UpdateRoleRequest(id=1, name="NewName").model_dump()},
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["error"] is None
+    assert role.name == "NewName"
+    mock_db.session.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_update_role_not_found(mcp_server: object) -> None:
+    """Returns structured error when role ID does not exist."""
+    with patch(
+        "superset.mcp_service.role.tool.update_role.security_manager"
+    ) as mock_sm:
+        mock_sm.find_roles_by_id.return_value = []
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_role",
+                {"request": UpdateRoleRequest(id=999).model_dump()},
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+    assert "999" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_role_name_conflict(mcp_server: object) -> None:
+    """Returns structured error when new name is taken by another role."""
+    role = _make_role(role_id=1, name="Alpha")
+    other = _make_role(role_id=2, name="Beta")
+
+    with (
+        patch("superset.mcp_service.role.tool.update_role.security_manager") as mock_sm,
+        patch(
+            "superset.mcp_service.role.tool.update_role.current_app"
+        ) as mock_app,
+    ):
+        mock_sm.find_roles_by_id.return_value = [role]
+        mock_sm.find_role.return_value = other  # name "Beta" belongs to id=2
+        mock_app.config = {"AUTH_ROLE_ADMIN": "Admin", "AUTH_ROLE_PUBLIC": "Public"}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_role",
+                {"request": UpdateRoleRequest(id=1, name="Beta").model_dump()},
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+    assert "already in use" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_role_replace_permissions(mcp_server: object) -> None:
+    """Replacing permissions (including empty list) commits the full replacement."""
+    role = _make_role(role_id=1, name="Viewer")
+    role.permissions = [_make_pvm(5), _make_pvm(6)]
+    new_pvm = _make_pvm(7)
+
+    with (
+        patch("superset.mcp_service.role.tool.update_role.security_manager") as mock_sm,
+        patch("superset.mcp_service.role.tool.update_role.db") as mock_db,
+    ):
+        mock_sm.find_roles_by_id.return_value = [role]
+        mock_sm.find_role.return_value = None
+        mock_db.session.query.return_value.filter.return_value.all.return_value = [
+            new_pvm
+        ]
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_role",
+                {"request": UpdateRoleRequest(id=1, permission_ids=[7]).model_dump()},
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["error"] is None
+    assert role.permissions == [new_pvm]
+    mock_db.session.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_update_role_clear_permissions(mcp_server: object) -> None:
+    """Empty permission_ids list replaces all permissions with none."""
+    role = _make_role(role_id=1, name="Viewer")
+    role.permissions = [_make_pvm(5)]
+
+    with (
+        patch("superset.mcp_service.role.tool.update_role.security_manager") as mock_sm,
+        patch("superset.mcp_service.role.tool.update_role.db") as mock_db,
+    ):
+        mock_sm.find_roles_by_id.return_value = [role]
+        mock_sm.find_role.return_value = None
+        mock_db.session.query.return_value.filter.return_value.all.return_value = []
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_role",
+                {"request": UpdateRoleRequest(id=1, permission_ids=[]).model_dump()},
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["error"] is None
+    assert role.permissions == []
+    mock_db.session.commit.assert_called_once()
+
+
+@pytest.mark.asyncio
+async def test_update_role_blocks_renaming_admin_role(mcp_server: object) -> None:
+    """Renaming the built-in Admin role is rejected."""
+    admin_role = _make_role(role_id=1, name="Admin")
+
+    with (
+        patch("superset.mcp_service.role.tool.update_role.security_manager") as mock_sm,
+        patch(
+            "superset.mcp_service.role.tool.update_role.current_app"
+        ) as mock_app,
+    ):
+        mock_sm.find_roles_by_id.return_value = [admin_role]
+        mock_app.config = {"AUTH_ROLE_ADMIN": "Admin", "AUTH_ROLE_PUBLIC": "Public"}
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_role",
+                {"request": UpdateRoleRequest(id=1, name="SuperAdmin").model_dump()},
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+    assert "built-in" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_update_role_integrity_error_race_condition(mcp_server: object) -> None:
+    """IntegrityError on commit returns structured error with rollback."""
+    role = _make_role(role_id=1, name="Alpha")
+    conflicting = _make_role(role_id=2, name="Beta")
+
+    with (
+        patch("superset.mcp_service.role.tool.update_role.security_manager") as mock_sm,
+        patch("superset.mcp_service.role.tool.update_role.db") as mock_db,
+        patch(
+            "superset.mcp_service.role.tool.update_role.current_app"
+        ) as mock_app,
+    ):
+        mock_sm.find_roles_by_id.return_value = [role]
+        mock_sm.find_role.side_effect = [None, conflicting]
+        mock_app.config = {"AUTH_ROLE_ADMIN": "Admin", "AUTH_ROLE_PUBLIC": "Public"}
+        mock_db.session.commit.side_effect = IntegrityError(
+            "UNIQUE constraint failed", None, None
+        )
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_role",
+                {"request": UpdateRoleRequest(id=1, name="Beta").model_dump()},
+            )
+            data = json.loads(result.content[0].text)
+
+    assert data["id"] is None
+    assert data["error"] is not None
+    assert "already in use" in data["error"]
+    mock_db.session.rollback.assert_called_once()

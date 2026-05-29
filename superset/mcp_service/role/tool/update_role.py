@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
     annotations=ToolAnnotations(
         title="Update an existing role",
         readOnlyHint=False,
-        destructiveHint=False,
+        destructiveHint=True,
     ),
 )
 async def update_role(request: UpdateRoleRequest, ctx: Context) -> UpdateRoleResponse:
@@ -93,7 +93,7 @@ async def update_role(request: UpdateRoleRequest, ctx: Context) -> UpdateRoleRes
             role.permissions = pvms
 
         with event_logger.log_context(action="mcp.update_role.commit"):
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
         await ctx.info("Role updated: id=%s, name=%r" % (role.id, role.name))
         return UpdateRoleResponse(id=role.id, name=role.name)

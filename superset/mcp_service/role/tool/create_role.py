@@ -19,6 +19,7 @@ import logging
 
 from fastmcp import Context
 from flask_appbuilder.security.sqla.models import PermissionView
+from sqlalchemy.exc import IntegrityError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset import security_manager
@@ -83,10 +84,29 @@ async def create_role(request: CreateRoleRequest, ctx: Context) -> CreateRoleRes
 
             with event_logger.log_context(action="mcp.create_role.assign_permissions"):
                 role.permissions = pvms
-                db.session.commit()
+
+        with event_logger.log_context(action="mcp.create_role.commit"):
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
         await ctx.info("Role created: id=%s, name=%r" % (role.id, role.name))
         return CreateRoleResponse(id=role.id, name=role.name)
+
+    except IntegrityError:
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        # Race condition: another request created the same role between our
+        # find_role check and add_role call.
+        existing = security_manager.find_role(request.name)
+        if existing is not None:
+            await ctx.warning(
+                "Role already exists (race condition): name=%r" % (request.name,)
+            )
+            return CreateRoleResponse(
+                error=f"Role '{request.name}' already exists (id={existing.id})."
+            )
+        await ctx.error(
+            "IntegrityError creating role but role not found after rollback"
+        )
+        raise
 
     except Exception as exc:
         await ctx.error(
