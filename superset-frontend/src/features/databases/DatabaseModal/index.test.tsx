@@ -1783,6 +1783,31 @@ describe('dbReducer', () => {
     });
   });
 
+  test.each([
+    ['the literal string "null"', 'null'],
+    ['malformed JSON', 'not json'],
+    ['a JSON primitive', '42'],
+    ['a JSON array', '[1,2,3]'],
+  ])(
+    'it handles encrypted extra input change when masked_encrypted_extra is %s',
+    (_label, value) => {
+      const action: DBReducerActionType = {
+        type: ActionType.EncryptedExtraInputChange,
+        payload: { name: 'foo', value: 'bar' },
+      };
+      const currentState = dbReducer(
+        { ...databaseFixture, masked_encrypted_extra: value },
+        action,
+      );
+
+      // Reducer recovers and starts fresh — no crash, no leaked bad value.
+      expect(currentState).toEqual({
+        ...databaseFixture,
+        masked_encrypted_extra: '{"foo":"bar"}',
+      });
+    },
+  );
+
   test('it will set state to payload from extra input change when checkbox', () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraInputChange,

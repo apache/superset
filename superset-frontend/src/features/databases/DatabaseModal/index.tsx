@@ -286,7 +286,21 @@ export function dbReducer(
         }),
       };
     case ActionType.EncryptedExtraInputChange: {
-      const parsed = JSON.parse(trimmedState.masked_encrypted_extra || '{}');
+      // `masked_encrypted_extra` can arrive as the literal string "null" or
+      // malformed JSON from older payloads — defend the parse so a single
+      // bad value can't crash the reducer.
+      let parsedUnknown: unknown;
+      try {
+        parsedUnknown = JSON.parse(trimmedState.masked_encrypted_extra || '{}');
+      } catch {
+        parsedUnknown = {};
+      }
+      const parsed: Record<string, unknown> =
+        parsedUnknown &&
+        typeof parsedUnknown === 'object' &&
+        !Array.isArray(parsedUnknown)
+          ? (parsedUnknown as Record<string, unknown>)
+          : {};
       if (
         action.payload.value === '' ||
         action.payload.value === null ||
