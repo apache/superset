@@ -167,6 +167,26 @@ def test_timezone_series(mocker: MockerFixture) -> None:
     logger.exception.assert_not_called()
 
 
+def test_out_of_bounds_datetime_coerced_to_nat(mocker: MockerFixture) -> None:
+    """
+    Dates beyond ~2262-04-11 overflow pandas' int64 nanosecond representation.
+    SupersetResultSet must coerce them to NaT rather than raising OutOfBoundsDatetime
+    and logging an ERROR (which would surface as noise in observability tooling).
+    """
+    logger = mocker.patch("superset.result_set.logger")
+
+    data = [[datetime(3118, 1, 1, tzinfo=timezone.utc)]]
+    description = [(b"dt", "datetime", None, None, None, None, False)]
+    result_set = SupersetResultSet(
+        data,
+        description,  # type: ignore
+        BaseEngineSpec,
+    )
+    df = result_set.to_pandas_df()
+    assert pd.isna(df["dt"].iloc[0])
+    logger.exception.assert_not_called()
+
+
 def test_get_column_description_from_empty_data_using_cursor_description(
     mocker: MockerFixture,
 ) -> None:
