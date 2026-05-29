@@ -1333,7 +1333,9 @@ export function TableRenderer(props: TableRendererProps) {
               true,
             )}
           >
-            {t('Subtotal')}
+            {t('Subvalue (%(aggregatorName)s)', {
+              aggregatorName: t(aggregatorName),
+            })}
           </th>
         ) : null;
 
