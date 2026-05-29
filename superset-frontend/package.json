@@ -427,8 +427,5 @@
   "scarfSettings": {
     "allowTopLevel": true
   },
-  "_id": "superset@0.0.0-dev",
-  "optionalDependencies": {
-    "@oxlint/binding-darwin-arm64": "^1.67.0"
-  }
+  "_id": "superset@0.0.0-dev"
 }
