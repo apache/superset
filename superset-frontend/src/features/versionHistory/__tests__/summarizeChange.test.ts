@@ -123,3 +123,30 @@ test('formatChangeTitle collapses additional changes into a "+N more" suffix', (
 test('formatChangeTitle returns Baseline for an empty diff', () => {
   expect(formatChangeTitle([])).toMatch(/Baseline/);
 });
+
+test('summarizeChange handles a Shape B edit with a deeper path', () => {
+  // ``edit`` verbs may extend past length 3 once leaf-recursion is on; the
+  // hard ``path.length === 3`` check was removed so the deeper detail
+  // surfaces with the leaf field label.
+  const change: Change = {
+    kind: 'layout',
+    path: ['edit', 'chart', 'chart-1', 'meta', 'sliceName'],
+    from_value: 'Old',
+    to_value: 'New',
+  };
+  // Unknown field labels fall through to the raw identifier — they aren't
+  // localized, but the kind/verb is still recognizable.
+  expect(summarizeChange(change)).toMatch(/Edited chart sliceName/);
+});
+
+test('summarizeChange handles a deeply nested json_metadata field', () => {
+  const change: Change = {
+    kind: 'field',
+    path: ['json_metadata', 'global_chart_configuration', 'color_scheme'],
+    from_value: 'd3Category10',
+    to_value: 'preset',
+  };
+  // Walks the leaf label — variable-depth paths must not require any
+  // hard-coded length matching.
+  expect(summarizeChange(change)).toMatch(/Changed color palette to "preset"/);
+});
