@@ -291,7 +291,9 @@ class BaseReportState:
 
             # Skip the permalink when there is nothing meaningful to encode —
             # an empty dashboard_state falls through to the plain URL below.
-            if native_filter_params and native_filter_params != "()":
+            # A non-empty anchor means a single tab was selected (it failed
+            # JSON list parsing above) and still needs a permalink.
+            if anchor or (native_filter_params and native_filter_params != "()"):
                 state: DashboardPermalinkState = {**dashboard_state}
                 state["urlParams"] = self._merge_native_filters_into_url_params(
                     state.get("urlParams"), native_filter_params
