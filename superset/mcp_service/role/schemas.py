@@ -35,10 +35,7 @@ from pydantic import (
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import PaginationInfo
-from superset.mcp_service.utils import (
-    escape_llm_context_delimiters,
-    sanitize_for_llm_context,
-)
+from superset.mcp_service.utils import sanitize_for_llm_context
 from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
@@ -258,7 +255,10 @@ def serialize_role_object(
         name=sanitize_for_llm_context(
             getattr(role, "name", None), field_path=("name",)
         ),
-        permissions=[escape_llm_context_delimiters(p) for p in permissions]
+        permissions=[
+            sanitize_for_llm_context(p, field_path=("permissions",))
+            for p in permissions
+        ]
         if permissions is not None
         else None,
     )

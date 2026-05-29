@@ -268,7 +268,8 @@ async def test_get_role_info_returns_id_name_and_permissions(mock_find, mcp_serv
     data = json.loads(result.content[0].text)
     assert data["id"] == 3
     assert "Gamma" in data["name"]
-    assert data["permissions"] == ["can_read on Chart"]
+    assert len(data["permissions"]) == 1
+    assert "can_read on Chart" in data["permissions"][0]
 
 
 @patch("superset.daos.role.RoleDAO.find_by_id")
