@@ -19,16 +19,18 @@
 import { memo, useMemo } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
-import { Dropdown, Icons } from '@superset-ui/core/components';
+import { Dropdown, Icons, Tag } from '@superset-ui/core/components';
 import type { MenuProps } from '@superset-ui/core/components/Menu';
-import { Version } from '../types';
+import { EntityType, Version } from '../types';
 import { formatChangeTitle } from '../utils/formatChangeTitle';
 import {
   formatVersionDate,
   formatVersionUser,
+  isAiAuthor,
 } from '../utils/formatVersionUser';
 
 interface Props {
+  entityType: EntityType;
   version: Version;
   selected: boolean;
   isCurrent: boolean;
@@ -38,6 +40,7 @@ interface Props {
 }
 
 const VersionItem = ({
+  entityType,
   version,
   selected,
   isCurrent,
@@ -46,6 +49,10 @@ const VersionItem = ({
   onOpenAsNew,
 }: Props) => {
   const theme = useTheme();
+  const openAsNewLabel =
+    entityType === 'chart'
+      ? t('Open as new chart')
+      : t('Open as new dashboard');
 
   const menuItems = useMemo<MenuProps['items']>(() => {
     const items: NonNullable<MenuProps['items']> = [];
@@ -62,7 +69,7 @@ const VersionItem = ({
     if (onOpenAsNew) {
       items.push({
         key: 'open-as-new',
-        label: t('Open as new'),
+        label: openAsNewLabel,
         onClick: ({ domEvent }) => {
           domEvent.stopPropagation();
           onOpenAsNew();
@@ -70,7 +77,7 @@ const VersionItem = ({
       });
     }
     return items;
-  }, [isCurrent, onOpenAsNew, onRestore]);
+  }, [isCurrent, onOpenAsNew, onRestore, openAsNewLabel]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -79,9 +86,8 @@ const VersionItem = ({
     }
   };
 
-  // Plain wrapper (no role) so the clickable row and the actions dropdown
-  // can both expose role="button" without nesting one interactive element
-  // inside another (which violates ARIA).
+  const aiAuthored = isAiAuthor(version.changed_by);
+
   return (
     <div
       css={css`
@@ -139,12 +145,22 @@ const VersionItem = ({
         </div>
         <div
           css={css`
+            display: flex;
+            align-items: center;
+            gap: ${theme.sizeUnit}px;
             font-size: ${theme.fontSizeSM}px;
             color: ${theme.colorTextSecondary};
           `}
         >
-          {formatVersionUser(version.changed_by)} ·{' '}
-          {formatVersionDate(version.issued_at)}
+          <span>
+            {formatVersionUser(version.changed_by)} ·{' '}
+            {formatVersionDate(version.issued_at)}
+          </span>
+          {aiAuthored && (
+            <Tag color="purple" data-test="version-item-ai-tag">
+              {t('AI')}
+            </Tag>
+          )}
         </div>
       </div>
       {menuItems && menuItems.length > 0 && (

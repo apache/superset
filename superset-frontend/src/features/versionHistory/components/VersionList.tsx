@@ -24,13 +24,16 @@ import {
   Loading,
   EmptyState,
   Icons,
+  Select,
 } from '@superset-ui/core/components';
-import { Version } from '../types';
+import { EntityType, Version } from '../types';
 import { groupVersionsByDate } from '../utils/groupVersionsByDate';
 import { formatChangeTitle } from '../utils/formatChangeTitle';
+import { formatVersionUser } from '../utils/formatVersionUser';
 import VersionGroup from './VersionGroup';
 
 interface Props {
+  entityType: EntityType;
   versions: Version[] | null;
   loading: boolean;
   error: string | null;
@@ -40,7 +43,17 @@ interface Props {
   onOpenAsNew?: (version: Version) => void;
 }
 
+// The "filter by scope" select next to the search input. External /
+// related-items rows aren't surfaced in MVP, so the non-default options
+// are visual-only — they render but don't change which rows are shown.
+const SCOPE_FILTER_OPTIONS = [
+  { value: 'all', label: t('All changes') },
+  { value: 'this', label: t('This chart only') },
+  { value: 'related', label: t('Related items only') },
+];
+
 const VersionList = ({
+  entityType,
   versions,
   loading,
   error,
@@ -51,15 +64,25 @@ const VersionList = ({
 }: Props) => {
   const theme = useTheme();
   const [query, setQuery] = useState('');
+  const [scopeFilter, setScopeFilter] = useState<string>('all');
   const deferredQuery = useDeferredValue(query);
+  // Entity-aware scope filter label — "This chart only" vs
+  // "This dashboard only".
+  const thisEntityLabel =
+    entityType === 'chart' ? t('This chart only') : t('This dashboard only');
 
   const filtered = useMemo(() => {
     if (!versions) return null;
     const q = deferredQuery.trim().toLowerCase();
     if (!q) return versions;
-    return versions.filter(v =>
-      formatChangeTitle(v.changes).toLowerCase().includes(q),
-    );
+    return versions.filter(v => {
+      // Match both the change summary and the author name so users can
+      // narrow by who made the change.
+      if (formatChangeTitle(v.changes).toLowerCase().includes(q)) return true;
+      if (formatVersionUser(v.changed_by).toLowerCase().includes(q))
+        return true;
+      return false;
+    });
   }, [versions, deferredQuery]);
 
   const groups = useMemo(
@@ -86,10 +109,22 @@ const VersionList = ({
       >
         <Input
           allowClear
-          placeholder={t('Search versions')}
+          placeholder={t('Search actions')}
           prefix={<Icons.SearchOutlined iconSize="m" />}
           value={query}
           onChange={e => setQuery(e.currentTarget.value)}
+        />
+        <Select
+          value={scopeFilter}
+          onChange={(v: string) => setScopeFilter(v)}
+          aria-label={t('Filter versions by scope')}
+          data-test="version-list-scope-filter"
+          options={SCOPE_FILTER_OPTIONS.map(o =>
+            o.value === 'this' ? { ...o, label: thisEntityLabel } : o,
+          )}
+          css={css`
+            min-width: 160px;
+          `}
         />
       </div>
 
@@ -126,6 +161,7 @@ const VersionList = ({
         {groups.map(group => (
           <VersionGroup
             key={group.label}
+            entityType={entityType}
             label={group.label}
             versions={group.versions}
             selectedVersionUuid={selectedVersionUuid}

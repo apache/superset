@@ -19,26 +19,42 @@
 import { css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { Button, Icons } from '@superset-ui/core/components';
+import { useVersionHistory } from '../context/VersionHistoryContext';
+import { EntityType } from '../types';
+import { DRAWER_WIDTH } from './VersionHistoryPanel';
 
 interface Props {
+  entityType: EntityType;
   summary: string;
   date: string;
   onRestore: () => void;
   onExit: () => void;
+  onOpenAsNew?: () => void;
   restoring?: boolean;
 }
 
 const PreviewBanner = ({
+  entityType,
   summary,
   date,
   onRestore,
   onExit,
+  onOpenAsNew,
   restoring,
 }: Props) => {
   const theme = useTheme();
+  // Reserve right padding while the drawer is open so the action buttons
+  // are not physically covered by the drawer (which sits at z-index 1000
+  // over the banner).
+  const { isPanelOpen } = useVersionHistory();
+  const openAsNewLabel =
+    entityType === 'chart'
+      ? t('Open as new chart')
+      : t('Open as new dashboard');
   return (
     <div
       data-test="version-preview-banner"
+      data-test-panel-open={isPanelOpen ? 'true' : 'false'}
       role="region"
       aria-label={t('Previewing historical version')}
       css={css`
@@ -46,6 +62,9 @@ const PreviewBanner = ({
         align-items: center;
         gap: ${theme.sizeUnit * 3}px;
         padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
+        padding-right: ${isPanelOpen
+          ? DRAWER_WIDTH + theme.sizeUnit * 4
+          : theme.sizeUnit * 4}px;
         background: ${theme.colorInfoBg};
         border-bottom: 1px solid ${theme.colorInfoBorder};
         color: ${theme.colorText};
@@ -68,6 +87,26 @@ const PreviewBanner = ({
         <span>{date}</span>
       </div>
       <Button
+        buttonStyle="tertiary"
+        buttonSize="small"
+        onClick={onExit}
+        disabled={restoring}
+        data-test="version-preview-exit"
+      >
+        {t('Close preview')}
+      </Button>
+      {onOpenAsNew && (
+        <Button
+          buttonStyle="secondary"
+          buttonSize="small"
+          onClick={onOpenAsNew}
+          disabled={restoring}
+          data-test="version-preview-open-as-new"
+        >
+          {openAsNewLabel}
+        </Button>
+      )}
+      <Button
         buttonStyle="primary"
         buttonSize="small"
         onClick={onRestore}
@@ -76,15 +115,6 @@ const PreviewBanner = ({
         data-test="version-preview-restore"
       >
         {t('Restore this version')}
-      </Button>
-      <Button
-        buttonStyle="secondary"
-        buttonSize="small"
-        onClick={onExit}
-        disabled={restoring}
-        data-test="version-preview-exit"
-      >
-        {t('Exit preview')}
       </Button>
     </div>
   );

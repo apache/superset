@@ -43,16 +43,14 @@ const RestoreConfirmModal = ({
   onConfirm,
   onCancel,
 }: Props) => {
-  const baseBody =
+  const intro =
     entityType === 'dashboard'
-      ? t(
-          'Restoring will revert your dashboard to: "%(summary)s" (%(date)s). Your current version will be saved in version history and you can restore it again at any time.',
-          { summary, date },
-        )
-      : t(
-          'Restoring will revert your chart to: "%(summary)s" (%(date)s). Your current version will be saved in version history and you can restore it again at any time.',
-          { summary, date },
-        );
+      ? t('Restoring will revert your dashboard to: ')
+      : t('Restoring will revert your chart to: ');
+  const tail = t(
+    ' (%(date)s). Your current version will be saved in version history and you can restore it again at any time.',
+    { date },
+  );
 
   return (
     <Modal
@@ -62,9 +60,14 @@ const RestoreConfirmModal = ({
       onHandledPrimaryAction={onConfirm}
       primaryButtonName={t('Restore this version')}
       primaryButtonLoading={restoring}
+      width={480}
       destroyOnHidden
     >
-      <p>{baseBody}</p>
+      <p>
+        {intro}
+        <strong>{summary}</strong>
+        {tail}
+      </p>
       {hasUnsavedChanges && (
         <p data-test="restore-confirm-unsaved-warning">
           <strong>

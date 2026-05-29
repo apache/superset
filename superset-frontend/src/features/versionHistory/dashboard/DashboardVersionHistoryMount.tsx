@@ -16,15 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useCallback, useEffect, useRef } from 'react';
+import { ReactNode, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useHistory } from 'react-router-dom';
-import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
-import {
-  addDangerToast,
-  addSuccessToast,
-} from 'src/components/MessageToasts/actions';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
 import {
   enterVersionPreview,
   exitVersionPreview,
@@ -35,10 +30,8 @@ import {
   VersionHistoryProvider,
   useRequiredVersionHistory,
 } from '../context/VersionHistoryContext';
+import { useForkVersion } from '../hooks/useForkVersion';
 import { useVersionSnapshot } from '../hooks/useVersionSnapshot';
-import { forkDashboardFromSnapshot } from '../utils/forkActions';
-import { formatChangeTitle } from '../utils/formatChangeTitle';
-import { Version } from '../types';
 
 interface Props {
   dashboardUuid: string | null | undefined;
@@ -152,52 +145,15 @@ function DashboardForkBoundary({
 }: {
   dashboardUuid: string | null | undefined;
 }) {
-  const dispatch = useDispatch();
-  const history = useHistory();
-  const ownerId = useSelector(
-    (state: { user?: { userId?: number } }) => state.user?.userId,
+  const handleOpenAsNew = useForkVersion('dashboard', dashboardUuid);
+  const hasUnsavedChanges = useSelector(
+    (state: RootState) => !!state.dashboardState?.hasUnsavedChanges,
   );
-
-  const handleOpenAsNew = useCallback(
-    async (version: Version) => {
-      if (!dashboardUuid) return;
-      try {
-        const { json } = await SupersetClient.get({
-          endpoint: `/api/v1/dashboard/${dashboardUuid}/versions/${version.version_uuid}/`,
-        });
-        // SupersetClient wraps responses as ``{ result: ... }`` — unwrap so
-        // the fork helper sees the actual snapshot fields, not the envelope.
-        const snapshotPayload = (
-          json as {
-            result?: Parameters<typeof forkDashboardFromSnapshot>[0];
-          }
-        )?.result;
-        if (!snapshotPayload) {
-          throw new Error('Snapshot payload missing');
-        }
-        const created = await forkDashboardFromSnapshot(
-          snapshotPayload,
-          ownerId,
-        );
-        dispatch(
-          addSuccessToast(
-            t('Created from version: %(summary)s', {
-              summary: formatChangeTitle(version.changes),
-            }),
-          ),
-        );
-        history.push(`/superset/dashboard/${created.id}/`);
-      } catch (e) {
-        dispatch(addDangerToast(t('Failed to create dashboard from version')));
-      }
-    },
-    [dashboardUuid, dispatch, history, ownerId],
-  );
-
   return (
     <VersionHistoryPanel
       entityType="dashboard"
       uuid={dashboardUuid}
+      hasUnsavedChanges={hasUnsavedChanges}
       onOpenAsNew={handleOpenAsNew}
     />
   );

@@ -25,6 +25,18 @@ export function formatVersionUser(by: ChangedBy | null): string {
   return fullName || by.username || t('Unknown user');
 }
 
+// Usernames that identify the Chatbot integration as the author of a
+// version. The set is intentionally narrow — adding "looks like an AI"
+// fuzzy matching here would silently mislabel real users. Extend this
+// list as new Chatbot service accounts are provisioned.
+const AI_USERNAMES = new Set<string>(['chatbot']);
+
+export function isAiAuthor(by: ChangedBy | null): boolean {
+  if (!by) return false;
+  const u = (by.username ?? '').toLowerCase();
+  return AI_USERNAMES.has(u);
+}
+
 export function formatVersionDate(iso: string): string {
   if (!iso) return '';
   try {

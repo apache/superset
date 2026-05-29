@@ -20,7 +20,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { css } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
-import { Drawer } from '@superset-ui/core/components';
+import { Drawer, Icons } from '@superset-ui/core/components';
+import { useTheme } from '@apache-superset/core/theme';
 import {
   addDangerToast,
   addSuccessToast,
@@ -45,6 +46,10 @@ interface Props {
 // Z-index high enough to sit above sticky page headers and chart canvases
 // but below toast notifications (which render at the antd default 1010+).
 const DRAWER_Z_INDEX = 1000;
+// Exported so the preview banner can reserve matching right-padding while
+// the drawer is open — otherwise the drawer covers the banner's
+// restore/exit buttons.
+export const DRAWER_WIDTH = 380;
 
 const VersionHistoryPanel = ({
   entityType,
@@ -98,7 +103,7 @@ const VersionHistoryPanel = ({
     if (ok) {
       dispatch(
         addSuccessToast(
-          t('Restored to "%(summary)s"', {
+          t("Restored to '%(summary)s' version", {
             summary: formatChangeTitle(pendingRestore.changes),
           }),
         ),
@@ -122,6 +127,43 @@ const VersionHistoryPanel = ({
     }
   }, [dispatch, exitPreview, pendingRestore, restore]);
 
+  const theme = useTheme();
+
+  // Custom title with a back-arrow that mirrors the antd Drawer's
+  // built-in close button so users have two consistent ways to dismiss
+  // the panel.
+  const drawerTitle = (
+    <div
+      css={css`
+        display: flex;
+        align-items: center;
+        gap: ${theme.sizeUnit * 2}px;
+      `}
+    >
+      <button
+        type="button"
+        aria-label={t('Back')}
+        onClick={closePanel}
+        data-test="version-history-back"
+        css={css`
+          display: inline-flex;
+          align-items: center;
+          padding: ${theme.sizeUnit}px;
+          background: transparent;
+          border: none;
+          cursor: pointer;
+          color: ${theme.colorIcon};
+          &:hover {
+            color: ${theme.colorIconHover};
+          }
+        `}
+      >
+        <Icons.LeftOutlined iconSize="m" />
+      </button>
+      <span>{t('Version history')}</span>
+    </div>
+  );
+
   const restoreContext = useMemo(() => {
     if (!pendingRestore) return null;
     return {
@@ -133,11 +175,11 @@ const VersionHistoryPanel = ({
   return (
     <>
       <Drawer
-        title={t('Version history')}
+        title={drawerTitle}
         placement="right"
         open={isPanelOpen}
         onClose={closePanel}
-        width={380}
+        width={DRAWER_WIDTH}
         zIndex={DRAWER_Z_INDEX}
         styles={{ body: { padding: 0 } }}
         destroyOnHidden
@@ -151,6 +193,7 @@ const VersionHistoryPanel = ({
           `}
         >
           <VersionList
+            entityType={entityType}
             versions={versions}
             loading={loading}
             error={error}

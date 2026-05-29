@@ -27,6 +27,7 @@ import type { RootState } from 'src/dashboard/types';
 import PreviewBanner from '../components/PreviewBanner';
 import RestoreConfirmModal from '../components/RestoreConfirmModal';
 import { useOptionalVersionHistory } from '../context/VersionHistoryContext';
+import { useForkVersion } from '../hooks/useForkVersion';
 import { useVersionList } from '../hooks/useVersionList';
 import { useRestoreVersion } from '../hooks/useRestoreVersion';
 import { formatChangeTitle } from '../utils/formatChangeTitle';
@@ -49,6 +50,7 @@ const DashboardPreviewBanner = () => {
   );
   const { versions } = useVersionList('dashboard', dashboardUuid);
   const { restore, restoring } = useRestoreVersion('dashboard', dashboardUuid);
+  const forkVersion = useForkVersion('dashboard', dashboardUuid);
   const [confirmOpen, setConfirmOpen] = useState(false);
   // Has the user accumulated live, unsaved edits before opening preview?
   // The dashboardState flag captures this for the dashboard side; we only
@@ -80,7 +82,9 @@ const DashboardPreviewBanner = () => {
   const handleConfirmRestore = async () => {
     const { ok, error } = await restore(versionUuid);
     if (ok) {
-      dispatch(addSuccessToast(t('Restored to "%(summary)s"', { summary })));
+      dispatch(
+        addSuccessToast(t("Restored to '%(summary)s' version", { summary })),
+      );
       setConfirmOpen(false);
       handleExit();
       // Reload so the dashboard hydrate runs against the restored backend
@@ -102,10 +106,12 @@ const DashboardPreviewBanner = () => {
   return (
     <>
       <PreviewBanner
+        entityType="dashboard"
         summary={summary}
         date={date}
         onRestore={() => setConfirmOpen(true)}
         onExit={handleExit}
+        onOpenAsNew={matched ? () => forkVersion(matched) : undefined}
         restoring={restoring}
       />
       <RestoreConfirmModal

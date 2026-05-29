@@ -39,6 +39,47 @@ const KIND_LABELS: Record<string, string> = {
 
 const localizedKind = (k: string): string => KIND_LABELS[k] ?? k;
 
+// Backend column / field names → human-readable labels used in change
+// summaries. Keep this list ordered roughly by frequency in real diffs
+// so the most common ones are easy to spot. New entries are welcome —
+// the fallback is the raw field name.
+const FIELD_LABELS: Record<string, string> = {
+  // Dashboard scalars
+  dashboard_title: t('dashboard title'),
+  description: t('description'),
+  slug: t('slug'),
+  css: t('CSS'),
+  json_metadata: t('dashboard settings'),
+  position_json: t('layout'),
+  published: t('published state'),
+  // Chart scalars
+  slice_name: t('chart name'),
+  viz_type: t('visualization type'),
+  params: t('chart settings'),
+  query_context: t('query'),
+  cache_timeout: t('cache timeout'),
+  certified_by: t('certification owner'),
+  certification_details: t('certification details'),
+  // Form-data fields (under params)
+  metrics: t('metric'),
+  groupby: t('dimension'),
+  time_range: t('time range'),
+  filters: t('filter'),
+  adhoc_filters: t('filter'),
+  row_limit: t('row limit'),
+  color_scheme: t('color palette'),
+  color_scheme_domain: t('color palette'),
+  shared_label_colors: t('color palette'),
+  label_colors: t('color palette'),
+  map_label_colors: t('color palette'),
+  // Dataset scalars
+  table_name: t('table name'),
+};
+
+function fieldLabelFor(fieldName: string): string {
+  return FIELD_LABELS[fieldName] ?? fieldName;
+}
+
 export function summarizeChange(c: Change): string {
   if (c.path.length === 3 && LAYOUT_VERBS.has(String(c.path[0]))) {
     const verb = String(c.path[0]);
@@ -86,16 +127,7 @@ export function summarizeChange(c: Change): string {
 
   if (c.kind === 'field') {
     const fieldName = String(c.path[c.path.length - 1]);
-    let fieldLabel: string;
-    if (fieldName === 'dashboard_title') {
-      fieldLabel = t('title');
-    } else if (fieldName === 'slice_name') {
-      fieldLabel = t('chart name');
-    } else if (fieldName === 'table_name') {
-      fieldLabel = t('table name');
-    } else {
-      fieldLabel = fieldName;
-    }
+    const fieldLabel = fieldLabelFor(fieldName);
     const isShortScalar =
       c.to_value !== null &&
       c.to_value !== undefined &&
@@ -124,7 +156,7 @@ export function summarizeChange(c: Change): string {
 
   const kind = localizedKind(c.kind);
   if (c.path.length) {
-    const detail = String(c.path[c.path.length - 1]);
+    const detail = fieldLabelFor(String(c.path[c.path.length - 1]));
     if (isAdd) return t('Added %(kind)s %(detail)s', { kind, detail });
     if (isRemove) return t('Removed %(kind)s %(detail)s', { kind, detail });
     return t('Changed %(kind)s %(detail)s', { kind, detail });

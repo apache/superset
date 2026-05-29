@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useDispatch, useSelector, useStore } from 'react-redux';
-import { useHistory } from 'react-router-dom';
-import { QueryFormData, SupersetClient } from '@superset-ui/core';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { useDispatch, useStore } from 'react-redux';
+import { QueryFormData } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import {
   addDangerToast,
@@ -28,7 +27,7 @@ import {
 import { replaceChartState } from 'src/components/Chart/chartAction';
 import type { ChartState } from 'src/explore/types';
 import { reloadStrippingVersionUuid } from '../utils/restoreReload';
-import { Change, Version } from '../types';
+import { Change } from '../types';
 import VersionHistoryPanel from '../components/VersionHistoryPanel';
 import PreviewBanner from '../components/PreviewBanner';
 import RestoreConfirmModal from '../components/RestoreConfirmModal';
@@ -41,13 +40,13 @@ import {
   ChartPreviewSliceOverrides,
   ChartPreviewValue,
 } from '../context/ChartPreviewContext';
+import { useForkVersion } from '../hooks/useForkVersion';
 import { useVersionSnapshot } from '../hooks/useVersionSnapshot';
 import { useVersionList } from '../hooks/useVersionList';
 import { useRestoreVersion } from '../hooks/useRestoreVersion';
 import { snapshotToFormData } from '../utils/snapshotToFormData';
 import { formatChangeTitle } from '../utils/formatChangeTitle';
 import { formatVersionDate } from '../utils/formatVersionUser';
-import { forkChartFromSnapshot } from '../utils/forkActions';
 
 interface InnerProps {
   chartUuid: string | null | undefined;
@@ -134,6 +133,7 @@ function ExplorePreviewBanner({
   const dispatch = useDispatch();
   const { versions } = useVersionList('chart', chartUuid);
   const { restore, restoring } = useRestoreVersion('chart', chartUuid);
+  const forkVersion = useForkVersion('chart', chartUuid);
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Prefer the matching list row's metadata — the snapshot endpoint may
@@ -151,6 +151,9 @@ function ExplorePreviewBanner({
     if (!ctx?.previewVersionUuid) return;
     const { ok, error } = await restore(ctx.previewVersionUuid);
     if (ok) {
+      dispatch(
+        addSuccessToast(t("Restored to '%(summary)s' version", { summary })),
+      );
       setConfirmOpen(false);
       ctx.exitPreview();
       // Strip ``?version_uuid`` synchronously so the reloaded page does
@@ -171,10 +174,12 @@ function ExplorePreviewBanner({
   return (
     <>
       <PreviewBanner
+        entityType="chart"
         summary={summary}
         date={date}
         onRestore={() => setConfirmOpen(true)}
         onExit={() => ctx?.exitPreview()}
+        onOpenAsNew={matched ? () => forkVersion(matched) : undefined}
         restoring={restoring}
       />
       <RestoreConfirmModal
@@ -200,10 +205,7 @@ function ExploreVersionHistoryInner({
 }: InnerProps) {
   const ctx = useOptionalVersionHistory();
   const dispatch = useDispatch();
-  const history = useHistory();
-  const ownerId = useSelector(
-    (state: { user?: { userId?: number } }) => state.user?.userId,
-  );
+  const handleOpenAsNew = useForkVersion('chart', chartUuid);
   const previewVersionUuid = ctx?.previewVersionUuid ?? null;
   const { snapshot, error: snapshotError } = useVersionSnapshot(
     'chart',
@@ -261,37 +263,6 @@ function ExploreVersionHistoryInner({
   const previewValue = useMemo<ChartPreviewValue>(
     () => ({ formData: previewFormData, slice: previewSlice }),
     [previewFormData, previewSlice],
-  );
-
-  const handleOpenAsNew = useCallback(
-    async (version: Version) => {
-      if (!chartUuid) return;
-      try {
-        const { json } = await SupersetClient.get({
-          endpoint: `/api/v1/chart/${chartUuid}/versions/${version.version_uuid}/`,
-        });
-        // SupersetClient wraps responses as ``{ result: ... }`` — unwrap so
-        // the fork helper sees the actual snapshot fields, not the envelope.
-        const snapshotPayload = (
-          json as { result?: Parameters<typeof forkChartFromSnapshot>[0] }
-        )?.result;
-        if (!snapshotPayload) {
-          throw new Error('Snapshot payload missing');
-        }
-        const created = await forkChartFromSnapshot(snapshotPayload, ownerId);
-        dispatch(
-          addSuccessToast(
-            t('Created from version: %(summary)s', {
-              summary: formatChangeTitle(version.changes),
-            }),
-          ),
-        );
-        history.push(`/explore/?slice_id=${created.id}`);
-      } catch (e) {
-        dispatch(addDangerToast(t('Failed to create chart from version')));
-      }
-    },
-    [chartUuid, dispatch, history, ownerId],
   );
 
   // ``changes`` only appears on the list payload, never on the

@@ -19,10 +19,11 @@
 import { useState } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components';
-import { Version } from '../types';
+import { EntityType, Version } from '../types';
 import VersionItem from './VersionItem';
 
 interface Props {
+  entityType: EntityType;
   label: string;
   versions: Version[];
   selectedVersionUuid: string | null;
@@ -33,6 +34,7 @@ interface Props {
 }
 
 const VersionGroup = ({
+  entityType,
   label,
   versions,
   selectedVersionUuid,
@@ -54,7 +56,8 @@ const VersionGroup = ({
           align-items: center;
           gap: ${theme.sizeUnit}px;
           width: 100%;
-          padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
+          padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px
+            ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
           background: ${theme.colorBgLayout};
           border: none;
           cursor: pointer;
@@ -76,6 +79,7 @@ const VersionGroup = ({
         versions.map(version => (
           <VersionItem
             key={version.version_uuid}
+            entityType={entityType}
             version={version}
             selected={selectedVersionUuid === version.version_uuid}
             isCurrent={currentVersionUuid === version.version_uuid}
