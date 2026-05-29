@@ -1335,6 +1335,9 @@ def test_custom_dialect(app: None) -> None:
         ("SELECT 1", False),
         ("with source as ( select 1 as one ) select * from source", False),
         ("ALTER TABLE foo ADD COLUMN bar INT", True),
+        # COMMENT ON parses as a typed exp.Comment node across dialects; it
+        # writes to the catalog (pg_description on Postgres) so it is gated.
+        ("COMMENT ON TABLE t IS 'note'", True),
     ],
 )
 def test_is_mutating(sql: str, engine: str, expected: bool) -> None:
@@ -1449,6 +1452,29 @@ def test_is_mutating_postgres_function_and_select_into(
         ("SHOW search_path", True),
         ("SHOW all", True),
         ("SHOW server_version", True),
+        # RESET reverts a prior SET (e.g. RESET ROLE backs out SET ROLE).
+        ("RESET ROLE", True),
+        # DDL head-tokens that sqlglot falls back to exp.Command for when the
+        # body uses syntax it does not model. One representative per
+        # head-token branch (CREATE/ALTER/DROP); they all hit the same
+        # set-lookup so additional CREATE PUBLICATION/SUBSCRIPTION/etc.
+        # cases would not add coverage.
+        (
+            "CREATE FUNCTION x() RETURNS int AS '/tmp/x.so', 'i' LANGUAGE C",
+            True,
+        ),
+        ("CREATE EXTENSION pg_trgm", True),  # non-FUNCTION DDL via Command
+        ("ALTER SYSTEM SET wal_level = 'logical'", True),
+        ("DROP EXTENSION pg_trgm", True),
+        # LOAD dlopens a shared library on the PG host. Same RCE primitive
+        # as `CREATE FUNCTION ... LANGUAGE C` if the library path is
+        # attacker-controlled (e.g. via a prior COPY-to-program foothold).
+        ("LOAD '/tmp/x.so'", True),
+        # Case-insensitive: sqlglot preserves source case on Command.name,
+        # so the set lookup must normalise. Regression for the original
+        # bug where a lowercase head-token bypassed the gate.
+        ("create extension pg_trgm", True),
+        ("load '/tmp/x.so'", True),
         # Pre-existing positive controls
         ("DO $$ BEGIN UPDATE t SET x = 1; END $$", True),
         ("EXPLAIN ANALYZE UPDATE t SET x = 1", True),

@@ -595,9 +595,20 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             "GRANT",
             "REVOKE",
             "SET",  # SET ROLE / SET SESSION AUTHORIZATION change effective user
+            "RESET",  # RESET ROLE / RESET ALL reverts SET; same class as SET
             "REFRESH",  # REFRESH MATERIALIZED VIEW
             "REINDEX",
             "VACUUM",
+            # DDL head-tokens that sqlglot falls back to exp.Command for
+            # whenever the body uses syntax it does not model
+            # (CREATE EXTENSION/FUNCTION...LANGUAGE C/PUBLICATION/etc.,
+            # ALTER ROLE/SYSTEM/..., DROP EXTENSION/RULE/...). Well-formed
+            # CREATE TABLE/ALTER TABLE/DROP TABLE are already caught by the
+            # node-type tuple; these entries close the fallback path.
+            "CREATE",
+            "ALTER",
+            "DROP",
+            "LOAD",  # LOAD '/path/lib.so' dlopens a shared library on the PG host
             # SHOW reads server configuration (version, hba_file, ssl state,
             # search_path, etc.). It does not mutate, but in a read-only
             # context (`allow_dml=False`) it is information-disclosure
@@ -741,6 +752,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             exp.Copy,  # COPY <table> FROM/TO (server-side file ingest)
             exp.Grant,
             exp.Revoke,
+            # COMMENT ON TABLE/COLUMN/etc. writes to system catalog pg_description.
+            exp.Comment,
         )
 
         for node_type in mutating_nodes:
@@ -775,11 +788,14 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         # PostgreSQL constructs that sqlglot represents as an opaque
         # `exp.Command` rather than a structured AST. Each of these can mutate
-        # state or wrap a DML body that would otherwise be detected.
+        # state or wrap a DML body that would otherwise be detected. The
+        # `.name` attribute on `exp.Command` preserves the source-case of the
+        # head keyword (so `create extension ...` would yield `'create'`),
+        # which means the set lookup must be case-insensitive.
         if (
             self._dialect == Dialects.POSTGRES
             and isinstance(self._parsed, exp.Command)
-            and self._parsed.name in self._POSTGRES_MUTATING_COMMAND_NAMES
+            and self._parsed.name.upper() in self._POSTGRES_MUTATING_COMMAND_NAMES
         ):
             return True
 
