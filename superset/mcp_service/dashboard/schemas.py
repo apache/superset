@@ -67,7 +67,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Annotated, Any, Dict, List, Literal, TYPE_CHECKING
+from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
 
 import humanize
 from pydantic import (
@@ -169,16 +169,20 @@ class DashboardFilter(ColumnOperator):
     value: The value to filter by (type depends on col and opr).
     """
 
-    col: Literal[
+    col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "dashboard_title",
         "published",
         "favorite",
+        "created_by_fk",
+        "changed_by_fk",
     ] = Field(
         ...,
         description=(
-            "Column to filter on. Valid values: 'dashboard_title', 'published', "
-            "'favorite'. Other column names are not valid filter columns and will "
-            "cause a validation error."
+            "Column to filter on. Use "
+            "get_schema(model_type='dashboard') for available "
+            "filter columns. To filter by a person, first call find_users to "
+            "resolve a name to a user ID, then filter by created_by_fk or "
+            "changed_by_fk with that integer ID."
         ),
     )
     opr: ColumnOperatorEnum = Field(
@@ -223,7 +227,10 @@ class ListDashboardsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheContr
         """
         from superset.mcp_service.utils.schema_utils import parse_json_or_model_list
 
-        return parse_json_or_model_list(v, DashboardFilter, "filters")
+        return cast(
+            List[DashboardFilter],
+            parse_json_or_model_list(v, DashboardFilter, "filters"),
+        )
 
     @field_validator("select_columns", mode="before")
     @classmethod
@@ -392,14 +399,14 @@ class DashboardInfo(BaseModel):
 
     # Fields for permalink/filter state support
     permalink_key: str | None = Field(
-        None,
+        default=None,
         description=(
             "Permalink key used to retrieve filter state. When present, indicates "
             "the filter_state came from a permalink rather than the default dashboard."
         ),
     )
     filter_state: Dict[str, Any] | None = Field(
-        None,
+        default=None,
         description=(
             "Filter state from permalink. Contains dataMask (native filter values), "
             "activeTabs, anchor, and urlParams. When present, represents the actual "
@@ -480,7 +487,17 @@ class AddChartToDashboardRequest(BaseModel):
     )
     chart_id: int = Field(..., description="ID of the chart to add to the dashboard")
     target_tab: str | None = Field(
-        None, description="Target tab name (if dashboard has tabs)"
+        None,
+        min_length=1,
+        description=(
+            "Tab to place the chart in. Accepts a tab display name "
+            "(e.g. 'Sales') or a tab component ID (e.g. 'TAB-abc123'). "
+            "Display-name matching is case-insensitive and strips all emoji; "
+            "component ID matching is case-sensitive and exact. "
+            "When not found, the error response lists all available tab names. "
+            "When omitted on a tabbed dashboard the chart is placed in the "
+            "first tab."
+        ),
     )
 
 
@@ -506,6 +523,19 @@ class AddChartToDashboardResponse(BaseModel):
             "Do NOT silently create a new dashboard — always confirm first."
         ),
     )
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap error text before it is exposed to LLM context.
+
+        The error may echo user-supplied target_tab or dashboard-controlled tab
+        labels — both must be wrapped so the LLM treats them as data, not
+        instructions.
+        """
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
 
 
 class GenerateDashboardRequest(BaseModel):

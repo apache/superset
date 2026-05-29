@@ -17,7 +17,8 @@
  * under the License.
  */
 import { createRef, useCallback, useMemo } from 'react';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { nanoid } from 'nanoid';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { t } from '@apache-superset/core/translation';
@@ -105,7 +106,7 @@ const SouthPane = ({
   const { id, tabViewId } = useQueryEditor(queryEditorId, ['tabViewId']);
   const editorId = tabViewId ?? id;
   const theme = useTheme();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const viewItems = views.getViews(ViewLocations.sqllab.panels) || [];
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
