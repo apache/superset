@@ -57,6 +57,7 @@ async def get_report_info(
     IMPORTANT FOR LLM CLIENTS:
     - Use numeric ID (e.g., 123)
     - To find a report ID, use the list_reports tool first
+    - The owners field is excluded by privacy controls and will not appear
 
     Example usage:
     ```json

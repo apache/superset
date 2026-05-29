@@ -684,7 +684,7 @@ REPORT_SEARCH_COLUMNS = ["name", "description"]
 # Allowlist of filter columns exposed via get_schema and accepted by ReportFilter.
 # Must stay in sync with the Literal in ReportFilter.col (schemas.py).
 REPORT_FILTER_COLUMNS: frozenset[str] = frozenset(
-    {"name", "type", "active", "dashboard_id", "chart_id", "created_by_fk"}
+    {"name", "type", "active", "dashboard_id", "chart_id"}
 )
 REPORT_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "changed_on_humanized": ColumnMetadata(
@@ -826,6 +826,3 @@ def get_report_info_columns() -> list[ColumnMetadata]:
             )
         )
     return columns
-
-
-REPORT_ALL_COLUMNS: list[str] = []

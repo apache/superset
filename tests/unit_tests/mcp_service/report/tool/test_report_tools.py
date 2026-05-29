@@ -20,7 +20,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from fastmcp import Client
-from fastmcp.exceptions import ToolError
 from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
@@ -103,10 +102,11 @@ class TestReportFilterSchema:
         with pytest.raises(ValidationError):
             ReportFilter(col="not_a_real_column", opr="eq", value=1)
 
-    def test_created_by_fk_is_accepted(self):
-        """created_by_fk is a valid public filter column."""
-        f = ReportFilter(col="created_by_fk", opr="eq", value=1)
-        assert f.col == "created_by_fk"
+    def test_created_by_fk_is_rejected(self):
+        """created_by_fk must not be a public filter — callers cannot enumerate
+        reports by an arbitrary user ID; use created_by_me flag instead."""
+        with pytest.raises(ValidationError):
+            ReportFilter(col="created_by_fk", opr="eq", value=1)
 
 
 def test_list_reports_request_accepts_valid_fields():
@@ -207,6 +207,9 @@ async def test_list_reports_does_not_expose_owners(mock_list, mcp_server):
         # owners is filtered by USER_DIRECTORY_FIELDS
         assert "owners" not in data.get("columns_requested", [])
         assert "owners" not in data.get("columns_loaded", [])
+        # verify privacy filter removed the field from actual report payloads
+        assert len(data["reports"]) == 1
+        assert "owners" not in data["reports"][0]
 
 
 @patch("superset.daos.report.ReportScheduleDAO.list")
@@ -229,14 +232,17 @@ async def test_list_reports_empty_results(mock_list, mcp_server):
 @patch("superset.daos.report.ReportScheduleDAO.list")
 @pytest.mark.asyncio
 async def test_list_reports_api_error(mock_list, mcp_server):
-    """Test error handling when DAO raises an exception."""
-    mock_list.side_effect = ToolError("Report DAO error")
+    """Test error handling when DAO raises an exception returns ReportError."""
+    mock_list.side_effect = RuntimeError("Report DAO error")
 
     async with Client(mcp_server) as client:
         request = ListReportsRequest(page=1, page_size=10)
-        with pytest.raises(ToolError) as excinfo:  # noqa: PT012
-            await client.call_tool("list_reports", {"request": request.model_dump()})
-        assert "Report DAO error" in str(excinfo.value)
+        result = await client.call_tool(
+            "list_reports", {"request": request.model_dump()}
+        )
+        data = json.loads(result.content[0].text)
+        assert data["error_type"] == "InternalError"
+        assert "Report DAO error" in data["error"]
 
 
 @patch("superset.daos.report.ReportScheduleDAO.list")

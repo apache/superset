@@ -65,7 +65,6 @@ class ReportFilter(ColumnOperator):
         "active",
         "dashboard_id",
         "chart_id",
-        "created_by_fk",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='report') for "
@@ -154,7 +153,7 @@ class ReportList(BaseModel):
         default_factory=list,
         description="Columns that can be used with order_column parameter",
     )
-    filters_applied: List[ColumnOperator] = Field(
+    filters_applied: List[ReportFilter] = Field(
         default_factory=list,
         description="List of advanced filter dicts applied to the query.",
     )
@@ -253,8 +252,6 @@ class ReportError(BaseModel):
     @classmethod
     def create(cls, error: str, error_type: str) -> "ReportError":
         """Create a standardized ReportError with timestamp."""
-        from datetime import datetime, timezone
-
         return cls(
             error=error, error_type=error_type, timestamp=datetime.now(timezone.utc)
         )
