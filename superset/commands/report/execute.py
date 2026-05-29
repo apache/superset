@@ -289,19 +289,19 @@ class BaseReportState:
                 except json.JSONDecodeError:
                     logger.debug("Anchor value is not a list, Fall back to single tab")
 
-            # Merge native_filters into existing urlParams instead of
-            # overwriting — dashboard_state may already have urlParams
-            # (e.g. standalone=true) that must be preserved.
-            state: DashboardPermalinkState = {**dashboard_state}
-            state["urlParams"] = self._merge_native_filters_into_url_params(
-                state.get("urlParams"), native_filter_params
-            )
-            return [
-                self._get_tab_url(
-                    state,
-                    user_friendly=user_friendly,
+            # Skip the permalink when there is nothing meaningful to encode —
+            # an empty dashboard_state falls through to the plain URL below.
+            if native_filter_params and native_filter_params != "()":
+                state: DashboardPermalinkState = {**dashboard_state}
+                state["urlParams"] = self._merge_native_filters_into_url_params(
+                    state.get("urlParams"), native_filter_params
                 )
-            ]
+                return [
+                    self._get_tab_url(
+                        state,
+                        user_friendly=user_friendly,
+                    )
+                ]
 
         native_filter_params, filter_warnings = (
             self._report_schedule.get_native_filters_params()

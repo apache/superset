@@ -331,19 +331,15 @@ def test_get_dashboard_urls_with_multiple_tabs(
     assert result == expected_uris
 
 
-@patch(
-    "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
-)
 @with_feature_flags(ALERT_REPORT_TABS=True)
 def test_get_dashboard_urls_with_exporting_dashboard_only(
-    mock_run,
     mocker: MockerFixture,
-    app,
 ) -> None:
     mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
     mock_report_schedule.chart = False
     mock_report_schedule.chart_id = None
     mock_report_schedule.dashboard_id = 123
+    mock_report_schedule.force_screenshot = False
     mock_report_schedule.type = "report_type"
     mock_report_schedule.report_format = "report_format"
     mock_report_schedule.owners = [1, 2]
@@ -360,7 +356,9 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
         "()",
         [],
     )
-    mock_run.return_value = "url1"
+    mock_dashboard = mocker.MagicMock()
+    mock_dashboard.uuid = UUID("12345678-1234-1234-1234-123456789abc")
+    mock_report_schedule.dashboard = mock_dashboard
 
     class_instance: BaseReportState = BaseReportState(
         mock_report_schedule, "January 1, 2021", "execution_id_example"
@@ -369,11 +367,43 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
 
     result: list[str] = class_instance.get_dashboard_urls()
 
-    import urllib.parse
+    assert len(result) == 1
+    assert "/dashboard/p/" not in result[0]
+    assert "12345678-1234-1234-1234-123456789abc" in result[0]
 
-    base_url = app.config.get("WEBDRIVER_BASEURL", "http://0.0.0.0:8080/")
-    expected_url = urllib.parse.urljoin(base_url, "superset/dashboard/p/url1/")
-    assert expected_url == result[0]
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_empty_dashboard_state_skips_permalink(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+) -> None:
+    """When both ALERT_REPORT_TABS and ALERT_REPORTS_FILTER are enabled but the
+    report has no tab or filter configured, get_dashboard_urls() must return
+    a plain dashboard URL and must not create a permalink.  A permalink with
+    nothing to encode causes a server-side redirect that fails the Playwright
+    screenshot (domcontentloaded timeout)."""
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.force_screenshot = False
+    mock_report_schedule.extra = {"dashboard": {}}
+    mock_report_schedule.get_native_filters_params.return_value = ("()", [])  # type: ignore
+
+    mock_dashboard = mocker.MagicMock()
+    mock_dashboard.uuid = UUID("12345678-1234-1234-1234-123456789abc")
+    mock_report_schedule.dashboard = mock_dashboard
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    result: list[str] = class_instance.get_dashboard_urls()
+
+    mock_permalink_cls.assert_not_called()
+    assert len(result) == 1
+    assert "/dashboard/p/" not in result[0]
+    assert "12345678-1234-1234-1234-123456789abc" in result[0]
 
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
