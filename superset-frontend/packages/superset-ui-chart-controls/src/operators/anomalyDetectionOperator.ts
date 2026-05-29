@@ -27,15 +27,29 @@ export const anomalyDetectionOperator: PostProcessingFactory<
 > = (formData, queryObject) => {
   const xAxisLabel = getXAxisLabel(formData);
   if (formData.anomalyDetectionEnabled && xAxisLabel) {
+    const method: string = formData.anomalyDetectionMethod || 'zscore';
+    const options: Record<string, unknown> = { method, index: xAxisLabel };
+    if (method === 'prophet') {
+      options.confidence_interval = parseFloat(
+        formData.anomalyDetectionConfidenceInterval ?? 0.8,
+      );
+      options.yearly_seasonality = formData.anomalyDetectionSeasonalityYearly;
+      options.weekly_seasonality = formData.anomalyDetectionSeasonalityWeekly;
+      options.daily_seasonality = formData.anomalyDetectionSeasonalityDaily;
+    } else {
+      options.rolling_window = parseInt(
+        formData.anomalyDetectionRollingWindow,
+        10,
+      );
+      options.sensitivity = parseFloat(formData.anomalyDetectionSensitivity);
+    }
+    if (formData.forecastEnabled) {
+      options.include_forecast_data = true;
+    }
     return {
       operation: 'anomaly_detection',
-      options: {
-        method: formData.anomalyDetectionMethod || 'zscore',
-        rolling_window: parseInt(formData.anomalyDetectionRollingWindow, 10),
-        sensitivity: parseFloat(formData.anomalyDetectionSensitivity),
-        index: xAxisLabel,
-      },
-    };
+      options,
+    } as PostProcessingAnomalyDetection;
   }
   return undefined;
 };

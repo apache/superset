@@ -26,6 +26,11 @@ export const ANOMALY_DEFAULT_DATA = {
   anomalyDetectionMethod: 'zscore',
   anomalyDetectionRollingWindow: 14,
   anomalyDetectionSensitivity: 3.0,
+  anomalyDetectionConfidenceInterval: 0.8,
+  anomalyDetectionSeasonalityYearly: null,
+  anomalyDetectionSeasonalityWeekly: null,
+  anomalyDetectionSeasonalityDaily: null,
+  anomalyDetectionIncludeForecast: false,
 };
 
 export const anomalyDetectionControls: ControlPanelSectionConfig = {
@@ -54,10 +59,11 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
           choices: [
             ['zscore', t('Z-Score')],
             ['mad', t('MAD (Median Absolute Deviation)')],
+            ['prophet', t('Prophet (Seasonality-aware)')],
           ],
           default: ANOMALY_DEFAULT_DATA.anomalyDetectionMethod,
           description: t(
-            'Algorithm to use for anomaly detection. Z-Score uses rolling mean and standard deviation. MAD uses rolling median absolute deviation which is more robust to outliers.',
+            'Algorithm to use for anomaly detection. Z-Score uses rolling mean and standard deviation. MAD uses rolling median absolute deviation which is more robust to outliers. Prophet uses Facebook Prophet to model seasonality and flags points outside the confidence interval.',
           ),
         },
       },
@@ -73,6 +79,8 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
           description: t(
             'Size of the rolling window for computing statistics. Must be >= 3.',
           ),
+          visibility: ({ controls }) =>
+            controls?.anomalyDetectionMethod?.value !== 'prophet',
         },
       },
     ],
@@ -87,6 +95,87 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
           description: t(
             'Threshold for anomaly detection. Higher values mean fewer anomalies are detected. Typical values: 2.0 (more sensitive) to 4.0 (less sensitive).',
           ),
+          visibility: ({ controls }) =>
+            controls?.anomalyDetectionMethod?.value !== 'prophet',
+        },
+      },
+    ],
+    [
+      {
+        name: 'anomalyDetectionConfidenceInterval',
+        config: {
+          type: 'TextControl',
+          label: t('Confidence interval'),
+          validators: [legacyValidateNumber],
+          default: ANOMALY_DEFAULT_DATA.anomalyDetectionConfidenceInterval,
+          description: t(
+            'Width of the confidence interval. Should be between 0 and 1',
+          ),
+          visibility: ({ controls }) =>
+            controls?.anomalyDetectionMethod?.value === 'prophet',
+        },
+      },
+    ],
+    [
+      {
+        name: 'anomalyDetectionSeasonalityYearly',
+        config: {
+          type: 'SelectControl',
+          freeForm: true,
+          label: t('Yearly seasonality'),
+          choices: [
+            [null, t('default')],
+            [true, t('Yes')],
+            [false, t('No')],
+          ],
+          default: ANOMALY_DEFAULT_DATA.anomalyDetectionSeasonalityYearly,
+          description: t(
+            'Should yearly seasonality be applied. An integer value will specify Fourier order of seasonality.',
+          ),
+          visibility: ({ controls }) =>
+            controls?.anomalyDetectionMethod?.value === 'prophet',
+        },
+      },
+    ],
+    [
+      {
+        name: 'anomalyDetectionSeasonalityWeekly',
+        config: {
+          type: 'SelectControl',
+          freeForm: true,
+          label: t('Weekly seasonality'),
+          choices: [
+            [null, t('default')],
+            [true, t('Yes')],
+            [false, t('No')],
+          ],
+          default: ANOMALY_DEFAULT_DATA.anomalyDetectionSeasonalityWeekly,
+          description: t(
+            'Should weekly seasonality be applied. An integer value will specify Fourier order of seasonality.',
+          ),
+          visibility: ({ controls }) =>
+            controls?.anomalyDetectionMethod?.value === 'prophet',
+        },
+      },
+    ],
+    [
+      {
+        name: 'anomalyDetectionSeasonalityDaily',
+        config: {
+          type: 'SelectControl',
+          freeForm: true,
+          label: t('Daily seasonality'),
+          choices: [
+            [null, t('default')],
+            [true, t('Yes')],
+            [false, t('No')],
+          ],
+          default: ANOMALY_DEFAULT_DATA.anomalyDetectionSeasonalityDaily,
+          description: t(
+            'Should daily seasonality be applied. An integer value will specify Fourier order of seasonality.',
+          ),
+          visibility: ({ controls }) =>
+            controls?.anomalyDetectionMethod?.value === 'prophet',
         },
       },
     ],

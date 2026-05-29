@@ -139,9 +139,14 @@ interface _PostProcessingAnomalyDetection {
   operation: 'anomaly_detection';
   options: {
     method: string;
-    rolling_window: number;
-    sensitivity: number;
+    rolling_window?: number;
+    sensitivity?: number;
     index?: string;
+    confidence_interval?: number;
+    yearly_seasonality?: boolean | number;
+    weekly_seasonality?: boolean | number;
+    daily_seasonality?: boolean | number;
+    include_forecast_data?: boolean;
   };
 }
 export type PostProcessingAnomalyDetection =

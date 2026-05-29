@@ -161,3 +161,31 @@ test('should do anomalyDetectionOperator over adhoc column', () => {
     },
   });
 });
+
+test('should do anomalyDetectionOperator with prophet method', () => {
+  expect(
+    anomalyDetectionOperator(
+      {
+        ...formData,
+        granularity_sqla: 'time_column',
+        anomalyDetectionEnabled: true,
+        anomalyDetectionMethod: 'prophet',
+        anomalyDetectionConfidenceInterval: '0.8',
+        anomalyDetectionSeasonalityYearly: true,
+        anomalyDetectionSeasonalityWeekly: false,
+        anomalyDetectionSeasonalityDaily: null,
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'anomaly_detection',
+    options: {
+      method: 'prophet',
+      index: DTTM_ALIAS,
+      confidence_interval: 0.8,
+      yearly_seasonality: true,
+      weekly_seasonality: false,
+      daily_seasonality: null,
+    },
+  });
+});
