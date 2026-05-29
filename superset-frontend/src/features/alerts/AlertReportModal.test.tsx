@@ -678,6 +678,56 @@ test('removes ignore cache checkbox when chart is selected', async () => {
   ).not.toBeInTheDocument();
 });
 
+test('open chart button opens explore with slice_id', async () => {
+  // Render with an existing alert that has a chart selected
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+
+  // Ensure chart is present
+  await screen.findByText(/test chart/i);
+
+  const openChartButton = screen.getByRole('button', {
+    name: /open chart in new tab/i,
+  });
+  expect(openChartButton).toBeInTheDocument();
+
+  const origOpen = window.open;
+  // @ts-ignore
+  window.open = jest.fn();
+  await userEvent.click(openChartButton);
+  expect(window.open).toHaveBeenCalledWith('/explore/?slice_id=1', '_blank', 'noopener');
+  // restore
+  // @ts-ignore
+  window.open = origOpen;
+});
+
+test('open dashboard button opens dashboard url', async () => {
+  // Render with an existing alert that has a dashboard selected
+  render(<AlertReportModal {...generateMockedProps(false, true, true)} />, {
+    useRedux: true,
+  });
+  userEvent.click(screen.getByTestId('contents-panel'));
+
+  // Ensure dashboard is present
+  await screen.findByText(/test dashboard/i);
+
+  const openDashButton = screen.getByRole('button', {
+    name: /open dashboard in new tab/i,
+  });
+  expect(openDashButton).toBeInTheDocument();
+
+  const origOpen = window.open;
+  // @ts-ignore
+  window.open = jest.fn();
+  await userEvent.click(openDashButton);
+  expect(window.open).toHaveBeenCalledWith('/superset/dashboard/1', '_blank', 'noopener');
+  // restore
+  // @ts-ignore
+  window.open = origOpen;
+});
+
 test('does not show screenshot width when csv is selected', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
