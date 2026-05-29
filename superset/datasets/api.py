@@ -373,6 +373,15 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
     def get_list_headless(self, **kwargs: Any) -> Response:
         response = super().get_list_headless(**kwargs)
+        # TODO: Double-serialization note: `response.json` deserializes the
+        # response body back from bytes (produced by
+        # `super().get_list_headless()`), and then `self.response(200, **payload)`
+        # re-serializes it. For large dataset lists this is noticeable overhead.
+        # A follow-up improvement: override `_get_list_response_object` (or the
+        # equivalent Flask-AppBuilder hook) instead of `get_list_headless`, so the
+        # RLS data can be injected *before* the response is built rather than
+        # after. The current approach is functional; this TODO is an
+        # optimization to revisit.
         if response.status_code == 200:
             try:
                 payload = response.json
