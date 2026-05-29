@@ -139,19 +139,16 @@ async def test_update_tag_preserves_existing_name_when_not_provided(
 
 
 @pytest.mark.asyncio
-async def test_update_tag_preserves_objects(mcp_server) -> None:
-    """Existing object associations are passed to the command to avoid clearing them."""
-    obj1 = MagicMock()
-    obj1.object_type = MagicMock()
-    obj1.object_type.name = "chart"
-    obj1.object_id = 3
+async def test_update_tag_uses_bulk_create_for_relationship_preservation(
+    mcp_server,
+) -> None:
+    """bulk_create=True is used to avoid stale-snapshot race conditions.
 
-    obj2 = MagicMock()
-    obj2.object_type = MagicMock()
-    obj2.object_type.name = "dashboard"
-    obj2.object_id = 7
-
-    existing = _make_tag(1, "tagged", "", objects=[obj1, obj2])
+    Rather than pre-fetching existing.objects and re-passing them (which is
+    vulnerable to TOCTOU races), the command is invoked with bulk_create=True
+    so the relationship sync is non-destructive without a pre-fetch snapshot.
+    """
+    existing = _make_tag(1, "tagged", "")
     updated = _make_tag(1, "tagged", "")
 
     with (
@@ -171,10 +168,11 @@ async def test_update_tag_preserves_objects(mcp_server) -> None:
                 {"request": {"id": 1, "name": "tagged"}},
             )
 
+    # bulk_create=True is the key — prevents relationship deletions under concurrency
+    assert mock_init.call_args[1].get("bulk_create") is True
+    # No pre-fetched objects in properties; command handles preservation internally
     properties = mock_init.call_args[0][1]
-    assert sorted(properties["objects_to_tag"]) == sorted(
-        [("chart", 3), ("dashboard", 7)]
-    )
+    assert "objects_to_tag" not in properties
 
 
 @pytest.mark.asyncio

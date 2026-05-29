@@ -31,10 +31,11 @@ logger = logging.getLogger(__name__)
 
 
 class UpdateTagCommand(UpdateMixin, BaseCommand):
-    def __init__(self, model_id: int, data: dict[str, Any]):
+    def __init__(self, model_id: int, data: dict[str, Any], bulk_create: bool = False):
         self._model_id = model_id
         self._properties = data.copy()
         self._model: Optional[Tag] = None
+        self._bulk_create = bulk_create
 
     @transaction()
     def run(self) -> Model:
@@ -44,6 +45,7 @@ class UpdateTagCommand(UpdateMixin, BaseCommand):
         TagDAO.create_tag_relationship(
             objects_to_tag=self._properties.get("objects_to_tag", []),
             tag=self._model,
+            bulk_create=self._bulk_create,
         )
         self._model.description = self._properties.get("description")
         db.session.add(self._model)

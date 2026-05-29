@@ -74,20 +74,15 @@ async def update_tag(request: UpdateTagRequest, ctx: Context) -> UpdateTagRespon
             else existing.description
         )
 
-        # Preserve existing object associations. UpdateTagCommand calls
-        # create_tag_relationship with bulk_create=False (destructive default),
-        # so we must pass the current objects to avoid clearing them.
-        existing_objects = [
-            (obj.object_type.name, obj.object_id) for obj in existing.objects
-        ]
-
         with event_logger.log_context(action="mcp.update_tag.update"):
             properties = {
                 "name": name,
                 "description": description,
-                "objects_to_tag": existing_objects,
             }
-            tag = UpdateTagCommand(request.id, properties).run()
+            # bulk_create=True makes the relationship sync non-destructive:
+            # existing associations are preserved without a pre-fetch snapshot,
+            # eliminating the TOCTOU race condition on concurrent tag writes.
+            tag = UpdateTagCommand(request.id, properties, bulk_create=True).run()
 
         await ctx.info("Tag updated: id=%s, name=%r" % (tag.id if tag else None, name))
 
