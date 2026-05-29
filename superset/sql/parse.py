@@ -1517,10 +1517,10 @@ def extract_tables_from_statement(
             return set()
 
         pseudo_sql = f"SELECT {literal.this}"
-        _check_script_length(pseudo_sql, None)
         try:
+            _check_script_length(pseudo_sql, None)
             pseudo_query = sqlglot.parse_one(pseudo_sql, dialect=dialect)
-        except ParseError:
+        except (ParseError, SupersetParseError):
             return set()
         sources = pseudo_query.find_all(exp.Table)
     else:
@@ -1709,8 +1709,8 @@ def transpile_to_dialect(
     # Get source dialect (default to generic if not specified)
     source_dialect = SQLGLOT_DIALECTS.get(source_engine) if source_engine else Dialect
 
-    _check_script_length(sql, source_engine)
     try:
+        _check_script_length(sql, source_engine)
         parsed = sqlglot.parse_one(sql, dialect=source_dialect)
         return Dialect.get_or_raise(target_dialect).generate(
             parsed,

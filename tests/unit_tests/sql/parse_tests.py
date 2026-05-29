@@ -3409,6 +3409,16 @@ def test_parse_predicate_length_check() -> None:
 
 @pytest.mark.usefixtures("_small_parse_cap")
 def test_transpile_to_dialect_length_check() -> None:
-    """The standalone transpile_to_dialect entry point also gates input."""
-    with pytest.raises(SupersetParseError):
+    """
+    The standalone ``transpile_to_dialect`` entry point also gates input.
+
+    The cap-exceeded error surfaces as ``QueryClauseValidationException`` to
+    preserve the function's existing error contract (callers such as
+    ``transpile_virtual_dataset_sql`` only catch that type and fall back to
+    the original SQL). The underlying ``SupersetParseError`` is attached as
+    ``__cause__`` so over-cap input is still distinguishable from a generic
+    parse failure.
+    """
+    with pytest.raises(QueryClauseValidationException) as excinfo:
         transpile_to_dialect("x" * 101, target_engine="mysql")
+    assert isinstance(excinfo.value.__cause__, SupersetParseError)
