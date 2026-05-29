@@ -17,7 +17,7 @@
 """fix Security view menu case
 
 Revision ID: b4a3f2e1d0c9
-Revises: a1b2c3d4e5f6
+Revises: 33d7e0e21daa
 Create Date: 2026-05-29 00:00:00.000000
 
 On MySQL with the default case-insensitive collation, five Superset views that
@@ -40,7 +40,7 @@ This migration normalises the row:
 
 # revision identifiers, used by Alembic.
 revision = "b4a3f2e1d0c9"
-down_revision = "ce6bd21901ab"
+down_revision = "33d7e0e21daa"
 
 import logging  # noqa: E402
 
