@@ -90,6 +90,10 @@ export default function SemanticLayerModal({
   const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastDepSnapshotRef = useRef<string>('');
   const dynamicDepsRef = useRef<Record<string, string[]>>({});
+  // Tracks the most recent value we auto-populated into the Name field so we
+  // can overwrite it when the user switches type — but leave alone anything
+  // the user has hand-edited.
+  const autoFilledNameRef = useRef<string>('');
 
   const fetchTypes = useCallback(async () => {
     setLoading(true);
@@ -209,12 +213,21 @@ export default function SemanticLayerModal({
       errorsRef.current = [];
       lastDepSnapshotRef.current = '';
       dynamicDepsRef.current = {};
+      autoFilledNameRef.current = '';
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     }
   }, [show, fetchTypes, isEditMode, semanticLayerUuid, fetchExistingLayer]);
 
   const handleStepAdvance = () => {
     if (selectedType) {
+      // Pre-fill the Name with the type's display name so a user who just
+      // wants the defaults doesn't have to invent one. Skip the overwrite
+      // once the user has typed something the auto-fill didn't put there.
+      const type = types.find(t => t.id === selectedType);
+      if (type && (name === '' || name === autoFilledNameRef.current)) {
+        setName(type.name);
+        autoFilledNameRef.current = type.name;
+      }
       fetchConfigSchema(selectedType);
     }
   };
@@ -330,8 +343,7 @@ export default function SemanticLayerModal({
           const externalDeps = deps.filter(dep => dep !== field);
           if (externalDeps.length === 0) continue;
           const depsChanged = externalDeps.some(
-            dep =>
-              JSON.stringify(formData[dep]) !== JSON.stringify(data[dep]),
+            dep => JSON.stringify(formData[dep]) !== JSON.stringify(data[dep]),
           );
           if (depsChanged && data[field] !== undefined && data[field] !== '') {
             cleared[field] = undefined;
