@@ -36,6 +36,7 @@ export type {
   ChartPreviewSliceOverrides,
   ChartPreviewValue,
 } from './context/ChartPreviewContext';
+export { useActivity } from './hooks/useActivity';
 export { useVersionList } from './hooks/useVersionList';
 export { useVersionSnapshot } from './hooks/useVersionSnapshot';
 export { useRestoreVersion } from './hooks/useRestoreVersion';
@@ -45,13 +46,23 @@ export {
   formatVersionUser,
   formatVersionDate,
 } from './utils/formatVersionUser';
-export { groupVersionsByDate } from './utils/groupVersionsByDate';
+export { groupActivity, rollupSelfRecords } from './utils/groupActivity';
+export type {
+  ActivityDateBucket,
+  ActivityRow,
+  ActivitySaveRow,
+  ActivityRelatedRow,
+} from './utils/groupActivity';
 export { snapshotToFormData } from './utils/snapshotToFormData';
 export {
   forkChartFromSnapshot,
   forkDashboardFromSnapshot,
 } from './utils/forkActions';
 export type {
+  ActivityEntityKind,
+  ActivityInclude,
+  ActivityRecord,
+  ActivitySource,
   EntityType,
   Version,
   VersionSnapshot,

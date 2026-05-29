@@ -19,24 +19,26 @@
 import { useState } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components';
-import { EntityType, Version } from '../types';
+import { EntityType } from '../types';
+import { ActivityRow, ActivitySaveRow } from '../utils/groupActivity';
 import VersionItem from './VersionItem';
+import RelatedItemRow from './RelatedItemRow';
 
 interface Props {
   entityType: EntityType;
   label: string;
-  versions: Version[];
+  rows: ActivityRow[];
   selectedVersionUuid: string | null;
   currentVersionUuid: string | null;
   onSelect: (versionUuid: string) => void;
-  onRestore: (version: Version) => void;
-  onOpenAsNew?: (version: Version) => void;
+  onRestore: (save: ActivitySaveRow) => void;
+  onOpenAsNew?: (save: ActivitySaveRow) => void;
 }
 
 const VersionGroup = ({
   entityType,
   label,
-  versions,
+  rows,
   selectedVersionUuid,
   currentVersionUuid,
   onSelect,
@@ -76,18 +78,28 @@ const VersionGroup = ({
         {label}
       </button>
       {open &&
-        versions.map(version => (
-          <VersionItem
-            key={version.version_uuid}
-            entityType={entityType}
-            version={version}
-            selected={selectedVersionUuid === version.version_uuid}
-            isCurrent={currentVersionUuid === version.version_uuid}
-            onSelect={() => onSelect(version.version_uuid)}
-            onRestore={() => onRestore(version)}
-            onOpenAsNew={onOpenAsNew ? () => onOpenAsNew(version) : undefined}
-          />
-        ))}
+        rows.map(row => {
+          if (row.type === 'related') {
+            return (
+              <RelatedItemRow
+                key={`related-${row.record.version_uuid}-${row.record.path.join('/')}`}
+                record={row.record}
+              />
+            );
+          }
+          return (
+            <VersionItem
+              key={row.version_uuid}
+              entityType={entityType}
+              save={row}
+              selected={selectedVersionUuid === row.version_uuid}
+              isCurrent={currentVersionUuid === row.version_uuid}
+              onSelect={() => onSelect(row.version_uuid)}
+              onRestore={() => onRestore(row)}
+              onOpenAsNew={onOpenAsNew ? () => onOpenAsNew(row) : undefined}
+            />
+          );
+        })}
     </div>
   );
 };

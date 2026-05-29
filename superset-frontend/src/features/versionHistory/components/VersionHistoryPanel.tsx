@@ -27,9 +27,10 @@ import {
   addSuccessToast,
 } from 'src/components/MessageToasts/actions';
 import { useVersionHistory } from '../context/VersionHistoryContext';
-import { useVersionList } from '../hooks/useVersionList';
+import { useActivity } from '../hooks/useActivity';
 import { useRestoreVersion } from '../hooks/useRestoreVersion';
-import { EntityType, Version } from '../types';
+import { ActivityInclude, EntityType } from '../types';
+import { ActivitySaveRow } from '../utils/groupActivity';
 import { formatChangeTitle } from '../utils/formatChangeTitle';
 import { formatVersionDate } from '../utils/formatVersionUser';
 import { reloadStrippingVersionUuid } from '../utils/restoreReload';
@@ -40,7 +41,7 @@ interface Props {
   entityType: EntityType;
   uuid: string | null | undefined;
   hasUnsavedChanges?: boolean;
-  onOpenAsNew?: (version: Version) => void;
+  onOpenAsNew?: (save: ActivitySaveRow) => void;
 }
 
 // Z-index high enough to sit above sticky page headers and chart canvases
@@ -73,27 +74,37 @@ const VersionHistoryPanel = ({
   if (isPanelOpen && !hasFetched) {
     setHasFetched(true);
   }
-  const { versions, loading, error } = useVersionList(
+  const [scopeFilter, setScopeFilter] = useState<ActivityInclude>('all');
+  const { records, loading, error } = useActivity(
     entityType,
     hasFetched ? uuid : null,
+    { include: scopeFilter },
   );
   const { restore, restoring } = useRestoreVersion(entityType, uuid);
-  const [pendingRestore, setPendingRestore] = useState<Version | null>(null);
+  const [pendingRestore, setPendingRestore] = useState<ActivitySaveRow | null>(
+    null,
+  );
+
+  // The first self-save is the live version — clicking it exits preview.
+  const currentVersionUuid = useMemo(() => {
+    if (!records) return null;
+    const firstSelf = records.find(r => r.source === 'self');
+    return firstSelf?.version_uuid ?? null;
+  }, [records]);
 
   const handleSelect = useCallback(
     (versionUuid: string) => {
-      // First row is the live version — clicking it exits preview mode.
-      if (versions && versions[0]?.version_uuid === versionUuid) {
+      if (currentVersionUuid === versionUuid) {
         exitPreview();
         return;
       }
       enterPreview(versionUuid);
     },
-    [enterPreview, exitPreview, versions],
+    [currentVersionUuid, enterPreview, exitPreview],
   );
 
   const handleRestore = useCallback(
-    (version: Version) => setPendingRestore(version),
+    (save: ActivitySaveRow) => setPendingRestore(save),
     [],
   );
 
@@ -194,10 +205,12 @@ const VersionHistoryPanel = ({
         >
           <VersionList
             entityType={entityType}
-            versions={versions}
+            records={records}
             loading={loading}
             error={error}
             selectedVersionUuid={previewVersionUuid}
+            scopeFilter={scopeFilter}
+            onScopeFilterChange={setScopeFilter}
             onSelect={handleSelect}
             onRestore={handleRestore}
             onOpenAsNew={onOpenAsNew}

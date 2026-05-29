@@ -25,12 +25,19 @@ import {
   addDangerToast,
   addSuccessToast,
 } from 'src/components/MessageToasts/actions';
-import { EntityType, Version } from '../types';
+import { Change, EntityType } from '../types';
 import {
   forkChartFromSnapshot,
   forkDashboardFromSnapshot,
 } from '../utils/forkActions';
 import { formatChangeTitle } from '../utils/formatChangeTitle';
+
+/** Minimal shape needed to fork — both the legacy ``Version`` row and the
+ * new ``ActivitySaveRow`` satisfy this. */
+export interface ForkableVersion {
+  version_uuid: string;
+  changes: Change[];
+}
 
 /**
  * Returns a callback that forks a chart or dashboard from a historical
@@ -49,7 +56,7 @@ export function useForkVersion(
   );
 
   return useCallback(
-    async (version: Version) => {
+    async (version: ForkableVersion) => {
       if (!uuid) return;
       try {
         const { json } = await SupersetClient.get({

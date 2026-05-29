@@ -26,70 +26,102 @@ import {
   Icons,
   Select,
 } from '@superset-ui/core/components';
-import { EntityType, Version } from '../types';
-import { groupVersionsByDate } from '../utils/groupVersionsByDate';
+import { ActivityInclude, ActivityRecord, EntityType } from '../types';
+import {
+  ActivityRow,
+  ActivitySaveRow,
+  groupActivity,
+} from '../utils/groupActivity';
 import { formatChangeTitle } from '../utils/formatChangeTitle';
 import { formatVersionUser } from '../utils/formatVersionUser';
 import VersionGroup from './VersionGroup';
 
 interface Props {
   entityType: EntityType;
-  versions: Version[] | null;
+  records: ActivityRecord[] | null;
   loading: boolean;
   error: string | null;
   selectedVersionUuid: string | null;
+  scopeFilter: ActivityInclude;
+  onScopeFilterChange: (value: ActivityInclude) => void;
   onSelect: (versionUuid: string) => void;
-  onRestore: (version: Version) => void;
-  onOpenAsNew?: (version: Version) => void;
+  onRestore: (save: ActivitySaveRow) => void;
+  onOpenAsNew?: (save: ActivitySaveRow) => void;
 }
 
-// The "filter by scope" select next to the search input. External /
-// related-items rows aren't surfaced in MVP, so the non-default options
-// are visual-only — they render but don't change which rows are shown.
-const SCOPE_FILTER_OPTIONS = [
-  { value: 'all', label: t('All changes') },
-  { value: 'this', label: t('This chart only') },
-  { value: 'related', label: t('Related items only') },
-];
+const SCOPE_FILTER_VALUES: ActivityInclude[] = ['all', 'self', 'related'];
+
+function rowMatchesQuery(row: ActivityRow, q: string): boolean {
+  if (row.type === 'related') {
+    if (row.record.summary.toLowerCase().includes(q)) return true;
+    if (row.record.entity_name.toLowerCase().includes(q)) return true;
+    if (formatVersionUser(row.record.changed_by).toLowerCase().includes(q))
+      return true;
+    return false;
+  }
+  if (formatChangeTitle(row.changes).toLowerCase().includes(q)) return true;
+  if (formatVersionUser(row.changed_by).toLowerCase().includes(q)) return true;
+  return false;
+}
 
 const VersionList = ({
   entityType,
-  versions,
+  records,
   loading,
   error,
   selectedVersionUuid,
+  scopeFilter,
+  onScopeFilterChange,
   onSelect,
   onRestore,
   onOpenAsNew,
 }: Props) => {
   const theme = useTheme();
   const [query, setQuery] = useState('');
-  const [scopeFilter, setScopeFilter] = useState<string>('all');
   const deferredQuery = useDeferredValue(query);
-  // Entity-aware scope filter label — "This chart only" vs
-  // "This dashboard only".
+
   const thisEntityLabel =
     entityType === 'chart' ? t('This chart only') : t('This dashboard only');
-
-  const filtered = useMemo(() => {
-    if (!versions) return null;
-    const q = deferredQuery.trim().toLowerCase();
-    if (!q) return versions;
-    return versions.filter(v => {
-      // Match both the change summary and the author name so users can
-      // narrow by who made the change.
-      if (formatChangeTitle(v.changes).toLowerCase().includes(q)) return true;
-      if (formatVersionUser(v.changed_by).toLowerCase().includes(q))
-        return true;
-      return false;
-    });
-  }, [versions, deferredQuery]);
-
-  const groups = useMemo(
-    () => (filtered ? groupVersionsByDate(filtered) : []),
-    [filtered],
+  const scopeOptions = useMemo(
+    () =>
+      SCOPE_FILTER_VALUES.map(value => ({
+        value,
+        label:
+          value === 'all'
+            ? t('All changes')
+            : value === 'self'
+              ? thisEntityLabel
+              : t('Related items only'),
+      })),
+    [thisEntityLabel],
   );
-  const currentVersionUuid = versions?.[0]?.version_uuid ?? null;
+
+  const buckets = useMemo(
+    () => (records ? groupActivity(records) : []),
+    [records],
+  );
+
+  const filteredBuckets = useMemo(() => {
+    const q = deferredQuery.trim().toLowerCase();
+    if (!q) return buckets;
+    return buckets
+      .map(bucket => ({
+        label: bucket.label,
+        rows: bucket.rows.filter(row => rowMatchesQuery(row, q)),
+      }))
+      .filter(bucket => bucket.rows.length > 0);
+  }, [buckets, deferredQuery]);
+
+  // Surface the latest self-save's uuid so VersionItem can render it with
+  // the "current" affordance — related rows above it don't count.
+  const currentVersionUuid = useMemo(() => {
+    if (!records) return null;
+    const firstSelf = records.find(r => r.source === 'self');
+    return firstSelf?.version_uuid ?? null;
+  }, [records]);
+
+  const isEmpty =
+    !loading && records !== null && filteredBuckets.length === 0;
 
   return (
     <div
@@ -116,12 +148,10 @@ const VersionList = ({
         />
         <Select
           value={scopeFilter}
-          onChange={(v: string) => setScopeFilter(v)}
+          onChange={(v: ActivityInclude) => onScopeFilterChange(v)}
           aria-label={t('Filter versions by scope')}
           data-test="version-list-scope-filter"
-          options={SCOPE_FILTER_OPTIONS.map(o =>
-            o.value === 'this' ? { ...o, label: thisEntityLabel } : o,
-          )}
+          options={scopeOptions}
           css={css`
             min-width: 160px;
           `}
@@ -139,7 +169,7 @@ const VersionList = ({
           overflow-y: auto;
         `}
       >
-        {loading && !versions && <Loading position="inline-centered" />}
+        {loading && !records && <Loading position="inline-centered" />}
         {error && (
           <EmptyState
             size="small"
@@ -148,7 +178,7 @@ const VersionList = ({
             image="error.svg"
           />
         )}
-        {!loading && filtered && filtered.length === 0 && (
+        {isEmpty && (
           <EmptyState
             size="small"
             title={t('No versions match')}
@@ -158,12 +188,12 @@ const VersionList = ({
             image="empty.svg"
           />
         )}
-        {groups.map(group => (
+        {filteredBuckets.map(bucket => (
           <VersionGroup
-            key={group.label}
+            key={bucket.label}
             entityType={entityType}
-            label={group.label}
-            versions={group.versions}
+            label={bucket.label}
+            rows={bucket.rows}
             selectedVersionUuid={selectedVersionUuid}
             currentVersionUuid={currentVersionUuid}
             onSelect={onSelect}

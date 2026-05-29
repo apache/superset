@@ -21,7 +21,8 @@ import { css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { Dropdown, Icons, Tag } from '@superset-ui/core/components';
 import type { MenuProps } from '@superset-ui/core/components/Menu';
-import { EntityType, Version } from '../types';
+import { EntityType } from '../types';
+import { ActivitySaveRow } from '../utils/groupActivity';
 import { formatChangeTitle } from '../utils/formatChangeTitle';
 import {
   formatVersionDate,
@@ -31,7 +32,7 @@ import {
 
 interface Props {
   entityType: EntityType;
-  version: Version;
+  save: ActivitySaveRow;
   selected: boolean;
   isCurrent: boolean;
   onSelect: () => void;
@@ -41,7 +42,7 @@ interface Props {
 
 const VersionItem = ({
   entityType,
-  version,
+  save,
   selected,
   isCurrent,
   onSelect,
@@ -86,7 +87,7 @@ const VersionItem = ({
     }
   };
 
-  const aiAuthored = isAiAuthor(version.changed_by);
+  const aiAuthored = isAiAuthor(save.changed_by);
 
   return (
     <div
@@ -132,7 +133,7 @@ const VersionItem = ({
             overflow: hidden;
             text-overflow: ellipsis;
           `}
-          title={formatChangeTitle(version.changes)}
+          title={formatChangeTitle(save.changes)}
         >
           <span
             css={css`
@@ -140,7 +141,7 @@ const VersionItem = ({
               text-overflow: ellipsis;
             `}
           >
-            {formatChangeTitle(version.changes)}
+            {formatChangeTitle(save.changes)}
           </span>
         </div>
         <div
@@ -153,8 +154,8 @@ const VersionItem = ({
           `}
         >
           <span>
-            {formatVersionUser(version.changed_by)} ·{' '}
-            {formatVersionDate(version.issued_at)}
+            {formatVersionUser(save.changed_by)} ·{' '}
+            {formatVersionDate(save.issued_at)}
           </span>
           {aiAuthored && (
             <Tag color="purple" data-test="version-item-ai-tag">
