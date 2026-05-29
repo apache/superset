@@ -386,6 +386,13 @@ export const EditHeaderSubtitle = styled.div`
 export const CredentialInfoForm = styled.div`
   margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
 
+  /* Match the label-to-input spacing used by LabeledErrorBoundInput's
+     StyledInput so the bare <FormLabel>+<Select> pairs in this form look
+     consistent with the surrounding Display name / Service Account inputs. */
+  .ant-select {
+    margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
+  }
+
   .catalog-type-select {
     margin: 0 0 20px;
   }

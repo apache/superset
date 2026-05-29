@@ -846,10 +846,8 @@ export function useDatabaseValidation() {
           return error.json().then(({ errors = [] }) => {
             const parsedErrors = errors
               .filter((err: { error_type: string }) => {
-                // CONNECTION_MISSING_PARAMETERS_ERROR is intentionally excluded
-                // here so required-field errors only surface on submit
-                // (onCreate=true), not on blur of empty inputs.
                 const allowed = [
+                  'CONNECTION_MISSING_PARAMETERS_ERROR',
                   'CONNECTION_ACCESS_DENIED_ERROR',
                   'INVALID_PAYLOAD_SCHEMA_ERROR',
                 ];

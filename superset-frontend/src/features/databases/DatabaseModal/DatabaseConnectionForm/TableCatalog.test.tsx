@@ -84,21 +84,3 @@ test('TableCatalog: defaults to public (helper hidden) when isPublic is not prov
 
   expect(queryByText(HELPER_TEXT)).not.toBeInTheDocument();
 });
-
-test('TableCatalog: does not render required error on first mount with empty default row', () => {
-  // The on-blur required-field error is filtered out in useDatabaseValidation.
-  // TableCatalog only renders the `errorMessage` it receives via
-  // validationErrors, so with no errors passed in there must be no error UI.
-  const { container } = render(
-    <TableCatalog
-      {...baseProps}
-      db={buildDb()}
-      isPublic={false}
-      validationErrors={null}
-    />,
-  );
-
-  expect(
-    container.querySelectorAll('.ant-form-item-explain-error'),
-  ).toHaveLength(0);
-});
