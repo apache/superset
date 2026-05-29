@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 @contextmanager
 def preserve_g_context(
     captured_g: dict[str, Any],
+    user: Any | None = None,
 ) -> Generator[None, None, None]:
     """
     Context manager that restores captured flask.g attributes.
@@ -47,9 +48,13 @@ def preserve_g_context(
 
     Args:
         captured_g: Dictionary of g attributes captured before context switch
+        user: Optional user object to set as g.user (for impersonation)
     """
     for key, value in captured_g.items():
         setattr(g, key, value)
+    # Explicitly set g.user for user impersonation to work
+    if user is not None:
+        g.user = user
     yield
 
 
@@ -224,11 +229,13 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         captured_g = (
             g._get_current_object().__dict__.copy() if has_app_context() else {}
         )
+        # Capture user separately for impersonation - g.user may not serialize properly
+        user = getattr(g, "user", None) if has_app_context() else None
 
         def csv_generator() -> Generator[str, None, None]:
             """Generator that yields CSV data chunks."""
             with self._current_app.app_context():
-                with preserve_g_context(captured_g):
+                with preserve_g_context(captured_g, user=user):
                     try:
                         yield from self._execute_query_and_stream(
                             sql, database, limit, catalog, schema
