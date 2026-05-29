@@ -840,7 +840,7 @@ class TestGetDefaultSpinnerSvg:
     @patch("superset.views.base.logger")
     @patch("builtins.open")
     def test_get_default_spinner_svg_file_missing(self, mock_open, mock_logger):
-        """Test that missing spinner asset returns None silently without warning log"""
+        """Test that missing spinner asset returns None and logs a warning"""
         from superset.views.base import get_default_spinner_svg
 
         mock_open.side_effect = FileNotFoundError()
@@ -848,8 +848,10 @@ class TestGetDefaultSpinnerSvg:
         result = get_default_spinner_svg()
 
         assert result is None
-        # Verify that no warning was logged
-        mock_logger.warning.assert_not_called()
+        # Verify that a warning was logged
+        mock_logger.warning.assert_called_once()
+        warning_msg = mock_logger.warning.call_args[0][0]
+        assert "Could not load default spinner SVG" in warning_msg
 
     @patch("superset.views.base.logger")
     @patch("builtins.open")
@@ -875,3 +877,12 @@ class TestGetDefaultSpinnerSvg:
         result = get_default_spinner_svg()
 
         assert result == "<svg>spinner</svg>"
+
+    def test_get_default_spinner_svg_real_file_exists(self):
+        """Test that the default spinner SVG file exists and is loadable"""
+        from superset.views.base import get_default_spinner_svg
+
+        result = get_default_spinner_svg()
+        assert result is not None
+        assert "<svg" in result
+        assert "morphPath" in result

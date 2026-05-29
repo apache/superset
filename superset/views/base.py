@@ -408,31 +408,23 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
 
 def get_default_spinner_svg() -> str | None:
     """
-    Load and cache the default spinner SVG content from frontend assets.
+    Load and cache the default spinner SVG content from backend templates.
 
     Returns:
         str | None: SVG content as string, or None if file not found
     """
-    # Path to frontend source SVG file (used by both frontend and backend)
+    # Path to backend templates SVG file
     svg_path = os.path.join(
         os.path.dirname(__file__),
         "..",
-        "..",
-        "superset-frontend",
-        "packages",
-        "superset-ui-core",
-        "src",
-        "components",
-        "assets",
-        "images",
+        "templates",
+        "superset",
         "loading.svg",
     )
 
     try:
         with open(svg_path, "r", encoding="utf-8") as f:
             return f.read().strip()
-    except FileNotFoundError:
-        return None
     except (OSError, UnicodeDecodeError) as e:
         logger.warning("Could not load default spinner SVG: %s", e)
         return None
