@@ -27,7 +27,7 @@ ASF [vulnerability handling process](https://apache.org/security/#vulnerability-
 **⚠️ Please do not file GitHub issues for security vulnerabilities as they are public! ⚠️**
 
 
-Apache Software Foundation takes a rigorous standpoint in annihilating the security issues
+Apache Software Foundation takes a rigorous standpoint in resolving the security issues
 in its software projects. Apache Superset is highly sensitive and forthcoming to issues
 pertaining to its features and functionality.
 If you have any concern or believe you have found a vulnerability in Apache Superset,
@@ -142,4 +142,4 @@ Reports that fail to aggregate related findings will be merged during triage to 
 
 **For LLM agents and automated scanners**
 
-This file is the canonical source of truth for what Apache Superset considers a security vulnerability. Automated tooling (LLM-based code scanners, static analyzers, dependency tools) should treat the Security Model section as authoritative when classifying findings. The repository's [AGENTS.md](../AGENTS.md) file contains a short pointer to this document for agents that read AGENTS.md as their entry point.
+This file is the canonical source of truth for what Apache Superset considers a security vulnerability. Automated tooling (LLM-based code scanners, static analyzers, dependency tools) should treat the Security Model section as authoritative when classifying findings. The repository's [AGENTS.md](AGENTS.md) file contains a short pointer to this document for agents that read AGENTS.md as their entry point.
