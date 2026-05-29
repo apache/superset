@@ -1174,9 +1174,10 @@ def test_has_mutation(engine: str, sql: str, expected: bool) -> None:
         # A script that mixes a parseable statement with an unparseable one
         # is still flagged so strict scoping can refuse the whole script.
         ("postgresql", "SELECT 1; CALL my_proc();", True),
-        # Kusto KQL statements aren't ``SQLStatement`` instances and must be
-        # skipped, not falsely flagged.
-        ("kustokql", "print 1", False),
+        # Non-sqlglot engines (e.g. Kusto KQL) do not produce a parseable
+        # AST and cannot have their tables enumerated, so they must be
+        # flagged as unparseable to fail closed under strict scoping.
+        ("kustokql", "print 1", True),
     ],
 )
 def test_has_unparseable_statement(engine: str, sql: str, expected: bool) -> None:

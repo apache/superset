@@ -309,7 +309,10 @@ class Query(
         Re-validation of a SQL Lab query uses the same strict scoping as the
         initial execute path (``force_dataset_match=True``) so that fetching
         results, exporting CSV, and streaming-exporting all enforce the same
-        per-table dataset-match requirement.
+        per-table dataset-match requirement. ``raise_for_access`` parses
+        ``executed_sql`` (the Jinja-rendered query that actually ran) when
+        set, keeping the table set aligned with execution even though the
+        original ``template_params`` are not persisted on the query record.
 
         :raises SupersetSecurityException: If the user cannot access the resource
         """

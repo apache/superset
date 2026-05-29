@@ -1899,6 +1899,75 @@ class TestSecurityManager(SupersetTestCase):
         with self.assertRaises(SupersetSecurityException):  # noqa: PT027
             security_manager.raise_for_access(query=query, force_dataset_match=True)
 
+    @patch("superset.security.manager.process_jinja_sql")
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_prefers_executed_sql(
+        self,
+        mock_can_access,
+        mock_is_owner,
+        mock_query_datasources,
+        mock_process_jinja,
+    ):
+        """
+        Re-validation (results fetch, CSV export, streaming export) does not
+        carry template_params, so the security manager parses
+        ``executed_sql`` (the rendered SQL that actually ran) when it is set
+        to keep the table set aligned with the execute-time check.
+        """
+        from superset.sql.parse import JinjaSQLResult, SQLScript
+
+        query = Mock(
+            database=get_example_database(),
+            schema="bar",
+            sql="SELECT * FROM {{ table_name }}",
+            executed_sql="SELECT * FROM bar.foo",
+            catalog=None,
+        )
+        mock_process_jinja.return_value = JinjaSQLResult(
+            script=SQLScript("SELECT * FROM bar.foo", "postgresql"),
+            tables=set(),
+        )
+        mock_query_datasources.return_value = []
+        mock_can_access.return_value = False
+        mock_is_owner.return_value = False
+
+        security_manager.raise_for_access(query=query, force_dataset_match=True)
+
+        sql_passed = mock_process_jinja.call_args.args[0]
+        assert sql_passed == "SELECT * FROM bar.foo"
+
+    @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
+    @patch("superset.security.SupersetSecurityManager.is_owner")
+    @patch("superset.security.SupersetSecurityManager.can_access")
+    def test_raise_for_access_force_dataset_match_denies_kql(
+        self, mock_can_access, mock_is_owner, mock_query_datasources
+    ):
+        """
+        Regression test: with force_dataset_match=True, Kusto KQL (and any
+        other engine sqlglot doesn't model) is denied because table
+        extraction is unsupported. Otherwise raise_for_access would silently
+        return on an empty table set.
+        """
+        kql_db = Mock()
+        kql_db.database_name = "kql_db"
+        kql_db.db_engine_spec.engine = "kustokql"
+        kql_db.get_default_catalog.return_value = None
+        kql_db.get_default_schema_for_query.return_value = None
+        query = Mock(
+            database=kql_db,
+            schema=None,
+            sql="StormEvents | take 1",
+            catalog=None,
+        )
+        mock_query_datasources.return_value = []
+        mock_can_access.return_value = False
+        mock_is_owner.return_value = False
+
+        with self.assertRaises(SupersetSecurityException):  # noqa: PT027
+            security_manager.raise_for_access(query=query, force_dataset_match=True)
+
     @patch("superset.connectors.sqla.models.SqlaTable.query_datasources_by_name")
     @patch("superset.security.SupersetSecurityManager.is_owner")
     @patch("superset.security.SupersetSecurityManager.can_access")

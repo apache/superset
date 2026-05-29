@@ -2938,13 +2938,29 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     cast(Query, query),
                     template_params,
                 )
-                parse_result = process_jinja_sql(query.sql, database, template_params)
+                # Prefer the rendered ``executed_sql`` when it is set so
+                # re-validation (results fetch, CSV / streaming export)
+                # authorises against the SQL that actually ran, not a
+                # re-render of the Jinja source with the wrong (or
+                # missing) ``template_params``. At execute time
+                # ``executed_sql`` is unset and we fall back to
+                # ``query.sql`` + ``template_params``.
+                executed_sql = getattr(query, "executed_sql", None)
+                sql_for_parse = (
+                    executed_sql
+                    if isinstance(executed_sql, str) and executed_sql
+                    else query.sql
+                )
+                parse_result = process_jinja_sql(
+                    sql_for_parse, database, template_params
+                )
                 # Under strict scoping, refuse any statement the parser
-                # could not fully model (sqlglot exp.Command). Such
-                # statements may reference tables via dynamic SQL or
-                # vendor syntax that extract_tables_from_statement cannot
-                # see, so the dataset-match check below would be blind to
-                # them. Fail closed.
+                # could not fully model: sqlglot ``exp.Command`` nodes
+                # (e.g. dynamic SQL inside a stored-procedure call) and
+                # non-sqlglot engines such as Kusto KQL whose statement
+                # classes do not produce a sqlglot AST. The per-table
+                # dataset-match check below would be blind to those
+                # references, so fail closed.
                 if (
                     force_dataset_match
                     and parse_result.script.has_unparseable_statement
