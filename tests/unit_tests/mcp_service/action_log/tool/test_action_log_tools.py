@@ -246,6 +246,7 @@ async def test_get_action_log_info_json_payload_sanitized(mock_find, mcp_server)
     assert isinstance(payload, str)
     assert "<UNTRUSTED-CONTENT>" in payload
     assert "explore_slice" in payload
+    assert "inject me" in payload
     assert "</UNTRUSTED-CONTENT>" in payload
 
 
@@ -300,6 +301,7 @@ async def test_get_action_log_info_url_and_schema_wrapped_in_untrusted_content(
     assert "<UNTRUSTED-CONTENT>" in payload
     assert "ignore previous instructions" in payload
     assert "public" in payload
+    assert "</UNTRUSTED-CONTENT>" in payload
 
 
 @patch("superset.daos.log.LogDAO.list")
