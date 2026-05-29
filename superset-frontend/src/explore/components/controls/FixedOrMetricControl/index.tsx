@@ -64,10 +64,7 @@ interface FixedOrMetricControlState {
   metricValue: MetricValue | null;
 }
 
-const defaultProps = {
-  onChange: () => {},
-  default: { type: controlTypes.fixed, value: 5 },
-};
+const DEFAULT_VALUE: ControlValue = { type: controlTypes.fixed, value: 5 };
 
 export default class FixedOrMetricControl extends Component<
   FixedOrMetricControlProps,
@@ -79,10 +76,11 @@ export default class FixedOrMetricControl extends Component<
     this.setType = this.setType.bind(this);
     this.setFixedValue = this.setFixedValue.bind(this);
     this.setMetric = this.setMetric.bind(this);
+    const defaultValue = props.default ?? DEFAULT_VALUE;
     const type = (props.value?.type ??
-      props.default?.type ??
+      defaultValue.type ??
       controlTypes.fixed) as 'fix' | 'metric';
-    const rawValue = props.value?.value ?? props.default?.value ?? '100';
+    const rawValue = props.value?.value ?? defaultValue.value ?? '100';
     const fixedValue =
       type === controlTypes.fixed && typeof rawValue !== 'object'
         ? rawValue
@@ -121,7 +119,7 @@ export default class FixedOrMetricControl extends Component<
   }
 
   render() {
-    const value = this.props.value ?? this.props.default;
+    const value = this.props.value ?? this.props.default ?? DEFAULT_VALUE;
     const type = value?.type ?? controlTypes.fixed;
     const columns = this.props.datasource
       ? this.props.datasource.columns
@@ -203,6 +201,3 @@ export default class FixedOrMetricControl extends Component<
     );
   }
 }
-
-// @ts-expect-error - defaultProps for backward compatibility
-FixedOrMetricControl.defaultProps = defaultProps;

@@ -337,11 +337,11 @@ test('can drag metrics', async () => {
   expect(await screen.findByText('Metric name')).toBeInTheDocument();
 
   const sourceId = firstMetric
-    .querySelector('[data-drag-source-id]')!
-    .getAttribute('data-drag-source-id')!;
+    .querySelector('[data-test-drag-source-id]')!
+    .getAttribute('data-test-drag-source-id')!;
   const targetId = lastMetric
-    .querySelector('[data-drop-target-id]')!
-    .getAttribute('data-drop-target-id')!;
+    .querySelector('[data-test-drop-target-id]')!
+    .getAttribute('data-test-drop-target-id')!;
   const backend = getTestBackend()!;
   act(() => {
     backend.simulateBeginDrag([sourceId]);

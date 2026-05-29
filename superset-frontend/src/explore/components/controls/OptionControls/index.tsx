@@ -339,8 +339,10 @@ export const OptionControlLabel = ({
     },
     collect: monitor => ({
       isDragging: monitor.isDragging(),
-      // Exposed via `data-drag-source-id` so tests using react-dnd-test-backend
-      // can drive drags programmatically without DOM-event simulation.
+      // Exposed via `data-test-drag-source-id` so tests using
+      // react-dnd-test-backend can drive drags programmatically without
+      // DOM-event simulation. Stripped from production builds by
+      // babel-plugin-jsx-remove-data-test-id.
       dragSourceId: monitor.getHandlerId(),
     }),
   });
@@ -433,8 +435,8 @@ export const OptionControlLabel = ({
   return (
     <DragContainer
       ref={ref}
-      data-drag-source-id={dragSourceId ?? undefined}
-      data-drop-target-id={dropTargetId ?? undefined}
+      data-test-drag-source-id={dragSourceId ?? undefined}
+      data-test-drop-target-id={dropTargetId ?? undefined}
     >
       {getOptionControlContent()}
     </DragContainer>

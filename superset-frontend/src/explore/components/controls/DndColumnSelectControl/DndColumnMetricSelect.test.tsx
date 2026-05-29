@@ -229,11 +229,11 @@ test('can drag and reorder items', async () => {
   expect(within(lastItem).getByText('Column B')).toBeVisible();
 
   const sourceId = firstItem
-    .querySelector('[data-drag-source-id]')!
-    .getAttribute('data-drag-source-id')!;
+    .querySelector('[data-test-drag-source-id]')!
+    .getAttribute('data-test-drag-source-id')!;
   const targetId = lastItem
-    .querySelector('[data-drop-target-id]')!
-    .getAttribute('data-drop-target-id')!;
+    .querySelector('[data-test-drop-target-id]')!
+    .getAttribute('data-test-drop-target-id')!;
   const backend = getTestBackend()!;
   act(() => {
     backend.simulateBeginDrag([sourceId]);
