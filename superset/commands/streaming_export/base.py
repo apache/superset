@@ -169,9 +169,11 @@ class BaseStreamingCSVExportCommand(BaseCommand):
                 catalog=catalog, schema=schema
             ) as engine:
                 with engine.connect() as connection:
+                    # Apply config-based SQL mutations (e.g., remove trailing semicolons)
+                    mutated_sql = merged_database.mutate_sql_based_on_config(sql)
                     result_proxy = connection.execution_options(
                         stream_results=True
-                    ).execute(text(sql))
+                    ).execute(text(mutated_sql))
 
                     columns = list(result_proxy.keys())
 
