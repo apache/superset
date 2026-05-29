@@ -1,13 +1,10 @@
 name: Docs Deployment
 
 on:
-  # Deploy after integration tests complete on master
-  workflow_run:
-    workflows: ["Python-Integration"]
-    types: [completed]
-    branches: [master]
-
-  # Also allow manual trigger and direct pushes to docs
+  # Deploy on direct pushes to docs and via manual dispatch. Both
+  # triggers run with `github.sha` resolved against the default
+  # branch's HEAD, so the deploy job and its repository-local action
+  # always execute from a trusted tree.
   push:
     paths:
       - "docs/**"
@@ -49,10 +46,10 @@ jobs:
     name: Build & Deploy
     runs-on: ubuntu-24.04
     steps:
-      - name: "Checkout ${{ github.event.workflow_run.head_sha || github.sha }}"
+      - name: "Checkout ${{ github.sha }}"
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
-          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          ref: ${{ github.sha }}
           persist-credentials: false
           submodules: recursive
       - name: Set up Node.js
@@ -78,17 +75,7 @@ jobs:
         working-directory: docs
         run: |
           yarn install --check-cache
-      - name: Download database diagnostics (if triggered by integration tests)
-        if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
-        uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151 # v21
-        continue-on-error: true
-        with:
-          workflow: superset-python-integrationtest.yml
-          run_id: ${{ github.event.workflow_run.id }}
-          name: database-diagnostics
-          path: docs/src/data/
-      - name: Try to download latest diagnostics (for push/dispatch triggers)
-        if: github.event_name != 'workflow_run'
+      - name: Try to download latest diagnostics from master
         uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151 # v21
         continue-on-error: true
         with:
@@ -120,5 +107,5 @@ jobs:
           destination-github-username: "apache"
           destination-repository-name: "superset-site"
           target-branch: "asf-site"
-          commit-message: "deploying docs: ${{ github.event.head_commit.message || 'triggered by integration tests' }} (apache/superset@${{ github.event.workflow_run.head_sha || github.sha }})"
+          commit-message: "deploying docs: ${{ github.event.head_commit.message || 'manual dispatch' }} (apache/superset@${{ github.sha }})"
           user-email: dev@superset.apache.org
