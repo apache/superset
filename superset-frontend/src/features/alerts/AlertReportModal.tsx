@@ -69,6 +69,9 @@ import {
   type CheckboxChangeEvent,
 } from '@superset-ui/core/components';
 
+import { navigateTo } from 'src/utils/navigationUtils';
+import { ensureAppRoot } from 'src/utils/pathUtils';
+
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
 import { timezoneOptionsCache } from '@superset-ui/core/components/TimezoneSelector/TimezoneOptionsCache';
 import TextAreaControl from 'src/explore/components/controls/TextAreaControl';
@@ -1424,8 +1427,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const openDashboardInNewTab = (dashboardId?: number | string | null) => {
     if (!dashboardId) return;
-    const url = `/superset/dashboard/${dashboardId}`;
-    window.open(url, '_blank', 'noopener');
+    const url = ensureAppRoot(`/superset/dashboard/${dashboardId}`);
+    navigateTo(url, { newWindow: true });
   };
 
   const onChartChange = (chart: SelectValue) => {
@@ -1436,8 +1439,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const openChartInNewTab = (chartId?: number | string | null) => {
     if (!chartId) return;
-    const url = `/explore/?slice_id=${chartId}`;
-    window.open(url, '_blank', 'noopener');
+    const url = ensureAppRoot(`/explore/?slice_id=${chartId}`);
+    navigateTo(url, { newWindow: true });
   };
 
   const onActiveSwitch = (checked: boolean) => {
@@ -2121,9 +2124,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       wrapProps={{ 'data-test': 'alert-report-modal' }}
     >
       <div
-          css={AdditionalStyles}
-          style={{ ['--open-btn-gap' as any]: `${theme.sizeUnit}px` }}
-        >
+        css={AdditionalStyles}
+        style={{ ['--open-btn-gap' as any]: `${theme.sizeUnit}px` }}
+      >
         <Collapse
           expandIconPosition="end"
           activeKey={activeCollapsePanel}

@@ -30,6 +30,7 @@ import {
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import AlertReportModal, { AlertReportModalProps } from './AlertReportModal';
+import * as navigationUtils from 'src/utils/navigationUtils';
 import { AlertObject, NotificationMethodOption } from './types';
 
 jest.mock('@superset-ui/core', () => ({
@@ -693,14 +694,16 @@ test('open chart button opens explore with slice_id', async () => {
   });
   expect(openChartButton).toBeInTheDocument();
 
-  const origOpen = window.open;
-  // @ts-ignore
-  window.open = jest.fn();
-  await userEvent.click(openChartButton);
-  expect(window.open).toHaveBeenCalledWith('/explore/?slice_id=1', '_blank', 'noopener');
-  // restore
-  // @ts-ignore
-  window.open = origOpen;
+  const navSpy = jest.spyOn(navigationUtils, 'navigateTo').mockImplementation(() => null);
+  try {
+    await userEvent.click(openChartButton);
+    expect(navSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/explore/?slice_id=1'),
+      { newWindow: true },
+    );
+  } finally {
+    navSpy.mockRestore();
+  }
 });
 
 test('open dashboard button opens dashboard url', async () => {
@@ -718,14 +721,16 @@ test('open dashboard button opens dashboard url', async () => {
   });
   expect(openDashButton).toBeInTheDocument();
 
-  const origOpen = window.open;
-  // @ts-ignore
-  window.open = jest.fn();
-  await userEvent.click(openDashButton);
-  expect(window.open).toHaveBeenCalledWith('/superset/dashboard/1', '_blank', 'noopener');
-  // restore
-  // @ts-ignore
-  window.open = origOpen;
+  const navSpy = jest.spyOn(navigationUtils, 'navigateTo').mockImplementation(() => null);
+  try {
+    await userEvent.click(openDashButton);
+    expect(navSpy).toHaveBeenCalledWith(
+      expect.stringContaining('/dashboard/1'),
+      { newWindow: true },
+    );
+  } finally {
+    navSpy.mockRestore();
+  }
 });
 
 test('does not show screenshot width when csv is selected', async () => {
