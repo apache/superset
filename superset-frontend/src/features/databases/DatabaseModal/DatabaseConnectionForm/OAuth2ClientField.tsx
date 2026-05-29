@@ -19,7 +19,7 @@
 
 import { useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { Input, Collapse, FormItem } from '@superset-ui/core/components';
+import { Input, Collapse, Form, FormItem } from '@superset-ui/core/components';
 import {
   CustomParametersChangeType,
   Engines,
@@ -106,7 +106,7 @@ export const OAuth2ClientField = ({
           key: 'oauth2-client-information',
           label: t('OAuth2 client information'),
           children: (
-            <>
+            <Form layout="vertical">
               <FormItem label={LABELS.CLIENT_ID}>
                 <Input
                   data-test="client-id"
@@ -145,7 +145,7 @@ export const OAuth2ClientField = ({
                   onChange={handleChange('scope')}
                 />
               </FormItem>
-            </>
+            </Form>
           ),
         },
       ]}

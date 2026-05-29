@@ -131,9 +131,7 @@ const DatabaseConnectionForm = ({
                 isValidating={isValidating}
                 isPublic={isPublic}
                 setIsPublic={setIsPublic}
-                placeholder={
-                  getPlaceholder ? getPlaceholder(field) : undefined
-                }
+                placeholder={getPlaceholder ? getPlaceholder(field) : undefined}
               />
             );
           })}

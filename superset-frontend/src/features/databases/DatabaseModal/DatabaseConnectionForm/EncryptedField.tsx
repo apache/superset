@@ -18,7 +18,7 @@
  */
 import { useState, useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { SupersetTheme, css } from '@apache-superset/core/theme';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import {
   Input,
   Button,
@@ -120,9 +120,7 @@ export const EncryptedField = ({
           <FormLabel required>{t('Type of Google Sheets allowed')}</FormLabel>
           <Select
             value={isPublic ? 'true' : 'false'}
-            css={css`
-              width: 100%;
-            `}
+            style={{ width: '100%' }}
             onChange={value => handlePublicToggle(value as string)}
             options={[
               { value: 'true', label: t('Publicly shared sheets only') },
@@ -141,9 +139,7 @@ export const EncryptedField = ({
           </FormLabel>
           <Select
             defaultValue={uploadOption}
-            css={css`
-              width: 100%;
-            `}
+            style={{ width: '100%' }}
             onChange={option => setUploadOption(option as number)}
             options={[
               {

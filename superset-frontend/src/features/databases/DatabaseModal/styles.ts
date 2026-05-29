@@ -120,7 +120,7 @@ export const formScrollableStyles = (theme: SupersetTheme) => css`
 
 export const antDModalStyles = (theme: SupersetTheme) => css`
   .ant-select-dropdown {
-    height: ${theme.sizeUnit * 40}px;
+    max-height: ${theme.sizeUnit * 40}px;
   }
 
   .ant-modal-header {
@@ -384,6 +384,8 @@ export const EditHeaderSubtitle = styled.div`
 `;
 
 export const CredentialInfoForm = styled.div`
+  margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
+
   .catalog-type-select {
     margin: 0 0 20px;
   }
