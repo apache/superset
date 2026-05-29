@@ -124,14 +124,12 @@ function fillNativeFilters(
       loadedValue !== undefined &&
       loadedValue !== null &&
       !(
-        Array.isArray(loadedValue) &&
-        // Empty array OR an all-null array (range filters use [null, null] as
-        // their canonical cleared value).
-        (loadedValue.length === 0 || loadedValue.every(v => v === null))
+        // Treat all-null arrays (range filters use [null, null] as their
+        // canonical cleared value) and empty arrays as "no value".
+        (Array.isArray(loadedValue) && loadedValue.every(v => v === null))
       );
     const loadedHasExtraFormData =
-      !!loaded?.extraFormData &&
-      Object.keys(loaded.extraFormData).length > 0;
+      !!loaded?.extraFormData && Object.keys(loaded.extraFormData).length > 0;
     const defaultHasExtraFormData =
       !!filter.defaultDataMask?.extraFormData &&
       Object.keys(filter.defaultDataMask.extraFormData).length > 0;
@@ -143,8 +141,7 @@ function fillNativeFilters(
     const shouldRestoreDefault =
       isRequired &&
       !!filter.defaultDataMask &&
-      (!loadedHasValue ||
-        (!loadedHasExtraFormData && defaultHasExtraFormData));
+      (!loadedHasValue || (!loadedHasExtraFormData && defaultHasExtraFormData));
 
     mergedDataMask[filter.id] = {
       ...getInitialDataMask(filter.id), // take initial data
