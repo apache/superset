@@ -17,7 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { useTheme } from '@apache-superset/core/theme';
+import { useTheme, css } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Tooltip } from '../Tooltip';
 import type { IconType } from '@superset-ui/core/components/Icons/types';
@@ -54,7 +54,12 @@ export function RlsBadge({ rlsFilters, size = 'l' }: RlsBadgeProps) {
           rlsFilters.length,
         )}
       </strong>
-      <ul style={{ paddingLeft: 16, margin: '4px 0 0' }}>
+      <ul
+        css={css`
+          padding-left: ${theme.sizeUnit * 4}px;
+          margin: ${theme.sizeUnit}px 0 0;
+        `}
+      >
         {rlsFilters.map(filter => (
           <li key={filter.id}>
             <div>
@@ -77,7 +82,12 @@ export function RlsBadge({ rlsFilters, size = 'l' }: RlsBadgeProps) {
         ))}
       </ul>
       {hasInherited && (
-        <div style={{ marginTop: 4, fontStyle: 'italic' }}>
+        <div
+          css={css`
+            margin-top: ${theme.sizeUnit}px;
+            font-style: italic;
+          `}
+        >
           {t(
             'Some filters are inherited from physical tables referenced in this virtual dataset.',
           )}
