@@ -1803,6 +1803,18 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert b"adhoc_filters" not in rv.data
         assert b"viz_type" not in rv.data
 
+    def test_query_form_data_missing_slice(self):
+        """
+        Chart API: a non-existent slice_id must return the same 404 as a
+        forbidden one, so the status code cannot be used to enumerate
+        which slice IDs exist.
+        """
+        self.login(ADMIN_USERNAME)
+        max_id = db.session.query(func.max(Slice.id)).scalar() or 0
+        uri = f"api/v1/form_data/?slice_id={max_id + 10_000}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
+
     @pytest.mark.usefixtures(
         "load_unicode_dashboard_with_slice",
         "load_energy_table_with_slice",
