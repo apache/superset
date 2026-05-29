@@ -95,10 +95,11 @@ def context_addons() -> dict[str, Any]:
     return current_app.config.get("JINJA_CONTEXT_ADDONS", {})
 
 
-class Filter(TypedDict):
+class Filter(TypedDict, total=False):
     op: str  # pylint: disable=C0103
     col: str
     val: Union[None, Any, list[Any]]
+    escaped_val: Union[None, Any, list[Any]]
 
 
 @dataclass
@@ -343,10 +344,38 @@ class ExtraCache:
 
         return return_val
 
+    def _escape_value(self, val: Any) -> Any:
+        """Return a dialect-quoted form of ``val`` suitable for direct SQL
+        interpolation. When no dialect is configured the value is returned
+        unchanged so callers see the raw value as before. Strings are
+        passed through SQLAlchemy's ``String`` literal processor (with the
+        surrounding quotes stripped, mirroring ``url_param``). Lists are
+        processed element-wise; non-string members are left as-is.
+        """
+        if not self.dialect:
+            return val
+        if isinstance(val, str):
+            return String().literal_processor(dialect=self.dialect)(value=val)[1:-1]
+        if isinstance(val, list):
+            return [
+                String().literal_processor(dialect=self.dialect)(value=v)[1:-1]
+                if isinstance(v, str)
+                else v
+                for v in val
+            ]
+        return val
+
     def get_filters(self, column: str, remove_filter: bool = False) -> list[Filter]:
         """Get the filters applied to the given column. In addition
            to returning values like the filter_values function
            the get_filters function returns the operator specified in the explorer UI.
+
+        Each filter dict additionally carries an ``escaped_val`` key when a
+        SQL dialect is available. Templates that interpolate the value into
+        a SQL string (for example a ``LIKE`` clause) should reference
+        ``escaped_val`` so the value is rendered through the dialect's
+        literal processor. ``val`` continues to expose the raw value for
+        non-SQL uses such as comparison, logging, or ``where_in``.
 
         This is useful if:
             - you want to handle more than the IN operator in your SQL clause
@@ -377,7 +406,7 @@ class ExtraCache:
                 {%- endif -%}
                 {%- if filter.get('op') == 'LIKE' -%}
                     AND
-                    full_name LIKE '{{ filter.get('val') | replace("'", "''") }}'
+                    full_name LIKE '{{ filter.get('escaped_val') }}'
                 {%- endif -%}
                 {%- endfor -%}
                 UNION ALL
@@ -444,7 +473,10 @@ class ExtraCache:
                 ) and not isinstance(val, list):
                     val = [val]
 
-                filters.append({"op": op, "col": column, "val": val})
+                entry: Filter = {"op": op, "col": column, "val": val}
+                if self.dialect:
+                    entry["escaped_val"] = self._escape_value(val)
+                filters.append(entry)
 
         # Drill-to-detail queries send filters in native {col, op, val} format
         # rather than adhoc_filters, so get_form_data() above finds nothing.
@@ -479,7 +511,10 @@ class ExtraCache:
                 self.removed_filters.append(column)
             if column not in self.applied_filters:
                 self.applied_filters.append(column)
-            filters.append({"op": op, "col": column, "val": val})
+            entry: Filter = {"op": op, "col": column, "val": val}
+            if self.dialect:
+                entry["escaped_val"] = self._escape_value(val)
+            filters.append(entry)
         return filters
 
     # pylint: disable=too-many-arguments
