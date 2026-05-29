@@ -51,7 +51,7 @@ class CreateSavedQueryCommand(CreateMixin, BaseCommand):
         exceptions: list[ValidationError] = []
 
         db_id = self._properties.get("db_id")
-        if not db_id:
+        if db_id is None:
             exceptions.append(ValidationError("db_id is required", field_name="db_id"))
             raise SavedQueryInvalidError(exceptions=exceptions)
 

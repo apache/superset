@@ -95,6 +95,15 @@ async def update_saved_query(
 
         properties = _build_update_properties(request)
 
+        if not properties:
+            return UpdateSavedQueryResponse(
+                id=None,
+                error=(
+                    "No fields to update. Provide at least one of: "
+                    "label, sql, db_id, schema, description, template_parameters."
+                ),
+            )
+
         with event_logger.log_context(action="mcp.update_saved_query.update"):
             saved_query = UpdateSavedQueryCommand(request.id, properties).run()
 
