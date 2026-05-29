@@ -120,7 +120,7 @@ export const EncryptedField = ({
           <FormLabel required>{t('Type of Google Sheets allowed')}</FormLabel>
           <Select
             value={isPublic ? 'true' : 'false'}
-            style={{ width: '100%' }}
+            css={{ width: '100%' }}
             onChange={value => handlePublicToggle(value as string)}
             options={[
               { value: 'true', label: t('Publicly shared sheets only') },
@@ -139,7 +139,7 @@ export const EncryptedField = ({
           </FormLabel>
           <Select
             defaultValue={uploadOption}
-            style={{ width: '100%' }}
+            css={{ width: '100%' }}
             onChange={option => setUploadOption(option as number)}
             options={[
               {
