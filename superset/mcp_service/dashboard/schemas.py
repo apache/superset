@@ -173,6 +173,8 @@ class DashboardFilter(ColumnOperator):
         "dashboard_title",
         "published",
         "favorite",
+        "owners",
+        "created_by",
     ] = Field(
         ...,
         description=(
@@ -180,7 +182,7 @@ class DashboardFilter(ColumnOperator):
             "get_schema(model_type='dashboard') for available filter columns."
         ),
     )
-    opr: ColumnOperatorEnum = Field(
+    opr: ColumnOperatorEnum | Literal["rel_m_m", "rel_o_m"] = Field(  # type: ignore[assignment]
         ...,
         description="Operator to use. Use get_schema(model_type='dashboard') for "
         "available operators.",
@@ -188,6 +190,24 @@ class DashboardFilter(ColumnOperator):
     value: str | int | float | bool | List[str | int | float | bool] = Field(
         ..., description="Value to filter by (type depends on col and opr)"
     )
+
+    @model_validator(mode="after")
+    def validate_relationship_operator_scope(self) -> "DashboardFilter":
+        """Restrict relationship operators to relationship filter columns."""
+        operator = (
+            self.opr.value if isinstance(self.opr, ColumnOperatorEnum) else self.opr
+        )
+        if operator not in {"rel_m_m", "rel_o_m"}:
+            return self
+
+        from superset.daos.dashboard import DASHBOARD_CUSTOM_FIELDS
+
+        if operator not in DASHBOARD_CUSTOM_FIELDS.get(self.col, []):
+            raise ValueError(
+                f"Operator '{operator}' is not supported for dashboard filter "
+                f"column '{self.col}'."
+            )
+        return self
 
 
 class ListDashboardsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):

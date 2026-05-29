@@ -16,6 +16,7 @@
 # under the License.
 
 from collections.abc import Iterator
+from unittest.mock import MagicMock
 
 import pytest
 from sqlalchemy.orm.session import Session
@@ -73,3 +74,35 @@ def test_remove_favorite(session: Session) -> None:
 
     DashboardDAO.remove_favorite(dashboard)
     assert len(DashboardDAO.favorited_ids([dashboard])) == 0
+
+
+def test_apply_column_operators_accepts_owners_relationship_operator() -> None:
+    from superset.daos.dashboard import DashboardDAO
+    from superset.mcp_service.dashboard.schemas import DashboardFilter
+
+    query = MagicMock()
+    filtered_query = MagicMock()
+    query.filter.return_value = filtered_query
+
+    result = DashboardDAO.apply_column_operators(
+        query, [DashboardFilter(col="owners", opr="rel_m_m", value=1)]
+    )
+
+    assert result == filtered_query
+    query.filter.assert_called_once()
+
+
+def test_apply_column_operators_accepts_created_by_relationship_operator() -> None:
+    from superset.daos.dashboard import DashboardDAO
+    from superset.mcp_service.dashboard.schemas import DashboardFilter
+
+    query = MagicMock()
+    filtered_query = MagicMock()
+    query.filter.return_value = filtered_query
+
+    result = DashboardDAO.apply_column_operators(
+        query, [DashboardFilter(col="created_by", opr="rel_o_m", value=1)]
+    )
+
+    assert result == filtered_query
+    query.filter.assert_called_once()

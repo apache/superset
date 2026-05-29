@@ -220,6 +220,46 @@ async def test_list_dashboards_with_string_filters(mock_list, mcp_server):
 
 @patch("superset.daos.dashboard.DashboardDAO.list")
 @pytest.mark.asyncio
+async def test_list_dashboards_accepts_owners_relationship_filter(
+    mock_list, mcp_server
+):
+    mock_list.return_value = ([], 0)
+    async with Client(mcp_server) as client:
+        request = ListDashboardsRequest(
+            filters=[{"col": "owners", "opr": "rel_m_m", "value": 1}]
+        )
+
+        result = await client.call_tool(
+            "list_dashboards", {"request": request.model_dump()}
+        )
+
+    data = json.loads(result.content[0].text)
+    assert data["count"] == 0
+    owner_filter = mock_list.call_args.kwargs["column_operators"][0]
+    assert owner_filter.col == "owners"
+    assert owner_filter.opr == "rel_m_m"
+    assert owner_filter.value == 1
+
+
+def test_list_dashboards_accepts_created_by_relationship_filter():
+    request = ListDashboardsRequest(
+        filters=[{"col": "created_by", "opr": "rel_o_m", "value": 1}]
+    )
+
+    assert request.filters[0].col == "created_by"
+    assert request.filters[0].opr == "rel_o_m"
+    assert request.filters[0].value == 1
+
+
+def test_list_dashboards_rejects_relationship_operator_for_title_filter():
+    with pytest.raises(ValueError, match="dashboard_title"):
+        ListDashboardsRequest(
+            filters=[{"col": "dashboard_title", "opr": "rel_m_m", "value": 1}]
+        )
+
+
+@patch("superset.daos.dashboard.DashboardDAO.list")
+@pytest.mark.asyncio
 async def test_list_dashboards_api_error(mock_list, mcp_server):
     mock_list.side_effect = ToolError("API request failed")
     async with Client(mcp_server) as client:

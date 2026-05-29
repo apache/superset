@@ -50,9 +50,10 @@ logger = logging.getLogger(__name__)
 # Custom filterable fields for dashboards
 DASHBOARD_CUSTOM_FIELDS = {
     "tags": ["eq", "in", "like"],
-    "owners": ["eq", "in"],
+    "owners": ["eq", "in", "rel_m_m"],
     "published": ["eq"],
     "owner": ["eq", "in"],
+    "created_by": ["rel_o_m"],
     "favorite": ["eq"],
 }
 
@@ -63,6 +64,79 @@ class DashboardDAO(BaseDAO[Dashboard]):
     # slug-like identifier can resolve to a dashboard even when its slug
     # field is empty.
     title_column = "dashboard_title"
+
+    @staticmethod
+    def _apply_owner_column_operator(
+        query: Query, column_operator: ColumnOperator
+    ) -> Query:
+        """Apply dashboard owner filters backed by the dashboard/user table."""
+        if column_operator.opr == "rel_m_m":
+            values = (
+                column_operator.value
+                if isinstance(column_operator.value, (list, tuple, set))
+                else [column_operator.value]
+            )
+            owner_filter = dashboard_user.c.user_id.in_(values)
+        else:
+            operator_enum = ColumnOperatorEnum(column_operator.opr)
+            owner_filter = operator_enum.apply(
+                dashboard_user.c.user_id, column_operator.value
+            )
+        subq = select(dashboard_user.c.dashboard_id).where(owner_filter)
+        return query.filter(
+            Dashboard.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
+        )
+
+    @staticmethod
+    def _apply_created_by_column_operator(
+        query: Query, column_operator: ColumnOperator
+    ) -> Query:
+        """Apply dashboard creator filters matching the REST relationship contract."""
+        if column_operator.opr != "rel_o_m":
+            raise ValueError(
+                f"created_by only supports 'rel_o_m'; got '{column_operator.opr}'"
+            )
+        return query.filter(
+            Dashboard.created_by_fk == column_operator.value  # type: ignore[attr-defined,unused-ignore]
+        )
+
+    @staticmethod
+    def _apply_created_by_or_owner_column_operator(
+        query: Query, column_operator: ColumnOperator
+    ) -> Query:
+        """Apply the current-user-created-or-owned convenience filter."""
+        if column_operator.opr != "eq":
+            raise ValueError(
+                "created_by_fk_or_owner only supports 'eq'; "
+                f"got '{column_operator.opr}'"
+            )
+        owner_subq = select(dashboard_user.c.dashboard_id).where(
+            dashboard_user.c.user_id == column_operator.value
+        )
+        return query.filter(
+            or_(
+                Dashboard.created_by_fk == column_operator.value,  # type: ignore[attr-defined,unused-ignore]
+                Dashboard.id.in_(owner_subq),  # type: ignore[attr-defined,unused-ignore]
+            )
+        )
+
+    @staticmethod
+    def _apply_favorite_column_operator(
+        query: Query, column_operator: ColumnOperator
+    ) -> Query:
+        """Apply dashboard favorite filters for the current user."""
+        user_id = get_user_id()
+        fav_subq = select(FavStar.obj_id).where(
+            FavStar.class_name == FavStarClassName.DASHBOARD,
+            FavStar.user_id == user_id,
+        )
+        if column_operator.value is True or column_operator.value == 1:
+            return query.filter(
+                Dashboard.id.in_(fav_subq)  # type: ignore[attr-defined,unused-ignore]
+            )
+        return query.filter(
+            ~Dashboard.id.in_(fav_subq)  # type: ignore[attr-defined,unused-ignore]
+        )
 
     @classmethod
     def apply_column_operators(
@@ -79,45 +153,18 @@ class DashboardDAO(BaseDAO[Dashboard]):
             return query
 
         remaining_operators: list[ColumnOperator] = []
+        special_operator_handlers = {
+            "owner": cls._apply_owner_column_operator,
+            "owners": cls._apply_owner_column_operator,
+            "created_by": cls._apply_created_by_column_operator,
+            "created_by_fk_or_owner": cls._apply_created_by_or_owner_column_operator,
+            "favorite": cls._apply_favorite_column_operator,
+        }
         for c in column_operators:
             if not isinstance(c, ColumnOperator):
                 c = ColumnOperator.model_validate(c)
-            if c.col == "owner":
-                operator_enum = ColumnOperatorEnum(c.opr)
-                subq = select(dashboard_user.c.dashboard_id).where(
-                    operator_enum.apply(dashboard_user.c.user_id, c.value)
-                )
-                query = query.filter(
-                    Dashboard.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
-                )
-            elif c.col == "created_by_fk_or_owner":
-                if c.opr != "eq":
-                    raise ValueError(
-                        f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
-                    )
-                owner_subq = select(dashboard_user.c.dashboard_id).where(
-                    dashboard_user.c.user_id == c.value
-                )
-                query = query.filter(
-                    or_(
-                        Dashboard.created_by_fk == c.value,  # type: ignore[attr-defined,unused-ignore]
-                        Dashboard.id.in_(owner_subq),  # type: ignore[attr-defined,unused-ignore]
-                    )
-                )
-            elif c.col == "favorite":
-                user_id = get_user_id()
-                fav_subq = select(FavStar.obj_id).where(
-                    FavStar.class_name == FavStarClassName.DASHBOARD,
-                    FavStar.user_id == user_id,
-                )
-                if c.value is True or c.value == 1:
-                    query = query.filter(
-                        Dashboard.id.in_(fav_subq)  # type: ignore[attr-defined,unused-ignore]
-                    )
-                else:
-                    query = query.filter(
-                        ~Dashboard.id.in_(fav_subq)  # type: ignore[attr-defined,unused-ignore]
-                    )
+            if handler := special_operator_handlers.get(c.col):
+                query = handler(query, c)
             else:
                 remaining_operators.append(c)
 
