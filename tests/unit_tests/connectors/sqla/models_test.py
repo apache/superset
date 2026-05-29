@@ -1039,3 +1039,60 @@ def test_validate_stored_expression_rejects_subquery(
             None,
             "(SELECT password FROM ab_user LIMIT 1)",
         )
+
+
+@pytest.mark.parametrize(
+    "expression",
+    [
+        "case when '{{ current_username() }}' = 'abc' then 'yes' else 'no' end",
+        "SUM(price) * {{ url_param('multiplier') }}",
+        "{# comment #} amount",
+        "{% if 1 %}amount{% endif %}",
+    ],
+)
+def test_validate_stored_expression_accepts_jinja(
+    mocker: MockerFixture, expression: str
+) -> None:
+    """
+    Stored expressions can contain Jinja templating. Balanced Jinja blocks
+    are replaced with a placeholder so the surrounding SQL is still parsed;
+    skeletons whose control flow leaves them unparseable defer to runtime.
+    """
+    database = _database_for_expression(mocker)
+    validate_stored_expression(database, None, None, expression)
+
+
+def test_validate_stored_expression_rejects_set_op_around_jinja(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A ``UNION`` smuggled around a Jinja block must still be rejected: the
+    Jinja substitution leaves the set operator visible to the parser.
+    """
+    database = _database_for_expression(mocker)
+    with pytest.raises(SupersetSecurityException):
+        validate_stored_expression(
+            database,
+            None,
+            None,
+            "'{{ current_username() }}' UNION SELECT password FROM ab_user",
+        )
+
+
+def test_validate_stored_expression_rejects_subquery_around_jinja(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Sub-queries combined with a Jinja comment block must still be rejected:
+    stripping the ``{# ... #}`` block leaves the sub-query visible to the
+    ``validate_adhoc_subquery`` gate.
+    """
+    database = _database_for_expression(mocker)
+    mocker.patch("superset.models.helpers.is_feature_enabled", return_value=False)
+    with pytest.raises(SupersetSecurityException):
+        validate_stored_expression(
+            database,
+            None,
+            None,
+            "(SELECT password FROM ab_user LIMIT 1) {# x #}",
+        )

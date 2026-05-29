@@ -356,6 +356,50 @@ def test_update_dataset_accepts_benign_expression(mocker: MockerFixture) -> None
     UpdateDatasetCommand(1, payload).validate()
 
 
+def test_update_dataset_accepts_jinja_expression(mocker: MockerFixture) -> None:
+    """
+    Stored column/metric expressions can use Jinja templating (e.g.
+    ``{{ current_username() }}``). At save time there is no template
+    context, so the parser-based gate is bypassed; the same validator
+    re-runs on the rendered SQL at query time.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    mocker.patch(
+        "superset.commands.utils.security_manager.get_user_by_id", return_value=None
+    )
+    mock_database = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.backend = "sqlite"
+    mock_database.allow_multi_catalog = False
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_dataset = mocker.MagicMock()
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = None
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.get_database_by_id.return_value = mock_database
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+    mock_dataset_dao.validate_columns_exist.return_value = True
+    mock_dataset_dao.validate_columns_uniqueness.return_value = True
+
+    payload = {
+        "columns": [
+            {
+                "column_name": "user_match",
+                "expression": (
+                    "case when '{{ current_username() }}' = 'abc' "
+                    "then 'yes' else 'no' end"
+                ),
+            }
+        ]
+    }
+    UpdateDatasetCommand(1, payload).validate()
+
+
 @with_feature_flags(DATASET_FOLDERS=True)
 def test_validate_folders(mocker: MockerFixture) -> None:
     """

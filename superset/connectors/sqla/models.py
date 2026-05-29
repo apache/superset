@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import builtins
 import logging
+import re
 from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
@@ -870,6 +871,12 @@ class AnnotationDatasource(BaseDatasource):
         raise NotImplementedError()
 
 
+_JINJA_BLOCK_RE = re.compile(
+    r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}",
+    re.DOTALL,
+)
+
+
 def validate_stored_expression(
     database: Database,
     catalog: str | None,
@@ -883,15 +890,27 @@ def validate_stored_expression(
     rules already enforced for adhoc expressions, so the same policy on
     sub-queries, set operations, and multi-statement SQL applies to stored
     expressions when they are saved.
+
+    Balanced Jinja blocks (``{{ ... }}``, ``{% ... %}``, ``{# ... #}``) are
+    replaced with a numeric placeholder before parsing so the surrounding SQL
+    is still inspected; structural attacks smuggled in the non-templated
+    portion of an otherwise-templated expression are still rejected.
+    Expressions whose substituted skeleton is unparseable (typically due to
+    ``{% if %}`` control-flow templating) fall back to deferring validation
+    to query time, when the template processor has a real context.
     """
     if not expression:
         return
+    skeleton = _JINJA_BLOCK_RE.sub(" NULL ", expression)
+    contains_jinja = skeleton != expression
     engine = database.backend
-    wrapped = f"SELECT {expression}"
+    wrapped = f"SELECT {skeleton}"
 
     try:
         parsed = SQLStatement(wrapped, engine)
     except SupersetParseError as ex:
+        if contains_jinja:
+            return
         raise SupersetSecurityException(
             SupersetError(
                 error_type=SupersetErrorType.ADHOC_SUBQUERY_NOT_ALLOWED_ERROR,
