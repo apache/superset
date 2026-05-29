@@ -21,7 +21,7 @@ from unittest import mock
 
 import pytest
 from flask import g
-import prison
+import rison
 
 from superset import db, security_manager
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
@@ -264,6 +264,268 @@ def _cleanup_test_dataset():
     if dataset:
         db.session.delete(dataset)
         db.session.commit()
+
+
+class TestRowLevelSecurityUpdateAPI(SupersetTestCase):
+    def test_invalid_id_failure(self):
+        self.login(ADMIN_USERNAME)
+        payload = {
+            "name": "rls 1",
+            "clause": "1=1",
+            "filter_type": "Base",
+            "tables": [1],
+            "roles": [1],
+        }
+        rv = self.client.put("/api/v1/rowlevelsecurity/99999999", json=payload)
+        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+        assert status_code == 404
+        assert data["message"] == "Not found"
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_invalid_role_failure(self):
+        table = db.session.query(SqlaTable).first()
+
+        rls = RowLevelSecurityFilter(
+            name="rls test invalid role",
+            clause="1=1",
+            filter_type="Regular",
+            tables=[table],
+        )
+        db.session.add(rls)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        payload = {
+            "roles": [999999],
+        }
+        rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
+        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+        assert status_code == 422
+        assert data["message"] == "[l'Some roles do not exist']"
+
+        db.session.delete(rls)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_invalid_table_failure(self):
+        table = db.session.query(SqlaTable).first()
+
+        rls = RowLevelSecurityFilter(
+            name="rls test invalid role",
+            clause="1=1",
+            filter_type="Regular",
+            tables=[table],
+        )
+        db.session.add(rls)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        payload = {
+            "name": "rls 1",
+            "clause": "1=1",
+            "filter_type": "Base",
+            "tables": [999999],
+            "roles": [1],
+        }
+        rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
+        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+        assert status_code == 422
+        assert data["message"] == "[l'Datasource does not exist']"
+
+        db.session.delete(rls)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_put_success(self):
+        tables = db.session.query(SqlaTable).limit(2).all()
+        roles = db.session.query(security_manager.role_model).limit(2).all()
+
+        rls = RowLevelSecurityFilter(
+            name="rls 1",
+            clause="1=1",
+            filter_type="Regular",
+            tables=[tables[0]],
+            roles=[roles[0]],
+        )
+        db.session.add(rls)
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+        payload = {
+            "name": "rls put success",
+            "clause": "2=2",
+            "filter_type": "Base",
+            "tables": [tables[1].id],
+            "roles": [roles[1].id],
+        }
+        rv = self.client.put(f"/api/v1/rowlevelsecurity/{rls.id}", json=payload)
+        status_code, _data = rv.status_code, json.loads(rv.data.decode("utf-8"))  # noqa: F841
+
+        assert status_code == 200
+
+        rls = (
+            db.session.query(RowLevelSecurityFilter)
+            .filter(RowLevelSecurityFilter.id == rls.id)
+            .one_or_none()
+        )
+
+        assert rls.name == "rls put success"
+        assert rls.clause == "2=2"
+        assert rls.filter_type == "Base"
+        assert rls.tables[0].id == tables[1].id
+        assert rls.roles[0].id == roles[1].id
+
+        db.session.delete(rls)
+        db.session.commit()
+
+
+class TestRowLevelSecurityDeleteAPI(SupersetTestCase):
+    def test_invalid_id_failure(self):
+        self.login(ADMIN_USERNAME)
+
+        ids_to_delete = rison.dumps([10000, 10001, 100002])
+        rv = self.client.delete(f"/api/v1/rowlevelsecurity/?q={ids_to_delete}")
+        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+
+        assert status_code == 404
+        assert data["message"] == "Not found"
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_bulk_delete_success(self):
+        tables = db.session.query(SqlaTable).limit(2).all()
+        roles = db.session.query(security_manager.role_model).limit(2).all()
+
+        rls_1 = RowLevelSecurityFilter(
+            name="rls 1",
+            clause="1=1",
+            filter_type="Regular",
+            tables=[tables[0]],
+            roles=[roles[0]],
+        )
+        rls_2 = RowLevelSecurityFilter(
+            name="rls 2",
+            clause="2=2",
+            filter_type="Base",
+            tables=[tables[1]],
+            roles=[roles[1]],
+        )
+        db.session.add_all([rls_1, rls_2])
+        db.session.commit()
+
+        self.login(ADMIN_USERNAME)
+
+        ids_to_delete = rison.dumps([rls_1.id, rls_2.id])
+        rv = self.client.delete(f"/api/v1/rowlevelsecurity/?q={ids_to_delete}")
+        status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
+
+        assert status_code == 200
+        assert data["message"] == "Deleted 2 rules"
+
+
+class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
+    @pytest.mark.usefixtures("load_birth_names_data")
+    @pytest.mark.usefixtures("load_energy_table_data")
+    def test_rls_tables_related_api(self):
+        self.login(ADMIN_USERNAME)
+
+        params = rison.dumps({"page": 0, "page_size": 100})
+
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+
+        db_tables = db.session.query(SqlaTable).all()
+
+        db_table_names = {t.name for t in db_tables}
+        received_tables = {table["text"] for table in result}
+
+        assert data["count"] == len(db_tables)
+        assert len(result) == len(db_tables)
+        assert db_table_names == received_tables
+
+    def test_rls_tables_related_api_with_filter_matching_birth(self):
+        self.login(ADMIN_USERNAME)
+        # Test with filter that should match 'birth_names'
+        params = rison.dumps({"filter": "birth", "page": 0, "page_size": 100})
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        received_tables = {table["text"] for table in result}
+        # Should only return tables with 'birth' in the name
+        assert all("birth" in table_name.lower() for table_name in received_tables)
+        assert len(result) >= 1  # At least birth_names should be returned
+
+    def test_rls_tables_related_api_with_filter_no_matches(self):
+        self.login(ADMIN_USERNAME)
+        # Test with filter that should match nothing
+        params = rison.dumps({"filter": "nonexistent", "page": 0, "page_size": 100})
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        assert len(result) == 0
+        assert data["count"] == 0
+
+    def test_rls_roles_related_api(self):
+        self.login(ADMIN_USERNAME)
+        params = rison.dumps({"page": 0, "page_size": 100})
+
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/roles?q={params}")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+
+        db_role_names = {r.name for r in security_manager.get_all_roles()}
+        received_roles = {role["text"] for role in result}
+
+        assert data["count"] == len(db_role_names)
+        assert len(result) == len(db_role_names)
+        assert db_role_names == received_roles
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @mock.patch(
+        "superset.row_level_security.api.RLSRestApi.base_related_field_filters",
+        {"tables": [["table_name", filters.FilterStartsWith, "birth"]]},
+    )
+    def test_table_related_filter(self):
+        self.login(ADMIN_USERNAME)
+
+        params = rison.dumps({"page": 0, "page_size": 10})
+
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
+        assert rv.status_code == 200
+        data = json.loads(rv.data.decode("utf-8"))
+        result = data["result"]
+        received_tables = {table["text"].split(".")[-1] for table in result}
+
+        assert data["count"] == 1
+        assert len(result) == 1
+        assert {"birth_names"} == received_tables
+
+    def test_get_all_related_roles_with_with_extra_filters(self):
+        """
+        API: Test get filter related roles with extra related query filters
+        """
+        self.login(ADMIN_USERNAME)
+
+        def _base_filter(query):
+            return query.filter_by(name="Alpha")
+
+        original_conf = self.app.config.get("EXTRA_RELATED_QUERY_FILTERS", {}).copy()
+        try:
+            self.app.config["EXTRA_RELATED_QUERY_FILTERS"] = {"role": _base_filter}
+            rv = self.client.get("/api/v1/rowlevelsecurity/related/roles")  # noqa: F541
+            assert rv.status_code == 200
+            response = json.loads(rv.data.decode("utf-8"))
+            response_roles = [result["text"] for result in response["result"]]
+            assert response_roles == ["Alpha"]
+        finally:
+            self.app.config["EXTRA_RELATED_QUERY_FILTERS"] = original_conf
 
 
 # ---------------------------------------------------------------------------
@@ -747,7 +1009,7 @@ def test_update_api_put_success(admin_client):
 
 
 def test_delete_api_invalid_id_failure(admin_client):
-    ids_to_delete = prison.dumps([10000, 10001, 100002])
+    ids_to_delete = rison.dumps([10000, 10001, 100002])
     rv = admin_client.delete(f"/api/v1/rowlevelsecurity/?q={ids_to_delete}")
     status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
 
@@ -781,7 +1043,7 @@ def test_delete_api_bulk_delete_success(admin_client):
     db.session.add_all([rls_1, rls_2])
     db.session.commit()
 
-    ids_to_delete = prison.dumps([rls_1.id, rls_2.id])
+    ids_to_delete = rison.dumps([rls_1.id, rls_2.id])
     rv = admin_client.delete(f"/api/v1/rowlevelsecurity/?q={ids_to_delete}")
     status_code, data = rv.status_code, json.loads(rv.data.decode("utf-8"))
 
@@ -796,7 +1058,7 @@ def test_delete_api_bulk_delete_success(admin_client):
 
 @pytest.mark.usefixtures("load_birth_names_data", "load_energy_table_data")
 def test_rls_tables_related_api(admin_client):
-    params = prison.dumps({"page": 0, "page_size": 100})
+    params = rison.dumps({"page": 0, "page_size": 100})
 
     rv = admin_client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
     assert rv.status_code == 200
@@ -815,7 +1077,7 @@ def test_rls_tables_related_api(admin_client):
 
 def test_rls_tables_related_api_with_filter_matching_birth(admin_client):
     # Test with filter that should match 'birth_names'
-    params = prison.dumps({"filter": "birth", "page": 0, "page_size": 100})
+    params = rison.dumps({"filter": "birth", "page": 0, "page_size": 100})
     rv = admin_client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
     assert rv.status_code == 200
     data = json.loads(rv.data.decode("utf-8"))
@@ -828,7 +1090,7 @@ def test_rls_tables_related_api_with_filter_matching_birth(admin_client):
 
 def test_rls_tables_related_api_with_filter_no_matches(admin_client):
     # Test with filter that should match nothing
-    params = prison.dumps({"filter": "nonexistent", "page": 0, "page_size": 100})
+    params = rison.dumps({"filter": "nonexistent", "page": 0, "page_size": 100})
     rv = admin_client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
     assert rv.status_code == 200
     data = json.loads(rv.data.decode("utf-8"))
@@ -838,7 +1100,7 @@ def test_rls_tables_related_api_with_filter_no_matches(admin_client):
 
 
 def test_rls_subjects_related_api(admin_client):
-    params = prison.dumps({"page": 0, "page_size": 100})
+    params = rison.dumps({"page": 0, "page_size": 100})
 
     rv = admin_client.get(f"/api/v1/rowlevelsecurity/related/subjects?q={params}")
     assert rv.status_code == 200
@@ -857,7 +1119,7 @@ def test_rls_subjects_related_api(admin_client):
     {"tables": [["table_name", filters.FilterStartsWith, "birth"]]},
 )
 def test_table_related_filter(admin_client):
-    params = prison.dumps({"page": 0, "page_size": 10})
+    params = rison.dumps({"page": 0, "page_size": 10})
 
     rv = admin_client.get(f"/api/v1/rowlevelsecurity/related/tables?q={params}")
     assert rv.status_code == 200
@@ -874,7 +1136,7 @@ def test_get_all_related_subjects_with_extra_filters(admin_client):
     """
     API: Test get filter related subjects with extra related query filters
     """
-    params = prison.dumps({"page": 0, "page_size": 100})
+    params = rison.dumps({"page": 0, "page_size": 100})
     rv = admin_client.get(f"/api/v1/rowlevelsecurity/related/subjects?q={params}")
     assert rv.status_code == 200
     response = json.loads(rv.data.decode("utf-8"))

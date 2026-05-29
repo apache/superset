@@ -20,6 +20,7 @@ import type { ReactNode } from 'react';
 
 export interface CopyToClipboardProps {
   copyNode?: ReactNode;
+  disabled?: boolean;
   getText?: (callback: (data: string) => void) => void;
   onCopyEnd?: () => void;
   shouldShowText?: boolean;

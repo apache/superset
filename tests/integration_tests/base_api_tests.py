@@ -18,7 +18,7 @@
 
 from unittest.mock import patch
 
-import prison
+import rison
 
 from superset import db
 from superset.subjects.models import Subject
@@ -100,7 +100,7 @@ class ApiOwnersTestCaseMixin:
         self.login(ADMIN_USERNAME)
         page_size = 1
         argument = {"page_size": page_size}
-        uri = f"api/v1/{self.resource_name}/related/editors?q={prison.dumps(argument)}"
+        uri = f"api/v1/{self.resource_name}/related/editors?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -114,7 +114,7 @@ class ApiOwnersTestCaseMixin:
         """
         self.login(ADMIN_USERNAME)
         argument = {"page": 1, "page_size": 1, "include_ids": [2]}
-        uri = f"api/v1/{self.resource_name}/related/editors?q={prison.dumps(argument)}"
+        uri = f"api/v1/{self.resource_name}/related/editors?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 422
 
@@ -124,7 +124,7 @@ class ApiOwnersTestCaseMixin:
         """
         self.login(ADMIN_USERNAME)
         argument = {"filter": "gamma"}
-        uri = f"api/v1/{self.resource_name}/related/editors?q={prison.dumps(argument)}"
+        uri = f"api/v1/{self.resource_name}/related/editors?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -168,7 +168,7 @@ class ApiOwnersTestCaseMixin:
         # Get a subject to use as include_id
         subject = db.session.query(Subject).first()
         argument = {"filter": "", "include_ids": [subject.id]}
-        uri = f"api/v1/{self.resource_name}/related/editors?q={prison.dumps(argument)}"
+        uri = f"api/v1/{self.resource_name}/related/editors?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -181,7 +181,7 @@ class ApiOwnersTestCaseMixin:
         self.login(ADMIN_USERNAME)
         subjects = db.session.query(Subject).limit(2).all()
         argument = {"filter": "", "include_ids": [s.id for s in subjects]}
-        uri = f"api/v1/{self.resource_name}/related/editors?q={prison.dumps(argument)}"
+        uri = f"api/v1/{self.resource_name}/related/editors?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))

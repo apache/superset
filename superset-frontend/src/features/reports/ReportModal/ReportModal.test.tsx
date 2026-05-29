@@ -103,10 +103,12 @@ test('does not allow user to create a report without a name', () => {
 });
 
 test('creates a new email report via modal Add button', async () => {
+  // The modal now calls POST /api/v1/report/subscribe; creation_method, owners, and
+  // recipients are derived server-side — the client payload intentionally omits them.
   fetchMock.post(
-    REPORT_ENDPOINT,
+    'glob:*/api/v1/report/subscribe',
     { id: 1, result: {} },
-    { name: 'post-report' },
+    { name: 'post-subscribe' },
   );
 
   render(<ReportModal {...defaultProps} />, { useRedux: true });
@@ -114,22 +116,22 @@ test('creates a new email report via modal Add button', async () => {
   const addButton = screen.getByRole('button', { name: /add/i });
   await waitFor(() => userEvent.click(addButton));
 
-  // Verify exactly one POST from the modal submit path
+  // Verify exactly one POST to the subscribe endpoint
   await waitFor(() => {
-    const postCalls = fetchMock.callHistory.calls('post-report');
+    const postCalls = fetchMock.callHistory.calls('post-subscribe');
     expect(postCalls).toHaveLength(1);
   });
 
-  const postCalls = fetchMock.callHistory.calls('post-report');
+  const postCalls = fetchMock.callHistory.calls('post-subscribe');
   const body = JSON.parse(postCalls[0].options.body as string);
   expect(body.name).toBe('Weekly Report');
   expect(body.type).toBe('Report');
-  expect(body.creation_method).toBe('dashboards');
   expect(body.crontab).toBeDefined();
-  expect(body.recipients).toBeDefined();
-  expect(body.recipients[0].type).toBe('Email');
+  // creation_method, owners, and recipients are set server-side; not in the client payload
+  expect(body.creation_method).toBeUndefined();
+  expect(body.recipients).toBeUndefined();
 
-  fetchMock.removeRoute('post-report');
+  fetchMock.removeRoute('post-subscribe');
 });
 
 test('text-based chart hides screenshot width and shows message content', () => {

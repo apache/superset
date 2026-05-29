@@ -114,7 +114,7 @@ class CreateDashboardCommand(BaseCommand):
 
 ### Data Access Objects (DAOs)
 
-See: [DAO Style Guidelines and Best Practices](./backend/dao-style-guidelines)
+See: [DAO Style Guidelines and Best Practices](./backend/dao-style-guidelines.md)
 
 ## Testing
 

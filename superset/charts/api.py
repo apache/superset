@@ -22,7 +22,7 @@ from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import redirect, request, Response, send_file, url_for
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -82,7 +82,7 @@ from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
 from superset.exceptions import ScreenshotImageNotAvailableException
-from superset.extensions import event_logger
+from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.subjects.filters import (
     FilterRelatedSubjects,
@@ -542,7 +542,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
@@ -598,7 +598,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/<pk>/cache_screenshot/", methods=("GET",))
     @protect()
-    @rison(screenshot_query_schema)
+    @parse_rison(screenshot_query_schema)
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -645,6 +645,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_image", "Superset"):
+            return self.response_403()
         rison_dict = kwargs["rison"]
         force = rison_dict.get("force")
         window_size = rison_dict.get("window_size") or DEFAULT_CHART_WINDOW_SIZE
@@ -728,6 +732,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_image", "Superset"):
+            return self.response_403()
         chart = self.datamodel.get(pk, self._base_filters)
 
         if not chart:
@@ -748,7 +756,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
     @protect()
-    @rison(thumbnail_query_schema)
+    @parse_rison(thumbnail_query_schema)
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -790,6 +798,10 @@ class ChartRestApi(BaseSupersetModelRestApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if is_feature_enabled(
+            "GRANULAR_EXPORT_CONTROLS"
+        ) and not security_manager.can_access("can_export_image", "Superset"):
+            return self.response_403()
         chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
@@ -840,7 +852,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_export_ids_schema)
+    @parse_rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
@@ -902,7 +914,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @expose("/favorite_status/", methods=("GET",))
     @protect()
     @safe
-    @rison(get_fav_star_ids_schema)
+    @parse_rison(get_fav_star_ids_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: (

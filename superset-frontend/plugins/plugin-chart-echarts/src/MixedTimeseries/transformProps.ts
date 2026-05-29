@@ -258,7 +258,15 @@ export default function transformProps(
 
   const dataTypes = getColtypesMapping(queriesData[0]);
   const xAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
-  const xAxisType = getAxisType(stack, xAxisForceCategorical, xAxisDataType);
+  const xAxisType = getAxisType(
+    stack,
+    xAxisForceCategorical,
+    xAxisDataType,
+    seriesType === EchartsTimeseriesSeriesType.Bar ||
+      seriesTypeB === EchartsTimeseriesSeriesType.Bar
+      ? EchartsTimeseriesSeriesType.Bar
+      : seriesType,
+  );
 
   const [rawSeriesA, sortedTotalValuesA] = extractSeries(rebasedDataA, {
     fillNeighborValue: stack ? 0 : undefined,
@@ -581,7 +589,8 @@ export default function transformProps(
       ? getXAxisFormatter(xAxisTimeFormat, timeGrainSqla)
       : String;
 
-  const showMaxLabel = xAxisType === AxisType.Time && xAxisLabelRotation === 0;
+  const showMaxLabel =
+    xAxisType === AxisType.Time && xAxisLabelRotation === 0 && !!timeGrainSqla;
   const deduplicatedFormatter = showMaxLabel
     ? (() => {
         let lastLabel: string | undefined;

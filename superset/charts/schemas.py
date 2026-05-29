@@ -1565,6 +1565,10 @@ class ChartDataResponseResult(Schema):
         required=False,
         allow_none=True,
     )
+    warning = fields.String(
+        metadata={"description": "Warning message when results were truncated"},
+        allow_none=True,
+    )
 
 
 class DashboardFilterInfoSchema(Schema):

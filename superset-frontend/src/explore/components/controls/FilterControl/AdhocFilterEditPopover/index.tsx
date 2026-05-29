@@ -78,14 +78,6 @@ interface AdhocFilterEditPopoverState {
 }
 
 const FilterPopoverContentContainer = styled.div`
-  .adhoc-filter-edit-tabs > .nav-tabs {
-    margin-bottom: ${({ theme }) => theme.sizeUnit * 2}px;
-
-    & > li > a {
-      padding: ${({ theme }) => theme.sizeUnit}px;
-    }
-  }
-
   #filter-edit-popover {
     max-width: none;
   }
@@ -97,21 +89,17 @@ const FilterPopoverContentContainer = styled.div`
   .filter-edit-clause-section {
     display: flex;
     flex-direction: row;
-    gap: ${({ theme }) => theme.sizeUnit * 5}px;
-  }
-
-  .adhoc-filter-simple-column-dropdown {
-    margin-top: ${({ theme }) => theme.sizeUnit * 5}px;
+    gap: ${({ theme }) => theme.marginMD}px;
   }
 `;
 
 const FilterActionsContainer = styled.div`
-  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
+  margin-top: ${({ theme }) => theme.marginXS}px;
 `;
 
 const LayerSelectContainer = styled.div`
-  margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 12}px;
+  margin-top: ${({ theme }) => theme.marginXS}px;
+  margin-bottom: ${({ theme }) => theme.marginXXL}px;
 `;
 
 export default class AdhocFilterEditPopover extends Component<
@@ -415,21 +403,25 @@ export default class AdhocFilterEditPopover extends Component<
                 </ErrorBoundary>
               ),
             },
-            {
-              key: ExpressionTypes.Sql,
-              label: t('Custom SQL'),
-              children: (
-                <ErrorBoundary>
-                  <AdhocFilterEditPopoverSqlTabContent
-                    adhocFilter={this.state.adhocFilter}
-                    onChange={this.onAdhocFilterChange}
-                    options={this.props.options}
-                    height={this.state.height}
-                    datasource={datasource}
-                  />
-                </ErrorBoundary>
-              ),
-            },
+            ...(datasource?.type === 'semantic_view'
+              ? []
+              : [
+                  {
+                    key: ExpressionTypes.Sql,
+                    label: t('Custom SQL'),
+                    children: (
+                      <ErrorBoundary>
+                        <AdhocFilterEditPopoverSqlTabContent
+                          adhocFilter={this.state.adhocFilter}
+                          onChange={this.onAdhocFilterChange}
+                          options={this.props.options}
+                          height={this.state.height}
+                          datasource={datasource}
+                        />
+                      </ErrorBoundary>
+                    ),
+                  },
+                ]),
           ]}
         />
         {hasDeckSlices && (

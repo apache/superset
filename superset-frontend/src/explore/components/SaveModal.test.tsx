@@ -188,6 +188,33 @@ test('renders the right footer buttons', () => {
   ).toBeInTheDocument();
 });
 
+test('initializes chart name from current Explore slice name', () => {
+  const previewSliceName = 'RENAMED - Bug Evidence';
+  const savedSliceName = 'Most Populated Countries';
+  const { getByTestId } = setup(
+    {
+      ...defaultProps,
+      form_data: {
+        ...defaultProps.form_data,
+        slice_name: previewSliceName,
+      },
+      sliceName: previewSliceName,
+    },
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: {
+          ...initialState.explore.slice,
+          slice_name: savedSliceName,
+        },
+      },
+    }),
+  );
+
+  expect(getByTestId('new-chart-name')).toHaveValue(previewSliceName);
+});
+
 test('does not render a message when overriding', () => {
   const { getByRole, queryByRole } = setup();
 
@@ -264,7 +291,7 @@ test('disables overwrite option for new slice', () => {
 });
 
 test('disables overwrite option for non-editor', () => {
-  const { getByRole } = setup(
+  const { getByRole, getByText } = setup(
     {},
     mockStore({
       ...initialState,
@@ -278,6 +305,33 @@ test('disables overwrite option for non-editor', () => {
     }),
   );
   expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
+  expect(
+    getByText(
+      'Must be a chart owner to overwrite this chart. Save as a new chart instead.',
+    ),
+  ).toBeInTheDocument();
+});
+
+test('disables overwrite option for externally managed slice', () => {
+  const { getByRole, getByText } = setup(
+    {},
+    mockStore({
+      ...initialState,
+      explore: {
+        ...initialState.explore,
+        slice: {
+          ...initialState.explore.slice,
+          is_managed_externally: true,
+        },
+      },
+    }),
+  );
+  expect(getByRole('radio', { name: 'Save (Overwrite)' })).toBeDisabled();
+  expect(
+    getByText(
+      "This chart is managed externally and can't be overwritten in Superset.",
+    ),
+  ).toBeInTheDocument();
 });
 
 test('updates slice name and selected dashboard', async () => {

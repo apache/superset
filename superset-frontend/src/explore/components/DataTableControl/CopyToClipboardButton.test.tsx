@@ -54,3 +54,31 @@ test('Should copy to clipboard', async () => {
   // @ts-expect-error
   global.navigator.clipboard = originalClipboard;
 });
+
+test('Should not copy to clipboard when disabled', async () => {
+  const callback = jest.fn();
+  document.execCommand = callback;
+
+  const originalClipboard = { ...global.navigator.clipboard };
+  // @ts-expect-error
+  global.navigator.clipboard = { write: callback, writeText: callback };
+
+  render(
+    <CopyToClipboardButton data={[{ copy: 'data', data: 'copy' }]} disabled />,
+    {
+      useRedux: true,
+    },
+  );
+
+  const copyButton = screen.getByRole('button');
+  expect(copyButton).toHaveAttribute('aria-disabled', 'true');
+  userEvent.click(copyButton);
+
+  await waitFor(() => {
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  jest.resetAllMocks();
+  // @ts-expect-error
+  global.navigator.clipboard = originalClipboard;
+});

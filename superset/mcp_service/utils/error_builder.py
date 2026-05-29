@@ -186,6 +186,18 @@ class ChartErrorBuilder:
                 "Check Superset logs for detailed error information",
             ],
         },
+        "validation_error": {
+            "message": "Chart configuration is invalid: {reason}",
+            "details": "{reason}",
+            "suggestions": [
+                "Review the field names and types in your config against the "
+                "chart_type's schema",
+                "Call get_chart_type_schema or read the chart://configs resource "
+                "for valid fields and examples",
+                "Replace any unknown field names with the ones listed in the "
+                "error details above",
+            ],
+        },
     }
 
     @classmethod

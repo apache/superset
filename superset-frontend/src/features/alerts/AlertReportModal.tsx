@@ -1239,10 +1239,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     [],
   );
 
-  const getChartVisualizationType = (chart: SelectValue) =>
-    SupersetClient.get({
+  const getChartVisualizationType = (chart: SelectValue) => {
+    if (!chart || typeof chart !== 'object' || chart.value === undefined) {
+      return;
+    }
+    return SupersetClient.get({
       endpoint: `/api/v1/chart/${chart.value}`,
     }).then(response => setChartVizType(response.json.result.viz_type));
+  };
 
   const updateEmailSubject = () => {
     const chartLabel = currentAlert?.chart?.label;
@@ -2310,6 +2314,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                         <AsyncSelect
                           ariaLabel={t('Chart')}
                           name="chart"
+                          allowClear
                           value={
                             currentAlert?.chart?.label &&
                             currentAlert?.chart?.value

@@ -23,7 +23,7 @@ from typing import Any, Dict, List
 
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Query
 
 from superset import security_manager
@@ -58,6 +58,10 @@ DASHBOARD_CUSTOM_FIELDS = {
 
 class DashboardDAO(BaseDAO[Dashboard]):
     base_filter = DashboardAccessFilter
+    # Column used by MCP tools for title-based identifier fallback, so a
+    # slug-like identifier can resolve to a dashboard even when its slug
+    # field is empty.
+    title_column = "dashboard_title"
 
     @classmethod
     def apply_column_operators(
@@ -67,7 +71,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
     ) -> Query:
         """Override to handle owner and favorite filters via subqueries.
 
-        - owner: filters dashboards by owner user ID via dashboard_user M2M table
+        - owner: filters dashboards by owner user ID via dashboard_editors M2M table
         - favorite: filters dashboards by whether the current user has favorited them
         """
         if not column_operators:
@@ -94,6 +98,30 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 )
                 query = query.filter(
                     Dashboard.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
+                )
+            elif c.col == "created_by_fk_or_owner":
+                if c.opr != "eq":
+                    raise ValueError(
+                        f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
+                    )
+                from superset.subjects.models import dashboard_editors, Subject
+
+                owner_subq = (
+                    select(dashboard_editors.c.dashboard_id)
+                    .join(
+                        Subject.__table__,
+                        Subject.__table__.c.id == dashboard_editors.c.subject_id,
+                    )
+                    .where(
+                        Subject.__table__.c.type == 1,
+                        Subject.__table__.c.user_id == c.value,
+                    )
+                )
+                query = query.filter(
+                    or_(
+                        Dashboard.created_by_fk == c.value,  # type: ignore[attr-defined,unused-ignore]
+                        Dashboard.id.in_(owner_subq),  # type: ignore[attr-defined,unused-ignore]
+                    )
                 )
             elif c.col == "favorite":
                 user_id = get_user_id()

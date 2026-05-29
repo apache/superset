@@ -34,7 +34,6 @@ import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
   JsonResponse,
-  JsonObject,
   QueryResponse,
   QueryFormData,
   VizType,
@@ -44,16 +43,11 @@ import {
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
-import { useSelector, useDispatch } from 'react-redux';
+import { useAppDispatch, useAppSelector } from 'src/views/store';
 import rison from 'rison';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
-import { UserWithPermissionsAndRoles as User } from 'src/types/bootstrapTypes';
-import {
-  DatasetRadioState,
-  EXPLORE_CHART_DEFAULT,
-  SqlLabRootState,
-} from 'src/SqlLab/types';
+import { DatasetRadioState, EXPLORE_CHART_DEFAULT } from 'src/SqlLab/types';
 import { mountExploreUrl } from 'src/explore/exploreUtils';
 import { postFormData } from 'src/explore/exploreUtils/formData';
 import { URL_PARAMS } from 'src/constants';
@@ -148,14 +142,25 @@ const Styles = styled.div`
     }
   `}
 `;
-const updateDataset = async (
-  dbId: number,
-  datasetId: number,
-  sql: string,
-  columns: Array<Record<string, any>>,
-  editors: [number],
-  overrideColumns: boolean,
-) => {
+type UpdateDatasetPayload = {
+  dbId: number;
+  datasetId: number;
+  sql: string;
+  columns: Array<Record<string, any>>;
+  editors: number[];
+  overrideColumns: boolean;
+  templateParams?: string;
+};
+
+const updateDataset = async ({
+  dbId,
+  datasetId,
+  sql,
+  columns,
+  editors,
+  overrideColumns,
+  templateParams,
+}: UpdateDatasetPayload) => {
   const endpoint = `api/v1/dataset/${datasetId}?override_columns=${overrideColumns}`;
   const headers = { 'Content-Type': 'application/json' };
   const body = JSON.stringify({
@@ -163,6 +168,7 @@ const updateDataset = async (
     columns,
     editors,
     database_id: dbId,
+    ...(templateParams !== undefined && { template_params: templateParams }),
   });
 
   const data: JsonResponse = await SupersetClient.put({
@@ -178,6 +184,26 @@ const updateDataset = async (
 
 const UNTITLED = t('Untitled Dataset');
 
+// The filters param is only used to test jinja templates.
+// Remove the special filters entry from the templateParams
+// before saving the dataset.
+const sanitizeTemplateParams = (
+  templateParams: string | object | null | undefined,
+): string | undefined => {
+  if (typeof templateParams !== 'string') {
+    return undefined;
+  }
+  try {
+    const parsed = JSON.parse(templateParams) as Record<string, unknown>;
+    // Remove the special _filters entry — it is only used to test jinja templates.
+    const { _filters: _ignored, ...clean } = parsed;
+    return JSON.stringify(clean);
+  } catch (e) {
+    // malformed templateParams, do not include it
+    return undefined;
+  }
+};
+
 export const SaveDatasetModal = ({
   visible,
   onHide,
@@ -188,7 +214,7 @@ export const SaveDatasetModal = ({
   openWindow = true,
   formData = {},
 }: SaveDatasetModalProps) => {
-  const defaultVizType = useSelector<SqlLabRootState, string>(
+  const defaultVizType = useAppSelector(
     state => state.common?.conf?.DEFAULT_VIZ_TYPE || VizType.Table,
   );
 
@@ -207,8 +233,8 @@ export const SaveDatasetModal = ({
   >(undefined);
   const [loading, setLoading] = useState<boolean>(false);
 
-  const user = useSelector<SqlLabRootState, User>(state => state.user);
-  const dispatch = useDispatch<(dispatch: any) => Promise<JsonObject>>();
+  const user = useAppSelector(state => state.user);
+  const dispatch = useAppDispatch();
   const [includeTemplateParameters, setIncludeTemplateParameters] =
     useState(false);
 
@@ -231,22 +257,29 @@ export const SaveDatasetModal = ({
     }
     setLoading(true);
 
+    const templateParams = includeTemplateParameters
+      ? sanitizeTemplateParams(datasource?.templateParams)
+      : undefined;
+
     try {
       const [, key] = await Promise.all([
-        updateDataset(
-          datasource?.dbId,
-          datasetToOverwrite?.datasetid,
-          datasource?.sql,
-          datasource?.columns?.map(
+        updateDataset({
+          dbId: datasource?.dbId,
+          datasetId: datasetToOverwrite?.datasetid,
+          sql: datasource?.sql,
+          columns: datasource?.columns?.map(
             (d: { column_name: string; type: string; is_dttm: boolean }) => ({
               column_name: d.column_name,
               type: d.type,
               is_dttm: d.is_dttm,
             }),
           ),
-          datasetToOverwrite?.editors?.map((o: { id: number }) => o.id),
-          true,
-        ),
+          editors: datasetToOverwrite?.editors?.map(
+            (o: { id: number }) => o.id,
+          ),
+          overrideColumns: true,
+          templateParams,
+        }),
         postFormData(datasetToOverwrite.datasetid, 'table', {
           ...formDataWithDefaults,
           datasource: `${datasetToOverwrite.datasetid}__table`,
@@ -322,27 +355,9 @@ export const SaveDatasetModal = ({
     setLoading(true);
     const selectedColumns = datasource?.columns ?? [];
 
-    // The filters param is only used to test jinja templates.
-    // Remove the special filters entry from the templateParams
-    // before saving the dataset.
-    let templateParams;
-    if (
-      typeof datasource?.templateParams === 'string' &&
-      includeTemplateParameters
-    ) {
-      try {
-        const p = JSON.parse(datasource.templateParams);
-        /* eslint-disable-next-line no-underscore-dangle */
-        if (p._filters) {
-          /* eslint-disable-next-line no-underscore-dangle */
-          delete p._filters;
-        }
-        templateParams = JSON.stringify(p);
-      } catch (e) {
-        // malformed templateParams, do not include it
-        templateParams = undefined;
-      }
-    }
+    const templateParams = includeTemplateParameters
+      ? sanitizeTemplateParams(datasource?.templateParams)
+      : undefined;
 
     dispatch(
       createDatasource({

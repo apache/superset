@@ -28,6 +28,11 @@ logger = logging.getLogger(__name__)
 # Time to wait after scrolling for content to settle and load (in milliseconds)
 SCROLL_SETTLE_TIMEOUT_MS = 1000
 
+try:
+    from playwright.sync_api import TimeoutError as PlaywrightTimeout
+except ImportError:
+    PlaywrightTimeout = Exception
+
 if TYPE_CHECKING:
     try:
         from playwright.sync_api import Page
@@ -80,7 +85,10 @@ def combine_screenshot_tiles(screenshot_tiles: list[bytes]) -> bytes:
 
 
 def take_tiled_screenshot(
-    page: "Page", element_name: str, tile_height: int
+    page: "Page",
+    element_name: str,
+    tile_height: int,
+    load_wait: int = 60,
 ) -> bytes | None:
     """
     Take a tiled screenshot of a large dashboard by scrolling and capturing sections.
@@ -89,6 +97,7 @@ def take_tiled_screenshot(
         page: Playwright page object
         element_name: CSS class name of the element to screenshot
         tile_height: Height of each tile in pixels
+        load_wait: Seconds to wait for charts to load per tile (default 60)
 
     Returns:
         Combined screenshot bytes or None if failed
@@ -139,6 +148,31 @@ def take_tiled_screenshot(
             )
             # Wait for scroll to settle and content to load
             page.wait_for_timeout(SCROLL_SETTLE_TIMEOUT_MS)
+            # Wait for any loading spinners visible in the current viewport to clear.
+            # Only check viewport-visible spinners to avoid blocking on
+            # virtualization placeholders rendered for off-screen charts.
+            try:
+                page.wait_for_function(
+                    """() => {
+                        const els = document.querySelectorAll('.loading');
+                        for (const el of els) {
+                            const r = el.getBoundingClientRect();
+                            if (r.top < window.innerHeight && r.bottom > 0) {
+                                return false;
+                            }
+                        }
+                        return true;
+                    }""",
+                    timeout=load_wait * 1000,
+                )
+            except PlaywrightTimeout:
+                logger.warning(
+                    "Timed out waiting for visible spinners to clear on tile %s/%s "
+                    "(load_wait=%ss)",
+                    i + 1,
+                    num_tiles,
+                    load_wait,
+                )
 
             # Calculate what portion of the element we want to capture for this tile
             tile_start_in_element = i * tile_height

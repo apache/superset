@@ -82,6 +82,12 @@
         "description": "Expand nested types in Presto into extra columns/arrays. Experimental, doesn't work with all nested types."
       },
       {
+        "name": "SEMANTIC_LAYERS",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enable semantic layers and show semantic views alongside datasets"
+      },
+      {
         "name": "TABLE_V2_TIME_COMPARISON_ENABLED",
         "default": false,
         "lifecycle": "development",
@@ -168,7 +174,7 @@
         "default": false,
         "lifecycle": "testing",
         "description": "Allows users to add a superset:// DB that can query across databases. Experimental with potential security/performance risks. See SUPERSET_META_DB_LIMIT.",
-        "docs": "https://superset.apache.org/docs/configuration/databases/#querying-across-databases"
+        "docs": "https://superset.apache.org/user-docs/databases/supported/superset-meta-database"
       },
       {
         "name": "ESTIMATE_QUERY_COST",

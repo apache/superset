@@ -71,7 +71,7 @@ const StyledDatasourceModal = styled(Modal)`
   }
 `;
 
-function buildExtraJsonObject(
+export function buildExtraJsonObject(
   item: DatasetObject['metrics'][0] | DatasetObject['columns'][0],
 ) {
   const certification =
@@ -83,7 +83,7 @@ function buildExtraJsonObject(
       : undefined;
   return JSON.stringify({
     certification,
-    warning_markdown: item?.warning_markdown,
+    warning_markdown: item?.warning_markdown || undefined,
   });
 }
 

@@ -39,6 +39,7 @@ from superset.mcp_service.dashboard.schemas import (
     GenerateDashboardRequest,
     GenerateDashboardResponse,
 )
+from superset.mcp_service.privacy import user_can_view_data_model_metadata
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 
@@ -189,9 +190,12 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
 def generate_dashboard(  # noqa: C901
     request: GenerateDashboardRequest, ctx: Context
 ) -> GenerateDashboardResponse:
-    """Create dashboard from chart IDs.
+    """Create a NEW dashboard from chart IDs.
 
     IMPORTANT:
+    - Use this tool ONLY when creating a brand-new dashboard.
+    - To add a chart to an EXISTING dashboard, use add_chart_to_existing_dashboard.
+      Never use this tool as a fallback when add_chart_to_existing_dashboard fails.
     - All charts must exist and be accessible to current user
     - Charts arranged automatically in 2-column grid layout
 
@@ -200,6 +204,11 @@ def generate_dashboard(  # noqa: C901
     """
     from pydantic import ValidationError
     from sqlalchemy.exc import SQLAlchemyError
+
+    # Advisory messages (e.g. title sanitization) surfaced to the caller
+    # alongside the created dashboard so they can tell when their input
+    # was altered.
+    sanitization_warnings = list(getattr(request, "sanitization_warnings", []) or [])
 
     try:
         # Get chart objects from IDs (required for SQLAlchemy relationships)
@@ -221,7 +230,10 @@ def generate_dashboard(  # noqa: C901
                 return GenerateDashboardResponse(
                     dashboard=None,
                     dashboard_url=None,
-                    error=f"Charts not found: {list(missing_chart_ids)}",
+                    error=(
+                        f"Charts not found: {sorted(missing_chart_ids)}."
+                        " Use list_charts to get valid chart IDs."
+                    ),
                 )
 
             # Validate dataset access for each chart.
@@ -327,6 +339,15 @@ def generate_dashboard(  # noqa: C901
 
                 db.session.add(dashboard)
                 db.session.commit()  # pylint: disable=consider-using-transaction
+                try:
+                    db.session.refresh(dashboard)
+                except SQLAlchemyError:
+                    logger.warning(
+                        "Dashboard %s created but refresh failed; "
+                        "continuing with current values",
+                        dashboard.id,
+                        exc_info=True,
+                    )
             except SQLAlchemyError as db_err:
                 try:
                     db.session.rollback()  # pylint: disable=consider-using-transaction
@@ -394,15 +415,18 @@ def generate_dashboard(  # noqa: C901
                 ),
                 dashboard_url=dashboard_url,
                 error=None,
+                warnings=sanitization_warnings,
             )
 
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (
+            _humanize_timestamp,
             serialize_chart_summary,
             serialize_tag_object,
         )
         from superset.mcp_service.system.schemas import serialize_subject_object
 
+        include_data_model_metadata = user_can_view_data_model_metadata()
         dashboard_info = DashboardInfo(
             id=dashboard.id,
             dashboard_title=dashboard.dashboard_title,
@@ -411,6 +435,8 @@ def generate_dashboard(  # noqa: C901
             published=dashboard.published,
             created_on=dashboard.created_on,
             changed_on=dashboard.changed_on,
+            created_on_humanized=_humanize_timestamp(dashboard.created_on),
+            changed_on_humanized=_humanize_timestamp(dashboard.changed_on),
             created_by=dashboard.created_by_name or None,
             changed_by=dashboard.changed_by_name or None,
             uuid=str(dashboard.uuid) if dashboard.uuid else None,
@@ -426,11 +452,16 @@ def generate_dashboard(  # noqa: C901
                 for tag in getattr(dashboard, "tags", [])
                 if serialize_tag_object(tag) is not None
             ],
-            roles=[],  # Dashboard roles not typically set at creation
             charts=[
                 obj
                 for chart in getattr(dashboard, "slices", [])
-                if (obj := serialize_chart_summary(chart)) is not None
+                if (
+                    obj := serialize_chart_summary(
+                        chart,
+                        include_data_model_metadata=include_data_model_metadata,
+                    )
+                )
+                is not None
             ],
         )
 
@@ -441,7 +472,10 @@ def generate_dashboard(  # noqa: C901
         )
 
         return GenerateDashboardResponse(
-            dashboard=dashboard_info, dashboard_url=dashboard_url, error=None
+            dashboard=dashboard_info,
+            dashboard_url=dashboard_url,
+            error=None,
+            warnings=sanitization_warnings,
         )
 
     except (SQLAlchemyError, ValueError, AttributeError, ValidationError) as e:

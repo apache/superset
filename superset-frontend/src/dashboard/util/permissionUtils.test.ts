@@ -42,6 +42,7 @@ const editorUser: UserWithPermissionsAndRoles = {
   username: 'editor',
   permissions: {},
   roles: { Alpha: [['can_write', 'Dashboard']] },
+  groups: [],
 };
 
 const adminUser: UserWithPermissionsAndRoles = {

@@ -19,7 +19,8 @@
 
 import { useRef, useEffect, FC, useMemo } from 'react';
 
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { logging } from '@apache-superset/core/utils';
 import {
   SqlLabRootState,
@@ -86,7 +87,7 @@ const EditorAutoSync: FC = () => {
   const editorTabLastUpdatedAt = useSelector<SqlLabRootState, number>(
     state => state.sqlLab.editorTabLastUpdatedAt,
   );
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const lastSavedTimestampRef = useRef<number>(editorTabLastUpdatedAt);
 
   const currentQueryEditorId = useSelector<SqlLabRootState, string>(
