@@ -40,7 +40,7 @@ This migration normalises the row:
 
 # revision identifiers, used by Alembic.
 revision = "b4a3f2e1d0c9"
-down_revision = "a1b2c3d4e5f6"
+down_revision = "ce6bd21901ab"
 
 import logging  # noqa: E402
 
@@ -91,7 +91,7 @@ def upgrade() -> None:
             .all()
         )
         for pvm in pvms_lower:
-            conflict = (
+            upper_pvm = (
                 session.query(PermissionView)
                 .filter(
                     PermissionView.view_menu_id == security_upper.id,
@@ -99,7 +99,14 @@ def upgrade() -> None:
                 )
                 .one_or_none()
             )
-            if conflict:
+            if upper_pvm:
+                # Transfer role bindings from the duplicate row to the
+                # surviving row before discarding the duplicate, so no
+                # role silently loses a permission.
+                for role in list(pvm.role):
+                    if upper_pvm not in role.permissions:
+                        role.permissions.append(upper_pvm)
+                session.flush()
                 session.delete(pvm)
             else:
                 pvm.view_menu_id = security_upper.id
