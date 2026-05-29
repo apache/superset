@@ -100,23 +100,29 @@ class TestBigNumberChartConfig:
     def test_sql_expression_with_label_passes_pre_validation(self) -> None:
         """A custom SQL metric is a valid third option alongside aggregate and
         saved_metric in Tier-1 validation."""
+        from superset.mcp_service.chart.registry import get_registry
+
         data = {
             "chart_type": "big_number",
             "metric": {"sql_expression": "SUM(a)/SUM(b)", "label": "Ratio"},
         }
-        is_valid, error = SchemaValidator._pre_validate_big_number_config(data)
-        assert is_valid is True
+        plugin = get_registry().get("big_number")
+        assert plugin is not None
+        error = plugin.pre_validate(data)
         assert error is None
 
     def test_sql_expression_without_label_fails_pre_validation(self) -> None:
         """Tier-1 surfaces the label-required error with an LLM-actionable
         suggestion before the request reaches Pydantic's stricter error."""
+        from superset.mcp_service.chart.registry import get_registry
+
         data = {
             "chart_type": "big_number",
             "metric": {"sql_expression": "SUM(a)/SUM(b)"},
         }
-        is_valid, error = SchemaValidator._pre_validate_big_number_config(data)
-        assert is_valid is False
+        plugin = get_registry().get("big_number")
+        assert plugin is not None
+        error = plugin.pre_validate(data)
         assert error is not None
         assert error.error_code == "MISSING_SQL_METRIC_LABEL"
 
@@ -124,12 +130,15 @@ class TestBigNumberChartConfig:
         """Pre-validation runs on raw dict input before Pydantic coercion, so
         a non-string ``label`` (e.g. an int from a buggy client) must surface
         as a validation error, not an AttributeError from ``.strip()``."""
+        from superset.mcp_service.chart.registry import get_registry
+
         data = {
             "chart_type": "big_number",
             "metric": {"sql_expression": "SUM(a)/SUM(b)", "label": 123},
         }
-        is_valid, error = SchemaValidator._pre_validate_big_number_config(data)
-        assert is_valid is False
+        plugin = get_registry().get("big_number")
+        assert plugin is not None
+        error = plugin.pre_validate(data)
         assert error is not None
         assert error.error_code == "MISSING_SQL_METRIC_LABEL"
 

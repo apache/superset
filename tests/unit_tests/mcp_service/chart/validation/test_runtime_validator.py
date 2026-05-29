@@ -236,8 +236,13 @@ class TestRuntimeValidatorNonBlocking:
     def test_validate_cardinality_returns_cleanly_when_x_name_is_none(self) -> None:
         """The dimension-rejection guard on XYChartConfig normally forbids
         x.name=None, but a model_construct bypass (or a future code path)
-        could land us here. The defensive guard must return cleanly without
-        calling into CardinalityValidator (which assumes a real column)."""
+        could land us here. The defensive guard in XYChartPlugin.get_runtime_warnings
+        must skip cardinality without crashing."""
+        from superset.mcp_service.chart.plugins.xy import XYChartPlugin
+        from superset.mcp_service.chart.validation.runtime.format_validator import (
+            FormatTypeValidator,
+        )
+
         col = ColumnRef.model_construct(name=None)
         config = XYChartConfig.model_construct(
             chart_type="xy",
@@ -246,14 +251,19 @@ class TestRuntimeValidatorNonBlocking:
             kind="line",
         )
 
-        with patch(
-            "superset.mcp_service.chart.validation.runtime."
-            "cardinality_validator.CardinalityValidator.check_cardinality"
-        ) as mock_check:
-            warnings, suggestions = RuntimeValidator._validate_cardinality(
-                config, dataset_id=1
-            )
+        plugin = XYChartPlugin()
+        with (
+            patch.object(
+                FormatTypeValidator,
+                "validate_format_compatibility",
+                return_value=(True, []),
+            ),
+            patch(
+                "superset.mcp_service.chart.validation.runtime."
+                "cardinality_validator.CardinalityValidator.check_cardinality"
+            ) as mock_check,
+        ):
+            warnings = plugin.get_runtime_warnings(config, dataset_id=1)
 
         assert warnings == []
-        assert suggestions == []
         mock_check.assert_not_called()

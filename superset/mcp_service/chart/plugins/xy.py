@@ -119,6 +119,8 @@ class XYChartPlugin(BaseChartPlugin):
                 config_dict["x"]["name"], dataset_context
             )
         for y_col in config_dict.get("y") or []:
+            if y_col.get("sql_expression"):
+                continue  # sql_expression metrics have no underlying column
             if y_col.get("saved_metric"):
                 y_col["name"] = get_canonical_metric(y_col["name"], dataset_context)
             else:

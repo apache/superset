@@ -1358,6 +1358,7 @@ class TestUpdateChartColumnNormalization:
         mock_validate.return_value = CompileResult(
             success=True, error=None, error_code=None, tier="validation", error_obj=None
         )
+        mock_create_preview.return_value = ("http://example.com/explore", None, [])
 
         # normalize_column_names returns the config unchanged
         def _passthrough(config, dataset_id):
@@ -1418,7 +1419,8 @@ class TestUpdateChartColumnNormalization:
         mock_validate.return_value = CompileResult(
             success=True, error=None, error_code=None, tier="validation", error_obj=None
         )
-        mock_normalize.side_effect = RuntimeError("DB connection failed")
+        mock_create_preview.return_value = ("http://example.com/explore", None, [])
+        mock_normalize.side_effect = ValueError("DB connection failed")
 
         request = {
             "identifier": 1,

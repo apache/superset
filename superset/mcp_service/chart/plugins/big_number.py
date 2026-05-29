@@ -79,7 +79,25 @@ class BigNumberChartPlugin(BaseChartPlugin):
                 ],
                 error_code="INVALID_BIG_NUMBER_METRIC_TYPE",
             )
-        if not metric.get("aggregate") and not metric.get("saved_metric"):
+        if metric.get("sql_expression"):
+            label = metric.get("label")
+            if not isinstance(label, str) or not label.strip():
+                return ChartGenerationError(
+                    error_type="missing_sql_metric_label",
+                    message="SQL expression metrics require a non-empty 'label'",
+                    details=(
+                        "When using a custom SQL expression as the Big Number metric, "
+                        "a human-readable 'label' string is required so Superset can "
+                        "display the metric name."
+                    ),
+                    suggestions=[
+                        "Add 'label': e.g. {'sql_expression': 'SUM(a)/SUM(b)', "
+                        "'label': 'Conversion Rate'}",
+                        "The label must be a non-empty string",
+                    ],
+                    error_code="MISSING_SQL_METRIC_LABEL",
+                )
+        elif not metric.get("aggregate") and not metric.get("saved_metric"):
             return ChartGenerationError(
                 error_type="missing_metric_aggregate",
                 message=(
