@@ -23,7 +23,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.extensions import event_logger
 from superset.mcp_service.rls.schemas import (
     CreateRLSFilterRequest,
-    CreateRLSFilterResponse,
+    RLSFilterResponse,
 )
 
 logger = logging.getLogger(__name__)
@@ -41,19 +41,21 @@ logger = logging.getLogger(__name__)
 )
 async def create_rls_filter(
     request: CreateRLSFilterRequest, ctx: Context
-) -> CreateRLSFilterResponse:
+) -> RLSFilterResponse:
     """Create a row-level security (RLS) filter rule.
 
     RLS filters restrict which rows users can see based on their role membership.
     Use this to enforce data access policies at the row level.
 
     Filter types:
-    - "Regular": Hides rows from the specified roles unless the clause matches.
-    - "Base": Shows only rows where the clause matches to the specified roles.
+    - "Regular": Applies the clause only to users with the specified roles
+      (those roles see only matching rows; all other users see all rows).
+    - "Base": Applies the clause to ALL users EXCEPT users with the specified
+      roles (those roles bypass the filter and see all rows).
 
     Workflow:
     1. Use list_datasets to find the table IDs to protect.
-    2. Use find_users to locate role IDs to apply the filter to.
+    2. Look up role IDs from the Superset Roles admin page (/roles/list/).
     3. Call this tool with the SQL WHERE clause to enforce.
     """
     await ctx.info(
@@ -90,7 +92,7 @@ async def create_rls_filter(
             "RLS filter created: id=%s, name=%r" % (rls_rule.id, rls_rule.name)
         )
 
-        return CreateRLSFilterResponse(
+        return RLSFilterResponse(
             id=rls_rule.id,
             name=rls_rule.name,
             filter_type=rls_rule.filter_type,
@@ -103,7 +105,7 @@ async def create_rls_filter(
 
     except RolesNotFoundValidationError as exc:
         await ctx.warning("Role not found while creating RLS filter: %s" % (str(exc),))
-        return CreateRLSFilterResponse(
+        return RLSFilterResponse(
             id=None,
             name=request.name,
             filter_type=request.filter_type,
@@ -114,7 +116,7 @@ async def create_rls_filter(
         )
     except DatasourceNotFoundValidationError as exc:
         await ctx.warning("Table not found while creating RLS filter: %s" % (str(exc),))
-        return CreateRLSFilterResponse(
+        return RLSFilterResponse(
             id=None,
             name=request.name,
             filter_type=request.filter_type,

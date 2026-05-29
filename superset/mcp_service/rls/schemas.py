@@ -262,9 +262,10 @@ class CreateRLSFilterRequest(BaseModel):
     filter_type: Literal["Regular", "Base"] = Field(
         ...,
         description=(
-            'Type of filter. "Regular" hides rows from the specified roles '
-            'unless the clause matches. "Base" shows only rows where the '
-            "clause matches to the specified roles."
+            'Type of filter. "Regular": the clause is applied only to users with '
+            "the specified roles (restricts their row access; all other users see "
+            'all rows). "Base": the clause is applied to ALL users EXCEPT users '
+            "with the specified roles (those roles bypass the filter and see all rows)."
         ),
     )
     tables: list[int] = Field(
@@ -276,7 +277,11 @@ class CreateRLSFilterRequest(BaseModel):
     )
     roles: list[int] = Field(
         ...,
-        description="List of role IDs that see this filter applied.",
+        description=(
+            "List of role IDs. For Regular filters: users with these roles see only "
+            "rows matching the clause. For Base filters: users with these roles are "
+            "EXEMPT from the filter and see all rows."
+        ),
     )
     clause: str = Field(
         ...,
@@ -295,7 +300,7 @@ class CreateRLSFilterRequest(BaseModel):
     )
 
 
-class CreateRLSFilterResponse(BaseModel):
+class RLSFilterResponse(BaseModel):
     id: int | None = Field(
         None,
         description="RLS filter ID. None if the operation failed.",
@@ -332,8 +337,10 @@ class UpdateRLSFilterRequest(BaseModel):
         None,
         description=(
             "New filter type. Omit to keep existing. "
-            '"Regular" hides rows from the specified roles unless the clause matches. '
-            '"Base" shows only rows where the clause matches to the specified roles.'
+            '"Regular": the clause is applied only to users with the specified roles '
+            "(restricts their row access; all other users see all rows). "
+            '"Base": the clause is applied to ALL users EXCEPT users with the '
+            "specified roles (those roles bypass the filter and see all rows)."
         ),
     )
     tables: list[int] | None = Field(
@@ -346,7 +353,9 @@ class UpdateRLSFilterRequest(BaseModel):
     roles: list[int] | None = Field(
         None,
         description=(
-            "New list of role IDs that see this filter applied. "
+            "New list of role IDs. For Regular filters: users with these roles see "
+            "only rows matching the clause. For Base filters: users with these roles "
+            "are EXEMPT from the filter and see all rows. "
             "Omit to keep existing. Pass [] to remove all roles."
         ),
     )

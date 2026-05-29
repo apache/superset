@@ -23,7 +23,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.rls.schemas import (
-    CreateRLSFilterResponse,
+    RLSFilterResponse,
     UpdateRLSFilterRequest,
 )
 
@@ -75,7 +75,7 @@ def _build_update_properties(
 )
 async def update_rls_filter(
     request: UpdateRLSFilterRequest, ctx: Context
-) -> CreateRLSFilterResponse:
+) -> RLSFilterResponse:
     """Update an existing row-level security (RLS) filter rule.
 
     Only the fields you provide are updated; omitted fields retain their
@@ -99,7 +99,7 @@ async def update_rls_filter(
         existing = RLSDAO.find_by_id(request.id)
         if not existing:
             await ctx.warning("RLS filter not found: id=%s" % (request.id,))
-            return CreateRLSFilterResponse(
+            return RLSFilterResponse(
                 id=None,
                 error=f"RLS filter with id={request.id} not found.",
             )
@@ -116,7 +116,7 @@ async def update_rls_filter(
             "RLS filter updated: id=%s, name=%r" % (rls_rule.id, rls_rule.name)
         )
 
-        return CreateRLSFilterResponse(
+        return RLSFilterResponse(
             id=rls_rule.id,
             name=rls_rule.name,
             filter_type=rls_rule.filter_type,
@@ -129,16 +129,16 @@ async def update_rls_filter(
 
     except RLSRuleNotFoundError:
         await ctx.warning("RLS filter not found: id=%s" % (request.id,))
-        return CreateRLSFilterResponse(
+        return RLSFilterResponse(
             id=None,
             error=f"RLS filter with id={request.id} not found.",
         )
     except RolesNotFoundValidationError as exc:
         await ctx.warning("Role not found while updating RLS filter: %s" % (str(exc),))
-        return CreateRLSFilterResponse(id=None, error=str(exc))
+        return RLSFilterResponse(id=None, error=str(exc))
     except DatasourceNotFoundValidationError as exc:
         await ctx.warning("Table not found while updating RLS filter: %s" % (str(exc),))
-        return CreateRLSFilterResponse(id=None, error=str(exc))
+        return RLSFilterResponse(id=None, error=str(exc))
     except Exception as exc:
         await ctx.error(
             "Unexpected error updating RLS filter: %s: %s"
