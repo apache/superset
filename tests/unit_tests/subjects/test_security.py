@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
 
@@ -97,6 +97,48 @@ def test_is_editor(user_id, user_subject_ids, editor_ids, expected):
         ),
     ):
         assert sm.is_editor(resource) is expected
+
+
+def test_raise_for_editorship_requeries_soft_deleted_resource(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Soft-deleted resources are loaded with a scoped visibility bypass."""
+    from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
+
+    class _SoftDeleteBase:
+        pass
+
+    class _Resource(_SoftDeleteBase):
+        id: int
+
+    requested = _Resource()
+    requested.id = 123
+    persisted = _make_resource(editor_ids=[10])
+    sm = _make_sm()
+    query = MagicMock()
+    query.execution_options.return_value.get.return_value = persisted
+    session = MagicMock()
+    session.query.return_value = query
+
+    monkeypatch.setattr("superset.models.helpers.SoftDeleteMixin", _SoftDeleteBase)
+
+    with (
+        patch.object(type(sm), "session", new_callable=PropertyMock) as mock_session,
+        patch.object(sm, "is_admin", return_value=False),
+        patch("superset.security.manager.get_user_id", return_value=1),
+        patch(
+            "superset.subjects.utils.get_user_subject_ids",
+            return_value=[10],
+        ),
+    ):
+        mock_session.return_value = session
+        sm.raise_for_editorship(requested)
+
+    session.query.assert_called_once_with(_Resource)
+    query.execution_options.assert_called_once_with(
+        **{SKIP_VISIBILITY_FILTER_CLASSES: {_Resource}}
+    )
+    query.execution_options.return_value.get.assert_called_once_with(123)
 
 
 # ---------------------------------------------------------------------------

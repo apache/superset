@@ -3718,12 +3718,53 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         Note admins are deemed editors of all resources.
 
-        :param resource: The dashboard, dataset, chart, etc. resource
-        :raises SupersetSecurityException: If the current user is not an owner
-        """
+        The internal re-query opts out of the soft-delete visibility
+        listener via ``execution_options(_skip_visibility_filter_classes=
+        {resource.__class__})`` when callers pass a soft-deleted resource
+        (e.g., ``BaseRestoreCommand``). The bypass is scoped to
+        ``resource.__class__`` only, so soft-deletable relationships read
+        from ``orig_resource`` remain filtered.
 
-        # is_editor checks admin status internally
-        if self.is_editor(resource):
+        :param resource: The dashboard, dataset, chart, etc. resource
+        :raises SupersetSecurityException: If the current user is not an editor
+        """
+        # Inline import: ``superset.models.helpers`` transitively imports
+        # ``superset.models.core``, which depends on lazily-initialised
+        # ``superset.feature_flag_manager``. A top-level import here would
+        # create a circular dependency (security <-> models.core <-> superset).
+        from superset.models.helpers import (  # pylint: disable=import-outside-toplevel  # noqa: E501
+            SKIP_VISIBILITY_FILTER_CLASSES,
+            SoftDeleteMixin,
+        )
+
+        if self.is_admin():
+            return
+
+        orig_resource = resource
+        if isinstance(resource, SoftDeleteMixin):
+            # ``resource`` may have been loaded through a visibility bypass.
+            # Re-query with the same narrow bypass so the editor relationship
+            # is checked against the persisted row.
+            resource_id = resource.id
+            orig_resource = (
+                self.session.query(resource.__class__)
+                .execution_options(
+                    **{SKIP_VISIBILITY_FILTER_CLASSES: {resource.__class__}}
+                )
+                .get(resource_id)
+            )
+            if orig_resource is None:
+                raise SupersetSecurityException(
+                    SupersetError(
+                        error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+                        message=_(
+                            "Resource was removed before editorship could be verified",
+                        ),
+                        level=ErrorLevel.ERROR,
+                    )
+                )
+
+        if self.is_editor(orig_resource):
             return
 
         raise SupersetSecurityException(
