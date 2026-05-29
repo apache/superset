@@ -482,7 +482,7 @@ async def update_chart(  # noqa: C901
 
             try:
                 parsed_config = DatasetValidator.normalize_column_names(
-                    parsed_config, chart.datasource_id
+                    parsed_config, chart_datasource_id
                 )
             except NORMALIZATION_EXCEPTIONS as e:
                 logger.warning(

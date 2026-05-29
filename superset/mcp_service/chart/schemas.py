@@ -110,7 +110,8 @@ class ChartInfo(BaseModel):
         None,
         description=(
             "User-friendly chart type name (e.g. 'Line Chart', 'Pivot Table'). "
-            "Use this field when referring to chart types — never expose viz_type."
+            "Prefer this field when referring to chart types; "
+            "fall back to viz_type when this field is null."
         ),
     )
     datasource_name: str | None = Field(None, description="Datasource name")
@@ -1602,13 +1603,13 @@ class TableChartConfig(UnknownFieldCheckMixin):
             # Generate the label that will be used (same logic as create_metric_object)
             if col.sql_expression:
                 # SQL metrics carry a required label; use it verbatim.
-                label = col.label
+                label = col.label or ""
             elif col.saved_metric:
-                label = col.label or col.name
+                label = col.label or col.name or ""
             elif col.aggregate:
                 label = col.label or f"{col.aggregate}({col.name})"
             else:
-                label = col.label or col.name
+                label = col.label or col.name or ""
 
             key = (col.saved_metric, label)
             if key in labels_seen:
@@ -1753,7 +1754,7 @@ class XYChartConfig(UnknownFieldCheckMixin):
         # Add x-axis label if present (x may be None, resolved later).
         # The dimension validator rejects sql_expression on x, so name is set.
         if self.x is not None:
-            x_label = self.x.label or self.x.name
+            x_label = self.x.label or self.x.name or ""
             labels_seen[(self.x.saved_metric, x_label)] = "x"
 
         # Check Y-axis labels
@@ -1775,7 +1776,7 @@ class XYChartConfig(UnknownFieldCheckMixin):
                     # to prevent Superset "duplicate label" errors, so
                     # we allow them through validation.
                     continue
-                group_label = col.label or col.name
+                group_label = col.label or col.name or ""
                 group_key = (col.saved_metric, group_label)
                 if group_key in labels_seen:
                     duplicates.append(

@@ -172,7 +172,11 @@ class SchemaValidator:
                 error_code="INVALID_CHART_TYPE",
             )
 
-        if not registry.is_enabled(chart_type):
+        # Single get() call — returns None when the plugin is disabled.
+        # Avoids calling enabled_func twice (separate is_enabled + get both
+        # invoke _is_plugin_enabled, which may call operator-supplied callable).
+        plugin = registry.get(chart_type)
+        if plugin is None:
             valid_types = ", ".join(registry.all_types())
             return False, ChartGenerationError(
                 error_type="disabled_chart_type",
@@ -185,16 +189,6 @@ class SchemaValidator:
                     "Contact your administrator if you believe this is an error",
                 ],
                 error_code="DISABLED_CHART_TYPE",
-            )
-
-        plugin = registry.get(chart_type)
-        if plugin is None:
-            return False, ChartGenerationError(
-                error_type="invalid_chart_type",
-                message=f"Chart type '{chart_type}' has no registered plugin",
-                details="Internal error: chart type is listed but has no plugin",
-                suggestions=["Use a supported chart_type"],
-                error_code="INVALID_CHART_TYPE",
             )
 
         if (error := plugin.pre_validate(config)) is not None:

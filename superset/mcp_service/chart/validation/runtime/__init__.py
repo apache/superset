@@ -104,7 +104,7 @@ class RuntimeValidator:
             if plugin is None:
                 return []
             return plugin.get_runtime_warnings(config, dataset_id)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — plugin code is third-party-extensible
             logger.warning("Plugin runtime validation failed: %s", exc)
             return []
 
@@ -138,7 +138,7 @@ class RuntimeValidator:
 
         except ImportError:
             logger.warning("Chart type suggester not available")
-        except Exception as e:
+        except Exception as e:  # noqa: BLE001 — non-blocking warning path
             logger.warning("Chart type validation failed: %s", e)
 
         return warnings, suggestions

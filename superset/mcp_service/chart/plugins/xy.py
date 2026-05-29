@@ -156,13 +156,13 @@ class XYChartPlugin(BaseChartPlugin):
             )
             if format_warnings:
                 warnings.extend(format_warnings)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — non-blocking warning path
             logger.warning("XY format validation failed: %s", exc)
 
         try:
             chart_kind = config.kind
             group_by_col = config.group_by[0].name if config.group_by else None
-            if config.x is not None:
+            if config.x is not None and config.x.name is not None:
                 _ok, card_info = CardinalityValidator.check_cardinality(
                     dataset_id=dataset_id,
                     x_column=config.x.name,
@@ -172,7 +172,7 @@ class XYChartPlugin(BaseChartPlugin):
                 if not _ok and card_info:
                     warnings.extend(card_info.get("warnings", []))
                     warnings.extend(card_info.get("suggestions", []))
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — DB queries may raise infra errors
             logger.warning("XY cardinality validation failed: %s", exc)
 
         return warnings

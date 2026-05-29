@@ -379,9 +379,16 @@ def map_config_to_form_data(
 
     # Run post-map validation (e.g. BigNumber trendline temporal type check).
     # Raise ValueError to preserve backward-compatible error handling in callers.
+    # Include details and suggestions so callers logging str(e) surface actionable
+    # context (e.g. BigNumber trendline guidance) rather than just the headline.
     error = plugin.post_map_validate(config, form_data, dataset_id=dataset_id)
     if error is not None:
-        raise ValueError(error.message)
+        parts = [error.message]
+        if error.details:
+            parts.append(error.details)
+        if error.suggestions:
+            parts.append("Suggestions: " + "; ".join(error.suggestions))
+        raise ValueError(" ".join(parts))
 
     return form_data
 

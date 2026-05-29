@@ -87,7 +87,7 @@ def _ensure_plugins_loaded() -> None:
                 import superset.mcp_service.chart.plugins  # noqa: F401
 
                 _plugins_loaded = True
-            except Exception:
+            except Exception:  # noqa: BLE001 — plugin import may raise anything
                 _REGISTRY.clear()
                 _REGISTRY.update(registry_before_import)
                 _plugins_load_failed = True
@@ -140,7 +140,7 @@ def _is_plugin_enabled(chart_type: str) -> bool:
     if config.enabled_func is not None:
         try:
             return bool(config.enabled_func(chart_type))
-        except Exception:
+        except Exception:  # noqa: BLE001 — operator-supplied callable may raise anything
             logger.warning(
                 "MCP_CHART_PLUGIN_ENABLED_FUNC raised for chart_type=%r; "
                 "failing closed (plugin hidden)",
