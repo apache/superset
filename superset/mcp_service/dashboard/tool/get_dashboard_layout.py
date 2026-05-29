@@ -28,7 +28,6 @@ import logging
 from datetime import datetime, timezone
 
 from fastmcp import Context
-from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
@@ -75,10 +74,9 @@ async def get_dashboard_layout(
 
     try:
         from superset.daos.dashboard import DashboardDAO
-        from superset.models.dashboard import Dashboard
 
-        eager_options = [subqueryload(Dashboard.slices)]
-
+        # No eager loading: the layout serializer only reads position_json
+        # (plus id/title/uuid), so Dashboard.slices is never accessed.
         with event_logger.log_context(action="mcp.get_dashboard_layout.lookup"):
             core = ModelGetInfoCore(
                 dao_class=DashboardDAO,
@@ -87,7 +85,6 @@ async def get_dashboard_layout(
                 serializer=dashboard_layout_serializer,
                 supports_slug=True,
                 logger=logger,
-                query_options=eager_options,
             )
             result = core.run_tool(request.identifier)
 
