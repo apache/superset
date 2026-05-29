@@ -22,11 +22,9 @@ from flask import request, send_file
 from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
+from superset.commands.extension.settings.get import GetExtensionSettingsCommand
+from superset.commands.extension.settings.update import UpdateExtensionSettingsCommand
 from superset.extensions import security_manager
-from superset.extensions.settings import (
-    get_extension_settings,
-    update_extension_settings,
-)
 from superset.extensions.utils import (
     build_extension_data,
     get_extensions,
@@ -184,7 +182,7 @@ class ExtensionsRestApi(BaseApi):
             200:
               description: Extension settings
         """
-        return self.response(200, result=get_extension_settings())
+        return self.response(200, result=GetExtensionSettingsCommand().run())
 
     @protect()
     @safe
@@ -216,7 +214,7 @@ class ExtensionsRestApi(BaseApi):
         if not security_manager.is_admin():
             return self.response(403, message="Admin access required.")
         body = request.get_json(silent=True) or {}
-        result = update_extension_settings(body)
+        result = UpdateExtensionSettingsCommand(body).run()
         return self.response(200, result=result)
 
     @protect()
