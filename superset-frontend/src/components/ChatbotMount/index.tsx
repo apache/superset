@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect } from 'react';
-import { SupersetClient } from '@superset-ui/core';
+import { useEffect, useState } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { getActiveChatbot } from 'src/core/chatbot';
@@ -28,37 +27,14 @@ const CHATBOT_EDGE_MARGIN = 24;
 
 const ChatbotMount = () => {
   const theme = useTheme();
-  const [adminSelectedId, setAdminSelectedId] = useState<string | null>(null);
-  const [enabledMap, setEnabledMap] = useState<Record<string, boolean>>({});
-  const [activeChatbot, setActiveChatbot] = useState(() =>
-    getActiveChatbot(null, {}),
-  );
-
-  useEffect(() => {
-    let cancelled = false;
-    SupersetClient.get({ endpoint: '/api/v1/extensions/settings' })
-      .then(({ json }) => {
-        if (cancelled) return;
-        const id = json.result?.active_chatbot_id ?? null;
-        const enabled: Record<string, boolean> = json.result?.enabled ?? {};
-        setAdminSelectedId(id);
-        setEnabledMap(enabled);
-        setActiveChatbot(getActiveChatbot(id, enabled));
-      })
-      .catch(() => {
-        // Settings fetch failure is non-fatal — fall back to first-to-register.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+  const [activeChatbot, setActiveChatbot] = useState(() => getActiveChatbot());
 
   useEffect(
     () =>
       subscribeToLocation(CHATBOT_LOCATION, () =>
-        setActiveChatbot(getActiveChatbot(adminSelectedId, enabledMap)),
+        setActiveChatbot(getActiveChatbot()),
       ),
-    [adminSelectedId, enabledMap],
+    [],
   );
 
   if (!activeChatbot) {
