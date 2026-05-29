@@ -241,7 +241,7 @@ class CreatePluginRequest(BaseModel):
         max_length=_URL_MAX,
         description=(
             "Full URL pointing to the built plugin bundle "
-            "(e.g. a CDN-hosted JavaScript file)."
+            "(e.g. a CDN-hosted JavaScript file). Must use http or https scheme."
         ),
     )
 
@@ -286,11 +286,13 @@ class UpdatePluginRequest(BaseModel):
     name: str | None = Field(
         None,
         min_length=1,
+        max_length=_NAME_MAX,
         description="New human-friendly name for the plugin.",
     )
     key: str | None = Field(
         None,
         min_length=1,
+        max_length=_KEY_MAX,
         description=(
             "New unique plugin key. Should match the package name from the "
             "plugin's package.json (e.g. '@my-org/my-chart-plugin')."
@@ -299,18 +301,31 @@ class UpdatePluginRequest(BaseModel):
     bundle_url: str | None = Field(
         None,
         min_length=1,
+        max_length=_URL_MAX,
         description=(
             "New full URL pointing to the built plugin bundle "
-            "(e.g. a CDN-hosted JavaScript file)."
+            "(e.g. a CDN-hosted JavaScript file). Must use http or https scheme."
         ),
     )
 
-    @field_validator("name", "key", "bundle_url")
+    @field_validator("name", "key")
     @classmethod
     def must_not_be_blank(cls, v: str | None) -> str | None:
         if v is not None and not v.strip():
             raise ValueError("Field must not be blank")
         return v.strip() if v is not None else v
+
+    @field_validator("bundle_url")
+    @classmethod
+    def validate_bundle_url(cls, v: str | None) -> str | None:
+        if v is None:
+            return v
+        v = v.strip()
+        if not v:
+            raise ValueError("Field must not be blank")
+        if not (v.startswith("http://") or v.startswith("https://")):
+            raise ValueError("bundle_url must use http or https scheme")
+        return v
 
     @model_validator(mode="after")
     def at_least_one_field(self) -> "UpdatePluginRequest":

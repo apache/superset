@@ -15,18 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import logging
-
 from fastmcp import Context
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.extensions import event_logger
+from superset import is_feature_enabled
+from superset.extensions import db, event_logger
 from superset.mcp_service.plugin.schemas import (
     UpdatePluginRequest,
     UpdatePluginResponse,
 )
-
-logger = logging.getLogger(__name__)
+from superset.models.dynamic_plugins import DynamicPlugin
 
 
 @tool(
@@ -44,21 +43,16 @@ async def update_plugin(
 ) -> UpdatePluginResponse:
     """Update an existing dynamic plugin's name, key, or bundle URL.
 
-    Requires admin write access to DynamicPlugin and the DYNAMIC_PLUGINS
-    feature flag to be enabled. At least one of ``name``, ``key``, or
-    ``bundle_url`` must be provided; only the supplied fields are changed.
+    Requires DynamicPlugin write permission and the DYNAMIC_PLUGINS feature
+    flag to be enabled. At least one of ``name``, ``key``, or ``bundle_url``
+    must be provided; only the supplied fields are changed.
 
-    Use ``create_plugin`` to look up the plugin ID if you only know the key.
+    Use the plugin ID returned by ``create_plugin``, or look up the ID in
+    the Custom Plugins UI (Settings → Custom Plugins).
     """
     await ctx.info("Updating dynamic plugin: id=%s" % (request.id,))
 
     try:
-        from sqlalchemy.exc import IntegrityError
-
-        from superset import is_feature_enabled
-        from superset.extensions import db
-        from superset.models.dynamic_plugins import DynamicPlugin
-
         if not is_feature_enabled("DYNAMIC_PLUGINS"):
             await ctx.warning("DYNAMIC_PLUGINS feature flag is not enabled")
             return UpdatePluginResponse(
@@ -73,8 +67,11 @@ async def update_plugin(
         if plugin is None:
             await ctx.warning("Plugin not found: id=%s" % (request.id,))
             return UpdatePluginResponse(
-                error="No plugin found with id=%d. "
-                "Use the plugin ID returned by create_plugin." % request.id
+                error=(
+                    "No plugin found with id=%d. "
+                    "Look up the plugin ID in the Custom Plugins UI "
+                    "(Settings → Custom Plugins)." % request.id
+                )
             )
 
         if request.name is not None:
@@ -85,7 +82,7 @@ async def update_plugin(
             plugin.bundle_url = request.bundle_url
 
         with event_logger.log_context(action="mcp.update_plugin.save"):
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
         await ctx.info(
             "Dynamic plugin updated: id=%s, key=%r" % (plugin.id, plugin.key)
@@ -99,7 +96,10 @@ async def update_plugin(
         )
 
     except IntegrityError as exc:
-        db.session.rollback()
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            pass
         msg = str(exc.orig) if exc.orig else str(exc)
         await ctx.warning("Plugin update failed (duplicate field): %s" % (msg,))
         return UpdatePluginResponse(
@@ -109,7 +109,10 @@ async def update_plugin(
             )
         )
     except Exception as exc:
-        db.session.rollback()
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            pass
         await ctx.error(
             "Unexpected error updating plugin: %s: %s" % (type(exc).__name__, str(exc))
         )

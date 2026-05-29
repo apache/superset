@@ -15,18 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import logging
-
 from fastmcp import Context
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.extensions import event_logger
+from superset import is_feature_enabled
+from superset.extensions import db, event_logger
 from superset.mcp_service.plugin.schemas import (
     CreatePluginRequest,
     CreatePluginResponse,
 )
-
-logger = logging.getLogger(__name__)
+from superset.models.dynamic_plugins import DynamicPlugin
 
 
 @tool(
@@ -44,8 +43,8 @@ async def create_plugin(
 ) -> CreatePluginResponse:
     """Register a new dynamic (custom) plugin in Superset.
 
-    Requires the DYNAMIC_PLUGINS feature flag to be enabled and admin write
-    access to DynamicPlugin. The ``key`` must match the package name from the
+    Requires the DYNAMIC_PLUGINS feature flag to be enabled and DynamicPlugin
+    write permission. The ``key`` must match the package name from the
     plugin's package.json and be unique across all registered plugins.
 
     After registration, Superset will load the plugin bundle from ``bundle_url``
@@ -56,12 +55,6 @@ async def create_plugin(
     )
 
     try:
-        from sqlalchemy.exc import IntegrityError
-
-        from superset import is_feature_enabled
-        from superset.extensions import db
-        from superset.models.dynamic_plugins import DynamicPlugin
-
         if not is_feature_enabled("DYNAMIC_PLUGINS"):
             await ctx.warning("DYNAMIC_PLUGINS feature flag is not enabled")
             return CreatePluginResponse(
@@ -77,7 +70,7 @@ async def create_plugin(
                 bundle_url=request.bundle_url,
             )
             db.session.add(plugin)
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
         await ctx.info(
             "Dynamic plugin registered: id=%s, key=%r" % (plugin.id, plugin.key)
@@ -91,7 +84,10 @@ async def create_plugin(
         )
 
     except IntegrityError as exc:
-        db.session.rollback()
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            pass
         msg = str(exc.orig) if exc.orig else str(exc)
         await ctx.warning("Plugin creation failed (duplicate field): %s" % (msg,))
         return CreatePluginResponse(
@@ -101,7 +97,10 @@ async def create_plugin(
             )
         )
     except Exception as exc:
-        db.session.rollback()
+        try:
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+        except SQLAlchemyError:
+            pass
         await ctx.error(
             "Unexpected error creating plugin: %s: %s" % (type(exc).__name__, str(exc))
         )
