@@ -281,6 +281,7 @@ test('clicking export calls handleResourceExport with dataset ID', async () => {
   });
 });
 
+
 test('clicking duplicate opens modal and submits duplicate request', async () => {
   const datasetToDuplicate = {
     ...mockDatasets[1],
