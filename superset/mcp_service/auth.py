@@ -53,7 +53,10 @@ from flask_appbuilder.security.sqla.models import User
 
 from superset import security_manager
 from superset.mcp_service.composite_token_verifier import API_KEY_PASSTHROUGH_CLAIM
-from superset.mcp_service.mcp_config import default_user_resolver
+from superset.mcp_service.mcp_config import (
+    default_user_resolver,
+    get_mcp_api_key_enabled,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -327,6 +330,14 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
     return user
 
 
+def _redact_access_token(access_token: Any) -> None:
+    """Redact the raw token value after validation so it does not persist."""
+    try:
+        object.__setattr__(access_token, "token", "")
+    except (AttributeError, TypeError):
+        pass  # immutable AccessToken; LoggingMiddleware handles sanitization
+
+
 def _resolve_user_from_api_key(app: Any) -> User | None:
     """
     Resolve the current user from an API key passed via Bearer token.
@@ -347,7 +358,7 @@ def _resolve_user_from_api_key(app: Any) -> User | None:
             auth sources like ``MCP_DEV_USERNAME``), or if validation is
             not available in this FAB version.
     """
-    if not app.config.get("FAB_API_KEY_ENABLED", False):
+    if not get_mcp_api_key_enabled(app):
         return None
 
     try:
@@ -395,6 +406,8 @@ def _resolve_user_from_api_key(app: Any) -> User | None:
             "Invalid or expired API key. "
             "Create a new key at /api/v1/security/api_keys/."
         )
+
+    _redact_access_token(access_token)
 
     # Reload user with all relationships eagerly loaded to avoid
     # detached-instance errors during later permission checks.

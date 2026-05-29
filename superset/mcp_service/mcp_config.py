@@ -83,6 +83,13 @@ MCP_DISABLED_TOOLS: set[str] = set()
 # per RFC 6750 Section 3.1. This flag NEVER affects client-facing output.
 MCP_JWT_DEBUG_ERRORS = False
 
+# MCP API Key Authentication - controls whether FAB API keys are accepted by
+# the MCP transport. When None (default), falls back to FAB_API_KEY_ENABLED.
+# Set explicitly to True/False to control MCP transport behavior independently
+# of the FAB REST API setting. When FAB_API_KEY_ENABLED=True and this is None,
+# Superset logs a startup warning to make the implicit enablement visible.
+MCP_API_KEY_ENABLED: bool | None = None
+
 
 # Session configuration for local development
 MCP_SESSION_CONFIG = {
@@ -307,16 +314,42 @@ MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
 }
 
 
+def get_mcp_api_key_enabled(app: Flask, *, startup_warning: bool = False) -> bool:
+    """Return whether API key auth is enabled for the MCP transport.
+
+    Prefers ``MCP_API_KEY_ENABLED`` when explicitly set; falls back to
+    ``FAB_API_KEY_ENABLED``. When ``startup_warning=True`` and the value
+    is inherited from ``FAB_API_KEY_ENABLED``, logs a warning so operators
+    know a FAB config change now also affects the MCP transport.
+    """
+    if (mcp_setting := app.config.get("MCP_API_KEY_ENABLED", None)) is not None:
+        return bool(mcp_setting)
+    fab_enabled = bool(app.config.get("FAB_API_KEY_ENABLED", False))
+    if startup_warning and fab_enabled:
+        logger.warning(
+            "MCP API key auth is enabled via FAB_API_KEY_ENABLED=True. "
+            "Set MCP_API_KEY_ENABLED=True to silence this warning or "
+            "MCP_API_KEY_ENABLED=False to disable API keys on the MCP "
+            "transport without affecting the FAB REST API."
+        )
+    return fab_enabled
+
+
 def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
     """Default MCP auth factory using app.config values.
 
     Returns an auth provider when ``MCP_AUTH_ENABLED=True`` (JWT verifier,
     optionally wrapped with ``CompositeTokenVerifier`` for API keys) or
-    when only ``FAB_API_KEY_ENABLED=True`` (API-key-only verifier that
-    rejects all non-API-key Bearer tokens at the transport).
+    when only ``MCP_API_KEY_ENABLED=True`` (or ``FAB_API_KEY_ENABLED=True``
+    as a fallback) — API-key-only verifier that rejects all non-API-key
+    Bearer tokens at the transport.
+
+    ``MCP_API_KEY_ENABLED=None`` (default) defers to ``FAB_API_KEY_ENABLED``
+    and logs a startup warning when that setting is True, so operators are
+    aware that a FAB config change now also affects the MCP transport.
     """
     auth_enabled = app.config.get("MCP_AUTH_ENABLED", False)
-    api_key_enabled = app.config.get("FAB_API_KEY_ENABLED", False)
+    api_key_enabled = get_mcp_api_key_enabled(app, startup_warning=True)
 
     if not (auth_enabled or api_key_enabled):
         return None
@@ -347,30 +380,40 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
                     return None
 
     if api_key_enabled:
-        raw_prefixes: str | Sequence[str] = app.config.get(
-            "FAB_API_KEY_PREFIXES", ["sst_"]
-        )
-        # Normalize: a plain string (e.g. "sst_") would iterate as characters;
-        # wrap it in a list so CompositeTokenVerifier receives a proper sequence.
-        # Guard against non-iterable config values (e.g. None, integers) that
-        # would raise TypeError and cause _create_auth_provider to fail open.
-        if isinstance(raw_prefixes, str):
-            api_key_prefixes: list[str] = [raw_prefixes]
-        else:
-            try:
-                api_key_prefixes = list(raw_prefixes)
-            except TypeError:
-                logger.warning(
-                    "FAB_API_KEY_PREFIXES must be a string or list; using default"
-                )
-                api_key_prefixes = ["sst_"]
-        logger.info("API key auth enabled for MCP")
-        return CompositeTokenVerifier(
-            jwt_verifier=jwt_verifier,
-            api_key_prefixes=api_key_prefixes,
-        )
+        return _build_composite_verifier(app, jwt_verifier)
 
     return jwt_verifier
+
+
+def _build_composite_verifier(app: Flask, jwt_verifier: Any) -> CompositeTokenVerifier:
+    """Build a CompositeTokenVerifier with API key prefixes from config."""
+    if required_scopes := app.config.get("MCP_REQUIRED_SCOPES", []):
+        logger.warning(
+            "MCP_REQUIRED_SCOPES is configured but API key tokens bypass "
+            "scope enforcement. API key holders gain access regardless of "
+            "MCP_REQUIRED_SCOPES=%r.",
+            required_scopes,
+        )
+    raw_prefixes: str | Sequence[str] = app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
+    # Normalize: a plain string (e.g. "sst_") would iterate as characters;
+    # wrap it in a list so CompositeTokenVerifier receives a proper sequence.
+    # Guard against non-iterable config values (e.g. None, integers) that
+    # would raise TypeError and cause _create_auth_provider to fail open.
+    if isinstance(raw_prefixes, str):
+        api_key_prefixes: list[str] = [raw_prefixes]
+    else:
+        try:
+            api_key_prefixes = list(raw_prefixes)
+        except TypeError:
+            logger.warning(
+                "FAB_API_KEY_PREFIXES must be a string or list; using default"
+            )
+            api_key_prefixes = ["sst_"]
+    logger.info("API key auth enabled for MCP")
+    return CompositeTokenVerifier(
+        jwt_verifier=jwt_verifier,
+        api_key_prefixes=api_key_prefixes,
+    )
 
 
 def _build_jwt_verifier(
