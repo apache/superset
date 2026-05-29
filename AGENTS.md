@@ -70,7 +70,13 @@ The three trust boundaries are:
 
 The security model assumes that operator-controlled infrastructure, including the metadata database, cache backends, message brokers, secret stores, and deployment environment, remains within the operator's trust boundary. Vulnerabilities must demonstrate a security boundary violation by an attacker who does not already control those systems.
 
-The canonical authorization pattern in this codebase is `@has_access_api` (Flask-AppBuilder) at the route level plus `security_manager.raise_for_access(...)` at the object level, with DAO `base_filters` where listing is involved. Code following both gates is not a finding **on authorization grounds** by itself; code that omits the per-object gate on a route that returns or mutates a specific object is. Code following both gates can still contain injection, SSRF, XSS, or other classes of finding unrelated to authorization, which are evaluated separately.
+Route-level authorization in this codebase uses one of three Flask-AppBuilder decorators depending on the route type:
+
+- `@protect()` for REST API routes (`ModelRestApi` / `BaseApi`)
+- `@has_access_api` for legacy view routes
+- `@has_access` for legacy HTML view routes
+
+Object-level authorization via `security_manager.raise_for_access(...)` applies to data-bearing resources: dashboards, charts, datasets and datasources, queries, database and table access, and query contexts. Other resources (annotations, tags, CSS templates, reports, RLS rules, and similar) rely on the route-level decorator plus DAO `base_filters` for ownership scoping; the absence of `raise_for_access` on these resources is by design, not a finding. Code that omits the per-object gate on a route that returns or mutates a specific data-bearing object is in scope; code that follows the correct pattern for its resource class can still contain injection, SSRF, XSS, or other classes of finding unrelated to authorization, which are evaluated separately.
 
 The full role and capability matrix, in-scope and out-of-scope class lists, and CVE aggregation rules are in [`SECURITY.md`](SECURITY.md). Defer to that document for any specifics.
 
