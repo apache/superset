@@ -26,14 +26,25 @@ import {
 } from '../types';
 import { sanitizeHtml } from './series';
 
-const seriesTypeRegex = new RegExp(
-  `(.+)(${ForecastSeriesEnum.ForecastLower}|${ForecastSeriesEnum.ForecastTrend}|${ForecastSeriesEnum.ForecastUpper}|${ForecastSeriesEnum.Anomaly})$`,
+const forecastSuffixRegex = new RegExp(
+  `(.+)(${ForecastSeriesEnum.ForecastLower}|${ForecastSeriesEnum.ForecastTrend}|${ForecastSeriesEnum.ForecastUpper})$`,
 );
 export const extractForecastSeriesContext = (
   seriesName: OptionName,
 ): ForecastSeriesContext => {
   const name = seriesName as string;
-  const regexMatch = seriesTypeRegex.exec(name);
+
+  // Check for anomaly suffix first, then resolve nested forecast suffix
+  if (name.endsWith(ForecastSeriesEnum.Anomaly)) {
+    const stripped = name.slice(0, -ForecastSeriesEnum.Anomaly.length);
+    const forecastMatch = forecastSuffixRegex.exec(stripped);
+    return {
+      name: forecastMatch ? forecastMatch[1] : stripped,
+      type: ForecastSeriesEnum.Anomaly,
+    };
+  }
+
+  const regexMatch = forecastSuffixRegex.exec(name);
   if (!regexMatch) return { name, type: ForecastSeriesEnum.Observation };
   return {
     name: regexMatch[1],

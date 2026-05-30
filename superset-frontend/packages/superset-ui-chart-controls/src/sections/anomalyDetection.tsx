@@ -18,6 +18,29 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { legacyValidateInteger, legacyValidateNumber } from '@superset-ui/core';
+const validateMinRollingWindow = (v: unknown): string | false => {
+  const n = Number(v);
+  if (Number.isFinite(n) && n < 3) {
+    return t('Rolling window must be >= 3');
+  }
+  return false;
+};
+
+const validatePositiveNumber = (v: unknown): string | false => {
+  const n = Number(v);
+  if (Number.isFinite(n) && n <= 0) {
+    return t('Value must be a positive number');
+  }
+  return false;
+};
+
+const validateConfidenceInterval = (v: unknown): string | false => {
+  const n = Number(v);
+  if (Number.isFinite(n) && (n <= 0 || n >= 1)) {
+    return t('Confidence interval must be between 0 and 1 (exclusive)');
+  }
+  return false;
+};
 import { ControlPanelSectionConfig } from '../types';
 import { displayTimeRelatedControls } from '../utils';
 
@@ -30,7 +53,6 @@ export const ANOMALY_DEFAULT_DATA = {
   anomalyDetectionSeasonalityYearly: null,
   anomalyDetectionSeasonalityWeekly: null,
   anomalyDetectionSeasonalityDaily: null,
-  anomalyDetectionIncludeForecast: false,
 };
 
 export const anomalyDetectionControls: ControlPanelSectionConfig = {
@@ -74,7 +96,7 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
         config: {
           type: 'TextControl',
           label: t('Rolling window'),
-          validators: [legacyValidateInteger],
+          validators: [legacyValidateInteger, validateMinRollingWindow],
           default: ANOMALY_DEFAULT_DATA.anomalyDetectionRollingWindow,
           description: t(
             'Size of the rolling window for computing statistics. Must be >= 3.',
@@ -90,7 +112,7 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
         config: {
           type: 'TextControl',
           label: t('Sensitivity'),
-          validators: [legacyValidateNumber],
+          validators: [legacyValidateNumber, validatePositiveNumber],
           default: ANOMALY_DEFAULT_DATA.anomalyDetectionSensitivity,
           description: t(
             'Threshold for anomaly detection. Higher values mean fewer anomalies are detected. Typical values: 2.0 (more sensitive) to 4.0 (less sensitive).',
@@ -106,7 +128,7 @@ export const anomalyDetectionControls: ControlPanelSectionConfig = {
         config: {
           type: 'TextControl',
           label: t('Confidence interval'),
-          validators: [legacyValidateNumber],
+          validators: [legacyValidateNumber, validateConfidenceInterval],
           default: ANOMALY_DEFAULT_DATA.anomalyDetectionConfidenceInterval,
           description: t(
             'Width of the confidence interval. Should be between 0 and 1',

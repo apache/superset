@@ -122,7 +122,6 @@ const defaultFormData: EchartsTimeseriesFormData & {
   anomalyDetectionSeasonalityYearly: null,
   anomalyDetectionSeasonalityWeekly: null,
   anomalyDetectionSeasonalityDaily: null,
-  anomalyDetectionIncludeForecast: false,
   logAxis: false,
   markerEnabled: false,
   markerSize: 1,

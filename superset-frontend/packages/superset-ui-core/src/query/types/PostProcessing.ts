@@ -146,7 +146,6 @@ interface _PostProcessingAnomalyDetection {
     yearly_seasonality?: boolean | number;
     weekly_seasonality?: boolean | number;
     daily_seasonality?: boolean | number;
-    include_forecast_data?: boolean;
   };
 }
 export type PostProcessingAnomalyDetection =

@@ -53,6 +53,10 @@ describe('extractForecastSeriesContext', () => {
       name: 'X Y Z_',
       type: ForecastSeriesEnum.Anomaly,
     });
+    expect(extractForecastSeriesContext('metric__yhat__anomaly')).toEqual({
+      name: 'metric',
+      type: ForecastSeriesEnum.Anomaly,
+    });
   });
 });
 

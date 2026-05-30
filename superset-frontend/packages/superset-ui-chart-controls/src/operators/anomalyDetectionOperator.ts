@@ -28,23 +28,26 @@ export const anomalyDetectionOperator: PostProcessingFactory<
   const xAxisLabel = getXAxisLabel(formData);
   if (formData.anomalyDetectionEnabled && xAxisLabel) {
     const method: string = formData.anomalyDetectionMethod || 'zscore';
+    // Prophet requires a temporal x-axis; skip if not time-based
+    if (
+      method === 'prophet' &&
+      !formData.granularity_sqla &&
+      !formData.x_axis
+    ) {
+      return undefined;
+    }
     const options: Record<string, unknown> = { method, index: xAxisLabel };
     if (method === 'prophet') {
-      options.confidence_interval = parseFloat(
-        formData.anomalyDetectionConfidenceInterval ?? 0.8,
-      );
+      options.confidence_interval =
+        parseFloat(formData.anomalyDetectionConfidenceInterval) || 0.8;
       options.yearly_seasonality = formData.anomalyDetectionSeasonalityYearly;
       options.weekly_seasonality = formData.anomalyDetectionSeasonalityWeekly;
       options.daily_seasonality = formData.anomalyDetectionSeasonalityDaily;
     } else {
-      options.rolling_window = parseInt(
-        formData.anomalyDetectionRollingWindow,
-        10,
-      );
-      options.sensitivity = parseFloat(formData.anomalyDetectionSensitivity);
-    }
-    if (formData.forecastEnabled) {
-      options.include_forecast_data = true;
+      options.rolling_window =
+        parseInt(formData.anomalyDetectionRollingWindow, 10) || 14;
+      options.sensitivity =
+        parseFloat(formData.anomalyDetectionSensitivity) || 3.0;
     }
     return {
       operation: 'anomaly_detection',

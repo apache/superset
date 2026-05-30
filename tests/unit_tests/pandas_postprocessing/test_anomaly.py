@@ -92,10 +92,10 @@ def test_anomaly_detection_zscore():
     assert not np.isnan(df["a__anomaly"].iloc[8])
     assert df["a__anomaly"].iloc[8] == 100
 
-    # Non-anomaly points should be NaN
+    # All non-anomaly points should be NaN
     normal_indices = [i for i in range(20) if i != 8]
     nan_count = df["a__anomaly"].iloc[normal_indices].isna().sum()
-    assert nan_count > 0
+    assert nan_count == len(normal_indices)
 
 
 def test_anomaly_detection_mad():

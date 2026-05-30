@@ -198,7 +198,6 @@ def anomaly_detection(
     sensitivity: float = 3.0,
     index: Optional[str] = None,
     confidence_interval: float = 0.8,
-    include_forecast_data: bool = False,  # noqa: ARG001
     yearly_seasonality: Optional[Union[bool, int]] = None,
     weekly_seasonality: Optional[Union[bool, int]] = None,
     daily_seasonality: Optional[Union[bool, int]] = None,
