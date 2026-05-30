@@ -97,7 +97,8 @@ jobs:
     # Only runs if integration tests succeeded
     if: >
       github.event_name == 'workflow_run' &&
-      github.event.workflow_run.conclusion == 'success'
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_repository.full_name == github.repository
     name: Build (after integration tests)
     runs-on: ubuntu-24.04
     defaults:
