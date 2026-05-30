@@ -728,6 +728,7 @@ def test_get_sqla_engine_registers_prequery_event_listener(
     db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
     db_engine_spec.get_prequeries.return_value = ['SET search_path = "my_schema"']
     event_listen = mocker.patch("superset.models.core.sqla.event.listen")
+    mocker.patch("superset.models.core.sqla.event.remove")
 
     database = Database(database_name="my_db", sqlalchemy_uri="postgresql://")
     with database.get_sqla_engine(catalog="my_catalog", schema="my_schema"):
@@ -762,6 +763,7 @@ def test_get_sqla_engine_prequery_cursor_closed_on_exception(
     db_engine_spec = mocker.patch.object(Database, "db_engine_spec")
     db_engine_spec.get_prequeries.return_value = ['SET search_path = "bad_schema"']
     event_listen = mocker.patch("superset.models.core.sqla.event.listen")
+    mocker.patch("superset.models.core.sqla.event.remove")
 
     database = Database(database_name="my_db", sqlalchemy_uri="postgresql://")
     with database.get_sqla_engine(catalog=None, schema="bad_schema"):
@@ -825,6 +827,7 @@ def test_get_raw_connection_executes_prequeries_exactly_once(
     original_listen.side_effect = lambda engine, event, fn: captured_listeners.append(
         fn
     )
+    mocker.patch("superset.models.core.sqla.event.remove")
 
     # Simulate SQLAlchemy firing the "connect" event when raw_connection() is called.
     mock_dbapi_conn = mocker.MagicMock()
