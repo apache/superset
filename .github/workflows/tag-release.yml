@@ -21,6 +21,9 @@ on:
         options:
           - 'true'
           - 'false'
+permissions:
+  contents: read
+
 jobs:
   config:
     runs-on: ubuntu-24.04
@@ -42,6 +45,8 @@ jobs:
     if: needs.config.outputs.has-secrets
     name: docker-release
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     strategy:
       matrix:
         build_preset: ["dev", "lean", "py310", "websocket", "dockerize", "py311", "py312"]
@@ -51,6 +56,7 @@ jobs:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Setup Docker Environment
@@ -77,8 +83,9 @@ jobs:
           INPUT_RELEASE: ${{ github.event.inputs.release }}
           INPUT_FORCE_LATEST: ${{ github.event.inputs.force-latest }}
           INPUT_GIT_REF: ${{ github.event.inputs.git-ref }}
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
-          RELEASE="${{ github.event.release.tag_name }}"
+          RELEASE="${GITHUB_EVENT_RELEASE_TAG_NAME}"
           FORCE_LATEST=""
           EVENT="${{github.event_name}}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -114,6 +121,7 @@ jobs:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Use Node.js 20
@@ -128,11 +136,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_RELEASE: ${{ github.event.inputs.release }}
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
           export GITHUB_ACTOR=""
           git fetch --all --tags
           git checkout master
-          RELEASE="${{ github.event.release.tag_name }}"
+          RELEASE="${GITHUB_EVENT_RELEASE_TAG_NAME}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # in the case of a manually-triggered run, read release from input
             RELEASE="${INPUT_RELEASE}"

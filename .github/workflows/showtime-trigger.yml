@@ -102,7 +102,7 @@ jobs:
       - name: Install Superset Showtime
         if: steps.auth.outputs.authorized == 'true'
         run: |
-          echo "::notice::Maintainer ${{ github.actor }} triggered deploy for PR ${PULL_REQUEST_NUMBER}"
+          echo "::notice::Maintainer ${GITHUB_ACTOR} triggered deploy for PR ${PULL_REQUEST_NUMBER}"
           pip install --upgrade superset-showtime
           showtime version
 
