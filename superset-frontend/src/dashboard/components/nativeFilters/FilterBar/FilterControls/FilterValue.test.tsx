@@ -197,6 +197,7 @@ test('skips data fetch when cascade parent filters have no values selected', () 
   mockUseFilterDependencies.mockReturnValue({
     filters: [{ col: 'region', op: 'IN', val: ['US'] }],
   });
+  mockUseTransitiveParentIds.mockReturnValue(['NATIVE_FILTER-PARENT']);
 
   const childFilter = createMockFilter({
     id: 'NATIVE_FILTER-CHILD',

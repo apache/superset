@@ -203,7 +203,7 @@ function WithPopoverMenu({
       style={style ?? undefined}
     >
       {children}
-      {editMode && isFocused && (menuItems?.length ?? 0) > 0 && (
+      {editMode && isFocused && menuItems?.some(Boolean) && (
         <PopoverMenuStyles ref={menuRef}>
           {menuItems.map((node: ReactNode, i: number) => (
             <div className="menu-item" key={`menu-item-${i}`}>
