@@ -162,7 +162,6 @@ repos:
         name: zizmor (GHA security audit)
         entry: zizmor
         language: python
-        language_version: python3.10
         additional_dependencies: [zizmor==1.25.2]
         files: ^\.github/
         types: [yaml]
