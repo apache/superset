@@ -466,6 +466,40 @@ class TestGetSchemaToolViaClient:
         for field in ("owner", "created_by_fk_or_owner"):
             assert field not in info["filter_columns"]
 
+    @patch(
+        "superset.daos.report.ReportScheduleDAO.get_filterable_columns_and_operators"
+    )
+    @pytest.mark.asyncio
+    async def test_get_schema_report_omits_self_referencing_filter_columns(
+        self, mock_filters, mcp_server
+    ):
+        """Test that report schema does not advertise self-referencing filter columns.
+
+        Even if the DAO returns owners.id or created_by_fk_or_owner, they must be
+        excluded — these synthetic columns are generated server-side from the
+        owned_by_me flag and are not directly usable by LLM callers.
+        """
+        mock_filters.return_value = {
+            "name": ["eq", "ilike"],
+            "type": ["eq"],
+            "active": ["eq"],
+            "owners.id": ["eq", "in"],
+            "created_by_fk_or_owner": ["eq"],
+        }
+
+        with patch("superset.is_feature_enabled", return_value=True):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "get_schema", {"request": {"model_type": "report"}}
+                )
+
+        data = json.loads(result.content[0].text)
+        info = data["schema_info"]
+
+        assert "name" in info["filter_columns"]
+        for field in ("owners.id", "created_by_fk_or_owner"):
+            assert field not in info["filter_columns"]
+
 
 class TestGetSchemaEdgeCases:
     """Test edge cases for get_schema tool."""

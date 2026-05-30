@@ -107,7 +107,7 @@ async def list_reports(
             )
 
         def _serialize_report(
-            obj: "ReportSchedule | None", _cols: list[str] | None
+            obj: "ReportSchedule | None", cols: list[str] | None
         ) -> ReportInfo | None:
             return serialize_report_object(obj)
 
