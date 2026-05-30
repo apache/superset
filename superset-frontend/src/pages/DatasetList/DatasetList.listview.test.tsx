@@ -27,7 +27,7 @@ import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
 import { SupersetClient } from '@superset-ui/core';
-import { selectOption } from 'spec/helpers/testing-library';
+import { selectPillOption } from 'spec/helpers/testing-library';
 import {
   setupMocks,
   renderDatasetList,
@@ -1510,11 +1510,8 @@ test('bulk selection clears when filter changes', async () => {
     API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
 
-  // Wait for filter combobox to be ready before applying filter
-  await screen.findByRole('combobox', { name: 'Type' });
-
-  // Apply a filter using selectOption helper
-  await selectOption('Virtual', 'Type');
+  // Apply a filter using selectPillOption helper (compact pill UI)
+  await selectPillOption('Virtual', 'Type');
 
   // Wait for filter API call to complete
   await waitFor(() => {
@@ -1556,16 +1553,13 @@ test('type filter API call includes correct filter parameter', async () => {
     expect(screen.getByTestId('listview-table')).toBeInTheDocument();
   });
 
-  // Wait for Type filter combobox
-  await screen.findByRole('combobox', { name: 'Type' });
-
   // Snapshot call count before filter
   const callsBeforeFilter = fetchMock.callHistory.calls(
     API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
 
-  // Apply Type filter
-  await selectOption('Virtual', 'Type');
+  // Apply Type filter using compact pill UI
+  await selectPillOption('Virtual', 'Type');
 
   // Wait for filter API call to complete
   await waitFor(() => {
@@ -1606,16 +1600,13 @@ test('type filter persists after duplicating a dataset', async () => {
     expect(screen.getByTestId('listview-table')).toBeInTheDocument();
   });
 
-  // Wait for Type filter combobox
-  await screen.findByRole('combobox', { name: 'Type' });
-
   // Snapshot call count before filter
   const callsBeforeFilter = fetchMock.callHistory.calls(
     API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
 
-  // Apply Type filter
-  await selectOption('Virtual', 'Type');
+  // Apply Type filter using compact pill UI
+  await selectPillOption('Virtual', 'Type');
 
   // Wait for filter API call to complete
   await waitFor(() => {
