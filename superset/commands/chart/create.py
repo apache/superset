@@ -47,7 +47,9 @@ class CreateChartCommand(CreateMixin, BaseCommand):
         if params_str := self._properties.get("params"):
             params = json.loads(params_str)
             if isinstance(params, dict) and "viz_type" in params:
-                self._properties["viz_type"] = params["viz_type"]
+                # Only fall back to params when no top-level viz_type was supplied;
+                # an explicit top-level field takes precedence.
+                self._properties.setdefault("viz_type", params["viz_type"])
 
     @transaction(on_error=partial(on_error, reraise=ChartCreateFailedError))
     def run(self) -> Model:
