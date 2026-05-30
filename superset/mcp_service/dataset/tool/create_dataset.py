@@ -67,6 +67,8 @@ async def create_dataset(
     Optional fields:
     - schema: Schema/namespace where the table lives (e.g. "public"). Omit for
       databases without schema namespaces (e.g. SQLite).
+    - catalog: Catalog where the table lives. Omit for databases without catalog
+      support.
     - owners: List of user IDs to set as owners (defaults to calling user)
 
     Example:
@@ -94,10 +96,11 @@ async def create_dataset(
         from superset.commands.dataset.create import CreateDatasetCommand
         from superset.commands.dataset.exceptions import (
             DatasetCreateFailedError,
-            DatasetExistsValidationError,
             DatasetInvalidError,
-            TableNotFoundValidationError,
         )
+
+        # Normalize catalog: strip whitespace, treat blank as None
+        catalog = request.catalog.strip() if request.catalog else None
 
         dataset_properties: dict[str, object] = {
             "database": request.database_id,
@@ -105,6 +108,8 @@ async def create_dataset(
         }
         if schema is not None:
             dataset_properties["schema"] = schema
+        if catalog is not None:
+            dataset_properties["catalog"] = catalog
         if request.owners is not None:
             dataset_properties["owners"] = request.owners
 
@@ -123,14 +128,23 @@ async def create_dataset(
         )
         return result
 
-    except DatasetExistsValidationError as exc:
-        await ctx.warning("Dataset already exists: %s" % (str(exc),))
-        return DatasetError.create(error=str(exc), error_type="DatasetExistsError")
-    except TableNotFoundValidationError as exc:
-        await ctx.warning("Table not found: %s" % (str(exc),))
-        return DatasetError.create(error=str(exc), error_type="TableNotFoundError")
     except DatasetInvalidError as exc:
+        # CreateDatasetCommand.validate() collects DatasetExistsValidationError and
+        # TableNotFoundValidationError into DatasetInvalidError.exceptions, never
+        # raising them directly. Inspect the wrapped class names to return a typed
+        # error response matching the advertised contract.
+        classnames = exc.get_list_classnames()
         messages = exc.normalized_messages()
+        if "DatasetExistsValidationError" in classnames:
+            await ctx.warning("Dataset already exists: %s" % (messages,))
+            return DatasetError.create(
+                error=str(messages), error_type="DatasetExistsError"
+            )
+        if "TableNotFoundValidationError" in classnames:
+            await ctx.warning("Table not found: %s" % (messages,))
+            return DatasetError.create(
+                error=str(messages), error_type="TableNotFoundError"
+            )
         await ctx.warning("Dataset validation failed: %s" % (messages,))
         return DatasetError.create(error=str(messages), error_type="ValidationError")
     except DatasetCreateFailedError as exc:

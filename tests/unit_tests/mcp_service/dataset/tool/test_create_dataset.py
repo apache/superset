@@ -155,13 +155,21 @@ class TestCreateDataset:
     @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_already_exists(self, mock_command_class, mcp_server):
-        """Returns DatasetError when a dataset for the table already exists."""
-        from superset.commands.dataset.exceptions import DatasetExistsValidationError
+        """Returns DatasetExistsError when the table is already registered.
+
+        CreateDatasetCommand.validate() wraps DatasetExistsValidationError inside
+        DatasetInvalidError.  The tool must inspect get_list_classnames() to surface
+        the typed error response.
+        """
+        from superset.commands.dataset.exceptions import (
+            DatasetExistsValidationError,
+            DatasetInvalidError,
+        )
         from superset.sql.parse import Table
 
         mock_command = MagicMock()
-        mock_command.run.side_effect = DatasetExistsValidationError(
-            Table("orders", "public", None)
+        mock_command.run.side_effect = DatasetInvalidError(
+            exceptions=[DatasetExistsValidationError(Table("orders", "public", None))]
         )
         mock_command_class.return_value = mock_command
 
@@ -184,13 +192,23 @@ class TestCreateDataset:
     @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_table_not_found(self, mock_command_class, mcp_server):
-        """Returns DatasetError when the physical table does not exist in the DB."""
-        from superset.commands.dataset.exceptions import TableNotFoundValidationError
+        """Returns TableNotFoundError when the physical table does not exist in the DB.
+
+        CreateDatasetCommand.validate() wraps TableNotFoundValidationError inside
+        DatasetInvalidError.  The tool must inspect get_list_classnames() to surface
+        the typed error response.
+        """
+        from superset.commands.dataset.exceptions import (
+            DatasetInvalidError,
+            TableNotFoundValidationError,
+        )
         from superset.sql.parse import Table
 
         mock_command = MagicMock()
-        mock_command.run.side_effect = TableNotFoundValidationError(
-            Table("missing_table", "public", None)
+        mock_command.run.side_effect = DatasetInvalidError(
+            exceptions=[
+                TableNotFoundValidationError(Table("missing_table", "public", None))
+            ]
         )
         mock_command_class.return_value = mock_command
 
@@ -208,6 +226,31 @@ class TestCreateDataset:
 
         data = json.loads(result.content[0].text)
         assert data["error_type"] == "TableNotFoundError"
+
+    @patch("superset.commands.dataset.create.CreateDatasetCommand")
+    @pytest.mark.asyncio
+    async def test_create_dataset_with_catalog(self, mock_command_class, mcp_server):
+        """Catalog field is normalized and forwarded to the command when supplied."""
+        mock_dataset = _make_mock_dataset()
+        mock_command = MagicMock()
+        mock_command.run.return_value = mock_dataset
+        mock_command_class.return_value = mock_command
+
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "create_dataset",
+                {
+                    "request": {
+                        "database_id": 1,
+                        "catalog": "  hive  ",
+                        "schema": "default",
+                        "table_name": "events",
+                    }
+                },
+            )
+
+        call_kwargs = mock_command_class.call_args[0][0]
+        assert call_kwargs["catalog"] == "hive"
 
     @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
