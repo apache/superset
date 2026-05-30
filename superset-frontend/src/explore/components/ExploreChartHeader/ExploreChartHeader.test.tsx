@@ -918,6 +918,14 @@ describe('Additional actions tests', () => {
     let revokeObjectURLSpy: jest.SpyInstance;
 
     beforeAll(() => {
+      // jsdom does not define URL.createObjectURL / URL.revokeObjectURL, so we
+      // stub them before spying so that jest.spyOn finds a real property to wrap.
+      if (!URL.createObjectURL) {
+        URL.createObjectURL = () => '';
+      }
+      if (!URL.revokeObjectURL) {
+        URL.revokeObjectURL = () => {};
+      }
       // Spy on static URL methods rather than replacing the constructor so that
       // code paths calling `new URL(...)` (e.g. @braintree/sanitize-url) keep
       // working while tests can assert on blob URL creation/revocation.
