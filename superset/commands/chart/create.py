@@ -34,6 +34,7 @@ from superset.commands.chart.exceptions import (
 from superset.commands.utils import get_datasource_by_id
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
+from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -43,14 +44,10 @@ class CreateChartCommand(CreateMixin, BaseCommand):
     def __init__(self, data: dict[str, Any]):
         self._properties = data.copy()
 
-        if self._properties.get('params'):
-            try:
-                import json
-                params = json.loads(self._properties['params'])
-                if 'viz_type' in params:
-                    self._properties['viz_type'] = params['viz_type']
-            except json.JSONDecodeError as ex:
-                raise ex
+        if params_str := self._properties.get("params"):
+            params = json.loads(params_str)
+            if isinstance(params, dict) and "viz_type" in params:
+                self._properties["viz_type"] = params["viz_type"]
 
     @transaction(on_error=partial(on_error, reraise=ChartCreateFailedError))
     def run(self) -> Model:
