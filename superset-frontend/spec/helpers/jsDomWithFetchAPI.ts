@@ -64,6 +64,10 @@ export default class FixJSDOMEnvironment extends JSDOMEnvironment {
     this.global.AbortSignal = AbortSignal;
     this.global.AbortController = AbortController;
     this.global.ReadableStream = ReadableStream;
+    // @braintree/sanitize-url and other packages call `new URL(...)` which
+    // JSDOM does not expose reliably as a constructor in all contexts.
+    // Inject Node's built-in URL so third-party modules find a real one.
+    this.global.URL = URL;
 
     // Mock MessageChannel to prevent hanging Jest tests with rc-overflow@1.4.1
     // Forces rc-overflow to use requestAnimationFrame fallback instead
