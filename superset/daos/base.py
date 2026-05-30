@@ -61,6 +61,7 @@ class ColumnOperatorEnum(str, Enum):
     ne = "ne"
     sw = "sw"
     ew = "ew"
+    ct = "ct"
     in_ = "in"
     nin = "nin"
     gt = "gt"
@@ -85,6 +86,7 @@ operator_map: Dict[ColumnOperatorEnum, Any] = {
     ColumnOperatorEnum.ne: lambda col, val: col != val,
     ColumnOperatorEnum.sw: lambda col, val: col.like(f"{val}%"),
     ColumnOperatorEnum.ew: lambda col, val: col.like(f"%{val}"),
+    ColumnOperatorEnum.ct: lambda col, val: col.ilike(f"%{val}%"),
     ColumnOperatorEnum.in_: lambda col, val: col.in_(
         val if isinstance(val, (list, tuple)) else [val]
     ),
@@ -108,6 +110,7 @@ TYPE_OPERATOR_MAP = {
         ColumnOperatorEnum.ne,
         ColumnOperatorEnum.sw,
         ColumnOperatorEnum.ew,
+        ColumnOperatorEnum.ct,
         ColumnOperatorEnum.in_,
         ColumnOperatorEnum.nin,
         ColumnOperatorEnum.like,
