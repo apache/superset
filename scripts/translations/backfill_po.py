@@ -113,12 +113,17 @@ LANGUAGE_NAMES: dict[str, str] = {
 }
 
 
-def _ensure_license_header(po_path: Path) -> None:
+def _ensure_license_header(po_path: Path, *, dry_run: bool = False) -> None:
     """Prepend the ASF license header to the .po file if it is missing."""
     content = po_path.read_text(encoding="utf-8")
     if "Licensed to the Apache Software Foundation" not in content:
-        po_path.write_text(_ASF_LICENSE_HEADER + content, encoding="utf-8")
-        print(f"Added ASF license header to {po_path}", file=sys.stderr)
+        if dry_run:
+            print(
+                f"[dry-run] Would add ASF license header to {po_path}", file=sys.stderr
+            )
+        else:
+            po_path.write_text(_ASF_LICENSE_HEADER + content, encoding="utf-8")
+            print(f"Added ASF license header to {po_path}", file=sys.stderr)
 
 
 def _lang_name(code: str) -> str:
@@ -536,7 +541,7 @@ def backfill(
     with open(index_path, encoding="utf-8") as f:
         index: dict[str, Any] = json.load(f)
 
-    _ensure_license_header(po_path)
+    _ensure_license_header(po_path, dry_run=dry_run)
 
     print(f"Loading {po_path} …", file=sys.stderr)
     cat = polib.pofile(str(po_path))
