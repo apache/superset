@@ -176,7 +176,7 @@ holidays==0.82
     # via apache-superset (pyproject.toml)
 humanize==4.12.3
     # via apache-superset (pyproject.toml)
-idna==3.10
+idna==3.15
     # via
     #   email-validator
     #   requests
