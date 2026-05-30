@@ -46,7 +46,7 @@ jest.mock('@superset-ui/core', () => {
       </div>
     ),
     isFeatureEnabled: () => false,
-    getClientErrorObject: (err: unknown) =>
+    getClientErrorObject: (_err: unknown) =>
       Promise.resolve({
         message: 'Something went wrong',
         errors: [
@@ -64,9 +64,12 @@ jest.mock('../useFilterOutlined', () => ({
 }));
 
 const mockUseFilterDependencies = jest.fn().mockReturnValue({});
+const mockUseTransitiveParentIds = jest.fn().mockReturnValue([]);
 jest.mock('./state', () => ({
   useFilterDependencies: (...args: unknown[]) =>
     mockUseFilterDependencies(...args),
+  useTransitiveParentIds: (...args: unknown[]) =>
+    mockUseTransitiveParentIds(...args),
 }));
 
 const mockStore = configureStore([thunk]);
