@@ -45,6 +45,71 @@ DEFAULT_LAYER_COLUMNS = ["id", "name", "descr"]
 DEFAULT_ANNOTATION_COLUMNS = ["id", "short_descr", "start_dttm", "end_dttm", "layer_id"]
 
 
+# ---------------------------------------------------------------------------
+# Mutation schemas (create / update)
+# ---------------------------------------------------------------------------
+
+
+class CreateAnnotationLayerRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=250,
+        description="Unique name for the annotation layer",
+    )
+    descr: str | None = Field(
+        None, description="Optional description of the annotation layer"
+    )
+
+
+class CreateAnnotationLayerResponse(BaseModel):
+    id: int | None = Field(
+        None,
+        description="ID of the created annotation layer, or None if failed",
+    )
+    name: str = Field(..., description="Name of the annotation layer")
+    descr: str | None = Field(None, description="Description of the annotation layer")
+    error: str | None = Field(None, description="Error message if creation failed")
+
+
+class UpdateAnnotationLayerRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: int = Field(..., description="ID of the annotation layer to update")
+    name: str | None = Field(
+        None,
+        min_length=1,
+        max_length=250,
+        description="New name for the annotation layer",
+    )
+    descr: str | None = Field(
+        None, description="New description for the annotation layer"
+    )
+
+    @model_validator(mode="after")
+    def at_least_one_field(self) -> "UpdateAnnotationLayerRequest":
+        if self.name is None and self.descr is None:
+            raise ValueError("At least one of 'name' or 'descr' must be provided")
+        return self
+
+
+class UpdateAnnotationLayerResponse(BaseModel):
+    id: int | None = Field(
+        None,
+        description="ID of the updated annotation layer, or None if failed",
+    )
+    name: str | None = Field(None, description="Name of the annotation layer")
+    descr: str | None = Field(None, description="Description of the annotation layer")
+    error: str | None = Field(None, description="Error message if update failed")
+
+
+# ---------------------------------------------------------------------------
+# Read schemas (list / get)
+# ---------------------------------------------------------------------------
+
+
 class AnnotationLayerFilter(ColumnOperator):
     """Filter object for annotation layer listing."""
 

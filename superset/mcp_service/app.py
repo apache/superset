@@ -136,6 +136,8 @@ Annotation Layers:
 - get_annotation_layer_info: Get annotation layer details by ID
 - list_layer_annotations: List annotations within a layer (requires layer_id, 1-based pagination)
 - get_layer_annotation_info: Get annotation details by layer_id and annotation_id
+- create_annotation_layer: Create a new annotation layer (requires write access)
+- update_annotation_layer: Update an annotation layer's name or description (requires write access)
 
 Tag Management:
 - list_tags: List tags with advanced filters (1-based pagination)
@@ -673,10 +675,12 @@ from superset.mcp_service.action_log.tool import (  # noqa: F401, E402
     list_action_logs,
 )
 from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
+    create_annotation_layer,
     get_annotation_layer_info,
     get_layer_annotation_info,
     list_annotation_layers,
     list_layer_annotations,
+    update_annotation_layer,
 )
 from superset.mcp_service.chart import (  # noqa: F401, E402
     prompts as chart_prompts,
