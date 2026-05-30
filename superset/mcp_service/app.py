@@ -749,11 +749,11 @@ from superset.mcp_service.theme.tool import (  # noqa: F401, E402
     list_themes,
 )
 from superset.mcp_service.user.tool import (  # noqa: F401, E402
-    create_user,
     get_user_info,
     list_users,
-    update_user,
 )
+from superset.mcp_service.user.tool.create_user import create_user  # noqa: F401, E402
+from superset.mcp_service.user.tool.update_user import update_user  # noqa: F401, E402
 
 
 def _remove_disabled_tools(disabled_tools: set[str]) -> None:
