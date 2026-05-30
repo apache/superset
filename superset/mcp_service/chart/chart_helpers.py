@@ -288,25 +288,14 @@ def _deck_gl_spatial_cols(spatial: dict[str, Any] | None) -> list[str]:
     return []
 
 
-def _deck_gl_tooltip_cols(tooltip_contents: list[Any] | None) -> list[str]:
-    """Return column names from Deck.gl tooltip_contents config."""
-    cols: list[str] = []
-    for item in tooltip_contents or []:
-        if isinstance(item, str):
-            cols.append(item)
-        elif isinstance(item, dict) and item.get("item_type") == "column":
-            col = item.get("column_name")
-            if isinstance(col, str) and col:
-                cols.append(col)
-    return cols
-
-
 def _is_metric_ref(value: Any) -> bool:
     """Return True if value is a metric reference (dict or non-numeric string).
 
     Deck.gl size/metric fields hold either a dict metric definition or a
     simple saved-metric string key (e.g. "count"). Scalar numeric strings
     like "100" are fixed display settings and must not be treated as metrics.
+    Note: float() accepts "inf", "-inf", and "nan", so those strings would be
+    excluded here too — they are not valid metric names in practice.
     """
     if isinstance(value, dict):
         return True
@@ -367,6 +356,7 @@ def _resolve_deck_gl_metrics(
             metrics.append(value)
     elif isinstance(prf, str) and _is_metric_ref(prf):
         # Legacy deck_scatter: point_radius_fixed as a bare non-numeric metric key
+        logger.debug("Legacy point_radius_fixed string metric encountered: %s", prf)
         metrics.append(prf)
     return metrics
 
@@ -399,9 +389,6 @@ def resolve_deck_gl_columns(form_data: dict[str, Any]) -> list[str]:
     for col in form_data.get("js_columns") or []:
         if isinstance(col, str):
             _add(col)
-
-    for col in _deck_gl_tooltip_cols(form_data.get("tooltip_contents")):
-        _add(col)
 
     return columns
 

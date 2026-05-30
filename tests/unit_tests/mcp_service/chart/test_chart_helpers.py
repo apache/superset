@@ -19,7 +19,6 @@ from unittest.mock import MagicMock, patch
 
 from superset.mcp_service.chart.chart_helpers import (
     _deck_gl_null_filters,
-    _deck_gl_tooltip_cols,
     _is_metric_ref,
     _resolve_deck_gl_metrics,
     apply_form_data_filters_to_query,
@@ -502,31 +501,20 @@ def test_build_query_dicts_deck_path_with_row_limit(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# resolve_deck_gl_columns — tooltip_contents (cross_filter_column excluded)
+# resolve_deck_gl_columns — display-only fields excluded
 # ---------------------------------------------------------------------------
 
 
-def test_resolve_deck_gl_columns_with_tooltip_contents_strings():
+def test_resolve_deck_gl_columns_ignores_tooltip_contents():
+    # tooltip_contents are display-only; BaseDeckGLViz.query_obj() does not
+    # include them in columns/groupby, so the fallback should not either.
     form_data = {
         "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
         "tooltip_contents": ["name", "category"],
     }
     cols = resolve_deck_gl_columns(form_data)
-    assert "name" in cols
-    assert "category" in cols
-
-
-def test_resolve_deck_gl_columns_with_tooltip_contents_dict_items():
-    form_data = {
-        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
-        "tooltip_contents": [
-            {"item_type": "column", "column_name": "city"},
-            {"item_type": "metric", "key": "sum__sales"},  # metric items ignored
-        ],
-    }
-    cols = resolve_deck_gl_columns(form_data)
-    assert "city" in cols
-    assert "sum__sales" not in cols
+    assert "name" not in cols
+    assert "category" not in cols
 
 
 def test_resolve_deck_gl_columns_ignores_cross_filter_column():
@@ -536,38 +524,6 @@ def test_resolve_deck_gl_columns_ignores_cross_filter_column():
     }
     cols = resolve_deck_gl_columns(form_data)
     assert "region" not in cols
-
-
-def test_resolve_deck_gl_columns_tooltip_deduplicates_with_spatial():
-    form_data = {
-        "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
-        "tooltip_contents": ["lon"],  # already in spatial cols
-    }
-    cols = resolve_deck_gl_columns(form_data)
-    assert cols.count("lon") == 1
-
-
-# ---------------------------------------------------------------------------
-# _deck_gl_tooltip_cols
-# ---------------------------------------------------------------------------
-
-
-def test_deck_gl_tooltip_cols_strings():
-    assert _deck_gl_tooltip_cols(["city", "state"]) == ["city", "state"]
-
-
-def test_deck_gl_tooltip_cols_dict_column_items():
-    result = _deck_gl_tooltip_cols([{"item_type": "column", "column_name": "country"}])
-    assert result == ["country"]
-
-
-def test_deck_gl_tooltip_cols_skips_metric_items():
-    result = _deck_gl_tooltip_cols([{"item_type": "metric", "key": "sum__sales"}])
-    assert result == []
-
-
-def test_deck_gl_tooltip_cols_none():
-    assert _deck_gl_tooltip_cols(None) == []
 
 
 # ---------------------------------------------------------------------------
