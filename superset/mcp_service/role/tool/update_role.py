@@ -16,9 +16,12 @@
 # under the License.
 
 import logging
+from typing import Any
 
 from fastmcp import Context
+from flask import current_app
 from flask_appbuilder.security.sqla.models import PermissionView
+from sqlalchemy.exc import IntegrityError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset import security_manager
@@ -26,6 +29,18 @@ from superset.extensions import db, event_logger
 from superset.mcp_service.role.schemas import UpdateRoleRequest, UpdateRoleResponse
 
 logger = logging.getLogger(__name__)
+
+
+def _check_rename(role: Any, new_name: str, config: Any, sm: Any) -> str | None:
+    """Return an error string if the rename should be rejected, else None."""
+    admin_role = config.get("AUTH_ROLE_ADMIN", "Admin")
+    public_role = config.get("AUTH_ROLE_PUBLIC", "Public")
+    if role.name in {admin_role, public_role}:
+        return f"Cannot rename built-in role '{role.name}'."
+    existing = sm.find_role(new_name)
+    if existing is not None and existing.id != role.id:
+        return f"Role name '{new_name}' is already in use (id={existing.id})."
+    return None
 
 
 @tool(
@@ -65,16 +80,12 @@ async def update_role(request: UpdateRoleRequest, ctx: Context) -> UpdateRoleRes
 
         role = roles[0]
 
-        if request.name is not None:
-            existing = security_manager.find_role(request.name)
-            if existing is not None and existing.id != role.id:
-                await ctx.warning("Role name already in use: name=%r" % (request.name,))
-                return UpdateRoleResponse(
-                    error=(
-                        f"Role name '{request.name}' is already in use"
-                        f" (id={existing.id})."
-                    )
-                )
+        if request.name is not None and request.name != role.name:
+            if err := _check_rename(
+                role, request.name, current_app.config, security_manager
+            ):
+                await ctx.warning("Rename rejected: %s" % (err,))
+                return UpdateRoleResponse(error=err)
             role.name = request.name
 
         if request.permission_ids is not None:
@@ -97,6 +108,23 @@ async def update_role(request: UpdateRoleRequest, ctx: Context) -> UpdateRoleRes
 
         await ctx.info("Role updated: id=%s, name=%r" % (role.id, role.name))
         return UpdateRoleResponse(id=role.id, name=role.name)
+
+    except IntegrityError:
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        if request.name is not None:
+            conflicting = security_manager.find_role(request.name)
+            if conflicting is not None and conflicting.id != request.id:
+                await ctx.warning(
+                    "Role name conflict (race condition): name=%r" % (request.name,)
+                )
+                return UpdateRoleResponse(
+                    error=(
+                        f"Role name '{request.name}' is already in use"
+                        f" (id={conflicting.id})."
+                    )
+                )
+        await ctx.error("IntegrityError updating role; cause unclear after rollback")
+        raise
 
     except Exception as exc:
         await ctx.error(
