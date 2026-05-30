@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import { sanitizeUrl } from '@braintree/sanitize-url';
 import { useCallback, useState, FormEvent } from 'react';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
@@ -247,7 +247,7 @@ export const SaveDatasetModal = ({
     if (openWindow) {
       window.open(url, '_blank', 'noreferrer');
     } else {
-      window.location.href = url;
+      window.location.href = sanitizeUrl(url);
     }
   };
   const formDataWithDefaults = {

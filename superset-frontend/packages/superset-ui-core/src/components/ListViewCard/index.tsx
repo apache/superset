@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { sanitizeUrl } from '@braintree/sanitize-url';
 import { FC } from 'react';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { Skeleton } from '../Skeleton';
@@ -140,7 +141,7 @@ const ThinSkeleton = styled(Skeleton)`
 const paragraphConfig = { rows: 1, width: 150 };
 
 const AnchorLink: FC<LinkProps> = ({ to, children }) => (
-  <a href={to}>{children}</a>
+  <a href={sanitizeUrl(to)}>{children}</a>
 );
 
 function ListViewCard({

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { sanitizeUrl } from '@braintree/sanitize-url';
 import { ensureAppRoot } from './pathUtils';
 
 export const navigateTo = (
@@ -25,9 +26,9 @@ export const navigateTo = (
   if (options?.newWindow) {
     window.open(ensureAppRoot(url), '_blank', 'noopener noreferrer');
   } else if (options?.assign) {
-    window.location.assign(ensureAppRoot(url));
+    window.location.assign(sanitizeUrl(ensureAppRoot(url)));
   } else {
-    window.location.href = ensureAppRoot(url);
+    window.location.href = sanitizeUrl(ensureAppRoot(url));
   }
 };
 
