@@ -34,6 +34,7 @@ _LOGGABLE_FIELDS = (
     "sql",
     "db_id",
     "schema",
+    "catalog",
     "description",
     "template_parameters",
 )
@@ -46,6 +47,7 @@ def _build_update_properties(request: "UpdateSavedQueryRequest") -> dict[str, An
         "sql": request.sql,
         "db_id": request.db_id,
         "schema": request.schema,
+        "catalog": request.catalog,
         "description": request.description,
         "template_parameters": request.template_parameters,
     }
@@ -120,6 +122,7 @@ async def update_saved_query(
             sql=saved_query.sql,
             db_id=saved_query.db_id,
             schema=saved_query.schema or None,
+            catalog=getattr(saved_query, "catalog", None),
             description=saved_query.description or None,
             url=saved_query_url,
         )

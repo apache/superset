@@ -298,6 +298,10 @@ class CreateSavedQueryRequest(BaseModel):
         None,
         description="Human-readable description of the saved query (optional).",
     )
+    catalog: str | None = Field(
+        None,
+        description="Database catalog the query targets (optional).",
+    )
     template_parameters: str | None = Field(
         None,
         description=(
@@ -345,6 +349,10 @@ class UpdateSavedQueryRequest(BaseModel):
         None,
         description="New description (optional).",
     )
+    catalog: str | None = Field(
+        None,
+        description="New database catalog (optional).",
+    )
     template_parameters: str | None = Field(
         None,
         description=("New JSON string of Jinja2 template parameters (optional)."),
@@ -376,6 +384,7 @@ class UpdateSavedQueryResponse(BaseModel):
     sql: str | None = Field(None, description="SQL query text stored.")
     db_id: int | None = Field(None, description="Database ID used.")
     schema: str | None = Field(None, description="Database schema (if set).")
+    catalog: str | None = Field(None, description="Database catalog (if set).")
     description: str | None = Field(None, description="Query description (if set).")
     url: str | None = Field(
         None,
@@ -395,6 +404,7 @@ class CreateSavedQueryResponse(BaseModel):
     sql: str = Field(..., description="SQL query text stored.")
     db_id: int = Field(..., description="Database ID used.")
     schema: str | None = Field(None, description="Database schema (if set).")
+    catalog: str | None = Field(None, description="Database catalog (if set).")
     description: str | None = Field(None, description="Query description (if set).")
     url: str | None = Field(
         None,

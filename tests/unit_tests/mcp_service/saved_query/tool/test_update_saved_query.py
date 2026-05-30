@@ -172,6 +172,7 @@ class TestUpdateSavedQueryToolLogic:
             mock_sq.sql = "SELECT 1"
             mock_sq.db_id = 1
             mock_sq.schema = None
+            mock_sq.catalog = None
             mock_sq.description = None
 
             request = UpdateSavedQueryRequest(id=42, label="Renamed")
@@ -292,5 +293,38 @@ class TestUpdateSavedQueryToolLogic:
             assert result.id is None
             assert result.error is not None
             assert "Failed to update" in result.error
+        finally:
+            _restore_modules(saved)
+
+    @pytest.mark.anyio
+    async def test_update_with_catalog(self) -> None:
+        mod, saved = _get_tool_module()
+        try:
+            mock_sq = MagicMock()
+            mock_sq.id = 7
+            mock_sq.label = "Cat Query"
+            mock_sq.sql = "SELECT 1"
+            mock_sq.db_id = 2
+            mock_sq.schema = "dbo"
+            mock_sq.catalog = "main"
+            mock_sq.description = None
+
+            request = UpdateSavedQueryRequest(id=7, catalog="main")
+
+            mock_update_mod = _mock_update_module(sq=mock_sq)
+
+            with patch.dict(
+                sys.modules,
+                {
+                    "superset.commands.query.update": mock_update_mod,
+                    "superset.commands.query.exceptions": _mock_exceptions_module(),
+                },
+            ):
+                result = await mod.update_saved_query(request, _make_mock_ctx())
+
+            assert result.id == 7
+            assert result.catalog == "main"
+            called_props = mock_update_mod.UpdateSavedQueryCommand.call_args[0][1]
+            assert called_props["catalog"] == "main"
         finally:
             _restore_modules(saved)

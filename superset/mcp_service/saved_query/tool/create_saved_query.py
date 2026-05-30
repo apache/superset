@@ -72,6 +72,8 @@ async def create_saved_query(
         }
         if request.schema is not None:
             properties["schema"] = request.schema
+        if request.catalog is not None:
+            properties["catalog"] = request.catalog
         if request.description is not None:
             properties["description"] = request.description
         if request.template_parameters is not None:
@@ -93,6 +95,7 @@ async def create_saved_query(
             sql=saved_query.sql,
             db_id=saved_query.db_id,
             schema=saved_query.schema or None,
+            catalog=getattr(saved_query, "catalog", None),
             description=saved_query.description or None,
             url=saved_query_url,
         )
