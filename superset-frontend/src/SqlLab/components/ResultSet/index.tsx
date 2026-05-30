@@ -784,7 +784,7 @@ const ResultSet = ({
         </>
       );
     }
-    if (data?.length === 0) {
+    if (data && data.length === 0) {
       return (
         <>
           <Alert type="warning" message={t('The query returned no data')} />
