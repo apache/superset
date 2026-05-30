@@ -25,60 +25,61 @@
  * would skip formatting for zero. The fix uses an explicit type check instead.
  */
 
-// Simulate the fixed logic from BigNumberViz renderHeader
-// Using const instead of function to avoid global-scope declaration conflicts
-// in TypeScript's script-mode compilation (TS2393).
-const applyColorFormatters = (
-  bigNumber: number | null | undefined,
-  formatters: Array<{ getColorFromValue: (v: number) => string | undefined }>,
-): string | undefined => {
-  let numberColor: string | undefined;
-  const hasFormatters = Array.isArray(formatters) && formatters.length > 0;
-  if (hasFormatters) {
-    formatters.forEach(formatter => {
-      // Fixed: use explicit type check instead of falsy check
-      if (typeof bigNumber === 'number' && !isNaN(bigNumber)) {
-        numberColor = formatter.getColorFromValue(bigNumber);
-      }
-    });
-  }
-  return numberColor;
-};
+// describe block makes applyColorFormatters block-scoped, avoiding TS2451
+// when TypeScript's root tsconfig includes this file as a global script.
+describe('BigNumberViz color formatters', () => {
+  const applyColorFormatters = (
+    bigNumber: number | null | undefined,
+    formatters: Array<{ getColorFromValue: (v: number) => string | undefined }>,
+  ): string | undefined => {
+    let numberColor: string | undefined;
+    const hasFormatters = Array.isArray(formatters) && formatters.length > 0;
+    if (hasFormatters) {
+      formatters.forEach(formatter => {
+        // Fixed: use explicit type check instead of falsy check
+        if (typeof bigNumber === 'number' && !isNaN(bigNumber)) {
+          numberColor = formatter.getColorFromValue(bigNumber);
+        }
+      });
+    }
+    return numberColor;
+  };
 
-test('applies color formatter when bigNumber is 0', () => {
-  const getColorFromValue = jest.fn(() => 'red');
-  const color = applyColorFormatters(0, [{ getColorFromValue }]);
+  test('applies color formatter when bigNumber is 0', () => {
+    const getColorFromValue = jest.fn(() => 'red');
+    const color = applyColorFormatters(0, [{ getColorFromValue }]);
 
-  expect(getColorFromValue).toHaveBeenCalledWith(0);
-  expect(color).toBe('red');
-});
+    expect(getColorFromValue).toHaveBeenCalledWith(0);
+    expect(color).toBe('red');
+  });
 
-test('applies color formatter when bigNumber is positive', () => {
-  const getColorFromValue = jest.fn(() => 'green');
-  const color = applyColorFormatters(42, [{ getColorFromValue }]);
+  test('applies color formatter when bigNumber is positive', () => {
+    const getColorFromValue = jest.fn(() => 'green');
+    const color = applyColorFormatters(42, [{ getColorFromValue }]);
 
-  expect(getColorFromValue).toHaveBeenCalledWith(42);
-  expect(color).toBe('green');
-});
+    expect(getColorFromValue).toHaveBeenCalledWith(42);
+    expect(color).toBe('green');
+  });
 
-test('applies color formatter when bigNumber is negative', () => {
-  const getColorFromValue = jest.fn(() => 'blue');
-  const color = applyColorFormatters(-5, [{ getColorFromValue }]);
+  test('applies color formatter when bigNumber is negative', () => {
+    const getColorFromValue = jest.fn(() => 'blue');
+    const color = applyColorFormatters(-5, [{ getColorFromValue }]);
 
-  expect(getColorFromValue).toHaveBeenCalledWith(-5);
-  expect(color).toBe('blue');
-});
+    expect(getColorFromValue).toHaveBeenCalledWith(-5);
+    expect(color).toBe('blue');
+  });
 
-test('does not call color formatter when bigNumber is null', () => {
-  const getColorFromValue = jest.fn();
-  applyColorFormatters(null, [{ getColorFromValue }]);
+  test('does not call color formatter when bigNumber is null', () => {
+    const getColorFromValue = jest.fn();
+    applyColorFormatters(null, [{ getColorFromValue }]);
 
-  expect(getColorFromValue).not.toHaveBeenCalled();
-});
+    expect(getColorFromValue).not.toHaveBeenCalled();
+  });
 
-test('does not call color formatter when bigNumber is undefined', () => {
-  const getColorFromValue = jest.fn();
-  applyColorFormatters(undefined, [{ getColorFromValue }]);
+  test('does not call color formatter when bigNumber is undefined', () => {
+    const getColorFromValue = jest.fn();
+    applyColorFormatters(undefined, [{ getColorFromValue }]);
 
-  expect(getColorFromValue).not.toHaveBeenCalled();
+    expect(getColorFromValue).not.toHaveBeenCalled();
+  });
 });
