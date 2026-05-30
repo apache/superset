@@ -14,19 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Constants for the MCP service."""
 
-from typing import Literal
+from .get_css_template_info import get_css_template_info
+from .list_css_templates import list_css_templates
 
-# Supported model types for schema discovery and MCP tools
-ModelType = Literal[
-    "chart", "dataset", "dashboard", "database", "css_template", "theme"
+__all__ = [
+    "list_css_templates",
+    "get_css_template_info",
 ]
-
-# Pagination defaults
-DEFAULT_PAGE_SIZE = 10  # Default number of items per page
-MAX_PAGE_SIZE = 100  # Maximum allowed page_size to prevent oversized responses
-
-# Response size guard defaults
-DEFAULT_TOKEN_LIMIT = 25_000  # ~25k tokens prevents overwhelming LLM context windows
-DEFAULT_WARN_THRESHOLD_PCT = 80  # Log warnings above 80% of limit
