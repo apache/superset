@@ -341,6 +341,14 @@ class CreateDatasetRequest(BaseModel):
             "Omit or pass None for databases without schema namespaces (e.g. SQLite).",
         ),
     ]
+    catalog: Annotated[
+        str | None,
+        Field(
+            default=None,
+            description="Catalog where the table lives. Omit for databases without "
+            "catalog support.",
+        ),
+    ]
     table_name: Annotated[
         str,
         Field(

@@ -635,9 +635,9 @@ def create_mcp_app(
 # Create default MCP instance for backward compatibility
 mcp = create_mcp_app()
 
-# Initialize MCP dependency injection BEFORE importing tools/prompts
-# This replaces the abstract @tool and @prompt decorators in superset_core.api.mcp
-# with concrete implementations that can register with the mcp instance
+# Initialize MCP dependency injection BEFORE importing tools/prompts.
+# Replaces the stub @tool/@prompt decorators in superset_core.mcp.decorators
+# with concrete implementations bound to this mcp instance.
 from superset.core.mcp.core_mcp_injection import (  # noqa: E402
     initialize_core_mcp_dependencies,
 )
@@ -661,6 +661,7 @@ warnings.filterwarnings(
     category=FutureWarning,
     module=r"google\..*",
 )
+
 
 # Import all MCP tools to register them with the mcp instance
 # NOTE: Always add new tool imports here when creating new MCP tools.
