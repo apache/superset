@@ -97,7 +97,7 @@ def test_dashboard_editable_filter_admin_bypass():
     from superset.dashboards.filters import DashboardEditableFilter
 
     sm = _make_sm(is_admin=True)
-    with patch("superset.dashboards.filters.security_manager", sm):
+    with patch("superset.subjects.filters.security_manager", sm):
         f = DashboardEditableFilter.__new__(DashboardEditableFilter)
         query = MagicMock()
         result = f.apply(query, None)
@@ -110,9 +110,9 @@ def test_dashboard_editable_filter_anonymous():
 
     sm = _make_sm()
     with (
-        patch("superset.dashboards.filters.security_manager", sm),
-        patch("superset.dashboards.filters.is_feature_enabled", return_value=True),
-        patch("superset.dashboards.filters.get_user_id", return_value=None),
+        patch("superset.subjects.filters.security_manager", sm),
+        patch("superset.subjects.filters.is_feature_enabled", return_value=True),
+        patch("superset.subjects.filters.get_user_id", return_value=None),
     ):
         f = DashboardEditableFilter.__new__(DashboardEditableFilter)
         query = MagicMock()

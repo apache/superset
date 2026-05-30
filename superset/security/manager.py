@@ -167,14 +167,14 @@ class SupersetRoleApi(RoleApi):
         from superset.daos.role import RoleDAO
 
         RoleDAO._sync_subject(item)
-        self.datamodel.session.commit()
+        self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
         _log_audit_event("RoleCreated", {"role_name": item.name, "role_id": item.id})
 
     def post_update(self, item: Model) -> None:
         from superset.daos.role import RoleDAO
 
         RoleDAO._sync_subject(item)
-        self.datamodel.session.commit()
+        self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
         _log_audit_event("RoleUpdated", {"role_name": item.name, "role_id": item.id})
 
     def pre_delete(self, item: Model) -> None:
@@ -190,8 +190,7 @@ class SupersetRoleApi(RoleApi):
 class SupersetGroupApi(GroupApi):
     """
     Overriding the GroupApi to sync Subject rows and add audit logging.
-    GroupApi has custom post/put that bypass hooks, so we override them
-    and sync after the parent method succeeds.
+    GroupApi delegates to post_add/post_update after successful writes.
     """
 
     @expose("/", methods=["POST"])
@@ -209,23 +208,7 @@ class SupersetGroupApi(GroupApi):
             500:
               description: Server error
         """
-        response = super().post()
-        if response.status_code == 201:
-            from flask_appbuilder.security.sqla.models import Group
-
-            from superset.daos.group import GroupDAO
-
-            group_id = response.json.get("id")
-            if group_id:
-                group = self.datamodel.session.get(Group, group_id)
-                if group:
-                    GroupDAO._sync_subject(group)
-                    self.datamodel.session.commit()
-                    _log_audit_event(
-                        "GroupCreated",
-                        {"group_name": group.name, "group_id": group.id},
-                    )
-        return response
+        return super().post()
 
     @expose("/<pk>", methods=["PUT"])
     @protect()
@@ -249,21 +232,27 @@ class SupersetGroupApi(GroupApi):
             500:
               description: Server error
         """
-        response = super().put(pk)
-        if response.status_code == 200:
-            from flask_appbuilder.security.sqla.models import Group
+        return super().put(pk)
 
-            from superset.daos.group import GroupDAO
+    def post_add(self, item: Model) -> None:
+        from superset.daos.group import GroupDAO
 
-            group = self.datamodel.session.get(Group, pk)
-            if group:
-                GroupDAO._sync_subject(group)
-                self.datamodel.session.commit()
-                _log_audit_event(
-                    "GroupUpdated",
-                    {"group_name": group.name, "group_id": group.id},
-                )
-        return response
+        GroupDAO._sync_subject(item)
+        self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
+        _log_audit_event(
+            "GroupCreated",
+            {"group_name": item.name, "group_id": item.id},
+        )
+
+    def post_update(self, item: Model) -> None:
+        from superset.daos.group import GroupDAO
+
+        GroupDAO._sync_subject(item)
+        self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
+        _log_audit_event(
+            "GroupUpdated",
+            {"group_name": item.name, "group_id": item.id},
+        )
 
     def post_delete(self, item: Model) -> None:
         _log_audit_event("GroupDeleted", {"group_name": item.name, "group_id": item.id})
@@ -346,7 +335,7 @@ class SupersetUserApi(UserApi):
                 user = self.datamodel.session.get(self.datamodel.obj, user_id)
                 if user:
                     UserDAO._sync_subject(user)
-                    self.datamodel.session.commit()
+                    self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
         return response
 
     @expose("/<pk>", methods=["PUT"])
@@ -378,7 +367,7 @@ class SupersetUserApi(UserApi):
             user = self.datamodel.get(pk, self._base_filters)
             if user:
                 UserDAO._sync_subject(user)
-                self.datamodel.session.commit()
+                self.datamodel.session.commit()  # pylint: disable=consider-using-transaction
         return response
 
     def pre_delete(self, item: Model) -> None:
@@ -3745,7 +3734,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # ``resource`` may have been loaded through a visibility bypass.
             # Re-query with the same narrow bypass so the editor relationship
             # is checked against the persisted row.
-            resource_id = resource.id
+            resource_id = cast(Any, resource).id
             orig_resource = (
                 self.session.query(resource.__class__)
                 .execution_options(
