@@ -686,6 +686,16 @@ def test_resolve_deck_gl_metrics_numeric_point_radius_fixed_excluded():
     assert result == []
 
 
+def test_resolve_deck_gl_metrics_non_string_point_radius_fixed_excluded():
+    # Non-string point_radius_fixed values (int, None, list) are excluded by
+    # the isinstance(prf, str) guard in the elif branch
+    assert _resolve_deck_gl_metrics({"point_radius_fixed": 100}, "deck_scatter") == []
+    assert _resolve_deck_gl_metrics({"point_radius_fixed": None}, "deck_scatter") == []
+    assert (
+        _resolve_deck_gl_metrics({"point_radius_fixed": ["bad"]}, "deck_scatter") == []
+    )
+
+
 # ---------------------------------------------------------------------------
 # _deck_gl_null_filters (Fix 3)
 # ---------------------------------------------------------------------------
