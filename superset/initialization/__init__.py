@@ -37,7 +37,7 @@ from flask_compress import Compress
 from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET, CHANGE_ME_SECRET_KEY
 from superset.databases.utils import make_url_safe
 from superset.extensions import (
     _event_logger,
@@ -634,12 +634,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         self.init_all_dependencies_and_extensions()
 
+    @staticmethod
+    def _log_config_warning(message: str) -> None:
+        top_banner = 80 * "-" + "\n" + 36 * " " + "WARNING\n" + 80 * "-"
+        bottom_banner = 80 * "-" + "\n" + 80 * "-"
+        logger.warning(top_banner)
+        logger.warning(message)
+        logger.warning(bottom_banner)
+
     def check_secret_key(self) -> None:
-        def log_default_secret_key_warning() -> None:
-            top_banner = 80 * "-" + "\n" + 36 * " " + "WARNING\n" + 80 * "-"
-            bottom_banner = 80 * "-" + "\n" + 80 * "-"
-            logger.warning(top_banner)
-            logger.warning(
+        if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
+            warning = (
                 "A Default SECRET_KEY was detected, please use superset_config.py "
                 "to override it.\n"
                 "Use a strong complex alphanumeric string and use a tool to help"
@@ -648,20 +653,43 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "For more info, see: https://superset.apache.org/docs/"
                 "configuration/configuring-superset#specifying-a-secret_key"
             )
-            logger.warning(bottom_banner)
-
-        if self.config["SECRET_KEY"] == CHANGE_ME_SECRET_KEY:
             if (
                 self.superset_app.debug
                 or self.superset_app.config["TESTING"]
                 or is_test()
             ):
                 logger.warning("Debug mode identified with default secret key")
-                log_default_secret_key_warning()
+                self._log_config_warning(warning)
                 return
-            log_default_secret_key_warning()
+            self._log_config_warning(warning)
             logger.error("Refusing to start due to insecure SECRET_KEY")
             sys.exit(1)
+
+    def check_guest_token_secret(self) -> None:
+        """Refuse to start with default guest JWT secret when embedding is enabled."""
+        if not feature_flag_manager.is_feature_enabled("EMBEDDED_SUPERSET"):
+            return
+        if (
+            self.config.get("GUEST_TOKEN_JWT_SECRET")
+            != CHANGE_ME_GUEST_TOKEN_JWT_SECRET
+        ):
+            return
+        self._log_config_warning(
+            "EMBEDDED_SUPERSET is enabled but GUEST_TOKEN_JWT_SECRET has not "
+            "been changed from its default value.\n"
+            "The default value is publicly known and must be replaced before "
+            "running in production.\n"
+            "Set a strong random value in superset_config.py:\n"
+            "  GUEST_TOKEN_JWT_SECRET = "
+            "'<output of: openssl rand -base64 42>'"
+        )
+        if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
+            return
+        logger.error(
+            "Refusing to start: insecure GUEST_TOKEN_JWT_SECRET "
+            "with EMBEDDED_SUPERSET enabled"
+        )
+        sys.exit(1)
 
     def configure_session(self) -> None:
         if self.config["SESSION_SERVER_SIDE"]:
@@ -747,6 +775,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Configuration of feature_flags must be done first to allow init features
         # conditionally
         self.configure_feature_flags()
+        self.check_guest_token_secret()
         self.configure_db_encrypt()
         self.setup_db()
 
