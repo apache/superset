@@ -27,6 +27,9 @@ concurrency:
   group: docs-deploy-asf-site
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   config:
     runs-on: ubuntu-24.04
