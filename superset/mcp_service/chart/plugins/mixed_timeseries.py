@@ -49,9 +49,9 @@ class MixedTimeseriesChartPlugin(BaseChartPlugin):
 
         if "x" not in config and "x_axis" not in config:
             missing_fields.append("'x' (X-axis temporal column)")
-        if "y" not in config and "metrics" not in config:
+        if not config.get("y") and not config.get("metrics"):
             missing_fields.append("'y' (primary Y-axis metrics)")
-        if "y_secondary" not in config and "metrics_b" not in config:
+        if not config.get("y_secondary") and not config.get("metrics_b"):
             missing_fields.append("'y_secondary' (secondary Y-axis metrics)")
 
         if missing_fields:

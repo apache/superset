@@ -46,7 +46,7 @@ class TableChartPlugin(BaseChartPlugin):
         self,
         config: dict[str, Any],
     ) -> ChartGenerationError | None:
-        if "columns" not in config:
+        if not config.get("columns"):
             return ChartGenerationError(
                 error_type="missing_columns",
                 message="Table chart missing required field: columns",

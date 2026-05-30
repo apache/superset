@@ -58,7 +58,7 @@ class XYChartPlugin(BaseChartPlugin):
         config: dict[str, Any],
     ) -> ChartGenerationError | None:
         # x is optional — defaults to dataset's main_dttm_col in map_xy_config
-        if "y" not in config and "metrics" not in config:
+        if not config.get("y") and not config.get("metrics"):
             return ChartGenerationError(
                 error_type="missing_xy_fields",
                 message="XY chart missing required field: 'y' (Y-axis metrics)",
