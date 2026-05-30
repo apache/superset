@@ -60,11 +60,12 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           # `releases/latest` returns the latest non-prerelease, non-draft
           # release — which is exactly what `apache/superset:latest`
           # should reflect.
-          TAG=$(gh api repos/${{ github.repository }}/releases/latest --jq .tag_name)
+          TAG=$(gh api "repos/${REPOSITORY}/releases/latest" --jq .tag_name)
           if [ -z "$TAG" ] || [ "$TAG" = "null" ]; then
             echo "::error::Could not determine latest release tag"
             exit 1
@@ -112,6 +113,8 @@ jobs:
           DOCKERHUB_USER: ${{ secrets.DOCKERHUB_USER }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILD_PRESET: ${{ matrix.build_preset }}
+          LATEST_RELEASE: ${{ needs.config.outputs.latest-release }}
         run: |
           # Reuses the same supersetbot invocation as the release
           # publisher (`tag-release.yml`), so the resulting tags are
@@ -119,9 +122,9 @@ jobs:
           # just with a freshly-pulled base image layer underneath.
           supersetbot docker \
             --push \
-            --preset ${{ matrix.build_preset }} \
+            --preset "$BUILD_PRESET" \
             --context release \
-            --context-ref "${{ needs.config.outputs.latest-release }}" \
+            --context-ref "$LATEST_RELEASE" \
             --force-latest \
             --platform "linux/arm64" \
             --platform "linux/amd64"
