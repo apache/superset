@@ -206,6 +206,57 @@ def test_update_command_failed_validation(
         ).run()
 
 
+def test_update_command_bulk_create_preserves_existing_objects(
+    session_with_data: Session, mocker: MockerFixture
+):
+    """Test that bulk_create=True preserves relationships not in objects_to_tag."""
+    from superset.commands.tag.create import CreateCustomTagWithRelationshipsCommand
+    from superset.commands.tag.update import UpdateTagCommand
+    from superset.daos.tag import TagDAO
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.tags.models import ObjectType, TaggedObject
+
+    dashboard = db.session.query(Dashboard).first()
+    chart = db.session.query(Slice).first()
+
+    mocker.patch(
+        "superset.security.SupersetSecurityManager.is_admin", return_value=True
+    )
+    mocker.patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart)
+    mocker.patch(
+        "superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard
+    )
+
+    # Create a tag with a dashboard relationship
+    CreateCustomTagWithRelationshipsCommand(
+        data={
+            "name": "test_tag",
+            "objects_to_tag": [(ObjectType.dashboard, dashboard.id)],
+        }
+    ).run()
+
+    tag_to_update = TagDAO.find_by_name("test_tag")
+    assert len(tag_to_update.objects) == 1
+
+    # Update with only a chart — bulk_create=True should preserve the dashboard
+    UpdateTagCommand(
+        tag_to_update.id,
+        {
+            "name": "test_tag",
+            "description": "updated",
+            "objects_to_tag": [(ObjectType.chart, chart.id)],
+        },
+        bulk_create=True,
+    ).run()
+
+    tagged = db.session.query(TaggedObject).filter_by(tag_id=tag_to_update.id).all()
+    object_ids = {obj.object_id for obj in tagged}
+    assert dashboard.id in object_ids
+    assert chart.id in object_ids
+    assert len(tagged) == 2
+
+
 def test_update_command_remove_all_tagged_objects(
     session_with_data: Session, mocker: MockerFixture
 ):
