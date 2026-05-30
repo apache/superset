@@ -403,8 +403,6 @@ def resolve_deck_gl_columns(form_data: dict[str, Any]) -> list[str]:
     for col in _deck_gl_tooltip_cols(form_data.get("tooltip_contents")):
         _add(col)
 
-    _add(form_data.get("cross_filter_column"))
-
     return columns
 
 

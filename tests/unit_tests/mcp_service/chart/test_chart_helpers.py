@@ -502,7 +502,7 @@ def test_build_query_dicts_deck_path_with_row_limit(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# resolve_deck_gl_columns — tooltip_contents and cross_filter_column (Fix 1)
+# resolve_deck_gl_columns — tooltip_contents (cross_filter_column excluded)
 # ---------------------------------------------------------------------------
 
 
@@ -529,13 +529,13 @@ def test_resolve_deck_gl_columns_with_tooltip_contents_dict_items():
     assert "sum__sales" not in cols
 
 
-def test_resolve_deck_gl_columns_with_cross_filter_column():
+def test_resolve_deck_gl_columns_ignores_cross_filter_column():
     form_data = {
         "spatial": {"type": "latlong", "lonCol": "lon", "latCol": "lat"},
         "cross_filter_column": "region",
     }
     cols = resolve_deck_gl_columns(form_data)
-    assert "region" in cols
+    assert "region" not in cols
 
 
 def test_resolve_deck_gl_columns_tooltip_deduplicates_with_spatial():
