@@ -21,11 +21,14 @@ from fastmcp import Context
 from marshmallow import ValidationError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.extensions import event_logger
+from superset.extensions import db, event_logger
 from superset.mcp_service.theme.schemas import (
     CreateThemeRequest,
     CreateThemeResponse,
 )
+from superset.models.core import Theme
+from superset.themes.schemas import ThemePostSchema
+from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -57,11 +60,6 @@ async def create_theme(
     await ctx.info("Creating theme: theme_name=%r" % (request.theme_name,))
 
     try:
-        from superset.extensions import db
-        from superset.models.core import Theme
-        from superset.themes.schemas import ThemePostSchema
-        from superset.utils.decorators import transaction
-
         # Validate and sanitize inputs using the same schema as the REST API
         schema = ThemePostSchema()
         try:

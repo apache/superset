@@ -21,11 +21,18 @@ from fastmcp import Context
 from marshmallow import ValidationError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.commands.theme.exceptions import (
+    SystemThemeProtectedError,
+    ThemeNotFoundError,
+)
+from superset.commands.theme.update import UpdateThemeCommand
+from superset.daos.theme import ThemeDAO
 from superset.extensions import event_logger
 from superset.mcp_service.theme.schemas import (
     UpdateThemeRequest,
     UpdateThemeResponse,
 )
+from superset.themes.schemas import ThemePutSchema
 
 logger = logging.getLogger(__name__)
 
@@ -52,14 +59,6 @@ async def update_theme(
     await ctx.info("Updating theme: id=%s" % (request.id,))
 
     try:
-        from superset.commands.theme.exceptions import (
-            SystemThemeProtectedError,
-            ThemeNotFoundError,
-        )
-        from superset.commands.theme.update import UpdateThemeCommand
-        from superset.daos.theme import ThemeDAO
-        from superset.themes.schemas import ThemePutSchema
-
         # Fetch current theme to support partial updates (merge missing fields)
         existing = ThemeDAO.find_by_id(request.id)
         if existing is None:
