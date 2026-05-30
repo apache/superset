@@ -21,6 +21,7 @@ import logging
 import re
 import time
 from collections import defaultdict
+from types import SimpleNamespace
 from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 
 from flask import current_app, Flask, g, Request
@@ -2934,25 +2935,41 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # inspector to read it.
                 from superset.models.sql_lab import Query
 
-                default_schema = database.get_default_schema_for_query(
-                    cast(Query, query),
-                    template_params,
-                )
                 # Prefer the rendered ``executed_sql`` when it is set so
                 # re-validation (results fetch, CSV / streaming export)
                 # authorises against the SQL that actually ran, not a
                 # re-render of the Jinja source with the wrong (or
                 # missing) ``template_params``. At execute time
                 # ``executed_sql`` is unset and we fall back to
-                # ``query.sql`` + ``template_params``.
-                executed_sql = getattr(query, "executed_sql", None)
+                # ``query.sql`` + ``template_params``. The same rendered
+                # SQL must also flow into engine-spec schema resolution
+                # (e.g. Postgres ``search_path`` detection) so it does
+                # not choke on unrendered ``{{ ... }}`` Jinja.
+                typed_query = cast(Query, query)
+                executed_sql = getattr(typed_query, "executed_sql", None)
                 sql_for_parse = (
                     executed_sql
                     if isinstance(executed_sql, str) and executed_sql
-                    else query.sql
+                    else typed_query.sql
+                )
+                use_executed_sql = sql_for_parse is executed_sql
+                parse_template_params = None if use_executed_sql else template_params
+                parse_query: Any = (
+                    SimpleNamespace(
+                        sql=sql_for_parse,
+                        schema=typed_query.schema,
+                        catalog=typed_query.catalog,
+                    )
+                    if use_executed_sql
+                    else typed_query
+                )
+
+                default_schema = database.get_default_schema_for_query(
+                    cast(Query, parse_query),
+                    parse_template_params,
                 )
                 parse_result = process_jinja_sql(
-                    sql_for_parse, database, template_params
+                    sql_for_parse, database, parse_template_params
                 )
                 # Under strict scoping, refuse any statement the parser
                 # could not fully model: sqlglot ``exp.Command`` nodes
