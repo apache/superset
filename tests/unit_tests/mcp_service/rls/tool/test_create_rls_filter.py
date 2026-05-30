@@ -87,6 +87,22 @@ _BASE_REQUEST = {
 }
 
 
+def test_create_rls_filter_name_too_long() -> None:
+    """CreateRLSFilterRequest rejects names longer than 255 characters."""
+    from pydantic import ValidationError
+
+    from superset.mcp_service.rls.schemas import CreateRLSFilterRequest
+
+    with pytest.raises(ValidationError):
+        CreateRLSFilterRequest(
+            name="x" * 256,
+            filter_type="Regular",
+            tables=[1],
+            roles=[2],
+            clause="region = 'EMEA'",
+        )
+
+
 @patch("superset.commands.security.create.CreateRLSRuleCommand")
 @pytest.mark.asyncio
 async def test_create_rls_filter_success(

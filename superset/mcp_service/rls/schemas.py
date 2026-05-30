@@ -33,6 +33,7 @@ from pydantic import (
     model_validator,
     PositiveInt,
 )
+from typing_extensions import Self
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
@@ -258,7 +259,9 @@ def serialize_rls_filter_object(rls_filter: Any) -> RlsFilterInfo | None:
 class CreateRLSFilterRequest(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
-    name: str = Field(..., min_length=1, description="Name for the RLS filter rule.")
+    name: str = Field(
+        ..., min_length=1, max_length=255, description="Name for the RLS filter rule."
+    )
     filter_type: Literal["Regular", "Base"] = Field(
         ...,
         description=(
@@ -331,6 +334,7 @@ class UpdateRLSFilterRequest(BaseModel):
     name: str | None = Field(
         None,
         min_length=1,
+        max_length=255,
         description="New name for the RLS filter rule. Omit to keep existing.",
     )
     filter_type: Literal["Regular", "Base"] | None = Field(
@@ -374,3 +378,24 @@ class UpdateRLSFilterRequest(BaseModel):
         None,
         description="New description. Omit to keep existing.",
     )
+
+    @model_validator(mode="after")
+    def reject_explicit_nulls(self) -> Self:
+        """Reject fields that were explicitly set to null.
+
+        Omitting a field (not in model_fields_set) means "keep existing".
+        Passing null explicitly is not a valid intent — it cannot clear a
+        required scalar, and for list fields the caller should use [] to clear.
+        """
+        nullable_disallowed = ("name", "filter_type", "clause", "tables", "roles")
+        for field in nullable_disallowed:
+            if field in self.model_fields_set and getattr(self, field) is None:
+                raise ValueError(
+                    f"'{field}' cannot be null. Omit it to keep the existing value"
+                    + (
+                        ", or pass [] to clear it."
+                        if field in ("tables", "roles")
+                        else "."
+                    )
+                )
+        return self

@@ -179,6 +179,56 @@ async def test_update_rls_filter_table_not_found(
     assert data["error"] is not None
 
 
+def test_update_rls_filter_name_too_long() -> None:
+    """UpdateRLSFilterRequest rejects names longer than 255 characters."""
+    from pydantic import ValidationError
+
+    from superset.mcp_service.rls.schemas import UpdateRLSFilterRequest
+
+    with pytest.raises(ValidationError):
+        UpdateRLSFilterRequest(id=1, name="x" * 256)
+
+
+def test_update_rls_filter_explicit_null_name() -> None:
+    """Explicit null for 'name' raises a validation error."""
+    from pydantic import ValidationError
+
+    from superset.mcp_service.rls.schemas import UpdateRLSFilterRequest
+
+    with pytest.raises(ValidationError, match="name"):
+        UpdateRLSFilterRequest.model_validate({"id": 1, "name": None})
+
+
+def test_update_rls_filter_explicit_null_clause() -> None:
+    """Explicit null for 'clause' raises a validation error."""
+    from pydantic import ValidationError
+
+    from superset.mcp_service.rls.schemas import UpdateRLSFilterRequest
+
+    with pytest.raises(ValidationError, match="clause"):
+        UpdateRLSFilterRequest.model_validate({"id": 1, "clause": None})
+
+
+def test_update_rls_filter_explicit_null_tables() -> None:
+    """Explicit null for 'tables' raises a validation error."""
+    from pydantic import ValidationError
+
+    from superset.mcp_service.rls.schemas import UpdateRLSFilterRequest
+
+    with pytest.raises(ValidationError, match="tables"):
+        UpdateRLSFilterRequest.model_validate({"id": 1, "tables": None})
+
+
+def test_update_rls_filter_explicit_null_roles() -> None:
+    """Explicit null for 'roles' raises a validation error."""
+    from pydantic import ValidationError
+
+    from superset.mcp_service.rls.schemas import UpdateRLSFilterRequest
+
+    with pytest.raises(ValidationError, match="roles"):
+        UpdateRLSFilterRequest.model_validate({"id": 1, "roles": None})
+
+
 @patch("superset.commands.security.update.UpdateRLSRuleCommand")
 @patch("superset.daos.security.RLSDAO")
 @pytest.mark.asyncio
