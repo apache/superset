@@ -16,7 +16,13 @@
 # under the License.
 from flask_babel import lazy_gettext as _
 
-from superset.commands.exceptions import CommandException, DeleteFailedError
+from superset.commands.exceptions import (
+    CommandException,
+    CommandInvalidError,
+    CreateFailedError,
+    DeleteFailedError,
+    UpdateFailedError,
+)
 
 
 class CssTemplateDeleteFailedError(DeleteFailedError):
@@ -25,3 +31,15 @@ class CssTemplateDeleteFailedError(DeleteFailedError):
 
 class CssTemplateNotFoundError(CommandException):
     message = _("CSS template not found.")
+
+
+class CssTemplateCreateFailedError(CreateFailedError):
+    message = _("CSS template could not be created.")
+
+
+class CssTemplateInvalidError(CommandInvalidError):
+    message = _("CSS template parameters are invalid.")
+
+
+class CssTemplateUpdateFailedError(UpdateFailedError):
+    message = _("CSS template could not be updated.")

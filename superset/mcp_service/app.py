@@ -148,6 +148,8 @@ Database Connections:
 CSS Templates:
 - list_css_templates: List CSS templates with advanced filters (1-based pagination)
 - get_css_template_info: Get CSS template details by ID (includes full css content)
+- create_css_template: Create a new named CSS template for dashboard styling
+- update_css_template: Update an existing CSS template's name or CSS content
 
 Themes:
 - list_themes: List themes with advanced filters (1-based pagination)
@@ -685,8 +687,10 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     update_chart_preview,
 )
 from superset.mcp_service.css_template.tool import (  # noqa: F401, E402
+    create_css_template,
     get_css_template_info,
     list_css_templates,
+    update_css_template,
 )
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
