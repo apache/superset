@@ -27,6 +27,9 @@ concurrency:
   group: docs-deploy-asf-site
   cancel-in-progress: true
 
+permissions:
+  contents: read
+
 jobs:
   config:
     runs-on: ubuntu-24.04
@@ -45,7 +48,13 @@ jobs:
           SUPERSET_SITE_BUILD: ${{ (secrets.SUPERSET_SITE_BUILD != '' && secrets.SUPERSET_SITE_BUILD != '') || '' }}
   build-deploy:
     needs: config
-    if: needs.config.outputs.has-secrets
+    # For workflow_run triggers, only deploy when the triggering run originated
+    # from this repository (not a fork), ensuring the checked-out code and any
+    # local actions executed with deploy credentials are trusted.
+    if: >-
+      needs.config.outputs.has-secrets &&
+      (github.event_name != 'workflow_run' ||
+       github.event.workflow_run.head_repository.full_name == github.repository)
     name: Build & Deploy
     runs-on: ubuntu-24.04
     steps:

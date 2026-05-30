@@ -20,7 +20,7 @@ import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import fetchMock from 'fetch-mock';
 import rison from 'rison';
-import { selectOption } from 'spec/helpers/testing-library';
+import { selectPillOption } from 'spec/helpers/testing-library';
 import {
   setupMocks,
   renderDatasetList,
@@ -102,11 +102,11 @@ test('ListView provider correctly merges filter + sort + pagination state on ref
     ).toBeGreaterThan(callsBeforeSort);
   });
 
-  // 2. Apply a filter using selectOption helper
+  // 2. Apply a filter using selectPillOption helper (compact pill UI)
   const beforeFilterCallCount = fetchMock.callHistory.calls(
     API_ENDPOINTS.DATASOURCE_COMBINED,
   ).length;
-  await selectOption('Virtual', 'Type');
+  await selectPillOption('Virtual', 'Type');
 
   // Wait for filter API call to complete
   await waitFor(() => {

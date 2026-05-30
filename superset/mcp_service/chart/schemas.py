@@ -25,7 +25,6 @@ import difflib
 from datetime import datetime
 from typing import Annotated, Any, cast, Dict, List, Literal, Protocol
 
-import humanize
 from pydantic import (
     AliasChoices,
     AliasPath,
@@ -63,6 +62,7 @@ from superset.mcp_service.utils import (
     escape_llm_context_delimiters,
     sanitize_for_llm_context,
 )
+from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.mcp_service.utils.sanitization import (
     sanitize_filter_value,
     sanitize_sql_expression,
@@ -304,13 +304,6 @@ class GetChartInfoRequest(BaseModel):
         return self
 
 
-def _humanize_timestamp(dt: datetime | None) -> str | None:
-    """Convert a datetime to a humanized string like '2 hours ago'."""
-    if dt is None:
-        return None
-    return humanize.naturaltime(datetime.now() - dt)
-
-
 def extract_filters_from_form_data(
     form_data: Dict[str, Any] | None,
 ) -> ChartFiltersInfo | None:
@@ -544,13 +537,9 @@ def serialize_chart_object(chart: ChartLike | None) -> ChartInfo | None:
             form_data=chart_form_data,
             filters=filters_info,
             changed_on=getattr(chart, "changed_on", None),
-            changed_on_humanized=_humanize_timestamp(
-                getattr(chart, "changed_on", None)
-            ),
+            changed_on_humanized=humanize_timestamp(getattr(chart, "changed_on", None)),
             created_on=getattr(chart, "created_on", None),
-            created_on_humanized=_humanize_timestamp(
-                getattr(chart, "created_on", None)
-            ),
+            created_on_humanized=humanize_timestamp(getattr(chart, "created_on", None)),
             uuid=str(getattr(chart, "uuid", ""))
             if getattr(chart, "uuid", None)
             else None,

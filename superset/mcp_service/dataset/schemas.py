@@ -24,7 +24,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal
 
-import humanize
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -56,6 +55,7 @@ from superset.mcp_service.utils import (
     escape_llm_context_delimiters,
     sanitize_for_llm_context,
 )
+from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.utils import json
 
 
@@ -560,13 +560,6 @@ def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
     return value
 
 
-def _humanize_timestamp(dt: datetime | None) -> str | None:
-    """Convert a datetime to a humanized string like '2 hours ago'."""
-    if dt is None:
-        return None
-    return humanize.naturaltime(datetime.now() - dt)
-
-
 def _sanitize_dataset_info_for_llm_context(dataset_info: DatasetInfo) -> DatasetInfo:
     """Wrap dataset read-path descriptive fields before LLM exposure."""
     payload = dataset_info.model_dump(mode="python")
@@ -697,11 +690,11 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
             certified_by=getattr(dataset, "certified_by", None),
             certification_details=getattr(dataset, "certification_details", None),
             changed_on=getattr(dataset, "changed_on", None),
-            changed_on_humanized=_humanize_timestamp(
+            changed_on_humanized=humanize_timestamp(
                 getattr(dataset, "changed_on", None)
             ),
             created_on=getattr(dataset, "created_on", None),
-            created_on_humanized=_humanize_timestamp(
+            created_on_humanized=humanize_timestamp(
                 getattr(dataset, "created_on", None)
             ),
             tags=[

@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+"""DAO for FAB Role model."""
+
 from __future__ import annotations
 
 from typing import Any
@@ -25,6 +27,8 @@ from superset.extensions import db
 
 
 class RoleDAO(BaseDAO[Role]):
+    """DAO for FAB Role model. Provides basic CRUD via BaseDAO."""
+
     @classmethod
     def create(
         cls,
