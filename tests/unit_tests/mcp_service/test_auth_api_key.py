@@ -116,9 +116,11 @@ def test_valid_api_key_returns_user(app: SupersetApp, mock_user: MagicMock) -> N
     mock_sm = MagicMock()
     mock_sm.validate_api_key.return_value = mock_user
 
+    access_token = _passthrough_access_token("sst_abc123")
+
     with _mock_sm_ctx(app, mock_sm):
         with (
-            _patch_access_token(_passthrough_access_token("sst_abc123")),
+            _patch_access_token(access_token),
             patch(
                 "superset.mcp_service.auth.load_user_with_relationships",
                 return_value=mock_user,
@@ -128,6 +130,11 @@ def test_valid_api_key_returns_user(app: SupersetApp, mock_user: MagicMock) -> N
 
     assert result.username == "api_key_user"
     mock_sm.validate_api_key.assert_called_once_with("sst_abc123")
+    # Verify the raw token was redacted after validation to prevent
+    # the API key from persisting on the AccessToken object.
+    assert access_token.token == "", (
+        "Raw API key should be redacted after successful validation"
+    )
 
 
 # -- Invalid API key -> PermissionError (does not silently fall back) --
