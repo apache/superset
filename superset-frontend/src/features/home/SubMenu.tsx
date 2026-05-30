@@ -110,10 +110,29 @@ const StyledHeader = styled.div<{ backgroundColor?: string }>`
     padding: 10px 0;
   }
   @media (max-width: 767px) {
-    .header,
-    .nav-right {
+    .header {
       position: relative;
-      margin-left: ${({ theme }) => theme.sizeUnit * 2}px;
+      margin-left: 0;
+      flex: 1;
+      text-align: center;
+    }
+
+    /* Hide all buttons on mobile */
+    .nav-right,
+    .nav-right-collapse {
+      display: none !important;
+    }
+
+    /* Compact horizontal tabs on mobile (segmented-control style) */
+    .menu > .ant-menu {
+      padding-left: 0;
+
+      .ant-menu-item {
+        padding: ${({ theme }) => theme.sizeUnit}px
+          ${({ theme }) => theme.sizeUnit * 2}px;
+        margin-right: ${({ theme }) => theme.sizeUnit / 2}px;
+        font-size: ${({ theme }) => theme.fontSizeSM}px;
+      }
     }
   }
 `;
@@ -165,6 +184,10 @@ export interface SubMenuProps {
   dropDownLinks?: Array<MenuObjectProps>;
   backgroundColor?: string;
   children?: ReactNode;
+  /** Left icon for mobile - shown before the header */
+  leftIcon?: ReactNode;
+  /** Right icon for mobile - shown after the header */
+  rightIcon?: ReactNode;
 }
 
 const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
@@ -186,8 +209,8 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
 
     function handleResize() {
       if (!isMounted) return;
-      if (window.innerWidth <= 767) setMenu('inline');
-      else setMenu('horizontal');
+      // Keep horizontal mode on mobile - CSS handles compact display
+      setMenu('horizontal');
 
       if (
         props.buttons &&
@@ -216,7 +239,9 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
   return (
     <StyledHeader backgroundColor={props.backgroundColor}>
       <Row className="menu" role="navigation" aria-label={t('Page navigation')}>
+        {props.leftIcon}
         {props.name && <div className="header">{props.name}</div>}
+        {props.rightIcon}
         <Menu
           mode={showMenu}
           disabledOverflow

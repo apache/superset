@@ -121,5 +121,6 @@ export const useNativeFilters = () => {
     dashboardFiltersOpen,
     toggleDashboardFiltersOpen,
     nativeFiltersEnabled,
+    hasFilters: filterValues.length > 0,
   };
 };

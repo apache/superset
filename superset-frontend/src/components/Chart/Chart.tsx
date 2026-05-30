@@ -163,6 +163,17 @@ const Styles = styled.div<{ height: number; width?: number }>`
       margin: ${({ theme }) => theme.sizeUnit * 2}px;
     }
   }
+
+  /* Full width charts on mobile */
+  @media (max-width: 767px) {
+    width: 100% !important;
+
+    .slice_container,
+    .slice_container div {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+  }
 `;
 
 const LoadingDiv = styled.div`

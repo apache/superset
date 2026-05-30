@@ -22,7 +22,7 @@ import {
   FeatureFlag,
   SupersetClient,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/theme';
+import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import { useState, useMemo, useCallback } from 'react';
 import { Link } from 'react-router-dom';
@@ -36,10 +36,12 @@ import {
 import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel';
 import { useListViewResource, useFavoriteStatus } from 'src/views/CRUD/hooks';
 import {
+  Button,
   CertifiedBadge,
   ConfirmStatusChange,
   DeleteModal,
   FaveStar,
+  Grid,
   Loading,
   PublishedLabel,
   Tooltip,
@@ -146,6 +148,14 @@ const DASHBOARD_COLUMNS_TO_FETCH = [
 
 function DashboardList(props: DashboardListProps) {
   const { addDangerToast, addSuccessToast, user } = props;
+  // Default to desktop layout on the initial render before antd's
+  // ResponsiveObserver has fired. Without the default, the first paint sees
+  // `md: undefined`, treats it as mobile, and force-renders card view — which
+  // then sticks because useListViewState's forceViewMode effect only updates
+  // viewMode when forceViewMode is truthy.
+  const { md: isNotMobile = true } = Grid.useBreakpoint();
+  const theme = useTheme();
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const { roles } = useSelector<any, UserWithPermissionsAndRoles>(
     state => state.user,
   );
@@ -739,7 +749,25 @@ function DashboardList(props: DashboardListProps) {
   }
   return (
     <>
-      <SubMenu name={t('Dashboards')} buttons={subMenuButtons} />
+      <SubMenu
+        name={t('Dashboards')}
+        buttons={subMenuButtons}
+        leftIcon={
+          !isNotMobile ? (
+            <Button
+              buttonStyle="link"
+              onClick={() => setMobileFiltersOpen(true)}
+              aria-label={t('Search')}
+              css={css`
+                padding: 0;
+                margin-right: ${theme.sizeUnit * 2}px;
+              `}
+            >
+              <Icons.SearchOutlined iconSize="l" />
+            </Button>
+          ) : undefined
+        }
+      />
       <ConfirmStatusChange
         title={t('Please confirm')}
         description={t(
@@ -828,8 +856,12 @@ function DashboardList(props: DashboardListProps) {
                     ? 'card'
                     : 'table'
                 }
+                forceViewMode={!isNotMobile ? 'card' : undefined}
                 enableBulkTag={enableBulkTag}
                 bulkTagResourceName="dashboard"
+                mobileFiltersOpen={mobileFiltersOpen}
+                setMobileFiltersOpen={setMobileFiltersOpen}
+                mobileFiltersDrawerTitle={t('Search Dashboards')}
               />
             </>
           );

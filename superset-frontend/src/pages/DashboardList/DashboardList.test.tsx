@@ -45,6 +45,15 @@ jest.mock('src/utils/export', () => ({
   default: jest.fn(),
 }));
 
+// Mock useBreakpoint to return desktop breakpoints (prevents mobile rendering)
+jest.mock('antd', () => ({
+  ...jest.requireActual('antd'),
+  Grid: {
+    ...jest.requireActual('antd').Grid,
+    useBreakpoint: () => ({ xs: true, sm: true, md: true, lg: true, xl: true }),
+  },
+}));
+
 const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
   typeof isFeatureEnabled
 >;

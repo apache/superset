@@ -147,6 +147,13 @@ const StyledResizable = styled(Resizable)`
   & .resizable-container-handle--bottom {
     bottom: 0 !important;
   }
+
+  /* Full width on mobile */
+  @media (max-width: 767px) {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 100% !important;
+  }
 `;
 
 export default function ResizableContainer({

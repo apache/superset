@@ -30,11 +30,15 @@ jest.mock('@apache-superset/core/theme', () => ({
   useTheme: jest.fn(),
 }));
 
+// Mock useBreakpoint to return desktop breakpoints (prevents mobile menu rendering)
+// Note: We mock 'antd' directly rather than '@superset-ui/core/components' because
+// mocking the latter causes circular dependency issues with ActionButton during
+// jest.requireActual evaluation. Since Grid is re-exported from antd, this works.
 jest.mock('antd', () => ({
   ...jest.requireActual('antd'),
   Grid: {
     ...jest.requireActual('antd').Grid,
-    useBreakpoint: () => ({ md: true }),
+    useBreakpoint: () => ({ xs: true, sm: true, md: true, lg: true, xl: true }),
   },
 }));
 
