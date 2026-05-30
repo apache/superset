@@ -90,6 +90,18 @@ def mock_auth():
 class TestCreateDataset:
     """Tests for the create_dataset MCP tool."""
 
+    @pytest.fixture(autouse=True)
+    def mock_database_access(self):
+        """Provide a mock database and allow all table access by default."""
+        mock_db = MagicMock()
+        with (
+            patch(
+                "superset.daos.database.DatabaseDAO.find_by_id", return_value=mock_db
+            ),
+            patch("superset.extensions.security_manager.raise_for_access"),
+        ):
+            yield mock_db
+
     @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_success(self, mock_command_class, mcp_server):
@@ -277,6 +289,57 @@ class TestCreateDataset:
         data = json.loads(result.content[0].text)
         assert data["error_type"] == "ValidationError"
         assert "error" in data
+
+    @pytest.mark.asyncio
+    async def test_create_dataset_database_not_found(self, mcp_server):
+        """Returns DatabaseNotFoundError when database_id does not exist."""
+        with patch("superset.daos.database.DatabaseDAO.find_by_id", return_value=None):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "create_dataset",
+                    {
+                        "request": {
+                            "database_id": 999,
+                            "table_name": "orders",
+                        }
+                    },
+                )
+
+        data = json.loads(result.content[0].text)
+        assert data["error_type"] == "DatabaseNotFoundError"
+        assert "999" in data["error"]
+
+    @pytest.mark.asyncio
+    async def test_create_dataset_access_denied(self, mcp_server):
+        """Returns AccessDeniedError when caller lacks table-level access."""
+        from superset.exceptions import SupersetSecurityException
+
+        mock_db = MagicMock()
+        with (
+            patch(
+                "superset.daos.database.DatabaseDAO.find_by_id", return_value=mock_db
+            ),
+            patch(
+                "superset.extensions.security_manager.raise_for_access",
+                side_effect=SupersetSecurityException(
+                    MagicMock(message="Access is Denied")
+                ),
+            ),
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "create_dataset",
+                    {
+                        "request": {
+                            "database_id": 1,
+                            "schema": "secret",
+                            "table_name": "restricted_table",
+                        }
+                    },
+                )
+
+        data = json.loads(result.content[0].text)
+        assert data["error_type"] == "AccessDeniedError"
 
     @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio

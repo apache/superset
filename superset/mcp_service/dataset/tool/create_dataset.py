@@ -40,6 +40,17 @@ from superset.mcp_service.dataset.schemas import (
 logger = logging.getLogger(__name__)
 
 
+def _classify_invalid_error(exc: object) -> DatasetError:
+    """Map DatasetInvalidError sub-exceptions to typed DatasetError responses."""
+    classnames = exc.get_list_classnames()  # type: ignore[attr-defined]
+    messages = exc.normalized_messages()  # type: ignore[attr-defined]
+    if "DatasetExistsValidationError" in classnames:
+        return DatasetError.create(error=str(messages), error_type="DatasetExistsError")
+    if "TableNotFoundValidationError" in classnames:
+        return DatasetError.create(error=str(messages), error_type="TableNotFoundError")
+    return DatasetError.create(error=str(messages), error_type="ValidationError")
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Dataset",
@@ -98,9 +109,34 @@ async def create_dataset(
             DatasetCreateFailedError,
             DatasetInvalidError,
         )
+        from superset.daos.database import DatabaseDAO
+        from superset.exceptions import SupersetSecurityException
+        from superset.extensions import security_manager
+        from superset.sql.parse import Table
 
         # Normalize catalog: strip whitespace, treat blank as None
         catalog = request.catalog.strip() if request.catalog else None
+
+        # Look up the database so we can enforce table-level access before
+        # forwarding to CreateDatasetCommand, which only checks SQL-path access.
+        database = DatabaseDAO.find_by_id(request.database_id)
+        if database is None:
+            return DatasetError.create(
+                error=f"Database with id={request.database_id} not found",
+                error_type="DatabaseNotFoundError",
+            )
+
+        # Enforce table-level access: prevents users with Dataset.write from
+        # registering tables in databases they cannot read.
+        table_obj = Table(table_name, schema, catalog)
+        try:
+            security_manager.raise_for_access(database=database, table=table_obj)
+        except SupersetSecurityException as exc:
+            await ctx.warning("Access denied to table %s: %s" % (table_obj, str(exc)))
+            return DatasetError.create(
+                error=str(exc),
+                error_type="AccessDeniedError",
+            )
 
         dataset_properties: dict[str, object] = {
             "database": request.database_id,
@@ -131,22 +167,13 @@ async def create_dataset(
     except DatasetInvalidError as exc:
         # CreateDatasetCommand.validate() collects DatasetExistsValidationError and
         # TableNotFoundValidationError into DatasetInvalidError.exceptions, never
-        # raising them directly. Inspect the wrapped class names to return a typed
-        # error response matching the advertised contract.
-        classnames = exc.get_list_classnames()
-        messages = exc.normalized_messages()
-        if "DatasetExistsValidationError" in classnames:
-            await ctx.warning("Dataset already exists: %s" % (messages,))
-            return DatasetError.create(
-                error=str(messages), error_type="DatasetExistsError"
-            )
-        if "TableNotFoundValidationError" in classnames:
-            await ctx.warning("Table not found: %s" % (messages,))
-            return DatasetError.create(
-                error=str(messages), error_type="TableNotFoundError"
-            )
-        await ctx.warning("Dataset validation failed: %s" % (messages,))
-        return DatasetError.create(error=str(messages), error_type="ValidationError")
+        # raising them directly. Inspect the wrapped class names for a typed response.
+        error_response = _classify_invalid_error(exc)
+        await ctx.warning(
+            "Dataset validation failed (%s): %s"
+            % (error_response.error_type, error_response.error)
+        )
+        return error_response
     except DatasetCreateFailedError as exc:
         await ctx.error("Dataset creation failed: %s" % (str(exc),))
         return DatasetError.create(error=str(exc), error_type="CreateFailedError")
