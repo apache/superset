@@ -44,7 +44,7 @@ function getInstance() {
   return singleton;
 }
 
-function warnPreConfigure(key: string) {
+function warnPreConfigure(fn: 't' | 'tn', key: string) {
   // Only warn in non-production builds — production callers may legitimately
   // tolerate the fallback, and the noise isn't useful at runtime.
   if (
@@ -56,11 +56,11 @@ function warnPreConfigure(key: string) {
   if (warnedPreConfigureKeys.has(key)) return;
   warnedPreConfigureKeys.add(key);
   console.warn(
-    `[i18n] t(${JSON.stringify(key)}) was called before configure() — ` +
+    `[i18n] ${fn}(${JSON.stringify(key)}) was called before configure() — ` +
       `the result is the fallback language and will not update when the ` +
       `user switches language. If this call is at module load (e.g., a ` +
       `controlPanel \`label\`/\`description\`), wrap it in an arrow ` +
-      `function: \`() => t(${JSON.stringify(key)})\`.`,
+      `function: \`() => ${fn}(${JSON.stringify(key)})\`.`,
   );
 }
 
@@ -85,12 +85,12 @@ function addLocaleData(data: LocaleData) {
 }
 
 function t(input: string, ...args: unknown[]) {
-  if (!isConfigured) warnPreConfigure(input);
+  if (!isConfigured) warnPreConfigure('t', input);
   return getInstance().translate(input, ...args);
 }
 
 function tn(key: string, ...args: unknown[]) {
-  if (!isConfigured) warnPreConfigure(key);
+  if (!isConfigured) warnPreConfigure('tn', key);
   return getInstance().translateWithNumber(key, ...args);
 }
 

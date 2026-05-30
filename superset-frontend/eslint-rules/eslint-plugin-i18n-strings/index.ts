@@ -87,7 +87,7 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
         ],
         messages: {
           eager:
-            'Eager `{{property}}: t(...)` is evaluated at module load, before i18n is initialized. Wrap in an arrow function: `{{property}}: () => t(...)`.',
+            'Eager `{{property}}: {{fn}}(...)` is evaluated at module load, before i18n is initialized. Wrap in an arrow function: `{{property}}: () => {{fn}}(...)`.',
         },
       },
       create(context: Rule.RuleContext): Rule.RuleListener {
@@ -132,7 +132,7 @@ const plugin: { rules: Record<string, Rule.RuleModule> } = {
           context.report({
             node: prop.value,
             messageId: 'eager',
-            data: { property: keyName },
+            data: { property: keyName, fn: callee.callee.name },
             fix(fixer) {
               const source = context.getSourceCode().getText(prop.value);
               return fixer.replaceText(prop.value, `() => ${source}`);

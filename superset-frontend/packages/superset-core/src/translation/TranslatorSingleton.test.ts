@@ -138,7 +138,11 @@ test('pre-configure warning is suppressed in production', () => {
     t('hello');
     expect(consoleSpy).not.toHaveBeenCalled();
     consoleSpy.mockRestore();
-    process.env.NODE_ENV = originalEnv;
+    if (originalEnv !== undefined) {
+      process.env.NODE_ENV = originalEnv;
+    } else {
+      delete process.env.NODE_ENV;
+    }
   });
 });
 
