@@ -220,3 +220,26 @@ def test_list_rls_filters_request_rejects_search_and_filters():
             search="test",
             filters=[{"col": "name", "opr": "eq", "value": "x"}],
         )
+
+
+@patch("superset.daos.security.RLSDAO.list")
+@pytest.mark.asyncio
+async def test_list_rls_filters_roles_only_select_columns(mock_list, mcp_server):
+    """Regression: select_columns=['roles'] must not raise ValueError.
+
+    'roles' is in USER_DIRECTORY_FIELDS so ModelListCore would raise if it
+    were the sole column passed to run_tool. The tool must strip it before
+    calling run_tool and restore it in the model_dump context.
+    """
+    rls_filter = create_mock_rls_filter()
+    mock_list.return_value = ([rls_filter], 1)
+
+    async with Client(mcp_server) as client:
+        request = ListRlsFiltersRequest(page=1, page_size=10, select_columns=["roles"])
+        result = await client.call_tool(
+            "list_rls_filters", {"request": request.model_dump()}
+        )
+        data = json.loads(result.content[0].text)
+        item = data["rls_filters"][0]
+        assert "roles" in item
+        assert item["roles"][0]["name"] == "Alpha"

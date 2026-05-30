@@ -26,6 +26,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
 from superset.mcp_service.mcp_core import ModelListCore
+from superset.mcp_service.privacy import USER_DIRECTORY_FIELDS
 from superset.mcp_service.rls.schemas import (
     ALL_RLS_COLUMNS,
     DEFAULT_RLS_COLUMNS,
@@ -75,13 +76,13 @@ async def list_rls_filters(
     try:
         from superset.daos.security import RLSDAO
 
-        def _serialize(obj: object, cols: list[str] | None) -> RlsFilterInfo | None:
+        def _serialize_rls_filter(obj: object, cols: list[str]) -> RlsFilterInfo | None:
             return serialize_rls_filter_object(obj)
 
         list_tool = ModelListCore(
             dao_class=RLSDAO,
             output_schema=RlsFilterInfo,
-            item_serializer=_serialize,
+            item_serializer=_serialize_rls_filter,
             filter_type=RlsColumnFilter,
             default_columns=DEFAULT_RLS_COLUMNS,
             search_columns=["name"],
@@ -92,11 +93,21 @@ async def list_rls_filters(
             logger=logger,
         )
 
+        # Strip USER_DIRECTORY_FIELDS (e.g. 'roles') before handing off to
+        # run_tool, which would raise ValueError if all requested columns are
+        # privacy-filtered. Roles are restored in the model_dump context below.
+        run_select_columns: list[str] | None = None
+        if request.select_columns:
+            filtered = [
+                c for c in request.select_columns if c not in USER_DIRECTORY_FIELDS
+            ]
+            run_select_columns = filtered or None
+
         with event_logger.log_context(action="mcp.list_rls_filters.query"):
             result = list_tool.run_tool(
                 filters=request.filters,
                 search=request.search,
-                select_columns=request.select_columns,
+                select_columns=run_select_columns,
                 order_column=request.order_column,
                 order_direction=request.order_direction,
                 page=max(request.page - 1, 0),
