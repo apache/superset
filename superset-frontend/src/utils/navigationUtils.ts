@@ -24,7 +24,7 @@ export const navigateTo = (
   options?: { newWindow?: boolean; assign?: boolean },
 ) => {
   if (options?.newWindow) {
-    window.open(ensureAppRoot(url), '_blank', 'noopener noreferrer');
+    window.open(sanitizeUrl(ensureAppRoot(url)), '_blank', 'noopener noreferrer');
   } else if (options?.assign) {
     window.location.assign(sanitizeUrl(ensureAppRoot(url)));
   } else {
