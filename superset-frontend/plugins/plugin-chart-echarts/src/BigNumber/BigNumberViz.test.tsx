@@ -26,10 +26,12 @@
  */
 
 // Simulate the fixed logic from BigNumberViz renderHeader
-function applyColorFormatters(
+// Using const instead of function to avoid global-scope declaration conflicts
+// in TypeScript's script-mode compilation (TS2393).
+const applyColorFormatters = (
   bigNumber: number | null | undefined,
   formatters: Array<{ getColorFromValue: (v: number) => string | undefined }>,
-): string | undefined {
+): string | undefined => {
   let numberColor: string | undefined;
   const hasFormatters = Array.isArray(formatters) && formatters.length > 0;
   if (hasFormatters) {
@@ -41,7 +43,7 @@ function applyColorFormatters(
     });
   }
   return numberColor;
-}
+};
 
 test('applies color formatter when bigNumber is 0', () => {
   const getColorFromValue = jest.fn(() => 'red');
