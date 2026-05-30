@@ -219,6 +219,14 @@ def _reset_for_testing() -> None:
 
     Only for use in tests that need a clean slate.  Calling this in production
     will discard all registered plugins and any runtime filter configuration.
+
+    **Caller responsibility**: This function pops ``superset.mcp_service.chart.plugins``
+    from ``sys.modules`` and directly assigns module globals (``_REGISTRY``,
+    ``_plugins_loaded``, etc.).  Direct global assignment is NOT automatically
+    reverted by pytest's ``monkeypatch`` fixture.  Callers must either use
+    ``monkeypatch.setattr`` for each global, or call ``_reset_for_testing()`` again
+    in teardown to restore the clean state.  See ``test_registry.py`` for the
+    recommended ``monkeypatch.setattr`` isolation pattern.
     """
     global _REGISTRY, _plugins_loaded, _plugins_load_failed, _filter_config
     with _plugins_lock:

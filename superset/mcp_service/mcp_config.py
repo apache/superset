@@ -237,7 +237,7 @@ MCP_FACTORY_CONFIG = {
 #
 # For multi-pod/Kubernetes deployments, setting CACHE_REDIS_URL automatically
 # enables Redis-backed EventStore to share session state across pods.
-MCP_STORE_CONFIG: Dict[str, Any] = {
+MCP_STORE_CONFIG: dict[str, Any] = {
     "enabled": False,  # Disabled by default - caching uses in-memory store
     "CACHE_REDIS_URL": None,  # Redis URL, e.g., "redis://localhost:6379/0"
     # Wrapper class that prefixes all keys. Each consumer provides their own prefix.
@@ -250,7 +250,7 @@ MCP_STORE_CONFIG: Dict[str, Any] = {
 # MCP Response Caching Configuration - controls caching behavior and TTLs
 # When enabled without MCP_STORE_CONFIG, uses in-memory store.
 # When enabled with MCP_STORE_CONFIG, uses Redis store.
-MCP_CACHE_CONFIG: Dict[str, Any] = {
+MCP_CACHE_CONFIG: dict[str, Any] = {
     "enabled": False,  # Disabled by default
     "CACHE_KEY_PREFIX": None,  # Only needed when using the store
     "list_tools_ttl": 60 * 5,  # 5 minutes
@@ -301,7 +301,7 @@ MCP_CACHE_CONFIG: Dict[str, Any] = {
 # Uses character-based heuristic (~3.5 chars per token for JSON).
 # This is intentionally conservative to avoid underestimating.
 # =============================================================================
-MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
+MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
     "enabled": True,  # Enabled by default to protect LLM clients
     "token_limit": DEFAULT_TOKEN_LIMIT,
     "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
@@ -356,7 +356,7 @@ MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
 # - compact_schemas is ignored when include_schemas=False (no schema to
 #   compact); max_description_length still applies in summary mode.
 # =============================================================================
-MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
+MCP_TOOL_SEARCH_CONFIG: dict[str, Any] = {
     "enabled": True,  # Enabled by default — reduces initial context by ~70%
     "strategy": "bm25",  # "bm25" (natural language) or "regex" (pattern matching)
     "max_results": 5,  # Max tools returned per search
@@ -372,6 +372,7 @@ MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
 }
 
 
+<<<<<<< HEAD
 def get_mcp_api_key_enabled(app: Flask, *, startup_warning: bool = False) -> bool:
     """Return whether API key auth is enabled for the MCP transport.
 
@@ -410,6 +411,11 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
     api_key_enabled = get_mcp_api_key_enabled(app, startup_warning=True)
 
     if not (auth_enabled or api_key_enabled):
+=======
+def create_default_mcp_auth_factory(app: Flask) -> Any | None:
+    """Default MCP auth factory using app.config values."""
+    if not app.config.get("MCP_AUTH_ENABLED", False):
+>>>>>>> 9411002af9 (fix(mcp): address self-review findings — comments, dedup, modern types)
         return None
 
     # When JWT auth is enabled, an audience must be configured so issued tokens
@@ -564,7 +570,7 @@ def generate_secret_key() -> str:
     return secrets.token_urlsafe(42)
 
 
-def get_mcp_config(app_config: Dict[str, Any] | None = None) -> Dict[str, Any]:
+def get_mcp_config(app_config: dict[str, Any] | None = None) -> dict[str, Any]:
     """
     Get complete MCP configuration dictionary.
 
@@ -596,8 +602,8 @@ def get_mcp_config(app_config: Dict[str, Any] | None = None) -> Dict[str, Any]:
 
 
 def get_mcp_config_with_overrides(
-    app_config: Dict[str, Any] | None = None,
-) -> Dict[str, Any]:
+    app_config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """
     Alternative approach: Allow any app_config keys, not just predefined ones.
 
@@ -611,7 +617,7 @@ def get_mcp_config_with_overrides(
     return {**defaults, **app_config}
 
 
-def get_mcp_factory_config() -> Dict[str, Any]:
+def get_mcp_factory_config() -> dict[str, Any]:
     """
     Get FastMCP factory configuration.
 

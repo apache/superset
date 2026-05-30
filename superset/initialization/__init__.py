@@ -946,6 +946,21 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         feature_flag_manager.init_app(self.superset_app)
 
     def configure_mcp_chart_registry(self) -> None:
+        """Configure the MCP chart plugin registry with operator overrides.
+
+        Called from ``post_init()`` during ``create_app()``.  In normal
+        (non-MCP-standalone) Superset deployments this call is the only one
+        and picks up ``MCP_DISABLED_CHART_PLUGINS`` / ``MCP_CHART_PLUGIN_ENABLED_FUNC``
+        from the fully resolved config.
+
+        In the MCP-standalone deployment (``flask_singleton.py``), ``create_app()``
+        calls this method first — before the MCP-specific config overlay is applied —
+        and then ``flask_singleton.configure()`` calls ``registry.configure()`` a second
+        time with the correct post-overlay values.  Any registry lookup that occurs
+        between these two calls (during ``initialize_core_mcp_dependencies()``) sees
+        the pre-overlay config.  In practice no lookups occur at that point because
+        tools are invoked only after startup completes, so the window is benign.
+        """
         from superset.mcp_service.chart import registry
         from superset.mcp_service.mcp_config import (
             MCP_CHART_PLUGIN_ENABLED_FUNC,

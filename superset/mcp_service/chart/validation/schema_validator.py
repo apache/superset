@@ -148,12 +148,15 @@ class SchemaValidator:
         config: Dict[str, Any],
     ) -> Tuple[bool, ChartGenerationError | None]:
         """Validate chart type and dispatch to plugin pre-validation."""
+        # avoid circular import — a top-level import of registry here would pull in
+        # the plugins package before it finishes registering, creating an import cycle.
         from superset.mcp_service.chart.registry import get_registry
 
         registry = get_registry()
+        # Compute once — used in both error branches below.
+        valid_types = ", ".join(registry.all_types())
 
         if not isinstance(chart_type, str) or not registry.is_registered(chart_type):
-            valid_types = ", ".join(registry.all_types())
             return False, ChartGenerationError(
                 error_type="invalid_chart_type",
                 message=f"Invalid chart_type: '{chart_type}'",
@@ -177,7 +180,6 @@ class SchemaValidator:
         # invoke _is_plugin_enabled, which may call operator-supplied callable).
         plugin = registry.get(chart_type)
         if plugin is None:
-            valid_types = ", ".join(registry.all_types())
             return False, ChartGenerationError(
                 error_type="disabled_chart_type",
                 message=f"Chart type '{chart_type}' is not enabled on this instance",
@@ -207,6 +209,7 @@ class SchemaValidator:
             if err.get("type") == "union_tag_invalid" or "discriminator" in str(
                 err.get("ctx", {})
             ):
+                # avoid circular import
                 from superset.mcp_service.chart.registry import get_registry
 
                 chart_type = request_data.get("config", {}).get("chart_type", "")
