@@ -174,6 +174,14 @@ SQL Lab Integration:
 Schema Discovery:
 - get_schema: Get schema metadata for chart/dataset/dashboard (columns, filters)
 
+Action Logs (requires SUPERSET_LOG_VIEW and FAB_ADD_SECURITY_VIEWS):
+- list_action_logs: List user action logs with filtering and pagination (defaults to last 7 days)
+- get_action_log_info: Get a single action log entry by integer ID
+
+Task Management (requires GLOBAL_TASK_FRAMEWORK feature flag):
+- list_tasks: List background tasks with status filtering and pagination
+- get_task_info: Get task details by integer ID or UUID
+
 System Information:
 - get_instance_info: Get instance-wide statistics, metadata, and current user identity
 - find_users: Resolve a person's name to user IDs for use as a filter value
@@ -380,6 +388,8 @@ IMPORTANT - Tool-Only Interaction:
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
 - Use get_schema to discover filterable columns, sortable columns, and default columns
+  for chart/dataset/dashboard/database. For action_log and task tools, consult each
+  tool's docstring — filterable and sortable columns are listed there directly.
 - Use 'filters' parameter for advanced queries with filter columns from get_schema
 - IDs can be integer or UUID format where supported
 - All tools return structured, Pydantic-typed responses
@@ -635,6 +645,10 @@ warnings.filterwarnings(
 # NOTE: Always add new prompt/resource imports here when creating new prompts/resources.
 # Prompts use @mcp.prompt decorators and resources use @mcp.resource decorators.
 # They register automatically on import, similar to tools.
+from superset.mcp_service.action_log.tool import (  # noqa: F401, E402
+    get_action_log_info,
+    list_action_logs,
+)
 from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
     get_annotation_layer_info,
     get_layer_annotation_info,
@@ -704,6 +718,10 @@ from superset.mcp_service.tag.tool import (  # noqa: F401, E402
     get_tag_info,
     list_tags,
 )
+from superset.mcp_service.task.tool import (  # noqa: F401, E402
+    get_task_info,
+    list_tasks,
+)
 
 
 def _remove_disabled_tools(disabled_tools: set[str]) -> None:
@@ -723,6 +741,48 @@ def _remove_disabled_tools(disabled_tools: set[str]) -> None:
                 "check the tool name is correct",
                 tool_name,
             )
+
+
+def _remove_tool_quietly(tool_name: str, reason: str) -> None:
+    """Remove a single tool from the global MCP instance, ignoring missing-tool errors."""
+    try:
+        mcp.local_provider.remove_tool(tool_name)
+        logger.info("Disabled MCP tool: %s (%s)", tool_name, reason)
+    except KeyError:
+        pass
+
+
+def _apply_config_guards(flask_app: Any) -> set[str]:
+    """Remove tools whose backing features are administratively disabled.
+
+    Returns the set of tool names that were removed so that callers can exclude
+    them from generated instructions.
+
+    - Action-log tools: mirrors LogRestApi.is_enabled() which checks
+      FAB_ADD_SECURITY_VIEWS and SUPERSET_LOG_VIEW.
+    - Task tools: mirrors TaskRestApi conditional registration which checks
+      the GLOBAL_TASK_FRAMEWORK feature flag via feature_flag_manager so that
+      all Superset enablement paths (DEFAULT_FEATURE_FLAGS, GET_FEATURE_FLAGS_FUNC,
+      IS_FEATURE_ENABLED_FUNC, etc.) are respected.
+    """
+    removed: set[str] = set()
+
+    if not (
+        flask_app.config["FAB_ADD_SECURITY_VIEWS"]
+        and flask_app.config["SUPERSET_LOG_VIEW"]
+    ):
+        for tool_name in ("list_action_logs", "get_action_log_info"):
+            _remove_tool_quietly(tool_name, "logging disabled by config flags")
+            removed.add(tool_name)
+
+    from superset.extensions import feature_flag_manager  # noqa: PLC0415
+
+    if not feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
+        for tool_name in ("list_tasks", "get_task_info"):
+            _remove_tool_quietly(tool_name, "GLOBAL_TASK_FRAMEWORK not enabled")
+            removed.add(tool_name)
+
+    return removed
 
 
 def init_fastmcp_server(
@@ -769,9 +829,13 @@ def init_fastmcp_server(
     # instructions never advertise tools that clients cannot actually call.
     disabled_tools: set[str] = flask_app.config.get("MCP_DISABLED_TOOLS", set())
     _remove_disabled_tools(disabled_tools)
+    config_guard_removed = _apply_config_guards(flask_app)
 
     if instructions is None:
-        instructions = get_default_instructions(branding, disabled_tools)
+        # Merge MCP_DISABLED_TOOLS with config-guard removals so the instructions
+        # never advertise tools that have been suppressed by either mechanism.
+        all_disabled = disabled_tools | config_guard_removed
+        instructions = get_default_instructions(branding, all_disabled)
 
     # Configure the global mcp instance with provided settings.
     # Tools are already registered on this instance via @tool decorator imports above.
