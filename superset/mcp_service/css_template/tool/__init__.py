@@ -15,10 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from .create_css_template import create_css_template
 from .get_css_template_info import get_css_template_info
 from .list_css_templates import list_css_templates
+from .update_css_template import update_css_template
 
 __all__ = [
     "list_css_templates",
     "get_css_template_info",
+    "create_css_template",
+    "update_css_template",
 ]

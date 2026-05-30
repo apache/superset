@@ -278,3 +278,107 @@ def serialize_css_template_object(obj: Any) -> CssTemplateInfo | None:
             changed_by_name=getattr(obj, "changed_by_name", None) or None,
         )
     )
+
+
+class CreateCssTemplateRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    template_name: str = Field(
+        ...,
+        min_length=1,
+        max_length=250,
+        description="Name for the CSS template.",
+    )
+    css: str = Field(
+        ...,
+        description="CSS content for the template.",
+    )
+
+    @field_validator("template_name")
+    @classmethod
+    def template_name_must_not_be_empty(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("template_name must not be empty")
+        return v.strip()
+
+
+class CreateCssTemplateResponse(BaseModel):
+    """Response schema for create_css_template."""
+
+    id: int | None = Field(
+        None,
+        description="ID of the created CSS template. None if creation failed.",
+    )
+    template_name: str | None = Field(
+        None,
+        description="Name of the created CSS template.",
+    )
+    css: str | None = Field(
+        None,
+        description="CSS content of the created template.",
+    )
+    error: str | None = Field(
+        None,
+        description="Error message if creation failed, otherwise null.",
+    )
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Sanitize error text before it is exposed to LLM context."""
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
+
+
+class UpdateCssTemplateRequest(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    id: int = Field(..., description="ID of the CSS template to update.")
+    template_name: str | None = Field(
+        None,
+        max_length=250,
+        description="New name for the CSS template.",
+    )
+    css: str | None = Field(
+        None,
+        description="New CSS content for the template.",
+    )
+
+    @field_validator("template_name")
+    @classmethod
+    def template_name_must_not_be_empty(cls, v: str | None) -> str | None:
+        if v is not None:
+            if not v.strip():
+                raise ValueError("template_name must not be empty")
+            return v.strip()
+        return v
+
+
+class UpdateCssTemplateResponse(BaseModel):
+    """Response schema for update_css_template."""
+
+    id: int | None = Field(
+        None,
+        description="ID of the updated CSS template. None if update failed.",
+    )
+    template_name: str | None = Field(
+        None,
+        description="Name of the updated CSS template.",
+    )
+    css: str | None = Field(
+        None,
+        description="CSS content of the updated template.",
+    )
+    error: str | None = Field(
+        None,
+        description="Error message if update failed, otherwise null.",
+    )
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Sanitize error text before it is exposed to LLM context."""
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
