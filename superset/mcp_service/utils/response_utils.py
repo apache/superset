@@ -56,7 +56,18 @@ Usage example::
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Dict
+
+import humanize
+
+
+def humanize_timestamp(dt: datetime | None) -> str | None:
+    """Convert a datetime to a humanized string like '2 hours ago'."""
+    if dt is None:
+        return None
+    now = datetime.now(dt.tzinfo) if dt.tzinfo else datetime.now()
+    return humanize.naturaltime(now - dt)
 
 
 def _byte_size_label(value: str | None) -> str:
