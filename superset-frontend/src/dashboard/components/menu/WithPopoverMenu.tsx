@@ -28,6 +28,7 @@ import {
 import cx from 'classnames';
 import { addAlpha } from '@superset-ui/core';
 import { css, styled } from '@apache-superset/core/theme';
+
 type ShouldFocusContainer = HTMLDivElement & {
   contains: (event_target: EventTarget & HTMLElement) => boolean;
 };
