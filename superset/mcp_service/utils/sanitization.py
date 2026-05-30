@@ -124,7 +124,17 @@ def sanitize_for_llm_context(
 
     Strings are wrapped in explicit untrusted-content delimiters unless the
     current field name is part of the shared operational exclusion policy.
-    Container shapes and non-string values are preserved.
+    Container shapes and non-string values are preserved.  String dict keys
+    are only delimiter-escaped (not wrapped) to keep the original structure
+    navigable; any UNTRUSTED-CONTENT tokens embedded in a key are replaced
+    with their escaped forms so they cannot prematurely close a value wrapper.
+
+    Args:
+        value: The value to sanitize.
+        field_path: Tuple of field name segments leading to this value.
+        excluded_field_names: Field names whose values are only delimiter-escaped
+            rather than wrapped.  Defaults to LLM_CONTEXT_EXCLUDED_FIELD_NAMES.
+            Pass ``frozenset()`` to wrap every string leaf without exclusions.
     """
     excluded_names = (
         LLM_CONTEXT_EXCLUDED_FIELD_NAMES
