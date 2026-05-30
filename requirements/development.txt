@@ -346,6 +346,7 @@ google-auth==2.43.0
     #   google-api-core
     #   google-auth-oauthlib
     #   google-cloud-bigquery
+    #   google-cloud-bigquery-storage
     #   google-cloud-core
     #   pandas-gbq
     #   pydata-google-auth
@@ -360,7 +361,7 @@ google-cloud-bigquery==3.27.0
     #   apache-superset
     #   pandas-gbq
     #   sqlalchemy-bigquery
-google-cloud-bigquery-storage==2.19.1
+google-cloud-bigquery-storage==2.26.0
     # via pandas-gbq
 google-cloud-core==2.4.1
     # via google-cloud-bigquery
@@ -701,7 +702,7 @@ proto-plus==1.25.0
     # via
     #   google-api-core
     #   google-cloud-bigquery-storage
-protobuf==4.25.8
+protobuf==5.29.6
     # via
     #   google-api-core
     #   google-cloud-bigquery-storage
