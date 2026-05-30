@@ -137,6 +137,10 @@ Annotation Layers:
 - list_layer_annotations: List annotations within a layer (requires layer_id, 1-based pagination)
 - get_layer_annotation_info: Get annotation details by layer_id and annotation_id
 
+Tag Management:
+- list_tags: List tags with advanced filters (1-based pagination)
+- get_tag_info: Get detailed tag information by ID
+
 Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
 - get_database_info: Get detailed database connection info by ID (backend, capabilities)
@@ -695,6 +699,10 @@ from superset.mcp_service.system.tool import (  # noqa: F401, E402
     get_instance_info,
     get_schema,
     health_check,
+)
+from superset.mcp_service.tag.tool import (  # noqa: F401, E402
+    get_tag_info,
+    list_tags,
 )
 
 
