@@ -83,8 +83,9 @@ jobs:
           INPUT_RELEASE: ${{ github.event.inputs.release }}
           INPUT_FORCE_LATEST: ${{ github.event.inputs.force-latest }}
           INPUT_GIT_REF: ${{ github.event.inputs.git-ref }}
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
-          RELEASE="${{ github.event.release.tag_name }}"
+          RELEASE="${GITHUB_EVENT_RELEASE_TAG_NAME}"
           FORCE_LATEST=""
           EVENT="${{github.event_name}}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
@@ -135,11 +136,12 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           INPUT_RELEASE: ${{ github.event.inputs.release }}
+          GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
         run: |
           export GITHUB_ACTOR=""
           git fetch --all --tags
           git checkout master
-          RELEASE="${{ github.event.release.tag_name }}"
+          RELEASE="${GITHUB_EVENT_RELEASE_TAG_NAME}"
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             # in the case of a manually-triggered run, read release from input
             RELEASE="${INPUT_RELEASE}"
