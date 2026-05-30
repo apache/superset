@@ -188,6 +188,74 @@ def test_file_content_null_chart_customization_config_does_not_raise():
     assert result["metadata"]["chart_customization_config"] is None
 
 
+def test_file_content_includes_roles_for_dashboard_with_role_restrictions():
+    """
+    Regression guard for #21000: dashboards restricted via DASHBOARD_RBAC must
+    have their role assignments included in the exported YAML. Without this,
+    importing the bundle into another environment recreates the dashboard with
+    no role restriction — silently turning a restricted dashboard into a
+    publicly accessible one.
+
+    The export bundle is the canonical source of truth for migrating
+    dashboards across environments; dropping roles silently is a security
+    regression (a "least privilege" dashboard becomes "all privileges" on
+    import). The user, not the export pipeline, should decide whether to
+    strip roles before sharing a bundle.
+
+    We assert against role *names* rather than IDs because role IDs are
+    environment-local; the import side resolves names back to the destination
+    environment's roles.
+    """
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+
+    role_alpha = MagicMock()
+    role_alpha.name = "Finance"
+    role_beta = MagicMock()
+    role_beta.name = "Executives"
+
+    mock_dashboard = _make_mock_dashboard({"native_filter_configuration": []})
+    mock_dashboard.roles = [role_alpha, role_beta]
+
+    with patch(
+        "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",
+        return_value=False,
+    ):
+        content = ExportDashboardsCommand._file_content(mock_dashboard)
+
+    result = yaml.safe_load(content)
+    assert "roles" in result, (
+        "Dashboard export must include role names; without them, importing "
+        "into a fresh environment loses the role-based access restriction "
+        "and the dashboard becomes accessible to all roles by default."
+    )
+    assert sorted(result["roles"]) == ["Executives", "Finance"]
+
+
+def test_file_content_omits_roles_field_when_dashboard_has_no_roles():
+    """
+    A dashboard with no role restrictions must not emit an empty ``roles: []``
+    key. Older bundles in the wild were written without the key at all, and
+    the import side treats "missing" as "no restriction"; emitting an empty
+    list could trip importers that distinguish the two states.
+    """
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+
+    mock_dashboard = _make_mock_dashboard({"native_filter_configuration": []})
+    mock_dashboard.roles = []
+
+    with patch(
+        "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",
+        return_value=False,
+    ):
+        content = ExportDashboardsCommand._file_content(mock_dashboard)
+
+    result = yaml.safe_load(content)
+    # Strict: the key must be absent (not an empty list). The import side
+    # treats "missing" as "no restriction"; emitting an empty list could
+    # trip importers that distinguish the two states.
+    assert "roles" not in result
+
+
 def test_file_content_missing_dataset_preserves_dataset_id():
     """
     When DatasetDAO.find_by_id returns None for a display control target,

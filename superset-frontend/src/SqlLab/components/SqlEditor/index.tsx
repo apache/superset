@@ -30,7 +30,8 @@ import {
 
 import type { editors } from '@apache-superset/core';
 import useEffectEvent from 'src/hooks/useEffectEvent';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -237,7 +238,7 @@ const SqlEditor: FC<Props> = ({
   scheduleQueryWarning,
 }) => {
   const theme = useTheme();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   const { database, latestQuery, currentQueryEditorId, hasSqlStatement } =
     useSelector<
