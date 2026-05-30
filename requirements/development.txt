@@ -506,7 +506,7 @@ limits==5.1.0
     # via
     #   -c requirements/base-constraint.txt
     #   flask-limiter
-mako==1.3.11
+mako==1.3.12
     # via
     #   -c requirements/base-constraint.txt
     #   alembic
@@ -1071,7 +1071,7 @@ url-normalize==2.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   requests-cache
-urllib3==2.6.3
+urllib3==2.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   botocore
