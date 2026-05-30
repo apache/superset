@@ -27,7 +27,6 @@ from superset.commands.tag.exceptions import (
     TagNotFoundError,
 )
 from superset.commands.tag.utils import (
-    OBJECT_TYPE_MODEL_MAP,
     raise_for_object_access,
     to_object_model,
     to_object_type,
@@ -99,13 +98,6 @@ class DeleteTaggedObjectCommand(DeleteMixin, BaseCommand):
         self, object_type: ObjectType, object_id: int, exceptions: list[Any]
     ) -> None:
         """Validate that the current user has access to the target object."""
-        if object_type not in OBJECT_TYPE_MODEL_MAP:
-            exceptions.append(
-                TaggedObjectDeleteFailedError(
-                    f"Access denied for {object_type} {object_id}"
-                )
-            )
-            return
         try:
             target_object = to_object_model(object_type, object_id)
             if target_object is None:
