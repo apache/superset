@@ -31,7 +31,7 @@ if [ -z "$RUNNING_IN_DOCKER" ]; then
     -w /app \
     -e RUNNING_IN_DOCKER=1 \
     python:${PYTHON_VERSION}-slim \
-    bash -c "pip install uv && ./scripts/uv-pip-compile.sh $*"
+    bash -c "pip install uv==0.11.17 && ./scripts/uv-pip-compile.sh $*"
 
   exit $?
 fi
