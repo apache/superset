@@ -6,6 +6,9 @@ on:
   pull_request_review_comment:
     types: [created]
 
+permissions:
+  contents: read
+
 jobs:
   check-permissions:
     if: |
@@ -75,6 +78,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       with:
+        persist-credentials: false
         fetch-depth: 1
 
     - name: Run Claude PR Action
