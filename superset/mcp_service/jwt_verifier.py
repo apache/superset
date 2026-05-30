@@ -26,8 +26,10 @@ HTTP responses always return generic errors per RFC 6750 Section 3.1.
 """
 
 import base64
+import html as html_module
 import logging
 import time
+from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any, cast
 
@@ -44,8 +46,9 @@ from mcp.server.auth.middleware.bearer_auth import BearerAuthBackend
 from starlette.authentication import AuthenticationError
 from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
-from starlette.requests import HTTPConnection
-from starlette.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.requests import HTTPConnection, Request
+from starlette.responses import HTMLResponse, JSONResponse, Response
 
 from superset.utils import json
 
@@ -61,21 +64,247 @@ _jwt_failure_reason: ContextVar[str | None] = ContextVar(
     "_jwt_failure_reason", default=None
 )
 
+_HTML_STYLES = """
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      margin: 0;
+      padding: 40px 16px;
+      line-height: 1.6;
+    }
+    .card {
+      max-width: 640px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.12);
+      padding: 40px 40px 32px;
+    }
+    h1 { font-size: 1.4rem; margin: 0 0 8px; }
+    .badge {
+      display: inline-block;
+      background: #e8f4fd;
+      color: #0070c0;
+      font-size: .75rem;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      letter-spacing: .04em;
+      text-transform: uppercase;
+    }
+    p { margin: 0 0 20px; color: #444; }
+    h2 { font-size: 1rem; margin: 24px 0 8px; color: #1a1a1a; }
+    pre {
+      background: #f0f0f0;
+      border-radius: 6px;
+      padding: 16px;
+      font-size: .85rem;
+      overflow-x: auto;
+      margin: 0 0 24px;
+    }
+    code {
+      font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+    .note {
+      font-size: .85rem;
+      color: #666;
+      border-left: 3px solid #ddd;
+      padding-left: 12px;
+      margin-top: 24px;
+    }
+    .logo {
+      max-height: 48px; max-width: 200px; margin-bottom: 20px; display: block;
+    }"""
 
-def _json_auth_error_handler(
-    conn: HTTPConnection, exc: AuthenticationError
-) -> JSONResponse:
-    """JSON 401 error handler for authentication failures.
+_DEFAULT_CLIENTS = [
+    "Claude Desktop",
+    "Claude Code (CLI)",
+    "Cursor",
+]
 
-    Per RFC 6750 Section 3.1, error responses MUST NOT leak server
-    configuration or token claim values. Only generic error codes are
-    returned to clients. Detailed failure reasons are logged server-side
-    only for debugging.
+_DEFAULT_HELLO_PAGE_CONFIG: dict[str, Any] = {
+    # Page heading and browser tab title
+    "title": "Superset MCP Server",
+    # Key name used in the mcpServers config snippet (e.g. "superset", "my-company")
+    "server_key": "superset",
+    # Include "transport": "streamable-http" in the config snippet.
+    # Recommended: Claude Desktop defaults to SSE so the transport must be explicit.
+    "show_transport": True,
+    # Supported MCP clients listed on the page
+    "clients": _DEFAULT_CLIENTS,
+}
+
+
+def _build_config_snippet(
+    auth_enabled: bool, server_key: str, show_transport: bool
+) -> str:
+    # superset.utils.json.dumps() ensures the key is a valid JSON string.
+    from superset.utils import json as superset_json
+
+    key_json = superset_json.dumps(server_key)
+    inner_parts = ['      "url": "<this-url>"']
+    if show_transport:
+        inner_parts.append('      "transport": "streamable-http"')
+    if auth_enabled:
+        inner_parts.append(
+            '      "headers": {\n'
+            '        "Authorization": "Bearer <your-api-key>"\n'
+            "      }"
+        )
+    inner = ",\n".join(inner_parts)
+    return f'{{\n  "mcpServers": {{\n    {key_json}: {{\n{inner}\n    }}\n  }}\n}}'
+
+
+def _build_browser_hello_html(
+    auth_enabled: bool,
+    page_config: dict[str, Any] | None = None,
+) -> str:
+    cfg = {**_DEFAULT_HELLO_PAGE_CONFIG, **(page_config or {})}
+    title: str = html_module.escape(str(cfg["title"]))
+    server_key: str = cfg["server_key"]
+    show_transport: bool = cfg["show_transport"]
+    clients: list[str] = [html_module.escape(str(c)) for c in cfg["clients"]]
+    app_name: str = html_module.escape(str(cfg.get("app_name", "Apache Superset")))
+    logo_url: str | None = None
+    if logo_url_raw := cfg.get("logo_url"):
+        logo_url_stripped = str(logo_url_raw).strip()
+        if logo_url_stripped.startswith(("http://", "https://")):
+            logo_url = html_module.escape(logo_url_stripped)
+
+    # html.escape() ensures server_key and all other content in the snippet
+    # cannot break out of the <pre><code> block (json.dumps does not escape HTML).
+    config_block = html_module.escape(
+        _build_config_snippet(auth_enabled, server_key, show_transport)
+    )
+
+    if auth_enabled:
+        connect_desc = (
+            "Add the following to your MCP client configuration, "
+            "replacing the URL and API key with your actual values:"
+        )
+        note = (
+            "Replace <code>&lt;this-url&gt;</code> with the full URL of this page "
+            "and <code>&lt;your-api-key&gt;</code> with a valid API key or JWT token."
+        )
+    else:
+        connect_desc = (
+            "Add the following to your MCP client configuration, "
+            "replacing the URL with your actual server URL:"
+        )
+        note = "Replace <code>&lt;this-url&gt;</code> with the full URL of this page."
+
+    client_items = "\n".join(f"      <li>{c}</li>" for c in clients)
+    logo_html = (
+        f'<img src="{logo_url}" alt="{title}" class="logo">\n    ' if logo_url else ""
+    )
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{title}</title>
+  <style>{_HTML_STYLES}
+  </style>
+</head>
+<body>
+  <div class="card">
+    {logo_html}<div class="badge">MCP API Endpoint</div>
+    <h1>{title}</h1>
+    <p>
+      This is the <strong>Model Context Protocol (MCP)</strong> endpoint for
+      {app_name}. It is an API designed for AI coding assistants —
+      not a web page to browse directly.
+    </p>
+    <h2>How to connect</h2>
+    <p>{connect_desc}</p>
+    <pre><code>{config_block}</code></pre>
+    <h2>Supported clients</h2>
+    <p>This endpoint works with any MCP-compatible client, including:</p>
+    <ul style="color:#444;margin:0 0 20px;padding-left:20px;">
+{client_items}
+      <li>Any client that supports the <code>streamable-http</code> transport</li>
+    </ul>
+    <div class="note">
+      {note}
+    </div>
+  </div>
+</body>
+</html>"""
+
+
+# Pre-built for _auth_error_handler (auth-required context, default config)
+_MCP_BROWSER_HELLO_HTML = _build_browser_hello_html(auth_enabled=True)
+
+
+def _prefers_browser_html(conn: HTTPConnection) -> bool:
+    """Return True when the request looks like a browser navigation.
+
+    Checks both the HTTP method (GET/HEAD only) and the Accept header
+    (text/html present, application/json and text/event-stream absent).
+    Case-insensitive to handle unusual but valid header values.
+    """
+    if conn.scope.get("method") not in ("GET", "HEAD"):
+        return False
+    accept = conn.headers.get("accept", "").lower()
+    return (
+        "text/html" in accept
+        and "application/json" not in accept
+        and "text/event-stream" not in accept
+    )
+
+
+class BrowserHelloMiddleware(BaseHTTPMiddleware):
+    """Starlette middleware that returns a browser-friendly hello page.
+
+    Intercepts GET/HEAD requests with a browser Accept header before they
+    reach FastMCP's router (which returns 405 for GET). Works regardless
+    of whether MCP_AUTH_ENABLED is True or False.
+
+    When auth_enabled=True the page includes Bearer token setup instructions.
+    When auth_enabled=False the page omits the Authorization header from the
+    config snippet since no credentials are required.
+    """
+
+    def __init__(
+        self,
+        app: Any,
+        auth_enabled: bool = False,
+        page_config: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(app)
+        self._html = _build_browser_hello_html(
+            auth_enabled=auth_enabled, page_config=page_config
+        )
+
+    async def dispatch(
+        self, request: Request, call_next: Callable[..., Any]
+    ) -> Response:
+        if request.method in ("GET", "HEAD") and _prefers_browser_html(request):
+            return HTMLResponse(content=self._html, status_code=200)
+        return await call_next(request)
+
+
+def _auth_error_handler(conn: HTTPConnection, exc: AuthenticationError) -> Response:
+    """Auth error handler for unauthenticated MCP requests.
+
+    Returns a friendly HTML page for browser navigation requests so users
+    who open the MCP URL in a browser see setup instructions instead of a
+    raw JSON 401.
+
+    For all other clients (API, SSE, non-GET methods) returns a standard
+    JSON 401 per RFC 6750 Section 3.1.
 
     References:
         - RFC 6750 Section 3.1: https://datatracker.ietf.org/doc/html/rfc6750#section-3.1
         - CVE-2022-29266, CVE-2019-7644: verbose JWT errors led to exploits
     """
+    if _prefers_browser_html(conn):
+        return HTMLResponse(status_code=200, content=_MCP_BROWSER_HELLO_HTML)
+
     # Log detailed reason server-side only
     logger.warning("JWT authentication failed: %s", exc)
 
@@ -89,6 +318,28 @@ def _json_auth_error_handler(
             "WWW-Authenticate": 'Bearer error="invalid_token"',
         },
     )
+
+
+class MCPJWTVerifier(JWTVerifier):
+    """JWTVerifier with Superset MCP auth error handling.
+
+    Provides browser-friendly HTML responses for unauthenticated browser
+    navigation requests (GET/HEAD with Accept: text/html), while maintaining
+    RFC 6750-compliant JSON 401 responses for API and SSE clients.
+
+    Use this as the base for all Superset JWT verifiers so the browser hello
+    page is active regardless of which verifier variant is configured.
+    """
+
+    def get_middleware(self) -> list[Any]:
+        return [
+            Middleware(
+                AuthenticationMiddleware,
+                backend=BearerAuthBackend(self),
+                on_error=_auth_error_handler,
+            ),
+            Middleware(AuthContextMiddleware),
+        ]
 
 
 class DetailedBearerAuthBackend(BearerAuthBackend):
@@ -124,7 +375,7 @@ class DetailedBearerAuthBackend(BearerAuthBackend):
         return None
 
 
-class DetailedJWTVerifier(JWTVerifier):
+class DetailedJWTVerifier(MCPJWTVerifier):
     """
     JWT verifier with tiered server-side logging for each validation step.
 
@@ -300,7 +551,7 @@ class DetailedJWTVerifier(JWTVerifier):
             Middleware(
                 AuthenticationMiddleware,
                 backend=DetailedBearerAuthBackend(self),
-                on_error=_json_auth_error_handler,
+                on_error=_auth_error_handler,
             ),
             Middleware(AuthContextMiddleware),
         ]

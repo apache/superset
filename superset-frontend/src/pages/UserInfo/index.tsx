@@ -19,7 +19,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient } from '@superset-ui/core';
+import {
+  SupersetClient,
+  FeatureFlag,
+  isFeatureEnabled,
+} from '@superset-ui/core';
 import { css, useTheme, styled } from '@apache-superset/core/theme';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -30,6 +34,7 @@ import {
   UserInfoResetPasswordModal,
 } from 'src/features/userInfo/UserInfoModal';
 import { Icons, Collapse } from '@superset-ui/core/components';
+import { ApiKeyList } from 'src/features/apiKeys/ApiKeyList';
 
 const StyledHeader = styled.div`
   ${({ theme }) => css`
@@ -159,7 +164,16 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
     <StyledLayout>
       <StyledHeader>{t('Your user information')}</StyledHeader>
       <DescriptionsContainer>
-        <Collapse defaultActiveKey={['userInfo', 'personalInfo']} ghost>
+        <Collapse
+          defaultActiveKey={[
+            'userInfo',
+            'personalInfo',
+            ...(isFeatureEnabled(FeatureFlag.FabApiKeyEnabled)
+              ? ['apiKeys']
+              : []),
+          ]}
+          ghost
+        >
           <Collapse.Panel
             header={<DescriptionTitle>{t('User info')}</DescriptionTitle>}
             key="userInfo"
@@ -176,8 +190,11 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
               <Descriptions.Item label={t('Is Active?')}>
                 {user.isActive ? t('Yes') : t('No')}
               </Descriptions.Item>
-              <Descriptions.Item label={t('Role')}>
+              <Descriptions.Item label={t('Roles')}>
                 {user.roles ? Object.keys(user.roles).join(', ') : t('None')}
+              </Descriptions.Item>
+              <Descriptions.Item label={t('Groups')}>
+                {user.groups.length ? user.groups.join(', ') : t('None')}
               </Descriptions.Item>
               <Descriptions.Item label={t('Login count')}>
                 {user.loginCount}
@@ -205,6 +222,14 @@ export function UserInfo({ user }: { user: UserWithPermissionsAndRoles }) {
               </Descriptions.Item>
             </Descriptions>
           </Collapse.Panel>
+          {isFeatureEnabled(FeatureFlag.FabApiKeyEnabled) && (
+            <Collapse.Panel
+              header={<DescriptionTitle>{t('API Keys')}</DescriptionTitle>}
+              key="apiKeys"
+            >
+              <ApiKeyList />
+            </Collapse.Panel>
+          )}
         </Collapse>
       </DescriptionsContainer>
       {modalState.resetPassword && (

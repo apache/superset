@@ -766,6 +766,7 @@ describe('Additional actions tests', () => {
       const props = createProps();
       render(<ExploreHeader {...props} />, {
         useRedux: true,
+        initialState: { explore: { can_export_image: true } },
       });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
@@ -967,7 +968,10 @@ describe('Additional actions tests', () => {
 
       const getSpy = mockExportCurrentViewBehavior();
 
-      render(<ExploreHeader {...props} />, { useRedux: true });
+      render(<ExploreHeader {...props} />, {
+        useRedux: true,
+        initialState: { explore: { can_export_image: true } },
+      });
 
       userEvent.click(screen.getByLabelText('Menu actions trigger'));
       userEvent.hover(await screen.findByText('Data Export Options'));

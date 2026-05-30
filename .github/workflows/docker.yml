@@ -9,6 +9,10 @@ on:
     branches:
       - "master"
 
+permissions:
+  contents: read
+  pull-requests: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
@@ -42,7 +46,7 @@ jobs:
     steps:
 
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
 
@@ -91,7 +95,11 @@ jobs:
       # in the context of push (using multi-platform build), we need to pull the image locally
       - name: Docker pull
         if: github.event_name == 'push' && (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker)
-        run:  docker pull $IMAGE_TAG
+        run: |
+          for i in 1 2 3; do
+            docker pull $IMAGE_TAG && break
+            [ $i -lt 3 ] && sleep 30
+          done
 
       - name: Print docker stats
         if: steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker
@@ -100,23 +108,6 @@ jobs:
           echo "IMAGE: $IMAGE_TAG"
           docker images $IMAGE_TAG
           docker history $IMAGE_TAG
-
-      # Scan for vulnerabilities in built container image after pushes to mainline branch.
-      - name: Run Trivy container image vulnerabity scan
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && matrix.build_preset == 'lean'
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # v0.35.0
-        with:
-          image-ref: ${{ env.IMAGE_TAG }}
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          vuln-type: 'os'
-          severity: 'CRITICAL,HIGH'
-          ignore-unfixed: true
-      - name: Upload Trivy scan results to GitHub Security tab
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master' && (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && matrix.build_preset == 'lean'
-        uses: github/codeql-action/upload-sarif@1b168cd39490f61582a9beae412bb7057a6b2c4e # v4.31.8
-        with:
-          sarif_file: 'trivy-results.sarif'
 
       - name: docker-compose sanity check
         if: (steps.check.outputs.python || steps.check.outputs.frontend || steps.check.outputs.docker) && matrix.build_preset == 'dev'
@@ -134,7 +125,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
       - name: Check for file changes

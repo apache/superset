@@ -84,7 +84,7 @@ const AdvancedSection = ({
       tabSize={2}
       wordWrap
       width="100%"
-      height="200px"
+      height="60vh"
       annotations={toEditorAnnotations(jsonAnnotations)}
     />
   </ModalFormField>
