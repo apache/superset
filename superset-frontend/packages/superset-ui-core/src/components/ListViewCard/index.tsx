@@ -141,7 +141,7 @@ const ThinSkeleton = styled(Skeleton)`
 const paragraphConfig = { rows: 1, width: 150 };
 
 const AnchorLink: FC<LinkProps> = ({ to, children }) => (
-  <a href={sanitizeUrl(to)}>{children}</a>
+  <a href={to !== undefined ? sanitizeUrl(to) : undefined}>{children}</a>
 );
 
 function ListViewCard({
