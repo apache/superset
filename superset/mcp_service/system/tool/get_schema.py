@@ -264,6 +264,12 @@ async def get_schema(
             security_manager.can_access("can_read", class_permission)
         ):
             user_str = getattr(getattr(g, "user", None), "username", None)
+            logger.warning(
+                "get_schema RBAC denied: user=%s type=%s view=%s",
+                user_str,
+                request.model_type,
+                class_permission,
+            )
             raise MCPPermissionDeniedError(
                 permission_name="can_read",
                 view_name=class_permission,

@@ -272,7 +272,6 @@ def _sanitize_theme_info_for_llm_context(
         payload["json_data"] = sanitize_for_llm_context(
             payload["json_data"],
             field_path=("json_data",),
-            excluded_field_names=frozenset(),
         )
     return ThemeInfo.model_validate(payload)
 
