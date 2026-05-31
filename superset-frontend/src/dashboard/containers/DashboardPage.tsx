@@ -19,7 +19,7 @@
 import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
-import { t, useTheme } from '@superset-ui/core';
+import { t, useTheme, Filter, PartialFilters } from '@superset-ui/core';
 import { useDispatch, useSelector } from 'react-redux';
 import { createSelector } from '@reduxjs/toolkit';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
@@ -64,6 +64,17 @@ import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
 import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
+import {
+  parseRisonFilters,
+  risonFiltersToExtraFormDataFilters,
+  getRisonFilterParam,
+  prettifyRisonFilterUrl,
+  injectRisonFiltersIntelligently,
+  updateUrlWithUnmatchedFilters,
+  RISON_UNMATCHED_DATAMASK_ID,
+} from '../util/risonFilters';
+
+type NativeFilterConfigEntry = Partial<Filter> & { id: string };
 
 export const DashboardPageIdContext = createContext('');
 
@@ -208,6 +219,63 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       }
       if (isOldRison) {
         dataMask = isOldRison;
+      }
+
+      // Parse Rison URL filters with intelligent native filter injection
+      const risonFilterParam = getRisonFilterParam();
+      if (risonFilterParam) {
+        const risonFilters = parseRisonFilters(risonFilterParam);
+        if (risonFilters.length > 0) {
+          // Convert native filter config array to keyed object for lookup
+          const filterConfigArray = (dashboard?.metadata
+            ?.native_filter_configuration ?? []) as NativeFilterConfigEntry[];
+          const nativeFilters: PartialFilters = {};
+          filterConfigArray.forEach(filter => {
+            nativeFilters[filter.id] = filter;
+          });
+          const injectionResult = injectRisonFiltersIntelligently(
+            risonFilters,
+            nativeFilters,
+            dataMask,
+          );
+
+          dataMask = injectionResult.updatedDataMask;
+
+          // Unmatched filters apply via a synthetic dataMask entry: because no
+          // entry in `nativeFilters` claims this id, `getAllActiveFilters`
+          // falls through to `allSliceIds` and the filters scope to every chart.
+          if (injectionResult.unmatchedFilters.length > 0) {
+            const extraFormDataFilters = risonFiltersToExtraFormDataFilters(
+              injectionResult.unmatchedFilters,
+            );
+
+            dataMask = {
+              ...dataMask,
+              [RISON_UNMATCHED_DATAMASK_ID]: {
+                id: RISON_UNMATCHED_DATAMASK_ID,
+                extraFormData: { filters: extraFormDataFilters },
+                filterState: {},
+                ownState: {},
+              },
+            };
+          }
+
+          // Rewrite the URL to drop matched filters in a single step, keeping
+          // only unmatched ones (and prettifying their encoding). Going
+          // through react-router's history keeps `history.location.search` in
+          // sync so `publishDataMask` doesn't re-emit the original `f=`.
+          const matchedCount =
+            risonFilters.length - injectionResult.unmatchedFilters.length;
+          if (matchedCount > 0) {
+            updateUrlWithUnmatchedFilters(
+              injectionResult.unmatchedFilters,
+              history,
+            );
+          }
+          if (injectionResult.unmatchedFilters.length > 0) {
+            prettifyRisonFilterUrl();
+          }
+        }
       }
 
       if (readyToRender) {
