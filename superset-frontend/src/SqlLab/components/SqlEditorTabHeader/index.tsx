@@ -117,9 +117,10 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
   }
 
   function handleRenameConfirm() {
-    if (newTitle.trim()) {
-      actions.queryEditorSetTitle(qe, newTitle.trim(), qe.id);
+    if (!newTitle.trim()) {
+      return;
     }
+    actions.queryEditorSetTitle(qe, newTitle.trim(), qe.id);
     setShowRenameModal(false);
   }
   const getStatusColor = (state: QueryState, theme: SupersetTheme): string => {
