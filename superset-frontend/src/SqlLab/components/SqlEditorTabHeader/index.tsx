@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, FC } from 'react';
+import { useMemo, useState, FC } from 'react';
 
 import { bindActionCreators } from 'redux';
 import { useSelector, shallowEqual } from 'react-redux';
@@ -40,6 +40,7 @@ import {
 } from 'src/SqlLab/actions/sqlLab';
 import { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { Icons, type IconType } from '@superset-ui/core/components/Icons';
+import { Modal, Input, Button } from '@superset-ui/core/components';
 
 const TabTitleWrapper = styled.div`
   display: flex;
@@ -107,13 +108,19 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
     [dispatch],
   );
 
-  function renameTab() {
-    // TODO: Replace native prompt with a proper modal dialog
-    // eslint-disable-next-line no-alert
-    const newTitle = prompt(t('Enter a new title for the tab'));
-    if (newTitle) {
-      actions.queryEditorSetTitle(qe, newTitle, qe.id);
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [newTitle, setNewTitle] = useState('');
+
+  function openRenameModal() {
+    setNewTitle(qe.name);
+    setShowRenameModal(true);
+  }
+
+  function handleRenameConfirm() {
+    if (newTitle.trim()) {
+      actions.queryEditorSetTitle(qe, newTitle.trim(), qe.id);
     }
+    setShowRenameModal(false);
   }
   const getStatusColor = (state: QueryState, theme: SupersetTheme): string => {
     const statusColors: Record<QueryState, string> = {
@@ -158,7 +165,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
               } as MenuItemType,
               {
                 key: '2',
-                onClick: renameTab,
+                onClick: openRenameModal,
                 'data-test': 'rename-tab-menu-option',
                 label: (
                   <>
@@ -220,6 +227,36 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
         iconSize="m"
         iconColor={getStatusColor(queryState, theme)}
       />{' '}
+      <Modal
+        show={showRenameModal}
+        title={t('Rename tab')}
+        onHide={() => setShowRenameModal(false)}
+        footer={
+          <>
+            <Button onClick={() => setShowRenameModal(false)}>
+              {t('Cancel')}
+            </Button>
+            <Button
+              buttonStyle="primary"
+              disabled={!newTitle.trim()}
+              onClick={handleRenameConfirm}
+              data-test="rename-tab-confirm"
+            >
+              {t('Rename')}
+            </Button>
+          </>
+        }
+      >
+        <span>{t('Enter a new title for the tab')}</span>
+        <Input
+          value={newTitle}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+            setNewTitle(e.target.value)
+          }
+          onPressEnter={handleRenameConfirm}
+          data-test="rename-tab-input"
+        />
+      </Modal>
     </TabTitleWrapper>
   );
 };
