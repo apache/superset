@@ -93,9 +93,6 @@ def _query_obj() -> QueryObjectDict:
 def _build_sqla_table_for_query(
     mocker: MockerFixture, sql: str, engine: str = "postgresql"
 ) -> SqlaTable:
-    """Build a SqlaTable wired to a mocked database/engine that yields the
-    given SQL on get_query_str_extended(), so the gate logic in
-    ExploreMixin.query can be exercised without touching a real DB."""
     db_engine_spec = mocker.MagicMock()
     db_engine_spec.engine = engine
     database = mocker.MagicMock()
@@ -122,12 +119,6 @@ def _build_sqla_table_for_query(
 def test_query_blocks_disallowed_function_on_chart_data_path(
     mocker: MockerFixture,
 ) -> None:
-    """`ExploreMixin.query` (the chart-data execution entry point) must
-    apply the same `DISALLOWED_SQL_FUNCTIONS` gate that `sql_lab.py`
-    already enforces for the SQL Lab path. Previously the gate was
-    only on the SQL Lab side, so an unprivileged user could invoke
-    a denylisted function (e.g. `version()`) via a Custom SQL metric
-    in a chart."""
     mocker.patch.dict(
         "flask.current_app.config",
         {
@@ -145,9 +136,6 @@ def test_query_blocks_disallowed_function_on_chart_data_path(
 def test_query_blocks_disallowed_table_on_chart_data_path(
     mocker: MockerFixture,
 ) -> None:
-    """Same gate for `DISALLOWED_SQL_TABLES`: a chart whose SQL touches
-    e.g. `pg_authid` is blocked at the chart-data layer, not just at
-    SQL Lab."""
     mocker.patch.dict(
         "flask.current_app.config",
         {
@@ -163,8 +151,6 @@ def test_query_blocks_disallowed_table_on_chart_data_path(
 
 
 def test_query_allows_benign_sql_on_chart_data_path(mocker: MockerFixture) -> None:
-    """Negative control: the gate does not reject benign SQL. The query
-    proceeds to `get_df` as before."""
     mocker.patch.dict(
         "flask.current_app.config",
         {
