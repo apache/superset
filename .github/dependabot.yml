@@ -10,7 +10,7 @@ updates:
     schedule:
       interval: "daily"
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     ignore:
@@ -59,7 +59,7 @@ updates:
     open-pull-requests-limit: 30
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
 
   - package-ecosystem: "pip"
@@ -76,7 +76,7 @@ updates:
       - pip
       - dependabot
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: ".github/actions"
@@ -85,7 +85,7 @@ updates:
     open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/docs/"
@@ -110,7 +110,7 @@ updates:
     open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-websocket/"
@@ -121,7 +121,7 @@ updates:
       - dependabot
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-websocket/utils/client-ws-app/"
@@ -133,7 +133,7 @@ updates:
     open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   # Now for all of our plugins and packages!
 
@@ -147,7 +147,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-partition/"
@@ -159,7 +159,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-world-map/"
@@ -171,7 +171,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-pivot-table/"
@@ -186,7 +186,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-chord/"
@@ -198,7 +198,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-horizon/"
@@ -210,7 +210,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-rose/"
@@ -222,7 +222,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-preset-chart-deckgl/"
@@ -234,7 +234,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-table/"
@@ -249,7 +249,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-country-map/"
@@ -261,7 +261,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-map-box/"
@@ -273,7 +273,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-preset-chart-nvd3/"
@@ -285,7 +285,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-word-cloud/"
@@ -297,7 +297,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-paired-t-test/"
@@ -309,7 +309,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-echarts/"
@@ -321,7 +321,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-ag-grid-table/"
@@ -333,7 +333,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-cartodiagram/"
@@ -345,7 +345,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/legacy-plugin-chart-parallel-coordinates/"
@@ -357,7 +357,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/plugins/plugin-chart-handlebars/"
@@ -373,7 +373,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/generator-superset/"
@@ -385,7 +385,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/superset-ui-chart-controls/"
@@ -397,7 +397,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/superset-ui-core/"
@@ -414,7 +414,7 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
 
   - package-ecosystem: "npm"
     directory: "/superset-frontend/packages/superset-ui-switchboard/"
@@ -426,4 +426,4 @@ updates:
     open-pull-requests-limit: 5
     versioning-strategy: increase
     cooldown:
-      default-days: 5
+      default-days: 7
