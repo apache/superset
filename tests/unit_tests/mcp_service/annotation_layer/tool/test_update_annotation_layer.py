@@ -125,6 +125,7 @@ async def test_update_annotation_layer_success(mcp_server: object) -> None:
 
     assert data["id"] == 7
     assert data["name"] == "Renamed Layer"
+    assert data["descr"] is None
     assert data["error"] is None
 
 
