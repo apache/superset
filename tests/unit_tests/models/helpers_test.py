@@ -2703,3 +2703,113 @@ def test_format_time_humanized_skips_activation_for_english(
     instance._format_time_humanized(datetime.now() - timedelta(hours=2))
 
     mock_activate.assert_not_called()
+
+
+# -----------------------------------------------------------------------------
+# _process_sql_expression denylist gate (adhoc expression validation)
+# -----------------------------------------------------------------------------
+
+
+def _patch_disallowed(
+    mocker: MockerFixture,
+    functions: dict[str, set[str]] | None = None,
+    tables: dict[str, set[str]] | None = None,
+) -> None:
+    """Inject the engine-keyed denylists into the live Flask app config that
+    `_process_sql_expression` consults via `app.config[...]`."""
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": functions or {},
+            "DISALLOWED_SQL_TABLES": tables or {},
+        },
+        clear=False,
+    )
+
+
+def test_process_sql_expression_rejects_disallowed_function(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """Adhoc expressions are user-controlled SQL incorporated into the final
+    query via `literal_column(...)`. A function name on the operator's
+    DISALLOWED_SQL_FUNCTIONS list must be rejected at validation time,
+    before the rendered SQL is handed to the database."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import SupersetDisallowedSQLFunctionException
+
+    _patch_disallowed(mocker, functions={"postgresql": {"version"}})
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    with pytest.raises(SupersetDisallowedSQLFunctionException):
+        table._process_sql_expression(
+            expression="version()",
+            database_id=database.id,
+            engine="postgresql",
+            schema="",
+            template_processor=None,
+        )
+
+
+def test_process_sql_expression_rejects_disallowed_function_in_aggregate(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """A denylisted function wrapped in a legitimate aggregate
+    (`MAX(version())`) must still be rejected: the wrapper is the obvious
+    bypass attempt."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import SupersetDisallowedSQLFunctionException
+
+    _patch_disallowed(mocker, functions={"postgresql": {"version"}})
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    with pytest.raises(SupersetDisallowedSQLFunctionException):
+        table._process_sql_expression(
+            expression="MAX(version())",
+            database_id=database.id,
+            engine="postgresql",
+            schema="",
+            template_processor=None,
+        )
+
+
+def test_process_sql_expression_allows_benign_expression(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """Negative control: a benign aggregate over a regular column must pass
+    even when denylists are configured."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    _patch_disallowed(
+        mocker,
+        functions={"postgresql": {"version"}},
+        tables={"postgresql": {"pg_authid"}},
+    )
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    result = table._process_sql_expression(
+        expression="SUM(amount)",
+        database_id=database.id,
+        engine="postgresql",
+        schema="",
+        template_processor=None,
+    )
+    assert result is not None
+    assert "SUM" in result.upper()
+
+
+def test_process_sql_expression_no_gate_when_denylists_empty(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """When neither DISALLOWED_SQL_FUNCTIONS nor DISALLOWED_SQL_TABLES has an
+    entry for the engine, the new gate must not run an extra parse: any
+    SQL that passes the pre-existing `sanitize_clause` validation is
+    accepted."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    _patch_disallowed(mocker, functions={}, tables={})
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    result = table._process_sql_expression(
+        expression="version()",
+        database_id=database.id,
+        engine="postgresql",
+        schema="",
+        template_processor=None,
+    )
+    assert result is not None
