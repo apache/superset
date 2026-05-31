@@ -39,7 +39,7 @@ dependencies = [
     "apache-superset-core",
     "backoff>=1.8.0",
     "celery>=5.3.6, <6.0.0",
-    "click>=8.0.3",
+    "click>=8.4.0",
     "click-option-group",
     "colorama",
     "flask-cors>=6.0.0, <7.0",
@@ -66,12 +66,12 @@ dependencies = [
     "isodate",
     "jsonpath-ng>=1.6.1, <2",
     "Mako>=1.2.2",
-    "markdown>=3.0",
+    "markdown>=3.10.2",
     # marshmallow>=4 has issues: https://github.com/apache/superset/issues/33162
     "marshmallow>=3.0, <4",
     "marshmallow-union>=0.1",
     "msgpack>=1.0.0, <1.2",
-    "nh3>=0.2.11, <0.4",
+    "nh3>=0.3.5, <0.4",
     "numpy>1.23.5, <2.3",
     "packaging",
     # --------------------------
@@ -103,7 +103,7 @@ dependencies = [
     "sqlalchemy-utils>=0.38.0, <0.43", # expanding lowerbound to work with pydoris
     "sqlglot>=30.8.0, <31",
     # newer pandas needs 0.9+
-    "tabulate>=0.9.0, <1.0",
+    "tabulate>=0.10.0, <1.0",
     "typing-extensions>=4, <5",
     "waitress; sys_platform == 'win32'",
     "watchdog>=6.0.0",
@@ -123,7 +123,7 @@ bigquery = [
 ]
 clickhouse = ["clickhouse-connect>=0.13.0, <2.0"]
 cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
-crate = ["sqlalchemy-cratedb>=0.40.1, <1"]
+crate = ["sqlalchemy-cratedb>=0.41.0, <1"]
 d1 = [
     "superset-engine-d1>=0.1.0",
     "sqlalchemy-d1>=0.1.0",
@@ -135,11 +135,11 @@ databricks = [
     "databricks-sqlalchemy==1.0.5",
 ]
 db2 = ["ibm-db-sa>0.3.8, <=0.4.4"]
-denodo = ["denodo-sqlalchemy>=1.0.6,<2.1.0"]
+denodo = ["denodo-sqlalchemy>=2.0.5,<2.1.0"]
 dremio = ["sqlalchemy-dremio>=1.2.1, <4"]
 drill = ["sqlalchemy-drill>=1.1.10, <2"]
 druid = ["pydruid>=0.6.5,<0.7"]
-duckdb = ["duckdb>=1.4.2,<2", "duckdb-engine>=0.17.0"]
+duckdb = ["duckdb>=1.5.2,<2", "duckdb-engine>=0.17.0"]
 dynamodb = ["pydynamodb>=0.4.2"]
 solr = ["sqlalchemy-solr >= 0.2.0"]
 elasticsearch = ["elasticsearch-dbapi>=0.2.13, <0.3.0"]
@@ -190,7 +190,7 @@ risingwave = ["sqlalchemy-risingwave"]
 shillelagh = ["shillelagh[all]>=1.4.4, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.1.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.2.4, <2"]
-sqlite = ["syntaqlite>=0.1.0"]
+sqlite = ["syntaqlite>=0.1.0,<0.5.0"]
 spark = [
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7",
@@ -235,7 +235,7 @@ development = [
     "ruff",
     "sqloxide",
     "statsd",
-    "syntaqlite>=0.1.0",
+    "syntaqlite>=0.4.2,<0.5.0",
 ]
 
 [project.urls]
