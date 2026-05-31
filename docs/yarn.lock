@@ -6538,14 +6538,9 @@ d3-chord@3:
   dependencies:
     d3-path "1 - 3"
 
-"d3-color@1 - 2":
-  version "2.0.0"
-  resolved "https://registry.npmjs.org/d3-color/-/d3-color-2.0.0.tgz"
-  integrity sha512-SPXi0TSKPD4g9tw0NMZFnR95XVgUZiBH+uUTqQuDu1OsE2zomHU7ho0FISciaPvosimixwHFl3WHLGabv6dDgQ==
-
-"d3-color@1 - 3", d3-color@3:
+"d3-color@1 - 2", "d3-color@1 - 3", d3-color@3, d3-color@3.1.0:
   version "3.1.0"
-  resolved "https://registry.npmjs.org/d3-color/-/d3-color-3.1.0.tgz"
+  resolved "https://registry.yarnpkg.com/d3-color/-/d3-color-3.1.0.tgz#395b2833dfac71507f12ac2f7af23bf819de24e2"
   integrity sha512-zg/chbXyeBtMQ1LbD/WSoW2DpC3I0mpmPdW+ynRTj/x2DAWYrIY7qeZIHidozwV24m4iavr15lNwIwLxRmOxhA==
 
 d3-contour@4:
@@ -13362,12 +13357,10 @@ serialize-error@^8.1.0:
   dependencies:
     type-fest "^0.20.2"
 
-serialize-javascript@^6.0.0, serialize-javascript@^6.0.1:
-  version "6.0.2"
-  resolved "https://registry.yarnpkg.com/serialize-javascript/-/serialize-javascript-6.0.2.tgz#defa1e055c83bf6d59ea805d8da862254eb6a6c2"
-  integrity sha512-Saa1xPByTTq2gdeFZYLLo+RFE35NHZkAbqZeWNd3BpzppeVisAqpDjcp8dyf6uIvEqJRd46jemmyA4iFIeVk8g==
-  dependencies:
-    randombytes "^2.1.0"
+serialize-javascript@7.0.5, serialize-javascript@^6.0.0, serialize-javascript@^6.0.1:
+  version "7.0.5"
+  resolved "https://registry.yarnpkg.com/serialize-javascript/-/serialize-javascript-7.0.5.tgz#c798cc0552ffbb08981914a42a8756e339d0d5b1"
+  integrity sha512-F4LcB0UqUl1zErq+1nYEEzSHJnIwb3AF2XWB94b+afhrekOUijwooAYqFyRbjYkm2PAKBabx6oYv/xDxNi8IBw==
 
 serve-handler@^6.1.7:
   version "6.1.7"
