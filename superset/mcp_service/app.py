@@ -722,9 +722,13 @@ from superset.mcp_service.explore.tool import (  # noqa: F401, E402
     generate_explore_link,
 )
 from superset.mcp_service.plugin.tool import (  # noqa: F401, E402
-    create_plugin,
     get_plugin_info,
     list_plugins,
+)
+from superset.mcp_service.plugin.tool.create_plugin import (  # noqa: F401, E402
+    create_plugin,
+)
+from superset.mcp_service.plugin.tool.update_plugin import (  # noqa: F401, E402
     update_plugin,
 )
 from superset.mcp_service.query.tool import (  # noqa: F401, E402

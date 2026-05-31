@@ -15,10 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from .create_plugin import create_plugin
 from .get_plugin_info import get_plugin_info
 from .list_plugins import list_plugins
-from .update_plugin import update_plugin
 
 __all__ = [
     "create_plugin",
