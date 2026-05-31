@@ -18,7 +18,7 @@
 """Unit tests for user MCP tools."""
 
 import importlib
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 from fastmcp import Client
@@ -499,7 +499,7 @@ async def test_create_user_success(mcp_server: object) -> None:
     ):
         mock_db.session.get.return_value = mock_role
         mock_sm.role_model = MagicMock()
-        mock_sm.add_user.return_value = mock_user
+        mock_sm.add_user = MagicMock(return_value=mock_user)
 
         async with Client(mcp_server) as client:
             request = CreateUserRequest(
@@ -534,7 +534,7 @@ async def test_create_user_response_omits_sensitive_fields(mcp_server: object) -
     ):
         mock_db.session.get.return_value = mock_role
         mock_sm.role_model = MagicMock()
-        mock_sm.add_user.return_value = mock_user
+        mock_sm.add_user = MagicMock(return_value=mock_user)
 
         async with Client(mcp_server) as client:
             request = CreateUserRequest(
@@ -595,7 +595,7 @@ async def test_create_user_add_user_failure(mcp_server: object) -> None:
     ):
         mock_db.session.get.return_value = mock_role
         mock_sm.role_model = MagicMock()
-        mock_sm.add_user.return_value = False
+        mock_sm.add_user = MagicMock(return_value=False)
 
         async with Client(mcp_server) as client:
             request = CreateUserRequest(
@@ -630,7 +630,7 @@ async def test_update_user_success(mcp_server: object) -> None:
         patch("superset.mcp_service.user.tool.update_user.security_manager") as mock_sm,
     ):
         mock_dao.get_by_id.return_value = mock_user
-        mock_sm.update_user.return_value = mock_user
+        mock_sm.update_user = MagicMock(return_value=mock_user)
 
         async with Client(mcp_server) as client:
             request = UpdateUserRequest(id=42, first_name="Jane")
@@ -655,7 +655,7 @@ async def test_update_user_response_omits_sensitive_fields(mcp_server: object) -
         patch("superset.mcp_service.user.tool.update_user.security_manager") as mock_sm,
     ):
         mock_dao.get_by_id.return_value = mock_user
-        mock_sm.update_user.return_value = mock_user
+        mock_sm.update_user = MagicMock(return_value=mock_user)
 
         async with Client(mcp_server) as client:
             request = UpdateUserRequest(id=42, last_name="Smith")
@@ -725,7 +725,7 @@ async def test_update_user_update_failure(mcp_server: object) -> None:
         patch("superset.mcp_service.user.tool.update_user.security_manager") as mock_sm,
     ):
         mock_dao.get_by_id.return_value = mock_user
-        mock_sm.update_user.return_value = False
+        mock_sm.update_user = MagicMock(return_value=False)
 
         async with Client(mcp_server) as client:
             request = UpdateUserRequest(id=42, email="taken@example.com")
