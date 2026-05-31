@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Unit tests for role MCP tools (list_roles, get_role_info, create_role, update_role)."""
+"""Unit tests for role MCP tools."""
 
 from unittest.mock import MagicMock, Mock, patch
 
@@ -446,7 +446,10 @@ async def test_create_role_success_no_permissions(mcp_server: object) -> None:
     new_role = _make_role(role_id=5, name="Analyst")
 
     with (
-        patch("superset.mcp_service.role.tool.create_role.security_manager") as mock_sm,
+        patch(
+            "superset.mcp_service.role.tool.create_role.security_manager",
+            new_callable=MagicMock,
+        ) as mock_sm,
         patch("superset.mcp_service.role.tool.create_role.db") as mock_db,
     ):
         mock_sm.find_role.return_value = None
@@ -473,7 +476,10 @@ async def test_create_role_success_with_permissions(mcp_server: object) -> None:
     pvm2 = _make_pvm(20)
 
     with (
-        patch("superset.mcp_service.role.tool.create_role.security_manager") as mock_sm,
+        patch(
+            "superset.mcp_service.role.tool.create_role.security_manager",
+            new_callable=MagicMock,
+        ) as mock_sm,
         patch("superset.mcp_service.role.tool.create_role.db") as mock_db,
     ):
         mock_sm.find_role.return_value = None
@@ -507,7 +513,8 @@ async def test_create_role_duplicate(mcp_server: object) -> None:
     existing = _make_role(role_id=3, name="Analyst")
 
     with patch(
-        "superset.mcp_service.role.tool.create_role.security_manager"
+        "superset.mcp_service.role.tool.create_role.security_manager",
+        new_callable=MagicMock,
     ) as mock_sm:
         mock_sm.find_role.return_value = existing
 
@@ -531,7 +538,10 @@ async def test_create_role_missing_permission_ids_warned(mcp_server: object) -> 
     found_pvm = _make_pvm(10)
 
     with (
-        patch("superset.mcp_service.role.tool.create_role.security_manager") as mock_sm,
+        patch(
+            "superset.mcp_service.role.tool.create_role.security_manager",
+            new_callable=MagicMock,
+        ) as mock_sm,
         patch("superset.mcp_service.role.tool.create_role.db") as mock_db,
     ):
         mock_sm.find_role.return_value = None
@@ -563,7 +573,10 @@ async def test_create_role_integrity_error_race_condition(mcp_server: object) ->
     conflicting_role = _make_role(role_id=11, name="Racing")
 
     with (
-        patch("superset.mcp_service.role.tool.create_role.security_manager") as mock_sm,
+        patch(
+            "superset.mcp_service.role.tool.create_role.security_manager",
+            new_callable=MagicMock,
+        ) as mock_sm,
         patch("superset.mcp_service.role.tool.create_role.db") as mock_db,
     ):
         mock_sm.find_role.side_effect = [None, conflicting_role]
@@ -596,11 +609,12 @@ async def test_update_role_success_rename(mcp_server: object) -> None:
     role = _make_role(role_id=1, name="OldName")
 
     with (
-        patch("superset.mcp_service.role.tool.update_role.security_manager") as mock_sm,
-        patch("superset.mcp_service.role.tool.update_role.db") as mock_db,
         patch(
-            "superset.mcp_service.role.tool.update_role.current_app"
-        ) as mock_app,
+            "superset.mcp_service.role.tool.update_role.security_manager",
+            new_callable=MagicMock,
+        ) as mock_sm,
+        patch("superset.mcp_service.role.tool.update_role.db") as mock_db,
+        patch("superset.mcp_service.role.tool.update_role.current_app") as mock_app,
     ):
         mock_sm.find_roles_by_id.return_value = [role]
         mock_sm.find_role.return_value = None
@@ -622,7 +636,8 @@ async def test_update_role_success_rename(mcp_server: object) -> None:
 async def test_update_role_not_found(mcp_server: object) -> None:
     """Returns structured error when role ID does not exist."""
     with patch(
-        "superset.mcp_service.role.tool.update_role.security_manager"
+        "superset.mcp_service.role.tool.update_role.security_manager",
+        new_callable=MagicMock,
     ) as mock_sm:
         mock_sm.find_roles_by_id.return_value = []
 
@@ -645,10 +660,11 @@ async def test_update_role_name_conflict(mcp_server: object) -> None:
     other = _make_role(role_id=2, name="Beta")
 
     with (
-        patch("superset.mcp_service.role.tool.update_role.security_manager") as mock_sm,
         patch(
-            "superset.mcp_service.role.tool.update_role.current_app"
-        ) as mock_app,
+            "superset.mcp_service.role.tool.update_role.security_manager",
+            new_callable=MagicMock,
+        ) as mock_sm,
+        patch("superset.mcp_service.role.tool.update_role.current_app") as mock_app,
     ):
         mock_sm.find_roles_by_id.return_value = [role]
         mock_sm.find_role.return_value = other  # name "Beta" belongs to id=2
@@ -674,7 +690,10 @@ async def test_update_role_replace_permissions(mcp_server: object) -> None:
     new_pvm = _make_pvm(7)
 
     with (
-        patch("superset.mcp_service.role.tool.update_role.security_manager") as mock_sm,
+        patch(
+            "superset.mcp_service.role.tool.update_role.security_manager",
+            new_callable=MagicMock,
+        ) as mock_sm,
         patch("superset.mcp_service.role.tool.update_role.db") as mock_db,
     ):
         mock_sm.find_roles_by_id.return_value = [role]
@@ -702,7 +721,10 @@ async def test_update_role_clear_permissions(mcp_server: object) -> None:
     role.permissions = [_make_pvm(5)]
 
     with (
-        patch("superset.mcp_service.role.tool.update_role.security_manager") as mock_sm,
+        patch(
+            "superset.mcp_service.role.tool.update_role.security_manager",
+            new_callable=MagicMock,
+        ) as mock_sm,
         patch("superset.mcp_service.role.tool.update_role.db") as mock_db,
     ):
         mock_sm.find_roles_by_id.return_value = [role]
@@ -727,10 +749,11 @@ async def test_update_role_blocks_renaming_admin_role(mcp_server: object) -> Non
     admin_role = _make_role(role_id=1, name="Admin")
 
     with (
-        patch("superset.mcp_service.role.tool.update_role.security_manager") as mock_sm,
         patch(
-            "superset.mcp_service.role.tool.update_role.current_app"
-        ) as mock_app,
+            "superset.mcp_service.role.tool.update_role.security_manager",
+            new_callable=MagicMock,
+        ) as mock_sm,
+        patch("superset.mcp_service.role.tool.update_role.current_app") as mock_app,
     ):
         mock_sm.find_roles_by_id.return_value = [admin_role]
         mock_app.config = {"AUTH_ROLE_ADMIN": "Admin", "AUTH_ROLE_PUBLIC": "Public"}
@@ -754,11 +777,12 @@ async def test_update_role_integrity_error_race_condition(mcp_server: object) ->
     conflicting = _make_role(role_id=2, name="Beta")
 
     with (
-        patch("superset.mcp_service.role.tool.update_role.security_manager") as mock_sm,
-        patch("superset.mcp_service.role.tool.update_role.db") as mock_db,
         patch(
-            "superset.mcp_service.role.tool.update_role.current_app"
-        ) as mock_app,
+            "superset.mcp_service.role.tool.update_role.security_manager",
+            new_callable=MagicMock,
+        ) as mock_sm,
+        patch("superset.mcp_service.role.tool.update_role.db") as mock_db,
+        patch("superset.mcp_service.role.tool.update_role.current_app") as mock_app,
     ):
         mock_sm.find_roles_by_id.return_value = [role]
         mock_sm.find_role.side_effect = [None, conflicting]
