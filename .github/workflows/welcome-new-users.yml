@@ -1,12 +1,14 @@
 name: Welcome New Contributor
 
 on:
+  # zizmor: ignore[dangerous-triggers] - posts a welcome comment only; does not check out or execute PR-provided code
   pull_request_target:
     types: [opened]
 
 jobs:
   welcome:
     runs-on: ubuntu-24.04
+    if: github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
     permissions:
       pull-requests: write
 
