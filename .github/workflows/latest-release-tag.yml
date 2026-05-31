@@ -19,10 +19,10 @@ jobs:
 
     - name: Check for latest tag
       id: latest-tag
-      run: |
-        source ./scripts/tag_latest_release.sh $(echo ${GITHUB_EVENT_RELEASE_TAG_NAME}) --dry-run
       env:
-        GITHUB_EVENT_RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
+        RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
+      run: |
+        source ./scripts/tag_latest_release.sh "$RELEASE_TAG_NAME" --dry-run
 
     - name: Configure Git
       run: |
