@@ -141,8 +141,9 @@ jobs:
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
+        env:
+          APP_ROOT: ${{ matrix.app_root }}
         run: |
-          APP_ROOT="${{ matrix.app_root }}"
           SAFE_APP_ROOT=${APP_ROOT//\//_}
           echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
       - name: Upload Artifacts
@@ -254,8 +255,9 @@ jobs:
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
+        env:
+          APP_ROOT: ${{ matrix.app_root }}
         run: |
-          APP_ROOT="${{ matrix.app_root }}"
           SAFE_APP_ROOT=${APP_ROOT//\//_}
           echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
       - name: Upload Playwright Artifacts
