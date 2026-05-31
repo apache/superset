@@ -32,6 +32,9 @@ import {
 } from '../types';
 import getCellClass from './getCellClass';
 import filterValueGetter from './filterValueGetter';
+import htmlTextFilterValueGetter, {
+  htmlTextComparator,
+} from './htmlTextFilterValueGetter';
 import dateFilterComparator from './dateFilterComparator';
 import DateWithFormatter from './DateWithFormatter';
 import { getAggFunc } from './getAggFunc';
@@ -317,6 +320,24 @@ export const useColDefs = ({
         ...(isPercentMetric && {
           filterValueGetter,
         }),
+        ...(dataType === GenericDataType.String &&
+          !serverPagination && {
+            // HTML cells (e.g. anchor markup) are rendered by TextCellRenderer
+            // via dangerouslySetInnerHTML; without these the filter and sort
+            // operate on raw HTML so the URL inside the markup dictates order
+            // and the "Contains" filter matches against the raw HTML string.
+            //
+            // Gated on !serverPagination: in server-pagination mode sort and
+            // filter are both delegated to the backend (which sees raw HTML
+            // in the database), so applying the visible-text getter only on
+            // the client would create a mismatch where the typed filter
+            // value is stripped client-side but the server query still
+            // operates on the raw HTML. Server-paginated tables with HTML
+            // columns are out of scope for this fix and would require
+            // server-side handling.
+            filterValueGetter: htmlTextFilterValueGetter,
+            comparator: htmlTextComparator,
+          }),
         ...(dataType === GenericDataType.Temporal && {
           // Use dateFilterValueGetter so AG Grid correctly identifies null dates for blank filter
           filterValueGetter: dateFilterValueGetter,

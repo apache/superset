@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useMemo, useReducer, useCallback } from 'react';
-import { useDispatch } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { t } from '@apache-superset/core/translation';
 import {
   Table,
@@ -130,7 +130,7 @@ const useTreeData = ({
   catalog,
   pinnedTables,
 }: UseTreeDataParams): UseTreeDataResult => {
-  const reduxDispatch = useDispatch();
+  const reduxDispatch = useAppDispatch();
   // Schema data from API
   const {
     currentData: schemaData,
