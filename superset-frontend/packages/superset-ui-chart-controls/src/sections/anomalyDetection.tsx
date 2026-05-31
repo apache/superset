@@ -18,29 +18,28 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { legacyValidateInteger, legacyValidateNumber } from '@superset-ui/core';
-const validateMinRollingWindow = (v: unknown): string | false => {
-  const n = Number(v);
-  if (Number.isFinite(n) && n < 3) {
-    return t('Rolling window must be >= 3');
-  }
-  return false;
-};
+const validateRange =
+  (
+    check: (n: number) => boolean,
+    message: string,
+  ): ((v: unknown) => string | false) =>
+  (v: unknown) => {
+    const n = Number(v);
+    return Number.isFinite(n) && check(n) ? t(message) : false;
+  };
 
-const validatePositiveNumber = (v: unknown): string | false => {
-  const n = Number(v);
-  if (Number.isFinite(n) && n <= 0) {
-    return t('Value must be a positive number');
-  }
-  return false;
-};
-
-const validateConfidenceInterval = (v: unknown): string | false => {
-  const n = Number(v);
-  if (Number.isFinite(n) && (n <= 0 || n >= 1)) {
-    return t('Confidence interval must be between 0 and 1 (exclusive)');
-  }
-  return false;
-};
+const validateMinRollingWindow = validateRange(
+  n => n < 3,
+  'Rolling window must be >= 3',
+);
+const validatePositiveNumber = validateRange(
+  n => n <= 0,
+  'Value must be a positive number',
+);
+const validateConfidenceInterval = validateRange(
+  n => n <= 0 || n >= 1,
+  'Confidence interval must be between 0 and 1 (exclusive)',
+);
 import { ControlPanelSectionConfig } from '../types';
 import { displayTimeRelatedControls } from '../utils';
 
