@@ -50,6 +50,7 @@
     "ngeohash": "^0.6.3",
     "prop-types": "^15.8.1",
     "react-map-gl": "^8.1.1",
+    "tinycolor2": "^1.6.0",
     "underscore": "^1.13.7",
     "urijs": "^1.19.11",
     "xss": "^1.0.15"
