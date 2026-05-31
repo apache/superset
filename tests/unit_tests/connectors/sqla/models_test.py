@@ -25,7 +25,11 @@ from sqlalchemy.orm.session import Session
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DatasourceNotFound
-from superset.exceptions import OAuth2RedirectError
+from superset.exceptions import (
+    OAuth2RedirectError,
+    SupersetDisallowedSQLFunctionException,
+    SupersetDisallowedSQLTableException,
+)
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.superset_typing import QueryObjectDict
@@ -72,6 +76,108 @@ def test_query_bubbles_errors(mocker: MockerFixture) -> None:
     }
     with pytest.raises(OAuth2RedirectError):
         sqla_table.query(query_obj)
+
+
+def _query_obj() -> QueryObjectDict:
+    return {
+        "granularity": None,
+        "from_dttm": None,
+        "to_dttm": None,
+        "groupby": ["id"],
+        "metrics": [],
+        "is_timeseries": False,
+        "filter": [],
+    }
+
+
+def _build_sqla_table_for_query(
+    mocker: MockerFixture, sql: str, engine: str = "postgresql"
+) -> SqlaTable:
+    """Build a SqlaTable wired to a mocked database/engine that yields the
+    given SQL on get_query_str_extended(), so the gate logic in
+    ExploreMixin.query can be exercised without touching a real DB."""
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.engine = engine
+    database = mocker.MagicMock()
+    database.db_engine_spec = db_engine_spec
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=database,
+    )
+    mocker.patch.object(
+        SqlaTable,
+        "db_engine_spec",
+        new=property(lambda self: db_engine_spec),
+    )
+    mocker.patch.object(
+        sqla_table,
+        "get_query_str_extended",
+        return_value=mocker.MagicMock(sql=sql, labels_expected=[]),
+    )
+    return sqla_table
+
+
+def test_query_blocks_disallowed_function_on_chart_data_path(
+    mocker: MockerFixture,
+) -> None:
+    """`ExploreMixin.query` (the chart-data execution entry point) must
+    apply the same `DISALLOWED_SQL_FUNCTIONS` gate that `sql_lab.py`
+    already enforces for the SQL Lab path. Previously the gate was
+    only on the SQL Lab side, so an unprivileged user could invoke
+    a denylisted function (e.g. `version()`) via a Custom SQL metric
+    in a chart."""
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": {"postgresql": {"version"}},
+            "DISALLOWED_SQL_TABLES": {},
+        },
+        clear=False,
+    )
+    sqla_table = _build_sqla_table_for_query(mocker, "SELECT version()")
+    with pytest.raises(SupersetDisallowedSQLFunctionException):
+        sqla_table.query(_query_obj())
+    sqla_table.database.get_df.assert_not_called()  # type: ignore[attr-defined]
+
+
+def test_query_blocks_disallowed_table_on_chart_data_path(
+    mocker: MockerFixture,
+) -> None:
+    """Same gate for `DISALLOWED_SQL_TABLES`: a chart whose SQL touches
+    e.g. `pg_authid` is blocked at the chart-data layer, not just at
+    SQL Lab."""
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": {},
+            "DISALLOWED_SQL_TABLES": {"postgresql": {"pg_authid"}},
+        },
+        clear=False,
+    )
+    sqla_table = _build_sqla_table_for_query(mocker, "SELECT rolname FROM pg_authid")
+    with pytest.raises(SupersetDisallowedSQLTableException):
+        sqla_table.query(_query_obj())
+    sqla_table.database.get_df.assert_not_called()  # type: ignore[attr-defined]
+
+
+def test_query_allows_benign_sql_on_chart_data_path(mocker: MockerFixture) -> None:
+    """Negative control: the gate does not reject benign SQL. The query
+    proceeds to `get_df` as before."""
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": {"postgresql": {"version"}},
+            "DISALLOWED_SQL_TABLES": {"postgresql": {"pg_authid"}},
+        },
+        clear=False,
+    )
+    sqla_table = _build_sqla_table_for_query(mocker, "SELECT id FROM my_sqla_table")
+    sqla_table.database.get_df.return_value = pd.DataFrame()  # type: ignore[attr-defined]
+    result = sqla_table.query(_query_obj())
+    sqla_table.database.get_df.assert_called_once()  # type: ignore[attr-defined]
+    assert result is not None
 
 
 def test_permissions_without_catalog() -> None:

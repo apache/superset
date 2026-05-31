@@ -84,6 +84,8 @@ from superset.exceptions import (
     InvalidPostProcessingError,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetDisallowedSQLFunctionException,
+    SupersetDisallowedSQLTableException,
     SupersetErrorException,
     SupersetErrorsException,
     SupersetSecurityException,
@@ -1408,6 +1410,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         qry_start_dttm = datetime.now()
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
+
+        # Apply the same DISALLOWED_SQL_FUNCTIONS / DISALLOWED_SQL_TABLES
+        # gate that `sql_lab.execute_sql_statement` enforces for the
+        # SQL Lab path. The chart-data path (ChartDataRestApi.data ->
+        # QueryContextProcessor.get_df_payload -> SqlaTable.query ->
+        # Database.get_df) was previously not running the same gate,
+        # so denylist entries documented as covering both surfaces only
+        # actually covered one.
+        engine = self.db_engine_spec.engine
+        disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(engine, set())
+        disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(engine, set())
+        if disallowed_functions or disallowed_tables:
+            parsed_script = SQLScript(sql, engine=engine)
+            if disallowed_functions and parsed_script.check_functions_present(
+                disallowed_functions
+            ):
+                raise SupersetDisallowedSQLFunctionException(disallowed_functions)
+            if disallowed_tables and parsed_script.check_tables_present(
+                disallowed_tables
+            ):
+                raise SupersetDisallowedSQLTableException(disallowed_tables)
+
         status = QueryStatus.SUCCESS
         errors = None
         error_message = None
