@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core/translation';
 import { ClientErrorObject, SupersetError } from '@superset-ui/core';
 import { FC } from 'react';
 import { useChartOwnerNames } from 'src/hooks/apiResources';
@@ -32,7 +33,7 @@ export type Props = {
   stackTrace?: string;
 } & Omit<ClientErrorObject, 'error'>;
 
-const DEFAULT_CHART_ERROR = 'Data error';
+const DEFAULT_CHART_ERROR = t('Data error');
 
 export const ChartErrorMessage: FC<Props> = ({ chartId, error, ...props }) => {
   // fetches the chart owners and adds them to the extra data of the error message

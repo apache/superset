@@ -25,12 +25,14 @@ import dataclasses
 import logging
 import re
 import uuid
-from collections.abc import Hashable
+from collections.abc import Hashable, Iterator
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from typing import (
     Any,
     Callable,
     cast,
+    ClassVar,
     NamedTuple,
     Optional,
     TYPE_CHECKING,
@@ -57,7 +59,9 @@ from pandas import DateOffset
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.ext.declarative import declared_attr
-from sqlalchemy.orm import Mapper, validates
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import Mapper, Session, validates, with_loader_criteria
+from sqlalchemy.orm.session import ORMExecuteState
 from sqlalchemy.sql.elements import ColumnElement, Grouping, literal_column, TextClause
 from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
@@ -610,7 +614,7 @@ class AuditMixinNullable(AuditMixin):
 
     @renders("changed_on")
     def changed_on_(self) -> Markup:
-        return Markup(f'<span class="no-wrap">{self.changed_on}</span>')
+        return Markup(f'<span class="no-wrap">{self.changed_on}</span>')  # noqa: S704
 
     @renders("changed_on")
     def changed_on_delta_humanized(self) -> str:
@@ -654,7 +658,255 @@ class AuditMixinNullable(AuditMixin):
 
     @renders("changed_on")
     def modified(self) -> Markup:
-        return Markup(f'<span class="no-wrap">{self.changed_on_humanized}</span>')
+        return Markup(f'<span class="no-wrap">{self.changed_on_humanized}</span>')  # noqa: S704
+
+
+SKIP_VISIBILITY_FILTER_CLASSES = "_skip_visibility_filter_classes"
+
+# Shared sentinel for "no bypass requested" — returned by
+# ``_collect_bypass_classes`` on the common path so every primary SELECT
+# does not allocate a fresh empty set. ``frozenset`` so accidental
+# mutation by a caller is a TypeError, not silent corruption.
+_NO_BYPASS: frozenset[type] = frozenset()
+
+
+class SoftDeleteMixin:
+    """Mixin that adds soft-delete support to a SQLAlchemy model.
+
+    Adds a nullable ``deleted_at`` column. When set, the row is treated as
+    deleted and excluded from standard ORM queries via a global
+    ``do_orm_execute`` listener registered at app init.
+
+    Delete commands route through ``BaseDAO.delete()``, which detects
+    the mixin and calls ``soft_delete()`` to mark the row as deleted
+    (without removing it). ``BaseDAO.hard_delete()`` is the permanent
+    hard-deletion path; it bypasses the mixin and calls
+    ``session.delete()`` directly.
+
+    The listener can be bypassed per-entity, either for one statement (via
+    ``execution_options``) or for a session-scoped block (via
+    ``session.info`` / the ``skip_visibility_filter`` context manager).
+    See ``_add_soft_delete_filter`` for the precise semantics.
+
+    Subclass registry: every concrete subclass registers itself in
+    ``_registered_subclasses`` via ``__init_subclass__``. The listener
+    iterates this cached list rather than walking ``__subclasses__()``
+    on every primary SELECT — important because the listener fires on
+    every ORM query in the app, and the walk grows with each adopted
+    entity.
+    """
+
+    _registered_subclasses: ClassVar[list[type[SoftDeleteMixin]]] = []
+
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        super().__init_subclass__(**kwargs)
+        # Cache the subclass once, sorted by qualname so the listener's
+        # ``with_loader_criteria`` options attach in a deterministic
+        # order across processes (stable compiled-statement cache key).
+        if cls in SoftDeleteMixin._registered_subclasses:
+            return
+        SoftDeleteMixin._registered_subclasses.append(cls)
+        SoftDeleteMixin._registered_subclasses.sort(key=lambda c: c.__qualname__)
+
+    deleted_at = sa.Column(sa.DateTime, nullable=True, index=True)
+
+    @hybrid_property
+    def is_deleted(self) -> bool:
+        return self.deleted_at is not None
+
+    @is_deleted.expression  # type: ignore
+    def is_deleted(cls) -> ColumnElement:  # noqa: N805
+        return cls.deleted_at.is_not(None)
+
+    @classmethod
+    def where_not_deleted(cls) -> ColumnElement:
+        """Return a SQL WHERE clause that excludes soft-deleted rows.
+
+        Returns a ``ColumnElement`` (a SQL expression), not a Python bool —
+        use this in a query's ``.filter(...)`` call. The name reflects the
+        intent ("WHERE NOT deleted") rather than reading like a predicate.
+        """
+        return cls.deleted_at.is_(None)
+
+    def soft_delete(self) -> None:
+        """Mark this object as soft-deleted."""
+        # Naive datetime, mirroring AuditMixinNullable.changed_on. PR #33693
+        # reverted a UTC migration on the audit columns; if/when those move
+        # to UTC-aware, this assignment should follow.
+        self.deleted_at = datetime.now()
+
+    def restore(self) -> None:
+        """Clear the soft-delete marker, making this object active again."""
+        self.deleted_at = None
+
+
+def _collect_bypass_classes(execute_state: ORMExecuteState) -> frozenset[type]:
+    """Union of bypass class sets from per-query and per-session sources.
+
+    Per-query: ``execution_options[SKIP_VISIBILITY_FILTER_CLASSES]`` — set
+    by ``BaseDAO.find_by_id(skip_visibility_filter=True)``,
+    ``find_existing_for_import``, ``raise_for_ownership``, etc., for
+    narrow one-statement bypass.
+
+    Per-session: ``session.info[SKIP_VISIBILITY_FILTER_CLASSES]`` — set by
+    ``BaseDeletedStateFilter.apply`` and the ``skip_visibility_filter``
+    context manager, for request-scoped bypass across multiple queries
+    issued on the same session (e.g., FAB list endpoints that build a
+    count query plus an inner+outer pair, where per-query options are
+    stripped between count and outer fetch).
+
+    Returns the shared empty ``_NO_BYPASS`` sentinel when neither source
+    has a bypass set — the common case for every ORM SELECT in the app —
+    so the listener's hot path does not allocate per-call empty sets.
+    """
+    per_query = execute_state.execution_options.get(SKIP_VISIBILITY_FILTER_CLASSES)
+    per_session = execute_state.session.info.get(SKIP_VISIBILITY_FILTER_CLASSES)
+    if not per_query and not per_session:
+        return _NO_BYPASS
+    return frozenset(per_query or ()) | frozenset(per_session or ())
+
+
+def _should_attach_soft_delete_criteria(execute_state: ORMExecuteState) -> bool:
+    """The event classes where the listener attaches loader criteria.
+
+    Column loads are excluded: they re-execute against already-loaded
+    parents to refresh specific attribute values; the soft-delete
+    criteria isn't meaningful at that level and would add noise.
+
+    Relationship loads ARE included. The Bayer canonical pattern
+    excludes them on the assumption that
+    ``with_loader_criteria(..., propagate_to_loaders=True)`` carries
+    the criteria from the parent statement to its relationship loads
+    automatically. In practice this propagation isn't reliable when
+    the criteria targets a class that doesn't appear in the parent
+    statement (e.g., loading a ``Dashboard`` whose listener-attached
+    criteria targets ``Slice`` — Slice never appears in the parent
+    query, and the criteria doesn't always reach the
+    ``dashboard.slices`` lazy load). Re-attaching on the
+    relationship-load event closes that gap. The resulting WHERE
+    clause may have ``deleted_at IS NULL`` twice when propagation
+    DOES work — harmless redundancy, idempotent SQL.
+    """
+    return execute_state.is_select and not execute_state.is_column_load
+
+
+def _all_soft_delete_subclasses() -> list[type[SoftDeleteMixin]]:
+    """The cached subclass registry maintained by
+    ``SoftDeleteMixin.__init_subclass__``. Returned in a stable
+    qualname-sorted order so SQLAlchemy's compiled-statement cache key
+    is deterministic across processes.
+
+    Assumes all soft-deletable models have been imported by the time
+    the listener fires. Superset imports models eagerly at app init via
+    ``superset.models``; if that ever changes to lazy import, the
+    listener would silently stop filtering un-imported classes — but
+    since registration happens at class-definition time, the cache is
+    automatically updated as new subclasses are introduced (including
+    test-defined synthetic subclasses).
+    """
+    return SoftDeleteMixin._registered_subclasses
+
+
+def _add_soft_delete_filter(execute_state: ORMExecuteState) -> None:
+    """Global ``do_orm_execute`` listener that automatically excludes
+    soft-deleted rows from every ORM SELECT.
+
+    Uses SQLAlchemy's recommended soft-delete pattern
+    (``do_orm_execute`` + ``with_loader_criteria`` — see
+    https://github.com/sqlalchemy/sqlalchemy/issues/7973#issuecomment-1112561295).
+
+    Skips relationship and column loader paths: those propagate the
+    criteria from the parent statement via
+    ``with_loader_criteria(..., propagate_to_loaders=True)`` (the default)
+    rather than re-attaching it here, which would stack redundant
+    ``deleted_at IS NULL`` clauses.
+
+    Per-class scoping: the listener iterates concrete ``SoftDeleteMixin``
+    subclasses and attaches a ``with_loader_criteria`` only for those
+    NOT in the request's bypass set. A bypass for ``Dashboard`` therefore
+    does not unhide soft-deleted ``Slice`` or ``SqlaTable`` rows in the
+    same statement. Each criteria is a concrete SQL expression rather
+    than a callable, so SQLAlchemy compiles it normally (passing a
+    callable triggers ``DeferredLambdaElement`` parsing, which does not
+    support Python control flow like ``if cls in bypass``).
+
+    Opt-out:
+
+    * **One statement**: attach
+      ``execution_options(_skip_visibility_filter_classes={Model})`` to a
+      Query, or pass ``skip_visibility_filter=True`` to ``BaseDAO``
+      methods (which translate the boolean into a one-class set
+      internally).
+    * **Session-scoped**: set
+      ``session.info[SKIP_VISIBILITY_FILTER_CLASSES] = {Model, ...}`` or
+      use the ``skip_visibility_filter`` context manager. Survives FAB's
+      inner/outer query reconstruction (and any future framework that
+      strips per-query options).
+
+    Performance: the listener attaches one ``with_loader_criteria``
+    option per non-bypassed ``SoftDeleteMixin`` subclass to every
+    primary SELECT, including queries that don't reference any
+    soft-deletable entity. SQLAlchemy no-ops the criteria when the
+    targeted class isn't in the statement, so the cost is small per
+    query, but linear in the number of soft-delete classes. At ~10
+    entities this is still negligible on typical endpoints; profile
+    before adding many more.
+    """
+    if not _should_attach_soft_delete_criteria(execute_state):
+        return
+
+    bypass_classes = _collect_bypass_classes(execute_state)
+
+    for cls in _all_soft_delete_subclasses():
+        if cls in bypass_classes:
+            continue
+        # Pass the criteria as a lambda — SQLAlchemy adapts the column
+        # reference to whatever alias the class wears at each occurrence
+        # in the statement (critical for FAB's outer/inner reconstruction
+        # and any other code that aliases the same model under different
+        # names). A concrete SQL expression — ``cls.where_not_deleted()``
+        # — would render as the raw ``slices.deleted_at`` even when the
+        # statement actually aliases ``slices AS chart``, producing
+        # ``Unknown column 'slices.deleted_at' in 'on clause'``. The
+        # lambda's body is trivial so the ``DeferredLambdaElement``
+        # parser handles it without issue; complex control flow inside
+        # the lambda is what trips the parser, not simple attribute
+        # access.
+        execute_state.statement = execute_state.statement.options(
+            with_loader_criteria(
+                cls,
+                lambda c: c.deleted_at.is_(None),
+                include_aliases=True,
+            )
+        )
+
+
+@contextmanager
+def skip_visibility_filter(session: Session, *classes: type) -> Iterator[None]:
+    """Bypass the soft-delete listener for the given classes within this
+    session for the duration of the ``with`` block.
+
+    Adds ``classes`` to ``session.info[SKIP_VISIBILITY_FILTER_CLASSES]``
+    on entry and removes them on exit, restoring the prior state. Nesting
+    is safe: an inner block only removes the classes *it* added, so the
+    outer block's bypass remains in effect.
+
+    Usage::
+
+        with skip_visibility_filter(session, Dashboard):
+            return session.query(Dashboard).filter_by(uuid=u).first()
+
+    Prefer this over manually setting ``session.info`` so the cleanup is
+    guaranteed even on exceptions. Calling with no classes is a no-op
+    (the block runs with no bypass added).
+    """
+    bypass = session.info.setdefault(SKIP_VISIBILITY_FILTER_CLASSES, set())
+    added = set(classes) - bypass
+    bypass.update(added)
+    try:
+        yield
+    finally:
+        bypass -= added
 
 
 class QueryResult:  # pylint: disable=too-few-public-methods
