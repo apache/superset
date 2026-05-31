@@ -144,6 +144,42 @@ def test_recipient_config_empty_target_fails() -> None:
         RecipientConfig(type="Email", target="   ")
 
 
+def test_create_report_request_empty_recipients_fails() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="at least 1"):
+        CreateReportRequest(
+            name="Test",
+            type="Report",
+            crontab="0 9 * * 1",
+            recipients=[],
+        )
+
+
+def test_create_report_request_invalid_timezone_fails() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="Invalid timezone"):
+        CreateReportRequest(
+            name="Test",
+            type="Report",
+            crontab="0 9 * * 1",
+            timezone="Not/A/Real/Timezone",
+            recipients=[RecipientConfig(type="Email", target="user@example.com")],
+        )
+
+
+def test_create_report_request_valid_timezone() -> None:
+    req = CreateReportRequest(
+        name="Test",
+        type="Report",
+        crontab="0 9 * * 1",
+        timezone="America/New_York",
+        recipients=[RecipientConfig(type="Email", target="user@example.com")],
+    )
+    assert req.timezone == "America/New_York"
+
+
 # --- Tool logic tests ---
 
 

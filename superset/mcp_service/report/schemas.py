@@ -19,6 +19,7 @@ import re
 
 from croniter import croniter
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pytz import all_timezones
 
 _EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
 
@@ -116,10 +117,9 @@ class CreateReportRequest(BaseModel):
         ),
     )
     recipients: list[RecipientConfig] = Field(
-        default_factory=list,
+        min_length=1,
         description=(
-            "List of notification recipients. "
-            "For reports/alerts created via this tool, provide at least one recipient. "
+            "List of notification recipients. At least one recipient is required. "
             "Example: [{'type': 'Email', 'target': 'user@example.com'}]"
         ),
     )
@@ -179,6 +179,15 @@ class CreateReportRequest(BaseModel):
         if not croniter.is_valid(stripped):
             raise ValueError(f"Invalid cron expression: {stripped!r}")
         return stripped
+
+    @field_validator("timezone")
+    @classmethod
+    def timezone_must_be_valid(cls, v: str | None) -> str | None:
+        if v is not None and v not in all_timezones:
+            raise ValueError(
+                f"Invalid timezone {v!r}. Must be a valid IANA timezone string."
+            )
+        return v
 
 
 class CreateReportResponse(BaseModel):
@@ -329,6 +338,15 @@ class UpdateReportRequest(BaseModel):
         if not croniter.is_valid(stripped):
             raise ValueError(f"Invalid cron expression: {stripped!r}")
         return stripped
+
+    @field_validator("timezone")
+    @classmethod
+    def timezone_must_be_valid(cls, v: str | None) -> str | None:
+        if v is not None and v not in all_timezones:
+            raise ValueError(
+                f"Invalid timezone {v!r}. Must be a valid IANA timezone string."
+            )
+        return v
 
 
 class UpdateReportResponse(BaseModel):

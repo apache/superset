@@ -125,6 +125,18 @@ def test_update_report_response_defaults() -> None:
     assert resp.error is None
 
 
+def test_update_report_request_invalid_timezone_fails() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="Invalid timezone"):
+        UpdateReportRequest(id=1, timezone="Not/A/Real/Timezone")
+
+
+def test_update_report_request_valid_timezone() -> None:
+    req = UpdateReportRequest(id=1, timezone="Europe/London")
+    assert req.timezone == "Europe/London"
+
+
 # --- Tool logic tests ---
 
 
