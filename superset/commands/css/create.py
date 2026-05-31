@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-import logging
 from functools import partial
 from typing import Any
 
@@ -26,8 +25,6 @@ from superset.commands.css.exceptions import (
 from superset.daos.css import CssTemplateDAO
 from superset.models.core import CssTemplate
 from superset.utils.decorators import on_error, transaction
-
-logger = logging.getLogger(__name__)
 
 
 class CreateCssTemplateCommand(BaseCommand):
