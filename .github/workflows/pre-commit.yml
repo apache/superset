@@ -71,10 +71,12 @@ jobs:
           output: ' '
 
       - name: pre-commit
+        env:
+          CHANGED_FILES: ${{ steps.changed_files.outputs.files }}
         run: |
           set +e  # Don't exit immediately on failure
           export SKIP=type-checking-frontend
-          pre-commit run --files ${{ steps.changed_files.outputs.files }}
+          pre-commit run --files $CHANGED_FILES
           PRE_COMMIT_EXIT_CODE=$?
           git diff --quiet --exit-code
           GIT_DIFF_EXIT_CODE=$?
