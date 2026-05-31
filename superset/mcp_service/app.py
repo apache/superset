@@ -768,9 +768,13 @@ from superset.mcp_service.task.tool import (  # noqa: F401, E402
     list_tasks,
 )
 from superset.mcp_service.theme.tool import (  # noqa: F401, E402
-    create_theme,
     get_theme_info,
     list_themes,
+)
+from superset.mcp_service.theme.tool.create_theme import (  # noqa: F401, E402
+    create_theme,
+)
+from superset.mcp_service.theme.tool.update_theme import (  # noqa: F401, E402
     update_theme,
 )
 from superset.mcp_service.user.tool import (  # noqa: F401, E402
