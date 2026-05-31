@@ -225,12 +225,12 @@ async def test_get_tag_info_not_found(mock_find, mcp_server):
 @pytest.mark.asyncio
 async def test_get_tag_info_serializes_type_name(mock_find, mcp_server):
     """Test that the tag type enum is serialized as its name string."""
-    tag = create_mock_tag(type_name="owner")
+    tag = create_mock_tag(type_name="editor")
     mock_find.return_value = tag
     async with Client(mcp_server) as client:
         result = await client.call_tool("get_tag_info", {"request": {"identifier": 2}})
         data = json.loads(result.content[0].text)
-        assert data["type"] == "owner"
+        assert data["type"] == "editor"
 
 
 @patch("superset.daos.tag.TagDAO.list")

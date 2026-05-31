@@ -19,7 +19,7 @@ import pytest
 
 from superset import db
 from superset.models.dashboard import Dashboard
-from superset.reports.models import ReportSchedule
+from superset.reports.models import ReportRecipients, ReportSchedule
 from superset.utils import json
 from superset.utils.core import shortid
 from tests.integration_tests.dashboards.superset_factory_util import create_dashboard
@@ -139,6 +139,18 @@ def tabbed_dashboard(app_context):
     db.session.commit()
     yield dash
     # Delete reports referencing this dashboard before deleting the dashboard
-    db.session.query(ReportSchedule).filter_by(dashboard_id=dash.id).delete()
+    report_ids = [
+        report_id
+        for (report_id,) in db.session.query(ReportSchedule.id)
+        .filter_by(dashboard_id=dash.id)
+        .all()
+    ]
+    if report_ids:
+        db.session.query(ReportRecipients).filter(
+            ReportRecipients.report_schedule_id.in_(report_ids)
+        ).delete(synchronize_session=False)
+        db.session.query(ReportSchedule).filter(
+            ReportSchedule.id.in_(report_ids)
+        ).delete(synchronize_session=False)
     db.session.query(Dashboard).filter_by(id=dash.id).delete()
     db.session.commit()

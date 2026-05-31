@@ -55,7 +55,7 @@ async def get_tag_info(request: GetTagInfoRequest, ctx: Context) -> TagInfo | Ta
     Returns tag details including name, type, and description.
 
     Tag types: custom (user-created), type (implicit by object type),
-    owner (implicit by ownership), favorited_by (implicit by favorites).
+    editor (implicit by editorship), favorited_by (implicit by favorites).
 
     To find a tag ID, use the list_tags tool first.
 

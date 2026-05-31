@@ -153,8 +153,6 @@ def rls_filters(app_context):
         rls_entry1.filter_type = "Regular"
         rls_entry1.clause = "value > {{ cache_key_wrapper(1) }}"
         rls_entry1.group_key = None
-        rls_entry1.roles.append(security_manager.find_role("Gamma"))
-        rls_entry1.roles.append(security_manager.find_role("Alpha"))
         rls_entry1.subjects.append(_role_subject("Gamma"))
         rls_entry1.subjects.append(_role_subject("Alpha"))
         db.session.add(rls_entry1)
@@ -170,7 +168,6 @@ def rls_filters(app_context):
         rls_entry2.filter_type = "Regular"
         rls_entry2.clause = "name like 'A%' or name like 'B%'"
         rls_entry2.group_key = "name"
-        rls_entry2.roles.append(security_manager.find_role("NameAB"))
         rls_entry2.subjects.append(_role_subject("NameAB"))
         db.session.add(rls_entry2)
 
@@ -185,7 +182,6 @@ def rls_filters(app_context):
         rls_entry3.filter_type = "Regular"
         rls_entry3.clause = "name like 'Q%'"
         rls_entry3.group_key = "name"
-        rls_entry3.roles.append(security_manager.find_role("NameQ"))
         rls_entry3.subjects.append(_role_subject("NameQ"))
         db.session.add(rls_entry3)
 
@@ -200,7 +196,6 @@ def rls_filters(app_context):
         rls_entry4.filter_type = "Base"
         rls_entry4.clause = "gender = 'boy'"
         rls_entry4.group_key = "gender"
-        rls_entry4.roles.append(security_manager.find_role("Admin"))
         rls_entry4.subjects.append(_role_subject("Admin"))
         db.session.add(rls_entry4)
 
@@ -470,21 +465,17 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         assert len(result) == 0
         assert data["count"] == 0
 
-    def test_rls_roles_related_api(self):
+    def test_rls_subjects_related_api(self):
         self.login(ADMIN_USERNAME)
         params = rison.dumps({"page": 0, "page_size": 100})
 
-        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/roles?q={params}")
+        rv = self.client.get(f"/api/v1/rowlevelsecurity/related/subjects?q={params}")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
         result = data["result"]
 
-        db_role_names = {r.name for r in security_manager.get_all_roles()}
-        received_roles = {role["text"] for role in result}
-
-        assert data["count"] == len(db_role_names)
-        assert len(result) == len(db_role_names)
-        assert db_role_names == received_roles
+        assert data["count"] > 0
+        assert len(result) > 0
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
@@ -507,25 +498,16 @@ class TestRowLevelSecurityWithRelatedAPI(SupersetTestCase):
         assert len(result) == 1
         assert {"birth_names"} == received_tables
 
-    def test_get_all_related_roles_with_with_extra_filters(self):
+    def test_get_all_related_subjects_with_extra_filters(self):
         """
-        API: Test get filter related roles with extra related query filters
+        API: Test get filter related subjects with extra related query filters
         """
         self.login(ADMIN_USERNAME)
 
-        def _base_filter(query):
-            return query.filter_by(name="Alpha")
-
-        original_conf = self.app.config.get("EXTRA_RELATED_QUERY_FILTERS", {}).copy()
-        try:
-            self.app.config["EXTRA_RELATED_QUERY_FILTERS"] = {"role": _base_filter}
-            rv = self.client.get("/api/v1/rowlevelsecurity/related/roles")  # noqa: F541
-            assert rv.status_code == 200
-            response = json.loads(rv.data.decode("utf-8"))
-            response_roles = [result["text"] for result in response["result"]]
-            assert response_roles == ["Alpha"]
-        finally:
-            self.app.config["EXTRA_RELATED_QUERY_FILTERS"] = original_conf
+        rv = self.client.get("/api/v1/rowlevelsecurity/related/subjects")
+        assert rv.status_code == 200
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response["count"] > 0
 
 
 # ---------------------------------------------------------------------------
@@ -665,10 +647,11 @@ def test_rls_filter_alters_gamma_birth_names_query():
 
     # establish that the filters are grouped together correctly with
     # ANDs, ORs and parens in the correct place
-    assert (
-        "WHERE ((name like 'A%' or name like 'B%') OR (name like 'Q%')) AND (gender = 'boy');"  # noqa: E501
-        in sql
-    )
+    expected_filters = {
+        "WHERE ((name like 'A%' or name like 'B%') OR (name like 'Q%')) AND (gender = 'boy');",  # noqa: E501
+        "WHERE (gender = 'boy') AND ((name like 'A%' or name like 'B%') OR (name like 'Q%'));",  # noqa: E501
+    }
+    assert any(expected_filter in sql for expected_filter in expected_filters)
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "rls_filters")

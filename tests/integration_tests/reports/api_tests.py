@@ -41,8 +41,6 @@ from superset.reports.models import (
     ReportRecipientType,
     ReportState,
 )
-from superset.subjects.models import Subject
-from superset.subjects.types import SubjectType
 from superset.utils.database import get_example_database
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
@@ -2215,8 +2213,9 @@ class TestReportSchedulesApi(SupersetTestCase):
         assert updated_report.editors == []
 
         # Populate the field
+        gamma_subject = _subjects_for_users([gamma])[0]
         report_update_data = {
-            "editors": [gamma.id],
+            "editors": [gamma_subject.id],
         }
         uri = f"api/v1/report/{updated_report.id}"
         self.put_assert_metric(uri, report_update_data, "put")  # noqa: F841
@@ -2224,11 +2223,6 @@ class TestReportSchedulesApi(SupersetTestCase):
             db.session.query(ReportSchedule)
             .filter(ReportSchedule.name == "name1")
             .one_or_none()
-        )
-        gamma_subject = (
-            db.session.query(Subject)
-            .filter_by(user_id=gamma.id, type=SubjectType.USER)
-            .first()
         )
         assert updated_report.editors == [gamma_subject]
 

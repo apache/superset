@@ -1718,11 +1718,12 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         """
         Dashboard API: Test create dashboard
         """
-        admin_id = self.get_user("admin").id
+        admin = self.get_user("admin")
+        admin_subject = subjects_from_users([admin])[0]
         dashboard_data = {
             "dashboard_title": "title1",
             "slug": "slug1",
-            "editors": [admin_id],
+            "editors": [admin_subject.id],
             "position_json": '{"a": "A"}',
             "css": "css",
             "json_metadata": '{"refresh_frequency": 30}',
@@ -2471,8 +2472,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         # Updates dashboard without Boys in json_metadata positions
         # and user_alpha1 as editor
+        user_alpha1_subject = subjects_from_users([user_alpha1])[0]
         dashboard_data = {
-            "editors": [user_alpha1.id],
+            "editors": [user_alpha1_subject.id],
             "json_metadata": json.dumps(
                 {
                     "positions": {
@@ -2539,7 +2541,11 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         gamma = self.get_user("gamma")
         alpha = self.get_user("alpha")
         dashboard_id = self.insert_dashboard("title1", "slug1", [alpha.id]).id
-        dashboard_data = {"dashboard_title": "title1_changed", "editors": [gamma.id]}
+        gamma_subject = subjects_from_users([gamma])[0]
+        dashboard_data = {
+            "dashboard_title": "title1_changed",
+            "editors": [gamma_subject.id],
+        }
         self.login(ALPHA_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.put(uri, json=dashboard_data)
@@ -2560,7 +2566,11 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         gamma = self.get_user("gamma")
         admin = self.get_user("admin")
         dashboard_id = self.insert_dashboard("title1", "slug1", [admin.id]).id
-        dashboard_data = {"dashboard_title": "title1_changed", "editors": [gamma.id]}
+        gamma_subject = subjects_from_users([gamma])[0]
+        dashboard_data = {
+            "dashboard_title": "title1_changed",
+            "editors": [gamma_subject.id],
+        }
         self.login(ADMIN_USERNAME)
         uri = f"api/v1/dashboard/{dashboard_id}"
         rv = self.client.put(uri, json=dashboard_data)
@@ -2603,7 +2613,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             [],
         )
         uri = f"api/v1/dashboard/{dashboard.id}"
-        dashboard_data = {"editors": [gamma.id]}
+        gamma_subject = subjects_from_users([gamma])[0]
+        dashboard_data = {"editors": [gamma_subject.id]}
         rv = self.client.put(uri, json=dashboard_data)
         assert rv.status_code == 200
         model = db.session.query(Dashboard).get(dashboard.id)
@@ -4006,7 +4017,7 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             all_tags = dashboard.tags
             all_tag_names = [t.name for t in all_tags]
             assert "critical" in all_tag_names, "Should include custom tag"
-            assert any(t.name.startswith("owner:") for t in all_tags), (
+            assert any(t.name.startswith("editor:") for t in all_tags), (
                 "Should include owner tags"
             )
             assert any(t.name.startswith("type:") for t in all_tags), (
@@ -4017,7 +4028,7 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             custom_only = dashboard.custom_tags
             custom_tag_names = [t.name for t in custom_only]
             assert "critical" in custom_tag_names, "Should include custom tag"
-            assert not any(t.name.startswith("owner:") for t in custom_only), (
+            assert not any(t.name.startswith("editor:") for t in custom_only), (
                 f"custom_tags should NOT include owner tags, got: {custom_tag_names}"
             )
             assert not any(t.name.startswith("type:") for t in custom_only), (
@@ -4048,9 +4059,9 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
             # API should return ONLY custom tags
             api_tag_names = [t["name"] for t in test_dash["tags"]]
             assert "critical" in api_tag_names, "API should include custom tag"
-            assert not any(t["name"].startswith("owner:") for t in test_dash["tags"]), (
-                f"API should NOT include owner tags, got: {api_tag_names}"
-            )
+            assert not any(
+                t["name"].startswith("editor:") for t in test_dash["tags"]
+            ), f"API should NOT include owner tags, got: {api_tag_names}"
             assert not any(t["name"].startswith("type:") for t in test_dash["tags"]), (
                 f"API should NOT include type tags, got: {api_tag_names}"
             )

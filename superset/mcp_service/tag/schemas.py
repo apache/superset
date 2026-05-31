@@ -59,7 +59,7 @@ class TagFilter(ColumnOperator):
     col: Literal["name", "type"] = Field(
         ...,
         description="Column to filter on. Supported: 'name' (string match), "
-        "'type' (tag type: custom, type, owner, favorited_by).",
+        "'type' (tag type: custom, type, editor, favorited_by).",
     )
     opr: ColumnOperatorEnum = Field(
         ...,

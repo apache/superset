@@ -564,21 +564,19 @@ def _get_table_from_list_by_name(name: str, tables: list[Any]):
 
 
 class TestCreateDatasetCommand(SupersetTestCase):
-    @patch("superset.commands.utils.g")
-    def test_database_not_found(self, mock_g):
-        mock_g.user = security_manager.find_user("admin")
+    def test_database_not_found(self):
         with self.assertRaises(DatasetInvalidError):  # noqa: PT027
-            CreateDatasetCommand({"table_name": "table", "database": 9999}).run()
+            with override_user(security_manager.find_user("admin")):
+                CreateDatasetCommand({"table_name": "table", "database": 9999}).run()
 
-    @patch("superset.commands.utils.g")
     @patch("superset.models.core.Database.get_table")
-    def test_get_table_from_database_error(self, get_table_mock, mock_g):
+    def test_get_table_from_database_error(self, get_table_mock):
         get_table_mock.side_effect = SQLAlchemyError
-        mock_g.user = security_manager.find_user("admin")
         with self.assertRaises(DatasetInvalidError):  # noqa: PT027
-            CreateDatasetCommand(
-                {"table_name": "table", "database": get_example_database().id}
-            ).run()
+            with override_user(security_manager.find_user("admin")):
+                CreateDatasetCommand(
+                    {"table_name": "table", "database": get_example_database().id}
+                ).run()
 
     def test_create_dataset_command(self):
         examples_db = get_example_database()

@@ -74,7 +74,7 @@ async def list_tags(
     Returns tag metadata including name, type, and description.
 
     Tag types: custom (user-created), type (implicit by object type),
-    owner (implicit by ownership), favorited_by (implicit by favorites).
+    editor (implicit by editorship), favorited_by (implicit by favorites).
 
     Sortable columns for order_column: id, name, changed_on, created_on
     """

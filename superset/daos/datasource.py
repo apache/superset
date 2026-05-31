@@ -212,7 +212,7 @@ class DatasourceDAO(BaseDAO[Datasource]):
             db.session.query(SqlaTable)
             .options(
                 joinedload(SqlaTable.database),
-                joinedload(SqlaTable.owners),
+                joinedload(SqlaTable.editors),
                 joinedload(SqlaTable.changed_by),
             )
             .filter(cast(Any, SqlaTable.id).in_(ids))

@@ -249,7 +249,7 @@ def add_owners_to_charts(
                 join(
                     slices,
                     tag,
-                    tag.c.name == "owner:" + slices.c.created_by_fk,
+                    tag.c.name == "editor:" + slices.c.created_by_fk,
                 ),
                 tagged_object,
                 and_(
@@ -285,7 +285,7 @@ def add_owners_to_dashboards(
                 join(
                     dashboard_table,
                     tag,
-                    tag.c.name == "owner:" + dashboard_table.c.created_by_fk,
+                    tag.c.name == "editor:" + dashboard_table.c.created_by_fk,
                 ),
                 tagged_object,
                 and_(
@@ -321,7 +321,7 @@ def add_owners_to_saved_queries(
                 join(
                     saved_query,
                     tag,
-                    tag.c.name == "owner:" + saved_query.c.created_by_fk,
+                    tag.c.name == "editor:" + saved_query.c.created_by_fk,
                 ),
                 tagged_object,
                 and_(
@@ -357,7 +357,7 @@ def add_owners_to_datasets(
                 join(
                     tables,
                     tag,
-                    tag.c.name == "owner:" + tables.c.created_by_fk,
+                    tag.c.name == "editor:" + tables.c.created_by_fk,
                 ),
                 tagged_object,
                 and_(
@@ -377,7 +377,7 @@ def add_owners_to_datasets(
 
 def add_owners(metadata: MetaData) -> None:
     """
-    Tag every object according to its owner:
+    Tag every object according to its editor:
 
       INSERT INTO tagged_object (tag_id, object_id, object_type)
       SELECT
@@ -386,7 +386,7 @@ def add_owners(metadata: MetaData) -> None:
         'chart' AS object_type
       FROM slices
       JOIN tag
-      ON tag.name = CONCAT('owner:', slices.created_by_fk)
+      ON tag.name = CONCAT('editor:', slices.created_by_fk)
       LEFT OUTER JOIN tagged_object
         ON tagged_object.tag_id = tag.id
         AND tagged_object.object_id = slices.id
@@ -399,7 +399,7 @@ def add_owners(metadata: MetaData) -> None:
         'dashboard' AS object_type
       FROM dashboards
       JOIN tag
-      ON tag.name = CONCAT('owner:', dashboards.created_by_fk)
+      ON tag.name = CONCAT('editor:', dashboards.created_by_fk)
       LEFT OUTER JOIN tagged_object
         ON tagged_object.tag_id = tag.id
         AND tagged_object.object_id = dashboards.id
@@ -412,7 +412,7 @@ def add_owners(metadata: MetaData) -> None:
         'query' AS object_type
       FROM saved_query
       JOIN tag
-      ON tag.name = CONCAT('owner:', saved_query.created_by_fk)
+      ON tag.name = CONCAT('editor:', saved_query.created_by_fk)
       LEFT OUTER JOIN tagged_object
         ON tagged_object.tag_id = tag.id
         AND tagged_object.object_id = saved_query.id
@@ -425,7 +425,7 @@ def add_owners(metadata: MetaData) -> None:
         'dataset' AS object_type
       FROM tables
       JOIN tag
-      ON tag.name = CONCAT('owner:', tables.created_by_fk)
+      ON tag.name = CONCAT('editor:', tables.created_by_fk)
       LEFT OUTER JOIN tagged_object
         ON tagged_object.tag_id = tag.id
         AND tagged_object.object_id = tables.id

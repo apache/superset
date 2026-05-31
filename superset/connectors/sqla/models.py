@@ -2182,6 +2182,16 @@ class RowLevelSecurityFilter(Model, AuditMixinNullable):
         """Derive roles from role-type subjects (backwards compat)."""
         return [s.role for s in self.subjects if s.type == SubjectType.ROLE and s.role]
 
+    @roles.setter
+    def roles(self, roles: list[Any]) -> None:
+        """Assign role-type subjects from legacy role objects."""
+        from superset.subjects.utils import subjects_from_roles
+
+        non_role_subjects = [
+            subject for subject in self.subjects if subject.type != SubjectType.ROLE
+        ]
+        self.subjects = non_role_subjects + subjects_from_roles(roles)
+
     tables = relationship(
         SqlaTable,
         overlaps="table",

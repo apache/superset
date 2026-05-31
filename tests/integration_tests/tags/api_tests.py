@@ -224,7 +224,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         tags = [
             {"name": "Test custom Tag", "type": "custom"},
             {"name": "type:dashboard", "type": "type"},
-            {"name": "owner:1", "type": "owner"},
+            {"name": "editor:1", "type": "editor"},
             {"name": "Another Tag", "type": "custom"},
             {"name": "favorited_by:1", "type": "favorited_by"},
         ]

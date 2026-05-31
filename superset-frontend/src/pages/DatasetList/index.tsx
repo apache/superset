@@ -99,6 +99,7 @@ import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import type { BootstrapData } from 'src/types/bootstrapTypes';
+import type User from 'src/types/User';
 
 const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
 type DatasetExtra = {
@@ -155,7 +156,7 @@ const Actions = styled.div`
 
 type Dataset = {
   changed_by_name: string;
-  changed_by: Owner;
+  changed_by: User;
   changed_on_delta_humanized: string;
   database: {
     id: string;
@@ -849,8 +850,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
 
           // Dataset: full set of actions
           const allowEdit =
-            original.editors?.map((o: Subject) => o.id).includes(user.userId) ||
-            isUserAdmin(user);
+            original.editors
+              ?.map((o: Subject) => o.id)
+              .includes(Number(user.userId)) || isUserAdmin(user);
 
           const handleEdit = () => openDatasetEditModal(original);
           const handleDelete = () => openDatasetDeleteModal(original);

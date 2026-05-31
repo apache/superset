@@ -867,13 +867,14 @@ class DatasourceEditor extends PureComponent<
       datasource: {
         ...props.datasource,
         editors: (props.datasource.editors || []).map(editor => {
+          const editorValue = Number(editor.value ?? editor.id);
           const editorName =
             editor.label ||
             (editor.first_name
               ? `${editor.first_name} ${editor.last_name}`
               : '');
           return {
-            value: editor.value || editor.id,
+            value: editorValue,
             label: SubjectSelectLabel({
               label: typeof editorName === 'string' ? editorName : '',
               type: editor.type as SubjectType | undefined,

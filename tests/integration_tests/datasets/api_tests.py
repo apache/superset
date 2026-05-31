@@ -43,7 +43,11 @@ from superset.utils import json
 from superset.utils.core import backend, get_example_default_schema
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils.dict_import_export import export_to_dict
-from tests.integration_tests.base_tests import SupersetTestCase, user_is_editor
+from tests.integration_tests.base_tests import (
+    subjects_from_users,
+    SupersetTestCase,
+    user_is_editor,
+)
 from tests.integration_tests.conftest import (  # noqa: F401
     CTAS_SCHEMA_NAME,
     with_feature_flags,
@@ -803,7 +807,6 @@ class TestDatasetApi(SupersetTestCase):
 
         main_db = get_main_database()
         self.login(ALPHA_USERNAME)
-        admin = self.get_user("admin")
         alpha = self.get_user("alpha")
 
         table_data = {
@@ -816,7 +819,6 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 201
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(SqlaTable).get(data.get("id"))
-        assert user_is_editor(admin, model)
         assert user_is_editor(alpha, model)
         self.items_to_delete = [model]
 
@@ -847,7 +849,6 @@ class TestDatasetApi(SupersetTestCase):
 
         energy_usage_ds = self.get_energy_usage_dataset()
         self.login(ALPHA_USERNAME)
-        admin = self.get_user("admin")
         alpha = self.get_user("alpha")
         table_data = {
             "database": energy_usage_ds.database_id,
@@ -860,7 +861,6 @@ class TestDatasetApi(SupersetTestCase):
         assert rv.status_code == 201
         data = json.loads(rv.data.decode("utf-8"))
         model = db.session.query(SqlaTable).get(data.get("id"))
-        assert user_is_editor(admin, model)
         assert user_is_editor(alpha, model)
         self.items_to_delete = [model]
 
@@ -1091,8 +1091,9 @@ class TestDatasetApi(SupersetTestCase):
         """
         self.login(username="admin")
         gamma = self.get_user("gamma")
+        gamma_subject = subjects_from_users([gamma])[0]
         dataset = self.insert_dataset("ab_permission", [], get_main_database())
-        dataset_data = {"editors": [gamma.id]}
+        dataset_data = {"editors": [gamma_subject.id]}
         uri = f"api/v1/dataset/{dataset.id}"
         rv = self.put_assert_metric(uri, dataset_data, "put")
         assert rv.status_code == 200

@@ -79,7 +79,7 @@ fetchMock.get('glob:*/api/v1/chart/318*', {
         },
         {
           id: 2,
-          name: 'owner:1',
+          name: 'editor:1',
           type: 3,
         },
         {
@@ -454,7 +454,7 @@ test('Should display only custom tags when tagging system is enabled', async () 
 
   expect(await screen.findByText('my test tag')).toBeInTheDocument();
   expect(screen.queryByText('type:chart')).not.toBeInTheDocument();
-  expect(screen.queryByText('owner:1')).not.toBeInTheDocument();
+  expect(screen.queryByText('editor:1')).not.toBeInTheDocument();
 
   mockIsFeatureEnabled.mockRestore();
 });

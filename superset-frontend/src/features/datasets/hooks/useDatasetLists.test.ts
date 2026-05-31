@@ -407,7 +407,7 @@ test('useDatasetsList skips fetching when schema-less database id is undefined',
     database_name: 'ydb',
     owners: [1] as [number],
     supports_schemas: false,
-  } as typeof mockDb & { supports_schemas: boolean };
+  };
 
   const { result } = renderHook(() => useDatasetsList(schemalessDb, null));
 

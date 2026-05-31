@@ -32,6 +32,7 @@ from sqlalchemy import (
     column as sa_column,
     DateTime,
     func,
+    inspect,
     Integer,
     literal,
     select,
@@ -39,6 +40,7 @@ from sqlalchemy import (
     table as sa_table,
     UniqueConstraint,
 )
+from sqlalchemy.dialects import mysql
 from sqlalchemy_utils import UUIDType
 
 from superset.migrations.shared.utils import (
@@ -84,6 +86,9 @@ LEGACY_ROLE_TABLES = [
     "dashboard_roles",
     "rls_filter_roles",
 ]
+
+TAG_TYPES_WITH_EDITOR = ("custom", "type", "editor", "favorited_by")
+TAG_TYPES_WITH_OWNER = ("custom", "type", "owner", "favorited_by")
 
 
 def _create_subjects_table() -> None:
@@ -767,6 +772,53 @@ def _recreate_legacy_tables() -> None:
     )
 
 
+def _mysql_enum_values(table_name: str, column_name: str) -> tuple[str, ...] | None:
+    bind = op.get_bind()
+    if not isinstance(bind.dialect, mysql.dialect):
+        return None
+
+    for column in inspect(bind).get_columns(table_name):
+        if column["name"] == column_name:
+            return tuple(getattr(column["type"], "enums", ()))
+
+    return None
+
+
+def _alter_mysql_tag_type(
+    existing_values: tuple[str, ...],
+    target_values: tuple[str, ...],
+) -> None:
+    op.alter_column(
+        "tag",
+        "type",
+        existing_type=mysql.ENUM(*existing_values),
+        type_=mysql.ENUM(*target_values),
+        existing_nullable=True,
+    )
+
+
+def _rename_tag_type(
+    old_type: str,
+    new_type: str,
+    final_mysql_values: tuple[str, ...],
+) -> None:
+    tag = sa_table("tag", sa_column("type", String(50)))
+
+    if (enum_values := _mysql_enum_values("tag", "type")) is not None:
+        if old_type not in enum_values:
+            return
+
+        transition_values = tuple(dict.fromkeys((*enum_values, new_type)))
+        if transition_values != enum_values:
+            _alter_mysql_tag_type(enum_values, transition_values)
+
+        op.execute(tag.update().where(tag.c.type == old_type).values(type=new_type))
+        _alter_mysql_tag_type(transition_values, final_mysql_values)
+        return
+
+    op.execute(tag.update().where(tag.c.type == old_type).values(type=new_type))
+
+
 def upgrade() -> None:
     # 1. Create subjects table
     _create_subjects_table()
@@ -791,22 +843,34 @@ def upgrade() -> None:
     _drop_legacy_tables()
 
     # 5. Rename owner:N tags to editor:N in the tag table
-    tag = sa_table("tag", sa_column("id", Integer), sa_column("name", String(250)))
+    tag = sa_table(
+        "tag",
+        sa_column("id", Integer),
+        sa_column("name", String(250)),
+        sa_column("type", String(50)),
+    )
     op.execute(
         tag.update()
         .where(tag.c.name.like("owner:%"))
-        .values(name=func.concat("editor:", func.substr(tag.c.name, 7)))
+        .values(name=literal("editor:") + func.substr(tag.c.name, 7))
     )
+    _rename_tag_type("owner", "editor", TAG_TYPES_WITH_EDITOR)
 
 
 def downgrade() -> None:
     # 0. Rename editor:N tags back to owner:N
-    tag = sa_table("tag", sa_column("id", Integer), sa_column("name", String(250)))
+    tag = sa_table(
+        "tag",
+        sa_column("id", Integer),
+        sa_column("name", String(250)),
+        sa_column("type", String(50)),
+    )
     op.execute(
         tag.update()
         .where(tag.c.name.like("editor:%"))
-        .values(name=func.concat("owner:", func.substr(tag.c.name, 8)))
+        .values(name=literal("owner:") + func.substr(tag.c.name, 8))
     )
+    _rename_tag_type("editor", "owner", TAG_TYPES_WITH_OWNER)
 
     # 1. Recreate legacy owner/role tables and repopulate from editors/viewers
     _recreate_legacy_tables()
