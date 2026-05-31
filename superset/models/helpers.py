@@ -1219,7 +1219,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 ):
                     raise SupersetDisallowedSQLFunctionException(disallowed_functions)
                 if disallowed_tables and parsed.check_tables_present(disallowed_tables):
-                    raise SupersetDisallowedSQLTableException(disallowed_tables)
+                    # Report only the tables actually found in the expression,
+                    # mirroring the canonical execution-time gate in
+                    # `superset.sql_lab._validate_query` so the user-facing
+                    # error doesn't echo the operator's full denylist.
+                    found_tables: set[str] = set()
+                    for statement in parsed.statements:
+                        present = {table.table.lower() for table in statement.tables}
+                        for table in disallowed_tables:
+                            if table.lower() in present:
+                                found_tables.add(table)
+                    raise SupersetDisallowedSQLTableException(
+                        found_tables or disallowed_tables
+                    )
         return expression
 
     def _process_select_expression(

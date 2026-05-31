@@ -32,6 +32,7 @@ from sqlalchemy.sql.elements import ColumnElement
 
 from superset.superset_typing import AdhocColumn
 from superset.utils.core import GenericDataType
+from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:
     from superset.jinja_context import BaseTemplateProcessor
@@ -2768,6 +2769,39 @@ def test_process_sql_expression_rejects_disallowed_function_in_aggregate(
             schema="",
             template_processor=None,
         )
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_process_sql_expression_rejects_disallowed_table(
+    mocker: MockerFixture, database: Database
+) -> None:
+    """Adhoc subqueries that reference a denylisted table must be rejected,
+    and the raised exception must carry only the tables actually found in
+    the expression (matching the canonical execution-time gate in
+    `superset.sql_lab._validate_query`). The branch is only reachable when
+    `ALLOW_ADHOC_SUBQUERY=True`; otherwise `validate_adhoc_subquery` rejects
+    the subquery first."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import SupersetDisallowedSQLTableException
+
+    _patch_disallowed(
+        mocker, tables={"postgresql": {"pg_authid", "pg_shadow", "pg_stat_activity"}}
+    )
+    table = SqlaTable(database=database, schema=None, table_name="t")
+    with pytest.raises(SupersetDisallowedSQLTableException) as exc_info:
+        table._process_sql_expression(
+            expression="(SELECT id FROM pg_authid)",
+            database_id=database.id,
+            engine="postgresql",
+            schema="",
+            template_processor=None,
+        )
+    # Assert on substring (set repr ordering): only the offending table is
+    # echoed back to the user, not the full operator denylist.
+    message = exc_info.value.error.message
+    assert "pg_authid" in message
+    assert "pg_shadow" not in message
+    assert "pg_stat_activity" not in message
 
 
 def test_process_sql_expression_allows_benign_expression(
