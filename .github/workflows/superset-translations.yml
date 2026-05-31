@@ -84,13 +84,15 @@ jobs:
       # drift on the base branch.
       - name: Fetch base ref and create comparison worktree
         if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
+        env:
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
           # For PRs use the base branch; for direct pushes compare against the previous commit.
-          BASE_REF="${{ github.event.pull_request.base.ref }}"
+          BASE_REF="$PR_BASE_REF"
           if [ -n "$BASE_REF" ]; then
             git fetch --depth=1 origin "$BASE_REF"
           else
-            git fetch --depth=2 origin "${{ github.ref }}"
+            git fetch --depth=2 origin "$GITHUB_REF"
           fi
           git worktree add /tmp/base-worktree FETCH_HEAD
 
