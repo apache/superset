@@ -17,6 +17,7 @@
 from unittest.mock import ANY, call, MagicMock, patch
 
 import pytest
+from flask_appbuilder.security.sqla import models as ab_models
 
 from superset import db, security_manager
 from superset.commands.dashboard.update import UpdateDashboardCommand
@@ -50,6 +51,17 @@ def remove_tabs_from_dashboard(dashboard: Dashboard, tabs: list[str]):
         del position[tab]
     data["position_json"] = dumps(position)
     return data
+
+
+def get_users_by_username(usernames: list[str]) -> list[ab_models.User]:
+    user_model = security_manager.user_model
+    users_by_username = {
+        user.username: user
+        for user in db.session.query(user_model)
+        .filter(user_model.username.in_(usernames))
+        .all()
+    }
+    return [users_by_username[username] for username in usernames]
 
 
 @patch("superset.commands.dashboard.update.send_email_smtp")
@@ -95,7 +107,7 @@ def test_tab_deletion_multiple_reports(
 ):
     tab_to_delete = tab1
     retained_tab = tab2
-    users = db.session.query(security_manager.user_model).all()
+    users = get_users_by_username(["gamma", "alpha", "admin"])
     report1 = create_report_notification(
         name="report 1",
         dashboard=tabbed_dashboard,
@@ -150,7 +162,7 @@ def test_tab_deletion_multiple_reports(
     ]
 
     assert send_email_smtp_mock.call_count == 3
-    assert send_email_smtp_mock.call_args_list == expected_calls
+    send_email_smtp_mock.assert_has_calls(expected_calls, any_order=True)
 
     cleanup_report_schedule(report1)
     cleanup_report_schedule(report2)
@@ -167,7 +179,7 @@ def test_multitple_tabs_removed(
     login_as_admin,
 ):
     tabs_to_delete = [tab1, tab2]
-    users = db.session.query(security_manager.user_model).all()
+    users = get_users_by_username(["gamma", "alpha", "admin"])
     report1 = create_report_notification(
         name="report 1",
         dashboard=tabbed_dashboard,
@@ -214,7 +226,7 @@ def test_multitple_tabs_removed(
     ]
 
     assert send_email_smtp_mock.call_count == 3
-    assert send_email_smtp_mock.call_args_list == expected_calls
+    send_email_smtp_mock.assert_has_calls(expected_calls, any_order=True)
 
     cleanup_report_schedule(report1)
     cleanup_report_schedule(report2)

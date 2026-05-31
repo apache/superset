@@ -44,6 +44,29 @@ import { TIMEOUT } from '../../utils/constants';
 
 const NONADMIN_USERNAME = process.env.PLAYWRIGHT_NONADMIN_USERNAME || 'gamma';
 const NONADMIN_PASSWORD = process.env.PLAYWRIGHT_NONADMIN_PASSWORD || 'general';
+const SUBJECT_TYPE_USER = 1;
+
+type RelatedSubject = {
+  value: number;
+  text?: string;
+  extra?: {
+    type?: number;
+    secondary_label?: string;
+  };
+};
+
+function matchesUsername(subject: RelatedSubject, username: string) {
+  const normalizedUsername = username.toLowerCase();
+  const text = subject.text?.toLowerCase() ?? '';
+  const secondaryLabel = subject.extra?.secondary_label?.toLowerCase() ?? '';
+
+  return (
+    subject.extra?.type === SUBJECT_TYPE_USER &&
+    (text === normalizedUsername ||
+      text.includes(normalizedUsername) ||
+      secondaryLabel.includes(normalizedUsername))
+  );
+}
 
 // Clear storageState so the default page fixture starts unauthenticated.
 // Admin API calls use an explicit admin context with saved auth instead.
@@ -94,7 +117,9 @@ test('non-admin user can view a themed dashboard without 403 or infinite spinner
     );
     expect(usersRes.ok()).toBe(true);
     const usersBody = await usersRes.json();
-    const gammaSubjectId = usersBody.result?.[0]?.value;
+    const gammaSubjectId = (
+      usersBody.result as RelatedSubject[] | undefined
+    )?.find(subject => matchesUsername(subject, NONADMIN_USERNAME))?.value;
     expect(gammaSubjectId).toBeTruthy();
     const putRes = await apiPutDashboard(adminPage, dashboardId!, {
       editors: [gammaSubjectId],

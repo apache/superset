@@ -127,8 +127,8 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
   canOverwriteSlice(): boolean {
     const userSubjects = getBootstrapData()?.common?.user_subjects ?? [];
     return (
-      this.props.slice?.editors?.some((e: { id: number }) =>
-        userSubjects.includes(e.id),
+      this.props.slice?.editors?.some((editor: { id: number } | number) =>
+        userSubjects.includes(typeof editor === 'number' ? editor : editor.id),
       ) && !this.props.slice?.is_managed_externally
     );
   }

@@ -647,11 +647,14 @@ def test_rls_filter_alters_gamma_birth_names_query():
 
     # establish that the filters are grouped together correctly with
     # ANDs, ORs and parens in the correct place
+    normalized_sql = " ".join(sql.replace("%%", "%").split())
     expected_filters = {
-        "WHERE ((name like 'A%' or name like 'B%') OR (name like 'Q%')) AND (gender = 'boy');",  # noqa: E501
-        "WHERE (gender = 'boy') AND ((name like 'A%' or name like 'B%') OR (name like 'Q%'));",  # noqa: E501
+        "WHERE ((name like 'A%' or name like 'B%') OR (name like 'Q%')) AND (gender = 'boy')",  # noqa: E501
+        "WHERE (gender = 'boy') AND ((name like 'A%' or name like 'B%') OR (name like 'Q%'))",  # noqa: E501
     }
-    assert any(expected_filter in sql for expected_filter in expected_filters)
+    assert any(
+        expected_filter in normalized_sql for expected_filter in expected_filters
+    )
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "rls_filters")

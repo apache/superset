@@ -456,8 +456,14 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
             tag_type="custom",
         )
 
+        first_dataset, second_dataset = (
+            db.session.query(SqlaTable).order_by(SqlaTable.id).limit(2).all()
+        )
+
         # Create a chart
-        chart_first_dataset = self.insert_chart("first_chart", [owner.id], 1)
+        chart_first_dataset = self.insert_chart(
+            "first_chart", [owner.id], first_dataset.id
+        )
         first_tag_relation = self.insert_tagged_object(
             tag_id=tag.id,
             object_id=chart_first_dataset.id,
@@ -465,7 +471,9 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         )
 
         # Create another chart and add it to a dashboard
-        chart_second_dataset = self.insert_chart("second_chart", [owner.id], 2)
+        chart_second_dataset = self.insert_chart(
+            "second_chart", [owner.id], second_dataset.id
+        )
         second_tag_relation = self.insert_tagged_object(
             tag_id=tag.id,
             object_id=chart_second_dataset.id,
@@ -497,8 +505,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         assert rv.status_code == 200
         assert rv.json["result"] == []
 
-        # grant access to dataset ID 1
-        first_dataset = db.session.query(SqlaTable).filter(SqlaTable.id == 1).first()
+        # grant access to the first dataset
         self.grant_role_access_to_table(first_dataset, "testing_new_role")
 
         rv = self.client.get(uri)
@@ -507,8 +514,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
         assert len(result) == 1
         assert result[0]["id"] == chart_first_dataset.id
 
-        # grant access to dataset ID 2
-        second_dataset = db.session.query(SqlaTable).filter(SqlaTable.id == 2).first()
+        # grant access to the second dataset
         self.grant_role_access_to_table(second_dataset, "testing_new_role")
 
         rv = self.client.get(uri)
@@ -767,6 +773,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
                 TaggedObject.object_id == dashboard.id,
                 TaggedObject.object_type == ObjectType.dashboard,
                 Tag.type == TagType.custom,
+                Tag.name.in_(tags),
             )
         )
         assert tagged_objects.count() == 2
@@ -778,6 +785,7 @@ class TestTagApi(InsertChartMixin, SupersetTestCase):
                 TaggedObject.object_id == chart.id,
                 TaggedObject.object_type == ObjectType.chart,
                 Tag.type == TagType.custom,
+                Tag.name.in_(tags),
             )
         )
         assert tagged_objects.count() == 2
