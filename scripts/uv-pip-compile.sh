@@ -22,7 +22,7 @@ set -e
 # If not already running in Docker, run this script inside Docker
 if [ -z "$RUNNING_IN_DOCKER" ]; then
   # Extract "current" Python version from CI config (single source of truth)
-  PYTHON_VERSION=$(grep -A 1 'if.*"current"' .github/actions/setup-backend/action.yml | grep 'RESOLVED_VERSION=' | sed 's/.*RESOLVED_VERSION="\([0-9.]*\)".*/\1/')
+  PYTHON_VERSION=$(grep -A 1 'if.*"current"' .github/actions/setup-backend/action.yml | grep 'PYTHON_VERSION=' | sed 's/.*PYTHON_VERSION=\([0-9.]*\).*/\1/')
 
   echo "Running in Docker (Python ${PYTHON_VERSION} on Linux)..."
 
