@@ -2,6 +2,7 @@ name: Docs Deployment
 
 on:
   # Deploy after integration tests complete on master
+  # zizmor: ignore[dangerous-triggers] - runs in base-branch context after a trusted upstream workflow; scoped to master
   workflow_run:
     workflows: ["Python-Integration"]
     types: [completed]
