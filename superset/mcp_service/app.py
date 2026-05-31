@@ -729,13 +729,13 @@ from superset.mcp_service.query.tool import (  # noqa: F401, E402
     get_query_info,
     list_queries,
 )
-from superset.mcp_service.rls.tool import (  # noqa: F401, E402
-    get_rls_filter_info,
-    list_rls_filters,
-)
 from superset.mcp_service.report.tool import (  # noqa: F401, E402
     get_report_info,
     list_reports,
+)
+from superset.mcp_service.rls.tool import (  # noqa: F401, E402
+    get_rls_filter_info,
+    list_rls_filters,
 )
 from superset.mcp_service.role.tool import (  # noqa: F401, E402
     get_role_info,
