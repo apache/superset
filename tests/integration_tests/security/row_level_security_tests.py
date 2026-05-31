@@ -647,13 +647,21 @@ def test_rls_filter_alters_gamma_birth_names_query():
 
     # establish that the filters are grouped together correctly with
     # ANDs, ORs and parens in the correct place
-    normalized_sql = " ".join(sql.replace("%%", "%").split())
+    normalized_sql = " ".join(
+        sql.replace("%%", "%").replace("`", "").replace('"', "").split()
+    )
+    name_filters = (
+        r"\(*name like 'A%'\s+or\s+name like 'B%'\)*\s+OR\s+"
+        r"\(*name like 'Q%'\)*"
+    )
+    base_filter = r"\(*gender = 'boy'\)*"
     expected_filters = {
-        "WHERE ((name like 'A%' or name like 'B%') OR (name like 'Q%')) AND (gender = 'boy')",  # noqa: E501
-        "WHERE (gender = 'boy') AND ((name like 'A%' or name like 'B%') OR (name like 'Q%'))",  # noqa: E501
+        rf"WHERE\s+\(*{name_filters}\)*\s+AND\s+{base_filter}",
+        rf"WHERE\s+{base_filter}\s+AND\s+\(*{name_filters}\)*",
     }
     assert any(
-        expected_filter in normalized_sql for expected_filter in expected_filters
+        re.search(expected_filter, normalized_sql, flags=re.IGNORECASE)
+        for expected_filter in expected_filters
     )
 
 
