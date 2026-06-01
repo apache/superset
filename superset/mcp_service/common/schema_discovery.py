@@ -686,20 +686,6 @@ REPORT_SEARCH_COLUMNS = ["name", "description"]
 REPORT_FILTER_COLUMNS: frozenset[str] = frozenset(
     {"name", "type", "active", "dashboard_id", "chart_id"}
 )
-REPORT_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
-    "changed_on_humanized": ColumnMetadata(
-        name="changed_on_humanized",
-        description="Humanized modification time",
-        type="str",
-        is_default=False,
-    ),
-    "created_on_humanized": ColumnMetadata(
-        name="created_on_humanized",
-        description="Humanized creation time",
-        type="str",
-        is_default=False,
-    ),
-}
 
 
 def get_css_template_columns() -> list[ColumnMetadata]:

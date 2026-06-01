@@ -24,6 +24,7 @@ from unittest.mock import patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.common.schema_discovery import (
@@ -497,8 +498,22 @@ class TestGetSchemaToolViaClient:
         info = data["schema_info"]
 
         assert "name" in info["filter_columns"]
+        assert "type" in info["filter_columns"]
+        assert "active" in info["filter_columns"]
         for field in ("owners.id", "created_by_fk_or_owner"):
             assert field not in info["filter_columns"]
+
+    @pytest.mark.asyncio
+    async def test_get_schema_report_requires_alert_reports_feature_flag(
+        self, mcp_server
+    ):
+        """Report schema discovery is gated by the ALERT_REPORTS feature flag."""
+        with patch("superset.is_feature_enabled", return_value=False):
+            async with Client(mcp_server) as client:
+                with pytest.raises(ToolError, match="Alerts & Reports"):
+                    await client.call_tool(
+                        "get_schema", {"request": {"model_type": "report"}}
+                    )
 
 
 class TestGetSchemaEdgeCases:

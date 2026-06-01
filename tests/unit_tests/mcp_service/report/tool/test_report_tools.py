@@ -399,7 +399,10 @@ async def test_list_reports_created_by_me_passed_to_dao(mock_list, mcp_server):
 
     async with Client(mcp_server) as client:
         request = ListReportsRequest(page=1, page_size=10, created_by_me=True)
-        await client.call_tool("list_reports", {"request": request.model_dump()})
+        result = await client.call_tool(
+            "list_reports", {"request": request.model_dump()}
+        )
+        data = json.loads(result.content[0].text)
 
     mock_list.assert_called_once()
     _, kwargs = mock_list.call_args
@@ -407,6 +410,8 @@ async def test_list_reports_created_by_me_passed_to_dao(mock_list, mcp_server):
     assert any(getattr(f, "col", None) == "created_by_fk" for f in filters_arg), (
         "created_by_me should inject a created_by_fk filter into the DAO call"
     )
+    assert data["reports"] == []
+    assert data["filters_applied"] == []
 
 
 @patch("superset.daos.report.ReportScheduleDAO.find_by_id")
@@ -470,7 +475,10 @@ async def test_list_reports_both_owned_and_created_by_me(mock_list, mcp_server):
         request = ListReportsRequest(
             page=1, page_size=10, owned_by_me=True, created_by_me=True
         )
-        await client.call_tool("list_reports", {"request": request.model_dump()})
+        result = await client.call_tool(
+            "list_reports", {"request": request.model_dump()}
+        )
+        data = json.loads(result.content[0].text)
 
     mock_list.assert_called_once()
     _, kwargs = mock_list.call_args
@@ -478,6 +486,8 @@ async def test_list_reports_both_owned_and_created_by_me(mock_list, mcp_server):
     assert any(
         getattr(f, "col", None) == "created_by_fk_or_owner" for f in filters_arg
     ), "combined flags should use created_by_fk_or_owner OR filter"
+    assert data["reports"] == []
+    assert data["filters_applied"] == []
 
 
 @patch("superset.daos.report.ReportScheduleDAO.list")

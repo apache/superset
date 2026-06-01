@@ -291,6 +291,7 @@ class ModelListCore(BaseCore, Generic[L]):
 
         # Parse filters using generic utility (accepts JSON string or object)
         filters = parse_json_or_passthrough(filters, param_name="filters")
+        filters_applied = filters if isinstance(filters, list) else []
 
         filters = self._prepend_self_lookup_filters(
             filters, created_by_me, owned_by_me, get_current_user()
@@ -358,7 +359,7 @@ class ModelListCore(BaseCore, Generic[L]):
             "sortable_columns": self.sortable_columns,
             "filters_applied": [
                 f
-                for f in (filters if isinstance(filters, list) else [])
+                for f in filters_applied
                 if (f.get("col") if isinstance(f, dict) else getattr(f, "col", None))
                 not in SELF_REFERENCING_FILTER_COLUMNS
             ],
