@@ -18,7 +18,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -58,7 +58,7 @@ def test_restore_dashboard_forbidden_raises(app_context: None) -> None:
     from superset.exceptions import SupersetSecurityException
 
     dashboard = MagicMock()
-    dashboard.deleted_at = datetime(2026, 1, 1)
+    dashboard.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
     def raise_security(*args: object, **kwargs: object) -> None:
         raise SupersetSecurityException(MagicMock())
@@ -88,7 +88,7 @@ def test_restore_dashboard_slug_conflict_raises(app_context: None) -> None:
     from superset.commands.dashboard.restore import RestoreDashboardCommand
 
     dashboard = MagicMock()
-    dashboard.deleted_at = datetime(2026, 1, 1)
+    dashboard.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
     dashboard.slug = "q1-report"
     dashboard.id = 42
 
@@ -117,7 +117,7 @@ def test_restore_dashboard_no_slug_conflict_when_no_active_collision(
     from superset.commands.dashboard.restore import RestoreDashboardCommand
 
     dashboard = MagicMock()
-    dashboard.deleted_at = datetime(2026, 1, 1)
+    dashboard.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
     dashboard.slug = "q1-report"
     dashboard.id = 42
 
@@ -145,7 +145,7 @@ def test_restore_dashboard_skips_conflict_check_when_no_slug(
     from superset.commands.dashboard.restore import RestoreDashboardCommand
 
     dashboard = MagicMock()
-    dashboard.deleted_at = datetime(2026, 1, 1)
+    dashboard.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
     dashboard.slug = None
     dashboard.id = 42
 
