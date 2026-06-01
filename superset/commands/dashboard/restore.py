@@ -16,8 +16,6 @@
 # under the License.
 """Command to restore a soft-deleted dashboard."""
 
-import logging
-
 from superset.commands.dashboard.exceptions import (
     DashboardForbiddenError,
     DashboardNotFoundError,
@@ -28,8 +26,6 @@ from superset.commands.restore import BaseRestoreCommand
 from superset.daos.dashboard import DashboardDAO
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
-
-logger = logging.getLogger(__name__)
 
 
 class RestoreDashboardCommand(BaseRestoreCommand[Dashboard]):

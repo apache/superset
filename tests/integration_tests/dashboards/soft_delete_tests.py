@@ -372,7 +372,10 @@ class TestDashboardRestore(SupersetTestCase):
         first_id = first.id
 
         self.login(ADMIN_USERNAME)
-        self.client.delete(f"/api/v1/dashboard/{first_id}")
+        response = self.client.delete(f"/api/v1/dashboard/{first_id}")
+        assert response.status_code == 200, (
+            f"Initial soft-delete failed: {response.status_code} {response.data!r}"
+        )
 
         # Second soft-deleted row with the same slug: this is the
         # behaviour the partial index enables.
