@@ -70,7 +70,6 @@ import {
 } from '@superset-ui/core/components';
 
 import { navigateTo } from 'src/utils/navigationUtils';
-import { ensureAppRoot } from 'src/utils/pathUtils';
 
 import TimezoneSelector from '@superset-ui/core/components/TimezoneSelector';
 import { timezoneOptionsCache } from '@superset-ui/core/components/TimezoneSelector/TimezoneOptionsCache';
@@ -1427,8 +1426,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const openDashboardInNewTab = (dashboardId?: number | string | null) => {
     if (!dashboardId) return;
-    const url = ensureAppRoot(`/superset/dashboard/${dashboardId}`);
-    navigateTo(url, { newWindow: true });
+    navigateTo(`/superset/dashboard/${dashboardId}`, { newWindow: true });
   };
 
   const onChartChange = (chart: SelectValue) => {
@@ -1439,8 +1437,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
 
   const openChartInNewTab = (chartId?: number | string | null) => {
     if (!chartId) return;
-    const url = ensureAppRoot(`/explore/?slice_id=${chartId}`);
-    navigateTo(url, { newWindow: true });
+    navigateTo(`/explore/?slice_id=${chartId}`, { newWindow: true });
   };
 
   const onActiveSwitch = (checked: boolean) => {
