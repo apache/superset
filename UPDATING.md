@@ -36,6 +36,12 @@ assists people when migrating to a new version.
 
 - **`SqlaTable.sql_url` query-string format.** `SqlaTable.sql_url` now URL-encodes `table_name` and joins it as a query parameter rather than concatenating a second `?`. Previously, with `Database.sql_url` returning `/sqllab/?dbid=<id>`, the concatenation produced `/sqllab/?dbid=<id>?table_name=<raw>` — a malformed second `?` that broke the query parser. External code that parsed the legacy `<base>?table_name=<raw>` shape now sees properly percent-encoded values (e.g. `/` → `%2F`, ` ` → `+` or `%20`); decode with `urllib.parse.parse_qsl`.
 
+### Dataset import validates catalog against the target connection
+
+Importing a dataset now validates the `catalog` field against the target database connection. When the connection has multi-catalog disabled (`allow_multi_catalog` off) and the dataset's catalog is not the connection's default catalog, the import fails instead of silently persisting the non-default catalog. This matches the validation already enforced on the dataset update path and prevents imported datasets from querying an unintended database.
+
+If you relied on importing datasets with a non-default catalog, enable "Allow changing catalogs" on the target connection, or set the dataset's catalog to the connection's default before importing.
+
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:
