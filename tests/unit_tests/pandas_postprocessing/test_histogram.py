@@ -207,3 +207,28 @@ def test_histogram_with_no_groupby_and_all_null_values():
 
     result = histogram(data_with_no_groupby_and_all_nulls, "a", [], bins)
     assert result.empty
+
+
+def test_histogram_no_settingwithcopywarning_on_sliced_dataframe():
+    """
+    Ensure histogram does not raise SettingWithCopyWarning when the input
+    DataFrame is a slice of a larger DataFrame (regression test for
+    https://github.com/apache/superset/issues/36530).
+    """
+    import warnings
+
+    larger_df = DataFrame(
+        {
+            "group": ["A", "A", "B", "B", "A", "A", "B", "B", "A", "A", "C", "C"],
+            "a": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+        }
+    )
+    # Create a slice (view) of the larger DataFrame
+    sliced_df = larger_df[larger_df["group"] != "C"].copy()
+    sliced_df = larger_df[larger_df["group"] != "C"]
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        result = histogram(sliced_df, "a", [], bins)
+
+    assert result.shape == (1, bins)
