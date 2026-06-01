@@ -110,7 +110,7 @@ async def get_report_info(
 
         return result
 
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001
         await ctx.error(
             "Report information retrieval failed: identifier=%s, error=%s, "
             "error_type=%s"

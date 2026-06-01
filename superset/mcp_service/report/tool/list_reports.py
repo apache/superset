@@ -155,7 +155,7 @@ async def list_reports(
                 context={"select_columns": columns_to_filter},
             )
 
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001
         await ctx.error(
             "Report listing failed: page=%s, page_size=%s, error=%s, error_type=%s"
             % (
