@@ -2,6 +2,7 @@ name: Docs Deployment
 
 on:
   # Deploy after integration tests complete on master
+  # zizmor: ignore[dangerous-triggers] - runs in base-branch context after a trusted upstream workflow; scoped to master
   workflow_run:
     workflows: ["Python-Integration"]
     types: [completed]
@@ -26,6 +27,9 @@ on:
 concurrency:
   group: docs-deploy-asf-site
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   config:

@@ -1,18 +1,20 @@
 name: Welcome New Contributor
 
 on:
+  # zizmor: ignore[dangerous-triggers] - posts a welcome comment only; does not check out or execute PR-provided code
   pull_request_target:
     types: [opened]
 
 jobs:
   welcome:
     runs-on: ubuntu-24.04
+    if: github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
     permissions:
       pull-requests: write
 
     steps:
       - name: Welcome Message
-        uses: actions/first-interaction@v3
+        uses: actions/first-interaction@1c4688942c71f71d4f5502a26ea67c331730fa4d # v3.1.0
         with:
           repo_token: ${{ github.token }}
           issue_message: |-

@@ -159,6 +159,18 @@ User and Role Management:
 - list_roles: List roles with filtering (1-based pagination, admin only)
 - get_role_info: Get role details by ID (admin only)
 
+Row Level Security (Admin only):
+- list_rls_filters: List RLS filters with filtering and search (1-based pagination)
+- get_rls_filter_info: Get detailed RLS filter info by ID (tables, roles, clause)
+
+Plugins (Admin only):
+- list_plugins: List dynamic plugins with filtering and search (1-based pagination)
+- get_plugin_info: Get detailed plugin info by ID (name, key, bundle URL)
+
+Alerts & Reports:
+- list_reports: List alerts and reports with filtering and search (1-based pagination)
+- get_report_info: Get detailed alert/report schedule info by ID
+
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
@@ -401,9 +413,10 @@ IMPORTANT - Tool-Only Interaction:
 
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
-- Use get_schema to discover filterable columns, sortable columns, and default columns
-  for chart/dataset/dashboard/database. For action_log and task tools, consult each
-  tool's docstring — filterable and sortable columns are listed there directly.
+- Use get_schema (chart/dataset/dashboard/database) to discover filterable columns,
+  sortable columns, and default columns for those resource types
+- For action_log, task, list_rls_filters, and list_plugins tools, filterable/sortable
+  columns are listed inline in each tool's docstring — get_schema does not cover these
 - Use 'filters' parameter for advanced queries with filter columns from get_schema
 - IDs can be integer or UUID format where supported
 - All tools return structured, Pydantic-typed responses
@@ -708,9 +721,21 @@ from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
     generate_explore_link,
 )
+from superset.mcp_service.plugin.tool import (  # noqa: F401, E402
+    get_plugin_info,
+    list_plugins,
+)
 from superset.mcp_service.query.tool import (  # noqa: F401, E402
     get_query_info,
     list_queries,
+)
+from superset.mcp_service.report.tool import (  # noqa: F401, E402
+    get_report_info,
+    list_reports,
+)
+from superset.mcp_service.rls.tool import (  # noqa: F401, E402
+    get_rls_filter_info,
+    list_rls_filters,
 )
 from superset.mcp_service.role.tool import (  # noqa: F401, E402
     get_role_info,

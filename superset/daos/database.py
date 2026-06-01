@@ -24,13 +24,12 @@ from sqlalchemy.orm import joinedload
 from superset import is_feature_enabled
 from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelingNotEnabledError
 from superset.connectors.sqla.models import SqlaTable
-from superset.daos.base import BaseDAO
+from superset.daos.base import BaseDAO, SKIP_VISIBILITY_FILTER_CLASSES
 from superset.databases.filters import DatabaseFilter
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import db
 from superset.models.core import Database, DatabaseUserOAuth2Tokens
 from superset.models.dashboard import Dashboard
-from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models.slice import Slice
 from superset.models.sql_lab import TabState
 from superset.utils.core import DatasourceType
