@@ -34,6 +34,7 @@ from superset import db, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetAccessDeniedError,
     DatasetForbiddenDataURI,
+    MultiCatalogDisabledValidationError,
 )
 from superset.commands.dataset.importers.v1.utils import (
     import_dataset,
@@ -46,6 +47,7 @@ from superset.models.core import Database
 from superset.utils import json
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import (
+    database_config,
     dataset_config as dataset_fixture,
 )
 
@@ -321,6 +323,235 @@ def test_import_dataset_no_folder(mocker: MockerFixture, session: Session) -> No
 
     sqla_table = import_dataset(config)
     assert sqla_table.folders is None
+
+
+def test_import_dataset_rejects_non_default_catalog_when_multi_catalog_disabled(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Importing a non-default catalog must fail when the target database has
+    multi-catalog disabled, matching the dataset update validation so an import
+    can't silently bind a dataset to an unintended catalog.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    # the connection supports catalogs, defaults to "primary", multi-catalog off
+    engine_spec = database.db_engine_spec
+    mocker.patch.object(engine_spec, "supports_catalog", True)
+    mocker.patch.object(engine_spec, "get_default_catalog", return_value="primary")
+
+    config = {
+        "table_name": "my_table",
+        "schema": "my_schema",
+        "catalog": "other_catalog",
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    with pytest.raises(MultiCatalogDisabledValidationError):
+        import_dataset(config)
+
+
+def test_import_dataset_skips_catalog_validation_for_trusted_imports(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Trusted imports (ignore_permissions=True, e.g. example loading) bypass
+    catalog validation, so a non-default catalog does not abort the import even
+    when the target database has multi-catalog disabled.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    # the connection supports catalogs, defaults to "primary", multi-catalog off
+    engine_spec = database.db_engine_spec
+    mocker.patch.object(engine_spec, "supports_catalog", True)
+    mocker.patch.object(engine_spec, "get_default_catalog", return_value="primary")
+
+    config = {
+        "table_name": "my_table",
+        "schema": "my_schema",
+        "catalog": "other_catalog",
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    sqla_table = import_dataset(config, ignore_permissions=True)
+    assert sqla_table.catalog == "other_catalog"
+
+
+def test_import_command_surfaces_non_default_catalog_as_validation_error(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    The dataset import command surfaces a disallowed catalog as a 422
+    CommandInvalidError carrying the catalog message, instead of a generic 500.
+    """
+    from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+    from superset.commands.exceptions import CommandInvalidError
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    db_config = copy.deepcopy(database_config)
+    # a URI with a database gives PostgresEngineSpec a non-None default catalog
+    db_config["sqlalchemy_uri"] = "postgresql://user:pass@host1/primary"
+
+    ds_config = copy.deepcopy(dataset_fixture)
+    ds_config["catalog"] = "other_catalog"
+
+    configs = {
+        "databases/imported_database.yaml": db_config,
+        "datasets/imported_dataset.yaml": ds_config,
+    }
+
+    with pytest.raises(CommandInvalidError) as excinfo:
+        ImportDatasetsCommand._import(configs, overwrite=False)
+
+    assert "Only the default catalog is supported for this connection" in str(
+        excinfo.value
+    )
+
+
+def test_import_dataset_overwrite_cannot_flip_to_non_default_catalog(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Overwriting an existing dataset with a non-default catalog must fail when
+    multi-catalog is disabled, so a UUID-matched import can't flip a
+    correctly-bound dataset onto an unintended catalog.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    engine_spec = database.db_engine_spec
+    mocker.patch.object(engine_spec, "supports_catalog", True)
+    mocker.patch.object(engine_spec, "get_default_catalog", return_value="primary")
+
+    dataset_uuid = uuid.uuid4()
+    existing = SqlaTable(
+        uuid=dataset_uuid,
+        table_name="my_table",
+        catalog="primary",
+        database_id=database.id,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    config = {
+        "table_name": "my_table",
+        "schema": "my_schema",
+        "catalog": "other_catalog",
+        "uuid": dataset_uuid,
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    with pytest.raises(MultiCatalogDisabledValidationError):
+        import_dataset(config, overwrite=True)
+
+    assert existing.catalog == "primary"
+
+
+def test_import_dataset_allows_non_default_catalog_when_multi_catalog_enabled(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A non-default catalog imports cleanly when the target database has
+    multi-catalog enabled.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(
+        database_name="my_database",
+        sqlalchemy_uri="sqlite://",
+        extra=json.dumps({"allow_multi_catalog": True}),
+    )
+    db.session.add(database)
+    db.session.flush()
+
+    engine_spec = database.db_engine_spec
+    mocker.patch.object(engine_spec, "supports_catalog", True)
+    mocker.patch.object(engine_spec, "get_default_catalog", return_value="primary")
+
+    config = {
+        "table_name": "my_table",
+        "schema": "my_schema",
+        "catalog": "other_catalog",
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    sqla_table = import_dataset(config)
+    assert sqla_table.catalog == "other_catalog"
+
+
+def test_import_dataset_allows_default_catalog_when_multi_catalog_disabled(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Re-importing the connection's default catalog is allowed even with
+    multi-catalog disabled.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    engine_spec = database.db_engine_spec
+    mocker.patch.object(engine_spec, "supports_catalog", True)
+    mocker.patch.object(engine_spec, "get_default_catalog", return_value="primary")
+
+    config = {
+        "table_name": "my_table",
+        "schema": "my_schema",
+        "catalog": "primary",
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    sqla_table = import_dataset(config)
+    assert sqla_table.catalog == "primary"
 
 
 def test_import_dataset_duplicate_column(
