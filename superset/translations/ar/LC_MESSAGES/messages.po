@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-01 06:52-0700\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -892,17 +892,18 @@ msgstr ""
 "قائمة بأسماء النطاقات التي يمكنها تضمين لوحة المعلومات هذه. سيسمح ترك هذا"
 " الحقل فارغا بالتضمين من أي مجال."
 
+msgid "A list of subjects who can alter the chart. Searchable by name."
+msgstr "قائمة بالكيانات التي يمكنها تعديل المخطط. قابلة للبحث بالاسم."
+
+msgid "A list of subjects who can view the chart. Searchable by name."
+msgstr "قائمة بالكيانات التي يمكنها عرض المخطط. قابلة للبحث بالاسم."
+
 msgid "A list of tags that have been applied to this chart."
 msgstr "قائمة بالعلامات التي تم تطبيقها على هذا المخطط."
 
 #, fuzzy
 msgid "A list of tags that have been applied to this dashboard."
 msgstr "قائمة بالعلامات التي تم تطبيقها على هذا المخطط."
-
-msgid "A list of users who can alter the chart. Searchable by name or username."
-msgstr ""
-"قائمة بالمستخدمين الذين يمكنهم تغيير المخطط. يمكن البحث بالاسم أو اسم "
-"المستخدم."
 
 msgid "A map of the world, that can indicate values in different countries."
 msgstr "خريطة للعالم ، يمكن أن تشير إلى القيم في بلدان مختلفة."
@@ -1034,9 +1035,8 @@ msgstr "يعمل"
 msgid "About"
 msgstr "عن"
 
-#, fuzzy
-msgid "Access & ownership"
-msgstr "رمز الوصول"
+msgid "Access"
+msgstr "الوصول"
 
 msgid "Access token"
 msgstr "رمز الوصول"
@@ -1729,10 +1729,6 @@ msgid "An error occurred while fetching %s info: %s"
 msgstr "حدث خطأ أثناء جلب معلومات %s: %s"
 
 #, fuzzy, python-format
-msgid "An error occurred while fetching %s owner values: %s"
-msgstr "حدث خطأ أثناء جلب قيم المالكين: %s"
-
-#, fuzzy, python-format
 msgid "An error occurred while fetching %s related data"
 msgstr "حدث خطأ أثناء جلب البيانات المتعلقة بمجموعة البيانات"
 
@@ -1760,8 +1756,12 @@ msgid "An error occurred while fetching available views"
 msgstr "حدث خطأ أثناء جلب قوالب CSS المتوفرة"
 
 #, python-format
-msgid "An error occurred while fetching chart owners values: %s"
-msgstr "حدث خطأ أثناء جلب قيم مالكي المخططات: %s"
+msgid "An error occurred while fetching chart editor values: %s"
+msgstr "حدث خطأ أثناء جلب قيم محرري المخطط: %s"
+
+#, python-format
+msgid "An error occurred while fetching chart viewer values: %s"
+msgstr "حدث خطأ أثناء جلب قيم عارضي المخطط: %s"
 
 #, fuzzy
 msgid "An error occurred while fetching connections"
@@ -1772,8 +1772,12 @@ msgid "An error occurred while fetching created by values: %s"
 msgstr "حدث خطأ أثناء جلب قيم المخطط: %s"
 
 #, python-format
-msgid "An error occurred while fetching dashboard owner values: %s"
-msgstr "حدث خطأ أثناء جلب قيم مالك لوحة المعلومات: %s"
+msgid "An error occurred while fetching dashboard editor values: %s"
+msgstr "حدث خطأ أثناء جلب قيم محرري لوحة المعلومات: %s"
+
+#, python-format
+msgid "An error occurred while fetching dashboard viewer values: %s"
+msgstr "حدث خطأ أثناء جلب قيم عارضي لوحة المعلومات: %s"
 
 msgid "An error occurred while fetching dashboards"
 msgstr "حدث خطأ أثناء جلب لوحات المعلومات"
@@ -1795,15 +1799,19 @@ msgid "An error occurred while fetching dataset datasource values: %s"
 msgstr "حدث خطأ أثناء جلب قيم مصدر بيانات مجموعة البيانات: %s"
 
 #, python-format
+msgid "An error occurred while fetching dataset editor values: %s"
+msgstr "حدث خطأ أثناء جلب قيم محرري مجموعة البيانات: %s"
+
+#, python-format
 msgid "An error occurred while fetching dataset related data: %s"
 msgstr "حدث خطأ أثناء جلب البيانات المتعلقة بمجموعة البيانات: %s"
 
+#, python-format
+msgid "An error occurred while fetching editor values: %s"
+msgstr "حدث خطأ أثناء جلب قيم المحررين: %s"
+
 msgid "An error occurred while fetching function names."
 msgstr "حدث خطأ أثناء جلب أسماء الوظائف."
-
-#, python-format
-msgid "An error occurred while fetching owners values: %s"
-msgstr "حدث خطأ أثناء جلب قيم المالكين: %s"
 
 #, python-format
 msgid "An error occurred while fetching schema values: %s"
@@ -1813,7 +1821,7 @@ msgstr "حدث خطأ أثناء جلب قيم المخطط: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "حدث خطأ أثناء جلب قوالب CSS المتوفرة"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "حدث خطأ أثناء جلب قيم المخطط: %s"
 
@@ -1884,7 +1892,7 @@ msgstr "حدث خطأ أثناء تحليل المفتاح."
 msgid "An error occurred while pruning logs "
 msgstr "حدث خطأ أثناء تقليم السجلات "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "حدث خطأ أثناء عرض المرئيات: %s"
 
@@ -2434,7 +2442,7 @@ msgstr "منفذ قاعدة البيانات"
 msgid "Base height"
 msgstr "ارتفاع الرسم البياني"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "نمط خريطة الطبقة الأساسية. راجع وثائق Mapbox: %s"
 
@@ -3049,6 +3057,16 @@ msgstr "لم يتم العثور على الرسم البياني %(id)s"
 msgid "Chart Data: %s"
 msgstr "بيانات الرسم البياني: %s"
 
+#, python-format
+msgid "Chart Editor: %s"
+msgid_plural "Chart Editors: %s"
+msgstr[0] "محرر المخطط: %s"
+msgstr[1] "محررو المخطط: %s"
+msgstr[2] "محررو المخطط: %s"
+msgstr[3] "محررو المخطط: %s"
+msgstr[4] "محررو المخطط: %s"
+msgstr[5] "محررو المخطط: %s"
+
 msgid "Chart ID"
 msgstr "معرف الرسم البياني"
 
@@ -3057,16 +3075,6 @@ msgstr "خيارات الرسم البياني"
 
 msgid "Chart Orientation"
 msgstr "اتجاه الرسم البياني"
-
-#, fuzzy, python-format
-msgid "Chart Owner: %s"
-msgid_plural "Chart Owners: %s"
-msgstr[0] "مالكو المخططات"
-msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
-msgstr[4] ""
-msgstr[5] ""
 
 msgid "Chart Source"
 msgstr "مصدر الرسم البياني"
@@ -3112,6 +3120,9 @@ msgstr "قيمة التصفية مطلوبة"
 msgid "Chart does not exist"
 msgstr "الرسم البياني غير موجود"
 
+msgid "Chart editors"
+msgstr "محررو المخطط"
+
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr "لا يحتوي المخطط على سياق استعلام محفوظ. يرجى حفظ الرسم البياني مرة أخرى."
 
@@ -3133,9 +3144,6 @@ msgstr "لم يتم العثور على الرسم البياني"
 
 msgid "Chart options"
 msgstr "خيارات الرسم البياني"
-
-msgid "Chart owners"
-msgstr "مالكو المخططات"
 
 msgid "Chart parameters are invalid."
 msgstr "معلمات الرسم البياني غير صالحة."
@@ -5951,11 +5959,28 @@ msgstr "تحرير النطاق الزمني"
 msgid "Edit user"
 msgstr "تحرير استعلام"
 
+msgid "Editable"
+msgstr "قابل للتحرير"
+
 msgid "Edited"
 msgstr "تم تحريره"
 
 msgid "Editing 1 filter:"
 msgstr "تحرير فلتر واحد:"
+
+msgid "Editor"
+msgstr "محرر"
+
+msgid "Editors"
+msgstr "محررون"
+
+msgid "Editors is a list of subjects who can alter the dashboard."
+msgstr "المحررون هم قائمة بالكيانات التي يمكنها تعديل لوحة المعلومات."
+
+msgid ""
+"Editors is a list of subjects who can alter the dashboard. Searchable by "
+"name."
+msgstr "المحررون هم قائمة بالكيانات التي يمكنها تعديل لوحة المعلومات. قابلة للبحث بالاسم."
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "إما أن قاعدة البيانات مكتوبة بشكل غير صحيح أو غير موجودة."
@@ -6431,8 +6456,8 @@ msgstr "تحميل CSV"
 msgid "Exclude selected values"
 msgstr "استبعاد القيم المحددة"
 
-msgid "Excluded roles"
-msgstr "الأدوار المستبعدة"
+msgid "Excluded subjects"
+msgstr "الكيانات المستبعدة"
 
 msgid "Executed SQL"
 msgstr "تم تنفيذ SQL"
@@ -7058,10 +7083,11 @@ msgstr ""
 "لمزيد من المعلومات حول الكائنات الموجودة في السياق في نطاق هذه الوظيفة، "
 "راجع"
 
+#, fuzzy
 msgid ""
-"For regular filters, these are the roles this filter will be applied to. "
-"For base filters, these are the roles that the filter DOES NOT apply to, "
-"e.g. Admin if admin should see all data."
+"For regular filters, these are the subjects (users, roles, groups) this "
+"filter will be applied to. For base filters, these are the subjects that "
+"the filter DOES NOT apply to, e.g. Admin if admin should see all data."
 msgstr ""
 "بالنسبة للفلاتر العادية، هذه هي الأدوار التي سيتم تطبيق عامل التصفية هذا "
 "عليها. بالنسبة للفلاتر الأساسية، هذه هي الأدوار التي لا ينطبق عليها عامل "
@@ -8610,8 +8636,8 @@ msgstr "طلب غير صحيح. من المتوقع استخدام وسيطات 
 msgid "Manage"
 msgstr "قم بإدارة"
 
-msgid "Manage dashboard owners and access permissions"
-msgstr ""
+msgid "Manage dashboard editors and access permissions"
+msgstr "إدارة محرري لوحة المعلومات وأذونات الوصول"
 
 msgid "Manage email report"
 msgstr "إدارة تقرير البريد الإلكتروني"
@@ -9465,7 +9491,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "لا توجد أعمدة جدول"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "لا %s حتى الآن"
 
@@ -9993,25 +10019,6 @@ msgstr "استبدل النص في المحرر باستخدام استعلام 
 msgid "Owned Created or Favored"
 msgstr "مملوك أو تم إنشاؤه أو تفضيله"
 
-msgid "Owner"
-msgstr "مالك"
-
-msgid "Owners"
-msgstr "المالكون"
-
-msgid "Owners are invalid"
-msgstr "المالكون غير صالحين"
-
-msgid "Owners is a list of users who can alter the dashboard."
-msgstr "المالكون عبارة عن قائمة بالمستخدمين الذين يمكنهم تغيير لوحة المعلومات."
-
-msgid ""
-"Owners is a list of users who can alter the dashboard. Searchable by name"
-" or username."
-msgstr ""
-"المالكون عبارة عن قائمة بالمستخدمين الذين يمكنهم تغيير لوحة المعلومات. "
-"يمكن البحث عن طريق الاسم أو اسم المستخدم."
-
 #, fuzzy
 msgid "PDF download failed, please refresh and try again."
 msgstr "فشل تنزيل الصورة، يرجى التحديث والمحاولة مرة أخرى."
@@ -10402,14 +10409,14 @@ msgstr "يرجى إعادة إدخال كلمة المرور."
 msgid "Please re-export your file and try importing again"
 msgstr "يرجى إعادة تصدير الملف ومحاولة الاستيراد مرة أخرى"
 
-msgid "Please reach out to the Chart Owner for assistance."
-msgid_plural "Please reach out to the Chart Owners for assistance."
-msgstr[0] ""
-msgstr[1] ""
-msgstr[2] ""
-msgstr[3] ""
-msgstr[4] ""
-msgstr[5] ""
+msgid "Please reach out to the Chart Editor for assistance."
+msgid_plural "Please reach out to the Chart Editors for assistance."
+msgstr[0] "يرجى التواصل مع محرر المخطط للحصول على المساعدة."
+msgstr[1] "يرجى التواصل مع محرري المخطط للحصول على المساعدة."
+msgstr[2] "يرجى التواصل مع محرري المخطط للحصول على المساعدة."
+msgstr[3] "يرجى التواصل مع محرري المخطط للحصول على المساعدة."
+msgstr[4] "يرجى التواصل مع محرري المخطط للحصول على المساعدة."
+msgstr[5] "يرجى التواصل مع محرري المخطط للحصول على المساعدة."
 
 msgid "Please save your chart first, then try creating a new email report."
 msgstr "يرجى حفظ المخطط أولاً، ثم محاولة إنشاء تقرير بريد إلكتروني جديد."
@@ -11136,8 +11143,8 @@ msgstr "يحتوي المورد بالفعل على تقرير مرفق."
 msgid "Resource was not found."
 msgstr "لم يتم العثور على المورد."
 
-msgid "Resource was removed before ownership could be verified"
-msgstr ""
+msgid "Resource was removed before editorship could be verified"
+msgstr "تمت إزالة المورد قبل التحقق من صلاحية التحرير"
 
 msgid "Restore filter"
 msgstr "عامل تصفية الاستعادة"
@@ -11241,24 +11248,6 @@ msgstr "الاسم مطلوب"
 
 msgid "Roles"
 msgstr "الأدوار"
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks. If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"الأدوار هي قائمة تحدد الوصول إلى لوحة المعلومات. سيؤدي منح الدور إلى لوحة"
-" المعلومات إلى تجاوز عمليات التحقق من مستوى مجموعة البيانات. في حالة عدم "
-"تحديد أي أدوار، يتم تطبيق أذونات الوصول العادية."
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks.If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"الأدوار هي قائمة تحدد الوصول إلى لوحة المعلومات. سيؤدي منح الدور إلى لوحة"
-" المعلومات إلى تجاوز عمليات التحقق من مستوى مجموعة البيانات. في حالة عدم "
-"تحديد الأدوار، يتم تطبيق أذونات الوصول العادية."
 
 msgid "Rolling Function"
 msgstr "وظيفة التدحرج"
@@ -11712,9 +11701,8 @@ msgstr "البحث عن طريق نص الاستعلام"
 msgid "Search calculated columns by name"
 msgstr "الأعمدة المحسوبة"
 
-#, fuzzy
-msgid "Search charts by name, owner, or dashboard"
-msgstr "لا توجد مخططات مضافة إلى لوحة التحكم هذه"
+msgid "Search charts by name, editor, or dashboard"
+msgstr "البحث في المخططات حسب الاسم أو المحرر أو لوحة المعلومات"
 
 msgid "Search columns"
 msgstr "أعمدة البحث"
@@ -11727,6 +11715,9 @@ msgstr "أعمدة البحث"
 msgid "Search columns..."
 msgstr "أعمدة البحث"
 
+msgid "Search editors"
+msgstr "البحث عن محررين"
+
 msgid "Search in filters"
 msgstr "البحث في الفلاتر"
 
@@ -11735,16 +11726,11 @@ msgid "Search metrics by key or label"
 msgstr "مقاييس البحث والأعمدة"
 
 #, fuzzy
-msgid "Search owners"
-msgstr "حدد المالكين"
-
-#, fuzzy
-msgid "Search roles"
-msgstr "أعمدة البحث"
-
-#, fuzzy
 msgid "Search tags"
 msgstr "حدد العلامات"
+
+msgid "Search viewers"
+msgstr "البحث عن عارضين"
 
 msgid "Search..."
 msgstr "ابحث..."
@@ -12029,6 +12015,9 @@ msgstr "حدد البعد"
 msgid "Select dimension values"
 msgstr "حدد البعد"
 
+msgid "Select editors"
+msgstr "تحديد المحررين"
+
 msgid "Select file"
 msgstr "حدد ملف"
 
@@ -12095,9 +12084,6 @@ msgstr "حدد رمز العملة أو اكتبه"
 
 msgid "Select or type dataset name"
 msgstr "حدد اسم مجموعة البيانات أو اكتبه"
-
-msgid "Select owners"
-msgstr "حدد المالكين"
 
 #, fuzzy
 msgid "Select page size"
@@ -13225,6 +13211,18 @@ msgstr "باب"
 
 msgid "Subdomain"
 msgstr "نطاق فرعي"
+
+msgid "Subject"
+msgstr "كيان"
+
+msgid "Subject type"
+msgstr "نوع الكيان"
+
+msgid "Subjects"
+msgstr "كيانات"
+
+msgid "Subjects are invalid"
+msgstr "الكيانات غير صالحة"
 
 msgid "Submit"
 msgstr "إرسال"
@@ -16266,6 +16264,18 @@ msgstr "تمت مشاهدته"
 msgid "Viewed %s"
 msgstr "تمت مشاهدتها %s"
 
+msgid "Viewer"
+msgstr "عارض"
+
+msgid "Viewers"
+msgstr "عارضون"
+
+msgid ""
+"Viewers is a list of subjects who can view the dashboard. If no viewers "
+"are defined, the dashboard is accessible to all users with appropriate "
+"datasource permissions."
+msgstr "العارضون هم قائمة بالكيانات التي يمكنها عرض لوحة المعلومات. إذا لم يتم تحديد عارضين، فستكون لوحة المعلومات متاحة لجميع المستخدمين الذين لديهم أذونات مصدر البيانات المناسبة."
+
 msgid "Viewport"
 msgstr "منفذ العرض"
 
@@ -17727,6 +17737,9 @@ msgstr ""
 msgid "edit mode"
 msgstr "وضع التحرير"
 
+msgid "editors"
+msgstr "محررون"
+
 #, fuzzy
 msgid "email subject"
 msgstr "حدد الموضوع"
@@ -18040,10 +18053,6 @@ msgstr "أصلي"
 
 msgid "overall"
 msgstr "بشكل عام"
-
-#, fuzzy
-msgid "owners"
-msgstr "المالكون"
 
 msgid "p-value precision"
 msgstr "دقة القيمة الاحتمالية"

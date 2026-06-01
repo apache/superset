@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-01 06:52-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -787,13 +787,16 @@ msgid ""
 "empty will allow embedding from any domain."
 msgstr ""
 
+msgid "A list of subjects who can alter the chart. Searchable by name."
+msgstr ""
+
+msgid "A list of subjects who can view the chart. Searchable by name."
+msgstr ""
+
 msgid "A list of tags that have been applied to this chart."
 msgstr ""
 
 msgid "A list of tags that have been applied to this dashboard."
-msgstr ""
-
-msgid "A list of users who can alter the chart. Searchable by name or username."
 msgstr ""
 
 msgid "A map of the world, that can indicate values in different countries."
@@ -909,7 +912,7 @@ msgstr ""
 msgid "About"
 msgstr ""
 
-msgid "Access & ownership"
+msgid "Access"
 msgstr ""
 
 msgid "Access token"
@@ -1533,10 +1536,6 @@ msgid "An error occurred while fetching %s info: %s"
 msgstr ""
 
 #, python-format
-msgid "An error occurred while fetching %s owner values: %s"
-msgstr ""
-
-#, python-format
 msgid "An error occurred while fetching %s related data"
 msgstr ""
 
@@ -1562,7 +1561,11 @@ msgid "An error occurred while fetching available views"
 msgstr ""
 
 #, python-format
-msgid "An error occurred while fetching chart owners values: %s"
+msgid "An error occurred while fetching chart editor values: %s"
+msgstr ""
+
+#, python-format
+msgid "An error occurred while fetching chart viewer values: %s"
 msgstr ""
 
 msgid "An error occurred while fetching connections"
@@ -1573,7 +1576,11 @@ msgid "An error occurred while fetching created by values: %s"
 msgstr ""
 
 #, python-format
-msgid "An error occurred while fetching dashboard owner values: %s"
+msgid "An error occurred while fetching dashboard editor values: %s"
+msgstr ""
+
+#, python-format
+msgid "An error occurred while fetching dashboard viewer values: %s"
 msgstr ""
 
 msgid "An error occurred while fetching dashboards"
@@ -1596,14 +1603,18 @@ msgid "An error occurred while fetching dataset datasource values: %s"
 msgstr ""
 
 #, python-format
-msgid "An error occurred while fetching dataset related data: %s"
-msgstr ""
-
-msgid "An error occurred while fetching function names."
+msgid "An error occurred while fetching dataset editor values: %s"
 msgstr ""
 
 #, python-format
-msgid "An error occurred while fetching owners values: %s"
+msgid "An error occurred while fetching dataset related data: %s"
+msgstr ""
+
+#, python-format
+msgid "An error occurred while fetching editor values: %s"
+msgstr ""
+
+msgid "An error occurred while fetching function names."
 msgstr ""
 
 #, python-format
@@ -2743,6 +2754,12 @@ msgstr ""
 msgid "Chart Data: %s"
 msgstr ""
 
+#, fuzzy, python-format
+msgid "Chart Editor: %s"
+msgid_plural "Chart Editors: %s"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Chart ID"
 msgstr ""
 
@@ -2751,12 +2768,6 @@ msgstr ""
 
 msgid "Chart Orientation"
 msgstr ""
-
-#, fuzzy, python-format
-msgid "Chart Owner: %s"
-msgid_plural "Chart Owners: %s"
-msgstr[0] ""
-msgstr[1] ""
 
 msgid "Chart Source"
 msgstr ""
@@ -2800,6 +2811,10 @@ msgstr ""
 msgid "Chart does not exist"
 msgstr ""
 
+#, fuzzy, python-format
+msgid "Chart editors"
+msgstr ""
+
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
 
@@ -2819,9 +2834,6 @@ msgid "Chart not found"
 msgstr ""
 
 msgid "Chart options"
-msgstr ""
-
-msgid "Chart owners"
 msgstr ""
 
 msgid "Chart parameters are invalid."
@@ -4541,7 +4553,7 @@ msgstr ""
 msgid "Delete Role?"
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Delete Semantic Layer?"
 msgstr ""
 
@@ -5306,10 +5318,27 @@ msgstr ""
 msgid "Edit user"
 msgstr ""
 
+msgid "Editable"
+msgstr ""
+
 msgid "Edited"
 msgstr ""
 
 msgid "Editing 1 filter:"
+msgstr ""
+
+msgid "Editor"
+msgstr ""
+
+msgid "Editors"
+msgstr ""
+
+msgid "Editors is a list of subjects who can alter the dashboard."
+msgstr ""
+
+msgid ""
+"Editors is a list of subjects who can alter the dashboard. Searchable by "
+"name."
 msgstr ""
 
 msgid "Either the database is spelled incorrectly or does not exist."
@@ -5748,7 +5777,7 @@ msgstr ""
 msgid "Exclude selected values"
 msgstr ""
 
-msgid "Excluded roles"
+msgid "Excluded subjects"
 msgstr ""
 
 msgid "Executed SQL"
@@ -6165,7 +6194,7 @@ msgstr ""
 msgid "Filter only displays values relevant to selections made in other filters."
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Filter options"
 msgstr ""
 
@@ -6307,9 +6336,9 @@ msgid ""
 msgstr ""
 
 msgid ""
-"For regular filters, these are the roles this filter will be applied to. "
-"For base filters, these are the roles that the filter DOES NOT apply to, "
-"e.g. Admin if admin should see all data."
+"For regular filters, these are the subjects (users, roles, groups) this "
+"filter will be applied to. For base filters, these are the subjects that "
+"the filter DOES NOT apply to, e.g. Admin if admin should see all data."
 msgstr ""
 
 msgid "Forbidden"
@@ -7713,7 +7742,7 @@ msgstr ""
 msgid "Manage"
 msgstr ""
 
-msgid "Manage dashboard owners and access permissions"
+msgid "Manage dashboard editors and access permissions"
 msgstr ""
 
 msgid "Manage email report"
@@ -8990,23 +9019,6 @@ msgstr ""
 msgid "Owned Created or Favored"
 msgstr ""
 
-msgid "Owner"
-msgstr ""
-
-msgid "Owners"
-msgstr ""
-
-msgid "Owners are invalid"
-msgstr ""
-
-msgid "Owners is a list of users who can alter the dashboard."
-msgstr ""
-
-msgid ""
-"Owners is a list of users who can alter the dashboard. Searchable by name"
-" or username."
-msgstr ""
-
 msgid "PDF download failed, please refresh and try again."
 msgstr ""
 
@@ -9353,8 +9365,8 @@ msgid "Please re-export your file and try importing again"
 msgstr ""
 
 #, fuzzy
-msgid "Please reach out to the Chart Owner for assistance."
-msgid_plural "Please reach out to the Chart Owners for assistance."
+msgid "Please reach out to the Chart Editor for assistance."
+msgid_plural "Please reach out to the Chart Editors for assistance."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -9717,7 +9729,7 @@ msgstr ""
 msgid "Recipients are separated by \",\" or \";\""
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Records"
 msgstr ""
 
@@ -10036,7 +10048,7 @@ msgstr ""
 msgid "Resource was not found."
 msgstr ""
 
-msgid "Resource was removed before ownership could be verified"
+msgid "Resource was removed before editorship could be verified"
 msgstr ""
 
 msgid "Restore filter"
@@ -10128,18 +10140,6 @@ msgid "Role name is required"
 msgstr ""
 
 msgid "Roles"
-msgstr ""
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks. If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks.If no roles are "
-"defined, regular access permissions apply."
 msgstr ""
 
 msgid "Rolling Function"
@@ -10569,7 +10569,7 @@ msgstr ""
 msgid "Search calculated columns by name"
 msgstr ""
 
-msgid "Search charts by name, owner, or dashboard"
+msgid "Search charts by name, editor, or dashboard"
 msgstr ""
 
 msgid "Search columns"
@@ -10581,20 +10581,19 @@ msgstr ""
 msgid "Search columns..."
 msgstr ""
 
+msgid "Search editors"
+msgstr ""
+
 msgid "Search in filters"
 msgstr ""
 
 msgid "Search metrics by key or label"
 msgstr ""
 
-#, fuzzy
-msgid "Search owners"
-msgstr ""
-
-msgid "Search roles"
-msgstr ""
-
 msgid "Search tags"
+msgstr ""
+
+msgid "Search viewers"
 msgstr ""
 
 msgid "Search..."
@@ -10850,6 +10849,9 @@ msgstr ""
 msgid "Select dimension values"
 msgstr ""
 
+msgid "Select editors"
+msgstr ""
+
 msgid "Select file"
 msgstr ""
 
@@ -10904,9 +10906,6 @@ msgid "Select or type currency symbol"
 msgstr ""
 
 msgid "Select or type dataset name"
-msgstr ""
-
-msgid "Select owners"
 msgstr ""
 
 msgid "Select page size"
@@ -11917,6 +11916,18 @@ msgid "Subcategories"
 msgstr ""
 
 msgid "Subdomain"
+msgstr ""
+
+msgid "Subject"
+msgstr ""
+
+msgid "Subject type"
+msgstr ""
+
+msgid "Subjects"
+msgstr ""
+
+msgid "Subjects are invalid"
 msgstr ""
 
 msgid "Submit"
@@ -14600,6 +14611,18 @@ msgstr ""
 msgid "Viewed %s"
 msgstr ""
 
+msgid "Viewer"
+msgstr ""
+
+msgid "Viewers"
+msgstr ""
+
+msgid ""
+"Viewers is a list of subjects who can view the dashboard. If no viewers "
+"are defined, the dashboard is accessible to all users with appropriate "
+"datasource permissions."
+msgstr ""
+
 msgid "Viewport"
 msgstr ""
 
@@ -15917,6 +15940,9 @@ msgstr ""
 msgid "edit mode"
 msgstr ""
 
+msgid "editors"
+msgstr ""
+
 msgid "email subject"
 msgstr ""
 
@@ -16203,9 +16229,6 @@ msgid "original"
 msgstr ""
 
 msgid "overall"
-msgstr ""
-
-msgid "owners"
 msgstr ""
 
 msgid "p-value precision"

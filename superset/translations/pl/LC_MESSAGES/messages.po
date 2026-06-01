@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-01 06:52-0700\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -885,17 +885,24 @@ msgstr ""
 "tego pola pustego pozwoli na osadzanie z dowolnej domeny."
 
 #, fuzzy
+msgid "A list of subjects who can alter the chart. Searchable by name."
+msgstr ""
+"Lista użytkowników, którzy mogą edytować wykres. Możliwość wyszukiwania "
+"po nazwie lub nazwie użytkownika."
+
+#, fuzzy
+msgid "A list of subjects who can view the chart. Searchable by name."
+msgstr ""
+"Lista użytkowników, którzy mogą edytować wykres. Możliwość wyszukiwania "
+"po nazwie lub nazwie użytkownika."
+
+#, fuzzy
 msgid "A list of tags that have been applied to this chart."
 msgstr "Lista tagów zastosowanych w tym wykresie."
 
 #, fuzzy
 msgid "A list of tags that have been applied to this dashboard."
 msgstr "Lista tagów zastosowanych w tym wykresie."
-
-msgid "A list of users who can alter the chart. Searchable by name or username."
-msgstr ""
-"Lista użytkowników, którzy mogą edytować wykres. Możliwość wyszukiwania "
-"po nazwie lub nazwie użytkownika."
 
 msgid "A map of the world, that can indicate values in different countries."
 msgstr "Mapa świata, która może wskazywać wartości w różnych krajach."
@@ -1032,8 +1039,8 @@ msgid "About"
 msgstr "O programie"
 
 #, fuzzy
-msgid "Access & ownership"
-msgstr "Token dostępu"
+msgid "Access"
+msgstr "sukces"
 
 msgid "Access token"
 msgstr "Token dostępu"
@@ -1770,10 +1777,6 @@ msgid "An error occurred while fetching %s info: %s"
 msgstr "Wystąpił błąd podczas pobierania pulpitów nawigacyjnych."
 
 #, fuzzy, python-format
-msgid "An error occurred while fetching %s owner values: %s"
-msgstr "Wystąpił błąd podczas usuwania wartości."
-
-#, fuzzy, python-format
 msgid "An error occurred while fetching %s related data"
 msgstr "Wystąpił błąd podczas pobierania stanu zakładki."
 
@@ -1801,7 +1804,11 @@ msgid "An error occurred while fetching available views"
 msgstr "Wystąpił błąd podczas pobierania dostępnych szablonów CSS."
 
 #, fuzzy, python-format
-msgid "An error occurred while fetching chart owners values: %s"
+msgid "An error occurred while fetching chart editor values: %s"
+msgstr "Wystąpił błąd podczas usuwania wartości."
+
+#, fuzzy, python-format
+msgid "An error occurred while fetching chart viewer values: %s"
 msgstr "Wystąpił błąd podczas usuwania wartości."
 
 #, fuzzy
@@ -1813,7 +1820,11 @@ msgid "An error occurred while fetching created by values: %s"
 msgstr "Wystąpił błąd podczas usuwania wartości."
 
 #, fuzzy, python-format
-msgid "An error occurred while fetching dashboard owner values: %s"
+msgid "An error occurred while fetching dashboard editor values: %s"
+msgstr "Wystąpił błąd podczas pobierania pulpitów nawigacyjnych."
+
+#, fuzzy, python-format
+msgid "An error occurred while fetching dashboard viewer values: %s"
 msgstr "Wystąpił błąd podczas pobierania pulpitów nawigacyjnych."
 
 msgid "An error occurred while fetching dashboards"
@@ -1836,15 +1847,19 @@ msgid "An error occurred while fetching dataset datasource values: %s"
 msgstr "Wystąpił błąd podczas pobierania stanu zakładki."
 
 #, fuzzy, python-format
+msgid "An error occurred while fetching dataset editor values: %s"
+msgstr "Wystąpił błąd podczas pobierania stanu zakładki."
+
+#, fuzzy, python-format
 msgid "An error occurred while fetching dataset related data: %s"
 msgstr "Wystąpił błąd podczas pobierania stanu zakładki."
 
+#, fuzzy, python-format
+msgid "An error occurred while fetching editor values: %s"
+msgstr "Wystąpił błąd podczas usuwania wartości."
+
 msgid "An error occurred while fetching function names."
 msgstr "Wystąpił błąd podczas pobierania nazw funkcji."
-
-#, fuzzy, python-format
-msgid "An error occurred while fetching owners values: %s"
-msgstr "Wystąpił błąd podczas usuwania wartości."
 
 #, fuzzy, python-format
 msgid "An error occurred while fetching schema values: %s"
@@ -1854,7 +1869,7 @@ msgstr "Wystąpił błąd podczas usuwania wartości."
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Wystąpił błąd podczas pobierania dostępnych szablonów CSS."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Wystąpił błąd podczas usuwania wartości."
 
@@ -1928,7 +1943,7 @@ msgstr "Wystąpił błąd podczas analizowania klucza."
 msgid "An error occurred while pruning logs "
 msgstr "Wystąpił błąd podczas czyszczenia dzienników."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Wystąpił błąd podczas usuwania wartości."
 
@@ -2490,7 +2505,7 @@ msgstr "Port bazy danych"
 msgid "Base height"
 msgstr "Wysokość wykresu"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Styl mapy warstwy podstawowej. Zobacz dokumentację Mapbox: %s"
 
@@ -3105,6 +3120,12 @@ msgstr "Nie znaleziono wykresu %(id)s"
 msgid "Chart Data: %s"
 msgstr "Dane wykresu: %s"
 
+#, fuzzy, python-format
+msgid "Chart Editor: %s"
+msgid_plural "Chart Editors: %s"
+msgstr[0] "Dane wykresu: %s"
+msgstr[1] ""
+
 msgid "Chart ID"
 msgstr "ID wykresu"
 
@@ -3113,12 +3134,6 @@ msgstr "Opcje wykresu"
 
 msgid "Chart Orientation"
 msgstr "Orientacja wykresu"
-
-#, python-format
-msgid "Chart Owner: %s"
-msgid_plural "Chart Owners: %s"
-msgstr[0] "Właściciel wykresu: %s"
-msgstr[1] "Właściciele wykresu: %s"
 
 msgid "Chart Source"
 msgstr "Źródło wykresu"
@@ -3164,6 +3179,10 @@ msgstr "Wartość filtra jest wymagana"
 msgid "Chart does not exist"
 msgstr "Wykres nie istnieje"
 
+#, fuzzy
+msgid "Chart editors"
+msgstr "Właściciele wykresu"
+
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
 "Wykres nie ma zapisanych kontekstów zapytań. Proszę ponownie zapisać "
@@ -3187,9 +3206,6 @@ msgstr "Nie znaleziono wykresu"
 
 msgid "Chart options"
 msgstr "Opcje wykresu"
-
-msgid "Chart owners"
-msgstr "Właściciele wykresu"
 
 msgid "Chart parameters are invalid."
 msgstr "Parametry wykresu są nieprawidłowe."
@@ -6093,11 +6109,37 @@ msgstr "Edytuj zakres czasu"
 msgid "Edit user"
 msgstr "Edytuj zapytanie"
 
+#, fuzzy
+msgid "Editable"
+msgstr "Edytuj alert"
+
 msgid "Edited"
 msgstr "Edytowano"
 
 msgid "Editing 1 filter:"
 msgstr "Edytowanie 1 filtra:"
+
+#, fuzzy
+msgid "Editor"
+msgstr "Edytuj"
+
+#, fuzzy
+msgid "Editors"
+msgstr "Edytuj"
+
+#, fuzzy
+msgid "Editors is a list of subjects who can alter the dashboard."
+msgstr ""
+"Właściciele to lista użytkowników, którzy mogą modyfikować pulpit "
+"nawigacyjny."
+
+#, fuzzy
+msgid ""
+"Editors is a list of subjects who can alter the dashboard. Searchable by "
+"name."
+msgstr ""
+"Właściciele to lista użytkowników, którzy mogą modyfikować pulpit "
+"nawigacyjny. Można ich wyszukać po nazwie lub nazwie użytkownika."
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "Baza danych jest źle napisana lub nie istnieje."
@@ -6603,8 +6645,9 @@ msgstr "Przesyłanie pliku CSV"
 msgid "Exclude selected values"
 msgstr "Wyklucz wybrane wartości"
 
-msgid "Excluded roles"
-msgstr "Wykluczone role"
+#, fuzzy
+msgid "Excluded subjects"
+msgstr "Wybierz temat"
 
 msgid "Executed SQL"
 msgstr "Wykonane SQL"
@@ -7256,10 +7299,11 @@ msgstr ""
 "Aby uzyskać więcej informacji o obiektach w kontekście tej funkcji, "
 "odnies się do"
 
+#, fuzzy
 msgid ""
-"For regular filters, these are the roles this filter will be applied to. "
-"For base filters, these are the roles that the filter DOES NOT apply to, "
-"e.g. Admin if admin should see all data."
+"For regular filters, these are the subjects (users, roles, groups) this "
+"filter will be applied to. For base filters, these are the subjects that "
+"the filter DOES NOT apply to, e.g. Admin if admin should see all data."
 msgstr ""
 "Dla zwykłych filtrów są to role, do których filtr się stosuje. Dla "
 "bazowych filtrów są to role, do których filtr NIE MA zastosowania, np. "
@@ -8854,7 +8898,7 @@ msgstr ""
 msgid "Manage"
 msgstr "Zarządzaj"
 
-msgid "Manage dashboard owners and access permissions"
+msgid "Manage dashboard editors and access permissions"
 msgstr ""
 
 msgid "Manage email report"
@@ -9732,7 +9776,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "Brak kolumn tabeli"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Jeszcze brak %s"
 
@@ -10276,27 +10320,6 @@ msgstr "Zastąp tekst w edytorze zapytaniem do tej tabeli"
 msgid "Owned Created or Favored"
 msgstr "Własne, utworzone lub ulubione"
 
-msgid "Owner"
-msgstr "Właściciel"
-
-msgid "Owners"
-msgstr "Właściciele"
-
-msgid "Owners are invalid"
-msgstr "Właściciele są nieprawidłowi"
-
-msgid "Owners is a list of users who can alter the dashboard."
-msgstr ""
-"Właściciele to lista użytkowników, którzy mogą modyfikować pulpit "
-"nawigacyjny."
-
-msgid ""
-"Owners is a list of users who can alter the dashboard. Searchable by name"
-" or username."
-msgstr ""
-"Właściciele to lista użytkowników, którzy mogą modyfikować pulpit "
-"nawigacyjny. Można ich wyszukać po nazwie lub nazwie użytkownika."
-
 #, fuzzy
 msgid "PDF download failed, please refresh and try again."
 msgstr "Pobieranie obrazu nie powiodło się, odśwież i spróbuj ponownie."
@@ -10700,8 +10723,9 @@ msgstr "Proszę ponownie wprowadzić hasło."
 msgid "Please re-export your file and try importing again"
 msgstr "Proszę ponownie wyeksportować plik i spróbować ponownie zaimportować"
 
-msgid "Please reach out to the Chart Owner for assistance."
-msgid_plural "Please reach out to the Chart Owners for assistance."
+#, fuzzy
+msgid "Please reach out to the Chart Editor for assistance."
+msgid_plural "Please reach out to the Chart Editors for assistance."
 msgstr[0] "Proszę skontaktować się z właścicielem wykresu w celu uzyskania pomocy."
 msgstr[1] "Proszę skontaktować się z właścicielami wykresu w celu uzyskania pomocy."
 
@@ -11494,7 +11518,7 @@ msgstr "Zasób ma już przypisany raport."
 msgid "Resource was not found."
 msgstr "Nie znaleziono zasobu."
 
-msgid "Resource was removed before ownership could be verified"
+msgid "Resource was removed before editorship could be verified"
 msgstr ""
 
 msgid "Restore filter"
@@ -11605,26 +11629,6 @@ msgstr "Nazwa jest wymagana"
 
 msgid "Roles"
 msgstr "Role"
-
-#, fuzzy
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks. If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"Role to lista definiująca dostęp do pulpitu nawigacyjnego. Przyznanie "
-"roli dostępu do pulpitu omija kontrole na poziomie zestawu danych. Jeśli "
-"nie zdefiniowano ról, obowiązują zwykłe uprawnienia dostępu."
-
-#, fuzzy
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks.If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"Role to lista definiująca dostęp do pulpitu nawigacyjnego. Przyznanie "
-"roli dostępu do pulpitu omija kontrole na poziomie zestawu danych. Jeśli "
-"nie zdefiniowano ról, obowiązują zwykłe uprawnienia dostępu."
 
 #, fuzzy
 msgid "Rolling Function"
@@ -12109,7 +12113,7 @@ msgid "Search calculated columns by name"
 msgstr "Kolumny obliczeniowe"
 
 #, fuzzy
-msgid "Search charts by name, owner, or dashboard"
+msgid "Search charts by name, editor, or dashboard"
 msgstr "Nie dodano wykresów do tego panelu."
 
 #, fuzzy
@@ -12125,6 +12129,10 @@ msgid "Search columns..."
 msgstr "Szukaj w kolumnach"
 
 #, fuzzy
+msgid "Search editors"
+msgstr "Wybierz właścicieli"
+
+#, fuzzy
 msgid "Search in filters"
 msgstr "Szukaj w filtrach"
 
@@ -12133,16 +12141,12 @@ msgid "Search metrics by key or label"
 msgstr "Szukaj metryk i kolumn"
 
 #, fuzzy
-msgid "Search owners"
-msgstr "Wybierz właścicieli"
-
-#, fuzzy
-msgid "Search roles"
-msgstr "Szukaj w kolumnach"
-
-#, fuzzy
 msgid "Search tags"
 msgstr "Wybierz tagi"
+
+#, fuzzy
+msgid "Search viewers"
+msgstr "Wybierz właścicieli"
 
 msgid "Search..."
 msgstr "Szukaj…"
@@ -12449,6 +12453,10 @@ msgid "Select dimension values"
 msgstr "Wybierz wymiar"
 
 #, fuzzy
+msgid "Select editors"
+msgstr "Wybierz właścicieli"
+
+#, fuzzy
 msgid "Select file"
 msgstr "Wybierz plik"
 
@@ -12517,9 +12525,6 @@ msgstr "Wybierz lub wprowadź symbol waluty"
 #, fuzzy
 msgid "Select or type dataset name"
 msgstr "Wybierz lub wprowadź nazwę zestawu danych"
-
-msgid "Select owners"
-msgstr "Wybierz właścicieli"
 
 #, fuzzy
 msgid "Select page size"
@@ -13734,6 +13739,22 @@ msgstr "Kategoria"
 
 msgid "Subdomain"
 msgstr "Subdomena"
+
+#, fuzzy
+msgid "Subject"
+msgstr "temat e-maila"
+
+#, fuzzy
+msgid "Subject type"
+msgstr "Typ kroku"
+
+#, fuzzy
+msgid "Subjects"
+msgstr "temat e-maila"
+
+#, fuzzy
+msgid "Subjects are invalid"
+msgstr "Właściciele są nieprawidłowi"
 
 msgid "Submit"
 msgstr "Zatwierdź"
@@ -16974,6 +16995,20 @@ msgid "Viewed %s"
 msgstr "Oglądano %s"
 
 #, fuzzy
+msgid "Viewer"
+msgstr "Oglądane"
+
+#, fuzzy
+msgid "Viewers"
+msgstr "Oglądane"
+
+msgid ""
+"Viewers is a list of subjects who can view the dashboard. If no viewers "
+"are defined, the dashboard is accessible to all users with appropriate "
+"datasource permissions."
+msgstr ""
+
+#, fuzzy
 msgid "Viewport"
 msgstr "Okno widoku"
 
@@ -18530,6 +18565,10 @@ msgid "edit mode"
 msgstr "tryb edycji"
 
 #, fuzzy
+msgid "editors"
+msgstr "Edytuj"
+
+#, fuzzy
 msgid "email subject"
 msgstr "temat e-maila"
 
@@ -18867,10 +18906,6 @@ msgstr "Oryginalny"
 #, fuzzy
 msgid "overall"
 msgstr "ogólny"
-
-#, fuzzy
-msgid "owners"
-msgstr "właściciele"
 
 msgid "p-value precision"
 msgstr "precyzja wartości p"

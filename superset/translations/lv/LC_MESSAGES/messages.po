@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-01 06:52-0700\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -894,16 +894,17 @@ msgstr ""
 "Domēnu nosaukumu saraksts, kas var iegult šo paneli. Atstājot šo lauku "
 "tukšu, tiks atļauta iegulšana no jebkura domēna."
 
+msgid "A list of subjects who can alter the chart. Searchable by name."
+msgstr "Saraksts ar subjektiem, kuri var rediģēt diagrammu. Meklējams pēc vārda."
+
+msgid "A list of subjects who can view the chart. Searchable by name."
+msgstr "Saraksts ar subjektiem, kuri var skatīt diagrammu. Meklējams pēc vārda."
+
 msgid "A list of tags that have been applied to this chart."
 msgstr "Šai diagrammai piešķirto tagu saraksts."
 
 msgid "A list of tags that have been applied to this dashboard."
 msgstr "Šim informācijas panelim piemēroto tagu saraksts."
-
-msgid "A list of users who can alter the chart. Searchable by name or username."
-msgstr ""
-"Lietotāju saraksts, kuri var mainīt diagrammu. Meklējams pēc vārda vai "
-"lietotājvārda."
 
 msgid "A map of the world, that can indicate values in different countries."
 msgstr "Pasaules karte, kas var attēlot vērtības dažādās valstīs."
@@ -1037,8 +1038,8 @@ msgstr "Darbojas"
 msgid "About"
 msgstr "Par"
 
-msgid "Access & ownership"
-msgstr "Piekļuve un īpašumtiesības"
+msgid "Access"
+msgstr "Piekļuve"
 
 msgid "Access token"
 msgstr "Piekļuves talons"
@@ -1711,10 +1712,6 @@ msgid "An error occurred while fetching %s info: %s"
 msgstr "Radās kļūda, iegūstot %s informāciju: %s"
 
 #, fuzzy, python-format
-msgid "An error occurred while fetching %s owner values: %s"
-msgstr "Radās kļūda, iegūstot īpašnieku vērtības: %s"
-
-#, fuzzy, python-format
 msgid "An error occurred while fetching %s related data"
 msgstr "Radās kļūda, ielādējot datu kopas saistītos datus"
 
@@ -1741,8 +1738,12 @@ msgid "An error occurred while fetching available views"
 msgstr "Radās kļūda, lejupielādējot pieejamos motīvus"
 
 #, python-format
-msgid "An error occurred while fetching chart owners values: %s"
-msgstr "Radās kļūda, iegūstot diagrammu īpašnieku vērtības: %s"
+msgid "An error occurred while fetching chart editor values: %s"
+msgstr "Radās kļūda, ielādējot diagrammas redaktoru vērtības: %s"
+
+#, python-format
+msgid "An error occurred while fetching chart viewer values: %s"
+msgstr "Radās kļūda, ielādējot diagrammas skatītāju vērtības: %s"
 
 #, fuzzy
 msgid "An error occurred while fetching connections"
@@ -1753,8 +1754,12 @@ msgid "An error occurred while fetching created by values: %s"
 msgstr "Radās kļūda, iegūstot shēmu vērtības: %s"
 
 #, python-format
-msgid "An error occurred while fetching dashboard owner values: %s"
-msgstr "Radās kļūda, iegūstot informācijas paneļa īpašnieku vērtības: %s"
+msgid "An error occurred while fetching dashboard editor values: %s"
+msgstr "Radās kļūda, ielādējot informācijas paneļa redaktoru vērtības: %s"
+
+#, python-format
+msgid "An error occurred while fetching dashboard viewer values: %s"
+msgstr "Radās kļūda, ielādējot informācijas paneļa skatītāju vērtības: %s"
 
 msgid "An error occurred while fetching dashboards"
 msgstr "Radās kļūda, ielādējot infopaneļus"
@@ -1776,15 +1781,19 @@ msgid "An error occurred while fetching dataset datasource values: %s"
 msgstr "Radās kļūda, iegūstot datu kopas datu avota vērtības: %s"
 
 #, python-format
+msgid "An error occurred while fetching dataset editor values: %s"
+msgstr "Radās kļūda, ielādējot datu kopas redaktoru vērtības: %s"
+
+#, python-format
 msgid "An error occurred while fetching dataset related data: %s"
 msgstr "Radās kļūda, iegūstot ar datu kopu saistītos datus: %s"
 
+#, python-format
+msgid "An error occurred while fetching editor values: %s"
+msgstr "Radās kļūda, ielādējot redaktoru vērtības: %s"
+
 msgid "An error occurred while fetching function names."
 msgstr "Radās kļūda, ielādējot funkciju nosaukumus."
-
-#, python-format
-msgid "An error occurred while fetching owners values: %s"
-msgstr "Radās kļūda, iegūstot īpašnieku vērtības: %s"
 
 #, python-format
 msgid "An error occurred while fetching schema values: %s"
@@ -1794,7 +1803,7 @@ msgstr "Radās kļūda, iegūstot shēmu vērtības: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Radās kļūda, lejupielādējot pieejamos motīvus"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Radās kļūda, iegūstot shēmu vērtības: %s"
 
@@ -1864,7 +1873,7 @@ msgstr "Radās kļūda, apstrādājot atslēgu."
 msgid "An error occurred while pruning logs "
 msgstr "Radās kļūda, tīrot žurnālus "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Radās kļūda, attēlojot vizualizāciju: %s"
 
@@ -2417,7 +2426,7 @@ msgstr "Bāzes eksponents"
 msgid "Base height"
 msgstr "Bāzes augstums"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Pamata slāņa kartes stils. Skatīt Mapbox dokumentāciju: %s"
 
@@ -3022,6 +3031,13 @@ msgstr "Diagramma %(id)s nav atrasta"
 msgid "Chart Data: %s"
 msgstr "Diagrammas dati: %s"
 
+#, python-format
+msgid "Chart Editor: %s"
+msgid_plural "Chart Editors: %s"
+msgstr[0] "Diagrammas redaktors: %s"
+msgstr[1] "Diagrammas redaktori: %s"
+msgstr[2] "Diagrammas redaktori: %s"
+
 msgid "Chart ID"
 msgstr "Diagrammas ID"
 
@@ -3030,13 +3046,6 @@ msgstr "Diagrammas opcijas"
 
 msgid "Chart Orientation"
 msgstr "Diagrammas orientācija"
-
-#, python-format
-msgid "Chart Owner: %s"
-msgid_plural "Chart Owners: %s"
-msgstr[0] "Diagrammas īpašnieks: %s"
-msgstr[1] "Diagrammas īpašnieki: %s"
-msgstr[2] "Diagrammas īpašnieki: %s"
 
 msgid "Chart Source"
 msgstr "Diagrammas avots"
@@ -3080,6 +3089,9 @@ msgstr "Ir nepieciešama diagrammas pielāgošanas vērtība"
 msgid "Chart does not exist"
 msgstr "Diagramma neeksistē"
 
+msgid "Chart editors"
+msgstr "Diagrammas redaktori"
+
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
 "Diagrammai nav saglabāts vaicājuma konteksts. Lūdzu, saglabājiet "
@@ -3102,9 +3114,6 @@ msgstr "Diagramma nav atrasta"
 
 msgid "Chart options"
 msgstr "Diagrammas opcijas"
-
-msgid "Chart owners"
-msgstr "Diagrammas īpašnieki"
 
 msgid "Chart parameters are invalid."
 msgstr "Diagrammas parametri ir nederīgi."
@@ -5772,11 +5781,28 @@ msgstr "Rediģēt laika diapazonu"
 msgid "Edit user"
 msgstr "Rediģēt lietotāju"
 
+msgid "Editable"
+msgstr "Rediģējams"
+
 msgid "Edited"
 msgstr "Rediģēts"
 
 msgid "Editing 1 filter:"
 msgstr "Rediģē 1 filtru:"
+
+msgid "Editor"
+msgstr "Redaktors"
+
+msgid "Editors"
+msgstr "Redaktori"
+
+msgid "Editors is a list of subjects who can alter the dashboard."
+msgstr "Redaktori ir subjektu saraksts, kuri var rediģēt informācijas paneli."
+
+msgid ""
+"Editors is a list of subjects who can alter the dashboard. Searchable by "
+"name."
+msgstr "Redaktori ir subjektu saraksts, kuri var rediģēt informācijas paneli. Meklējams pēc vārda."
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "Datubāzes nosaukums ir kļūdains vai datubāze neeksistē."
@@ -6223,8 +6249,8 @@ msgstr "Excel augšupielāde"
 msgid "Exclude selected values"
 msgstr "Izslēgt atlasītās vērtības"
 
-msgid "Excluded roles"
-msgstr "Izslēgtās lomas"
+msgid "Excluded subjects"
+msgstr "Izslēgtie subjekti"
 
 msgid "Executed SQL"
 msgstr "Izpildītais SQL"
@@ -6821,10 +6847,11 @@ msgstr ""
 "Lai iegūtu vairāk informācijas par objektiem, kas ir pieejami šīs "
 "funkcijas kontekstā, skatiet"
 
+#, fuzzy
 msgid ""
-"For regular filters, these are the roles this filter will be applied to. "
-"For base filters, these are the roles that the filter DOES NOT apply to, "
-"e.g. Admin if admin should see all data."
+"For regular filters, these are the subjects (users, roles, groups) this "
+"filter will be applied to. For base filters, these are the subjects that "
+"the filter DOES NOT apply to, e.g. Admin if admin should see all data."
 msgstr ""
 "Parastajiem filtriem šīs ir lomas, kurām šis filtrs tiks piemērots. Bāzes"
 " filtriem šīs ir lomas, kurām filtrs NETIEK piemērots, piem., Admin, ja "
@@ -8316,8 +8343,8 @@ msgstr ""
 msgid "Manage"
 msgstr "Pārvaldīt"
 
-msgid "Manage dashboard owners and access permissions"
-msgstr "Pārvaldiet paneļa īpašniekus un piekļuves atļaujas"
+msgid "Manage dashboard editors and access permissions"
+msgstr "Pārvaldīt informācijas paneļa redaktorus un piekļuves atļaujas"
 
 msgid "Manage email report"
 msgstr "Pārvaldīt e-pasta atskaiti"
@@ -9148,7 +9175,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "Nav tabulas kolonnu"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Pagaidām nav %s"
 
@@ -9674,25 +9701,6 @@ msgstr "Pārrakstīt tekstu redaktorā ar vaicājumu par šo tabulu"
 msgid "Owned Created or Favored"
 msgstr "Piederošie, izveidotie vai iecienītie"
 
-msgid "Owner"
-msgstr "Īpašnieks"
-
-msgid "Owners"
-msgstr "Īpašnieki"
-
-msgid "Owners are invalid"
-msgstr "Īpašnieki nav derīgi"
-
-msgid "Owners is a list of users who can alter the dashboard."
-msgstr "Īpašnieki ir lietotāju saraksts, kuri var mainīt paneli."
-
-msgid ""
-"Owners is a list of users who can alter the dashboard. Searchable by name"
-" or username."
-msgstr ""
-"Īpašnieki ir lietotāju saraksts, kuri var mainīt paneli. Meklējams pēc "
-"vārda vai lietotājvārda."
-
 msgid "PDF download failed, please refresh and try again."
 msgstr "PDF lejupielāde neizdevās. Lūdzu, atsvaidziniet un mēģiniet vēlreiz."
 
@@ -10058,11 +10066,11 @@ msgstr "Lūdzu, atkārtoti ievadiet paroli."
 msgid "Please re-export your file and try importing again"
 msgstr "Lūdzu, atkārtoti eksportējiet failu un mēģiniet importēt vēlreiz"
 
-msgid "Please reach out to the Chart Owner for assistance."
-msgid_plural "Please reach out to the Chart Owners for assistance."
-msgstr[0] "Lūdzu, sazinieties ar diagrammas īpašnieku, lai saņemtu palīdzību."
-msgstr[1] "Lūdzu, sazinieties ar diagrammas īpašniekiem, lai saņemtu palīdzību."
-msgstr[2] "Lūdzu, sazinieties ar diagrammas īpašniekiem, lai saņemtu palīdzību."
+msgid "Please reach out to the Chart Editor for assistance."
+msgid_plural "Please reach out to the Chart Editors for assistance."
+msgstr[0] "Lūdzu, sazinieties ar diagrammas redaktoru, lai saņemtu palīdzību."
+msgstr[1] "Lūdzu, sazinieties ar diagrammas redaktoriem, lai saņemtu palīdzību."
+msgstr[2] "Lūdzu, sazinieties ar diagrammas redaktoriem, lai saņemtu palīdzību."
 
 msgid "Please save your chart first, then try creating a new email report."
 msgstr ""
@@ -10769,8 +10777,8 @@ msgstr "Resursam jau ir pievienota atskaite."
 msgid "Resource was not found."
 msgstr "Resurss netika atrasts."
 
-msgid "Resource was removed before ownership could be verified"
-msgstr ""
+msgid "Resource was removed before editorship could be verified"
+msgstr "Resurss tika noņemts, pirms varēja pārbaudīt rediģēšanas tiesības"
 
 msgid "Restore filter"
 msgstr "Atjaunot filtru"
@@ -10869,24 +10877,6 @@ msgstr "Lomas nosaukums ir obligāts"
 
 msgid "Roles"
 msgstr "Lomas"
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks. If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"Lomas ir saraksts, kas definē piekļuvi panelim. Piešķirot lomai piekļuvi "
-"panelim, tiks apieti datu kopas līmeņa pārbaudes. Ja lomas nav definētas,"
-" tiek piemērotas parastās piekļuves atļaujas."
-
-msgid ""
-"Roles is a list which defines access to the dashboard. Granting a role "
-"access to a dashboard will bypass dataset level checks.If no roles are "
-"defined, regular access permissions apply."
-msgstr ""
-"Lomas ir saraksts, kas definē piekļuvi panelim. Piešķirot lomai piekļuvi "
-"panelim, tiks apieti datu kopas līmeņa pārbaudes.Ja lomas nav definētas, "
-"tiek piemērotas parastās piekļuves atļaujas."
 
 msgid "Rolling Function"
 msgstr "Ritošā funkcija"
@@ -11331,9 +11321,8 @@ msgstr "Meklēt pēc vaicājuma teksta"
 msgid "Search calculated columns by name"
 msgstr "Aprēķinātās kolonnas"
 
-#, fuzzy
-msgid "Search charts by name, owner, or dashboard"
-msgstr "Šim panelim nav pievienota neviena diagramma"
+msgid "Search charts by name, editor, or dashboard"
+msgstr "Meklēt diagrammas pēc nosaukuma, redaktora vai informācijas paneļa"
 
 msgid "Search columns"
 msgstr "Meklēt kolonnas"
@@ -11345,6 +11334,9 @@ msgstr "Meklēt kolonnas"
 msgid "Search columns..."
 msgstr "Meklēt kolonnas..."
 
+msgid "Search editors"
+msgstr "Meklēt redaktorus"
+
 msgid "Search in filters"
 msgstr "Meklēt filtros"
 
@@ -11352,14 +11344,11 @@ msgstr "Meklēt filtros"
 msgid "Search metrics by key or label"
 msgstr "Meklēt metriku un kolonnas"
 
-msgid "Search owners"
-msgstr "Meklēt īpašniekus"
-
-msgid "Search roles"
-msgstr "Meklēt lomas"
-
 msgid "Search tags"
 msgstr "Meklēt birkas"
+
+msgid "Search viewers"
+msgstr "Meklēt skatītājus"
 
 msgid "Search..."
 msgstr "Meklēt..."
@@ -11623,6 +11612,9 @@ msgstr "Izvēlieties dimensiju Top N"
 msgid "Select dimension values"
 msgstr "Izvēlieties dimensiju vērtības"
 
+msgid "Select editors"
+msgstr "Atlasīt redaktorus"
+
 msgid "Select file"
 msgstr "Atlasīt failu"
 
@@ -11692,9 +11684,6 @@ msgstr "Atlasīt vai ierakstīt valūtas simbolu"
 
 msgid "Select or type dataset name"
 msgstr "Atlasīt vai ierakstīt datu kopas nosaukumu"
-
-msgid "Select owners"
-msgstr "Atlasīt īpašniekus"
 
 msgid "Select page size"
 msgstr "Atlasīt lapas izmēru"
@@ -12805,6 +12794,18 @@ msgstr "Apakškategorijas"
 
 msgid "Subdomain"
 msgstr "Apakšdomēns"
+
+msgid "Subject"
+msgstr "Subjekts"
+
+msgid "Subject type"
+msgstr "Subjekta tips"
+
+msgid "Subjects"
+msgstr "Subjekti"
+
+msgid "Subjects are invalid"
+msgstr "Subjekti nav derīgi"
 
 msgid "Submit"
 msgstr "Iesniegt"
@@ -15828,6 +15829,18 @@ msgstr "Skatīts"
 msgid "Viewed %s"
 msgstr "Skatīts %s"
 
+msgid "Viewer"
+msgstr "Skatītājs"
+
+msgid "Viewers"
+msgstr "Skatītāji"
+
+msgid ""
+"Viewers is a list of subjects who can view the dashboard. If no viewers "
+"are defined, the dashboard is accessible to all users with appropriate "
+"datasource permissions."
+msgstr "Skatītāji ir subjektu saraksts, kuri var skatīt informācijas paneli. Ja skatītāji nav definēti, informācijas panelis ir pieejams visiem lietotājiem ar atbilstošām datu avota atļaujām."
+
 msgid "Viewport"
 msgstr "Skatījuma lauks"
 
@@ -17304,6 +17317,9 @@ msgstr ""
 msgid "edit mode"
 msgstr "rediģēšanas režīms"
 
+msgid "editors"
+msgstr "redaktori"
+
 msgid "email subject"
 msgstr "e-pasta temats"
 
@@ -17605,9 +17621,6 @@ msgstr "oriģināls"
 
 msgid "overall"
 msgstr "kopumā"
-
-msgid "owners"
-msgstr "īpašnieki"
 
 msgid "p-value precision"
 msgstr "p-vērtības precizitāte"
