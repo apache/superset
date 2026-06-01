@@ -768,7 +768,7 @@ pygments==2.20.0
     #   rich
 pyhive==0.7.0
     # via apache-superset
-pyinstrument==4.4.0
+pyinstrument==5.1.2
     # via apache-superset
 pyjwt==2.12.0
     # via
