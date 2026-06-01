@@ -48,6 +48,29 @@ def test_get_embedded_dashboard(client: FlaskClient[Any]):  # noqa: F811
     uri = f"embedded/{embedded.uuid}"
     response = client.get(uri)
     assert response.status_code == 200
+    # The bootstrap payload exposes the (empty) allowed-domains list so the
+    # frontend can validate postMessage origins.
+    data = response.data.decode("utf-8")
+    assert "allowed_domains" in data
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+@mock.patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    EMBEDDED_SUPERSET=True,
+)
+def test_get_embedded_dashboard_bootstrap_includes_allowed_domains(
+    client: FlaskClient[Any],  # noqa: F811
+):
+    dash = db.session.query(Dashboard).filter_by(slug="births").first()
+    embedded = EmbeddedDashboardDAO.upsert(dash, ["https://allowed.example.com"])
+    db.session.flush()
+    uri = f"embedded/{embedded.uuid}"
+    response = client.get(uri, headers={"Referer": "https://allowed.example.com"})
+    assert response.status_code == 200
+    data = response.data.decode("utf-8")
+    assert "allowed_domains" in data
+    assert "https://allowed.example.com" in data
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
