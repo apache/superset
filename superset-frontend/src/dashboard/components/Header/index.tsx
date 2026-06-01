@@ -61,10 +61,7 @@ import {
 } from 'src/features/reports/ReportModal/actions';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
-import {
-  DashboardVersionHistoryRoot,
-  useOptionalVersionHistory,
-} from 'src/features/versionHistory';
+import { useOptionalVersionHistory } from 'src/features/versionHistory';
 import DashboardEmbedModal from '../EmbeddedModal';
 import OverwriteConfirm from '../OverwriteConfirm';
 import {
@@ -977,18 +974,11 @@ const HeaderInner = (): JSX.Element => {
   );
 };
 
-const Header = (): JSX.Element => {
-  const dashboardUuid = useSelector(
-    (state: HeaderRootState) => state.dashboardInfo?.uuid ?? null,
-  );
-  if (isFeatureEnabled(FeatureFlag.VersionHistory) && dashboardUuid) {
-    return (
-      <DashboardVersionHistoryRoot dashboardUuid={dashboardUuid}>
-        <HeaderInner />
-      </DashboardVersionHistoryRoot>
-    );
-  }
-  return <HeaderInner />;
-};
+// The version-history provider was previously mounted here (wrapping
+// just ``HeaderInner``), which left the dashboard's preview banner in
+// a sibling subtree with no access to the context. It is now mounted
+// in ``DashboardBuilder`` so it covers both the header and the
+// dashboard container; ``Header`` no longer needs to wrap anything.
+const Header = (): JSX.Element => <HeaderInner />;
 
 export default Header;

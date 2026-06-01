@@ -20,7 +20,14 @@
 import cx from 'classnames';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { addAlpha, JsonObject, useElementOnScreen } from '@superset-ui/core';
+import {
+  addAlpha,
+  FeatureFlag,
+  isFeatureEnabled,
+  JsonObject,
+  useElementOnScreen,
+} from '@superset-ui/core';
+import { DashboardVersionHistoryRoot } from 'src/features/versionHistory';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { EmptyState, Loading } from '@superset-ui/core/components';
@@ -369,6 +376,14 @@ const DashboardBuilder = () => {
   const dashboardId = useSelector<RootState, string>(
     ({ dashboardInfo }) => `${dashboardInfo.id}`,
   );
+  // Used to mount the version-history provider above both ``Header`` and
+  // ``DashboardContainer`` — without this lift the preview banner (which
+  // lives in ``DashboardContainer``) ends up in a sibling subtree of the
+  // provider, so ``useOptionalVersionHistory()`` returns null and Close
+  // preview / Restore handlers silently no-op.
+  const dashboardUuid = useSelector<RootState, string | null>(
+    ({ dashboardInfo }) => dashboardInfo?.uuid ?? null,
+  );
   const dashboardLayout = useSelector<RootState, DashboardLayout>(
     state => state.dashboardLayout.present,
   );
@@ -619,7 +634,7 @@ const DashboardBuilder = () => {
     ? currentFilterBarWidth
     : 0;
 
-  return (
+  const dashboardBody = (
     <DashboardWrapper>
       {isVerticalFilterBarVisible && (
         <ResizableSidebar
@@ -730,6 +745,22 @@ const DashboardBuilder = () => {
       )}
     </DashboardWrapper>
   );
+
+  // Mount the version-history provider above both the header AND the
+  // dashboard container so the preview banner (rendered inside
+  // ``DashboardContainer``) shares the same context as the header-side
+  // panel + bridge. Previously the provider only wrapped ``HeaderInner``,
+  // leaving the banner in a sibling subtree where
+  // ``useOptionalVersionHistory()`` returned null and Close preview was
+  // a silent no-op.
+  if (isFeatureEnabled(FeatureFlag.VersionHistory) && dashboardUuid) {
+    return (
+      <DashboardVersionHistoryRoot dashboardUuid={dashboardUuid}>
+        {dashboardBody}
+      </DashboardVersionHistoryRoot>
+    );
+  }
+  return dashboardBody;
 };
 
 export default memo(DashboardBuilder);
