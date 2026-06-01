@@ -748,18 +748,6 @@ def get_theme_columns() -> list[ColumnMetadata]:
     )
 
 
-def get_report_columns() -> list[ColumnMetadata]:
-    """Get column metadata for ReportSchedule model dynamically."""
-    from superset.reports.models import ReportSchedule
-
-    return get_columns_from_model(
-        ReportSchedule,
-        REPORT_DEFAULT_COLUMNS,
-        REPORT_EXTRA_COLUMNS,
-        exclude_columns=set(USER_DIRECTORY_FIELDS),
-    )
-
-
 def _annotation_to_type_str(annotation: Any) -> str:
     """Extract a simple type string from a Python type annotation."""
     import types as _builtin_types

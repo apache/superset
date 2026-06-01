@@ -20,7 +20,6 @@ List reports (alerts & reports) FastMCP tool.
 """
 
 import logging
-from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from fastmcp import Context
@@ -165,8 +164,4 @@ async def list_reports(
                 type(e).__name__,
             )
         )
-        return ReportError(
-            error=f"Failed to list reports: {str(e)}",
-            error_type="InternalError",
-            timestamp=datetime.now(timezone.utc),
-        )
+        raise
