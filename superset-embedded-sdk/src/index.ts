@@ -126,6 +126,37 @@ export function validateEmbeddedDashboardId(id: string): void {
 }
 
 /**
+ * Validates that supersetDomain is a parseable absolute URL (it must include
+ * a protocol, e.g. https://superset.example.com). Throws otherwise. The
+ * domain's origin is what gets used as the postMessage targetOrigin, so it
+ * has to resolve to a well-formed origin.
+ */
+export function validateSupersetDomain(supersetDomain: string): void {
+  try {
+    // eslint-disable-next-line no-new
+    new URL(supersetDomain);
+  } catch {
+    throw new Error('Invalid supersetDomain format');
+  }
+}
+
+// Sandbox tokens that materially relax the iframe's isolation (for example,
+// letting the embedded frame navigate the top-level page). They remain
+// supported via iframeSandboxExtras for callers that genuinely need them.
+const UNSAFE_SANDBOX_EXTRAS = [
+  'allow-top-navigation',
+  'allow-top-navigation-by-user-activation',
+];
+
+/**
+ * Returns any caller-provided sandbox tokens that relax the iframe's
+ * isolation, so they can be surfaced and not enabled unintentionally.
+ */
+export function findUnsafeSandboxExtras(extras: string[]): string[] {
+  return extras.filter(token => UNSAFE_SANDBOX_EXTRAS.includes(token));
+}
+
+/**
  * Embeds a Superset dashboard into the page using an iframe.
  */
 export async function embedDashboard({
@@ -154,6 +185,7 @@ export async function embedDashboard({
   if (supersetDomain.endsWith('/')) {
     supersetDomain = supersetDomain.slice(0, -1);
   }
+  validateSupersetDomain(supersetDomain);
 
   function calculateConfig() {
     let configNumber = 0;
@@ -210,6 +242,13 @@ export async function embedDashboard({
       iframe.sandbox.add('allow-forms'); // for forms to submit
       iframe.sandbox.add('allow-popups'); // for exporting charts as csv
       // additional sandbox props
+      const unsafeSandboxExtras = findUnsafeSandboxExtras(iframeSandboxExtras);
+      if (unsafeSandboxExtras.length > 0) {
+        console.warn(
+          '[superset-embedded-sdk] iframeSandboxExtras includes tokens that ' +
+            `relax the iframe's isolation: ${unsafeSandboxExtras.join(', ')}`,
+        );
+      }
       iframeSandboxExtras.forEach((key: string) => {
         iframe.sandbox.add(key);
       });
@@ -231,7 +270,9 @@ export async function embedDashboard({
         // we know the content window isn't null because we are in the load event handler.
         iframe.contentWindow!.postMessage(
           { type: IFRAME_COMMS_MESSAGE_TYPE, handshake: 'port transfer' },
-          supersetDomain,
+          // Use the normalized origin (not the raw domain, which may carry a
+          // sub-path for sub-path deployments) as the postMessage targetOrigin.
+          new URL(supersetDomain).origin,
           [theirPort],
         );
         log('sent message channel to the iframe');

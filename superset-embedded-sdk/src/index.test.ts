@@ -17,7 +17,11 @@
  * under the License.
  */
 
-import { validateEmbeddedDashboardId } from "./index";
+import {
+  validateEmbeddedDashboardId,
+  validateSupersetDomain,
+  findUnsafeSandboxExtras,
+} from "./index";
 
 describe("validateEmbeddedDashboardId", () => {
   it("accepts a canonical uuid", () => {
@@ -42,5 +46,46 @@ describe("validateEmbeddedDashboardId", () => {
     ["%2e%2e"],
   ])("rejects an id with an unexpected format: %p", (id) => {
     expect(() => validateEmbeddedDashboardId(id)).toThrow();
+  });
+});
+
+describe("validateSupersetDomain", () => {
+  it.each([
+    ["https://superset.example.com"],
+    ["http://localhost:8088"],
+    // sub-path deployments are valid; the origin is what matters downstream
+    ["https://example.com/superset"],
+  ])("accepts a valid absolute URL: %p", (domain) => {
+    expect(() => validateSupersetDomain(domain)).not.toThrow();
+  });
+
+  it.each([
+    ["superset.example.com"], // missing protocol
+    ["not a url"],
+    [""],
+    ["/relative/path"],
+  ])("rejects a malformed domain: %p", (domain) => {
+    expect(() => validateSupersetDomain(domain)).toThrow(
+      "Invalid supersetDomain format"
+    );
+  });
+});
+
+describe("findUnsafeSandboxExtras", () => {
+  it("returns the tokens that relax iframe isolation", () => {
+    expect(
+      findUnsafeSandboxExtras([
+        "allow-forms",
+        "allow-top-navigation",
+        "allow-popups",
+        "allow-top-navigation-by-user-activation",
+      ])
+    ).toEqual(["allow-top-navigation", "allow-top-navigation-by-user-activation"]);
+  });
+
+  it("returns an empty array when all tokens are safe", () => {
+    expect(
+      findUnsafeSandboxExtras(["allow-forms", "allow-popups", "allow-downloads"])
+    ).toEqual([]);
   });
 });
