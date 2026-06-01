@@ -36,6 +36,7 @@ from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.system.schemas import PaginationInfo
 from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.mcp_service.utils.sanitization import sanitize_user_input
 from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
@@ -293,11 +294,8 @@ class CreateRoleRequest(BaseModel):
 
     @field_validator("name")
     @classmethod
-    def name_must_not_be_blank(cls, v: str) -> str:
-        stripped = v.strip()
-        if not stripped:
-            raise ValueError("name must not be empty or whitespace")
-        return stripped
+    def sanitize_name(cls, v: str) -> str:
+        return sanitize_user_input(v, "Role name", max_length=_ROLE_NAME_MAX_LEN)  # type: ignore[return-value]
 
 
 class CreateRoleResponse(BaseModel):
@@ -331,13 +329,10 @@ class UpdateRoleRequest(BaseModel):
 
     @field_validator("name")
     @classmethod
-    def name_must_not_be_blank(cls, v: str | None) -> str | None:
+    def sanitize_name(cls, v: str | None) -> str | None:
         if v is None:
             return v
-        stripped = v.strip()
-        if not stripped:
-            raise ValueError("name must not be empty or whitespace")
-        return stripped
+        return sanitize_user_input(v, "Role name", max_length=_ROLE_NAME_MAX_LEN)
 
 
 class UpdateRoleResponse(BaseModel):

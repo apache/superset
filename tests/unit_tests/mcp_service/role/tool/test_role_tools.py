@@ -383,6 +383,16 @@ def test_create_role_request_default_empty_permissions() -> None:
     assert req.permission_ids == []
 
 
+def test_create_role_request_html_tags_stripped() -> None:
+    req = CreateRoleRequest(name="<b>Analyst</b>")
+    assert req.name == "Analyst"
+
+
+def test_update_role_request_html_tags_stripped() -> None:
+    req = UpdateRoleRequest(id=1, name="<b>Editor</b>")
+    assert req.name == "Editor"
+
+
 # ---------------------------------------------------------------------------
 # Schema validation tests — UpdateRoleRequest
 # ---------------------------------------------------------------------------
