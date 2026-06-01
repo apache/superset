@@ -22,6 +22,7 @@ from flask_appbuilder.security.sqla.models import User
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable, sqlatable_user
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models.core import Database
 from superset.models.dashboard import (
     Dashboard,
@@ -29,7 +30,6 @@ from superset.models.dashboard import (
     dashboard_user,
     DashboardRoles,
 )
-from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models.slice import Slice, slice_user
 from tests.integration_tests.dashboards.dashboard_test_utils import (
     random_slug,

@@ -601,7 +601,7 @@ class SupersetTestCase(TestCase):
         # returns ``None`` and the INSERT below trips the unique constraint
         # on ``slug`` against the soft-deleted (but hidden) row.
         if slug:
-            from superset.models.helpers import (  # noqa: PLC0415
+            from superset.constants import (  # noqa: PLC0415
                 SKIP_VISIBILITY_FILTER_CLASSES,
             )
 
