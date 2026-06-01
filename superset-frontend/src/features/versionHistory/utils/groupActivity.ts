@@ -50,18 +50,20 @@ function startOfDay(d: Date): number {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 }
 
+// Per Figma audit: prefer concrete absolute dates over relative
+// "Today" / "Yesterday" labels — relative labels are confusing in
+// version-history context because they shift meaning across timezones
+// and a returning user can't tell whether "Today" is today-for-them or
+// today-for-the-author. Both args kept for caller-symmetry with the
+// earlier API + in case design wants relative labels back later.
 function bucketLabel(
   iso: string,
-  todayMs: number,
-  yesterdayMs: number,
+  _todayMs: number,
+  _yesterdayMs: number,
 ): string {
-  const date = new Date(iso);
-  const dayMs = startOfDay(date);
-  if (dayMs === todayMs) return t('Today');
-  if (dayMs === yesterdayMs) return t('Yesterday');
   try {
     const lang = document.documentElement.lang || undefined;
-    return date.toLocaleDateString(lang, {
+    return new Date(iso).toLocaleDateString(lang, {
       year: 'numeric',
       month: 'long',
       day: 'numeric',

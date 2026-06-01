@@ -49,8 +49,9 @@ interface Props {
 const DRAWER_Z_INDEX = 1000;
 // Exported so the preview banner can reserve matching right-padding while
 // the drawer is open — otherwise the drawer covers the banner's
-// restore/exit buttons.
-export const DRAWER_WIDTH = 380;
+// restore/exit buttons. 296px matches the Figma reference; the previous
+// 380px was a placeholder pre-design review.
+export const DRAWER_WIDTH = 296;
 
 const VersionHistoryPanel = ({
   entityType,

@@ -18,6 +18,7 @@
  */
 import { useState } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { Icons } from '@superset-ui/core/components';
 import { EntityType } from '../types';
 import { ActivityRow, ActivitySaveRow } from '../utils/groupActivity';
@@ -47,9 +48,20 @@ const VersionGroup = ({
 }: Props) => {
   const theme = useTheme();
   const [open, setOpen] = useState(true);
+  // The "Current version" bucket gets a faint green tint to set it apart
+  // from the day buckets — matches the Figma reference + reinforces the
+  // pinned-row affordance even when the user has scrolled past the
+  // bucket header.
+  const isCurrentBucket = label === t('Current version');
 
   return (
-    <div>
+    <div
+      data-test="version-group"
+      data-test-current-bucket={isCurrentBucket ? 'true' : 'false'}
+      css={css`
+        background: ${isCurrentBucket ? theme.colorSuccessBg : 'transparent'};
+      `}
+    >
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
