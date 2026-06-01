@@ -44,11 +44,11 @@ from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProper
 from superset_core.common.daos import BaseDAO as CoreBaseDAO
 from superset_core.common.models import CoreModel
 
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.exceptions import (
     DAOFindFailedError,
 )
 from superset.extensions import db
-from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES, SoftDeleteMixin
 
 T = TypeVar("T", bound=CoreModel)
 
@@ -505,6 +505,10 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         :param items: The items to delete
         """
+        from superset.models.helpers import (
+            SoftDeleteMixin,  # pylint: disable=import-outside-toplevel
+        )
+
         if cls.model_cls is not None and issubclass(cls.model_cls, SoftDeleteMixin):
             cls.soft_delete(items)
         else:
