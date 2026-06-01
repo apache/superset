@@ -16,6 +16,7 @@
 # under the License.
 
 import logging
+from typing import Any
 
 from fastmcp import Context
 from marshmallow import ValidationError
@@ -83,10 +84,20 @@ async def update_theme(
             await ctx.warning("Theme validation failed: %s" % (messages,))
             return UpdateThemeResponse(id=request.id, error=str(messages))
 
-        item["json_data"] = schema.context.get("sanitized_json_data", item["json_data"])
+        # Build update dict with only explicitly-provided fields so that
+        # fields not included in the request are never overwritten, avoiding
+        # a lost-update race between the read above and the command's own
+        # re-read inside UpdateThemeCommand.validate().
+        update_properties: dict[str, Any] = {}
+        if request.theme_name is not None:
+            update_properties["theme_name"] = item["theme_name"]
+        if request.json_data is not None:
+            update_properties["json_data"] = schema.context.get(
+                "sanitized_json_data", item["json_data"]
+            )
 
         with event_logger.log_context(action="mcp.update_theme.update"):
-            updated = UpdateThemeCommand(request.id, item).run()
+            updated = UpdateThemeCommand(request.id, update_properties).run()
 
         await ctx.info(
             "Theme updated: id=%s, theme_name=%r" % (updated.id, updated.theme_name)
