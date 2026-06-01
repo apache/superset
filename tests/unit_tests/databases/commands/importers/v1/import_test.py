@@ -451,3 +451,75 @@ def test_import_datasources_cli_encrypts_password(
         f"Bug #31983: expected real password to be stored in the encrypted "
         f"``password`` column, got: {database.password!r}"
     )
+
+
+def test_import_datasources_cli_no_password_does_not_clobber_existing(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Guard against the Copilot-identified regression: importing a URI that has no
+    password segment must not overwrite an existing encrypted ``password`` value.
+
+    Users commonly keep secrets out of YAML and rely on the ``password`` column
+    populated during a prior import.  Before the guard, calling
+    ``set_sqlalchemy_uri`` on a password-less URI would set ``password = None``
+    and break existing connections.
+    """
+    from superset import db
+    from superset.commands.dataset.importers.v0 import import_from_dict
+    from superset.models.core import Database
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    # URI with no password segment — this is the "secret kept out of YAML" pattern.
+    no_password_uri = "postgresql://user@db.example.org:5432/superset_data"  # noqa: S105
+
+    data: dict[str, list[dict[str, object]]] = {
+        "databases": [
+            {
+                "database_name": "no_password_uri_test",
+                "sqlalchemy_uri": no_password_uri,
+                "expose_in_sqllab": True,
+                "allow_run_async": False,
+                "allow_ctas": False,
+                "allow_cvas": False,
+                "allow_dml": False,
+                "allow_file_upload": False,
+                "tables": [],
+            }
+        ]
+    }
+
+    import_from_dict(data)
+    db.session.flush()
+
+    database = (
+        db.session.query(Database).filter_by(database_name="no_password_uri_test").one()
+    )
+
+    # The ``password`` column must not have been set to None by
+    # set_sqlalchemy_uri — it should remain at whatever value import_from_dict
+    # left it (None for a brand-new record with no password in the URI).
+    # The critical invariant is that a subsequent import of the same no-password
+    # URI does not overwrite a password that was stored by a prior import.
+    assert database.password is None
+
+    # Simulate a prior import having stored an encrypted password (e.g. from a
+    # previous import run that included the password in the URI).
+    stored_password = "previously-stored-secret"  # noqa: S105
+    database.password = stored_password
+    db.session.flush()
+
+    # Re-import with the same no-password URI — must not clobber the stored value.
+    import_from_dict(data)
+    db.session.flush()
+
+    database = (
+        db.session.query(Database).filter_by(database_name="no_password_uri_test").one()
+    )
+    assert database.password == stored_password, (
+        "Importing a URI with no password segment must not overwrite an "
+        f"existing encrypted password; got: {database.password!r}"
+    )

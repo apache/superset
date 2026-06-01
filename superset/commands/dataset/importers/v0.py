@@ -32,6 +32,8 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
+from superset.constants import PASSWORD_MASK
+from superset.databases.utils import make_url_safe
 from superset.models.core import Database
 from superset.utils import json
 from superset.utils.decorators import transaction
@@ -217,7 +219,15 @@ def import_from_dict(data: dict[str, Any], sync: Optional[list[str]] = None) -> 
             # password in the URI is extracted into the encrypted ``password``
             # column and replaced with the password mask in ``sqlalchemy_uri``.
             if db_obj is not None:
-                db_obj.set_sqlalchemy_uri(db_obj.sqlalchemy_uri)
+                # Only call set_sqlalchemy_uri when the imported URI carries a real
+                # password (non-empty and not the password mask).  If the URI has no
+                # password segment — common when users keep secrets out of YAML and
+                # rely on the encrypted ``password`` column from a prior run —
+                # calling set_sqlalchemy_uri would set ``password = None`` and break
+                # existing connections.
+                parsed = make_url_safe(db_obj.sqlalchemy_uri)
+                if parsed.password and parsed.password != PASSWORD_MASK:
+                    db_obj.set_sqlalchemy_uri(db_obj.sqlalchemy_uri)
     else:
         logger.info("Supplied object is not a dictionary.")
 
