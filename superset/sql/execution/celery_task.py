@@ -100,12 +100,12 @@ def _handle_query_error(
         query.set_extra_json_key("errors", errors_payload)
 
     db.session.commit()  # pylint: disable=consider-using-transaction
-    logger.exception("Query %s failed: %s", query.id, ex)
     payload.update(
         {"status": query.status.value, "error": msg, "errors": errors_payload}
     )
-    if stacktrace := traceback.format_exc():
-        payload["stacktrace"] = stacktrace
+    if app.config.get("SHOW_STACKTRACE"):
+        if stacktrace := traceback.format_exc():
+            payload["stacktrace"] = stacktrace
     if troubleshooting_link := app.config.get("TROUBLESHOOTING_LINK"):
         payload["link"] = troubleshooting_link
     return payload

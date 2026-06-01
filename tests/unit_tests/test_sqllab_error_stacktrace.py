@@ -61,79 +61,26 @@ def _make_query_mock() -> MagicMock:
     return query
 
 
-def _was_logged_with_exc_info(mock_logger: MagicMock) -> bool:
-    """
-    Return True if any logging call on mock_logger preserved exc_info.
-
-    Acceptable signatures:
-    - logger.exception(...)              — always captures exc_info
-    - logger.error(..., exc_info=True)
-    - logger.warning(..., exc_info=True)
-    - logger.debug(..., exc_info=True)
-    """
-    if mock_logger.exception.called:
-        return True
-    for method_name in ("error", "warning", "debug", "info"):
-        for call in getattr(mock_logger, method_name).call_args_list:
-            if call.kwargs.get("exc_info"):
-                return True
-    return False
-
-
 # ---------------------------------------------------------------------------
-# Legacy sql_lab.handle_query_error — logging
+# Legacy sql_lab.handle_query_error — payload contains stacktrace (SHOW_STACKTRACE=True)
 # ---------------------------------------------------------------------------
 
 
-def test_legacy_handle_query_error_logs_exc_info() -> None:
-    """
-    ``handle_query_error`` must log the exception with ``exc_info=True`` so
-    that the full Python traceback appears in application logs.
-
-    Regression for #28248: operators need the traceback to debug failures.
-    Without ``exc_info=True`` the traceback is silently swallowed.
-    """
-    with (
-        patch("superset.sql_lab.db") as mock_db,
-        patch("superset.sql_lab.app") as mock_app,
-        patch("superset.sql_lab.logger") as mock_logger,
-    ):
-        mock_app.config = {"TROUBLESHOOTING_LINK": None}
-        mock_db.session = MagicMock()
-
-        from superset.sql_lab import handle_query_error
-
-        query = _make_query_mock()
-        try:
-            raise RuntimeError("boom")
-        except RuntimeError as ex:
-            handle_query_error(ex, query)
-
-    assert _was_logged_with_exc_info(mock_logger), (
-        "handle_query_error must log the exception with exc_info=True "
-        "so the traceback appears in application logs (regression for #28248)"
-    )
-
-
-# ---------------------------------------------------------------------------
-# Legacy sql_lab.handle_query_error — payload contains stacktrace
-# ---------------------------------------------------------------------------
-
-
-def test_legacy_handle_query_error_payload_includes_stacktrace() -> None:
+def test_legacy_handle_query_error_payload_includes_stacktrace_when_enabled() -> None:
     """
     The dict returned by ``handle_query_error`` must include a ``stacktrace``
-    key containing the Python traceback text.
+    key when SHOW_STACKTRACE is True.
 
     Regression for #28248: without this field, neither the UI nor log
     aggregation pipelines can surface the root cause of a query failure to
     the user or operator.
     """
+    config = {"TROUBLESHOOTING_LINK": None, "SHOW_STACKTRACE": True}
     with (
         patch("superset.sql_lab.db") as mock_db,
         patch("superset.sql_lab.app") as mock_app,
     ):
-        mock_app.config = {"TROUBLESHOOTING_LINK": None}
+        mock_app.config = config
         mock_db.session = MagicMock()
 
         from superset.sql_lab import handle_query_error
@@ -146,11 +93,47 @@ def test_legacy_handle_query_error_payload_includes_stacktrace() -> None:
 
     assert "stacktrace" in payload, (
         "handle_query_error must include 'stacktrace' in the returned payload "
-        "so debugging information is available (regression for #28248). "
+        "when SHOW_STACKTRACE=True (regression for #28248). "
         f"Got keys: {list(payload.keys())}"
     )
     assert payload["stacktrace"], (
         "stacktrace must be non-empty when an exception occurs"
+    )
+
+
+# ---------------------------------------------------------------------------
+# Legacy sql_lab.handle_query_error — no stacktrace when SHOW_STACKTRACE=False
+# ---------------------------------------------------------------------------
+
+
+def test_legacy_handle_query_error_payload_omits_stacktrace_when_disabled() -> None:
+    """
+    The dict returned by ``handle_query_error`` must NOT include a
+    ``stacktrace`` key when SHOW_STACKTRACE is False (the default).
+
+    This prevents raw Python tracebacks (file paths, module structure,
+    library versions) from being exposed to unprivileged SQL Lab users.
+    """
+    config = {"TROUBLESHOOTING_LINK": None, "SHOW_STACKTRACE": False}
+    with (
+        patch("superset.sql_lab.db") as mock_db,
+        patch("superset.sql_lab.app") as mock_app,
+    ):
+        mock_app.config = config
+        mock_db.session = MagicMock()
+
+        from superset.sql_lab import handle_query_error
+
+        query = _make_query_mock()
+        try:
+            raise RuntimeError("boom")
+        except RuntimeError as ex:
+            payload = handle_query_error(ex, query)
+
+    assert "stacktrace" not in payload, (
+        "handle_query_error must NOT include 'stacktrace' when SHOW_STACKTRACE=False "
+        "to avoid exposing internal details to unprivileged users. "
+        f"Got keys: {list(payload.keys())}"
     )
 
 
@@ -197,60 +180,25 @@ def test_legacy_get_sql_results_outer_except_logs_exc_info() -> None:
 
 
 # ---------------------------------------------------------------------------
-# New celery_task._handle_query_error — logging
+# New celery_task._handle_query_error — stacktrace present (SHOW_STACKTRACE=True)
 # ---------------------------------------------------------------------------
 
 
-def test_new_handle_query_error_logs_exc_info() -> None:
-    """
-    ``superset.sql.execution.celery_task._handle_query_error`` must log the
-    exception with ``exc_info=True``.
-
-    Regression for #28248: the newer execution path shares the same silent-
-    traceback bug as the legacy path.
-    """
-    from superset.sql.execution import celery_task as ct
-
-    query = _make_query_mock()
-
-    with (
-        patch.object(ct, "db") as mock_db,
-        patch.object(ct, "app") as mock_app,
-        patch.object(ct, "logger") as mock_logger,
-    ):
-        mock_app.config = {"TROUBLESHOOTING_LINK": None}
-        mock_db.session = MagicMock()
-
-        try:
-            raise RuntimeError("boom in new path")
-        except RuntimeError as ex:
-            ct._handle_query_error(ex, query)
-
-    assert _was_logged_with_exc_info(mock_logger), (
-        "_handle_query_error in celery_task.py must log with exc_info=True "
-        "(regression for #28248)"
-    )
-
-
-# ---------------------------------------------------------------------------
-# New celery_task._handle_query_error — payload contains stacktrace
-# ---------------------------------------------------------------------------
-
-
-def test_new_handle_query_error_payload_includes_stacktrace() -> None:
+def test_new_handle_query_error_payload_includes_stacktrace_when_enabled() -> None:
     """
     The dict returned by
     ``superset.sql.execution.celery_task._handle_query_error`` must include a
-    ``stacktrace`` key.
+    ``stacktrace`` key when SHOW_STACKTRACE is True.
 
     Regression for #28248.
     """
     from superset.sql.execution import celery_task as ct
 
     query = _make_query_mock()
+    config = {"TROUBLESHOOTING_LINK": None, "SHOW_STACKTRACE": True}
 
     with patch.object(ct, "db") as mock_db, patch.object(ct, "app") as mock_app:
-        mock_app.config = {"TROUBLESHOOTING_LINK": None}
+        mock_app.config = config
         mock_db.session = MagicMock()
 
         try:
@@ -260,11 +208,45 @@ def test_new_handle_query_error_payload_includes_stacktrace() -> None:
 
     assert "stacktrace" in payload, (
         "_handle_query_error must include 'stacktrace' in the returned payload "
-        "(regression for #28248). "
+        "when SHOW_STACKTRACE=True (regression for #28248). "
         f"Got keys: {list(payload.keys())}"
     )
     assert payload["stacktrace"], (
         "stacktrace must be non-empty when an exception occurs"
+    )
+
+
+# ---------------------------------------------------------------------------
+# New celery_task._handle_query_error — no stacktrace when SHOW_STACKTRACE=False
+# ---------------------------------------------------------------------------
+
+
+def test_new_handle_query_error_payload_omits_stacktrace_when_disabled() -> None:
+    """
+    The dict returned by
+    ``superset.sql.execution.celery_task._handle_query_error`` must NOT
+    include a ``stacktrace`` key when SHOW_STACKTRACE is False (the default).
+
+    This prevents raw Python tracebacks from being exposed to unprivileged users.
+    """
+    from superset.sql.execution import celery_task as ct
+
+    query = _make_query_mock()
+    config = {"TROUBLESHOOTING_LINK": None, "SHOW_STACKTRACE": False}
+
+    with patch.object(ct, "db") as mock_db, patch.object(ct, "app") as mock_app:
+        mock_app.config = config
+        mock_db.session = MagicMock()
+
+        try:
+            raise RuntimeError("boom in new path")
+        except RuntimeError as ex:
+            payload = ct._handle_query_error(ex, query)
+
+    assert "stacktrace" not in payload, (
+        "_handle_query_error must NOT include 'stacktrace' when SHOW_STACKTRACE=False "
+        "to avoid exposing internal details to unprivileged users. "
+        f"Got keys: {list(payload.keys())}"
     )
 
 
