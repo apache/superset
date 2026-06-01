@@ -341,17 +341,14 @@ async def test_get_report_info_with_chart(mock_find, mcp_server):
         assert data["dashboard_id"] is None
 
 
-def test_list_reports_request_rejects_invalid_order_column():
-    """order_column is validated against REPORT_SORTABLE_COLUMNS."""
+def test_list_reports_request_schema_accepts_any_order_column():
+    """The request schema passes order_column through; ModelListCore enforces
+    the REPORT_SORTABLE_COLUMNS allowlist at query time, not at schema validation."""
     from superset.mcp_service.common.schema_discovery import REPORT_SORTABLE_COLUMNS
 
     assert "invalid_column" not in REPORT_SORTABLE_COLUMNS
-    # The validation happens inside ModelListCore, not the request schema,
-    # so we just verify the sortable list doesn't include bad columns.
     request = ListReportsRequest(page=1, page_size=10, order_column="invalid_column")
-    assert (
-        request.order_column == "invalid_column"
-    )  # schema accepts it; core rejects it
+    assert request.order_column == "invalid_column"
 
 
 @patch("superset.daos.report.ReportScheduleDAO.find_by_id")
@@ -555,11 +552,16 @@ async def test_get_report_info_name_with_instruction_like_content_is_sanitized(
 async def test_list_reports_returns_feature_disabled_error_when_alert_reports_off(
     mcp_server,
 ):
-    """list_reports returns a FeatureDisabled error when ALERT_REPORTS is off."""
-    with patch("superset.is_feature_enabled", return_value=False):
+    """list_reports returns a FeatureDisabled error when ALERT_REPORTS is off
+    and never reaches the DAO layer."""
+    with (
+        patch("superset.is_feature_enabled", return_value=False),
+        patch("superset.daos.report.ReportScheduleDAO.list") as mock_list,
+    ):
         async with Client(mcp_server) as client:
             result = await client.call_tool("list_reports", {})
             data = json.loads(result.content[0].text)
+        mock_list.assert_not_called()
 
     assert data["error_type"] == "FeatureDisabled"
     assert "disabled" in data["error"].lower()
@@ -569,13 +571,18 @@ async def test_list_reports_returns_feature_disabled_error_when_alert_reports_of
 async def test_get_report_info_returns_feature_disabled_error_when_alert_reports_off(
     mcp_server,
 ):
-    """get_report_info returns a FeatureDisabled error when ALERT_REPORTS is off."""
-    with patch("superset.is_feature_enabled", return_value=False):
+    """get_report_info returns a FeatureDisabled error when ALERT_REPORTS is off
+    and never reaches the DAO layer."""
+    with (
+        patch("superset.is_feature_enabled", return_value=False),
+        patch("superset.daos.report.ReportScheduleDAO.find_by_id") as mock_find,
+    ):
         async with Client(mcp_server) as client:
             result = await client.call_tool(
                 "get_report_info", {"request": {"identifier": 1}}
             )
             data = json.loads(result.content[0].text)
+        mock_find.assert_not_called()
 
     assert data["error_type"] == "FeatureDisabled"
     assert "disabled" in data["error"].lower()

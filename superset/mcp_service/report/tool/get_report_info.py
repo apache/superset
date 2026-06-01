@@ -20,6 +20,7 @@ Get report info FastMCP tool.
 """
 
 import logging
+from datetime import datetime, timezone
 
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
@@ -110,12 +111,6 @@ async def get_report_info(
         return result
 
     except Exception as exc:
-        logger.warning(
-            "Report information retrieval failed: identifier=%s, error=%s",
-            request.identifier,
-            str(exc),
-            exc_info=True,
-        )
         await ctx.error(
             "Report information retrieval failed: identifier=%s, error=%s, "
             "error_type=%s"
@@ -125,4 +120,8 @@ async def get_report_info(
                 type(exc).__name__,
             )
         )
-        raise
+        return ReportError(
+            error=f"Failed to get report info: {str(exc)}",
+            error_type="InternalError",
+            timestamp=datetime.now(timezone.utc),
+        )

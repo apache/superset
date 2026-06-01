@@ -92,7 +92,7 @@ class ReportInfo(BaseModel):
     )
     chart_id: int | None = Field(None, description="Associated chart ID, if any")
     owners: List[Any] | None = Field(
-        None, description="List of owners (filtered by privacy controls)"
+        None, description="List of owners (always empty; excluded by privacy policy)"
     )
     changed_on: str | datetime | None = Field(
         None, description="Last modification timestamp"
