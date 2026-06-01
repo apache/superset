@@ -76,9 +76,6 @@ def import_chart(
     cannot resurrect via re-import, and we raise rather than silently
     returning a soft-deleted row to callers without write permission
     (which would let them reattach dashboards to a deleted chart).
-
-    See specs/sc-103157-soft-deletes/bypass-primer.md for the cross-entity
-    rules this implementation follows.
     """
     can_write = ignore_permissions or security_manager.can_access("can_write", "Chart")
     from superset.commands.importers.v1.utils import find_existing_for_import
