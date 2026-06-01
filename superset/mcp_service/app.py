@@ -153,6 +153,11 @@ Themes:
 - list_themes: List themes with advanced filters (1-based pagination)
 - get_theme_info: Get theme details by ID or UUID (includes json_data configuration)
 
+Alerts & Reports:
+- list_reports: List alerts and reports with filtering and search (1-based pagination)
+- get_report_info: Get detailed alert/report schedule info by ID
+
+
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
 - get_dataset_info: Get detailed dataset information by ID (includes columns/metrics)
@@ -689,6 +694,10 @@ from superset.mcp_service.explore.tool import (  # noqa: F401, E402
 from superset.mcp_service.query.tool import (  # noqa: F401, E402
     get_query_info,
     list_queries,
+)
+from superset.mcp_service.report.tool import (  # noqa: F401, E402
+    get_report_info,
+    list_reports,
 )
 from superset.mcp_service.saved_query.tool import (  # noqa: F401, E402
     get_saved_query_info,
