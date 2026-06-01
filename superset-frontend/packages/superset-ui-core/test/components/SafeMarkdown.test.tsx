@@ -20,6 +20,7 @@ import { render } from '@testing-library/react';
 import {
   getOverrideHtmlSchema,
   SafeMarkdown,
+  transformMarkdownLinkUri,
 } from '../../src/components/SafeMarkdown/SafeMarkdown';
 
 /**
@@ -49,6 +50,46 @@ describe('getOverrideHtmlSchema', () => {
     expect(result.clobberPrefix).toEqual('custom-prefix');
     expect(result.attributes).toEqual({ '*': ['size', 'src'], h1: ['style'] });
     expect(result.tagNames).toEqual(['h1', 'h2', 'h3', 'iframe']);
+  });
+});
+
+describe('transformMarkdownLinkUri', () => {
+  test('should drop javascript: protocol links', () => {
+    expect(transformMarkdownLinkUri('javascript:alert(1)')).toEqual('');
+  });
+
+  test('should drop links with leading whitespace and mixed case', () => {
+    expect(transformMarkdownLinkUri('  JavaScript:alert(1)')).toEqual('');
+  });
+
+  test('should drop vbscript: protocol links', () => {
+    expect(transformMarkdownLinkUri('vbscript:msgbox(1)')).toEqual('');
+  });
+
+  test('should drop data: protocol links', () => {
+    expect(transformMarkdownLinkUri('data:text/html,<script>')).toEqual('');
+  });
+
+  test('should leave http(s) links unchanged', () => {
+    expect(transformMarkdownLinkUri('https://example.com')).toEqual(
+      'https://example.com',
+    );
+  });
+
+  test('should leave mailto links unchanged', () => {
+    expect(transformMarkdownLinkUri('mailto:a@b.com')).toEqual(
+      'mailto:a@b.com',
+    );
+  });
+
+  test('should leave relative paths unchanged', () => {
+    expect(transformMarkdownLinkUri('/relative/path')).toEqual(
+      '/relative/path',
+    );
+  });
+
+  test('should leave anchor links unchanged', () => {
+    expect(transformMarkdownLinkUri('#anchor')).toEqual('#anchor');
   });
 });
 

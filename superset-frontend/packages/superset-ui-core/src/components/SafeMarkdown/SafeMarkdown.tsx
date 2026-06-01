@@ -25,6 +25,17 @@ import remarkGfm from 'remark-gfm';
 import { mergeWith } from 'lodash';
 import { FeatureFlag, isFeatureEnabled } from '../../utils';
 
+// Reject link protocols that can execute script; allow everything else
+// (including the custom schemes supported since #26211).
+const DANGEROUS_LINK_PROTOCOL = /^\s*(?:javascript|vbscript|data):/i;
+
+export function transformMarkdownLinkUri(uri: string): string {
+  if (typeof uri !== 'string') {
+    return '';
+  }
+  return DANGEROUS_LINK_PROTOCOL.test(uri) ? '' : uri;
+}
+
 interface SafeMarkdownProps {
   source: string;
   htmlSanitization?: boolean;
@@ -82,7 +93,7 @@ export function SafeMarkdown({
       rehypePlugins={rehypePlugins}
       remarkPlugins={[remarkGfm]}
       skipHtml={false}
-      transformLinkUri={null}
+      transformLinkUri={transformMarkdownLinkUri}
     >
       {source}
     </ReactMarkdown>
