@@ -88,11 +88,15 @@ function assertSafeNavigationUrl(url: string): string {
  * — never a silent navigation to the rejected target.
  *
  * Each `window.*` sink lives inside an if-block whose guard is composed
- * exclusively of inline barriers CodeQL recognises in its default model
- * (`String.startsWith`, `String.includes`, constant equality on
- * `URL.protocol`, property reads on `URL.username` / `URL.password`).
- * Router-relative and external-scheme code paths are split so each sink
- * has a complete, function-call-free safety check immediately above it.
+ * exclusively of inline barriers CodeQL recognises in its default model:
+ * router-relative paths are gated by `new URL(target, origin)` plus an
+ * `origin === window.location.origin` equality (the canonical sanitiser
+ * barrier for `js/client-side-unvalidated-url-redirection` and
+ * `js/xss-through-dom`); external URLs are gated by `String.includes` for
+ * backslashes, constant equality on `URL.protocol`, and property reads on
+ * `URL.username` / `URL.password`. Router-relative and external-scheme code
+ * paths are split so each sink has a complete, function-call-free safety
+ * check immediately above it.
  *
  * @internal
  */
@@ -101,31 +105,45 @@ export function navigateTo(
   options?: { newWindow?: boolean; assign?: boolean },
 ): void {
   const target = ensureAppRoot(url);
-  // Router-relative fast-path: `startsWith('/')` + `!startsWith('//')` +
-  // `!includes('\\')` is the canonical CodeQL-recognised "same-origin"
-  // barrier triple. Backslash check guards against browser-normalised
-  // `/\evil.com` → `//evil.com` (AF-1 hardening).
-  if (
-    target.startsWith('/') &&
-    !target.startsWith('//') &&
-    !target.includes('\\')
-  ) {
-    if (options?.newWindow) {
-      window.open(target, '_blank', NEW_TAB_FEATURES);
-    } else if (options?.assign) {
-      window.location.assign(target);
-    } else {
-      window.location.href = target;
+  // Backslash rejection (AF-1): browsers normalise `/\evil.com` →
+  // `//evil.com` in the special-scheme authority. Done as a pre-check
+  // before the URL constructor barrier because `new URL('/\\evil', origin)`
+  // would percent-encode the backslash and pass the origin check — visually
+  // safe but masking attacker intent.
+  if (!target.includes('\\')) {
+    // Router-relative path: anchor the input at the current origin and
+    // verify the resulting URL stays same-origin. `URL.origin ===
+    // window.location.origin` is the canonical CodeQL-recognised
+    // sanitiser barrier for `js/client-side-unvalidated-url-redirection`
+    // and `js/xss-through-dom` on `window.location.*` / `window.open`
+    // sinks. The sink-fed value is built from verified URL properties
+    // (`pathname` + `search` + `hash`), so the data-flow chain from
+    // `url` (source) to the sink is broken by the parse + origin check.
+    let sameOrigin: URL | null;
+    try {
+      sameOrigin = new URL(target, window.location.origin);
+    } catch {
+      sameOrigin = null;
     }
-    return;
+    if (
+      sameOrigin !== null &&
+      sameOrigin.origin === window.location.origin
+    ) {
+      const safePath = `${sameOrigin.pathname}${sameOrigin.search}${sameOrigin.hash}`;
+      if (options?.newWindow) {
+        window.open(safePath, '_blank', NEW_TAB_FEATURES);
+      } else if (options?.assign) {
+        window.location.assign(safePath);
+      } else {
+        window.location.href = safePath;
+      }
+      return;
+    }
   }
-  // External-URL path: parse the input, verify the scheme is in our
-  // allowlist via literal equality (CodeQL recognises constant-equality
-  // barriers on `URL.protocol`), verify no userinfo, then feed the URL
-  // constructor's normalised `href` to the sink. `parsed.href` is a fresh
-  // string derived from the verified URL properties, so the data-flow
-  // chain from `url` (source) to the sink is broken by the parse +
-  // property-check pair.
+  // External-URL path: parse, verify scheme via literal equality
+  // (CodeQL recognises constant-equality barriers on `URL.protocol`),
+  // verify no userinfo (nit-3), then feed the URL constructor's
+  // normalised `href` to the sink.
   let parsed: URL | null;
   try {
     parsed = new URL(target);
@@ -154,15 +172,18 @@ export function navigateTo(
   }
   // eslint-disable-next-line no-console -- guarded surface, observable in dev.
   console.error('navigationUtils.navigateTo refused unsafe URL:', url);
-  // Fallback to deployment home. The same router-relative barrier triple
-  // gates the sink, so CodeQL sees the sanitiser here too.
+  // Fallback to deployment home. Same URL-constructor + origin barrier.
   const home = ensureAppRoot('/');
-  if (
-    home.startsWith('/') &&
-    !home.startsWith('//') &&
-    !home.includes('\\')
-  ) {
-    window.location.href = home;
+  if (!home.includes('\\')) {
+    let homeUrl: URL | null;
+    try {
+      homeUrl = new URL(home, window.location.origin);
+    } catch {
+      homeUrl = null;
+    }
+    if (homeUrl !== null && homeUrl.origin === window.location.origin) {
+      window.location.href = `${homeUrl.pathname}${homeUrl.search}${homeUrl.hash}`;
+    }
   }
 }
 
@@ -184,18 +205,29 @@ export function navigateWithState(
   options?: { replace?: boolean },
 ): void {
   const target = ensureAppRoot(url);
-  // Router-relative fast-path (see `navigateTo` for rationale).
-  if (
-    target.startsWith('/') &&
-    !target.startsWith('//') &&
-    !target.includes('\\')
-  ) {
-    if (options?.replace) {
-      window.history.replaceState(state, '', target);
-    } else {
-      window.history.pushState(state, '', target);
+  // Router-relative path: anchor at current origin and verify the resulting
+  // URL stays same-origin (see `navigateTo` for the rationale on why this
+  // URL-constructor + origin-equality form is the CodeQL-recognised barrier
+  // rather than the `startsWith('/')` triple).
+  if (!target.includes('\\')) {
+    let sameOrigin: URL | null;
+    try {
+      sameOrigin = new URL(target, window.location.origin);
+    } catch {
+      sameOrigin = null;
     }
-    return;
+    if (
+      sameOrigin !== null &&
+      sameOrigin.origin === window.location.origin
+    ) {
+      const safePath = `${sameOrigin.pathname}${sameOrigin.search}${sameOrigin.hash}`;
+      if (options?.replace) {
+        window.history.replaceState(state, '', safePath);
+      } else {
+        window.history.pushState(state, '', safePath);
+      }
+      return;
+    }
   }
   // External-URL path (see `navigateTo` for rationale).
   let parsed: URL | null;
