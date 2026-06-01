@@ -153,13 +153,14 @@ class TestDatasetSoftDelete(SupersetTestCase):
         # Soft-delete the dataset
         self.client.delete(f"/api/v1/dataset/{dataset_id}")
 
-        # Dependent charts should still be active (no cascade)
+        # Dependent charts should still be active (no cascade). On this
+        # branch ``Slice`` does not yet carry ``deleted_at`` (added by the
+        # charts soft-delete PR), so we only verify the row is still
+        # loadable through the default visibility-filtered query — which
+        # would return None if the chart had been soft-deleted.
         for chart_id in dependent_chart_ids:
             chart = db.session.query(Slice).filter(Slice.id == chart_id).one_or_none()
             assert chart is not None, f"Chart {chart_id} should still be active"
-            assert chart.deleted_at is None, (
-                f"Chart {chart_id} should not be soft-deleted"
-            )
 
         # Cleanup
         row = (

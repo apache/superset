@@ -1360,11 +1360,14 @@ def test_import_dataset_multiple_results_fallback_finds_soft_deleted(
     db.session.add(soft_deleted)
     db.session.flush()
 
-    # Should return the soft-deleted row (the only one matching the
-    # uuid), not raise NoResultFound.
+    # Should return the row (the only one matching the uuid), not raise
+    # NoResultFound. The importer clears ``deleted_at`` on the soft-deleted
+    # match before ``import_from_dict`` is called, so the row returned by
+    # the fallback no longer reports as soft-deleted — what we verify here
+    # is that the bypass found the row at all rather than masking the
+    # original ``MultipleResultsFound`` with a misleading error.
     result = import_dataset(config)
     assert result.uuid == config["uuid"]
-    assert result.deleted_at is not None
 
 
 def test_import_soft_deleted_dataset_ignore_permissions_restores_in_place(
