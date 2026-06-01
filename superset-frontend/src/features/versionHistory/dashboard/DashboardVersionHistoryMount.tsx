@@ -70,28 +70,40 @@ function DashboardPreviewBridge({
   ctxRef.current = ctx;
 
   // Enter preview when a snapshot is available for the requested uuid.
+  // ``enterVersionPreview`` is now async (it may need to fetch missing
+  // chart slices the snapshot's layout references), so we guard against
+  // a rapid A → B switch landing the older response over the newer.
   useEffect(() => {
-    if (!previewVersionUuid || !snapshot) return;
-    if (lastAppliedRef.current === previewVersionUuid) return;
-    const entered = dispatch(
-      enterVersionPreview(
-        previewVersionUuid,
-        snapshot as Parameters<typeof enterVersionPreview>[1],
-      ),
-    ) as unknown as boolean;
-    if (entered) {
-      lastAppliedRef.current = previewVersionUuid;
-    } else {
-      // Snapshot lacked usable layout structure — surface the failure to
-      // the user and back out of preview mode so the URL/banner don't
-      // imply success.
+    if (!previewVersionUuid || !snapshot) return undefined;
+    if (lastAppliedRef.current === previewVersionUuid) return undefined;
+    let stale = false;
+    const target = previewVersionUuid;
+    (
       dispatch(
-        addDangerToast(
-          t('Snapshot is missing layout structure, cannot preview'),
+        enterVersionPreview(
+          previewVersionUuid,
+          snapshot as Parameters<typeof enterVersionPreview>[1],
         ),
-      );
-      ctxRef.current.exitPreview();
-    }
+      ) as unknown as Promise<boolean>
+    ).then(entered => {
+      if (stale) return;
+      if (entered) {
+        lastAppliedRef.current = target;
+      } else {
+        // Snapshot lacked usable layout structure — surface the failure
+        // to the user and back out of preview mode so the URL/banner
+        // don't imply success.
+        dispatch(
+          addDangerToast(
+            t('Snapshot is missing layout structure, cannot preview'),
+          ),
+        );
+        ctxRef.current.exitPreview();
+      }
+    });
+    return () => {
+      stale = true;
+    };
   }, [dispatch, previewVersionUuid, snapshot]);
 
   // Exit when context clears the preview, or on unmount.

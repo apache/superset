@@ -191,3 +191,48 @@ export function fetchSlices(
       );
   };
 }
+
+/**
+ * Fetches slice entities for a specific list of chart IDs. Used by the
+ * version-history preview when a snapshot's ``position_json`` references
+ * charts that aren't in the current ``sliceEntities.slices`` map (e.g.
+ * the snapshot is older than a chart deletion).
+ *
+ * Returns the slices that were fetched, keyed by id. Missing/forbidden
+ * ids silently drop out of the result — callers should treat the
+ * difference as "still unavailable" and surface a fallback affordance.
+ */
+export async function fetchSlicesByIds(
+  ids: number[],
+): Promise<{ [id: number]: Slice }> {
+  if (!ids.length) return {};
+  // ``id IN [...]`` filter — matches the convention used elsewhere in the
+  // codebase (see useDeckLayerMetadata.ts, RoleListEditModal.tsx).
+  const query = rison.encode({
+    columns: [
+      'changed_on_delta_humanized',
+      'changed_on_utc',
+      'datasource_id',
+      'datasource_type',
+      'datasource_url',
+      'datasource_name_text',
+      'description_markeddown',
+      'description',
+      'id',
+      'params',
+      'slice_name',
+      'thumbnail_url',
+      'url',
+      'viz_type',
+      'owners.id',
+      'created_by.id',
+    ],
+    filters: [{ col: 'id', opr: 'in', value: ids }],
+    page_size: ids.length,
+  });
+  const { json } = await SupersetClient.get({
+    endpoint: `/api/v1/chart/?q=${query}`,
+  });
+  const { result } = json as { result: any[] };
+  return parseResult(result);
+}

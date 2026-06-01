@@ -315,7 +315,7 @@ test('exitVersionPreview thunk is a no-op when no preview is active', () => {
   ).toBeUndefined();
 });
 
-test('enterVersionPreview merges live slices when the snapshot omits them', () => {
+test('enterVersionPreview merges live slices when the snapshot omits them', async () => {
   // The dashboard snapshot endpoint does not currently emit a ``slices``
   // array. If we replaced sliceEntities.slices with {} on enter, every
   // CHART- component in the layout would resolve to undefined and crash
@@ -339,13 +339,13 @@ test('enterVersionPreview merges live slices when the snapshot omits them', () =
       dispatched.push(a as { type: string });
     }
   };
-  const result = enterVersionPreview('11111111-2222-3333-4444-555555555555', {
-    // No ``slices`` field — matches Mike's current backend payload.
-    position_json: '{"ROOT_ID":{"id":"root"},"GRID_ID":{"id":"grid"}}',
-  } as unknown as Parameters<typeof enterVersionPreview>[1])(
-    dispatch as never,
-    () => stateNoCapture as never,
-  );
+  const result = await enterVersionPreview(
+    '11111111-2222-3333-4444-555555555555',
+    {
+      // No ``slices`` field — matches Mike's current backend payload.
+      position_json: '{"ROOT_ID":{"id":"root"},"GRID_ID":{"id":"grid"}}',
+    } as unknown as Parameters<typeof enterVersionPreview>[1],
+  )(dispatch as never, () => stateNoCapture as never);
   expect(result).toBe(true);
   const enter = dispatched.find(a => a.type === ENTER_VERSION_PREVIEW)!;
   // Live slices must survive the swap.
@@ -537,7 +537,7 @@ test('dashboardLayout reducer warns and returns state if EXIT lacks restoreLayou
   }
 });
 
-test('enterVersionPreview bails when position_json lacks ROOT_ID/GRID_ID', () => {
+test('enterVersionPreview bails when position_json lacks ROOT_ID/GRID_ID', async () => {
   // Malformed layout should not be dispatched — the dashboard renderer
   // would otherwise crash trying to walk an empty structure.
   const state = {
@@ -556,7 +556,7 @@ test('enterVersionPreview bails when position_json lacks ROOT_ID/GRID_ID', () =>
     }
   };
   // Missing position_json entirely.
-  const result = enterVersionPreview(
+  const result = await enterVersionPreview(
     '11111111-2222-3333-4444-555555555555',
     {} as unknown as Parameters<typeof enterVersionPreview>[1],
   )(dispatch as never, () => state as never);
@@ -566,11 +566,130 @@ test('enterVersionPreview bails when position_json lacks ROOT_ID/GRID_ID', () =>
   ).toBeUndefined();
 
   // Empty layout object also bails.
-  const result2 = enterVersionPreview('22222222-2222-3333-4444-555555555555', {
-    position_json: '{}',
-  } as unknown as Parameters<typeof enterVersionPreview>[1])(
+  const result2 = await enterVersionPreview(
+    '22222222-2222-3333-4444-555555555555',
+    {
+      position_json: '{}',
+    } as unknown as Parameters<typeof enterVersionPreview>[1],
+  )(dispatch as never, () => state as never);
+  expect(result2).toBe(false);
+});
+
+test('enterVersionPreview fetches chart slices referenced by the snapshot but missing from live state', async () => {
+  // Reproduced live (dashboard 9, chart id 100 referenced in v2 but
+  // removed in v3): without the fetch, preview's mergedSlices is
+  // missing chart 100 and the renderer falls back to an empty slot +
+  // "no chart definition" toast. With the fetch, the missing chart is
+  // restored from /api/v1/chart/ and rendered correctly.
+  jest.resetModules();
+  jest.doMock('src/dashboard/actions/sliceEntities', () => {
+    const actual = jest.requireActual('src/dashboard/actions/sliceEntities');
+    return {
+      ...actual,
+      fetchSlicesByIds: jest.fn(async (ids: number[]) =>
+        Object.fromEntries(
+          ids.map(id => [id, { slice_id: id, slice_name: `Fetched ${id}` }]),
+        ),
+      ),
+    };
+  });
+  const { enterVersionPreview: enterPreview, ENTER_VERSION_PREVIEW: ENTER } =
+    // eslint-disable-next-line global-require
+    require('src/dashboard/actions/dashboardState');
+
+  const liveSlices = {
+    7: { slice_id: 7, slice_name: 'Live A' },
+  };
+  const state = {
+    dashboardState: { versionPreview: null },
+    sliceEntities: { slices: liveSlices, isLoading: false },
+    dashboardLayout: { present: { ROOT_ID: {}, GRID_ID: {} } },
+    dashboardInfo: {},
+  };
+  const dispatched: Array<{ type: string; [k: string]: unknown }> = [];
+  const dispatch = (a: unknown) => {
+    if (
+      a &&
+      typeof a === 'object' &&
+      'type' in (a as Record<string, unknown>)
+    ) {
+      dispatched.push(a as { type: string });
+    }
+  };
+  // Layout references chart 100 (NOT in liveSlices, NOT in snapshot.slices).
+  const positionJson = JSON.stringify({
+    ROOT_ID: { id: 'root' },
+    GRID_ID: { id: 'grid' },
+    'CHART-foo': { type: 'CHART', meta: { chartId: 100 } },
+  });
+  const result = await enterPreview('99999999-aaaa-bbbb-cccc-dddddddddddd', {
+    position_json: positionJson,
+  } as unknown as Parameters<typeof enterPreview>[1])(
     dispatch as never,
     () => state as never,
   );
-  expect(result2).toBe(false);
+  expect(result).toBe(true);
+  const enter = dispatched.find(
+    (a: { type: string }) => a.type === ENTER,
+  ) as unknown as { newSliceEntities: { slices: Record<string, unknown> } };
+  expect(enter).toBeDefined();
+  // The fetched chart 100 is now merged in alongside the live chart 7.
+  expect(enter.newSliceEntities.slices[100]).toMatchObject({
+    slice_id: 100,
+    slice_name: 'Fetched 100',
+  });
+  expect(enter.newSliceEntities.slices[7]).toMatchObject({
+    slice_id: 7,
+    slice_name: 'Live A',
+  });
+});
+
+test('enterVersionPreview surfaces a toast when referenced charts are hard-deleted', async () => {
+  // If the snapshot references a chart that the /api/v1/chart/ endpoint
+  // doesn't return (hard-deleted, no longer permitted), we still enter
+  // preview but surface a clearer message than the renderer's stock
+  // "no chart definition" toast.
+  jest.resetModules();
+  jest.doMock('src/dashboard/actions/sliceEntities', () => {
+    const actual = jest.requireActual('src/dashboard/actions/sliceEntities');
+    return {
+      ...actual,
+      fetchSlicesByIds: jest.fn(async () => ({})),
+    };
+  });
+  const { enterVersionPreview: enterPreview } =
+    // eslint-disable-next-line global-require
+    require('src/dashboard/actions/dashboardState');
+
+  const state = {
+    dashboardState: { versionPreview: null },
+    sliceEntities: { slices: {}, isLoading: false },
+    dashboardLayout: { present: { ROOT_ID: {}, GRID_ID: {} } },
+    dashboardInfo: {},
+  };
+  const dispatched: Array<{ type?: string; [k: string]: unknown }> = [];
+  const dispatch = (a: unknown) => {
+    if (a && typeof a === 'object') {
+      dispatched.push(a as { type?: string });
+    }
+  };
+  const positionJson = JSON.stringify({
+    ROOT_ID: { id: 'root' },
+    GRID_ID: { id: 'grid' },
+    'CHART-gone': { type: 'CHART', meta: { chartId: 777 } },
+  });
+  await enterPreview('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', {
+    position_json: positionJson,
+  } as unknown as Parameters<typeof enterPreview>[1])(
+    dispatch as never,
+    () => state as never,
+  );
+  // A toast action was dispatched. Toast action types vary; just check
+  // for any TOAST-ish action.
+  expect(
+    dispatched.find(a => {
+      const t = (a as { type?: string }).type;
+      return typeof t === 'string' && t.includes('TOAST');
+    }),
+  ).toBeDefined();
 });

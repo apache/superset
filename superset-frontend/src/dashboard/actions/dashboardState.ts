@@ -45,6 +45,9 @@ import {
   SAVE_TYPE_OVERWRITE_CONFIRMED,
 } from 'src/dashboard/util/constants';
 import { DASHBOARD_HEADER_TYPE } from 'src/dashboard/util/componentTypes';
+import getChartIdsFromLayout from 'src/dashboard/util/getChartIdsFromLayout';
+import type { DashboardLayout } from 'src/dashboard/types';
+import { fetchSlicesByIds } from './sliceEntities';
 import {
   getCrossFiltersConfiguration,
   isCrossFiltersEnabled,
@@ -1641,7 +1644,7 @@ function hasValidLayoutStructure(
  */
 export const enterVersionPreview =
   (versionUuid: string, snapshot: VersionSnapshotPayload) =>
-  (dispatch: AppDispatch, getState: GetState): boolean => {
+  async (dispatch: AppDispatch, getState: GetState): Promise<boolean> => {
     const parsedLayout = parsePositionJson(snapshot.position_json);
     if (!hasValidLayoutStructure(parsedLayout)) {
       // Bail BEFORE dispatching — otherwise the renderer crashes trying to
@@ -1719,7 +1722,53 @@ export const enterVersionPreview =
     const liveSlices =
       (capturedSliceEntities as { slices?: Record<string, unknown> }).slices ??
       {};
-    const mergedSlices = { ...liveSlices, ...snapshotSlices };
+
+    // The snapshot's layout may reference chart ids that the live
+    // ``sliceEntities`` no longer has (chart removed from the dashboard
+    // after this version was committed, chart hard-deleted, etc.).
+    // Without fetching those, the renderer falls back to an empty
+    // chart slot + a "no chart definition" toast — verified live on
+    // dashboard 9 (chart id 100 referenced in v2, removed in v3).
+    const referencedChartIds = getChartIdsFromLayout(
+      parsedLayout as DashboardLayout,
+    );
+    const missingIds = referencedChartIds.filter(
+      id => !(id in liveSlices) && !(id in snapshotSlices),
+    );
+    let fetchedSlices: Record<string, unknown> = {};
+    if (missingIds.length > 0) {
+      try {
+        fetchedSlices = (await fetchSlicesByIds(missingIds)) as Record<
+          string,
+          unknown
+        >;
+      } catch (e) {
+        // Don't block preview entry on a slice fetch failure — the
+        // renderer's existing empty-slot fallback is strictly less bad
+        // than refusing the whole preview. The fetch helper logs to the
+        // network tab; user-visible "missing" charts render as before.
+        logging.warn('fetchSlicesByIds failed during preview entry', e);
+      }
+      // Anything still missing was actually deleted (404 in the response).
+      // Surface that as a clearer toast than the renderer's generic
+      // "no chart definition" message.
+      const stillMissing = missingIds.filter(id => !(id in fetchedSlices));
+      if (stillMissing.length > 0) {
+        dispatch(
+          addDangerToast(
+            t(
+              'Some charts in this version no longer exist and cannot be previewed.',
+            ),
+          ),
+        );
+      }
+    }
+
+    const mergedSlices = {
+      ...liveSlices,
+      ...fetchedSlices,
+      ...snapshotSlices,
+    };
     dispatch({
       type: ENTER_VERSION_PREVIEW,
       versionUuid,
