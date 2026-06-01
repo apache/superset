@@ -40,9 +40,11 @@ import { SingleValueType } from './SingleValueType';
 type InputValue = number | null;
 type RangeValue = [InputValue, InputValue];
 
+/* WCAG 1.4.11: Divider text needs 3:1 contrast — colorSplit (~#f0f0f0) is only ~1.04:1 on white.
+   Use colorTextTertiary (~3.54:1 on white) instead. */
 const StyledDivider = styled.span`
   margin: 0 ${({ theme }) => theme.sizeUnit * 3}px;
-  color: ${({ theme }) => theme.colorSplit};
+  color: ${({ theme }) => theme.colorTextTertiary};
   font-weight: ${({ theme }) => theme.fontWeightStrong};
   font-size: ${({ theme }) => theme.fontSize}px;
   align-content: center;
