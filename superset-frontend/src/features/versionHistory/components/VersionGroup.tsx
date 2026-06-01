@@ -94,9 +94,13 @@ const VersionGroup = ({
               save={row}
               selected={selectedVersionUuid === row.version_uuid}
               isCurrent={currentVersionUuid === row.version_uuid}
-              onSelect={() => onSelect(row.version_uuid)}
-              onRestore={() => onRestore(row)}
-              onOpenAsNew={onOpenAsNew ? () => onOpenAsNew(row) : undefined}
+              // Pass parent callbacks as-is; VersionItem invokes them
+              // with the row identity. Avoids per-row lambdas which would
+              // break VersionItem's ``memo()`` and re-render every row
+              // on every panel state change.
+              onSelect={onSelect}
+              onRestore={onRestore}
+              onOpenAsNew={onOpenAsNew}
             />
           );
         })}

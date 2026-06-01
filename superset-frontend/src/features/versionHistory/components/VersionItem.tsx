@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo, useMemo } from 'react';
+import { memo, useCallback, useMemo } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
-import { Dropdown, Icons, Tag } from '@superset-ui/core/components';
+import { Dropdown, Icons, Tag, Tooltip } from '@superset-ui/core/components';
 import type { MenuProps } from '@superset-ui/core/components/Menu';
 import { EntityType } from '../types';
 import { ActivitySaveRow } from '../utils/groupActivity';
@@ -29,15 +29,20 @@ import {
   formatVersionUser,
   isAiAuthor,
 } from '../utils/formatVersionUser';
+import { iconForSave, totalChartImpact } from '../utils/changeKindIcon';
 
 interface Props {
   entityType: EntityType;
   save: ActivitySaveRow;
   selected: boolean;
   isCurrent: boolean;
-  onSelect: () => void;
-  onRestore: () => void;
-  onOpenAsNew?: () => void;
+  // Accept the row identity so the parent can pass a single stable
+  // callback per list instead of per-row lambdas — keeps ``memo()``
+  // below honest, otherwise every panel re-render breaks the bail-out
+  // and re-renders every row.
+  onSelect: (versionUuid: string) => void;
+  onRestore: (save: ActivitySaveRow) => void;
+  onOpenAsNew?: (save: ActivitySaveRow) => void;
 }
 
 const VersionItem = ({
@@ -55,6 +60,18 @@ const VersionItem = ({
       ? t('Open as new chart')
       : t('Open as new dashboard');
 
+  const handleSelect = useCallback(
+    () => onSelect(save.version_uuid),
+    [onSelect, save.version_uuid],
+  );
+  const handleRestoreClick = useCallback(
+    () => onRestore(save),
+    [onRestore, save],
+  );
+  const handleOpenAsNewClick = useCallback(() => {
+    if (onOpenAsNew) onOpenAsNew(save);
+  }, [onOpenAsNew, save]);
+
   const menuItems = useMemo<MenuProps['items']>(() => {
     const items: NonNullable<MenuProps['items']> = [];
     if (!isCurrent) {
@@ -63,7 +80,7 @@ const VersionItem = ({
         label: t('Restore this version'),
         onClick: ({ domEvent }) => {
           domEvent.stopPropagation();
-          onRestore();
+          handleRestoreClick();
         },
       });
     }
@@ -73,21 +90,39 @@ const VersionItem = ({
         label: openAsNewLabel,
         onClick: ({ domEvent }) => {
           domEvent.stopPropagation();
-          onOpenAsNew();
+          handleOpenAsNewClick();
         },
       });
     }
     return items;
-  }, [isCurrent, onOpenAsNew, onRestore, openAsNewLabel]);
+  }, [
+    isCurrent,
+    onOpenAsNew,
+    handleRestoreClick,
+    handleOpenAsNewClick,
+    openAsNewLabel,
+  ]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
       e.preventDefault();
-      onSelect();
+      handleSelect();
     }
   };
 
   const aiAuthored = isAiAuthor(save.changed_by);
+  // Prefer a backend-supplied summary if any leaf record carries one
+  // (rare for self records — they normally reconstruct via
+  // ``formatChangeTitle`` — but the contract leaves it possible).
+  const titleText = useMemo(() => {
+    const supplied = save.changes.find(r => r.summary)?.summary;
+    return supplied || formatChangeTitle(save.changes);
+  }, [save.changes]);
+  const leadingIcon = useMemo(() => iconForSave(save.changes), [save.changes]);
+  const impactCharts = useMemo(
+    () => totalChartImpact(save.changes),
+    [save.changes],
+  );
 
   return (
     <div
@@ -107,7 +142,7 @@ const VersionItem = ({
       <div
         role="option"
         tabIndex={0}
-        onClick={onSelect}
+        onClick={handleSelect}
         onKeyDown={handleKeyDown}
         data-test="version-history-item"
         aria-selected={selected}
@@ -116,6 +151,8 @@ const VersionItem = ({
           min-width: 0;
           text-align: left;
           cursor: pointer;
+          display: flex;
+          gap: ${theme.sizeUnit * 2}px;
           &:focus {
             outline: 2px solid ${theme.colorPrimary};
             outline-offset: -2px;
@@ -123,45 +160,85 @@ const VersionItem = ({
         `}
       >
         <div
+          aria-hidden
+          data-test="version-item-icon"
           css={css`
-            display: flex;
+            display: inline-flex;
             align-items: center;
-            gap: ${theme.sizeUnit}px;
-            font-weight: ${theme.fontWeightStrong};
-            color: ${theme.colorText};
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            color: ${theme.colorIcon};
+            flex-shrink: 0;
           `}
-          title={formatChangeTitle(save.changes)}
         >
-          <span
-            css={css`
-              overflow: hidden;
-              text-overflow: ellipsis;
-            `}
-          >
-            {formatChangeTitle(save.changes)}
-          </span>
+          {leadingIcon}
         </div>
         <div
           css={css`
-            display: flex;
-            align-items: center;
-            gap: ${theme.sizeUnit}px;
-            font-size: ${theme.fontSizeSM}px;
-            color: ${theme.colorTextSecondary};
+            flex: 1;
+            min-width: 0;
           `}
         >
-          <span>
-            {formatVersionUser(save.changed_by)} ·{' '}
-            {formatVersionDate(save.issued_at)}
-          </span>
-          {aiAuthored && (
-            <Tag color="purple" data-test="version-item-ai-tag">
-              {t('AI')}
-            </Tag>
-          )}
+          <div
+            css={css`
+              display: flex;
+              align-items: center;
+              gap: ${theme.sizeUnit}px;
+              font-weight: ${theme.fontWeightStrong};
+              color: ${theme.colorText};
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            `}
+            title={titleText}
+          >
+            <span
+              css={css`
+                overflow: hidden;
+                text-overflow: ellipsis;
+              `}
+            >
+              {titleText}
+            </span>
+            {impactCharts > 0 && (
+              <Tooltip
+                title={t('This affected %(count)s charts', {
+                  count: impactCharts,
+                })}
+              >
+                <span
+                  role="img"
+                  aria-label={t('Impact: %(count)s charts', {
+                    count: impactCharts,
+                  })}
+                  data-test="version-item-impact"
+                  css={css`
+                    display: inline-flex;
+                    color: ${theme.colorIcon};
+                  `}
+                >
+                  <Icons.InfoCircleOutlined iconSize="s" />
+                </span>
+              </Tooltip>
+            )}
+          </div>
+          <div
+            css={css`
+              display: flex;
+              align-items: center;
+              gap: ${theme.sizeUnit}px;
+              font-size: ${theme.fontSizeSM}px;
+              color: ${theme.colorTextSecondary};
+            `}
+          >
+            <span>
+              {formatVersionUser(save.changed_by)} ·{' '}
+              {formatVersionDate(save.issued_at)}
+            </span>
+            {aiAuthored && (
+              <Tag color="purple" data-test="version-item-ai-tag">
+                {t('AI')}
+              </Tag>
+            )}
+          </div>
         </div>
       </div>
       {menuItems && menuItems.length > 0 && (
