@@ -34,6 +34,7 @@ from superset.commands.dataset.exceptions import (
     DatasetCreateFailedError,
     DatasetInvalidError,
 )
+from superset.commands.exceptions import CommandInvalidError
 from superset.daos.database import DatabaseDAO
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import event_logger, security_manager
@@ -48,10 +49,10 @@ from superset.sql.parse import Table
 logger = logging.getLogger(__name__)
 
 
-def _classify_invalid_error(exc: object) -> DatasetError:
+def _classify_invalid_error(exc: CommandInvalidError) -> DatasetError:
     """Map DatasetInvalidError sub-exceptions to typed DatasetError responses."""
-    classnames = exc.get_list_classnames()  # type: ignore[attr-defined]
-    messages = exc.normalized_messages()  # type: ignore[attr-defined]
+    classnames = exc.get_list_classnames()
+    messages = exc.normalized_messages()
     if "DatasetExistsValidationError" in classnames:
         return DatasetError.create(error=str(messages), error_type="DatasetExistsError")
     if "TableNotFoundValidationError" in classnames:
