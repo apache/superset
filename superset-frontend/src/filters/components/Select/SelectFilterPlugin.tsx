@@ -109,6 +109,7 @@ const StyledSpace = styled(Space)<{
   &.ant-space {
     .ant-space-item {
       width: ${({ inverseSelection }) => (!inverseSelection ? '100%' : 'auto')};
+      flex: 1;
     }
   }
 `;
