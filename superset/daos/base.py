@@ -44,15 +44,11 @@ from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProper
 from superset_core.common.daos import BaseDAO as CoreBaseDAO
 from superset_core.common.models import CoreModel
 
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.exceptions import (
     DAOFindFailedError,
 )
 from superset.extensions import db
-
-# Defined locally to avoid importing superset.models.helpers at module level,
-# which triggers superset/models/__init__.py → core.py → encrypted_field_factory
-# before the Flask app is initialized (breaks pytest collection).
-SKIP_VISIBILITY_FILTER_CLASSES = "_skip_visibility_filter_classes"
 
 T = TypeVar("T", bound=CoreModel)
 
