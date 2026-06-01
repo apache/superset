@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Integration tests for dataset soft-delete and restore (sc-103157)."""
+"""Integration tests for dataset soft-delete and restore."""
 
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
