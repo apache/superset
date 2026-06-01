@@ -277,7 +277,7 @@
     "@storybook/test": "^8.6.18",
     "@storybook/test-runner": "^0.17.0",
     "@svgr/webpack": "^8.1.0",
-    "@swc/core": "^1.15.33",
+    "@swc/core": "^1.15.40",
     "@swc/plugin-emotion": "^14.10.0",
     "@swc/plugin-transform-imports": "^12.5.0",
     "@testing-library/dom": "^9.3.4",
@@ -312,7 +312,7 @@
     "babel-plugin-dynamic-import-node": "^2.3.3",
     "babel-plugin-jsx-remove-data-test-id": "^3.0.0",
     "babel-plugin-lodash": "^3.3.4",
-    "baseline-browser-mapping": "^2.10.31",
+    "baseline-browser-mapping": "^2.10.32",
     "cheerio": "1.2.0",
     "concurrently": "^9.2.1",
     "copy-webpack-plugin": "^14.0.0",
@@ -332,7 +332,7 @@
     "eslint-plugin-no-only-tests": "^3.4.0",
     "eslint-plugin-prettier": "^5.5.5",
     "eslint-plugin-react-prefer-function-component": "^5.0.0",
-    "eslint-plugin-react-you-might-not-need-an-effect": "^0.10.1",
+    "eslint-plugin-react-you-might-not-need-an-effect": "^0.10.2",
     "eslint-plugin-storybook": "^0.8.0",
     "eslint-plugin-testing-library": "^7.16.2",
     "eslint-plugin-theme-colors": "file:eslint-rules/eslint-plugin-theme-colors",
@@ -379,7 +379,7 @@
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.4",
     "webpack-manifest-plugin": "^5.0.1",
-    "webpack-sources": "^3.4.1",
+    "webpack-sources": "^3.5.0",
     "webpack-visualizer-plugin2": "^2.0.0"
   },
   "peerDependencies": {
@@ -394,6 +394,7 @@
     "npm": "^10.8.1"
   },
   "overrides": {
+    "uuid": "$uuid",
     "core-js": "^3.38.1",
     "puppeteer": "^22.4.1",
     "remark-gfm": "^3.0.1",

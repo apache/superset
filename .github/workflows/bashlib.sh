@@ -59,6 +59,15 @@ build-assets() {
   say "::endgroup::"
 }
 
+build-embedded-sdk() {
+  cd "$GITHUB_WORKSPACE/superset-embedded-sdk"
+
+  say "::group::Build embedded SDK bundle for E2E tests"
+  npm ci
+  npm run build
+  say "::endgroup::"
+}
+
 build-instrumented-assets() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
@@ -276,7 +285,12 @@ playwright-run() {
   cd "$GITHUB_WORKSPACE"
   local serverlog="${HOME}/superset-playwright.log"
   local port=8081
-  PLAYWRIGHT_BASE_URL="http://localhost:${port}"
+  # Use 127.0.0.1 explicitly: `flask run` binds IPv4 only, and Node's DNS
+  # resolution for `localhost` can return `::1` first (IPv6), which then
+  # refuses against the IPv4 listener and surfaces as
+  # `connect ECONNREFUSED ::1:<port>` in API helpers driven from Node
+  # (e.g., the embedded test app's exposed token fetcher).
+  PLAYWRIGHT_BASE_URL="http://127.0.0.1:${port}"
   if [ -n "$APP_ROOT" ]; then
     export SUPERSET_APP_ROOT=$APP_ROOT
     PLAYWRIGHT_BASE_URL=${PLAYWRIGHT_BASE_URL}${APP_ROOT}/
