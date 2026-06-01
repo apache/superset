@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { css } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -70,6 +70,13 @@ const VersionHistoryPanel = ({
   // dashboard page render mounts this component, but most visits never
   // open the drawer. Once opened, ``hasFetched`` stays true so subsequent
   // closes don't drop the cached list.
+  //
+  // The setState-during-render below is the "derived state" pattern
+  // (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes):
+  // the conditional guard prevents an infinite loop and React batches the
+  // update into the same render, so no extra paint. Do NOT "fix" this with
+  // useEffect — that would introduce a flash of un-fetched UI on the same
+  // render the drawer first opens.
   const [hasFetched, setHasFetched] = useState(false);
   if (isPanelOpen && !hasFetched) {
     setHasFetched(true);
@@ -84,6 +91,18 @@ const VersionHistoryPanel = ({
   const [pendingRestore, setPendingRestore] = useState<ActivitySaveRow | null>(
     null,
   );
+
+  // Reset transient panel state when the viewed entity changes — without
+  // this the SPA's implicit "unmount on route change" was the only thing
+  // keeping stale scope filters / pending-restore modals / cached
+  // ``hasFetched`` flags from leaking across navigations. ``VersionList``
+  // also gets a fresh ``key`` below so its internal search query resets
+  // with us.
+  useEffect(() => {
+    setScopeFilter('all');
+    setPendingRestore(null);
+    setHasFetched(false);
+  }, [entityType, uuid]);
 
   // The first self-save is the live version — clicking it exits preview.
   const currentVersionUuid = useMemo(() => {
@@ -204,6 +223,10 @@ const VersionHistoryPanel = ({
           `}
         >
           <VersionList
+            // Forces the search-box state (owned by ``VersionList``) to
+            // remount when the viewed entity changes — pairs with the
+            // ``setScopeFilter`` / ``setHasFetched`` reset effect above.
+            key={`${entityType}:${uuid ?? ''}`}
             entityType={entityType}
             records={records}
             loading={loading}

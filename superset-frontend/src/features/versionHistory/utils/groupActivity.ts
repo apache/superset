@@ -154,17 +154,22 @@ export function groupActivity(records: ActivityRecord[]): ActivityDateBucket[] {
   }
   flushSave();
 
-  // Second pass — bucket by calendar day. The first row becomes the
-  // "Current version" bucket so consumers can render it with the distinct
-  // pinned treatment.
+  // Second pass — bucket by calendar day. When the newest row is a self
+  // save it becomes the "Current version" pinned bucket so consumers can
+  // render it with a distinct treatment. A leading related row would be
+  // mislabeled by that pin (it's not a version of the path entity), so
+  // we fall through to plain day-bucketing instead.
   const today = startOfDay(new Date());
   const yesterday = today - 24 * 60 * 60 * 1000;
-  const buckets: ActivityDateBucket[] = [
-    { label: t('Current version'), rows: [rows[0]] },
-  ];
+  const buckets: ActivityDateBucket[] = [];
+  let startIdx = 0;
+  if (rows[0].type === 'save') {
+    buckets.push({ label: t('Current version'), rows: [rows[0]] });
+    startIdx = 1;
+  }
 
   let active: ActivityDateBucket | null = null;
-  for (let i = 1; i < rows.length; i += 1) {
+  for (let i = startIdx; i < rows.length; i += 1) {
     const row = rows[i];
     const iso = row.type === 'save' ? row.issued_at : row.record.issued_at;
     const label = bucketLabel(iso, today, yesterday);

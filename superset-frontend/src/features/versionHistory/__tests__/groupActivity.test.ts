@@ -137,6 +137,36 @@ test('rollupSelfRecords collapses leaves sharing a path prefix', () => {
   expect(rolled).toHaveLength(2);
 });
 
+test('groupActivity does NOT pin a leading related row as the Current version', () => {
+  // A dashboard with no self edits but upstream dataset changes returns a
+  // related row at the top — labeling it "Current version" would treat
+  // the dataset edit as a version of the dashboard, which it isn't.
+  const now = new Date().toISOString();
+  const older = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const buckets = groupActivity([
+    rec({
+      source: 'related',
+      version_uuid: 'rel-1',
+      transaction_id: 7,
+      issued_at: now,
+      entity_kind: 'dataset',
+      summary: 'Dataset updated: sales',
+    }),
+    rec({
+      source: 'related',
+      version_uuid: 'rel-2',
+      transaction_id: 6,
+      issued_at: older,
+      entity_kind: 'dataset',
+      summary: 'Dataset updated: sales',
+    }),
+  ]);
+  // First bucket must be a date label, never "Current version".
+  expect(buckets[0].label).not.toMatch(/Current version/);
+  // Both rows are still surfaced.
+  expect(buckets.flatMap(b => b.rows)).toHaveLength(2);
+});
+
 test('rollupSelfRecords uses prefix length 2 for json_metadata / params', () => {
   const leaves = [
     rec({ path: ['json_metadata', 'global', 'cross_filters'] }),
