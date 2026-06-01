@@ -38,9 +38,9 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
-from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import get_user

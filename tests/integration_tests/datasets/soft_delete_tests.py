@@ -17,8 +17,8 @@
 """Integration tests for dataset soft-delete and restore (sc-103157)."""
 
 from superset.connectors.sqla.models import SqlaTable
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.extensions import db
-from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models.slice import Slice
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase

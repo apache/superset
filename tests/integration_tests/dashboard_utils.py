@@ -22,9 +22,9 @@ from pandas import DataFrame  # noqa: F401
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
-from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import DatasourceType, get_example_default_schema

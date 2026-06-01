@@ -152,7 +152,7 @@ class TestDatasetApi(SupersetTestCase):
         return db_connection
 
     def get_fixture_datasets(self) -> list[SqlaTable]:
-        from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
+        from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 
         return (
             db.session.query(SqlaTable)
@@ -213,7 +213,7 @@ class TestDatasetApi(SupersetTestCase):
             yield datasets
 
             # rollback changes (including soft-deleted rows)
-            from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
+            from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 
             for dataset_id in dataset_ids:
                 row = (
@@ -1994,7 +1994,7 @@ class TestDatasetApi(SupersetTestCase):
 
         # Hard-delete the soft-deleted row to avoid unique constraint
         # collisions in subsequent tests
-        from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES
+        from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 
         row = (
             db.session.query(SqlaTable)
