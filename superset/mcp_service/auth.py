@@ -385,7 +385,9 @@ def get_user_from_request() -> User:
     2. API key from Authorization header (via FAB SecurityManager)
     3. MCP_DEV_USERNAME from configuration (for development/testing)
     4. g.user fallback (for external middleware like Preset's
-       WorkspaceContextMiddleware that sets g.user fresh per request)
+       WorkspaceContextMiddleware that sets g.user fresh per request).
+       When ``g.user`` is a FAB ``User``, re-query with eager-loaded
+       relationships to avoid DetachedInstanceError on ``user.roles``.
 
     This ordering prevents stale ``g.user`` from a previous tool call
     from being used in open-source deployments where no middleware
@@ -419,7 +421,17 @@ def get_user_from_request() -> User:
 
     # Priority 4: g.user fallback (set by external middleware, e.g. Preset)
     if hasattr(g, "user") and g.user:
-        return g.user
+        u = g.user
+        if isinstance(u, User):
+            reloaded = load_user_with_relationships(username=u.username)
+            if reloaded:
+                return reloaded
+            email = getattr(u, "email", None)
+            if email:
+                reloaded = load_user_with_relationships(email=email)
+                if reloaded:
+                    return reloaded
+        return u
 
     # No auth source available — raise with diagnostic details
     auth_enabled = current_app.config.get("MCP_AUTH_ENABLED", False)
