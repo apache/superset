@@ -183,6 +183,7 @@ cryptography==46.0.7
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   authlib
+    #   joserfc
     #   paramiko
     #   pyjwt
     #   pyopenssl
