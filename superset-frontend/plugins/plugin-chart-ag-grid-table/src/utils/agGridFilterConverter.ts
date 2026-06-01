@@ -379,7 +379,16 @@ function simpleFilterToWhereClause(
   }
 
   if (type === FILTER_OPERATORS.IN_RANGE && filterTo !== undefined) {
-    return `${columnName} ${SQL_OPERATORS.BETWEEN} ${value} AND ${filterTo}`;
+    // BETWEEN bounds are interpolated directly into the WHERE clause, so only
+    // accept finite numeric bounds (date ranges are handled separately above).
+    // Numeric strings from serialized filter state are coerced; anything that
+    // isn't a finite number is dropped rather than concatenated as raw SQL.
+    const from = Number(value);
+    const to = Number(filterTo);
+    if (!Number.isFinite(from) || !Number.isFinite(to)) {
+      return '';
+    }
+    return `${columnName} ${SQL_OPERATORS.BETWEEN} ${from} AND ${to}`;
   }
 
   const formattedValue = formatValueForOperator(type, value!);

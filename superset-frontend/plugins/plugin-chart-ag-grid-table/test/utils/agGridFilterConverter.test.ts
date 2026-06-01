@@ -771,6 +771,57 @@ describe('agGridFilterConverter', () => {
       // Should reject column names longer than 255 characters
       expect(result.simpleFilters).toHaveLength(0);
     });
+
+    test('should drop inRange bounds that are not numeric', () => {
+      const filterModel: AgGridFilterModel = {
+        age: {
+          filterType: 'number',
+          operator: 'AND',
+          condition1: {
+            filterType: 'number',
+            type: 'inRange',
+            filter: '0 AND 1=1--',
+            filterTo: '100',
+          },
+          condition2: {
+            filterType: 'number',
+            type: 'greaterThan',
+            filter: 5,
+          },
+        } as AgGridCompoundFilter,
+      };
+
+      const result = convertAgGridFiltersToSQL(filterModel);
+
+      // The malicious range condition is dropped, so its payload never reaches
+      // the WHERE clause; the sibling numeric condition is unaffected.
+      expect(result.complexWhere ?? '').not.toContain('1=1');
+      expect(result.complexWhere ?? '').not.toContain('BETWEEN');
+    });
+
+    test('should keep numeric inRange bounds (including numeric strings)', () => {
+      const filterModel: AgGridFilterModel = {
+        age: {
+          filterType: 'number',
+          operator: 'AND',
+          condition1: {
+            filterType: 'number',
+            type: 'inRange',
+            filter: '18',
+            filterTo: 65,
+          },
+          condition2: {
+            filterType: 'number',
+            type: 'lessThan',
+            filter: 100,
+          },
+        } as AgGridCompoundFilter,
+      };
+
+      const result = convertAgGridFiltersToSQL(filterModel);
+
+      expect(result.complexWhere).toContain('BETWEEN 18 AND 65');
+    });
   });
 
   describe('Edge cases', () => {
