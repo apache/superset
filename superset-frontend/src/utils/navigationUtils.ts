@@ -80,35 +80,19 @@ function assertSafeNavigationUrl(url: string): string {
   return url;
 }
 
-// Inline regex predicate. Mirrors `assertSafeNavigationUrl` exactly but as
-// a boolean test so CodeQL's data-flow analysis recognises it as a
-// sanitiser barrier at each `window.*` sink in `navigateTo` /
-// `navigateWithState`. Through-function sanitisers (`assertSafeNavigationUrl`)
-// are not in CodeQL's default model and tripped `js/client-side-*` even
-// though the throw path guaranteed safety.
-function isSafeNavigationUrl(url: string): boolean {
-  if (!SAFE_NAVIGATION_URL_RE.test(url) || url.includes('\\')) {
-    return false;
-  }
-  if (USERINFO_BEARING_SCHEME_RE.test(url)) {
-    try {
-      const parsed = new URL(url);
-      if (parsed.username || parsed.password) {
-        return false;
-      }
-    } catch {
-      return false;
-    }
-  }
-  return true;
-}
-
 /**
  * Imperative full-page navigation. Internal entry point for `redirect()`
  * and a handful of legacy callers; new code should prefer `<AppLink>` or
  * `redirect()`. Unsafe URLs (protocol-relative, backslash-laden, userinfo-
  * carrying http(s)) fall back to `ensureAppRoot('/')` with a `console.error`
  * — never a silent navigation to the rejected target.
+ *
+ * Each `window.*` sink lives inside an if-block whose guard is composed
+ * exclusively of inline barriers CodeQL recognises in its default model
+ * (`String.startsWith`, `String.includes`, constant equality on
+ * `URL.protocol`, property reads on `URL.username` / `URL.password`).
+ * Router-relative and external-scheme code paths are split so each sink
+ * has a complete, function-call-free safety check immediately above it.
  *
  * @internal
  */
@@ -117,13 +101,14 @@ export function navigateTo(
   options?: { newWindow?: boolean; assign?: boolean },
 ): void {
   const target = ensureAppRoot(url);
-  // Inline regex check (not a function call) so CodeQL's data-flow
-  // analysis recognises the sanitiser barrier and propagates `target` as
-  // safe at each sink below. Mirrors `isSafeNavigationUrl` precisely.
+  // Router-relative fast-path: `startsWith('/')` + `!startsWith('//')` +
+  // `!includes('\\')` is the canonical CodeQL-recognised "same-origin"
+  // barrier triple. Backslash check guards against browser-normalised
+  // `/\evil.com` → `//evil.com` (AF-1 hardening).
   if (
-    SAFE_NAVIGATION_URL_RE.test(target) &&
-    !target.includes('\\') &&
-    (!USERINFO_BEARING_SCHEME_RE.test(target) || isSafeNavigationUrl(target))
+    target.startsWith('/') &&
+    !target.startsWith('//') &&
+    !target.includes('\\')
   ) {
     if (options?.newWindow) {
       window.open(target, '_blank', NEW_TAB_FEATURES);
@@ -134,16 +119,48 @@ export function navigateTo(
     }
     return;
   }
+  // External-URL path: parse the input, verify the scheme is in our
+  // allowlist via literal equality (CodeQL recognises constant-equality
+  // barriers on `URL.protocol`), verify no userinfo, then feed the URL
+  // constructor's normalised `href` to the sink. `parsed.href` is a fresh
+  // string derived from the verified URL properties, so the data-flow
+  // chain from `url` (source) to the sink is broken by the parse +
+  // property-check pair.
+  let parsed: URL | null;
+  try {
+    parsed = new URL(target);
+  } catch {
+    parsed = null;
+  }
+  if (
+    parsed !== null &&
+    (parsed.protocol === 'https:' ||
+      parsed.protocol === 'http:' ||
+      parsed.protocol === 'ftp:' ||
+      parsed.protocol === 'mailto:' ||
+      parsed.protocol === 'tel:') &&
+    !parsed.username &&
+    !parsed.password
+  ) {
+    const safeExternal = parsed.href;
+    if (options?.newWindow) {
+      window.open(safeExternal, '_blank', NEW_TAB_FEATURES);
+    } else if (options?.assign) {
+      window.location.assign(safeExternal);
+    } else {
+      window.location.href = safeExternal;
+    }
+    return;
+  }
   // eslint-disable-next-line no-console -- guarded surface, observable in dev.
   console.error('navigationUtils.navigateTo refused unsafe URL:', url);
-  // Fallback navigation: `ensureAppRoot('/')` resolves to the deployment
-  // home. Re-validated through the same inline gate so CodeQL sees the
-  // sanitiser at every `window.location.*` write in this function.
+  // Fallback to deployment home. The same router-relative barrier triple
+  // gates the sink, so CodeQL sees the sanitiser here too.
   const home = ensureAppRoot('/');
   if (
-    SAFE_NAVIGATION_URL_RE.test(home) &&
-    !home.includes('\\') &&
-    (!USERINFO_BEARING_SCHEME_RE.test(home) || isSafeNavigationUrl(home))
+    home.startsWith('/') &&
+    !home.startsWith('//') &&
+    !home.includes('\\')
   ) {
     window.location.href = home;
   }
@@ -156,6 +173,9 @@ export function navigateTo(
  * already display their own success/failure feedback and a surprise
  * `window.location.href = '/'` would discard unsaved state.
  *
+ * Inline barriers mirror `navigateTo` (see its docstring) so CodeQL
+ * recognises the sanitiser at every `window.history.*` sink.
+ *
  * @internal
  */
 export function navigateWithState(
@@ -164,21 +184,46 @@ export function navigateWithState(
   options?: { replace?: boolean },
 ): void {
   const target = ensureAppRoot(url);
-  // Inline regex sanitiser (see `navigateTo` for rationale).
+  // Router-relative fast-path (see `navigateTo` for rationale).
   if (
-    !SAFE_NAVIGATION_URL_RE.test(target) ||
-    target.includes('\\') ||
-    (USERINFO_BEARING_SCHEME_RE.test(target) && !isSafeNavigationUrl(target))
+    target.startsWith('/') &&
+    !target.startsWith('//') &&
+    !target.includes('\\')
   ) {
-    // eslint-disable-next-line no-console -- guarded surface, observable in dev.
-    console.error('navigationUtils.navigateWithState refused unsafe URL:', url);
+    if (options?.replace) {
+      window.history.replaceState(state, '', target);
+    } else {
+      window.history.pushState(state, '', target);
+    }
     return;
   }
-  if (options?.replace) {
-    window.history.replaceState(state, '', target);
-  } else {
-    window.history.pushState(state, '', target);
+  // External-URL path (see `navigateTo` for rationale).
+  let parsed: URL | null;
+  try {
+    parsed = new URL(target);
+  } catch {
+    parsed = null;
   }
+  if (
+    parsed !== null &&
+    (parsed.protocol === 'https:' ||
+      parsed.protocol === 'http:' ||
+      parsed.protocol === 'ftp:' ||
+      parsed.protocol === 'mailto:' ||
+      parsed.protocol === 'tel:') &&
+    !parsed.username &&
+    !parsed.password
+  ) {
+    const safeExternal = parsed.href;
+    if (options?.replace) {
+      window.history.replaceState(state, '', safeExternal);
+    } else {
+      window.history.pushState(state, '', safeExternal);
+    }
+    return;
+  }
+  // eslint-disable-next-line no-console -- guarded surface, observable in dev.
+  console.error('navigationUtils.navigateWithState refused unsafe URL:', url);
 }
 
 /** Open a router-relative path in a new browser tab. */
