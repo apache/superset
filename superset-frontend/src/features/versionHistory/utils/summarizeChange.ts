@@ -72,12 +72,70 @@ const FIELD_LABELS: Record<string, string> = {
   shared_label_colors: t('color palette'),
   label_colors: t('color palette'),
   map_label_colors: t('color palette'),
+  color_namespace: t('color namespace'),
+  // ``json_metadata`` substructure (Shape B leaves)
+  native_filter_configuration: t('native filter'),
+  defaultDataMask: t('filter default'),
+  filterState: t('filter state'),
+  cross_filters_chart_configuration: t('cross-filter configuration'),
+  global_chart_configuration: t('chart configuration'),
+  // ``position_json`` layout-meta leaves
+  text: t('text'),
+  markdownSource: t('markdown content'),
+  background: t('background'),
+  height: t('height'),
+  width: t('width'),
+  sliceName: t('chart name'),
+  chartId: t('chart'),
   // Dataset scalars
   table_name: t('table name'),
 };
 
-function fieldLabelFor(fieldName: string): string {
-  return FIELD_LABELS[fieldName] ?? fieldName;
+// Path-prefix segments whose values aren't real field labels — e.g.
+// ``json_metadata`` already has its own label, but a NESTED change at
+// ``['json_metadata', 'native_filter_configuration', '<uuid>', ...]``
+// should label as ``native filter`` (the meaningful prefix), not the
+// random uuid at the end of the path.
+const IGNORE_AS_FIELD_LABEL = new Set([
+  'json_metadata',
+  'position_json',
+  'params',
+  'query_context',
+  'native_filter_configuration',
+]);
+
+const UUID_LIKE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Pick the most descriptive label for a Shape B path: walks from the
+ * leaf backward looking for a recognized FIELD_LABELS entry. Prefers
+ * "specific" segments (e.g. ``defaultDataMask``) over generic
+ * path-prefix containers (``json_metadata``); falls back to a
+ * path-prefix label if no specific one is found; finally falls back to
+ * the raw leaf — but never to a uuid. */
+function bestFieldLabel(path: string[]): string {
+  if (path.length === 0) return '';
+  let prefixFallback: string | null = null;
+  for (let i = path.length - 1; i >= 0; i -= 1) {
+    const seg = String(path[i]);
+    if (UUID_LIKE.test(seg)) continue;
+    if (IGNORE_AS_FIELD_LABEL.has(seg)) {
+      // Remember the first prefix label we encountered, but keep looking
+      // for something more specific further forward.
+      if (!prefixFallback && FIELD_LABELS[seg]) {
+        prefixFallback = FIELD_LABELS[seg];
+      }
+      continue;
+    }
+    if (FIELD_LABELS[seg]) return FIELD_LABELS[seg];
+  }
+  if (prefixFallback) return prefixFallback;
+  // Nothing recognized — return the last non-uuid segment, else the
+  // raw leaf as the very last resort.
+  for (let i = path.length - 1; i >= 0; i -= 1) {
+    if (!UUID_LIKE.test(String(path[i]))) return String(path[i]);
+  }
+  return String(path[path.length - 1]);
 }
 
 export function summarizeChange(c: Change): string {
@@ -106,9 +164,13 @@ export function summarizeChange(c: Change): string {
         ? t('Moved %(kind)s "%(name)s"', { kind, name })
         : t('Moved %(kind)s', { kind });
     }
-    // ``edit`` with a deeper path — surface the leaf field for context.
+    // ``edit`` with a deeper path — surface the most descriptive label
+    // we can find walking back from the leaf (skips uuids / pure
+    // path-prefix segments). Examples:
+    //   ['edit', 'chart', 'chart-1', 'meta', 'sliceName'] → "chart name"
+    //   ['edit', 'markdown', 'm-1', 'meta', 'markdownSource'] → "markdown content"
     if (c.path.length > 3) {
-      const detail = fieldLabelFor(String(c.path[c.path.length - 1]));
+      const detail = bestFieldLabel(c.path.slice(3));
       return t('Edited %(kind)s %(detail)s', { kind, detail });
     }
     return name
@@ -139,8 +201,10 @@ export function summarizeChange(c: Change): string {
   }
 
   if (c.kind === 'field') {
-    const fieldName = String(c.path[c.path.length - 1]);
-    const fieldLabel = fieldLabelFor(fieldName);
+    // For Shape B nested paths (``['json_metadata', 'native_filter_configuration', '<uuid>', 'defaultDataMask', 'filterState', 'value']``)
+    // a literal leaf name like ``value`` is useless; ``bestFieldLabel``
+    // walks the path picking the most descriptive recognized segment.
+    const fieldLabel = bestFieldLabel(c.path);
     const isShortScalar =
       c.to_value !== null &&
       c.to_value !== undefined &&
@@ -169,7 +233,10 @@ export function summarizeChange(c: Change): string {
 
   const kind = localizedKind(c.kind);
   if (c.path.length) {
-    const detail = fieldLabelFor(String(c.path[c.path.length - 1]));
+    // ``bestFieldLabel`` so an unknown ``kind`` with a nested Shape B
+    // path still surfaces a recognized prefix (e.g. ``native filter``)
+    // instead of the raw leaf id.
+    const detail = bestFieldLabel(c.path);
     if (isAdd) return t('Added %(kind)s %(detail)s', { kind, detail });
     if (isRemove) return t('Removed %(kind)s %(detail)s', { kind, detail });
     return t('Changed %(kind)s %(detail)s', { kind, detail });

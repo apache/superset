@@ -134,9 +134,60 @@ test('summarizeChange handles a Shape B edit with a deeper path', () => {
     from_value: 'Old',
     to_value: 'New',
   };
-  // Unknown field labels fall through to the raw identifier — they aren't
-  // localized, but the kind/verb is still recognizable.
-  expect(summarizeChange(change)).toMatch(/Edited chart sliceName/);
+  // ``sliceName`` resolves to "chart name" via FIELD_LABELS so the edit
+  // summary reads as an action, not a raw key.
+  expect(summarizeChange(change)).toMatch(/Edited chart .*chart name/);
+});
+
+test('summarizeChange handles a markdown layout edit by labeling the content field', () => {
+  const change: Change = {
+    kind: 'layout',
+    path: ['edit', 'markdown', 'm-1', 'meta', 'markdownSource'],
+    from_value: 'Old',
+    to_value: 'New',
+  };
+  expect(summarizeChange(change)).toMatch(/Edited markdown markdown content/);
+});
+
+test('summarizeChange labels a deeply nested native_filter change by the meaningful prefix', () => {
+  // The real-world worst-case from the brief: a leaf at
+  // ``['json_metadata', 'native_filter_configuration', '<uuid>', 'defaultDataMask', 'filterState', 'value']``
+  // — the literal leaf "value" is meaningless, but the path contains
+  // ``native_filter_configuration`` which IS a recognized label. The
+  // walker should pick that over the bare leaf.
+  const change: Change = {
+    kind: 'field',
+    path: [
+      'json_metadata',
+      'native_filter_configuration',
+      'NATIVE_FILTER-abc',
+      'defaultDataMask',
+      'filterState',
+      'value',
+    ],
+    from_value: null,
+    to_value: 'Q1',
+  };
+  expect(summarizeChange(change)).toMatch(
+    /Set (filter state|filter default|native filter) to "Q1"/,
+  );
+});
+
+test('summarizeChange skips opaque uuid segments when picking a label', () => {
+  // A path whose only "human" segments live near the front shouldn't be
+  // labeled by a uuid leaf.
+  const change: Change = {
+    kind: 'field',
+    path: [
+      'json_metadata',
+      'native_filter_configuration',
+      '11111111-2222-3333-4444-555555555555',
+    ],
+    from_value: null,
+    to_value: 'x',
+  };
+  // Specifically, the uuid is NOT the surfaced label.
+  expect(summarizeChange(change)).not.toMatch(/[0-9a-f]{8}-/i);
 });
 
 test('summarizeChange handles a deeply nested json_metadata field', () => {
