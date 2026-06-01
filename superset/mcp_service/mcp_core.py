@@ -306,6 +306,7 @@ class ModelListCore(BaseCore, Generic[L]):
         computed_deps: dict[str, str] = {
             "changed_on_humanized": "changed_on",
             "created_on_humanized": "created_on",
+            "last_eval_dttm_humanized": "last_eval_dttm",
         }
         for computed, dependency in computed_deps.items():
             if computed in columns_to_load and dependency not in columns_to_load:

@@ -380,6 +380,32 @@ async def test_get_report_info_includes_operational_fields(mock_find, mcp_server
     assert data["creation_method"] == "dashboards"
 
 
+@patch("superset.daos.report.ReportScheduleDAO.list")
+@pytest.mark.asyncio
+async def test_list_reports_loads_last_eval_dependency_for_humanized_column(
+    mock_list, mcp_server
+):
+    """Requesting last_eval_dttm_humanized loads the raw timestamp dependency."""
+    last_eval = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    report = create_mock_report(last_eval_dttm=last_eval)
+    mock_list.return_value = ([report], 1)
+
+    async with Client(mcp_server) as client:
+        request = ListReportsRequest(
+            page=1,
+            page_size=10,
+            select_columns=["id", "last_eval_dttm_humanized"],
+        )
+        result = await client.call_tool(
+            "list_reports", {"request": request.model_dump()}
+        )
+        data = json.loads(result.content[0].text)
+
+    _, kwargs = mock_list.call_args
+    assert "last_eval_dttm" in kwargs["columns"]
+    assert data["reports"][0]["last_eval_dttm_humanized"] is not None
+
+
 def test_list_reports_request_schema_accepts_any_order_column():
     """The request schema passes order_column through; ModelListCore enforces
     the REPORT_SORTABLE_COLUMNS allowlist at query time, not at schema validation."""
