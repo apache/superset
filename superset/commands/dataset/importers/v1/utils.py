@@ -229,9 +229,6 @@ def import_dataset(  # noqa: C901
     cannot resurrect via re-import, and we raise rather than silently
     returning a soft-deleted row to callers without write permission
     (which would let them reattach charts/dashboards to a deleted dataset).
-
-    See specs/sc-103157-soft-deletes/bypass-primer.md for the cross-entity
-    rules this implementation follows.
     """
     can_write = ignore_permissions or security_manager.can_access(
         "can_write",
