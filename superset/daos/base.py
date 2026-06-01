@@ -48,7 +48,11 @@ from superset.daos.exceptions import (
     DAOFindFailedError,
 )
 from superset.extensions import db
-from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES, SoftDeleteMixin
+
+# Defined locally to avoid importing superset.models.helpers at module level,
+# which triggers superset/models/__init__.py → core.py → encrypted_field_factory
+# before the Flask app is initialized (breaks pytest collection).
+SKIP_VISIBILITY_FILTER_CLASSES = "_skip_visibility_filter_classes"
 
 T = TypeVar("T", bound=CoreModel)
 
@@ -505,6 +509,10 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         :param items: The items to delete
         """
+        from superset.models.helpers import (
+            SoftDeleteMixin,  # pylint: disable=import-outside-toplevel
+        )
+
         if cls.model_cls is not None and issubclass(cls.model_cls, SoftDeleteMixin):
             cls.soft_delete(items)
         else:
