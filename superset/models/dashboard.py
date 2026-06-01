@@ -165,7 +165,7 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
     # PostgreSQL and MySQL 8.0+, so soft-deleted rows do not reserve
     # their slug. SQLite and MySQL <8.0 keep the original full unique
     # constraint via the migration; on those dialects slug reservation
-    # persists across soft-delete. See sc-106190 migration for details.
+    # persists across soft-delete. See the 9e1f3b8c4d2a migration for details.
     slug = Column(String(255))
     slices: list[Slice] = relationship(
         Slice, secondary=dashboard_slices, backref="dashboards"

@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Add deleted_at + partial unique slug index for soft-delete (sc-106190).
+"""Add deleted_at + partial unique slug index for soft-delete.
 
 Adds to the ``dashboards`` table:
 - a nullable ``deleted_at`` column for soft-delete state
