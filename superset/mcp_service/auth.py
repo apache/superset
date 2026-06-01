@@ -512,6 +512,17 @@ def _log_user_resolution_failure(exc: ValueError) -> None:
         logger.error("MCP user resolution failed, denying request: %s", exc)
 
 
+def _reject_if_inactive(user: User | None) -> None:
+    """Raise ``ValueError`` if the resolved user account is deactivated.
+
+    A still-valid JWT or API key must not grant MCP access to a user whose
+    account has been disabled. This mirrors Flask-Login's ``is_active`` check
+    for web sessions, which the MCP auth path does not otherwise go through.
+    """
+    if user is not None and not getattr(user, "is_active", True):
+        raise ValueError("User account is disabled")
+
+
 def _setup_user_context() -> User | None:
     """
     Set up user context for MCP tool execution.
@@ -539,6 +550,7 @@ def _setup_user_context() -> User | None:
     for attempt in range(2):
         try:
             user = get_user_from_request()
+            _reject_if_inactive(user)
 
             # Validate user has necessary relationships loaded.
             # Force access to ensure they're loaded if lazy.

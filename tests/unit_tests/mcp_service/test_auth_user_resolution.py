@@ -535,3 +535,41 @@ def test_setup_user_context_propagates_valueerror(app) -> None:
                 _setup_user_context()
             # g.user should be cleared after ValueError (no misleading audit)
             assert not hasattr(g, "user") or g.user is None
+
+
+def test_setup_user_context_rejects_disabled_user(app) -> None:
+    """A deactivated account must be denied even with a valid token.
+
+    The MCP auth path does not go through Flask-Login's is_active check, so
+    this guards that a disabled user (active=False) cannot authenticate.
+    """
+    from superset.mcp_service.auth import _setup_user_context
+
+    disabled_user = _make_mock_user("disabled_user")
+    disabled_user.is_active = False
+
+    with app.test_request_context():
+        with patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=disabled_user,
+        ):
+            with pytest.raises(ValueError, match="disabled"):
+                _setup_user_context()
+            assert not hasattr(g, "user") or g.user is None
+
+
+def test_setup_user_context_allows_active_user(app) -> None:
+    """An active account authenticates normally."""
+    from superset.mcp_service.auth import _setup_user_context
+
+    active_user = _make_mock_user("active_user")
+    active_user.is_active = True
+
+    with app.test_request_context():
+        with patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=active_user,
+        ):
+            result = _setup_user_context()
+            assert result is active_user
+            assert g.user is active_user
