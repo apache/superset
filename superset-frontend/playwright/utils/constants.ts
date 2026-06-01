@@ -75,3 +75,16 @@ export const TIMEOUT = {
    */
   SLOW_TEST: 60000, // 60s for tests that chain multiple slow operations
 } as const;
+
+/**
+ * Embedded dashboard test app configuration.
+ * The test app is served by a Node.js http server started in the test fixture.
+ */
+export const EMBEDDED = {
+  /** Timeout for iframe to appear in the DOM */
+  IFRAME_LOAD: 15000, // 15s
+  /** Timeout for dashboard content to render inside the iframe */
+  DASHBOARD_RENDER: 30000, // 30s
+  /** Timeout for individual chart cells to finish rendering */
+  CHART_RENDER: 30000, // 30s
+} as const;
