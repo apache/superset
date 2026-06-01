@@ -2409,6 +2409,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                 openChartInNewTab(currentAlert?.chart?.value)
                               }
                               icon={<Icons.LinkOutlined iconSize="s" />}
+                              buttonSize="small"
                               disabled={!currentAlert?.chart?.value}
                             />
                           </div>
@@ -2448,6 +2449,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                 )
                               }
                               icon={<Icons.LinkOutlined iconSize="s" />}
+                              buttonSize="small"
                               disabled={!currentAlert?.dashboard?.value}
                             />
                           </div>
