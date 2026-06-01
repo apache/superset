@@ -14,12 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add deleted_at to dashboards for soft delete
+"""Add deleted_at column and index to dashboards for soft-delete (sc-106190).
 
-Adds a nullable ``deleted_at`` column and index to the ``dashboards``
-table to support soft deletion of dashboards (sc-103157 / sc-106190).
-Companion to the ``SoftDeleteMixin`` infrastructure shipped in
-sc-106188.
+Adds a nullable ``deleted_at`` column and an index on it to the
+``dashboards`` table to support soft deletion of dashboards
+(sc-103157 / sc-106190). Companion to the ``SoftDeleteMixin``
+infrastructure shipped in sc-106188.
 
 Revision ID: 9e1f3b8c4d2a
 Revises: 33d7e0e21daa

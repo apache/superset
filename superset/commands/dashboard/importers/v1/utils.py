@@ -298,6 +298,12 @@ def import_dashboard(  # noqa: C901
     | soft-deleted | False or True | not can_write       | raise (Case B)  |
     +--------------+---------------+---------------------+-----------------+
 
+    "owner" in the matrix above means the caller is in ``existing.owners``
+    OR is an admin (the ownership check is bypassed for admins). The
+    mutation path also requires ``security_manager.can_access_dashboard
+    (existing)`` to pass — a per-row RBAC check distinct from the
+    ``can_write`` model-level grant.
+
     Re-importing a soft-deleted UUID is implicitly a restore-with-update:
     the user is bringing the dashboard back by uploading it again. We apply
     the same ownership check as the explicit overwrite path so non-owners
