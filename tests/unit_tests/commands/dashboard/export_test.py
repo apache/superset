@@ -256,6 +256,184 @@ def test_file_content_omits_roles_field_when_dashboard_has_no_roles():
     assert "roles" not in result
 
 
+def test_position_json_chart_id_leaks_env_local_integers():
+    """
+    Regression for #32972: dashboard export must not leak env-local integer
+    chartIds into position_json.
+
+    The export format includes a ``meta.chartId`` field inside each ``CHART-*``
+    position entry. That integer is the database auto-increment primary key from
+    the *source* environment. When the bundle is imported into a different
+    environment the importer (``update_id_refs``) rewrites those IDs to the
+    destination-env primary keys. A second export from the destination then
+    serializes the new env-local integers — the same logical chart produces
+    different ``chartId`` values in each environment.
+
+    This test demonstrates the current (broken) behaviour:
+
+    1. A dashboard with a chart whose source-env ``id`` is 392 exports
+       ``chartId: 392`` in its ``position_json``.
+    2. After simulating re-import into a second environment (where the same
+       chart receives ``id`` 1001), a second export produces ``chartId: 1001``.
+    3. The two exports differ — the export is *not* stable across environments.
+
+    The stable identifier already present in the export is ``meta.uuid``.  The
+    fix target is ``superset/commands/dashboard/export.py`` (``append_charts``
+    and ``_file_content``): strip ``chartId`` from the serialised position or
+    replace it with the UUID so the export format is environment-independent.
+
+    CI green → the export already uses a stable (UUID-based) identifier and
+    ``chartId`` is no longer env-local; the bug is fixed.
+    CI red  → env-local integers are still leaking; the production code needs
+    to be updated.
+    """
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+    from superset.utils import json
+
+    chart_uuid = "812bc377-ac09-475a-8d34-a63f7f087bd7"
+
+    # ------------------------------------------------------------------ #
+    # Source environment: chart has auto-increment id = 392               #
+    # ------------------------------------------------------------------ #
+    source_position = {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+        "GRID_ID": {
+            "children": ["CHART-srcAAA"],
+            "id": "GRID_ID",
+            "parents": ["ROOT_ID"],
+            "type": "GRID",
+        },
+        "HEADER_ID": {
+            "id": "HEADER_ID",
+            "meta": {"text": "My Dashboard"},
+            "type": "HEADER",
+        },
+        "CHART-srcAAA": {
+            "children": [],
+            "id": "CHART-srcAAA",
+            "meta": {
+                "chartId": 392,  # source-env integer primary key
+                "height": 20,
+                "sliceName": "My Wonderful Chart",
+                "uuid": chart_uuid,
+                "width": 4,
+            },
+            "parents": ["ROOT_ID", "GRID_ID"],
+            "type": "CHART",
+        },
+    }
+
+    src_dashboard = MagicMock()
+    src_dashboard.dashboard_title = "My Dashboard"
+    src_dashboard.theme = None
+    src_dashboard.slices = []
+    src_dashboard.tags = []
+    src_dashboard.roles = []
+    src_dashboard.export_to_dict.return_value = {
+        "position_json": json.dumps(source_position),
+        "json_metadata": json.dumps({"native_filter_configuration": []}),
+    }
+
+    with patch(
+        "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",
+        return_value=False,
+    ):
+        first_export_content = ExportDashboardsCommand._file_content(src_dashboard)
+
+    first_export = yaml.safe_load(first_export_content)
+    first_chart_positions = [
+        node
+        for node in first_export["position"].values()
+        if isinstance(node, dict) and node.get("type") == "CHART"
+    ]
+    assert first_chart_positions, "Export must contain at least one CHART position node"
+    first_chart_meta = first_chart_positions[0]["meta"]
+
+    # uuid must be present — it is the stable cross-environment identifier
+    assert first_chart_meta.get("uuid") == chart_uuid, (
+        "meta.uuid must be present in exported position_json; "
+        "it is the stable identifier that survives re-import."
+    )
+
+    # ------------------------------------------------------------------ #
+    # Destination environment: same chart receives a different id = 1001  #
+    # (This is what happens after import — update_id_refs rewrites the    #
+    # chartId field inside position_json to the destination-env integer.) #
+    # ------------------------------------------------------------------ #
+    dest_position = {
+        k: (
+            {
+                **v,
+                "meta": {
+                    **v["meta"],
+                    "chartId": 1001,  # destination-env integer primary key
+                },
+            }
+            if isinstance(v, dict)
+            and v.get("type") == "CHART"
+            and v.get("meta", {}).get("uuid") == chart_uuid
+            else v
+        )
+        for k, v in source_position.items()
+    }
+
+    dest_dashboard = MagicMock()
+    dest_dashboard.dashboard_title = "My Dashboard"
+    dest_dashboard.theme = None
+    dest_dashboard.slices = []
+    dest_dashboard.tags = []
+    dest_dashboard.roles = []
+    dest_dashboard.export_to_dict.return_value = {
+        "position_json": json.dumps(dest_position),
+        "json_metadata": json.dumps({"native_filter_configuration": []}),
+    }
+
+    with patch(
+        "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",
+        return_value=False,
+    ):
+        second_export_content = ExportDashboardsCommand._file_content(dest_dashboard)
+
+    second_export = yaml.safe_load(second_export_content)
+    second_chart_positions = [
+        node
+        for node in second_export["position"].values()
+        if isinstance(node, dict) and node.get("type") == "CHART"
+    ]
+    assert second_chart_positions, "Second export must contain at least one CHART node"
+    second_chart_meta = second_chart_positions[0]["meta"]
+
+    # uuid must survive the re-import round-trip unchanged
+    assert second_chart_meta.get("uuid") == chart_uuid, (
+        "meta.uuid must be stable across export → import → re-export; "
+        "UUIDs are the cross-environment identity, not integer IDs."
+    )
+
+    # ------------------------------------------------------------------ #
+    # THE REGRESSION: chartId must be stable (or absent) across envs.    #
+    #                                                                     #
+    # With the current (broken) implementation both assertions below      #
+    # fail:                                                               #
+    #   - first export emits chartId 392 (source-env integer)            #
+    #   - second export emits chartId 1001 (destination-env integer)     #
+    # The fix should either omit chartId entirely or derive it from the  #
+    # UUID so that both exports agree.                                    #
+    # ------------------------------------------------------------------ #
+    first_chart_id = first_chart_meta.get("chartId")
+    second_chart_id = second_chart_meta.get("chartId")
+
+    assert first_chart_id == second_chart_id, (
+        f"meta.chartId must be stable across environments, but the source-env "
+        f"export produced chartId={first_chart_id!r} while the destination-env "
+        f"export (after re-import with remapped IDs) produced "
+        f"chartId={second_chart_id!r}. "
+        "Env-local integer IDs are leaking into the export format (issue #32972). "
+        "The fix: strip chartId from exported position_json or replace it with a "
+        "value derived from meta.uuid so the export is environment-independent."
+    )
+
+
 def test_file_content_missing_dataset_preserves_dataset_id():
     """
     When DatasetDAO.find_by_id returns None for a display control target,
