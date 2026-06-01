@@ -167,6 +167,7 @@ export enum ActionType {
   ExtraEditorChange,
   ExtraInputChange,
   EncryptedExtraInputChange,
+  ClearEncryptedExtraKey,
   Fetched,
   InputChange,
   ParametersChange,
@@ -199,6 +200,7 @@ export type DBReducerActionType =
         | ActionType.ExtraEditorChange
         | ActionType.ExtraInputChange
         | ActionType.EncryptedExtraInputChange
+        | ActionType.ClearEncryptedExtraKey
         | ActionType.TextChange
         | ActionType.QueryChange
         | ActionType.InputChange
@@ -292,7 +294,8 @@ export function dbReducer(
       let parsedUnknown: unknown;
       try {
         parsedUnknown = JSON.parse(trimmedState.masked_encrypted_extra || '{}');
-      } catch {
+      } catch (e) {
+        if (!(e instanceof SyntaxError)) throw e;
         parsedUnknown = {};
       }
       const parsed: Record<string, unknown> =
@@ -301,18 +304,35 @@ export function dbReducer(
         !Array.isArray(parsedUnknown)
           ? (parsedUnknown as Record<string, unknown>)
           : {};
-      if (
-        action.payload.value === '' ||
-        action.payload.value === null ||
-        action.payload.value === undefined
-      ) {
-        // Treat empty values as a request to remove the key entirely so the
-        // backend doesn't keep a stale credential under masked_encrypted_extra
-        // (which is preserved key-by-key at save time).
-        delete parsed[action.payload.name as string];
-      } else {
-        parsed[action.payload.name as string] = action.payload.value;
+      // Generic input change: store the value as-is (including empty string).
+      // Use `ClearEncryptedExtraKey` if the intent is to remove the key.
+      return {
+        ...trimmedState,
+        masked_encrypted_extra: JSON.stringify({
+          ...parsed,
+          [action.payload.name]: action.payload.value,
+        }),
+      };
+    }
+    case ActionType.ClearEncryptedExtraKey: {
+      // Same defensive parse as EncryptedExtraInputChange — see comment above.
+      let parsedUnknown: unknown;
+      try {
+        parsedUnknown = JSON.parse(trimmedState.masked_encrypted_extra || '{}');
+      } catch (e) {
+        if (!(e instanceof SyntaxError)) throw e;
+        parsedUnknown = {};
       }
+      const parsed: Record<string, unknown> =
+        parsedUnknown &&
+        typeof parsedUnknown === 'object' &&
+        !Array.isArray(parsedUnknown)
+          ? (parsedUnknown as Record<string, unknown>)
+          : {};
+      // Explicit key removal — used by the gsheets public/private toggle to
+      // drop previously stored service_account_info / oauth2_client_info so
+      // the save-time merge in this modal doesn't carry them forward.
+      delete parsed[action.payload.name as string];
       return {
         ...trimmedState,
         masked_encrypted_extra: JSON.stringify(parsed),
@@ -1889,6 +1909,11 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           handleChangeWithValidation(ActionType.EncryptedExtraInputChange, {
             name: target.name,
             value: target.value,
+          })
+        }
+        onClearEncryptedExtraKey={(name: string) =>
+          handleChangeWithValidation(ActionType.ClearEncryptedExtraKey, {
+            name,
           })
         }
         onRemoveTableCatalog={(idx: number) => {

@@ -25,6 +25,7 @@ import { OAuth2ClientField } from './OAuth2ClientField';
 describe('OAuth2ClientField', () => {
   const mockChangeMethods = {
     onEncryptedExtraInputChange: jest.fn(),
+    onClearEncryptedExtraKey: jest.fn(),
     onParametersChange: jest.fn(),
     onChange: jest.fn(),
     onQueryChange: jest.fn(),

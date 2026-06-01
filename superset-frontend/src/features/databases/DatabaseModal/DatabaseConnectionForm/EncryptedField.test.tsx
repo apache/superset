@@ -52,6 +52,7 @@ describe('EncryptedField', () => {
 
   const createMockChangeMethods = () => ({
     onEncryptedExtraInputChange: jest.fn(),
+    onClearEncryptedExtraKey: jest.fn(),
     onParametersChange: jest.fn(),
     onChange: jest.fn(),
     onQueryChange: jest.fn(),
@@ -129,22 +130,32 @@ describe('EncryptedField', () => {
 
       expect(() => render(<EncryptedField {...props} />)).not.toThrow();
 
-      expectParametersChange(props.changeMethods, undefined, '');
-      expect(props.changeMethods.onParametersChange).toHaveBeenCalledTimes(1);
+      // No engine-specific field name → mount effect skips the clear so it
+      // doesn't write `parameters[undefined] = ''` to state.
+      expect(props.changeMethods.onParametersChange).not.toHaveBeenCalled();
     });
 
     test.each([
-      ['null engine', null, null],
-      ['undefined engine', undefined, undefined],
-      ['empty string engine', '', ''],
-    ])('handles %s gracefully', (_description, engine, expectedName) => {
+      ['null engine', null],
+      ['undefined engine', undefined],
+      ['empty string engine', ''],
+    ])('handles %s gracefully', (_description, engine) => {
       const mockDb = createMockDb(engine);
       const props = { ...defaultProps, db: mockDb };
 
       expect(() => render(<EncryptedField {...props} />)).not.toThrow();
 
-      expectParametersChange(props.changeMethods, expectedName, '');
-      expect(props.changeMethods.onParametersChange).toHaveBeenCalledTimes(1);
+      expect(props.changeMethods.onParametersChange).not.toHaveBeenCalled();
+    });
+
+    test('does not call onParametersChange when db is undefined (async load)', () => {
+      const props = { ...defaultProps, db: undefined };
+
+      expect(() => render(<EncryptedField {...props} />)).not.toThrow();
+
+      // Async edit-mode load: db hasn't arrived yet. The mount effect must
+      // NOT race with the incoming credentials by clearing them.
+      expect(props.changeMethods.onParametersChange).not.toHaveBeenCalled();
     });
   });
 
@@ -333,8 +344,9 @@ describe('EncryptedField', () => {
 
       expect(() => render(<EncryptedField {...props} />)).not.toThrow();
 
-      // Should still render the upload UI with undefined field name
-      expectParametersChange(props.changeMethods, undefined, '');
+      // Mount effect skips the parameters clear when there's no
+      // engine-specific field name to write to.
+      expect(props.changeMethods.onParametersChange).not.toHaveBeenCalled();
     });
 
     test('renders gracefully with malformed database parameters', () => {
@@ -477,24 +489,16 @@ describe('EncryptedField', () => {
         }),
       );
 
-      // Also clears `masked_encrypted_extra` keys directly so previously
-      // stored credentials don't survive a toggle in edit mode.
-      expect(changeMethods.onEncryptedExtraInputChange).toHaveBeenCalledWith(
-        expect.objectContaining({
-          target: expect.objectContaining({
-            name: 'service_account_info',
-            value: '',
-          }),
-        }),
+      // Also deletes `masked_encrypted_extra` keys directly via the dedicated
+      // `ClearEncryptedExtraKey` action so previously stored credentials
+      // don't survive a toggle in edit mode.
+      expect(changeMethods.onClearEncryptedExtraKey).toHaveBeenCalledWith(
+        'service_account_info',
       );
-      expect(changeMethods.onEncryptedExtraInputChange).toHaveBeenCalledWith(
-        expect.objectContaining({
-          target: expect.objectContaining({
-            name: 'oauth2_client_info',
-            value: '',
-          }),
-        }),
+      expect(changeMethods.onClearEncryptedExtraKey).toHaveBeenCalledWith(
+        'oauth2_client_info',
       );
+      expect(changeMethods.onEncryptedExtraInputChange).not.toHaveBeenCalled();
     });
   });
 });

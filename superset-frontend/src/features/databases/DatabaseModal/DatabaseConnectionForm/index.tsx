@@ -61,6 +61,7 @@ const DatabaseConnectionForm = ({
   onChange,
   onExtraInputChange,
   onEncryptedExtraInputChange,
+  onClearEncryptedExtraKey,
   onParametersChange,
   onParametersUploadFileChange,
   onQueryChange,
@@ -85,13 +86,15 @@ const DatabaseConnectionForm = ({
   );
 
   // Re-derive when switching to a different database, when the engine
-  // changes, or when masked_encrypted_extra arrives async on edit load.
-  // The setter is a no-op when the result is unchanged, so this is safe to
-  // run on every masked_encrypted_extra update.
+  // changes, or when any of the credential fields read by
+  // computeInitialIsPublic arrive async on edit load. The setter is a no-op
+  // when the result is unchanged, so over-running this effect is harmless.
   useEffect(() => {
     setIsPublic(computeInitialIsPublic(db));
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally narrowed
-  }, [db?.id, db?.engine, db?.masked_encrypted_extra]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `db` identity
+    // alone churns on every reducer dispatch; the dep list below tracks each
+    // field that computeInitialIsPublic actually reads.
+  }, [db?.id, db?.engine, db?.masked_encrypted_extra, db?.parameters]);
 
   return (
     <Form>
@@ -126,6 +129,7 @@ const DatabaseConnectionForm = ({
                   onRemoveTableCatalog,
                   onExtraInputChange,
                   onEncryptedExtraInputChange,
+                  onClearEncryptedExtraKey,
                 }}
                 validationErrors={validationErrors}
                 getValidation={getValidation}

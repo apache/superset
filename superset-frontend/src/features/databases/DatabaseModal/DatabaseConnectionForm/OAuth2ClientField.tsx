@@ -56,7 +56,10 @@ export const OAuth2ClientField = ({
     let parsed: unknown;
     try {
       parsed = JSON.parse(db?.masked_encrypted_extra || '{}');
-    } catch {
+    } catch (e) {
+      // Only swallow JSON.parse's own SyntaxError; let real programmer
+      // errors (RangeError, TypeError from a broken stub, etc.) propagate.
+      if (!(e instanceof SyntaxError)) throw e;
       parsed = {};
     }
     const encryptedExtra =
@@ -85,7 +88,9 @@ export const OAuth2ClientField = ({
   // gsheets dropdown toggles back to private after we cleared stored creds).
   useEffect(() => {
     setOauth2ClientInfo(deriveOauth2ClientInfo());
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- depend only on the serialized DB-side credentials
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `defaultValue` is a
+    // static per-engine default that doesn't change after the form opens;
+    // depending on it would cause spurious re-syncs when the parent re-renders.
   }, [db?.masked_encrypted_extra]);
 
   if (db?.engine === Engines.GSheet && isPublic) {

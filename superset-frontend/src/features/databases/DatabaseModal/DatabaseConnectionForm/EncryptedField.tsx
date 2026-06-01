@@ -84,15 +84,14 @@ export const EncryptedField = ({
       changeMethods.onParametersChange({
         target: { name: 'oauth2_client_info', value: '' },
       });
-      // Also clear any previously-stored values from masked_encrypted_extra
+      // Also delete any previously-stored values from masked_encrypted_extra
       // itself (loaded in edit mode), since the save-time merge preserves
       // existing keys and only overwrites them when `parameters.*` is truthy.
-      changeMethods.onEncryptedExtraInputChange({
-        target: { name: 'service_account_info', value: '' },
-      });
-      changeMethods.onEncryptedExtraInputChange({
-        target: { name: 'oauth2_client_info', value: '' },
-      });
+      // Use the dedicated `ClearEncryptedExtraKey` action so the generic
+      // `EncryptedExtraInputChange` handler keeps its master semantics (store
+      // empty strings, never delete) for any other caller.
+      changeMethods.onClearEncryptedExtraKey('service_account_info');
+      changeMethods.onClearEncryptedExtraKey('oauth2_client_info');
     }
   };
 
@@ -105,6 +104,11 @@ export const EncryptedField = ({
     });
 
   useEffect(() => {
+    // Skip the initial clear when there's no engine-specific field name yet
+    // (e.g. the db prop hasn't finished loading): writing the falsy
+    // `encryptedField` as a key would pollute parameters with `false: ''`,
+    // and racing the async credential load isn't useful anyway.
+    if (!encryptedField) return;
     changeMethods.onParametersChange({
       target: {
         name: encryptedField,
@@ -210,7 +214,7 @@ export const EncryptedField = ({
                       },
                     });
                     setFileList(info.fileList);
-                  } catch (error) {
+                  } catch {
                     setFileList([]);
                     addDangerToast(
                       t(

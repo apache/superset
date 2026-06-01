@@ -52,6 +52,7 @@ const baseProps = {
     onRemoveTableCatalog: jest.fn(),
     onExtraInputChange: jest.fn(),
     onEncryptedExtraInputChange: jest.fn(),
+    onClearEncryptedExtraKey: jest.fn(),
     onSSHTunnelParametersChange: jest.fn(),
   },
   validationErrors: null,

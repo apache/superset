@@ -308,6 +308,7 @@ export interface FieldPropTypes {
   } & {
     onExtraInputChange: (value: any) => void;
     onEncryptedExtraInputChange: (value: any) => void;
+    onClearEncryptedExtraKey: (name: string) => void;
     onSSHTunnelParametersChange: CustomEventHandlerType;
   };
   validationErrors: JsonObject | null;
@@ -366,6 +367,7 @@ export interface DatabaseConnectionFormProps {
   onEncryptedExtraInputChange: (
     event: FormEvent<InputProps> | { target: HTMLInputElement },
   ) => void;
+  onClearEncryptedExtraKey: (name: string) => void;
   onAddTableCatalog: () => void;
   onRemoveTableCatalog: (idx: number) => void;
   validationErrors: JsonObject | null;
