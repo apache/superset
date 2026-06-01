@@ -25,6 +25,12 @@ assists people when migrating to a new version.
 ## 6.0.0
 ## Next
 
+### Dataset import validates catalog against the target connection
+
+Importing a dataset now validates the `catalog` field against the target database connection. When the connection has multi-catalog disabled (`allow_multi_catalog` off) and the dataset's catalog is not the connection's default catalog, the import fails instead of silently persisting the non-default catalog. This matches the validation already enforced on the dataset update path and prevents imported datasets from querying an unintended database.
+
+If you relied on importing datasets with a non-default catalog, enable "Allow changing catalogs" on the target connection, or set the dataset's catalog to the connection's default before importing.
+
 ### MCP Tool Observability
 
 MCP (Model Context Protocol) tools now include enhanced observability instrumentation for monitoring and debugging:

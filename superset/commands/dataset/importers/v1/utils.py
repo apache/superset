@@ -27,7 +27,10 @@ from sqlalchemy.exc import MultipleResultsFound
 from sqlalchemy.sql.visitors import VisitableType
 
 from superset import db, security_manager
-from superset.commands.dataset.exceptions import DatasetForbiddenDataURI
+from superset.commands.dataset.exceptions import (
+    DatasetForbiddenDataURI,
+    MultiCatalogDisabledValidationError,
+)
 from superset.commands.exceptions import ImportFailedError
 from superset.connectors.sqla.models import SqlaTable
 from superset.models.core import Database
@@ -102,6 +105,32 @@ def validate_data_uri(data_uri: str) -> None:
     raise DatasetForbiddenDataURI()
 
 
+def validate_catalog(config: dict[str, Any]) -> None:
+    """
+    Reject a non-default catalog when the target database has multi-catalog
+    disabled, matching the dataset update validation so an import can't silently
+    bind a dataset to an unintended catalog (and route queries to it).
+    """
+    catalog = config.get("catalog")
+    database_id = config.get("database_id")
+    if not catalog or database_id is None:
+        return
+
+    database = db.session.query(Database).filter_by(id=database_id).first()
+    if database is None or not database.db_engine_spec.supports_catalog:
+        return
+
+    # Only validate when the connection has a known default catalog to compare
+    # against; without one there is no "non-default" catalog to reject.
+    default_catalog = database.get_default_catalog()
+    if (
+        default_catalog is not None
+        and not database.allow_multi_catalog
+        and catalog != default_catalog
+    ):
+        raise MultiCatalogDisabledValidationError()
+
+
 def import_dataset(  # noqa: C901
     config: dict[str, Any],
     overwrite: bool = False,
@@ -129,6 +158,11 @@ def import_dataset(  # noqa: C901
         raise ImportFailedError(
             "Dataset doesn't exist and user doesn't have permission to create datasets"
         )
+
+    # Trusted imports (e.g. example loading) carry curated configs; only
+    # untrusted user imports validate the catalog, like the access checks below.
+    if not ignore_permissions:
+        validate_catalog(config)
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()
