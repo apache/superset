@@ -257,14 +257,20 @@ const PropertiesModal = ({
     owners: { value: number; label: string }[],
     options: Record<string, unknown>[],
   ) => {
-    const parsedOwners: Owners = ensureIsArray(owners).map((o, i) => ({
-      id: o.value,
-      full_name:
-        (options?.[i]?.[OWNER_TEXT_LABEL_PROP] as string) ||
-        (typeof o.label === 'string' ? o.label : ''),
-      email: (options?.[i]?.[OWNER_EMAIL_PROP] as string) || '',
-    }));
-    setOwners(parsedOwners);
+    setOwners(prev => {
+      const previousById = new Map(prev.map(o => [o.id, o]));
+      return ensureIsArray(owners).map((o, i) => {
+        const previous = previousById.get(o.value);
+        if (previous) return previous;
+        return {
+          id: o.value,
+          full_name:
+            (options?.[i]?.[OWNER_TEXT_LABEL_PROP] as string) ||
+            (typeof o.label === 'string' ? o.label : ''),
+          email: (options?.[i]?.[OWNER_EMAIL_PROP] as string) || '',
+        };
+      });
+    });
   };
 
   const handleOnChangeRoles = (roles: { value: number; label: string }[]) => {
