@@ -201,7 +201,7 @@ def loads_request_json(request_json_data: str) -> dict[Any, Any]:
     return parsed if isinstance(parsed, dict) else {}
 
 
-def get_explore_redirect_url() -> str | None:
+def get_explore_redirect_url() -> str | None:  # noqa: C901
     """Construct the `/explore/?form_data_key=...` redirect URL, or None.
 
     Returns ``None`` when the request should render the SPA fall-through
@@ -242,18 +242,30 @@ def get_explore_redirect_url() -> str | None:
     datasource = parsed_form_data.get("datasource")
     if not datasource:
         return None
+    if not isinstance(datasource, str):
+        # RF-1 (review-fix Slice 1–8): malformed `form_data.datasource` of a
+        # non-string shape (number, list, dict) used to raise
+        # `AttributeError: ... has no attribute 'split'` and surface as 500.
+        # Closes the residual AF-2 gap surfaced in the multi-slice review.
+        return None
 
     parts = datasource.split("__")
     if len(parts) != 2:
         # AF-2: malformed `datasource` (missing the `__type` suffix) used to
         # raise `ValueError: not enough values to unpack` and surface as 500.
         return None
-    datasource_id, datasource_type = parts
+    datasource_id_str, datasource_type_str = parts
     try:
-        DatasourceType(datasource_type)
+        datasource_type_enum = DatasourceType(datasource_type_str)
     except ValueError:
         # AF-2: an unknown `datasource_type` used to raise `ValueError` from
         # `DatasourceType(...)` and surface as 500. Fall through to SPA.
+        return None
+    try:
+        datasource_id = int(datasource_id_str)
+    except ValueError:
+        # AF-2 (sibling): non-integer `datasource_id` (e.g. `"abc__table"`)
+        # would crash deeper inside the form-data write. Fall through to SPA.
         return None
 
     slice_id = parsed_form_data.get("slice_id")
@@ -265,7 +277,7 @@ def get_explore_redirect_url() -> str | None:
 
     parameters = CommandParameters(
         datasource_id=datasource_id,
-        datasource_type=datasource_type,
+        datasource_type=datasource_type_enum,
         chart_id=slice_id,
         form_data=request_form_data,
     )

@@ -135,18 +135,22 @@ def test_legacy_get_redirects_308_under_root(legacy: str, canonical: str) -> Non
 
 @pytest.mark.parametrize(("legacy", "canonical"), _GET_REDIRECT_ROWS)
 def test_legacy_get_redirects_308_under_subdir(legacy: str, canonical: str) -> None:
-    """Under subdir deployment (`SUPERSET_APP_ROOT=/superset`), every
+    """Under subdir deployment (e.g. `SUPERSET_APP_ROOT=/myapp`), every
     enumerated legacy GET 308s to a single-prefixed canonical path.
 
-    Critical: `Location` must be `/superset<canonical>`, never
-    `/superset/superset<canonical>`. The shim wraps outside
+    Critical: `Location` must be `/myapp<canonical>`, never
+    `/myapp/superset<canonical>`. The shim wraps outside
     `AppRootMiddleware`, so it sees the raw inbound `PATH_INFO`; the
     `Location` is built from the construction-time `app_root` capture,
-    not from `environ["SCRIPT_NAME"]`."""
-    client = _build_client(app_root="/superset")
+    not from `environ["SCRIPT_NAME"]`.
+
+    RF-2 (review-fix Slice 1–8): the `/superset` deployment collides with
+    `_LEGACY_PREFIX` → covered separately by
+    `test_degenerate_app_root_equals_superset_disables_shim`."""
+    client = _build_client(app_root="/myapp")
     resp = client.get(legacy)
     assert resp.status_code == 308
-    assert resp.headers["Location"] == f"/superset{canonical}"
+    assert resp.headers["Location"] == f"/myapp{canonical}"
 
 
 @pytest.mark.parametrize(("legacy", "canonical"), _POST_BODY_PRESERVED_ROWS)
@@ -214,26 +218,39 @@ def test_legacy_sql_route_passes_through_not_308() -> None:
     assert "/sql/" not in LEGACY_REDIRECT_MAP
 
 
-def test_degenerate_app_root_equals_superset() -> None:
-    """When `app_root == "/superset"`, hitting `/superset/superset/welcome/`
-    (the raw inbound path under that deployment) emits exactly **one**
-    `/superset` prefix — `Location == "/superset/welcome/"`, not
-    `/superset/superset/welcome/`.
+def test_degenerate_app_root_equals_superset_disables_shim() -> None:
+    """RF-2 (review-fix Slice 1–8): when `APPLICATION_ROOT == "/superset"`,
+    legacy and canonical prefixes coincide. If the shim were active, an
+    inbound `/superset/welcome/` would 308 to `/superset/welcome/` — the
+    same URL → infinite redirect loop.
 
-    This is the highest-risk double-redirect / shadow case (round-3 [High])."""
-    client = _build_client(app_root="/superset")
-    resp = client.get("/superset/superset/welcome/")
-    # Note: `_match()` is fed `/superset/welcome/` after the prefix strip;
-    # `/superset/` is not a key, so this falls through to pass-through.
-    # We need to hit a path the shim recognizes — strip strips ONE
-    # `_LEGACY_PREFIX`. So this case actually passes through. Pin the
-    # alternative degenerate case where the user hits `/superset/welcome/`
-    # (the realistic legacy bookmark under any deployment):
+    The shim short-circuits in that deployment shape via `_enabled = False`
+    and falls through to the inner app, which routes the path through the
+    canonical Flask routes."""
+    shim = LegacyPrefixRedirectMiddleware(_sentinel_inner_app, "/superset")
+    assert shim._enabled is False  # noqa: SLF001
+    client = Client(shim, response_wrapper=Response)
+    # Inbound legacy path falls through to inner app (no 308).
     resp = client.get("/superset/welcome/")
-    assert resp.status_code == 308
-    # Exactly one `/superset` prefix; no doubling.
-    assert resp.headers["Location"] == "/superset/welcome/"
-    assert resp.headers["Location"].count("/superset/") == 1
+    assert resp.status_code == 200
+    assert resp.data == _SENTINEL_BODY
+
+
+@pytest.mark.parametrize(
+    "app_root",
+    ["/", "", "/superset/", "/other", "/a/b"],
+)
+def test_shim_enabled_for_non_legacy_app_roots(app_root: str) -> None:
+    """RF-2: the disable-shim short-circuit is targeted at the exact
+    `/superset` collision case — every other `APPLICATION_ROOT` (including
+    root, empty, `/superset/` with trailing slash that strips to
+    `/superset`, and arbitrary subdirs) keeps the shim active."""
+    shim = LegacyPrefixRedirectMiddleware(_sentinel_inner_app, app_root)
+    if shim.app_root_prefix == "/superset":
+        # `/superset/` strips to `/superset`, also a collision → disabled.
+        assert shim._enabled is False  # noqa: SLF001
+    else:
+        assert shim._enabled is True  # noqa: SLF001
 
 
 def test_location_built_from_app_root_not_script_name() -> None:
@@ -281,11 +298,14 @@ def test_query_string_preserved_in_location() -> None:
 
 
 def test_query_string_preserved_under_subdir() -> None:
-    """Subdir + query string: single prefix, query intact."""
-    client = _build_client(app_root="/superset")
+    """Subdir + query string: single prefix, query intact.
+
+    Uses a non-colliding subdir (`/myapp`) — RF-2 disables the shim under
+    `/superset` (see `test_degenerate_app_root_equals_superset_disables_shim`)."""
+    client = _build_client(app_root="/myapp")
     resp = client.get("/superset/explore/?form_data=%7B%7D")
     assert resp.status_code == 308
-    assert resp.headers["Location"] == "/superset/explore/?form_data=%7B%7D"
+    assert resp.headers["Location"] == "/myapp/explore/?form_data=%7B%7D"
 
 
 # ---------------------------------------------------------------------------
@@ -497,11 +517,13 @@ def test_shim_short_circuits_before_inner_app() -> None:
     def _raise_on_reach(environ, start_response):  # pragma: no cover
         raise AssertionError("shim must 308 before inner app sees the legacy path")
 
-    shim = LegacyPrefixRedirectMiddleware(_raise_on_reach, "/superset")
+    # Use a non-colliding subdir — `/superset` would trigger the RF-2
+    # short-circuit and fall through to inner (covered elsewhere).
+    shim = LegacyPrefixRedirectMiddleware(_raise_on_reach, "/myapp")
     client = Client(shim, response_wrapper=Response)
     resp = client.get("/superset/welcome/")
     assert resp.status_code == 308
-    assert resp.headers["Location"] == "/superset/welcome/"
+    assert resp.headers["Location"] == "/myapp/welcome/"
 
 
 def test_no_double_redirect_warm_up_cache() -> None:

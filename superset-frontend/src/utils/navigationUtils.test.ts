@@ -112,6 +112,48 @@ describe('openInNewTab', () => {
       expect(openSpy).not.toHaveBeenCalled();
     });
   });
+
+  // RF-3 (review-fix Slice 1–8): scheme-without-authority bypass. WHATWG
+  // URL parsers extract the host from `http:evil.com/foo` as `evil.com`,
+  // so the previous regex `/^https?:/i` mistook a cross-origin URL for a
+  // safe absolute one. The tightened regex requires `//` after the scheme.
+  test.each([
+    ['http:evil.example.com/phish'],
+    ['https:evil.example.com/phish'],
+    ['HTTP:evil.example.com/phish'],
+    ['ftp:evil.example.com/file'],
+  ])(
+    'refuses scheme-without-authority URL %s (RF-3)',
+    async (unsafeUrl: string) => {
+      await withApplicationRoot('/superset/', async () => {
+        const { openInNewTab } = await import('src/utils/navigationUtils');
+        expect(() => openInNewTab(unsafeUrl)).toThrow(/refused unsafe URL/);
+        expect(openSpy).not.toHaveBeenCalled();
+      });
+    },
+  );
+
+  // RF-4 (review-fix Slice 1–8): C0/C1 controls and zero-width / bidi
+  // formatting marks are stripped by browsers before URL parsing, so a
+  // string like `\t//evil.com` would survive the leading-slash check and
+  // navigate cross-origin. Reject them outright.
+  test.each([
+    ['\t//evil.example.com'],
+    ['\n//evil.example.com'],
+    ['\r//evil.example.com'],
+    ['‎/foo'],
+    ['​/foo'],
+    ['﻿/foo'],
+  ])(
+    'refuses URL %j containing control or zero-width chars (RF-4)',
+    async (unsafeUrl: string) => {
+      await withApplicationRoot('/superset/', async () => {
+        const { openInNewTab } = await import('src/utils/navigationUtils');
+        expect(() => openInNewTab(unsafeUrl)).toThrow(/refused unsafe URL/);
+        expect(openSpy).not.toHaveBeenCalled();
+      });
+    },
+  );
 });
 
 describe('redirect', () => {

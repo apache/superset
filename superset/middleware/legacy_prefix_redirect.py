@@ -167,12 +167,26 @@ class LegacyPrefixRedirectMiddleware:
         # produce the same Location prefix at build time. Empty string is
         # correct for app_root == "/".
         self.app_root_prefix: str = app_root.rstrip("/")
+        # RF-2 (review-fix Slice 1–8): if the operator deploys under
+        # APPLICATION_ROOT == "/superset", the legacy prefix collides with
+        # the app-root prefix and `app_root_prefix + canonical_target`
+        # produces the same URL as the inbound path → infinite 308 loop.
+        # In that deployment shape there is no migration to perform anyway
+        # (legacy URLs are already at their canonical location), so the
+        # shim becomes a no-op.
+        self._enabled: bool = self.app_root_prefix != _LEGACY_PREFIX
 
     def __call__(
         self,
         environ: "WSGIEnvironment",
         start_response: "StartResponse",
     ) -> Iterable[bytes]:
+        # RF-2: short-circuit when APPLICATION_ROOT == _LEGACY_PREFIX
+        # (legacy and canonical prefixes coincide → 308 self-loop). See
+        # `__init__` for the full rationale.
+        if not self._enabled:
+            return self.wsgi_app(environ, start_response)
+
         path_info: str = environ.get("PATH_INFO", "")
         method: str = environ.get("REQUEST_METHOD", "GET").upper()
 

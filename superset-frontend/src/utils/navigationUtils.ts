@@ -67,14 +67,43 @@ const SAFE_PATH_PARSE_ORIGIN = 'http://navigation-utils.invalid';
 // first `/` after `//`) are rejected by the post-regex authority check
 // below, since `https://good@evil.com` resolves to the host `evil.com`
 // despite presenting as a same-origin-looking URL to the eye.
-const SAFE_NAVIGATION_URL_RE = /^(?:\/(?!\/)|https?:|ftp:|mailto:|tel:)/i;
-const USERINFO_BEARING_SCHEME_RE = /^(?:https?|ftp):/i;
+//
+// RF-3 (review-fix Slice 1–8): the http(s)/ftp branches require an
+// explicit `//` after the scheme. Without it, `new URL('http:evil.com')`
+// in modern browsers parses the authority as `evil.com` — a same-origin-
+// looking absolute URL that resolves cross-origin. Mirroring the
+// protocol-relative `//host` reject from above.
+// RF-4 (review-fix Slice 1–8): URL strings containing C0/C1 controls
+// (`\t`/`\n`/`\r`/etc., DEL, U+0080..U+009F) or Unicode zero-width / bidi
+// formatting marks (U+200B..U+200F, U+2028, U+2029, U+FEFF) are rejected
+// outright. Browsers strip leading C0 controls before parsing the
+// leading-slash branch, so `\t//evil.com` would otherwise leave the
+// leading-slash check unable to see the protocol-relative `//`.
+// Defence-in-depth — no known active bypass against the current
+// allow-list, but the regex would otherwise depend on browser-specific
+// normalisation behaviour.
+const SAFE_NAVIGATION_URL_RE =
+  /^(?:\/(?!\/)|https?:\/\/|ftp:\/\/|mailto:|tel:)/i;
+const USERINFO_BEARING_SCHEME_RE = /^(?:https?|ftp):\/\//i;
+// String-literal `\u` escapes (via `new RegExp(...)`) instead of a regex
+// literal so source-file tooling (Babel parser, prettier, eslint) does
+// not have to round-trip raw bidi / zero-width / line-separator bytes.
+const FORBIDDEN_CONTROL_CHARS_RE = new RegExp(
+  '[\\x00-\\x1F\\x7F-\\x9F\\u200B-\\u200F\\u2028\\u2029\\uFEFF]',
+);
 
 function assertSafeNavigationUrl(url: string): string {
+  if (FORBIDDEN_CONTROL_CHARS_RE.test(url)) {
+    throw new Error(
+      'navigationUtils refused unsafe URL: contains a forbidden ' +
+        'control or zero-width character (would survive the allow-list ' +
+        'as a browser-normalised navigation primitive).',
+    );
+  }
   if (!SAFE_NAVIGATION_URL_RE.test(url) || url.includes('\\')) {
     throw new Error(
       'navigationUtils refused unsafe URL: only relative paths and ' +
-        'http(s):, ftp:, mailto:, tel: schemes are allowed.',
+        'http(s)://, ftp://, mailto:, tel: schemes are allowed.',
     );
   }
   if (USERINFO_BEARING_SCHEME_RE.test(url)) {

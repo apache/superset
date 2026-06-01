@@ -104,6 +104,26 @@ class TestExploreRedirect(SupersetTestCase):
         rv = self.client.get(f"/explore/?form_data={quote(json.dumps(form_data))}")
         assert rv.status_code == 200
 
+    @pytest.mark.parametrize(
+        "datasource_value",
+        [123, ["1__table"], {"id": 1, "type": "table"}, True],
+    )
+    def test_explore_root_rf1_datasource_non_string(self, datasource_value):
+        """RF-1 (review-fix Slice 1–8): a non-string ``datasource`` value
+        (number, list, dict, bool) used to raise ``AttributeError: ... has
+        no attribute 'split'`` inside ``datasource.split("__")`` and
+        surface as 500.
+
+        The lifted helper now type-guards ``isinstance(datasource, str)``
+        before the split and falls through to the SPA on any non-string
+        shape — closing the residual AF-2 gap surfaced in the multi-slice
+        code review.
+        """
+        self.login(ADMIN_USERNAME)
+        form_data = {"datasource": datasource_value}
+        rv = self.client.get(f"/explore/?form_data={quote(json.dumps(form_data))}")
+        assert rv.status_code == 200
+
     def test_explore_root_af2_datasource_invalid_enum(self):
         """AF-2 (enum): ``datasource="1__bogus"`` → 200, not 500.
 
