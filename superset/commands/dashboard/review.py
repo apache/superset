@@ -21,7 +21,6 @@ from dataclasses import dataclass
 from typing import Any
 
 from flask_babel import gettext as _
-from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
