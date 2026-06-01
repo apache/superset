@@ -60,6 +60,7 @@ async def create_layer_annotation(
     )
 
     try:
+        # deferred import — avoids circular import at module load time
         from superset.commands.annotation_layer.annotation.create import (
             CreateAnnotationCommand,
         )
@@ -133,8 +134,16 @@ async def create_layer_annotation(
             error=f"Failed to create annotation: {exc}",
         )
     except Exception as exc:
+        logger.exception("Unexpected error in create_layer_annotation")
         await ctx.error(
             "Unexpected error creating annotation: %s: %s"
             % (type(exc).__name__, str(exc))
         )
-        raise
+        return CreateLayerAnnotationResponse(
+            id=None,
+            layer_id=request.layer_id,
+            short_descr=request.short_descr,
+            start_dttm=request.start_dttm,
+            end_dttm=request.end_dttm,
+            error=f"Unexpected error: {exc}",
+        )

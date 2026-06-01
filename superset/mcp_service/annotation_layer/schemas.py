@@ -365,6 +365,18 @@ def serialize_annotation(obj: Any) -> AnnotationInfo | None:
             layer_id=getattr(obj, "layer_id", None),
         )
     )
+
+
+def _validate_json_metadata_field(v: str | None) -> str | None:
+    if v is None:
+        return v
+    try:
+        json_utils.loads(v)
+    except (ValueError, TypeError) as exc:
+        raise ValueError("json_metadata must be valid JSON") from exc
+    return v
+
+
 class CreateLayerAnnotationRequest(BaseModel):
     """Request schema for create_layer_annotation."""
 
@@ -403,13 +415,7 @@ class CreateLayerAnnotationRequest(BaseModel):
     @field_validator("json_metadata")
     @classmethod
     def validate_json_metadata(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        try:
-            json_utils.loads(v)
-        except (ValueError, TypeError) as exc:
-            raise ValueError("json_metadata must be valid JSON") from exc
-        return v
+        return _validate_json_metadata_field(v)
 
 
 class CreateLayerAnnotationResponse(BaseModel):
@@ -476,23 +482,17 @@ class UpdateLayerAnnotationRequest(BaseModel):
     )
     long_descr: str | None = Field(
         None,
-        description="New detailed description (optional).",
+        description="New detailed description. Pass null to clear.",
     )
     json_metadata: str | None = Field(
         None,
-        description="New JSON metadata string (optional).",
+        description="New JSON metadata string. Pass null to clear existing metadata.",
     )
 
     @field_validator("json_metadata")
     @classmethod
     def validate_json_metadata(cls, v: str | None) -> str | None:
-        if v is None:
-            return v
-        try:
-            json.loads(v)
-        except (ValueError, TypeError) as exc:
-            raise ValueError("json_metadata must be valid JSON") from exc
-        return v
+        return _validate_json_metadata_field(v)
 
 
 class UpdateLayerAnnotationResponse(BaseModel):

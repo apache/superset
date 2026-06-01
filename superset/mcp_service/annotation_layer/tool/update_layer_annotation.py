@@ -39,9 +39,9 @@ def _build_update_properties(request: UpdateLayerAnnotationRequest) -> dict[str,
         properties["start_dttm"] = request.start_dttm
     if request.end_dttm is not None:
         properties["end_dttm"] = request.end_dttm
-    if request.long_descr is not None:
+    if "long_descr" in request.model_fields_set:
         properties["long_descr"] = request.long_descr
-    if request.json_metadata is not None:
+    if "json_metadata" in request.model_fields_set:
         properties["json_metadata"] = request.json_metadata
     return properties
 
@@ -80,6 +80,7 @@ async def update_layer_annotation(
     )
 
     try:
+        # deferred import — avoids circular import at module load time
         from superset.commands.annotation_layer.annotation.exceptions import (
             AnnotationInvalidError,
             AnnotationNotFoundError,
@@ -146,8 +147,13 @@ async def update_layer_annotation(
             error=f"Failed to update annotation: {exc}",
         )
     except Exception as exc:
+        logger.exception("Unexpected error in update_layer_annotation")
         await ctx.error(
             "Unexpected error updating annotation: %s: %s"
             % (type(exc).__name__, str(exc))
         )
-        raise
+        return UpdateLayerAnnotationResponse(
+            id=None,
+            layer_id=request.layer_id,
+            error=f"Unexpected error: {exc}",
+        )
