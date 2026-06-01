@@ -22,9 +22,11 @@ from superset.commands.dashboard.exceptions import (
     DashboardForbiddenError,
     DashboardNotFoundError,
     DashboardRestoreFailedError,
+    DashboardSlugConflictError,
 )
 from superset.commands.restore import BaseRestoreCommand
 from superset.daos.dashboard import DashboardDAO
+from superset.extensions import db
 from superset.models.dashboard import Dashboard
 
 logger = logging.getLogger(__name__)
@@ -33,11 +35,50 @@ logger = logging.getLogger(__name__)
 class RestoreDashboardCommand(BaseRestoreCommand[Dashboard]):
     """Restore a soft-deleted dashboard by clearing its ``deleted_at`` field.
 
-    All transactional wrapping and validation lives in
-    ``BaseRestoreCommand``; this subclass is purely declarative.
+    Most behaviour is inherited from ``BaseRestoreCommand``. The override
+    here adds the slug-conflict check: with the partial unique index on
+    ``slug WHERE deleted_at IS NULL``, slug reuse during the soft-deleted
+    window is allowed, so a restore may now collide with an active row
+    that claimed the slug while this one was deleted. Raise a clean
+    domain error in that case instead of letting the unique-index
+    violation surface as an opaque ``IntegrityError`` at flush time.
     """
 
     dao = DashboardDAO
     not_found_exc = DashboardNotFoundError
     forbidden_exc = DashboardForbiddenError
     restore_failed_exc = DashboardRestoreFailedError
+
+    def validate(self) -> Dashboard:  # type: ignore[override]
+        model = super().validate()
+        if model.slug and self._has_active_slug_twin(model):
+            raise DashboardSlugConflictError()
+        return model
+
+    @staticmethod
+    def _has_active_slug_twin(model: Dashboard) -> bool:
+        """Return True iff another active dashboard already owns this slug.
+
+        Slug uniqueness is enforced only among active rows (via the
+        partial index ``ix_dashboards_active_slug``). If the slug has
+        been claimed since this dashboard was soft-deleted, the restore
+        would create two active rows with the same slug — caught here
+        so it surfaces as a readable domain error rather than an opaque
+        ``IntegrityError`` at flush time.
+
+        Relies on the ``SoftDeleteMixin`` listener to auto-append
+        ``deleted_at IS NULL`` to the query, so only active rows are
+        considered. A future change that adds
+        ``skip_visibility_filter=True`` to this path would silently
+        broaden the check to include soft-deleted rows and could refuse
+        a legitimate restore.
+
+        Caller assumes an active Flask request / app context via
+        ``db.session``.
+        """
+        return (
+            db.session.query(Dashboard.id)
+            .filter(Dashboard.slug == model.slug, Dashboard.id != model.id)
+            .first()
+            is not None
+        )

@@ -75,6 +75,14 @@ class DashboardRestoreFailedError(CommandException):
     message = _("Dashboard could not be restored.")
 
 
+class DashboardSlugConflictError(CommandException):
+    status = 422
+    message = _(
+        "Dashboard cannot be restored because its slug is now used by "
+        "another active dashboard. Rename one of the dashboards and retry."
+    )
+
+
 class DashboardDeleteFailedError(DeleteFailedError):
     message = _("Dashboard could not be deleted.")
 

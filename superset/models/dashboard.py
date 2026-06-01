@@ -145,7 +145,13 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
     certified_by = Column(Text)
     certification_details = Column(Text)
     json_metadata = Column(utils.MediumText())
-    slug = Column(String(255), unique=True)
+    # Slug uniqueness is enforced via a partial unique index
+    # (``ix_dashboards_active_slug WHERE deleted_at IS NULL``) on
+    # PostgreSQL and MySQL 8.0+, so soft-deleted rows do not reserve
+    # their slug. SQLite and MySQL <8.0 keep the original full unique
+    # constraint via the migration; on those dialects slug reservation
+    # persists across soft-delete. See sc-106190 migration for details.
+    slug = Column(String(255))
     slices: list[Slice] = relationship(
         Slice, secondary=dashboard_slices, backref="dashboards"
     )
