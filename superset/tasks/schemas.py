@@ -119,14 +119,21 @@ class TaskResponseSchema(Schema):
         return obj.payload_dict  # type: ignore[attr-defined]
 
     def get_properties(self, obj: object) -> dict[str, object]:
-        """Get properties dict, filtering stack_trace if SHOW_STACKTRACE is disabled."""
+        """Get properties dict, filtering debugging details when SHOW_STACKTRACE
+        is disabled."""
         from flask import current_app
 
         properties = dict(obj.properties_dict)  # type: ignore[attr-defined]
 
-        # Remove stack_trace unless SHOW_STACKTRACE is enabled
+        # Remove internal debugging details unless SHOW_STACKTRACE is enabled.
+        # The full traceback and the raw exception class name disclose internal
+        # file paths, library versions, and architecture details (CWE-209), so
+        # they are gated behind the same flag that controls stack traces
+        # elsewhere in Superset. ``error_message`` is left in place as the
+        # consumer-facing failure reason.
         if not current_app.config.get("SHOW_STACKTRACE", False):
             properties.pop("stack_trace", None)
+            properties.pop("exception_type", None)
 
         return properties
 
