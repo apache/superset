@@ -24,7 +24,14 @@ import pytest
 from fastmcp import Client
 from fastmcp.exceptions import ToolError
 
+from superset.commands.dataset.exceptions import (
+    DatasetExistsValidationError,
+    DatasetInvalidError,
+    TableNotFoundValidationError,
+)
+from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
+from superset.sql.parse import Table
 from superset.utils import json
 
 logging.basicConfig(level=logging.DEBUG)
@@ -104,7 +111,7 @@ class TestCreateDataset:
 
     @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
-    async def test_create_dataset_success(self, mock_command_class, mcp_server):
+    async def test_create_dataset_success(self, mock_command_class, mcp_server) -> None:
         """Happy path: tool creates dataset and returns DatasetInfo."""
         mock_dataset = _make_mock_dataset()
         mock_command = MagicMock()
@@ -138,7 +145,9 @@ class TestCreateDataset:
 
     @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
-    async def test_create_dataset_with_owners(self, mock_command_class, mcp_server):
+    async def test_create_dataset_with_owners(
+        self, mock_command_class, mcp_server
+    ) -> None:
         """Owners list is forwarded to the command when supplied."""
         mock_dataset = _make_mock_dataset()
         mock_command = MagicMock()
@@ -166,19 +175,15 @@ class TestCreateDataset:
 
     @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
-    async def test_create_dataset_already_exists(self, mock_command_class, mcp_server):
+    async def test_create_dataset_already_exists(
+        self, mock_command_class, mcp_server
+    ) -> None:
         """Returns DatasetExistsError when the table is already registered.
 
         CreateDatasetCommand.validate() wraps DatasetExistsValidationError inside
         DatasetInvalidError.  The tool must inspect get_list_classnames() to surface
         the typed error response.
         """
-        from superset.commands.dataset.exceptions import (
-            DatasetExistsValidationError,
-            DatasetInvalidError,
-        )
-        from superset.sql.parse import Table
-
         mock_command = MagicMock()
         mock_command.run.side_effect = DatasetInvalidError(
             exceptions=[DatasetExistsValidationError(Table("orders", "public", None))]
@@ -203,19 +208,15 @@ class TestCreateDataset:
 
     @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
-    async def test_create_dataset_table_not_found(self, mock_command_class, mcp_server):
+    async def test_create_dataset_table_not_found(
+        self, mock_command_class, mcp_server
+    ) -> None:
         """Returns TableNotFoundError when the physical table does not exist in the DB.
 
         CreateDatasetCommand.validate() wraps TableNotFoundValidationError inside
         DatasetInvalidError.  The tool must inspect get_list_classnames() to surface
         the typed error response.
         """
-        from superset.commands.dataset.exceptions import (
-            DatasetInvalidError,
-            TableNotFoundValidationError,
-        )
-        from superset.sql.parse import Table
-
         mock_command = MagicMock()
         mock_command.run.side_effect = DatasetInvalidError(
             exceptions=[
@@ -241,7 +242,9 @@ class TestCreateDataset:
 
     @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
-    async def test_create_dataset_with_catalog(self, mock_command_class, mcp_server):
+    async def test_create_dataset_with_catalog(
+        self, mock_command_class, mcp_server
+    ) -> None:
         """Catalog field is normalized and forwarded to the command when supplied."""
         mock_dataset = _make_mock_dataset()
         mock_command = MagicMock()
@@ -266,10 +269,10 @@ class TestCreateDataset:
 
     @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
-    async def test_create_dataset_invalid_error(self, mock_command_class, mcp_server):
+    async def test_create_dataset_invalid_error(
+        self, mock_command_class, mcp_server
+    ) -> None:
         """DatasetInvalidError is returned as ValidationError type."""
-        from superset.commands.dataset.exceptions import DatasetInvalidError
-
         mock_command = MagicMock()
         mock_command.run.side_effect = DatasetInvalidError()
         mock_command_class.return_value = mock_command
@@ -291,7 +294,7 @@ class TestCreateDataset:
         assert "error" in data
 
     @pytest.mark.asyncio
-    async def test_create_dataset_database_not_found(self, mcp_server):
+    async def test_create_dataset_database_not_found(self, mcp_server) -> None:
         """Returns DatabaseNotFoundError when database_id does not exist."""
         with patch("superset.daos.database.DatabaseDAO.find_by_id", return_value=None):
             async with Client(mcp_server) as client:
@@ -307,13 +310,11 @@ class TestCreateDataset:
 
         data = json.loads(result.content[0].text)
         assert data["error_type"] == "DatabaseNotFoundError"
-        assert "999" in data["error"]
+        assert data["error"] == "Database not found"
 
     @pytest.mark.asyncio
-    async def test_create_dataset_access_denied(self, mcp_server):
+    async def test_create_dataset_access_denied(self, mcp_server) -> None:
         """Returns AccessDeniedError when caller lacks table-level access."""
-        from superset.exceptions import SupersetSecurityException
-
         mock_db = MagicMock()
         with (
             patch(
@@ -340,12 +341,13 @@ class TestCreateDataset:
 
         data = json.loads(result.content[0].text)
         assert data["error_type"] == "AccessDeniedError"
+        assert data["error"] == "Access denied"
 
     @patch("superset.commands.dataset.create.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_unexpected_error(
         self, mock_command_class, mcp_server
-    ):
+    ) -> None:
         """Unexpected exceptions are re-raised as ToolError (handled by middleware)."""
         mock_command = MagicMock()
         mock_command.run.side_effect = RuntimeError("DB connection lost")
@@ -365,7 +367,7 @@ class TestCreateDataset:
                 )
 
     @pytest.mark.asyncio
-    async def test_create_dataset_missing_required_fields(self, mcp_server):
+    async def test_create_dataset_missing_required_fields(self, mcp_server) -> None:
         """Missing required fields raise a validation error before the tool runs."""
         async with Client(mcp_server) as client:
             with pytest.raises(ToolError):
@@ -383,7 +385,7 @@ class TestCreateDataset:
     @pytest.mark.asyncio
     async def test_create_dataset_returns_full_dataset_info(
         self, mock_command_class, mcp_server
-    ):
+    ) -> None:
         """The returned DatasetInfo includes columns, metrics, and all core fields."""
         mock_dataset = _make_mock_dataset(
             dataset_id=99, table_name="sales", schema="dw"
@@ -432,3 +434,85 @@ class TestCreateDataset:
         assert data["columns"][0]["column_name"] == "amount"
         assert len(data["metrics"]) == 1
         assert data["metrics"][0]["metric_name"] == "total_sales"
+
+    @patch("superset.commands.dataset.create.CreateDatasetCommand")
+    @pytest.mark.asyncio
+    async def test_create_dataset_table_name_whitespace_normalized(
+        self, mock_command_class, mcp_server
+    ) -> None:
+        """Whitespace in table_name is stripped before forwarding to the command."""
+        mock_dataset = _make_mock_dataset()
+        mock_command = MagicMock()
+        mock_command.run.return_value = mock_dataset
+        mock_command_class.return_value = mock_command
+
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "create_dataset",
+                {
+                    "request": {
+                        "database_id": 1,
+                        "schema": "public",
+                        "table_name": "  orders  ",
+                    }
+                },
+            )
+
+        call_kwargs = mock_command_class.call_args[0][0]
+        assert call_kwargs["table_name"] == "orders"
+
+    @patch("superset.commands.dataset.create.CreateDatasetCommand")
+    @pytest.mark.asyncio
+    async def test_create_dataset_blank_schema_normalized_to_none(
+        self, mock_command_class, mcp_server
+    ) -> None:
+        """Blank schema string is treated as absent: not forwarded to the command."""
+        mock_dataset = _make_mock_dataset(schema="")
+        mock_command = MagicMock()
+        mock_command.run.return_value = mock_dataset
+        mock_command_class.return_value = mock_command
+
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "create_dataset",
+                {
+                    "request": {
+                        "database_id": 1,
+                        "schema": "",
+                        "table_name": "orders",
+                    }
+                },
+            )
+
+        call_kwargs = mock_command_class.call_args[0][0]
+        assert "schema" not in call_kwargs
+
+    @patch("superset.commands.dataset.create.CreateDatasetCommand")
+    @patch(
+        "superset.mcp_service.dataset.schemas.serialize_dataset_object",
+        return_value=None,
+    )
+    @pytest.mark.asyncio
+    async def test_create_dataset_serialization_error(
+        self, mock_serialize, mock_command_class, mcp_server
+    ) -> None:
+        """Returns SerializationError when serialize_dataset_object returns None."""
+        mock_dataset = _make_mock_dataset()
+        mock_command = MagicMock()
+        mock_command.run.return_value = mock_dataset
+        mock_command_class.return_value = mock_command
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "create_dataset",
+                {
+                    "request": {
+                        "database_id": 1,
+                        "schema": "public",
+                        "table_name": "orders",
+                    }
+                },
+            )
+
+        data = json.loads(result.content[0].text)
+        assert data["error_type"] == "SerializationError"

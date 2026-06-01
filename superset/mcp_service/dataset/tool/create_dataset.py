@@ -29,13 +29,21 @@ import logging
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.extensions import event_logger
+from superset.commands.dataset.create import CreateDatasetCommand
+from superset.commands.dataset.exceptions import (
+    DatasetCreateFailedError,
+    DatasetInvalidError,
+)
+from superset.daos.database import DatabaseDAO
+from superset.exceptions import SupersetSecurityException
+from superset.extensions import event_logger, security_manager
 from superset.mcp_service.dataset.schemas import (
     CreateDatasetRequest,
     DatasetError,
     DatasetInfo,
     serialize_dataset_object,
 )
+from superset.sql.parse import Table
 
 logger = logging.getLogger(__name__)
 
@@ -48,6 +56,8 @@ def _classify_invalid_error(exc: object) -> DatasetError:
         return DatasetError.create(error=str(messages), error_type="DatasetExistsError")
     if "TableNotFoundValidationError" in classnames:
         return DatasetError.create(error=str(messages), error_type="TableNotFoundError")
+    # Other DatasetInvalidError sub-types are returned as generic ValidationError.
+    # Add explicit branches here when callers need to distinguish them.
     return DatasetError.create(error=str(messages), error_type="ValidationError")
 
 
@@ -94,9 +104,10 @@ async def create_dataset(
     Returns DatasetInfo on success or DatasetError on failure.
     Use list_databases to find the correct database_id.
     """
-    # Normalize schema and table_name: strip whitespace, treat blank schema as None
+    # Normalize schema, table_name, catalog: strip whitespace, treat blank as None
     schema = request.schema.strip() if request.schema else None
     table_name = request.table_name.strip()
+    catalog = request.catalog.strip() if request.catalog else None
 
     await ctx.info(
         "Registering physical table as dataset: database_id=%s, table=%s.%s"
@@ -104,25 +115,12 @@ async def create_dataset(
     )
 
     try:
-        from superset.commands.dataset.create import CreateDatasetCommand
-        from superset.commands.dataset.exceptions import (
-            DatasetCreateFailedError,
-            DatasetInvalidError,
-        )
-        from superset.daos.database import DatabaseDAO
-        from superset.exceptions import SupersetSecurityException
-        from superset.extensions import security_manager
-        from superset.sql.parse import Table
-
-        # Normalize catalog: strip whitespace, treat blank as None
-        catalog = request.catalog.strip() if request.catalog else None
-
         # Look up the database so we can enforce table-level access before
         # forwarding to CreateDatasetCommand, which only checks SQL-path access.
         database = DatabaseDAO.find_by_id(request.database_id)
         if database is None:
             return DatasetError.create(
-                error=f"Database with id={request.database_id} not found",
+                error="Database not found",
                 error_type="DatabaseNotFoundError",
             )
 
@@ -132,9 +130,10 @@ async def create_dataset(
         try:
             security_manager.raise_for_access(database=database, table=table_obj)
         except SupersetSecurityException as exc:
-            await ctx.warning("Access denied to table %s: %s" % (table_obj, str(exc)))
+            logger.warning("Access denied to table %s: %s", table_obj, exc)
+            await ctx.warning("Access denied to table %s" % (table_obj,))
             return DatasetError.create(
-                error=str(exc),
+                error="Access denied",
                 error_type="AccessDeniedError",
             )
 
@@ -175,10 +174,12 @@ async def create_dataset(
         )
         return error_response
     except DatasetCreateFailedError as exc:
-        await ctx.error("Dataset creation failed: %s" % (str(exc),))
-        return DatasetError.create(error=str(exc), error_type="CreateFailedError")
-    except Exception as exc:
-        await ctx.error(
-            "Unexpected error creating dataset: %s: %s" % (type(exc).__name__, str(exc))
+        logger.error("Dataset creation failed: %s", exc)
+        await ctx.error("Dataset creation failed")
+        return DatasetError.create(
+            error="Dataset creation failed", error_type="CreateFailedError"
         )
+    except Exception as exc:
+        logger.exception("Unexpected error in create_dataset")
+        await ctx.error("Unexpected error: %s" % (type(exc).__name__,))
         raise
