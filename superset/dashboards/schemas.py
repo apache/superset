@@ -250,6 +250,36 @@ class DashboardGetResponseSchema(Schema):
         return serialized
 
 
+class DashboardReviewIssueSchema(Schema):
+    message = fields.String(required=True)
+    level = fields.String(required=True)
+    error_type = fields.String(required=True)
+    path = fields.String(allow_none=True)
+    chart_id = fields.Integer(allow_none=True)
+    chart_uuid = fields.String(allow_none=True)
+    extra = fields.Dict(allow_none=True)
+
+
+class DashboardReviewChartResultSchema(Schema):
+    chart_id = fields.Integer(required=True)
+    viz_error = fields.Raw(allow_none=True)
+    viz_status = fields.Raw(allow_none=True)
+
+
+class DashboardReviewResponseSchema(Schema):
+    dashboard_id = fields.Integer(required=True)
+    dashboard_uuid = fields.String(allow_none=True)
+    dashboard_title = fields.String(required=True)
+    status = fields.String(required=True)
+    run_chart_queries = fields.Boolean(required=True)
+    chart_count = fields.Integer(required=True)
+    issues = fields.List(fields.Nested(DashboardReviewIssueSchema), required=True)
+    chart_results = fields.List(
+        fields.Nested(DashboardReviewChartResultSchema),
+        required=True,
+    )
+
+
 class DatabaseSchema(Schema):
     id = fields.Int()
     name = fields.String()

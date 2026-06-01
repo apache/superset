@@ -55,6 +55,7 @@ from superset.commands.dashboard.export import ExportDashboardsCommand
 from superset.commands.dashboard.fave import AddFavoriteDashboardCommand
 from superset.commands.dashboard.importers.dispatcher import ImportDashboardsCommand
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
+from superset.commands.dashboard.review import DashboardReviewCommand
 from superset.commands.dashboard.unfave import DelFavoriteDashboardCommand
 from superset.commands.dashboard.update import (
     UpdateDashboardColorsConfigCommand,
@@ -89,6 +90,7 @@ from superset.dashboards.schemas import (
     DashboardNativeFiltersConfigUpdateSchema,
     DashboardPostSchema,
     DashboardPutSchema,
+    DashboardReviewResponseSchema,
     DashboardScreenshotPostSchema,
     EmbeddedDashboardConfigSchema,
     EmbeddedDashboardResponseSchema,
@@ -174,6 +176,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         "get_charts",
         "get_datasets",
         "get_tabs",
+        "review",
         "get_embedded",
         "set_embedded",
         "delete_embedded",
@@ -276,6 +279,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
     update_colors_model_schema = DashboardColorsConfigUpdateSchema()
     chart_entity_response_schema = ChartEntityResponseSchema()
     dashboard_get_response_schema = DashboardGetResponseSchema()
+    dashboard_review_response_schema = DashboardReviewResponseSchema()
     dashboard_dataset_schema = DashboardDatasetSchema()
     tab_schema = TabsPayloadSchema()
     embedded_response_schema = EmbeddedDashboardResponseSchema()
@@ -312,6 +316,7 @@ class DashboardRestApi(BaseSupersetModelRestApi):
         DashboardCacheScreenshotResponseSchema,
         DashboardCopySchema,
         DashboardGetResponseSchema,
+        DashboardReviewResponseSchema,
         DashboardDatasetSchema,
         TabsPayloadSchema,
         GetFavStarIdsSchema,
@@ -539,6 +544,63 @@ class DashboardRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except DashboardNotFoundError:
             return self.response_404()
+
+    @expose("/<id_or_slug>/review/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @with_dashboard
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.review",
+        log_to_statsd=False,
+    )
+    def review(self, dashboard: Dashboard) -> Response:
+        """Review a dashboard for structural and optional chart query issues.
+        ---
+        get:
+          summary: Review a dashboard for issues.
+          description: >-
+            Returns structured feedback for dashboard automation and MCP clients.
+            Structural checks are read-only. Set run_chart_queries=true to also
+            execute chart cache warm-up checks and include query errors.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: Either the id of the dashboard, or its slug
+          - in: query
+            schema:
+              type: boolean
+            name: run_chart_queries
+            description: Whether to run chart query validation using cache warm-up.
+          responses:
+            200:
+              description: Dashboard review result
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/DashboardReviewResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        run_chart_queries = parse_boolean_string(
+            request.args.get("run_chart_queries", "false")
+        )
+        result = DashboardReviewCommand(
+            dashboard,
+            run_chart_queries=run_chart_queries,
+        ).run()
+        return self.response(200, result=result)
 
     @expose("/", methods=("POST",))
     @protect()

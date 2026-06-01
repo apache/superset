@@ -505,6 +505,168 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         data = json.loads(response.data.decode("utf-8"))
         assert data["result"] == []
 
+    def test_review_dashboard(self):
+        """
+        Dashboard API: Test reviewing dashboard metadata and layout.
+        """
+        self.login(ADMIN_USERNAME)
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart(
+            "review_slice",
+            [admin_id],
+            1,
+            viz_type="table",
+            params="{}",
+        )
+        position_json = json.dumps(
+            {
+                f"CHART-{chart.id}": {
+                    "type": "CHART",
+                    "meta": {
+                        "chartId": chart.id,
+                        "uuid": str(chart.uuid),
+                    },
+                }
+            }
+        )
+        dashboard = self.insert_dashboard(
+            "review_dashboard",
+            "review_dashboard",
+            [admin_id],
+            slices=[chart],
+            position_json=position_json,
+            json_metadata="{}",
+        )
+
+        try:
+            uri = f"api/v1/dashboard/{dashboard.id}/review/"
+            response = self.get_assert_metric(uri, "review")
+            assert response.status_code == 200
+            data = json.loads(response.data.decode("utf-8"))
+            assert data["result"]["status"] == "pass"
+            assert data["result"]["chart_count"] == 1
+            assert data["result"]["issues"] == []
+            assert data["result"]["chart_results"] == []
+        finally:
+            db.session.delete(dashboard)
+            db.session.delete(chart)
+            db.session.commit()
+
+    def test_review_dashboard_flags_layout_chart_not_attached(self):
+        """
+        Dashboard API: Test review flags broken chart references in layout.
+        """
+        self.login(ADMIN_USERNAME)
+        admin_id = self.get_user("admin").id
+        missing_chart_id = self.get_nonexistent_numeric_id(Slice)
+        position_json = json.dumps(
+            {
+                "CHART-missing": {
+                    "type": "CHART",
+                    "meta": {
+                        "chartId": missing_chart_id,
+                        "uuid": "00000000-0000-0000-0000-000000000000",
+                    },
+                }
+            }
+        )
+        dashboard = self.insert_dashboard(
+            "review_dashboard_broken",
+            "review_dashboard_broken",
+            [admin_id],
+            position_json=position_json,
+            json_metadata="{}",
+        )
+
+        try:
+            uri = f"api/v1/dashboard/{dashboard.id}/review/"
+            response = self.get_assert_metric(uri, "review")
+            assert response.status_code == 200
+            data = json.loads(response.data.decode("utf-8"))
+            assert data["result"]["status"] == "error"
+            assert data["result"]["issues"] == [
+                {
+                    "message": (
+                        "Chart is referenced by the dashboard layout but is not "
+                        "attached to the dashboard."
+                    ),
+                    "level": "error",
+                    "error_type": "OBJECT_DOES_NOT_EXIST_ERROR",
+                    "path": "position_json.CHART-missing.meta.chartId",
+                    "chart_id": missing_chart_id,
+                    "chart_uuid": "00000000-0000-0000-0000-000000000000",
+                    "extra": {"component_id": "CHART-missing"},
+                }
+            ]
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @patch("superset.commands.dashboard.review.ChartWarmUpCacheCommand.run")
+    def test_review_dashboard_with_chart_query_errors(self, warm_up_run_mock):
+        """
+        Dashboard API: Test optional chart query review reports warm-up errors.
+        """
+        self.login(ADMIN_USERNAME)
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart(
+            "review_query_slice",
+            [admin_id],
+            1,
+            viz_type="table",
+            params="{}",
+        )
+        warm_up_run_mock.return_value = {
+            "chart_id": chart.id,
+            "viz_error": "Query failed",
+            "viz_status": "failed",
+        }
+        position_json = json.dumps(
+            {
+                f"CHART-{chart.id}": {
+                    "type": "CHART",
+                    "meta": {
+                        "chartId": chart.id,
+                        "uuid": str(chart.uuid),
+                    },
+                }
+            }
+        )
+        dashboard = self.insert_dashboard(
+            "review_dashboard_query",
+            "review_dashboard_query",
+            [admin_id],
+            slices=[chart],
+            position_json=position_json,
+            json_metadata="{}",
+        )
+
+        try:
+            uri = f"api/v1/dashboard/{dashboard.id}/review/?run_chart_queries=true"
+            response = self.get_assert_metric(uri, "review")
+            assert response.status_code == 200
+            data = json.loads(response.data.decode("utf-8"))
+            assert data["result"]["status"] == "error"
+            assert data["result"]["run_chart_queries"] is True
+            assert data["result"]["chart_results"] == [warm_up_run_mock.return_value]
+            assert data["result"]["issues"] == [
+                {
+                    "message": "Chart query returned an error.",
+                    "level": "error",
+                    "error_type": "GENERIC_DB_ENGINE_ERROR",
+                    "chart_id": chart.id,
+                    "chart_uuid": str(chart.uuid),
+                    "extra": {
+                        "viz_error": "Query failed",
+                        "viz_status": "failed",
+                    },
+                }
+            ]
+        finally:
+            db.session.delete(dashboard)
+            db.session.delete(chart)
+            db.session.commit()
+
     def test_get_dashboard(self):
         """
         Dashboard API: Test get dashboard
