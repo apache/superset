@@ -14,18 +14,42 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Add deleted_at column and index to dashboards for soft-delete (sc-106190).
+"""Add deleted_at + partial unique slug index for soft-delete (sc-106190).
 
-Adds a nullable ``deleted_at`` column and an index on it to the
-``dashboards`` table to support soft deletion of dashboards
-(sc-103157 / sc-106190). Companion to the ``SoftDeleteMixin``
-infrastructure shipped in sc-106188.
+Adds to the ``dashboards`` table:
+- a nullable ``deleted_at`` column for soft-delete state
+- an index ``ix_dashboards_deleted_at`` for the visibility-filter listener
+- a partial unique index ``ix_dashboards_active_slug`` enforcing slug
+  uniqueness only among active (non-soft-deleted) rows
+
+Drops:
+- the existing full unique constraint on ``slug`` (named
+  ``idx_unique_slug``, created in migration 1a48a5411020)
+
+The constraint change makes the ``slug`` field reusable after soft-delete:
+soft-deleted rows no longer reserve their slug for the lifetime of the
+row. ``RestoreDashboardCommand`` handles the reverse case (restoring a
+dashboard whose slug has since been claimed by another active row) with
+an explicit conflict error. See UPDATING.md for the user-facing change.
+
+Dialect support for the partial index:
+- PostgreSQL: native ``WHERE deleted_at IS NULL`` partial index
+- MySQL 8.0+: functional index over
+  ``(CASE WHEN deleted_at IS NULL THEN slug END)``
+- MySQL <8.0: keeps the original full unique constraint (documented
+  limitation; functional indexes are not supported on these versions)
+- SQLite: keeps the original full unique constraint (column-level
+  ``UNIQUE`` cannot be dropped without recreating the table, which is
+  not worth the migration complexity for a test-only dialect). Tests
+  that need to verify the partial-index behaviour run only on
+  PostgreSQL and MySQL 8+.
 
 Revision ID: 9e1f3b8c4d2a
 Revises: 33d7e0e21daa
 Create Date: 2026-05-08 12:05:00.000000
 """
 
+from alembic import op
 from sqlalchemy import Column, DateTime
 
 from superset.migrations.shared.utils import (
@@ -40,14 +64,96 @@ revision = "9e1f3b8c4d2a"
 down_revision = "33d7e0e21daa"
 
 TABLE_NAME = "dashboards"
-INDEX_NAME = f"ix_{TABLE_NAME}_deleted_at"
+DELETED_AT_INDEX_NAME = f"ix_{TABLE_NAME}_deleted_at"
+PARTIAL_SLUG_INDEX_NAME = f"ix_{TABLE_NAME}_active_slug"
+# The original full unique constraint on ``slug`` was created with an
+# explicit name in migration 1a48a5411020 (2015-12-04). Same name on
+# PostgreSQL (constraint) and MySQL (index).
+LEGACY_SLUG_INDEX_NAME = "idx_unique_slug"
+
+
+def _mysql_supports_functional_index(bind) -> bool:
+    """Return True iff the connected MySQL is 8.0+ (supports functional indexes).
+
+    Excludes MariaDB even at server version ``>= (10, x)`` because MariaDB
+    reports through the same ``server_version_info`` attribute but uses
+    different functional-index semantics around ``CASE`` expressions.
+    Uses SQLAlchemy's parsed ``server_version_info`` rather than ``SELECT
+    VERSION()`` to avoid an extra round-trip and brittle string parsing.
+    """
+    if getattr(bind.dialect, "is_mariadb", False):
+        return False
+    return (bind.dialect.server_version_info or ()) >= (8, 0)
 
 
 def upgrade() -> None:
-    add_columns(TABLE_NAME, Column("deleted_at", DateTime(), nullable=True))
-    create_index(TABLE_NAME, INDEX_NAME, ["deleted_at"])
+    bind = op.get_bind()
+    _add_deleted_at_column()
+    _replace_slug_constraint_with_partial_index(bind)
 
 
 def downgrade() -> None:
-    drop_index(TABLE_NAME, INDEX_NAME)
+    bind = op.get_bind()
+    _restore_slug_constraint(bind)
+    _drop_deleted_at_column()
+
+
+def _add_deleted_at_column() -> None:
+    add_columns(TABLE_NAME, Column("deleted_at", DateTime(), nullable=True))
+    create_index(TABLE_NAME, DELETED_AT_INDEX_NAME, ["deleted_at"])
+
+
+def _drop_deleted_at_column() -> None:
+    drop_index(TABLE_NAME, DELETED_AT_INDEX_NAME)
     drop_columns(TABLE_NAME, "deleted_at")
+
+
+def _replace_slug_constraint_with_partial_index(bind) -> None:
+    """Swap the full UNIQUE on ``slug`` for a partial index where supported.
+
+    The original constraint is named ``idx_unique_slug`` from migration
+    1a48a5411020 — same name on PostgreSQL (constraint) and MySQL (index).
+
+    SQLite and MySQL <8.0 are no-ops here: they keep the original full
+    unique constraint. See the module docstring for the rationale.
+    """
+    dialect = bind.dialect.name
+    if dialect == "postgresql":
+        op.execute(
+            f"ALTER TABLE {TABLE_NAME} "
+            f"DROP CONSTRAINT IF EXISTS {LEGACY_SLUG_INDEX_NAME}"
+        )
+        # Some installations may have the unique enforced as a plain
+        # index rather than a constraint. Both DROPs are IF EXISTS, so
+        # whichever path applies cleans up.
+        op.execute(f"DROP INDEX IF EXISTS {LEGACY_SLUG_INDEX_NAME}")
+        op.execute(
+            f"CREATE UNIQUE INDEX {PARTIAL_SLUG_INDEX_NAME} "
+            f"ON {TABLE_NAME} (slug) WHERE deleted_at IS NULL"
+        )
+    elif dialect == "mysql" and _mysql_supports_functional_index(bind):
+        op.execute(f"ALTER TABLE {TABLE_NAME} DROP INDEX {LEGACY_SLUG_INDEX_NAME}")
+        op.execute(
+            f"CREATE UNIQUE INDEX {PARTIAL_SLUG_INDEX_NAME} "
+            f"ON {TABLE_NAME} ((CASE WHEN deleted_at IS NULL THEN slug END))"
+        )
+
+
+def _restore_slug_constraint(bind) -> None:
+    """Restore the full UNIQUE on ``slug`` from the partial index.
+
+    Symmetric counterpart to ``_replace_slug_constraint_with_partial_index``.
+    No-op on dialects that never received the partial index.
+    """
+    dialect = bind.dialect.name
+    if dialect == "postgresql":
+        op.execute(f"DROP INDEX IF EXISTS {PARTIAL_SLUG_INDEX_NAME}")
+        op.execute(
+            f"ALTER TABLE {TABLE_NAME} "
+            f"ADD CONSTRAINT {LEGACY_SLUG_INDEX_NAME} UNIQUE (slug)"
+        )
+    elif dialect == "mysql" and _mysql_supports_functional_index(bind):
+        op.execute(f"ALTER TABLE {TABLE_NAME} DROP INDEX {PARTIAL_SLUG_INDEX_NAME}")
+        op.execute(
+            f"ALTER TABLE {TABLE_NAME} ADD UNIQUE INDEX {LEGACY_SLUG_INDEX_NAME} (slug)"
+        )

@@ -65,6 +65,7 @@ from superset.commands.dashboard.exceptions import (
     DashboardNativeFiltersUpdateFailedError,
     DashboardNotFoundError,
     DashboardRestoreFailedError,
+    DashboardSlugConflictError,
     DashboardUpdateFailedError,
 )
 from superset.commands.dashboard.export import ExportDashboardsCommand
@@ -1275,6 +1276,8 @@ class DashboardRestApi(
             return self.response_404()
         except DashboardForbiddenError:
             return self.response_403()
+        except DashboardSlugConflictError as ex:
+            return self.response_422(message=str(ex))
         except DashboardRestoreFailedError as ex:
             logger.error(
                 "Error restoring model %s: %s",

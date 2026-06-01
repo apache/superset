@@ -97,3 +97,95 @@ def test_restore_dashboard_forbidden_raises(app_context: None) -> None:
         cmd = RestoreDashboardCommand("1")
         with pytest.raises(DashboardForbiddenError):
             cmd.run()
+
+
+def test_restore_dashboard_slug_conflict_raises(app_context: None) -> None:
+    """Restore raises DashboardSlugConflictError when slug is now claimed by an active dashboard.
+
+    The partial unique index ``WHERE deleted_at IS NULL`` allows another
+    dashboard to claim the slug while this one was soft-deleted. The
+    command catches that case before flushing so the operator sees a
+    domain-specific error instead of an opaque unique-index violation.
+    """  # noqa: E501
+    from superset.commands.dashboard.exceptions import DashboardSlugConflictError
+    from superset.commands.dashboard.restore import RestoreDashboardCommand
+
+    dashboard = MagicMock()
+    dashboard.deleted_at = datetime(2026, 1, 1)
+    dashboard.slug = "q1-report"
+    dashboard.id = 42
+
+    with (
+        patch(
+            "superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard
+        ),
+        patch("superset.commands.restore.security_manager") as mock_sec,
+        patch.object(
+            RestoreDashboardCommand, "_has_active_slug_twin", return_value=True
+        ) as mock_twin_check,
+    ):
+        mock_sec.raise_for_ownership.return_value = None
+
+        cmd = RestoreDashboardCommand("1")
+        with pytest.raises(DashboardSlugConflictError):
+            cmd.run()
+
+    mock_twin_check.assert_called_once_with(dashboard)
+
+
+def test_restore_dashboard_no_slug_conflict_when_no_active_collision(
+    app_context: None,
+) -> None:
+    """No collision check fires when no other active dashboard has the same slug."""
+    from superset.commands.dashboard.restore import RestoreDashboardCommand
+
+    dashboard = MagicMock()
+    dashboard.deleted_at = datetime(2026, 1, 1)
+    dashboard.slug = "q1-report"
+    dashboard.id = 42
+
+    with (
+        patch(
+            "superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard
+        ),
+        patch("superset.commands.restore.security_manager") as mock_sec,
+        patch.object(
+            RestoreDashboardCommand, "_has_active_slug_twin", return_value=False
+        ),
+    ):
+        mock_sec.raise_for_ownership.return_value = None
+
+        cmd = RestoreDashboardCommand("1")
+        cmd.run()
+
+    dashboard.restore.assert_called_once()
+
+
+def test_restore_dashboard_skips_conflict_check_when_no_slug(
+    app_context: None,
+) -> None:
+    """Dashboards without a slug skip the conflict check entirely."""
+    from superset.commands.dashboard.restore import RestoreDashboardCommand
+
+    dashboard = MagicMock()
+    dashboard.deleted_at = datetime(2026, 1, 1)
+    dashboard.slug = None
+    dashboard.id = 42
+
+    with (
+        patch(
+            "superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard
+        ),
+        patch("superset.commands.restore.security_manager") as mock_sec,
+        patch.object(
+            RestoreDashboardCommand, "_has_active_slug_twin", return_value=True
+        ) as mock_twin_check,
+    ):
+        mock_sec.raise_for_ownership.return_value = None
+
+        cmd = RestoreDashboardCommand("1")
+        cmd.run()
+
+    # Conflict check should not be consulted when the dashboard has no slug.
+    mock_twin_check.assert_not_called()
+    dashboard.restore.assert_called_once()

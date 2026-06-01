@@ -296,11 +296,13 @@ The migration is transactional (all-or-nothing) and idempotent — it can be saf
 
 **Permissions migration:** existing role grants of `can_write on Dashboard` cover the new restore endpoint automatically; no role migration is required.
 
-**Schema migration:** the migration adds a nullable `deleted_at` column and an index on it (`ix_dashboards_deleted_at`) to the `dashboards` table. The column add is instant; the index build runs inline (no `CONCURRENTLY`) and may briefly block reads on the `dashboards` table for the duration of the build on large Postgres deployments. MySQL InnoDB builds the index online (no blocking).
+**Schema migration:** the migration adds a nullable `deleted_at` column and an index on it (`ix_dashboards_deleted_at`) to the `dashboards` table, and **replaces the full unique constraint on `slug`** with a partial unique index (`ix_dashboards_active_slug`) enforcing slug uniqueness only among active (non-soft-deleted) rows. The column add is instant; index builds run inline (no `CONCURRENTLY`) and may briefly block reads on the `dashboards` table during the build on large Postgres deployments. MySQL InnoDB builds them online.
+
+The partial-index replacement is dialect-dependent: PostgreSQL uses a native `WHERE deleted_at IS NULL` partial index; MySQL 8.0+ uses a functional index over `(CASE WHEN deleted_at IS NULL THEN slug END)`. **MySQL <8.0 and SQLite keep the original full unique constraint** (functional indexes / column-level UNIQUE recreation aren't supported cleanly), so on those backends a soft-deleted dashboard continues to reserve its slug for the lifetime of the row.
+
+**Slug semantics:** on PostgreSQL and MySQL 8.0+, the slug of a soft-deleted dashboard is **free for reuse**. A new active dashboard can claim it immediately. Restoring a soft-deleted dashboard whose slug has since been claimed returns **422 with a clean error** (`DashboardSlugConflictError`) — rename one of the dashboards and retry; the restore is not silently rejected by a database-level constraint violation.
 
 **Importer behavior:** importing a dashboard YAML whose UUID matches an existing **soft-deleted** dashboard is treated as an implicit restore-with-update. The owner (or an admin) gets the dashboard back in place — `deleted_at` is cleared and the contents from the upload are applied — preserving the original PK and all relationship rows (`dashboard_slices` junctions, role grants, owners, tags). Non-owners get `ImportFailedError`. Callers without `can_write` get `ImportFailedError` instead of silently receiving the soft-deleted row.
-
-**Slug uniqueness footgun.** `dashboards.slug` is a database-level unique constraint. Because soft-delete keeps the row in place, the slug of a soft-deleted dashboard remains reserved until the dashboard is either restored or hard-deleted by an admin. Users attempting to create a new dashboard with the same slug will receive a unique-constraint error; the workaround is to restore the soft-deleted dashboard, change its slug, then create the new one (or wait until the eventual hard-delete endpoint ships).
 
 ### Granular Export Controls
 

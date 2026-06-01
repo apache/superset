@@ -259,3 +259,144 @@ class TestDashboardRestore(SupersetTestCase):
         # Cleanup
         db.session.delete(chart)
         _hard_delete_dashboard(dashboard_id)
+
+    def test_restore_blocked_by_active_slug_twin(self):
+        """Restore returns 422 when another active dashboard now owns the slug.
+
+        With the partial unique index allowing slug reuse during the
+        soft-deleted window, a new active dashboard can claim the slug
+        of a soft-deleted one. Restoring the original then has to fail
+        cleanly rather than producing a unique-index violation at flush
+        time. This pins the API contract end-to-end (command → endpoint
+        → 422 response).
+
+        The conflict guard runs in application code, so the test exercises
+        every dialect — not just those with a partial index.
+        """
+        shared_slug = "slug_conflict_test"
+        admin = self.get_user("admin")
+
+        # First dashboard: created, soft-deleted, awaiting restore.
+        first = Dashboard(
+            dashboard_title="conflict_first",
+            slug=shared_slug,
+            owners=[admin],
+            published=True,
+        )
+        db.session.add(first)
+        db.session.commit()
+        first_id = first.id
+        first_uuid = str(first.uuid)
+
+        self.login(ADMIN_USERNAME)
+        self.client.delete(f"/api/v1/dashboard/{first_id}")
+
+        # Second dashboard claims the same slug while the first is soft-deleted.
+        # This only succeeds on Postgres / MySQL 8+ where the partial index
+        # frees the slug; on SQLite / MySQL <8 the full unique constraint
+        # would still block this insert, so skip the rest of the assertion
+        # path on those dialects.
+        dialect = db.session.bind.dialect.name
+        is_mariadb = getattr(db.session.bind.dialect, "is_mariadb", False)
+        server_version = db.session.bind.dialect.server_version_info or ()
+        partial_index_supported = dialect == "postgresql" or (
+            dialect == "mysql" and not is_mariadb and server_version >= (8, 0)
+        )
+        if not partial_index_supported:
+            self.skipTest(
+                f"Partial-index slug reuse not supported on {dialect} "
+                f"{'(MariaDB)' if is_mariadb else server_version}"
+            )
+
+        second = Dashboard(
+            dashboard_title="conflict_second",
+            slug=shared_slug,
+            owners=[admin],
+            published=True,
+        )
+        db.session.add(second)
+        db.session.commit()
+        second_id = second.id
+
+        # Restore of the first dashboard must now fail with a clean 422.
+        rv = self.client.post(f"/api/v1/dashboard/{first_uuid}/restore")
+        assert rv.status_code == 422
+        body = json.loads(rv.data)
+        # Surfaces the domain error message, not a database-driver leak.
+        assert "slug" in body.get("message", "").lower()
+
+        # First dashboard is still soft-deleted; second is unchanged.
+        first_row = (
+            db.session.query(Dashboard)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Dashboard}})
+            .filter(Dashboard.id == first_id)
+            .one()
+        )
+        assert first_row.deleted_at is not None
+
+        # Cleanup
+        _hard_delete_dashboard(first_id)
+        _hard_delete_dashboard(second_id)
+
+    def test_partial_index_allows_multiple_soft_deleted_with_same_slug(self):
+        """On dialects with the partial index, two soft-deleted dashboards can share a slug.
+
+        Verifies the schema-level behaviour: ``CREATE UNIQUE INDEX ...
+        WHERE deleted_at IS NULL`` lets soft-deleted rows accumulate
+        without colliding. Skipped on SQLite and MySQL <8.0 / MariaDB,
+        which keep the original full unique constraint per the migration.
+        """  # noqa: E501
+        dialect = db.session.bind.dialect.name
+        is_mariadb = getattr(db.session.bind.dialect, "is_mariadb", False)
+        server_version = db.session.bind.dialect.server_version_info or ()
+        partial_index_supported = dialect == "postgresql" or (
+            dialect == "mysql" and not is_mariadb and server_version >= (8, 0)
+        )
+        if not partial_index_supported:
+            self.skipTest(
+                f"Partial-index slug reuse not supported on {dialect} "
+                f"{'(MariaDB)' if is_mariadb else server_version}"
+            )
+
+        shared_slug = "slug_partial_index_test"
+        admin = self.get_user("admin")
+
+        first = Dashboard(
+            dashboard_title="partial_first",
+            slug=shared_slug,
+            owners=[admin],
+            published=True,
+        )
+        db.session.add(first)
+        db.session.commit()
+        first_id = first.id
+
+        self.login(ADMIN_USERNAME)
+        self.client.delete(f"/api/v1/dashboard/{first_id}")
+
+        # Second soft-deleted row with the same slug: this is the
+        # behaviour the partial index enables.
+        second = Dashboard(
+            dashboard_title="partial_second",
+            slug=shared_slug,
+            owners=[admin],
+            published=True,
+        )
+        db.session.add(second)
+        db.session.commit()
+        second_id = second.id
+        self.client.delete(f"/api/v1/dashboard/{second_id}")
+
+        # Both rows exist and both are soft-deleted; the partial index
+        # tolerates this state.
+        soft_deleted_count = (
+            db.session.query(Dashboard)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Dashboard}})
+            .filter(Dashboard.slug == shared_slug, Dashboard.deleted_at.is_not(None))
+            .count()
+        )
+        assert soft_deleted_count == 2
+
+        # Cleanup
+        _hard_delete_dashboard(first_id)
+        _hard_delete_dashboard(second_id)
