@@ -22,6 +22,7 @@ import logging
 from typing import Any, cast
 
 from sqlalchemy import union_all
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
 from superset.connectors.sqla.models import SqlaTable
@@ -168,7 +169,7 @@ class GetCombinedDatasourceListCommand(BaseCommand):
                             item["rls_filters"] = rls_map.get(item_id, [])
                         else:
                             item["rls_filters"] = []
-            except Exception:  # pragma: no cover - defensive
+            except SQLAlchemyError:
                 logger.exception(
                     "Failed to inject RLS summaries into combined datasource list"
                 )
