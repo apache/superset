@@ -103,7 +103,7 @@ describe('async actions', () => {
   beforeEach(() => {
     dispatch = jest.fn();
     fetchMock.removeRoute(fetchQueryEndpoint);
-    fetchMock.get(
+    fetchMock.post(
       fetchQueryEndpoint,
       JSON.stringify({
         data: mockBigNumber,
@@ -450,6 +450,23 @@ describe('async actions', () => {
       });
     });
 
+    test('sends the results key in the POST body and not the URL', () => {
+      expect.assertions(4);
+
+      return makeRequest().then(() => {
+        const calls = fetchMock.callHistory.calls(fetchQueryEndpoint);
+        expect(calls).toHaveLength(1);
+        const call = calls[0];
+        expect(call.options.method?.toUpperCase()).toBe('POST');
+        // The results key must not leak into the query string
+        expect(call.url).not.toContain(query.resultsKey);
+        expect(JSON.parse(call.options.body as string)).toEqual({
+          key: query.resultsKey,
+          rows: null,
+        });
+      });
+    });
+
     /* oxlint-disable-next-line jest/no-disabled-tests */
     test.skip('parses large number result without losing precision', () =>
       makeRequest().then(() => {
@@ -481,7 +498,7 @@ describe('async actions', () => {
       expect.assertions(1);
 
       fetchMock.removeRoute(fetchQueryEndpoint);
-      fetchMock.get(
+      fetchMock.post(
         fetchQueryEndpoint,
         { throws: { message: 'error text' } },
         { name: fetchQueryEndpoint },

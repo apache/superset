@@ -474,6 +474,80 @@ class TestSqlLabApi(SupersetTestCase):
 
         app.config["RESULTS_BACKEND_USE_MSGPACK"] = use_msgpack
 
+    @mock.patch("superset.commands.sql_lab.results.results_backend_use_msgpack", False)
+    def test_post_results_matches_get(self):
+        """The POST endpoint returns the same payload as the GET endpoint and
+        accepts the results key (and optional row limit) via the request body."""
+        from superset.commands.sql_lab import results as command
+
+        command.results_backend = mock.Mock()
+        self.login(ADMIN_USERNAME)
+
+        data = [{"col_0": i} for i in range(100)]
+        payload = {
+            "status": QueryStatus.SUCCESS,
+            "query": {"rows": 100},
+            "data": data,
+        }
+        expected_full = {"status": "success", "query": {"rows": 100}, "data": data}
+        expected_limited = {
+            "status": "success",
+            "query": {"rows": 100},
+            "data": data[:1],
+            "displayLimitReached": True,
+        }
+
+        query_mock = mock.Mock()
+        query_mock.sql = "SELECT *"
+        query_mock.database = 1
+        query_mock.schema = "superset"
+
+        use_msgpack = app.config["RESULTS_BACKEND_USE_MSGPACK"]
+        app.config["RESULTS_BACKEND_USE_MSGPACK"] = False
+        serialized_payload = sql_lab._serialize_payload(payload, False)
+        compressed = utils.zlib_compress(serialized_payload)
+        command.results_backend.get.return_value = compressed
+
+        with mock.patch("superset.commands.sql_lab.results.db") as mock_superset_db:
+            mock_superset_db.session.query().filter_by().one_or_none.return_value = (
+                query_mock
+            )
+            # GET (backward compatible) with the key in the query string
+            get_resp = json.loads(
+                self.get_resp(
+                    f"/api/v1/sqllab/results/?q={rison.dumps({'key': 'key'})}"
+                )
+            )
+            # POST with the key in the request body
+            post_rv = self.client.post(
+                "/api/v1/sqllab/results/",
+                json={"key": "key"},
+            )
+            post_resp = json.loads(post_rv.data.decode("utf-8"))
+            # POST honors the optional row limit
+            post_limited_rv = self.client.post(
+                "/api/v1/sqllab/results/",
+                json={"key": "key", "rows": 1},
+            )
+            post_limited = json.loads(post_limited_rv.data.decode("utf-8"))
+
+        assert post_rv.status_code == 200
+        assert get_resp == expected_full
+        assert post_resp == expected_full
+        assert post_limited == expected_limited
+
+        app.config["RESULTS_BACKEND_USE_MSGPACK"] = use_msgpack
+
+    def test_post_results_requires_key(self):
+        """The POST endpoint rejects requests missing the required results key."""
+        self.login(ADMIN_USERNAME)
+
+        rv = self.client.post("/api/v1/sqllab/results/", json={})
+        resp_data = json.loads(rv.data.decode("utf-8"))
+
+        assert rv.status_code == 400
+        assert resp_data == {"message": {"key": ["Missing data for required field."]}}
+
     @mock.patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)  # noqa: PT008
     @mock.patch("superset.models.core.Database.get_df")
     def test_export_results(self, get_df_mock: mock.Mock) -> None:

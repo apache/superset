@@ -56,6 +56,7 @@ from superset.sqllab.schemas import (
     QueryExecutionResponseSchema,
     sql_lab_get_results_schema,
     SQLLabBootstrapSchema,
+    SqlLabResultsSchema,
 )
 from superset.sqllab.sql_json_executer import (
     ASynchronousSqlJsonExecutor,
@@ -85,6 +86,7 @@ class SqlLabRestApi(BaseSupersetApi):
     estimate_model_schema = EstimateQueryCostSchema()
     execute_model_schema = ExecutePayloadSchema()
     format_model_schema = FormatQueryPayloadSchema()
+    results_model_schema = SqlLabResultsSchema()
 
     apispec_parameter_schemas = {
         "sql_lab_get_results_schema": sql_lab_get_results_schema,
@@ -95,6 +97,7 @@ class SqlLabRestApi(BaseSupersetApi):
         ExecutePayloadSchema,
         FormatQueryPayloadSchema,
         QueryExecutionResponseSchema,
+        SqlLabResultsSchema,
         SQLLabBootstrapSchema,
     )
 
@@ -493,8 +496,62 @@ class SqlLabRestApi(BaseSupersetApi):
               $ref: '#/components/responses/500'
         """
         params = kwargs["rison"]
-        key = params.get("key")
-        rows = params.get("rows")
+        return self._get_results_response(
+            key=params.get("key"), rows=params.get("rows")
+        )
+
+    @expose("/results/", methods=("POST",))
+    @protect()
+    @permission_name("get_results")
+    @statsd_metrics
+    @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_results",
+        log_to_statsd=False,
+    )
+    def post_results(self) -> FlaskResponse:
+        """Get the result of a SQL query execution.
+        ---
+        post:
+          summary: Get the result of a SQL query execution
+          description: >-
+            Accepts the cached results key (and optional row limit) in the
+            request body instead of the query string.
+          requestBody:
+            description: The cached results key and optional row limit
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/SqlLabResultsSchema'
+          responses:
+            200:
+              description: SQL query execution result
+              content:
+                application/json:
+                  schema:
+                    $ref: '#/components/schemas/QueryExecutionResponseSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            410:
+              $ref: '#/components/responses/410'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            params = self.results_model_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        return self._get_results_response(key=params["key"], rows=params.get("rows"))
+
+    def _get_results_response(self, key: str, rows: Optional[int]) -> FlaskResponse:
         result = SqlExecutionResultsCommand(key=key, rows=rows).run()
 
         # Using pessimistic json serialization since some database drivers can return

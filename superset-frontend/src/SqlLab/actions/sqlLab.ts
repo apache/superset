@@ -482,14 +482,14 @@ export function fetchQueryResults(
     const { SQLLAB_QUERY_RESULT_TIMEOUT } = getState().common?.conf ?? {};
     dispatch(requestQueryResults(query));
 
-    const queryParams = rison.encode({
-      key: query.resultsKey,
-      rows: displayLimit || null,
-    });
     const timeout = timeoutInMs ?? SQLLAB_QUERY_RESULT_TIMEOUT;
     const controller = new AbortController();
-    return SupersetClient.get({
-      endpoint: `/api/v1/sqllab/results/?q=${queryParams}`,
+    return SupersetClient.post({
+      endpoint: `/api/v1/sqllab/results/`,
+      jsonPayload: {
+        key: query.resultsKey,
+        rows: displayLimit || null,
+      },
       parseMethod: 'json-bigint',
       ...(timeout && { timeout, signal: controller.signal }),
     })

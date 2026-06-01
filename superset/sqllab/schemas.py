@@ -27,6 +27,18 @@ sql_lab_get_results_schema = {
 }
 
 
+class SqlLabResultsSchema(Schema):
+    key = fields.String(
+        required=True,
+        metadata={"description": "The results key of the cached query results"},
+    )
+    rows = fields.Integer(
+        required=False,
+        allow_none=True,
+        metadata={"description": "The maximum number of rows to return"},
+    )
+
+
 class EstimateQueryCostSchema(Schema):
     database_id = fields.Integer(
         required=True, metadata={"description": "The database id"}
