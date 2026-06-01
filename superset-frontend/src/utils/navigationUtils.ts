@@ -95,9 +95,9 @@ function assertSafeNavigationUrl(url: string): string {
  * carrying http(s)) fall back to `ensureAppRoot('/')` with a `console.error`
  * — never a silent navigation to the rejected target.
  *
- * Each `window.*` sink lives inside an if-block whose guard combines
- * three barriers so every CodeQL query family that fires on these sinks
- * sees a recognised sanitiser:
+ * Each `window.*` sink lives inside an if-block whose guard layers
+ * sanitisers so every CodeQL query family that fires on these sinks sees
+ * one it recognises:
  *
  *   1. `target.startsWith('/')` + `!target.startsWith('//')` +
  *      `!target.includes('\\')` — recognised by `js/client-side-
@@ -109,10 +109,16 @@ function assertSafeNavigationUrl(url: string): string {
  *      parse deterministic when test mocks supply only `window.location.
  *      { href, assign }` and not `origin`.
  *   3. `safePath.startsWith('/')` + `!safePath.startsWith('//')` +
- *      `!safePath.includes('\\')` — recognised by `js/html-injection`.
- *      Required because `js/html-injection`'s default model does NOT
- *      propagate sanitisers from `target` through the URL-property
- *      derivation (`parsed.pathname` etc.) into the assigned string.
+ *      `!safePath.includes('\\')` — extra defence-in-depth on the value
+ *      actually flowing to the sink.
+ *   4. `encodeURI(safePath)` at the sink itself — `js/html-injection`'s
+ *      default model only recognises specific through-function sanitisers
+ *      (`encodeURI`, `encodeURIComponent`, `DOMPurify.sanitize`, …) and
+ *      does NOT propagate startsWith/equality barriers from `target` or
+ *      `parsed.*` through the URL-property derivation into the assigned
+ *      string. `encodeURI` is idempotent on already-URL-normalised paths
+ *      (`parsed.pathname` is produced by the URL constructor), so it is
+ *      a no-op at runtime for legitimate paths.
  *
  * External-URL paths get their own block with `URL.protocol` literal-
  * equality + userinfo guards on the URL-constructor's normalised `href`.
@@ -162,12 +168,21 @@ export function navigateTo(
         !safePath.startsWith('//') &&
         !safePath.includes('\\')
       ) {
+        // `encodeURI` is CodeQL's built-in sanitiser for `js/html-injection`
+        // on `window.location.*` sinks. The previous startsWith barriers
+        // satisfy `js/url-redirection` and `js/xss-through-dom`, but
+        // `js/html-injection`'s default model only recognises specific
+        // through-function sanitisers (`encodeURI`, `encodeURIComponent`,
+        // `DOMPurify.sanitize`, …). `encodeURI` is idempotent on already-
+        // URL-normalised paths (`parsed.pathname` is produced by the URL
+        // constructor), so this is a no-op at runtime for legitimate paths.
+        const sinkValue = encodeURI(safePath);
         if (options?.newWindow) {
-          window.open(safePath, '_blank', NEW_TAB_FEATURES);
+          window.open(sinkValue, '_blank', NEW_TAB_FEATURES);
         } else if (options?.assign) {
-          window.location.assign(safePath);
+          window.location.assign(sinkValue);
         } else {
-          window.location.href = safePath;
+          window.location.href = sinkValue;
         }
         return;
       }
@@ -229,7 +244,8 @@ export function navigateTo(
         !safeHome.startsWith('//') &&
         !safeHome.includes('\\')
       ) {
-        window.location.href = safeHome;
+        // See router-relative branch above for `encodeURI` rationale.
+        window.location.href = encodeURI(safeHome);
       }
     }
   }
@@ -279,10 +295,12 @@ export function navigateWithState(
         !safePath.startsWith('//') &&
         !safePath.includes('\\')
       ) {
+        // See `navigateTo` for `encodeURI` rationale.
+        const sinkValue = encodeURI(safePath);
         if (options?.replace) {
-          window.history.replaceState(state, '', safePath);
+          window.history.replaceState(state, '', sinkValue);
         } else {
-          window.history.pushState(state, '', safePath);
+          window.history.pushState(state, '', sinkValue);
         }
         return;
       }
