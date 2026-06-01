@@ -650,11 +650,20 @@ def test_rls_filter_alters_gamma_birth_names_query():
     normalized_sql = " ".join(
         sql.replace("%%", "%").replace("`", "").replace('"', "").split()
     )
-    name_filters = (
-        r"\(*name like 'A%'\s+or\s+name like 'B%'\)*\s+OR\s+"
-        r"\(*name like 'Q%'\)*"
+    column_prefix = r"(?:\w+\.)*"
+    name_column = rf"{column_prefix}name"
+    gender_column = rf"{column_prefix}gender"
+    name_ab_filter = (
+        rf"\(*{name_column}\s+like\s+'A%'\s+or\s+"
+        rf"{name_column}\s+like\s+'B%'\)*"
     )
-    base_filter = r"\(*gender = 'boy'\)*"
+    name_q_filter = rf"\(*{name_column}\s+like\s+'Q%'\)*"
+    # Filters in the same group can be returned in either order by the metadata DB.
+    name_filters = (
+        rf"(?:\(*{name_ab_filter}\s+OR\s+{name_q_filter}\)*|"
+        rf"\(*{name_q_filter}\s+OR\s+{name_ab_filter}\)*)"
+    )
+    base_filter = rf"\(*{gender_column}\s*=\s*'boy'\)*"
     expected_filters = {
         rf"WHERE\s+\(*{name_filters}\)*\s+AND\s+{base_filter}",
         rf"WHERE\s+{base_filter}\s+AND\s+\(*{name_filters}\)*",
@@ -662,7 +671,7 @@ def test_rls_filter_alters_gamma_birth_names_query():
     assert any(
         re.search(expected_filter, normalized_sql, flags=re.IGNORECASE)
         for expected_filter in expected_filters
-    )
+    ), normalized_sql
 
 
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "rls_filters")
