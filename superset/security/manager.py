@@ -1143,6 +1143,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .join(self.role_model)
         )
 
+        # Guest users (embedded dashboards) have is_anonymous=False but no
+        # database identity, so querying by user_id returns nothing. Instead,
+        # resolve permissions directly from the roles attached to the guest
+        # token (typically the Public role).
+        if self.is_guest_user():
+            role_ids = [
+                role.id for role in g.user.roles if role and role.id is not None
+            ]
+            if not role_ids:
+                return set()
+            view_menu_names = (
+                base_query.filter(self.role_model.id.in_(role_ids)).filter(
+                    self.permission_model.name == permission_name
+                )
+            ).all()
+            return {s.name for s in view_menu_names}
+
         if not g.user.is_anonymous:
             user_id = get_user_id()
 
@@ -3548,13 +3565,55 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         Note admins are deemed owners of all resources.
 
+        The internal re-query opts out of the soft-delete visibility
+        listener via ``execution_options(_skip_visibility_filter_classes=
+        {resource.__class__})`` so callers passing a soft-deleted resource
+        (e.g., ``BaseRestoreCommand``) get the correct ownership
+        decision. The bypass is scoped to ``resource.__class__`` only —
+        any soft-deletable relationships read from ``orig_resource``
+        (none today; ``.owners`` is a User) remain filtered.
+
         :param resource: The dashboard, dataset, chart, etc. resource
         :raises SupersetSecurityException: If the current user is not an owner
         """
+        # Inline import: ``superset.models.helpers`` transitively imports
+        # ``superset.models.core``, which depends on lazily-initialised
+        # ``superset.feature_flag_manager``. A top-level import here would
+        # create a circular dependency (security ↔ models.core ↔ superset).
+        from superset.models.helpers import (  # pylint: disable=import-outside-toplevel  # noqa: E501
+            SKIP_VISIBILITY_FILTER_CLASSES,
+        )
 
         if self.is_admin():
             return
-        orig_resource = self.session.query(resource.__class__).get(resource.id)
+
+        # The internal re-query below is filtered by the global soft-delete
+        # listener for any ``SoftDeleteMixin`` model. Callers that have
+        # intentionally loaded a soft-deleted resource (e.g.,
+        # ``BaseRestoreCommand``) need the re-query to see the row so the
+        # owners list can be read. Attach the bypass scoped to this
+        # resource's class only — the per-query option is enough here
+        # because ``.get()`` resolves directly without going through any
+        # framework that strips options.
+        orig_resource = (
+            self.session.query(resource.__class__)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {resource.__class__}})
+            .get(resource.id)
+        )
+        # Explicit guard: ``orig_resource`` is ``None`` only if a parallel
+        # writer hard-deleted the row between the caller's load and this
+        # re-query. Falling through with ``owners=[]`` would surface as a
+        # misleading "ownership" error; raise the real cause instead.
+        if orig_resource is None:
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+                    message=_(
+                        "Resource was removed before ownership could be verified",
+                    ),
+                    level=ErrorLevel.ERROR,
+                )
+            )
         owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
 
         if g.user.is_anonymous or g.user not in owners:
