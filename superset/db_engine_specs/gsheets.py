@@ -422,9 +422,10 @@ class GSheetsEngineSpec(ShillelaghEngineSpec):
                 # Security: validate URL is a legitimate Google Sheets URL
                 # before interpolating into SQL to prevent injection.
                 if not cls._is_valid_gsheets_url(url):
-                    raise ValueError(f"Invalid Google Sheets URL: {url}")
-                url = url.replace('"', '""')
-                results = conn.execute(f'SELECT * FROM "{url}" LIMIT 1')  # noqa: S608
+                    error_msg = f"Invalid Google Sheets URL: {url}"
+                    raise ValueError(error_msg)
+                escaped_url = url.replace('"', '""')
+                results = conn.execute(f'SELECT * FROM "{escaped_url}" LIMIT 1')  # noqa: S608
                 results.fetchall()
             except Exception:  # pylint: disable=broad-except
                 errors.append(
