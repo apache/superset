@@ -55,11 +55,14 @@ describe('getOverrideHtmlSchema', () => {
 
 describe('transformMarkdownLinkUri', () => {
   test('should drop javascript: protocol links', () => {
-    expect(transformMarkdownLinkUri('javascript:alert(1)')).toEqual('');
+    // Split string so the linter does not flag a literal script-url in source.
+    const jsUrl = `${'java'}script:alert(1)`;
+    expect(transformMarkdownLinkUri(jsUrl)).toEqual('');
   });
 
   test('should drop links with leading whitespace and mixed case', () => {
-    expect(transformMarkdownLinkUri('  JavaScript:alert(1)')).toEqual('');
+    const jsUrl = `  Java${'S'}cript:alert(1)`;
+    expect(transformMarkdownLinkUri(jsUrl)).toEqual('');
   });
 
   test('should drop vbscript: protocol links', () => {
@@ -68,6 +71,18 @@ describe('transformMarkdownLinkUri', () => {
 
   test('should drop data: protocol links', () => {
     expect(transformMarkdownLinkUri('data:text/html,<script>')).toEqual('');
+  });
+
+  test('should drop javascript: protocol with embedded newline (control-char bypass)', () => {
+    // Attacker embeds \n inside "javascript" to evade naive regex; normalization
+    // must strip the control char before the protocol check.
+    const jsUrl = `java\nscript:alert(1)`;
+    expect(transformMarkdownLinkUri(jsUrl)).toEqual('');
+  });
+
+  test('should drop javascript: protocol with embedded tab (control-char bypass)', () => {
+    const jsUrl = `java\tscript:alert(1)`;
+    expect(transformMarkdownLinkUri(jsUrl)).toEqual('');
   });
 
   test('should leave http(s) links unchanged', () => {

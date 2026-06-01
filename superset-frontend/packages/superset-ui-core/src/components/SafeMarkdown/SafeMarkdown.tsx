@@ -27,13 +27,18 @@ import { FeatureFlag, isFeatureEnabled } from '../../utils';
 
 // Reject link protocols that can execute script; allow everything else
 // (including the custom schemes supported since #26211).
+// ASCII control chars (e.g. \n, \t) embedded inside a scheme name evade naive
+// protocol regexes — strip them before testing so "java\nscript:" is caught.
+// eslint-disable-next-line no-control-regex
+const CONTROL_CHARS = /[\u0000-\u001F\u007F]/g;
 const DANGEROUS_LINK_PROTOCOL = /^\s*(?:javascript|vbscript|data):/i;
 
 export function transformMarkdownLinkUri(uri: string): string {
   if (typeof uri !== 'string') {
     return '';
   }
-  return DANGEROUS_LINK_PROTOCOL.test(uri) ? '' : uri;
+  const normalized = uri.replace(CONTROL_CHARS, '');
+  return DANGEROUS_LINK_PROTOCOL.test(normalized) ? '' : uri;
 }
 
 interface SafeMarkdownProps {
