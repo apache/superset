@@ -68,17 +68,20 @@ class CompositeTokenVerifier(TokenVerifier):
             required_scopes=getattr(jwt_verifier, "required_scopes", None) or [],
         )
         self._jwt_verifier = jwt_verifier
-        valid: list[str] = [
-            p for p in api_key_prefixes if isinstance(p, str) and p.strip()
-        ]
-        invalid = [p for p in api_key_prefixes if p not in valid]
-        if invalid:
+        valid: list[str] = []
+        invalid_count = 0
+        for prefix in api_key_prefixes:
+            if isinstance(prefix, str) and (normalized := prefix.strip()):
+                valid.append(normalized)
+            else:
+                invalid_count += 1
+        if invalid_count:
             # Log count only — actual values may be config secrets
             # (CodeQL py/clear-text-logging-sensitive-data).
             logger.warning(
                 "FAB_API_KEY_PREFIXES has %d invalid entries (empty/non-string)"
                 " — ignored",
-                len(invalid),
+                invalid_count,
             )
         self._api_key_prefixes = tuple(valid)
 

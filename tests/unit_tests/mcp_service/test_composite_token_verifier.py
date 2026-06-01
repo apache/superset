@@ -162,6 +162,17 @@ async def test_whitespace_only_prefix_is_filtered_out() -> None:
 
 
 @pytest.mark.asyncio
+async def test_prefix_with_surrounding_whitespace_is_trimmed() -> None:
+    """Configured prefixes should tolerate accidental surrounding whitespace."""
+    verifier = CompositeTokenVerifier(jwt_verifier=None, api_key_prefixes=[" sst_ "])
+
+    assert verifier._api_key_prefixes == ("sst_",)
+    result = await verifier.verify_token("sst_abc123")
+    assert result is not None
+    assert result.claims.get(API_KEY_PASSTHROUGH_CLAIM) is True
+
+
+@pytest.mark.asyncio
 async def test_non_string_prefix_is_filtered_out() -> None:
     """Non-string entries (e.g. None, int) must not be stored and must not
     cause a TypeError during verify_token."""
