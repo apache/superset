@@ -20,6 +20,7 @@ import _JSONbig from 'json-bigint';
 import { cloneDeepWith } from 'lodash';
 
 import { ParseMethod, TextResponse, JsonResponse } from '../types';
+import { normalizeBackendUrls } from '../normalizeBackendUrls';
 
 const JSONbig = _JSONbig({
   constructorAction: 'preserve',
@@ -28,6 +29,7 @@ const JSONbig = _JSONbig({
 export default async function parseResponse<T extends ParseMethod = 'json'>(
   apiPromise: Promise<Response>,
   parseMethod?: T,
+  appRoot?: string,
 ) {
   type ReturnType = T extends 'raw' | null
     ? Response
@@ -55,24 +57,27 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
   if (parseMethod === 'json-bigint') {
     const rawData = await response.text();
     const json = JSONbig.parse(rawData);
+    const decoded = cloneDeepWith(json, (value: any) => {
+      if (
+        value?.isInteger?.() === true &&
+        (value?.isGreaterThan?.(Number.MAX_SAFE_INTEGER) ||
+          value?.isLessThan?.(Number.MIN_SAFE_INTEGER))
+      ) {
+        // toFixed() avoids scientific notation, which BigInt() rejects.
+        return BigInt(value.toFixed());
+      }
+      // // `json-bigint` could not handle floats well, see sidorares/json-bigint#62
+      // // TODO: clean up after json-bigint>1.0.1 is released
+      if (value?.isNaN?.() === false) {
+        return value?.toNumber?.();
+      }
+      return undefined;
+    });
     const result: JsonResponse = {
       response,
-      json: cloneDeepWith(json, (value: any) => {
-        if (
-          value?.isInteger?.() === true &&
-          (value?.isGreaterThan?.(Number.MAX_SAFE_INTEGER) ||
-            value?.isLessThan?.(Number.MIN_SAFE_INTEGER))
-        ) {
-          // toFixed() avoids scientific notation, which BigInt() rejects.
-          return BigInt(value.toFixed());
-        }
-        // // `json-bigint` could not handle floats well, see sidorares/json-bigint#62
-        // // TODO: clean up after json-bigint>1.0.1 is released
-        if (value?.isNaN?.() === false) {
-          return value?.toNumber?.();
-        }
-        return undefined;
-      }),
+      json: appRoot
+        ? normalizeBackendUrls(decoded, { applicationRoot: appRoot })
+        : decoded,
     };
     return result as ReturnType;
   }
@@ -80,7 +85,9 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
   if (parseMethod === undefined || parseMethod === 'json') {
     const json = await response.json();
     const result: JsonResponse = {
-      json,
+      json: appRoot
+        ? normalizeBackendUrls(json, { applicationRoot: appRoot })
+        : json,
       response,
     };
     return result as ReturnType;

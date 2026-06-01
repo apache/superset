@@ -20,6 +20,7 @@ import {
   normalizeBackendUrls,
   normalizeBackendUrlString,
   NORMALIZED_URL_FIELDS,
+  NORMALIZE_MAX_DEPTH,
 } from '../../src/connection/normalizeBackendUrls';
 
 const PREFIX = '/superset';
@@ -145,5 +146,50 @@ describe('normalizeBackendUrls (recursion + identity)', () => {
     const input = { created_at: date };
     const output = normalizeBackendUrls(input, { applicationRoot: PREFIX });
     expect(output.created_at).toBe(date);
+  });
+});
+
+describe('normalizeBackendUrls (AF-6 walk hardening)', () => {
+  test('exports a finite recursion depth ceiling', () => {
+    expect(typeof NORMALIZE_MAX_DEPTH).toBe('number');
+    expect(NORMALIZE_MAX_DEPTH).toBeGreaterThan(0);
+    expect(Number.isFinite(NORMALIZE_MAX_DEPTH)).toBe(true);
+  });
+
+  test('terminates without stack-overflow on a self-referential object', () => {
+    type Cyclic = { explore_url: string; self?: Cyclic };
+    const cyclic: Cyclic = { explore_url: '/superset/explore/?id=1' };
+    cyclic.self = cyclic;
+    const output = normalizeBackendUrls(cyclic, { applicationRoot: PREFIX });
+    expect(output.explore_url).toBe('/explore/?id=1');
+  });
+
+  test('terminates without stack-overflow on a self-referential array', () => {
+    const arr: unknown[] = [{ explore_url: '/superset/explore/?id=1' }];
+    arr.push(arr);
+    const output = normalizeBackendUrls(arr, { applicationRoot: PREFIX }) as [
+      { explore_url: string },
+      unknown,
+    ];
+    expect(output[0].explore_url).toBe('/explore/?id=1');
+  });
+
+  test('stops descending past NORMALIZE_MAX_DEPTH and returns subtree unchanged', () => {
+    type Nested = { explore_url?: string; child?: Nested };
+    const buried: Nested = {
+      explore_url: '/superset/explore/?id=deep',
+    };
+    let cursor: Nested = { child: buried };
+    for (let i = 0; i < NORMALIZE_MAX_DEPTH + 5; i += 1) {
+      cursor = { child: cursor };
+    }
+    const output = normalizeBackendUrls(cursor, { applicationRoot: PREFIX });
+    // Walk into the structure following `child` pointers; once we pass the
+    // depth ceiling, the deep `explore_url` must remain unstripped.
+    let probe: Nested | undefined = output;
+    while (probe?.explore_url === undefined && probe?.child !== undefined) {
+      probe = probe.child;
+    }
+    expect(probe?.explore_url).toBe('/superset/explore/?id=deep');
   });
 });

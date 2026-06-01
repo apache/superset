@@ -105,12 +105,12 @@ export function stripAppRoot(path: string): string {
   }
   const root = applicationRoot();
   if (!root) return path;
-  let stripped = path;
-  // Greedy strip handles upstream double-prefix bugs (e.g. a backend payload
-  // that emitted `/superset/superset/x`). Without this, a single pass would
-  // leave one stale prefix, which react-router's `basename` would then re-add.
-  while (stripped === root || stripped.startsWith(`${root}/`)) {
-    stripped = stripped === root ? '/' : stripped.slice(root.length);
-  }
-  return stripped;
+  // Single-pass strip (AF-5 reconciliation, 2026-06-01): mirror
+  // `normalizeBackendUrlString` and `SupersetClientClass.getUrl` exactly. A
+  // genuine `/superset/superset/<slug>` is a legitimate route under the
+  // Slice-7 invariant (backend emits relative URLs, frontend prefixes once),
+  // not a double-prefix bug. Greedy stripping would corrupt such routes.
+  if (path === root) return '/';
+  if (path.startsWith(`${root}/`)) return path.slice(root.length);
+  return path;
 }

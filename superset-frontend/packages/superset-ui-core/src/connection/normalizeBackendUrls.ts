@@ -61,8 +61,15 @@ function stripTrailingSlash(root: string): string {
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   if (value === null || typeof value !== 'object') return false;
+  if (Object.prototype.toString.call(value) !== '[object Object]') return false;
   const proto = Object.getPrototypeOf(value);
-  return proto === Object.prototype || proto === null;
+  // Accept any prototype that is itself a plain object root — this is
+  // cross-realm-safe (a Response.json() result in jsdom may have a different
+  // `Object.prototype` instance than the test-side prototype, even though the
+  // shape is identical). Reject class instances by requiring the prototype's
+  // own prototype to be `null`.
+  if (proto === null) return true;
+  return Object.getPrototypeOf(proto) === null;
 }
 
 /** Normalise a single URL string (used directly when walking is overkill). */
@@ -81,13 +88,33 @@ export function normalizeBackendUrlString(
   return value;
 }
 
-function walk(value: unknown, root: string): unknown {
+/**
+ * Recursion depth ceiling for `walk()` (AF-6, 2026-06-01). Production
+ * payloads rarely nest beyond ~10 levels (chart `form_data` → adhoc filter
+ * expressions, dashboard `json_metadata` → native_filter_configuration →
+ * targets). A self-referential or pathologically deep object — e.g. a
+ * `json_metadata` blob authored by a buggy plugin — must not stack-overflow
+ * the renderer or the response-parse worker. At the cap the walker stops
+ * descending and returns the subtree unchanged.
+ */
+export const NORMALIZE_MAX_DEPTH = 100;
+
+function walk(
+  value: unknown,
+  root: string,
+  depth: number,
+  visited: WeakSet<object>,
+): unknown {
+  if (depth >= NORMALIZE_MAX_DEPTH) return value;
+
   if (Array.isArray(value)) {
+    if (visited.has(value)) return value;
+    visited.add(value);
     let changed = false;
     const out: unknown[] = [];
     for (let index = 0; index < value.length; index += 1) {
       const item = value[index];
-      const next = walk(item, root);
+      const next = walk(item, root, depth + 1, visited);
       if (next !== item) changed = true;
       out.push(next);
     }
@@ -95,6 +122,8 @@ function walk(value: unknown, root: string): unknown {
   }
 
   if (isPlainObject(value)) {
+    if (visited.has(value)) return value;
+    visited.add(value);
     let changed = false;
     const out: Record<string, unknown> = {};
     for (const key of Object.keys(value)) {
@@ -102,7 +131,7 @@ function walk(value: unknown, root: string): unknown {
       const nextValue =
         NORMALIZED_URL_FIELDS.has(key) && typeof fieldValue === 'string'
           ? normalizeBackendUrlString(fieldValue, { applicationRoot: root })
-          : walk(fieldValue, root);
+          : walk(fieldValue, root, depth + 1, visited);
       if (nextValue !== fieldValue) changed = true;
       out[key] = nextValue;
     }
@@ -122,5 +151,5 @@ export function normalizeBackendUrls<T>(
 ): T {
   const root = stripTrailingSlash(options.applicationRoot);
   if (!root) return value;
-  return walk(value, root) as T;
+  return walk(value, root, 0, new WeakSet<object>()) as T;
 }

@@ -52,19 +52,21 @@ describe('SupersetClient applies the application root exactly once', () => {
     );
   });
 
-  // If an upstream bug emits a doubly-prefixed endpoint, a single-segment
-  // strip would still leak the second prefix to the wire. The greedy loop
-  // mirrors `stripAppRoot` so the runtime safety net fully neutralises
-  // repeated prefixes.
-  test('greedily strips repeated application-root segments', () => {
+  // AF-5 reconciliation (2026-06-01): single-pass strip preserves a
+  // legitimate `/superset/superset/<slug>` route. Under the Slice-7
+  // invariant the inbound normaliser at `request()` strips any double
+  // prefix in backend payloads before it reaches `getUrl`, so a doubled
+  // leading segment that reaches this point is a real route, not a bug.
+  // This pin guards against silent regression to the prior greedy strip.
+  test('strips exactly one application-root segment (single-pass)', () => {
     expect(
       buildClient().getUrl({ endpoint: '/superset/superset/api/v1/chart' }),
-    ).toBe('https://config_host/superset/api/v1/chart');
+    ).toBe('https://config_host/superset/superset/api/v1/chart');
     expect(
       buildClient().getUrl({
         endpoint: '/superset/superset/superset/api/v1/chart',
       }),
-    ).toBe('https://config_host/superset/api/v1/chart');
+    ).toBe('https://config_host/superset/superset/superset/api/v1/chart');
   });
 
   test('dedupe is segment-boundary aware — `/supersetfoo` is not a prefix match', () => {

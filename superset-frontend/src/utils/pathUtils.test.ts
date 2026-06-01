@@ -294,14 +294,21 @@ test('stripAppRoot handles nested application roots', async () => {
   expect(stripAppRoot('/welcome/')).toBe('/welcome/');
 });
 
-test('stripAppRoot greedily removes a doubled application root', async () => {
+test('stripAppRoot strips exactly one application root segment (AF-5 single-pass)', async () => {
   const { stripAppRoot } = await loadPathUtils('/superset/');
 
-  // Upstream double-prefix bug: ensure both copies are stripped so a downstream
-  // react-router basename re-prepend produces a single, correct prefix.
-  expect(stripAppRoot('/superset/superset/welcome/')).toBe('/welcome/');
+  // AF-5 reconciliation (2026-06-01): single-pass strip preserves a
+  // legitimate `/superset/superset/<slug>` route. Under the Slice-7
+  // invariant the backend emits relative URLs and the frontend prefixes
+  // exactly once at the helper boundary, so a doubled leading segment is
+  // a real route, not a double-prefix bug. The normaliser at the
+  // SupersetClient inbound seam strips any inbound double prefix before
+  // it can reach this helper.
+  expect(stripAppRoot('/superset/superset/welcome/')).toBe(
+    '/superset/welcome/',
+  );
   expect(stripAppRoot('/superset/superset/superset/welcome/')).toBe(
-    '/welcome/',
+    '/superset/superset/welcome/',
   );
 });
 
