@@ -379,7 +379,15 @@ function simpleFilterToWhereClause(
   }
 
   if (type === FILTER_OPERATORS.IN_RANGE && filterTo !== undefined) {
-    return `${columnName} ${SQL_OPERATORS.BETWEEN} ${value} AND ${filterTo}`;
+    // Range bounds are interpolated into the clause without quoting, so they
+    // must be finite numbers. Coerce both ends and skip the clause entirely
+    // if either is not numeric.
+    const lowerBound = Number(value);
+    const upperBound = Number(filterTo);
+    if (!Number.isFinite(lowerBound) || !Number.isFinite(upperBound)) {
+      return '';
+    }
+    return `${columnName} ${SQL_OPERATORS.BETWEEN} ${lowerBound} AND ${upperBound}`;
   }
 
   const formattedValue = formatValueForOperator(type, value!);
