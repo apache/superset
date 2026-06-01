@@ -44,11 +44,11 @@ from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProper
 from superset_core.common.daos import BaseDAO as CoreBaseDAO
 from superset_core.common.models import CoreModel
 
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.exceptions import (
     DAOFindFailedError,
 )
 from superset.extensions import db
-from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES, SoftDeleteMixin
 
 T = TypeVar("T", bound=CoreModel)
 
@@ -61,6 +61,7 @@ class ColumnOperatorEnum(str, Enum):
     ne = "ne"
     sw = "sw"
     ew = "ew"
+    ct = "ct"
     in_ = "in"
     nin = "nin"
     gt = "gt"
@@ -85,6 +86,7 @@ operator_map: Dict[ColumnOperatorEnum, Any] = {
     ColumnOperatorEnum.ne: lambda col, val: col != val,
     ColumnOperatorEnum.sw: lambda col, val: col.like(f"{val}%"),
     ColumnOperatorEnum.ew: lambda col, val: col.like(f"%{val}"),
+    ColumnOperatorEnum.ct: lambda col, val: col.ilike(f"%{val}%"),
     ColumnOperatorEnum.in_: lambda col, val: col.in_(
         val if isinstance(val, (list, tuple)) else [val]
     ),
@@ -108,6 +110,7 @@ TYPE_OPERATOR_MAP = {
         ColumnOperatorEnum.ne,
         ColumnOperatorEnum.sw,
         ColumnOperatorEnum.ew,
+        ColumnOperatorEnum.ct,
         ColumnOperatorEnum.in_,
         ColumnOperatorEnum.nin,
         ColumnOperatorEnum.like,
@@ -502,6 +505,10 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         :param items: The items to delete
         """
+        from superset.models.helpers import (
+            SoftDeleteMixin,  # pylint: disable=import-outside-toplevel
+        )
+
         if cls.model_cls is not None and issubclass(cls.model_cls, SoftDeleteMixin):
             cls.soft_delete(items)
         else:

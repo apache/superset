@@ -69,7 +69,6 @@ import logging
 from datetime import datetime
 from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
 
-import humanize
 from pydantic import (
     AliasChoices,
     BaseModel,
@@ -104,6 +103,7 @@ from superset.mcp_service.utils import (
     escape_llm_context_delimiters,
     sanitize_for_llm_context,
 )
+from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
@@ -1124,13 +1124,6 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
     )
 
 
-def _humanize_timestamp(dt: datetime | None) -> str | None:
-    """Convert a datetime to a humanized string like '2 hours ago'."""
-    if dt is None:
-        return None
-    return humanize.naturaltime(datetime.now() - dt)
-
-
 def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
     """Simple dashboard serializer that safely handles object attributes."""
     from superset.mcp_service.utils.url_utils import get_superset_base_url
@@ -1157,11 +1150,11 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
             url=dashboard_url,
             published=getattr(dashboard, "published", None),
             changed_on=getattr(dashboard, "changed_on", None),
-            changed_on_humanized=_humanize_timestamp(
+            changed_on_humanized=humanize_timestamp(
                 getattr(dashboard, "changed_on", None)
             ),
             created_on=getattr(dashboard, "created_on", None),
-            created_on_humanized=_humanize_timestamp(
+            created_on_humanized=humanize_timestamp(
                 getattr(dashboard, "created_on", None)
             ),
             description=getattr(dashboard, "description", None),
