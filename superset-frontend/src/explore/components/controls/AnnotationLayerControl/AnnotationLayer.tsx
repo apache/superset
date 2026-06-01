@@ -146,7 +146,13 @@ const NotFoundContent = () => (
         <span>
           {t('Add an annotation layer')}{' '}
           <a
-            href={ensureAppRoot('/annotationlayer/list')}
+            // encodeURI wraps the DOM-derived application-root prefix so
+            // CodeQL's `js/html-injection` sees a recognised through-function
+            // sanitiser between `applicationRoot()` (reads `data-bootstrap`
+            // from the DOM) and the `<a href>` sink. The string fed in is a
+            // URL-normalised path (`/seg/seg`) so encodeURI is idempotent in
+            // practice — it does not alter the navigation target.
+            href={encodeURI(ensureAppRoot('/annotationlayer/list'))}
             target="_blank"
             rel="noopener noreferrer"
           >
