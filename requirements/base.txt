@@ -229,7 +229,7 @@ marshmallow==3.26.2
     #   flask-appbuilder
     #   marshmallow-sqlalchemy
     #   marshmallow-union
-marshmallow-sqlalchemy==1.4.0
+marshmallow-sqlalchemy==1.4.2
     # via
     #   -r requirements/base.in
     #   flask-appbuilder

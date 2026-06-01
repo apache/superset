@@ -277,6 +277,7 @@ class ReportSchedulePostSchema(Schema):
     def validate_custom_width(
         self,
         value: Optional[int],
+        **kwargs: Any,
     ) -> None:
         if value is None:
             return
@@ -439,6 +440,7 @@ class ReportSchedulePutSchema(Schema):
     def validate_custom_width(
         self,
         value: Optional[int],
+        **kwargs: Any,
     ) -> None:
         if value is None:
             return
