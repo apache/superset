@@ -26,7 +26,7 @@ auto-generated fields during schema initialization.
 from unittest.mock import patch
 
 import pytest
-from marshmallow import Schema, fields
+from marshmallow import fields, Schema
 
 from superset.marshmallow_compatibility import patch_marshmallow_for_flask_appbuilder
 
