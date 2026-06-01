@@ -53,10 +53,15 @@ from superset.mcp_service.common.schema_discovery import (
     get_dashboard_columns,
     get_database_columns,
     get_dataset_columns,
+    get_report_info_columns,
     get_theme_columns,
     GetSchemaRequest,
     GetSchemaResponse,
     ModelSchemaInfo,
+    REPORT_DEFAULT_COLUMNS,
+    REPORT_FILTER_COLUMNS,
+    REPORT_SEARCH_COLUMNS,
+    REPORT_SORTABLE_COLUMNS,
     THEME_DEFAULT_COLUMNS,
     THEME_FILTER_COLUMNS,
     THEME_SEARCH_COLUMNS,
@@ -193,6 +198,27 @@ def _get_theme_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
     )
 
 
+def _get_report_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
+    """Create report schema core with ReportInfo-derived columns."""
+    # Lazy import to avoid circular dependency at module load time
+    from superset.daos.report import ReportScheduleDAO
+
+    return ModelGetSchemaCore(
+        model_type="report",
+        dao_class=ReportScheduleDAO,
+        output_schema=ModelSchemaInfo,
+        select_columns=get_report_info_columns(),
+        sortable_columns=REPORT_SORTABLE_COLUMNS,
+        default_columns=REPORT_DEFAULT_COLUMNS,
+        search_columns=REPORT_SEARCH_COLUMNS,
+        default_sort="changed_on",
+        default_sort_direction="desc",
+        exclude_filter_columns=set(SELF_REFERENCING_FILTER_COLUMNS),
+        include_filter_columns=REPORT_FILTER_COLUMNS,
+        logger=logger,
+    )
+
+
 # Map model types to their core factory functions
 _SCHEMA_CORE_FACTORIES: dict[
     ModelType,
@@ -204,6 +230,7 @@ _SCHEMA_CORE_FACTORIES: dict[
     "database": _get_database_schema_core,
     "css_template": _get_css_template_schema_core,
     "theme": _get_theme_schema_core,
+    "report": _get_report_schema_core,
 }
 
 # Maps each model type to the FAB class permission name used by its tools.
@@ -216,6 +243,7 @@ _MODEL_TYPE_CLASS_PERMISSION: dict[ModelType, str] = {
     "database": "Database",
     "css_template": "CssTemplate",
     "theme": "Theme",
+    "report": "ReportSchedule",
 }
 
 
@@ -245,7 +273,7 @@ async def get_schema(
 
     Args:
         model_type: One of "chart", "dataset", "dashboard", "database",
-            "css_template", or "theme"
+            "css_template", "theme", or "report"
 
     Returns:
         Comprehensive schema information for the requested model type
@@ -275,6 +303,14 @@ async def get_schema(
                 view_name=class_permission,
                 user=user_str,
                 tool_name="get_schema",
+            )
+
+    if request.model_type == "report":
+        from superset import is_feature_enabled
+
+        if not is_feature_enabled("ALERT_REPORTS"):
+            raise ValueError(
+                "The Alerts & Reports feature is disabled on this instance."
             )
 
     can_view_data_model_metadata = user_can_view_data_model_metadata()

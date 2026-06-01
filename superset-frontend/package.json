@@ -394,6 +394,7 @@
     "npm": "^10.8.1"
   },
   "overrides": {
+    "uuid": "$uuid",
     "core-js": "^3.38.1",
     "puppeteer": "^22.4.1",
     "remark-gfm": "^3.0.1",
