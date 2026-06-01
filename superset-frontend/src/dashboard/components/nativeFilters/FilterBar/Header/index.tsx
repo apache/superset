@@ -17,8 +17,8 @@
  * under the License.
  */
 /* eslint-disable no-param-reassign */
-import { t } from '@superset-ui/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 import { memo, FC } from 'react';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Button } from '@superset-ui/core/components';
@@ -33,6 +33,7 @@ const TitleArea = styled.div`
     justify-content: space-between;
     margin: 0;
     padding: 0 ${theme.sizeUnit * 2}px ${theme.sizeUnit * 2}px;
+    padding-bottom: 0; /* Works with other changes in PR https://github.com/apache/superset/pull/38646 to reduces space between filter header and 1st filter */
 
     & > span {
       font-size: ${theme.fontSizeLG}px;
@@ -56,9 +57,8 @@ const HeaderButton = styled(Button)`
 
 const Wrapper = styled.div`
   ${({ theme }) => `
-    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px ${
-      theme.sizeUnit
-    }px;
+    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 2}px;
+    padding-bottom: 0; /* Works with other changes in PR https://github.com/apache/superset/pull/38646 to reduces space between filter header and 1st filter */
   `}
 `;
 
@@ -69,7 +69,7 @@ type HeaderProps = {
 const Header: FC<HeaderProps> = ({ toggleFiltersBar }) => (
   <Wrapper>
     <TitleArea>
-      <span>{t('Actions')}</span>
+      <span>{t('Filters and controls')}</span>
       <FilterBarSettings />
       <HeaderButton
         {...getFilterBarTestId('collapse-button')}

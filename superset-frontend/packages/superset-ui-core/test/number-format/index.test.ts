@@ -31,7 +31,7 @@ import {
 } from '@superset-ui/core';
 
 describe('index', () => {
-  it('exports modules', () => {
+  test('exports modules', () => {
     [
       createD3NumberFormatter,
       createDurationFormatter,

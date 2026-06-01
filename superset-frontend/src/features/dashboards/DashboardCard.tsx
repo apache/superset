@@ -18,10 +18,10 @@
  */
 import { useEffect, useState } from 'react';
 import { Link, useHistory } from 'react-router-dom';
+import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
   FeatureFlag,
-  t,
   SupersetClient,
 } from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';

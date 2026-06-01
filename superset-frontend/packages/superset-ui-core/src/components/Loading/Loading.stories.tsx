@@ -223,25 +223,120 @@ ContextualExamples.parameters = {
 export const InteractiveLoading = (args: LoadingProps) => <Loading {...args} />;
 
 InteractiveLoading.args = {
-  image: '',
-  className: '',
   size: 'm',
+  position: 'normal',
   muted: false,
 };
 
 InteractiveLoading.argTypes = {
   position: {
-    name: 'position',
     control: { type: 'select' },
     options: POSITIONS,
+    description:
+      'Position style: normal (inline flow), floating (overlay), or inline.',
   },
   size: {
-    name: 'size',
     control: { type: 'select' },
     options: SIZES,
+    description: 'Size of the spinner: s (40px), m (70px), or l (100px).',
   },
   muted: {
-    name: 'muted',
     control: { type: 'boolean' },
+    description: 'Whether to show a muted/subtle version of the spinner.',
+  },
+};
+
+InteractiveLoading.parameters = {
+  docs: {
+    description: {
+      story: 'A loading spinner component with configurable size and position.',
+    },
+    liveExample: `function Demo() {
+  return (
+    <div>
+      {['normal', 'floating', 'inline'].map(position => (
+        <div
+          key={position}
+          style={{
+            marginBottom: 40,
+            padding: 20,
+            border: '1px solid #eee',
+            position: 'relative',
+            minHeight: 80,
+          }}
+        >
+          <h4 style={{ marginTop: 0 }}>{position}</h4>
+          <Loading position={position} size="m" />
+        </div>
+      ))}
+    </div>
+  );
+}`,
+    examples: [
+      {
+        title: 'Size and Opacity Showcase',
+        code: `function SizeShowcase() {
+  const sizes = ['s', 'm', 'l'];
+  return (
+    <div style={{ padding: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 20, alignItems: 'center' }}>
+        <div><strong>Size</strong></div>
+        <div><strong>Normal</strong></div>
+        <div><strong>Muted</strong></div>
+        <div><strong>Usage</strong></div>
+        {sizes.map(size => (
+          <React.Fragment key={size}>
+            <div style={{ fontWeight: 'bold' }}>
+              {size.toUpperCase()} ({size === 's' ? '40px' : size === 'm' ? '70px' : '100px'})
+            </div>
+            <div style={{ textAlign: 'center', padding: 10, border: '1px solid #eee' }}>
+              <Loading size={size} position="normal" />
+            </div>
+            <div style={{ textAlign: 'center', padding: 10, border: '1px solid #eee' }}>
+              <Loading size={size} muted position="normal" />
+            </div>
+            <div style={{ fontSize: 12, color: '#666' }}>
+              {size === 's' && 'Filter bars, inline'}
+              {size === 'm' && 'Explore pages'}
+              {size === 'l' && 'Full page loading'}
+            </div>
+          </React.Fragment>
+        ))}
+      </div>
+    </div>
+  );
+}`,
+      },
+      {
+        title: 'Contextual Examples',
+        code: `function ContextualDemo() {
+  return (
+    <div style={{ padding: 20 }}>
+      <h4>Filter Bar (size="s", muted)</h4>
+      <div style={{ height: 40, backgroundColor: '#f5f5f5', display: 'flex', alignItems: 'center', padding: '0 10px', gap: 10, marginBottom: 30 }}>
+        <span>Filter 1:</span>
+        <Loading size="s" muted position="normal" />
+        <span>Filter 2:</span>
+        <Loading size="s" muted position="normal" />
+      </div>
+
+      <h4>Dashboard Grid (size="s", muted)</h4>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 30 }}>
+        {[1, 2, 3].map(i => (
+          <div key={i} style={{ height: 100, backgroundColor: '#fafafa', border: '1px solid #ddd', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Loading size="s" muted position="normal" />
+          </div>
+        ))}
+      </div>
+
+      <h4>Main Loading (size="l")</h4>
+      <div style={{ height: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #ccc' }}>
+        <Loading size="l" position="normal" />
+      </div>
+    </div>
+  );
+}`,
+      },
+    ],
   },
 };

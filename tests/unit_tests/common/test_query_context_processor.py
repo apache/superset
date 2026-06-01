@@ -126,7 +126,7 @@ def test_get_data_xlsx(
     result = processor.get_data(df, coltypes)
     assert result == b"binary data"
     mock_apply_column_types.assert_called_once_with(df, coltypes)
-    mock_df_to_excel.assert_called_once_with(df)
+    mock_df_to_excel.assert_called_once_with(df, index=False)
 
 
 def test_get_data_json(processor, mock_query_context):
@@ -201,7 +201,7 @@ def test_get_data_empty_dataframe_xlsx(
     result = processor.get_data(df, coltypes)
     assert result == b"binary data empty"
     mock_apply_column_types.assert_called_once_with(df, coltypes)
-    mock_df_to_excel.assert_called_once_with(df)
+    mock_df_to_excel.assert_called_once_with(df, index=False)
 
 
 def test_get_data_nan_values_json(processor, mock_query_context):
@@ -700,6 +700,233 @@ def test_processing_time_offsets_date_range_enabled(processor):
                             assert isinstance(result["cache_keys"], list)
 
 
+def test_processing_time_offsets_uses_chart_row_limit(processor):
+    """Offset subquery inherits the chart's row_limit when one is set."""
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import ExploreMixin
+
+    processor._qc_datasource.processing_time_offsets = (
+        ExploreMixin.processing_time_offsets.__get__(processor._qc_datasource)
+    )
+
+    df = pd.DataFrame({"__timestamp": ["1990-01-01"], "sum__num": [100]})
+
+    query_object = QueryObject(
+        datasource=MagicMock(),
+        granularity="ds",
+        columns=[],
+        metrics=["sum__num"],
+        is_timeseries=True,
+        row_limit=100,
+        row_offset=0,
+        time_offsets=["1 year ago"],
+        filters=[
+            {
+                "col": "ds",
+                "op": "TEMPORAL_RANGE",
+                "val": "1990-01-01 : 1991-01-01",
+            }
+        ],
+    )
+
+    captured: list[dict[str, Any]] = []
+
+    def fake_query(dct: dict[str, Any]) -> MagicMock:
+        captured.append(dct)
+        result = MagicMock()
+        result.df = pd.DataFrame()
+        result.query = "SELECT 1"
+        return result
+
+    processor._qc_datasource.query = fake_query
+    processor._qc_datasource.normalize_df = MagicMock(return_value=pd.DataFrame())
+
+    with (
+        patch(
+            "superset.models.helpers.get_since_until_from_query_object",
+            return_value=(pd.Timestamp("1990-01-01"), pd.Timestamp("1991-01-01")),
+        ),
+        patch(
+            "superset.common.utils.query_cache_manager.QueryCacheManager"
+        ) as mock_cache_manager,
+        patch.object(
+            processor._qc_datasource,
+            "get_time_grain",
+            return_value=None,
+        ),
+        patch.object(
+            processor._qc_datasource,
+            "join_offset_dfs",
+            return_value=df,
+        ),
+    ):
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = False
+        mock_cache_manager.get.return_value = mock_cache
+
+        processor._qc_datasource.processing_time_offsets(
+            df, query_object, None, None, False
+        )
+
+    assert len(captured) == 1
+    assert captured[0]["row_limit"] == 100
+    assert captured[0]["row_offset"] == 0
+
+
+def test_processing_time_offsets_row_offset_extends_window(processor):
+    """Offset subquery limit covers the main query's window (row_limit + row_offset).
+
+    When the chart has pagination (row_offset > 0), fetching only row_limit rows
+    in the offset period would likely miss the dimensions present in the main
+    query's page, yielding null comparison values. The subquery instead drops
+    row_offset and widens row_limit to cover the full window.
+    """
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import ExploreMixin
+
+    processor._qc_datasource.processing_time_offsets = (
+        ExploreMixin.processing_time_offsets.__get__(processor._qc_datasource)
+    )
+
+    df = pd.DataFrame({"__timestamp": ["1990-01-01"], "sum__num": [100]})
+
+    query_object = QueryObject(
+        datasource=MagicMock(),
+        granularity="ds",
+        columns=[],
+        metrics=["sum__num"],
+        is_timeseries=True,
+        row_limit=100,
+        row_offset=10,
+        time_offsets=["1 year ago"],
+        filters=[
+            {
+                "col": "ds",
+                "op": "TEMPORAL_RANGE",
+                "val": "1990-01-01 : 1991-01-01",
+            }
+        ],
+    )
+
+    captured: list[dict[str, Any]] = []
+
+    def fake_query(dct: dict[str, Any]) -> MagicMock:
+        captured.append(dct)
+        result = MagicMock()
+        result.df = pd.DataFrame()
+        result.query = "SELECT 1"
+        return result
+
+    processor._qc_datasource.query = fake_query
+    processor._qc_datasource.normalize_df = MagicMock(return_value=pd.DataFrame())
+
+    with (
+        patch(
+            "superset.models.helpers.get_since_until_from_query_object",
+            return_value=(pd.Timestamp("1990-01-01"), pd.Timestamp("1991-01-01")),
+        ),
+        patch(
+            "superset.common.utils.query_cache_manager.QueryCacheManager"
+        ) as mock_cache_manager,
+        patch.object(
+            processor._qc_datasource,
+            "get_time_grain",
+            return_value=None,
+        ),
+        patch.object(
+            processor._qc_datasource,
+            "join_offset_dfs",
+            return_value=df,
+        ),
+    ):
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = False
+        mock_cache_manager.get.return_value = mock_cache
+
+        processor._qc_datasource.processing_time_offsets(
+            df, query_object, None, None, False
+        )
+
+    assert len(captured) == 1
+    assert captured[0]["row_limit"] == 110
+    assert captured[0]["row_offset"] == 0
+
+
+def test_processing_time_offsets_falls_back_to_config_row_limit(processor):
+    """Offset subquery uses app config ROW_LIMIT when chart has offset but no limit."""
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import ExploreMixin
+
+    processor._qc_datasource.processing_time_offsets = (
+        ExploreMixin.processing_time_offsets.__get__(processor._qc_datasource)
+    )
+
+    df = pd.DataFrame({"__timestamp": ["1990-01-01"], "sum__num": [100]})
+
+    query_object = QueryObject(
+        datasource=MagicMock(),
+        granularity="ds",
+        columns=[],
+        metrics=["sum__num"],
+        is_timeseries=True,
+        row_limit=None,
+        row_offset=10,
+        time_offsets=["1 year ago"],
+        filters=[
+            {
+                "col": "ds",
+                "op": "TEMPORAL_RANGE",
+                "val": "1990-01-01 : 1991-01-01",
+            }
+        ],
+    )
+
+    captured: list[dict[str, Any]] = []
+
+    def fake_query(dct: dict[str, Any]) -> MagicMock:
+        captured.append(dct)
+        result = MagicMock()
+        result.df = pd.DataFrame()
+        result.query = "SELECT 1"
+        return result
+
+    processor._qc_datasource.query = fake_query
+    processor._qc_datasource.normalize_df = MagicMock(return_value=pd.DataFrame())
+
+    with (
+        patch(
+            "superset.models.helpers.get_since_until_from_query_object",
+            return_value=(pd.Timestamp("1990-01-01"), pd.Timestamp("1991-01-01")),
+        ),
+        patch(
+            "superset.common.utils.query_cache_manager.QueryCacheManager"
+        ) as mock_cache_manager,
+        patch.object(
+            processor._qc_datasource,
+            "get_time_grain",
+            return_value=None,
+        ),
+        patch.object(
+            processor._qc_datasource,
+            "join_offset_dfs",
+            return_value=df,
+        ),
+        patch("superset.models.helpers.app") as mock_app,
+    ):
+        mock_app.config = {"ROW_LIMIT": 4242}
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = False
+        mock_cache_manager.get.return_value = mock_cache
+
+        processor._qc_datasource.processing_time_offsets(
+            df, query_object, None, None, False
+        )
+
+    assert len(captured) == 1
+    assert captured[0]["row_limit"] == 4242
+    assert captured[0]["row_offset"] == 0
+
+
 def test_ensure_totals_available_updates_cache_values():
     """
     Test that ensure_totals_available() updates the query objects AND
@@ -928,6 +1155,7 @@ def test_get_df_payload_validates_before_cache_key_generation():
                 mock_cache.query = "SELECT * FROM table"
                 mock_cache.error_message = None
                 mock_cache.status = "success"
+                mock_cache.bq_memory_limited = False
                 mock_cache_manager.get.return_value = mock_cache
 
                 # Call get_df_payload
@@ -1303,6 +1531,7 @@ def test_force_cached_normalizes_totals_query_row_limit():
                 cache.is_cached = True
                 cache.sql_rowcount = len(df)
                 cache.cache_dttm = "2024-01-01T00:00:00"
+                cache.bq_memory_limited = False
                 return cache
 
             mock_cache_manager.get.side_effect = cache_get
@@ -1311,3 +1540,189 @@ def test_force_cached_normalizes_totals_query_row_limit():
 
     assert captured_limits == [None], "Totals query should be normalized before caching"
     mock_query_context.get_query_result.assert_not_called()
+
+
+def test_get_df_payload_invalidates_cache_missing_applied_filter_columns():
+    """
+    Test that get_df_payload invalidates cache when cache is loaded but missing
+    applied_filter_columns and query has filters.
+
+    This ensures that old cache entries without applied_filter_columns are
+    invalidated and fresh queries are executed to populate the field correctly.
+    """
+    from superset.common.query_object import QueryObject
+
+    # Minimal setup
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+
+    # Create query object with filters (note: `filters` kwarg, not `filter`)
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["col1"],
+        filters=[{"col": "col1", "op": "IN", "val": ["value1"]}],
+    )
+
+    # Simple cache class that tracks is_loaded changes
+    class MockCache:
+        def __init__(self):
+            self.is_loaded = True
+            self.applied_filter_columns = []  # Empty = missing
+            self.df = pd.DataFrame()
+            self.query = ""
+            self.status = "success"
+            self.cache_dttm = "2024-01-01T00:00:00"
+            self.queried_dttm = "2024-01-01T00:00:00"
+            self.stacktrace = None
+            self.error_message = None
+            self.is_cached = True
+            self.sql_rowcount = 0
+            self.cache_value = None
+            self.cache_timeout = 3600
+            self.datasource_uid = "test_datasource"
+            self.applied_template_filters = []
+            self.rejected_filter_columns = []
+            self.annotation_data = {}
+            self.bq_memory_limited = False
+            self.bq_memory_limited_row_count = 0
+            self.set_query_result = MagicMock()
+
+    mock_cache = MockCache()
+
+    with patch(
+        "superset.common.query_context_processor.QueryCacheManager"
+    ) as mock_cache_manager:
+        mock_cache_manager.get.return_value = mock_cache
+
+        # Prevent validate from doing any heavy work; it shouldn't modify filters
+        with patch.object(query_obj, "validate", return_value=None):
+            with patch.object(processor, "query_cache_key", return_value="key"):
+                with patch.object(processor, "get_cache_timeout", return_value=3600):
+                    # Call get_df_payload - should invalidate cache
+                    processor.get_df_payload(query_obj, force_cached=False)
+
+    # Verify cache was invalidated
+    assert mock_cache.is_loaded is False, (
+        "Cache should be inv when no applied_filter_columns and query has filters"
+    )
+
+
+def test_get_df_payload_bq_memory_limited_warning() -> None:
+    """
+    Test that get_df_payload includes a warning when BigQuery results are
+    truncated due to the memory limit (g.bq_memory_limited is set).
+    """
+    from superset.common.query_object import QueryObject
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_query_context.form_data = {"slice_id": 42}
+
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+    mock_datasource.uid = "test_ds"
+    mock_datasource.cache_timeout = None
+    mock_datasource.changed_on = None
+    mock_datasource.get_extra_cache_keys.return_value = []
+    mock_datasource.data = MagicMock()
+    mock_datasource.data.get.return_value = {}
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["col1"],
+    )
+
+    with patch(
+        "superset.common.query_context_processor.QueryCacheManager"
+    ) as mock_cache_manager:
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = True
+        mock_cache.df = pd.DataFrame({"col1": [1, 2, 3]})
+        mock_cache.query = "SELECT col1 FROM table"
+        mock_cache.error_message = None
+        mock_cache.status = "success"
+        mock_cache.applied_filter_columns = ["col1"]
+        mock_cache.applied_template_filters = []
+        mock_cache.rejected_filter_columns = []
+        mock_cache.annotation_data = {}
+        mock_cache.is_cached = True
+        mock_cache.sql_rowcount = 3
+        mock_cache.cache_dttm = "2024-01-01T00:00:00"
+        mock_cache.queried_dttm = "2024-01-01T00:00:00"
+        mock_cache.bq_memory_limited = True
+        mock_cache.bq_memory_limited_row_count = 5000
+        mock_cache_manager.get.return_value = mock_cache
+
+        with patch.object(query_obj, "validate", return_value=None):
+            with patch.object(processor, "query_cache_key", return_value="key"):
+                with patch.object(processor, "get_cache_timeout", return_value=3600):
+                    result = processor.get_df_payload(query_obj, force_cached=False)
+
+    assert result["warning"] is not None
+    assert "Chart 42" in result["warning"]
+    assert "5,000 rows" in result["warning"]
+    assert "memory constraints" in result["warning"]
+
+
+def test_get_df_payload_no_warning_when_not_memory_limited() -> None:
+    """
+    Test that get_df_payload does not include a warning when BigQuery
+    results were not truncated.
+    """
+    from superset.common.query_object import QueryObject
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_query_context.form_data = {}
+
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+    mock_datasource.uid = "test_ds"
+    mock_datasource.cache_timeout = None
+    mock_datasource.changed_on = None
+    mock_datasource.get_extra_cache_keys.return_value = []
+    mock_datasource.data = MagicMock()
+    mock_datasource.data.get.return_value = {}
+
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["col1"],
+    )
+
+    with patch(
+        "superset.common.query_context_processor.QueryCacheManager"
+    ) as mock_cache_manager:
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = True
+        mock_cache.df = pd.DataFrame({"col1": [1, 2]})
+        mock_cache.query = "SELECT col1 FROM table"
+        mock_cache.error_message = None
+        mock_cache.status = "success"
+        mock_cache.applied_filter_columns = ["col1"]
+        mock_cache.applied_template_filters = []
+        mock_cache.rejected_filter_columns = []
+        mock_cache.annotation_data = {}
+        mock_cache.is_cached = True
+        mock_cache.sql_rowcount = 2
+        mock_cache.cache_dttm = "2024-01-01T00:00:00"
+        mock_cache.queried_dttm = "2024-01-01T00:00:00"
+        mock_cache.bq_memory_limited = False
+        mock_cache_manager.get.return_value = mock_cache
+
+        with patch.object(query_obj, "validate", return_value=None):
+            with patch.object(processor, "query_cache_key", return_value="key"):
+                with patch.object(processor, "get_cache_timeout", return_value=3600):
+                    result = processor.get_df_payload(query_obj, force_cached=False)
+
+    assert result["warning"] is None

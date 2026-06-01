@@ -76,7 +76,7 @@ def apply_column_types(
                 )
             except ValueError:
                 df[column] = df[column].astype(str)
-        elif pd.api.types.is_datetime64tz_dtype(df[column]):
+        elif isinstance(df[column].dtype, pd.DatetimeTZDtype):
             # timezones are not supported
             df[column] = df[column].astype(str)
     return df

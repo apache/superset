@@ -18,8 +18,8 @@
  */
 import * as http from 'http';
 import * as net from 'net';
-import WebSocket from 'ws';
-import { v4 as uuidv4 } from 'uuid';
+import WebSocket, { WebSocketServer } from 'ws';
+import { randomUUID } from 'crypto';
 import jwt, { Algorithm } from 'jsonwebtoken';
 import { parse } from 'cookie';
 import Redis, { RedisOptions } from 'ioredis';
@@ -141,7 +141,7 @@ export const buildRedisOpts = (baseConfig: RedisConfig) => {
 // initialize servers
 const redis = new Redis(buildRedisOpts(opts.redis));
 const httpServer = http.createServer();
-export const wss = new WebSocket.Server({
+export const wss = new WebSocketServer({
   noServer: true,
   clientTracking: false,
 });
@@ -168,7 +168,7 @@ export const trackClient = (
 ): string => {
   statsd.increment('ws_connected_client');
 
-  const socketId = uuidv4();
+  const socketId = randomUUID();
   sockets[socketId] = socketInstance;
 
   if (channel in channels) {
@@ -466,7 +466,7 @@ export const cleanChannel = (channel: string) => {
 
 if (startServer) {
   // init server event listeners
-  wss.on('connection', function (ws) {
+  wss.on('connection', function (ws: WebSocket) {
     ws.on('error', console.error);
   });
   wss.on('connection', wsConnection);

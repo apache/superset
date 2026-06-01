@@ -185,7 +185,7 @@ describe('zoomUtil', () => {
       zoom: 5,
       exponent: 1.5,
     };
-    // @ts-ignore
+    // @ts-expect-error - testing with partial config object
     const result = toExpConfig(configs);
     test('has correct type', () => {
       expect(result.type).toEqual('EXP');

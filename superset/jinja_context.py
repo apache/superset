@@ -28,8 +28,8 @@ from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 import dateutil
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
-from jinja2 import DebugUndefined, Environment, TemplateSyntaxError
-from jinja2.exceptions import SecurityError, UndefinedError
+from jinja2 import DebugUndefined, Environment, TemplateSyntaxError, UndefinedError
+from jinja2.exceptions import SecurityError
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.expression import bindparam
@@ -64,6 +64,13 @@ if TYPE_CHECKING:
     from superset.models.sql_lab import Query
 
 logger = logging.getLogger(__name__)
+
+
+class UndefinedTemplateFunctionException(SupersetTemplateException):
+    """Raised when an undefined function-like Jinja identifier is encountered."""
+
+    pass
+
 
 NONE_TYPE = type(None).__name__
 ALLOWED_TYPES = (
@@ -115,13 +122,13 @@ class ExtraCache:
     # be added to the cache key.
     regex = re.compile(
         r"(\{\{|\{%)[^{}]*?("
-        r"current_user_id\([^()]*\)|"
-        r"current_username\([^()]*\)|"
-        r"current_user_email\([^()]*\)|"
-        r"current_user_rls_rules\([^()]*\)|"
-        r"current_user_roles\([^()]*\)|"
-        r"cache_key_wrapper\([^()]*\)|"
-        r"url_param\([^()]*\)"
+        r"current_user_id\([^)]*\)|"
+        r"current_username\([^)]*\)|"
+        r"current_user_email\([^)]*\)|"
+        r"current_user_rls_rules\([^)]*\)|"
+        r"current_user_roles\([^)]*\)|"
+        r"cache_key_wrapper\([^)]*\)|"
+        r"url_param\([^)]*\)"
         r")"
         r"[^{}]*?(\}\}|\%\})"
     )
@@ -134,6 +141,7 @@ class ExtraCache:
         database: Database | None = None,
         dialect: Dialect | None = None,
         table: SqlaTable | None = None,
+        query_context_filters: list[Any] | None = None,
     ):
         self.extra_cache_keys = extra_cache_keys
         self.applied_filters = applied_filters if applied_filters is not None else []
@@ -141,6 +149,7 @@ class ExtraCache:
         self.database = database
         self.dialect = dialect
         self.table = table
+        self.query_context_filters: list[Any] = query_context_filters or []
 
     def current_user_id(self, add_to_cache_keys: bool = True) -> int | None:
         """
@@ -364,11 +373,11 @@ class ExtraCache:
                 {%- for filter in get_filters('full_name', remove_filter=True) -%}
                 {%- if filter.get('op') == 'IN' -%}
                     AND
-                    full_name IN ( {{ "'" + "', '".join(filter.get('val')) + "'" }} )
+                    full_name IN {{ filter.get('val')|where_in }}
                 {%- endif -%}
                 {%- if filter.get('op') == 'LIKE' -%}
                     AND
-                    full_name LIKE {{ "'" + filter.get('val') + "'" }}
+                    full_name LIKE '{{ filter.get('val') | replace("'", "''") }}'
                 {%- endif -%}
                 {%- endfor -%}
                 UNION ALL
@@ -437,6 +446,40 @@ class ExtraCache:
 
                 filters.append({"op": op, "col": column, "val": val})
 
+        # Drill-to-detail queries send filters in native {col, op, val} format
+        # rather than adhoc_filters, so get_form_data() above finds nothing.
+        # query_context_filters carries those native filters from
+        # template_kwargs["filter"], already available in the Jinja context.
+        # Only consult them when adhoc_filters produced no match to avoid
+        # duplicating entries for aggregated queries where both formats exist.
+        if not filters:
+            filters = self._get_filters_from_query_context(column, remove_filter)
+
+        return filters
+
+    def _get_filters_from_query_context(
+        self, column: str, remove_filter: bool
+    ) -> list[Filter]:
+        filters: list[Filter] = []
+        for flt in self.query_context_filters:
+            col = flt.get("col")
+            val = flt.get("val")
+            op = (flt.get("op") or FilterOperator.IN).upper()
+            if col != column or (
+                val is None
+                and op not in ("IS NULL", "IS NOT NULL", "IS_NULL", "IS_NOT_NULL")
+            ):
+                continue
+            if op in (
+                FilterOperator.IN,
+                FilterOperator.NOT_IN,
+            ) and not isinstance(val, list):
+                val = [val]
+            if remove_filter and column not in self.removed_filters:
+                self.removed_filters.append(column)
+            if column not in self.applied_filters:
+                self.applied_filters.append(column)
+            filters.append({"op": op, "col": column, "val": val})
         return filters
 
     # pylint: disable=too-many-arguments
@@ -768,6 +811,14 @@ class BaseTemplateProcessor:
             raise SupersetTemplateException(
                 "Infinite recursion detected in template"
             ) from ex
+        except UndefinedError as ex:
+            match = re.search(r'["\']([^"\']+)["\']\s+is undefined', str(ex))
+            undefined_name = match.group(1) if match else None
+            if undefined_name and re.search(
+                r"\{\{\s*(?:[\w\.]*\.)?" + re.escape(undefined_name) + r"\s*\(", sql
+            ):
+                raise UndefinedTemplateFunctionException(str(ex)) from ex
+            raise
 
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
@@ -793,6 +844,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
             database=self._database,
             dialect=self._database.get_dialect(),
             table=self._table,
+            query_context_filters=self._context.get("filter") or [],
         )
 
         from_dttm = (

@@ -39,11 +39,12 @@ const StyledBlurredSection = styled('section')`
 
 interface BlurredSectionProps {
   children: ReactNode;
+  id?: string;
 }
 
-const BlurredSection = ({ children }: BlurredSectionProps) => {
+const BlurredSection = ({ children, id }: BlurredSectionProps) => {
   return (
-    <StyledBlurredSection>
+    <StyledBlurredSection id={id}>
       {children}
       <img className="blur" src="/img/community/blur.png" alt="Blur" />
     </StyledBlurredSection>

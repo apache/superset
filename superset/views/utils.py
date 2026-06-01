@@ -78,9 +78,9 @@ def redirect_to_login(next_target: str | None = None) -> FlaskResponse:
     target = next_target
     if target is None and has_request_context():
         if request.query_string:
-            target = request.full_path.rstrip("?")
+            target = request.script_root + request.full_path.rstrip("?")
         else:
-            target = request.path
+            target = request.script_root + request.path
 
     if target:
         query["next"] = [target]
@@ -107,7 +107,7 @@ def sanitize_datasource_data(
 def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, Any]:
     if user.is_anonymous:
         payload = {}
-        user.roles = (security_manager.find_role("Public"),)
+        user.roles = (security_manager.get_public_role(),)
     elif security_manager.is_guest_user(user):
         payload = {
             "username": user.username,
@@ -133,6 +133,7 @@ def bootstrap_user_data(user: User, include_perms: bool = False) -> dict[str, An
         roles, permissions = get_permissions(user)
         payload["roles"] = roles
         payload["permissions"] = permissions
+        payload["groups"] = [group.name for group in getattr(user, "groups", [])]
 
     return payload
 

@@ -16,18 +16,28 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
-import { styled, Alert } from '@apache-superset/core/ui';
-import { useCallback, useEffect, useRef, useState, ReactNode } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { styled } from '@apache-superset/core/theme';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  ReactNode,
+} from 'react';
 import cx from 'classnames';
 import TableCollection from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
 import {
   Button,
+  Tooltip,
   Checkbox,
   Icons,
   EmptyState,
   Loading,
+  Pagination,
   type EmptyStateProps,
 } from '@superset-ui/core/components';
 import CardCollection from './CardCollection';
@@ -55,13 +65,43 @@ const ListViewStyles = styled.div`
 
       .header {
         display: flex;
+        align-items: center;
         padding-bottom: ${theme.sizeUnit * 4}px;
 
         & .controls {
           display: flex;
           flex-wrap: wrap;
-          column-gap: ${theme.sizeUnit * 7}px;
-          row-gap: ${theme.sizeUnit * 4}px;
+          align-items: center;
+          column-gap: ${theme.sizeUnit * 2}px;
+          row-gap: ${theme.sizeUnit * 2}px;
+
+          /* Search input — fixed width/height matching pill height, label hidden */
+          [data-test='search-filter-container'] {
+            width: ${theme.sizeUnit * 44}px;
+            flex-shrink: 0;
+            height: ${theme.controlHeight}px;
+            align-self: center;
+            /* Hide the FormLabel Flex wrapper entirely so it doesn't affect
+               the column's justify-content centering calculation. */
+            > .ant-flex {
+              display: none;
+            }
+            label {
+              display: none;
+            }
+            .ant-input-affix-wrapper {
+              width: 100%;
+              height: 100%;
+            }
+          }
+
+          /* Select filter pill wrappers — make them proper flex items so the
+             inline-flex button inside doesn't introduce line-box quirks. */
+          [data-test='select-filter-container'] {
+            display: flex;
+            align-items: center;
+            align-self: center;
+          }
         }
       }
 
@@ -91,6 +131,7 @@ const ListViewStyles = styled.div`
     .row-count-container {
       margin-top: ${theme.sizeUnit * 2}px;
       color: ${theme.colorText};
+      text-align: center;
     }
   `}
 `;
@@ -156,7 +197,6 @@ const bulkSelectColumnConfig = {
 const ViewModeContainer = styled.div`
   ${({ theme }) => `
     padding-right: ${theme.sizeUnit * 4}px;
-    margin-top: ${theme.sizeUnit * 5 + 1}px;
     white-space: nowrap;
     display: inline-block;
 
@@ -181,9 +221,33 @@ const ViewModeContainer = styled.div`
   `}
 `;
 
+const ClearAllButton = styled.button`
+  ${({ theme }) => `
+    background: none;
+    border: none;
+    padding: 0 ${theme.sizeUnit}px;
+    color: ${theme.colorPrimary};
+    font-size: ${theme.fontSizeSM}px;
+    cursor: pointer;
+    white-space: nowrap;
+    line-height: ${theme.controlHeight}px;
+
+    &:hover:not(:disabled) {
+      color: ${theme.colorPrimaryHover};
+      text-decoration: underline;
+    }
+
+    &:disabled {
+      color: ${theme.colorTextDisabled};
+      cursor: not-allowed;
+    }
+  `}
+`;
+
 const EmptyWrapper = styled.div`
   ${({ theme }) => `
     padding: ${theme.sizeUnit * 40}px 0;
+    width: 100%;
 
     &.table {
       background: ${theme.colorBgContainer};
@@ -199,31 +263,36 @@ const ViewModeToggle = ({
   setMode: (mode: 'table' | 'card') => void;
 }) => (
   <ViewModeContainer>
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={e => {
-        e.currentTarget.blur();
-        setMode('card');
-      }}
-      className={cx('toggle-button', { active: mode === 'card' })}
-    >
-      <Icons.AppstoreOutlined iconSize="xl" />
-    </div>
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={e => {
-        e.currentTarget.blur();
-        setMode('table');
-      }}
-      className={cx('toggle-button', { active: mode === 'table' })}
-    >
-      <Icons.UnorderedListOutlined iconSize="xl" />
-    </div>
+    <Tooltip title={t('Grid view')}>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-pressed={mode === 'card'}
+        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+          e.currentTarget.blur();
+          setMode('card');
+        }}
+        className={cx('toggle-button', { active: mode === 'card' })}
+      >
+        <Icons.AppstoreOutlined iconSize="xl" />
+      </div>
+    </Tooltip>
+    <Tooltip title={t('List view')}>
+      <div
+        role="button"
+        tabIndex={0}
+        aria-pressed={mode === 'table'}
+        onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+          e.currentTarget.blur();
+          setMode('table');
+        }}
+        className={cx('toggle-button', { active: mode === 'table' })}
+      >
+        <Icons.UnorderedListOutlined iconSize="xl" />
+      </div>
+    </Tooltip>
   </ViewModeContainer>
 );
-
 export interface ListViewProps<T extends object = any> {
   columns: any[];
   data: T[];
@@ -255,6 +324,11 @@ export interface ListViewProps<T extends object = any> {
   columnsForWrapText?: string[];
   enableBulkTag?: boolean;
   bulkTagResourceName?: string;
+  /** Optional ref exposed to callers for programmatic filter control. */
+  filtersRef?: React.RefObject<{
+    clearFilters: () => void;
+    clearFilterById: (id: string) => void;
+  }>;
 }
 
 export function ListView<T extends object = any>({
@@ -281,6 +355,7 @@ export function ListView<T extends object = any>({
   columnsForWrapText,
   enableBulkTag = false,
   bulkTagResourceName,
+  filtersRef,
   addSuccessToast,
   addDangerToast,
 }: ListViewProps<T>) {
@@ -328,7 +403,29 @@ export function ListView<T extends object = any>({
     });
   }
 
-  const filterControlsRef = useRef<{ clearFilters: () => void }>(null);
+  const filterControlsRef = useRef<{
+    clearFilters: () => void;
+    clearFilterById: (id: string) => void;
+  }>(null);
+
+  const hasActiveFilters = internalFilters.some(f => {
+    if (f.value === null || f.value === undefined || f.value === '')
+      return false;
+    if (Array.isArray(f.value))
+      return f.value.some(v => v !== null && v !== undefined && v !== '');
+    return true;
+  });
+
+  // Wire the optional external filtersRef to our internal filterControlsRef.
+  // useLayoutEffect fires synchronously after DOM mutations, guaranteeing the
+  // ref is populated before the first paint and after every update.
+  useLayoutEffect(() => {
+    if (filtersRef) {
+      (
+        filtersRef as React.MutableRefObject<typeof filterControlsRef.current>
+      ).current = filterControlsRef.current;
+    }
+  });
 
   const handleClearFilterControls = useCallback(() => {
     if (query.filters) {
@@ -383,6 +480,21 @@ export function ListView<T extends object = any>({
                 onChange={(value: SortColumn[]) => setSortBy(value)}
                 options={cardSortSelectOptions}
               />
+            )}
+            {filterable && (
+              <Tooltip
+                title={!hasActiveFilters ? t('No filters applied') : undefined}
+              >
+                <span>
+                  <ClearAllButton
+                    type="button"
+                    disabled={!hasActiveFilters}
+                    onClick={() => filterControlsRef.current?.clearFilters()}
+                  >
+                    {t('Clear all')}
+                  </ClearAllButton>
+                </span>
+              </Tooltip>
             )}
           </div>
         </div>
@@ -446,14 +558,39 @@ export function ListView<T extends object = any>({
             />
           )}
           {viewMode === 'card' && (
-            <CardCollection
-              bulkSelectEnabled={bulkSelectEnabled}
-              prepareRow={prepareRow}
-              renderCard={renderCard}
-              rows={rows}
-              loading={loading}
-              showThumbnails={showThumbnails}
-            />
+            <>
+              <CardCollection
+                bulkSelectEnabled={bulkSelectEnabled}
+                prepareRow={prepareRow}
+                renderCard={renderCard}
+                rows={rows}
+                loading={loading}
+                showThumbnails={showThumbnails}
+              />
+              {count > 0 && (
+                <div className="pagination-container">
+                  <Pagination
+                    current={pageIndex + 1}
+                    pageSize={pageSize}
+                    total={count}
+                    onChange={(page: number) => {
+                      gotoPage(page - 1);
+                    }}
+                    size="default"
+                    showSizeChanger={false}
+                    showQuickJumper={false}
+                    hideOnSinglePage
+                    align="center"
+                  />
+                  <div className="row-count-container">
+                    {`${pageIndex * pageSize + 1}-${Math.min(
+                      (pageIndex + 1) * pageSize,
+                      count,
+                    )} of ${count}`}
+                  </div>
+                </div>
+              )}
+            </>
           )}
           {viewMode === 'table' && (
             <>

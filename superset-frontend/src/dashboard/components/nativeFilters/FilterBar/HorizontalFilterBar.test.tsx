@@ -26,14 +26,17 @@ const defaultProps = {
   dashboardId: 1,
   dataMaskSelected: {},
   filterValues: [],
+  chartCustomizationValues: [],
   isInitialized: true,
   onSelectionChange: jest.fn(),
+  onPendingCustomizationDataMaskChange: jest.fn(),
 };
 
 const renderWrapper = (overrideProps?: Record<string, any>) =>
   waitFor(() =>
     render(<HorizontalBar {...defaultProps} {...overrideProps} />, {
       useRedux: true,
+      useRouter: true,
       initialState: {
         dashboardState: {
           sliceIds: [],

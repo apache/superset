@@ -41,13 +41,14 @@ from sqlalchemy.exc import SQLAlchemyError, StatementError
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.inspection import inspect
 from sqlalchemy.orm import ColumnProperty, joinedload, Query, RelationshipProperty
-from superset_core.api.daos import BaseDAO as CoreBaseDAO
-from superset_core.api.models import CoreModel
+from superset_core.common.daos import BaseDAO as CoreBaseDAO
+from superset_core.common.models import CoreModel
 
 from superset.daos.exceptions import (
     DAOFindFailedError,
 )
 from superset.extensions import db
+from superset.models.helpers import SKIP_VISIBILITY_FILTER_CLASSES, SoftDeleteMixin
 
 T = TypeVar("T", bound=CoreModel)
 
@@ -60,6 +61,7 @@ class ColumnOperatorEnum(str, Enum):
     ne = "ne"
     sw = "sw"
     ew = "ew"
+    ct = "ct"
     in_ = "in"
     nin = "nin"
     gt = "gt"
@@ -84,11 +86,12 @@ operator_map: Dict[ColumnOperatorEnum, Any] = {
     ColumnOperatorEnum.ne: lambda col, val: col != val,
     ColumnOperatorEnum.sw: lambda col, val: col.like(f"{val}%"),
     ColumnOperatorEnum.ew: lambda col, val: col.like(f"%{val}"),
+    ColumnOperatorEnum.ct: lambda col, val: col.ilike(f"%{val}%"),
     ColumnOperatorEnum.in_: lambda col, val: col.in_(
         val if isinstance(val, (list, tuple)) else [val]
     ),
-    ColumnOperatorEnum.nin: lambda col, val: ~col.in_(
-        val if isinstance(val, (list, tuple)) else [val]
+    ColumnOperatorEnum.nin: lambda col, val: (
+        ~col.in_(val if isinstance(val, (list, tuple)) else [val])
     ),
     ColumnOperatorEnum.gt: lambda col, val: col > val,
     ColumnOperatorEnum.gte: lambda col, val: col >= val,
@@ -107,6 +110,7 @@ TYPE_OPERATOR_MAP = {
         ColumnOperatorEnum.ne,
         ColumnOperatorEnum.sw,
         ColumnOperatorEnum.ew,
+        ColumnOperatorEnum.ct,
         ColumnOperatorEnum.in_,
         ColumnOperatorEnum.nin,
         ColumnOperatorEnum.like,
@@ -173,7 +177,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
     def __init_subclass__(cls) -> None:
         cls.model_cls = get_args(
-            cls.__orig_bases__[0]  # type: ignore  # pylint: disable=no-member
+            cls.__orig_bases__[0]  # type: ignore[attr-defined]  # pylint: disable=no-member
         )[0]
 
     @classmethod
@@ -181,11 +185,17 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         cls,
         model_id_or_uuid: str,
         skip_base_filter: bool = False,
+        *,
+        skip_visibility_filter: bool = False,
     ) -> T | None:
         """
         Find a model by id or uuid, if defined applies `base_filter`
         """
         query = db.session.query(cls.model_cls)
+        if skip_visibility_filter:
+            query = query.execution_options(
+                **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
+            )
         if cls.base_filter and not skip_base_filter:
             data_model = SQLAInterface(cls.model_cls, db.session)
             query = cls.base_filter(  # pylint: disable=not-callable
@@ -248,6 +258,9 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         column_name: str,
         value: str | int,
         skip_base_filter: bool = False,
+        query_options: list[Any] | None = None,
+        *,
+        skip_visibility_filter: bool = False,
     ) -> T | None:
         """
         Private method to find a model by any column value.
@@ -256,12 +269,22 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             column_name: Name of the column to search by
             value: Value to search for
             skip_base_filter: Whether to skip base filtering
+            skip_visibility_filter: Whether to skip the soft-delete visibility filter
+            query_options: SQLAlchemy query options (e.g., joinedload,
+                subqueryload) to apply to the query for eager loading
 
         Returns:
             Model instance or None if not found
         """
         query = db.session.query(cls.model_cls)
+        if skip_visibility_filter:
+            query = query.execution_options(
+                **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
+            )
         query = cls._apply_base_filter(query, skip_base_filter)
+
+        if query_options:
+            query = query.options(*query_options)
 
         if not hasattr(cls.model_cls, column_name):
             return None
@@ -283,6 +306,9 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         model_id: str | int,
         skip_base_filter: bool = False,
         id_column: str | None = None,
+        query_options: list[Any] | None = None,
+        *,
+        skip_visibility_filter: bool = False,
     ) -> T | None:
         """
         Find a model by ID using specified or default ID column.
@@ -291,12 +317,22 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             model_id: ID value to search for
             skip_base_filter: Whether to skip base filtering
             id_column: Column name to use (defaults to cls.id_column_name)
+            query_options: SQLAlchemy query options (e.g., joinedload,
+                subqueryload) to apply to the query for eager loading
+            skip_visibility_filter: Keyword-only. Whether to skip the
+                soft-delete visibility filter
 
         Returns:
             Model instance or None if not found
         """
         column = id_column or cls.id_column_name
-        return cls._find_by_column(column, model_id, skip_base_filter)
+        return cls._find_by_column(
+            column,
+            model_id,
+            skip_base_filter,
+            query_options,
+            skip_visibility_filter=skip_visibility_filter,
+        )
 
     @classmethod
     def find_by_ids(
@@ -304,6 +340,8 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         model_ids: Sequence[str | int],
         skip_base_filter: bool = False,
         id_column: str | None = None,
+        *,
+        skip_visibility_filter: bool = False,
     ) -> list[T]:
         """
         Find a List of models by a list of ids, if defined applies `base_filter`
@@ -312,6 +350,8 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         :param skip_base_filter: If true, skip applying the base filter
         :param id_column: Optional column name to use for ID lookup
                          (defaults to id_column_name)
+        :param skip_visibility_filter: Keyword-only. If true, skip the
+            soft-delete visibility filter so soft-deleted rows are returned
         """
         column = id_column or cls.id_column_name
         id_col = getattr(cls.model_cls, column, None)
@@ -338,7 +378,12 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         if not converted_ids:
             return []
 
-        query = db.session.query(cls.model_cls).filter(id_col.in_(converted_ids))
+        query = db.session.query(cls.model_cls)
+        if skip_visibility_filter:
+            query = query.execution_options(
+                **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
+            )
+        query = query.filter(id_col.in_(converted_ids))
         query = cls._apply_base_filter(query, skip_base_filter)
 
         try:
@@ -420,24 +465,50 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         return item  # type: ignore
 
     @classmethod
-    def delete(cls, items: list[T]) -> None:
+    def soft_delete(cls, items: list[T]) -> None:
+        """Mark items as soft-deleted by setting ``deleted_at``.
+
+        Only valid for models that include ``SoftDeleteMixin``.
+
+        :param items: The items to soft-delete
         """
-        Delete the specified items including their associated relationships.
+        for item in items:
+            item.soft_delete()
 
-        Note that bulk deletion via `delete` is not invoked in the base class as this
-        does not dispatch the ORM `after_delete` event which may be required to augment
-        additional records loosely defined via implicit relationships. Instead ORM
-        objects are deleted one-by-one via `Session.delete`.
+    @classmethod
+    def hard_delete(cls, items: list[T]) -> None:
+        """Permanently remove rows from the database.
 
-        Subclasses may invoke bulk deletion but are responsible for instrumenting any
-        post-deletion logic.
+        Note that bulk deletion via ``delete`` is not invoked in the base
+        class as this does not dispatch the ORM ``after_delete`` event which
+        may be required to augment additional records loosely defined via
+        implicit relationships. Instead ORM objects are deleted one-by-one
+        via ``Session.delete``.
+
+        Subclasses may invoke bulk deletion but are responsible for
+        instrumenting any post-deletion logic.
 
         :param items: The items to delete
         :see: https://docs.sqlalchemy.org/en/latest/orm/queryguide/dml.html
         """
-
         for item in items:
             db.session.delete(item)
+
+    @classmethod
+    def delete(cls, items: list[T]) -> None:
+        """Route to soft or hard delete based on whether the model supports
+        soft delete.
+
+        For models that include ``SoftDeleteMixin``, this calls
+        ``soft_delete()``. For all other models, this calls ``hard_delete()``
+        (the original behaviour).
+
+        :param items: The items to delete
+        """
+        if cls.model_cls is not None and issubclass(cls.model_cls, SoftDeleteMixin):
+            cls.soft_delete(items)
+        else:
+            cls.hard_delete(items)
 
     @classmethod
     def query(cls, query: Query) -> list[T]:
@@ -614,6 +685,7 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         column_attrs = []
         relationship_loads = []
+        needs_full_model = False
         if columns is None:
             columns = []
         for name in columns:
@@ -625,11 +697,16 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
                 column_attrs.append(attr)
             elif isinstance(prop, RelationshipProperty):
                 relationship_loads.append(joinedload(attr))
-            # Ignore properties and other non-queryable attributes
+            else:
+                # Python @property or other descriptor — requires a full
+                # model instance (Row objects don't support descriptors)
+                needs_full_model = True
 
-        if relationship_loads:
-            # If any relationships are requested, query the full model
-            # but don't add the joins yet - we'll add them after counting
+        if relationship_loads or needs_full_model:
+            # Need full model for relationships or Python @property access.
+            # Do NOT apply load_only() here — @property descriptors and
+            # serializers may access columns beyond the explicitly requested
+            # set (e.g., Slice.datasource_type accessed during serialization).
             query = data_model.session.query(cls.model_cls)
         elif column_attrs:
             # Only columns requested

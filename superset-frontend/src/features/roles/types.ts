@@ -26,12 +26,6 @@ export type PermissionResource = {
   view_menu: PermissionView;
 };
 
-export type FormattedPermission = {
-  label: string;
-  value: string;
-  id: number;
-};
-
 export type RolePermissions = {
   id: number;
   permission_name: string;
@@ -60,9 +54,9 @@ export type RoleInfo = {
 
 export type RoleForm = {
   roleName: string;
-  rolePermissions: number[];
-  roleUsers: SelectOption[];
-  roleGroups: number[];
+  rolePermissions?: SelectOption[];
+  roleUsers?: SelectOption[];
+  roleGroups?: SelectOption[];
 };
 
 export interface BaseModalProps {

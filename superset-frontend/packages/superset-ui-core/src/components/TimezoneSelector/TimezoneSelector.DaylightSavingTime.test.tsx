@@ -18,7 +18,8 @@
  */
 
 import { FC } from 'react';
-import { render, waitFor, screen, userEvent } from '@superset-ui/core/spec';
+import { render, screen, userEvent } from '@superset-ui/core/spec';
+import '@testing-library/jest-dom';
 import type { TimezoneSelectorProps } from './index';
 
 const loadComponent = (mockCurrentTime?: string) => {
@@ -46,12 +47,15 @@ test('render timezones in correct order for daylight saving time', async () => {
     />,
   );
 
+  // Wait for loading to complete by waiting for expected timezone text
+  await screen.findByText('GMT -04:00 (Eastern Daylight Time)');
+
   const searchInput = screen.getByRole('combobox');
   await userEvent.click(searchInput);
 
-  const options = await waitFor(() =>
-    document.querySelectorAll('.ant-select-item-option-content'),
-  );
+  // Wait for options to appear by finding one of the expected timezone texts
+  await screen.findByText('GMT -11:00 (Pacific/Midway)');
+  const options = document.querySelectorAll('.ant-select-item-option-content');
 
   // first option is always current timezone
   expect(options[0]).toHaveTextContent('GMT -04:00 (Eastern Daylight Time)');

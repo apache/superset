@@ -1,0 +1,80 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+cache_timeout: null
+certification_details: null
+certified_by: null
+dataset_uuid: e8623bb9-5e00-f531-506a-19607f5f8005
+description: null
+params:
+  adhoc_filters:
+  - clause: WHERE
+    comparator: No filter
+    expressionType: SIMPLE
+    operator: TEMPORAL_RANGE
+    subject: order_date
+  aggregateFunction: Sum
+  annotation_layers: []
+  colOrder: key_a_to_z
+  dashboards:
+  - 13
+  datasource: 22__table
+  date_format: smart_date
+  extra_form_data: {}
+  groupbyColumns:
+  - product_line
+  groupbyRows:
+  - country
+  - city
+  metrics:
+  - aggregate: SUM
+    column:
+      advanced_data_type: null
+      certification_details: null
+      certified_by: null
+      column_name: sales
+      description: null
+      expression: null
+      filterable: true
+      groupby: true
+      id: 734
+      is_certified: false
+      is_dttm: false
+      python_date_format: null
+      type: DOUBLE PRECISION
+      type_generic: 0
+      verbose_name: null
+      warning_markdown: null
+    datasourceWarning: false
+    expressionType: SIMPLE
+    hasCustomLabel: false
+    label: SUM(sales)
+    optionName: metric_psnoaxdky5h_ojfgcygk97c
+    sqlExpression: null
+  metricsLayout: COLUMNS
+  order_desc: true
+  rowOrder: key_a_to_z
+  row_limit: 10000
+  temporal_columns_lookup:
+    order_date: true
+  time_grain_sqla: P1D
+  valueFormat: SMART_NUMBER
+  viz_type: pivot_table_v2
+query_context: null
+slice_name: Pivot Table
+uuid: fcf2a0cf-0079-4f59-854f-d28297b07bf0
+version: 1.0.0
+viz_type: pivot_table_v2

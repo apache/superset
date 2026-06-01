@@ -73,6 +73,7 @@ FEATURE_FLAGS = {
     "AVOID_COLORS_COLLISION": True,
     "DRILL_TO_DETAIL": True,
     "DRILL_BY": True,
+    "GLOBAL_TASK_FRAMEWORK": True,
 }
 
 WEBDRIVER_BASEURL = "http://0.0.0.0:8081/"
@@ -85,6 +86,7 @@ def GET_FEATURE_FLAGS_FUNC(ff):  # noqa: N802
 
 
 TESTING = True
+TALISMAN_ENABLED = False
 WTF_CSRF_ENABLED = False
 
 FAB_ROLES = {"TestRole": [["Security", "menu_access"], ["List Users", "menu_access"]]}

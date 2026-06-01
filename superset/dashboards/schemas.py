@@ -163,6 +163,8 @@ class DashboardJSONMetadataSchema(Schema):
     map_label_colors = fields.Dict()
     color_scheme_domain = fields.List(fields.Str())
     cross_filters_enabled = fields.Boolean(dump_default=True)
+    # controls visibility of "last queried at" timestamp on charts in dashboard view
+    show_chart_timestamps = fields.Boolean(dump_default=False)
     # used for v0 import/export
     import_time = fields.Integer()
     remote_id = fields.Integer()
@@ -293,6 +295,7 @@ class DashboardDatasetSchema(Schema):
     sql = fields.Str()
     select_star = fields.Str()
     main_dttm_col = fields.Str()
+    currency_code_column = fields.Str()
     health_check_message = fields.Str()
     fetch_values_predicate = fields.Str()
     template_params = fields.Str()
@@ -450,6 +453,12 @@ class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):
     reordered = fields.List(fields.String(), allow_none=False)
 
 
+class DashboardChartCustomizationsConfigUpdateSchema(BaseDashboardSchema):
+    deleted = fields.List(fields.String(), allow_none=False)
+    modified = fields.List(fields.Raw(), allow_none=False)
+    reordered = fields.List(fields.String(), allow_none=False)
+
+
 class DashboardColorsConfigUpdateSchema(BaseDashboardSchema):
     color_namespace = fields.String(allow_none=True)
     color_scheme = fields.String(allow_none=True)
@@ -510,6 +519,7 @@ class ImportV1DashboardSchema(Schema):
     tags = fields.List(fields.String(), allow_none=True)
     theme_uuid = fields.UUID(allow_none=True)
     theme_id = fields.Integer(allow_none=True)
+    roles = fields.List(fields.String(), allow_none=True)
 
 
 class EmbeddedDashboardConfigSchema(Schema):

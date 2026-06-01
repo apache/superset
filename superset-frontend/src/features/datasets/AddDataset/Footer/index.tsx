@@ -23,8 +23,8 @@ import {
   Menu,
   Flex,
 } from '@superset-ui/core/components';
-import { t } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import { logEvent } from 'src/logger/actions';
@@ -63,11 +63,10 @@ function Footer({
 }: FooterProps) {
   const history = useHistory();
   const theme = useTheme();
-  const { createResource } = useSingleViewResource<Partial<DatasetObject>>(
-    'dataset',
-    t('dataset'),
-    addDangerToast,
-  );
+  const { createResource, state } = useSingleViewResource<
+    Partial<DatasetObject>
+  >('dataset', t('dataset'), addDangerToast);
+  const { loading } = state;
 
   const createLogAction = (dataset: Partial<DatasetObject>) => {
     let totalCount = 0;
@@ -149,6 +148,7 @@ function Footer({
       <DropdownButton
         type="primary"
         disabled={disabledCheck}
+        loading={loading}
         tooltip={!datasetObject?.table_name ? tooltipText : undefined}
         onClick={() => onSave(true)}
         popupRender={() => dropdownMenu}

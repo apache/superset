@@ -23,7 +23,7 @@ import {
   SuperChart,
   ContextMenuFilters,
 } from '@superset-ui/core';
-import { css } from '@apache-superset/core/ui';
+import { css } from '@apache-superset/core/theme';
 import { Dataset } from '../types';
 
 interface DrillByChartProps {

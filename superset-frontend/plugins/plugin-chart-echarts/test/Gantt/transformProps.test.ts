@@ -17,7 +17,7 @@
  * under the License.
  */
 import { AxisType, ChartProps } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 import {
   LegendOrientation,
   LegendType,
@@ -86,7 +86,7 @@ const chartPropsConfig = {
 };
 
 describe('Gantt transformProps', () => {
-  it('should transform chart props', () => {
+  test('should transform chart props', () => {
     const chartProps = new ChartProps(chartPropsConfig);
     const transformedProps = transformProps(
       chartProps as EchartsGanttChartProps,
@@ -139,7 +139,6 @@ describe('Gantt transformProps', () => {
           legend: expect.objectContaining({
             show: true,
             type: 'scroll',
-            selector: ['all', 'inverse'],
           }),
           tooltip: {
             formatter: expect.anything(),
@@ -281,7 +280,7 @@ describe('legend sorting', () => {
       },
     });
 
-  it('preserves original data order when no sort specified', () => {
+  test('preserves original data order when no sort specified', () => {
     const props = createChartProps({ legendSort: null });
     const result = transformProps(props as EchartsGanttChartProps);
 
@@ -289,7 +288,7 @@ describe('legend sorting', () => {
     expect(legendData).toEqual(['series value 1', 'series value 2']);
   });
 
-  it('sorts alphabetically ascending when legendSort is "asc"', () => {
+  test('sorts alphabetically ascending when legendSort is "asc"', () => {
     const props = createChartProps({ legendSort: 'asc' });
     const result = transformProps(props as EchartsGanttChartProps);
 
@@ -297,11 +296,76 @@ describe('legend sorting', () => {
     expect(legendData).toEqual(['series value 1', 'series value 2']);
   });
 
-  it('sorts alphabetically descending when legendSort is "desc"', () => {
+  test('sorts alphabetically descending when legendSort is "desc"', () => {
     const props = createChartProps({ legendSort: 'desc' });
     const result = transformProps(props as EchartsGanttChartProps);
 
     const legendData = (result.echartOptions.legend as any).data;
     expect(legendData).toEqual(['series value 2', 'series value 1']);
+  });
+
+  test('falls back to scroll for plain legends with an overlong legend item', () => {
+    const props = new ChartProps({
+      ...chartPropsConfig,
+      width: 320,
+      formData: {
+        ...formData,
+        legendType: LegendType.Plain,
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              startTime: Date.UTC(2025, 1, 1, 13, 0, 0),
+              endTime: Date.UTC(2025, 1, 1, 14, 0, 0),
+              'Y Axis': 'first',
+              tooltip_column: 'tooltip value 1',
+              series:
+                'This is a ridiculously long legend label that should switch to scroll',
+            },
+            {
+              startTime: Date.UTC(2025, 1, 1, 18, 0, 0),
+              endTime: Date.UTC(2025, 1, 1, 20, 0, 0),
+              'Y Axis': 'second',
+              tooltip_column: 'tooltip value 2',
+              series: 'short label',
+            },
+          ],
+          colnames: [
+            'startTime',
+            'endTime',
+            'Y Axis',
+            'tooltip_column',
+            'series',
+          ],
+        },
+      ],
+    });
+
+    const result = transformProps(props as EchartsGanttChartProps);
+
+    expect((result.echartOptions.legend as any).type).toBe(LegendType.Scroll);
+  });
+
+  test('keeps legend visibility driven by showLegend for single-series charts', () => {
+    const props = new ChartProps({
+      ...chartPropsConfig,
+      queriesData: [
+        {
+          data: [queriesData[0].data[0]],
+          colnames: [
+            'startTime',
+            'endTime',
+            'Y Axis',
+            'tooltip_column',
+            'series',
+          ],
+        },
+      ],
+    });
+
+    const result = transformProps(props as EchartsGanttChartProps);
+
+    expect((result.echartOptions.legend as any).show).toBe(true);
   });
 });

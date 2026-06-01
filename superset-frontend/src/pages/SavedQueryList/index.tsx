@@ -17,13 +17,13 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
   isFeatureEnabled,
   SupersetClient,
-  t,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { useCallback, useMemo, useState, MouseEvent } from 'react';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
@@ -223,7 +223,9 @@ function SavedQueryList({
     name: t('Query'),
     buttonStyle: 'primary',
     onClick: () => {
-      history.push(makeUrl('/sqllab?new=true'));
+      // React Router's basename already includes the application root; passing
+      // a relative path ensures correct navigation under subdirectory deployments.
+      history.push('/sqllab?new=true');
     },
   });
 
@@ -245,7 +247,9 @@ function SavedQueryList({
     if (openInNewWindow) {
       window.open(makeUrl(`/sqllab?savedQueryId=${id}`));
     } else {
-      history.push(makeUrl(`/sqllab?savedQueryId=${id}`));
+      // React Router's basename already includes the application root; passing
+      // a relative path ensures correct navigation under subdirectory deployments.
+      history.push(`/sqllab?savedQueryId=${id}`);
     }
   };
 
@@ -338,9 +342,7 @@ function SavedQueryList({
           row: {
             original: { id, label },
           },
-        }: any) => (
-          <Link to={makeUrl(`/sqllab?savedQueryId=${id}`)}>{label}</Link>
-        ),
+        }: any) => <Link to={`/sqllab?savedQueryId=${id}`}>{label}</Link>,
         id: 'label',
       },
       {
@@ -451,19 +453,19 @@ function SavedQueryList({
           const handleDelete = () => setQueryCurrentlyDeleting(original);
 
           const actions = [
-            {
-              label: 'preview-action',
-              tooltip: t('Query preview'),
-              placement: 'bottom',
-              icon: 'Binoculars',
-              onClick: handlePreview,
-            },
             canEdit && {
               label: 'edit-action',
               tooltip: t('Edit query'),
               placement: 'bottom',
               icon: 'EditOutlined',
               onClick: handleEdit,
+            },
+            {
+              label: 'preview-action',
+              tooltip: t('Query preview'),
+              placement: 'bottom',
+              icon: 'Binoculars',
+              onClick: handlePreview,
             },
             {
               label: 'copy-action',

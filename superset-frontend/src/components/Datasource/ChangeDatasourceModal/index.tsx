@@ -25,8 +25,10 @@ import {
   ChangeEvent,
 } from 'react';
 
-import { SupersetClient, t, getClientErrorObject } from '@superset-ui/core';
-import { styled, Alert } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { styled } from '@apache-superset/core/theme';
 import {
   Button,
   Constants,
@@ -51,6 +53,7 @@ import {
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { InputRef } from 'antd';
 import type { Datasource, ChangeDatasourceModalProps } from '../types';
+import { datasetLabelLower } from 'src/features/semanticLayers/label';
 
 const CONFIRM_WARNING_MESSAGE = t(
   'Warning! Changing the dataset may break the chart if the metadata does not exist.',
@@ -107,7 +110,11 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
   const {
     state: { loading, resourceCollection, resourceCount },
     fetchData,
-  } = useListViewResource<Dataset>('dataset', t('dataset'), addDangerToast);
+  } = useListViewResource<Dataset>(
+    'dataset',
+    datasetLabelLower(),
+    addDangerToast,
+  );
 
   const selectDatasource = useCallback((datasource: Datasource) => {
     setConfirmChange(true);
@@ -164,28 +171,27 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
     setPageIndex(0);
   };
 
-  const handleChangeConfirm = () => {
-    SupersetClient.get({
-      endpoint: `/api/v1/dataset/${confirmedDataset?.id}`,
-    })
-      .then(({ json }) => {
-        // eslint-disable-next-line no-param-reassign
-        json.result.type = 'table';
-        onDatasourceSave(json.result);
-        onChange(`${confirmedDataset?.id}__table`);
-      })
-      .catch(response => {
-        getClientErrorObject(response).then(
-          ({ error, message }: { error: any; message: string }) => {
-            const errorMessage = error
-              ? error.error || error.statusText || error
-              : message;
-            addDangerToast(errorMessage);
-          },
-        );
+  const handleChangeConfirm = async () => {
+    try {
+      const { json } = await SupersetClient.get({
+        endpoint: `/api/v1/dataset/${confirmedDataset?.id}`,
       });
-    onHide();
-    addSuccessToast(t('Successfully changed dataset!'));
+      // eslint-disable-next-line no-param-reassign
+      json.result.type = 'table';
+      onDatasourceSave(json.result);
+      onChange(`${confirmedDataset?.id}__table`);
+      onHide();
+      addSuccessToast(t('Successfully changed %s!', datasetLabelLower()));
+    } catch (response) {
+      getClientErrorObject(response).then(
+        ({ error, message }: { error: any; message: string }) => {
+          const errorMessage = error
+            ? error.error || error.statusText || error
+            : message;
+          addDangerToast(errorMessage);
+        },
+      );
+    }
   };
 
   const handlerCancelConfirm = () => {
@@ -251,7 +257,7 @@ const ChangeDatasourceModal: FunctionComponent<ChangeDatasourceModalProps> = ({
       onHide={onHide}
       responsive
       name="Swap dataset"
-      title={t('Swap dataset')}
+      title={t('Swap %s', datasetLabelLower())}
       width={confirmChange ? '432px' : ''}
       height={confirmChange ? 'auto' : '540px'}
       hideFooter={!confirmChange}

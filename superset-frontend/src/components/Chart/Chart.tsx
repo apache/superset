@@ -16,20 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { PureComponent } from 'react';
+import { ErrorInfo, PureComponent } from 'react';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   FeatureFlag,
   isFeatureEnabled,
-  logging,
   QueryFormData,
-  t,
   SqlaFormData,
   ClientErrorObject,
+  DataRecordFilters,
+  type FilterState,
   type JsonObject,
   type AgGridChartState,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import type { ChartState, Datasource, ChartStatus } from 'src/explore/types';
 import { PLACEHOLDER_DATASOURCE } from 'src/dashboard/constants';
 import { EmptyState, Loading } from '@superset-ui/core/components';
@@ -52,13 +54,13 @@ export interface ChartProps {
   chartId: number;
   datasource?: Datasource;
   dashboardId?: number;
-  initialValues?: object;
+  initialValues?: DataRecordFilters;
   formData: QueryFormData;
   labelColors?: string;
   sharedLabelColors?: string;
   width: number;
   height: number;
-  setControlValue: Function;
+  setControlValue: (name: string, value: unknown) => void;
   timeout?: number;
   vizType: string;
   triggerRender?: boolean;
@@ -72,16 +74,24 @@ export interface ChartProps {
   triggerQuery?: boolean;
   chartIsStale?: boolean;
   errorMessage?: React.ReactNode;
-  addFilter?: (type: string) => void;
+  addFilter?: (
+    col: string,
+    vals: unknown[],
+    merge?: boolean,
+    refresh?: boolean,
+  ) => void;
   onQuery?: () => void;
   onFilterMenuOpen?: (chartId: number, column: string) => void;
   onFilterMenuClose?: (chartId: number, column: string) => void;
   ownState?: JsonObject;
-  postTransformProps?: Function;
+  postTransformProps?: (props: JsonObject) => JsonObject;
   datasetsStatus?: 'loading' | 'error' | 'complete';
   isInView?: boolean;
   emitCrossFilters?: boolean;
   onChartStateChange?: (chartState: AgGridChartState) => void;
+  /** Whether to suppress the loading spinner (during auto-refresh) */
+  suppressLoadingSpinner?: boolean;
+  filterState?: FilterState;
 }
 
 export type Actions = {
@@ -101,6 +111,7 @@ export type Actions = {
     chartId: number,
     arg2: string | null,
   ): Dispatch;
+  chartRenderingSucceeded(chartId: number): Dispatch;
   postChartFormData(
     formData: SqlaFormData,
     arg1: boolean,
@@ -162,6 +173,11 @@ const LoadingDiv = styled.div`
   transform: translate(-50%, -50%);
 `;
 
+const ErrorContainer = styled.div<{ height: number }>`
+  height: ${p => p.height}px;
+  overflow: auto;
+`;
+
 const MessageSpan = styled.span`
   display: block;
   text-align: center;
@@ -173,10 +189,11 @@ const MessageSpan = styled.span`
 class Chart extends PureComponent<ChartProps, {}> {
   static defaultProps = defaultProps;
 
-  renderStartTime: any;
+  renderStartTime: number;
 
   constructor(props: ChartProps) {
     super(props);
+    this.renderStartTime = Logger.getTimestamp();
     this.handleRenderContainerFailure =
       this.handleRenderContainerFailure.bind(this);
   }
@@ -193,7 +210,21 @@ class Chart extends PureComponent<ChartProps, {}> {
     }
   }
 
+  shouldRenderChart() {
+    return (
+      this.props.isInView ||
+      !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
+      isCurrentUserBot()
+    );
+  }
+
   runQuery() {
+    if (
+      isFeatureEnabled(FeatureFlag.DashboardVirtualizationDeferData) &&
+      !this.shouldRenderChart()
+    ) {
+      return;
+    }
     // Create chart with POST request
     this.props.actions.postChartFormData(
       this.props.formData,
@@ -205,16 +236,13 @@ class Chart extends PureComponent<ChartProps, {}> {
     );
   }
 
-  handleRenderContainerFailure(
-    error: Error,
-    info: { componentStack: string } | null,
-  ) {
+  handleRenderContainerFailure(error: Error, info: ErrorInfo) {
     const { actions, chartId } = this.props;
     logging.warn(error);
     actions.chartRenderingFailed(
       error.toString(),
       chartId,
-      info ? info.componentStack : null,
+      info?.componentStack ?? null,
     );
 
     actions.logEvent(LOG_ACTIONS_RENDER_CHART, {
@@ -241,7 +269,10 @@ class Chart extends PureComponent<ChartProps, {}> {
     const message = chartAlert || queryResponse?.message;
 
     // if datasource is still loading, don't render JS errors
+    // but always show backend API errors (which have an errors array)
+    // so users can see real issues like auth failures
     if (
+      !error &&
       chartAlert !== undefined &&
       chartAlert !== NONEXISTENT_DATASET &&
       datasource === PLACEHOLDER_DATASOURCE &&
@@ -296,12 +327,14 @@ class Chart extends PureComponent<ChartProps, {}> {
   renderChartContainer() {
     return (
       <div className="slice_container" data-test="slice-container">
-        {this.props.isInView ||
-        !isFeatureEnabled(FeatureFlag.DashboardVirtualization) ||
-        isCurrentUserBot() ? (
+        {this.shouldRenderChart() ? (
           <ChartRenderer
             {...this.props}
-            source={this.props.dashboardId ? 'dashboard' : 'explore'}
+            source={
+              this.props.dashboardId
+                ? ChartSource.Dashboard
+                : ChartSource.Explore
+            }
             data-test={this.props.vizType}
           />
         ) : (
@@ -326,13 +359,21 @@ class Chart extends PureComponent<ChartProps, {}> {
       width,
     } = this.props;
 
-    const databaseName = datasource?.database?.name as string | undefined;
+    const databaseName =
+      datasource?.parent?.name ??
+      (datasource?.database?.name as string | undefined);
 
     const isLoading = chartStatus === 'loading';
+    // Suppress spinner during auto-refresh to avoid visual flicker
+    const showSpinner = isLoading && !this.props.suppressLoadingSpinner;
 
     if (chartStatus === 'failed') {
-      return queriesResponse?.map(item =>
-        this.renderErrorMessage(item as ChartErrorType),
+      return (
+        <ErrorContainer height={height}>
+          {queriesResponse?.map(item =>
+            this.renderErrorMessage(item as ChartErrorType),
+          )}
+        </ErrorContainer>
       );
     }
 
@@ -385,7 +426,7 @@ class Chart extends PureComponent<ChartProps, {}> {
           height={height}
           width={width}
         >
-          {isLoading
+          {showSpinner
             ? this.renderSpinner(databaseName)
             : this.renderChartContainer()}
         </Styles>

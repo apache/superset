@@ -25,10 +25,3 @@ declare module 'react-syntax-highlighter/dist/cjs/styles/hljs/github' {
   const style: any;
   export default style;
 }
-
-type SupportedLanguages = 'markdown' | 'htmlbars' | 'sql' | 'json';
-
-// For type checking when importing languages
-function importLanguage<T extends SupportedLanguages>(language: T) {
-  return import(`react-syntax-highlighter/dist/cjs/languages/hljs/${language}`);
-}

@@ -295,19 +295,6 @@ class WebDriverPlaywright(WebDriverProxy):
                         url,
                     )
                     raise
-                try:
-                    # charts took too long to load
-                    logger.debug(
-                        "Wait for loading element of charts to be gone at url: %s", url
-                    )
-                    for loading_element in page.locator(".loading").all():
-                        loading_element.wait_for(state="detached")
-                except PlaywrightTimeout:
-                    logger.exception(
-                        "Timed out waiting for charts to load at url %s", url
-                    )
-                    raise
-
                 selenium_animation_wait = app.config[
                     "SCREENSHOT_SELENIUM_ANIMATION_WAIT"
                 ]
@@ -337,7 +324,10 @@ class WebDriverPlaywright(WebDriverProxy):
                         'document.querySelectorAll(".chart-container").length'
                     )
                     dashboard_height = page.evaluate(
-                        f'document.querySelector(".{element_name}").scrollHeight || 0'
+                        f"""() => {{
+                            const target = document.querySelector(\".{element_name}\");
+                            return target ? target.scrollHeight : 0;
+                        }}"""
                     )
                     chart_threshold = app.config.get(
                         "SCREENSHOT_TILED_CHART_THRESHOLD", 20
@@ -348,6 +338,14 @@ class WebDriverPlaywright(WebDriverProxy):
                     tile_height = app.config.get(
                         "SCREENSHOT_TILED_VIEWPORT_HEIGHT", viewport_height
                     )
+
+                    if dashboard_height == 0:
+                        logger.warning(
+                            "Could not determine dashboard height for element %s "
+                            "at url %s; falling back to standard screenshot behavior",
+                            element_name,
+                            url,
+                        )
 
                     # Use tiled screenshots for large dashboards
                     use_tiled = (
@@ -366,7 +364,12 @@ class WebDriverPlaywright(WebDriverProxy):
                         page.set_viewport_size(
                             {"height": tile_height, "width": viewport_width}
                         )
-                        img = take_tiled_screenshot(page, element_name, tile_height)
+                        img = take_tiled_screenshot(
+                            page,
+                            element_name,
+                            tile_height,
+                            load_wait=self._screenshot_load_wait,
+                        )
                         if img is None:
                             logger.warning(
                                 (
@@ -378,21 +381,62 @@ class WebDriverPlaywright(WebDriverProxy):
                                 page, element, element_name
                             )
                     else:
+                        # Standard screenshot captures the full element including
+                        # below-the-fold content, so wait for all spinners globally.
+                        try:
+                            logger.debug(
+                                "Wait for loading element of charts to be gone"
+                                " at url: %s",
+                                url,
+                            )
+                            page.wait_for_function(
+                                "() => document.querySelectorAll("
+                                "'.loading').length === 0",
+                                timeout=self._screenshot_load_wait * 1000,
+                            )
+                        except PlaywrightTimeout:
+                            logger.warning(
+                                "Timed out waiting for charts to load at url %s "
+                                "(SCREENSHOT_LOAD_WAIT=%ss)",
+                                url,
+                                self._screenshot_load_wait,
+                            )
+                            raise
                         img = WebDriverPlaywright._get_screenshot(
                             page, element, element_name
                         )
                 else:
+                    # Standard screenshot captures the full element including
+                    # below-the-fold content, so wait for all spinners globally.
+                    try:
+                        logger.debug(
+                            "Wait for loading element of charts to be gone at url: %s",
+                            url,
+                        )
+                        page.wait_for_function(
+                            "() => document.querySelectorAll('.loading').length === 0",
+                            timeout=self._screenshot_load_wait * 1000,
+                        )
+                    except PlaywrightTimeout:
+                        logger.warning(
+                            "Timed out waiting for charts to load at url %s "
+                            "(SCREENSHOT_LOAD_WAIT=%ss)",
+                            url,
+                            self._screenshot_load_wait,
+                        )
+                        raise
                     img = WebDriverPlaywright._get_screenshot(
                         page, element, element_name
                     )
 
             except PlaywrightTimeout:
-                # raise again for the finally block, but handled above
-                pass
+                raise
             except PlaywrightError:
                 logger.exception(
                     "Encountered an unexpected error when requesting url %s", url
                 )
+            finally:
+                browser.close()
             return img
 
 
@@ -609,7 +653,9 @@ class WebDriverSelenium(WebDriverProxy):
                     EC.presence_of_element_located((By.CLASS_NAME, element_name))
                 )
             except TimeoutException:
-                logger.exception("Selenium timed out requesting url %s", url)
+                logger.warning(
+                    "Selenium timed out requesting url %s", url, exc_info=True
+                )
                 raise
 
             try:
@@ -629,10 +675,11 @@ class WebDriverSelenium(WebDriverProxy):
                             (By.CLASS_NAME, "grid-container")
                         )
                     )
-                except:
-                    logger.exception(
+                except Exception:
+                    logger.warning(
                         "Selenium timed out waiting for dashboard to draw at url %s",
                         url,
+                        exc_info=True,
                     )
                     raise
 
@@ -645,8 +692,10 @@ class WebDriverSelenium(WebDriverProxy):
                     EC.presence_of_all_elements_located((By.CLASS_NAME, "loading"))
                 )
             except TimeoutException:
-                logger.exception(
-                    "Selenium timed out waiting for charts to load at url %s", url
+                logger.warning(
+                    "Selenium timed out waiting for charts to load at url %s",
+                    url,
+                    exc_info=True,
                 )
                 raise
 
@@ -670,22 +719,25 @@ class WebDriverSelenium(WebDriverProxy):
                     )
 
             img = element.screenshot_as_png
-        except Exception as ex:
-            logger.warning("exception in webdriver", exc_info=ex)
-            raise
         except TimeoutException:
-            # raise again for the finally block, but handled above
+            # Already logged at WARNING in the inner handlers above
             raise
         except StaleElementReferenceException:
-            logger.exception(
+            logger.warning(
                 "Selenium got a stale element while requesting url %s",
                 url,
+                exc_info=True,
             )
             raise
         except WebDriverException:
-            logger.exception(
-                "Encountered an unexpected error when requesting url %s", url
+            logger.warning(
+                "Encountered an unexpected error when requesting url %s",
+                url,
+                exc_info=True,
             )
+            raise
+        except Exception as ex:
+            logger.warning("exception in webdriver", exc_info=ex)
             raise
         finally:
             self.destroy(driver, app.config["SCREENSHOT_SELENIUM_RETRIES"])

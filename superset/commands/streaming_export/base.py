@@ -23,15 +23,34 @@ import io
 import logging
 import time
 from abc import abstractmethod
+from contextlib import contextmanager
 from typing import Any, Callable, Generator
 
-from flask import current_app as app
+from flask import current_app as app, g, has_app_context
 from sqlalchemy import text
 
 from superset import db
 from superset.commands.base import BaseCommand
 
 logger = logging.getLogger(__name__)
+
+
+@contextmanager
+def preserve_g_context(
+    captured_g: dict[str, Any],
+) -> Generator[None, None, None]:
+    """
+    Context manager that restores captured flask.g attributes.
+
+    This is needed for streaming responses where the generator runs in a new
+    app context but needs access to request-scoped data from the original request.
+
+    Args:
+        captured_g: Dictionary of g attributes captured before context switch
+    """
+    for key, value in captured_g.items():
+        setattr(g, key, value)
+    yield
 
 
 class BaseStreamingCSVExportCommand(BaseCommand):
@@ -60,12 +79,12 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         self._current_app = app._get_current_object()
 
     @abstractmethod
-    def _get_sql_and_database(self) -> tuple[str, Any]:
+    def _get_sql_and_database(self) -> tuple[str, Any, str | None, str | None]:
         """
-        Get the SQL query and database for execution.
+        Get the SQL query, database, catalog, and schema for execution.
 
         Returns:
-            Tuple of (sql_query, database_object)
+            Tuple of (sql_query, database_object, catalog, schema)
         """
 
     @abstractmethod
@@ -131,7 +150,12 @@ class BaseStreamingCSVExportCommand(BaseCommand):
             yield remaining_data, row_count, data_bytes
 
     def _execute_query_and_stream(
-        self, sql: str, database: Any, limit: int | None
+        self,
+        sql: str,
+        database: Any,
+        limit: int | None,
+        catalog: str | None = None,
+        schema: str | None = None,
     ) -> Generator[str, None, None]:
         """Execute query with streaming and yield CSV chunks."""
         start_time = time.time()
@@ -141,8 +165,9 @@ class BaseStreamingCSVExportCommand(BaseCommand):
             # Merge database to prevent DetachedInstanceError
             merged_database = session.merge(database)
 
-            # Execute query with streaming
-            with merged_database.get_sqla_engine() as engine:
+            with merged_database.get_sqla_engine(
+                catalog=catalog, schema=schema
+            ) as engine:
                 with engine.connect() as connection:
                     result_proxy = connection.execution_options(
                         stream_results=True
@@ -190,25 +215,33 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         """
         # Load all needed data while session is still active
         # to avoid DetachedInstanceError
-        sql, database = self._get_sql_and_database()
+        sql, database, catalog, schema = self._get_sql_and_database()
         limit = self._get_row_limit()
+        # Capture flask.g attributes to preserve request-scoped data
+        # when the streaming generator runs in a new app context.
+        captured_g = (
+            g._get_current_object().__dict__.copy() if has_app_context() else {}
+        )
 
         def csv_generator() -> Generator[str, None, None]:
             """Generator that yields CSV data chunks."""
             with self._current_app.app_context():
-                try:
-                    yield from self._execute_query_and_stream(sql, database, limit)
-                except Exception as e:
-                    logger.error("Error in streaming CSV generator: %s", e)
-                    import traceback
+                with preserve_g_context(captured_g):
+                    try:
+                        yield from self._execute_query_and_stream(
+                            sql, database, limit, catalog, schema
+                        )
+                    except Exception as e:
+                        logger.error("Error in streaming CSV generator: %s", e)
+                        import traceback
 
-                    logger.error("Traceback: %s", traceback.format_exc())
+                        logger.error("Traceback: %s", traceback.format_exc())
 
-                    # Send error marker for frontend to detect
-                    error_marker = (
-                        "__STREAM_ERROR__:Export failed. "
-                        "Please try again in some time.\n"
-                    )
-                    yield error_marker
+                        # Send error marker for frontend to detect
+                        error_marker = (
+                            "__STREAM_ERROR__:Export failed. "
+                            "Please try again in some time.\n"
+                        )
+                        yield error_marker
 
         return csv_generator

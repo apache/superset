@@ -117,7 +117,7 @@ export function convertFilters(fts: InternalFilter[]): FilterValue[] {
           (Array.isArray(f.value) && !f.value.length)
         ),
     )
-    .map(({ value, operator, id }) => {
+    .flatMap(({ value, operator, id }) => {
       // handle between filter using 2 api filters
       if (operator === 'between' && Array.isArray(value)) {
         return [
@@ -138,8 +138,7 @@ export function convertFilters(fts: InternalFilter[]): FilterValue[] {
         operator,
         id,
       };
-    })
-    .flat();
+    });
 }
 
 // convertFilters but to handle new decoded rison format

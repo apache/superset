@@ -17,12 +17,18 @@
 
 from datetime import datetime
 from types import SimpleNamespace
-from typing import Any, List
+from typing import Any, Dict, List
+from unittest.mock import Mock, patch
 
 import pytest
 from pydantic import BaseModel
 
-from superset.mcp_service.mcp_core import ModelGetInfoCore, ModelListCore
+from superset.mcp_service.mcp_core import (
+    ModelGetInfoCore,
+    ModelGetSchemaCore,
+    ModelListCore,
+)
+from superset.mcp_service.privacy import USER_DIRECTORY_FIELDS
 
 
 # Dummy Pydantic output schema
@@ -43,6 +49,8 @@ class DummyListSchema(BaseModel):
     has_next: bool
     columns_requested: List[str]
     columns_loaded: List[str]
+    columns_available: List[str]
+    sortable_columns: List[str]
     filters_applied: List[Any]
     pagination: Any
     timestamp: datetime
@@ -63,7 +71,7 @@ class DummyDAO:
         return [SimpleNamespace(id=1, name="foo"), SimpleNamespace(id=2, name="bar")], 2
 
     @classmethod
-    def find_by_id(cls, id):
+    def find_by_id(cls, id, **kwargs):
         if id == 1:
             return SimpleNamespace(id=1, name="foo")
         return None
@@ -89,10 +97,11 @@ def test_model_list_tool_basic():
     assert result.count == 2
     assert result.total_count == 2
     assert isinstance(result.items[0], DummyOutputSchema)
-    assert result.page == 1
+    # run_tool receives 0-based page; response reports 1-based (page+1)
+    assert result.page == 2
     assert result.page_size == 2
     assert result.total_pages == 1
-    # For page=1, ModelListCore sets has_previous=True
+    # For page=1 (0-based), ModelListCore sets has_previous=True
     assert result.has_previous is True
     assert result.has_next is False
     assert result.columns_requested == ["id", "name"]
@@ -116,6 +125,255 @@ def test_model_list_tool_with_filters_and_columns():
     )
     assert result.columns_requested == ["id"]
     assert "id" in result.columns_loaded
+
+
+def test_model_list_tool_keeps_single_filter_when_created_by_me_is_used():
+    current_user = Mock()
+    current_user.is_authenticated = True
+    current_user.id = 42
+
+    captured = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, column_operators=None, **kwargs):
+            captured["filters"] = column_operators
+            return [], 0
+
+    tool = ModelListCore(
+        dao_class=CapturingDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+    )
+
+    with patch(
+        "superset.mcp_service.mcp_core.get_current_user",
+        return_value=current_user,
+    ):
+        tool.run_tool(
+            filters={"col": "name", "opr": "eq", "value": "foo"},
+            created_by_me=True,
+        )
+
+    assert len(captured["filters"]) == 2
+    assert captured["filters"][0].col == "created_by_fk"
+    assert captured["filters"][0].value == 42
+    assert captured["filters"][1] == {"col": "name", "opr": "eq", "value": "foo"}
+
+
+def test_model_list_tool_rejects_only_user_directory_select_columns():
+    tool = ModelListCore(
+        dao_class=DummyDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+    )
+
+    with pytest.raises(ValueError, match="contains no valid columns"):
+        tool.run_tool(select_columns=["created_by", "owners"])
+
+
+def test_model_list_tool_rejects_private_order_column():
+    tool = ModelListCore(
+        dao_class=DummyDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+        sortable_columns=["id", "name", "created_by_fk"],
+    )
+
+    with pytest.raises(ValueError, match="order_column"):
+        tool.run_tool(order_column="created_by_fk")
+
+
+def test_model_list_tool_allows_order_column_when_sortable_columns_not_declared():
+    """When sortable_columns is not provided, order_column is passed through to the DAO
+    without validation (backward-compatible behaviour)."""
+    tool = ModelListCore(
+        dao_class=DummyDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+        # sortable_columns intentionally omitted
+    )
+    # Should not raise even though "name" is not in the (empty) sortable list
+    tool.run_tool(order_column="name")
+
+
+def test_model_list_tool_injects_current_user_id_for_created_by_me():
+    """created_by_me=True adds a created_by_fk filter with the current user's ID."""
+    current_user = Mock()
+    current_user.is_authenticated = True
+    current_user.id = 42
+
+    captured = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, column_operators=None, **kwargs):
+            captured["filters"] = column_operators
+            return [], 0
+
+    tool = ModelListCore(
+        dao_class=CapturingDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+    )
+
+    with patch(
+        "superset.mcp_service.mcp_core.get_current_user",
+        return_value=current_user,
+    ):
+        tool.run_tool(created_by_me=True)
+
+    assert captured["filters"][0].col == "created_by_fk"
+    assert captured["filters"][0].value == 42
+
+
+def test_model_list_tool_created_by_me_requires_authenticated_user():
+    """created_by_me=True raises when no authenticated user is present."""
+    current_user = Mock()
+    current_user.is_authenticated = False
+
+    tool = ModelListCore(
+        dao_class=DummyDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+    )
+
+    with patch(
+        "superset.mcp_service.mcp_core.get_current_user",
+        return_value=current_user,
+    ):
+        with pytest.raises(ValueError, match="authenticated user"):
+            tool.run_tool(created_by_me=True)
+
+
+def test_model_list_tool_injects_current_user_id_for_owned_by_me():
+    """owned_by_me=True adds an owner filter with the current user's ID."""
+    current_user = Mock()
+    current_user.is_authenticated = True
+    current_user.id = 99
+
+    captured = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, column_operators=None, **kwargs):
+            captured["filters"] = column_operators
+            return [], 0
+
+    tool = ModelListCore(
+        dao_class=CapturingDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+    )
+
+    with patch(
+        "superset.mcp_service.mcp_core.get_current_user",
+        return_value=current_user,
+    ):
+        tool.run_tool(owned_by_me=True)
+
+    assert captured["filters"][0].col == "owner"
+    assert captured["filters"][0].value == 99
+
+
+def test_model_list_tool_both_flags_uses_combined_or_filter():
+    """created_by_me=True + owned_by_me=True generates a single OR filter."""
+    current_user = Mock()
+    current_user.is_authenticated = True
+    current_user.id = 55
+
+    captured = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, column_operators=None, **kwargs):
+            captured["filters"] = column_operators
+            return [], 0
+
+    tool = ModelListCore(
+        dao_class=CapturingDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+    )
+
+    with patch(
+        "superset.mcp_service.mcp_core.get_current_user",
+        return_value=current_user,
+    ):
+        tool.run_tool(created_by_me=True, owned_by_me=True)
+
+    assert len(captured["filters"]) == 1
+    assert captured["filters"][0].col == "created_by_fk_or_owner"
+    assert captured["filters"][0].value == 55
+
+
+def test_model_list_tool_owned_by_me_requires_authenticated_user():
+    """owned_by_me=True raises when no authenticated user is present."""
+    current_user = Mock()
+    current_user.is_authenticated = False
+
+    tool = ModelListCore(
+        dao_class=DummyDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+    )
+
+    with patch(
+        "superset.mcp_service.mcp_core.get_current_user",
+        return_value=current_user,
+    ):
+        with pytest.raises(ValueError, match="authenticated user"):
+            tool.run_tool(owned_by_me=True)
+
+
+def test_user_directory_fields_include_last_saved_relationships():
+    assert "last_saved_by" in USER_DIRECTORY_FIELDS
+    assert "last_saved_by_name" in USER_DIRECTORY_FIELDS
 
 
 def test_model_list_tool_empty_result():
@@ -190,7 +448,7 @@ def test_model_get_info_tool_not_found():
 def test_model_get_info_tool_exception():
     class FailingDAO:
         @classmethod
-        def find_by_id(cls, id):
+        def find_by_id(cls, id, **kwargs):
             raise Exception("fail")
 
     tool = ModelGetInfoCore(
@@ -202,3 +460,145 @@ def test_model_get_info_tool_exception():
     with pytest.raises(Exception, match="fail") as exc:
         tool.run_tool(1)
     assert "fail" in str(exc.value)
+
+
+# Schema output model for ModelGetSchemaCore tests
+class DummySchemaInfo(BaseModel):
+    model_type: str
+    select_columns: List[Any]
+    filter_columns: Dict[str, List[str]]
+    sortable_columns: List[str]
+    default_select: List[str]
+    default_sort: str
+    default_sort_direction: str
+    search_columns: List[str]
+
+
+class DummyColumnMetadata(BaseModel):
+    name: str
+    description: str | None = None
+    type: str | None = None
+    is_default: bool = False
+
+
+# DAO with filterable columns for schema tests
+class SchemaDAO:
+    @classmethod
+    def get_filterable_columns_and_operators(cls):
+        return {"name": ["eq", "sw", "ilike"], "id": ["eq", "gt", "lt"]}
+
+
+class FailingSchemaDAO:
+    @classmethod
+    def get_filterable_columns_and_operators(cls):
+        raise Exception("Database connection failed")
+
+
+def test_model_get_schema_core_basic():
+    """Test basic ModelGetSchemaCore functionality."""
+    select_columns = [
+        DummyColumnMetadata(name="id", description="ID", type="int", is_default=True),
+        DummyColumnMetadata(
+            name="name", description="Name", type="str", is_default=True
+        ),
+        DummyColumnMetadata(
+            name="description", description="Description", type="str", is_default=False
+        ),
+    ]
+
+    tool = ModelGetSchemaCore(
+        model_type="chart",
+        dao_class=SchemaDAO,
+        output_schema=DummySchemaInfo,
+        select_columns=select_columns,
+        sortable_columns=["id", "name"],
+        default_columns=["id", "name"],
+        search_columns=["name", "description"],
+        default_sort="id",
+        default_sort_direction="desc",
+    )
+
+    result = tool.run_tool()
+
+    assert isinstance(result, DummySchemaInfo)
+    assert result.model_type == "chart"
+    assert len(result.select_columns) == 3
+    assert result.filter_columns == {
+        "name": ["eq", "sw", "ilike"],
+        "id": ["eq", "gt", "lt"],
+    }
+    assert result.sortable_columns == ["id", "name"]
+    assert result.default_select == ["id", "name"]
+    assert result.default_sort == "id"
+    assert result.default_sort_direction == "desc"
+    assert result.search_columns == ["name", "description"]
+
+
+def test_model_get_schema_core_dao_exception_returns_empty_filters():
+    """Test that DAO exception in _get_filter_columns returns empty dict."""
+    select_columns = [
+        DummyColumnMetadata(name="id", description="ID", type="int", is_default=True),
+    ]
+
+    tool = ModelGetSchemaCore(
+        model_type="dataset",
+        dao_class=FailingSchemaDAO,
+        output_schema=DummySchemaInfo,
+        select_columns=select_columns,
+        sortable_columns=["id"],
+        default_columns=["id"],
+        search_columns=["id"],
+        default_sort="id",
+        default_sort_direction="asc",
+    )
+
+    result = tool.run_tool()
+
+    # Should succeed but with empty filter_columns due to DAO exception
+    assert isinstance(result, DummySchemaInfo)
+    assert result.filter_columns == {}
+    assert result.sortable_columns == ["id"]
+
+
+def test_model_get_schema_core_empty_columns():
+    """Test ModelGetSchemaCore with empty select columns."""
+    tool = ModelGetSchemaCore(
+        model_type="dashboard",
+        dao_class=SchemaDAO,
+        output_schema=DummySchemaInfo,
+        select_columns=[],
+        sortable_columns=[],
+        default_columns=[],
+        search_columns=[],
+        default_sort="changed_on",
+        default_sort_direction="desc",
+    )
+
+    result = tool.run_tool()
+
+    assert isinstance(result, DummySchemaInfo)
+    assert result.model_type == "dashboard"
+    assert result.select_columns == []
+    assert result.sortable_columns == []
+    assert result.default_select == []
+
+
+def test_model_get_schema_core_all_model_types():
+    """Test ModelGetSchemaCore works for all model types."""
+    select_columns = [DummyColumnMetadata(name="id", description="ID", type="int")]
+
+    for model_type in ["chart", "dataset", "dashboard"]:
+        tool = ModelGetSchemaCore(
+            model_type=model_type,
+            dao_class=SchemaDAO,
+            output_schema=DummySchemaInfo,
+            select_columns=select_columns,
+            sortable_columns=["id"],
+            default_columns=["id"],
+            search_columns=["id"],
+            default_sort="id",
+            default_sort_direction="desc",
+        )
+
+        result = tool.run_tool()
+        assert result.model_type == model_type
