@@ -245,6 +245,7 @@ msgstr "%(prefix)s %(title)s"
 msgid ""
 "%(prefix)sResults truncated to %(row_count)s rows due to memory constraints."
 msgstr ""
+"%(prefix)sRésultats tronqué à %(row_count)s pour des contraintes mémoires."
 
 #, python-format
 msgid ""
@@ -330,7 +331,7 @@ msgstr "%s Sélectionnée (Virtuelle)"
 
 #, python-format
 msgid "%s Semantic View"
-msgstr ""
+msgstr "%s [CHECK] Vue sémantique"
 
 #, python-format
 msgid "%s URL"
@@ -470,15 +471,15 @@ msgstr[1] ""
 
 #, python-format
 msgid "%s semantic view(s) added"
-msgstr ""
+msgstr "%s [CHECK] vue(s) sémantique(s) ajoutée(s)"
 
 #, python-format
 msgid "%s semantic view(s) failed to add"
-msgstr ""
+msgstr "Echéc de l'ajout pour %s vue(s) sémantique(s)"
 
 #, python-format
 msgid "%s semantic view(s) failed to add: %s"
-msgstr ""
+msgstr "Echéc de l'ajout pour %s vue(s) sémantique(s). Raison: %s"
 
 #, python-format
 msgid "%s tab selected"
@@ -814,10 +815,10 @@ msgid "A Big Number"
 msgstr "Gros nombre"
 
 msgid "A JavaScript function that generates a label configuration object"
-msgstr ""
+msgstr "Une fonction JavaScript qui génère un label de configuration"
 
 msgid "A JavaScript function that generates an icon configuration object"
-msgstr ""
+msgstr "Une fonction JavaScript qui génère une icône de configuration"
 
 #, python-brace-format
 msgid ""
@@ -826,6 +827,10 @@ msgid ""
 "{ text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Details: https://"
 "echarts.apache.org/en/option.html. "
 msgstr ""
+"Un objet JavaScript qui adhère aux spécifications des ECharts, écrase "
+"les autres options de contrôle avec une précédence plus élevée. (i.e. { title:"
+"{ text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Details: https://"
+"echarts.apache.org/en/option.html. "
 
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr "Liste de Colonnes séparée par des virgules à traiter comme des dates"
@@ -8923,14 +8928,13 @@ msgid "Metrics (%s)"
 msgstr "Mesures"
 
 msgid "Metrics can't be used for both rows and columns at the same time"
-msgstr ""
+msgstr "Les mesures ne peuvent pas être utilisées en même temps pour les lignes et les columns"
 
 msgid "Metrics folder can only contain metric items"
-msgstr ""
+msgstr "Les dossiers de mesures ne peuvent contenir que des éléments de mesure"
 
 msgid "Metrics should be inside folders"
-msgstr ""
-
+msgstr "Les mesures doivent être à l'intérieur du dossier"
 
 msgid "Metrics to show in the tooltip."
 msgstr "Affichage ou non des valeurs numériques dans les cellules"
@@ -9130,6 +9134,7 @@ msgstr "Multiplicateur"
 msgid ""
 "Must be a chart owner to overwrite this chart. Save as a new chart instead."
 msgstr ""
+"[FORMULATION] Vous devez être propriétaire du graphique pour l'enregister et l'écraser. Enregister en tant que nouveau graphique."
 
 msgid "Must be unique"
 msgstr "Doit être unique"
@@ -9208,8 +9213,7 @@ msgid "Name your database"
 msgstr "Nom de votre base de données"
 
 msgid "Name your folder and to edit it later, click on the folder name"
-msgstr ""
-
+msgstr "[CHECK] Nommer votre dossier et modifier le plus tard en cliquant sur le nom du dossier"
 
 msgid "Native filter column is required"
 msgstr "La valeur du filtre est requise"
@@ -9384,16 +9388,14 @@ msgstr "Pas de filtre sélectionné."
 msgid "No filters"
 msgstr "Aucun filtre"
 
-
 msgid "No filters applied"
 msgstr "Aucun filtre"
-
 
 msgid "No filters are currently added to this dashboard."
 msgstr "Aucun filtre n'est actuellement ajouté à ce tableau de bord."
 
 msgid "No filters or customizations created yet"
-msgstr ""
+msgstr "Aucun filtres ou personnalisations n'existent actuellement"
 
 msgid "No form settings were maintained"
 msgstr "Aucun paramètre de formulaire n'a été conservé"
@@ -9822,10 +9824,10 @@ msgstr ""
 "des valeurs."
 
 msgid "Only exact match is available for non-string columns."
-msgstr ""
+msgstr "Seule la correspondance exact est disponible pour les columns non textuelles."
 
 msgid "Only proceed if you trust the destination or its source."
-msgstr ""
+msgstr "Continuer uniquement si vous faites confiance à la destionation ou à la source."
 
 msgid ""
 "Only show the total value on the stacked chart, and not show on the selected "
@@ -10191,16 +10193,13 @@ msgid "Pattern"
 msgstr "Modèle"
 
 msgid "Pause auto refresh if tab is inactive"
-msgstr ""
-
+msgstr "Mettre en pause l'actualisation automatique si l'onglet est inactif"
 
 msgid "Pause auto-refresh"
 msgstr "Définir l'intervalle de rafraîchissement automatique"
 
-
 msgid "Pending"
 msgstr "en attente"
-
 
 msgid "Per user caching"
 msgstr "Pourcentage de variation"
@@ -10265,7 +10264,7 @@ msgid "Person or group that has certified this metric"
 msgstr "Personne ou groupe qui a certifié cette mesure"
 
 msgid "Personal info"
-msgstr ""
+msgstr "Informations personnelles"
 
 msgid "Physical"
 msgstr "Physique"
@@ -10336,15 +10335,13 @@ msgid "Pin Right"
 msgstr "Epingler à droite"
 
 msgid "Pin to the result panel"
-msgstr ""
-
+msgstr "Epingler dans le panneau de résultat"
 
 msgid "Pin to top"
-msgstr "De haut en bas"
-
+msgstr "Epingler en haut"
 
 msgid "Pivot Mode"
-msgstr "mode edition"
+msgstr "Mode edition"
 
 msgid "Pivot Table"
 msgstr "Tableau croisé"
@@ -10396,7 +10393,6 @@ msgid ""
 msgstr ""
 "Veuillez corriger une erreur de syntaxe dans la requête près de "
 "« %(server_error)s ». Puis essayez de relancer la requête."
-
 
 msgid ""
 "Please check your template parameters for syntax errors and make sure they "
@@ -10673,7 +10669,7 @@ msgstr "Continuer"
 
 #, python-format
 msgid "Processing export for %s"
-msgstr ""
+msgstr "Export en cours de réalisation pour %"
 
 msgid "Processing export..."
 msgstr "Génération de l'export..."
@@ -11192,13 +11188,11 @@ msgstr "L'opération de rééchantillonnage nécessite DatetimeIndex"
 msgid "Reset"
 msgstr "Réinitialiser"
 
-
 msgid "Reset Columns"
 msgstr "Sélectionner une colonne"
 
 msgid "Reset all folders to default"
-msgstr ""
-
+msgstr "Réinitialiser tous les dossiers aux valeurs par défaut"
 
 msgid "Reset columns"
 msgstr "Sélectionner une colonne"
@@ -11222,12 +11216,11 @@ msgstr "Re-dimensionner"
 msgid "Resource already has an attached report."
 msgstr "La ressource a déjà un rapport joint."
 
-
 msgid "Resource was not found."
 msgstr "Base de données non trouvée."
 
 msgid "Resource was removed before ownership could be verified"
-msgstr ""
+msgstr "La ressource a été supprimée avant que le propriétaire de la ressource soit vérifié."
 
 msgid "Restore filter"
 msgstr "Restaurer le filtre"
@@ -11270,17 +11263,14 @@ msgstr "Inverser la latitude et la longitude"
 msgid "Reverse lat/long "
 msgstr "Inverser la latitude et la longitude "
 
-
 msgid "Revoke"
 msgstr "Supprimer"
-
 
 msgid "Revoke API Key"
 msgstr "Clé de regroupement"
 
 msgid "Revoke this API key"
-msgstr ""
-
+msgstr "Révoquer cette clé API"
 
 msgid "Revoked"
 msgstr "Tracé"
@@ -11671,7 +11661,7 @@ msgid "Save query"
 msgstr "Enregistrer la requête"
 
 msgid "Save this API key securely"
-msgstr ""
+msgstr "Enregister cette clé API de manière sécurisée."
 
 msgid "Save this query as a virtual dataset to continue exploring"
 msgstr ""
@@ -11709,7 +11699,7 @@ msgid "Scale and Move"
 msgstr "Échelle et mouvement"
 
 msgid "Scale factor applied to metric-driven line widths"
-msgstr ""
+msgstr "[CHECK] Facteur d'échelle à appliquer à la hateur des lines par rapport à la mesure."
 
 msgid "Scale only"
 msgstr "Échelle seulement"
@@ -12000,7 +11990,7 @@ msgstr ""
 "métrique."
 
 msgid "Select a predefined CSS template to apply to your dashboard"
-msgstr ""
+msgstr "Sélectionné un template CSS prédéfini à appliquer au tableau de bord"
 
 msgid "Select a schema"
 msgstr "Sélectionner un schéma"
@@ -12307,13 +12297,13 @@ msgstr ""
 "nom de colonne dans le tableau de bord."
 
 msgid "Select the color used for values that indicate an increase in the chart"
-msgstr ""
+msgstr "Sélectionner la couleur utilisée pour les valeurs qui indiquent une augmentation dans graphique"
 
 msgid "Select the color used for values that represent total bars in the chart"
-msgstr ""
+msgstr "Sélectionner la colour utilisée pour les valeurs qui représentent le total dans le graphique"
 
 msgid "Select the color used for values ​​that indicate a decrease in the chart."
-msgstr ""
+msgstr "Sélectionner la colour utilisée pour les valeurs qui indiquent une décroissance dans le graphique"
 
 msgid ""
 "Select the column containing currency codes such as USD, EUR, GBP, etc. Used "
@@ -12322,10 +12312,8 @@ msgid ""
 "charts will fall back to neutral numeric formatting."
 msgstr ""
 
-
 msgid "Select the fixed color"
 msgstr "Sélectionner la colonne geojson"
-
 
 msgid "Select the geojson column"
 msgstr "Sélectionner la colonne geojson"
@@ -12366,40 +12354,32 @@ msgid ""
 "allow list only and does not add extra conditions to the underlying queries."
 msgstr ""
 
-
 msgid "Selected"
-msgstr "0 sélectionné"
-
+msgstr "Sélectionné"
 
 msgid "Selecting a database is required"
 msgstr "Sélectionner une base de données pour écrire une requête"
 
-
 msgid "Selection method"
-msgstr "Méthode de notification"
-
+msgstr "Méthode de sélection"
 
 msgid "Semantic"
 msgstr "courriel"
-
 
 msgid "Semantic Layer"
 msgstr "Couche d'annotations"
 
 msgid "Semantic View"
-msgstr ""
+msgstr "[CHECK] Vue sémantique"
 
 msgid "Semantic Views"
-msgstr ""
-
+msgstr "[CHECK] Vues sémantique"
 
 msgid "Semantic layer"
 msgstr "Couche d'annotations"
 
-
 msgid "Semantic layer could not be created."
 msgstr "La couche d'annotations n'a pas pu être créée."
-
 
 msgid "Semantic layer could not be deleted."
 msgstr "La couche d'annotations n'a pas pu être supprimée."
@@ -12440,19 +12420,17 @@ msgstr "Le template CSS n'a pas pu être supprimé."
 msgid "Semantic view could not be updated."
 msgstr "L’ensemble de données n'a pas pu être mis à jour."
 
-
 msgid "Semantic view does not exist"
 msgstr "L’ensemble de données n'existe pas"
-
 
 msgid "Semantic view parameters are invalid."
 msgstr "Les paramètres de l'ensemble de données ne sont pas valides."
 
 msgid "Semantic view updated"
-msgstr ""
+msgstr "[CHECK] Vues sémantiques mises à jour"
 
 msgid "Semantic views"
-msgstr ""
+msgstr "[CHECK] Vues sémantiques"
 
 msgid "Send as CSV"
 msgstr "Envoyer comme CSV"
@@ -12488,18 +12466,16 @@ msgid "Series chart type (line, bar etc)"
 msgstr "Type de graphique de la série (ligne, barre, etc.)"
 
 msgid "Series decrease setting"
-msgstr ""
+msgstr "[CHECK] Option séries décroissantes"
 
 msgid "Series increase setting"
-msgstr ""
+msgstr "[CHECK] Option séries croissantes"
 
 msgid "Series limit"
 msgstr "Limite de série"
 
-
 msgid "Series settings"
 msgstr "Paramètres du filtre"
-
 
 msgid "Series total setting"
 msgstr "Conserver les paramètres de contrôle?"
@@ -12995,7 +12971,7 @@ msgid "Some permissions could not be resolved and are shown as IDs."
 msgstr ""
 
 msgid "Some required filters on other tabs have values and will not be cleared"
-msgstr ""
+msgstr "Certains filtres nécessaires sur les autres onglets possèdent des valeurs et ne seront pas réinitialisés."
 
 msgid "Some roles do not exist"
 msgstr "Des profils n'existent pas"
@@ -13361,7 +13337,7 @@ msgid "Structural"
 msgstr "Structurel"
 
 msgid "Structure is managed by the upstream semantic layer and is read-only."
-msgstr ""
+msgstr "[CHECK] La structure is gérée par le semantic layer en amont et elle est en lecture seule"
 
 msgid "Style"
 msgstr "Style"
@@ -13696,18 +13672,17 @@ msgid ""
 "Task is not abortable. The task is in progress but has not registered an "
 "abort handler."
 msgstr ""
-
+"La tâche ne peut pas être arrếtée. La tâche est en cours et aucun moyen "
+"d'arrêter la tâche n'a été enregistré."
 
 msgid "Task parameters are invalid."
 msgstr "Les paramètres de balise sont invalides."
 
-
 msgid "Tasks"
-msgstr "tags"
+msgstr "Tâches"
 
 msgid "Tasks will appear here as background operations are executed."
-msgstr ""
-
+msgstr "Les tâches apparaîtront ici pendant l'exécution des opérations d'arrière plan."
 
 msgid "Template"
 msgstr "Modèle"
@@ -14101,7 +14076,7 @@ msgstr ""
 "vue. CUSTOM permet aux utilisateurs de définir manuellement l'étendue."
 
 msgid "The feature property to use for point labels"
-msgstr ""
+msgstr "La propriété à utiliser pour les labels des points"
 
 #, python-format
 msgid ""
@@ -15369,7 +15344,6 @@ msgstr ""
 msgid "This is the default dark theme"
 msgstr "Ceci est le thème sombre par défaut du système"
 
-
 msgid "This is the default folder"
 msgstr "Ceci est le thème par défaut du système"
 
@@ -15377,7 +15351,7 @@ msgid "This is the default light theme"
 msgstr "Ceci est le thème clair par défaut du système"
 
 msgid "This is the only time you will see this key. Store it securely."
-msgstr ""
+msgstr "La clé ne sera plus visible après. Sauvegarder la de manière sécurisée."
 
 msgid ""
 "This json object describes the positioning of the widgets in the dashboard. "
@@ -15974,7 +15948,7 @@ msgid "Type to search (ends with)..."
 msgstr "Type de recherche (termine par)..."
 
 msgid "Type to search (starts with)..."
-msgstr ""
+msgstr "Type de recherche (commence par)..."
 
 msgid "UI Configuration"
 msgstr "Configuration UI"
@@ -16050,12 +16024,11 @@ msgid "Unable to encode value"
 msgstr "Impossible de coder la valeur"
 
 msgid "Unable to fetch semantic views. Check the layer configuration."
-msgstr ""
+msgstr "Impossible de récupérer la vue sémantique. Vérifier la configuration des couches."
 
 #, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Impossible de trouver un tel congé : [%(holiday)s]"
-
 
 msgid "Unable to generate download payload"
 msgstr "Ajouté à 1 tableau de bord"
@@ -16224,7 +16197,7 @@ msgid "Unsupported clause type: %(clause)s"
 msgstr "Type de clause non pris en charge : %(clause)s"
 
 msgid "Unsupported file type. Please use CSV, Excel, or Columnar files."
-msgstr ""
+msgstr "Type de fichier non supporté. Merci d'utiliser des fichiers CSV, Excel ou des fichiers colonnes."
 
 #, python-format
 msgid "Unsupported post processing operation: %(operation)s"
@@ -16333,6 +16306,8 @@ msgid ""
 "Use Handlebars syntax to create custom tooltips. Available variables are "
 "based on your tooltip contents selection above."
 msgstr ""
+"Utiliser la synthaxe Handlebars pour créer des info-bulles personnalisées. Les variables "
+"disponibles sont basées sur le contenu de l'info-bulle sélectionné précédemment"
 
 msgid "Use a log scale"
 msgstr "Utiliser une échelle de journalisation"
@@ -17708,6 +17683,8 @@ msgid ""
 "You'll be removed from this task. It will continue running for %s other "
 "subscriber(s)."
 msgstr ""
+"Vous allez être retirés de cette tâche. Elle continuera de fonctionner pour %s autres"
+"souscripteur(s)."
 
 msgid ""
 "You've changed datasets. Any controls with data (columns, metrics) that "
@@ -18257,7 +18234,7 @@ msgid "failed"
 msgstr "échoué"
 
 msgid "farewell"
-msgstr ""
+msgstr "adieu"
 
 msgid "fetching"
 msgstr "récupération"
