@@ -17,19 +17,12 @@
  * under the License.
  */
 import { useDispatch } from 'react-redux';
-import {
-  useAppDispatch as _storeUseAppDispatch,
-  type AppDispatch,
-} from 'src/views/store';
+import type { AppDispatch } from 'src/views/store';
 
 // In Module Federation deployments where the host shell shares src/views/store
 // as a singleton, a version skew between the shell and the SQL Lab chunk can
 // leave useAppDispatch undefined at runtime even though TypeScript types it as
-// always-present. The cast + nullish-coalesce keeps SQL Lab functional when
-// the host shell was built before useAppDispatch was exported (commit 785a08c7d5).
-const maybeUseAppDispatch = _storeUseAppDispatch as
-  | (() => AppDispatch)
-  | undefined;
-
-export const useAppDispatch: () => AppDispatch =
-  maybeUseAppDispatch ?? useDispatch;
+// always-present. Keep this hook free of runtime imports from src/views/store:
+// store initialization imports SqlLab persistence helpers, so importing store
+// values here can create an app-startup circular dependency.
+export const useAppDispatch: () => AppDispatch = useDispatch;
