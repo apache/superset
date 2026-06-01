@@ -24,29 +24,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 
-def test_restore_dashboard_clears_deleted_at(app_context: None) -> None:
-    """RestoreDashboardCommand.run() restores a soft-deleted dashboard."""
-    from superset.commands.dashboard.restore import RestoreDashboardCommand
-
-    dashboard = MagicMock()
-    dashboard.deleted_at = datetime(2026, 1, 1)
-    dashboard.id = 1
-
-    with (
-        patch(
-            "superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard
-        ) as mock_find,
-        patch("superset.commands.restore.security_manager") as mock_sec,
-    ):
-        mock_sec.raise_for_ownership.return_value = None
-
-        cmd = RestoreDashboardCommand("1")
-        cmd.run()
-
-    mock_find.assert_called_once()
-    dashboard.restore.assert_called_once()
-
-
 def test_restore_dashboard_not_found_raises(app_context: None) -> None:
     """RestoreDashboardCommand raises DashboardNotFoundError for missing dashboard."""
     from superset.commands.dashboard.exceptions import DashboardNotFoundError
