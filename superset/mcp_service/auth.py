@@ -400,14 +400,15 @@ def _resolve_user_from_api_key(app: Any) -> User | None:
             "API key validation is not available in this FAB version."
         )
 
-    user = sm.validate_api_key(api_key_string)
+    try:
+        user = sm.validate_api_key(api_key_string)
+    finally:
+        _redact_access_token(access_token)
     if not user:
         raise PermissionError(
             "Invalid or expired API key. "
             "Create a new key at /api/v1/security/api_keys/."
         )
-
-    _redact_access_token(access_token)
 
     # Reload user with all relationships eagerly loaded to avoid
     # detached-instance errors during later permission checks.

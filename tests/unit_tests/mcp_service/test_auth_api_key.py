@@ -152,10 +152,15 @@ def test_invalid_api_key_raises(app: SupersetApp) -> None:
     # mask the rejection.
     app.config["MCP_DEV_USERNAME"] = "admin"
     try:
+        access_token = _passthrough_access_token("sst_bad_key")
+
         with _mock_sm_ctx(app, mock_sm):
-            with _patch_access_token(_passthrough_access_token("sst_bad_key")):
+            with _patch_access_token(access_token):
                 with pytest.raises(PermissionError, match="Invalid or expired API key"):
                     get_user_from_request()
+        assert access_token.token == "", (
+            "Raw API key should be redacted after failed validation"
+        )
     finally:
         app.config.pop("MCP_DEV_USERNAME", None)
 

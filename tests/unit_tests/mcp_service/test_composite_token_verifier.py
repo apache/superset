@@ -101,7 +101,7 @@ async def test_invalid_jwt_returns_none(
     result = await composite_verifier.verify_token("not_a_valid_token")
 
     assert result is None
-    mock_jwt_verifier.verify_token.assert_awaited_once()
+    mock_jwt_verifier.verify_token.assert_awaited_once_with("not_a_valid_token")
 
 
 @pytest.mark.asyncio

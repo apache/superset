@@ -666,8 +666,8 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
     """Create an auth provider from Flask app config.
 
     Tries MCP_AUTH_FACTORY first, then falls back to the default factory
-    when either ``MCP_AUTH_ENABLED`` (JWT auth) or ``FAB_API_KEY_ENABLED``
-    (API key auth) is True. The default factory builds a
+    when either ``MCP_AUTH_ENABLED`` (JWT auth), ``MCP_API_KEY_ENABLED``, or
+    ``FAB_API_KEY_ENABLED`` (API key auth) is True. The default factory builds a
     ``CompositeTokenVerifier`` that handles either or both auth modes.
     """
     auth_provider = None
@@ -681,8 +681,10 @@ def _create_auth_provider(flask_app: Any) -> Any | None:
         except Exception:
             # Do not log the exception — it may contain secrets
             logger.error("Failed to create auth provider from MCP_AUTH_FACTORY")
-    elif flask_app.config.get("MCP_AUTH_ENABLED", False) or flask_app.config.get(
-        "FAB_API_KEY_ENABLED", False
+    elif (
+        flask_app.config.get("MCP_AUTH_ENABLED", False)
+        or flask_app.config.get("MCP_API_KEY_ENABLED", False)
+        or flask_app.config.get("FAB_API_KEY_ENABLED", False)
     ):
         from superset.mcp_service.mcp_config import (
             create_default_mcp_auth_factory,
