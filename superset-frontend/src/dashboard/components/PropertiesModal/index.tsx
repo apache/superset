@@ -257,10 +257,9 @@ const PropertiesModal = ({
     owners: { value: number; label: string }[],
     options: Record<string, unknown>[],
   ) => {
-    setOwners(prev => {
-      const previousById = new Map(prev.map(o => [o.id, o]));
-      return ensureIsArray(owners).map((o, i) => {
-        const previous = previousById.get(o.value);
+    setOwners(prev =>
+      ensureIsArray(owners).map((o, i) => {
+        const previous = prev.find(p => p.id === o.value);
         if (previous) return previous;
         return {
           id: o.value,
@@ -269,8 +268,8 @@ const PropertiesModal = ({
             (typeof o.label === 'string' ? o.label : ''),
           email: (options?.[i]?.[OWNER_EMAIL_PROP] as string) || '',
         };
-      });
-    });
+      }),
+    );
   };
 
   const handleOnChangeRoles = (roles: { value: number; label: string }[]) => {
