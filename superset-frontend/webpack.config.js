@@ -155,7 +155,6 @@ const plugins = [
     patterns: [
       'package.json',
       { from: 'src/assets/images', to: 'images' },
-      { from: 'src/pwa-manifest.json', to: 'pwa-manifest.json' },
     ],
   }),
 
