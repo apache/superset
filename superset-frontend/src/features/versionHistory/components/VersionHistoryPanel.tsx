@@ -211,6 +211,14 @@ const VersionHistoryPanel = ({
         onClose={closePanel}
         width={DRAWER_WIDTH}
         zIndex={DRAWER_Z_INDEX}
+        // The default antd backdrop mask is a full-viewport overlay that
+        // sits above the chart canvas + the preview banner, so even
+        // though the banner's restore / exit / open-as-new buttons are
+        // visually outside the drawer panel, hit-testing at those
+        // coordinates lands on the mask and clicks are swallowed. A
+        // side-panel-style drawer doesn't need a click-to-dismiss mask
+        // — users dismiss via the back arrow / built-in close button.
+        mask={false}
         styles={{ body: { padding: 0 } }}
         destroyOnHidden
         data-test="version-history-panel"
