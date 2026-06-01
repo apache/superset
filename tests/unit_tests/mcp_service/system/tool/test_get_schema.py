@@ -19,6 +19,7 @@
 Tests for the get_schema unified schema discovery tool.
 """
 
+import importlib
 from unittest.mock import patch
 
 import pytest
@@ -29,6 +30,9 @@ from superset.mcp_service.common.schema_discovery import (
     CHART_DEFAULT_COLUMNS,
     CHART_SEARCH_COLUMNS,
     CHART_SORTABLE_COLUMNS,
+    CSS_TEMPLATE_DEFAULT_COLUMNS,
+    CSS_TEMPLATE_SEARCH_COLUMNS,
+    CSS_TEMPLATE_SORTABLE_COLUMNS,
     DASHBOARD_DEFAULT_COLUMNS,
     DASHBOARD_SEARCH_COLUMNS,
     DASHBOARD_SORTABLE_COLUMNS,
@@ -37,8 +41,15 @@ from superset.mcp_service.common.schema_discovery import (
     DATASET_SORTABLE_COLUMNS,
     GetSchemaRequest,
     ModelSchemaInfo,
+    THEME_DEFAULT_COLUMNS,
+    THEME_SEARCH_COLUMNS,
+    THEME_SORTABLE_COLUMNS,
 )
 from superset.utils import json
+
+get_schema_module = importlib.import_module(
+    "superset.mcp_service.system.tool.get_schema"
+)
 
 
 @pytest.fixture
@@ -57,6 +68,17 @@ def mock_auth():
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+@pytest.fixture(autouse=True)
+def allow_data_model_metadata():
+    """Keep the standalone get_schema suite in the unrestricted default path."""
+    with patch.object(
+        get_schema_module,
+        "user_can_view_data_model_metadata",
+        return_value=True,
+    ):
+        yield
 
 
 class TestGetSchemaRequest:
@@ -305,6 +327,145 @@ class TestGetSchemaToolViaClient:
             assert uuid_col is not None
             assert uuid_col["is_default"] is False
 
+    @patch("superset.daos.dashboard.DashboardDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_get_schema_omits_user_directory_columns(
+        self, mock_filters, mcp_server
+    ):
+        """Test that schema discovery does not advertise user/access fields.
+
+        created_by_fk and changed_by_fk are intentionally allowed in
+        filter_columns so callers can filter by user ID resolved via find_users,
+        but they remain hidden from select_columns and sortable_columns so the
+        directory itself is never exposed.
+        """
+        mock_filters.return_value = {
+            "dashboard_title": ["eq", "ilike"],
+            "owner": ["rel_m_m"],
+            "published": ["eq"],
+            "created_by_fk": ["eq", "in"],
+            "changed_by_fk": ["eq", "in"],
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "dashboard"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        info = data["schema_info"]
+        select_column_names = {column["name"] for column in info["select_columns"]}
+
+        for field in (
+            "owners",
+            "roles",
+            "created_by",
+            "created_by_fk",
+            "changed_by",
+            "changed_by_fk",
+            "owner",
+        ):
+            assert field not in select_column_names
+            assert field not in info["sortable_columns"]
+
+        # User-name and relationship fields stay out of filter_columns
+        for field in ("owners", "roles", "created_by", "changed_by", "owner"):
+            assert field not in info["filter_columns"]
+
+        # ID-only filter columns are advertised so callers can filter via find_users
+        assert "created_by_fk" in info["filter_columns"]
+        assert "changed_by_fk" in info["filter_columns"]
+
+    @patch("superset.daos.chart.ChartDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_get_schema_chart_omits_self_referencing_filter_columns(
+        self, mock_filters, mcp_server
+    ):
+        """Test that chart schema does not advertise self-referencing filter columns.
+
+        Even if the DAO returns owner or created_by_fk_or_owner, they must be
+        excluded — these synthetic columns are generated server-side from the
+        owned_by_me flag and are not directly usable by LLM callers.
+        """
+        mock_filters.return_value = {
+            "slice_name": ["eq", "ilike"],
+            "created_by_fk": ["eq"],
+            "owner": ["eq", "in"],
+            "created_by_fk_or_owner": ["eq"],
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "chart"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        info = data["schema_info"]
+
+        assert "slice_name" in info["filter_columns"]
+        for field in ("owner", "created_by_fk_or_owner"):
+            assert field not in info["filter_columns"]
+
+    @patch("superset.daos.dataset.DatasetDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_get_schema_dataset_omits_self_referencing_filter_columns(
+        self, mock_filters, mcp_server
+    ):
+        """Test that dataset schema does not advertise self-referencing filter columns.
+
+        Even if the DAO returns owner or created_by_fk_or_owner, they must be
+        excluded — these synthetic columns are generated server-side from the
+        owned_by_me flag and are not directly usable by LLM callers.
+        """
+        mock_filters.return_value = {
+            "table_name": ["eq", "ilike"],
+            "created_by_fk": ["eq"],
+            "owner": ["eq", "in"],
+            "created_by_fk_or_owner": ["eq"],
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "dataset"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        info = data["schema_info"]
+
+        assert "table_name" in info["filter_columns"]
+        for field in ("owner", "created_by_fk_or_owner"):
+            assert field not in info["filter_columns"]
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_get_schema_dashboard_omits_self_referencing_filter_columns(
+        self, mock_filters, mcp_server
+    ):
+        """Test dashboard schema omits self-referencing filter columns.
+
+        Even if the DAO returns owner or created_by_fk_or_owner, they must be
+        excluded — these synthetic columns are generated server-side from the
+        owned_by_me flag and are not directly usable by LLM callers.
+        """
+        mock_filters.return_value = {
+            "dashboard_title": ["eq", "ilike"],
+            "created_by_fk": ["eq"],
+            "owner": ["eq", "in"],
+            "created_by_fk_or_owner": ["eq"],
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "dashboard"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        info = data["schema_info"]
+
+        assert "dashboard_title" in info["filter_columns"]
+        for field in ("owner", "created_by_fk_or_owner"):
+            assert field not in info["filter_columns"]
+
 
 class TestGetSchemaEdgeCases:
     """Test edge cases for get_schema tool."""
@@ -390,3 +551,154 @@ class TestSchemaDiscoveryConstants:
         assert "slice_name" in CHART_SEARCH_COLUMNS
         assert "table_name" in DATASET_SEARCH_COLUMNS
         assert "dashboard_title" in DASHBOARD_SEARCH_COLUMNS
+
+    def test_css_template_default_columns(self):
+        """Test CSS template default columns include id and uuid but not css."""
+        assert "id" in CSS_TEMPLATE_DEFAULT_COLUMNS
+        assert "uuid" in CSS_TEMPLATE_DEFAULT_COLUMNS
+        assert "template_name" in CSS_TEMPLATE_DEFAULT_COLUMNS
+        assert "css" not in CSS_TEMPLATE_DEFAULT_COLUMNS
+
+    def test_css_template_sortable_columns(self):
+        """Test CSS template sortable columns are defined correctly."""
+        assert "id" in CSS_TEMPLATE_SORTABLE_COLUMNS
+        assert "template_name" in CSS_TEMPLATE_SORTABLE_COLUMNS
+        assert "changed_on" in CSS_TEMPLATE_SORTABLE_COLUMNS
+        assert "created_on" in CSS_TEMPLATE_SORTABLE_COLUMNS
+
+    def test_theme_default_columns(self):
+        """Test theme default columns include uuid."""
+        assert "id" in THEME_DEFAULT_COLUMNS
+        assert "uuid" in THEME_DEFAULT_COLUMNS
+        assert "theme_name" in THEME_DEFAULT_COLUMNS
+        assert "json_data" not in THEME_DEFAULT_COLUMNS
+
+    def test_theme_sortable_columns(self):
+        """Test theme sortable columns are defined correctly."""
+        assert "id" in THEME_SORTABLE_COLUMNS
+        assert "theme_name" in THEME_SORTABLE_COLUMNS
+        assert "changed_on" in THEME_SORTABLE_COLUMNS
+        assert "created_on" in THEME_SORTABLE_COLUMNS
+
+    def test_css_template_search_columns_defined(self):
+        """Test CSS template search columns are defined."""
+        assert "template_name" in CSS_TEMPLATE_SEARCH_COLUMNS
+
+    def test_theme_search_columns_defined(self):
+        """Test theme search columns are defined."""
+        assert "theme_name" in THEME_SEARCH_COLUMNS
+
+
+class TestGetSchemaCssTemplateAndTheme:
+    """Test get_schema tool for css_template and theme model types."""
+
+    @pytest.mark.asyncio
+    async def test_get_schema_css_template(self, mcp_server):
+        """Test get_schema for css_template model type."""
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "css_template"}}
+            )
+
+            assert result.content is not None
+            data = json.loads(result.content[0].text)
+
+            assert "schema_info" in data
+            info = data["schema_info"]
+            assert info["model_type"] == "css_template"
+            assert "select_columns" in info
+            assert "filter_columns" in info
+            assert "sortable_columns" in info
+            assert "default_select" in info
+            assert "search_columns" in info
+
+            # uuid and template_name are in defaults; css is not
+            assert "id" in info["default_select"]
+            assert "uuid" in info["default_select"]
+            assert "template_name" in info["default_select"]
+            assert "css" not in info["default_select"]
+
+            # template_name is searchable
+            assert "template_name" in info["search_columns"]
+
+            # sortable columns
+            assert "template_name" in info["sortable_columns"]
+            assert "changed_on" in info["sortable_columns"]
+
+            # filter_columns matches list_css_templates accepted filters
+            assert "template_name" in info["filter_columns"]
+            assert "created_by_fk" in info["filter_columns"]
+            assert len(info["filter_columns"]) == 2, (
+                "filter_columns must match list_css_templates accepted filters"
+            )
+
+    @pytest.mark.asyncio
+    async def test_get_schema_theme(self, mcp_server):
+        """Test get_schema for theme model type."""
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "theme"}}
+            )
+
+            assert result.content is not None
+            data = json.loads(result.content[0].text)
+
+            assert "schema_info" in data
+            info = data["schema_info"]
+            assert info["model_type"] == "theme"
+            assert "select_columns" in info
+            assert "filter_columns" in info
+
+            # uuid and theme_name are in defaults; json_data is not
+            assert "id" in info["default_select"]
+            assert "uuid" in info["default_select"]
+            assert "theme_name" in info["default_select"]
+            assert "json_data" not in info["default_select"]
+
+            # theme_name is searchable
+            assert "theme_name" in info["search_columns"]
+
+            # sortable columns
+            assert "theme_name" in info["sortable_columns"]
+            assert "changed_on" in info["sortable_columns"]
+
+            # filter_columns matches list_themes accepted filters
+            assert "theme_name" in info["filter_columns"]
+            assert "is_system" in info["filter_columns"]
+            assert "is_system_default" in info["filter_columns"]
+            assert "is_system_dark" in info["filter_columns"]
+            assert "created_by_fk" in info["filter_columns"]
+            assert len(info["filter_columns"]) == 5, (
+                "get_schema filter_columns must match list_themes accepted filters"
+            )
+
+    def test_css_template_model_type_accepted(self):
+        """css_template is a valid GetSchemaRequest model_type."""
+        request = GetSchemaRequest(model_type="css_template")
+        assert request.model_type == "css_template"
+
+    def test_theme_model_type_accepted(self):
+        """theme is a valid GetSchemaRequest model_type."""
+        request = GetSchemaRequest(model_type="theme")
+        assert request.model_type == "theme"
+
+
+class TestGetSchemaPermissionMap:
+    """Verify that _MODEL_TYPE_CLASS_PERMISSION covers css_template and theme."""
+
+    def test_css_template_permission_entry(self):
+        """css_template must map to CssTemplate FAB class."""
+        assert (
+            get_schema_module._MODEL_TYPE_CLASS_PERMISSION["css_template"]
+            == "CssTemplate"
+        )
+
+    def test_theme_permission_entry(self):
+        """theme must map to Theme FAB class."""
+        assert get_schema_module._MODEL_TYPE_CLASS_PERMISSION["theme"] == "Theme"
+
+    def test_all_schema_factory_types_covered(self):
+        """Every key in _SCHEMA_CORE_FACTORIES must have a permission entry."""
+        factories = set(get_schema_module._SCHEMA_CORE_FACTORIES.keys())
+        perms = set(get_schema_module._MODEL_TYPE_CLASS_PERMISSION.keys())
+        assert factories == perms

@@ -582,16 +582,25 @@ describe('async actions', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('runQuery with query params', () => {
-    const { location } = window;
+    let locationSpy: jest.SpyInstance;
 
     beforeAll(() => {
-      delete (window as any).location;
-      (window as any).location = new URL('http://localhost/sqllab/?foo=bar');
+      const u = new URL('http://localhost/sqllab/?foo=bar');
+      locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+        href: u.href,
+        pathname: u.pathname,
+        search: u.search,
+        hash: u.hash,
+        origin: u.origin,
+        host: u.host,
+        hostname: u.hostname,
+        port: u.port,
+        protocol: u.protocol,
+      } as Location);
     });
 
     afterAll(() => {
-      delete (window as any).location;
-      window.location = location;
+      locationSpy.mockRestore();
     });
 
     const makeRequest = () => {

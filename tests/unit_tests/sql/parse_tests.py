@@ -1164,6 +1164,77 @@ def test_has_mutation(engine: str, sql: str, expected: bool) -> None:
     assert SQLScript(sql, engine).has_mutation() == expected
 
 
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT last(my_value_column, my_time_column) FROM my_table",
+        "SELECT first(my_value_column, my_time_column) FROM my_table",
+        "SELECT time_bucket('1 hour', my_time_column) AS bucket FROM my_table",
+    ],
+)
+def test_postgres_parses_timescaledb_hyperfunctions(sql: str) -> None:
+    """
+    Regression for #32028: TimescaleDB extends Postgres with hyperfunctions
+    (``last``, ``first``, ``time_bucket``, etc.) that take more arguments
+    than vanilla Postgres equivalents. SQL Lab tolerates them (it routes
+    raw SQL straight to the engine), but the dashboard chart path runs the
+    SQL through ``SQLScript`` for inspection. A strict per-function arity
+    check in sqlglot was rejecting these queries with ``The number of
+    provided arguments (2) is greater than the maximum number of supported
+    arguments (1)``, which broke dashboards built on TimescaleDB datasets.
+
+    These tests pin that the parse path tolerates Postgres-dialect SQL
+    using TimescaleDB hyperfunction signatures. If a future sqlglot
+    upgrade reintroduces the strict arity check, this fails immediately.
+    """
+    SQLScript(sql, "postgresql")  # Must not raise.
+
+
+@pytest.mark.parametrize(
+    "engine",
+    ["oracle", "postgresql", "trino", "presto", "hive", "base"],
+)
+def test_with_clause_containing_union_is_not_mutating(engine: str) -> None:
+    """
+    Regression for #25659: a SELECT with a WITH clause whose CTEs contain
+    UNION (or UNION ALL) must not be classified as mutating, on any dialect.
+
+    The original bug surfaced on Oracle, where saving a virtual dataset built
+    from such a query failed with "Only `SELECT` statements are allowed". The
+    parser was misclassifying the WITH+UNION construct as DML.
+
+    Multiple dialects are exercised because the bug arose from sqlglot's
+    per-dialect AST shape — Oracle's representation of the same query may
+    differ from Postgres/Trino, and a fix that only touches one dialect
+    leaves the others exposed to the same regression.
+    """
+    sql = """
+    WITH set1 AS (SELECT 1 AS n UNION SELECT 2),
+         set2 AS (SELECT * FROM set1)
+    SELECT * FROM set2
+    """
+    assert not SQLScript(sql, engine).has_mutation(), (
+        f"WITH+UNION misclassified as mutating on {engine!r}; "
+        "this would block the query from being saved as a virtual dataset."
+    )
+
+
+def test_with_clause_containing_union_all_is_not_mutating_oracle() -> None:
+    """
+    Companion to test_with_clause_containing_union_is_not_mutating: the
+    original bug report (#25659) used the exact Oracle-flavored shape below
+    (``SYSDATE FROM DUAL`` is the Oracle no-op for "now"). Pinning the
+    verbatim repro guards against a future dialect-specific regression that
+    a generic ``SELECT 1`` test might miss.
+    """
+    sql = """
+    WITH SET1 AS (SELECT SYSDATE FROM DUAL UNION ALL SELECT SYSDATE FROM DUAL),
+         SET2 AS (SELECT * FROM SET1)
+    SELECT * FROM SET2
+    """
+    assert not SQLScript(sql, "oracle").has_mutation()
+
+
 def test_get_settings() -> None:
     """
     Test `get_settings` in some edge cases.
@@ -1299,6 +1370,66 @@ def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
     Since we can't parse the PL/pgSQL inside the block we always assume it is mutating.
     """
     assert SQLStatement(sql, "postgresql").is_mutating() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1", False),
+        ("INSERT INTO t VALUES (1)", False),
+        ("UPDATE t SET x = 1", False),
+        ("DELETE FROM t", False),
+        ("MERGE INTO t USING s ON t.id = s.id WHEN MATCHED THEN DELETE", False),
+        ("CREATE TABLE t (id INT)", False),
+        ("DROP TABLE t", True),
+        ("DROP TABLE IF EXISTS t", True),
+        ("DROP VIEW v", True),
+        ("TRUNCATE TABLE t", True),
+        ("ALTER TABLE t ADD COLUMN x INT", True),
+        ("ALTER TABLE t DROP COLUMN x", True),
+    ],
+)
+def test_is_destructive(sql: str, expected: bool) -> None:
+    """
+    Test that ``is_destructive`` detects DROP, TRUNCATE, and ALTER
+    but not SELECT, INSERT, UPDATE, DELETE, MERGE, or CREATE.
+    """
+    assert SQLStatement(sql, "postgresql").is_destructive() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1; INSERT INTO t VALUES (1)", False),
+        ("SELECT 1; DROP TABLE t", True),
+        ("SELECT 1; TRUNCATE TABLE t", True),
+        ("CREATE TABLE t (id INT); ALTER TABLE t ADD COLUMN x INT", True),
+    ],
+)
+def test_has_destructive(sql: str, expected: bool) -> None:
+    """
+    Test that ``has_destructive`` on SQLScript detects destructive DDL
+    across multiple statements.
+    """
+    assert SQLScript(sql, "postgresql").has_destructive() == expected
+
+
+@pytest.mark.parametrize(
+    "kql, expected",
+    [
+        (".drop table T", True),
+        (".alter table T (col:string)", True),
+        (".show tables", False),
+        ("T | count", False),
+    ],
+)
+def test_kusto_is_destructive(kql: str, expected: bool) -> None:
+    """
+    Test ``is_destructive`` on KustoKQLStatement.
+    """
+    from superset.sql.parse import KustoKQLStatement
+
+    assert KustoKQLStatement(kql, "kustokql").is_destructive() == expected
 
 
 def test_optimize() -> None:
@@ -2693,9 +2824,19 @@ def test_is_valid_cvas(sql: str, engine: str, expected: bool) -> None:
         ),  # Compact format
         (
             "col = 'abc' -- comment",
-            "col = 'abc'",
+            "col = 'abc' /* comment */",
             "base",
-        ),  # Comments removed for compact format
+        ),  # Line comments converted to block comments
+        (
+            "TRUE /* precise_count_distinct=true */",
+            "TRUE /* precise_count_distinct=true */",
+            "base",
+        ),  # Block comments preserved
+        (
+            "col > 1 /* hint=value */",
+            "col > 1 /* hint=value */",
+            "base",
+        ),  # Block comments preserved
         ("col = 'col1 = 1) AND (col2 = 2'", "col = 'col1 = 1) AND (col2 = 2'", "base"),
         ("col = 'select 1; select 2'", "col = 'select 1; select 2'", "base"),
         ("col = 'abc -- comment'", "col = 'abc -- comment'", "base"),
@@ -3041,6 +3182,42 @@ def test_has_subquery(sql: str, engine: str, expected: bool) -> None:
     Test the `has_subquery` method.
     """
     assert SQLStatement(sql, engine).has_subquery() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine",
+    [
+        # Double-quoted identifiers (#32684 — postgres dataset)
+        ('"Adresse E-mail"', "postgresql"),
+        ('"Nom de structure"', "postgresql"),
+        # Backtick-quoted identifiers (#32541 — mysql view)
+        ("`Answer Created Time`", "mysql"),
+        ("`Correction Time`", "mysql"),
+        # Diacritics, slash, and dot — listed as "working" in #32684 but
+        # easily broken by overzealous parser changes; pin them too.
+        ('"Appartement / étage"', "postgresql"),
+        ('"Bâtiment / Résidence"', "postgresql"),
+        ('"C.Postal"', "postgresql"),
+    ],
+)
+def test_quoted_column_name_with_spaces_is_not_subquery(sql: str, engine: str) -> None:
+    r"""
+    Regression for #32541 and #32684: a quoted identifier that happens to
+    contain spaces (or a slash, accents, dots) must not be misclassified
+    as a subquery.
+
+    The original symptom was an opaque ``Custom SQL fields cannot contain
+    sub-queries.`` error when the user added a column like ``"Adresse
+    E-mail"`` (Postgres) or a backtick-quoted equivalent (MySQL) to a
+    chart. Snake-case aliases worked; multi-word display names did not.
+    The check that raises that error is
+    ``parsed_statement.has_subquery()`` in
+    ``superset/models/helpers.py:206``.
+    """
+    assert not SQLStatement(sql, engine).has_subquery(), (
+        f"Quoted identifier {sql!r} on {engine!r} was misclassified as a "
+        "subquery — would block the column from being used in any chart."
+    )
 
 
 @pytest.mark.parametrize(

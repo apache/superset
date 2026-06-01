@@ -319,6 +319,11 @@ export function AsyncAceEditor(
                   opacity: 0.5;
                 }
 
+                /* Style bracket matching to blend with theme */
+                .ace_editor .ace_bracket {
+                  border-color: ${token.colorPrimaryBorderHover} !important;
+                }
+
                 /* Adjust cursor color */
                 .ace_editor .ace_cursor {
                   color: ${token.colorPrimaryText} !important;

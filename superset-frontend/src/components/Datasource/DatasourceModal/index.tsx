@@ -53,7 +53,7 @@ const StyledDatasourceModal = styled(Modal)`
   padding-bottom: 0;
 
   && .ant-modal-content {
-    max-height: none;
+    max-height: ${MODAL_HEIGHT_VH}vh;
     margin-top: 0;
     margin-bottom: 0;
     min-height: 500px;
@@ -71,7 +71,7 @@ const StyledDatasourceModal = styled(Modal)`
   }
 `;
 
-function buildExtraJsonObject(
+export function buildExtraJsonObject(
   item: DatasetObject['metrics'][0] | DatasetObject['columns'][0],
 ) {
   const certification =
@@ -83,7 +83,7 @@ function buildExtraJsonObject(
       : undefined;
   return JSON.stringify({
     certification,
-    warning_markdown: item?.warning_markdown,
+    warning_markdown: item?.warning_markdown || undefined,
   });
 }
 
@@ -377,6 +377,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
       resizable
       resizableConfig={{
         defaultSize: { width: 'auto', height: `${MODAL_HEIGHT_VH}vh` },
+        maxHeight: `${MODAL_HEIGHT_VH}vh`,
       }}
       draggable
     >

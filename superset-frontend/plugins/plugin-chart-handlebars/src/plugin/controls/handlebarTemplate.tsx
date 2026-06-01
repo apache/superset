@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -24,7 +24,7 @@ import {
 import { t } from '@apache-superset/core/translation';
 import { validateNonEmpty } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
-import { InfoTooltip, SafeMarkdown } from '@superset-ui/core/components';
+import { InfoTooltip } from '@superset-ui/core/components';
 import { CodeEditor } from '../../components/CodeEditor/CodeEditor';
 import { ControlHeader } from '../../components/ControlHeader/controlHeader';
 import { debounceFunc } from '../../consts';
@@ -37,44 +37,30 @@ const HandlebarsTemplateControl = (
   props: CustomControlConfig<HandlebarsCustomControlProps>,
 ) => {
   const theme = useTheme();
-
   const val = String(
     props?.value ? props?.value : props?.default ? props?.default : '',
   );
-
-  const helperDescriptionsHeader = t(
-    'Available Handlebars Helpers in Superset:',
-  );
-
-  const helperDescriptions = [
-    { key: 'dateFormat', descKey: 'Formats a date using a specified format.' },
-    { key: 'stringify', descKey: 'Converts an object to a JSON string.' },
-    {
-      key: 'formatNumber',
-      descKey: 'Formats a number using locale-specific formatting.',
-    },
-    {
-      key: 'parseJson',
-      descKey: 'Parses a JSON string into a JavaScript object.',
-    },
-  ];
-
-  const helpersTooltipContent = `
-${helperDescriptionsHeader}
-
-${helperDescriptions
-  .map(({ key, descKey }) => `- **${key}**: ${t(descKey)}`)
-  .join('\n')}
-`;
 
   return (
     <div>
       <ControlHeader>
         <div>
-          {props.label}
+          {typeof props.label === 'function' ? null : props.label}
           <InfoTooltip
             iconStyle={{ marginLeft: theme.sizeUnit }}
-            tooltip={<SafeMarkdown source={helpersTooltipContent} />}
+            tooltip={
+              <span>
+                {t('See ')}{' '}
+                <a
+                  href="https://superset.apache.org/docs/using-superset/handlebars-chart"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {t('the Handlebars chart documentation')}
+                </a>{' '}
+                {t('for a list of available helpers.')}
+              </span>
+            }
           />
         </div>
       </ControlHeader>
@@ -104,10 +90,9 @@ export const handlebarsTemplateControlSetItem: ControlSetItem = {
     isInt: false,
     renderTrigger: true,
     valueKey: null,
-
     validators: [validateNonEmpty],
-    mapStateToProps: ({ controls }) => ({
-      value: controls?.handlebars_template?.value,
+    mapStateToProps: ({ form_data }) => ({
+      value: form_data?.handlebarsTemplate ?? form_data?.handlebars_template,
     }),
   },
 };
