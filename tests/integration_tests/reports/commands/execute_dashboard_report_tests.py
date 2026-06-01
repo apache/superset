@@ -97,7 +97,7 @@ def test_report_with_header_data(
         dashboard=tabbed_dashboard,
         extra={
             "anchor": "TAB-L1B",
-            "active_tabs": ["TAB-L1B", "TAB-L2BB"],
+            "activeTabs": ["TAB-L1B", "TAB-L2BB"],
             "urlParams": [["native_filters", "()"]],
         },
         name="test report tabbed dashboard",
