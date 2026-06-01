@@ -26,6 +26,9 @@ import {
   computeYDomain,
   getTimeOrNumberFormatter,
   formatLabel,
+  generateBubbleTooltipContent,
+  generateMultiLineTooltipContent,
+  tipFactory,
 } from '../src/utils';
 
 const DATA = [
@@ -179,6 +182,63 @@ describe('nvd3/utils', () => {
       expect(computeYDomain(DATA_WITH_DISABLED_SERIES)).toEqual([
         660881033.0, 668526708.0,
       ]);
+    });
+  });
+
+  describe('tooltip HTML sanitization', () => {
+    const identity = (v: unknown) => v;
+
+    test('generateBubbleTooltipContent strips scripts from entity/group', () => {
+      const html = generateBubbleTooltipContent({
+        point: {
+          name: '<img src=x onerror="alert(1)">',
+          group: '<script>alert(2)</script>',
+          color: 'red',
+          x: 1,
+          y: 2,
+          size: 3,
+        },
+        entity: 'name',
+        xField: 'x',
+        yField: 'y',
+        sizeField: 'size',
+        xFormatter: identity,
+        yFormatter: identity,
+        sizeFormatter: identity,
+      });
+
+      expect(html).not.toContain('onerror');
+      expect(html).not.toContain('<script>');
+    });
+
+    test('generateMultiLineTooltipContent strips scripts from series keys', () => {
+      const html = generateMultiLineTooltipContent(
+        {
+          value: 'x',
+          series: [
+            { key: '<img src=x onerror="alert(1)">', color: 'red', value: 1 },
+          ],
+        },
+        identity,
+        [identity],
+      );
+
+      expect(html).not.toContain('onerror');
+    });
+
+    test('tipFactory strips scripts from annotation data values', () => {
+      const tip = tipFactory({
+        titleColumn: 'title',
+        name: 'layer',
+        descriptionColumns: ['desc'],
+      });
+      const html = tip.html()({
+        title: '<img src=x onerror="alert(1)">',
+        desc: '<script>alert(2)</script>',
+      });
+
+      expect(html).not.toContain('onerror');
+      expect(html).not.toContain('<script>');
     });
   });
 });

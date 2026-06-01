@@ -162,7 +162,7 @@ export function generateMultiLineTooltipContent(d, xFormatter, yFormatters) {
 
   tooltip += '</tbody></table>';
 
-  return tooltip;
+  return dompurify.sanitize(tooltip);
 }
 
 export function generateTimePivotTooltip(d, xFormatter, yFormatter) {
@@ -223,7 +223,7 @@ export function generateBubbleTooltipContent({
   s += createHTMLRow(getLabel(sizeField), sizeFormatter(point.size));
   s += '</table>';
 
-  return s;
+  return dompurify.sanitize(s);
 }
 
 // shouldRemove indicates whether the nvtooltips should be removed from the DOM
@@ -287,9 +287,11 @@ export function tipFactory(layer) {
         ? layer.descriptionColumns.map(c => d[c])
         : Object.values(d);
 
-      return `<div><strong>${title}</strong></div><br/><div>${body.join(
-        ', ',
-      )}</div>`;
+      return dompurify.sanitize(
+        `<div><strong>${title}</strong></div><br/><div>${body.join(
+          ', ',
+        )}</div>`,
+      );
     });
 }
 
