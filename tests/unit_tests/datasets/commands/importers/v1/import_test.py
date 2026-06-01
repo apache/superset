@@ -1312,6 +1312,61 @@ def test_import_soft_deleted_dataset_restore_removes_orphan_children(
     )
 
 
+def test_import_dataset_multiple_results_fallback_finds_soft_deleted(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    The MultipleResultsFound exception handler inside import_dataset does
+    a second lookup by uuid via ``.one()``. That fallback bypasses the
+    soft-delete visibility filter so a soft-deleted duplicate is still
+    returnable — without the bypass the listener would hide it and the
+    fallback's ``.one()`` would raise ``NoResultFound``, masking the
+    original ``MultipleResultsFound`` with a misleading error.
+
+    Reproduce: monkey-patch ``SqlaTable.import_from_dict`` to raise
+    ``MultipleResultsFound`` and seed two rows with the same uuid (one
+    live, one soft-deleted). The fallback's ``.one()`` would normally
+    return ambiguous, so we narrow with the bypass-aware filter.
+    """
+    from sqlalchemy.exc import MultipleResultsFound
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(
+        SqlaTable,
+        "import_from_dict",
+        side_effect=MultipleResultsFound("simulated duplicate"),
+    )
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    # Seed a soft-deleted row with the target uuid directly. Without the
+    # bypass on the fallback query, the listener would hide this row and
+    # .one() would raise NoResultFound.
+    soft_deleted = SqlaTable(
+        table_name="ambiguous_dataset",
+        database_id=database.id,
+        uuid=config["uuid"],
+        deleted_at=datetime(2026, 1, 1, 12, 0, 0),
+    )
+    db.session.add(soft_deleted)
+    db.session.flush()
+
+    # Should return the soft-deleted row (the only one matching the
+    # uuid), not raise NoResultFound.
+    result = import_dataset(config)
+    assert result.uuid == config["uuid"]
+    assert result.deleted_at is not None
+
+
 def test_import_soft_deleted_dataset_ignore_permissions_restores_in_place(
     mocker: MockerFixture,
     session: Session,

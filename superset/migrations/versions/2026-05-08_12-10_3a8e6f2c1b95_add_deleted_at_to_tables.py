@@ -14,11 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""add deleted_at to tables for soft delete
+"""Add deleted_at column and index to tables for soft-delete (sc-106191).
 
-Adds a nullable ``deleted_at`` column and index to the ``tables`` table
-to support soft deletion of datasets (sc-103157 / sc-106191). Companion
-to the ``SoftDeleteMixin`` infrastructure shipped in sc-106188.
+Adds a nullable ``deleted_at`` column and an index on it to the
+``tables`` table to support soft deletion of datasets (sc-103157 /
+sc-106191). Companion to the ``SoftDeleteMixin`` infrastructure
+shipped in sc-106188.
 
 Revision ID: 3a8e6f2c1b95
 Revises: 33d7e0e21daa
