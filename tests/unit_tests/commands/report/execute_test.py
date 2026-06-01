@@ -408,6 +408,48 @@ def test_get_dashboard_urls_empty_dashboard_state_skips_permalink(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_url_params_only_creates_permalink(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+) -> None:
+    """When the dashboard state carries no anchor and no native filters but
+    does carry meaningful urlParams (e.g. standalone=true), get_dashboard_urls()
+    must still build a permalink so that state survives in the screenshot,
+    rather than falling through to the plain dashboard URL."""
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    mock_report_schedule: ReportSchedule = mocker.Mock(spec=ReportSchedule)
+    mock_report_schedule.chart = False
+    mock_report_schedule.force_screenshot = False
+    mock_report_schedule.extra = {
+        "dashboard": {
+            "anchor": "",
+            "dataMask": None,
+            "activeTabs": None,
+            "urlParams": [["standalone", "true"]],
+        }
+    }
+    mock_report_schedule.get_native_filters_params.return_value = ("()", [])  # type: ignore
+
+    mock_dashboard = mocker.MagicMock()
+    mock_dashboard.uuid = UUID("12345678-1234-1234-1234-123456789abc")
+    mock_report_schedule.dashboard = mock_dashboard
+
+    class_instance: BaseReportState = BaseReportState(
+        mock_report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    class_instance._report_schedule = mock_report_schedule
+
+    result: list[str] = class_instance.get_dashboard_urls()
+
+    mock_permalink_cls.assert_called_once()
+    state = mock_permalink_cls.call_args.kwargs["state"]
+    assert ["standalone", "true"] in state["urlParams"]
+    assert len(result) == 1
+    assert "/dashboard/p/" in result[0]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
 def test_get_dashboard_urls_with_filters_and_tabs(
     mock_permalink_cls,
     mocker: MockerFixture,
