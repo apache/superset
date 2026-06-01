@@ -226,7 +226,7 @@ def copy_frontend_dist(cwd: Path) -> str:
 def copy_backend_files(cwd: Path) -> None:
     """Copy backend files based on pyproject.toml build configuration (validation already passed)."""
     dist_dir = cwd / "dist"
-    backend_dir = cwd / "backend"
+    backend_dir = (cwd / "backend").resolve()
 
     # Read build config from pyproject.toml
     pyproject = read_toml(backend_dir / "pyproject.toml")
@@ -239,12 +239,30 @@ def copy_backend_files(cwd: Path) -> None:
 
     # Process include patterns
     for pattern in include_patterns:
+        # Include patterns are only meant to select files within the backend
+        # directory. Reject absolute patterns or ones that walk outside it via
+        # parent ("..") components before handing them to glob().
+        pattern_parts = Path(pattern).parts
+        if Path(pattern).is_absolute() or ".." in pattern_parts:
+            raise ValueError(
+                f"Invalid include pattern {pattern!r}: patterns must be "
+                "relative to the backend directory and may not contain '..'."
+            )
         for f in backend_dir.glob(pattern):
             if not f.is_file():
                 continue
 
+            # Defense in depth: confirm the matched file resolves to a location
+            # inside the backend directory before copying it into the bundle.
+            resolved = f.resolve()
+            if not resolved.is_relative_to(backend_dir):
+                raise ValueError(
+                    f"Refusing to copy {f}: resolved path is outside the "
+                    f"backend directory {backend_dir}."
+                )
+
             # Check exclude patterns
-            relative_path = f.relative_to(backend_dir)
+            relative_path = resolved.relative_to(backend_dir)
             should_exclude = any(
                 relative_path.match(excl_pattern) for excl_pattern in exclude_patterns
             )
