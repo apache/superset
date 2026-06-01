@@ -24,7 +24,6 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Annotated, Any, Dict, List, Literal
 
-import humanize
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -45,6 +44,7 @@ from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import filter_user_directory_fields
 from superset.mcp_service.system.schemas import PaginationInfo
 from superset.mcp_service.utils import sanitize_for_llm_context
+from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.mcp_service.utils.schema_utils import (
     parse_json_or_list,
     parse_json_or_model_list,
@@ -65,6 +65,8 @@ class ReportFilter(ColumnOperator):
         "active",
         "dashboard_id",
         "chart_id",
+        "last_state",
+        "creation_method",
     ] = Field(
         ...,
         description="Column to filter on. Use get_schema(model_type='report') for "
@@ -91,7 +93,19 @@ class ReportInfo(BaseModel):
         None, description="Associated dashboard ID, if any"
     )
     chart_id: int | None = Field(None, description="Associated chart ID, if any")
-    owners: List[Any] | None = Field(
+    last_eval_dttm: str | datetime | None = Field(
+        None, description="Last report/alert evaluation timestamp"
+    )
+    last_eval_dttm_humanized: str | None = Field(
+        None, description="Humanized last evaluation time"
+    )
+    last_state: str | None = Field(
+        None, description="Last report/alert execution state"
+    )
+    creation_method: str | None = Field(
+        None, description="How the report/alert was created"
+    )
+    owners: List[Dict[str, Any]] | None = Field(
         None, description="List of owners (always empty; excluded by privacy policy)"
     )
     changed_on: str | datetime | None = Field(
@@ -266,16 +280,6 @@ class GetReportInfoRequest(MetadataCacheControl):
     ]
 
 
-def _humanize_timestamp(dt: datetime | None) -> str | None:
-    """Convert a datetime to a humanized string like '2 hours ago'."""
-    if dt is None:
-        return None
-    if dt.tzinfo is None:
-        dt = dt.replace(tzinfo=timezone.utc)
-    now = datetime.now(timezone.utc)
-    return humanize.naturaltime(now - dt)
-
-
 def serialize_report_object(report: Any) -> ReportInfo | None:
     if not report:
         return None
@@ -295,9 +299,15 @@ def serialize_report_object(report: Any) -> ReportInfo | None:
         crontab=getattr(report, "crontab", None),
         dashboard_id=getattr(report, "dashboard_id", None),
         chart_id=getattr(report, "chart_id", None),
+        last_eval_dttm=getattr(report, "last_eval_dttm", None),
+        last_eval_dttm_humanized=humanize_timestamp(
+            getattr(report, "last_eval_dttm", None)
+        ),
+        last_state=getattr(report, "last_state", None),
+        creation_method=getattr(report, "creation_method", None),
         owners=None,
         changed_on=getattr(report, "changed_on", None),
-        changed_on_humanized=_humanize_timestamp(getattr(report, "changed_on", None)),
+        changed_on_humanized=humanize_timestamp(getattr(report, "changed_on", None)),
         created_on=getattr(report, "created_on", None),
-        created_on_humanized=_humanize_timestamp(getattr(report, "created_on", None)),
+        created_on_humanized=humanize_timestamp(getattr(report, "created_on", None)),
     )

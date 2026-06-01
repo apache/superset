@@ -484,6 +484,8 @@ class TestGetSchemaToolViaClient:
             "name": ["eq", "ilike"],
             "type": ["eq"],
             "active": ["eq"],
+            "last_state": ["eq"],
+            "creation_method": ["eq"],
             "owners.id": ["eq", "in"],
             "created_by_fk_or_owner": ["eq"],
         }
@@ -500,6 +502,8 @@ class TestGetSchemaToolViaClient:
         assert "name" in info["filter_columns"]
         assert "type" in info["filter_columns"]
         assert "active" in info["filter_columns"]
+        assert "last_state" in info["filter_columns"]
+        assert "creation_method" in info["filter_columns"]
         for field in ("owners.id", "created_by_fk_or_owner"):
             assert field not in info["filter_columns"]
 

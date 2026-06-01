@@ -16,6 +16,7 @@
 # under the License.
 
 import logging
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -39,6 +40,9 @@ def create_mock_report(
     description: str = "A daily report",
     dashboard_id: int | None = None,
     chart_id: int | None = None,
+    last_eval_dttm: datetime | None = None,
+    last_state: str | None = "Success",
+    creation_method: str | None = "alerts_reports",
 ) -> MagicMock:
     """Factory function to create mock report objects with sensible defaults."""
     report = MagicMock()
@@ -50,6 +54,9 @@ def create_mock_report(
     report.description = description
     report.dashboard_id = dashboard_id
     report.chart_id = chart_id
+    report.last_eval_dttm = last_eval_dttm
+    report.last_state = last_state
+    report.creation_method = creation_method
     report.owners = []
     report.changed_on = None
     report.created_on = None
@@ -96,6 +103,14 @@ class TestReportFilterSchema:
     def test_valid_filter_chart_id(self):
         f = ReportFilter(col="chart_id", opr="eq", value=42)
         assert f.col == "chart_id"
+
+    def test_valid_filter_last_state(self):
+        f = ReportFilter(col="last_state", opr="eq", value="Error")
+        assert f.col == "last_state"
+
+    def test_valid_filter_creation_method(self):
+        f = ReportFilter(col="creation_method", opr="eq", value="alerts_reports")
+        assert f.col == "creation_method"
 
     def test_invalid_filter_column_rejected(self):
         """Columns not in the Literal set must be rejected."""
@@ -341,6 +356,30 @@ async def test_get_report_info_with_chart(mock_find, mcp_server):
         assert data["dashboard_id"] is None
 
 
+@patch("superset.daos.report.ReportScheduleDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_get_report_info_includes_operational_fields(mock_find, mcp_server):
+    """get_report_info returns run-state fields useful for report monitoring."""
+    last_eval = datetime(2024, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    report = create_mock_report(
+        last_eval_dttm=last_eval,
+        last_state="Error",
+        creation_method="dashboards",
+    )
+    mock_find.return_value = report
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_report_info", {"request": {"identifier": 1}}
+        )
+        data = json.loads(result.content[0].text)
+
+    assert data["last_eval_dttm"].startswith("2024-01-01T12:00:00")
+    assert data["last_eval_dttm_humanized"] is not None
+    assert data["last_state"] == "Error"
+    assert data["creation_method"] == "dashboards"
+
+
 def test_list_reports_request_schema_accepts_any_order_column():
     """The request schema passes order_column through; ModelListCore enforces
     the REPORT_SORTABLE_COLUMNS allowlist at query time, not at schema validation."""
@@ -440,22 +479,22 @@ def test_report_error_create_classmethod():
 
 
 def test_humanize_timestamp_naive_datetime():
-    """_humanize_timestamp handles naive datetimes by assuming UTC."""
+    """The shared timestamp humanizer handles naive datetimes."""
     from datetime import datetime
 
-    from superset.mcp_service.report.schemas import _humanize_timestamp
+    from superset.mcp_service.utils.response_utils import humanize_timestamp
 
     naive_dt = datetime(2024, 1, 1, 12, 0, 0)
-    result = _humanize_timestamp(naive_dt)
+    result = humanize_timestamp(naive_dt)
     assert result is not None
     assert isinstance(result, str)
 
 
 def test_humanize_timestamp_none():
-    """_humanize_timestamp returns None for None input."""
-    from superset.mcp_service.report.schemas import _humanize_timestamp
+    """The shared timestamp humanizer returns None for None input."""
+    from superset.mcp_service.utils.response_utils import humanize_timestamp
 
-    assert _humanize_timestamp(None) is None
+    assert humanize_timestamp(None) is None
 
 
 def test_serialize_report_object_none():

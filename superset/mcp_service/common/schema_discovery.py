@@ -677,6 +677,7 @@ REPORT_SORTABLE_COLUMNS = [
     "name",
     "type",
     "active",
+    "last_eval_dttm",
     "changed_on",
     "created_on",
 ]
@@ -684,7 +685,15 @@ REPORT_SEARCH_COLUMNS = ["name", "description"]
 # Allowlist of filter columns exposed via get_schema and accepted by ReportFilter.
 # Must stay in sync with the Literal in ReportFilter.col (schemas.py).
 REPORT_FILTER_COLUMNS: frozenset[str] = frozenset(
-    {"name", "type", "active", "dashboard_id", "chart_id"}
+    {
+        "name",
+        "type",
+        "active",
+        "dashboard_id",
+        "chart_id",
+        "last_state",
+        "creation_method",
+    }
 )
 
 

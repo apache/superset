@@ -69,8 +69,8 @@ async def list_reports(
     Returns schedule metadata including name, type (Alert/Report), active
     status, and cron expression.
 
-    Sortable columns for order_column: id, name, type, active, changed_on,
-    created_on
+    Sortable columns for order_column: id, name, type, active, last_eval_dttm,
+    changed_on, created_on
     """
     if ctx is None:
         raise RuntimeError("FastMCP context is required for list_reports")
