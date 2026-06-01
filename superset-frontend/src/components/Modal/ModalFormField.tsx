@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
+import {
+  ReactNode,
+  Children,
+  isValidElement,
+  cloneElement,
+  useId,
+} from 'react';
 import { css, styled } from '@apache-superset/core/theme';
 import { InfoTooltip } from '@superset-ui/core/components';
 
@@ -128,6 +134,44 @@ export function ModalFormField({
   validateStatus,
   hasFeedback = false,
 }: ModalFormFieldProps) {
+  // Strip colons from useId output so the id is a valid CSS selector
+  // (React's useId returns ":r1:" style values that break attribute lookups).
+  const uniqueId = useId().replace(/:/g, '');
+  const errorId = error ? `${uniqueId}-error` : undefined;
+
+  // Clone the first child element to inject aria-invalid and aria-describedby
+  // on the real input. Many call sites wrap the input in a FormItem/Row so
+  // the ARIA attrs must hop through wrappers to reach the actual interactive
+  // element, otherwise screen readers never learn about the error.
+  // We always run through Children.map so the React tree shape stays stable
+  // across error/no-error transitions; otherwise auto-keyed children would
+  // unmount and remount the underlying input on every toggle, dropping focus
+  // mid-typing.
+  const applyAria = (
+    element: React.ReactElement<any>,
+  ): React.ReactElement<any> => {
+    const ariaProps = error
+      ? { 'aria-invalid': true, 'aria-describedby': errorId }
+      : {};
+    const wrappedChild = element.props?.children;
+    if (isValidElement(wrappedChild) && Children.count(wrappedChild) === 1) {
+      return cloneElement(element, {
+        children: cloneElement(
+          wrappedChild as React.ReactElement<any>,
+          ariaProps,
+        ),
+      });
+    }
+    return cloneElement(element, ariaProps);
+  };
+
+  const enhancedChildren = Children.map(children, (child, index) => {
+    if (index === 0 && isValidElement(child)) {
+      return applyAria(child as React.ReactElement<any>);
+    }
+    return child;
+  });
+
   return (
     <StyledFieldContainer bottomSpacing={bottomSpacing} data-test={testId}>
       <div className="control-label">
@@ -135,9 +179,13 @@ export function ModalFormField({
         {tooltip && <InfoTooltip tooltip={tooltip} />}
         {required && <span className="required">*</span>}
       </div>
-      <div className="input-container">{children}</div>
+      <div className="input-container">{enhancedChildren}</div>
       {helperText && <div className="helper">{helperText}</div>}
-      {error && <div className="error">{error}</div>}
+      {error && (
+        <div className="error" id={errorId} role="alert">
+          {error}
+        </div>
+      )}
     </StyledFieldContainer>
   );
 }

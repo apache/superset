@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, ReactNode } from 'react';
+import { FC, ReactNode, useId } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme, SupersetTheme } from '@apache-superset/core/theme';
 import { FormLabel, InfoTooltip, Tooltip } from '@superset-ui/core/components';
@@ -37,6 +37,10 @@ export type ControlHeaderProps = {
   tooltipOnClick?: () => void;
   warning?: string;
   danger?: string;
+  // WCAG 3.3.1: error container ID shared with the input's aria-describedby.
+  // Passed in by wrappers like NumberControl/TextControl so there is exactly
+  // one live-region and one DOM id per control (no duplicate ids/alerts).
+  errorId?: string;
   // Allow extra props from control spread patterns (e.g. {...this.props})
   [key: string]: unknown;
 };
@@ -70,8 +74,11 @@ const ControlHeader: FC<ControlHeaderProps> = ({
   tooltipOnClick = () => {},
   warning,
   danger,
+  errorId: providedErrorId,
 }) => {
   const theme = useTheme();
+  const uniqueId = useId();
+  const errorId = providedErrorId ?? `${name || uniqueId}-error`;
 
   if (!label) {
     return null;
@@ -178,8 +185,28 @@ const ControlHeader: FC<ControlHeaderProps> = ({
                 placement="top"
                 title={validationErrors?.join(' ')}
               >
-                <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
-              </Tooltip>{' '}
+                <Icons.ExclamationCircleOutlined
+                  iconColor={theme.colorError}
+                  aria-hidden="true"
+                />
+              </Tooltip>
+              <span
+                id={errorId}
+                role="alert"
+                css={css`
+                  position: absolute;
+                  width: 1px;
+                  height: 1px;
+                  padding: 0;
+                  margin: -1px;
+                  overflow: hidden;
+                  clip: rect(0, 0, 0, 0);
+                  white-space: nowrap;
+                  border: 0;
+                `}
+              >
+                {validationErrors?.join('. ')}
+              </span>{' '}
             </span>
           )}
           {renderOptionalIcons()}

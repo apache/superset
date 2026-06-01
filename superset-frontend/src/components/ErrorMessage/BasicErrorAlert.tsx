@@ -61,7 +61,7 @@ export function BasicErrorAlert({
   };
 
   return (
-    <div style={style} role="alert">
+    <div style={style} role="alert" aria-atomic="true">
       <Icons.ExclamationCircleFilled iconColor={variants.text} />
       <StyledContent>
         <StyledTitle>{title}</StyledTitle>

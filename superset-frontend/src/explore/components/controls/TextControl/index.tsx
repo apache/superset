@@ -18,9 +18,17 @@
  */
 import { Component, ChangeEvent } from 'react';
 import { legacyValidateNumber, legacyValidateInteger } from '@superset-ui/core';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
 import { debounce } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Constants, Input } from '@superset-ui/core/components';
+
+const fieldErrorStyles = (theme: SupersetTheme) => css`
+  color: ${theme.colorError};
+  font-size: ${theme.fontSizeSM}px;
+  display: block;
+  margin-top: ${theme.sizeUnit}px;
+`;
 
 type InputValueType = string | number;
 
@@ -104,9 +112,15 @@ export default class TextControl<
       this.initialValue = this.props.value;
       value = safeStringify(this.props.value);
     }
+    const hasErrors =
+      this.props.validationErrors && this.props.validationErrors.length > 0;
+    const inputId = this.props.controlId || this.props.name;
+    // WCAG 3.3.1: share a single error container id with ControlHeader so
+    // the input's aria-describedby resolves to one live-region, not two.
+    const errorId = hasErrors && inputId ? `${inputId}-error` : undefined;
     return (
       <div>
-        <ControlHeader {...this.props} />
+        <ControlHeader {...this.props} errorId={errorId} />
         <Input
           type="text"
           data-test="inline-name"
@@ -116,7 +130,15 @@ export default class TextControl<
           value={value}
           disabled={this.props.disabled}
           aria-label={this.props.label}
+          aria-invalid={hasErrors || undefined}
+          aria-describedby={errorId}
+          id={inputId}
         />
+        {hasErrors && (
+          <span css={fieldErrorStyles}>
+            {this.props.validationErrors!.join('. ')}
+          </span>
+        )}
       </div>
     );
   }

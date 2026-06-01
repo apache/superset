@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useId } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Button, Icons, InfoTooltip, Tooltip, Flex } from '..';
@@ -65,6 +66,12 @@ export const LabeledErrorBoundInput = ({
   ...props
 }: LabeledErrorBoundInputProps) => {
   const hasError = !!errorMessage;
+  // Strip colons from useId output so the id is a valid CSS selector
+  // (React's useId returns ":r1:" style values that break attribute lookups).
+  const uniqueId = useId().replace(/:/g, '');
+  const errorDescriptionId = hasError
+    ? `${uniqueId}-error-description`
+    : undefined;
   return (
     <StyledFormGroup className={className}>
       <Flex align="center">
@@ -78,13 +85,23 @@ export const LabeledErrorBoundInput = ({
         validateStatus={
           isValidating ? 'validating' : hasError ? 'error' : 'success'
         }
-        help={errorMessage || helpText}
+        help={
+          hasError ? (
+            <span id={errorDescriptionId} role="alert">
+              {errorMessage}
+            </span>
+          ) : (
+            helpText
+          )
+        }
         hasFeedback={!!hasError}
       >
         {visibilityToggle || props.name === 'password' ? (
           <StyledInputPassword
             {...props}
             {...validationMethods}
+            aria-invalid={hasError || undefined}
+            aria-describedby={errorDescriptionId}
             iconRender={visible =>
               visible ? (
                 <Tooltip title={t('Hide password.')}>
@@ -99,7 +116,12 @@ export const LabeledErrorBoundInput = ({
             role="textbox"
           />
         ) : (
-          <StyledInput {...props} {...validationMethods} />
+          <StyledInput
+            {...props}
+            {...validationMethods}
+            aria-invalid={hasError || undefined}
+            aria-describedby={errorDescriptionId}
+          />
         )}
         {get_url && description ? (
           <Button

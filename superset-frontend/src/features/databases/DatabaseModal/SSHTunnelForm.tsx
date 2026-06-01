@@ -18,7 +18,7 @@
  */
 import { useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { styled } from '@apache-superset/core/theme';
+import { styled, css, SupersetTheme } from '@apache-superset/core/theme';
 import {
   Form,
   FormLabel,
@@ -52,6 +52,13 @@ const StyledInputPassword = styled(Input.Password)`
   margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
 `;
 
+const fieldErrorStyles = (theme: SupersetTheme) => css`
+  color: ${theme.colorError};
+  font-size: ${theme.fontSizeSM}px;
+  display: block;
+  margin-top: ${theme.sizeUnit}px;
+`;
+
 const SSHTunnelForm = ({
   db,
   onSSHTunnelParametersChange,
@@ -62,6 +69,15 @@ const SSHTunnelForm = ({
   setSSHTunnelLoginMethod: (method: AuthType) => void;
 }) => {
   const [usePassword, setUsePassword] = useState<AuthType>(AuthType.Password);
+  const [blurred, setBlurred] = useState<Record<string, boolean>>({});
+  const markBlurred = (field: string) =>
+    setBlurred(prev => ({ ...prev, [field]: true }));
+  const fieldError = (field: string, value: string | number | undefined) =>
+    // WCAG 3.3.1: treat whitespace-only strings as empty so users cannot
+    // bypass required-field validation with a space character.
+    blurred[field] &&
+    (value === undefined ||
+      (typeof value === 'string' && value.trim().length === 0));
 
   return (
     <Form>
@@ -77,8 +93,23 @@ const SSHTunnelForm = ({
               placeholder={t('e.g. 127.0.0.1')}
               value={db?.ssh_tunnel?.server_address || ''}
               onChange={onSSHTunnelParametersChange}
+              onBlur={() => markBlurred('server_address')}
+              aria-invalid={
+                fieldError('server_address', db?.ssh_tunnel?.server_address) ||
+                undefined
+              }
+              aria-describedby={
+                fieldError('server_address', db?.ssh_tunnel?.server_address)
+                  ? 'server-address-error'
+                  : undefined
+              }
               data-test="ssh-tunnel-server_address-input"
             />
+            {fieldError('server_address', db?.ssh_tunnel?.server_address) && (
+              <span id="server-address-error" role="alert" css={fieldErrorStyles}>
+                {t('SSH Host is required')}
+              </span>
+            )}
           </StyledDiv>
         </Col>
         <Col xs={24} md={12}>
@@ -92,8 +123,23 @@ const SSHTunnelForm = ({
               type="number"
               value={db?.ssh_tunnel?.server_port}
               onChange={onSSHTunnelParametersChange}
+              onBlur={() => markBlurred('server_port')}
+              aria-invalid={
+                fieldError('server_port', db?.ssh_tunnel?.server_port) ||
+                undefined
+              }
+              aria-describedby={
+                fieldError('server_port', db?.ssh_tunnel?.server_port)
+                  ? 'server-port-error'
+                  : undefined
+              }
               data-test="ssh-tunnel-server_port-input"
             />
+            {fieldError('server_port', db?.ssh_tunnel?.server_port) && (
+              <span id="server-port-error" role="alert" css={fieldErrorStyles}>
+                {t('SSH Port is required')}
+              </span>
+            )}
           </StyledDiv>
         </Col>
       </StyledRow>
@@ -109,8 +155,22 @@ const SSHTunnelForm = ({
               placeholder={t('e.g. Analytics')}
               value={db?.ssh_tunnel?.username || ''}
               onChange={onSSHTunnelParametersChange}
+              onBlur={() => markBlurred('username')}
+              aria-invalid={
+                fieldError('username', db?.ssh_tunnel?.username) || undefined
+              }
+              aria-describedby={
+                fieldError('username', db?.ssh_tunnel?.username)
+                  ? 'ssh-username-error'
+                  : undefined
+              }
               data-test="ssh-tunnel-username-input"
             />
+            {fieldError('username', db?.ssh_tunnel?.username) && (
+              <span id="ssh-username-error" role="alert" css={fieldErrorStyles}>
+                {t('Username is required')}
+              </span>
+            )}
           </StyledDiv>
         </Col>
       </StyledRow>

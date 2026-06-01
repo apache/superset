@@ -26,6 +26,8 @@ interface NumberInputProps {
   value: string | number;
   placeholder: string;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  'aria-invalid'?: boolean;
+  'aria-describedby'?: string;
 }
 
 export default function NumberInput({

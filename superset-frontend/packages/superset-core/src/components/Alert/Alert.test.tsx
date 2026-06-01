@@ -17,10 +17,44 @@
  * under the License.
  */
 
-import { render } from '../../testing';
+import { render, screen } from '../../testing';
 import { Alert } from '.';
 
 test('renders Alert with default props', async () => {
   const { container } = render(<Alert />);
   expect(container).toHaveTextContent('Default message');
+});
+
+// WCAG 3.3.1 - Error Identification accessibility tests
+test('renders with role="alert" for screen reader announcement', () => {
+  render(<Alert type="error">Error message</Alert>);
+  expect(screen.getByRole('alert')).toBeInTheDocument();
+});
+
+test('renders with aria-atomic="true" so full content is announced', () => {
+  render(<Alert type="error">Error message</Alert>);
+  expect(screen.getByRole('alert')).toHaveAttribute('aria-atomic', 'true');
+});
+
+test('uses aria-live="assertive" for error alerts', () => {
+  render(<Alert type="error">Error message</Alert>);
+  expect(screen.getByRole('alert')).toHaveAttribute(
+    'aria-live',
+    'assertive',
+  );
+});
+
+test('uses aria-live="polite" for warning alerts', () => {
+  render(<Alert type="warning">Warning message</Alert>);
+  expect(screen.getByRole('alert')).toHaveAttribute('aria-live', 'polite');
+});
+
+test('uses aria-live="polite" for info alerts', () => {
+  render(<Alert type="info">Info message</Alert>);
+  expect(screen.getByRole('alert')).toHaveAttribute('aria-live', 'polite');
+});
+
+test('uses aria-live="polite" for success alerts', () => {
+  render(<Alert type="success">Success message</Alert>);
+  expect(screen.getByRole('alert')).toHaveAttribute('aria-live', 'polite');
 });
