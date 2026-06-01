@@ -34,6 +34,7 @@ from superset.mcp_service.privacy import (
     filter_user_directory_columns,
     SELF_REFERENCING_FILTER_COLUMNS,
     USER_DIRECTORY_FIELDS,
+    USER_FILTER_FIELDS,
 )
 from superset.mcp_service.system.schemas import PaginationInfo
 from superset.mcp_service.utils import _is_uuid
@@ -314,14 +315,6 @@ class ModelListCore(BaseCore, Generic[L]):
             has_previous=page > 0,
         )
 
-        # Build response
-        def get_keys(obj: BaseModel | dict[str, Any] | Any) -> List[str]:
-            if hasattr(obj, "model_dump"):
-                return list(obj.model_dump().keys())
-            elif isinstance(obj, dict):
-                return list(obj.keys())
-            return []
-
         response_kwargs = {
             self.list_field_name: item_objs,
             "count": len(item_objs),
@@ -595,7 +588,7 @@ class InstanceInfoCore(BaseCore):
         return counts
 
     def _calculate_time_based_metrics(
-        self, base_counts: Dict[str, int]
+        self, _base_counts: Dict[str, int]
     ) -> Dict[str, Dict[str, int]]:
         """Calculate time-based metrics for recent activity."""
         now = datetime.now(timezone.utc)
@@ -740,6 +733,7 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
         default_sort: str = "changed_on",
         default_sort_direction: Literal["asc", "desc"] = "desc",
         exclude_filter_columns: set[str] | None = None,
+        filter_columns_override: dict[str, list[str]] | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         """
@@ -757,6 +751,9 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
             default_sort_direction: Default sort direction
             exclude_filter_columns: Column names to omit from filter discovery
                 (e.g., sensitive fields like passwords or connection URIs)
+            filter_columns_override: When set, use this mapping directly as the
+                filter_columns output instead of querying the DAO. Use this to
+                restrict advertised filters to the exact set the list tool accepts.
             logger: Optional logger instance
         """
         super().__init__(logger)
@@ -774,10 +771,15 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
         self.default_sort = default_sort
         self.default_sort_direction = default_sort_direction
         self.exclude_filter_columns = set(exclude_filter_columns or set())
-        self.exclude_filter_columns.update(USER_DIRECTORY_FIELDS)
+        # Hide user-directory columns from filter discovery, except the small
+        # set callers may legitimately filter by ID (resolved via find_users).
+        self.exclude_filter_columns.update(USER_DIRECTORY_FIELDS - USER_FILTER_FIELDS)
+        self.filter_columns_override = filter_columns_override
 
     def _get_filter_columns(self) -> Dict[str, List[str]]:
         """Get filterable columns and operators from the DAO."""
+        if self.filter_columns_override is not None:
+            return self.filter_columns_override
         try:
             filterable = self.dao_class.get_filterable_columns_and_operators()
             # Defensive handling: ensure we have a valid mapping

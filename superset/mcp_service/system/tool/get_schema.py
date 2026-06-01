@@ -30,10 +30,15 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.extensions import event_logger
+from superset.mcp_service.auth import MCPPermissionDeniedError
 from superset.mcp_service.common.schema_discovery import (
     CHART_DEFAULT_COLUMNS,
     CHART_SEARCH_COLUMNS,
     CHART_SORTABLE_COLUMNS,
+    CSS_TEMPLATE_DEFAULT_COLUMNS,
+    CSS_TEMPLATE_FILTER_COLUMNS,
+    CSS_TEMPLATE_SEARCH_COLUMNS,
+    CSS_TEMPLATE_SORTABLE_COLUMNS,
     DASHBOARD_DEFAULT_COLUMNS,
     DASHBOARD_SEARCH_COLUMNS,
     DASHBOARD_SORTABLE_COLUMNS,
@@ -44,12 +49,18 @@ from superset.mcp_service.common.schema_discovery import (
     DATASET_SEARCH_COLUMNS,
     DATASET_SORTABLE_COLUMNS,
     get_chart_columns,
+    get_css_template_columns,
     get_dashboard_columns,
     get_database_columns,
     get_dataset_columns,
+    get_theme_columns,
     GetSchemaRequest,
     GetSchemaResponse,
     ModelSchemaInfo,
+    THEME_DEFAULT_COLUMNS,
+    THEME_FILTER_COLUMNS,
+    THEME_SEARCH_COLUMNS,
+    THEME_SORTABLE_COLUMNS,
 )
 from superset.mcp_service.constants import ModelType
 from superset.mcp_service.mcp_core import ModelGetSchemaCore
@@ -144,6 +155,44 @@ def _get_database_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
     )
 
 
+def _get_css_template_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
+    """Create CSS template schema core with dynamically extracted columns."""
+    from superset.daos.css import CssTemplateDAO
+
+    return ModelGetSchemaCore(
+        model_type="css_template",
+        dao_class=CssTemplateDAO,
+        output_schema=ModelSchemaInfo,
+        select_columns=get_css_template_columns(),
+        sortable_columns=CSS_TEMPLATE_SORTABLE_COLUMNS,
+        default_columns=CSS_TEMPLATE_DEFAULT_COLUMNS,
+        search_columns=CSS_TEMPLATE_SEARCH_COLUMNS,
+        default_sort="changed_on",
+        default_sort_direction="desc",
+        filter_columns_override=CSS_TEMPLATE_FILTER_COLUMNS,
+        logger=logger,
+    )
+
+
+def _get_theme_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
+    """Create theme schema core with dynamically extracted columns."""
+    from superset.daos.theme import ThemeDAO
+
+    return ModelGetSchemaCore(
+        model_type="theme",
+        dao_class=ThemeDAO,
+        output_schema=ModelSchemaInfo,
+        select_columns=get_theme_columns(),
+        sortable_columns=THEME_SORTABLE_COLUMNS,
+        default_columns=THEME_DEFAULT_COLUMNS,
+        search_columns=THEME_SEARCH_COLUMNS,
+        default_sort="changed_on",
+        default_sort_direction="desc",
+        filter_columns_override=THEME_FILTER_COLUMNS,
+        logger=logger,
+    )
+
+
 # Map model types to their core factory functions
 _SCHEMA_CORE_FACTORIES: dict[
     ModelType,
@@ -153,12 +202,25 @@ _SCHEMA_CORE_FACTORIES: dict[
     "dataset": _get_dataset_schema_core,
     "dashboard": _get_dashboard_schema_core,
     "database": _get_database_schema_core,
+    "css_template": _get_css_template_schema_core,
+    "theme": _get_theme_schema_core,
+}
+
+# Maps each model type to the FAB class permission name used by its tools.
+# Used for per-model-type inline RBAC checks instead of a single static
+# class_permission_name on the @tool decorator.
+_MODEL_TYPE_CLASS_PERMISSION: dict[ModelType, str] = {
+    "chart": "Chart",
+    "dataset": "Dataset",
+    "dashboard": "Dashboard",
+    "database": "Database",
+    "css_template": "CssTemplate",
+    "theme": "Theme",
 }
 
 
 @tool(
     tags=["discovery"],
-    class_permission_name="Dataset",
     annotations=ToolAnnotations(
         title="Get schema",
         readOnlyHint=True,
@@ -182,12 +244,38 @@ async def get_schema(
     Column metadata is extracted dynamically from SQLAlchemy models.
 
     Args:
-        model_type: One of "chart", "dataset", "dashboard", or "database"
+        model_type: One of "chart", "dataset", "dashboard", "database",
+            "css_template", or "theme"
 
     Returns:
         Comprehensive schema information for the requested model type
     """
     await ctx.info(f"Getting schema for model_type={request.model_type}")
+
+    # Per-model-type RBAC check (replaces the static class_permission_name on @tool,
+    # which wrongly gated all schema types behind Dataset permission).
+    class_permission = _MODEL_TYPE_CLASS_PERMISSION.get(request.model_type)
+    if class_permission:
+        from flask import current_app, g
+
+        from superset import security_manager
+
+        if current_app.config.get("MCP_RBAC_ENABLED", True) and not (
+            security_manager.can_access("can_read", class_permission)
+        ):
+            user_str = getattr(getattr(g, "user", None), "username", None)
+            logger.warning(
+                "get_schema RBAC denied: user=%s type=%s view=%s",
+                user_str,
+                request.model_type,
+                class_permission,
+            )
+            raise MCPPermissionDeniedError(
+                permission_name="can_read",
+                view_name=class_permission,
+                user=user_str,
+                tool_name="get_schema",
+            )
 
     can_view_data_model_metadata = user_can_view_data_model_metadata()
     if not can_view_data_model_metadata and request.model_type in {

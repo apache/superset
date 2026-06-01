@@ -47,6 +47,13 @@ const Title = styled.h4`
   font-weight: ${({ theme }) => theme.fontWeightStrong};
 `;
 
+const StyledTabs = styled(Tabs)`
+  margin-top: ${({ theme }) => theme.sizeUnit * -8}px;
+  .ant-tabs-nav {
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
+  }
+`;
+
 const shrinkSql = (sql: string, maxLines: number, maxWidth: number) => {
   const ssql = sql || '';
   let lines = ssql.split('\n');
@@ -94,7 +101,7 @@ function HighlightSqlModal({ rawSql, sql }: HighlightedSqlModalTypes) {
   }
 
   return (
-    <Tabs
+    <StyledTabs
       defaultActiveKey="executed"
       items={[
         {

@@ -37,10 +37,12 @@ class ColumnMetadata(BaseModel):
     """Metadata for a selectable column."""
 
     name: str = Field(..., description="Column name to use in select_columns")
-    description: str | None = Field(None, description="Column description")
-    type: str | None = Field(None, description="Data type (str, int, datetime, etc.)")
+    description: str | None = Field(default=None, description="Column description")
+    type: str | None = Field(
+        default=None, description="Data type (str, int, datetime, etc.)"
+    )
     is_default: bool = Field(
-        False, description="Whether this column is included by default"
+        default=False, description="Whether this column is included by default"
     )
 
 
@@ -633,3 +635,82 @@ CHART_ALL_COLUMNS: list[str] = []
 DATASET_ALL_COLUMNS: list[str] = []
 DASHBOARD_ALL_COLUMNS: list[str] = []
 DATABASE_ALL_COLUMNS: list[str] = []
+
+
+# CSS Template configuration
+CSS_TEMPLATE_DEFAULT_COLUMNS = [
+    "id",
+    "uuid",
+    "template_name",
+]
+CSS_TEMPLATE_SORTABLE_COLUMNS = [
+    "id",
+    "template_name",
+    "changed_on",
+    "created_on",
+]
+CSS_TEMPLATE_SEARCH_COLUMNS = ["template_name"]
+CSS_TEMPLATE_FILTER_COLUMNS: dict[str, list[str]] = {
+    "template_name": ["eq", "sw", "ilike"],
+    "created_by_fk": ["eq"],
+}
+CSS_TEMPLATE_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
+    "created_by_name": ColumnMetadata(
+        name="created_by_name",
+        description="Username of the creator",
+        type="str",
+        is_default=False,
+    ),
+    "changed_by_name": ColumnMetadata(
+        name="changed_by_name",
+        description="Username of the last modifier",
+        type="str",
+        is_default=False,
+    ),
+}
+
+
+def get_css_template_columns() -> list[ColumnMetadata]:
+    """Get column metadata for CssTemplate model dynamically."""
+    from superset.models.core import CssTemplate
+
+    return get_columns_from_model(
+        CssTemplate,
+        CSS_TEMPLATE_DEFAULT_COLUMNS,
+        CSS_TEMPLATE_EXTRA_COLUMNS,
+        exclude_columns=set(USER_DIRECTORY_FIELDS)
+        - {"created_by_name", "changed_by_name"},
+    )
+
+
+# Theme configuration
+THEME_DEFAULT_COLUMNS = [
+    "id",
+    "theme_name",
+    "uuid",
+]
+THEME_SORTABLE_COLUMNS = [
+    "id",
+    "theme_name",
+    "changed_on",
+    "created_on",
+]
+THEME_SEARCH_COLUMNS = ["theme_name"]
+THEME_FILTER_COLUMNS: dict[str, list[str]] = {
+    "theme_name": ["eq", "sw", "ilike"],
+    "is_system": ["eq"],
+    "is_system_default": ["eq"],
+    "is_system_dark": ["eq"],
+    "created_by_fk": ["eq"],
+}
+
+
+def get_theme_columns() -> list[ColumnMetadata]:
+    """Get column metadata for Theme model dynamically."""
+    from superset.models.core import Theme
+
+    return get_columns_from_model(
+        Theme,
+        THEME_DEFAULT_COLUMNS,
+        exclude_columns=set(USER_DIRECTORY_FIELDS),
+    )
