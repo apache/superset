@@ -373,3 +373,81 @@ def test_import_database_oauth2_redirect_is_nonfatal(
 
     assert database.database_name == "imported_database"
     mock_add_perms.assert_called_once_with(database)
+
+
+def test_import_datasources_cli_encrypts_password(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Regression for #31983: import_datasources must encrypt sqlalchemy_uri passwords,
+    not store them as cleartext.
+
+    The ``superset import_datasources -p file.yaml`` CLI command uses the legacy v0
+    YAML format (a dict with a top-level ``databases`` key).  Internally it calls
+    ``Database.import_from_dict``, which historically set ``sqlalchemy_uri`` directly
+    on the model — bypassing ``set_sqlalchemy_uri`` and leaving the plaintext password
+    stored in the DB.
+
+    After the fix, the stored ``sqlalchemy_uri`` must contain the password mask
+    (``XXXXXXXXXX``) rather than the cleartext secret, and ``database.password``
+    must hold the real credential so that connections still work.
+    """
+    from superset import db
+    from superset.commands.dataset.importers.v0 import import_from_dict
+    from superset.constants import PASSWORD_MASK
+    from superset.models.core import Database
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    plaintext_password = "secret-password"  # noqa: S105
+    plaintext_uri = (
+        f"postgresql://user:{plaintext_password}@db.example.org:5432/superset_data"
+    )
+
+    # This is the exact YAML structure produced by the Helm chart / docs example
+    # referenced in issue #31983.
+    data: dict[str, list[dict[str, object]]] = {
+        "databases": [
+            {
+                "database_name": "issue_31983_regression",
+                "sqlalchemy_uri": plaintext_uri,
+                "expose_in_sqllab": True,
+                "allow_run_async": False,
+                "allow_ctas": False,
+                "allow_cvas": False,
+                "allow_dml": False,
+                "allow_file_upload": False,
+                "tables": [],
+            }
+        ]
+    }
+
+    import_from_dict(data)
+    db.session.flush()
+
+    database = (
+        db.session.query(Database)
+        .filter_by(database_name="issue_31983_regression")
+        .one()
+    )
+
+    # The stored URI must NOT contain the plaintext password.
+    assert plaintext_password not in database.sqlalchemy_uri, (
+        f"Bug #31983: plaintext password found in sqlalchemy_uri: "
+        f"{database.sqlalchemy_uri!r}"
+    )
+
+    # The stored URI must contain the password mask (same behaviour as the REST API).
+    assert PASSWORD_MASK in database.sqlalchemy_uri, (
+        f"Bug #31983: expected password mask {PASSWORD_MASK!r} in "
+        f"sqlalchemy_uri, got: {database.sqlalchemy_uri!r}"
+    )
+
+    # The real password must be recoverable via the encrypted ``password`` column
+    # so that existing connections continue to work after import.
+    assert database.password == plaintext_password, (  # noqa: S105
+        f"Bug #31983: expected real password to be stored in the encrypted "
+        f"``password`` column, got: {database.password!r}"
+    )
