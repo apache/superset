@@ -62,4 +62,4 @@ def test_get_properties_exposes_debug_fields_when_show_stacktrace(
     properties = TaskResponseSchema().get_properties(_task_with_error_properties())
 
     assert properties["exception_type"] == "KeyError"
-    assert properties["stack_trace"].startswith("Traceback")
+    assert str(properties["stack_trace"]).startswith("Traceback")
