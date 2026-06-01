@@ -258,37 +258,27 @@ def test_file_content_omits_roles_field_when_dashboard_has_no_roles():
 
 def test_position_json_chart_id_leaks_env_local_integers():
     """
-    Regression for #32972: dashboard export must not leak env-local integer
-    chartIds into position_json.
+    Regression for #32972: dashboard export must produce stable output that does
+    not vary with env-local integer chartIds.
 
     The export format includes a ``meta.chartId`` field inside each ``CHART-*``
     position entry. That integer is the database auto-increment primary key from
-    the *source* environment. When the bundle is imported into a different
+    the source environment. When the bundle is imported into a different
     environment the importer (``update_id_refs``) rewrites those IDs to the
     destination-env primary keys. A second export from the destination then
     serializes the new env-local integers — the same logical chart produces
     different ``chartId`` values in each environment.
 
-    This test demonstrates the current (broken) behaviour:
+    This test asserts that two exports of the same logical dashboard are
+    identical even when the underlying chart has a different integer primary key
+    in each environment. ``meta.uuid`` is the stable identifier that should be
+    used instead of ``meta.chartId``.
 
-    1. A dashboard with a chart whose source-env ``id`` is 392 exports
-       ``chartId: 392`` in its ``position_json``.
-    2. After simulating re-import into a second environment (where the same
-       chart receives ``id`` 1001), a second export produces ``chartId: 1001``.
-    3. The two exports differ — the export is *not* stable across environments.
-
-    The stable identifier already present in the export is ``meta.uuid``.  The
-    fix target is ``superset/commands/dashboard/export.py`` (``append_charts``
-    and ``_file_content``): strip ``chartId`` from the serialised position or
-    replace it with the UUID so the export format is environment-independent.
-
-    CI green → the export already uses a stable (UUID-based) identifier and
-    ``chartId`` is no longer env-local; the bug is fixed.
-    CI red  → env-local integers are still leaking; the production code needs
-    to be updated.
+    Fix target: ``superset/commands/dashboard/export.py`` (``append_charts``
+    and ``_file_content``) — strip or UUID-replace ``chartId`` so the export
+    format is environment-independent.
     """
     from superset.commands.dashboard.export import ExportDashboardsCommand
-    from superset.utils import json
 
     chart_uuid = "812bc377-ac09-475a-8d34-a63f7f087bd7"
 
