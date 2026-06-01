@@ -34,7 +34,7 @@ Day: May, 2026
    The chatbot must receive contextual information about the current page:
    Page type: `home`, `dashboard`, `chart`, `sqllab`, `dataset`
    The current dashboard/chart data, the saved chart, the dashboard filters and
-   the dashboard-ui-control state
+   the dashboard's charts (each flagged with its current visibility)
    The chatbot must be notified when the page context changes (navigation entity change, title change) without polling.
    The page context the chatbot receives must be host-derived and aligned with the current user's backend-authorized application view: the host computes it and exposes only what the current user is already authorized to see. The chatbot must not read the host's Redux store or other internal state to assemble context (the chatbot must not depend on internal frontend structure to assemble the context).
    The chatbot must support conversation state/history (owned by the extension, never the host) 3) Administration
@@ -89,10 +89,10 @@ It does not return the `provider` functions that `registerView` was given.
 
 This is important to state precisely, because it is not an oversight to "fix" by widening `getViews`:
 
-- A `provider` is a function that constructs and returns a React element — calling it _renders_ the view. The view descriptor (`id`/`name`/`description`) is inert metadata; the provider is executable rendering logic.
+- A `provider` is a function that constructs and returns a React element — calling it renders the view. The view descriptor (`id`/`name`/`description/icon`) is inert metadata the host can read without rendering e.g. to draw a launcher button or manifest entry; the provider is executable rendering logic.
 - `getViews` is a **public, extension-facing** API. If it returned providers, any extension could obtain and invoke another extension's provider directly — rendering a view outside the host's mount point, lifecycle, and fault-isolation boundary.
-  Keeping `getViews` descriptor-only is a deliberate boundary: the public surface lets extensions _
-  discover what is registered, but only the **host** can \_render_ what is registered (via the registration/mount path).
+  Keeping `getViews` descriptor-only is a deliberate boundary: the public surface lets extensions
+  discover what is registered, but only the **host** can render what is registered (via the registration/mount path).
 - Consequence for the singleton picker: with the public API alone, the host can enumerate the registered chatbots but cannot obtain the provider needed to render the selected one. The picker described here therefore cannot be built on `getViews` as-is — and `getViews` should **not** be changed to expose providers, because that would dissolve the boundary above.
 
 Implemented solution: the SIP evaluated two acceptable forms and the implementation combines both.
@@ -125,6 +125,7 @@ Eager loading of the chatbot bundle as part of the app shell startup, so the bub
 Disposable cleanup when the extension is deactivated, uninstalled, or replaced.
 Fixed positioning at the bottom-right corner of the viewport (24px margin from the edges).
 A managed z-index above dashboard content and the standard toast layer, below modal dialogs.
+
 Component contract (extension responsibilities)
 The registered component is the entire chatbot UI. It is responsible for:
 The collapsed bubble state (icon, optional notification badge, hover/focus states).
@@ -132,18 +133,17 @@ The expanded panel state (header, conversation, composer, side panels).
 All open/close transitions, keyboard shortcuts (e.g., Cmd+K to open), and accessibility (focus trap, ARIA labels, screen reader support).
 All conversation state, message history, streaming, and persistence.
 All LLM communication and tool execution.
-Responsive behavior on narrow viewports (typically transitioning to a full-screen overlay below ~768px).
-The host does not inject styling or behavior into the registered component beyond what the standard namespaces provide.
+Responsive behavior on narrow viewportsThe host does not inject styling or behavior into the registered component beyond what the standard namespaces provide.
 Registration example
 
-import { views } from '@apache-superset/core';
+import { views, type ExtensionContext } from '@apache-superset/core';
 import { ChatbotApp } from './ChatbotApp';
 
 export function activate(context: ExtensionContext) {
 const disposable = views.registerView(
 {
-id: 'superset.copilot',
-name: 'Superset Copilot',
+id: 'acme.chatbot', // extension-namespaced, unique
+name: 'Superset chatbot',
 icon: 'Bubble',
 },
 'superset.chatbot',
@@ -162,8 +162,7 @@ at the application-shell level.
 The chatbot needs an icon:
 It identifies the chatbot in the admin "Default chatbot" picker (see §5) and in any contribution manifest listing, and it is the natural identity for the collapsed bubble.
 
-The current `View` interface in `@apache-superset/core` is `{ id, name, description? }` and has no `icon` field, so
-this SIP **proposes adding an `icon` field to the `View` descriptor**.
+The current `View` interface in `@apache-superset/core` is `{ id, name, description? }` and has no `icon` field, so this SIP **proposes adding an `icon` field to the `View` descriptor**.
 The registration example above must be updated to pass one once the form below is decided.
 
 The remaining open concern is who owns the icon and whether it is mutable:
@@ -174,14 +173,11 @@ The remaining open concern is who owns the icon and whether it is mutable:
   The descriptor icon identifies metadata, the bubble is a live UI.
 - (b) Runtime-updatable icon.
   The chatbot owner can change its icon after registration — e.g. to reflect a notification/unread badge, a loading or "thinking" state, or dynamic rebranding.
-  This requires more than a descriptor field: either a mutable handle returned from `registerView()` (e.g.
-  `handle.setIcon(...)`) or a small chatbot-scoped API to update it.
+  This requires more than a descriptor field: either a mutable handle returned from `registerView()` (e.g. `handle.setIcon(...)`) or a small chatbot-scoped API to update it.
   It also raises the question of where that icon is consumed — the admin picker would show a point-in-time value, while the bubble already updates freely because the extension renders it.
 
 Recommendation: (a) for the descriptor `icon` — keep the registry field static and simple, since its only consumers are identity surfaces (picker, manifest) that do not need live updates.
-Dynamic icon states (notification badge, thinking
-indicator) belong to the collapsed bubble, which the extension component already owns and re-renders on its own; they do not need to flow through the host
-descriptor.
+Dynamic icon states (notification badge, thinking indicator) belong to the collapsed bubble, which the extension component already owns and re-renders on its own; they do not need to flow through the host descriptor.
 If a concrete need emerges for the host to reflect a live chatbot icon outside the bubble, option (b) can be revisited in a follow-up rather than expanding `registerView` now.
 
 State APIs the chatbot uses
@@ -203,14 +199,14 @@ Exists today
 Host actions utilities
 dashboard
 NEW (added by this SIP)
-Dashboard-specific APIs and state (current dashboard, filters, dashboard-ui-control state)
+Dashboard-specific APIs and state (current dashboard, filters, charts with visibility)
 explore
 NEW (added by this SIP)
 Chart/explore-specific APIs and state (saved chart, current chart data)
 
 dataset
 NEW (added by this SIP)
-Dataset-specific APIs and state (current dataset); provides context for the `dataset` page type
+Dataset-page identity (`getCurrentDataset()` + change event) — which dataset the user is viewing/editing; identity only, producer-backed via `setCurrentDataset`
 
 navigation
 NEW (added by this SIP)
@@ -231,17 +227,17 @@ adding:
 - `navigation` namespace — a current-page getter (`pageType` + focused entity) and
   the `navigation.onDidChangePage` event used for the without-polling notification
   in §2.
+  Page context
+  Per-surface namespaces
+  The chatbot does not interact directly with the host application's internal state management implementation.
+  Instead, each application surface exposes a dedicated namespace that provides a stable, host-managed API for that surface.
+  These namespaces expose curated API types rather than internal implementation details such as Redux slices or component-local state.
+  The purpose of the namespace layer is to:
+  provide a stable extension contract
+  normalize surface-specific context
+  avoid coupling extensions to host implementation details
+  preserve compatibility across future frontend architecture changes
 
-Page context
-Per-surface namespaces
-The chatbot does not interact directly with the host application's internal state management implementation.
-Instead, each application surface exposes a dedicated namespace that provides a stable, host-managed API for that surface.
-These namespaces expose curated API types rather than internal implementation details such as Redux slices or component-local state.
-The purpose of the namespace layer is to:
-provide a stable extension contract
-normalize surface-specific context
-avoid coupling extensions to host implementation details
-preserve compatibility across future frontend architecture changes
 For example, the host may evolve from Redux-based state management to another implementation in the future without requiring chatbot extensions to change, as long as the namespace contract remains stable.
 Each namespace exposes normalized semantic context aligned with the current user's backend-authorized application view
 
@@ -280,8 +276,6 @@ dashboard: dashboard.getCurrentDashboard(),
 sqlLab: sqlLab.getCurrentTab(),
 
 chart: explore.getCurrentChart(),
-
-dataset: dataset.getCurrentDataset(),
 };
 
 The extension-side adapter assembles normalized semantic context fragments.
@@ -299,26 +293,17 @@ Example:
 const dashboardContext = dashboard.getCurrentDashboard();
 
 const disposable = dashboard.onDidChangeDashboard(nextDashboard => {
-chatbot.updateContext(nextDashboard);
+chatbot.updateContext({ dashboard: nextDashboard });
 });
 
 The new namespaces follow the sqlLab namespace shape, but not necessarily its implementation model.
 
 Existing sqlLab namespace behavior
-The existing sqlLab namespace (superset-frontend/src/core/sqlLab/index.ts) already follows this general API shape today.
-
-Internally, the current implementation is a lightweight wrapper around Redux state (store.getState()), but that implementation detail is not part of the extension contract and should not be relied upon by extensions.
-
-This SIP extends the namespace-based model to additional application surfaces (dashboard, explore, dataset, navigation), standardizing semantic context normalization and a stable extension contract.
-
-Where permission enforcement happens
-Permission enforcement is a backend concern, and this is the normal Superset data flow: every frontend surface receives its state from backend APIs that already scope data to the current user's permissions. Frontend application state reflects backend-authorized API responses.
-
-`sqlLab` follows the standard Superset authorization model: backend APIs scope SQL Lab data to the current user's permissions before that data enters frontend application state (for example through `DatabaseFilter` applied in `DatabaseDAO.find_all()`).
-
-The `sqlLab` namespace therefore exposes a stable extension-facing API over already-authorized application state rather than enforcing authorization itself.
-
-The new namespaces follow the same principle: a namespace getter surfaces data from backend APIs that scope it to the current user — it is not itself a security boundary.
+The existing sqlLab namespace (superset-frontend/src/core/sqlLab/index.ts) already implements the API shape that SIP generalizes. Internally it is a thin wrapper over Redux state (store.getState()), but that is an implementation detail — extensions consume the namespace contract, not the store, and must not rely on Redux being the backing source.
+This SIP extends the same namespace-based model to additional surfaces (dashboard, explore, navigation), standardizing semantic context normalization behind a stable, extension-facing contract.
+Permission enforcement is a backend concern
+Authorization is enforced by the backend, not by these namespaces — this is the standard Superset data flow. Every frontend surface receives its state from backend APIs that already scope results to the current user's permissions, so the frontend application state only ever reflects backend-authorized responses. SQL Lab is the canonical example: DatabaseDAO declares base_filter = DatabaseFilter (superset/daos/database.py), which scopes database queries to the requesting user before any of that data reaches the frontend.
+A context namespace therefore sits downstream of authorization. A getter such as dashboard.getCurrentDashboard() surfaces data the backend already permissioned for this user; it performs no derivation, joining, or filtering of its own, so it cannot widen access beyond what the API returned. The namespace is a stable read surface over an already-authorized state — not a security boundary, and it does not need to be one. The new namespaces follow this principle by construction.
 
 Namespace normalization requirements
 
@@ -338,15 +323,26 @@ return store.getState().dashboard;
 would incorrectly expose internal dashboard state directly to extensions and would tightly couple extensions to the host implementation.
 Instead, namespaces must expose normalized semantic context objects.
 
-// ✅ Expose a stable semantic contract
-dashboard.getCurrentDashboard() {
+// ✅ Expose a stable semantic contract (normalized from Redux, not the raw slice)
+getCurrentDashboard(): DashboardContext | undefined {
+// built from dashboardInfo + nativeFilters + dataMask + sliceEntities, not a single store slice
 return {
-id: dashboard.id,
-title: dashboard.title,
-filters: dashboard.filters,
-charts: dashboard.visibleCharts,
-uiState: dashboard.uiState,
+id: dashboardState.id,
+title: dashboardState.title,
+charts:, //nomrmalized chartSummary[] from sliceEntities
+filters, //nomrmalized FilterValue[] from dataMask
+nativeFilters,
+slices
 };
+}
+// where each chart is reduced to a stable ChartSummary, mirroring ChartContext:
+
+interface ChartSummary {
+chartId: number;
+chartName: string;
+vizType: string;
+datasourceId: number | null;
+datasourceName: string | null;
 }
 
 Per-surface context contracts
@@ -364,9 +360,9 @@ It is not the primary authorization boundary; authorization remains enforced by 
 dashboard
 dashboard.getCurrentDashboard() exposes:
 dashboard identity
+All dashboard charts, each flagged with its current visibility (active-tab) state
 visible dashboard charts
 dashboard filter state
-dashboard UI-control state
 semantic dashboard context relevant to chatbot integrations
 The namespace should avoid exposing:
 unrelated internal dashboard rendering structures
@@ -386,10 +382,34 @@ frontend implementation-specific state structures
 
 dataset
 dataset.getCurrentDataset() exposes:
-dataset identity
-dataset metadata
-semantic dataset context relevant to the active page
-The namespace must remain aligned with backend-enforced dataset visibility and column-access semantics.
+dataset identity for the dataset the user is
+actively viewing or editing (e.g. on the dataset edit/creation pages):
+
+interface DatasetContext {
+datasetId: number;
+datasetName: string; // table name or virtual dataset name
+schema: string | null;
+catalog: string | null;
+databaseName: string | null;
+isVirtual: boolean; // SQL-defined dataset vs physical table
+}
+
+This contract is intentionally identity-only — it does not embed the dataset's
+columns. Column-level questions ("describe the columns of this dataset") are
+resolved by the chatbot backend looking the dataset up by `datasetId`, not by
+the frontend namespace. Likewise "which charts use this dataset" is a
+backend/MCP lookup keyed by `datasetId`; the namespace's role is only to surface
+which dataset is in focus.
+
+Unlike the dashboard/explore namespaces — which read already-populated Redux
+slices — this namespace is producer-backed: dataset page components publish the
+current dataset via a host-internal `setCurrentDataset` as their entity loads,
+and `getCurrentDataset()` returns `undefined` until they do. Wiring that producer
+is required; a contract exposed without it would return nothing at runtime.
+
+The namespace must remain aligned with backend-enforced dataset visibility and
+column-access semantics.
+
 navigation
 navigation exposes lightweight routing and surface context:
 page type
@@ -544,22 +564,29 @@ extension point to be implementable:
 
 - New `explore` namespace — current-chart getter (saved chart + chart data) plus a
   change event. Serves the `chart` page type (Explore view).
-  ✅ Implemented (`src/core/explore/index.ts`).
+  ⚠️partially implemented." (`src/core/explore/index.ts`).
 
 - New `dataset` namespace — current-dataset getter plus a change event. Serves the
-  `dataset` page type. ⚠️ Partially implemented (`src/core/dataset/index.ts`): the
-  namespace API exists but no dataset page component calls `setCurrentDataset`,
-  so the getter always returns `undefined` under normal usage. Wiring into the
-  dataset page lifecycle is pending.
+  `dataset` page type. ❌ Not implemented. An earlier draft of this namespace
+  (SDK type + host `src/core/dataset/index.ts`) was removed because the SDK
+  exported a typed contract with no runtime producer behind it. Re-introducing it
+  requires three things together: (1) restore the SDK `DatasetContext` type and
+  re-export it from `@apache-superset/core`, (2) restore the host impl with
+  `setCurrentDataset`, and (3) wire a dataset page component to call
+  `setCurrentDataset` as its entity loads. The contract is identity-only — see the
+  `dataset` per-surface section.
 
 - New `navigation` namespace — current-page getter and the `onDidChangePage` event.
   ✅ Implemented (`src/core/navigation/index.ts`).
 
 - Semantic normalization and stable extension-facing contracts for the new
-  `dashboard`, `explore`, `dataset`, and `navigation` namespaces. ✅ Implemented.
-  Both `explore` and `dashboard` getters are guarded by `navigation.getPageType()`
-  to return `undefined` when the user is not on the matching surface, enforcing
-  the documented API contract.
+  `dashboard`, `explore`, and `navigation` namespaces. ✅ Implemented (`dataset`
+  excluded — not yet implemented, see above). Both `explore` and `dashboard`
+  getters are guarded by `navigation.getPageType()` to return `undefined` when the
+  user is not on the matching surface, enforcing the documented API contract.
+  ⚠️ The `charts` field on `DashboardContext` (with per-chart `isVisible`) is
+  specified by this SIP but not yet implemented — the shipped contract is
+  `{ dashboardId, title, filters }`.
 
   This work also includes the permission-scoped dashboard-context backend
   endpoint required to align dashboard chatbot context with existing
@@ -608,10 +635,12 @@ extension point to be implementable:
   ⚠️ Remaining: `icon` field on `View` descriptor — admin picker currently uses
   extension name only.
 
-- P3 — Context namespaces. ✅ Mostly complete. `dashboard`, `explore`, `dataset`,
-  and `navigation` namespaces implemented with page-type guards on `explore` and
-  `dashboard`. ⚠️ Remaining: `dataset` page integration (`setCurrentDataset` call
-  sites) and the permission-scoped dashboard-context backend endpoint (§2.1).
+- P3 — Context namespaces. ⚠️ Partially complete. `dashboard`, `explore`, and
+  `navigation` namespaces implemented with page-type guards on `explore` and
+  `dashboard`. ⚠️ Remaining: the `dataset` namespace (not yet implemented — restore
+  SDK type + host impl, then wire `setCurrentDataset` into a dataset page), the
+  `charts` field on `DashboardContext`, and the permission-scoped dashboard-context
+  backend endpoint (§2.1).
 
 - P4 — Navigation/client-action commands. Out of this SIP's scope — owned by the
   client-actions SIP (Justin Park).
