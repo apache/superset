@@ -309,9 +309,6 @@ def import_dashboard(  # noqa: C901
     the same ownership check as the explicit overwrite path so non-owners
     cannot resurrect via re-import, and we raise rather than silently
     returning a soft-deleted row to callers without write permission.
-
-    See specs/sc-103157-soft-deletes/bypass-primer.md for the cross-entity
-    rules this implementation follows.
     """
     can_write = ignore_permissions or security_manager.can_access(
         "can_write",
