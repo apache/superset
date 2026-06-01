@@ -20,6 +20,7 @@ import { render } from '@testing-library/react';
 import {
   getOverrideHtmlSchema,
   SafeMarkdown,
+  transformLinkUri,
 } from '../../src/components/SafeMarkdown/SafeMarkdown';
 
 /**
@@ -49,6 +50,48 @@ describe('getOverrideHtmlSchema', () => {
     expect(result.clobberPrefix).toEqual('custom-prefix');
     expect(result.attributes).toEqual({ '*': ['size', 'src'], h1: ['style'] });
     expect(result.tagNames).toEqual(['h1', 'h2', 'h3', 'iframe']);
+  });
+});
+
+describe('transformLinkUri', () => {
+  // Build script-executing protocols via concatenation so the literal URLs
+  // don't trip the no-script-url lint rule.
+  const js = `java${'script'}`;
+  const vbs = `vb${'script'}`;
+
+  test.each([
+    `${js}:alert(1)`,
+    `Java${'Script'}:alert(1)`,
+    `  ${js}:alert(document.cookie)`,
+    `java\t${'script'}:alert(1)`,
+    `${vbs}:msgbox(1)`,
+    'data:text/html,<script>alert(1)</script>',
+  ])('blocks the script-executing protocol in %p', uri => {
+    expect(transformLinkUri(uri)).toBe('');
+  });
+
+  test.each([
+    'https://superset.apache.org',
+    'http://example.com/path?q=1',
+    'mailto:someone@example.com',
+    '/relative/path',
+    '#section',
+  ])('keeps the safe URL %p unchanged', uri => {
+    expect(transformLinkUri(uri)).toBe(uri);
+  });
+
+  test.each([
+    'custom-scheme://open/thing',
+    'slack://channel?id=1',
+    `foo:bar?${js}:alert(1)`,
+  ])('preserves custom link scheme %p (see #26211)', uri => {
+    expect(transformLinkUri(uri)).toBe(uri);
+  });
+
+  test('handles empty and nullish input', () => {
+    expect(transformLinkUri('')).toBe('');
+    // @ts-expect-error -- guarding runtime nullish input
+    expect(transformLinkUri(undefined)).toBe('');
   });
 });
 

@@ -31,6 +31,43 @@ interface SafeMarkdownProps {
   htmlSchemaOverrides?: typeof defaultSchema;
 }
 
+// Link protocols that can execute script when used as an href.
+const DANGEROUS_LINK_PROTOCOLS = ['javascript', 'vbscript', 'data'];
+
+/**
+ * Sanitize link hrefs without using react-markdown's default protocol
+ * allowlist, which would strip the custom link schemes that Superset markdown
+ * is expected to support (see #26211). Instead of allowlisting known-safe
+ * protocols, this blocks the protocols that enable script execution and leaves
+ * everything else (http(s), mailto, relative URLs, anchors and custom schemes)
+ * untouched. Applied regardless of the EscapeMarkdownHtml feature flag.
+ */
+export function transformLinkUri(uri: string): string {
+  const url = (uri || '').trim();
+  const first = url.charAt(0);
+  // Anchors and absolute/relative paths have no protocol.
+  if (first === '#' || first === '/') {
+    return url;
+  }
+  const colon = url.indexOf(':');
+  if (colon === -1) {
+    return url;
+  }
+  // A ':' after a '?' or '#' belongs to the query/fragment, not a scheme.
+  const queryIndex = url.indexOf('?');
+  if (queryIndex !== -1 && colon > queryIndex) {
+    return url;
+  }
+  const hashIndex = url.indexOf('#');
+  if (hashIndex !== -1 && colon > hashIndex) {
+    return url;
+  }
+  // Whitespace inside the scheme (e.g. "java\tscript:") is ignored by browsers,
+  // so strip it before comparing against the blocklist.
+  const scheme = url.slice(0, colon).replace(/\s/g, '').toLowerCase();
+  return DANGEROUS_LINK_PROTOCOLS.includes(scheme) ? '' : url;
+}
+
 export function getOverrideHtmlSchema(
   originalSchema: typeof defaultSchema,
   htmlSchemaOverrides: SafeMarkdownProps['htmlSchemaOverrides'],
@@ -82,7 +119,7 @@ export function SafeMarkdown({
       rehypePlugins={rehypePlugins}
       remarkPlugins={[remarkGfm]}
       skipHtml={false}
-      transformLinkUri={null}
+      transformLinkUri={transformLinkUri}
     >
       {source}
     </ReactMarkdown>
