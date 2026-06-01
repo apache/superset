@@ -14,12 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Add deleted_at column and index to slices for soft-delete (sc-106189).
+"""Add deleted_at column and index to slices for soft-delete.
 
 Adds a nullable ``deleted_at`` column and an index on it to the
-``slices`` table to support soft deletion of charts (sc-103157 /
-sc-106189). Companion to the ``SoftDeleteMixin`` infrastructure
-shipped in sc-106188.
+``slices`` table to support soft deletion of charts. Companion to
+the ``SoftDeleteMixin`` infrastructure shipped in PR #39977.
 
 Revision ID: 7c4a8d09ca37
 Revises: 33d7e0e21daa
