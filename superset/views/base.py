@@ -22,7 +22,7 @@ import logging
 import os
 import traceback
 from datetime import datetime
-from typing import Any, Callable, cast, Iterable
+from typing import Any, Callable, cast
 
 from flask import (
     abort,
@@ -430,6 +430,14 @@ def get_default_spinner_svg() -> str | None:
         return None
 
 
+def _get_frontend_config_value(key: str) -> Any:
+    """Get frontend config value, converting sets to lists for JSON compatibility."""
+    val = app.config.get(key)
+    if isinstance(val, set):
+        return list(val)
+    return val
+
+
 @cache_manager.cache.memoize(timeout=60)
 def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     user_id: int | None, locale: str | None
@@ -441,14 +449,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
     """
 
     # should not expose API TOKEN to frontend
-    frontend_config = {
-        k: (
-            list(cast(Iterable[Any], app.config.get(k)))
-            if isinstance(app.config.get(k), set)
-            else app.config.get(k)
-        )
-        for k in FRONTEND_CONF_KEYS
-    }
+    frontend_config = {k: _get_frontend_config_value(k) for k in FRONTEND_CONF_KEYS}
 
     if app.config.get("SLACK_API_TOKEN"):
         frontend_config["ALERT_REPORTS_NOTIFICATION_METHODS"] = [
