@@ -178,6 +178,23 @@ def test_handle_query_error_with_troubleshooting_link(
     assert payload["link"] == "https://help.example.com"
 
 
+def test_handle_query_error_no_stacktrace_when_format_exc_empty(
+    mocker: MockerFixture, app_context: None, mock_query: MagicMock
+) -> None:
+    """Test that stacktrace key is omitted when traceback.format_exc returns empty."""
+    from superset.sql.execution.celery_task import _handle_query_error
+
+    mocker.patch("superset.sql.execution.celery_task.db.session")
+    mocker.patch(
+        "superset.sql.execution.celery_task.traceback.format_exc", return_value=""
+    )
+
+    ex = Exception("Error")
+    payload = _handle_query_error(ex, mock_query)
+
+    assert "stacktrace" not in payload
+
+
 # =============================================================================
 # Serialization Tests
 # =============================================================================
