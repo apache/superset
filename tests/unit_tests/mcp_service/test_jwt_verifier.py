@@ -684,7 +684,7 @@ async def test_expired_token_during_decode(hs256_verifier):
     with patch.object(
         hs256_verifier.jwt,
         "decode",
-        side_effect=ExpiredTokenError(),
+        side_effect=ExpiredTokenError("exp"),
     ):
         result = await hs256_verifier.load_access_token(token)
 
