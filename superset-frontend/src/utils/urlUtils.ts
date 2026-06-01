@@ -182,8 +182,18 @@ function getPermalink(
  * proxy doesn't forward `X-Forwarded-Host` (docker-light, K8s services
  * without ingress rewriting, etc.), the URL carries an internal hostname
  * unreachable from the user's browser.
+ *
+ * Operator opt-OUT: the Flask config
+ * `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE` (default False) returns the
+ * backend-supplied URL untouched. Operators whose reverse proxy correctly
+ * forwards `X-Forwarded-Host` AND who want permalinks to carry the backend's
+ * literal origin can set the flag to True.
  */
 export function rewritePermalinkOrigin(url: string): string {
+  const conf = getBootstrapData().common?.conf ?? {};
+  if (conf.EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE === true) {
+    return url;
+  }
   const browsingOrigin = window.location.origin;
   if (!browsingOrigin) {
     return url;

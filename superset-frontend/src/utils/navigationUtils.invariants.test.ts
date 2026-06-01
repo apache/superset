@@ -332,11 +332,6 @@ test('DIRECT_DOM_NAV_ALLOWLIST has no stale entries', () => {
 const HARDCODED_SUPERSET_LITERAL_PATTERN = /['"`]\/superset(?:[/?#]|['"`])/;
 
 const HARDCODED_SUPERSET_LITERAL_ALLOWLIST: string[] = [
-  // Deferred to Slice 8 step 1 (edit-mode dashboard URL emitters):
-  // `dashboardState.ts` `navigateTo` (:542) and
-  // `navigateWithState({event:'dashboard_properties_changed'})` (:596) still
-  // emit full-reload URLs that must preserve the post-save history state arg.
-  'src/dashboard/actions/dashboardState.ts',
   // Test-fixture helpers (referenced as production data but shaped as the
   // legacy URL the backend used to emit). Drop after `Dashboard.url` etc.
   // stop returning `/superset/...`. The paired

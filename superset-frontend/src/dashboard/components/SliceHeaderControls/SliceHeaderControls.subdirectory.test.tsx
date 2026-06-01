@@ -24,6 +24,25 @@ import SliceHeaderControls, { SliceHeaderControlsProps } from '.';
 // Subdirectory-specific regressions live here so the existing 676-line
 // SliceHeaderControls.test.tsx doesn't need to mock getBootstrapData.
 
+// Slice 8 M7 verification gate (2026-06-01) — DO NOT switch this file to
+// `spec/helpers/withApplicationRoot.ts`. The fixture does
+// `jest.resetModules()` + dynamic `import('src/utils/getBootstrapData')` to
+// install a fixture-configured applicationRoot. But `SliceHeaderControls` is
+// imported statically at the top of this file; its transitive dependency
+// chain (`SliceHeaderControls` → `navigationUtils` → `pathUtils` →
+// `getBootstrapData::applicationRoot`) is bound to the pre-reset module
+// instance. After `withApplicationRoot('/superset')` resets modules and
+// re-imports getBootstrapData on the test side, the statically-imported
+// component continues to reach the OLD module whose `application_root` was
+// empty at first evaluation — so the rendered tree resolves
+// `applicationRoot()` to `''`, NOT `/superset`. Gate (a) of the M7 go/no-go
+// fails ("the rendered SliceHeaderControls tree must resolve
+// applicationRoot() to the fixture-configured value"). The hand-rolled
+// `jest.mock('src/utils/getBootstrapData', ...)` below remains until a
+// later slice either (i) defers the SliceHeaderControls import into the
+// withApplicationRoot callback or (ii) plumbs application_root through
+// React context rather than a module-scoped cache.
+
 // Name must start with `mock` so Jest's hoisted jest.mock() factory may
 // reference it. `default` returns a static shape (not mockApplicationRoot)
 // because consumers like setupClient.ts call getBootstrapData() at import
