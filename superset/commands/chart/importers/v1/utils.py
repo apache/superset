@@ -21,6 +21,7 @@ from typing import Any
 
 from superset import db, security_manager
 from superset.commands.exceptions import ImportFailedError
+from superset.commands.importers.v1.utils import find_existing_for_import
 from superset.migrations.shared.migrate_viz import processors
 from superset.migrations.shared.migrate_viz.base import MigrateViz
 from superset.models.slice import Slice
@@ -78,8 +79,12 @@ def import_chart(
     (which would let them reattach dashboards to a deleted chart).
     """
     can_write = ignore_permissions or security_manager.can_access("can_write", "Chart")
-    from superset.commands.importers.v1.utils import find_existing_for_import
-
+    # `user` is None for background / example-loader paths (no Flask request
+    # user). Combined with ``can_write=True`` (typically from
+    # ``ignore_permissions=True``), the ownership check below is intentionally
+    # skipped because the caller has already established trust at the command
+    # level. This matches pre-existing overwrite behaviour but now also applies
+    # to soft-deleted matches via ``needs_mutation``.
     user = get_user()
 
     if existing := find_existing_for_import(Slice, config["uuid"]):
@@ -146,7 +151,7 @@ def import_chart(
     if chart.id is None:
         db.session.flush()
 
-    if (user := get_user()) and user not in chart.owners:
+    if user and user not in chart.owners:
         chart.owners.append(user)
 
     return chart
