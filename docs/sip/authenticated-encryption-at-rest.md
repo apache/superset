@@ -22,8 +22,10 @@ under the License.
 ## [DRAFT — proposal for discussion]
 
 This document is a draft proposal accompanying the code in this PR. It is
-intended to seed the formal SIP discussion; the code change here is the
-backward-compatible first step (engine selection), **not** the full migration.
+intended to seed the formal SIP discussion. The code here ships the
+backward-compatible engine selection **and** the re-encryption migrator
+(Phases 1–2 below); both are opt-in and change nothing for existing installs by
+default. Flipping the default for fresh installs (Phase 3) remains future work.
 
 ## Motivation
 
@@ -69,20 +71,23 @@ broken:
 - This lets **new** deployments choose AES-GCM from day one with a one-line
   config, instead of writing a custom adapter.
 
-### Phase 2 — CBC→GCM re-encryption migrator
+### Phase 2 — CBC→GCM re-encryption migrator (this PR)
 
-Extend the existing `SecretsMigrator` (today used for `SECRET_KEY` rotation) to
-support an **engine migration** mode that:
+The existing `SecretsMigrator` (previously only used for `SECRET_KEY` rotation)
+gains an **engine migration** mode that:
 
-1. discovers every `EncryptedType` column (it already does this via
-   `discover_encrypted_fields()`),
+1. discovers every `EncryptedType` column (via `discover_encrypted_fields()`),
 2. decrypts each value with the **source** engine (AES-CBC) under the current
    `SECRET_KEY`,
 3. re-encrypts with the **target** engine (AES-GCM),
-4. runs transactionally per the existing all-or-nothing semantics.
+4. runs transactionally per the existing all-or-nothing semantics, and is
+   idempotent per column (already-migrated values are skipped), so a run can be
+   safely repeated or resumed.
 
-Exposed as a CLI command (e.g. `superset re-encrypt-secrets --engine aes-gcm`),
-runnable by operators with a DB backup in hand.
+Exposed via a new `--engine` option on the existing CLI command:
+`superset re-encrypt-secrets --engine aes-gcm`, runnable by operators with a DB
+backup in hand. The `SECRET_KEY` is unchanged; an engine change and a key
+rotation can also be combined (pass `--previous_secret_key` as well).
 
 ### Phase 3 — flip the default for new installs
 
@@ -119,6 +124,10 @@ Once the migrator and docs are in place, change the default to `"aes-gcm"` for
 
 ## Open questions
 
-- Should Phase 2 support GCM→CBC rollback for operators who need queryability?
-- Should the migrator support concurrent SECRET_KEY rotation + engine change in
-  a single pass (it already handles previous-key decryption)?
+- GCM→CBC rollback (for operators who need queryability) already works via the
+  same command (`re-encrypt-secrets --engine aes`), since the migrator is
+  engine-symmetric. Should rollback be documented as a supported path or
+  discouraged?
+- The migrator already supports a concurrent `SECRET_KEY` rotation + engine
+  change in a single pass (pass `--previous_secret_key` alongside `--engine`).
+  Is that combination worth calling out in the operator docs, or kept advanced?
