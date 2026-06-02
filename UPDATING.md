@@ -165,7 +165,7 @@ Saves of charts, dashboards, and datasets now automatically produce a version hi
 | `GET` | `/api/v1/{resource}/<uuid>/versions/<version_uuid>/` | Get a single version snapshot (scalar fields at that version; plus `columns` / `metrics` for datasets) |
 | `POST` | `/api/v1/{resource}/<uuid>/versions/<version_uuid>/restore` | Restore the entity to the state captured by that version |
 
-`<version_uuid>` is a deterministic `UUIDv5` derived from the entity's UUID and the Continuum transaction id — stable across replicas and retention pruning. Authorisation reuses the resource's existing `can_write` permission; workspace admins can list/restore any entity.
+`<version_uuid>` is a deterministic `UUIDv5` derived from the entity's UUID and the Continuum transaction id — stable across replicas and retention pruning. Authorisation reuses the resource's existing FAB permissions: list/get require `can_read`; restore requires `can_write`. Object-level access is enforced via `security_manager.raise_for_access`, so viewers who can see the entity can also see its history; only writers can restore.
 
 **Version response shape — `changes` array:**
 

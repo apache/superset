@@ -26,12 +26,14 @@ existing call sites.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from datetime import datetime
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
+from superset.utils.core import get_user_id
 from superset.versioning.queries import find_active_by_uuid
 from superset.versioning.utils import single_flush_scope
 
@@ -55,7 +57,7 @@ def restore_version(
     model_cls: type,
     entity_uuid: UUID,
     version_num: int,
-) -> Optional[Any]:
+) -> Any | None:
     """Restore the entity identified by *entity_uuid* to the state captured
     by *version_num* (0-based, as returned by
     :func:`superset.versioning.queries.list_versions`).
@@ -127,12 +129,7 @@ def _stamp_audit_fields_for_restore(entity: Any) -> None:
     current time and current user id, so that the restore is attributed
     to the restoring user rather than the version snapshot's original
     author."""
-    # pylint: disable=import-outside-toplevel
-    from datetime import datetime
-
-    from superset.utils.core import get_user_id
-
     if hasattr(entity, "changed_on"):
-        entity.changed_on = datetime.now()
+        entity.changed_on = datetime.utcnow()
     if hasattr(entity, "changed_by_fk"):
         entity.changed_by_fk = get_user_id()

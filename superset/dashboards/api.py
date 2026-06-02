@@ -20,6 +20,7 @@ import logging
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Callable, cast
+from uuid import UUID
 from zipfile import is_zipfile, ZipFile
 
 import rison
@@ -84,6 +85,7 @@ from superset.commands.importers.exceptions import NoValidFilesFoundError
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
+from superset.daos.version import VersionDAO
 from superset.dashboards.filters import (
     DashboardAccessFilter,
     DashboardCertifiedFilter,
@@ -119,7 +121,10 @@ from superset.dashboards.schemas import (
     TabsPayloadSchema,
     thumbnail_query_schema,
 )
-from superset.exceptions import ScreenshotImageNotAvailableException
+from superset.exceptions import (
+    ScreenshotImageNotAvailableException,
+    SupersetSecurityException,
+)
 from superset.extensions import event_logger, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
@@ -139,6 +144,7 @@ from superset.utils.screenshots import (
     ScreenshotCachePayload,
 )
 from superset.utils.urls import get_url_path
+from superset.versioning.etag import set_version_etag, set_version_etag_by_uuid
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -527,9 +533,6 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
-        from superset.daos.version import VersionDAO
-        from superset.versioning.etag import set_version_etag
-
         return set_version_etag(
             self.response(200, result=result),
             VersionDAO.current_live_version_uuid(Dashboard, dash.id, dash.uuid),
@@ -865,7 +868,6 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
 
         # pylint: disable=import-outside-toplevel
-        from superset.daos.version import VersionDAO
         from superset.extensions import db as _db
 
         pre_dashboard = (
@@ -903,8 +905,6 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                 old_version_uuid=str(old_version_uuid) if old_version_uuid else None,
                 new_version_uuid=str(new_version_uuid) if new_version_uuid else None,
             )
-            from superset.versioning.etag import set_version_etag
-
             set_version_etag(response, new_version_uuid)
         except DashboardNotFoundError:
             response = self.response_404()
@@ -2342,12 +2342,6 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        # pylint: disable=import-outside-toplevel
-        from uuid import UUID
-
-        from superset.daos.version import VersionDAO
-        from superset.exceptions import SupersetSecurityException
-
         try:
             entity_uuid = UUID(uuid_str)
         except ValueError:
@@ -2357,15 +2351,13 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         if entity is None:
             return self.response_404()
         try:
-            security_manager.raise_for_ownership(entity)
+            security_manager.raise_for_access(dashboard=entity)
         except SupersetSecurityException:
             return self.response_403()
 
         versions = VersionDAO.list_versions(Dashboard, entity_uuid, entity=entity)
         if versions is None:
             return self.response_404()
-        from superset.versioning.etag import set_version_etag_by_uuid
-
         return set_version_etag_by_uuid(
             self.response(200, result=versions, count=len(versions)),
             Dashboard,
@@ -2420,12 +2412,6 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        # pylint: disable=import-outside-toplevel
-        from uuid import UUID
-
-        from superset.daos.version import VersionDAO
-        from superset.exceptions import SupersetSecurityException
-
         try:
             entity_uuid = UUID(uuid_str)
         except ValueError:
@@ -2439,7 +2425,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         if entity is None:
             return self.response_404()
         try:
-            security_manager.raise_for_ownership(entity)
+            security_manager.raise_for_access(dashboard=entity)
         except SupersetSecurityException:
             return self.response_403()
 
@@ -2448,8 +2434,6 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         )
         if snapshot is None:
             return self.response_404()
-        from superset.versioning.etag import set_version_etag_by_uuid
-
         return set_version_etag_by_uuid(
             self.response(200, result=snapshot), Dashboard, entity_uuid
         )
@@ -2509,8 +2493,6 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/422'
         """
         # pylint: disable=import-outside-toplevel
-        from uuid import UUID
-
         from superset.commands.dashboard.restore_version import (
             RestoreDashboardVersionCommand,
         )
@@ -2533,8 +2515,6 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         except DashboardUpdateFailedError as ex:
             logger.error("Error restoring dashboard version: %s", ex)
             return self.response_422(message=str(ex))
-        from superset.versioning.etag import set_version_etag_by_uuid
-
         return set_version_etag_by_uuid(
             self.response(200, message="OK"), Dashboard, entity_uuid
         )
