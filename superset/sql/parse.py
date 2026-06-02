@@ -1369,6 +1369,28 @@ class SQLScript:
         """
         return ";\n".join(statement.format(comments) for statement in self.statements)
 
+    @property
+    def has_unparseable_statement(self) -> bool:
+        """
+        True if any statement in the script cannot be fully modeled as an
+        AST whose table references Superset can enumerate. This covers two
+        cases that must both fail closed under strict scoping:
+
+        * SQLGlot ``exp.Command`` nodes: statements sqlglot recognises but
+          cannot fully parse (e.g. dynamic SQL inside a stored-procedure
+          call); ``extract_tables_from_statement`` cannot see the tables.
+        * Non-sqlglot engines (e.g. Kusto KQL): the statement class does
+          not produce a sqlglot AST at all and its
+          ``_extract_tables_from_statement`` returns an empty set, so the
+          per-table check would have nothing to enforce against.
+        """
+        for statement in self.statements:
+            if not isinstance(statement, SQLStatement):
+                return True
+            if isinstance(statement._parsed, exp.Command):  # noqa: SLF001
+                return True
+        return False
+
     def get_settings(self) -> dict[str, str | bool]:
         """
         Return the settings for the SQL script.
