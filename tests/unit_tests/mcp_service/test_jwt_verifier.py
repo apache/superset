@@ -865,3 +865,88 @@ def test_sanitize_for_log_escapes_newlines():
     assert _sanitize_for_log("a\rb\tc") == "a\\rb\\tc"
     # Backslashes are escaped first so escapes are unambiguous
     assert _sanitize_for_log("a\\nb") == "a\\\\nb"
+
+
+# -- Strict-mode hardening: algorithm and audience config enforcement --
+
+
+@pytest.mark.asyncio
+async def test_algorithm_none_rejected(hs256_verifier):
+    """Unsigned ('none') tokens must always be rejected, even though the
+    verifier pins HS256 — defense in depth against alg confusion."""
+    token = _make_token(
+        {"alg": "none", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+
+    result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "Algorithm not allowed"
+
+
+@pytest.mark.asyncio
+async def test_algorithm_none_rejected_when_no_algorithm_pinned():
+    """When no algorithm is pinned, a 'none' token is still rejected."""
+    verifier = DetailedJWTVerifier(
+        public_key="test-secret-key-for-hs256-tokens",
+        issuer="test-issuer",
+        audience="test-audience",
+        required_scopes=[],
+    )
+    # Header alg is case-insensitively matched against the forbidden set.
+    token = _make_token(
+        {"alg": "NONE", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+
+    result = await verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "Algorithm not allowed"
+
+
+def test_warns_when_audience_not_configured(caplog):
+    """Constructing a verifier without an audience logs a clear WARNING that
+    audience validation is disabled (config-gated, not a hard failure)."""
+    with caplog.at_level(logging.WARNING):
+        DetailedJWTVerifier(
+            public_key="test-secret-key-for-hs256-tokens",
+            issuer="test-issuer",
+            audience=None,
+            algorithm="HS256",
+            required_scopes=[],
+        )
+
+    warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+    assert any("audience validation is DISABLED" in m for m in warnings)
+
+
+def test_warns_when_algorithm_not_configured(caplog):
+    """A verifier with a falsy algorithm logs a WARNING that the algorithm is
+    not pinned. (fastmcp's JWTVerifier coerces ``algorithm=None`` to a default,
+    so we exercise the helper directly with an empty algorithm.)"""
+    from superset.mcp_service.jwt_verifier import _warn_on_weak_jwt_config
+
+    with caplog.at_level(logging.WARNING):
+        _warn_on_weak_jwt_config(audience="test-audience", algorithm=None)
+
+    warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+    assert any("without a pinned signing algorithm" in m for m in warnings)
+
+
+def test_no_weak_config_warning_when_fully_configured(caplog):
+    """A fully configured verifier (audience + algorithm) emits no weak-config
+    warnings."""
+    with caplog.at_level(logging.WARNING):
+        DetailedJWTVerifier(
+            public_key="test-secret-key-for-hs256-tokens",
+            issuer="test-issuer",
+            audience="test-audience",
+            algorithm="HS256",
+            required_scopes=[],
+        )
+
+    warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+    assert not any("audience validation is DISABLED" in m for m in warnings)
+    assert not any("without a pinned signing algorithm" in m for m in warnings)

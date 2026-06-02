@@ -90,6 +90,76 @@ class MCPNoAuthSourceError(ValueError):
     """
 
 
+def _sanitize_iss_for_log(value: Any) -> str:
+    """Escape control characters in an issuer claim before logging.
+
+    The ``iss`` claim is attacker-controlled and may contain newlines that
+    could forge or split log lines; collapse them to keep one log entry.
+    """
+    return (
+        str(value)
+        .replace("\\", "\\\\")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    )
+
+
+# Maps a tool's method permission (read/write/delete) to the OAuth-style token
+# scope it requires. Used by ``check_tool_permission`` for scope-aware
+# authorization: enforcement is the INTERSECTION of token scopes and DB RBAC.
+# Only applied when the token actually carries scopes — see that function.
+_METHOD_TO_REQUIRED_SCOPE = {
+    "read": "superset:read",
+    "write": "superset:write",
+    "delete": "superset:write",
+}
+
+
+def _get_token_scopes() -> set[str] | None:
+    """Return the set of scopes on the current JWT access token, or None.
+
+    Returns None when there is no JWT context or the token carries no scopes,
+    so callers can fall back to RBAC-only behavior (back-compat for API-key and
+    scope-less JWT deployments). Returns a (possibly populated) set only when
+    the token explicitly advertises scopes.
+    """
+    try:
+        from fastmcp.server.dependencies import get_access_token
+    except ImportError:
+        return None
+
+    try:
+        access_token = get_access_token()
+    except Exception:  # noqa: BLE001 - no JWT context for this request
+        return None
+
+    if access_token is None:
+        return None
+
+    scopes = getattr(access_token, "scopes", None)
+    if not scopes:
+        # Token present but no scopes advertised: do NOT enforce scope checks.
+        return None
+    return {str(s) for s in scopes}
+
+
+def _token_scope_allows(method_permission_name: str) -> bool:
+    """Return whether the current token's scopes permit the given method.
+
+    Back-compat: returns True (allow) when the token carries no scopes or there
+    is no JWT context, so deployments not using scopes keep RBAC-only behavior.
+    Only when the token advertises scopes is the mapped required scope enforced.
+    """
+    token_scopes = _get_token_scopes()
+    if token_scopes is None:
+        return True
+    required_scope = _METHOD_TO_REQUIRED_SCOPE.get(method_permission_name)
+    if required_scope is None:
+        return True
+    return required_scope in token_scopes
+
+
 class MCPPermissionDeniedError(PermissionError):
     """Raised when user lacks required RBAC permission for an MCP tool.
 
@@ -172,6 +242,36 @@ def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) 
         has_permission = security_manager.can_access(
             permission_str, class_permission_name
         )
+
+        # Scope-aware authorization: enforce the INTERSECTION of token scopes
+        # and DB RBAC. A tool is allowed only if the user has the RBAC
+        # permission AND the token carries the required scope.
+        #
+        # Back-compat: scope enforcement applies ONLY when the token actually
+        # advertises scopes. Tokens/deployments that don't use scopes (API keys,
+        # scope-less JWTs, dev-mode) fall through to RBAC-only behavior — see
+        # ``_token_scope_allows``.
+        if has_permission and not _token_scope_allows(method_permission_name):
+            required_scope = _METHOD_TO_REQUIRED_SCOPE.get(method_permission_name)
+            if log_denial:
+                logger.warning(
+                    "Scope denied for user %s: token lacks required scope "
+                    "'%s' for %s on %s (tool: %s)",
+                    g.user.username,
+                    required_scope,
+                    permission_str,
+                    class_permission_name,
+                    func.__name__,
+                )
+            else:
+                logger.debug(
+                    "Tool hidden for user %s: token lacks required scope "
+                    "'%s' (tool: %s)",
+                    g.user.username,
+                    required_scope,
+                    func.__name__,
+                )
+            return False
 
         if not has_permission:
             if log_denial:
@@ -312,7 +412,34 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
             " processing as JWT"
         )
 
+    # Multi-issuer safety: when more than one issuer is trusted, a bare
+    # username/email lookup is NOT issuer-scoped, so two issuers that mint the
+    # same username/email claim would resolve to the same Superset user.
+    #
+    # Single-issuer deployments (the common case) are safe — the issuer is
+    # already pinned by the verifier, so the username space is unambiguous and
+    # we keep the existing lookup key to avoid breaking them. For multi-issuer
+    # configs we warn: operators should provide an issuer-aware MCP_USER_RESOLVER
+    # that derives a compound (iss + sub) identity. This is the least-breaking
+    # correct option (warn, don't change the key out from under existing
+    # single-issuer deployments).
+    configured_issuer = app.config.get("MCP_JWT_ISSUER")
+    if isinstance(configured_issuer, (list, tuple, set)) and len(configured_issuer) > 1:
+        if not app.config.get("MCP_USER_RESOLVER"):
+            token_iss = claims.get("iss") if isinstance(claims, dict) else None
+            logger.warning(
+                "Multiple JWT issuers are trusted (MCP_JWT_ISSUER is a list) but "
+                "the default user resolver maps token claims to Superset users by "
+                "username/email without binding the issuer (iss=%s). Distinct "
+                "issuers minting the same username/email will collide. Configure an "
+                "issuer-aware MCP_USER_RESOLVER to derive a compound (iss+sub) "
+                "identity.",
+                _sanitize_iss_for_log(token_iss),
+            )
+
     # Use configurable resolver or default
+    from superset.mcp_service.mcp_config import default_user_resolver
+
     resolver = app.config.get("MCP_USER_RESOLVER", default_user_resolver)
     username = resolver(app, access_token)
 

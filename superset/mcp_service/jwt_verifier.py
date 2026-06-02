@@ -58,6 +58,41 @@ from superset.utils import json
 
 logger = logging.getLogger(__name__)
 
+# Algorithms that are never acceptable for bearer-token verification.
+# "none" (unsigned tokens) must never be honored — accepting it would let any
+# caller forge claims. Comparison is case-insensitive to catch "None"/"NONE".
+_FORBIDDEN_ALGORITHMS = frozenset({"none"})
+
+
+def _warn_on_weak_jwt_config(
+    audience: Any,
+    algorithm: Any,
+) -> None:
+    """Emit startup warnings when a JWT verifier is configured permissively.
+
+    These are config-gated soft warnings, not hard failures: a verifier is only
+    ever constructed when ``MCP_AUTH_ENABLED`` is True and JWT keys are present
+    (see ``create_default_mcp_auth_factory``). We warn — rather than refuse to
+    start — so existing single-service deployments that intentionally omit an
+    audience or rely on JWKS-advertised algorithms keep working. Operators who
+    want strict enforcement should set ``MCP_JWT_AUDIENCE`` and
+    ``MCP_JWT_ALGORITHM``.
+    """
+    if not audience:
+        logger.warning(
+            "MCP JWT verifier configured without an audience "
+            "(MCP_JWT_AUDIENCE unset): audience validation is DISABLED. "
+            "Tokens minted for other services may be accepted. Set "
+            "MCP_JWT_AUDIENCE to bind tokens to this service."
+        )
+    if not algorithm:
+        logger.warning(
+            "MCP JWT verifier configured without a pinned signing algorithm "
+            "(MCP_JWT_ALGORITHM unset): the algorithm header is not pinned. "
+            "Set MCP_JWT_ALGORITHM to the algorithm your IdP uses. Unsigned "
+            "('none') tokens are always rejected regardless of this setting."
+        )
+
 
 # Thread-safe storage for the specific JWT failure reason.
 # Set by DetailedJWTVerifier.load_access_token() on failure,
@@ -355,6 +390,15 @@ class MCPJWTVerifier(JWTVerifier):
     page is active regardless of which verifier variant is configured.
     """
 
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        # Surface permissive auth configuration at startup. Config-gated:
+        # a verifier is only built when auth is enabled (see mcp_config).
+        _warn_on_weak_jwt_config(
+            audience=getattr(self, "audience", None),
+            algorithm=getattr(self, "algorithm", None),
+        )
+
     def get_middleware(self) -> list[Any]:
         return [
             Middleware(
@@ -435,6 +479,19 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 return None
 
             token_alg = header.get("alg")
+            # Always reject unsigned ("none") tokens, even when no algorithm
+            # is pinned. An unsigned token has no integrity guarantee, so its
+            # claims (sub, scopes, ...) are fully attacker-controlled.
+            if isinstance(token_alg, str) and token_alg.lower() in (
+                _FORBIDDEN_ALGORITHMS
+            ):
+                reason = "Algorithm not allowed"
+                _jwt_failure_reason.set(reason)
+                logger.debug(
+                    "Rejected forbidden algorithm: token uses '%s'",
+                    _sanitize_for_log(token_alg),
+                )
+                return None
             if self.algorithm and token_alg != self.algorithm:
                 reason = "Algorithm mismatch"
                 _jwt_failure_reason.set(reason)
