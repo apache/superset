@@ -224,3 +224,45 @@ def test_get_mcp_config_respects_app_config_override() -> None:
     custom = {"execute_sql", "health_check"}
     config = get_mcp_config({"MCP_DISABLED_TOOLS": custom})
     assert config["MCP_DISABLED_TOOLS"] == custom
+
+
+def test_build_composite_verifier_string_prefix():
+    """A plain-string FAB_API_KEY_PREFIXES is wrapped into a single-element list."""
+    from superset.mcp_service.mcp_config import _build_composite_verifier
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: (
+        "sst_" if key == "FAB_API_KEY_PREFIXES" else default
+    )
+
+    result = _build_composite_verifier(mock_app, jwt_verifier=None)
+
+    assert result._api_key_prefixes == ("sst_",)
+
+
+def test_build_composite_verifier_list_prefix():
+    """A list FAB_API_KEY_PREFIXES is passed through as-is."""
+    from superset.mcp_service.mcp_config import _build_composite_verifier
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: (
+        ["sst_", "api_"] if key == "FAB_API_KEY_PREFIXES" else default
+    )
+
+    result = _build_composite_verifier(mock_app, jwt_verifier=None)
+
+    assert result._api_key_prefixes == ("sst_", "api_")
+
+
+def test_build_composite_verifier_invalid_prefix_falls_back_to_default():
+    """A non-iterable FAB_API_KEY_PREFIXES (e.g. None) falls back to ['sst_']."""
+    from superset.mcp_service.mcp_config import _build_composite_verifier
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: (
+        None if key == "FAB_API_KEY_PREFIXES" else default
+    )
+
+    result = _build_composite_verifier(mock_app, jwt_verifier=None)
+
+    assert result._api_key_prefixes == ("sst_",)
