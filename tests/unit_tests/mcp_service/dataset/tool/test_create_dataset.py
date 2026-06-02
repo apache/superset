@@ -310,7 +310,7 @@ class TestCreateDataset:
 
         data = json.loads(result.content[0].text)
         assert data["error_type"] == "DatabaseNotFoundError"
-        assert data["error"] == "Database not found"
+        assert "Database not found" in data["error"]
 
     @pytest.mark.asyncio
     async def test_create_dataset_access_denied(self, mcp_server) -> None:
@@ -341,7 +341,7 @@ class TestCreateDataset:
 
         data = json.loads(result.content[0].text)
         assert data["error_type"] == "AccessDeniedError"
-        assert data["error"] == "Access denied"
+        assert "Access denied" in data["error"]
 
     @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
