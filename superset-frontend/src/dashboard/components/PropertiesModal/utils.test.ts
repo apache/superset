@@ -60,13 +60,14 @@ test('builds a new owner from the option text label when not already in state', 
 });
 
 test('falls back to a string label when the option has no text label', () => {
+  // No option in the cache => email stays undefined (not an empty string).
   expect(
     parseSelectedOwners([{ value: 4, label: 'Plain Name' }], [], []),
-  ).toEqual([{ id: 4, full_name: 'Plain Name', email: '' }]);
+  ).toEqual([{ id: 4, full_name: 'Plain Name', email: undefined }]);
 });
 
 test('yields an empty name for a non-string label with no text label', () => {
   expect(parseSelectedOwners([{ value: 5, label: 1 }], [], [])).toEqual([
-    { id: 5, full_name: '', email: '' },
+    { id: 5, full_name: '', email: undefined },
   ]);
 });
