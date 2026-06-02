@@ -264,6 +264,29 @@ class UUIDMixin:  # pylint: disable=too-few-public-methods
         UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
     )
 
+    @validates("uuid")
+    def _coerce_uuid(self, key: str, value: Any) -> Any:  # noqa: ARG002
+        # ``UUIDType`` only coerces on SQL bind / SQL result. Importers and
+        # ad-hoc construction (e.g., ``SqlMetric(uuid="…string…")``) leave
+        # the in-memory attribute as a ``str`` until the next DB round-trip
+        # refreshes it. SQLAlchemy-Continuum versioning on a child mapper
+        # (``TableColumn``, ``SqlMetric``) changes the post-INSERT
+        # attribute-expire behaviour enough that the refresh doesn't happen
+        # before the caller reads the attribute, breaking
+        # ``test_import_dataset``'s ``metric.uuid == uuid.UUID(...)``
+        # assertion (string-vs-UUID inequality). Coerce defensively here
+        # so callers always see a ``UUID``, regardless of where the value
+        # came from. Pass non-UUID-shaped strings through unchanged so test
+        # mocks with placeholder strings (e.g. ``"dashboard-uuid-7"``)
+        # still work — the SQL bind layer will surface a clearer error
+        # if such a value is ever written to the DB.
+        if isinstance(value, str):
+            try:
+                return uuid.UUID(value)
+            except (ValueError, AttributeError):
+                return value
+        return value
+
     @property
     def short_uuid(self) -> str:
         return str(self.uuid)[:8]
@@ -546,14 +569,23 @@ class ImportExportMixin(UUIDMixin):
 
     def reset_ownership(self) -> None:
         """object will belong to the user the current user"""
-        # make sure the object doesn't have relations to a user
-        # it will be filled by appbuilder on save
-        self.created_by = None
-        self.changed_by = None
-        # flask global context might not exist (in cli or tests for example)
+        # Reset the audit pointers. When a Flask request context is
+        # available we explicitly stamp the current user, otherwise we
+        # leave the attributes unset so Flask-AppBuilder's column
+        # defaults fill them in on save. An explicit assignment is
+        # required because once the ``created_by`` / ``changed_by``
+        # relationships are configured (which happens eagerly on models
+        # registered with SQLAlchemy-Continuum), setting them to
+        # ``None`` propagates to the FK column and suppresses the
+        # ``default=`` callable.
         self.owners = []
-        if g and hasattr(g, "user"):
+        if g and hasattr(g, "user") and g.user:
+            self.created_by = g.user
+            self.changed_by = g.user
             self.owners = [g.user]
+        else:
+            self.created_by = None
+            self.changed_by = None
 
     @property
     def params_dict(self) -> dict[Any, Any]:
