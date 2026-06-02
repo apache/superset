@@ -25,6 +25,7 @@ import {
   core,
   commands,
   dashboard,
+  dataset,
   editors,
   explore,
   extensions,
@@ -45,6 +46,7 @@ declare global {
       core: typeof core;
       commands: typeof commands;
       dashboard: typeof dashboard;
+      dataset: typeof dataset;
       editors: typeof editors;
       explore: typeof explore;
       extensions: typeof extensions;
@@ -108,6 +110,7 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       core,
       commands,
       dashboard,
+      dataset,
       editors,
       explore,
       extensions,

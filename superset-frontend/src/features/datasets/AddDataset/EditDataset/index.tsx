@@ -16,9 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import useGetDatasetRelatedCounts from 'src/features/datasets/hooks/useGetDatasetRelatedCounts';
+import { useSingleViewResource } from 'src/views/CRUD/hooks';
+import { setCurrentDataset } from 'src/core/dataset';
 import { Badge } from '@superset-ui/core/components';
 import Tabs from '@superset-ui/core/components/Tabs';
 
@@ -47,6 +50,13 @@ interface EditPageProps {
   id: string;
 }
 
+// Stable no-op error handler so `useSingleViewResource`'s `fetchResource`
+// keeps a stable identity across renders (it lists the handler in its deps).
+// An inline handler would change every render and re-trigger the fetch effect,
+// causing an update loop. Fetch failure is non-fatal here — the dataset
+// context simply stays empty.
+const noopErrorHandler = () => {};
+
 const TRANSLATIONS = {
   USAGE_TEXT: t('Usage'),
   COLUMNS_TEXT: t('Columns'),
@@ -61,6 +71,45 @@ const TABS_KEYS = {
 
 const EditPage = ({ id }: EditPageProps) => {
   const { usageCount } = useGetDatasetRelatedCounts(id);
+
+  // Publish the focused dataset to the `dataset` extension namespace so chatbot
+  // extensions can read which dataset the user is editing. Cleared on unmount.
+  const {
+    state: { resource: datasetResource },
+    fetchResource,
+  } = useSingleViewResource<{
+    id: number;
+    table_name?: string;
+    schema?: string | null;
+    catalog?: string | null;
+    sql?: string | null;
+    is_sqllab_view?: boolean;
+    database?: { database_name?: string };
+  }>('dataset', t('dataset'), noopErrorHandler);
+
+  useEffect(() => {
+    const datasetId = Number(id);
+    if (!Number.isNaN(datasetId)) {
+      fetchResource(datasetId);
+    }
+    // `fetchResource` is stable (noopErrorHandler keeps its identity fixed);
+    // fetch only when the id changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
+
+  useEffect(() => {
+    if (!datasetResource) return undefined;
+    setCurrentDataset({
+      datasetId: datasetResource.id,
+      datasetName: datasetResource.table_name ?? String(datasetResource.id),
+      schema: datasetResource.schema ?? null,
+      catalog: datasetResource.catalog ?? null,
+      databaseName: datasetResource.database?.database_name ?? null,
+      isVirtual:
+        Boolean(datasetResource.sql) || !!datasetResource.is_sqllab_view,
+    });
+    return () => setCurrentDataset(undefined);
+  }, [datasetResource]);
 
   const usageTab = (
     <TabStyles>
