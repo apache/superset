@@ -14,24 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-# pylint: disable=too-few-public-methods
-from __future__ import annotations
-
-from typing import Any, Optional, TYPE_CHECKING
-
-from superset import security_manager
-from superset.commands.sql_lab.execute import CanAccessQueryValidator
-
-if TYPE_CHECKING:
-    from superset.models.sql_lab import Query
-
-
-class CanAccessQueryValidatorImpl(CanAccessQueryValidator):
-    def validate(
-        self, query: Query, template_params: Optional[dict[str, Any]] = None
-    ) -> None:
-        security_manager.raise_for_access(
-            query=query,
-            template_params=template_params,
-            force_dataset_match=True,
-        )

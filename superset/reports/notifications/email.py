@@ -100,13 +100,19 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     def _error_template(self, text: str) -> str:
         call_to_action = self._get_call_to_action()
+        # The error text is derived from exception messages that can embed
+        # data-controlled content (e.g. crafted table/column names in a DB
+        # error). Strip all HTML before interpolating it into the email body,
+        # matching the sanitization applied to the normal content path.
+        # pylint: disable=no-member
+        safe_text = nh3.clean(text, tags=set(), attributes={})
         return __(
             """
             <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
             <p>Please check your dashboard/chart for errors.</p>
             <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
             """,  # noqa: E501
-            text=text,
+            text=safe_text,
             url=self._content.url,
             call_to_action=call_to_action,
         )
