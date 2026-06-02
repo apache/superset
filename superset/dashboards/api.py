@@ -243,6 +243,7 @@ BASE_LIST_COLUMNS = [
     "created_by.id",
     "created_by.last_name",
     "dashboard_title",
+    "localized_title",
     "editors.id",
     "editors.label",
     "editors.type",
