@@ -129,7 +129,7 @@ test('returns empty array if timeseries_limit_metric is an empty array', () => {
   expect(
     extractExtraMetrics({
       ...baseFormData,
-      // @ts-ignore
+      // @ts-expect-error
       timeseries_limit_metric: [],
     }),
   ).toEqual([]);

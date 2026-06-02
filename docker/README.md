@@ -34,8 +34,24 @@ intended for use with local development.
 
 ### Local overrides
 
+#### Environment Variables
+
+To override environment variables locally, create a `./docker/.env-local` file (git-ignored). This file will be loaded after `.env` and can override any settings.
+
+#### Python Configuration
+
 In order to override configuration settings locally, simply make a copy of [`./docker/pythonpath_dev/superset_config_local.example`](./pythonpath_dev/superset_config_local.example)
-into `./docker/pythonpath_dev/superset_config_docker.py` (git ignored) and fill in your overrides.
+into `./docker/pythonpath_dev/superset_config_docker.py` (git-ignored) and fill in your overrides.
+
+#### WebSocket Configuration
+
+To customize the WebSocket server configuration, create `./docker/superset-websocket/config.json` (git-ignored) based on [`./docker/superset-websocket/config.example.json`](./superset-websocket/config.example.json).
+
+Then update the `superset-websocket`.`volumes` config to mount it.
+
+#### Docker Compose Overrides
+
+For advanced Docker Compose customization, create a `docker-compose-override.yml` file (git-ignored) to override or extend services without modifying the main compose file.
 
 ### Local packages
 
@@ -60,6 +76,34 @@ To run the container, simply run: `docker compose up`
 
 After waiting several minutes for Superset initialization to finish, you can open a browser and view [`http://localhost:8088`](http://localhost:8088)
 to start your journey.
+
+### Running Multiple Instances
+
+If you need to run multiple Superset instances simultaneously (e.g., different branches or clones), use the make targets which automatically find available ports:
+
+```bash
+make up
+```
+
+This automatically:
+- Generates a unique project name from your directory
+- Finds available ports (incrementing from defaults if in use)
+- Displays the assigned URLs before starting
+
+Available commands (run from repo root):
+
+| Command | Description |
+|---------|-------------|
+| `make up` | Start services (foreground) |
+| `make up-detached` | Start services (background) |
+| `make down` | Stop all services |
+| `make ps` | Show running containers |
+| `make logs` | Follow container logs |
+| `make nuke` | Stop, remove volumes & local images |
+
+From a subdirectory, use: `make -C $(git rev-parse --show-toplevel) up`
+
+**Important**: Always use these commands instead of plain `docker compose down`, which won't know the correct project name.
 
 ## Developing
 

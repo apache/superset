@@ -55,7 +55,8 @@ test('support for extra classes', () => {
 test('Different image path', () => {
   render(<Loading image="/src/assets/images/loading.gif" />);
   const loading = screen.getByRole('status');
-  const imagePath = loading.getAttribute('src');
+  const image = loading.querySelector('img');
+  const imagePath = image?.getAttribute('src');
   expect(loading).toBeInTheDocument();
   expect(imagePath).toBe('/src/assets/images/loading.gif');
 });

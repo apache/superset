@@ -17,8 +17,9 @@
  * under the License.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { t, SupersetClient } from '@superset-ui/core';
+import { useMemo, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import RoleListAddModal from 'src/features/roles/RoleListAddModal';
 import RoleListEditModal from 'src/features/roles/RoleListEditModal';
@@ -34,12 +35,15 @@ import {
   type ListViewActionProps,
   type ListViewFilters,
 } from 'src/components';
-import { FormattedPermission, UserObject } from 'src/features/roles/types';
+import { UserObject } from 'src/features/roles/types';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { fetchPaginatedData } from 'src/utils/fetchOptions';
 import { fetchUserOptions } from 'src/features/groups/utils';
-import { GroupObject } from '../GroupsList';
+import {
+  fetchGroupOptions,
+  fetchPermissionOptions,
+} from 'src/features/roles/utils';
+import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 
 const PAGE_SIZE = 25;
 
@@ -99,49 +103,8 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
   const [currentRole, setCurrentRole] = useState<RoleObject | null>(null);
   const [roleCurrentlyDeleting, setRoleCurrentlyDeleting] =
     useState<RoleObject | null>(null);
-  const [permissions, setPermissions] = useState<FormattedPermission[]>([]);
-  const [groups, setGroups] = useState<GroupObject[]>([]);
-  const [loadingState, setLoadingState] = useState({
-    permissions: true,
-    groups: true,
-  });
 
   const isAdmin = useMemo(() => isUserAdmin(user), [user]);
-
-  const fetchPermissions = useCallback(() => {
-    fetchPaginatedData({
-      endpoint: '/api/v1/security/permissions-resources/',
-      setData: setPermissions,
-      setLoadingState,
-      loadingKey: 'permissions',
-      addDangerToast,
-      errorMessage: 'Error while fetching permissions',
-      mapResult: ({ permission, view_menu, id }) => ({
-        label: `${permission.name.replace(/_/g, ' ')} ${view_menu.name.replace(/_/g, ' ')}`,
-        value: `${permission.name}__${view_menu.name}`,
-        id,
-      }),
-    });
-  }, [addDangerToast]);
-
-  const fetchGroups = useCallback(() => {
-    fetchPaginatedData({
-      endpoint: '/api/v1/security/groups/',
-      setData: setGroups,
-      setLoadingState,
-      loadingKey: 'groups',
-      addDangerToast,
-      errorMessage: t('Error while fetching groups'),
-    });
-  }, [addDangerToast]);
-
-  useEffect(() => {
-    fetchPermissions();
-  }, [fetchPermissions]);
-
-  useEffect(() => {
-    fetchGroups();
-  }, [fetchGroups]);
 
   const handleRoleDelete = async ({ id, name }: RoleObject) => {
     try {
@@ -188,6 +151,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         accessor: 'name',
         id: 'name',
         Header: t('Name'),
+        size: 'xxl',
         Cell: ({
           row: {
             original: { name },
@@ -206,7 +170,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         id: 'group_ids',
         Header: t('Groups'),
         hidden: true,
-        Cell: ({ row: { original } }: any) => original.groups_ids.join(', '),
+        Cell: ({ row: { original } }: any) => original.group_ids.join(', '),
       },
       {
         accessor: 'permission_ids',
@@ -273,23 +237,18 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
   if (isAdmin) {
     subMenuButtons.push(
       {
-        name: (
-          <>
-            <Icons.PlusOutlined iconSize="m" />
-            {t('Role')}
-          </>
-        ),
+        name: t('Bulk select'),
+        onClick: toggleBulkSelect,
+        buttonStyle: 'secondary',
+      },
+      {
+        icon: <Icons.PlusOutlined iconSize="m" />,
+        name: t('Role'),
         buttonStyle: 'primary',
         onClick: () => {
           openModal(ModalType.ADD);
         },
-        loading: loadingState.permissions,
         'data-test': 'add-role-button',
-      },
-      {
-        name: t('Bulk select'),
-        onClick: toggleBulkSelect,
-        buttonStyle: 'secondary',
       },
     );
   }
@@ -302,6 +261,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         id: 'name',
         input: 'search',
         operator: FilterOperator.Contains,
+        inputName: 'role_list_search',
       },
       {
         Header: t('Users'),
@@ -312,6 +272,7 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         unfilteredLabel: t('All'),
         fetchSelects: async (filterValue, page, pageSize) =>
           fetchUserOptions(filterValue, page, pageSize, addDangerToast),
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Permissions'),
@@ -320,11 +281,9 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         input: 'select',
         operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
-        selects: permissions?.map(permission => ({
-          label: permission.label,
-          value: permission.id,
-        })),
-        loading: loadingState.permissions,
+        fetchSelects: async (filterValue, page, pageSize) =>
+          fetchPermissionOptions(filterValue, page, pageSize, addDangerToast),
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Groups'),
@@ -333,14 +292,12 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         input: 'select',
         operator: FilterOperator.RelationOneMany,
         unfilteredLabel: t('All'),
-        selects: groups?.map(group => ({
-          label: group.name,
-          value: group.id,
-        })),
-        loading: loadingState.groups,
+        fetchSelects: async (filterValue, page, pageSize) =>
+          fetchGroupOptions(filterValue, page, pageSize, addDangerToast),
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
-    [permissions, groups, loadingState.groups, loadingState.permissions],
+    [addDangerToast],
   );
 
   const emptyState = {
@@ -369,7 +326,6 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
           refreshData();
           closeModal(ModalType.ADD);
         }}
-        permissions={permissions}
       />
       {modalState.edit && currentRole && (
         <RoleListEditModal
@@ -380,8 +336,6 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
             refreshData();
             closeModal(ModalType.EDIT);
           }}
-          permissions={permissions}
-          groups={groups}
         />
       )}
       {modalState.duplicate && currentRole && (

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import {
   useChartEditModal,
   useFavoriteStatus,
@@ -71,7 +71,6 @@ function ChartTable({
   otherTabFilters,
   otherTabTitle,
 }: ChartTableProps) {
-  const theme = useTheme();
   const history = useHistory();
   const initialTab = getItem(
     LocalStorageKeys.HomepageChartFilter,
@@ -113,18 +112,19 @@ function ChartTable({
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
   const [loaded, setLoaded] = useState<boolean>(false);
 
-  const getData = (tab: TableTab) =>
-    fetchData({
-      pageIndex: 0,
-      pageSize: PAGE_SIZE,
-      sortBy: [
-        {
-          id: 'changed_on_delta_humanized',
-          desc: true,
-        },
-      ],
-      filters: getFilterValues(tab, WelcomeTable.Charts, user, otherTabFilters),
-    });
+  const getChartFetchDataConfig = (tab: TableTab) => ({
+    pageIndex: 0,
+    pageSize: PAGE_SIZE,
+    sortBy: [
+      {
+        id: 'changed_on_delta_humanized',
+        desc: true,
+      },
+    ],
+    filters: getFilterValues(tab, WelcomeTable.Charts, user, otherTabFilters),
+  });
+
+  const getData = (tab: TableTab) => fetchData(getChartFetchDataConfig(tab));
 
   useEffect(() => {
     if (loaded || activeTab === TableTab.Favorite) {
@@ -133,12 +133,17 @@ function ChartTable({
     setLoaded(true);
   }, [activeTab]);
 
-  const handleBulkChartExport = (chartsToExport: Chart[]) => {
+  const handleBulkChartExport = async (chartsToExport: Chart[]) => {
     const ids = chartsToExport.map(({ id }) => id);
-    handleResourceExport('chart', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('chart', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected charts'));
+    }
   };
 
   const menuTabs = [
@@ -188,16 +193,13 @@ function ChartTable({
         backgroundColor="transparent"
         buttons={[
           {
-            name: (
-              <>
-                <Icons.PlusOutlined
-                  iconSize="m"
-                  data-test="add-annotation-layer-button"
-                  iconColor={theme.colorPrimary}
-                />
-                {t('Chart')}
-              </>
+            icon: (
+              <Icons.PlusOutlined
+                iconSize="m"
+                data-test="add-annotation-layer-button"
+              />
             ),
+            name: t('Chart'),
             buttonStyle: 'secondary',
             onClick: () => {
               navigateTo('/chart/add', { assign: true });
@@ -233,6 +235,7 @@ function ChartTable({
               refreshData={refreshData}
               addDangerToast={addDangerToast}
               addSuccessToast={addSuccessToast}
+              getData={getData}
               favoriteStatus={favoriteStatus[e.id]}
               saveFavoriteStatus={saveFavoriteStatus}
               handleBulkChartExport={handleBulkChartExport}

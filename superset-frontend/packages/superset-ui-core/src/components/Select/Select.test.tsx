@@ -25,6 +25,7 @@ import {
   waitFor,
   within,
 } from '@superset-ui/core/spec';
+import { formatNumber } from '@superset-ui/core';
 import { Select } from '.';
 
 type Option = {
@@ -85,8 +86,10 @@ const getElementsByClassName = (className: string) =>
 const getSelect = () =>
   screen.getByRole('combobox', { name: new RegExp(ARIA_LABEL, 'i') });
 
-const selectAllButtonText = (length: number) => `Select all (${length})`;
-const deselectAllButtonText = (length: number) => `Deselect all (${length})`;
+const selectAllButtonText = (length: number) =>
+  `Select all (${formatNumber('SMART_NUMBER', length)})`;
+const deselectAllButtonText = (length: number) =>
+  `Clear (${formatNumber('SMART_NUMBER', length)})`;
 
 const findSelectOption = (text: string) =>
   waitFor(() =>
@@ -779,6 +782,94 @@ test('Renders only an overflow tag if dropdown is open in oneLine mode', async (
   expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
 });
 
+// Test for checking the issue described in: https://github.com/apache/superset/issues/35132
+test('Maintains stable maxTagCount to prevent click target disappearing in oneLine mode', async () => {
+  render(
+    <Select
+      {...defaultProps}
+      value={[OPTIONS[0], OPTIONS[1], OPTIONS[2]]}
+      mode="multiple"
+      oneLine
+    />,
+  );
+
+  const withinSelector = within(getElementByClassName('.ant-select-selector'));
+  expect(withinSelector.getByText(OPTIONS[0].label)).toBeVisible();
+  expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
+
+  await userEvent.click(getSelect());
+  expect(withinSelector.getByText(OPTIONS[0].label)).toBeVisible();
+
+  await waitFor(() => {
+    expect(
+      withinSelector.queryByText(OPTIONS[0].label),
+    ).not.toBeInTheDocument();
+    expect(withinSelector.getByText('+ 3 ...')).toBeVisible();
+  });
+
+  // Close dropdown
+  await type('{esc}');
+
+  expect(await withinSelector.findByText(OPTIONS[0].label)).toBeVisible();
+  expect(withinSelector.getByText('+ 2 ...')).toBeVisible();
+});
+
+test('dropdown width matches input width after tags collapse in oneLine mode', async () => {
+  render(
+    <div style={{ width: '300px' }}>
+      <Select
+        {...defaultProps}
+        value={[OPTIONS[0], OPTIONS[1], OPTIONS[2]]}
+        mode="multiple"
+        oneLine
+      />
+    </div>,
+  );
+
+  await open();
+
+  // Wait for RAF to complete and tags to collapse
+  await waitFor(() => {
+    const withinSelector = within(
+      getElementByClassName('.ant-select-selector'),
+    );
+    expect(
+      withinSelector.queryByText(OPTIONS[0].label),
+    ).not.toBeInTheDocument();
+    expect(withinSelector.getByText('+ 3 ...')).toBeVisible();
+  });
+
+  const selectElement = document.querySelector('.ant-select') as HTMLElement;
+  expect(selectElement).toBeInTheDocument();
+
+  // Mock the select element's width since JSDOM doesn't perform real layout
+  jest.spyOn(selectElement, 'getBoundingClientRect').mockReturnValue({
+    width: 300,
+    height: 32,
+    top: 0,
+    left: 0,
+    right: 300,
+    bottom: 32,
+    x: 0,
+    y: 0,
+    toJSON: () => ({}),
+  } as DOMRect);
+
+  // Close and reopen to trigger width measurement with mocked value
+  await type('{esc}');
+  await open();
+
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown',
+  ) as HTMLElement;
+  expect(dropdown).toBeInTheDocument();
+
+  // Verify the dropdown has inline width matching the mocked select width
+  await waitFor(() => {
+    expect(parseInt(dropdown.style.width, 10)).toBe(300);
+  });
+});
+
 test('does not render "Select all" when there are 0 or 1 options', async () => {
   const { rerender } = render(
     <Select {...defaultProps} options={[]} mode="multiple" allowNewOptions />,
@@ -881,6 +972,49 @@ test('"Select all" does not affect disabled options', async () => {
   await userEvent.click(await screen.findByText(selectAll));
   expect(await findSelectValue()).toHaveTextContent(options[0].label);
   expect(await findSelectValue()).not.toHaveTextContent(options[1].label);
+});
+
+test('abbreviates large numbers in bulk action buttons', async () => {
+  const manyOptions = Array.from({ length: 1500 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  render(<Select {...defaultProps} mode="multiple" options={manyOptions} />);
+  await open();
+  // SMART_NUMBER format uses lowercase 'k' for thousands (d3-format)
+  expect(await screen.findByText('Select all (1.5k)')).toBeInTheDocument();
+});
+
+test('dropdown takes full width of the select input for multi select', async () => {
+  render(
+    <div style={{ width: '400px' }}>
+      <Select {...defaultProps} mode="multiple" options={OPTIONS} />
+    </div>,
+  );
+  await open();
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown',
+  ) as HTMLElement;
+  expect(dropdown).toBeInTheDocument();
+  // When popupMatchSelectWidth is true, antd dynamically matches the
+  // trigger width and does not set a fixed inline width on the dropdown.
+  const widthValue = parseInt(dropdown.style.width, 10);
+  expect(Number.isNaN(widthValue) || widthValue === 0).toBe(true);
+});
+
+test('dropdown takes full width of the select input for single select', async () => {
+  render(
+    <div style={{ width: '400px' }}>
+      <Select {...defaultProps} mode="single" options={OPTIONS} />
+    </div>,
+  );
+  await open();
+  const dropdown = document.querySelector(
+    '.ant-select-dropdown',
+  ) as HTMLElement;
+  expect(dropdown).toBeInTheDocument();
+  const widthValue = parseInt(dropdown.style.width, 10);
+  expect(Number.isNaN(widthValue) || widthValue === 0).toBe(true);
 });
 
 test('does not fire onChange when searching but no selection', async () => {
@@ -1026,7 +1160,7 @@ test('does not fire onChange if the same value is selected in single mode', asyn
 
 // Reference for the bug this tests: https://github.com/apache/superset/pull/33043#issuecomment-2809419640
 test('typing and deleting the last character for a new option displays correctly', async () => {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ advanceTimers: true });
   render(<Select {...defaultProps} allowNewOptions />);
 
   await open();
@@ -1045,6 +1179,119 @@ test('typing and deleting the last character for a new option displays correctly
   expect(await findSelectOption('aaa')).toBeInTheDocument();
 
   jest.useRealTimers();
+});
+
+describe('grouped options search', () => {
+  const GROUPED_OPTIONS = [
+    {
+      label: 'Male',
+      options: OPTIONS.filter(option => option.gender === 'Male'),
+    },
+    {
+      label: 'Female',
+      options: OPTIONS.filter(option => option.gender === 'Female'),
+    },
+  ];
+
+  test('searches within grouped options and shows matching groups', async () => {
+    render(<Select {...defaultProps} options={GROUPED_OPTIONS} />);
+    await open();
+
+    await type('John');
+
+    expect(await findSelectOption('John')).toBeInTheDocument();
+    expect(await findSelectOption('Johnny')).toBeInTheDocument();
+    expect(screen.queryByText('Female')).not.toBeInTheDocument();
+    expect(screen.queryByText('Olivia')).not.toBeInTheDocument();
+    expect(screen.getByText('Male')).toBeInTheDocument();
+    expect(screen.queryByText('Female')).not.toBeInTheDocument();
+  });
+
+  test('shows multiple groups when search matches both', async () => {
+    render(<Select {...defaultProps} options={GROUPED_OPTIONS} />);
+    await open();
+
+    await type('er');
+
+    expect(screen.getByText('Male')).toBeInTheDocument();
+    expect(screen.getByText('Female')).toBeInTheDocument();
+    expect(await findSelectOption('Oliver')).toBeInTheDocument();
+    expect(await findSelectOption('Cher')).toBeInTheDocument();
+    expect(await findSelectOption('Her')).toBeInTheDocument();
+  });
+
+  test('handles case-insensitive search in grouped options', async () => {
+    render(<Select {...defaultProps} options={GROUPED_OPTIONS} />);
+    await open();
+
+    await type('EMMA');
+
+    expect(await findSelectOption('Emma')).toBeInTheDocument();
+    expect(screen.getByText('Female')).toBeInTheDocument();
+    expect(screen.queryByText('Male')).not.toBeInTheDocument();
+  });
+
+  test('shows no options when search matches nothing in any group', async () => {
+    render(<Select {...defaultProps} options={GROUPED_OPTIONS} />);
+    await open();
+
+    await type('xyz123');
+
+    expect(screen.queryByText('Male')).not.toBeInTheDocument();
+    expect(screen.queryByText('Female')).not.toBeInTheDocument();
+    expect(
+      screen.getByText(NO_DATA, { selector: '.ant-empty-description' }),
+    ).toBeInTheDocument();
+  });
+
+  test('works in multiple selection mode with grouped options', async () => {
+    render(
+      <Select {...defaultProps} options={GROUPED_OPTIONS} mode="multiple" />,
+    );
+    await open();
+
+    await type('John');
+
+    await userEvent.click(await findSelectOption('John'));
+
+    // Clear search and search for female name
+    await clearTypedText();
+    await type('Emma');
+    await userEvent.click(await findSelectOption('Emma'));
+
+    // Both should be selected
+    const values = await findAllSelectValues();
+    expect(values).toHaveLength(2);
+    expect(values[0]).toHaveTextContent('John');
+    expect(values[1]).toHaveTextContent('Emma');
+  });
+
+  test('preserves group structure when not searching', async () => {
+    render(<Select {...defaultProps} options={GROUPED_OPTIONS} />);
+    await open();
+
+    expect(screen.getByText('Male')).toBeInTheDocument();
+    expect(screen.getByText('Female')).toBeInTheDocument();
+    expect(await findSelectOption('John')).toBeInTheDocument();
+    expect(await findSelectOption('Emma')).toBeInTheDocument();
+  });
+
+  test('handles empty groups gracefully', async () => {
+    const optionsWithEmptyGroup = [
+      ...GROUPED_OPTIONS,
+      {
+        label: 'Empty Group',
+        options: [],
+      },
+    ];
+
+    render(<Select {...defaultProps} options={optionsWithEmptyGroup} />);
+    await open();
+
+    await type('John');
+    expect(await findSelectOption('John')).toBeInTheDocument();
+    expect(screen.queryByText('Empty Group')).not.toBeInTheDocument();
+  });
 });
 
 /*

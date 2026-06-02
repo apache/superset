@@ -17,8 +17,9 @@
  * under the License.
  */
 import { useState, useRef, useEffect } from 'react';
-import { useDispatch } from 'react-redux';
-import type { Table } from 'src/SqlLab/types';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
+import type { QueryEditor, SqlLabRootState, Table } from 'src/SqlLab/types';
 import {
   ButtonGroup,
   Card,
@@ -31,7 +32,8 @@ import {
   type CollapseProps,
 } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
-import { t, styled, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { debounce } from 'lodash';
 
 import {
@@ -74,7 +76,7 @@ const Fade = styled.div`
 const TableElement = ({ table, ...props }: TableElementProps) => {
   const { dbId, catalog, schema, name, expanded, id } = table;
   const theme = useTheme();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const {
     currentData: tableMetadata,
     isSuccess: isMetadataSuccess,
@@ -103,6 +105,19 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     },
     { skip: !expanded },
   );
+  const tableData = {
+    ...tableMetadata,
+    ...tableExtendedMetadata,
+  };
+  const queryEditors = useSelector<SqlLabRootState, QueryEditor[]>(
+    state => state.sqlLab.queryEditors,
+  );
+  const currentTable = { ...tableData, ...table };
+  const { queryEditorId } = currentTable;
+  const queryEditor = queryEditors.find(
+    qe => qe.id === queryEditorId || qe.tabViewId === queryEditorId,
+  );
+  const currentQueryEditorId = queryEditor?.tabViewId || queryEditorId;
 
   useEffect(() => {
     if (hasMetadataError || hasExtendedMetadataError) {
@@ -112,16 +127,16 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     }
   }, [hasMetadataError, hasExtendedMetadataError, dispatch]);
 
-  const tableData = {
-    ...tableMetadata,
-    ...tableExtendedMetadata,
-  };
-
   // TODO: migrate syncTable logic by SIP-93
   const syncTableMetadata = useEffectEvent(() => {
     const { initialized } = table;
-    if (!initialized) {
-      dispatch(syncTable(table, tableData));
+    // if not a valid number, wait for backend to assign one
+    const hasFinalQueryEditorId =
+      currentQueryEditorId &&
+      !Number.isNaN(Number(currentQueryEditorId)) &&
+      currentTable.queryEditorId !== currentQueryEditorId;
+    if (!initialized && hasFinalQueryEditorId) {
+      dispatch(syncTable(currentTable, tableData, currentQueryEditorId));
     }
   });
 
@@ -129,7 +144,12 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     if (isMetadataSuccess && isExtraMetadataSuccess) {
       syncTableMetadata();
     }
-  }, [isMetadataSuccess, isExtraMetadataSuccess, syncTableMetadata]);
+  }, [
+    isMetadataSuccess,
+    isExtraMetadataSuccess,
+    currentQueryEditorId,
+    syncTableMetadata,
+  ]);
 
   const [sortColumns, setSortColumns] = useState(false);
   const [hovered, setHovered] = useState(false);
@@ -152,7 +172,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     dispatch(
       tableApiUtil.invalidateTags([{ type: 'TableMetadatas', id: name }]),
     );
-    dispatch(syncTable(table, tableData));
+    dispatch(syncTable(table, tableData, table.queryEditorId));
   };
 
   const renderWell = () => {
@@ -231,7 +251,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
             >
               <Icons.TableOutlined
                 iconSize="m"
-                iconColor={theme.colors.primary.dark2}
+                iconColor={theme.colorPrimary}
               />
             </IconTooltip>
           }
@@ -368,7 +388,9 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
       <div data-test="table-element" css={{ paddingTop: 6 }}>
         {renderWell()}
         <div>
-          {cols?.map(col => <ColumnElement column={col} key={col.name} />)}
+          {cols?.map(col => (
+            <ColumnElement column={col} key={col.name} />
+          ))}
         </div>
       </div>
     );
@@ -378,7 +400,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
   return (
     <Collapse
       activeKey={props.activeKey}
-      expandIconPosition="right"
+      expandIconPosition="end"
       onChange={props.onChange}
       ghost
       items={[

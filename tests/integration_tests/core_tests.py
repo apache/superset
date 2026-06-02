@@ -41,7 +41,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mssql import MssqlEngineSpec
-from superset.exceptions import SupersetException
+from superset.exceptions import OAuth2RedirectError, SupersetException
 from superset.extensions import cache_manager
 from superset.models import core as models
 from superset.models.dashboard import Dashboard
@@ -85,11 +85,9 @@ class TestCore(SupersetTestCase):
         self.table_ids = {
             tbl.table_name: tbl.id for tbl in (db.session.query(SqlaTable).all())
         }
-        self.original_unsafe_db_setting = app.config["PREVENT_UNSAFE_DB_CONNECTIONS"]
 
     def tearDown(self):
         db.session.query(Query).delete()
-        app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] = self.original_unsafe_db_setting
         super().tearDown()
 
     def insert_dashboard_created_by(self, username: str) -> Dashboard:
@@ -244,7 +242,7 @@ class TestCore(SupersetTestCase):
                 (slc.slice_name, "explore", slc.slice_url),
             ]
         for name, method, url in urls:
-            logger.info(f"[{name}]/[{method}]: {url}")
+            logger.info("[%s]/[%s]: %s", name, method, url)
             print(f"[{name}]/[{method}]: {url}")
             resp = self.client.get(url)
             assert resp.status_code == 200
@@ -299,13 +297,13 @@ class TestCore(SupersetTestCase):
         def custom_password_store(uri):
             return "password_store_test"
 
-        models.custom_password_store = custom_password_store
-        conn = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
-        if conn_pre.password:
-            assert conn.password == "password_store_test"  # noqa: S105
-            assert conn.password != conn_pre.password
-        # Disable for password store for later tests
-        models.custom_password_store = None
+        with mock.patch.dict(
+            app.config, {"SQLALCHEMY_CUSTOM_PASSWORD_STORE": custom_password_store}
+        ):
+            conn = sqla.engine.url.make_url(database.sqlalchemy_uri_decrypted)
+            if conn_pre.password:
+                assert conn.password == "password_store_test"  # noqa: S105
+                assert conn.password != conn_pre.password
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_warm_up_cache_error(self) -> None:
@@ -459,6 +457,59 @@ class TestCore(SupersetTestCase):
 
         assert rv.status_code == 404
         assert data["error"] == "Cached data not found"
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @mock.patch("superset.viz.BaseViz.get_df")
+    def test_explore_json_propagates_oauth2_redirect_error(
+        self, mock_get_df: mock.Mock
+    ) -> None:
+        """
+        SupersetErrorException exceptions bubble up properly.
+        """
+        mock_get_df.side_effect = OAuth2RedirectError(
+            url="https://accounts.example.com/o/oauth2/v2/auth?...",
+            tab_id="tab-123",
+            redirect_uri="https://superset.example.com/oauth2/redirect",
+        )
+
+        self.login(ADMIN_USERNAME)
+        slc = self.get_slice("Life Expectancy VS Rural %")
+        rv = self.client.post(
+            f"/superset/explore_json/{slc.datasource_type}/{slc.datasource_id}/",
+            data={"form_data": json.dumps(slc.form_data)},
+        )
+        data = json.loads(rv.data.decode("utf-8"))
+
+        assert "errors" in data, data
+        assert data["errors"][0]["error_type"] == "OAUTH2_REDIRECT"
+        assert data["errors"][0]["extra"] == {
+            "url": "https://accounts.example.com/o/oauth2/v2/auth?...",
+            "tab_id": "tab-123",
+            "redirect_uri": "https://superset.example.com/oauth2/redirect",
+        }
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @mock.patch("superset.viz.BaseViz.get_df")
+    def test_explore_json_generic_exception_still_returns_viz_get_df_error(
+        self, mock_get_df: mock.Mock
+    ) -> None:
+        """
+        Non-Superset exceptions raised by ``get_df`` are reported as the
+        generic ``VIZ_GET_DF_ERROR``.
+        """
+        mock_get_df.side_effect = RuntimeError("boom")
+
+        self.login(ADMIN_USERNAME)
+        slc = self.get_slice("Life Expectancy VS Rural %")
+        rv = self.client.post(
+            f"/superset/explore_json/{slc.datasource_type}/{slc.datasource_id}/",
+            data={"form_data": json.dumps(slc.form_data)},
+        )
+        data = json.loads(rv.data.decode("utf-8"))
+
+        assert "errors" in data, data
+        assert data["errors"][0]["error_type"] == "VIZ_GET_DF_ERROR"
+        assert data["errors"][0]["message"] == "boom"
 
     def test_results_default_deserialization(self):
         use_new_deserialization = False
@@ -861,7 +912,7 @@ class TestCore(SupersetTestCase):
 
 class TestLocalePatch(SupersetTestCase):
     MOCK_LANGUAGES = (
-        "superset.views.filters.current_app.config",
+        "flask.current_app.config",
         {
             "LANGUAGES": {
                 "es": {"flag": "es", "name": "Español"},

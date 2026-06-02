@@ -27,14 +27,16 @@ import {
   useState,
 } from 'react';
 import { useSelector } from 'react-redux';
+import { editors } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocColumn,
   isAdhocColumn,
-  t,
-  styled,
-  css,
   DatasourceType,
+  Metric,
+  QueryFormMetric,
 } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/theme';
 import { ColumnMeta, isSavedExpression } from '@superset-ui/chart-controls';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -42,13 +44,13 @@ import {
   Form,
   FormItem,
   Select,
-  SQLEditor,
   EmptyState,
 } from '@superset-ui/core/components';
 
 import sqlKeywords from 'src/SqlLab/utils/sqlKeywords';
 import { getColumnKeywords } from 'src/explore/controlUtils/getColumnKeywords';
 import { StyledColumnOption } from 'src/explore/components/optionRenderers';
+import SQLEditorWithValidation from 'src/components/SQLEditorWithValidation';
 import {
   POPOVER_INITIAL_HEIGHT,
   POPOVER_INITIAL_WIDTH,
@@ -74,10 +76,24 @@ const StyledSelect = styled(Select)`
   }
 `;
 
+const MetricOptionContainer = styled.div`
+  display: flex;
+  align-items: center;
+`;
+
+const MetricIcon = styled.span`
+  margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
+  color: ${({ theme }) => theme.colorSuccess};
+`;
+
+const MetricLabel = styled.span`
+  color: ${({ theme }) => theme.colorText};
+`;
+
 export interface ColumnSelectPopoverProps {
   columns: ColumnMeta[];
   editedColumn?: ColumnMeta | AdhocColumn;
-  onChange: (column: ColumnMeta | AdhocColumn) => void;
+  onChange: (column: ColumnMeta | AdhocColumn | Metric) => void;
   onClose: () => void;
   hasCustomLabel: boolean;
   setLabel: (title: string) => void;
@@ -86,6 +102,9 @@ export interface ColumnSelectPopoverProps {
   isTemporal?: boolean;
   setDatasetModal?: Dispatch<SetStateAction<boolean>>;
   disabledTabs?: Set<string>;
+  metrics?: Metric[];
+  selectedMetrics?: QueryFormMetric[];
+  datasource?: any;
 }
 
 const getInitialColumnValues = (
@@ -115,10 +134,18 @@ const ColumnSelectPopover = ({
   setDatasetModal,
   setLabel,
   disabledTabs = new Set<'saved' | 'simple' | 'sqlExpression'>(),
+  metrics = [],
+  selectedMetrics = [],
+  datasource,
 }: ColumnSelectPopoverProps) => {
+  // const theme = useTheme(); // Unused variable
   const datasourceType = useSelector<ExplorePageState, string | undefined>(
     state => state.explore.datasource.type,
   );
+  const compatibleDimensions = useSelector<
+    ExplorePageState,
+    string[] | null | undefined
+  >(state => state.explore.compatibleDimensions);
   const [initialLabel] = useState(label);
   const [initialAdhocColumn, initialCalculatedColumn, initialSimpleColumn] =
     getInitialColumnValues(editedColumn);
@@ -132,6 +159,9 @@ const ColumnSelectPopover = ({
   const [selectedSimpleColumn, setSelectedSimpleColumn] = useState<
     ColumnMeta | undefined
   >(initialSimpleColumn);
+  const [selectedMetric, setSelectedMetric] = useState<Metric | undefined>(
+    undefined,
+  );
   const [selectedTab, setSelectedTab] = useState<string | null>(null);
 
   const [resizeButton, width, height] = useResizeButton(
@@ -139,40 +169,62 @@ const ColumnSelectPopover = ({
     POPOVER_INITIAL_HEIGHT,
   );
 
-  const sqlEditorRef = useRef(null);
+  const sqlEditorRef = useRef<editors.EditorHandle>(null);
 
-  const [calculatedColumns, simpleColumns] = useMemo(
+  const [calculatedColumns, simpleColumns] = useMemo(() => {
+    const [calc, simple] = (columns ?? []).reduce(
+      (acc: [ColumnMeta[], ColumnMeta[]], column: ColumnMeta) => {
+        if (column.expression) {
+          acc[0].push(column);
+        } else {
+          acc[1].push(column);
+        }
+        return acc;
+      },
+      [[], []],
+    );
+    const alpha = (a: ColumnMeta, b: ColumnMeta) =>
+      (a.column_name ?? '').localeCompare(b.column_name ?? '');
+    return [calc.sort(alpha), simple.sort(alpha)];
+  }, [columns]);
+
+  // Filter metrics that are already selected in the chart
+  const availableMetrics = useMemo(() => {
+    if (!metrics?.length) return [];
+    const selectedMetricsSet = new Set(selectedMetrics);
+    return metrics.filter(metric => selectedMetricsSet.has(metric.metric_name));
+  }, [metrics, selectedMetrics]);
+
+  const columnMap = useMemo(
+    () => Object.fromEntries(simpleColumns.map(col => [col.column_name, col])),
+    [simpleColumns],
+  );
+  const metricMap = useMemo(
     () =>
-      columns?.reduce(
-        (acc: [ColumnMeta[], ColumnMeta[]], column: ColumnMeta) => {
-          if (column.expression) {
-            acc[0].push(column);
-          } else {
-            acc[1].push(column);
-          }
-          return acc;
-        },
-        [[], []],
+      Object.fromEntries(
+        availableMetrics.map(metric => [metric.metric_name, metric]),
       ),
-    [columns],
+    [availableMetrics],
   );
 
   const onSqlExpressionChange = useCallback(
-    sqlExpression => {
+    (sqlExpression: string) => {
       setAdhocColumn({ label, sqlExpression, expressionType: 'SQL' });
       setSelectedSimpleColumn(undefined);
       setSelectedCalculatedColumn(undefined);
+      setSelectedMetric(undefined);
     },
     [label],
   );
 
   const onCalculatedColumnChange = useCallback(
-    selectedColumnName => {
+    (selectedColumnName: string) => {
       const selectedColumn = calculatedColumns.find(
         col => col.column_name === selectedColumnName,
       );
       setSelectedCalculatedColumn(selectedColumn);
       setSelectedSimpleColumn(undefined);
+      setSelectedMetric(undefined);
       setAdhocColumn(undefined);
       setLabel(
         selectedColumn?.verbose_name || selectedColumn?.column_name || '',
@@ -182,18 +234,51 @@ const ColumnSelectPopover = ({
   );
 
   const onSimpleColumnChange = useCallback(
-    selectedColumnName => {
+    (selectedColumnName: string) => {
       const selectedColumn = simpleColumns.find(
         col => col.column_name === selectedColumnName,
       );
       setSelectedCalculatedColumn(undefined);
       setSelectedSimpleColumn(selectedColumn);
+      setSelectedMetric(undefined);
       setAdhocColumn(undefined);
       setLabel(
         selectedColumn?.verbose_name || selectedColumn?.column_name || '',
       );
     },
     [setLabel, simpleColumns],
+  );
+
+  const onSimpleMetricChange = useCallback(
+    (selectedMetricName: string) => {
+      const selectedMetric = availableMetrics.find(
+        metric => metric.metric_name === selectedMetricName,
+      );
+      setSelectedCalculatedColumn(undefined);
+      setSelectedSimpleColumn(undefined);
+      setSelectedMetric(selectedMetric);
+      setAdhocColumn(undefined);
+      setLabel(
+        selectedMetric?.verbose_name || selectedMetric?.metric_name || '',
+      );
+    },
+    [setLabel, availableMetrics],
+  );
+
+  const onSimpleItemChange = useCallback(
+    (selectedValue: string) => {
+      const selectedColumn = columnMap[selectedValue];
+      if (selectedColumn) {
+        onSimpleColumnChange(selectedValue);
+        return;
+      }
+
+      const selectedMetric = metricMap[selectedValue];
+      if (selectedMetric) {
+        onSimpleMetricChange(selectedValue);
+      }
+    },
+    [columnMap, metricMap, onSimpleColumnChange, onSimpleMetricChange],
   );
 
   const defaultActiveTabKey = initialAdhocColumn
@@ -239,10 +324,11 @@ const ColumnSelectPopover = ({
     }
     const selectedColumn =
       adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
-    if (!selectedColumn) {
+    const selectedItem = selectedColumn || selectedMetric;
+    if (!selectedItem) {
       return;
     }
-    onChange(selectedColumn);
+    onChange(selectedItem);
     onClose();
   }, [
     adhocColumn,
@@ -251,11 +337,13 @@ const ColumnSelectPopover = ({
     onClose,
     selectedCalculatedColumn,
     selectedSimpleColumn,
+    selectedMetric,
   ]);
 
   const onResetStateAndClose = useCallback(() => {
     setSelectedCalculatedColumn(initialCalculatedColumn);
     setSelectedSimpleColumn(initialSimpleColumn);
+    setSelectedMetric(undefined);
     setAdhocColumn(initialAdhocColumn);
     onClose();
   }, [
@@ -266,19 +354,13 @@ const ColumnSelectPopover = ({
   ]);
 
   const onTabChange = useCallback(
-    tab => {
+    (tab: string) => {
       getCurrentTab(tab);
       setSelectedTab(tab);
-      // @ts-ignore
-      sqlEditorRef.current?.editor.focus();
+      sqlEditorRef.current?.focus();
     },
     [getCurrentTab],
   );
-
-  const onSqlEditorFocus = useCallback(() => {
-    // @ts-ignore
-    sqlEditorRef.current?.editor.resize();
-  }, []);
 
   const setDatasetAndClose = () => {
     if (setDatasetModal) {
@@ -288,16 +370,20 @@ const ColumnSelectPopover = ({
   };
 
   const stateIsValid =
-    adhocColumn || selectedCalculatedColumn || selectedSimpleColumn;
+    adhocColumn ||
+    selectedCalculatedColumn ||
+    selectedSimpleColumn ||
+    selectedMetric;
   const hasUnsavedChanges =
     initialLabel !== label ||
     selectedCalculatedColumn?.column_name !==
       initialCalculatedColumn?.column_name ||
     selectedSimpleColumn?.column_name !== initialSimpleColumn?.column_name ||
+    selectedMetric?.metric_name !== undefined ||
     adhocColumn?.sqlExpression !== initialAdhocColumn?.sqlExpression;
 
   const savedExpressionsLabel = t('Saved expressions');
-  const simpleColumnsLabel = t('Column');
+  const simpleColumnsLabel = t('Columns and metrics');
   const keywords = useMemo(
     () => sqlKeywords.concat(getColumnKeywords(columns)),
     [columns],
@@ -316,95 +402,107 @@ const ColumnSelectPopover = ({
           width: ${width}px;
         `}
         items={[
-          {
-            key: TABS_KEYS.SAVED,
-            label: t('Saved'),
-            disabled: disabledTabs.has('saved'),
-            children: (
-              <>
-                {calculatedColumns.length > 0 ? (
-                  <FormItem label={savedExpressionsLabel}>
-                    <StyledSelect
-                      ariaLabel={savedExpressionsLabel}
-                      value={selectedCalculatedColumn?.column_name}
-                      onChange={onCalculatedColumnChange}
-                      allowClear
-                      autoFocus={!selectedCalculatedColumn}
-                      placeholder={t('%s column(s)', calculatedColumns.length)}
-                      options={calculatedColumns.map(calculatedColumn => ({
-                        value: calculatedColumn.column_name,
-                        label: (
-                          <StyledColumnOption
-                            column={calculatedColumn}
-                            showType
+          // Only show Saved tab if not disabled
+          ...(disabledTabs.has('saved')
+            ? []
+            : [
+                {
+                  key: TABS_KEYS.SAVED,
+                  label: t('Saved'),
+                  children: (
+                    <>
+                      {calculatedColumns.length > 0 ? (
+                        <FormItem label={savedExpressionsLabel}>
+                          <StyledSelect
+                            ariaLabel={savedExpressionsLabel}
+                            value={selectedCalculatedColumn?.column_name}
+                            onChange={onCalculatedColumnChange}
+                            allowClear
+                            autoFocus={!selectedCalculatedColumn}
+                            placeholder={t(
+                              '%s column(s)',
+                              calculatedColumns.length,
+                            )}
+                            options={calculatedColumns.map(
+                              calculatedColumn => ({
+                                value: calculatedColumn.column_name,
+                                label: (
+                                  <StyledColumnOption
+                                    column={calculatedColumn}
+                                    showType
+                                  />
+                                ),
+                                key: calculatedColumn.column_name,
+                                column_name: calculatedColumn.column_name,
+                                verbose_name:
+                                  calculatedColumn.verbose_name ?? '',
+                              }),
+                            )}
+                            optionFilterProps={['column_name', 'verbose_name']}
                           />
-                        ),
-                        key: calculatedColumn.column_name,
-                      }))}
-                    />
-                  </FormItem>
-                ) : datasourceType === DatasourceType.Table ? (
-                  <EmptyState
-                    image="empty.svg"
-                    size="small"
-                    title={
-                      isTemporal
-                        ? t('No temporal columns found')
-                        : t('No saved expressions found')
-                    }
-                    description={
-                      isTemporal
-                        ? t(
-                            'Add calculated temporal columns to dataset in "Edit datasource" modal',
-                          )
-                        : t(
-                            'Add calculated columns to dataset in "Edit datasource" modal',
-                          )
-                    }
-                  />
-                ) : (
-                  <EmptyState
-                    image="empty.svg"
-                    size="small"
-                    title={
-                      isTemporal
-                        ? t('No temporal columns found')
-                        : t('No saved expressions found')
-                    }
-                    description={
-                      isTemporal ? (
-                        <>
-                          <span
-                            role="button"
-                            tabIndex={0}
-                            onClick={setDatasetAndClose}
-                          >
-                            {t('Create a dataset')}
-                          </span>{' '}
-                          {t(' to mark a column as a time column')}
-                        </>
+                        </FormItem>
+                      ) : datasourceType === DatasourceType.Table ? (
+                        <EmptyState
+                          image="empty.svg"
+                          size="small"
+                          title={
+                            isTemporal
+                              ? t('No temporal columns found')
+                              : t('No saved expressions found')
+                          }
+                          description={
+                            isTemporal
+                              ? t(
+                                  'Add calculated temporal columns to dataset in "Edit datasource" modal',
+                                )
+                              : t(
+                                  'Add calculated columns to dataset in "Edit datasource" modal',
+                                )
+                          }
+                        />
                       ) : (
-                        <>
-                          <span
-                            role="button"
-                            tabIndex={0}
-                            onClick={setDatasetAndClose}
-                          >
-                            {t('Create a dataset')}
-                          </span>{' '}
-                          {t(' to add calculated columns')}
-                        </>
-                      )
-                    }
-                  />
-                )}
-              </>
-            ),
-          },
+                        <EmptyState
+                          image="empty.svg"
+                          size="small"
+                          title={
+                            isTemporal
+                              ? t('No temporal columns found')
+                              : t('No saved expressions found')
+                          }
+                          description={
+                            isTemporal ? (
+                              <>
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={setDatasetAndClose}
+                                >
+                                  {t('Create a dataset')}
+                                </span>{' '}
+                                {t(' to mark a column as a time column')}
+                              </>
+                            ) : (
+                              <>
+                                <span
+                                  role="button"
+                                  tabIndex={0}
+                                  onClick={setDatasetAndClose}
+                                >
+                                  {t('Create a dataset')}
+                                </span>{' '}
+                                {t(' to add calculated columns')}
+                              </>
+                            )
+                          }
+                        />
+                      )}
+                    </>
+                  ),
+                },
+              ]),
           {
             key: TABS_KEYS.SIMPLE,
             label: t('Simple'),
-            disabled: disabledTabs.has('simple'),
             children: (
               <>
                 {isTemporal && simpleColumns.length === 0 ? (
@@ -435,18 +533,58 @@ const ColumnSelectPopover = ({
                   <FormItem label={simpleColumnsLabel}>
                     <Select
                       ariaLabel={simpleColumnsLabel}
-                      value={selectedSimpleColumn?.column_name}
-                      onChange={onSimpleColumnChange}
+                      value={
+                        selectedSimpleColumn?.column_name ||
+                        selectedMetric?.metric_name
+                      }
+                      onChange={onSimpleItemChange}
                       allowClear
-                      autoFocus={!selectedSimpleColumn}
-                      placeholder={t('%s column(s)', simpleColumns.length)}
-                      options={simpleColumns.map(simpleColumn => ({
-                        value: simpleColumn.column_name,
-                        label: (
-                          <StyledColumnOption column={simpleColumn} showType />
-                        ),
-                        key: simpleColumn.column_name,
-                      }))}
+                      autoFocus={!selectedSimpleColumn && !selectedMetric}
+                      placeholder={t(
+                        '%s item(s)',
+                        simpleColumns.length + availableMetrics.length,
+                      )}
+                      options={[
+                        ...simpleColumns.map(simpleColumn => ({
+                          value: simpleColumn.column_name,
+                          label: (
+                            <StyledColumnOption
+                              column={simpleColumn}
+                              showType
+                            />
+                          ),
+                          key: `column-${simpleColumn.column_name}`,
+                          column_name: simpleColumn.column_name,
+                          verbose_name: simpleColumn.verbose_name ?? '',
+                          disabled:
+                            compatibleDimensions != null &&
+                            !compatibleDimensions.includes(
+                              simpleColumn.column_name,
+                            ),
+                        })),
+                        ...availableMetrics.map(metric => ({
+                          value: metric.metric_name,
+                          label: (
+                            <MetricOptionContainer>
+                              <MetricIcon>ƒ</MetricIcon>
+                              <MetricLabel>
+                                {metric.verbose_name || metric.metric_name}
+                              </MetricLabel>
+                            </MetricOptionContainer>
+                          ),
+                          key: `metric-${metric.metric_name}`,
+                          metric_name: metric.metric_name,
+                          verbose_name: metric.verbose_name ?? '',
+                          disabled:
+                            compatibleDimensions != null &&
+                            !compatibleDimensions.includes(metric.metric_name),
+                        })),
+                      ]}
+                      optionFilterProps={[
+                        'column_name',
+                        'verbose_name',
+                        'metric_name',
+                      ]}
                     />
                   </FormItem>
                 )}
@@ -459,24 +597,24 @@ const ColumnSelectPopover = ({
             disabled: disabledTabs.has('sqlExpression'),
             children: (
               <>
-                <SQLEditor
+                <SQLEditorWithValidation
                   value={
                     adhocColumn?.sqlExpression ||
                     selectedSimpleColumn?.column_name ||
-                    selectedCalculatedColumn?.expression
+                    selectedCalculatedColumn?.expression ||
+                    ''
                   }
-                  onFocus={onSqlEditorFocus}
-                  showLoadingForImport
+                  ref={sqlEditorRef}
                   onChange={onSqlExpressionChange}
                   width="100%"
-                  height={`${height - 80}px`}
-                  showGutter={false}
-                  editorProps={{ $blockScrolling: true }}
-                  enableLiveAutocompletion
-                  className="filter-sql-editor"
-                  wrapEnabled
-                  ref={sqlEditorRef}
+                  height={`${height - 120}px`}
+                  lineNumbers={false}
+                  wordWrap
                   keywords={keywords}
+                  showValidation
+                  expressionType="column"
+                  datasourceId={datasource?.id}
+                  datasourceType={datasourceType}
                 />
               </>
             ),
@@ -485,7 +623,12 @@ const ColumnSelectPopover = ({
       />
 
       <div>
-        <Button buttonSize="small" onClick={onResetStateAndClose} cta>
+        <Button
+          buttonSize="small"
+          buttonStyle="secondary"
+          onClick={onResetStateAndClose}
+          cta
+        >
           {t('Close')}
         </Button>
         <Button

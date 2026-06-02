@@ -26,11 +26,12 @@ import {
 import type { FormInstance } from '@superset-ui/core/components';
 import { createMockModal } from './utils';
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('FilterScope TreeInitialization', () => {
   let formRef: { current: FormInstance | null };
 
   beforeEach(() => {
-    jest.useFakeTimers();
+    jest.useFakeTimers({ advanceTimers: true });
     formRef = { current: null };
   });
 
@@ -40,7 +41,7 @@ describe('FilterScope TreeInitialization', () => {
     jest.useRealTimers();
   });
 
-  it('correct init tree with values', async () => {
+  test('correct init tree with values', async () => {
     const { MockModalComponent } = createMockModal({
       scope: {
         rootPath: ['TAB_ID'],

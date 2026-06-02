@@ -97,7 +97,7 @@ GLOBAL_ASYNC_QUERIES_JWT_COOKIE_NAME
 GLOBAL_ASYNC_QUERIES_JWT_SECRET
 ```
 
-More info on Superset configuration values for async queries: https://github.com/apache/superset/blob/master/CONTRIBUTING.md#async-chart-queries
+More info on Superset configuration values for async queries: https://superset.apache.org/docs/contributing/misc#async-chart-queries
 
 ## StatsD monitoring
 

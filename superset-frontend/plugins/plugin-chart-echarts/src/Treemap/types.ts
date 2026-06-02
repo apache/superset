@@ -51,8 +51,7 @@ export enum EchartsTreemapLabelType {
   KeyValue = 'key_value',
 }
 
-export interface EchartsTreemapChartProps
-  extends ChartProps<EchartsTreemapFormData> {
+export interface EchartsTreemapChartProps extends ChartProps<EchartsTreemapFormData> {
   formData: EchartsTreemapFormData;
   queriesData: ChartDataResponseResult[];
 }

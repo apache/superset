@@ -17,7 +17,8 @@
  * under the License.
  */
 import { FC, ReactNode } from 'react';
-import { t, css, useTheme, SupersetTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, useTheme, SupersetTheme } from '@apache-superset/core/theme';
 import { FormLabel, InfoTooltip, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -36,14 +37,22 @@ export type ControlHeaderProps = {
   tooltipOnClick?: () => void;
   warning?: string;
   danger?: string;
+  // Allow extra props from control spread patterns (e.g. {...this.props})
+  [key: string]: unknown;
 };
 
 const iconStyles = css`
   &.anticon {
     font-size: unset;
+    overflow: visible;
+    display: inline-block;
+    vertical-align: middle;
+    line-height: 1;
+    padding-bottom: 0.1em;
     .anticon {
       line-height: unset;
       vertical-align: unset;
+      overflow: visible;
     }
   }
 `;
@@ -77,7 +86,7 @@ const ControlHeader: FC<ControlHeaderProps> = ({
       <span
         css={() => css`
           position: absolute;
-          top: 60%;
+          top: 50%;
           right: 0;
           padding-left: ${theme.sizeUnit}px;
           transform: translate(100%, -50%);
@@ -120,7 +129,10 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             margin-bottom: ${theme.sizeUnit * 0.5}px;
             position: relative;
             font-size: ${theme.fontSizeSM}px;
+            overflow: visible;
+            padding-bottom: 0.1em;
           `}
+          htmlFor={name}
         >
           {leftNode && <span>{leftNode} </span>}
           <span
@@ -155,13 +167,18 @@ const ControlHeader: FC<ControlHeaderProps> = ({
             </span>
           )}
           {validationErrors?.length > 0 && (
-            <span data-test="error-tooltip">
+            <span
+              data-test="error-tooltip"
+              css={css`
+                cursor: pointer;
+              `}
+            >
               <Tooltip
                 id="error-tooltip"
                 placement="top"
                 title={validationErrors?.join(' ')}
               >
-                <Icons.CloseCircleOutlined iconColor={theme.colorErrorText} />
+                <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
               </Tooltip>{' '}
             </span>
           )}

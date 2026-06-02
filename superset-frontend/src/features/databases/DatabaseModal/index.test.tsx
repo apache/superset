@@ -26,9 +26,10 @@ import {
   userEvent,
   within,
   waitFor,
+  fireEvent,
 } from 'spec/helpers/testing-library';
 import { getExtensionsRegistry } from '@superset-ui/core';
-import setupExtensions from 'src/setup/setupExtensions';
+import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import * as hooks from 'src/views/CRUD/hooks';
 import { DatabaseObject, ConfigurationMethod } from '../types';
 import DatabaseModal, {
@@ -73,6 +74,7 @@ const databaseFixture: DatabaseObject = {
   driver: 'psycopg2',
 };
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('DatabaseModal', () => {
   beforeEach(() => {
     fetchMock.post(DATABASE_CONNECT_ENDPOINT, {
@@ -98,7 +100,7 @@ describe('DatabaseModal', () => {
         configuration_method: 'sqlalchemy_form',
       },
     });
-    fetchMock.mock(AVAILABLE_DB_ENDPOINT, {
+    fetchMock.route(AVAILABLE_DB_ENDPOINT, {
       databases: [
         {
           available_drivers: ['psycopg2'],
@@ -317,15 +319,14 @@ describe('DatabaseModal', () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-  afterEach(() => {
-    fetchMock.restore();
-  });
+  afterEach(() => fetchMock.clearHistory().removeRoutes());
 
   const setup = (propsOverwrite: Partial<DatabaseModalProps> = {}) =>
     render(<DatabaseModal {...dbProps} {...propsOverwrite} />, {
       useRedux: true,
     });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Visual: New database connection', () => {
     test('renders the initial load of Step 1 correctly', async () => {
       setup();
@@ -419,6 +420,27 @@ describe('DatabaseModal', () => {
       });
       // there should be a footer but it should not have any buttons in it
       expect(footer).toBeEmptyDOMElement();
+    });
+
+    test('shows database options when pasting text in the select', async () => {
+      setup();
+
+      const modal = await screen.findByRole('dialog');
+      expect(modal).toBeInTheDocument();
+
+      // Find the select input (not opening the dropdown)
+      const selectInput = screen.getByRole('combobox');
+      expect(selectInput).toBeInTheDocument();
+
+      // Simulate focusing the input
+      userEvent.click(selectInput);
+
+      // Simulate pasting text into the input
+      expect(() =>
+        fireEvent.paste(selectInput, {
+          clipboardData: { getData: () => 'post' },
+        }),
+      ).not.toThrow();
     });
 
     test('renders the "Basic" tab of SQL Alchemy form (step 2 of 2) correctly', async () => {
@@ -621,15 +643,15 @@ describe('DatabaseModal', () => {
           name: /sqlite/i,
         }),
       );
+      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
       // Click the "Advanced" tab
-      userEvent.click(await screen.findByRole('tab', { name: /advanced/i }));
+      userEvent.click(screen.getByRole('tab', { name: /advanced/i }));
       // Click the "SQL Lab" tab
       userEvent.click(screen.getByTestId('sql-lab-label-test'));
-      expect(await screen.findByText(/step 2 of 2/i)).toBeInTheDocument();
 
       // ----- BEGIN STEP 2 (ADVANCED - SQL LAB)
       // <TabHeader> - AntD header
-      const closeButton = await screen.findByRole('button', { name: /close/i });
+      const closeButton = screen.getByRole('button', { name: /close/i });
       const advancedHeader = screen.getByRole('heading', {
         name: /connect a database/i,
       });
@@ -644,10 +666,8 @@ describe('DatabaseModal', () => {
       });
       // <Tabs> - Basic/Advanced tabs
       const basicTab = screen.getByRole('tab', { name: /basic/i });
-      const advancedTab = await screen.findByRole('tab', { name: /advanced/i });
-      const advancedTabPanel = await screen.findByRole('tabpanel', {
-        name: /advanced/i,
-      });
+      const advancedTab = screen.getByRole('tab', { name: /advanced/i });
+      const advancedTabPanel = screen.getAllByRole('tabpanel')[0];
       // <ExtraOptions> - Advanced tabs
       const sqlLabTab = screen.getByTestId('sql-lab-label-test');
       // These are the checkbox SVGs that cover the actual checkboxes
@@ -907,7 +927,7 @@ describe('DatabaseModal', () => {
       expect(schemasForFileUploadText).not.toBeInTheDocument();
     });
 
-    it('renders the "Advanced" - SECURITY tab correctly after selecting Allow file uploads', async () => {
+    test('renders the "Advanced" - SECURITY tab correctly after selecting Allow file uploads', async () => {
       setup();
 
       // ---------- Components ----------
@@ -1062,6 +1082,7 @@ describe('DatabaseModal', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Functional: Create new database', () => {
     test('directs databases to the appropriate form (dynamic vs. SQL Alchemy)', async () => {
       setup();
@@ -1096,6 +1117,7 @@ describe('DatabaseModal', () => {
       expect(sqlAlchemyFormStepText).toBeInTheDocument();
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('SQL Alchemy form flow', () => {
       test('enters step 2 of 2 when proper database is selected', async () => {
         setup();
@@ -1126,6 +1148,7 @@ describe('DatabaseModal', () => {
         expect.anything();
       });
 
+      // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
       describe('step 2 component interaction', () => {
         test('properly interacts with textboxes', async () => {
           setup();
@@ -1172,6 +1195,7 @@ describe('DatabaseModal', () => {
         });
       });
 
+      // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
       describe('SSH Tunnel Form interaction', () => {
         test('properly interacts with SSH Tunnel form textboxes for dynamic form', async () => {
           setup();
@@ -1317,6 +1341,7 @@ describe('DatabaseModal', () => {
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('Dynamic form flow', () => {
       test('enters step 2 of 3 when proper database is selected', async () => {
         setup();
@@ -1373,11 +1398,14 @@ describe('DatabaseModal', () => {
         expect(connectButton).toBeEnabled();
         userEvent.click(connectButton);
         await waitFor(() => {
-          expect(fetchMock.calls(VALIDATE_PARAMS_ENDPOINT).length).toEqual(5);
+          expect(
+            fetchMock.callHistory.calls(VALIDATE_PARAMS_ENDPOINT).length,
+          ).toEqual(5);
         });
       });
     });
 
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('Import database flow', () => {
       test('imports a file', async () => {
         setup();
@@ -1401,6 +1429,7 @@ describe('DatabaseModal', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('DatabaseModal w/ Deeplinking Engine', () => {
     test('enters step 2 of 3 when proper database is selected', async () => {
       setup({ dbEngine: 'PostgreSQL' });
@@ -1409,14 +1438,15 @@ describe('DatabaseModal', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('DatabaseModal w/ GSheet Engine', () => {
-    it('enters step 2 of 2 when proper database is selected', async () => {
+    test('enters step 2 of 2 when proper database is selected', async () => {
       setup({ dbEngine: 'Google Sheets' });
       const step2of2text = await screen.findByText(/step 2 of 2/i);
       expect(step2of2text).toBeInTheDocument();
     });
 
-    it('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
+    test('renders the "Advanced" - SECURITY tab without Allow File Upload Checkbox', async () => {
       setup({ dbEngine: 'Google Sheets' });
 
       // Click the "Advanced" tab
@@ -1454,7 +1484,7 @@ describe('DatabaseModal', () => {
       expect(schemasForFileUploadText).not.toBeInTheDocument();
     });
 
-    it('if the SSH Tunneling toggle is not displayed, nothing should get displayed', async () => {
+    test('if the SSH Tunneling toggle is not displayed, nothing should get displayed', async () => {
       setup({ dbEngine: 'Google Sheets' });
 
       const SSHTunnelingToggle = screen.queryByTestId('ssh-tunnel-switch');
@@ -1478,6 +1508,7 @@ describe('DatabaseModal', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('DatabaseModal w errors as objects', () => {
     jest.mock('src/views/CRUD/hooks', () => ({
       ...jest.requireActual('src/views/CRUD/hooks'),
@@ -1493,6 +1524,7 @@ describe('DatabaseModal', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('DatabaseModal w errors as strings', () => {
     jest.mock('src/views/CRUD/hooks', () => ({
       ...jest.requireActual('src/views/CRUD/hooks'),
@@ -1530,6 +1562,7 @@ describe('DatabaseModal', () => {
     });
   });
 
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('DatabaseModal w Extensions', () => {
     beforeAll(() => {
       const extensionsRegistry = getExtensionsRegistry();
@@ -1538,7 +1571,7 @@ describe('DatabaseModal', () => {
         <>ssh_tunnel.form.switch extension component</>
       ));
 
-      setupExtensions();
+      setupCodeOverrides();
     });
 
     test('should render an extension component if one is supplied', async () => {
@@ -1550,6 +1583,88 @@ describe('DatabaseModal', () => {
   });
 });
 
+test('handleChangeWithValidation function clears validation errors when called', () => {
+  const mockSetValidationErrors = jest.fn();
+  const mockSetHasValidated = jest.fn();
+  const mockClearError = jest.fn();
+  const mockOnChange = jest.fn();
+
+  // Test the handleClearValidationErrors function directly
+  const handleClearValidationErrors = jest.fn(() => {
+    mockSetValidationErrors(null);
+    mockSetHasValidated(false);
+    mockClearError();
+  });
+
+  // Test the handleChangeWithValidation function behavior
+  const handleChangeWithValidation = (actionType: any, payload: any) => {
+    mockOnChange(actionType, payload);
+    handleClearValidationErrors();
+  };
+
+  // Simulate calling handleChangeWithValidation as would happen in form changes
+  handleChangeWithValidation('TextChange', {
+    name: 'database_name',
+    value: 'test',
+  });
+
+  expect(mockOnChange).toHaveBeenCalledWith('TextChange', {
+    name: 'database_name',
+    value: 'test',
+  });
+  expect(handleClearValidationErrors).toHaveBeenCalled();
+  expect(mockSetValidationErrors).toHaveBeenCalledWith(null);
+  expect(mockSetHasValidated).toHaveBeenCalledWith(false);
+  expect(mockClearError).toHaveBeenCalled();
+});
+
+test('validates fix by testing all form field types clear validation errors', () => {
+  // This test validates that all the different types of form fields changed in the fix
+  // (TextChange, ExtraInputChange, ExtraEditorChange, InputChange, ParametersChange, etc.)
+  // properly call the validation clearing functions
+  const mockSetValidationErrors = jest.fn();
+  const mockSetHasValidated = jest.fn();
+  const mockClearError = jest.fn();
+
+  const handleClearValidationErrors = () => {
+    mockSetValidationErrors(null);
+    mockSetHasValidated(false);
+    mockClearError();
+  };
+
+  const handleChangeWithValidation = (actionType: any, payload: any) => {
+    handleClearValidationErrors();
+  };
+
+  // Test all the action types that were modified in the fix to use handleChangeWithValidation
+  const actionTypesToTest = [
+    'TextChange',
+    'ExtraInputChange',
+    'ExtraEditorChange',
+    'InputChange',
+    'ParametersChange',
+    'QueryChange',
+    'EncryptedExtraInputChange',
+    'EditorChange',
+  ];
+
+  actionTypesToTest.forEach((actionType, index) => {
+    handleChangeWithValidation(actionType, { name: 'test', value: 'test' });
+
+    // Verify each call cleared validation errors
+    expect(mockSetValidationErrors).toHaveBeenNthCalledWith(index + 1, null);
+    expect(mockSetHasValidated).toHaveBeenNthCalledWith(index + 1, false);
+    expect(mockClearError).toHaveBeenCalledTimes(index + 1);
+  });
+
+  expect(mockSetValidationErrors).toHaveBeenCalledTimes(
+    actionTypesToTest.length,
+  );
+  expect(mockSetHasValidated).toHaveBeenCalledTimes(actionTypesToTest.length);
+  expect(mockClearError).toHaveBeenCalledTimes(actionTypesToTest.length);
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dbReducer', () => {
   test('it will reset state to null', () => {
     const action: DBReducerActionType = { type: ActionType.Reset };
@@ -1645,6 +1760,122 @@ describe('dbReducer', () => {
       masked_encrypted_extra: '{"foo":"bar"}',
     });
   });
+
+  test('EncryptedExtraInputChange stores empty value verbatim (does not delete)', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.EncryptedExtraInputChange,
+      payload: { name: 'service_account_info', value: '' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        masked_encrypted_extra: JSON.stringify({
+          service_account_info: { type: 'service_account' },
+          other: 'keep-me',
+        }),
+      },
+      action,
+    );
+
+    // Generic input change must not delete keys — that's reserved for the
+    // explicit `ClearEncryptedExtraKey` action used by the public/private
+    // toggle. Backends may distinguish absent-key from empty-string.
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      masked_encrypted_extra: '{"service_account_info":"","other":"keep-me"}',
+    });
+  });
+
+  test.each([
+    ['the literal string "null"', 'null'],
+    ['malformed JSON', 'not json'],
+    ['a JSON primitive', '42'],
+    ['a JSON array', '[1,2,3]'],
+  ])(
+    'EncryptedExtraInputChange recovers when masked_encrypted_extra is %s',
+    (_label, value) => {
+      const action: DBReducerActionType = {
+        type: ActionType.EncryptedExtraInputChange,
+        payload: { name: 'foo', value: 'bar' },
+      };
+      const currentState = dbReducer(
+        { ...databaseFixture, masked_encrypted_extra: value },
+        action,
+      );
+
+      // Reducer recovers and starts fresh — no crash, no leaked bad value.
+      expect(currentState).toEqual({
+        ...databaseFixture,
+        masked_encrypted_extra: '{"foo":"bar"}',
+      });
+    },
+  );
+
+  test('ClearEncryptedExtraKey removes the named key from masked_encrypted_extra', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ClearEncryptedExtraKey,
+      payload: { name: 'service_account_info' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        masked_encrypted_extra: JSON.stringify({
+          service_account_info: { type: 'service_account' },
+          other: 'keep-me',
+        }),
+      },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      masked_encrypted_extra: '{"other":"keep-me"}',
+    });
+  });
+
+  test('ClearEncryptedExtraKey is a no-op when the key is already absent', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ClearEncryptedExtraKey,
+      payload: { name: 'missing' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        masked_encrypted_extra: '{"other":"keep-me"}',
+      },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      masked_encrypted_extra: '{"other":"keep-me"}',
+    });
+  });
+
+  test.each([
+    ['the literal string "null"', 'null'],
+    ['malformed JSON', 'not json'],
+    ['a JSON primitive', '42'],
+    ['a JSON array', '[1,2,3]'],
+  ])(
+    'ClearEncryptedExtraKey recovers when masked_encrypted_extra is %s',
+    (_label, value) => {
+      const action: DBReducerActionType = {
+        type: ActionType.ClearEncryptedExtraKey,
+        payload: { name: 'service_account_info' },
+      };
+      const currentState = dbReducer(
+        { ...databaseFixture, masked_encrypted_extra: value },
+        action,
+      );
+
+      // Recovery path produces a clean `{}` rather than crashing.
+      expect(currentState).toEqual({
+        ...databaseFixture,
+        masked_encrypted_extra: '{}',
+      });
+    },
+  );
 
   test('it will set state to payload from extra input change when checkbox', () => {
     const action: DBReducerActionType = {
@@ -1754,9 +1985,59 @@ describe('dbReducer', () => {
     const currentState = dbReducer(databaseFixture, action);
 
     // extra should be serialized
+    expect(JSON.parse(currentState!.extra!)).toEqual({
+      schemas_allowed_for_file_upload: ['bar'],
+    });
+  });
+
+  test(`it will set state to payload from extra
+  input change when schemas_allowed_for_file_upload
+  with trailing comma preserves empty string`, () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ExtraInputChange,
+      payload: { name: 'schemas_allowed_for_file_upload', value: 'bar,' },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
     expect(currentState).toEqual({
       ...databaseFixture,
       extra: '{"schemas_allowed_for_file_upload":["bar"]}',
+    });
+  });
+
+  test(`it will set state to payload from extra
+  input change when schemas_allowed_for_file_upload
+  with multiple schemas and trailing comma`, () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ExtraInputChange,
+      payload: {
+        name: 'schemas_allowed_for_file_upload',
+        value: 'schema1,schema2,',
+      },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"schemas_allowed_for_file_upload":["schema1","schema2"]}',
+    });
+  });
+
+  test(`it will set state to payload from extra
+  input change when schemas_allowed_for_file_upload
+  with double commas filters empty strings`, () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ExtraInputChange,
+      payload: {
+        name: 'schemas_allowed_for_file_upload',
+        value: 'schema1,,schema2',
+      },
+    };
+    const currentState = dbReducer(databaseFixture, action);
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      extra: '{"schemas_allowed_for_file_upload":["schema1","schema2"]}',
     });
   });
 

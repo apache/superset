@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { SupersetTheme, css, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import {
   Input,
   Button,
@@ -28,7 +29,7 @@ import {
 } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { DatabaseParameters, FieldPropTypes } from '../../types';
+import { DatabaseParameters, Engines, FieldPropTypes } from '../../types';
 import { infoTooltip, CredentialInfoForm } from '../styles';
 
 enum CredentialInfoOptions {
@@ -42,6 +43,7 @@ enum CredentialInfoOptions {
 export const encryptedCredentialsMap = {
   gsheets: 'service_account_info',
   bigquery: 'credentials_info',
+  datastore: 'credentials_info',
 };
 
 export const EncryptedField = ({
@@ -49,13 +51,17 @@ export const EncryptedField = ({
   isEditMode,
   db,
   editNewDb,
+  isPublic = true,
+  setIsPublic,
 }: FieldPropTypes) => {
   const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [uploadOption, setUploadOption] = useState<number>(
     CredentialInfoOptions.JsonUpload.valueOf(),
   );
   const { addDangerToast } = useToasts();
-  const showCredentialsInfo = !isEditMode;
+  const isGSheets = db?.engine === Engines.GSheet;
+  const showCredentialsInfo = !isEditMode && (!isGSheets || !isPublic);
+  const showCredentialsSection = !isGSheets || !isPublic;
   const encryptedField =
     db?.engine &&
     encryptedCredentialsMap[db.engine as keyof typeof encryptedCredentialsMap];
@@ -66,6 +72,29 @@ export const EncryptedField = ({
       ? JSON.stringify(paramValue)
       : paramValue;
 
+  const handlePublicToggle = (value: string) => {
+    const nextIsPublic = value === 'true';
+    setIsPublic?.(nextIsPublic);
+    if (nextIsPublic) {
+      // Clear in-flight `parameters.*` so the save-time merge in
+      // DatabaseModal/index.tsx doesn't write them into masked_encrypted_extra.
+      changeMethods.onParametersChange({
+        target: { name: 'service_account_info', value: '' },
+      });
+      changeMethods.onParametersChange({
+        target: { name: 'oauth2_client_info', value: '' },
+      });
+      // Also delete any previously-stored values from masked_encrypted_extra
+      // itself (loaded in edit mode), since the save-time merge preserves
+      // existing keys and only overwrites them when `parameters.*` is truthy.
+      // Use the dedicated `ClearEncryptedExtraKey` action so the generic
+      // `EncryptedExtraInputChange` handler keeps its master semantics (store
+      // empty strings, never delete) for any other caller.
+      changeMethods.onClearEncryptedExtraKey('service_account_info');
+      changeMethods.onClearEncryptedExtraKey('oauth2_client_info');
+    }
+  };
+
   const readTextFile = (file: File): Promise<string> =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -75,6 +104,11 @@ export const EncryptedField = ({
     });
 
   useEffect(() => {
+    // Skip the initial clear when there's no engine-specific field name yet
+    // (e.g. the db prop hasn't finished loading): writing the falsy
+    // `encryptedField` as a key would pollute parameters with `false: ''`,
+    // and racing the async credential load isn't useful anyway.
+    if (!encryptedField) return;
     changeMethods.onParametersChange({
       target: {
         name: encryptedField,
@@ -85,6 +119,23 @@ export const EncryptedField = ({
 
   return (
     <CredentialInfoForm>
+      {isGSheets && (
+        <>
+          <FormLabel required>{t('Type of Google Sheets allowed')}</FormLabel>
+          <Select
+            value={isPublic ? 'true' : 'false'}
+            css={{ width: '100%' }}
+            onChange={value => handlePublicToggle(value as string)}
+            options={[
+              { value: 'true', label: t('Publicly shared sheets only') },
+              {
+                value: 'false',
+                label: t('Public and privately shared sheets'),
+              },
+            ]}
+          />
+        </>
+      )}
       {showCredentialsInfo && (
         <>
           <FormLabel>
@@ -92,9 +143,7 @@ export const EncryptedField = ({
           </FormLabel>
           <Select
             defaultValue={uploadOption}
-            css={css`
-              width: 100%;
-            `}
+            css={{ width: '100%' }}
             onChange={option => setUploadOption(option as number)}
             options={[
               {
@@ -109,9 +158,10 @@ export const EncryptedField = ({
           />
         </>
       )}
-      {uploadOption === CredentialInfoOptions.CopyPaste ||
-      isEditMode ||
-      editNewDb ? (
+      {showCredentialsSection &&
+      (uploadOption === CredentialInfoOptions.CopyPaste ||
+        isEditMode ||
+        editNewDb) ? (
         <div className="input-container">
           <FormLabel>{t('Service Account')}</FormLabel>
           <Input.TextArea
@@ -164,7 +214,7 @@ export const EncryptedField = ({
                       },
                     });
                     setFileList(info.fileList);
-                  } catch (error) {
+                  } catch {
                     setFileList([]);
                     addDangerToast(
                       t(

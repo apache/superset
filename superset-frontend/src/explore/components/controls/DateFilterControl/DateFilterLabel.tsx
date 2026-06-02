@@ -17,21 +17,22 @@
  * under the License.
  */
 import { ReactNode, useState, useEffect, useMemo } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
-  css,
-  styled,
-  t,
-  useTheme,
   NO_TIME_RANGE,
-  SupersetTheme,
   useCSSTextTruncation,
   fetchTimeRange,
 } from '@superset-ui/core';
 import {
+  css,
+  styled,
+  useTheme,
+  SupersetTheme,
+} from '@apache-superset/core/theme';
+import {
   Button,
   Constants,
   Divider,
-  Modal,
   Tooltip,
   Select,
 } from '@superset-ui/core/components';
@@ -124,7 +125,7 @@ const getTooltipTitle = (
 ) =>
   isLabelTruncated ? (
     <div>
-      {label && <strong>{label}</strong>}
+      {label && <strong>{t(label)}</strong>}
       {range && (
         <div
           css={(theme: SupersetTheme) => css`
@@ -145,7 +146,6 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     onChange,
     onOpenPopover = noOp,
     onClosePopover = noOp,
-    overlayStyle = 'Popover',
     isOverflowingFilterBar = false,
   } = props;
   const defaultTimeFilter = useDefaultTimeFilter();
@@ -160,7 +160,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
-  const [tooltipTitle, setTooltipTitle] = useState<ReactNode | null>(value);
+  const [tooltipTitle, setTooltipTitle] = useState<ReactNode | null>(t(value));
   const theme = useTheme();
   const [labelRef, labelIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
 
@@ -175,7 +175,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       if (error) {
         setEvalResponse(error || '');
         setValidTimeRange(false);
-        setTooltipTitle(value || null);
+        setTooltipTitle(t(value) || null);
       } else {
         /*
           HRT == human readable text
@@ -344,24 +344,23 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     </ContentStyleWrapper>
   );
 
-  const title = (
-    <IconWrapper>
-      <Icons.EditOutlined />
-      <span className="text">{t('Edit time range')}</span>
-    </IconWrapper>
-  );
   const popoverContent = (
     <ControlPopover
       autoAdjustOverflow={false}
       trigger="click"
       placement="right"
       content={overlayContent}
-      title={title}
+      title={
+        <IconWrapper>
+          <Icons.EditOutlined />
+          <span className="text">{t('Edit time range')}</span>
+        </IconWrapper>
+      }
       defaultOpen={show}
       open={show}
       onOpenChange={toggleOverlay}
       overlayStyle={{ width: '600px' }}
-      destroyTooltipOnHide
+      destroyOnHidden
       getPopupContainer={nodeTrigger =>
         isOverflowingFilterBar
           ? (nodeTrigger.parentNode as HTMLElement)
@@ -384,39 +383,10 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     </ControlPopover>
   );
 
-  const modalContent = (
-    <>
-      <Tooltip placement="top" title={tooltipTitle}>
-        <DateLabel
-          name={name}
-          aria-labelledby={`filter-name-${props.name}`}
-          aria-describedby={`date-label-${props.name}`}
-          onClick={toggleOverlay}
-          label={actualTimeRange}
-          isActive={show}
-          isPlaceholder={actualTimeRange === NO_TIME_RANGE}
-          data-test={DateFilterTestKey.ModalOverlay}
-          ref={labelRef}
-        />
-      </Tooltip>
-      {/* the zIndex value is from trying so that the Modal doesn't overlay the AdhocFilter */}
-      <Modal
-        title={title}
-        show={show}
-        onHide={toggleOverlay}
-        width="600px"
-        hideFooter
-        zIndex={1030}
-      >
-        {overlayContent}
-      </Modal>
-    </>
-  );
-
   return (
     <>
       <ControlHeader {...props} />
-      {overlayStyle === 'Modal' ? modalContent : popoverContent}
+      {popoverContent}
     </>
   );
 }

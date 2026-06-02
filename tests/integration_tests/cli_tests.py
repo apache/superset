@@ -23,11 +23,13 @@ from zipfile import is_zipfile, ZipFile
 
 import pytest
 import yaml  # noqa: F401
+from flask import current_app
 from freezegun import freeze_time
 
 import superset.cli.importexport
 import superset.cli.thumbnails
-from superset import app, db
+import superset.cli.update
+from superset import db
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -60,7 +62,7 @@ def test_export_dashboards_versioned_export(app_context, fs):
     # feature flags
     importlib.reload(superset.cli.importexport)
 
-    runner = app.test_cli_runner()
+    runner = current_app.test_cli_runner()
     with freeze_time("2021-01-01T00:00:00Z"):
         response = runner.invoke(superset.cli.importexport.export_dashboards, ())
 
@@ -89,7 +91,7 @@ def test_failing_export_dashboards_versioned_export(
     # feature flags
     importlib.reload(superset.cli.importexport)
 
-    runner = app.test_cli_runner()
+    runner = current_app.test_cli_runner()
     with freeze_time("2021-01-01T00:00:00Z"):
         response = runner.invoke(superset.cli.importexport.export_dashboards, ())
 
@@ -108,7 +110,7 @@ def test_export_datasources_versioned_export(app_context, fs):
     # feature flags
     importlib.reload(superset.cli.importexport)
 
-    runner = app.test_cli_runner()
+    runner = current_app.test_cli_runner()
     with freeze_time("2021-01-01T00:00:00Z"):
         response = runner.invoke(superset.cli.importexport.export_datasources, ())
 
@@ -135,7 +137,7 @@ def test_failing_export_datasources_versioned_export(
     # feature flags
     importlib.reload(superset.cli.importexport)
 
-    runner = app.test_cli_runner()
+    runner = current_app.test_cli_runner()
     with freeze_time("2021-01-01T00:00:00Z"):
         response = runner.invoke(superset.cli.importexport.export_datasources, ())
 
@@ -158,7 +160,7 @@ def test_import_dashboards_versioned_export(import_dashboards_command, app_conte
     with open("dashboards.json", "w") as fp:
         fp.write('{"hello": "world"}')
 
-    runner = app.test_cli_runner()
+    runner = current_app.test_cli_runner()
     response = runner.invoke(
         superset.cli.importexport.import_dashboards,
         ("-p", "dashboards.json", "-u", "admin"),
@@ -173,7 +175,7 @@ def test_import_dashboards_versioned_export(import_dashboards_command, app_conte
         with bundle.open("dashboards/dashboard.yaml", "w") as fp:
             fp.write(b"hello: world")
 
-    runner = app.test_cli_runner()
+    runner = current_app.test_cli_runner()
     response = runner.invoke(
         superset.cli.importexport.import_dashboards,
         ("-p", "dashboards.zip", "-u", "admin"),
@@ -205,7 +207,7 @@ def test_failing_import_dashboards_versioned_export(
     with open("dashboards.json", "w") as fp:
         fp.write('{"hello": "world"}')
 
-    runner = app.test_cli_runner()
+    runner = current_app.test_cli_runner()
     response = runner.invoke(
         superset.cli.importexport.import_dashboards,
         ("-p", "dashboards.json", "-u", "admin"),
@@ -218,7 +220,7 @@ def test_failing_import_dashboards_versioned_export(
         with bundle.open("dashboards/dashboard.yaml", "w") as fp:
             fp.write(b"hello: world")
 
-    runner = app.test_cli_runner()
+    runner = current_app.test_cli_runner()
     response = runner.invoke(
         superset.cli.importexport.import_dashboards,
         ("-p", "dashboards.zip", "-u", "admin"),
@@ -243,7 +245,7 @@ def test_import_datasets_versioned_export(import_datasets_command, app_context, 
     with open("datasets.yaml", "w") as fp:
         fp.write("hello: world")
 
-    runner = app.test_cli_runner()
+    runner = current_app.test_cli_runner()
     response = runner.invoke(
         superset.cli.importexport.import_datasources, ("-p", "datasets.yaml")
     )
@@ -257,7 +259,7 @@ def test_import_datasets_versioned_export(import_datasets_command, app_context, 
         with bundle.open("datasets/dataset.yaml", "w") as fp:
             fp.write(b"hello: world")
 
-    runner = app.test_cli_runner()
+    runner = current_app.test_cli_runner()
     response = runner.invoke(
         superset.cli.importexport.import_datasources, ("-p", "datasets.zip")
     )
@@ -288,7 +290,7 @@ def test_failing_import_datasets_versioned_export(
     with open("datasets.yaml", "w") as fp:
         fp.write("hello: world")
 
-    runner = app.test_cli_runner()
+    runner = current_app.test_cli_runner()
     response = runner.invoke(
         superset.cli.importexport.import_datasources, ("-p", "datasets.yaml")
     )
@@ -300,7 +302,7 @@ def test_failing_import_datasets_versioned_export(
         with bundle.open("datasets/dataset.yaml", "w") as fp:
             fp.write(b"hello: world")
 
-    runner = app.test_cli_runner()
+    runner = current_app.test_cli_runner()
     response = runner.invoke(
         superset.cli.importexport.import_datasources, ("-p", "datasets.zip")
     )
@@ -312,7 +314,7 @@ def test_failing_import_datasets_versioned_export(
 @mock.patch("superset.tasks.thumbnails.cache_dashboard_thumbnail")
 def test_compute_thumbnails(thumbnail_mock, app_context, fs):
     thumbnail_mock.return_value = None
-    runner = app.test_cli_runner()
+    runner = current_app.test_cli_runner()
     dashboard = db.session.query(Dashboard).filter_by(slug="births").first()
     response = runner.invoke(
         superset.cli.thumbnails.compute_thumbnails,
@@ -321,3 +323,44 @@ def test_compute_thumbnails(thumbnail_mock, app_context, fs):
 
     thumbnail_mock.assert_called_with(None, dashboard.id, force=False)
     assert response.exit_code == 0
+
+
+def test_re_encrypt_secrets_without_previous_key_is_noop(app_context):
+    """
+    When neither --previous_secret_key nor config.PREVIOUS_SECRET_KEY is set,
+    the command should exit cleanly (0) rather than error out, so that
+    scheduled re-encryption runs don't start failing after a successful
+    rotation is complete.
+    """
+    current_app.config.pop("PREVIOUS_SECRET_KEY", None)
+    runner = current_app.test_cli_runner()
+    with mock.patch.object(superset.cli.update.SecretsMigrator, "run") as run_mock:
+        response = runner.invoke(superset.cli.update.re_encrypt_secrets, [])
+
+    assert response.exit_code == 0
+    assert "nothing to re-encrypt" in response.output.lower()
+    run_mock.assert_not_called()
+
+
+def test_re_encrypt_secrets_failure_exits_nonzero(app_context):
+    """
+    When re-encryption fails for any field, SecretsMigrator.run raises to
+    trigger rollback. The CLI must surface that as a non-zero exit with a
+    clear error message — not as an uncaught exception.
+    """
+    runner = current_app.test_cli_runner()
+    with mock.patch.object(
+        superset.cli.update.SecretsMigrator,
+        "run",
+        side_effect=Exception("Re-encryption failed for 2 value(s)"),
+    ):
+        response = runner.invoke(
+            superset.cli.update.re_encrypt_secrets,
+            ["--previous_secret_key", "old-key"],
+        )
+
+    assert response.exit_code == 1
+    assert "Re-encryption failed" in response.output
+    # The failure path must be handled by the CLI, not leaked as an
+    # uncaught exception.
+    assert response.exception is None or isinstance(response.exception, SystemExit)

@@ -16,15 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChangeEvent, EventHandler } from 'react';
+import { ChangeEvent, EventHandler, useState, useEffect } from 'react';
 import cx from 'classnames';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
   DatabaseConnectionExtension,
   isFeatureEnabled,
-  useTheme,
   FeatureFlag,
 } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
 import {
   Input,
   Checkbox,
@@ -33,6 +33,7 @@ import {
   CollapseLabelInModal,
   type CheckboxChangeEvent,
 } from '@superset-ui/core/components';
+import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import {
   StyledInputContainer,
   StyledJsonEditor,
@@ -78,6 +79,31 @@ const ExtraOptions = ({
     }
     return value;
   });
+
+  // JSON validation hooks for the three editors
+  const secureExtraAnnotations = useJsonValidation(db?.masked_encrypted_extra, {
+    errorPrefix: 'Invalid secure extra JSON',
+  });
+
+  const metadataParamsValue = !Object.keys(extraJson?.metadata_params || {})
+    .length
+    ? ''
+    : typeof extraJson?.metadata_params === 'string'
+      ? extraJson?.metadata_params
+      : JSON.stringify(extraJson?.metadata_params);
+  const metadataParamsAnnotations = useJsonValidation(metadataParamsValue, {
+    errorPrefix: 'Invalid metadata parameters JSON',
+  });
+
+  const engineParamsValue = !Object.keys(extraJson?.engine_params || {}).length
+    ? ''
+    : typeof extraJson?.engine_params === 'string'
+      ? extraJson?.engine_params
+      : JSON.stringify(extraJson?.engine_params);
+  const engineParamsAnnotations = useJsonValidation(engineParamsValue, {
+    errorPrefix: 'Invalid engine parameters JSON',
+  });
+
   const theme = useTheme();
   const ExtraExtensionComponent = extraExtension?.component;
   const ExtraExtensionLogo = extraExtension?.logo;
@@ -88,12 +114,31 @@ const ExtraOptions = ({
   const isAllowRunAsyncDisabled = isFeatureEnabled(
     FeatureFlag.ForceSqlLabRunAsync,
   );
+  const [activeKey, setActiveKey] = useState<string[] | undefined>();
+
+  const [schemasText, setSchemasText] = useState<string>('');
+  useEffect(() => {
+    if (!db) return;
+    const initialSchemas = (
+      (extraJson?.schemas_allowed_for_file_upload as string[] | undefined) || []
+    ).join(',');
+    setSchemasText(initialSchemas);
+  }, [db?.extra]);
+
+  useEffect(() => {
+    if (!expandableModalIsOpen && activeKey !== undefined) {
+      setActiveKey(undefined);
+    }
+    // See issue #34630 for why we omit `activeKey` from the dependency array
+  }, [expandableModalIsOpen]);
 
   return (
     <Collapse
-      expandIconPosition="right"
+      expandIconPosition="end"
       accordion
       modalMode
+      activeKey={activeKey}
+      onChange={key => setActiveKey(key)}
       items={[
         {
           key: 'sql-lab',
@@ -425,6 +470,94 @@ const ExtraOptions = ({
           children: (
             <>
               <StyledInputContainer>
+                <div className="input-container">
+                  <Checkbox
+                    id="per_user_caching"
+                    name="per_user_caching"
+                    indeterminate={false}
+                    checked={!!extraJson?.per_user_caching}
+                    onChange={onExtraInputChange}
+                  >
+                    {t('Per user caching')}
+                  </Checkbox>
+                  <InfoTooltip
+                    tooltip={t(
+                      'Cache data separately for each user based on their data access roles and permissions. ' +
+                        'When disabled, a single cache will be used for all users.',
+                    )}
+                  />
+                </div>
+              </StyledInputContainer>
+              <StyledInputContainer>
+                <div className="input-container">
+                  <Checkbox
+                    id="impersonate_user"
+                    name="impersonate_user"
+                    indeterminate={false}
+                    checked={!!db?.impersonate_user}
+                    onChange={onInputChange}
+                  >
+                    {t(
+                      'Impersonate logged in user (Presto, Trino, Drill, Hive, and Google Sheets)',
+                    )}
+                  </Checkbox>
+                  <InfoTooltip
+                    tooltip={t(
+                      'If Presto or Trino, all the queries in SQL Lab are going to be executed as the ' +
+                        'currently logged on user who must have permission to run them. If Hive ' +
+                        'and hive.server2.enable.doAs is enabled, will run the queries as ' +
+                        'service account, but impersonate the currently logged on user via ' +
+                        'hive.server2.proxy.user property.',
+                    )}
+                  />
+                </div>
+              </StyledInputContainer>
+              {isFileUploadSupportedByEngine && (
+                <StyledInputContainer>
+                  <div className="input-container">
+                    <Checkbox
+                      id="allow_file_upload"
+                      name="allow_file_upload"
+                      indeterminate={false}
+                      checked={!!db?.allow_file_upload}
+                      onChange={onInputChange}
+                    >
+                      {t('Allow file uploads to database')}
+                    </Checkbox>
+                  </div>
+                </StyledInputContainer>
+              )}
+              {isFileUploadSupportedByEngine && !!db?.allow_file_upload && (
+                <StyledInputContainer className="extra-container">
+                  <div className="control-label">
+                    {t('Schemas allowed for File upload')}
+                  </div>
+                  <div className="input-container">
+                    <Input
+                      type="text"
+                      name="schemas_allowed_for_file_upload"
+                      value={schemasText}
+                      placeholder={t('schema1,schema2')}
+                      onChange={e => setSchemasText(e.target.value)}
+                      onBlur={() =>
+                        onExtraInputChange({
+                          target: {
+                            type: 'text',
+                            name: 'schemas_allowed_for_file_upload',
+                            value: schemasText,
+                          },
+                        } as ChangeEvent<HTMLInputElement>)
+                      }
+                    />
+                  </div>
+                  <div className="helper">
+                    {t(
+                      'A comma-separated list of schemas that files are allowed to upload to.',
+                    )}
+                  </div>
+                </StyledInputContainer>
+              )}
+              <StyledInputContainer>
                 <div className="control-label">{t('Secure extra')}</div>
                 <div className="input-container">
                   <StyledJsonEditor
@@ -436,6 +569,7 @@ const ExtraOptions = ({
                     }
                     width="100%"
                     height="160px"
+                    annotations={secureExtraAnnotations}
                   />
                 </div>
                 <div className="helper">
@@ -466,72 +600,6 @@ const ExtraOptions = ({
                   )}
                 </div>
               </StyledInputContainer>
-              <StyledInputContainer
-                css={!isFileUploadSupportedByEngine ? no_margin_bottom : {}}
-              >
-                <div className="input-container">
-                  <Checkbox
-                    id="impersonate_user"
-                    name="impersonate_user"
-                    indeterminate={false}
-                    checked={!!db?.impersonate_user}
-                    onChange={onInputChange}
-                  >
-                    {t(
-                      'Impersonate logged in user (Presto, Trino, Drill, Hive, and GSheets)',
-                    )}
-                  </Checkbox>
-                  <InfoTooltip
-                    tooltip={t(
-                      'If Presto or Trino, all the queries in SQL Lab are going to be executed as the ' +
-                        'currently logged on user who must have permission to run them. If Hive ' +
-                        'and hive.server2.enable.doAs is enabled, will run the queries as ' +
-                        'service account, but impersonate the currently logged on user via ' +
-                        'hive.server2.proxy.user property.',
-                    )}
-                  />
-                </div>
-              </StyledInputContainer>
-              {isFileUploadSupportedByEngine && (
-                <StyledInputContainer
-                  css={!db?.allow_file_upload ? no_margin_bottom : {}}
-                >
-                  <div className="input-container">
-                    <Checkbox
-                      id="allow_file_upload"
-                      name="allow_file_upload"
-                      indeterminate={false}
-                      checked={!!db?.allow_file_upload}
-                      onChange={onInputChange}
-                    >
-                      {t('Allow file uploads to database')}
-                    </Checkbox>
-                  </div>
-                </StyledInputContainer>
-              )}
-              {isFileUploadSupportedByEngine && !!db?.allow_file_upload && (
-                <StyledInputContainer css={no_margin_bottom}>
-                  <div className="control-label">
-                    {t('Schemas allowed for File upload')}
-                  </div>
-                  <div className="input-container">
-                    <Input
-                      type="text"
-                      name="schemas_allowed_for_file_upload"
-                      value={(
-                        extraJson?.schemas_allowed_for_file_upload || []
-                      ).join(',')}
-                      placeholder="schema1,schema2"
-                      onChange={onExtraInputChange}
-                    />
-                  </div>
-                  <div className="helper">
-                    {t(
-                      'A comma-separated list of schemas that files are allowed to upload to.',
-                    )}
-                  </div>
-                </StyledInputContainer>
-              )}
             </>
           ),
         },
@@ -539,9 +607,9 @@ const ExtraOptions = ({
           ? [
               {
                 key: extraExtension?.title,
-                collapsible: extraExtension.enabled?.()
-                  ? ('icon' as const)
-                  : ('disabled' as const),
+                ...(extraExtension.enabled?.()
+                  ? {}
+                  : { collapsible: 'disabled' as const }),
                 label: (
                   <CollapseLabelInModal
                     key={extraExtension?.title}
@@ -594,6 +662,7 @@ const ExtraOptions = ({
                           ? extraJson?.metadata_params
                           : JSON.stringify(extraJson?.metadata_params)
                     }
+                    annotations={metadataParamsAnnotations}
                   />
                 </div>
                 <div className="helper">
@@ -620,6 +689,7 @@ const ExtraOptions = ({
                         ? ''
                         : extraJson?.engine_params
                     }
+                    annotations={engineParamsAnnotations}
                   />
                 </div>
                 <div className="helper">

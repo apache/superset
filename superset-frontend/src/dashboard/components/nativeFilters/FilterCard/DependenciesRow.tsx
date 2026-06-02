@@ -18,7 +18,9 @@
  */
 import { memo, useCallback, useMemo } from 'react';
 import { useDispatch } from 'react-redux';
-import { css, t, useTheme, useTruncation } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { useTruncation } from '@superset-ui/core';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
 import { List } from '@superset-ui/core/components/List';
@@ -101,7 +103,7 @@ export const DependenciesRow = memo(({ filter }: FilterCardRowProps) => {
         >
           <Icons.InfoCircleOutlined
             iconSize="m"
-            iconColor={theme.colors.grayscale.light1}
+            iconColor={theme.colorIcon}
             css={css`
               margin-left: ${theme.sizeUnit}px;
             `}

@@ -19,17 +19,18 @@
 import { useMemo, FC } from 'react';
 
 import { bindActionCreators } from 'redux';
-import { useSelector, useDispatch, shallowEqual } from 'react-redux';
+import { useSelector, shallowEqual } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { MenuDotsDropdown } from '@superset-ui/core/components';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
+import { t } from '@apache-superset/core/translation';
+import { QueryState } from '@superset-ui/core';
 import {
   styled,
   css,
-  t,
-  QueryState,
   SupersetTheme,
   useTheme,
-} from '@superset-ui/core';
+} from '@apache-superset/core/theme';
 import {
   removeQueryEditor,
   removeAllOtherQueryEditors,
@@ -90,7 +91,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
   );
   const StatusIcon = queryState ? STATE_ICONS[queryState] : STATE_ICONS.running;
 
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const actions = useMemo(
     () =>
       bindActionCreators(
@@ -107,6 +108,8 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
   );
 
   function renameTab() {
+    // TODO: Replace native prompt with a proper modal dialog
+    // eslint-disable-next-line no-alert
     const newTitle = prompt(t('Enter a new title for the tab'));
     if (newTitle) {
       actions.queryEditorSetTitle(qe, newTitle, qe.id);
@@ -114,18 +117,18 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
   }
   const getStatusColor = (state: QueryState, theme: SupersetTheme): string => {
     const statusColors: Record<QueryState, string> = {
-      [QueryState.Running]: theme.colors.info.base,
-      [QueryState.Success]: theme.colors.success.base,
-      [QueryState.Failed]: theme.colors.error.base,
-      [QueryState.Started]: theme.colors.primary.base,
-      [QueryState.Stopped]: theme.colors.warning.base,
-      [QueryState.Pending]: theme.colors.grayscale.light1,
-      [QueryState.Scheduled]: theme.colors.grayscale.light2,
+      [QueryState.Running]: theme.colorInfo,
+      [QueryState.Success]: theme.colorSuccess,
+      [QueryState.Failed]: theme.colorError,
+      [QueryState.Started]: theme.colorPrimary,
+      [QueryState.Stopped]: theme.colorWarning,
+      [QueryState.Pending]: theme.colorIcon,
+      [QueryState.Scheduled]: theme.colorIcon,
       [QueryState.Fetching]: theme.colorWarning,
-      [QueryState.TimedOut]: theme.colors.error.dark1,
+      [QueryState.TimedOut]: theme.colorError,
     };
 
-    return statusColors[state] || theme.colors.grayscale.light2;
+    return statusColors[state] || theme.colorIcon;
   };
   return (
     <TabTitleWrapper>
@@ -168,24 +171,6 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
                       />
                     </IconContainer>
                     {t('Rename tab')}
-                  </>
-                ),
-              } as MenuItemType,
-              {
-                key: '3',
-                onClick: () => actions.toggleLeftBar(qe),
-                'data-test': 'toggle-menu-option',
-                label: (
-                  <>
-                    <IconContainer>
-                      <Icons.VerticalAlignBottomOutlined
-                        iconSize="l"
-                        css={css`
-                          rotate: ${qe.hideLeftBar ? '-90deg;' : '90deg;'};
-                        `}
-                      />
-                    </IconContainer>
-                    {qe.hideLeftBar ? t('Expand tool bar') : t('Hide tool bar')}
                   </>
                 ),
               } as MenuItemType,

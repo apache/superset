@@ -15,10 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
-import prison
-from flask import Response
+import rison
+from flask import current_app, Response
 
-from superset import app, security_manager
+from superset import security_manager
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.dashboards.consts import *  # noqa: F403
 from tests.integration_tests.dashboards.dashboard_test_utils import (
@@ -55,7 +55,7 @@ class DashboardTestCase(SupersetTestCase):
         return self.delete_assert_metric(uri, "delete")
 
     def bulk_delete_dashboard_via_api(self, dashboard_ids):
-        uri = DASHBOARDS_API_URL_WITH_QUERY_FORMAT.format(prison.dumps(dashboard_ids))  # noqa: F405
+        uri = DASHBOARDS_API_URL_WITH_QUERY_FORMAT.format(rison.dumps(dashboard_ids))  # noqa: F405
         return self.delete_assert_metric(uri, "bulk_delete")
 
     def delete_dashboard(self, dashboard_id: int) -> Response:
@@ -78,5 +78,5 @@ class DashboardTestCase(SupersetTestCase):
         assert view_menu is None
 
     def clean_created_objects(self):
-        with app.test_request_context():
+        with current_app.test_request_context():
             delete_all_inserted_objects()

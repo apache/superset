@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useState } from 'react';
-import { styled, css, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled, css } from '@apache-superset/core/theme';
 import { Comparator } from '@superset-ui/chart-controls';
 import { Icons } from '@superset-ui/core/components/Icons';
 import ControlHeader from 'src/explore/components/ControlHeader';
@@ -53,11 +54,12 @@ export const FormatterContainer = styled(OptionControlContainer)`
 
 export const CloseButton = styled.button`
   ${({ theme }) => css`
-    color: ${theme.colors.grayscale.light1};
+    background: ${theme.colorBgLayout};
+    color: ${theme.colorIcon};
     height: 100%;
     width: ${theme.sizeUnit * 6}px;
     border: none;
-    border-right: solid 1px ${theme.colors.grayscale.dark2}0C;
+    border-right: solid 1px ${theme.colorBorder};
     padding: 0;
     outline: none;
     border-bottom-left-radius: 3px;
@@ -72,6 +74,7 @@ const ConditionalFormattingControl = ({
   verboseMap,
   removeIrrelevantConditions,
   extraColorChoices,
+  allColumns,
   ...props
 }: ConditionalFormattingControlProps) => {
   const [conditionalFormattingConfigs, setConditionalFormattingConfigs] =
@@ -133,6 +136,11 @@ const ConditionalFormattingControl = ({
         return `${targetValueLeft} ${Comparator.LessOrEqual} ${columnName} ${Comparator.LessThan} ${targetValueRight}`;
       case Comparator.BetweenOrRightEqual:
         return `${targetValueLeft} ${Comparator.LessThan} ${columnName} ${Comparator.LessOrEqual} ${targetValueRight}`;
+      case Comparator.IsTrue:
+      case Comparator.IsFalse:
+      case Comparator.IsNull:
+      case Comparator.IsNotNull:
+        return `${columnName} ${operator}`;
       default:
         return `${columnName} ${operator} ${targetValue}`;
     }
@@ -154,8 +162,9 @@ const ConditionalFormattingControl = ({
               onChange={(newConfig: ConditionalFormattingConfig) =>
                 onEdit(newConfig, index)
               }
-              destroyTooltipOnHide
+              destroyOnHidden
               extraColorChoices={extraColorChoices}
+              allColumns={allColumns}
             >
               <OptionControlContainer withCaret>
                 <Label>{createLabel(config)}</Label>
@@ -170,8 +179,9 @@ const ConditionalFormattingControl = ({
           title={t('Add new formatter')}
           columns={columnOptions}
           onChange={onSave}
-          destroyTooltipOnHide
+          destroyOnHidden
           extraColorChoices={extraColorChoices}
+          allColumns={allColumns}
         >
           <AddControlLabel>
             <Icons.PlusOutlined

@@ -52,6 +52,16 @@ class DashboardPermalinkStateSchema(Schema):
         allow_none=True,
         metadata={"description": "Optional anchor link added to url hash"},
     )
+    chartStates = fields.Dict(  # noqa: N815
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": (
+                "Chart-level state for stateful tables "
+                "(column order, sorting, filtering)"
+            )
+        },
+    )
 
 
 class DashboardPermalinkSchema(Schema):

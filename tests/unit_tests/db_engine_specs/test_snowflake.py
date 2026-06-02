@@ -352,6 +352,48 @@ def test_mask_encrypted_extra_no_fields() -> None:
     )
 
 
+def test_handle_boolean_filter() -> None:
+    """
+    Test that Snowflake uses equality operators for boolean filters instead of IS.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    # Create a mock SQLAlchemy column
+    bool_col = Column("test_col", Boolean)
+
+    # Test IS_TRUE filter - use actual FilterOperator values
+    from superset.utils.core import FilterOperator
+
+    result_true = SnowflakeEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_TRUE, True
+    )
+    # The result should be a equality comparison, not an IS comparison
+    assert (
+        str(result_true.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = true"
+    )
+
+    # Test IS_FALSE filter
+    result_false = SnowflakeEngineSpec.handle_boolean_filter(
+        bool_col, FilterOperator.IS_FALSE, False
+    )
+    assert (
+        str(result_false.compile(compile_kwargs={"literal_binds": True}))
+        == "test_col = false"
+    )
+
+
+def test_use_equality_for_boolean_filters_property() -> None:
+    """
+    Test that Snowflake has the use_equality_for_boolean_filters property set to True.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    assert SnowflakeEngineSpec.use_equality_for_boolean_filters is True
+
+
 def test_unmask_encrypted_extra() -> None:
     """
     Test that the private keys can be reused from the previous `encrypted_extra`.

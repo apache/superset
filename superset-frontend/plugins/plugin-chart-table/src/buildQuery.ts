@@ -116,6 +116,13 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       }
     }
 
+    if (
+      extra_form_data?.time_compare &&
+      !timeOffsets.includes(extra_form_data.time_compare)
+    ) {
+      timeOffsets = [extra_form_data.time_compare];
+    }
+
     let temporalColumnAdded = false;
     let temporalColumn = null;
 
@@ -258,12 +265,30 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     ) {
       queryObject = { ...queryObject, row_offset: 0 };
       const modifiedOwnState = {
-        ...(options?.ownState || {}),
+        ...options?.ownState,
         currentPage: 0,
         pageSize: queryObject.row_limit ?? 0,
       };
       updateTableOwnState(options?.hooks?.setDataMask, modifiedOwnState);
     }
+
+    if (formData.server_pagination) {
+      // Add search filter if search text exists
+      if (ownState.searchText && ownState?.searchColumn) {
+        queryObject = {
+          ...queryObject,
+          filters: [
+            ...(queryObject.filters || []),
+            {
+              col: ownState?.searchColumn,
+              op: 'ILIKE',
+              val: `${ownState.searchText}%`,
+            },
+          ],
+        };
+      }
+    }
+
     // Because we use same buildQuery for all table on the page we need split them by id
     options?.hooks?.setCachedChanges({
       [formData.slice_id]: queryObject.filters,
@@ -313,23 +338,6 @@ const buildQuery: BuildQuery<TableChartFormData> = (
       ];
     }
 
-    if (formData.server_pagination) {
-      // Add search filter if search text exists
-      if (ownState.searchText && ownState?.searchColumn) {
-        queryObject = {
-          ...queryObject,
-          filters: [
-            ...(queryObject.filters || []),
-            {
-              col: ownState?.searchColumn,
-              op: 'ILIKE',
-              val: `${ownState.searchText}%`,
-            },
-          ],
-        };
-      }
-    }
-
     // Now since row limit control is always visible even
     // in case of server pagination
     // we must use row limit from form data
@@ -339,7 +347,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         {
           ...queryObject,
           time_offsets: [],
-          row_limit: Number(formData?.row_limit) ?? 0,
+          row_limit: Number(formData?.row_limit ?? 0),
           row_offset: 0,
           post_processing: [],
           is_rowcount: true,

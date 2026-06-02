@@ -16,14 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  t,
-  styled,
-  SupersetTheme,
-  getExtensionsRegistry,
-  css,
-  useTheme,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { getExtensionsRegistry } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { styled, SupersetTheme } from '@apache-superset/core/theme';
 
 import {
   FunctionComponent,
@@ -41,7 +37,6 @@ import { useHistory } from 'react-router-dom';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
-  Alert,
   Button,
   Icons,
   LabeledErrorBoundInput as ValidatedInput,
@@ -66,9 +61,11 @@ import {
   getConnectionAlert,
   useImportResource,
 } from 'src/views/CRUD/hooks';
+import { FileEncryptedExtraFields } from 'src/views/CRUD/types';
 import { useCommonConf } from 'src/features/databases/state';
 import { isEmpty, pick } from 'lodash';
 import { OnlyKeyWithType } from 'src/utils/types';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {
   DatabaseObject,
   DatabaseForm,
@@ -118,13 +115,14 @@ const TABS_KEYS = {
 
 const engineSpecificAlertMapping = {
   [Engines.GSheet]: {
-    message: 'Why do I need to create a database?',
-    description:
+    message: t('Why do I need to create a database?'),
+    description: t(
       'To begin using your Google Sheets, you need to create a database first. ' +
-      'Databases are used as a way to identify ' +
-      'your data so that it can be queried and visualized. This ' +
-      'database will hold all of your individual Google Sheets ' +
-      'you choose to connect here.',
+        'Databases are used as a way to identify ' +
+        'your data so that it can be queried and visualized. This ' +
+        'database will hold all of your individual Google Sheets ' +
+        'you choose to connect here.',
+    ),
   },
 };
 
@@ -169,6 +167,7 @@ export enum ActionType {
   ExtraEditorChange,
   ExtraInputChange,
   EncryptedExtraInputChange,
+  ClearEncryptedExtraKey,
   Fetched,
   InputChange,
   ParametersChange,
@@ -201,6 +200,7 @@ export type DBReducerActionType =
         | ActionType.ExtraEditorChange
         | ActionType.ExtraInputChange
         | ActionType.EncryptedExtraInputChange
+        | ActionType.ClearEncryptedExtraKey
         | ActionType.TextChange
         | ActionType.QueryChange
         | ActionType.InputChange
@@ -252,8 +252,9 @@ export type DBReducerActionType =
     };
 
 const StyledBtns = styled.div`
-  margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
-  margin-left: ${({ theme }) => theme.sizeUnit * 3}px;
+  display: flex;
+  justify-content: center;
+  padding: ${({ theme }) => theme.sizeUnit * 5}px;
 `;
 
 export function dbReducer(
@@ -261,9 +262,10 @@ export function dbReducer(
   action: DBReducerActionType,
 ): Partial<DatabaseObject> | null {
   const trimmedState = {
-    ...(state || {}),
+    ...state,
   };
   let query = {};
+  // eslint-disable-next-line camelcase
   let query_input = '';
   let parametersCatalog;
   let actionPayloadJson;
@@ -275,7 +277,7 @@ export function dbReducer(
       try {
         // we don't want to stringify encoded strings twice
         actionPayloadJson = JSON.parse(action.payload.json || '{}');
-      } catch (e) {
+      } catch {
         actionPayloadJson = action.payload.json;
       }
       return {
@@ -285,14 +287,57 @@ export function dbReducer(
           [action.payload.name]: actionPayloadJson,
         }),
       };
-    case ActionType.EncryptedExtraInputChange:
+    case ActionType.EncryptedExtraInputChange: {
+      // `masked_encrypted_extra` can arrive as the literal string "null" or
+      // malformed JSON from older payloads — defend the parse so a single
+      // bad value can't crash the reducer.
+      let parsedUnknown: unknown;
+      try {
+        parsedUnknown = JSON.parse(trimmedState.masked_encrypted_extra || '{}');
+      } catch (e) {
+        if (!(e instanceof SyntaxError)) throw e;
+        parsedUnknown = {};
+      }
+      const parsed: Record<string, unknown> =
+        parsedUnknown &&
+        typeof parsedUnknown === 'object' &&
+        !Array.isArray(parsedUnknown)
+          ? (parsedUnknown as Record<string, unknown>)
+          : {};
+      // Generic input change: store the value as-is (including empty string).
+      // Use `ClearEncryptedExtraKey` if the intent is to remove the key.
       return {
         ...trimmedState,
         masked_encrypted_extra: JSON.stringify({
-          ...JSON.parse(trimmedState.masked_encrypted_extra || '{}'),
+          ...parsed,
           [action.payload.name]: action.payload.value,
         }),
       };
+    }
+    case ActionType.ClearEncryptedExtraKey: {
+      // Same defensive parse as EncryptedExtraInputChange — see comment above.
+      let parsedUnknown: unknown;
+      try {
+        parsedUnknown = JSON.parse(trimmedState.masked_encrypted_extra || '{}');
+      } catch (e) {
+        if (!(e instanceof SyntaxError)) throw e;
+        parsedUnknown = {};
+      }
+      const parsed: Record<string, unknown> =
+        parsedUnknown &&
+        typeof parsedUnknown === 'object' &&
+        !Array.isArray(parsedUnknown)
+          ? (parsedUnknown as Record<string, unknown>)
+          : {};
+      // Explicit key removal — used by the gsheets public/private toggle to
+      // drop previously stored service_account_info / oauth2_client_info so
+      // the save-time merge in this modal doesn't carry them forward.
+      delete parsed[action.payload.name as string];
+      return {
+        ...trimmedState,
+        masked_encrypted_extra: JSON.stringify(parsed),
+      };
+    }
     case ActionType.ExtraInputChange:
       if (
         action.payload.name === 'schema_cache_timeout' ||
@@ -310,16 +355,21 @@ export function dbReducer(
         };
       }
       if (action.payload.name === 'schemas_allowed_for_file_upload') {
+        const value = action.payload.value || '';
+        const filteredSchemas = value
+          .split(',')
+          .map(s => s.trim())
+          .filter(s => s.length > 0);
+
         return {
           ...trimmedState,
           extra: JSON.stringify({
             ...extraJson,
-            schemas_allowed_for_file_upload: (action.payload.value || '')
-              .split(',')
-              .filter(schema => schema !== ''),
+            schemas_allowed_for_file_upload: filteredSchemas,
           }),
         };
       }
+
       if (action.payload.name === 'http_path') {
         return {
           ...trimmedState,
@@ -427,9 +477,11 @@ export function dbReducer(
         },
       };
     case ActionType.SetSSHTunnelLoginMethod: {
+      // eslint-disable-next-line camelcase
       let ssh_tunnel = {};
       if (trimmedState?.ssh_tunnel) {
         // remove any attributes that are considered sensitive
+        // eslint-disable-next-line camelcase
         ssh_tunnel = pick(trimmedState.ssh_tunnel, [
           'id',
           'server_address',
@@ -440,10 +492,12 @@ export function dbReducer(
       if (action.payload.login_method === AuthType.PrivateKey) {
         return {
           ...trimmedState,
+          // eslint-disable-next-line camelcase
           ssh_tunnel: {
             private_key: trimmedState?.ssh_tunnel?.private_key,
             private_key_password:
               trimmedState?.ssh_tunnel?.private_key_password,
+            // eslint-disable-next-line camelcase
             ...ssh_tunnel,
           },
         };
@@ -451,8 +505,10 @@ export function dbReducer(
       if (action.payload.login_method === AuthType.Password) {
         return {
           ...trimmedState,
+          // eslint-disable-next-line camelcase
           ssh_tunnel: {
             password: trimmedState?.ssh_tunnel?.password,
+            // eslint-disable-next-line camelcase
             ...ssh_tunnel,
           },
         };
@@ -494,6 +550,7 @@ export function dbReducer(
           ...trimmedState.parameters,
           query: Object.fromEntries(new URLSearchParams(action.payload.value)),
         },
+        // eslint-disable-next-line camelcase
         query_input: action.payload.value,
       };
     case ActionType.TextChange:
@@ -504,6 +561,7 @@ export function dbReducer(
     case ActionType.Fetched:
       // convert query to a string and store in query_input
       query = action.payload?.parameters?.query || {};
+      // eslint-disable-next-line camelcase
       query_input = Object.entries(query)
         .map(([key, value]) => `${key}=${value}`)
         .join('&');
@@ -532,6 +590,7 @@ export function dbReducer(
             ...(action.payload.parameters || trimmedState.parameters),
             catalog: payloadCatalog,
           },
+          // eslint-disable-next-line camelcase
           query_input,
         };
       }
@@ -542,6 +601,7 @@ export function dbReducer(
         configuration_method: action.payload.configuration_method,
         parameters: action.payload.parameters || trimmedState.parameters,
         ssh_tunnel: action.payload.ssh_tunnel || trimmedState.ssh_tunnel,
+        // eslint-disable-next-line camelcase
         query_input,
       };
 
@@ -574,7 +634,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   databaseId,
   dbEngine,
 }) => {
-  const theme = useTheme();
   const [db, setDB] = useReducer<
     Reducer<Partial<DatabaseObject> | null, DBReducerActionType>
   >(dbReducer, null);
@@ -632,6 +691,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [encryptedExtraFields, setEncryptedExtraFields] = useState<
+    FileEncryptedExtraFields[]
+  >([]);
+  const [encryptedExtraSecrets, setEncryptedExtraSecrets] = useState<
+    Record<string, Record<string, string>>
+  >({});
   const [extraExtensionComponentState, setExtraExtensionComponentState] =
     useState<object>({});
 
@@ -700,8 +765,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     ) ||
     {};
 
+  const handleClearValidationErrors = useCallback(() => {
+    setValidationErrors(null);
+    setHasValidated(false);
+    clearError();
+  }, [setValidationErrors, setHasValidated, clearError]);
+
   // Test Connection logic
   const testConnection = () => {
+    handleClearValidationErrors();
     if (!db?.sqlalchemy_uri) {
       addDangerToast(t('Please enter a SQLAlchemy URI to test'));
       return;
@@ -728,10 +800,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       (errorMsg: string) => {
         setTestInProgress(false);
         addDangerToast(errorMsg);
+        setHasValidated(false);
       },
       (errorMsg: string) => {
         setTestInProgress(false);
         addSuccessToast(errorMsg);
+        setHasValidated(true);
       },
     );
   };
@@ -758,11 +832,6 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     [],
   );
 
-  const handleClearValidationErrors = useCallback(() => {
-    setValidationErrors(null);
-    setHasValidated(false);
-  }, [setValidationErrors, setHasValidated]);
-
   const handleParametersChange = useCallback(
     ({ target }: { target: HTMLInputElement }) => {
       onChange(ActionType.ParametersChange, {
@@ -773,6 +842,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       });
     },
     [onChange],
+  );
+
+  const handleChangeWithValidation = useCallback(
+    (
+      actionType: ActionType,
+      payload: CustomTextType | DBReducerPayloadType,
+    ) => {
+      onChange(actionType, payload);
+      handleClearValidationErrors();
+    },
+    [onChange, handleClearValidationErrors],
   );
 
   const onClose = () => {
@@ -792,6 +872,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setSSHTunnelPasswords({});
     setSSHTunnelPrivateKeys({});
     setSSHTunnelPrivateKeyPasswords({});
+    setEncryptedExtraFields([]);
+    setEncryptedExtraSecrets({});
     setConfirmedOverwrite(false);
     setUseSSHTunneling(undefined);
     onHide();
@@ -809,6 +891,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       sshPasswordNeeded,
       sshPrivateKeyNeeded,
       sshPrivateKeyPasswordNeeded,
+      encryptedExtraFieldsNeeded,
       loading: importLoading,
       failed: importErrored,
     },
@@ -820,7 +903,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   const onSave = async () => {
     let dbConfigExtraExtensionOnSaveError;
     setLoading(true);
-
+    setHasValidated(false);
     dbConfigExtraExtension
       ?.onSave(extraExtensionComponentState, db)
       .then(({ error }: { error: any }) => {
@@ -835,7 +918,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       return;
     }
     // Clone DB object
-    const dbToUpdate = { ...(db || {}) };
+    const dbToUpdate = { ...db };
 
     if (dbToUpdate.configuration_method === ConfigurationMethod.DynamicForm) {
       // Validate DB before saving
@@ -858,12 +941,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         return;
       }
 
+      // eslint-disable-next-line camelcase
       const parameters_schema = isEditMode
         ? dbToUpdate.parameters_schema?.properties
         : dbModel?.parameters.properties;
       const additionalEncryptedExtra = JSON.parse(
         dbToUpdate.masked_encrypted_extra || '{}',
       );
+      // eslint-disable-next-line camelcase
       const paramConfigArray = Object.keys(parameters_schema || {});
 
       paramConfigArray.forEach(paramConfig => {
@@ -873,6 +958,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
          * backend when the database is created or edited.
          */
         if (
+          // eslint-disable-next-line camelcase
           parameters_schema[paramConfig]['x-encrypted-extra'] &&
           dbToUpdate.parameters?.[paramConfig as keyof DatabaseParameters]
         ) {
@@ -994,6 +1080,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         sshTunnelPasswords,
         sshTunnelPrivateKeys,
         sshTunnelPrivateKeyPasswords,
+        encryptedExtraSecrets,
         confirmedOverwrite,
       );
       if (dbId) {
@@ -1024,15 +1111,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
   };
 
+  // eslint-disable-next-line camelcase
   const setDatabaseModel = (database_name: string) => {
+    // eslint-disable-next-line camelcase
     if (database_name === 'Other') {
       // Allow users to connect to DB via legacy SQLA form
       setDB({
         type: ActionType.DbSelected,
         payload: {
+          // eslint-disable-next-line camelcase
           database_name,
           configuration_method: ConfigurationMethod.SqlalchemyUri,
           engine: undefined,
+          // eslint-disable-next-line camelcase
           engine_information: {
             supports_file_upload: true,
           },
@@ -1040,26 +1131,35 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       });
     } else {
       const selectedDbModel = availableDbs?.databases.filter(
+        // eslint-disable-next-line camelcase
         (db: DatabaseObject) => db.name === database_name,
       )[0];
+      if (!selectedDbModel) return;
       const {
         engine,
         parameters,
+        // eslint-disable-next-line camelcase
         engine_information,
+        // eslint-disable-next-line camelcase
         default_driver,
+        // eslint-disable-next-line camelcase
         sqlalchemy_uri_placeholder,
       } = selectedDbModel;
       const isDynamic = parameters !== undefined;
       setDB({
         type: ActionType.DbSelected,
         payload: {
+          // eslint-disable-next-line camelcase
           database_name,
           engine,
           configuration_method: isDynamic
             ? ConfigurationMethod.DynamicForm
             : ConfigurationMethod.SqlalchemyUri,
+          // eslint-disable-next-line camelcase
           engine_information,
+          // eslint-disable-next-line camelcase
           driver: default_driver,
+          // eslint-disable-next-line camelcase
           sqlalchemy_uri_placeholder,
         },
       });
@@ -1084,18 +1184,27 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onChange={setDatabaseModel}
         placeholder={t('Choose a database...')}
         options={[
-          ...(availableDbs?.databases || [])
-            .sort((a: DatabaseForm, b: DatabaseForm) =>
-              a.name.localeCompare(b.name),
-            )
-            .map((database: DatabaseForm, index: number) => ({
+          ...(availableDbs?.databases || []).map(
+            (database: DatabaseForm, index: number) => ({
               value: database.name,
               label: database.name,
               key: `database-${index}`,
-            })),
+            }),
+          ),
           { value: 'Other', label: t('Other'), key: 'Other' },
         ]}
         showSearch
+        sortComparator={(a, b) => {
+          // Always put "Other" at the end
+          if (a.value === 'Other') return 1;
+          if (b.value === 'Other') return -1;
+          // For all other options, sort alphabetically
+          return String(a.label).localeCompare(String(b.label));
+        }}
+        getPopupContainer={triggerNode =>
+          triggerNode.parentElement || document.body
+        }
+        dropdownStyle={{ maxHeight: 400, overflow: 'auto' }}
       />
       <Alert
         showIcon
@@ -1166,6 +1275,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const handleBackButtonOnConnect = () => {
+    handleClearValidationErrors();
     if (editNewDb) setHasConnectedDb(false);
     if (importingModal) setImportingModal(false);
     if (importErrored) {
@@ -1175,16 +1285,24 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       setSSHTunnelPasswordFields([]);
       setSSHTunnelPrivateKeyFields([]);
       setSSHTunnelPrivateKeyPasswordFields([]);
+      setEncryptedExtraFields([]);
       setPasswords({});
       setSSHTunnelPasswords({});
       setSSHTunnelPrivateKeys({});
       setSSHTunnelPrivateKeyPasswords({});
+      setEncryptedExtraSecrets({});
     }
     setDB({ type: ActionType.Reset });
     setFileList([]);
   };
 
   const handleDisableOnImport = () => {
+    // Check if any encrypted extra field is missing a secret
+    const hasEmptyEncryptedExtraSecrets = encryptedExtraFields.some(
+      ({ fileName, fields }) =>
+        fields.some(field => !encryptedExtraSecrets[fileName]?.[field.path]),
+    );
+
     if (
       importLoading ||
       (alreadyExists.length && !confirmedOverwrite) ||
@@ -1194,7 +1312,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       (sshPrivateKeyNeeded.length &&
         JSON.stringify(sshTunnelPrivateKeys) === '{}') ||
       (sshPrivateKeyPasswordNeeded.length &&
-        JSON.stringify(sshTunnelPrivateKeyPasswords) === '{}')
+        JSON.stringify(sshTunnelPrivateKeyPasswords) === '{}') ||
+      (encryptedExtraFields.length && hasEmptyEncryptedExtraSecrets)
     )
       return true;
     return false;
@@ -1314,6 +1433,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       !sshPasswordNeeded.length &&
       !sshPrivateKeyNeeded.length &&
       !sshPrivateKeyPasswordNeeded.length &&
+      !encryptedExtraFieldsNeeded.length &&
       !isLoading && // This prevents a double toast for non-related imports
       !importErrored // This prevents a success toast on error
     ) {
@@ -1328,6 +1448,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     sshPasswordNeeded,
     sshPrivateKeyNeeded,
     sshPrivateKeyPasswordNeeded,
+    encryptedExtraFieldsNeeded,
   ]);
 
   useEffect(() => {
@@ -1369,7 +1490,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (importingModal) {
       document
         ?.getElementsByClassName('ant-upload-list-item-name')[0]
-        .scrollIntoView();
+        ?.scrollIntoView();
     }
   }, [importingModal]);
 
@@ -1390,6 +1511,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [sshPrivateKeyPasswordNeeded]);
 
   useEffect(() => {
+    setEncryptedExtraFields([...encryptedExtraFieldsNeeded]);
+  }, [encryptedExtraFieldsNeeded]);
+
+  useEffect(() => {
     if (db?.parameters?.ssh !== undefined) {
       setUseSSHTunneling(db.parameters.ssh);
     }
@@ -1401,10 +1526,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     setSSHTunnelPasswordFields([]);
     setSSHTunnelPrivateKeyFields([]);
     setSSHTunnelPrivateKeyPasswordFields([]);
+    setEncryptedExtraFields([]);
     setPasswords({});
     setSSHTunnelPasswords({});
     setSSHTunnelPrivateKeys({});
     setSSHTunnelPrivateKeyPasswords({});
+    setEncryptedExtraSecrets({});
     setImportingModal(true);
     setFileList([
       {
@@ -1420,6 +1547,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       sshTunnelPasswords,
       sshTunnelPrivateKeys,
       sshTunnelPrivateKeyPasswords,
+      encryptedExtraSecrets,
       confirmedOverwrite,
     );
     if (dbId) onDatabaseAdd?.();
@@ -1453,7 +1581,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             showIcon
             message="Database passwords"
             description={t(
-              `The passwords for the databases below are needed in order to import them. Please note that the "Secure Extra" and "Certificate" sections of the database configuration are not present in explore files and should be added manually after the import if they are needed.`,
+              `The passwords for the databases below are needed in order to import them.`,
             )}
           />
         </StyledAlertMargin>
@@ -1533,6 +1661,50 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           />
         )}
       </>
+    ));
+  };
+
+  const encryptedExtraNeededField = () => {
+    if (!encryptedExtraFields.length) return null;
+
+    return encryptedExtraFields.map(({ fileName, fields }) => (
+      <div key={fileName}>
+        <StyledAlertMargin>
+          <Alert
+            closable={false}
+            css={(theme: SupersetTheme) => antDAlertStyles(theme)}
+            type="info"
+            showIcon
+            message={t('Encrypted extra fields')}
+            description={t(
+              `The following fields contain sensitive information that was masked during export. Please provide the values to import this database.`,
+            )}
+          />
+        </StyledAlertMargin>
+        {fields.map(field => (
+          <ValidatedInput
+            key={`${fileName}-${field.path}`}
+            id={`encrypted_extra_${field.path}`}
+            name={`encrypted_extra_${field.path}`}
+            required
+            visibilityToggle
+            value={encryptedExtraSecrets[fileName]?.[field.path] || ''}
+            onChange={(event: ChangeEvent<HTMLInputElement>) =>
+              setEncryptedExtraSecrets({
+                ...encryptedExtraSecrets,
+                [fileName]: {
+                  ...encryptedExtraSecrets[fileName],
+                  [field.path]: event.target.value,
+                },
+              })
+            }
+            isValidating={isValidating}
+            validationMethods={{ onBlur: () => {} }}
+            label={t('%s %s', fileName.slice(10), field.label)}
+            css={formScrollableStyles}
+          />
+        ))}
+      </div>
     ));
   };
 
@@ -1696,7 +1868,9 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          redirectURL(`/sqllab?db=true`);
+          // redirectURL() delegates to history.push; React Router's basename
+          // already prefixes the application root, so pass a relative path.
+          redirectURL('/sqllab?db=true');
         }}
       >
         {t('Query data in SQL Lab')}
@@ -1716,13 +1890,13 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
           setDB({ type: ActionType.AddTableCatalogSheet });
         }}
         onQueryChange={({ target }: { target: HTMLInputElement }) =>
-          onChange(ActionType.QueryChange, {
+          handleChangeWithValidation(ActionType.QueryChange, {
             name: target.name,
             value: target.value,
           })
         }
         onExtraInputChange={({ target }: { target: HTMLInputElement }) =>
-          onChange(ActionType.ExtraInputChange, {
+          handleChangeWithValidation(ActionType.ExtraInputChange, {
             name: target.name,
             value: target.value,
           })
@@ -1732,9 +1906,14 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }: {
           target: HTMLInputElement;
         }) =>
-          onChange(ActionType.EncryptedExtraInputChange, {
+          handleChangeWithValidation(ActionType.EncryptedExtraInputChange, {
             name: target.name,
             value: target.value,
+          })
+        }
+        onClearEncryptedExtraKey={(name: string) =>
+          handleChangeWithValidation(ActionType.ClearEncryptedExtraKey, {
+            name,
           })
         }
         onRemoveTableCatalog={(idx: number) => {
@@ -1745,7 +1924,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         }}
         onParametersChange={handleParametersChange}
         onChange={({ target }: { target: HTMLInputElement }) =>
-          onChange(ActionType.TextChange, {
+          handleChangeWithValidation(ActionType.TextChange, {
             name: target.name,
             value: target.value,
           })
@@ -1771,7 +1950,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
           ) => {
             const { target } = e;
-            onChange(ActionType.InputChange, {
+            handleChangeWithValidation(ActionType.InputChange, {
               type: target.type,
               name: target.name,
               checked: 'checked' in target ? target.checked : false,
@@ -1779,19 +1958,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             });
           }}
           onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
-            onChange(ActionType.TextChange, {
+            handleChangeWithValidation(ActionType.TextChange, {
               name: target.name,
               value: target.value,
             })
           }
           onEditorChange={(payload: { name: string; json: any }) =>
-            onChange(ActionType.EditorChange, payload)
+            handleChangeWithValidation(ActionType.EditorChange, payload)
           }
           onExtraInputChange={(
             e: CheckboxChangeEvent | React.ChangeEvent<HTMLInputElement>,
           ) => {
             const { target } = e;
-            onChange(ActionType.ExtraInputChange, {
+            handleChangeWithValidation(ActionType.ExtraInputChange, {
               type: target.type,
               name: target.name,
               checked: 'checked' in target ? target.checked : false,
@@ -1799,7 +1978,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             });
           }}
           onExtraEditorChange={(payload: { name: string; json: any }) =>
-            onChange(ActionType.ExtraEditorChange, payload)
+            handleChangeWithValidation(ActionType.ExtraEditorChange, payload)
           }
         />
       );
@@ -1813,7 +1992,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       passwordFields.length ||
       sshTunnelPasswordFields.length ||
       sshTunnelPrivateKeyFields.length ||
-      sshTunnelPrivateKeyPasswordFields.length)
+      sshTunnelPrivateKeyPasswordFields.length ||
+      encryptedExtraFields.length)
   ) {
     return (
       <Modal
@@ -1831,7 +2011,12 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onHandledPrimaryAction={onSave}
         primaryButtonName={t('Connect')}
         show={show}
-        title={<h4>{t('Connect a database')}</h4>}
+        title={
+          <ModalTitleWithIcon
+            title={t('Connect a database')}
+            icon={<Icons.InsertRowAboveOutlined />}
+          />
+        }
         width="500px"
       >
         <ModalHeader
@@ -1847,6 +2032,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         {confirmOverwriteField()}
         {importingErrorAlert()}
         {passwordNeededField()}
+        {encryptedExtraNeededField()}
       </Modal>
     );
   }
@@ -1871,24 +2057,17 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       centered
       show={show}
       title={
-        <h4>
-          {isEditMode ? (
-            <Icons.EditOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          ) : (
-            <Icons.InsertRowAboveOutlined
-              iconSize="l"
-              css={css`
-                margin: auto ${theme.sizeUnit * 2}px auto 0;
-              `}
-            />
-          )}
-          {isEditMode ? t('Edit database') : t('Connect a database')}
-        </h4>
+        <ModalTitleWithIcon
+          isEditMode={isEditMode}
+          title={isEditMode ? t('Edit database') : t('Connect a database')}
+          icon={
+            isEditMode ? (
+              <Icons.EditOutlined iconSize="l" />
+            ) : (
+              <Icons.InsertRowAboveOutlined iconSize="l" />
+            )
+          }
+        />
       }
       footer={modalFooter}
       maskClosable={false}
@@ -1925,14 +2104,15 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                         target,
                       }: {
                         target: HTMLInputElement;
-                      }) =>
+                      }) => {
+                        setHasValidated(false);
                         onChange(ActionType.InputChange, {
                           type: target.type,
                           name: target.name,
                           checked: target.checked,
                           value: target.value,
-                        })
-                      }
+                        });
+                      }}
                       conf={conf}
                       testConnection={testConnection}
                       testInProgress={testInProgress}
@@ -2019,36 +2199,39 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 db={db as DatabaseObject}
                 onInputChange={(e: CheckboxChangeEvent) => {
                   const { target } = e;
-                  onChange(ActionType.InputChange, {
+                  handleChangeWithValidation(ActionType.InputChange, {
                     type: target.type,
                     name: target.name,
                     checked: target.checked,
                     value: target.value,
                   });
                 }}
-                onTextChange={({ target }: { target: HTMLTextAreaElement }) => {
-                  onChange(ActionType.TextChange, {
+                onTextChange={({ target }: { target: HTMLTextAreaElement }) =>
+                  handleChangeWithValidation(ActionType.TextChange, {
                     name: target.name,
                     value: target.value,
-                  });
-                }}
-                onEditorChange={(payload: { name: string; json: any }) => {
-                  onChange(ActionType.EditorChange, payload);
-                }}
+                  })
+                }
+                onEditorChange={(payload: { name: string; json: any }) =>
+                  handleChangeWithValidation(ActionType.EditorChange, payload)
+                }
                 onExtraInputChange={(
                   e: React.ChangeEvent<HTMLInputElement> | CheckboxChangeEvent,
                 ) => {
                   const { target } = e;
-                  onChange(ActionType.ExtraInputChange, {
+                  handleChangeWithValidation(ActionType.ExtraInputChange, {
                     type: target.type,
                     name: target.name,
                     checked: target.checked,
                     value: target.value,
                   });
                 }}
-                onExtraEditorChange={(payload: { name: string; json: any }) => {
-                  onChange(ActionType.ExtraEditorChange, payload);
-                }}
+                onExtraEditorChange={(payload: { name: string; json: any }) =>
+                  handleChangeWithValidation(
+                    ActionType.ExtraEditorChange,
+                    payload,
+                  )
+                }
               />
             ),
           },
@@ -2071,15 +2254,10 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       centered
       show={show}
       title={
-        <h4>
-          <Icons.InsertRowAboveOutlined
-            iconSize="l"
-            css={css`
-              margin: auto ${theme.sizeUnit * 2}px auto 0;
-            `}
-          />
-          {t('Connect a database')}
-        </h4>
+        <ModalTitleWithIcon
+          title={t('Connect a database')}
+          icon={<Icons.InsertRowAboveOutlined />}
+        />
       }
       footer={renderModalFooter()}
       maskClosable={false}
@@ -2156,7 +2334,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                       <Button
                         data-test="sqla-connect-btn"
                         buttonStyle="link"
-                        onClick={() =>
+                        onClick={() => {
+                          handleClearValidationErrors();
                           setDB({
                             type: ActionType.ConfigMethodChange,
                             payload: {
@@ -2165,8 +2344,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                                 ConfigurationMethod.SqlalchemyUri,
                               database_name: db.database_name,
                             },
-                          })
-                        }
+                          });
+                        }}
                         css={buttonLinkStyles}
                       >
                         {t(

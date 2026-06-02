@@ -16,15 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { memo, useEffect, useRef } from 'react';
+import { memo, useEffect, useRef, useMemo, useCallback, useState } from 'react';
 import { isEqual } from 'lodash';
-import { styled, t } from '@superset-ui/core';
-import { useFilters, usePagination, useSortBy, useTable } from 'react-table';
+import { styled } from '@apache-superset/core/theme';
+import { useFilters, useSortBy, useTable } from 'react-table';
 import { Empty } from '@superset-ui/core/components';
-import Pagination from '@superset-ui/core/components/Pagination';
 import TableCollection from '@superset-ui/core/components/TableCollection';
 import { TableSize } from '@superset-ui/core/components/Table';
 import { SortByType, ServerPagination } from './types';
+
+const NOOP_SERVER_PAGINATION = () => {};
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -96,29 +97,6 @@ const TableViewStyles = styled.div<{
   }
 `;
 
-const PaginationStyles = styled.div<{
-  isPaginationSticky?: boolean;
-}>`
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background-color: ${({ theme }) => theme.colorBgElevated};
-
-  ${({ isPaginationSticky }) =>
-    isPaginationSticky &&
-    `
-        position: sticky;
-        bottom: 0;
-        left: 0;
-    `};
-
-  .row-count-container {
-    margin-top: ${({ theme }) => theme.sizeUnit * 2}px;
-    color: ${({ theme }) => theme.colorText};
-  }
-`;
-
 const RawTableView = ({
   columns,
   data,
@@ -133,136 +111,186 @@ const RawTableView = ({
   showRowCount = true,
   serverPagination = false,
   columnsForWrapText,
-  onServerPagination = () => {},
-  scrollTopOnPagination = false,
+  onServerPagination = NOOP_SERVER_PAGINATION,
+  scrollTopOnPagination = true,
   size = TableSize.Middle,
   ...props
 }: TableViewProps) => {
-  const initialState = {
-    pageSize: initialPageSize ?? DEFAULT_PAGE_SIZE,
-    pageIndex: initialPageIndex ?? 0,
-    sortBy: initialSortBy,
-  };
+  const tableRef = useRef<HTMLTableElement>(null);
+  const effectivePageSize = initialPageSize ?? DEFAULT_PAGE_SIZE;
+  const [pageIndex, setPageIndex] = useState(initialPageIndex ?? 0);
+
+  const initialState = useMemo(
+    () => ({
+      pageSize: effectivePageSize,
+      pageIndex: 0,
+      sortBy: initialSortBy,
+    }),
+    [effectivePageSize, initialSortBy],
+  );
 
   const {
     getTableProps,
     getTableBodyProps,
     headerGroups,
-    page,
     rows,
     prepareRow,
-    pageCount,
-    gotoPage,
     setSortBy,
-    state: { pageIndex, pageSize, sortBy },
+    state: { sortBy },
   } = useTable(
     {
       columns,
       data,
       initialState,
-      manualPagination: serverPagination,
+      manualPagination: true,
       manualSortBy: serverPagination,
-      pageCount: Math.ceil(totalCount / initialState.pageSize),
+      autoResetSortBy: false,
     },
     useFilters,
     useSortBy,
-    usePagination,
   );
 
-  const content = withPagination ? page : rows;
+  const content = useMemo(() => {
+    if (!withPagination || serverPagination) return rows;
+    const start = pageIndex * effectivePageSize;
+    return rows.slice(start, start + effectivePageSize);
+  }, [withPagination, serverPagination, rows, pageIndex, effectivePageSize]);
 
-  let EmptyWrapperComponent;
-  switch (emptyWrapperType) {
-    case EmptyWrapperType.Small:
-      EmptyWrapperComponent = ({ children }: any) => <>{children}</>;
-      break;
-    case EmptyWrapperType.Default:
-    default:
-      EmptyWrapperComponent = ({ children }: any) => (
-        <EmptyWrapper>{children}</EmptyWrapper>
-      );
-  }
-
-  const isEmpty = !loading && content.length === 0;
-  const hasPagination = pageCount > 1 && withPagination;
-  const tableRef = useRef<HTMLTableElement>(null);
-  const handleGotoPage = (p: number) => {
-    if (scrollTopOnPagination) {
-      tableRef?.current?.scroll(0, 0);
+  const EmptyWrapperComponent = useMemo(() => {
+    switch (emptyWrapperType) {
+      case EmptyWrapperType.Small:
+        return ({ children }: any) => <>{children}</>;
+      case EmptyWrapperType.Default:
+      default:
+        return ({ children }: any) => <EmptyWrapper>{children}</EmptyWrapper>;
     }
-    gotoPage(p);
-  };
+  }, [emptyWrapperType]);
+
+  const isEmpty = useMemo(
+    () => !loading && content.length === 0,
+    [loading, content.length],
+  );
+
+  const handleScrollToTop = useCallback(() => {
+    if (scrollTopOnPagination) {
+      if (tableRef?.current) {
+        if (typeof tableRef.current.scrollTo === 'function') {
+          tableRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+        } else if (typeof tableRef.current.scroll === 'function') {
+          tableRef.current.scroll(0, 0);
+        }
+      }
+
+      if (typeof window !== 'undefined' && window.scrollTo)
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [scrollTopOnPagination]);
+
+  const handlePageChange = useCallback(
+    (p: number) => {
+      if (scrollTopOnPagination) handleScrollToTop();
+      setPageIndex(p);
+    },
+    [scrollTopOnPagination, handleScrollToTop],
+  );
+
+  const paginationProps = useMemo(() => {
+    if (!withPagination) {
+      return {
+        pageIndex: 0,
+        pageSize: data.length,
+        totalCount: 0,
+        onPageChange: undefined,
+      };
+    }
+
+    if (serverPagination) {
+      return {
+        pageIndex,
+        pageSize: effectivePageSize,
+        totalCount,
+        onPageChange: handlePageChange,
+      };
+    }
+
+    return {
+      pageIndex,
+      pageSize: effectivePageSize,
+      totalCount: data.length,
+      onPageChange: handlePageChange,
+    };
+  }, [
+    withPagination,
+    serverPagination,
+    pageIndex,
+    effectivePageSize,
+    totalCount,
+    data.length,
+    handlePageChange,
+  ]);
 
   useEffect(() => {
-    if (serverPagination && pageIndex !== initialState.pageIndex) {
+    if (serverPagination && pageIndex !== (initialPageIndex ?? 0)) {
       onServerPagination({
         pageIndex,
       });
     }
-  }, [pageIndex]);
+  }, [initialPageIndex, onServerPagination, pageIndex, serverPagination]);
 
   useEffect(() => {
-    if (serverPagination && !isEqual(sortBy, initialState.sortBy)) {
+    if (serverPagination && !isEqual(sortBy, initialSortBy)) {
       onServerPagination({
         pageIndex: 0,
         sortBy,
       });
     }
-  }, [sortBy]);
+  }, [initialSortBy, onServerPagination, serverPagination, sortBy]);
+
+  // Reset to first page when current page exceeds available pages
+  // (e.g., when filtering reduces the data below the current page)
+  const pageCount = Math.ceil(data.length / effectivePageSize);
+  useEffect(() => {
+    if (
+      withPagination &&
+      !serverPagination &&
+      !loading &&
+      pageIndex > pageCount - 1 &&
+      pageCount > 0
+    ) {
+      setPageIndex(0);
+    }
+  }, [withPagination, serverPagination, loading, pageIndex, pageCount]);
 
   return (
-    <>
-      <TableViewStyles {...props} ref={tableRef}>
-        <TableCollection
-          getTableProps={getTableProps}
-          getTableBodyProps={getTableBodyProps}
-          prepareRow={prepareRow}
-          headerGroups={headerGroups}
-          rows={content}
-          columns={columns}
-          loading={loading}
-          setSortBy={setSortBy}
-          size={size}
-          columnsForWrapText={columnsForWrapText}
-        />
-        {isEmpty && (
-          <EmptyWrapperComponent>
-            {noDataText ? (
-              <Empty
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description={noDataText}
-              />
-            ) : (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
-            )}
-          </EmptyWrapperComponent>
-        )}
-      </TableViewStyles>
-      {hasPagination && (
-        <PaginationStyles
-          className="pagination-container"
-          isPaginationSticky={props.isPaginationSticky}
-        >
-          <Pagination
-            totalPages={pageCount || 0}
-            currentPage={pageCount ? pageIndex + 1 : 0}
-            onChange={(p: number) => handleGotoPage(p - 1)}
-            hideFirstAndLastPageLinks
-          />
-          {showRowCount && (
-            <div className="row-count-container">
-              {!loading &&
-                t(
-                  '%s-%s of %s',
-                  pageSize * pageIndex + (page.length && 1),
-                  pageSize * pageIndex + page.length,
-                  totalCount,
-                )}
-            </div>
+    <TableViewStyles {...props} ref={tableRef}>
+      <TableCollection
+        getTableProps={getTableProps}
+        getTableBodyProps={getTableBodyProps}
+        prepareRow={prepareRow}
+        headerGroups={headerGroups}
+        rows={content}
+        columns={columns}
+        loading={loading}
+        setSortBy={setSortBy}
+        size={size}
+        columnsForWrapText={columnsForWrapText}
+        isPaginationSticky={props.isPaginationSticky}
+        showRowCount={showRowCount}
+        {...paginationProps}
+      />
+      {isEmpty && (
+        <EmptyWrapperComponent>
+          {noDataText ? (
+            <Empty
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+              description={noDataText}
+            />
+          ) : (
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} />
           )}
-        </PaginationStyles>
+        </EmptyWrapperComponent>
       )}
-    </>
+    </TableViewStyles>
   );
 };
 

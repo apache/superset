@@ -17,9 +17,10 @@
  * under the License.
  */
 import type { CSSProperties, ReactNode } from 'react';
-import type { ModalFuncProps } from 'antd';
+import type { FormInstance, ModalFuncProps } from 'antd';
 import type { ResizableProps } from 're-resizable';
 import type { DraggableProps } from 'react-draggable';
+import { ButtonStyle } from '../Button/types';
 
 export interface ModalProps {
   className?: string;
@@ -30,11 +31,11 @@ export interface ModalProps {
   onHide: () => void;
   onHandledPrimaryAction?: () => void;
   primaryButtonName?: string;
-  primaryButtonType?: 'primary' | 'danger';
+  primaryButtonStyle?: ButtonStyle;
   show: boolean;
   name?: string;
   title: ReactNode;
-  width?: string;
+  width?: string | number;
   maxWidth?: string;
   responsive?: boolean;
   hideFooter?: boolean;
@@ -47,10 +48,12 @@ export interface ModalProps {
   resizableConfig?: ResizableProps;
   draggable?: boolean;
   draggableConfig?: DraggableProps;
-  destroyOnClose?: boolean;
+  destroyOnHidden?: boolean;
   maskClosable?: boolean;
   zIndex?: number;
+  /** @deprecated Use styles.body instead */
   bodyStyle?: CSSProperties;
+  styles?: { body?: CSSProperties; [key: string]: CSSProperties | undefined };
   openerRef?: React.RefObject<HTMLElement>;
 }
 
@@ -65,9 +68,10 @@ export interface StyledModalProps {
 
 export type { ModalFuncProps };
 
-export interface FormModalProps extends ModalProps {
-  initialValues?: Object;
-  formSubmitHandler: (values: Object) => Promise<void>;
+export interface FormModalProps extends Omit<ModalProps, 'children'> {
+  children: ReactNode | ((form: FormInstance) => ReactNode);
+  initialValues?: object;
+  formSubmitHandler: (values: object) => Promise<void>;
   onSave: () => void;
   requiredFields: string[];
 }

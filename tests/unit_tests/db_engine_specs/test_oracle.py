@@ -31,7 +31,8 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 @pytest.mark.parametrize(
     "column_name,expected_result",
     [
-        ("This_Is_32_Character_Column_Name", "3b26974078683be078219674eeb8f5"),
+        # SHA-256 hash of 129 'a' characters with default HASH_ALGORITHM
+        ("a" * 129, "c12cb024a2e5551cca0e08fce8f1c5e314555cc3fef6329ee994a3db752166ae"),
         ("snake_label", "snake_label"),
         ("camelLabel", "camelLabel"),
     ],

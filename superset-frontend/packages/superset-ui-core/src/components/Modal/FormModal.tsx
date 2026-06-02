@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useState, useCallback } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { Button } from '../Button';
 import { Form } from '../Form';
 import { Modal } from './Modal';
@@ -33,6 +33,7 @@ export function FormModal({
   formSubmitHandler,
   bodyStyle = {},
   requiredFields = [],
+  name,
 }: FormModalProps) {
   const [form] = Form.useForm();
   const [isSaving, setIsSaving] = useState(false);
@@ -53,7 +54,7 @@ export function FormModal({
   }, [onSave, resetForm]);
 
   const handleFormSubmit = useCallback(
-    async values => {
+    async (values: object) => {
       try {
         setIsSaving(true);
         await formSubmitHandler(values);
@@ -78,6 +79,7 @@ export function FormModal({
 
   return (
     <Modal
+      name={name}
       show={show}
       title={title}
       onHide={handleClose}

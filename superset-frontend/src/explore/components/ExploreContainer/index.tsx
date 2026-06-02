@@ -22,10 +22,11 @@ import {
   useState,
   Dispatch,
   FC,
+  ReactNode,
   useReducer,
 } from 'react';
 
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import { useDragDropManager } from 'react-dnd';
 import { DatasourcePanelDndItem } from '../DatasourcePanel/types';
 
@@ -60,7 +61,7 @@ const reducer = (state: DropzoneSet = {}, action: Action) => {
   return state;
 };
 
-const ExploreContainer: FC<{}> = ({ children }) => {
+const ExploreContainer: FC<{ children?: ReactNode }> = ({ children }) => {
   const dragDropManager = useDragDropManager();
   const [dragging, setDragging] = useState(
     dragDropManager.getMonitor().isDragging(),

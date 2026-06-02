@@ -17,14 +17,14 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
   FeatureFlag,
   getExtensionsRegistry,
   JsonObject,
-  styled,
-  t,
 } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import rison from 'rison';
 import { Collapse, ListViewCard } from '@superset-ui/core/components';
 import { User } from 'src/types/bootstrapTypes';
@@ -77,6 +77,7 @@ interface LoadingProps {
 const DEFAULT_TAB_ARR = ['dashboards', 'charts'];
 
 const WelcomeContainer = styled.div`
+  background: ${({ theme }) => theme.colorBgLayout};
   .ant-row.menu {
     margin-top: -15px;
 
@@ -134,7 +135,7 @@ const bootstrapData = getBootstrapData();
 
 export const LoadingCards = ({ cover }: LoadingProps) => (
   <CardContainer showThumbnails={cover} className="loading-cards">
-    {[...new Array(loadingCardCount)].map((_, index) => (
+    {Array.from({ length: loadingCardCount }, (_, index) => (
       <ListViewCard
         key={index}
         cover={cover ? false : <></>}

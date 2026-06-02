@@ -25,7 +25,11 @@ export type EmptyStateProps = {
   description?: ReactNode;
   image?: ReactNode | string;
   buttonText?: ReactNode;
+  buttonIcon?: ReactNode;
   buttonAction?: (event: SyntheticEvent) => void;
+  /** Controls image size. Defaults to 'medium'. */
   size?: EmptyStateSize;
+  /** Controls title and description text size. Defaults to the value of `size` if not provided. */
+  textSize?: EmptyStateSize;
   children?: ReactNode;
 };

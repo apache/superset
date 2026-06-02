@@ -26,7 +26,6 @@ from unittest.mock import call, Mock, patch
 import pytest
 from pytest_mock import MockerFixture
 
-from superset import app
 from superset.utils import decorators
 from superset.utils.backports import StrEnum
 
@@ -78,7 +77,7 @@ def test_statsd_gauge(
             raise FileNotFoundError("Not found")
         return "OK"
 
-    with patch.object(app.config["STATS_LOGGER"], "gauge") as mock:
+    with patch("superset.extensions.stats_logger_manager.instance.gauge") as mock:
         cm = (
             pytest.raises(expected_exception)
             if isclass(expected_exception) and issubclass(expected_exception, Exception)

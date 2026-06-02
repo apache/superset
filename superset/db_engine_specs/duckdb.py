@@ -24,18 +24,18 @@ from typing import Any, TYPE_CHECKING, TypedDict
 
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from flask import current_app as app
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from sqlalchemy import types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 
-from superset.config import VERSION_STRING
 from superset.constants import TimeGrain
 from superset.databases.utils import make_url_safe
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory, LimitMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.utils.core import get_user_agent, QuerySource
+from superset.utils.core import GenericDataType, get_user_agent, QuerySource
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -196,6 +196,84 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
     default_driver = "duckdb_engine"
 
     sqlalchemy_uri_placeholder = "duckdb:////path/to/duck.db"
+    supports_multivalues_insert = True
+
+    metadata = {
+        "description": (
+            "DuckDB is an in-process OLAP database designed for fast "
+            "analytical queries on local data. Supports CSV, Parquet, JSON, "
+            "and many other file formats."
+        ),
+        "logo": "duckdb.png",
+        "homepage_url": "https://duckdb.org/",
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["duckdb-engine"],
+        "connection_string": "duckdb:////path/to/duck.db",
+        "drivers": [
+            {
+                "name": "duckdb-engine",
+                "pypi_package": "duckdb-engine",
+                "connection_string": "duckdb:////path/to/duck.db",
+                "is_recommended": True,
+            },
+        ],
+        "notes": (
+            "DuckDB supports both local file and in-memory databases. "
+            "Use `:memory:` for in-memory database."
+        ),
+        "compatible_databases": [
+            {
+                "name": "MotherDuck",
+                "description": (
+                    "MotherDuck is a serverless cloud analytics platform "
+                    "built on DuckDB, offering collaborative data sharing "
+                    "and cloud-native scalability."
+                ),
+                "logo": "motherduck.png",
+                "homepage_url": "https://motherduck.com/",
+                "pypi_packages": ["duckdb", "duckdb-engine"],
+                "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
+                "parameters": {
+                    "database": "MotherDuck database name",
+                    "motherduck_token": "Service token from MotherDuck dashboard",
+                },
+                "notes": "Cloud-hosted DuckDB with collaboration features.",
+                "categories": [DatabaseCategory.HOSTED_OPEN_SOURCE],
+            },
+        ],
+    }
+
+    # DuckDB-specific column type mappings to ensure float/double types are recognized
+    column_type_mappings = (
+        (
+            re.compile(r"^hugeint", re.IGNORECASE),
+            types.BigInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^ubigint", re.IGNORECASE),
+            types.BigInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^uinteger", re.IGNORECASE),
+            types.Integer(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^usmallint", re.IGNORECASE),
+            types.SmallInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^utinyint", re.IGNORECASE),
+            types.SmallInteger(),
+            GenericDataType.NUMERIC,
+        ),
+    )
 
     _time_grain_expressions = {
         None: "{col}",
@@ -232,6 +310,39 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         return None
 
     @classmethod
+    def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
+        """
+        Override fetch_data to work around duckdb-engine cursor.description bug.
+
+        The duckdb-engine SQLAlchemy driver has a bug where cursor.description
+        becomes None after calling fetchall(), even though the native DuckDB cursor
+        preserves this information correctly.
+
+        See: https://github.com/Mause/duckdb_engine/issues/1322
+
+        This method captures the cursor description before fetchall() and restores
+        it afterward to prevent downstream processing failures.
+        """
+        # Capture description BEFORE fetchall() invalidates it
+        description = cursor.description
+
+        # Execute fetchall() (which will clear cursor.description in duckdb-engine)
+        if cls.arraysize:
+            cursor.arraysize = cls.arraysize
+        try:
+            if cls.limit_method == LimitMethod.FETCH_MANY and limit:
+                data = cursor.fetchmany(limit)
+            else:
+                data = cursor.fetchall()
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex) from ex
+
+        # Restore the captured description for downstream processing
+        cursor.description = description
+
+        return data
+
+    @classmethod
     def get_table_names(
         cls, database: Database, inspector: Inspector, schema: str | None
     ) -> set[str]:
@@ -252,16 +363,51 @@ class DuckDBEngineSpec(DuckDBParametersMixin, BaseEngineSpec):
         delim = " " if custom_user_agent else ""
         user_agent = get_user_agent(database, source)
         user_agent = user_agent.replace(" ", "-").lower()
-        user_agent = f"{user_agent}/{VERSION_STRING}{delim}{custom_user_agent}"
+        version_string = app.config["VERSION_STRING"]
+        user_agent = f"{user_agent}/{version_string}{delim}{custom_user_agent}"
         config.setdefault("custom_user_agent", user_agent)
 
         return extra
 
 
 class MotherDuckEngineSpec(DuckDBEngineSpec):
+    """MotherDuck cloud analytics platform engine spec."""
+
     engine = "motherduck"
     engine_name = "MotherDuck"
     engine_aliases: set[str] = {"duckdb"}
+
+    metadata = {
+        "description": (
+            "MotherDuck is a serverless cloud analytics platform "
+            "built on DuckDB. It combines the simplicity of DuckDB with "
+            "cloud-scale data sharing and collaboration."
+        ),
+        "logo": "motherduck.png",
+        "homepage_url": "https://motherduck.com/",
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.CLOUD_DATA_WAREHOUSES,
+            DatabaseCategory.HOSTED_OPEN_SOURCE,
+        ],
+        "pypi_packages": ["duckdb", "duckdb-engine"],
+        "connection_string": "duckdb:///md:{database}?motherduck_token={token}",
+        "parameters": {
+            "database": "MotherDuck database name",
+            "token": "Service token from MotherDuck dashboard",
+        },
+        "docs_url": "https://motherduck.com/docs/getting-started/",
+        "drivers": [
+            {
+                "name": "duckdb-engine",
+                "pypi_package": "duckdb-engine",
+                "connection_string": (
+                    "duckdb:///md:{database}?motherduck_token={token}"
+                ),
+                "is_recommended": True,
+            },
+        ],
+    }
 
     supports_catalog = True
     supports_dynamic_catalog = True

@@ -19,13 +19,13 @@
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useHistory } from 'react-router-dom';
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
   SupersetClient,
   makeApi,
-  styled,
   getExtensionsRegistry,
 } from '@superset-ui/core';
+import { css, styled } from '@apache-superset/core/theme';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import {
   Tooltip,
@@ -53,7 +53,12 @@ import {
   useListViewResource,
   useSingleViewResource,
 } from 'src/views/CRUD/hooks';
-import { createErrorHandler, createFetchRelated } from 'src/views/CRUD/utils';
+import {
+  createErrorHandler,
+  createFetchRelated,
+  createFetchOwners,
+} from 'src/views/CRUD/utils';
+import { OWNER_OPTION_FILTER_PROPS } from 'src/features/owners/OwnerSelectLabel';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import Owner from 'src/types/Owner';
 import AlertReportModal from 'src/features/alerts/AlertReportModal';
@@ -91,18 +96,18 @@ const deleteAlerts = makeApi<number[], { message: string }>({
 });
 
 const RefreshContainer = styled.div`
-  width: 100%;
-  padding: 0 ${({ theme }) => theme.sizeUnit * 4}px
-    ${({ theme }) => theme.sizeUnit * 3}px;
-  background-color: ${({ theme }) => theme.colors.grayscale.light5};
+  ${({ theme }) => css`
+    margin-top: ${theme.sizeUnit}px;
+    width: 100%;
+    padding: ${theme.sizeUnit * 2}px 0px ${theme.sizeUnit * 3}px;
+  `}
 `;
-
 const StyledHeaderWithIcon = styled.div`
   display: flex;
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  > *:first-child {
+  > *:first-of-type {
     margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
@@ -237,9 +242,13 @@ function AlertList({
           }),
         );
 
-        updateResource(update_id, { active: checked }, false, false)
-          .then()
-          .catch(() => setResourceCollection(original));
+        updateResource(update_id, { active: checked }, false, false).then(
+          response => {
+            if (!response) {
+              setResourceCollection(original);
+            }
+          },
+        );
       }
     },
     [alerts, setResourceCollection, updateResource],
@@ -283,7 +292,7 @@ function AlertList({
       {
         accessor: 'name',
         Header: t('Name'),
-        size: 'xl',
+        size: 'xxl',
         id: 'name',
       },
       {
@@ -316,7 +325,7 @@ function AlertList({
         accessor: 'recipients',
         Header: t('Notification method'),
         disableSortBy: true,
-        size: 'xl',
+        size: 'lg',
         id: 'recipients',
       },
       {
@@ -363,7 +372,7 @@ function AlertList({
         Header: t('Active'),
         accessor: 'active',
         id: 'active',
-        size: 'xl',
+        size: 'sm',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -415,7 +424,7 @@ function AlertList({
         id: 'actions',
         hidden: !canEdit && !canDelete,
         disableSortBy: true,
-        size: 'xl',
+        size: 'lg',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,
@@ -428,26 +437,23 @@ function AlertList({
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
-  if (canCreate) {
-    subMenuButtons.push({
-      name: (
-        <>
-          <Icons.PlusOutlined iconSize="m" />
-          {title}
-        </>
-      ),
-      buttonStyle: 'primary',
-      onClick: () => {
-        handleAlertEdit(null);
-      },
-    });
-  }
   if (canDelete) {
     subMenuButtons.push({
       name: t('Bulk select'),
       onClick: toggleBulkSelect,
       buttonStyle: 'secondary',
       'data-test': 'bulk-select-toggle',
+    });
+  }
+
+  if (canCreate) {
+    subMenuButtons.push({
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t(title),
+      buttonStyle: 'primary',
+      onClick: () => {
+        handleAlertEdit(null);
+      },
     });
   }
 
@@ -474,6 +480,7 @@ function AlertList({
         id: 'name',
         input: 'search',
         operator: FilterOperator.Contains,
+        inputName: 'alert_report_list_search',
       },
       {
         Header: t('Owner'),
@@ -482,16 +489,16 @@ function AlertList({
         input: 'select',
         operator: FilterOperator.RelationManyMany,
         unfilteredLabel: t('All'),
-        fetchSelects: createFetchRelated(
+        fetchSelects: createFetchOwners(
           'report',
-          'owners',
           createErrorHandler(errMsg =>
             t('An error occurred while fetching owners values: %s', errMsg),
           ),
           user,
         ),
+        optionFilterProps: OWNER_OPTION_FILTER_PROPS,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Status'),
@@ -533,7 +540,7 @@ function AlertList({
           user,
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [],

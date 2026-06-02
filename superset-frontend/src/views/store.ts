@@ -19,9 +19,16 @@
 import {
   configureStore,
   ConfigureStoreOptions,
+  createListenerMiddleware,
   StoreEnhancer,
 } from '@reduxjs/toolkit';
-import thunk from 'redux-thunk';
+import type { AnyAction } from 'redux';
+import {
+  useDispatch,
+  useSelector,
+  type TypedUseSelectorHook,
+} from 'react-redux';
+import thunk, { type ThunkDispatch } from 'redux-thunk';
 import { api } from 'src/hooks/apiResources/queryApi';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
 import charts from 'src/components/Chart/chartReducer';
@@ -84,6 +91,8 @@ export const userReducer = (
   return user;
 };
 
+export const listenerMiddleware = createListenerMiddleware();
+
 const getMiddleware: ConfigureStoreOptions['middleware'] =
   getDefaultMiddleware =>
     process.env.REDUX_DEFAULT_MIDDLEWARE
@@ -97,8 +106,8 @@ const getMiddleware: ConfigureStoreOptions['middleware'] =
             ignoredPaths: [/queryController/g],
             warnAfter: 200,
           },
-        }).concat(logger, api.middleware)
-      : [thunk, logger, api.middleware];
+        }).concat(listenerMiddleware.middleware, logger, api.middleware)
+      : [listenerMiddleware.middleware, thunk, logger, api.middleware];
 
 // TODO: This reducer is a combination of the Dashboard and Explore reducers.
 // The correct way of handling this is to unify the actions and reducers from both
@@ -174,3 +183,20 @@ export function setupStore({
 
 export const store = setupStore();
 export type RootState = ReturnType<typeof store.getState>;
+
+// Typed Redux hooks. Prefer these over the raw `useDispatch` / `useSelector`
+// from react-redux: `useAppDispatch` understands the store's middleware (so
+// thunks resolve correctly), and `useAppSelector` infers `RootState` without
+// callers having to annotate every selector. Required ahead of the
+// react-redux v8+ bump, which tightens dispatch typing — see #39927.
+//
+// AppDispatch is declared as ThunkDispatch & store.dispatch rather than
+// `typeof store.dispatch` because Superset annotates getMiddleware as
+// ConfigureStoreOptions['middleware'], which erases the middleware tuple type
+// and leaves store.dispatch typed as Dispatch<AnyAction>. The intersection
+// restores thunk support without requiring a wider refactor of the middleware
+// setup.
+export type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction> &
+  typeof store.dispatch;
+export const useAppDispatch: () => AppDispatch = useDispatch;
+export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;

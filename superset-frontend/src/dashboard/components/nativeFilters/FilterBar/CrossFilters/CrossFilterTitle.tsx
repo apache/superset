@@ -17,13 +17,9 @@
  * under the License.
  */
 
-import {
-  t,
-  css,
-  styled,
-  useTheme,
-  useCSSTextTruncation,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { useCSSTextTruncation } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Tooltip } from '@superset-ui/core/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -33,7 +29,7 @@ const StyledCrossFilterTitle = styled.div`
   ${({ theme }) => `
     display: flex;
     font-size: ${theme.fontSizeSM}px;
-    color: ${theme.colors.grayscale.base};
+    color: ${theme.colorText};
     vertical-align: middle;
     align-items: center;
   `}
@@ -42,13 +38,13 @@ const StyledCrossFilterTitle = styled.div`
 const StyledIconSearch = styled(Icons.SearchOutlined)`
   ${({ theme }) => `
     & > span.anticon.anticon-search {
-      color: ${theme.colors.grayscale.light1};
+      color: ${theme.colorIcon};
       margin-left: ${theme.sizeUnit}px;
       transition: 0.3s;
       vertical-align: middle;
       line-height: 0;
       &:hover {
-        color: ${theme.colors.grayscale.base};
+        color: ${theme.colorIconHover};
       }
     }
   `}

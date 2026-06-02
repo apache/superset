@@ -69,7 +69,7 @@ export interface DropdownContainerProps {
   /**
    * Icon of the dropdown trigger.
    */
-  dropdownTriggerIcon?: ReactElement;
+  dropdownTriggerIcon?: ReactNode;
   /**
    * Text of the dropdown trigger.
    */

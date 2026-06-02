@@ -20,7 +20,6 @@ import {
   getMetricLabel,
   DataRecordValue,
   tooltipHtml,
-  themeObject,
 } from '@superset-ui/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { TreeSeriesOption } from 'echarts/charts';
@@ -57,7 +56,8 @@ export function formatTooltip({
 export default function transformProps(
   chartProps: EchartsTreeChartProps,
 ): TreeTransformedProps {
-  const { width, height, formData, queriesData } = chartProps;
+  const { width, height, formData, queriesData, theme, isRefreshing } =
+    chartProps;
   const refs: Refs = {};
   const data: TreeDataRecord[] = queriesData[0].data || [];
 
@@ -75,6 +75,7 @@ export default function transformProps(
     nodeLabelPosition,
     childLabelPosition,
     emphasis,
+    initialTreeDepth,
   }: EchartsTreeFormData = { ...DEFAULT_FORM_DATA, ...formData };
   const metricLabel = getMetricLabel(metric);
 
@@ -182,7 +183,11 @@ export default function transformProps(
       }
     });
   }
-  const { theme } = themeObject;
+  // Disable animation during refresh to prevent expand/collapse layout animation
+  const seriesAnimation = isRefreshing
+    ? false
+    : DEFAULT_TREE_SERIES_OPTION.animation;
+
   const series: TreeSeriesOption[] = [
     {
       type: 'tree',
@@ -193,7 +198,7 @@ export default function transformProps(
         color: theme.colorText,
       },
       emphasis: { focus: emphasis },
-      animation: DEFAULT_TREE_SERIES_OPTION.animation,
+      animation: seriesAnimation,
       layout,
       orient,
       symbol,
@@ -205,6 +210,7 @@ export default function transformProps(
       },
       select: DEFAULT_TREE_SERIES_OPTION.select,
       leaves: { label: { position: childLabelPosition } },
+      initialTreeDepth,
     },
   ];
 

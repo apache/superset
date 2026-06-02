@@ -16,9 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, FC, ReactElement } from 'react';
+import { useMemo, FC, ReactElement, type ReactNode } from 'react';
 
-import { t, styled, useTheme, SupersetTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme, SupersetTheme } from '@apache-superset/core/theme';
 
 import { Button, DropdownButton } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -32,60 +33,57 @@ import {
 import useLogAction from 'src/logger/useLogAction';
 
 export interface RunQueryActionButtonProps {
+  compactMode?: boolean;
   queryEditorId: string;
-  allowAsync: boolean;
   queryState?: string;
-  runQuery: (c?: boolean) => void;
+  runQuery: () => void;
   stopQuery: () => void;
   overlayCreateAsMenu: ReactElement | null;
 }
 
-const buildText = (
+const buildTextAndIcon = (
   shouldShowStopButton: boolean,
   selectedText: string | undefined,
   theme: SupersetTheme,
-): string | JSX.Element => {
-  if (shouldShowStopButton) {
-    return (
-      <>
-        <Icons.Square iconSize="xs" iconColor={theme.colors.primary.light5} />
-        {t('Stop')}
-      </>
-    );
-  }
+): { text: string; icon?: ReactNode } => {
+  let text = t('Run');
+  let icon: ReactNode = <Icons.CaretRightOutlined />;
   if (selectedText) {
-    return t('Run selection');
+    text = t('Run selection');
+    icon = <Icons.StepForwardOutlined />;
   }
-  return t('Run');
+  if (shouldShowStopButton) {
+    text = t('Stop');
+    icon = <Icons.Square iconColor={theme.colorIcon} />;
+  }
+  return {
+    text,
+    icon,
+  };
 };
 
 const onClick = (
-  shouldShowStopButton: boolean,
-  allowAsync: boolean,
-  runQuery: (c?: boolean) => void = () => undefined,
+  isStopAction: boolean,
+  runQuery: () => void = () => undefined,
   stopQuery = () => {},
   logAction: (name: string, payload: Record<string, any>) => void,
 ): void => {
-  const eventName = shouldShowStopButton
+  const eventName = isStopAction
     ? LOG_ACTIONS_SQLLAB_STOP_QUERY
     : LOG_ACTIONS_SQLLAB_RUN_QUERY;
 
   logAction(eventName, { shortcut: false });
-  if (shouldShowStopButton) return stopQuery();
-  if (allowAsync) {
-    return runQuery(true);
-  }
-  return runQuery(false);
+  if (isStopAction) return stopQuery();
+  runQuery();
 };
 
 const StyledButton = styled.span`
   button {
     line-height: 13px;
-    // this is to over ride a previous transition built into the component
-    transition: background-color 0ms;
-    &:last-of-type {
-      margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
-    }
+    min-width: auto !important;
+    padding: 0 ${({ theme }) => theme.sizeUnit * 3}px 0
+      ${({ theme }) => theme.sizeUnit * 2}px;
+
     span[name='caret-down'] {
       display: flex;
       margin-left: ${({ theme }) => theme.sizeUnit * 1}px;
@@ -94,7 +92,6 @@ const StyledButton = styled.span`
 `;
 
 const RunQueryActionButton = ({
-  allowAsync = false,
   queryEditorId,
   queryState,
   overlayCreateAsMenu,
@@ -130,12 +127,17 @@ const RunQueryActionButton = ({
     [userOS],
   );
 
+  const { text, icon } = useMemo(
+    () => buildTextAndIcon(shouldShowStopBtn, selectedText, theme),
+    [shouldShowStopBtn, selectedText, theme],
+  );
+
   return (
     <StyledButton>
       <ButtonComponent
         data-test="run-query-action"
         onClick={() =>
-          onClick(shouldShowStopBtn, allowAsync, runQuery, stopQuery, logAction)
+          onClick(shouldShowStopBtn, runQuery, stopQuery, logAction)
         }
         disabled={isDisabled}
         tooltip={
@@ -155,13 +157,17 @@ const RunQueryActionButton = ({
                   }
                 />
               ),
+              type: 'primary',
+              danger: shouldShowStopBtn,
               trigger: 'click',
             }
           : {
               buttonStyle: shouldShowStopBtn ? 'danger' : 'primary',
+              icon,
             })}
       >
-        {buildText(shouldShowStopBtn, selectedText, theme)}
+        {overlayCreateAsMenu && <>{icon}</>}
+        {text}
       </ButtonComponent>
     </StyledButton>
   );

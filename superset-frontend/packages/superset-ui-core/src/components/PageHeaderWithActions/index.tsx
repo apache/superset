@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, ReactElement } from 'react';
-import { css, SupersetTheme, t, useTheme } from '@superset-ui/core';
+import { ReactNode, ReactElement, memo } from 'react';
+import { t } from '@apache-superset/core/translation';
+import { css, SupersetTheme, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import type { DropdownProps } from '../Dropdown/types';
 import type { TooltipPlacement } from '../Tooltip/types';
@@ -34,7 +35,7 @@ export const menuTriggerStyles = (theme: SupersetTheme) => css`
   width: ${theme.sizeUnit * 8}px;
   height: ${theme.sizeUnit * 8}px;
   padding: 0;
-  border: 1px solid ${theme.colors.primary.dark2};
+  border: 1px solid ${theme.colorPrimary};
 
   &.ant-btn > span.anticon {
     line-height: 0;
@@ -117,60 +118,64 @@ export type PageHeaderWithActionsProps = {
   };
 };
 
-export const PageHeaderWithActions = ({
-  editableTitleProps,
-  showTitlePanelItems,
-  certificatiedBadgeProps,
-  showFaveStar,
-  faveStarProps,
-  titlePanelAdditionalItems,
-  rightPanelAdditionalItems,
-  additionalActionsMenu,
-  menuDropdownProps,
-  showMenuDropdown = true,
-  tooltipProps,
-}: PageHeaderWithActionsProps) => {
-  const theme = useTheme();
-  return (
-    <div css={headerStyles} className="header-with-actions">
-      <div className="title-panel">
-        <DynamicEditableTitle {...editableTitleProps} />
-        {showTitlePanelItems && (
-          <div css={buttonsStyles}>
-            {certificatiedBadgeProps?.certifiedBy && (
-              <CertifiedBadge {...certificatiedBadgeProps} />
-            )}
-            {showFaveStar && <FaveStar {...faveStarProps} />}
-            {titlePanelAdditionalItems}
-          </div>
-        )}
-      </div>
-      <div className="right-button-panel">
-        {rightPanelAdditionalItems}
-        <div css={additionalActionsContainerStyles}>
-          {showMenuDropdown && (
-            <Dropdown
-              trigger={['click']}
-              dropdownRender={() => additionalActionsMenu}
-              {...menuDropdownProps}
-            >
-              <Button
-                css={menuTriggerStyles}
-                buttonStyle="tertiary"
-                aria-label={t('Menu actions trigger')}
-                tooltip={tooltipProps?.text}
-                placement={tooltipProps?.placement}
-                data-test="actions-trigger"
-              >
-                <Icons.EllipsisOutlined
-                  iconColor={theme.colors.primary.dark2}
-                  iconSize="l"
-                />
-              </Button>
-            </Dropdown>
+export const PageHeaderWithActions = memo(
+  ({
+    editableTitleProps,
+    showTitlePanelItems,
+    certificatiedBadgeProps,
+    showFaveStar,
+    faveStarProps,
+    titlePanelAdditionalItems,
+    rightPanelAdditionalItems,
+    additionalActionsMenu,
+    menuDropdownProps,
+    showMenuDropdown = true,
+    tooltipProps,
+  }: PageHeaderWithActionsProps) => {
+    const theme = useTheme();
+    return (
+      <div css={headerStyles} className="header-with-actions">
+        <div className="title-panel">
+          <DynamicEditableTitle {...editableTitleProps} />
+          {showTitlePanelItems && (
+            <div css={buttonsStyles}>
+              {certificatiedBadgeProps?.certifiedBy && (
+                <CertifiedBadge {...certificatiedBadgeProps} />
+              )}
+              {showFaveStar && <FaveStar {...faveStarProps} />}
+              {titlePanelAdditionalItems}
+            </div>
           )}
         </div>
+        <div className="right-button-panel">
+          {rightPanelAdditionalItems}
+          <div css={additionalActionsContainerStyles}>
+            {showMenuDropdown && (
+              <Dropdown
+                trigger={['click']}
+                popupRender={() => additionalActionsMenu}
+                {...menuDropdownProps}
+              >
+                <span>
+                  <Button
+                    css={menuTriggerStyles}
+                    buttonStyle="tertiary"
+                    aria-label={t('Menu actions trigger')}
+                    tooltip={tooltipProps?.text}
+                    placement={tooltipProps?.placement}
+                    data-test="actions-trigger"
+                  >
+                    <Icons.EllipsisOutlined
+                      iconColor={theme.colorPrimary}
+                      iconSize="l"
+                    />
+                  </Button>
+                </span>
+              </Dropdown>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
-  );
-};
+    );
+  },
+);

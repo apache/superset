@@ -39,3 +39,10 @@ export interface TagType {
   css?: SerializedStyles;
   closable?: boolean;
 }
+
+export enum TagTypeEnum {
+  Custom = 1,
+  Type = 2,
+  Owner = 3,
+  FavoritedBy = 4,
+}

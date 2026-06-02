@@ -20,12 +20,11 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { last } from 'lodash';
-import {
-  logging,
-  t,
-  SupersetClient,
-  SupersetApiError,
-} from '@superset-ui/core';
+import rison from 'rison';
+import { parse as parseContentDisposition } from 'content-disposition';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient, SupersetApiError } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import {
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_IMAGE,
   LOG_ACTIONS_DASHBOARD_DOWNLOAD_AS_PDF,
@@ -75,6 +74,8 @@ export const useDownloadScreenshot = (
   const downloadScreenshot = useCallback(
     (format: DownloadScreenshotFormat) => {
       let retries = 0;
+      let isFetching = false;
+      let isDownloaded = false;
 
       const toastIntervalId = setInterval(
         () =>
@@ -98,17 +99,40 @@ export const useDownloadScreenshot = (
           headers: { Accept: 'application/pdf, image/png' },
           parseMethod: 'raw',
         })
-          .then((response: Response) => response.blob())
-          .then(blob => {
+          .then((response: Response) => {
+            const disposition = response.headers.get('Content-Disposition');
+            let fileName = `screenshot.${format}`; // default filename
+
+            if (disposition) {
+              try {
+                const parsed = parseContentDisposition(disposition);
+                if (parsed?.parameters?.filename) {
+                  fileName = parsed.parameters.filename;
+                }
+              } catch (error) {
+                console.warn(
+                  'Failed to parse Content-Disposition header:',
+                  error,
+                );
+              }
+            }
+
+            return response.blob().then(blob => ({ blob, fileName }));
+          })
+          .then(({ blob, fileName }) => {
+            if (isDownloaded) {
+              return;
+            }
+            isDownloaded = true;
+            stopIntervals('success');
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `screenshot.${format}`;
+            a.download = fileName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
-            stopIntervals('success');
           })
           .catch(err => {
             if ((err as SupersetApiError).status === 404) {
@@ -117,23 +141,31 @@ export const useDownloadScreenshot = (
           });
 
       const fetchImageWithRetry = (cacheKey: string) => {
+        if (isDownloaded || isFetching) {
+          return;
+        }
         if (retries >= MAX_RETRIES) {
           stopIntervals('failure');
           logging.error('Max retries reached');
           return;
         }
-        checkImageReady(cacheKey).catch(() => {
-          retries += 1;
-        });
+        isFetching = true;
+        checkImageReady(cacheKey)
+          .catch(() => {
+            retries += 1;
+          })
+          .finally(() => {
+            isFetching = false;
+          });
       };
 
       SupersetClient.post({
-        endpoint: `/api/v1/dashboard/${dashboardId}/cache_dashboard_screenshot/`,
+        endpoint: `/api/v1/dashboard/${dashboardId}/cache_dashboard_screenshot/?q=${rison.encode({ force: true })}`,
         jsonPayload: {
           anchor,
           activeTabs,
           dataMask,
-          urlParams: getDashboardUrlParams(['edit']),
+          urlParams: getDashboardUrlParams(),
         },
       })
         .then(({ json }) => {

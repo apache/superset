@@ -19,7 +19,8 @@
 import { KeyboardEvent, useMemo } from 'react';
 import { SerializedStyles, CSSObject } from '@emotion/react';
 import { kebabCase } from 'lodash';
-import { css, t, useTheme, themeObject } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, useTheme, getFontSize } from '@apache-superset/core/theme';
 import {
   CloseCircleOutlined,
   InfoCircleOutlined,
@@ -68,7 +69,7 @@ export const InfoTooltip = ({
 
   const iconCss = css`
     color: ${variant?.color ?? theme.colorIcon};
-    font-size: ${themeObject.getFontSize(iconSize)}px;
+    font-size: ${getFontSize(theme, iconSize)}px;
   `;
 
   const handleKeyDown = (event: KeyboardEvent<HTMLSpanElement>) => {

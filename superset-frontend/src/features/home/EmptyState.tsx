@@ -21,14 +21,15 @@ import {
   EmptyState as EmptyStateComponent,
 } from '@superset-ui/core/components';
 import { TableTab } from 'src/views/CRUD/types';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { navigateTo } from 'src/utils/navigationUtils';
 import { WelcomeTable } from './types';
 
 const EmptyContainer = styled.div`
   min-height: 200px;
   display: flex;
-  color: ${({ theme }) => theme.colors.grayscale.light2};
+  color: ${({ theme }) => theme.colorTextDescription};
   flex-direction: column;
   justify-content: space-around;
 `;
@@ -40,10 +41,25 @@ const ICONS = {
   [WelcomeTable.SavedQueries]: 'empty.svg',
 } as const;
 
+const LABELS = {
+  create: {
+    [WelcomeTable.Charts]: t('Chart'),
+    [WelcomeTable.Dashboards]: t('Dashboard'),
+    [WelcomeTable.SavedQueries]: t('SQL query'),
+  },
+  viewAll: {
+    [WelcomeTable.Charts]: t('charts'),
+    [WelcomeTable.Dashboards]: t('dashboards'),
+    [WelcomeTable.SavedQueries]: t('SQL Lab queries'),
+  },
+} as const;
+
 const REDIRECTS = {
   create: {
     [WelcomeTable.Charts]: '/chart/add',
     [WelcomeTable.Dashboards]: '/dashboard/new',
+    // navigateTo() applies the application root internally; keep this
+    // relative so the prefix isn't added twice.
     [WelcomeTable.SavedQueries]: '/sqllab?new=true',
   },
   viewAll: {
@@ -59,25 +75,16 @@ export interface EmptyStateProps {
   otherTabTitle?: string;
 }
 
-export default function EmptyState({
-  tableName,
-  tab,
-  otherTabTitle,
-}: EmptyStateProps) {
+export default function EmptyState({ tableName, tab }: EmptyStateProps) {
   const getActionButton = () => {
     if (tableName === WelcomeTable.Recents) {
       return null;
     }
 
     const isFavorite = tab === TableTab.Favorite;
-    const buttonText =
-      tableName === WelcomeTable.SavedQueries
-        ? isFavorite
-          ? t('SQL Lab queries')
-          : t('SQL query')
-        : isFavorite
-          ? t(tableName.toLowerCase())
-          : tableName.slice(0, -1);
+    const buttonText = isFavorite
+      ? LABELS.viewAll[tableName]
+      : LABELS.create[tableName];
 
     const url = isFavorite
       ? REDIRECTS.viewAll[tableName]

@@ -21,7 +21,7 @@ from datetime import datetime
 from typing import Any, Optional
 from urllib import parse
 
-from flask import current_app
+from flask import current_app as app
 from sqlalchemy import types
 from sqlalchemy.engine import URL
 
@@ -30,6 +30,7 @@ from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicParametersMixin,
     ColumnTypeMapping,
+    DatabaseCategory,
     LimitMethod,
 )
 from superset.models.core import Database
@@ -45,6 +46,41 @@ class SingleStoreSpec(BasicParametersMixin, BaseEngineSpec):
     engine = "singlestoredb"
     drivers = {"singlestoredb": "SingleStore Python client"}
     default_driver = "singlestoredb"
+
+    metadata = {
+        "description": (
+            "SingleStore is a distributed SQL database for real-time analytics "
+            "and transactions."
+        ),
+        "logo": "singlestore.png",
+        "homepage_url": "https://www.singlestore.com/",
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["singlestoredb"],
+        "connection_string": (
+            "singlestoredb://{username}:{password}@{host}:{port}/{database}"
+        ),
+        "default_port": 3306,
+        "parameters": {
+            "username": "Database username",
+            "password": "Database password",
+            "host": "SingleStore host",
+            "port": "SingleStore port (default 3306)",
+            "database": "Database name",
+        },
+        "drivers": [
+            {
+                "name": "singlestoredb",
+                "pypi_package": "singlestoredb",
+                "connection_string": (
+                    "singlestoredb://{username}:{password}@{host}:{port}/{database}"
+                ),
+                "is_recommended": True,
+            },
+        ],
+    }
 
     limit_method = LimitMethod.FORCE_LIMIT
     allows_joins = True
@@ -498,8 +534,8 @@ class SingleStoreSpec(BasicParametersMixin, BaseEngineSpec):
             "conn_attrs",
             {
                 "_connector_name": "SingleStore Superset Database Engine",
-                "_connector_version": current_app.config.get("VERSION_STRING", "dev"),
-                "_product_version": current_app.config.get("VERSION_STRING", "dev"),
+                "_connector_version": app.config.get("VERSION_STRING", "dev"),
+                "_product_version": app.config.get("VERSION_STRING", "dev"),
             },
         )
         return uri, connect_args

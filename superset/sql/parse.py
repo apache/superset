@@ -24,18 +24,28 @@ import re
 import urllib.parse
 from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Any, Generic, TYPE_CHECKING, TypeVar
+from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
 import sqlglot
 from jinja2 import nodes, Template
 from sqlglot import exp
-from sqlglot.dialects.dialect import Dialect, Dialects
+from sqlglot.dialects.dialect import (
+    Dialect,
+    Dialects,
+)
+from sqlglot.dialects.singlestore import SingleStore
 from sqlglot.errors import ParseError
-from sqlglot.optimizer.pushdown_predicates import pushdown_predicates
-from sqlglot.optimizer.scope import Scope, ScopeType, traverse_scope
+from sqlglot.optimizer.pushdown_predicates import (
+    pushdown_predicates,
+)
+from sqlglot.optimizer.scope import (
+    Scope,
+    ScopeType,
+    traverse_scope,
+)
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
-from superset.sql.dialects import Dremio, Firebolt
+from superset.sql.dialects import DB2, Dremio, Firebolt, OpenSearch, Pinot, Vertica
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -48,8 +58,9 @@ logger = logging.getLogger(__name__)
 SQLGLOT_DIALECTS = {
     "base": Dialects.DIALECT,
     "ascend": Dialects.HIVE,
-    "awsathena": Dialects.PRESTO,
+    "awsathena": Dialects.ATHENA,
     "bigquery": Dialects.BIGQUERY,
+    "datastore": Dialects.BIGQUERY,
     "clickhouse": Dialects.CLICKHOUSE,
     "clickhousedb": Dialects.CLICKHOUSE,
     "cockroachdb": Dialects.POSTGRES,
@@ -57,7 +68,7 @@ SQLGLOT_DIALECTS = {
     # "crate": ???
     # "databend": ???
     "databricks": Dialects.DATABRICKS,
-    # "db2": ???
+    "db2": DB2,
     # "denodo": ???
     "dremio": Dremio,
     "drill": Dialects.DRILL,
@@ -72,7 +83,7 @@ SQLGLOT_DIALECTS = {
     "hana": Dialects.POSTGRES,
     "hive": Dialects.HIVE,
     # "ibmi": ???
-    # "impala": ???
+    "impala": Dialects.HIVE,
     # "kustosql": ???
     # "kylin": ???
     "mariadb": Dialects.MYSQL,
@@ -82,18 +93,17 @@ SQLGLOT_DIALECTS = {
     "netezza": Dialects.POSTGRES,
     "oceanbase": Dialects.MYSQL,
     # "ocient": ???
-    # "odelasticsearch": ???
+    "odelasticsearch": OpenSearch,
     "oracle": Dialects.ORACLE,
     "parseable": Dialects.POSTGRES,
-    "pinot": Dialects.MYSQL,
+    "pinot": Pinot,
     "postgresql": Dialects.POSTGRES,
     "presto": Dialects.PRESTO,
     "pydoris": Dialects.DORIS,
     "redshift": Dialects.REDSHIFT,
     "risingwave": Dialects.RISINGWAVE,
-    # "rockset": ???
     "shillelagh": Dialects.SQLITE,
-    "singlestore": Dialects.MYSQL,
+    "singlestoredb": SingleStore,
     "snowflake": Dialects.SNOWFLAKE,
     # "solr": ???
     "spark": Dialects.SPARK,
@@ -103,7 +113,7 @@ SQLGLOT_DIALECTS = {
     # "taosws": ???
     "teradatasql": Dialects.TERADATA,
     "trino": Dialects.TRINO,
-    "vertica": Dialects.POSTGRES,
+    "vertica": Vertica,
     "yql": Dialects.CLICKHOUSE,
 }
 
@@ -159,14 +169,7 @@ class RLSTransformer:
             table_node.catalog if table_node.catalog else self.catalog,
         )
         if predicates := self.rules.get(table):
-            return (
-                exp.And(
-                    this=predicates[0],
-                    expressions=predicates[1:],
-                )
-                if len(predicates) > 1
-                else predicates[0]
-            )
+            return sqlglot.and_(*predicates)
 
         return None
 
@@ -254,14 +257,23 @@ class RLSAsSubqueryTransformer(RLSTransformer):
             return node
 
         if predicate := self.get_predicate(node):
-            # use alias or name
-            alias = node.alias or node.sql()
+            if node.alias:
+                alias = node.alias
+            else:
+                # Use just the table name (not schema-qualified) so that
+                # column references like ``table.column`` still resolve after
+                # the table is replaced with a subquery.  Using the full
+                # ``schema.table`` path as a quoted identifier creates a
+                # mismatch: the columns reference ``table`` but the alias is
+                # ``"schema.table"``, which are different identifiers.
+                alias = exp.TableAlias(this=exp.Identifier(this=node.name, quoted=True))
+
             node.set("alias", None)
             node = exp.Subquery(
                 this=exp.Select(
                     expressions=[exp.Star()],
                     where=exp.Where(this=predicate),
-                    **{"from": exp.From(this=node.copy())},
+                    from_=exp.From(this=node.copy()),
                 ),
                 alias=alias,
             )
@@ -294,6 +306,21 @@ class Table:
 
     def __eq__(self, other: Any) -> bool:
         return str(self) == str(other)
+
+    def qualify(
+        self,
+        *,
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> Table:
+        """
+        Return a new Table with the given schema and/or catalog, if not already set.
+        """
+        return Table(
+            table=self.table,
+            schema=self.schema or schema,
+            catalog=self.catalog or catalog,
+        )
 
 
 # To avoid unnecessary parsing/formatting of queries, the statement has the concept of
@@ -412,6 +439,14 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def is_destructive(self) -> bool:
+        """
+        Check if the statement is destructive DDL (DROP, TRUNCATE, ALTER).
+
+        :return: True if the statement is destructive DDL.
+        """
+        raise NotImplementedError()
+
     def optimize(self) -> BaseSQLStatement[InternalRepresentation]:
         """
         Return optimized statement.
@@ -424,6 +459,15 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
 
         :param functions: List of functions to check for
         :return: True if any of the functions are present
+        """
+        raise NotImplementedError()
+
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
         """
         raise NotImplementedError()
 
@@ -531,19 +575,38 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
     def _parse(cls, script: str, engine: str) -> list[exp.Expression]:
         """
         Parse helper.
+
+        When the base dialect (engine="base" or unknown engines) fails to parse SQL
+        containing backtick-quoted identifiers, we fall back to MySQL dialect which
+        supports backticks natively. This handles cases like "Other" database type
+        where users may have MySQL-compatible syntax with backtick-quoted table names.
         """
         dialect = SQLGLOT_DIALECTS.get(engine)
         try:
             statements = sqlglot.parse(script, dialect=dialect)
         except sqlglot.errors.ParseError as ex:
-            error = ex.errors[0]
-            raise SupersetParseError(
-                script,
-                engine,
-                highlight=error["highlight"],
-                line=error["line"],
-                column=error["col"],
-            ) from ex
+            # If parsing fails with base dialect (or no dialect for unknown engines)
+            # and the script contains backticks, retry with MySQL dialect which
+            # supports backtick-quoted identifiers
+            if (dialect is None or dialect == Dialects.DIALECT) and "`" in script:
+                try:
+                    statements = sqlglot.parse(script, dialect=Dialects.MYSQL)
+                except sqlglot.errors.ParseError:
+                    # If MySQL dialect also fails, raise the original error
+                    pass
+                else:
+                    return statements
+
+            kwargs = (
+                {
+                    "highlight": ex.errors[0]["highlight"],
+                    "line": ex.errors[0]["line"],
+                    "column": ex.errors[0]["col"],
+                }
+                if ex.errors
+                else {}
+            )
+            raise SupersetParseError(script, engine, **kwargs) from ex
         except sqlglot.errors.SqlglotError as ex:
             raise SupersetParseError(
                 script,
@@ -618,26 +681,35 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         :return: True if the statement mutates data.
         """
-        for node in self._parsed.walk():
-            if isinstance(
-                node,
-                (
-                    exp.Insert,
-                    exp.Update,
-                    exp.Delete,
-                    exp.Merge,
-                    exp.Create,
-                    exp.Drop,
-                    exp.TruncateTable,
-                    exp.Alter,
-                ),
-            ):
+        mutating_nodes = (
+            exp.Insert,
+            exp.Update,
+            exp.Delete,
+            exp.Merge,
+            exp.Create,
+            exp.Drop,
+            exp.TruncateTable,
+            exp.Alter,
+        )
+
+        for node_type in mutating_nodes:
+            if self._parsed.find(node_type):
                 return True
 
-            # depending on the dialect (Oracle, MS SQL) the `ALTER` is parsed as a
-            # command, not an expression
-            if isinstance(node, exp.Command) and node.name == "ALTER":
-                return True
+        # depending on the dialect (Oracle, MS SQL) the `ALTER` is parsed as a
+        # command, not an expression - check at root level
+        if isinstance(self._parsed, exp.Command) and self._parsed.name == "ALTER":
+            return True  # pragma: no cover
+
+        if (
+            self._dialect == Dialects.POSTGRES
+            and isinstance(self._parsed, exp.Command)
+            and self._parsed.name == "DO"
+        ):
+            # anonymous blocks can be written in many different languages (the default
+            # is PL/pgSQL), so parsing them it out of scope of this class; we just
+            # assume the anonymous block is mutating
+            return True
 
         # Postgres runs DMLs prefixed by `EXPLAIN ANALYZE`, see
         # https://www.postgresql.org/docs/current/sql-explain.html
@@ -652,6 +724,31 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 statement=analyzed_sql,
                 engine=self.engine,
             ).is_mutating()
+
+        return False
+
+    def is_destructive(self) -> bool:
+        """
+        Check if the statement is destructive DDL (DROP, TRUNCATE, ALTER).
+
+        Unlike ``is_mutating()``, this excludes non-destructive DML
+        (INSERT, UPDATE, DELETE, MERGE) and CREATE.
+
+        :return: True if the statement is destructive DDL.
+        """
+        destructive_nodes = (
+            exp.Drop,
+            exp.TruncateTable,
+            exp.Alter,
+        )
+
+        for node_type in destructive_nodes:
+            if self._parsed.find(node_type):
+                return True
+
+        # Handle ALTER parsed as Command (Oracle, MS SQL dialects)
+        if isinstance(self._parsed, exp.Command) and self._parsed.name == "ALTER":
+            return True  # pragma: no cover
 
         return False
 
@@ -676,7 +773,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         """
         return {
-            eq.this.sql(comments=False): eq.expression.sql(comments=False)
+            eq.this.sql(
+                dialect=self._dialect,
+                comments=False,
+            ): eq.expression.sql(comments=False)
             for set_item in self._parsed.find_all(exp.SetItem)
             for eq in set_item.find_all(exp.EQ)
         }
@@ -700,15 +800,46 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param functions: List of functions to check for
         :return: True if any of the functions are present
         """
-        present = {
-            (
-                function.sql_name()
-                if function.sql_name() != "ANONYMOUS"
-                else function.name.upper()
-            )
-            for function in self._parsed.find_all(exp.Func)
-        }
+        # Build the set of SQL-level function names present in the AST. For
+        # Anonymous nodes the name is stored directly; for named Func nodes we
+        # use sql_name(). We also add dialect parser aliases so that functions
+        # that are normalised by a dialect (e.g. VERSION() -> CurrentVersion in
+        # Postgres, sql_name = CURRENT_VERSION) can still be matched by their
+        # original SQL name.
+        dialect_cls = Dialect.get_or_raise(self._dialect) if self._dialect else None
+        parser_cls = getattr(dialect_cls, "parser_class", None) if dialect_cls else None
+        parser_functions: dict[str, Any] = (
+            getattr(parser_cls, "FUNCTIONS", {}) if parser_cls is not None else {}
+        )
+
+        present: set[str] = set()
+        for function in self._parsed.find_all(exp.Func):
+            sql_name = function.sql_name()
+            if sql_name != "ANONYMOUS":
+                present.add(sql_name)
+                # Add any dialect-level aliases that resolve to the same class
+                # (e.g. 'VERSION' -> CurrentVersion when dialect is Postgres).
+                func_type = type(function)
+                for key, builder in parser_functions.items():
+                    try:
+                        if builder.__self__ is func_type:
+                            present.add(key)
+                    except AttributeError:
+                        pass
+            else:
+                present.add(function.name.upper())
+
         return any(function.upper() in present for function in functions)
+
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        present = {table.table.lower() for table in self.tables}
+        return any(table.lower() in present for table in tables)
 
     def get_limit_value(self) -> int | None:
         """
@@ -741,7 +872,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 limit=exp.Limit(
                     expression=exp.Literal(this=str(limit), is_string=False)
                 ),
-                **{"from": exp.From(this=exp.Subquery(this=self._parsed.copy()))},
+                from_=exp.From(this=exp.Subquery(this=self._parsed.copy())),
             )
         else:  # method == LimitMethod.FETCH_MANY
             pass
@@ -752,7 +883,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         :return: True if the statement has a CTE at the top level.
         """
-        return "with" in self._parsed.args
+        return bool(self._parsed.args.get("with_"))
 
     def as_cte(self, alias: str = "__cte") -> SQLStatement:
         """
@@ -765,8 +896,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param alias: The alias to use for the CTE.
         :return: A new SQLStatement with the CTE.
         """
-        existing_ctes = self._parsed.args["with"].expressions if self.has_cte() else []
-        self._parsed.args["with"] = None
+        existing_ctes = self._parsed.args["with_"].expressions if self.has_cte() else []
+        self._parsed.args["with_"] = None
         new_cte = exp.CTE(
             this=self._parsed.copy(),
             alias=exp.TableAlias(this=exp.Identifier(this=alias)),
@@ -784,8 +915,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param method: The method to use for creating the table.
         :return: A new SQLStatement with the create table statement.
         """
+        table_expr = exp.Table(
+            this=exp.Identifier(this=table.table),
+            db=exp.Identifier(this=table.schema) if table.schema else None,
+            catalog=exp.Identifier(this=table.catalog) if table.catalog else None,
+        )
         create_table = exp.Create(
-            this=sqlglot.parse_one(str(table), into=exp.Table),
+            this=table_expr,
             kind=method.name,
             expression=self._parsed.copy(),
         )
@@ -1093,6 +1229,18 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         """
         return self._parsed.startswith(".") and not self._parsed.startswith(".show")
 
+    def is_destructive(self) -> bool:
+        """
+        Check if the statement is destructive DDL.
+
+        Kusto KQL uses dot-commands for management operations. Destructive
+        operations start with ``.drop`` or ``.alter``.
+
+        :return: True if the statement is destructive DDL.
+        """
+        lower = self._parsed.lower()
+        return lower.startswith(".drop") or lower.startswith(".alter")
+
     def optimize(self) -> KustoKQLStatement:
         """
         Return optimized statement.
@@ -1109,6 +1257,16 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         :return: True if any of the functions are present
         """
         logger.warning("Kusto KQL doesn't support checking for functions present.")
+        return False
+
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        logger.warning("Kusto KQL doesn't support checking for tables present.")
         return False
 
     def get_limit_value(self) -> int | None:
@@ -1229,6 +1387,14 @@ class SQLScript:
         """
         return any(statement.is_mutating() for statement in self.statements)
 
+    def has_destructive(self) -> bool:
+        """
+        Check if the script contains destructive DDL (DROP, TRUNCATE, ALTER).
+
+        :return: True if any statement is destructive DDL.
+        """
+        return any(statement.is_destructive() for statement in self.statements)
+
     def optimize(self) -> SQLScript:
         """
         Return optimized script.
@@ -1250,6 +1416,17 @@ class SQLScript:
         return any(
             statement.check_functions_present(functions)
             for statement in self.statements
+        )
+
+    def check_tables_present(self, tables: set[str]) -> bool:
+        """
+        Check if any of the given tables are present in the script.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: True if any of the tables are present
+        """
+        return any(
+            statement.check_tables_present(tables) for statement in self.statements
         )
 
     def is_valid_ctas(self) -> bool:
@@ -1347,6 +1524,18 @@ def is_cte(source: exp.Table, scope: Scope) -> bool:
 T = TypeVar("T", str, None)
 
 
+@dataclass
+class JinjaSQLResult:
+    """
+    Result of processing Jinja SQL.
+
+    Contains the processed SQL script and extracted table references.
+    """
+
+    script: SQLScript
+    tables: set[Table]
+
+
 def remove_quotes(val: T) -> T:
     """
     Helper that removes surrounding quotes from strings.
@@ -1360,9 +1549,11 @@ def remove_quotes(val: T) -> T:
     return val
 
 
-def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
+def process_jinja_sql(
+    sql: str, database: Database, template_params: Optional[dict[str, Any]] = None
+) -> JinjaSQLResult:
     """
-    Extract all table references in the Jinjafied SQL statement.
+    Process Jinja-templated SQL and extract table references.
 
     Due to Jinja templating, a multiphase approach is necessary as the Jinjafied SQL
     statement may represent invalid SQL which is non-parsable by SQLGlot.
@@ -1374,7 +1565,8 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
 
     :param sql: The Jinjafied SQL statement
     :param database: The database associated with the SQL statement
-    :returns: The set of tables referenced in the SQL statement
+    :param template_params: Optional template parameters for Jinja templating
+    :returns: JinjaSQLResult containing the processed script and table references
     :raises SupersetSecurityException: If SQLGlot is unable to parse the SQL statement
     :raises jinja2.exceptions.TemplateError: If the Jinjafied SQL could not be rendered
     """
@@ -1415,7 +1607,7 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
     # re-render template back into a string
     code = processor.env.compile(ast)
     template = Template.from_code(processor.env, code, globals=processor.env.globals)
-    rendered_sql = template.render(processor.get_context())
+    rendered_sql = template.render(processor.get_context(), **(template_params or {}))
 
     parsed_script = SQLScript(
         processor.process_template(rendered_sql),
@@ -1424,7 +1616,7 @@ def extract_tables_from_jinja_sql(sql: str, database: Database) -> set[Table]:
     for parsed_statement in parsed_script.statements:
         tables |= parsed_statement.tables
 
-    return tables
+    return JinjaSQLResult(script=parsed_script, tables=tables)
 
 
 def sanitize_clause(clause: str, engine: str) -> str:
@@ -1432,6 +1624,61 @@ def sanitize_clause(clause: str, engine: str) -> str:
     Make sure the SQL clause is valid.
     """
     try:
-        return SQLStatement(clause, engine).format()
+        statement = SQLStatement(clause, engine)
+        dialect = SQLGLOT_DIALECTS.get(engine)
+        from sqlglot.dialects.dialect import Dialect
+
+        return Dialect.get_or_raise(dialect).generate(
+            statement._parsed,  # pylint: disable=protected-access
+            copy=True,
+            comments=True,
+            pretty=False,
+        )
     except SupersetParseError as ex:
         raise QueryClauseValidationException(f"Invalid SQL clause: {clause}") from ex
+
+
+def transpile_to_dialect(
+    sql: str,
+    target_engine: str,
+    source_engine: str | None = None,
+    identify: bool = False,
+) -> str:
+    """
+    Transpile SQL from one database dialect to another using SQLGlot.
+
+    Args:
+        sql: The SQL query to transpile
+        target_engine: The target database engine (e.g., "mysql", "postgresql")
+        source_engine: The source database engine. If None, uses generic SQL dialect.
+        identify: If True, quote all identifiers per the target dialect.
+
+    Returns:
+        The transpiled SQL string
+
+    If the target engine is not in SQLGLOT_DIALECTS, returns the SQL as-is.
+    """
+    target_dialect = SQLGLOT_DIALECTS.get(target_engine)
+
+    # If no dialect mapping exists, return as-is
+    if target_dialect is None:
+        return sql
+
+    # Get source dialect (default to generic if not specified)
+    source_dialect = SQLGLOT_DIALECTS.get(source_engine) if source_engine else Dialect
+
+    try:
+        parsed = sqlglot.parse_one(sql, dialect=source_dialect)
+        return Dialect.get_or_raise(target_dialect).generate(
+            parsed,
+            copy=True,
+            comments=False,
+            pretty=False,
+            identify=identify,
+        )
+    except ParseError as ex:
+        raise QueryClauseValidationException(f"Cannot parse SQL clause: {sql}") from ex
+    except Exception as ex:
+        raise QueryClauseValidationException(
+            f"Cannot transpile SQL to {target_engine}: {sql}"
+        ) from ex

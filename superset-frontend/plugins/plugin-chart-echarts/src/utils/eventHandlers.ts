@@ -54,7 +54,9 @@ const getCrossFilterDataMask =
       values = [value];
     }
 
-    const groupbyValues = values.map(value => labelMap[value]);
+    const groupbyValues = values
+      .map(value => labelMap[value])
+      .filter(Boolean) as string[][];
 
     return {
       dataMask: {
@@ -122,6 +124,9 @@ export const contextMenuEventHandler =
       const drillFilters: BinaryQueryObjectFilterClause[] = [];
       if (groupby.length > 0) {
         const values = labelMap[e.name];
+        if (!values) {
+          return;
+        }
         groupby.forEach((dimension, i) => {
           drillFilters.push({
             col: dimension,

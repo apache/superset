@@ -19,7 +19,8 @@
 
 import { useMemo, useState } from 'react';
 import rison from 'rison';
-import { t, SupersetClient } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
 import { Link, useHistory } from 'react-router-dom';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createFetchRelated, createErrorHandler } from 'src/views/CRUD/utils';
@@ -158,11 +159,13 @@ function AnnotationLayersList({
             </Typography.Link>
           );
         },
+        size: 'xxl',
         id: 'name',
       },
       {
         accessor: 'descr',
         Header: t('Description'),
+        size: 'xl',
         id: 'descr',
       },
       {
@@ -226,26 +229,22 @@ function AnnotationLayersList({
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
-  if (canCreate) {
-    subMenuButtons.push({
-      name: (
-        <>
-          <Icons.PlusOutlined iconSize="m" />
-          {t('Annotation layer')}
-        </>
-      ),
-      buttonStyle: 'primary',
-      onClick: () => {
-        handleAnnotationLayerEdit(null);
-      },
-    });
-  }
-
   if (canDelete) {
     subMenuButtons.push({
       name: t('Bulk select'),
       onClick: toggleBulkSelect,
       buttonStyle: 'secondary',
+    });
+  }
+
+  if (canCreate) {
+    subMenuButtons.push({
+      icon: <Icons.PlusOutlined iconSize="m" />,
+      name: t('Annotation layer'),
+      buttonStyle: 'primary',
+      onClick: () => {
+        handleAnnotationLayerEdit(null);
+      },
     });
   }
 
@@ -257,6 +256,7 @@ function AnnotationLayersList({
         id: 'name',
         input: 'search',
         operator: FilterOperator.Contains,
+        inputName: 'annotation_layer_list_search',
       },
       {
         Header: t('Changed by'),
@@ -277,7 +277,7 @@ function AnnotationLayersList({
           user,
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ],
     [],
@@ -287,12 +287,8 @@ function AnnotationLayersList({
     title: t('No annotation layers yet'),
     image: 'filter-results.svg',
     buttonAction: () => handleAnnotationLayerEdit(null),
-    buttonText: (
-      <>
-        <Icons.PlusOutlined iconSize="m" />
-        {t('Annotation layer')}
-      </>
-    ),
+    buttonText: t('Annotation layer'),
+    buttonIcon: <Icons.PlusOutlined iconSize="m" />,
   };
 
   const onLayerAdd = (id?: number) => {

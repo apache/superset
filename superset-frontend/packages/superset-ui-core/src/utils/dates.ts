@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import dayjs, { Dayjs } from 'dayjs';
+import dayjs, { Dayjs, ConfigType } from 'dayjs';
 import utc from 'dayjs/plugin/utc';
 import timezone from 'dayjs/plugin/timezone';
 import calendar from 'dayjs/plugin/calendar';
@@ -26,7 +26,6 @@ import customParseFormat from 'dayjs/plugin/customParseFormat';
 import duration from 'dayjs/plugin/duration';
 import updateLocale from 'dayjs/plugin/updateLocale';
 import localizedFormat from 'dayjs/plugin/localizedFormat';
-import isSameOrBefore from 'dayjs/plugin/isSameOrBefore';
 
 dayjs.extend(utc);
 dayjs.extend(timezone);
@@ -36,13 +35,47 @@ dayjs.extend(customParseFormat);
 dayjs.extend(duration);
 dayjs.extend(updateLocale);
 dayjs.extend(localizedFormat);
-dayjs.extend(isSameOrBefore);
 
 dayjs.updateLocale('en', {
   invalidDate: 'Invalid date',
 });
 
-export const extendedDayjs = dayjs;
+// Extended Dayjs instance type with plugin methods.
+// When extending dayjs with a new plugin, add its instance methods here.
+export interface ExtendedDayjs extends Dayjs {
+  // Derived from dayjs/plugin/utc
+  utc(keepLocalTime?: boolean): ExtendedDayjs;
+  local(): ExtendedDayjs;
+  isUTC(): boolean;
+  // Derived from dayjs/plugin/timezone
+  tz(timezone?: string, keepLocalTime?: boolean): ExtendedDayjs;
+  // Derived from dayjs/plugin/relativeTime
+  fromNow(withoutSuffix?: boolean): string;
+  toNow(withoutSuffix?: boolean): string;
+  from(compared: ConfigType, withoutSuffix?: boolean): string;
+  to(compared: ConfigType, withoutSuffix?: boolean): string;
+  // Derived from dayjs/plugin/calendar
+  calendar(referenceTime?: ConfigType, formats?: object): string;
+}
+
+// Type for dayjs factory with all plugins loaded.
+// When extending dayjs with a new plugin, add its static methods here.
+type DayjsWithPlugins = {
+  (config?: ConfigType, format?: string, strict?: boolean): ExtendedDayjs;
+  // Derived from dayjs/plugin/utc
+  utc(config?: ConfigType, format?: string, strict?: boolean): ExtendedDayjs;
+  // Derived from dayjs/plugin/timezone
+  tz: {
+    (input?: ConfigType, timezone?: string): ExtendedDayjs;
+    guess(): string;
+    setDefault(timezone?: string): void;
+  };
+  // Derived from dayjs/plugin/updateLocale
+  updateLocale(locale: string, config: object): object;
+} & Omit<typeof dayjs, 'utc' | 'tz'>;
+
+export const extendedDayjs = dayjs as unknown as DayjsWithPlugins;
+export type { Dayjs, ConfigType };
 
 export const fDuration = function (
   t1: number,

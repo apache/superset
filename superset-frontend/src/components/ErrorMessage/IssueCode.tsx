@@ -17,7 +17,8 @@
  * under the License.
  */
 import { Icons } from '@superset-ui/core/components';
-import { useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 
 interface IssueCodeProps {
   code: number;
@@ -33,9 +34,9 @@ export function IssueCode({ code, message }: IssueCodeProps) {
         href={`https://superset.apache.org/docs/using-superset/issue-codes#issue-${code}`}
         rel="noopener noreferrer"
         target="_blank"
-        aria-label="Superset docs link"
+        aria-label={t('Superset docs link')}
       >
-        <Icons.Full iconSize="m" iconColor={theme.colors.primary.dark1} />
+        <Icons.Full iconSize="m" iconColor={theme.colorPrimary} />
       </a>
     </>
   );

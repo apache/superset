@@ -17,16 +17,25 @@
  * under the License.
  */
 import { createRef, useCallback, useMemo } from 'react';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { nanoid } from 'nanoid';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { css, styled, t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 
 import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 
-import { Label } from '@superset-ui/core/components';
+import { Flex, Label } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import PanelToolbar from 'src/components/PanelToolbar';
+import { views } from 'src/core';
+import { resolveView } from 'src/core/views';
+import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import useLogAction from 'src/logger/useLogAction';
+import { LOG_ACTIONS_SQLLAB_SWITCH_SOUTH_PANE_TAB } from 'src/logger/LogUtils';
 import QueryHistory from '../QueryHistory';
 import {
   STATUS_OPTIONS,
@@ -36,8 +45,6 @@ import {
 import Results from './Results';
 import TablePreview from '../TablePreview';
 
-const TAB_HEIGHT = 130;
-
 /*
     editorQueries are queries executed by users passed from SqlEditor component
     dataPreviewQueries are all queries executed for preview of table data (from SqlEditorLeft)
@@ -45,23 +52,19 @@ const TAB_HEIGHT = 130;
 export interface SouthPaneProps {
   queryEditorId: string;
   latestQueryId?: string;
-  height: number;
   displayLimit: number;
   defaultQueryLimit: number;
 }
-
-type StyledPaneProps = {
-  height: number;
-};
 
 const TABS_KEYS = {
   RESULTS: 'Results',
   HISTORY: 'History',
 };
 
-const StyledPane = styled.div<StyledPaneProps>`
+const StyledPane = styled.div`
   width: 100%;
-  height: ${props => props.height}px;
+  height: 100%;
+
   .ant-tabs .ant-tabs-content-holder {
     overflow: visible;
   }
@@ -73,7 +76,12 @@ const StyledPane = styled.div<StyledPaneProps>`
       overflow-y: auto;
     }
   }
+  .ant-tabs-extra-content {
+    margin: 0 ${({ theme }) => theme.sizeUnit * 4}px
+      ${({ theme }) => theme.sizeUnit * 2}px;
+  }
   .ant-tabs-tabpane {
+    padding-top: ${({ theme }) => theme.sizeUnit * 3}px;
     .scrollable {
       overflow-y: auto;
     }
@@ -92,12 +100,14 @@ const StyledPane = styled.div<StyledPaneProps>`
 const SouthPane = ({
   queryEditorId,
   latestQueryId,
-  height,
   displayLimit,
   defaultQueryLimit,
 }: SouthPaneProps) => {
+  const { id, tabViewId } = useQueryEditor(queryEditorId, ['tabViewId']);
+  const editorId = tabViewId ?? id;
   const theme = useTheme();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
+  const viewItems = views.getViews(ViewLocations.sqllab.panels) || [];
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
       offline,
@@ -111,11 +121,8 @@ const SouthPane = ({
     ) ?? 'Results';
 
   const pinnedTables = useMemo(
-    () =>
-      tables.filter(
-        ({ queryEditorId: qeId }) => String(queryEditorId) === qeId,
-      ),
-    [queryEditorId, tables],
+    () => tables.filter(({ queryEditorId: qeId }) => String(editorId) === qeId),
+    [editorId, tables],
   );
   const pinnedTableKeys = useMemo(
     () =>
@@ -127,19 +134,22 @@ const SouthPane = ({
       ),
     [pinnedTables],
   );
-  const innerTabContentHeight = height - TAB_HEIGHT;
   const southPaneRef = createRef<HTMLDivElement>();
+  const logAction = useLogAction({ sqlEditorId: queryEditorId });
   const switchTab = (id: string) => {
     dispatch(setActiveSouthPaneTab(id));
+    logAction(LOG_ACTIONS_SQLLAB_SWITCH_SOUTH_PANE_TAB, { tab: id });
   };
   const removeTable = useCallback(
-    (key, action) => {
+    (key: string, action: string) => {
       if (action === 'remove') {
         const table = pinnedTables.find(
           ({ dbId, catalog, schema, name }) =>
             [dbId, catalog, schema, name].join(':') === key,
         );
-        dispatch(removeTables([table]));
+        if (table) {
+          dispatch(removeTables([table]));
+        }
       }
     },
     [dispatch, pinnedTables],
@@ -159,7 +169,6 @@ const SouthPane = ({
       label: t('Results'),
       children: (
         <Results
-          height={innerTabContentHeight}
           latestQueryId={latestQueryId}
           displayLimit={displayLimit}
           defaultQueryLimit={defaultQueryLimit}
@@ -202,16 +211,40 @@ const SouthPane = ({
         />
       ),
     })),
+    ...viewItems.map(view => ({
+      key: view.id,
+      label: view.name,
+      children: (
+        <div
+          css={css`
+            & > div:first-of-type {
+              padding-bottom: ${theme.sizeUnit * 2}px;
+            }
+          `}
+        >
+          <PanelToolbar viewId={view.id} />
+          {resolveView(view.id)}
+        </div>
+      ),
+      forceRender: true,
+      closable: false,
+    })),
   ];
 
   return (
-    <StyledPane
-      data-test="south-pane"
-      className="SouthPane"
-      height={height}
-      ref={southPaneRef}
-    >
+    <StyledPane data-test="south-pane" className="SouthPane" ref={southPaneRef}>
       <Tabs
+        tabBarExtraContent={{
+          right: (
+            <Flex
+              css={css`
+                padding: 8px;
+              `}
+            >
+              <PanelToolbar viewId={ViewLocations.sqllab.panels} />
+            </Flex>
+          ),
+        }}
         type="editable-card"
         activeKey={pinnedTableKeys[activeSouthPaneTab] || activeSouthPaneTab}
         className="SouthPaneTabs"

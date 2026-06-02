@@ -37,4 +37,6 @@ export interface IconTooltipProps {
     | 'rightBottom';
   style?: object;
   tooltip?: string | null;
+  mouseEnterDelay?: number;
+  mouseLeaveDelay?: number;
 }

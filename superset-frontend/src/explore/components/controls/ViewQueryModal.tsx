@@ -16,16 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, useEffect, useState } from 'react';
+import { FC, Fragment, useEffect, useState } from 'react';
 
+import { t } from '@apache-superset/core/translation';
 import {
-  styled,
   ensureIsArray,
-  t,
   getClientErrorObject,
   QueryFormData,
 } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { styled } from '@apache-superset/core/theme';
 import { Loading } from '@superset-ui/core/components';
+import { SupportedLanguage } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 
@@ -34,14 +36,16 @@ interface Props {
 }
 
 type Result = {
-  query: string;
-  language: string;
+  query?: string;
+  language: SupportedLanguage;
+  error?: string;
 };
 
 const ViewQueryModalContainer = styled.div`
   height: 100%;
   display: flex;
   flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
 const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
@@ -57,7 +61,7 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
       resultType,
     })
       .then(({ json }) => {
-        setResult(ensureIsArray(json.result));
+        setResult(ensureIsArray(json.result) as Result[]);
         setIsLoading(false);
         setError(null);
       })
@@ -86,15 +90,21 @@ const ViewQueryModal: FC<Props> = ({ latestQueryFormData }) => {
 
   return (
     <ViewQueryModalContainer>
-      {result.map(item =>
-        item.query ? (
-          <ViewQuery
-            datasource={latestQueryFormData.datasource}
-            sql={item.query}
-            language={item.language || undefined}
-          />
-        ) : null,
-      )}
+      {result.map((item, index) => (
+        // Static API response data - index is appropriate for keys
+        <Fragment key={index}>
+          {item.error && (
+            <Alert type="error" message={item.error} closable={false} />
+          )}
+          {item.query && (
+            <ViewQuery
+              datasource={latestQueryFormData.datasource}
+              sql={item.query}
+              language={item.language}
+            />
+          )}
+        </Fragment>
+      ))}
     </ViewQueryModalContainer>
   );
 };

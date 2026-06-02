@@ -17,7 +17,8 @@
  * under the License.
  */
 import { Icons } from '@superset-ui/core/components/Icons';
-import { t, useTheme } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { useTheme } from '@apache-superset/core/theme';
 import { Label } from '..';
 
 // Define props for the PublishedLabel component
@@ -32,15 +33,36 @@ export const PublishedLabel: React.FC<PublishedLabelProps> = ({
 }) => {
   const theme = useTheme();
   const label = isPublished ? t('Published') : t('Draft');
-  const icon = isPublished ? (
-    <Icons.CheckCircleOutlined iconSize="s" iconColor={theme.colorSuccess} />
-  ) : (
-    <Icons.MinusCircleOutlined iconSize="s" iconColor={theme.colorPrimary} />
-  );
   const labelType = isPublished ? 'success' : 'primary';
 
+  const color = isPublished
+    ? (theme.labelPublishedColor ?? theme.colorSuccessText)
+    : (theme.labelDraftColor ?? theme.colorPrimaryText);
+  const bg = isPublished ? theme.labelPublishedBg : theme.labelDraftBg;
+  const borderColor = isPublished
+    ? theme.labelPublishedBorderColor
+    : theme.labelDraftBorderColor;
+  const iconColor = isPublished
+    ? (theme.labelPublishedIconColor ?? theme.colorSuccess)
+    : (theme.labelDraftIconColor ?? theme.colorPrimary);
+
+  const icon = isPublished ? (
+    <Icons.CheckCircleOutlined iconSize="s" iconColor={iconColor} />
+  ) : (
+    <Icons.MinusCircleOutlined iconSize="s" iconColor={iconColor} />
+  );
+
   return (
-    <Label type={labelType} icon={icon} onClick={onClick}>
+    <Label
+      type={labelType}
+      icon={icon}
+      onClick={onClick}
+      style={{
+        color,
+        ...(bg && { backgroundColor: bg }),
+        ...(borderColor && { borderColor }),
+      }}
+    >
       {label}
     </Label>
   );

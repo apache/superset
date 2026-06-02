@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, styled } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { ResultTypes, ResultsPaneProps } from '../types';
 import { useResultsPane } from './useResultsPane';
@@ -50,10 +51,11 @@ export const ResultsPaneOnDashboard = ({
   queryForce,
   ownState,
   errorMessage,
-  actions,
+  setForceQuery,
   isVisible,
   dataSize = 50,
   canDownload,
+  columnDisplayNames,
 }: ResultsPaneProps) => {
   const resultsPanes = useResultsPane({
     errorMessage,
@@ -61,10 +63,11 @@ export const ResultsPaneOnDashboard = ({
     queryForce,
     ownState,
     isRequest,
-    actions,
+    setForceQuery,
     dataSize,
     isVisible,
     canDownload,
+    columnDisplayNames,
   });
 
   if (resultsPanes.length === 1) {

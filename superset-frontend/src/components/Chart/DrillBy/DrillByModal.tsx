@@ -18,24 +18,23 @@
  */
 
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
   BaseFormData,
   Column,
   QueryData,
-  css,
   ensureIsArray,
   isDefined,
-  t,
-  useTheme,
   ContextMenuFilters,
   AdhocFilter,
 } from '@superset-ui/core';
+import { Alert } from '@apache-superset/core/components';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import {
   Button,
-  Alert,
   Modal,
   Loading,
   Breadcrumb,
@@ -55,7 +54,8 @@ import {
   LOG_ACTIONS_FURTHER_DRILL_BY,
 } from 'src/logger/LogUtils';
 import { findPermission } from 'src/utils/findPermission';
-import { getQuerySettings } from 'src/explore/exploreUtils';
+import { getQuerySettings, exportChart } from 'src/explore/exploreUtils';
+import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
 import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
@@ -93,6 +93,8 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
 
   const [datasource_id, datasource_type] = formData.datasource.split('__');
   useEffect(() => {
+    // short circuit if the user is embedded as explore is not available
+    if (isEmbedded()) return;
     postFormData(Number(datasource_id), datasource_type, formData, 0)
       .then(key => {
         setUrl(
@@ -113,28 +115,30 @@ const ModalFooter = ({ formData, closeModal }: ModalFooterProps) => {
 
   return (
     <>
-      <Button
-        buttonStyle="secondary"
-        buttonSize="small"
-        onClick={onEditChartClick}
-        disabled={isEditDisabled}
-        tooltip={
-          isEditDisabled
-            ? t('You do not have sufficient permissions to edit the chart')
-            : undefined
-        }
-      >
-        <Link
-          css={css`
-            &:hover {
-              text-decoration: none;
-            }
-          `}
-          to={url}
+      {!isEmbedded() && (
+        <Button
+          buttonStyle="secondary"
+          buttonSize="small"
+          onClick={onEditChartClick}
+          disabled={isEditDisabled}
+          tooltip={
+            isEditDisabled
+              ? t('You do not have sufficient permissions to edit the chart')
+              : undefined
+          }
         >
-          {t('Edit chart')}
-        </Link>
-      </Button>
+          <Link
+            css={css`
+              &:hover {
+                text-decoration: none;
+              }
+            `}
+            to={url}
+          >
+            {t('Edit chart')}
+          </Link>
+        </Button>
+      )}
 
       <Button
         buttonStyle="primary"
@@ -204,12 +208,6 @@ export default function DrillByModal({
 
   const { displayModeToggle, drillByDisplayMode } = useDisplayModeToggle();
   const [chartDataResult, setChartDataResult] = useState<QueryData[]>();
-
-  const resultsTable = useResultsTableView(
-    chartDataResult,
-    formData.datasource,
-    canDownload,
-  );
 
   const [currentFormData, setCurrentFormData] = useState(formData);
   const [usedGroupbyColumns, setUsedGroupbyColumns] = useState<Column[]>(
@@ -373,6 +371,63 @@ export default function DrillByModal({
     formData,
   ]);
 
+  const handleDownload = useCallback(
+    (exportType: 'csv' | 'xlsx') => {
+      Promise.resolve(
+        exportChart({
+          formData: drilledFormData,
+          resultFormat: exportType,
+          resultType: 'full',
+        }),
+      ).catch(error => {
+        addDangerToast(
+          t('Failed to generate download: %s', error?.message || error),
+        );
+      });
+    },
+    [drilledFormData, addDangerToast],
+  );
+
+  const handleDownloadCSV = useCallback(
+    () => handleDownload('csv'),
+    [handleDownload],
+  );
+
+  const handleDownloadXLSX = useCallback(
+    () => handleDownload('xlsx'),
+    [handleDownload],
+  );
+
+  const handleReload = useCallback(() => {
+    setChartDataResult(undefined);
+    setIsChartDataLoading(true);
+    const [useLegacyApi] = getQuerySettings(drilledFormData);
+    getChartDataRequest({
+      formData: drilledFormData,
+    })
+      .then(({ response, json }) =>
+        handleChartDataResponse(response, json, useLegacyApi),
+      )
+      .then(queriesResponse => {
+        setChartDataResult(queriesResponse);
+      })
+      .catch(() => {
+        addDangerToast(t('Failed to load chart data.'));
+      })
+      .finally(() => {
+        setIsChartDataLoading(false);
+      });
+  }, [addDangerToast, drilledFormData]);
+
+  const resultsTable = useResultsTableView(
+    chartDataResult,
+    formData.datasource,
+    canDownload,
+    handleDownloadCSV,
+    handleDownloadXLSX,
+    handleReload,
+  );
+
   useEffect(() => {
     setUsedGroupbyColumns(usedCols =>
       !currentColumn ||
@@ -467,6 +522,7 @@ export default function DrillByModal({
       `}
       show
       onHide={onHideModal ?? (() => null)}
+      name={t('Drill by: %s', chartName)}
       title={t('Drill by: %s', chartName)}
       footer={<ModalFooter formData={drilledFormData} />}
       responsive
@@ -480,7 +536,7 @@ export default function DrillByModal({
         },
       }}
       draggable
-      destroyOnClose
+      destroyOnHidden
       maskClosable={false}
     >
       <Flex

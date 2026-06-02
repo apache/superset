@@ -17,7 +17,8 @@
  * under the License.
  */
 import { Link } from 'react-router-dom';
-import { isFeatureEnabled, FeatureFlag, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { CardStyles } from 'src/views/CRUD/utils';
 import {
   Button,
@@ -47,10 +48,7 @@ interface TagCardProps {
 function TagCard({
   tag,
   hasPerm,
-  bulkSelectEnabled,
-  tagFilter,
   refreshData,
-  userId,
   addDangerToast,
   addSuccessToast,
   showThumbnails,

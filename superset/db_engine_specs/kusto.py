@@ -22,7 +22,7 @@ from sqlalchemy import types
 from sqlalchemy.dialects.mssql.base import SMALLDATETIME
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIDatabaseError,
     SupersetDBAPIOperationalError,
@@ -35,11 +35,65 @@ from superset.utils.core import GenericDataType
 class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
     limit_method = LimitMethod.WRAP_SQL
     engine = "kustosql"
-    engine_name = "KustoSQL"
+    engine_name = "Azure Data Explorer"
     time_groupby_inline = True
     allows_joins = True
     allows_subqueries = True
     allows_sql_comments = False
+
+    metadata = {
+        "description": (
+            "Azure Data Explorer (Kusto) is a fast, fully managed data analytics "
+            "service from Microsoft Azure. Query data using SQL or native KQL syntax."
+        ),
+        "logo": "kusto.png",
+        "homepage_url": "https://azure.microsoft.com/en-us/products/data-explorer/",
+        "categories": [
+            DatabaseCategory.CLOUD_AZURE,
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["sqlalchemy-kusto"],
+        "connection_string": (
+            "kustosql+https://{cluster}.kusto.windows.net/{database}"
+            "?msi=False&azure_ad_client_id={client_id}"
+            "&azure_ad_client_secret={client_secret}"
+            "&azure_ad_tenant_id={tenant_id}"
+        ),
+        "parameters": {
+            "cluster": "Azure Data Explorer cluster name",
+            "database": "Database name",
+            "client_id": "Azure AD application (client) ID",
+            "client_secret": "Azure AD application secret",
+            "tenant_id": "Azure AD tenant ID",
+        },
+        "drivers": [
+            {
+                "name": "SQL Interface (Recommended)",
+                "pypi_package": "sqlalchemy-kusto",
+                "connection_string": (
+                    "kustosql+https://{cluster}.kusto.windows.net/{database}"
+                    "?msi=False&azure_ad_client_id={client_id}"
+                    "&azure_ad_client_secret={client_secret}"
+                    "&azure_ad_tenant_id={tenant_id}"
+                ),
+                "is_recommended": True,
+                "notes": "Use familiar SQL syntax to query Azure Data Explorer.",
+            },
+            {
+                "name": "KQL (Kusto Query Language)",
+                "pypi_package": "sqlalchemy-kusto",
+                "connection_string": (
+                    "kustokql+https://{cluster}.kusto.windows.net/{database}"
+                    "?msi=False&azure_ad_client_id={client_id}"
+                    "&azure_ad_client_secret={client_secret}"
+                    "&azure_ad_tenant_id={tenant_id}"
+                ),
+                "is_recommended": False,
+                "notes": "Use native Kusto Query Language for advanced analytics.",
+            },
+        ],
+    }
 
     _time_grain_expressions = {
         None: "{col}",
@@ -106,8 +160,14 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
 
 class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
+    """Azure Data Explorer engine spec using native KQL query language.
+
+    Note: Documentation is consolidated in KustoSqlEngineSpec (Azure Data Explorer).
+    This spec exists for runtime support of the kustokql driver.
+    """
+
     engine = "kustokql"
-    engine_name = "KustoKQL"
+    engine_name = "Azure Data Explorer (KQL)"
     time_groupby_inline = True
     allows_joins = True
     allows_subqueries = True

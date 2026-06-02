@@ -19,7 +19,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, cast
 
-from superset import app
+from flask import current_app
+
 from superset.common.query_object import QueryObject
 from superset.utils.core import FilterOperator
 from superset.utils.date_parser import get_since_until
@@ -32,10 +33,10 @@ def get_since_until_from_time_range(
 ) -> tuple[datetime | None, datetime | None]:
     return get_since_until(
         relative_start=(extras or {}).get(
-            "relative_start", app.config["DEFAULT_RELATIVE_START_TIME"]
+            "relative_start", current_app.config["DEFAULT_RELATIVE_START_TIME"]
         ),
         relative_end=(extras or {}).get(
-            "relative_end", app.config["DEFAULT_RELATIVE_END_TIME"]
+            "relative_end", current_app.config["DEFAULT_RELATIVE_END_TIME"]
         ),
         time_range=time_range,
         time_shift=time_shift,
@@ -66,7 +67,7 @@ def get_since_until_from_query_object(
 
     time_range = None
     for flt in query_object.filter:
-        if flt.get("op") == FilterOperator.TEMPORAL_RANGE.value and isinstance(
+        if flt.get("op") == FilterOperator.TEMPORAL_RANGE and isinstance(
             flt.get("val"), str
         ):
             time_range = cast(str, flt.get("val"))

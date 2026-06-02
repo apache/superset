@@ -26,7 +26,6 @@ import {
   getMetricLabel,
   getNumberFormatter,
   tooltipHtml,
-  themeObject,
 } from '@superset-ui/core';
 import { SankeyChartProps, SankeyTransformedProps } from './types';
 import { Refs } from '../types';
@@ -40,7 +39,7 @@ export default function transformProps(
   chartProps: SankeyChartProps,
 ): SankeyTransformedProps {
   const refs: Refs = {};
-  const { formData, height, hooks, queriesData, width } = chartProps;
+  const { formData, height, hooks, queriesData, width, theme } = chartProps;
   const { onLegendStateChanged } = hooks;
   const { colorScheme, metric, source, target, sliceId } = formData;
   const { data } = queriesData[0];
@@ -63,7 +62,6 @@ export default function transformProps(
       value,
     });
   });
-  const { theme } = themeObject;
 
   const seriesData: NonNullable<SankeySeriesOption['data']> = Array.from(
     set,

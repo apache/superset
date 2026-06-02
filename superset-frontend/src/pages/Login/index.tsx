@@ -17,7 +17,9 @@
  * under the License.
  */
 
-import { SupersetClient, styled, t, css } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
+import { styled, css } from '@apache-superset/core/theme';
 import {
   Button,
   Card,
@@ -27,8 +29,10 @@ import {
   Typography,
   Icons,
 } from '@superset-ui/core/components';
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { capitalize } from 'lodash/fp';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { useDispatch } from 'react-redux';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 type OAuthProvider = {
@@ -53,14 +57,17 @@ enum AuthType {
   AuthDB = 1,
   AuthLDAP = 2,
   AuthOauth = 4,
+  AuthSAML = 5,
 }
 
 const StyledCard = styled(Card)`
   ${({ theme }) => css`
-    width: 40%;
+    max-width: 400px;
+    width: 100%;
     margin-top: ${theme.marginXL}px;
+    color: ${theme.colorBgContainer};
     background: ${theme.colorBgBase};
-    .antd5-form-item-label label {
+    .ant-form-item-label label {
       color: ${theme.colorPrimary};
     }
   `}
@@ -75,19 +82,57 @@ const StyledLabel = styled(Typography.Text)`
 export default function Login() {
   const [form] = Form.useForm<LoginForm>();
   const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
 
   const bootstrapData = getBootstrapData();
+  const nextUrl = useMemo(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('next') || '';
+    } catch (_error) {
+      return '';
+    }
+  }, []);
+
+  const loginEndpoint = useMemo(
+    () => (nextUrl ? `/login/?next=${encodeURIComponent(nextUrl)}` : '/login/'),
+    [nextUrl],
+  );
+
+  const buildProviderLoginUrl = (providerName: string) => {
+    const base = `/login/${providerName}`;
+    return nextUrl
+      ? `${base}${base.includes('?') ? '&' : '?'}next=${encodeURIComponent(nextUrl)}`
+      : base;
+  };
 
   const authType: AuthType = bootstrapData.common.conf.AUTH_TYPE;
   const providers: Provider[] = bootstrapData.common.conf.AUTH_PROVIDERS;
   const authRegistration: boolean =
     bootstrapData.common.conf.AUTH_USER_REGISTRATION;
 
+  // TODO: This is a temporary solution for showing login errors after form submission.
+  // Should be replaced with proper SPA-style authentication (JSON API with error responses)
+  // when Flask-AppBuilder is updated or we implement a custom login endpoint.
+  useEffect(() => {
+    const loginAttempted = sessionStorage.getItem('login_attempted');
+
+    if (loginAttempted === 'true') {
+      sessionStorage.removeItem('login_attempted');
+      dispatch(addDangerToast(t('Invalid username or password')));
+      // Clear password field for security
+      form.setFieldsValue({ password: '' });
+    }
+  }, [dispatch, form]);
+
   const onFinish = (values: LoginForm) => {
     setLoading(true);
-    SupersetClient.postForm('/login/', values, '').finally(() => {
-      setLoading(false);
-    });
+
+    // Mark that we're attempting login (for error detection after redirect)
+    sessionStorage.setItem('login_attempted', 'true');
+
+    // Use standard form submission for Flask-AppBuilder compatibility
+    SupersetClient.postForm(loginEndpoint, values, '');
   };
 
   const getAuthIconElement = (
@@ -110,9 +155,11 @@ export default function Login() {
   return (
     <Flex
       justify="center"
+      align="center"
       data-test="login-form"
       css={css`
         width: 100%;
+        height: calc(100vh - 200px);
       `}
     >
       <StyledCard title={t('Sign in')} padded>
@@ -122,7 +169,7 @@ export default function Login() {
               {providers.map((provider: OIDProvider) => (
                 <Form.Item<LoginForm>>
                   <Button
-                    href={`/login/${provider.name}`}
+                    href={buildProviderLoginUrl(provider.name)}
                     block
                     iconPosition="start"
                     icon={getAuthIconElement(provider.name)}
@@ -134,13 +181,14 @@ export default function Login() {
             </Form>
           </Flex>
         )}
-        {authType === AuthType.AuthOauth && (
+        {(authType === AuthType.AuthOauth ||
+          authType === AuthType.AuthSAML) && (
           <Flex justify="center" gap={0} vertical>
             <Form layout="vertical" requiredMark="optional" form={form}>
               {providers.map((provider: OAuthProvider) => (
                 <Form.Item<LoginForm>>
                   <Button
-                    href={`/login/${provider.name}`}
+                    href={buildProviderLoginUrl(provider.name)}
                     block
                     iconPosition="start"
                     icon={getAuthIconElement(provider.name)}
@@ -172,6 +220,7 @@ export default function Login() {
                 ]}
               >
                 <Input
+                  autoFocus
                   prefix={<Icons.UserOutlined iconSize="l" />}
                   data-test="username-input"
                 />

@@ -22,11 +22,11 @@ import {
   FeatureFlag,
   makeApi,
   SupersetClient,
-  logging,
   getClientErrorObject,
   parseErrorJson,
   SupersetError,
 } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
 type AsyncEvent = {
@@ -143,7 +143,12 @@ const setLastId = (asyncEvent: AsyncEvent) => {
 export const processEvents = async (events: AsyncEvent[]) => {
   events.forEach((asyncEvent: AsyncEvent) => {
     const jobId = asyncEvent.job_id;
-    const listener = listenersByJobId[jobId];
+    const listener = Object.prototype.hasOwnProperty.call(
+      listenersByJobId,
+      jobId,
+    )
+      ? listenersByJobId[jobId]
+      : undefined;
     if (listener) {
       listener(asyncEvent);
       delete retriesByJobId[jobId];

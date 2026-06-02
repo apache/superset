@@ -39,7 +39,7 @@ interface TelemetryPixelProps {
 
 const PIXEL_ID = '0d3461e1-abb1-4691-a0aa-5ed50de66af0';
 
-const TelemetryPixel = ({
+export const TelemetryPixel = ({
   version = 'unknownVersion',
   sha = 'unknownSHA',
   build = 'unknownBuild',
@@ -47,7 +47,6 @@ const TelemetryPixel = ({
   const pixelPath = `https://apachesuperset.gateway.scarf.sh/pixel/${PIXEL_ID}/${version}/${sha}/${build}`;
   return process.env.SCARF_ANALYTICS === 'false' ? null : (
     <img
-      // @ts-ignore
       referrerPolicy="no-referrer-when-downgrade"
       src={pixelPath}
       width={0}
@@ -56,4 +55,3 @@ const TelemetryPixel = ({
     />
   );
 };
-export default TelemetryPixel;

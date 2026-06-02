@@ -17,7 +17,7 @@
  * under the License.
  */
 import { Dispatch } from 'react';
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
 import { Button } from '@superset-ui/core/components';
 import { TooltipPlacement } from '@superset-ui/core/components/Tooltip/types';
@@ -54,10 +54,12 @@ const renderDisabledSaveButton = () => (
 );
 
 const renderOverlay = () => (
-  <Menu>
-    <Menu.Item>{t('Settings')}</Menu.Item>
-    <Menu.Item>{t('Delete')}</Menu.Item>
-  </Menu>
+  <Menu
+    items={[
+      { key: 'settings', label: t('Settings') },
+      { key: 'delete', label: t('Delete') },
+    ]}
+  />
 );
 
 export default function Header({

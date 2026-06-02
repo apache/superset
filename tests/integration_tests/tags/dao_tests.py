@@ -144,6 +144,15 @@ class TestTagsDAO(SupersetTestCase):
         # check if tag exists
         assert db.session.query(Tag).filter(Tag.name == "example tag 1").first()
 
+        # test that a combination of non-unique and unique tags
+        # can be added.
+        TagDAO.create_custom_tagged_objects(
+            object_type=ObjectType.dashboard.name,
+            object_id=1,
+            tag_names=["example tag 1", "example tag 2"],
+        )
+        assert db.session.query(Tag).filter(Tag.name == "example tag 2").first()
+
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @pytest.mark.usefixtures("with_tagging_system_feature")
     @pytest.mark.usefixtures("create_tags")

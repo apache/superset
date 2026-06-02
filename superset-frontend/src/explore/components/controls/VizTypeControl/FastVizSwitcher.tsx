@@ -18,13 +18,14 @@
  */
 import { memo, useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { css, SupersetTheme } from '@superset-ui/core';
-import { Icons } from '@superset-ui/core/components/Icons';
+import { t } from '@apache-superset/core/translation';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
+import { Flex, Icons } from '@superset-ui/core/components';
 import { getChartKey } from 'src/explore/exploreUtils';
 import { ExplorePageState } from 'src/explore/types';
 import { FastVizSwitcherProps } from './types';
 import { VizTile } from './VizTile';
-import { FEATURED_CHARTS } from './constants';
+import { FEATURED_CHARTS, CUSTOM_CHART_ICONS } from './constants';
 
 export const antdIconProps = {
   iconSize: 'l' as const,
@@ -54,8 +55,8 @@ export const FastVizSwitcher = memo(
       ) {
         vizTiles.unshift({
           name: currentSelection,
-          icon: (
-            <Icons.MonitorOutlined {...antdIconProps} aria-label="monitor" />
+          icon: CUSTOM_CHART_ICONS[currentSelection] || (
+            <Icons.MonitorOutlined {...antdIconProps} aria-label={t('Chart')} />
           ),
         });
       }
@@ -67,7 +68,7 @@ export const FastVizSwitcher = memo(
       ) {
         vizTiles.unshift({
           name: currentViz,
-          icon: (
+          icon: CUSTOM_CHART_ICONS[currentViz] || (
             <Icons.CheckSquareOutlined
               {...antdIconProps}
               aria-label="check-square"
@@ -79,14 +80,7 @@ export const FastVizSwitcher = memo(
     }, [currentSelection, currentViz]);
 
     return (
-      <div
-        css={(theme: SupersetTheme) => css`
-          display: flex;
-          justify-content: space-between;
-          column-gap: ${theme.sizeUnit}px;
-        `}
-        data-test="fast-viz-switcher"
-      >
+      <Flex justify="space-between" gap={4} data-test="fast-viz-switcher">
         {vizTiles.map(vizMeta => (
           <VizTile
             vizMeta={vizMeta}
@@ -96,7 +90,7 @@ export const FastVizSwitcher = memo(
             key={vizMeta.name}
           />
         ))}
-      </div>
+      </Flex>
     );
   },
 );

@@ -16,8 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { styled, useTheme, t } from '@superset-ui/core';
+import {
+  type MouseEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import type { Column, GridApi } from 'ag-grid-community';
 
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -70,7 +77,7 @@ const HeaderAction = styled.div`
     box-shadow: 0 0 2px var(--ag-chip-border-color);
     border-radius: 50%;
     &:hover {
-      box-shadow: 0 0 4px ${({ theme }) => theme.colors.grayscale.light1};
+      box-shadow: 0 0 4px ${({ theme }) => theme.colorBorderSecondary};
     }
   }
 `;
@@ -97,7 +104,7 @@ export const Header: React.FC<Params> = ({
   const [currentSort, setCurrentSort] = useState<string | null>(null);
   const [sortIndex, setSortIndex] = useState<number | null>();
   const onSort = useCallback(
-    event => {
+    (event: MouseEvent) => {
       sortOption.current = (sortOption.current + 1) % SORT_DIRECTION.length;
       const sort = SORT_DIRECTION[sortOption.current];
       setSort(sort, event.shiftKey);
@@ -117,8 +124,9 @@ export const Header: React.FC<Params> = ({
   );
 
   const onSortChanged = useCallback(() => {
-    const hasMultiSort =
-      api.getAllDisplayedColumns().findIndex(c => c.getSortIndex()) !== -1;
+    const hasMultiSort = api
+      .getAllDisplayedColumns()
+      .some(c => c.getSortIndex());
     const updatedSortIndex = column.getSortIndex();
     sortOption.current = SORT_DIRECTION.indexOf(column.getSort() ?? null);
     setCurrentSort(column.getSort() ?? null);
@@ -156,13 +164,13 @@ export const Header: React.FC<Params> = ({
                 {currentSort === 'asc' && (
                   <Icons.SortAsc
                     iconSize="xxl"
-                    iconColor={theme.colors.primary.base}
+                    iconColor={theme.colorPrimary}
                   />
                 )}
                 {currentSort === 'desc' && (
                   <Icons.SortDesc
                     iconSize="xxl"
-                    iconColor={theme.colors.primary.base}
+                    iconColor={theme.colorPrimary}
                   />
                 )}
               </IconPlaceholder>

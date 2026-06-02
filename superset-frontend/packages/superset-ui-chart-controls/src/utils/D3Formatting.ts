@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
-  t,
   SMART_DATE_ID,
   NumberFormats,
   getNumberFormatter,

@@ -17,15 +17,15 @@
 from datetime import datetime
 from typing import Any, Dict
 
-from flask import g, redirect, request, Response
-from flask_appbuilder.api import expose, safe
+from flask import current_app as app, g, redirect, request, Response
+from flask_appbuilder.api import expose, permission_name, safe
+from flask_appbuilder.security.decorators import protect
 from flask_appbuilder.security.sqla.models import User
-from flask_jwt_extended.exceptions import NoAuthorizationError
 from marshmallow import ValidationError
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.security import generate_password_hash
 
-from superset import app, is_feature_enabled
+from superset import is_feature_enabled
 from superset.daos.user import UserDAO
 from superset.extensions import db, event_logger
 from superset.utils.slack import get_user_avatar, SlackClientError
@@ -41,6 +41,7 @@ class CurrentUserRestApi(BaseSupersetApi):
 
     resource_name = "me"
     openapi_spec_tag = "Current User"
+    allow_browser_login = True
     openapi_spec_component_schemas = (UserResponseSchema, CurrentUserPutSchema)
 
     current_user_put_schema = CurrentUserPutSchema()
@@ -51,15 +52,13 @@ class CurrentUserRestApi(BaseSupersetApi):
         if "password" in data and data["password"]:
             item.password = generate_password_hash(
                 password=data["password"],
-                method=self.appbuilder.get_app.config.get(
-                    "FAB_PASSWORD_HASH_METHOD", "scrypt"
-                ),
-                salt_length=self.appbuilder.get_app.config.get(
-                    "FAB_PASSWORD_HASH_SALT_LENGTH", 16
-                ),
+                method=app.config.get("FAB_PASSWORD_HASH_METHOD", "scrypt"),
+                salt_length=app.config.get("FAB_PASSWORD_HASH_SALT_LENGTH", 16),
             )
 
     @expose("/", methods=("GET",))
+    @protect()
+    @permission_name("read")
     @safe
     def get_me(self) -> Response:
         """Get the user object corresponding to the agent making the request.
@@ -82,15 +81,11 @@ class CurrentUserRestApi(BaseSupersetApi):
             401:
               $ref: '#/components/responses/401'
         """
-        try:
-            if g.user is None or g.user.is_anonymous:
-                return self.response_401()
-        except NoAuthorizationError:
-            return self.response_401()
-
         return self.response(200, result=user_response_schema.dump(g.user))
 
     @expose("/roles/", methods=("GET",))
+    @protect()
+    @permission_name("read")
     @safe
     def get_my_roles(self) -> Response:
         """Get the user roles corresponding to the agent making the request.
@@ -113,15 +108,12 @@ class CurrentUserRestApi(BaseSupersetApi):
             401:
               $ref: '#/components/responses/401'
         """
-        try:
-            if g.user is None or g.user.is_anonymous:
-                return self.response_401()
-        except NoAuthorizationError:
-            return self.response_401()
         user = bootstrap_user_data(g.user, include_perms=True)
         return self.response(200, result=user)
 
     @expose("/", methods=["PUT"])
+    @protect()
+    @permission_name("write")
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -158,11 +150,6 @@ class CurrentUserRestApi(BaseSupersetApi):
               $ref: '#/components/responses/401'
         """
         try:
-            if g.user is None or g.user.is_anonymous:
-                return self.response_401()
-        except NoAuthorizationError:
-            return self.response_401()
-        try:
             item = self.current_user_put_schema.load(request.json)
             if not item:
                 return self.response_400(message="At least one field must be provided.")
@@ -171,7 +158,7 @@ class CurrentUserRestApi(BaseSupersetApi):
                 setattr(g.user, key, value)
 
             self.pre_update(g.user, item)
-            db.session.commit()
+            db.session.commit()  # pylint: disable=consider-using-transaction
             return self.response(200, result=user_response_schema.dump(g.user))
         except ValidationError as error:
             return self.response_400(message=error.messages)
@@ -221,6 +208,7 @@ class UserRestApi(BaseSupersetApi):
         # fetch from the one-to-one relationship
         if len(user.extra_attributes) > 0:
             avatar_url = user.extra_attributes[0].avatar_url
+
         slack_token = app.config.get("SLACK_API_TOKEN")
         if (
             not avatar_url

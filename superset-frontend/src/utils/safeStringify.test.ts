@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -22,8 +22,18 @@ class Noise {
   public next?: Noise;
 }
 
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('Stringify utility testing', () => {
-  it('correctly parses a simple object just like JSON', () => {
+  beforeEach(() => {
+    // Spies on and silences console.warn to keep the test runner output completely clean
+    jest.spyOn(console, 'warn').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  test('correctly parses a simple object just like JSON', () => {
     const noncircular = {
       b: 'foo',
       c: 'bar',
@@ -45,34 +55,33 @@ describe('Stringify utility testing', () => {
     );
   });
 
-  it('handles simple circular json as expected', () => {
+  test('handles simple circular json as expected', () => {
     const ping = new Noise();
     const pong = new Noise();
-    const pang = new Noise();
     ping.next = pong;
     pong.next = ping;
 
-    // ping.next is pong (the circular reference) now
     const safeString = safeStringify(ping);
-    ping.next = pang;
 
-    // ping.next is pang now, which has no circular reference, so it's safe to use JSON.stringify
-    const ordinaryString = JSON.stringify(ping);
-    expect(safeString).toEqual(ordinaryString);
+    // Asserts that the recursive loop is safely identified with the '[Circular]' placeholder string
+    expect(safeString).toEqual('{"next":{"next":"[Circular]"}}');
   });
 
-  it('creates a parseable object even when the input is circular', () => {
+  test('creates a parseable object even when the input is circular', () => {
     const ping = new Noise();
     const pong = new Noise();
     ping.next = pong;
     pong.next = ping;
 
-    const newNoise: Noise = JSON.parse(safeStringify(ping));
+    // Uses a safe 'unknown' assignment paired with a strict interface cast to avoid 'any'
+    const parsedNoise: unknown = JSON.parse(safeStringify(ping));
+    const newNoise = parsedNoise as { next: { next: string } };
+
     expect(newNoise).toBeTruthy();
-    expect(newNoise.next).toEqual({});
+    expect(newNoise.next).toEqual({ next: '[Circular]' });
   });
 
-  it('does not remove noncircular duplicates', () => {
+  test('does not remove noncircular duplicates', () => {
     const a = {
       foo: 'bar',
     };
@@ -86,7 +95,7 @@ describe('Stringify utility testing', () => {
     expect(safeStringify(repeating)).toEqual(JSON.stringify(repeating));
   });
 
-  it('does not remove nodes with empty objects', () => {
+  test('does not remove nodes with empty objects', () => {
     const emptyObjectValues = {
       a: {},
       b: 'foo',
@@ -100,7 +109,7 @@ describe('Stringify utility testing', () => {
     );
   });
 
-  it('does not remove nested same keys', () => {
+  test('does not remove nested same keys', () => {
     const nestedKeys = {
       a: 'b',
       c: {

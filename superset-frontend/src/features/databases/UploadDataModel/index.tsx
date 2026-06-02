@@ -25,12 +25,9 @@ import {
   FC,
 } from 'react';
 
-import {
-  getClientErrorObject,
-  SupersetClient,
-  SupersetTheme,
-  t,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import {
   Button,
   Collapse,
@@ -45,11 +42,13 @@ import {
   Upload,
   type UploadChangeParam,
   type UploadFile,
+  Typography,
 } from '@superset-ui/core/components';
 import { Switch, SwitchProps } from '@superset-ui/core/components/Switch';
 import { Icons } from '@superset-ui/core/components/Icons';
 import rison from 'rison';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import {
   antDModalNoPaddingStyles,
   antDModalStyles,
@@ -69,6 +68,7 @@ interface UploadDataModalProps {
   show: boolean;
   allowedExtensions: string[];
   type: UploadType;
+  fileListOverride?: File[];
 }
 
 const CSVSpecificFields = [
@@ -217,6 +217,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   show,
   allowedExtensions,
   type = 'csv',
+  fileListOverride,
 }) => {
   const [form] = Form.useForm();
   const [currentDatabaseId, setCurrentDatabaseId] = useState<number>(0);
@@ -233,6 +234,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
     useState<boolean>(false);
   const [previewUploadedFile, setPreviewUploadedFile] = useState<boolean>(true);
   const [fileLoading, setFileLoading] = useState<boolean>(false);
+  const [activeKey, setActiveKey] = useState<string | string[]>('general');
 
   const createTypeToEndpointMap = (databaseId: number) =>
     `/api/v1/database/${databaseId}/upload/`;
@@ -526,9 +528,25 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
   };
 
   useEffect(() => {
+    if (fileListOverride?.length) {
+      setFileList(
+        fileListOverride.map(file => ({
+          uid: file.name,
+          name: file.name,
+          originFileObj: file as UploadFile['originFileObj'],
+          status: 'done' as const,
+        })),
+      );
+      if (previewUploadedFile) {
+        loadFileMetadata(fileListOverride[0]).then(r => r);
+      }
+    }
+  }, [fileListOverride, previewUploadedFile]);
+
+  useEffect(() => {
     if (
       columns.length > 0 &&
-      fileList[0].originFileObj &&
+      fileList.length > 0 &&
       fileList[0].originFileObj instanceof File
     ) {
       if (!previewUploadedFile) {
@@ -537,6 +555,13 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
       loadFileMetadata(fileList[0].originFileObj).then(r => r);
     }
   }, [delimiter]);
+
+  // Reset active panel to 'general' when modal is shown
+  useEffect(() => {
+    if (show) {
+      setActiveKey('general');
+    }
+  }, [show]);
 
   const validateUpload = (_: any, value: string) => {
     if (fileList.length === 0) {
@@ -568,7 +593,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
 
   const UploadTitle: FC = () => {
     const title = uploadTitles[type] || t('Upload');
-    return <h4>{title}</h4>;
+    return <ModalTitleWithIcon title={title} />;
   };
 
   return (
@@ -584,7 +609,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
       onHandledPrimaryAction={form.submit}
       onHide={onClose}
       width="500px"
-      primaryButtonName="Upload"
+      primaryButtonName={t('Upload')}
       centered
       show={show}
       title={<UploadTitle />}
@@ -597,18 +622,19 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
         initialValues={defaultUploadInfo}
       >
         <Collapse
-          expandIconPosition="right"
+          expandIconPosition="end"
           accordion
+          activeKey={activeKey}
+          onChange={key => setActiveKey(key)}
           defaultActiveKey="general"
           modalMode
           items={[
             {
               key: 'general',
               label: (
-                <div>
-                  <h4>{t('General information')}</h4>
-                  <p className="helper">{t('Upload a file to a database.')}</p>
-                </div>
+                <Typography.Text strong>
+                  {t('General information')}
+                </Typography.Text>
               ),
               children: (
                 <>
@@ -705,7 +731,10 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                         name="table_name"
                         required
                         rules={[
-                          { required: true, message: 'Table name is required' },
+                          {
+                            required: true,
+                            message: t('Table name is required'),
+                          },
                         ]}
                       >
                         <Input
@@ -762,14 +791,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
             {
               key: 'file-settings',
               label: (
-                <div>
-                  <h4>{t('File settings')}</h4>
-                  <p className="helper">
-                    {t(
-                      'Adjust how spaces, blank lines, null values are handled and other file wide settings.',
-                    )}
-                  </p>
-                </div>
+                <Typography.Text strong>{t('File settings')}</Typography.Text>
               ),
               children: (
                 <>
@@ -891,16 +913,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
             },
             {
               key: 'columns',
-              label: (
-                <div>
-                  <h4>{t('Columns')}</h4>
-                  <p className="helper">
-                    {t(
-                      'Adjust column settings such as specifying the columns to read, how duplicates are handled, column data types, and more.',
-                    )}
-                  </p>
-                </div>
-              ),
+              label: <Typography.Text strong>{t('Columns')}</Typography.Text>,
               children: (
                 <>
                   <Row>
@@ -1000,14 +1013,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                   {
                     key: 'rows',
                     label: (
-                      <div>
-                        <h4>{t('Rows')}</h4>
-                        <p className="helper">
-                          {t(
-                            'Set header rows and the number of rows to read or skip.',
-                          )}
-                        </p>
-                      </div>
+                      <Typography.Text strong>{t('Rows')}</Typography.Text>
                     ),
                     children: (
                       <Row>
@@ -1021,7 +1027,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                             rules={[
                               {
                                 required: true,
-                                message: 'Header row is required',
+                                message: t('Header row is required'),
                               },
                             ]}
                           >
@@ -1054,7 +1060,7 @@ const UploadDataModal: FunctionComponent<UploadDataModalProps> = ({
                             rules={[
                               {
                                 required: true,
-                                message: 'Skip rows is required',
+                                message: t('Skip rows is required'),
                               },
                             ]}
                           >

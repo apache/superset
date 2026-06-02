@@ -17,18 +17,18 @@
  * under the License.
  */
 
-import { t } from '@superset-ui/core';
-import { SupersetTheme } from '../..';
+import { t } from '@apache-superset/core/translation';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import { FallbackPropsWithDimension } from './SuperChart';
 
-export type Props = FallbackPropsWithDimension;
+export type Props = Partial<FallbackPropsWithDimension>;
 
 export default function FallbackComponent({ error, height, width }: Props) {
   return (
     <div
       css={(theme: SupersetTheme) => ({
-        backgroundColor: theme.colors.grayscale.dark2,
-        color: theme.colors.grayscale.light5,
+        backgroundColor: theme.colorBgContainer,
+        color: theme.colorText,
         overflow: 'auto',
         padding: 32,
       })}
@@ -38,7 +38,13 @@ export default function FallbackComponent({ error, height, width }: Props) {
         <div>
           <b>{t('Oops! An error occurred!')}</b>
         </div>
-        <code>{error ? error.toString() : 'Unknown Error'}</code>
+        <code>
+          {error instanceof Error
+            ? error.message
+            : error
+              ? String(error)
+              : t('Unknown Error')}
+        </code>
       </div>
     </div>
   );

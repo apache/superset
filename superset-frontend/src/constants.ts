@@ -17,7 +17,6 @@
  * under the License.
  */
 import { DEFAULT_D3_FORMAT, DEFAULT_D3_TIME_FORMAT } from '@superset-ui/core';
-
 import { BootstrapData, CommonBootstrapData } from './types/bootstrapTypes';
 
 export const DATETIME_WITH_TIME_ZONE = 'YYYY-MM-DD HH:mm:ssZ';
@@ -104,6 +103,10 @@ export const URL_PARAMS = {
     name: 'focused_chart',
     type: 'number',
   },
+  editMode: {
+    name: 'edit',
+    type: 'boolean',
+  },
 } as const;
 
 export const RESERVED_CHART_URL_PARAMS: string[] = [
@@ -118,12 +121,12 @@ export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [
   URL_PARAMS.nativeFiltersKey.name,
   URL_PARAMS.permalinkKey.name,
   URL_PARAMS.preselectFilters.name,
+  URL_PARAMS.editMode.name,
 ];
 
 export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   application_root: '/',
   static_assets_prefix: '',
-  flash_messages: [],
   conf: {},
   locale: 'en',
   feature_flags: {},
@@ -141,7 +144,10 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   },
   extra_categorical_color_schemes: [],
   extra_sequential_color_schemes: [],
-  theme: {},
+  theme: {
+    default: {},
+    dark: {},
+  },
   menu_data: {
     menu: [],
     brand: {
@@ -169,6 +175,7 @@ export const DEFAULT_COMMON_BOOTSTRAP_DATA: CommonBootstrapData = {
   },
   d3_format: DEFAULT_D3_FORMAT,
   d3_time_format: DEFAULT_D3_TIME_FORMAT,
+  pdf_compression_level: 'MEDIUM',
 };
 
 export const DEFAULT_BOOTSTRAP_DATA: BootstrapData = {
@@ -183,7 +190,21 @@ export enum FilterPlugins {
   TimeGrain = 'filter_timegrain',
 }
 
+export enum ChartCustomizationPlugins {
+  DynamicGroupBy = 'chart_customization_dynamic_groupby',
+  TimeGrain = 'chart_customization_timegrain',
+  TimeColumn = 'chart_customization_timecolumn',
+  DeckglLayerVisibility = 'chart_customization_deckgl_layer_visibility',
+}
+
 export enum Actions {
   CREATE = 'create',
   UPDATE = 'update',
 }
+
+/**
+ * Default threshold for CSV streaming export.
+ * Exports with row counts >= this value will use streaming with progress tracking.
+ * Exports with row counts < this value will use traditional download.
+ */
+export const DEFAULT_CSV_STREAMING_ROW_THRESHOLD = 100000;
