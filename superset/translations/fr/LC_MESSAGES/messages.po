@@ -2319,11 +2319,11 @@ msgstr "Zoom automatique"
 
 #, python-format
 msgid "Auto refresh paused (set to %s seconds)"
-msgstr ""
+msgstr "[CHECK] Actualisation automatique mis en pause (valeur à %s secondes)"
 
 #, python-format
 msgid "Auto refresh paused - tab inactive (set to %s seconds)"
-msgstr ""
+msgstr "[CHECK] Actualisation automatique mis en pause - onglet inactif (valeur à %s secondes)"
 
 #, python-format
 msgid "Auto refresh set to %s seconds"
@@ -2946,17 +2946,16 @@ msgid "Cell Size"
 msgstr "Taille des cellules"
 
 msgid "Cell content"
-msgstr "Contenu de cellule"
+msgstr "Contenu de la cellule"
 
 msgid "Cell layout & styling"
-msgstr ""
+msgstr "Format et disposition de la cellule"
 
 msgid "Cell limit"
 msgstr "Limite de la cellule"
 
 msgid "Cell title template"
 msgstr "Modèle de titre de cellule"
-
 
 msgid "Centroid (Longitude and Latitude): "
 msgstr "Centroïde (longitude et latitude) :"
@@ -3061,7 +3060,7 @@ msgstr "Graphique"
 
 #, python-format
 msgid "Chart %(chart_id)s is not on dashboard %(dashboard_id)s"
-msgstr ""
+msgstr "Le graphique %(chart_id)s n'est pas dans la tableau de bord %(dashboard_id)s"
 
 #, python-format
 msgid "Chart %(id)s not found"
@@ -3546,13 +3545,13 @@ msgid "Color Scheme Type"
 msgstr "Type de schéma de couleurs"
 
 msgid "Color Steps"
-msgstr "Étapes de couleur"
+msgstr "Echelonnage des couleurs"
 
 msgid "Color bars by x-axis"
-msgstr ""
+msgstr "Couleur de l'axe X"
 
 msgid "Color bars by y-axis"
-msgstr ""
+msgstr "Couleur de l'axe Y"
 
 msgid "Color bounds"
 msgstr "Limites de couleur"
@@ -3916,12 +3915,10 @@ msgstr "Contient"
 
 #, python-format
 msgid "Contains text (ILIKE %x%)"
-msgstr ""
-
+msgstr "Containx le texte (ILIKE %x%)"
 
 msgid "Content format"
 msgstr "Format de la date"
-
 
 msgid "Content type"
 msgstr "Type du filtre"
@@ -5764,8 +5761,7 @@ msgid "ECharts"
 msgstr "ECharts"
 
 msgid "ECharts Options (JS object literals)"
-msgstr ""
-
+msgstr "Options ECharts (Objet literal JS)"
 
 msgid "EMAIL_REPORTS_CTA"
 msgstr "EMAIL_REPORTS_CTA"
