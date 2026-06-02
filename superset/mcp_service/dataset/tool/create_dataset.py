@@ -115,10 +115,10 @@ async def create_dataset(
     # fields when Pydantic resolves the value via getattr internally.
     _request_data = request.model_dump()
     _schema_raw = _request_data.get("schema")
-    schema = _schema_raw.strip() if isinstance(_schema_raw, str) else None
+    schema = (_schema_raw.strip() or None) if isinstance(_schema_raw, str) else None
     table_name = request.table_name.strip()
     _catalog_raw = _request_data.get("catalog")
-    catalog = _catalog_raw.strip() if isinstance(_catalog_raw, str) else None
+    catalog = (_catalog_raw.strip() or None) if isinstance(_catalog_raw, str) else None
 
     await ctx.info(
         "Registering physical table as dataset: database_id=%s, table=%s.%s"
