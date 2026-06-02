@@ -24,11 +24,13 @@ import {
   getMetricLabel,
   QueryFormMetric,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { Constants } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
 import type { IRowNode } from 'ag-grid-community';
 
 const timeFormatter = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
+const CONTRIBUTION_SUFFIX = '__contribution';
 
 export function useGridColumns(
   colnames: string[] | undefined,
@@ -45,17 +47,15 @@ export function useGridColumns(
               const colType = coltypes?.[index];
 
               const rawHeader = columnDisplayNames?.[key] ?? key;
-              let cleanHeader = rawHeader;
-
               let cleaned = rawHeader;
               let suffix = '';
 
-              if (rawHeader.endsWith('__contribution')) {
+              if (rawHeader.endsWith(CONTRIBUTION_SUFFIX)) {
                 cleaned = rawHeader.slice(
                   0,
-                  rawHeader.length - '__contribution'.length,
+                  rawHeader.length - CONTRIBUTION_SUFFIX.length,
                 );
-                suffix = ' (contribution)';
+                suffix = ` (${t('contribution')})`;
               }
 
               try {
@@ -67,7 +67,7 @@ export function useGridColumns(
                 /* not a JSON-encoded metric – keep original display name */
               }
 
-              cleanHeader = `${cleaned}${suffix}`;
+              const cleanHeader = `${cleaned}${suffix}`;
 
               return {
                 label: key,
