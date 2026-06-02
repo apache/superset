@@ -16,20 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  type ReactElement,
-  useCallback,
-  useEffect,
-  useMemo,
-  useState,
-  useSyncExternalStore,
-} from 'react';
-import { SupersetClient } from '@superset-ui/core';
+import { type ReactElement, useSyncExternalStore } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { getActiveChatbot } from 'src/core/chatbot';
 import { subscribeToRegistry, getRegistryVersion } from 'src/core/views';
-import { subscribeToExtensionSettings } from 'src/core/extensions';
 
 const CHATBOT_EDGE_MARGIN = 24;
 
@@ -44,48 +35,15 @@ const ChatbotRenderer = ({ provider }: { provider: () => ReactElement }) =>
 
 const ChatbotMount = () => {
   const theme = useTheme();
-  const [adminSelectedId, setAdminSelectedId] = useState<string | null>(null);
-  const [enabledMap, setEnabledMap] = useState<Record<string, boolean>>({});
 
-  const applySettings = useCallback(
-    (settings: {
-      active_chatbot_id: string | null;
-      enabled: Record<string, boolean>;
-    }) => {
-      setAdminSelectedId(settings.active_chatbot_id ?? null);
-      setEnabledMap(settings.enabled ?? {});
-    },
-    [],
-  );
+  // Subscribing to the registry version re-renders this component whenever a
+  // chatbot view registers or unregisters, so `getActiveChatbot()` below is
+  // re-evaluated against the current registry. Admin-driven selection (default
+  // chatbot, enabled flags) is layered on by the admin settings work later in
+  // the stack; here the single registered chatbot wins.
+  useSyncExternalStore(subscribeToRegistry, getRegistryVersion);
 
-  useEffect(() => {
-    let cancelled = false;
-    SupersetClient.get({ endpoint: '/api/v1/extensions/settings' })
-      .then(({ json }) => {
-        if (cancelled) return;
-        applySettings(json.result ?? { active_chatbot_id: null, enabled: {} });
-      })
-      .catch(() => {
-        // Settings fetch failure is non-fatal — fall back to first-to-register.
-        // enabledMap stays {} which getActiveChatbot treats as all-enabled.
-        setAdminSelectedId(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [applySettings]);
-
-  useEffect(() => subscribeToExtensionSettings(applySettings), [applySettings]);
-
-  const registryVersion = useSyncExternalStore(
-    subscribeToRegistry,
-    getRegistryVersion,
-  );
-
-  const activeChatbot = useMemo(
-    () => getActiveChatbot(adminSelectedId, enabledMap),
-    [adminSelectedId, enabledMap, registryVersion],
-  );
+  const activeChatbot = getActiveChatbot();
 
   if (!activeChatbot) {
     return null;
