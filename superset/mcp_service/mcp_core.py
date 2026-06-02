@@ -149,6 +149,7 @@ class ModelListCore(BaseCore, Generic[L]):
         logger: logging.Logger | None = None,
         all_columns: List[str] | None = None,
         sortable_columns: List[str] | None = None,
+        owner_filter_column: str = "owner",
     ) -> None:
         super().__init__(logger)
         self.dao_class = dao_class
@@ -165,6 +166,7 @@ class ModelListCore(BaseCore, Generic[L]):
         self._sortable_columns = filter_user_directory_columns(
             sortable_columns if sortable_columns else []
         )
+        self._owner_filter_column = owner_filter_column
 
     @property
     def all_columns(self) -> List[str]:
@@ -207,8 +209,8 @@ class ModelListCore(BaseCore, Generic[L]):
                 f"Allowed columns: {', '.join(self._sortable_columns)}"
             )
 
-    @staticmethod
     def _prepend_self_lookup_filters(
+        self,
         filters: Any,
         created_by_me: bool,
         owned_by_me: bool,
@@ -237,13 +239,40 @@ class ModelListCore(BaseCore, Generic[L]):
         elif created_by_me:
             extra = ColumnOperator(col="created_by_fk", opr="eq", value=user_id)
         else:
-            extra = ColumnOperator(col="owner", opr="eq", value=user_id)
+            extra = ColumnOperator(
+                col=self._owner_filter_column, opr="eq", value=user_id
+            )
 
         if filters is None:
             return [extra]
         if isinstance(filters, list):
             return [extra] + filters
         return [extra, filters]
+
+    def _call_dao_list(
+        self,
+        filters: Any,
+        order_column: str,
+        order_direction: str,
+        page: int,
+        page_size: int,
+        search: str | None,
+        columns_to_load: List[str],
+    ) -> tuple[List[Any], int]:
+        """Call the DAO list method.
+
+        Subclasses may override to change the kwarg name used for filters.
+        """
+        return self.dao_class.list(
+            column_operators=filters,
+            order_column=order_column,
+            order_direction=order_direction,
+            page=page,
+            page_size=page_size,
+            search=search,
+            search_columns=self.search_columns,
+            columns=columns_to_load,
+        )
 
     def run_tool(
         self,
@@ -262,6 +291,7 @@ class ModelListCore(BaseCore, Generic[L]):
 
         # Parse filters using generic utility (accepts JSON string or object)
         filters = parse_json_or_passthrough(filters, param_name="filters")
+        filters_applied = filters if isinstance(filters, list) else []
 
         filters = self._prepend_self_lookup_filters(
             filters, created_by_me, owned_by_me, get_current_user()
@@ -276,6 +306,7 @@ class ModelListCore(BaseCore, Generic[L]):
         computed_deps: dict[str, str] = {
             "changed_on_humanized": "changed_on",
             "created_on_humanized": "created_on",
+            "last_eval_dttm_humanized": "last_eval_dttm",
         }
         for computed, dependency in computed_deps.items():
             if computed in columns_to_load and dependency not in columns_to_load:
@@ -285,15 +316,14 @@ class ModelListCore(BaseCore, Generic[L]):
 
         # Query the DAO
         items: List[Any]
-        items, total_count = self.dao_class.list(
-            column_operators=filters,
+        items, total_count = self._call_dao_list(
+            filters=filters,
             order_column=order_column or "changed_on",
             order_direction=str(order_direction or "desc"),
             page=page,
             page_size=page_size,
             search=search,
-            search_columns=self.search_columns,
-            columns=columns_to_load,
+            columns_to_load=columns_to_load,
         )
         # Serialize items
         item_objs = []
@@ -330,7 +360,7 @@ class ModelListCore(BaseCore, Generic[L]):
             "sortable_columns": self.sortable_columns,
             "filters_applied": [
                 f
-                for f in (filters if isinstance(filters, list) else [])
+                for f in filters_applied
                 if (f.get("col") if isinstance(f, dict) else getattr(f, "col", None))
                 not in SELF_REFERENCING_FILTER_COLUMNS
             ],
@@ -733,6 +763,8 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
         default_sort: str = "changed_on",
         default_sort_direction: Literal["asc", "desc"] = "desc",
         exclude_filter_columns: set[str] | None = None,
+        filter_columns_override: dict[str, list[str]] | None = None,
+        include_filter_columns: frozenset[str] | None = None,
         logger: logging.Logger | None = None,
     ) -> None:
         """
@@ -750,6 +782,13 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
             default_sort_direction: Default sort direction
             exclude_filter_columns: Column names to omit from filter discovery
                 (e.g., sensitive fields like passwords or connection URIs)
+            filter_columns_override: When set, use this mapping directly as the
+                filter_columns output instead of querying the DAO. Use this to
+                restrict advertised filters to the exact set the list tool accepts.
+            include_filter_columns: When set, only these column names are advertised
+                as filterable. Applied after exclude_filter_columns. Use this when
+                the list tool's filter schema accepts fewer columns than the DAO
+                exposes (e.g., ReportFilter vs. the full ReportSchedule ORM model).
             logger: Optional logger instance
         """
         super().__init__(logger)
@@ -770,9 +809,13 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
         # Hide user-directory columns from filter discovery, except the small
         # set callers may legitimately filter by ID (resolved via find_users).
         self.exclude_filter_columns.update(USER_DIRECTORY_FIELDS - USER_FILTER_FIELDS)
+        self.filter_columns_override = filter_columns_override
+        self.include_filter_columns = include_filter_columns
 
     def _get_filter_columns(self) -> Dict[str, List[str]]:
         """Get filterable columns and operators from the DAO."""
+        if self.filter_columns_override is not None:
+            return self.filter_columns_override
         try:
             filterable = self.dao_class.get_filterable_columns_and_operators()
             # Defensive handling: ensure we have a valid mapping
@@ -797,6 +840,11 @@ class ModelGetSchemaCore(BaseCore, Generic[S]):
                     k: v
                     for k, v in result.items()
                     if k not in self.exclude_filter_columns
+                }
+            # Apply allowlist: keep only explicitly permitted filter columns
+            if self.include_filter_columns is not None:
+                result = {
+                    k: v for k, v in result.items() if k in self.include_filter_columns
                 }
             return result
         except Exception as e:

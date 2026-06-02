@@ -23,10 +23,10 @@ import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from authlib.jose.errors import BadSignatureError, DecodeError, ExpiredTokenError
+from joserfc.errors import BadSignatureError, DecodeError, ExpiredTokenError
 
 from superset.mcp_service.jwt_verifier import (
-    _json_auth_error_handler,
+    _auth_error_handler,
     _jwt_failure_reason,
     DetailedBearerAuthBackend,
     DetailedJWTVerifier,
@@ -108,7 +108,7 @@ async def test_signature_verification_failed(hs256_verifier):
     with patch.object(
         hs256_verifier.jwt,
         "decode",
-        side_effect=BadSignatureError(result=None),
+        side_effect=BadSignatureError(),
     ):
         result = await hs256_verifier.load_access_token(token)
 
@@ -400,7 +400,7 @@ def test_get_middleware_returns_custom_components(hs256_verifier):
         == "DetailedBearerAuthBackend"
     )
     # on_error should be the RFC 6750-compliant generic handler
-    assert auth_middleware.kwargs["on_error"] is _json_auth_error_handler
+    assert auth_middleware.kwargs["on_error"] is _auth_error_handler
 
 
 class _FakeHeaders(dict[str, str]):
@@ -496,7 +496,7 @@ def test_error_handler_never_leaks_jwt_details():
 
     for reason in sensitive_reasons:
         exc = AuthenticationError(reason)
-        response = _json_auth_error_handler(mock_conn, exc)
+        response = _auth_error_handler(mock_conn, exc)
 
         assert response.status_code == 401
 
@@ -684,7 +684,7 @@ async def test_expired_token_during_decode(hs256_verifier):
     with patch.object(
         hs256_verifier.jwt,
         "decode",
-        side_effect=ExpiredTokenError(),
+        side_effect=ExpiredTokenError("exp"),
     ):
         result = await hs256_verifier.load_access_token(token)
 
