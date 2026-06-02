@@ -850,6 +850,52 @@ class TestSavedQueryApi(SupersetTestCase):
         assert is_zipfile(buf)
 
     @pytest.mark.usefixtures("create_saved_queries")
+    def test_export_valid_token_sets_cookie(self):
+        """
+        Saved Query API: Test export echoes a valid token back as a cookie
+        """
+        admin = self.get_user("admin")
+        sample_query = (
+            db.session.query(SavedQuery).filter(SavedQuery.created_by == admin).first()
+        )
+
+        self.login(ADMIN_USERNAME)
+        argument = [sample_query.id]
+        token = "valid_token-123"  # noqa: S105
+        uri = (
+            f"api/v1/saved_query/export/?q={rison.dumps(argument)}&token={token}"
+        )
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        assert any(
+            cookie.name == token and cookie.value == "done"
+            for cookie in self.client.cookie_jar
+        )
+
+    @pytest.mark.usefixtures("create_saved_queries")
+    def test_export_invalid_token_skips_cookie(self):
+        """
+        Saved Query API: Test export ignores an invalid token instead of
+        setting it as a cookie name
+        """
+        admin = self.get_user("admin")
+        sample_query = (
+            db.session.query(SavedQuery).filter(SavedQuery.created_by == admin).first()
+        )
+
+        self.login(ADMIN_USERNAME)
+        argument = [sample_query.id]
+        token = "bad token;with=chars"  # noqa: S105
+        uri = (
+            f"api/v1/saved_query/export/?q={rison.dumps(argument)}&token={token}"
+        )
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        assert not any(
+            cookie.value == "done" for cookie in self.client.cookie_jar
+        )
+
+    @pytest.mark.usefixtures("create_saved_queries")
     def test_export_not_found(self):
         """
         Saved Query API: Test export
