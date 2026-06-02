@@ -254,18 +254,17 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
     return extension_data
 
 
-def is_extension_blocked(extension: LoadedExtension) -> bool:
+def is_extension_denied(extension: LoadedExtension) -> bool:
     """
-    Return True if the extension is denied by the ``EXTENSION_BLOCKLIST`` config.
+    Return True if the extension is denied by the ``EXTENSION_DENYLIST`` config.
 
-    Each blocklist entry is either an extension id (blocks every version of that
-    extension) or ``"<id>@<version>"`` (blocks only that exact version).
+    Each denylist entry is either an extension id (denies every version of that
+    extension) or ``"<id>@<version>"`` (denies only that exact version).
     """
-    blocklist = set(current_app.config.get("EXTENSION_BLOCKLIST") or [])
-    if not blocklist:
+    denylist = set(current_app.config.get("EXTENSION_DENYLIST") or [])
+    if not denylist:
         return False
-    manifest = extension.manifest
-    return manifest.id in blocklist or f"{manifest.id}@{manifest.version}" in blocklist
+    return extension.id in denylist or f"{extension.id}@{extension.version}" in denylist
 
 
 def get_extensions() -> dict[str, LoadedExtension]:
@@ -279,9 +278,9 @@ def get_extensions() -> dict[str, LoadedExtension]:
             abs_dist_path = str((Path(path) / "dist").resolve())
             extension = get_loaded_extension(files, source_base_path=abs_dist_path)
             extension_id = extension.manifest.id
-            if is_extension_blocked(extension):
+            if is_extension_denied(extension):
                 logger.warning(
-                    "Refusing to load blocklisted extension %s (ID: %s, "
+                    "Refusing to load denylisted extension %s (ID: %s, "
                     "version: %s) from local filesystem",
                     extension.name,
                     extension_id,
@@ -303,9 +302,9 @@ def get_extensions() -> dict[str, LoadedExtension]:
 
         for extension in discover_and_load_extensions(extensions_path):
             extension_id = extension.manifest.id
-            if is_extension_blocked(extension):
+            if is_extension_denied(extension):
                 logger.warning(
-                    "Refusing to load blocklisted extension %s (ID: %s, "
+                    "Refusing to load denylisted extension %s (ID: %s, "
                     "version: %s) from discovery path",
                     extension.name,
                     extension_id,

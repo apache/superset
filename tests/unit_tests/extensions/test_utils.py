@@ -19,32 +19,32 @@ from unittest.mock import MagicMock
 
 from flask import current_app
 
-from superset.extensions.utils import is_extension_blocked
+from superset.extensions.utils import is_extension_denied
 
 
 def _extension(ext_id: str, version: str) -> MagicMock:
     extension = MagicMock()
-    extension.manifest.id = ext_id
-    extension.manifest.version = version
+    extension.id = ext_id
+    extension.version = version
     return extension
 
 
-def test_is_extension_blocked() -> None:
-    original = current_app.config.get("EXTENSION_BLOCKLIST")
+def test_is_extension_denied() -> None:
+    original = current_app.config.get("EXTENSION_DENYLIST")
     try:
-        # Empty blocklist: nothing is blocked.
-        current_app.config["EXTENSION_BLOCKLIST"] = []
-        assert is_extension_blocked(_extension("acme.widget", "1.0.0")) is False
+        # Empty denylist: nothing is denied.
+        current_app.config["EXTENSION_DENYLIST"] = []
+        assert is_extension_denied(_extension("acme.widget", "1.0.0")) is False
 
-        # Block by id: every version of that id is blocked.
-        current_app.config["EXTENSION_BLOCKLIST"] = ["acme.widget"]
-        assert is_extension_blocked(_extension("acme.widget", "1.0.0")) is True
-        assert is_extension_blocked(_extension("acme.widget", "2.0.0")) is True
-        assert is_extension_blocked(_extension("acme.other", "1.0.0")) is False
+        # Deny by id: every version of that id is denied.
+        current_app.config["EXTENSION_DENYLIST"] = ["acme.widget"]
+        assert is_extension_denied(_extension("acme.widget", "1.0.0")) is True
+        assert is_extension_denied(_extension("acme.widget", "2.0.0")) is True
+        assert is_extension_denied(_extension("acme.other", "1.0.0")) is False
 
-        # Block by id@version: only that exact version is blocked.
-        current_app.config["EXTENSION_BLOCKLIST"] = ["acme.widget@1.0.0"]
-        assert is_extension_blocked(_extension("acme.widget", "1.0.0")) is True
-        assert is_extension_blocked(_extension("acme.widget", "2.0.0")) is False
+        # Deny by id@version: only that exact version is denied.
+        current_app.config["EXTENSION_DENYLIST"] = ["acme.widget@1.0.0"]
+        assert is_extension_denied(_extension("acme.widget", "1.0.0")) is True
+        assert is_extension_denied(_extension("acme.widget", "2.0.0")) is False
     finally:
-        current_app.config["EXTENSION_BLOCKLIST"] = original
+        current_app.config["EXTENSION_DENYLIST"] = original

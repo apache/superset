@@ -2536,10 +2536,10 @@ except ImportError:
 LOCAL_EXTENSIONS: list[str] = []
 EXTENSIONS_PATH: str | None = None
 # Extensions that must not be loaded, even if present in LOCAL_EXTENSIONS or
-# EXTENSIONS_PATH. Each entry is an extension id (blocks every version) or
-# "<id>@<version>" (blocks a specific version). Use this to disable an
+# EXTENSIONS_PATH. Each entry is an extension id (denies every version) or
+# "<id>@<version>" (denies a specific version). Use this to disable an
 # extension found to be vulnerable or otherwise undesirable.
-EXTENSION_BLOCKLIST: list[str] = []
+EXTENSION_DENYLIST: list[str] = []
 
 # Default polling interval for tasks (seconds)
 TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
