@@ -29,6 +29,9 @@ import { Dropdown, Tooltip, Icons } from '@superset-ui/core/components';
 
 interface Change {
   kind: string;
+  // Per-record verb: add / remove / move / edit. Explicit instead of
+  // inferred from from_value / to_value null-tests or path[0].
+  operation: string;
   path: string[];
   from_value: unknown;
   to_value: unknown;
@@ -46,6 +49,8 @@ interface Version {
   version_number: number;
   transaction_id: number;
   operation_type: string;
+  // Transaction-level avenue: restore / import / clone / null (= save).
+  action_kind: string | null;
   issued_at: string;
   changed_by: ChangedBy | null;
   changes: Change[];
@@ -56,12 +61,20 @@ interface Props {
   onRestored?: () => void;
 }
 
-// Layout-record path verbs (set by ``diff_dashboard_layout`` on the
-// backend): path = [verb, kind, id]. Same shape across the three
-// debug widgets so chart/dataset dropdowns also recognise them — even
-// though they don't normally produce layout records, the formatter
-// stays uniform.
-const LAYOUT_VERBS = new Set(['add', 'remove', 'move', 'edit']);
+// Layout element kinds — used to decide whether a record's
+// ``operation`` describes a node-level layout action vs a per-leaf
+// change inside a layout-edit. Datasets don't normally produce layout
+// records, but the formatter stays uniform across the three widgets.
+const LAYOUT_KINDS = new Set([
+  'chart',
+  'row',
+  'column',
+  'tab',
+  'tabs',
+  'header',
+  'markdown',
+  'divider',
+]);
 
 // Localized labels for the kinds emitted by the backend (layout walker
 // + dataset child diff). Defined statically so xgettext can extract them.
@@ -79,23 +92,24 @@ const KIND_LABELS: Record<string, string> = {
 const localizedKind = (k: string): string => KIND_LABELS[k] ?? k;
 
 function summarizeChange(c: Change): string {
-  if (c.path.length === 3 && LAYOUT_VERBS.has(String(c.path[0]))) {
-    const verb = String(c.path[0]);
-    const kind = localizedKind(String(c.path[1]));
+  // Layout record at the node level: path = [node_id], operation+kind
+  // in columns.
+  if (LAYOUT_KINDS.has(c.kind) && c.path.length === 1) {
+    const kind = localizedKind(c.kind);
     const payload =
       ((c.to_value ?? c.from_value) as { name?: string } | null) ?? null;
     const name = payload?.name;
-    if (verb === 'add') {
+    if (c.operation === 'add') {
       return name
         ? t('Added %(kind)s "%(name)s"', { kind, name })
         : t('Added %(kind)s', { kind });
     }
-    if (verb === 'remove') {
+    if (c.operation === 'remove') {
       return name
         ? t('Removed %(kind)s "%(name)s"', { kind, name })
         : t('Removed %(kind)s', { kind });
     }
-    if (verb === 'move') {
+    if (c.operation === 'move') {
       return name
         ? t('Moved %(kind)s "%(name)s"', { kind, name })
         : t('Moved %(kind)s', { kind });
@@ -105,8 +119,15 @@ function summarizeChange(c: Change): string {
       : t('Edited %(kind)s', { kind });
   }
 
-  const isAdd = c.from_value == null && c.to_value != null;
-  const isRemove = c.from_value != null && c.to_value == null;
+  // Layout edit at the leaf level: path = [node_id, ...leaf-path].
+  if (LAYOUT_KINDS.has(c.kind) && c.path.length >= 2) {
+    const kind = localizedKind(c.kind);
+    const leaf = String(c.path[c.path.length - 1]);
+    return t('Changed %(kind)s %(leaf)s', { kind, leaf });
+  }
+
+  const isAdd = c.operation === 'add';
+  const isRemove = c.operation === 'remove';
 
   if (c.path.length === 2 && (c.kind === 'column' || c.kind === 'metric')) {
     const kind = localizedKind(c.kind);
