@@ -1297,7 +1297,7 @@ def test_get_table_names_strips_schema_with_regex_metacharacters(
     inspector = mocker.MagicMock()
     inspector.get_table_names.return_value = [
         f"{schema}.orders",
-        "axbyc.other",
+        "axbc.other",
     ]
 
     database = mocker.MagicMock()
@@ -1309,7 +1309,9 @@ def test_get_table_names_strips_schema_with_regex_metacharacters(
 
     # The real schema prefix is stripped; the look-alike name is left intact
     # because the metacharacters are escaped before being used as a regex.
-    assert tables == {"orders", "axbyc.other"}
+    # "axbc.other" would match the old unescaped pattern ^a.b(c)\. and be
+    # incorrectly stripped — the escaped version correctly preserves it.
+    assert tables == {"orders", "axbc.other"}
 
 
 def test_get_view_names_strips_schema_with_regex_metacharacters(
@@ -1324,7 +1326,7 @@ def test_get_view_names_strips_schema_with_regex_metacharacters(
     inspector = mocker.MagicMock()
     inspector.get_view_names.return_value = [
         f"{schema}.report",
-        "axbyc.other",
+        "axbc.other",
     ]
 
     database = mocker.MagicMock()
@@ -1334,4 +1336,6 @@ def test_get_view_names_strips_schema_with_regex_metacharacters(
 
     views = spec.get_view_names(database, inspector, schema)
 
-    assert views == {"report", "axbyc.other"}
+    # "axbc.other" would match the old unescaped pattern ^a.b(c)\. and be
+    # incorrectly stripped — the escaped version correctly preserves it.
+    assert views == {"report", "axbc.other"}

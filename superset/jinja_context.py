@@ -354,17 +354,17 @@ class ExtraCache:
             - you want to have the ability for filter inside the main query for speed
             purposes
 
-        Always pass filter values through proper parameterization rather than
-        building SQL by hand. Use the ``where_in`` filter for list membership and
-        bind individual values as query parameters instead of interpolating them
-        directly into the SQL string.
+        Always use the ``where_in`` filter for list membership rather than
+        building SQL by hand. The filter renders values with dialect-safe quoting
+        (via SQLAlchemy's ``literal_binds`` compilation) instead of interpolating
+        them directly into the SQL string.
 
         .. warning::
 
             Do not manually escape filter values (for example, with
             ``replace("'", "''")``). Hand-rolled escaping is error-prone and easy
-            to get wrong across dialects. Rely on the ``where_in`` filter and
-            parameter binding so values are quoted safely by the engine.
+            to get wrong across dialects. Rely on the ``where_in`` filter so values
+            are quoted safely by the engine.
 
         Usage example::
 
