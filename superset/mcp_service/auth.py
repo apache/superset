@@ -519,7 +519,9 @@ def _reject_if_inactive(user: User | None) -> None:
     account has been disabled. This mirrors Flask-Login's ``is_active`` check
     for web sessions, which the MCP auth path does not otherwise go through.
     """
-    if user is not None and not getattr(user, "is_active", True):
+    if user is not None and not (
+        getattr(user, "is_active", True) and getattr(user, "active", True)
+    ):
         raise ValueError("User account is disabled")
 
 

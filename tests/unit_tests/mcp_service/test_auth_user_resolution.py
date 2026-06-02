@@ -547,6 +547,7 @@ def test_setup_user_context_rejects_disabled_user(app) -> None:
 
     disabled_user = _make_mock_user("disabled_user")
     disabled_user.is_active = False
+    disabled_user.active = False
 
     with app.test_request_context():
         with patch(
@@ -564,6 +565,7 @@ def test_setup_user_context_allows_active_user(app) -> None:
 
     active_user = _make_mock_user("active_user")
     active_user.is_active = True
+    active_user.active = True
 
     with app.test_request_context():
         with patch(
