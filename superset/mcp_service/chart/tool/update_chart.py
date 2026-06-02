@@ -46,6 +46,7 @@ from superset.mcp_service.chart.schemas import (
     GenerateChartResponse,
     PerformanceMetadata,
     UpdateChartRequest,
+    wrap_sql_adhoc_metrics,
 )
 from superset.mcp_service.utils import escape_llm_context_delimiters
 from superset.mcp_service.utils.oauth2_utils import (
@@ -82,6 +83,15 @@ def _missing_config_or_name_error() -> GenerateChartResponse:
             "Use config for visualization changes, chart_name for renaming."
         ),
     )
+
+
+def _wrapped_form_data_for_response(
+    new_form_data: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Wrap SQL-metric strings in form_data before LLM-facing return."""
+    payload = dict(new_form_data) if new_form_data is not None else {}
+    wrap_sql_adhoc_metrics(payload)
+    return payload
 
 
 def _build_update_payload(
@@ -322,6 +332,26 @@ async def update_chart(  # noqa: C901
     }
     ```
 
+    Example usage with a custom SQL metric (ratios, conditional aggregations,
+    unit conversions). Pass 'sql_expression' instead of 'name'+'aggregate'.
+    A 'label' is required:
+    ```json
+    {
+        "identifier": 123,
+        "config": {
+            "chart_type": "xy",
+            "x": {"name": "date"},
+            "y": [{
+                "sql_expression":
+                    "COUNT(CASE WHEN closed_won THEN 1 END)::numeric / "
+                    "NULLIF(COUNT(*), 0)",
+                "label": "Win Rate"
+            }],
+            "kind": "line"
+        }
+    }
+    ```
+
     Use when:
     - Modifying existing saved chart
     - Updating title, filters, or visualization settings
@@ -532,8 +562,7 @@ async def update_chart(  # noqa: C901
             },
             "error": None,
             "warnings": warnings,
-            # Include form_data so callers can verify what was saved.
-            "form_data": new_form_data if new_form_data is not None else {},
+            "form_data": _wrapped_form_data_for_response(new_form_data),
             "previews": previews,
             "capabilities": capabilities.model_dump() if capabilities else None,
             "semantics": semantics.model_dump() if semantics else None,

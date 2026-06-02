@@ -94,7 +94,7 @@ function UserListModal({
     } else {
       try {
         await createUser(values);
-        addSuccessToast(t('The group has been created successfully.'));
+        addSuccessToast(t('The user has been created successfully.'));
       } catch (err) {
         await handleError(err, Actions.CREATE);
       }
