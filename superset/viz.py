@@ -102,6 +102,27 @@ METRIC_KEYS = [
     "size",
 ]
 
+# Allowlist of resampler aggregation methods that may be invoked dynamically via
+# ``getattr`` on a pandas ``Resampler``. Restricting the set of callable names
+# keeps the dynamic dispatch limited to known-safe aggregations.
+ALLOWED_RESAMPLE_METHODS = frozenset(
+    {
+        "asfreq",
+        "bfill",
+        "count",
+        "ffill",
+        "first",
+        "last",
+        "max",
+        "mean",
+        "median",
+        "min",
+        "std",
+        "sum",
+        "var",
+    }
+)
+
 
 class BaseViz:  # pylint: disable=too-many-public-methods
     """All visualizations derive this base class"""
@@ -633,7 +654,10 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 )
                 self.errors.append(error)
                 self.status = QueryStatus.FAILED
-                stacktrace = utils.get_stacktrace()
+                # Only expose the raw stacktrace when explicitly enabled, mirroring
+                # the gating used elsewhere (e.g. superset.views.base.get_error_msg).
+                if current_app.debug or current_app.config.get("SHOW_STACKTRACE"):
+                    stacktrace = utils.get_stacktrace()
 
             if is_loaded and cache_key and self.status != QueryStatus.FAILED:
                 set_and_log_cache(
@@ -1061,6 +1085,13 @@ class NVD3TimeSeriesViz(NVD3Viz):
         method = self.form_data.get("resample_method")
 
         if rule and method:
+            if method not in ALLOWED_RESAMPLE_METHODS:
+                raise QueryObjectValidationError(
+                    _(
+                        "Resample method '%(method)s' is not supported.",
+                        method=method,
+                    )
+                )
             df = getattr(df.resample(rule), method)()
 
         if self.sort_series:
