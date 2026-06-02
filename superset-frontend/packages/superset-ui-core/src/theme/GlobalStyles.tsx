@@ -104,6 +104,21 @@ export const GlobalStyles = () => {
         [role='button'] {
           cursor: pointer;
         }
+
+        .superset-explore-popover.ant-popover
+          .ant-popover-inner:has(.ant-popover-title) {
+          padding-top: 0;
+        }
+        .superset-explore-popover.ant-popover .ant-popover-title {
+          padding-top: ${theme.paddingXS}px;
+          margin-bottom: ${theme.paddingSM}px;
+          line-height: 1;
+        }
+        .superset-explore-popover.ant-popover
+          .ant-popover-inner:has(.ant-popover-title)
+          .ant-tabs-tab {
+          padding-top: 0;
+        }
       `}
     />
   );
