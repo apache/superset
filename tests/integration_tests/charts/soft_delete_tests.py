@@ -18,8 +18,13 @@
 
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.extensions import db
-from superset.models.dashboard import Dashboard
+from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.slice import Slice
+from superset.reports.models import (
+    ReportCreationMethod,
+    ReportSchedule,
+    ReportScheduleType,
+)
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
@@ -182,12 +187,6 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         "report-execution against soft-deleted target" crash class
         (commands/report/execute.py:_get_url) unreachable through the API.
         """
-        from superset.reports.models import (
-            ReportCreationMethod,
-            ReportSchedule,
-            ReportScheduleType,
-        )
-
         admin_id = self.get_user("admin").id
         chart = self.insert_chart("blocked_by_report_test", [admin_id], 1)
         chart_id = chart.id
@@ -328,8 +327,6 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
             dashboard it was a member of before, with no manual
             re-attachment step
         """
-        from superset.models.dashboard import dashboard_slices
-
         admin = self.get_user("admin")
         admin_id = admin.id
 
