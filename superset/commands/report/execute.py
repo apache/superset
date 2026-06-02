@@ -1043,13 +1043,18 @@ class ReportSuccessState(BaseReportState):
                 # ERROR, even if sending the error notification itself fails —
                 # otherwise the schedule is stuck in WORKING until the working
                 # timeout. Mirrors ReportNotTriggeredErrorState.next().
+                # Only record the marker when the notification was actually
+                # delivered; otherwise record the send failure so the grace-
+                # period check doesn't incorrectly suppress future notifications.
+                error_message = REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
                 try:
                     self.send_error(
                         f"Error occurred for {self._report_schedule.type}:"
                         f" {self._report_schedule.name}",
                         str(ex),
                     )
-                except Exception:  # noqa: BLE001  # pylint: disable=broad-except
+                except Exception as send_ex:  # noqa: BLE001  # pylint: disable=broad-except
+                    error_message = str(send_ex) or str(ex)
                     logger.warning(
                         "Failed to send error notification for report schedule "
                         "(execution %s)",
@@ -1060,7 +1065,7 @@ class ReportSuccessState(BaseReportState):
                     try:
                         self.update_report_schedule_and_log(
                             ReportState.ERROR,
-                            error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
+                            error_message=error_message,
                         )
                     except ReportScheduleUnexpectedError:
                         logger.warning(
