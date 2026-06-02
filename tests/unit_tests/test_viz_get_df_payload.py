@@ -76,9 +76,7 @@ def _resample_df() -> Any:
 
     return pd.DataFrame(
         {
-            DTTM_ALIAS: pd.to_datetime(
-                ["2024-01-01", "2024-01-02", "2024-01-03"]
-            ),
+            DTTM_ALIAS: pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-03"]),
             "value": [1, 2, 3],
         }
     )
@@ -89,9 +87,7 @@ def test_process_data_rejects_unknown_resample_method() -> None:
     A resample method outside the allowlist must raise
     ``QueryObjectValidationError`` before any dynamic dispatch happens.
     """
-    obj = _timeseries_viz(
-        {"resample_rule": "1D", "resample_method": "__class__"}
-    )
+    obj = _timeseries_viz({"resample_rule": "1D", "resample_method": "__class__"})
 
     with pytest.raises(QueryObjectValidationError):
         obj.process_data(_resample_df())
