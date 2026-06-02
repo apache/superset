@@ -164,6 +164,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         "list_versions",
         "get_version",
         "restore_version",
+        "activity",
     }
     class_permission_name = "Chart"
     method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
@@ -1403,6 +1404,89 @@ class ChartRestApi(BaseSupersetModelRestApi):
         return get_version_endpoint(
             self, Slice, uuid_str, version_uuid_str, access_kwarg="chart"
         )
+
+    @expose("/<uuid_str>/activity/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.activity",
+        log_to_statsd=False,
+    )
+    def activity(self, uuid_str: str) -> Response:
+        """Return the cross-entity activity stream for a chart.
+        ---
+        get:
+          summary: Activity stream — chart own edits + datasets the
+            chart pointed at during association (sc-107283 US2)
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Chart UUID
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: since
+          - in: query
+            schema:
+              type: string
+              format: date-time
+            name: until
+          - in: query
+            schema:
+              type: string
+              enum: [self, related, all]
+              default: all
+            name: include
+          - in: query
+            schema:
+              type: integer
+              minimum: 0
+              default: 0
+            name: page
+          - in: query
+            schema:
+              type: integer
+              minimum: 1
+              maximum: 200
+              default: 25
+            name: page_size
+          responses:
+            200:
+              description: Activity stream ordered newest-first
+              content:
+                application/json:
+                  schema: ActivityResponseSchema
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning import activity as activity_module
+        from superset.versioning.schemas import ActivityResponseSchema
+
+        try:
+            entity = activity_module.resolve_endpoint_path_entity(self, Slice, uuid_str)
+        except activity_module.PathEntityResponseError as exc:
+            return exc.response
+
+        try:
+            params = activity_module.parse_activity_query_params(request.args)
+        except activity_module.ActivityParamsError as exc:
+            return self.response_400(message=str(exc))
+
+        records, count = activity_module.get_activity(Slice, entity.uuid, **params)
+        payload = ActivityResponseSchema().dump({"result": records, "count": count})
+        return self.response(200, **payload)
 
     @expose(
         "/<uuid_str>/versions/<version_uuid_str>/restore",
