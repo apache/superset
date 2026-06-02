@@ -45,7 +45,7 @@ Dialect support for the partial index:
   PostgreSQL and MySQL 8+.
 
 Revision ID: 9e1f3b8c4d2a
-Revises: 33d7e0e21daa
+Revises: a1b2c3d4e5f6
 Create Date: 2026-05-08 12:05:00.000000
 """
 
@@ -62,7 +62,7 @@ from superset.migrations.shared.utils import (
 
 # revision identifiers, used by Alembic.
 revision = "9e1f3b8c4d2a"
-down_revision = "33d7e0e21daa"
+down_revision = "a1b2c3d4e5f6"
 
 TABLE_NAME = "dashboards"
 DELETED_AT_INDEX_NAME = f"ix_{TABLE_NAME}_deleted_at"
