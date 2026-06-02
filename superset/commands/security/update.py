@@ -21,11 +21,14 @@ from typing import Any, Optional
 
 from superset.commands.base import BaseCommand
 from superset.commands.exceptions import DatasourceNotFoundValidationError
-from superset.commands.security.exceptions import RLSRuleNotFoundError
+from superset.commands.security.exceptions import (
+    RLSDatasourceForbiddenError,
+    RLSRuleNotFoundError,
+)
 from superset.commands.utils import populate_roles
 from superset.connectors.sqla.models import RowLevelSecurityFilter, SqlaTable
 from superset.daos.security import RLSDAO
-from superset.extensions import db
+from superset.extensions import db, security_manager
 from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
@@ -57,5 +60,8 @@ class UpdateRLSRuleCommand(BaseCommand):
         )
         if len(tables) != len(self._tables):
             raise DatasourceNotFoundValidationError()
+        for table in tables:
+            if not security_manager.can_access_datasource(datasource=table):
+                raise RLSDatasourceForbiddenError()
         self._properties["roles"] = roles
         self._properties["tables"] = tables
