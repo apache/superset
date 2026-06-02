@@ -865,10 +865,9 @@ class TestSavedQueryApi(SupersetTestCase):
         uri = f"api/v1/saved_query/export/?q={rison.dumps(argument)}&token={token}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
-        assert any(
-            cookie.name == token and cookie.value == "done"
-            for cookie in self.client.cookie_jar
-        )
+        cookie = self.client.get_cookie(token)
+        assert cookie is not None
+        assert cookie.value == "done"
 
     @pytest.mark.usefixtures("create_saved_queries")
     def test_export_invalid_token_skips_cookie(self):
@@ -887,7 +886,7 @@ class TestSavedQueryApi(SupersetTestCase):
         uri = f"api/v1/saved_query/export/?q={rison.dumps(argument)}&token={token}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
-        assert not any(cookie.value == "done" for cookie in self.client.cookie_jar)
+        assert self.client.get_cookie(token) is None
 
     @pytest.mark.usefixtures("create_saved_queries")
     def test_export_not_found(self):
