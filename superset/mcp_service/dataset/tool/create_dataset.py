@@ -105,10 +105,17 @@ async def create_dataset(
     Returns DatasetInfo on success or DatasetError on failure.
     Use list_databases to find the correct database_id.
     """
-    # Normalize schema, table_name, catalog: strip whitespace, treat blank as None
-    schema = request.schema.strip() if request.schema else None
+    # Normalize schema, table_name, catalog: strip whitespace, treat blank as None.
+    # Use model_dump() for 'schema' and 'catalog': Pydantic v2 does not always store
+    # None defaults in instance.__dict__ for fields whose names shadow deprecated
+    # BaseModel classmethods, so direct attribute access returns the classmethod
+    # instead of None when the field is omitted from the request.
+    _request_data = request.model_dump()
+    _schema_raw = _request_data.get("schema")
+    schema = _schema_raw.strip() if _schema_raw else None
     table_name = request.table_name.strip()
-    catalog = request.catalog.strip() if request.catalog else None
+    _catalog_raw = _request_data.get("catalog")
+    catalog = _catalog_raw.strip() if _catalog_raw else None
 
     await ctx.info(
         "Registering physical table as dataset: database_id=%s, table=%s.%s"

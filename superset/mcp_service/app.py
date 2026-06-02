@@ -834,7 +834,7 @@ def init_fastmcp_server(
     from superset.mcp_service.flask_singleton import app as flask_app  # noqa: PLC0415
 
     # Derive branding from Superset's APP_NAME config (defaults to "Superset")
-    app_name = flask_app.config["APP_NAME"]
+    app_name = flask_app.config.get("APP_NAME", "Superset")
     branding = app_name
     default_name = f"{app_name} MCP Server"
 
@@ -844,7 +844,7 @@ def init_fastmcp_server(
 
     # Remove disabled tools BEFORE generating instructions so that the
     # instructions never advertise tools that clients cannot actually call.
-    disabled_tools: set[str] = flask_app.config["MCP_DISABLED_TOOLS"]
+    disabled_tools: set[str] = flask_app.config.get("MCP_DISABLED_TOOLS", set())
     _remove_disabled_tools(disabled_tools)
     config_guard_removed = _apply_config_guards(flask_app)
 

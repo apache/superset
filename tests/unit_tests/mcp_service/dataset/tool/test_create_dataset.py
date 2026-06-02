@@ -109,7 +109,7 @@ class TestCreateDataset:
         ):
             yield mock_db
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_success(self, mock_command_class, mcp_server) -> None:
         """Happy path: tool creates dataset and returns DatasetInfo."""
@@ -143,7 +143,7 @@ class TestCreateDataset:
         assert call_kwargs["table_name"] == "orders"
         assert "owners" not in call_kwargs
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_with_owners(
         self, mock_command_class, mcp_server
@@ -173,7 +173,7 @@ class TestCreateDataset:
         call_kwargs = mock_command_class.call_args[0][0]
         assert call_kwargs["owners"] == [5, 10]
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_already_exists(
         self, mock_command_class, mcp_server
@@ -206,7 +206,7 @@ class TestCreateDataset:
         assert data["error_type"] == "DatasetExistsError"
         assert "error" in data
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_table_not_found(
         self, mock_command_class, mcp_server
@@ -240,7 +240,7 @@ class TestCreateDataset:
         data = json.loads(result.content[0].text)
         assert data["error_type"] == "TableNotFoundError"
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_with_catalog(
         self, mock_command_class, mcp_server
@@ -267,7 +267,7 @@ class TestCreateDataset:
         call_kwargs = mock_command_class.call_args[0][0]
         assert call_kwargs["catalog"] == "hive"
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_invalid_error(
         self, mock_command_class, mcp_server
@@ -343,7 +343,7 @@ class TestCreateDataset:
         assert data["error_type"] == "AccessDeniedError"
         assert data["error"] == "Access denied"
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_unexpected_error(
         self, mock_command_class, mcp_server
@@ -381,7 +381,7 @@ class TestCreateDataset:
                     },
                 )
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_returns_full_dataset_info(
         self, mock_command_class, mcp_server
@@ -435,7 +435,7 @@ class TestCreateDataset:
         assert len(data["metrics"]) == 1
         assert data["metrics"][0]["metric_name"] == "total_sales"
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_table_name_whitespace_normalized(
         self, mock_command_class, mcp_server
@@ -461,7 +461,7 @@ class TestCreateDataset:
         call_kwargs = mock_command_class.call_args[0][0]
         assert call_kwargs["table_name"] == "orders"
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @pytest.mark.asyncio
     async def test_create_dataset_blank_schema_normalized_to_none(
         self, mock_command_class, mcp_server
@@ -487,9 +487,9 @@ class TestCreateDataset:
         call_kwargs = mock_command_class.call_args[0][0]
         assert "schema" not in call_kwargs
 
-    @patch("superset.commands.dataset.create.CreateDatasetCommand")
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @patch(
-        "superset.mcp_service.dataset.schemas.serialize_dataset_object",
+        "superset.mcp_service.dataset.tool.create_dataset.serialize_dataset_object",
         return_value=None,
     )
     @pytest.mark.asyncio
