@@ -84,10 +84,7 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
   // browser's default error surfacing so host error reporting is unaffected.
   useEffect(() => {
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      logging.error(
-        '[extensions] Unhandled rejection:',
-        event.reason,
-      );
+      logging.error('[extensions] Unhandled rejection:', event.reason);
     };
     window.addEventListener('unhandledrejection', handleUnhandledRejection);
     return () => {
@@ -126,7 +123,8 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
 
     // Render the host immediately; extension bundles load in the background.
     // ChatbotMount re-resolves reactively once the chatbot extension registers
-    // (via subscribeToLocation), so the bubble appears without blocking the UI.
+    // (via subscribeToRegistry / getRegistryVersion), so the bubble appears
+    // without blocking the UI.
     setInitialized(true);
 
     if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {

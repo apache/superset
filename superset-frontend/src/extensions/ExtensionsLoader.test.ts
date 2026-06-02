@@ -38,6 +38,13 @@ function createMockExtension(overrides: Partial<Extension> = {}): Extension {
 
 beforeEach(() => {
   (ExtensionsLoader as any).instance = undefined;
+  // Minimal host registry surface the loader wraps during module evaluation.
+  (window as any).superset = {
+    commands: { registerCommand: jest.fn() },
+    menus: { registerMenuItem: jest.fn() },
+    editors: { registerEditor: jest.fn() },
+    views: { registerView: jest.fn() },
+  };
 });
 
 test('creates a singleton instance', () => {
@@ -141,4 +148,101 @@ test('logs error when initializeExtensions fails', async () => {
   );
 
   errorSpy.mockRestore();
+});
+
+/**
+ * Stubs the module-federation machinery `loadModule` depends on so a fake
+ * extension entry module (its `./index` factory) can be loaded in jsdom.
+ * Returns a cleanup function that restores the patched globals.
+ */
+function mockRemoteModule(containerName: string, factory: () => unknown) {
+  const appendChildSpy = jest
+    .spyOn(document.head, 'appendChild')
+    .mockImplementation((element: Node) => {
+      if (element instanceof HTMLScriptElement && element.onload) {
+        setTimeout(() => (element.onload as any)(new Event('load')), 0);
+      }
+      return element;
+    });
+
+  (global as any).__webpack_init_sharing__ = jest
+    .fn()
+    .mockResolvedValue(undefined);
+  (global as any).__webpack_share_scopes__ = { default: {} };
+  (window as any)[containerName] = {
+    init: jest.fn().mockResolvedValue(undefined),
+    get: jest.fn().mockResolvedValue(factory),
+  };
+
+  return () => {
+    appendChildSpy.mockRestore();
+    delete (global as any).__webpack_init_sharing__;
+    delete (global as any).__webpack_share_scopes__;
+    delete (window as any)[containerName];
+  };
+}
+
+const remoteExtension = (overrides: Partial<Extension> = {}) =>
+  createMockExtension({
+    id: 'remote-ext',
+    remoteEntry: 'http://example/remoteEntry.js',
+    ...overrides,
+  });
+
+test('disposes synchronous activation-time registrations on deactivation', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  const dispose = jest.fn();
+  // Legacy side-effect style: register synchronously during module evaluation.
+  const factory = () => {
+    window.superset.views.registerView(
+      { id: 'remote-ext.view', name: 'View' },
+      'sqllab.panels',
+      (() => null) as any,
+    );
+    return undefined;
+  };
+  const registerView = jest
+    .spyOn(window.superset.views, 'registerView')
+    .mockReturnValue({ dispose } as any);
+  const cleanup = mockRemoteModule('remote-ext', factory);
+
+  await loader.initializeExtension(remoteExtension());
+  loader.deactivateExtension('remote-ext');
+
+  expect(dispose).toHaveBeenCalledTimes(1);
+
+  registerView.mockRestore();
+  cleanup();
+});
+
+test('tracks registrations made asynchronously inside activate(context)', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  const dispose = jest.fn();
+  const registerView = jest
+    .spyOn(window.superset.views, 'registerView')
+    .mockReturnValue({ dispose } as any);
+
+  // Modern style: register AFTER an await — the window.superset wrap is already
+  // gone by then, so this is only tracked because activate pushes to context.
+  const factory = () => ({
+    activate: async (context: core.ExtensionContext) => {
+      await Promise.resolve();
+      const disposable = window.superset.views.registerView(
+        { id: 'remote-ext.async-view', name: 'Async View' },
+        'sqllab.panels',
+        (() => null) as any,
+      );
+      context.subscriptions.push(disposable);
+    },
+  });
+  const cleanup = mockRemoteModule('remote-ext', factory);
+
+  await loader.initializeExtension(remoteExtension());
+  loader.deactivateExtension('remote-ext');
+
+  expect(registerView).toHaveBeenCalledTimes(1);
+  expect(dispose).toHaveBeenCalledTimes(1);
+
+  registerView.mockRestore();
+  cleanup();
 });
