@@ -32,7 +32,7 @@ Day: May, 2026
    Extensions must be able to render a fully custom chatbot UI
    Content sharing APIs/hooks
    The chatbot must receive contextual information about the current page:
-   Page type: `home`, `dashboard`, `chart`, `sqllab`, `dataset`
+   Page type: `home`, `dashboard`, `explore`, `sqllab`, `dataset`, `other`
    The current dashboard/chart data, the saved chart, the dashboard filters and
    the dashboard's charts (each flagged with its current visibility)
    The chatbot must be notified when the page context changes (navigation entity change, title change) without polling.
@@ -84,7 +84,7 @@ Note that the existing `registerView` / `getViews(location)` registry already su
 
 Singleton behavior is therefore a host-side selection policy at the `superset.chatbot` location, not a new registration primitive: the host enumerates the candidates registered at `superset.chatbot` and picks one according to the admin setting (see §2, Administration).
 
-`getViews` does not expose providers — by design there is a concrete limitation in the public API as it exists today. `getViews(location)` returns `View[] | undefined` — i.e. only the view descriptors (`id`, `name`, `description`).
+`getViews` does not expose providers — by design there is a concrete limitation in the public API as it exists today. `getViews(location)` returns `View[] | undefined` — i.e. only the view descriptors (`id`, `name`, `description`, `icon`).
 It does not return the `provider` functions that `registerView` was given.
 
 This is important to state precisely, because it is not an oversight to "fix" by widening `getViews`:
@@ -162,8 +162,9 @@ at the application-shell level.
 The chatbot needs an icon:
 It identifies the chatbot in the admin "Default chatbot" picker (see §5) and in any contribution manifest listing, and it is the natural identity for the collapsed bubble.
 
-The current `View` interface in `@apache-superset/core` is `{ id, name, description? }` and has no `icon` field, so this SIP **proposes adding an `icon` field to the `View` descriptor**.
-The registration example above must be updated to pass one once the form below is decided.
+The `View` interface in `@apache-superset/core` is `{ id, name, description?, icon? }`,
+where `icon` is an optional host-resolved icon identifier (a `string`). The
+registration example above already passes one (`icon: 'Bubble'`).
 
 The remaining open concern is who owns the icon and whether it is mutable:
 
@@ -200,6 +201,7 @@ Host actions utilities
 dashboard
 NEW (added by this SIP)
 Dashboard-specific APIs and state (current dashboard, filters, charts with visibility)
+
 explore
 NEW (added by this SIP)
 Chart/explore-specific APIs and state (saved chart, current chart data)
@@ -214,17 +216,19 @@ Route/page surface, including the `onDidChangePage` change event
 
 Namespaces this SIP must add — required core work, only `sqlLab`, `authentication`, `commands`, `menus` and `editors` currently exist in `@apache-superset/core` (`superset-frontend/packages/superset-core/src/`).
 
-There is no `dashboard`, `explore`, `dataset`, or `navigation` namespace today, and no
-`navigation.onDidChangePage` event, these do not exist yet — this SIP is what introduces them.
+There was no `dashboard`, `explore`, `dataset`, or `navigation` namespace before
+this SIP, and no `navigation.onDidChangePage` event — this SIP is what introduces
+them. `dashboard`, `explore`, and `navigation` are now implemented; `dataset` is
+specified here but not yet implemented (see Migration Plan).
 Each new namespace must follow the established `sqlLab` shape: a
 state getter plus an `Event<T>` change subscription. Concretely, this SIP requires
 adding:
 
 - `dashboard` namespace — `dashboard.getCurrentDashboard()` plus change events for
-  the dashboard entity, its filters, and its UI-control state.
+  the dashboard entity, its filters, and its charts.
 - `explore` namespace — `explore.getCurrentChart()` (saved chart + current chart
   data) plus a change event.
-- `navigation` namespace — a current-page getter (`pageType` + focused entity) and
+- `navigation` namespace — a current-page getter (`pageType`) and
   the `navigation.onDidChangePage` event used for the without-polling notification
   in §2.
   Page context
@@ -323,26 +327,27 @@ return store.getState().dashboard;
 would incorrectly expose internal dashboard state directly to extensions and would tightly couple extensions to the host implementation.
 Instead, namespaces must expose normalized semantic context objects.
 
-// ✅ Expose a stable semantic contract (normalized from Redux, not the raw slice)
+// ✅ Expose a stable semantic contract. Each field is normalized from a
+//    distinct internal slice — the extension never sees raw Redux state:
+//      dashboardId / title  ← dashboardInfo
+//      filters              ← dataMask ∩ nativeFilters  (normalized FilterValue[])
+//      charts               ← sliceEntities.slices      (normalized ChartSummary[],
+//                             visibility resolved against dashboardLayout + activeTabs)
 getCurrentDashboard(): DashboardContext | undefined {
-// built from dashboardInfo + nativeFilters + dataMask + sliceEntities, not a single store slice
-return {
-id: dashboardState.id,
-title: dashboardState.title,
-charts:, //nomrmalized chartSummary[] from sliceEntities
-filters, //nomrmalized FilterValue[] from dataMask
-nativeFilters,
-slices
-};
+  return { dashboardId, title, filters, charts };
 }
-// where each chart is reduced to a stable ChartSummary, mirroring ChartContext:
-
+// where each chart is reduced to a stable ChartSummary, mirroring ChartContext.
+// All dashboard charts are returned; `isVisible` marks the ones on the active
+// tab so extensions can find any chart by name yet still scope to what the user
+// is currently viewing. Raw slices (nativeFilters, sliceEntities) are never
+// exposed — only the normalized shapes above.
 interface ChartSummary {
-chartId: number;
-chartName: string;
-vizType: string;
-datasourceId: number | null;
-datasourceName: string | null;
+  chartId: number;
+  chartName: string;
+  vizType: string;
+  datasourceId: number | null;
+  datasourceName: string | null;
+  isVisible: boolean;
 }
 
 Per-surface context contracts
@@ -413,9 +418,10 @@ column-access semantics.
 navigation
 navigation exposes lightweight routing and surface context:
 page type
-focused entity identity
 page-change events
-It should not embed full entity payloads already exposed through other namespaces.
+It should not embed full entity payloads already exposed through other namespaces;
+the focused entity itself is read from the per-surface namespace (e.g.
+`dashboard.getCurrentDashboard()`), not from `navigation`.
 
 Namespace compatibility
 Namespace contracts are part of the public Superset extension API surface and follow the normal compatibility guarantees of @apache-superset/core.
@@ -495,8 +501,7 @@ Some application surfaces may require dedicated context-oriented APIs to expose 
 For example, dashboard chatbot context requires a stable representation of:
 dashboard entities
 dashboard filter state
-dashboard UI-control state
-active chart context
+the dashboard's charts (with visibility)
 rather than direct exposure of internal frontend state structures.
 The namespace layer therefore acts as:
 a semantic normalization layer
@@ -559,12 +564,14 @@ this SIP depends on; they do not exist today and must land for the chatbot
 extension point to be implementable:
 
 - New `dashboard` namespace — current-dashboard getter plus change events for the
-  dashboard entity, its filters, and its UI-control state. Serves the `dashboard`
-  page type. ✅ Implemented (`src/core/dashboard/index.ts`).
+  dashboard entity, its filters, and its charts. Serves the `dashboard`
+  page type. ✅ Implemented (`src/core/dashboard/index.ts`). ⚠️ The `charts` field
+  on `DashboardContext` (with per-chart `isVisible`) is specified by this SIP but
+  not yet implemented — the shipped contract is `{ dashboardId, title, filters }`.
 
 - New `explore` namespace — current-chart getter (saved chart + chart data) plus a
-  change event. Serves the `chart` page type (Explore view).
-  ⚠️partially implemented." (`src/core/explore/index.ts`).
+  change event. Serves the `explore` page type (Explore view).
+  ✅ Implemented (`src/core/explore/index.ts`).
 
 - New `dataset` namespace — current-dataset getter plus a change event. Serves the
   `dataset` page type. ❌ Not implemented. An earlier draft of this namespace
