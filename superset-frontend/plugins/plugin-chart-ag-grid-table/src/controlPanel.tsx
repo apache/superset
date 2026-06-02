@@ -281,11 +281,7 @@ const config: ControlPanelConfig = {
                 { controls, datasource, form_data }: ControlPanelState,
                 controlState: ControlState,
               ) => ({
-                columns: datasource?.columns[0]?.hasOwnProperty('filterable')
-                  ? (datasource as Dataset)?.columns?.filter(
-                      (c: ColumnMeta) => c.filterable,
-                    )
-                  : datasource?.columns,
+                columns: datasource?.columns || [],
                 savedMetrics: defineSavedMetrics(datasource),
                 // current active adhoc metrics
                 selectedMetrics:
