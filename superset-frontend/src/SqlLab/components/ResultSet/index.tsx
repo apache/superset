@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { sanitizeUrl } from '@braintree/sanitize-url';
 import {
   useCallback,
   useEffect,
@@ -378,7 +379,7 @@ const ResultSet = ({
               { rows: rowsCount.toLocaleString() },
             ),
             onConfirm: () => {
-              window.location.href = getExportCsvUrl(query.id);
+              window.location.href = sanitizeUrl(getExportCsvUrl(query.id));
             },
             confirmText: t('OK'),
             cancelText: t('Close'),
