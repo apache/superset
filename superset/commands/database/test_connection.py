@@ -29,6 +29,7 @@ from superset.commands.database.exceptions import (
 )
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDatabasePortError,
+    SSHTunnelHostKeyVerificationError,
     SSHTunnelingNotEnabledError,
 )
 from superset.commands.database.utils import ping
@@ -221,7 +222,11 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine=engine_name,
             )
             raise DatabaseSecurityUnsafeError(message=str(ex)) from ex
-        except (SupersetTimeoutException, SSHTunnelingNotEnabledError) as ex:
+        except (
+            SupersetTimeoutException,
+            SSHTunnelingNotEnabledError,
+            SSHTunnelHostKeyVerificationError,
+        ) as ex:
             event_logger.log_with_context(
                 action=get_log_connection_action(
                     "test_connection_error",
@@ -230,7 +235,8 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 ),
                 engine=engine_name,
             )
-            # bubble up the exception to return proper status code
+            # bubble up the exception (preserving its specific message and status)
+            # instead of flattening it into a generic connection failure
             raise
         except Exception as ex:
             if not database:

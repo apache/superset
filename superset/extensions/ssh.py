@@ -18,6 +18,7 @@
 import base64
 import binascii
 import logging
+import socket
 from io import StringIO
 from typing import TYPE_CHECKING
 
@@ -114,9 +115,22 @@ class SSHManager:
                 message=f"The configured expected server host key is invalid: {ex}"
             ) from ex
 
-        transport = paramiko.Transport(
-            (ssh_tunnel.server_address, ssh_tunnel.server_port)
-        )
+        # Build the socket ourselves with an explicit timeout so the TCP connect
+        # phase is bounded too. ``paramiko.Transport((host, port))`` would connect
+        # synchronously with no timeout, leaving ``start_client(timeout=...)`` to
+        # govern only the SSH handshake; an unreachable host could then block for the
+        # full OS-level TCP timeout.
+        try:
+            sock = socket.create_connection(
+                (ssh_tunnel.server_address, ssh_tunnel.server_port),
+                timeout=sshtunnel.SSH_TIMEOUT,
+            )
+        except OSError as ex:
+            raise SSHTunnelHostKeyVerificationError(
+                message=f"Could not connect to the SSH server: {ex}"
+            ) from ex
+
+        transport = paramiko.Transport(sock)
         try:
             transport.start_client(timeout=sshtunnel.SSH_TIMEOUT)
             remote_key = transport.get_remote_server_key()

@@ -66,8 +66,11 @@ def test_ssh_tunnel_timeout_setting() -> None:
     assert sshtunnel.SSH_TIMEOUT == 321.0
 
 
+@patch("superset.extensions.ssh.socket.create_connection")
 @patch("superset.extensions.ssh.paramiko.Transport")
-def test_verify_host_key_match(mock_transport_cls: Mock) -> None:
+def test_verify_host_key_match(
+    mock_transport_cls: Mock, mock_create_connection: Mock
+) -> None:
     # The server presents the same key we expect: verification passes.
     server_key = paramiko.RSAKey.generate(2048)
     manager = _make_manager(strict=False)
@@ -78,13 +81,21 @@ def test_verify_host_key_match(mock_transport_cls: Mock) -> None:
 
     manager._verify_host_key(tunnel)  # should not raise
 
-    mock_transport_cls.assert_called_once_with(("ssh.example.com", 22))
+    # The TCP connect is bounded by an explicit timeout, and the resulting
+    # socket is handed to Transport.
+    mock_create_connection.assert_called_once_with(
+        ("ssh.example.com", 22), timeout=321.0
+    )
+    mock_transport_cls.assert_called_once_with(mock_create_connection.return_value)
     transport.start_client.assert_called_once()
     transport.close.assert_called_once()
 
 
+@patch("superset.extensions.ssh.socket.create_connection")
 @patch("superset.extensions.ssh.paramiko.Transport")
-def test_verify_host_key_mismatch_raises(mock_transport_cls: Mock) -> None:
+def test_verify_host_key_mismatch_raises(
+    mock_transport_cls: Mock, mock_create_connection: Mock
+) -> None:
     # The server presents a different key than expected: verification fails.
     expected_key = paramiko.RSAKey.generate(2048)
     presented_key = paramiko.RSAKey.generate(2048)
@@ -98,6 +109,21 @@ def test_verify_host_key_mismatch_raises(mock_transport_cls: Mock) -> None:
         manager._verify_host_key(tunnel)
 
     transport.close.assert_called_once()
+
+
+@patch("superset.extensions.ssh.socket.create_connection")
+def test_verify_host_key_connect_failure_raises(
+    mock_create_connection: Mock,
+) -> None:
+    # A bounded TCP connect failure surfaces as a host-key verification error.
+    manager = _make_manager(strict=False)
+    server_key = paramiko.RSAKey.generate(2048)
+    tunnel = _ssh_tunnel(_authorized_key(server_key))
+
+    mock_create_connection.side_effect = OSError("connection refused")
+
+    with pytest.raises(SSHTunnelHostKeyVerificationError):
+        manager._verify_host_key(tunnel)
 
 
 @patch("superset.extensions.ssh.paramiko.Transport")
@@ -123,9 +149,11 @@ def test_verify_host_key_unset_strict_raises(mock_transport_cls: Mock) -> None:
     mock_transport_cls.assert_not_called()
 
 
+@patch("superset.extensions.ssh.socket.create_connection")
 @patch("superset.extensions.ssh.paramiko.Transport")
 def test_verify_host_key_match_ignores_comment_and_whitespace(
     mock_transport_cls: Mock,
+    mock_create_connection: Mock,
 ) -> None:
     # The stored key may carry a trailing comment and extra whitespace.
     server_key = paramiko.RSAKey.generate(2048)
