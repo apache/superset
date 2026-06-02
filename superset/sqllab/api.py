@@ -506,7 +506,7 @@ class SqlLabRestApi(BaseSupersetApi):
     @statsd_metrics
     @requires_json
     @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_results",
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post_results",
         log_to_statsd=False,
     )
     def post_results(self) -> FlaskResponse:

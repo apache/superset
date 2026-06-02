@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from marshmallow import fields, Schema
+from marshmallow import fields, Schema, validate
 
 from superset.databases.schemas import ImportV1DatabaseSchema
 
@@ -35,6 +35,7 @@ class SqlLabResultsSchema(Schema):
     rows = fields.Integer(
         required=False,
         allow_none=True,
+        validate=validate.Range(min=1),
         metadata={"description": "The maximum number of rows to return"},
     )
 
