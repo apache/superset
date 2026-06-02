@@ -25,8 +25,7 @@ from numpy.core.multiarray import array
 from pytest_mock import MockerFixture
 
 from superset.db_engine_specs.base import BaseEngineSpec
-from superset.db_engine_specs.druid import DruidEngineSpec
-from superset.result_set import SupersetResultSet, stringify_values
+from superset.result_set import stringify_values, SupersetResultSet
 from superset.superset_typing import DbapiResult
 
 
@@ -295,6 +294,8 @@ def test_druid_ieee_special_floats_preserved_as_numeric() -> None:
     Case 1, DruidEngineSpec: columns that mix IEEE special-float strings with
     real numbers must keep their numeric type (specials become null).
     """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
     data = [("NaN",), (1.5,), ("Infinity",), (2.3,), ("-Infinity",), (None,)]
     description = [("metric", "STRING", None, None, None, None, None)]
     result_set = SupersetResultSet(data, description, DruidEngineSpec)  # type: ignore
@@ -335,6 +336,8 @@ def test_druid_none_first_value_reports_numeric_type() -> None:
     first-row None inference) but PyArrow correctly infers float64, the column
     must be reported as FLOAT, not STRING.
     """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
     data = [(None,), (1.5,), (2.3,), (None,), (4.7,)]
     description = [("metric", "STRING", None, None, None, None, None)]
     result_set = SupersetResultSet(data, description, DruidEngineSpec)  # type: ignore
@@ -366,6 +369,8 @@ def test_non_string_cursor_type_unaffected_by_druid_spec() -> None:
     Columns with a non-STRING cursor description type must not be affected by
     DruidEngineSpec's resolve_column_type override.
     """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
     data = [(1,), (2,), (3,)]
     description = [("count", "INT", None, None, None, None, None)]
     result_set = SupersetResultSet(data, description, DruidEngineSpec)  # type: ignore
