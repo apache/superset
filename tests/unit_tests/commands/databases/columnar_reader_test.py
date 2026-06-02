@@ -30,7 +30,6 @@ from superset.commands.database.uploaders.columnar_reader import (
     ColumnarReader,
     ColumnarReaderOptions,
 )
-from superset.exceptions import SupersetException
 from tests.unit_tests.fixtures.common import create_columnar_file
 
 COLUMNAR_DATA: dict[str, list[Any]] = {
@@ -252,7 +251,7 @@ def test_columnar_reader_unsafe_zip_rejected():
         options=ColumnarReaderOptions(),
     )
     unsafe_zip = _make_high_ratio_zip()
-    with pytest.raises(SupersetException) as ex:
+    with pytest.raises(DatabaseUploadFailed) as ex:
         reader.file_to_dataframe(FileStorage(unsafe_zip, "test.zip"))
     assert "compress ratio above allowed threshold" in str(ex.value)
 
@@ -262,7 +261,7 @@ def test_columnar_reader_unsafe_zip_rejected_in_metadata():
         options=ColumnarReaderOptions(),
     )
     unsafe_zip = _make_high_ratio_zip()
-    with pytest.raises(SupersetException) as ex:
+    with pytest.raises(DatabaseUploadFailed) as ex:
         reader.file_metadata(FileStorage(unsafe_zip, "test.zip"))
     assert "compress ratio above allowed threshold" in str(ex.value)
 

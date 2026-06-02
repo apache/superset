@@ -34,6 +34,7 @@ from superset.commands.database.uploaders.base import (
     FileMetadata,
     ReaderOptions,
 )
+from superset.exceptions import SupersetException
 from superset.utils.core import check_is_safe_zip
 
 logger = logging.getLogger(__name__)
@@ -129,7 +130,10 @@ class ColumnarReader(BaseDataReader):
                 with ZipFile(file) as zip_file:
                     # guard against decompression bombs before reading entries,
                     # mirroring the importer path
-                    check_is_safe_zip(zip_file)
+                    try:
+                        check_is_safe_zip(zip_file)
+                    except SupersetException as ex:
+                        raise DatabaseUploadFailed(str(ex)) from ex
                     # check if all file types are of the same extension
                     file_suffixes = {Path(name).suffix for name in zip_file.namelist()}
                     if len(file_suffixes) > 1:
