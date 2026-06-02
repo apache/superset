@@ -229,6 +229,14 @@ export default function chartReducer(
   }
 
   if (action.type in actionHandlers) {
+    // ADD_CHART seeds a new entry; every other handler reads fields off the
+    // existing ChartState. If the key is missing (e.g. a CHART_UPDATE_*
+    // dispatched after the chart was removed, or before HYDRATE_DASHBOARD
+    // populated it on a forked dashboard), passing `undefined` to the
+    // handler crashes when it dereferences state.X. Drop the action instead.
+    if (action.type !== actions.ADD_CHART && !charts[action.key]) {
+      return charts;
+    }
     return {
       ...charts,
       [action.key]: actionHandlers[action.type](charts[action.key]),

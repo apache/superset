@@ -67,6 +67,43 @@ describe('chart reducers', () => {
     );
   });
 
+  test('chartUpdateStopped is a no-op when the chart key is missing', () => {
+    const empty: Record<number, ChartState> = {};
+    const newState = chartReducer(empty, actions.chartUpdateStopped(999));
+    expect(newState).toBe(empty);
+  });
+
+  test('chartUpdateStarted is a no-op when the chart key is missing', () => {
+    const empty: Record<number, ChartState> = {};
+    const newState = chartReducer(
+      empty,
+      actions.chartUpdateStarted(new AbortController(), {}, 999),
+    );
+    expect(newState).toBe(empty);
+  });
+
+  test('chartUpdateSucceeded is a no-op when the chart key is missing', () => {
+    const empty: Record<number, ChartState> = {};
+    const newState = chartReducer(empty, actions.chartUpdateSucceeded([], 999));
+    expect(newState).toBe(empty);
+  });
+
+  test('chartUpdateFailed is a no-op when the chart key is missing', () => {
+    const empty: Record<number, ChartState> = {};
+    const newState = chartReducer(empty, actions.chartUpdateFailed([], 999));
+    expect(newState).toBe(empty);
+  });
+
+  test('addChart still seeds an entry when no prior state exists', () => {
+    const empty: Record<number, ChartState> = {};
+    const newState = chartReducer(
+      empty,
+      actions.addChart({ id: 42, formData: {} } as unknown as ChartState, 42),
+    );
+    expect(newState[42]).toBeDefined();
+    expect(newState[42].id).toEqual(42);
+  });
+
   test('should update endtime on timeout', () => {
     const newState = chartReducer(
       charts,
