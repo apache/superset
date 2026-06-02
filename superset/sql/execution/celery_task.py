@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import dataclasses
 import logging
+import traceback
 import uuid
 from typing import Any
 
@@ -102,6 +103,9 @@ def _handle_query_error(
     payload.update(
         {"status": query.status.value, "error": msg, "errors": errors_payload}
     )
+    if app.config.get("SHOW_STACKTRACE"):
+        if stacktrace := traceback.format_exc():
+            payload["stacktrace"] = stacktrace
     if troubleshooting_link := app.config.get("TROUBLESHOOTING_LINK"):
         payload["link"] = troubleshooting_link
     return payload
@@ -347,7 +351,7 @@ def execute_sql_task(
                     start_time=start_time,
                 )
             except Exception as ex:
-                logger.debug("Query %d: %s", query_id, ex)
+                logger.exception("Query %d: %s", query_id, ex)
                 stats_logger = app.config["STATS_LOGGER"]
                 stats_logger.incr("error_sqllab_unhandled")
                 query = _get_query(query_id=query_id)
