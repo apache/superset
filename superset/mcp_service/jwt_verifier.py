@@ -50,9 +50,13 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import HTTPConnection, Request
 from starlette.responses import HTMLResponse, JSONResponse, Response
 
+from superset.mcp_service.utils.error_sanitization import (
+    sanitize_for_log as _sanitize_for_log,
+)
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
 
 # Thread-safe storage for the specific JWT failure reason.
 # Set by DetailedJWTVerifier.load_access_token() on failure,
@@ -305,8 +309,27 @@ def _auth_error_handler(conn: HTTPConnection, exc: AuthenticationError) -> Respo
     if _prefers_browser_html(conn):
         return HTMLResponse(status_code=200, content=_MCP_BROWSER_HELLO_HTML)
 
-    # Log detailed reason server-side only
-    logger.warning("JWT authentication failed: %s", exc)
+    # Log detailed reason server-side only, with request context for
+    # auditing/troubleshooting. Guard each lookup since the connection
+    # object may be partially populated.
+    client_host = "unknown"
+    request_path = "unknown"
+    user_agent = "unknown"
+    try:
+        if getattr(conn, "client", None):
+            client_host = _sanitize_for_log(conn.client.host)
+        request_path = _sanitize_for_log(conn.scope.get("path", "unknown"))
+        user_agent = _sanitize_for_log(conn.headers.get("user-agent", "unknown"))
+    except (AttributeError, KeyError, TypeError):
+        logger.debug("Could not extract full request context for auth failure")
+
+    logger.warning(
+        "JWT authentication failed: %s (source_ip=%s, path=%s, user_agent=%s)",
+        exc,
+        client_host,
+        request_path,
+        user_agent,
+    )
 
     return JSONResponse(
         status_code=401,
@@ -416,7 +439,7 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 _jwt_failure_reason.set(reason)
                 logger.debug(
                     "Algorithm mismatch: token uses '%s', expected '%s'",
-                    token_alg,
+                    _sanitize_for_log(token_alg),
                     self.algorithm,
                 )
                 return None
@@ -455,12 +478,23 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 or "unknown"
             )
 
-            # Step 4: Check expiration
+            # Step 4: Check expiration. An ``exp`` claim is required — tokens
+            # without one would never expire and are rejected.
             exp = claims.get("exp")
-            if exp and exp < time.time():
+            if exp is None:
+                reason = "Token missing expiration"
+                _jwt_failure_reason.set(reason)
+                logger.debug(
+                    "Token missing required exp claim for client '%s'",
+                    _sanitize_for_log(client_id),
+                )
+                return None
+            if exp < time.time():
                 reason = "Token expired"
                 _jwt_failure_reason.set(reason)
-                logger.debug("Token expired for client '%s'", client_id)
+                logger.debug(
+                    "Token expired for client '%s'", _sanitize_for_log(client_id)
+                )
                 return None
 
             # Step 5: Validate issuer
@@ -476,7 +510,7 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                     _jwt_failure_reason.set(reason)
                     logger.debug(
                         "Issuer mismatch: token has '%s', expected '%s'",
-                        iss,
+                        _sanitize_for_log(iss),
                         self.issuer,
                     )
                     return None
@@ -503,7 +537,7 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                     _jwt_failure_reason.set(reason)
                     logger.debug(
                         "Audience mismatch: token has '%s', expected '%s'",
-                        aud,
+                        _sanitize_for_log(aud),
                         self.audience,
                     )
                     return None
@@ -524,12 +558,19 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                     )
                     return None
 
-            # All validations passed
+            # All validations passed. Log the successful authentication with
+            # safe metadata only — never the token contents or any secret.
+            logger.info(
+                "JWT authentication succeeded: client_id='%s', scopes=%s, "
+                "auth_method='bearer_jwt'",
+                _sanitize_for_log(client_id),
+                _sanitize_for_log(sorted(scopes)),
+            )
             return AccessToken(
                 token=token,
                 client_id=str(client_id),
                 scopes=scopes,
-                expires_at=int(exp) if exp else None,
+                expires_at=int(exp),
                 claims=dict(claims),
             )
 
