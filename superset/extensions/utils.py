@@ -36,8 +36,10 @@ from superset.utils.core import check_is_safe_zip
 logger = logging.getLogger(__name__)
 
 FRONTEND_REGEX = re.compile(r"^frontend/dist/([^/]+)$")
-# Reject parent ("..") path components so a crafted entry name cannot produce
-# a traversal-style module path (defense in depth; check_is_safe_zip runs first).
+# Reject any entry whose path contains "..", conservatively excluding parent
+# traversal segments along with the (in practice nonexistent) case of a module
+# path embedding consecutive dots, so a crafted entry name cannot produce a
+# traversal-style module path (defense in depth; check_is_safe_zip runs first).
 BACKEND_REGEX = re.compile(r"^backend/src/(?!.*\.\.)(.+)$")
 
 
