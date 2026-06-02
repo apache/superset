@@ -1746,7 +1746,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
         if schema and cls.try_remove_schema_from_table_name:
-            tables = {re.sub(f"^{schema}\\.", "", table) for table in tables}
+            tables = {
+                re.sub(f"^{re.escape(schema)}\\.", "", table) for table in tables
+            }
         return tables
 
     @classmethod
@@ -1774,7 +1776,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             raise cls.get_dbapi_mapped_exception(ex) from ex
 
         if schema and cls.try_remove_schema_from_table_name:
-            views = {re.sub(f"^{schema}\\.", "", view) for view in views}
+            views = {
+                re.sub(f"^{re.escape(schema)}\\.", "", view) for view in views
+            }
         return views
 
     @classmethod

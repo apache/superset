@@ -354,6 +354,18 @@ class ExtraCache:
             - you want to have the ability for filter inside the main query for speed
             purposes
 
+        Always pass filter values through proper parameterization rather than
+        building SQL by hand. Use the ``where_in`` filter for list membership and
+        bind individual values as query parameters instead of interpolating them
+        directly into the SQL string.
+
+        .. warning::
+
+            Do not manually escape filter values (for example, with
+            ``replace("'", "''")``). Hand-rolled escaping is error-prone and easy
+            to get wrong across dialects. Rely on the ``where_in`` filter and
+            parameter binding so values are quoted safely by the engine.
+
         Usage example::
 
 
@@ -374,10 +386,6 @@ class ExtraCache:
                 {%- if filter.get('op') == 'IN' -%}
                     AND
                     full_name IN {{ filter.get('val')|where_in }}
-                {%- endif -%}
-                {%- if filter.get('op') == 'LIKE' -%}
-                    AND
-                    full_name LIKE '{{ filter.get('val') | replace("'", "''") }}'
                 {%- endif -%}
                 {%- endfor -%}
                 UNION ALL
