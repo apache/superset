@@ -325,7 +325,7 @@ def _auth_error_handler(conn: HTTPConnection, exc: AuthenticationError) -> Respo
 
     logger.warning(
         "JWT authentication failed: %s (source_ip=%s, path=%s, user_agent=%s)",
-        exc,
+        _sanitize_for_log(exc),
         client_host,
         request_path,
         user_agent,
@@ -564,7 +564,7 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 "JWT authentication succeeded: client_id='%s', scopes=%s, "
                 "auth_method='bearer_jwt'",
                 _sanitize_for_log(client_id),
-                _sanitize_for_log(sorted(scopes)),
+                _sanitize_for_log(" ".join(sorted(scopes))),
             )
             return AccessToken(
                 token=token,
