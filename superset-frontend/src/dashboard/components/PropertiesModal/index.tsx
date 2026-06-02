@@ -38,10 +38,6 @@ import {
 } from '@superset-ui/core';
 
 import withToasts from 'src/components/MessageToasts/withToasts';
-import {
-  OWNER_TEXT_LABEL_PROP,
-  OWNER_EMAIL_PROP,
-} from 'src/features/owners/OwnerSelectLabel';
 import { fetchTags, OBJECT_TYPES } from 'src/features/tags/tags';
 import {
   applyColors,
@@ -65,6 +61,7 @@ import {
   CertificationSection,
   AdvancedSection,
 } from './sections';
+import { parseSelectedOwners, type OwnerOption } from './utils';
 
 type PropertiesModalProps = {
   dashboardId: number;
@@ -254,25 +251,10 @@ const PropertiesModal = ({
   };
 
   const handleOnChangeOwners = (
-    selectedOwners: { value: number; label: string }[],
-    options: Record<string, unknown>[],
+    selectedOwners: OwnerOption[],
+    options: OwnerOption[],
   ) => {
-    const optionsById = new Map(options.map(opt => [opt.value as number, opt]));
-    const parsedOwners: Owners = ensureIsArray(selectedOwners).map(o => {
-      const existingOwner = owners.find(ow => ow.id === o.value);
-      if (existingOwner) {
-        return existingOwner;
-      }
-      const opt = optionsById.get(o.value);
-      return {
-        id: o.value,
-        full_name:
-          (opt?.[OWNER_TEXT_LABEL_PROP] as string) ||
-          (typeof o.label === 'string' ? o.label : ''),
-        email: (opt?.[OWNER_EMAIL_PROP] as string) || '',
-      };
-    });
-    setOwners(parsedOwners);
+    setOwners(parseSelectedOwners(selectedOwners, options, owners));
   };
 
   const handleOnChangeRoles = (roles: { value: number; label: string }[]) => {
