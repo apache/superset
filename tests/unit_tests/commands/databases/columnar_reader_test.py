@@ -17,10 +17,12 @@
 import io
 import tempfile
 from typing import Any
+from unittest.mock import patch
 from zipfile import ZIP_DEFLATED, ZipFile
 
 import numpy as np
 import pytest
+from flask import current_app
 from werkzeug.datastructures import FileStorage
 
 from superset.commands.database.exceptions import DatabaseUploadFailed
@@ -263,6 +265,53 @@ def test_columnar_reader_unsafe_zip_rejected_in_metadata():
     with pytest.raises(SupersetException) as ex:
         reader.file_metadata(FileStorage(unsafe_zip, "test.zip"))
     assert "compress ratio above allowed threshold" in str(ex.value)
+
+
+def test_columnar_reader_oversize_file_rejected():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    file = create_columnar_file(COLUMNAR_DATA)
+    file.stream.seek(0, 2)
+    file_size = file.stream.tell()
+    file.stream.seek(0)
+    with patch.dict(
+        current_app.config,
+        {"UPLOAD_MAX_FILE_SIZE_BYTES": file_size - 1},
+    ):
+        with pytest.raises(DatabaseUploadFailed) as ex:
+            reader.file_to_dataframe(file)
+    assert "exceeds the maximum allowed upload size" in str(ex.value)
+
+
+def test_columnar_reader_oversize_file_rejected_in_metadata():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    file = create_columnar_file(COLUMNAR_DATA)
+    file.stream.seek(0, 2)
+    file_size = file.stream.tell()
+    file.stream.seek(0)
+    with patch.dict(
+        current_app.config,
+        {"UPLOAD_MAX_FILE_SIZE_BYTES": file_size - 1},
+    ):
+        with pytest.raises(DatabaseUploadFailed) as ex:
+            reader.file_metadata(file)
+    assert "exceeds the maximum allowed upload size" in str(ex.value)
+
+
+def test_columnar_reader_under_limit_accepted():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    file = create_columnar_file(COLUMNAR_DATA)
+    with patch.dict(
+        current_app.config,
+        {"UPLOAD_MAX_FILE_SIZE_BYTES": 100 * 1024 * 1024},
+    ):
+        df = reader.file_to_dataframe(file)
+    assert len(df) == 3
 
 
 def test_columnar_reader_metadata():

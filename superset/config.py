@@ -1136,6 +1136,12 @@ SCREENSHOT_TILED_VIEWPORT_HEIGHT = 2000  # Height of each tile in pixels
 UPLOAD_FOLDER = BASE_DIR + "/static/uploads/"
 UPLOAD_CHUNK_SIZE = 4096
 
+# Upper bound, in bytes, on the size of a single uploaded data file (e.g. CSV,
+# Excel, columnar). Files larger than this are rejected before their contents
+# are buffered into memory, keeping the resources consumed by a single upload
+# bounded. Set to ``None`` to disable the check. Defaults to 100 MB.
+UPLOAD_MAX_FILE_SIZE_BYTES: int | None = 100 * 1024 * 1024
+
 # ---------------------------------------------------
 # Cache configuration
 # ---------------------------------------------------

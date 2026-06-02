@@ -23,6 +23,7 @@ from zipfile import BadZipfile, is_zipfile, ZipFile
 
 import pandas as pd
 import pyarrow.parquet as pq
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from pyarrow.lib import ArrowException
 from werkzeug.datastructures import FileStorage
@@ -36,6 +37,41 @@ from superset.commands.database.uploaders.base import (
 from superset.utils.core import check_is_safe_zip
 
 logger = logging.getLogger(__name__)
+
+
+def _check_file_size(file: FileStorage) -> None:
+    """
+    Reject an uploaded file whose raw (on-the-wire) size exceeds the configured
+    limit before its contents are buffered into memory.
+
+    This is complementary to the ZIP decompression-ratio guard: it bounds the
+    raw bytes accepted regardless of whether the payload is compressed.
+
+    :param file: The uploaded file to check.
+    :throws DatabaseUploadFailed: if the file exceeds the configured limit.
+    """
+    max_size = current_app.config.get("UPLOAD_MAX_FILE_SIZE_BYTES")
+    if not max_size:
+        return
+    stream = file.stream
+    try:
+        current_position = stream.tell()
+        stream.seek(0, 2)  # seek to end
+        size = stream.tell()
+        stream.seek(current_position)
+    except (AttributeError, OSError):
+        # If the stream is not seekable we cannot determine the size cheaply;
+        # skip the check and rely on downstream guards.
+        return
+    if size > max_size:
+        raise DatabaseUploadFailed(
+            _(
+                "File size %(size)s bytes exceeds the maximum allowed "
+                "upload size of %(max_size)s bytes",
+                size=size,
+                max_size=max_size,
+            )
+        )
 
 
 class ColumnarReaderOptions(ReaderOptions, total=False):
@@ -81,6 +117,7 @@ class ColumnarReader(BaseDataReader):
         :param file: The file to yield files from.
         :return: A generator that yields files.
         """
+        _check_file_size(file)
         file_suffix = Path(file.filename).suffix
         if not file_suffix:
             raise DatabaseUploadFailed(_("Unexpected no file extension found"))
