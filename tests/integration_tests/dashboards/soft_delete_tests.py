@@ -52,7 +52,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         db.session.commit()
         return dashboard
 
-    def test_delete_dashboard_soft_deletes(self):
+    def test_delete_dashboard_soft_deletes(self) -> None:
         """DELETE should set deleted_at instead of removing the row."""
         dashboard = self._create_dashboard("sd_test_1")
         dashboard_id = dashboard.id
@@ -73,7 +73,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
 
-    def test_soft_deleted_dashboard_excluded_from_list(self):
+    def test_soft_deleted_dashboard_excluded_from_list(self) -> None:
         """GET /api/v1/dashboard/ should not include soft-deleted."""
         dashboard = self._create_dashboard("sd_list_test")
         dashboard_id = dashboard.id
@@ -89,7 +89,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
 
-    def test_soft_deleted_dashboard_included_in_list_when_requested(self):
+    def test_soft_deleted_dashboard_included_in_list_when_requested(self) -> None:
         """GET /api/v1/dashboard/ with dashboard_deleted_state=include returns deleted dashboards."""  # noqa: E501
         dashboard = self._create_dashboard("sd_list_with_deleted")
         dashboard_id = dashboard.id
@@ -112,7 +112,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
 
-    def test_only_filter_returns_only_soft_deleted_dashboards(self):
+    def test_only_filter_returns_only_soft_deleted_dashboards(self) -> None:
         """dashboard_deleted_state=only excludes live rows and returns only deleted ones."""  # noqa: E501
         live_dashboard = self._create_dashboard("only_live_dash")
         deleted_dashboard = self._create_dashboard("only_deleted_dash")
@@ -135,7 +135,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         _hard_delete_dashboard(live_id)
         _hard_delete_dashboard(deleted_id)
 
-    def test_embedded_dashboard_with_soft_deleted_parent(self):
+    def test_embedded_dashboard_with_soft_deleted_parent(self) -> None:
         """Embedded URL keeps loading after the parent dashboard is soft-deleted.
 
         The embedded view (`embedded/view.py:embedded`) only reads
@@ -193,6 +193,29 @@ class TestDashboardSoftDelete(SupersetTestCase):
 class TestDashboardRestore(SupersetTestCase):
     """Tests for dashboard restore behaviour (T026, T028)."""
 
+    def _skip_if_no_partial_index(self) -> None:
+        """Skip the test on dialects that fall back to the full unique slug
+        constraint.
+
+        The 9e1f3b8c4d2a migration installs a partial unique index on
+        ``slug WHERE deleted_at IS NULL`` on PostgreSQL and MySQL 8.0+
+        (excluding MariaDB). SQLite and MySQL <8 / MariaDB keep the
+        original full constraint, so tests that exercise slug reuse
+        across the soft-delete boundary are not meaningful on those
+        backends.
+        """
+        dialect = db.session.bind.dialect.name
+        is_mariadb = getattr(db.session.bind.dialect, "is_mariadb", False)
+        server_version = db.session.bind.dialect.server_version_info or ()
+        partial_index_supported = dialect == "postgresql" or (
+            dialect == "mysql" and not is_mariadb and server_version >= (8, 0)
+        )
+        if not partial_index_supported:
+            self.skipTest(
+                f"Partial-index slug reuse not supported on {dialect} "
+                f"{'(MariaDB)' if is_mariadb else server_version}"
+            )
+
     def _create_dashboard(self, title: str = "restore_test") -> Dashboard:
         admin = self.get_user("admin")
         dashboard = Dashboard(
@@ -205,7 +228,7 @@ class TestDashboardRestore(SupersetTestCase):
         db.session.commit()
         return dashboard
 
-    def test_restore_soft_deleted_dashboard(self):
+    def test_restore_soft_deleted_dashboard(self) -> None:
         """POST /api/v1/dashboard/<uuid>/restore makes it visible again."""
         dashboard = self._create_dashboard("restore_sd_test")
         dashboard_id = dashboard.id
@@ -222,7 +245,7 @@ class TestDashboardRestore(SupersetTestCase):
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
 
-    def test_restore_preserves_chart_associations(self):
+    def test_restore_preserves_chart_associations(self) -> None:
         """Restoring a dashboard reconnects to its charts (T028)."""
         from superset.models.slice import Slice
 
@@ -260,7 +283,7 @@ class TestDashboardRestore(SupersetTestCase):
         db.session.delete(chart)
         _hard_delete_dashboard(dashboard_id)
 
-    def test_restore_blocked_by_active_slug_twin(self):
+    def test_restore_blocked_by_active_slug_twin(self) -> None:
         """Restore returns 422 when another active dashboard now owns the slug.
 
         With the partial unique index allowing slug reuse during the
@@ -293,20 +316,9 @@ class TestDashboardRestore(SupersetTestCase):
 
         # Second dashboard claims the same slug while the first is soft-deleted.
         # This only succeeds on Postgres / MySQL 8+ where the partial index
-        # frees the slug; on SQLite / MySQL <8 the full unique constraint
-        # would still block this insert, so skip the rest of the assertion
-        # path on those dialects.
-        dialect = db.session.bind.dialect.name
-        is_mariadb = getattr(db.session.bind.dialect, "is_mariadb", False)
-        server_version = db.session.bind.dialect.server_version_info or ()
-        partial_index_supported = dialect == "postgresql" or (
-            dialect == "mysql" and not is_mariadb and server_version >= (8, 0)
-        )
-        if not partial_index_supported:
-            self.skipTest(
-                f"Partial-index slug reuse not supported on {dialect} "
-                f"{'(MariaDB)' if is_mariadb else server_version}"
-            )
+        # frees the slug; on SQLite / MySQL <8 / MariaDB the full unique
+        # constraint would still block this insert.
+        self._skip_if_no_partial_index()
 
         second = Dashboard(
             dashboard_title="conflict_second",
@@ -338,7 +350,7 @@ class TestDashboardRestore(SupersetTestCase):
         _hard_delete_dashboard(first_id)
         _hard_delete_dashboard(second_id)
 
-    def test_partial_index_allows_multiple_soft_deleted_with_same_slug(self):
+    def test_partial_index_allows_multiple_soft_deleted_with_same_slug(self) -> None:
         """On dialects with the partial index, two soft-deleted dashboards can share a slug.
 
         Verifies the schema-level behaviour: ``CREATE UNIQUE INDEX ...
@@ -346,17 +358,7 @@ class TestDashboardRestore(SupersetTestCase):
         without colliding. Skipped on SQLite and MySQL <8.0 / MariaDB,
         which keep the original full unique constraint per the migration.
         """  # noqa: E501
-        dialect = db.session.bind.dialect.name
-        is_mariadb = getattr(db.session.bind.dialect, "is_mariadb", False)
-        server_version = db.session.bind.dialect.server_version_info or ()
-        partial_index_supported = dialect == "postgresql" or (
-            dialect == "mysql" and not is_mariadb and server_version >= (8, 0)
-        )
-        if not partial_index_supported:
-            self.skipTest(
-                f"Partial-index slug reuse not supported on {dialect} "
-                f"{'(MariaDB)' if is_mariadb else server_version}"
-            )
+        self._skip_if_no_partial_index()
 
         shared_slug = "slug_partial_index_test"
         admin = self.get_user("admin")

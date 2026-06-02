@@ -46,6 +46,15 @@ class RestoreDashboardCommand(BaseRestoreCommand[Dashboard]):
     restore_failed_exc = DashboardRestoreFailedError
 
     def validate(self) -> Dashboard:  # type: ignore[override]
+        """Extend ``BaseRestoreCommand.validate`` with a slug-conflict pre-check.
+
+        Raises ``DashboardSlugConflictError`` when the dashboard has a
+        ``slug`` that has been claimed by another active dashboard while
+        this one was soft-deleted. Surfacing the conflict as a domain
+        error here keeps callers from seeing an opaque ``IntegrityError``
+        at flush time on dialects with the partial index, and a
+        constraint-violation 500 on dialects without it.
+        """
         model = super().validate()
         if model.slug and self._has_active_slug_twin(model):
             raise DashboardSlugConflictError()
