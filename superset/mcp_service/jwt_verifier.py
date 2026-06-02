@@ -33,14 +33,14 @@ from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any, cast
 
-from authlib.jose.errors import (
+from fastmcp.server.auth.auth import AccessToken
+from fastmcp.server.auth.providers.jwt import JWTVerifier
+from joserfc.errors import (
     BadSignatureError,
     DecodeError,
     ExpiredTokenError,
     JoseError,
 )
-from fastmcp.server.auth.auth import AccessToken
-from fastmcp.server.auth.providers.jwt import JWTVerifier
 from mcp.server.auth.middleware.auth_context import AuthContextMiddleware
 from mcp.server.auth.middleware.bearer_auth import BearerAuthBackend
 from starlette.authentication import AuthenticationError
