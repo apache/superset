@@ -3564,8 +3564,7 @@ msgid "Color by"
 msgstr "Colorer par"
 
 msgid "Color field must be a hex color (#rrggbb) or 'rgb(r, g, b)'"
-msgstr ""
-
+msgstr "Le champ couleur doit être une couleur hexadécimale (#rrggbb) ou 'rgb(r, g, b)'"
 
 msgid "Color for breakpoint"
 msgstr "Couleur pour point de rupture"
@@ -3680,12 +3679,11 @@ msgstr "Horizontal (haut)"
 msgid "Columns and metrics"
 msgstr " Colonnes et métriques"
 
-
 msgid "Columns and metrics should be inside folders"
 msgstr " Colonnes et métriques"
 
 msgid "Columns folder can only contain column items"
-msgstr ""
+msgstr "Le dossier column ne peut contenir que des éléments colonnes"
 
 #, python-format
 msgid "Columns missing in dataset: %(invalid_columns)s"
@@ -3696,7 +3694,7 @@ msgid "Columns missing in datasource: %(invalid_columns)s"
 msgstr "Colonnes absentes de la source de données : %(invalid_columns)s"
 
 msgid "Columns should be inside folders"
-msgstr ""
+msgstr "Les colonnes doivent être à l'intérieur d'un dossier"
 
 msgid "Columns subtotal position"
 msgstr "Position du sous-total des colonnes"
@@ -4257,10 +4255,10 @@ msgid "Custom conditional formatting"
 msgstr "Formatage conditionnel personnalisé"
 
 msgid "Custom date"
-msgstr "Date Personnalisé"
+msgstr "Date Personnalisée"
 
 msgid "Custom fields not available in aggregated heatmap cells"
-msgstr ""
+msgstr "Les champs personnalisés sont indiposnibles dans les cellules agrégés de la heatmap"
 
 msgid "Custom time filter plugin"
 msgstr "Plugiciel de filtre horaire personnalisé"
@@ -6741,7 +6739,7 @@ msgid "Failed to verify select options: %s"
 msgstr "Échec de la vérification des options de sélection : %s"
 
 msgid "Falling back to CSV; Excel export library not available."
-msgstr ""
+msgstr "Utilisation du CSV; La libraire pour exporter en Excel n'est pas disponible."
 
 msgid "False"
 msgstr "est faux"
@@ -6792,7 +6790,6 @@ msgstr "ne peut pas être vide"
 msgid "Field is required"
 msgstr "Le champ est requis"
 
-
 msgid "File extension is not allowed."
 msgstr "L’URI des données n’est pas autorisé."
 
@@ -6800,7 +6797,8 @@ msgid ""
 "File handling is not supported in this browser. Please use a modern browser "
 "like Chrome or Edge."
 msgstr ""
-
+"La gestion des fichiers n'est pas supporté pas ce navigateur. Merci d'utiliser "
+"Firefox, Edge ou Chrome"
 
 msgid "File settings"
 msgstr "Paramètres du filtre"
@@ -7044,10 +7042,10 @@ msgid "Force"
 msgstr "Forcer"
 
 msgid "Force Time Grain as Max Interval"
-msgstr ""
+msgstr "[CHECK] Forcer l'utilisation du grain temporel en tant qu'interval max"
 
 msgid "Force abort (stops task for all subscribers)"
-msgstr ""
+msgstr "Forcer l'arrêt (arrêt de la tâche et de ses souscripteurs)"
 
 msgid ""
 "Force all tables and views to be created in this schema when clicking CTAS "
@@ -7080,7 +7078,7 @@ msgid "Force refresh table list"
 msgstr "Forcer l'actualisation de la liste des tableaux"
 
 msgid "Forces selected Time Grain as the maximum interval for X Axis Labels"
-msgstr ""
+msgstr "[CHECK] Focer l'échelle temporelle sélectionnée en tant qu'interval maximum pour les labels de l'axe X"
 
 msgid "Forecast periods"
 msgstr "Périodes de prévision"
@@ -7346,8 +7344,7 @@ msgid "Guest user cannot modify chart payload"
 msgstr "Un utilisateur invité ne peut pas modifier le contenu du graphique"
 
 msgid "HTTP Path"
-msgstr ""
-
+msgstr "Route HTTP"
 
 msgid "Handlebars"
 msgstr "Guidons"
@@ -7680,7 +7677,7 @@ msgid "Inherit range from time filter"
 msgstr "Hériter de la plage du filtre temporel"
 
 msgid "Initial tree depth"
-msgstr ""
+msgstr "[CHECK] Profondeur initiale"
 
 msgid "Inner Radius"
 msgstr "Rayon intérieur"
@@ -7730,7 +7727,7 @@ msgid "Inside right"
 msgstr "Haut à droite"
 
 msgid "Inside top"
-msgstr ""
+msgstr "En haut"
 
 
 msgid "Inside top left"
@@ -8310,14 +8307,13 @@ msgid "Less than (<)"
 msgstr "Plus petit que (<)"
 
 msgid "Liberty (OpenFreeMap)"
-msgstr ""
+msgstr "Liberty (OpenFreeMap)"
 
 msgid "Lift percent precision"
 msgstr "Précision du pourcentage de levée"
 
 msgid "Light"
 msgstr "Clair"
-
 
 msgid "Light (Carto)"
 msgstr "Graphique à lignes"
@@ -8638,22 +8634,23 @@ msgid "Map Style"
 msgstr "Style de carte"
 
 msgid "MapLibre (open-source)"
-msgstr ""
+msgstr "MapLibre (open-source)"
 
 msgid ""
 "MapLibre is open-source and requires no API key. Mapbox requires "
 "MAPBOX_API_KEY to be configured on the server."
 msgstr ""
+"MapLibre est open-source et ne nécessite pas de clé API. Mapbox nécessite querequires "
+"la variable d'environnement MAPBOX_API_KEY soit configurée sur le serveur."
 
 msgid "Mapbox"
 msgstr "Mapbox"
-
 
 msgid "Mapbox (API key required)"
 msgstr "le courriel est obligatoire"
 
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
-msgstr ""
+msgstr "Il est nécessaire de configurer la variable MAPBOX_API_KEY sur le serveur pour utiliser Mapbox."
 
 msgid "March"
 msgstr "Mars"
@@ -8725,12 +8722,11 @@ msgstr "Taille maximale de la police"
 msgid "Maximum Radius"
 msgstr "Rayon maximal"
 
-
 msgid "Maximum Width"
 msgstr "Largeur minimale"
 
 msgid "Maximum folder nesting depth reached"
-msgstr ""
+msgstr "Nombre de dossiers imbriqués maximum atteint"
 
 msgid "Maximum number of features to fetch from service"
 msgstr "Nombre maximum de caractéristiques à récupérer depuis le service"
@@ -12965,10 +12961,10 @@ msgid "Solid"
 msgstr "Solide"
 
 msgid "Some groups could not be resolved and are shown as IDs."
-msgstr ""
+msgstr "Certains groupes n'ont pas pu être résolus et sont affichés en tant qu'IDs."
 
 msgid "Some permissions could not be resolved and are shown as IDs."
-msgstr ""
+msgstr "Certaines permissions n'ont pas pu être résolues et sont affichées en tant qu'IDS."
 
 msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr "Certains filtres nécessaires sur les autres onglets possèdent des valeurs et ne seront pas réinitialisés."
