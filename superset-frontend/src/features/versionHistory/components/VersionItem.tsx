@@ -29,7 +29,7 @@ import {
   formatVersionUser,
   isAiAuthor,
 } from '../utils/formatVersionUser';
-import { iconForSave, totalChartImpact } from '../utils/changeKindIcon';
+import { totalChartImpact } from '../utils/changeKindIcon';
 
 interface Props {
   entityType: EntityType;
@@ -118,7 +118,6 @@ const VersionItem = ({
     const supplied = save.changes.find(r => r.summary)?.summary;
     return supplied || formatChangeTitle(save.changes);
   }, [save.changes]);
-  const leadingIcon = useMemo(() => iconForSave(save.changes), [save.changes]);
   const impactCharts = useMemo(
     () => totalChartImpact(save.changes),
     [save.changes],
@@ -165,11 +164,28 @@ const VersionItem = ({
           css={css`
             display: inline-flex;
             align-items: center;
-            color: ${theme.colorIcon};
+            justify-content: center;
+            width: ${theme.sizeUnit * 3}px;
             flex-shrink: 0;
+            padding-top: ${theme.sizeUnit / 2}px;
           `}
         >
-          {leadingIcon}
+          {/* Timeline indicator: filled green dot for the current row,
+              hollow circle for past rows. Replaces the per-kind pen icon
+              so the user reads "this is current vs past" at a glance. */}
+          <span
+            data-test={
+              isCurrent ? 'version-item-dot-current' : 'version-item-dot-past'
+            }
+            css={css`
+              display: inline-block;
+              width: ${theme.sizeUnit * 2}px;
+              height: ${theme.sizeUnit * 2}px;
+              border-radius: 50%;
+              background: ${isCurrent ? theme.colorSuccess : 'transparent'};
+              border: 1px solid ${theme.colorSuccess};
+            `}
+          />
         </div>
         <div
           css={css`

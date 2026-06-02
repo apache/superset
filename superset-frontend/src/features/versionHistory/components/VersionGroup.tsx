@@ -72,13 +72,14 @@ const VersionGroup = ({
           width: 100%;
           padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px
             ${theme.sizeUnit * 2}px ${theme.sizeUnit * 4}px;
-          background: ${theme.colorBgLayout};
+          background: ${isCurrentBucket ? 'transparent' : theme.colorBgLayout};
           border: none;
           cursor: pointer;
           font-size: ${theme.fontSizeSM}px;
           font-weight: ${theme.fontWeightStrong};
-          color: ${theme.colorTextSecondary};
-          text-transform: uppercase;
+          color: ${isCurrentBucket
+            ? theme.colorSuccessText
+            : theme.colorTextSecondary};
         `}
         aria-expanded={open}
       >
@@ -86,6 +87,22 @@ const VersionGroup = ({
           <Icons.CaretDownOutlined iconSize="s" />
         ) : (
           <Icons.CaretRightOutlined iconSize="s" />
+        )}
+        {isCurrentBucket && (
+          <Icons.CheckCircleFilled
+            iconSize="s"
+            css={css`
+              color: ${theme.colorSuccess};
+            `}
+          />
+        )}
+        {!isCurrentBucket && (
+          <Icons.CalendarOutlined
+            iconSize="s"
+            css={css`
+              color: ${theme.colorIcon};
+            `}
+          />
         )}
         {label}
       </button>

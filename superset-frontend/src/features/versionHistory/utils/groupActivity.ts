@@ -56,6 +56,12 @@ function startOfDay(d: Date): number {
 // and a returning user can't tell whether "Today" is today-for-them or
 // today-for-the-author. Both args kept for caller-symmetry with the
 // earlier API + in case design wants relative labels back later.
+function bucketDayKey(iso: string): string {
+  // YYYY-MM-DD slice keeps rows from the same calendar day together
+  // regardless of the time-of-day suffix used in the user-visible label.
+  return iso.slice(0, 10);
+}
+
 function bucketLabel(
   iso: string,
   _todayMs: number,
@@ -63,10 +69,12 @@ function bucketLabel(
 ): string {
   try {
     const lang = document.documentElement.lang || undefined;
-    return new Date(iso).toLocaleDateString(lang, {
+    return new Date(iso).toLocaleString(lang, {
       year: 'numeric',
-      month: 'long',
+      month: 'short',
       day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
     });
   } catch {
     return iso.slice(0, 10);
@@ -170,13 +178,20 @@ export function groupActivity(records: ActivityRecord[]): ActivityDateBucket[] {
     startIdx = 1;
   }
 
+  // Bucket by calendar day, but render each bucket's header using the
+  // newest row's timestamp inside it — so the date+time the user sees is
+  // when the most recent save in that day happened, not midnight.
   let active: ActivityDateBucket | null = null;
+  let activeDayKey: string | null = null;
   for (let i = startIdx; i < rows.length; i += 1) {
     const row = rows[i];
     const iso = row.type === 'save' ? row.issued_at : row.record.issued_at;
-    const label = bucketLabel(iso, today, yesterday);
-    if (!active || active.label !== label) {
-      active = { label, rows: [] };
+    const dayKey = bucketDayKey(iso);
+    if (!active || activeDayKey !== dayKey) {
+      // ``rows`` is newest-first within a day, so the first row we see
+      // for a new day-key is the one whose timestamp labels the bucket.
+      active = { label: bucketLabel(iso, today, yesterday), rows: [] };
+      activeDayKey = dayKey;
       buckets.push(active);
     }
     active.rows.push(row);
