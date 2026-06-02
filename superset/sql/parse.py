@@ -114,7 +114,9 @@ SQLGLOT_DIALECTS = {
     "teradatasql": Dialects.TERADATA,
     "trino": Dialects.TRINO,
     "vertica": Vertica,
-    "yql": Dialects.CLICKHOUSE,
+    # "ydb" is a plugin dialect (ydb-sqlglot-plugin) auto-discovered via entry_points,
+    # hence a string name rather than a class reference like the built-in dialects.
+    "yql": "ydb",
 }
 
 
