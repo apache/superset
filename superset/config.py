@@ -1457,7 +1457,18 @@ CELERY_CONFIG: type[CeleryConfig] | None = CeleryConfig
 # within the app
 # OVERRIDE_HTTP_HEADERS: sets override values for HTTP headers. These values will
 # override anything set within the app
-DEFAULT_HTTP_HEADERS: dict[str, Any] = {}
+#
+# As a defense-in-depth default, Superset sends a conservative
+# `Cross-Origin-Resource-Policy` header on its responses. `same-site` is used
+# (rather than the stricter `same-origin`) so that same-site embedding patterns
+# such as the Embedded SDK, where a Superset subdomain is framed by a sibling
+# application subdomain, keep working out of the box. Because this is set through
+# DEFAULT_HTTP_HEADERS, the value is only applied when the response does not
+# already carry the header, so operators can override it (per-response or by
+# replacing this config value) to suit their cross-origin requirements.
+DEFAULT_HTTP_HEADERS: dict[str, Any] = {
+    "Cross-Origin-Resource-Policy": "same-site",
+}
 OVERRIDE_HTTP_HEADERS: dict[str, Any] = {}
 HTTP_HEADERS: dict[str, Any] = {}
 

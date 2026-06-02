@@ -322,3 +322,18 @@ def test_expose_version_info_defaults_to_true() -> None:
     from superset import config
 
     assert config.EXPOSE_VERSION_INFO is True
+
+
+def test_default_cross_origin_resource_policy_header() -> None:
+    """
+    Superset ships a conservative `Cross-Origin-Resource-Policy: same-site`
+    default through DEFAULT_HTTP_HEADERS. `same-site` (rather than `same-origin`)
+    is chosen so documented same-site embedding flows, such as the Embedded SDK,
+    keep working while still providing a defense-in-depth default that operators
+    can override.
+    """
+    from superset import config
+
+    assert (
+        config.DEFAULT_HTTP_HEADERS.get("Cross-Origin-Resource-Policy") == "same-site"
+    )

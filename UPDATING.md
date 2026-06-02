@@ -46,6 +46,13 @@ EXPOSE_VERSION_INFO = False
 
 When disabled, `/version` returns only the human-readable `version_string` and omits the Git SHA, full SHA, build number, and branch name. Because the default is `True`, this change is non-breaking for existing deployments.
 
+As an additional defense-in-depth hardening, Superset now sends a `Cross-Origin-Resource-Policy: same-site` response header by default via `DEFAULT_HTTP_HEADERS`. `same-site` is deliberately chosen over the stricter `same-origin` so that documented same-site embedding flows (e.g. the Embedded SDK, where a Superset subdomain is framed by a sibling application subdomain) continue to work unchanged. Deployments that serve Superset responses or static assets as subresources to a _cross-site_ origin may need to relax or remove this header. Because it is applied through `DEFAULT_HTTP_HEADERS`, the header is only set when a response does not already carry one, so it can be overridden per-response or by replacing the config value:
+
+```python
+# Relax to permit cross-site consumers, or set to "same-origin" to harden further.
+DEFAULT_HTTP_HEADERS = {"Cross-Origin-Resource-Policy": "cross-origin"}
+```
+
 ### Dataset import validates catalog against the target connection
 
 Importing a dataset now validates the `catalog` field against the target database connection. When the connection has multi-catalog disabled (`allow_multi_catalog` off) and the dataset's catalog is not the connection's default catalog, the import fails instead of silently persisting the non-default catalog. This matches the validation already enforced on the dataset update path and prevents imported datasets from querying an unintended database.
