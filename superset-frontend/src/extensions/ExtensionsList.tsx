@@ -48,6 +48,7 @@ type Extension = {
   name: string;
   publisher: string;
   enabled: boolean;
+  deletable: boolean;
 };
 
 interface ExtensionsListProps {
@@ -249,39 +250,41 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
                   </span>
                 </Tooltip>
               )}
-              <ConfirmStatusChange
-                title={t('Please confirm')}
-                description={
-                  <>
-                    {t('Are you sure you want to delete')}{' '}
-                    <b>{original.name}</b>?
-                  </>
-                }
-                onConfirm={() => handleDelete(original)}
-              >
-                {(confirmDelete: () => void) => (
-                  <Tooltip
-                    id={`delete-extension-tooltip-${original.id}`}
-                    title={t('Delete')}
-                    placement="bottom"
-                  >
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      data-test="delete-extension"
-                      className="action-button"
-                      onClick={confirmDelete}
-                      onKeyDown={(e: React.KeyboardEvent) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                          confirmDelete();
-                        }
-                      }}
+              {original.deletable && (
+                <ConfirmStatusChange
+                  title={t('Please confirm')}
+                  description={
+                    <>
+                      {t('Are you sure you want to delete')}{' '}
+                      <b>{original.name}</b>?
+                    </>
+                  }
+                  onConfirm={() => handleDelete(original)}
+                >
+                  {(confirmDelete: () => void) => (
+                    <Tooltip
+                      id={`delete-extension-tooltip-${original.id}`}
+                      title={t('Delete')}
+                      placement="bottom"
                     >
-                      <Icons.DeleteOutlined iconSize="l" />
-                    </span>
-                  </Tooltip>
-                )}
-              </ConfirmStatusChange>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        data-test="delete-extension"
+                        className="action-button"
+                        onClick={confirmDelete}
+                        onKeyDown={(e: React.KeyboardEvent) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            confirmDelete();
+                          }
+                        }}
+                      >
+                        <Icons.DeleteOutlined iconSize="l" />
+                      </span>
+                    </Tooltip>
+                  )}
+                </ConfirmStatusChange>
+              )}
             </>
           );
         },
