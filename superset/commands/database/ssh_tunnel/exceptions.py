@@ -75,3 +75,9 @@ class SSHTunnelMissingCredentials(CommandInvalidError, SSHTunnelError):  # noqa:
 
 class SSHTunnelInvalidCredentials(CommandInvalidError, SSHTunnelError):  # noqa: N818
     message = _("Cannot have multiple credentials for the SSH Tunnel")
+
+
+class SSHTunnelHostKeyVerificationError(CommandInvalidError, SSHTunnelError):
+    message = _(
+        "The SSH server host key could not be verified against the expected key."
+    )

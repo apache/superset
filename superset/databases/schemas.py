@@ -477,6 +477,22 @@ class DatabaseSSHTunnel(Schema):
     private_key = fields.String(required=False, load_only=True)
     private_key_password = fields.String(required=False, load_only=True)
 
+    # Optional expected SSH server host key in authorized-key form
+    # (e.g. "ssh-rsa AAAA...", "ssh-ed25519 AAAA..."). When set, the SSH server's
+    # presented host key is verified against it before the tunnel is opened. This is
+    # a public key, so it is not sensitive and is not masked.
+    server_host_key = fields.String(
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": (
+                "Expected SSH server host key in authorized-key form "
+                "(e.g. 'ssh-ed25519 AAAA...'). When set, the server's host key is "
+                "verified against it before the tunnel is opened."
+            )
+        },
+    )
+
     @validates_schema
     def validate_authentication(self, data: dict[str, Any], **kwargs: Any) -> None:
         errors: dict[str, str] = {}
