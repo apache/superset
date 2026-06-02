@@ -24,10 +24,9 @@ import pandas as pd
 from numpy.core.multiarray import array
 from pytest_mock import MockerFixture
 
-
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
-from superset.result_set import stringify_values, SupersetResultSet
+from superset.result_set import SupersetResultSet, stringify_values
 from superset.superset_typing import DbapiResult
 
 
