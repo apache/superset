@@ -628,11 +628,20 @@ extension point to be implementable:
   area, host-side exclusive-location resolution (`getViewProvider` /
   `getActiveChatbot`), eager mount at the app shell, fault isolation at the mount
   boundary (via `ErrorBoundary` wrapping `ChatbotRenderer`), and the extension
-  lifecycle/teardown contract (`Disposable` cleanup, all namespace registrations
-  collected during activation and disposed on deactivation).
-  ⚠️ Open item: whether teardown needs an async-aware hook (e.g.
-  `deactivate(): Promise<void>`) in addition to the synchronous `Disposable`,
-  since `Disposable.dispose()` is not awaited. Still unresolved.
+  lifecycle/teardown contract. Extensions export `activate(context)` and push
+  each registration's `Disposable` onto `context.subscriptions`; the host
+  disposes them on deactivation. Because the lifetime is bound to the `context`
+  object rather than a synchronous interception window, registrations made
+  asynchronously (after an `await`, in a timer, or in an event callback) are
+  tracked just like synchronous ones. Legacy extensions that register as
+  top-level side effects are supported via a fallback that wraps the registrars,
+  but that path only captures registrations made synchronously during module
+  evaluation.
+  ⚠️ Open item: whether teardown needs an async-aware `deactivate(): Promise<void>`
+  hook that the host awaits. Async *registration* tracking is resolved by the
+  `context.subscriptions` model above; the remaining question is only whether the
+  host should await an extension's own async cleanup (`Disposable.dispose()` is
+  not awaited). Still pending.
   ⚠️ Open item: app-root contribution scope in `ViewContributions` manifest schema
   so `superset.chatbot` can be declared in `extension.json`. Still pending.
 

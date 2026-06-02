@@ -119,7 +119,8 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
 
     // Render the host immediately; extension bundles load in the background.
     // ChatbotMount re-resolves reactively once the chatbot extension registers
-    // (via subscribeToLocation), so the bubble appears without blocking the UI.
+    // (via subscribeToRegistry / getRegistryVersion), so the bubble appears
+    // without blocking the UI.
     setInitialized(true);
 
     if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
