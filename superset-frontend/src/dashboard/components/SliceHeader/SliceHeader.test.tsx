@@ -940,3 +940,63 @@ test('Should NOT show row count warning for table chart with server pagination w
 
   mockUseUiConfig.mockRestore();
 });
+
+const mockDefaultUiConfig = () => {
+  (useUiConfig as jest.Mock).mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: false,
+  });
+};
+
+test('Should display the localized name when not in edit mode', () => {
+  mockDefaultUiConfig();
+  const props = createProps({
+    editMode: false,
+    sliceName: 'Sales',
+    localizedName: 'Ventes',
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  expect(screen.getByText('Ventes')).toBeInTheDocument();
+  expect(screen.queryByText('Sales')).not.toBeInTheDocument();
+});
+
+test('Should display the canonical name in edit mode so edits target it', () => {
+  mockDefaultUiConfig();
+  const props = createProps({
+    editMode: true,
+    sliceName: 'Sales',
+    localizedName: 'Ventes',
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  // In edit mode the editable field must show the canonical name, otherwise a
+  // save would round-trip the translation into slice_name.
+  expect(screen.getByText('Sales')).toBeInTheDocument();
+  expect(screen.queryByText('Ventes')).not.toBeInTheDocument();
+});
+
+test('Should fall back to the canonical name when no localized name is set', () => {
+  mockDefaultUiConfig();
+  const props = createProps({
+    editMode: false,
+    sliceName: 'Sales',
+    localizedName: undefined,
+  });
+  render(<SliceHeader {...props} />, {
+    useRedux: true,
+    useRouter: true,
+    initialState,
+  });
+  expect(screen.getByText('Sales')).toBeInTheDocument();
+});
