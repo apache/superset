@@ -162,3 +162,27 @@ def test_translate_falls_back_when_locale_is_none(mocker: MockerFixture) -> None
     mocker.patch.object(i18n, "get_locale", return_value=None)
 
     assert i18n.translate("Sales") == "Sales"
+
+
+def test_i18n_macro_translates_via_hook(mocker: MockerFixture, fr_locale: None) -> None:
+    """The {{ i18n('...') }} Jinja macro resolves through the same hook."""
+    from superset.jinja_context import i18n_macro
+
+    _enable(mocker)
+    current_app.config["LANGUAGES"] = MULTI_LANG
+    current_app.config["TRANSLATION_HOOK"] = lambda text, locale, **k: (
+        "Ventes" if (text, locale) == ("Sales", "fr") else None
+    )
+
+    assert i18n_macro("Sales") == "Ventes"
+
+
+def test_i18n_macro_returns_original_when_disabled(mocker: MockerFixture) -> None:
+    """When the feature is off the macro returns the source text unchanged."""
+    from superset.jinja_context import i18n_macro
+
+    _enable(mocker, enabled=False)
+    current_app.config["LANGUAGES"] = MULTI_LANG
+    current_app.config["TRANSLATION_HOOK"] = lambda *a, **k: "Ventes"
+
+    assert i18n_macro("Sales") == "Sales"
