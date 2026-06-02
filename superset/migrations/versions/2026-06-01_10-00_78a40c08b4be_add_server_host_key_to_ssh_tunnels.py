@@ -22,7 +22,7 @@ operators can opt in to verifying the SSH server's host key before a tunnel is o
 This is a public key and is stored in plaintext (not encrypted). The column is
 nullable, so existing tunnels are unaffected.
 
-Revision ID: a1b2c3d4e5f6
+Revision ID: 78a40c08b4be
 Revises: 31dae2559c05
 Create Date: 2026-06-01 10:00:00.000000
 
@@ -33,7 +33,7 @@ import sqlalchemy as sa
 from superset.migrations.shared.utils import add_columns, drop_columns
 
 # revision identifiers, used by Alembic.
-revision = "a1b2c3d4e5f6"
+revision = "78a40c08b4be"
 down_revision = "31dae2559c05"
 
 
