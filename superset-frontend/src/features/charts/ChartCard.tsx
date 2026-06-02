@@ -176,7 +176,7 @@ export default function ChartCard({
     >
       <ListViewCard
         loading={loading}
-        title={chart.slice_name}
+        title={chart.localized_name ?? chart.slice_name}
         certifiedBy={chart.certified_by}
         certificationDetails={chart.certification_details}
         cover={

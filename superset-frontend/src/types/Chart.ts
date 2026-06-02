@@ -35,6 +35,9 @@ export interface Chart {
   url: string;
   viz_type: string;
   slice_name: string;
+  // Name resolved for the viewer's locale (read-only). Present only when
+  // asset-metadata translation is enabled; falls back to slice_name.
+  localized_name?: string;
   creator: string;
   changed_on: string;
   changed_on_delta_humanized?: string;
@@ -66,6 +69,7 @@ export type Slice = {
   id?: number;
   slice_id: number;
   slice_name: string;
+  localized_name?: string;
   description: string | null;
   cache_timeout: number | null;
   certified_by?: string;
