@@ -172,7 +172,12 @@ function escapeSQLString(value: string): string {
  * @param value - Raw bound value from the AG Grid filter model
  * @returns The finite number, or null if the value is not numeric
  */
-function toFiniteNumber(value: FilterValue): number | null {
+function toFiniteNumber(value: FilterValue | undefined): number | null {
+  // Number(null) and Number('') both coerce to 0 and pass Number.isFinite,
+  // so reject nullish and empty/whitespace-only strings before coercing.
+  if (value === null || value === undefined) {
+    return null;
+  }
   if (typeof value === 'string' && value.trim() === '') {
     return null;
   }
@@ -393,11 +398,11 @@ function simpleFilterToWhereClause(
     return '';
   }
 
-  if (type === FILTER_OPERATORS.IN_RANGE && filterTo !== undefined) {
-    // Range bounds are interpolated into the clause without quoting, so they
-    // must be finite numbers. Coerce both ends and skip the clause entirely
-    // if either is not numeric. Empty/whitespace-only strings coerce to 0 via
-    // Number(), so reject them explicitly before coercing.
+  // Handle IN_RANGE unconditionally so a missing/cleared upper bound can never
+  // fall through to the generic clause below and emit an invalid single-operand
+  // BETWEEN. Range bounds are interpolated into the clause without quoting, so
+  // both ends must coerce to finite numbers; otherwise the clause is dropped.
+  if (type === FILTER_OPERATORS.IN_RANGE) {
     const lowerBound = toFiniteNumber(value);
     const upperBound = toFiniteNumber(filterTo);
     if (lowerBound === null || upperBound === null) {

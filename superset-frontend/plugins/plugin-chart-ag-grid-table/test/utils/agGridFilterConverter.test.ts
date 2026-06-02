@@ -329,6 +329,21 @@ describe('agGridFilterConverter', () => {
         'revenue',
       ]);
       expect(result2.havingClause).toBeUndefined();
+
+      // A missing upper bound must drop the clause rather than fall through
+      // to a generic single-operand BETWEEN.
+      const missingBoundFilterModel = {
+        revenue: {
+          filterType: 'number',
+          type: 'inRange',
+          filter: '0',
+        },
+      } as unknown as AgGridFilterModel;
+
+      const result3 = convertAgGridFiltersToSQL(missingBoundFilterModel, [
+        'revenue',
+      ]);
+      expect(result3.havingClause).toBeUndefined();
     });
   });
 
