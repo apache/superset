@@ -590,10 +590,9 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                 "params",
             ):
                 serialized.pop(key, None)
-            for column in serialized.get("columns") or ():
-                column.pop("expression", None)
-            for metric in serialized.get("metrics") or ():
-                metric.pop("expression", None)
+            for collection_key in ("columns", "metrics"):
+                for item in serialized.get(collection_key) or ():
+                    item.pop("expression", None)
         return serialized
 
     @expose("/<id_or_slug>/tabs", methods=("GET",))
