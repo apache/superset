@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 from unittest.mock import ANY, Mock
 
@@ -76,6 +77,68 @@ def test_parse_channel_id_from_request_bad_jwt(async_query_manager):
 
     with raises(AsyncQueryTokenException):
         async_query_manager.parse_channel_id_from_request(request)
+
+
+def test_generate_jwt_sets_expiration(async_query_manager):
+    """Generated tokens carry iat/exp and round-trip through parsing."""
+    import jwt
+
+    token = async_query_manager.generate_jwt({"channel": "abc", "sub": "1"})
+    claims = jwt.decode(token, JWT_TOKEN_SECRET, algorithms=["HS256"])
+
+    assert claims["channel"] == "abc"
+    assert "exp" in claims
+    assert "iat" in claims
+    assert claims["exp"] > claims["iat"]
+    assert (
+        async_query_manager.parse_channel_id_from_request(
+            Mock(cookies={"superset_async_jwt": token})
+        )
+        == "abc"
+    )
+
+
+def test_parse_channel_id_rejects_expired_token(async_query_manager):
+    """An expired token is rejected (PyJWT validates exp on decode)."""
+    past = datetime.now(tz=timezone.utc) - timedelta(hours=2)
+    expired = encode(
+        {
+            "channel": "abc",
+            "iat": past,
+            "exp": past + timedelta(hours=1),
+        },
+        JWT_TOKEN_SECRET,
+        algorithm="HS256",
+    )
+
+    with raises(AsyncQueryTokenException):
+        async_query_manager.parse_channel_id_from_request(
+            Mock(cookies={"superset_async_jwt": expired})
+        )
+
+
+def test_jwt_needs_refresh(async_query_manager):
+    """Refresh missing/legacy/expired/near-expiry tokens; keep fresh ones."""
+    now = datetime.now(tz=timezone.utc)
+
+    # Missing token
+    assert async_query_manager._jwt_needs_refresh(None) is True
+
+    # Legacy token without exp
+    legacy = encode({"channel": "abc"}, JWT_TOKEN_SECRET, algorithm="HS256")
+    assert async_query_manager._jwt_needs_refresh(legacy) is True
+
+    # Fresh token (full lifetime remaining) is not refreshed
+    fresh = async_query_manager.generate_jwt({"channel": "abc"})
+    assert async_query_manager._jwt_needs_refresh(fresh) is False
+
+    # Token in the second half of its lifetime is refreshed
+    near_expiry = encode(
+        {"channel": "abc", "iat": now, "exp": now + timedelta(minutes=10)},
+        JWT_TOKEN_SECRET,
+        algorithm="HS256",
+    )
+    assert async_query_manager._jwt_needs_refresh(near_expiry) is True
 
 
 @mark.parametrize(

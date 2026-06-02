@@ -2332,6 +2332,11 @@ GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE: None | (Literal["None", "Lax", "Strict
 )
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
 GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"  # noqa: S105
+# Lifetime (in seconds) of the async-queries JWT. The token carries an `exp`
+# claim and is transparently refreshed while a session is active (see
+# AsyncQueryManager.register_request_handlers), so a leaked token only grants
+# access to the async event channel for at most this long.
+GLOBAL_ASYNC_QUERIES_JWT_EXP_SECONDS = int(timedelta(hours=1).total_seconds())
 GLOBAL_ASYNC_QUERIES_TRANSPORT: Literal["polling", "ws"] = "polling"
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
