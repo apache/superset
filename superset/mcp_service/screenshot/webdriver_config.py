@@ -72,9 +72,9 @@ def get_pool_stats_endpoint() -> Any:
     """
 
     def pool_stats() -> Any:
-        try:
-            from flask import jsonify
+        from flask import jsonify
 
+        try:
             from superset.mcp_service.screenshot.webdriver_pool import (
                 get_webdriver_pool,
             )
@@ -84,8 +84,6 @@ def get_pool_stats_endpoint() -> Any:
 
             return jsonify({"webdriver_pool": stats, "status": "healthy"})
         except Exception:
-            from flask import jsonify
-
             logger.exception("Failed to retrieve webdriver pool stats")
             return jsonify(
                 {"error": "Failed to retrieve pool stats", "status": "error"}
