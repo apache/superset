@@ -589,6 +589,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # and the script contains backticks, retry with MySQL dialect which
             # supports backtick-quoted identifiers
             if (dialect is None or dialect == Dialects.DIALECT) and "`" in script:
+                logger.warning(
+                    "Parsing with base dialect failed for engine %r; "
+                    "script contains backticks, falling back to MySQL dialect",
+                    engine,
+                )
                 try:
                     statements = sqlglot.parse(script, dialect=Dialects.MYSQL)
                 except sqlglot.errors.ParseError:
