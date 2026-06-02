@@ -155,7 +155,7 @@ def test_model_list_tool_keeps_single_filter_when_created_by_me_is_used():
         "superset.mcp_service.mcp_core.get_current_user",
         return_value=current_user,
     ):
-        tool.run_tool(
+        result = tool.run_tool(
             filters={"col": "name", "opr": "eq", "value": "foo"},
             created_by_me=True,
         )
@@ -164,6 +164,7 @@ def test_model_list_tool_keeps_single_filter_when_created_by_me_is_used():
     assert captured["filters"][0].col == "created_by_fk"
     assert captured["filters"][0].value == 42
     assert captured["filters"][1] == {"col": "name", "opr": "eq", "value": "foo"}
+    assert result.filters_applied == []
 
 
 def test_model_list_tool_rejects_only_user_directory_select_columns():
@@ -246,10 +247,11 @@ def test_model_list_tool_injects_current_user_id_for_created_by_me():
         "superset.mcp_service.mcp_core.get_current_user",
         return_value=current_user,
     ):
-        tool.run_tool(created_by_me=True)
+        result = tool.run_tool(created_by_me=True)
 
     assert captured["filters"][0].col == "created_by_fk"
     assert captured["filters"][0].value == 42
+    assert result.filters_applied == []
 
 
 def test_model_list_tool_created_by_me_requires_authenticated_user():
@@ -305,10 +307,11 @@ def test_model_list_tool_injects_current_user_id_for_owned_by_me():
         "superset.mcp_service.mcp_core.get_current_user",
         return_value=current_user,
     ):
-        tool.run_tool(owned_by_me=True)
+        result = tool.run_tool(owned_by_me=True)
 
     assert captured["filters"][0].col == "owner"
     assert captured["filters"][0].value == 99
+    assert result.filters_applied == []
 
 
 def test_model_list_tool_both_flags_uses_combined_or_filter():
@@ -340,11 +343,12 @@ def test_model_list_tool_both_flags_uses_combined_or_filter():
         "superset.mcp_service.mcp_core.get_current_user",
         return_value=current_user,
     ):
-        tool.run_tool(created_by_me=True, owned_by_me=True)
+        result = tool.run_tool(created_by_me=True, owned_by_me=True)
 
     assert len(captured["filters"]) == 1
     assert captured["filters"][0].col == "created_by_fk_or_owner"
     assert captured["filters"][0].value == 55
+    assert result.filters_applied == []
 
 
 def test_model_list_tool_owned_by_me_requires_authenticated_user():
