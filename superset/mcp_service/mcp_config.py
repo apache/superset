@@ -413,6 +413,7 @@ def _build_composite_verifier(app: Flask, jwt_verifier: Any) -> CompositeTokenVe
     return CompositeTokenVerifier(
         jwt_verifier=jwt_verifier,
         api_key_prefixes=api_key_prefixes,
+        app=app,
     )
 
 

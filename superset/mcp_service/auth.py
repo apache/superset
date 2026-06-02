@@ -52,7 +52,10 @@ from flask import current_app, g, has_app_context, has_request_context
 from flask_appbuilder.security.sqla.models import User
 
 from superset import security_manager
-from superset.mcp_service.composite_token_verifier import API_KEY_PASSTHROUGH_CLAIM
+from superset.mcp_service.composite_token_verifier import (
+    API_KEY_PASSTHROUGH_CLAIM,
+    API_KEY_VALIDATED_USERNAME_CLAIM,
+)
 from superset.mcp_service.mcp_config import (
     default_user_resolver,
     get_mcp_api_key_enabled,
@@ -338,6 +341,49 @@ def _redact_access_token(access_token: Any) -> None:
         pass  # immutable AccessToken; LoggingMiddleware handles sanitization
 
 
+def _load_api_key_user_by_username(username: str) -> User:
+    """Load a user by username after transport-layer API key validation."""
+    user_with_rels = load_user_with_relationships(username=username)
+    if user_with_rels is None:
+        raise PermissionError(f"API key owner '{username}' not found in database.")
+    return user_with_rels
+
+
+def _validate_api_key_fallback(app: Any, api_key_string: str | None) -> User:
+    """Validate an API key via FAB when transport-layer validation was skipped."""
+    if not api_key_string:
+        raise PermissionError(
+            "API key pass-through token is missing the raw token value."
+        )
+
+    sm = app.appbuilder.sm
+    if not hasattr(sm, "validate_api_key"):
+        logger.warning(
+            "FAB SecurityManager does not have validate_api_key; "
+            "cannot validate API key"
+        )
+        raise PermissionError(
+            "API key validation is not available in this FAB version."
+        )
+
+    user = sm.validate_api_key(api_key_string)
+    if not user:
+        raise PermissionError(
+            "Invalid or expired API key. "
+            "Create a new key at /api/v1/security/api_keys/."
+        )
+
+    user_with_rels = load_user_with_relationships(username=user.username)
+    if user_with_rels is None:
+        logger.warning(
+            "Failed to reload API key user id=%s with relationships; "
+            "using original user object which may have lazy-loaded relationships",
+            getattr(user, "id", "?"),
+        )
+        return user
+    return user_with_rels
+
+
 def _resolve_user_from_api_key(app: Any) -> User | None:
     """
     Resolve the current user from an API key passed via Bearer token.
@@ -382,46 +428,17 @@ def _resolve_user_from_api_key(app: Any) -> User | None:
     if getattr(access_token, "client_id", None) != "api_key":
         return None
 
-    api_key_string = getattr(access_token, "token", None)
-    if not api_key_string:
-        # Passthrough claim is set but the raw token is absent — fail closed
-        # rather than silently falling through to weaker auth sources.
-        raise PermissionError(
-            "API key pass-through token is missing the raw token value."
-        )
-
-    sm = app.appbuilder.sm
-    if not hasattr(sm, "validate_api_key"):
-        logger.warning(
-            "FAB SecurityManager does not have validate_api_key; "
-            "cannot validate API key"
-        )
-        raise PermissionError(
-            "API key validation is not available in this FAB version."
-        )
-
-    try:
-        user = sm.validate_api_key(api_key_string)
-    finally:
+    # Fast path: transport layer already validated the key and stored the
+    # username in the claim — skip the second DB call.
+    if validated_username := claims.get(API_KEY_VALIDATED_USERNAME_CLAIM):
         _redact_access_token(access_token)
-    if not user:
-        raise PermissionError(
-            "Invalid or expired API key. "
-            "Create a new key at /api/v1/security/api_keys/."
-        )
+        return _load_api_key_user_by_username(validated_username)
 
-    # Reload user with all relationships eagerly loaded to avoid
-    # detached-instance errors during later permission checks.
-    user_with_rels = load_user_with_relationships(username=user.username)
-    if user_with_rels is None:
-        logger.warning(
-            "Failed to reload API key user id=%s with relationships; "
-            "using original user object which may have lazy-loaded "
-            "relationships",
-            getattr(user, "id", "?"),
-        )
-        return user
-    return user_with_rels
+    # Fallback: no transport-level validation (app=None in CompositeTokenVerifier).
+    # Validate the raw token against FAB here instead.
+    api_key_string = getattr(access_token, "token", None)
+    _redact_access_token(access_token)
+    return _validate_api_key_fallback(app, api_key_string)
 
 
 def get_user_from_request() -> User:

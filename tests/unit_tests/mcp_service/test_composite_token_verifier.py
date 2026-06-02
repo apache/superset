@@ -24,6 +24,7 @@ from fastmcp.server.auth import AccessToken
 
 from superset.mcp_service.composite_token_verifier import (
     API_KEY_PASSTHROUGH_CLAIM,
+    API_KEY_VALIDATED_USERNAME_CLAIM,
     CompositeTokenVerifier,
 )
 
@@ -227,3 +228,118 @@ async def test_api_key_passthrough_propagates_required_scopes() -> None:
 
     assert result is not None
     assert result.scopes == ["read", "write"]
+
+
+# -- Transport-layer DB validation (app configured) --
+
+
+def _make_app_with_api_key(username: str | None) -> MagicMock:
+    """Return a mock Flask app whose SecurityManager validates to ``username``."""
+    mock_user = MagicMock()
+    mock_user.username = username
+
+    mock_sm = MagicMock()
+    mock_sm.validate_api_key = MagicMock(return_value=mock_user if username else None)
+
+    mock_app = MagicMock()
+    mock_app.app_context.return_value.__enter__ = MagicMock(return_value=None)
+    mock_app.app_context.return_value.__exit__ = MagicMock(return_value=False)
+    mock_app.appbuilder.sm = mock_sm
+    return mock_app
+
+
+@pytest.mark.asyncio
+async def test_transport_validation_valid_key_returns_access_token() -> None:
+    """A valid API key with app configured returns AccessToken with username claim."""
+    mock_app = _make_app_with_api_key("alice")
+    verifier = CompositeTokenVerifier(
+        jwt_verifier=None, api_key_prefixes=["sst_"], app=mock_app
+    )
+
+    result = await verifier.verify_token("sst_valid_key")
+
+    assert result is not None
+    assert result.client_id == "api_key"
+    assert result.claims.get(API_KEY_PASSTHROUGH_CLAIM) is True
+    assert result.claims.get(API_KEY_VALIDATED_USERNAME_CLAIM) == "alice"
+
+
+@pytest.mark.asyncio
+async def test_transport_validation_invalid_key_returns_none() -> None:
+    """An invalid API key is rejected at transport (returns None → HTTP 401)."""
+    mock_app = _make_app_with_api_key(None)
+    verifier = CompositeTokenVerifier(
+        jwt_verifier=None, api_key_prefixes=["sst_"], app=mock_app
+    )
+
+    result = await verifier.verify_token("sst_bogus_key")
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_transport_validation_db_error_rejects_token(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """An unexpected DB error during validation rejects the token (fail closed)."""
+    import logging
+
+    mock_sm = MagicMock()
+    mock_sm.validate_api_key = MagicMock(side_effect=RuntimeError("db down"))
+
+    mock_app = MagicMock()
+    mock_app.app_context.return_value.__enter__ = MagicMock(return_value=None)
+    mock_app.app_context.return_value.__exit__ = MagicMock(return_value=False)
+    mock_app.appbuilder.sm = mock_sm
+
+    verifier = CompositeTokenVerifier(
+        jwt_verifier=None, api_key_prefixes=["sst_"], app=mock_app
+    )
+
+    logger_name = "superset.mcp_service.composite_token_verifier"
+    with caplog.at_level(logging.WARNING, logger=logger_name):
+        result = await verifier.verify_token("sst_some_key")
+
+    assert result is None
+    assert any("failed" in r.message.lower() for r in caplog.records)
+
+
+@pytest.mark.asyncio
+async def test_transport_validation_no_validate_api_key_method_rejects() -> None:
+    """If FAB SecurityManager lacks validate_api_key, token is rejected."""
+    mock_sm = MagicMock(spec=[])  # no attributes
+
+    mock_app = MagicMock()
+    mock_app.app_context.return_value.__enter__ = MagicMock(return_value=None)
+    mock_app.app_context.return_value.__exit__ = MagicMock(return_value=False)
+    mock_app.appbuilder.sm = mock_sm
+
+    verifier = CompositeTokenVerifier(
+        jwt_verifier=None, api_key_prefixes=["sst_"], app=mock_app
+    )
+
+    result = await verifier.verify_token("sst_some_key")
+
+    assert result is None
+
+
+@pytest.mark.asyncio
+async def test_transport_validation_jwt_token_not_affected() -> None:
+    """JWT tokens are still delegated to the JWT verifier even when app is set."""
+    mock_app = _make_app_with_api_key("alice")
+    mock_jwt_verifier = MagicMock()
+    mock_jwt_verifier.required_scopes = []
+    mock_jwt_verifier.verify_token = AsyncMock(return_value=None)
+
+    verifier = CompositeTokenVerifier(
+        jwt_verifier=mock_jwt_verifier,
+        api_key_prefixes=["sst_"],
+        app=mock_app,
+    )
+
+    await verifier.verify_token("eyJhbGciOiJSUzI1NiJ9.jwt_payload")
+
+    mock_jwt_verifier.verify_token.assert_awaited_once_with(
+        "eyJhbGciOiJSUzI1NiJ9.jwt_payload"
+    )
+    mock_app.appbuilder.sm.validate_api_key.assert_not_called()
