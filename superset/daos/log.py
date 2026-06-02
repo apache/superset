@@ -28,6 +28,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.utils.core import get_user_id
 from superset.utils.dates import datetime_to_epoch
+from superset.utils.i18n import translate
 
 
 class LogDAO(BaseDAO[Log]):
@@ -128,11 +129,22 @@ class LogDAO(BaseDAO[Log]):
             if log.dashboard_id:
                 item_type = "dashboard"
                 item_url = Dashboard.get_url(log.dashboard_id, log.dashboard_slug)
-                item_title = log.dashboard_title
+                item_title = translate(
+                    log.dashboard_title,
+                    model_name="Dashboard",
+                    field_name="dashboard_title",
+                )
             elif log.slice_id:
                 item_type = "slice"
                 item_url = Slice.build_explore_url(log.slice_id)
-                item_title = log.slice_name or "<empty>"
+                item_title = (
+                    translate(
+                        log.slice_name,
+                        model_name="Slice",
+                        field_name="slice_name",
+                    )
+                    or "<empty>"
+                )
 
             payload.append(
                 {
