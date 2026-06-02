@@ -17,7 +17,13 @@
  * under the License.
  */
 import { useMemo, useCallback, useRef, useState } from 'react';
-import { getTimeFormatter, safeHtmlSpan, TimeFormats } from '@superset-ui/core';
+import {
+  getTimeFormatter,
+  safeHtmlSpan,
+  TimeFormats,
+  getMetricLabel,
+  QueryFormMetric,
+} from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
 import type { IRowNode } from 'ag-grid-community';
@@ -41,20 +47,27 @@ export function useGridColumns(
               const rawHeader = columnDisplayNames?.[key] ?? key;
               let cleanHeader = rawHeader;
 
+              let cleaned = rawHeader;
+              let suffix = '';
+
+              if (rawHeader.endsWith('__contribution')) {
+                cleaned = rawHeader.slice(
+                  0,
+                  rawHeader.length - '__contribution'.length,
+                );
+                suffix = ' (contribution)';
+              }
+
               try {
-                let jsonToParse = rawHeader;
-                let suffix = '';
-
-                if (rawHeader.endsWith('__contribution')) {
-                  jsonToParse = rawHeader.replace('__contribution', '');
-                  suffix = ' (contribution)';
+                const parsed = JSON.parse(cleaned);
+                if (parsed && typeof parsed === 'object') {
+                  cleaned = getMetricLabel(parsed as QueryFormMetric);
                 }
+              } catch {
+                /* not a JSON-encoded metric – keep original display name */
+              }
 
-                const parsed = JSON.parse(jsonToParse);
-                if (parsed && typeof parsed === 'object' && parsed.label) {
-                  cleanHeader = `${parsed.label}${suffix}`;
-                }
-              } catch (_) {}
+              cleanHeader = `${cleaned}${suffix}`;
 
               return {
                 label: key,
