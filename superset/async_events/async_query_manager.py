@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import uuid
+from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, Optional
 
 import jwt
@@ -112,6 +113,7 @@ class AsyncQueryManager:
         self._jwt_cookie_domain: Optional[str]
         self._jwt_cookie_samesite: Optional[Literal["None", "Lax", "Strict"]] = None
         self._jwt_secret: str
+        self._jwt_expiration_seconds: int = 0
         self._load_chart_data_into_cache_job: Any = None
         # pylint: disable=invalid-name
         self._load_explore_json_into_cache_job: Any = None
@@ -147,6 +149,9 @@ class AsyncQueryManager:
         ]
         self._jwt_cookie_domain = app.config["GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN"]
         self._jwt_secret = app.config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
+        self._jwt_expiration_seconds = app.config[
+            "GLOBAL_ASYNC_QUERIES_JWT_EXPIRATION_SECONDS"
+        ]
 
         if app.config["GLOBAL_ASYNC_QUERIES_REGISTER_REQUEST_HANDLERS"]:
             self.register_request_handlers(app)
@@ -178,8 +183,13 @@ class AsyncQueryManager:
                 session["async_user_id"] = user_id
 
                 sub = str(user_id) if user_id else None
+                now = datetime.now(tz=timezone.utc)
                 token = jwt.encode(
-                    {"channel": async_channel_id, "sub": sub},
+                    {
+                        "channel": async_channel_id,
+                        "sub": sub,
+                        "exp": now + timedelta(seconds=self._jwt_expiration_seconds),
+                    },
                     self._jwt_secret,
                     algorithm="HS256",
                 )
