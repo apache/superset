@@ -202,6 +202,7 @@ const ControlPopover: FC<PopoverProps> = ({
       getPopupContainer={handleGetPopupContainer}
       destroyOnHidden={destroyOnHidden}
       afterOpenChange={handleAfterOpenChange}
+      rootClassName="superset-explore-popover"
     />
   );
 };

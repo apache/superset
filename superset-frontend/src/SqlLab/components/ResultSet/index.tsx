@@ -28,7 +28,7 @@ import {
 
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { shallowEqual, useSelector } from 'react-redux';
-import { useAppDispatch } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { useHistory } from 'react-router-dom';
 import { pick } from 'lodash';
 import {
@@ -381,7 +381,11 @@ const ResultSet = ({
             ),
             onConfirm: () => {
               // `getExportCsvUrl` already runs the path through `makeUrl`;
-              // `redirect` re-applies `ensureAppRoot` idempotently.
+              // `redirect` re-applies `ensureAppRoot` idempotently and routes
+              // the sink through navigationUtils' barriers (scheme allowlist,
+              // userinfo rejection, AF-1 backslash rejection), which is a
+              // strict superset of what `sanitizeUrl` from master PR #40546
+              // provides.
               redirect(getExportCsvUrl(query.id));
             },
             confirmText: t('OK'),

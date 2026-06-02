@@ -22,6 +22,14 @@ import {
   type ReactElement,
 } from 'react';
 import { ensureAppRoot, makeUrl, stripAppRoot } from './pathUtils';
+// Note: master PR #40546 added `import { sanitizeUrl } from
+// '@braintree/sanitize-url';` here as part of its sink-wrapping approach.
+// Dropped on merge because this file's `assertSafeNavigationUrl` /
+// inline-barrier scheme is strictly stronger: it rejects `javascript:` /
+// `data:` (scheme allowlist), backslash-laden authority spoofing (AF-1),
+// and userinfo-bearing http(s)/ftp URLs (nit-3) — none of which
+// `sanitizeUrl` rejects. The library remains a project dep (used in
+// ListViewCard, SqlAlchemyForm, etc.) and is intentionally unused here.
 
 // Re-export so callers that legitimately need a raw prefixed path (native
 // fetch, navigator.sendBeacon, image src, third-party `href` props) have a

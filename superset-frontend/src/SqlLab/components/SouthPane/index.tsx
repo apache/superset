@@ -18,7 +18,7 @@
  */
 import { createRef, useCallback, useMemo } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
-import { useAppDispatch } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { nanoid } from 'nanoid';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { t } from '@apache-superset/core/translation';

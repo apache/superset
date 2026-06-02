@@ -66,6 +66,17 @@ CLASS_PERMISSION_ATTR = "_class_permission_name"
 METHOD_PERMISSION_ATTR = "_method_permission_name"
 
 
+class MCPNoAuthSourceError(ValueError):
+    """Raised when no authentication source is available for a request.
+
+    Subclasses ``ValueError`` so existing ``except ValueError`` handlers and
+    tests keep working, while callers that need to distinguish "no auth source
+    configured at all" (fail open in dev/internal deployments) from a genuine
+    credential failure (fail closed) can ``isinstance``-check instead of
+    matching a fragile message string.
+    """
+
+
 class MCPPermissionDeniedError(Exception):
     """Raised when user lacks required RBAC permission for an MCP tool."""
 
@@ -421,28 +432,29 @@ def get_user_from_request() -> User:
     if hasattr(g, "user") and g.user:
         return g.user
 
-    # No auth source available — raise with diagnostic details
+    # No auth source available. Keep the client-facing message generic so it
+    # does not disclose server configuration; the detailed diagnostics are
+    # logged server-side only.
     auth_enabled = current_app.config.get("MCP_AUTH_ENABLED", False)
     jwt_configured = bool(
         current_app.config.get("MCP_JWKS_URI")
         or current_app.config.get("MCP_JWT_PUBLIC_KEY")
         or current_app.config.get("MCP_JWT_SECRET")
     )
-    details = [
-        f"No JWT access token in MCP request context "
-        f"(MCP_AUTH_ENABLED={auth_enabled}, "
-        f"JWT keys configured={jwt_configured})",
-        "No API key in Authorization header",
-        "MCP_DEV_USERNAME is not configured",
-        "g.user was not set by external middleware",
-    ]
-    configured_prefixes = current_app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
-    prefix_example = configured_prefixes[0] if configured_prefixes else "sst_"
-    raise ValueError(
-        "No authenticated user found. Tried:\n"
-        + "\n".join(f"  - {d}" for d in details)
-        + f"\n\nEither pass a valid API key (Bearer {prefix_example}...), "
-        "JWT token, or configure MCP_DEV_USERNAME for development."
+    dev_username_configured = bool(current_app.config.get("MCP_DEV_USERNAME"))
+    logger.debug(
+        "MCP authentication failed: no valid credentials provided "
+        "(no JWT access token, no API key, no g.user from middleware)"
+    )
+    logger.debug(
+        "MCP auth diagnostics: MCP_AUTH_ENABLED=%s, JWT keys configured=%s, "
+        "MCP_DEV_USERNAME configured=%s",
+        auth_enabled,
+        jwt_configured,
+        dev_username_configured,
+    )
+    raise MCPNoAuthSourceError(
+        "Authentication required. No valid credentials provided."
     )
 
 
@@ -500,13 +512,13 @@ def check_chart_data_access(chart: Any) -> "DatasetValidationResult":
 def _log_user_resolution_failure(exc: ValueError) -> None:
     """Log a user-resolution ValueError at the appropriate level.
 
-    "No authenticated user found" is expected in unauthenticated/dev
-    deployments (no JWT, no API key, no MCP_DEV_USERNAME configured) and
-    during tools/list scanning — log at DEBUG to avoid ERROR noise.
-    All other ValueErrors (e.g. dev username not in DB) are genuine
-    credential failures and are logged at ERROR.
+    ``MCPNoAuthSourceError`` (no JWT, no API key, no MCP_DEV_USERNAME
+    configured) is expected in unauthenticated/dev deployments and during
+    tools/list scanning — log at DEBUG to avoid ERROR noise. All other
+    ValueErrors (e.g. dev username not in DB) are genuine credential failures
+    and are logged at ERROR.
     """
-    if "No authenticated user found" in str(exc):
+    if isinstance(exc, MCPNoAuthSourceError):
         logger.debug("MCP: no auth source configured, unauthenticated request")
     else:
         logger.error("MCP user resolution failed, denying request: %s", exc)

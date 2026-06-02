@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 import { useCallback, useState, FormEvent } from 'react';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
@@ -43,7 +42,8 @@ import {
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
-import { useAppDispatch, useAppSelector } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
+import { useAppSelector } from 'src/SqlLab/hooks/useAppSelector';
 import rison from 'rison';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -247,6 +247,10 @@ export const SaveDatasetModal = ({
     // `url` is from `mountExploreUrl(..., includeAppRoot=true)`; the
     // navigationUtils helpers re-apply `ensureAppRoot` idempotently.
     if (openWindow) {
+      // `openInNewTab` / `redirect` route the sink through navigationUtils'
+      // barriers (scheme allowlist, userinfo rejection, AF-1 backslash
+      // rejection) — strictly stronger than master PR #40546's `sanitizeUrl`
+      // wrap, which only rejects `javascript:` / `data:` / `vbscript:`.
       openInNewTab(url);
     } else {
       redirect(url);
