@@ -133,15 +133,20 @@ describe('SqlEditorTabHeader', () => {
       );
     });
 
-    test('should dispatch queryEditorSetTitle action', async () => {
+    test('should dispatch queryEditorSetTitle action via modal confirm', async () => {
       await waitFor(() =>
-        expect(screen.getByTestId('close-tab-menu-option')).toBeInTheDocument(),
+        expect(
+          screen.getByTestId('rename-tab-menu-option'),
+        ).toBeInTheDocument(),
       );
       const expectedTitle = 'typed text';
-      const mockPrompt = jest
-        .spyOn(window, 'prompt')
-        .mockImplementation(() => expectedTitle);
+
       fireEvent.click(screen.getByTestId('rename-tab-menu-option'));
+
+      const input = await screen.findByTestId('rename-tab-input');
+      fireEvent.change(input, { target: { value: expectedTitle } });
+
+      fireEvent.click(screen.getByTestId('rename-tab-confirm'));
 
       const actions = store.getActions();
       await waitFor(() =>
@@ -153,7 +158,88 @@ describe('SqlEditorTabHeader', () => {
           }),
         }),
       );
-      mockPrompt.mockClear();
+    });
+
+    test('should dispatch queryEditorSetTitle action when pressing Enter', async () => {
+      await waitFor(() =>
+        expect(
+          screen.getByTestId('rename-tab-menu-option'),
+        ).toBeInTheDocument(),
+      );
+      const expectedTitle = 'enter key title';
+
+      fireEvent.click(screen.getByTestId('rename-tab-menu-option'));
+
+      const input = await screen.findByTestId('rename-tab-input');
+      fireEvent.change(input, { target: { value: expectedTitle } });
+      fireEvent.keyDown(input, {
+        key: 'Enter',
+        code: 'Enter',
+        keyCode: 13,
+        charCode: 13,
+      });
+
+      const actions = store.getActions();
+      await waitFor(() =>
+        expect(actions[0]).toEqual({
+          type: QUERY_EDITOR_SET_TITLE,
+          name: expectedTitle,
+          queryEditor: expect.objectContaining({
+            id: defaultQueryEditor.id,
+          }),
+        }),
+      );
+    });
+
+    test('cancel button closes modal without dispatching', async () => {
+      await waitFor(() =>
+        expect(
+          screen.getByTestId('rename-tab-menu-option'),
+        ).toBeInTheDocument(),
+      );
+
+      fireEvent.click(screen.getByTestId('rename-tab-menu-option'));
+
+      const input = await screen.findByTestId('rename-tab-input');
+      fireEvent.change(input, { target: { value: 'discarded' } });
+
+      fireEvent.click(screen.getByTestId('rename-tab-cancel'));
+
+      await waitFor(() =>
+        expect(screen.queryByTestId('rename-tab-input')).not.toBeInTheDocument(),
+      );
+      expect(
+        store
+          .getActions()
+          .some(action => action.type === QUERY_EDITOR_SET_TITLE),
+      ).toBe(false);
+    });
+
+    test('confirm with empty input does not dispatch and keeps modal open', async () => {
+      await waitFor(() =>
+        expect(
+          screen.getByTestId('rename-tab-menu-option'),
+        ).toBeInTheDocument(),
+      );
+
+      fireEvent.click(screen.getByTestId('rename-tab-menu-option'));
+
+      const input = await screen.findByTestId('rename-tab-input');
+      fireEvent.change(input, { target: { value: '   ' } });
+      fireEvent.keyDown(input, {
+        key: 'Enter',
+        code: 'Enter',
+        keyCode: 13,
+        charCode: 13,
+      });
+
+      // Modal is still open and no rename action was dispatched.
+      expect(screen.getByTestId('rename-tab-input')).toBeInTheDocument();
+      expect(
+        store
+          .getActions()
+          .some(action => action.type === QUERY_EDITOR_SET_TITLE),
+      ).toBe(false);
     });
 
     test('should dispatch removeAllOtherQueryEditors action', async () => {

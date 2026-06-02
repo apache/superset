@@ -234,7 +234,10 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
         onHide={() => setShowRenameModal(false)}
         footer={
           <>
-            <Button onClick={() => setShowRenameModal(false)}>
+            <Button
+              onClick={() => setShowRenameModal(false)}
+              data-test="rename-tab-cancel"
+            >
               {t('Cancel')}
             </Button>
             <Button
@@ -250,9 +253,10 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
       >
         <span>{t('Enter a new title for the tab')}</span>
         <Input
+          autoFocus
           value={newTitle}
           onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-            setNewTitle(e.target.value)
+            setNewTitle(e.target.value.trim())
           }
           onPressEnter={handleRenameConfirm}
           data-test="rename-tab-input"
