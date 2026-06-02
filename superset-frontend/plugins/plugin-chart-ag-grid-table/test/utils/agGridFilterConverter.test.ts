@@ -315,6 +315,18 @@ describe('agGridFilterConverter', () => {
 
       // a non-numeric bound must never be interpolated into the clause
       expect(result.havingClause).toBeUndefined();
+
+      const emptyBoundFilterModel = {
+        revenue: {
+          filterType: 'number',
+          type: 'inRange',
+          filter: '0',
+          filterTo: '',
+        },
+      } as unknown as AgGridFilterModel;
+
+      const result2 = convertAgGridFiltersToSQL(emptyBoundFilterModel, ['revenue']);
+      expect(result2.havingClause).toBeUndefined();
     });
   });
 
