@@ -1205,6 +1205,15 @@ def test_import_soft_deleted_dataset_non_overwrite_raises_for_non_owner(
         with pytest.raises(ImportFailedError) as excinfo:
             import_dataset(config, overwrite=False)
     assert "permissions to restore" in str(excinfo.value)
+    # Verify the permission check fired before any mutation: if a regression
+    # cleared ``deleted_at`` before raising, this would silently produce a
+    # half-restored row and the test would still pass on the message check
+    # alone.
+    db.session.refresh(existing)
+    assert existing.deleted_at is not None, (
+        "deleted_at was cleared before the exception — restore mutation "
+        "happened before the ownership check"
+    )
 
 
 def test_import_soft_deleted_dataset_raises_when_caller_lacks_can_write(
@@ -1247,6 +1256,15 @@ def test_import_soft_deleted_dataset_raises_when_caller_lacks_can_write(
     with pytest.raises(ImportFailedError) as excinfo:
         import_dataset(config, overwrite=False)
     assert "can_write" in str(excinfo.value)
+    # Case B contract: deleted_at must remain set after the exception. A
+    # regression that clears deleted_at before the can_write check would
+    # leave the row in a half-restored state and silently pass the message
+    # assertion above.
+    db.session.refresh(existing)
+    assert existing.deleted_at is not None, (
+        "Case B: deleted_at was cleared before raising — mutation happened "
+        "before the can_write check"
+    )
 
 
 def test_import_soft_deleted_dataset_restore_removes_orphan_children(
