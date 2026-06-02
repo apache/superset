@@ -25,6 +25,9 @@ export interface Dashboard {
   url: string;
   dashboard_title: string;
   description?: string | null;
+  // Title resolved for the viewer's locale (read-only). Present only when
+  // asset-metadata translation is enabled; falls back to dashboard_title.
+  localized_title?: string;
   thumbnail_url: string | null;
   published: boolean;
   css?: string | null;
