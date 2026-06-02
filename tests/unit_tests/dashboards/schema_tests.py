@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
+
 import pytest
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
@@ -33,7 +35,7 @@ GUEST_RESTRICTED_FIELDS = [
 ]
 
 
-def _dataset_payload() -> dict:
+def _dataset_payload() -> dict[str, Any]:
     return {
         "id": 1,
         "database": {"id": 1, "name": "test_db"},
