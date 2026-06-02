@@ -20,6 +20,7 @@ from __future__ import annotations
 from collections.abc import Generator
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING
+from unittest.mock import patch
 
 import pytest
 from flask.ctx import AppContext
@@ -109,6 +110,47 @@ def test_prune_empty_store_is_noop(
     KeyValuePruneCommand().run()
 
     assert db.session.query(KeyValueEntry).count() == 0
+
+
+def test_prune_skips_entry_refreshed_after_selection(
+    clean_key_value_store: None,
+) -> None:
+    from superset.key_value.commands.prune import KeyValuePruneCommand
+    from superset.key_value.models import KeyValueEntry
+
+    # Simulate the TOCTOU window: an entry is expired when prune selects it but
+    # is refreshed (expires_on moved into the future) before the delete runs.
+    # The delete re-checks expiry against the cutoff captured at selection time,
+    # so the refreshed entry must survive. We inject the refresh right after the
+    # command captures its cutoff by patching datetime.now used in the command.
+    expired = _add_entry(datetime.now() - timedelta(days=1))
+    db.session.commit()  # pylint: disable=consider-using-transaction
+
+    import superset.key_value.commands.prune as prune_module
+
+    real_now = datetime.now
+    state = {"refreshed": False}
+
+    class _PatchedDatetime:
+        @staticmethod
+        def now() -> datetime:
+            # The command calls now() once to capture the cutoff. After that
+            # call, refresh the entry so the subsequent delete sees a future
+            # expires_on but still deletes against the original cutoff.
+            current = real_now()
+            if not state["refreshed"]:
+                state["refreshed"] = True
+                db.session.query(KeyValueEntry).filter(
+                    KeyValueEntry.id == expired.id
+                ).update({KeyValueEntry.expires_on: real_now() + timedelta(days=1)})
+                db.session.commit()  # pylint: disable=consider-using-transaction
+            return current
+
+    with patch.object(prune_module, "datetime", _PatchedDatetime):
+        KeyValuePruneCommand().run()
+
+    remaining_ids = {row.id for row in db.session.query(KeyValueEntry.id).all()}
+    assert expired.id in remaining_ids
 
 
 def test_prune_respects_max_rows_per_run(

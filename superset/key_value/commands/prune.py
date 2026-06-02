@@ -66,13 +66,21 @@ class KeyValuePruneCommand(BaseCommand):
         total_deleted = 0
         start_time = time.time()
 
+        # Capture a single cutoff timestamp and reuse it for both the selection
+        # and the delete. Reusing the same value (rather than calling
+        # datetime.now() again at delete time) keeps the delete predicate
+        # consistent with the selection and re-checks expiry on delete, so an
+        # entry refreshed (expires_on moved into the future) between selection
+        # and deletion is not removed.
+        cutoff = datetime.now()
+
         # Select all IDs whose expiry has already passed. Entries without an
         # expiry (expires_on IS NULL) never expire and are left untouched. The
         # `<=` comparison matches KeyValueEntry.is_expired() and
         # KeyValueDAO.delete_expired_entries() so all expiry checks agree.
         select_stmt = sa.select(KeyValueEntry.id).where(
             KeyValueEntry.expires_on.isnot(None),
-            KeyValueEntry.expires_on <= datetime.now(),
+            KeyValueEntry.expires_on <= cutoff,
         )
 
         # Optionally limited by max_rows_per_run
@@ -94,9 +102,15 @@ class KeyValuePruneCommand(BaseCommand):
         for i in range(0, total_rows, batch_size):
             batch_ids = ids_to_delete[i : i + batch_size]
 
-            # Delete the selected batch using IN clause
+            # Delete the selected batch using IN clause. The expiry predicate is
+            # re-applied here (against the same cutoff captured before selection)
+            # so an entry refreshed between selection and deletion is left intact.
             result = db.session.execute(
-                sa.delete(KeyValueEntry).where(KeyValueEntry.id.in_(batch_ids))
+                sa.delete(KeyValueEntry).where(
+                    KeyValueEntry.id.in_(batch_ids),
+                    KeyValueEntry.expires_on.isnot(None),
+                    KeyValueEntry.expires_on <= cutoff,
+                )
             )
 
             # Update the total number of deleted records
