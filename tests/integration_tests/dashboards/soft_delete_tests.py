@@ -433,7 +433,10 @@ class TestDashboardRestore(SupersetTestCase):
         db.session.add(second)
         db.session.commit()
         second_id = second.id
-        self.client.delete(f"/api/v1/dashboard/{second_id}")
+        response = self.client.delete(f"/api/v1/dashboard/{second_id}")
+        assert response.status_code == 200, (
+            f"Second soft-delete failed: {response.status_code} {response.data!r}"
+        )
 
         # Both rows exist and both are soft-deleted; the partial index
         # tolerates this state.
