@@ -459,7 +459,7 @@ class DatabaseSSHTunnel(Schema):
                 r"^[A-Za-z0-9._:\-\[\]]+$",
                 error=(
                     "server_address must be a valid hostname or IP address "
-                    "(letters, digits, '.', '-', ':' only)"
+                    "(letters, digits, and '.', '_', '-', ':', '[', ']' only)"
                 ),
             ),
         ]
