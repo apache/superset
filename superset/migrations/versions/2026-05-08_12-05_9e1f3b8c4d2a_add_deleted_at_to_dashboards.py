@@ -51,6 +51,7 @@ Create Date: 2026-05-08 12:05:00.000000
 
 from alembic import op
 from sqlalchemy import Column, DateTime
+from sqlalchemy.engine import Connection
 
 from superset.migrations.shared.utils import (
     add_columns,
@@ -72,7 +73,7 @@ PARTIAL_SLUG_INDEX_NAME = f"ix_{TABLE_NAME}_active_slug"
 LEGACY_SLUG_INDEX_NAME = "idx_unique_slug"
 
 
-def _mysql_supports_functional_index(bind) -> bool:
+def _mysql_supports_functional_index(bind: Connection) -> bool:
     """Return True iff the connected MySQL is 8.0+ (supports functional indexes).
 
     Excludes MariaDB even at server version ``>= (10, x)`` because MariaDB
@@ -108,7 +109,7 @@ def _drop_deleted_at_column() -> None:
     drop_columns(TABLE_NAME, "deleted_at")
 
 
-def _replace_slug_constraint_with_partial_index(bind) -> None:
+def _replace_slug_constraint_with_partial_index(bind: Connection) -> None:
     """Swap the full UNIQUE on ``slug`` for a partial index where supported.
 
     The original constraint is named ``idx_unique_slug`` from migration
@@ -139,11 +140,19 @@ def _replace_slug_constraint_with_partial_index(bind) -> None:
         )
 
 
-def _restore_slug_constraint(bind) -> None:
+def _restore_slug_constraint(bind: Connection) -> None:
     """Restore the full UNIQUE on ``slug`` from the partial index.
 
     Symmetric counterpart to ``_replace_slug_constraint_with_partial_index``.
     No-op on dialects that never received the partial index.
+
+    Pre-condition: each value of ``slug`` (other than NULL) must appear at
+    most once across the entire ``dashboards`` table. The partial-index
+    window allowed an active row and a soft-deleted row to share a slug;
+    rebuilding the full unique constraint will abort with a
+    ``UniqueViolation`` if any such pair still exists. Before downgrading,
+    hard-delete the soft-deleted duplicates (or rename one side of each
+    pair) so the constraint can be added cleanly.
     """
     dialect = bind.dialect.name
     if dialect == "postgresql":

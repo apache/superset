@@ -20,6 +20,7 @@ from typing import Any
 
 from superset import db, security_manager
 from superset.commands.exceptions import ImportFailedError
+from superset.commands.importers.v1.utils import find_existing_for_import
 from superset.models.dashboard import Dashboard
 from superset.utils import json
 from superset.utils.core import get_user
@@ -314,8 +315,12 @@ def import_dashboard(  # noqa: C901
         "can_write",
         "Dashboard",
     )
-    from superset.commands.importers.v1.utils import find_existing_for_import
-
+    # `user` is None for background / example-loader paths (no Flask request
+    # user). Combined with ``can_write=True`` (typically from
+    # ``ignore_permissions=True``), the ownership check below is intentionally
+    # skipped because the caller has already established trust at the command
+    # level. This matches pre-existing overwrite behaviour but now also applies
+    # to soft-deleted matches via ``needs_mutation``.
     user = get_user()
 
     if existing := find_existing_for_import(Dashboard, config["uuid"]):
