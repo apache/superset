@@ -268,9 +268,11 @@ test('ChartList list view sorts table when clicking column headers', async () =>
       .calls(/chart\/\?q/)
       .filter(
         call =>
-          call[0].includes('order_column') && call[0].includes('last_saved_at'),
+          call[0].includes('order_column') &&
+          call[0].includes('changed_on_delta_humanized'),
       );
-    expect(lastModifiedSortCalls).toHaveLength(1);
+    const latestCall = lastModifiedSortCalls.at(-1);
+    expect(latestCall?.[0]).toContain('order_direction:asc');
   });
 });
 
