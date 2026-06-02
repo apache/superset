@@ -105,14 +105,24 @@ def _sanitize_iss_for_log(value: Any) -> str:
     )
 
 
-# Maps a tool's method permission (read/write/delete) to the OAuth-style token
-# scope it requires. Used by ``check_tool_permission`` for scope-aware
-# authorization: enforcement is the INTERSECTION of token scopes and DB RBAC.
-# Only applied when the token actually carries scopes — see that function.
+# Maps a tool's method permission to the OAuth-style token scope it requires.
+# Used by ``check_tool_permission`` for scope-aware authorization: enforcement
+# is the INTERSECTION of token scopes and DB RBAC. Only applied when the token
+# actually carries scopes — see ``_token_scope_allows``.
+#
+# SECURITY: this map must cover EVERY method permission used by an MCP tool.
+# A scoped token presented for a method that is NOT in this map is denied
+# (fail closed) rather than allowed, so adding a tool with a new custom
+# permission cannot silently bypass scope enforcement. ``execute_sql_query``
+# is a privileged, write-class operation and therefore requires the write
+# scope. When introducing a new method permission, add it here.
 _METHOD_TO_REQUIRED_SCOPE = {
     "read": "superset:read",
     "write": "superset:write",
     "delete": "superset:write",
+    # SQL execution (execute_sql, get_chart_sql) runs arbitrary queries and is
+    # treated as a write-class privileged operation for scope purposes.
+    "execute_sql_query": "superset:write",
 }
 
 
@@ -156,7 +166,17 @@ def _token_scope_allows(method_permission_name: str) -> bool:
         return True
     required_scope = _METHOD_TO_REQUIRED_SCOPE.get(method_permission_name)
     if required_scope is None:
-        return True
+        # Fail closed: a scoped token was presented for a method permission that
+        # is not in the scope map. Rather than silently bypassing scope
+        # enforcement, deny it so an unmapped (e.g. newly added custom) method
+        # permission cannot be reached by a scoped token. Map the permission in
+        # ``_METHOD_TO_REQUIRED_SCOPE`` to grant access.
+        logger.warning(
+            "Denying scoped token for unmapped method permission '%s'; "
+            "add it to _METHOD_TO_REQUIRED_SCOPE to grant scoped access.",
+            method_permission_name,
+        )
+        return False
     return required_scope in token_scopes
 
 
