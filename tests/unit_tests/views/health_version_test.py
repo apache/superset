@@ -48,18 +48,16 @@ def test_version_exposes_full_metadata_by_default(
     assert body["version_sha"] == "abcd1234"
     assert body["full_sha"] == "abcd1234ef567890"
     assert body["branch_name"] == "master"
+    assert body["build_number"] == "42"
 
 
 def test_version_redacts_details_when_flag_disabled(
     client: Any,
     mocker: MockerFixture,
 ) -> None:
-    """With EXPOSE_VERSION_INFO False only the version string is returned."""
-    mocker.patch(
-        "superset.utils.version.get_version_metadata",
-        return_value=dict(FULL_METADATA),
-    )
+    """With EXPOSE_VERSION_INFO False only VERSION_STRING from config is returned."""
     client.application.config["EXPOSE_VERSION_INFO"] = False
+    client.application.config["VERSION_STRING"] = "1.2.3"
 
     response = client.get("/version")
     assert response.status_code == 200

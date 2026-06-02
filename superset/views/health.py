@@ -45,11 +45,9 @@ def version() -> FlaskResponse:
     build-specific details (Git SHA, full SHA, build number, branch name) are
     omitted so they are not exposed to unauthenticated callers.
     """
+    if not app.config.get("EXPOSE_VERSION_INFO", True):
+        return jsonify({"version_string": app.config.get("VERSION_STRING", "unknown")})
+
     from superset.utils.version import get_version_metadata
 
-    metadata = get_version_metadata()
-
-    if not app.config.get("EXPOSE_VERSION_INFO", True):
-        metadata = {"version_string": metadata.get("version_string", "unknown")}
-
-    return jsonify(metadata)
+    return jsonify(get_version_metadata())
