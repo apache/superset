@@ -245,7 +245,7 @@ export const SaveDatasetModal = ({
 
   const createWindow = (url: string) => {
     if (openWindow) {
-      window.open(url, '_blank', 'noreferrer');
+      window.open(sanitizeUrl(url), '_blank', 'noreferrer');
     } else {
       window.location.href = sanitizeUrl(url);
     }
