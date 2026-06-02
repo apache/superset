@@ -34,7 +34,7 @@ class TestDatasetSoftDelete(SupersetTestCase):
         assert dataset is not None, "No datasets found — load examples first"
         return dataset.id
 
-    def test_delete_dataset_soft_deletes(self):
+    def test_delete_dataset_soft_deletes(self) -> None:
         """DELETE should set deleted_at instead of removing the row."""
         dataset_id = self._get_example_dataset_id()
         self.login(ADMIN_USERNAME)
@@ -55,7 +55,7 @@ class TestDatasetSoftDelete(SupersetTestCase):
         row.restore()
         db.session.commit()
 
-    def test_soft_deleted_dataset_excluded_from_list(self):
+    def test_soft_deleted_dataset_excluded_from_list(self) -> None:
         """GET /api/v1/dataset/ should not include soft-deleted datasets."""
         dataset_id = self._get_example_dataset_id()
         self.login(ADMIN_USERNAME)
@@ -78,7 +78,7 @@ class TestDatasetSoftDelete(SupersetTestCase):
             row.restore()
             db.session.commit()
 
-    def test_soft_deleted_dataset_included_in_list_when_requested(self):
+    def test_soft_deleted_dataset_included_in_list_when_requested(self) -> None:
         """GET /api/v1/dataset/ with dataset_deleted_state=include returns deleted datasets."""  # noqa: E501
         dataset_id = self._get_example_dataset_id()
         self.login(ADMIN_USERNAME)
@@ -108,7 +108,7 @@ class TestDatasetSoftDelete(SupersetTestCase):
             row.restore()
             db.session.commit()
 
-    def test_only_filter_returns_only_soft_deleted_datasets(self):
+    def test_only_filter_returns_only_soft_deleted_datasets(self) -> None:
         """dataset_deleted_state=only excludes live rows and returns only deleted ones."""  # noqa: E501
         ids = [row.id for row in db.session.query(SqlaTable).limit(2).all()]
         assert len(ids) >= 2, "Need at least two example datasets for this test"
@@ -137,7 +137,7 @@ class TestDatasetSoftDelete(SupersetTestCase):
             row.restore()
             db.session.commit()
 
-    def test_no_cascade_to_dependent_charts(self):
+    def test_no_cascade_to_dependent_charts(self) -> None:
         """Soft-deleting a dataset should NOT cascade to its charts (FR-009, T018)."""
         dataset_id = self._get_example_dataset_id()
         self.login(ADMIN_USERNAME)
@@ -182,7 +182,7 @@ class TestDatasetRestore(SupersetTestCase):
         assert dataset is not None
         return dataset
 
-    def test_restore_soft_deleted_dataset(self):
+    def test_restore_soft_deleted_dataset(self) -> None:
         """POST /api/v1/dataset/<uuid>/restore should make it visible again."""
         dataset = self._get_example_dataset()
         dataset_id = dataset.id
@@ -197,7 +197,7 @@ class TestDatasetRestore(SupersetTestCase):
         rv = self.client.get(f"/api/v1/dataset/{dataset_id}")
         assert rv.status_code == 200
 
-    def test_restore_blocked_by_active_logical_duplicate(self):
+    def test_restore_blocked_by_active_logical_duplicate(self) -> None:
         """Restore returns 422 when another active dataset already references
         the same physical table.
 
@@ -266,7 +266,7 @@ class TestDatasetRestore(SupersetTestCase):
                 is None
             )
 
-    def test_create_blocked_by_soft_deleted_logical_duplicate(self):
+    def test_create_blocked_by_soft_deleted_logical_duplicate(self) -> None:
         """Create returns 422 when a soft-deleted dataset references the same
         physical table.
 
