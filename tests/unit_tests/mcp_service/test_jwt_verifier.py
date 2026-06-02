@@ -17,11 +17,13 @@
 
 """Tests for DetailedJWTVerifier and related middleware."""
 
+import asyncio
 import base64
 import logging
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
+import httpx
 import pytest
 from authlib.jose.errors import BadSignatureError, DecodeError, ExpiredTokenError
 
@@ -422,6 +424,64 @@ async def test_verification_key_failure(hs256_verifier):
     assert reason == "Failed to get verification key"
     # Exception details must not leak into the contextvar reason
     assert "JWKS endpoint unreachable" not in reason
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "network_error",
+    [
+        httpx.ConnectError("connection refused"),
+        httpx.ConnectTimeout("connect timed out"),
+        httpx.ReadTimeout("read timed out"),
+        httpx.HTTPStatusError(
+            "500 Server Error",
+            request=httpx.Request("GET", "https://idp.example/jwks"),
+            response=httpx.Response(500),
+        ),
+        asyncio.TimeoutError("overall timeout"),
+        ConnectionError("connection reset"),
+        OSError("dns failure"),
+    ],
+    ids=[
+        "connect_error",
+        "connect_timeout",
+        "read_timeout",
+        "http_500",
+        "asyncio_timeout",
+        "connection_error",
+        "os_error",
+    ],
+)
+async def test_jwks_network_error_fails_closed(hs256_verifier, network_error):
+    """A network failure while fetching the JWKS must reject the token.
+
+    Remote JWKS verification performs a network call. If that call times out,
+    is refused, or returns a non-200, verification cannot complete — the token
+    must be rejected (fail CLOSED), never accepted and never surfaced as an
+    unhandled 500. This covers raw transport exceptions that could escape the
+    upstream conversion to ValueError.
+    """
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT", "kid": "key-1"},
+        {"sub": "user1"},
+    )
+
+    with patch.object(
+        hs256_verifier,
+        "_get_verification_key",
+        side_effect=network_error,
+    ):
+        # Must NOT raise — must resolve to a clean auth failure.
+        result = await hs256_verifier.load_access_token(token)
+
+    # Fail closed: no access token granted.
+    assert result is None
+    # Generic, non-leaking failure reason recorded for the 401 path. Raw
+    # transport errors are categorized as a JWKS retrieval failure.
+    reason = _jwt_failure_reason.get()
+    assert reason == "JWKS verification key unavailable"
+    # Underlying error detail must not leak into the reason surfaced to clients.
+    assert str(network_error) not in (reason or "")
 
 
 @pytest.mark.asyncio
