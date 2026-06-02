@@ -22,7 +22,7 @@ from superset.extensions import db
 from superset.models.slice import Slice
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
 
 
 class TestDatasetSoftDelete(SupersetTestCase):
@@ -196,6 +196,57 @@ class TestDatasetRestore(SupersetTestCase):
 
         rv = self.client.get(f"/api/v1/dataset/{dataset_id}")
         assert rv.status_code == 200
+
+    def test_restore_uses_can_write_permission(self) -> None:
+        """Non-admin owner with ``can_write_Dataset`` can hit the restore
+        endpoint.
+
+        Pins the permission contract: ``method_permission_name`` must map
+        ``restore`` to ``write`` so FAB's ``@protect`` resolves the gate to
+        ``can_write_Dataset`` (which Alpha already carries), not the
+        implicit fallback ``can_restore_Dataset`` (which no standard role
+        carries).
+
+        Without the mapping FAB defaults to ``can_<method>_<class>`` and
+        every non-admin would get 403 here — admins bypass FAB permission
+        checks entirely, so the admin-authed restore test above doesn't
+        exercise the mapping.
+        """
+        dataset = self._get_example_dataset()
+        dataset_id = dataset.id
+        dataset_uuid = str(dataset.uuid)
+        alpha = self.get_user(ALPHA_USERNAME)
+
+        # Make Alpha an owner so raise_for_ownership passes.
+        dataset.owners = list(dataset.owners) + [alpha]
+        db.session.commit()
+
+        try:
+            self.login(ALPHA_USERNAME)
+            rv = self.client.delete(f"/api/v1/dataset/{dataset_id}")
+            assert rv.status_code == 200, (
+                f"Alpha owner soft-delete failed: {rv.status_code} {rv.data!r}"
+            )
+
+            rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/restore")
+            assert rv.status_code == 200, (
+                f"Expected 200 from Alpha owner restore (can_write_Dataset), "
+                f"got {rv.status_code}: {rv.data!r}. If 403, "
+                "method_permission_name is missing 'restore': 'write'."
+            )
+        finally:
+            # Restore example dataset state: remove Alpha from owners and
+            # ensure deleted_at is cleared in case the restore attempt failed.
+            row = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter(SqlaTable.id == dataset_id)
+                .one()
+            )
+            row.owners = [o for o in row.owners if o.id != alpha.id]
+            if row.deleted_at is not None:
+                row.restore()
+            db.session.commit()
 
     def test_restore_blocked_by_active_logical_duplicate(self) -> None:
         """Restore returns 422 when another active dataset already references
