@@ -141,8 +141,9 @@ jobs:
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
+        env:
+          APP_ROOT: ${{ matrix.app_root }}
         run: |
-          APP_ROOT="${{ matrix.app_root }}"
           SAFE_APP_ROOT=${APP_ROOT//\//_}
           echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
       - name: Upload Artifacts
@@ -239,6 +240,11 @@ jobs:
         uses: ./.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
+      - name: Build embedded SDK
+        if: steps.check.outputs.python || steps.check.outputs.frontend
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: build-embedded-sdk
       - name: Install Playwright
         if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
@@ -254,8 +260,9 @@ jobs:
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
+        env:
+          APP_ROOT: ${{ matrix.app_root }}
         run: |
-          APP_ROOT="${{ matrix.app_root }}"
           SAFE_APP_ROOT=${APP_ROOT//\//_}
           echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
       - name: Upload Playwright Artifacts

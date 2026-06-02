@@ -52,7 +52,7 @@ attrs==25.3.0
     #   referencing
     #   requests-cache
     #   trio
-authlib==1.6.9
+authlib==1.6.12
     # via fastmcp
 babel==2.17.0
     # via
@@ -183,6 +183,7 @@ cryptography==46.0.7
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   authlib
+    #   joserfc
     #   paramiko
     #   pyjwt
     #   pyopenssl
@@ -317,7 +318,7 @@ flask-wtf==1.2.2
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   flask-appbuilder
-fonttools==4.55.0
+fonttools==4.60.2
     # via matplotlib
 freezegun==1.5.1
     # via apache-superset
@@ -422,7 +423,7 @@ humanize==4.12.3
     #   apache-superset
 identify==2.5.36
     # via pre-commit
-idna==3.10
+idna==3.15
     # via
     #   -c requirements/base-constraint.txt
     #   anyio
@@ -471,6 +472,8 @@ jmespath==1.1.0
     # via
     #   boto3
     #   botocore
+joserfc==1.6.8
+    # via apache-superset
 jsonpath-ng==1.7.0
     # via
     #   -c requirements/base-constraint.txt
@@ -566,7 +569,7 @@ msgspec==0.19.0
     #   flask-session
 mysqlclient==2.2.6
     # via apache-superset
-nh3==0.2.21
+nh3==0.3.5
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -768,7 +771,7 @@ pygments==2.20.0
     #   rich
 pyhive==0.7.0
     # via apache-superset
-pyinstrument==4.4.0
+pyinstrument==5.1.2
     # via apache-superset
 pyjwt==2.12.0
     # via
@@ -838,7 +841,7 @@ python-dotenv==1.2.2
     #   apache-superset
     #   fastmcp
     #   pydantic-settings
-python-ldap==3.4.4
+python-ldap==3.4.5
     # via apache-superset
 python-multipart==0.0.29
     # via mcp
@@ -1005,7 +1008,7 @@ starlette==0.49.1
     # via mcp
 statsd==4.0.1
     # via apache-superset
-syntaqlite==0.1.0
+syntaqlite==0.4.2
     # via apache-superset
 tabulate==0.10.0
     # via
@@ -1090,7 +1093,7 @@ vine==5.1.0
     #   amqp
     #   celery
     #   kombu
-virtualenv==20.29.2
+virtualenv==20.36.1
     # via pre-commit
 watchdog==6.0.0
     # via

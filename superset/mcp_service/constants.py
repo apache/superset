@@ -20,7 +20,7 @@ from typing import Literal
 
 # Supported model types for schema discovery and MCP tools
 ModelType = Literal[
-    "chart", "dataset", "dashboard", "database", "css_template", "theme"
+    "chart", "dataset", "dashboard", "database", "css_template", "theme", "report"
 ]
 
 # Pagination defaults

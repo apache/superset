@@ -20,6 +20,7 @@
 import { Page, Locator } from '@playwright/test';
 import { Button, Table } from '../components/core';
 import { BulkSelect } from '../components/ListView';
+import { gotoWithRetry } from '../helpers/navigation';
 import { URL } from '../utils/urls';
 
 /**
@@ -54,7 +55,7 @@ export class DatasetListPage {
    * Navigate to the dataset list page
    */
   async goto(): Promise<void> {
-    await this.page.goto(URL.DATASET_LIST);
+    await gotoWithRetry(this.page, URL.DATASET_LIST);
   }
 
   /**
