@@ -457,7 +457,9 @@ class TestChartsUpdateCommand(SupersetTestCase):
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_query_context_update_requires_chart_access(self, mock_sm_g, mock_g):
+    def test_query_context_update_requires_chart_access(
+        self, mock_sm_g, mock_g, mock_u_g
+    ):
         """
         A query_context-only update relaxes the ownership requirement but must
         still require access to the chart: a non-owner without access to the
@@ -471,7 +473,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
 
         # gamma has no access to the energy datasource and does not own the chart
         gamma = security_manager.find_user(username="gamma")
-        mock_g.user = mock_sm_g.user = gamma
+        mock_g.user = mock_sm_g.user = mock_u_g.user = gamma
         json_obj = {
             "query_context_generation": True,
             "query_context": json.dumps({"foo": "bar"}),
