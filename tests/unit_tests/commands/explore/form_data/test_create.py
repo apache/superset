@@ -112,9 +112,7 @@ def test_run_sets_cache_with_explicit_timeout():
             "superset.commands.explore.form_data.create.random_key",
             return_value="random-key",
         ),
-        patch(
-            "superset.commands.explore.form_data.create.get_user_id", return_value=1
-        ),
+        patch("superset.commands.explore.form_data.create.get_user_id", return_value=1),
         patch.object(command, "_get_session_id", return_value="test-session-id"),
     ):
         mock_cache_manager.explore_form_data_cache.get.return_value = None

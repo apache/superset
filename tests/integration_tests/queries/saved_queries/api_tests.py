@@ -862,9 +862,7 @@ class TestSavedQueryApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         argument = [sample_query.id]
         token = "valid_token-123"  # noqa: S105
-        uri = (
-            f"api/v1/saved_query/export/?q={rison.dumps(argument)}&token={token}"
-        )
+        uri = f"api/v1/saved_query/export/?q={rison.dumps(argument)}&token={token}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         assert any(
@@ -886,14 +884,10 @@ class TestSavedQueryApi(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         argument = [sample_query.id]
         token = "bad token;with=chars"  # noqa: S105
-        uri = (
-            f"api/v1/saved_query/export/?q={rison.dumps(argument)}&token={token}"
-        )
+        uri = f"api/v1/saved_query/export/?q={rison.dumps(argument)}&token={token}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
-        assert not any(
-            cookie.value == "done" for cookie in self.client.cookie_jar
-        )
+        assert not any(cookie.value == "done" for cookie in self.client.cookie_jar)
 
     @pytest.mark.usefixtures("create_saved_queries")
     def test_export_not_found(self):
