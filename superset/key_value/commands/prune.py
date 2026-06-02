@@ -67,10 +67,12 @@ class KeyValuePruneCommand(BaseCommand):
         start_time = time.time()
 
         # Select all IDs whose expiry has already passed. Entries without an
-        # expiry (expires_on IS NULL) never expire and are left untouched.
+        # expiry (expires_on IS NULL) never expire and are left untouched. The
+        # `<=` comparison matches KeyValueEntry.is_expired() and
+        # KeyValueDAO.delete_expired_entries() so all expiry checks agree.
         select_stmt = sa.select(KeyValueEntry.id).where(
             KeyValueEntry.expires_on.isnot(None),
-            KeyValueEntry.expires_on < datetime.now(),
+            KeyValueEntry.expires_on <= datetime.now(),
         )
 
         # Optionally limited by max_rows_per_run
