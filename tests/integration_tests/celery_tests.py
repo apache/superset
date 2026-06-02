@@ -130,6 +130,18 @@ def quote_f(value: Optional[str]):
         return inspector.engine.dialect.identifier_preparer.quote_identifier(value)
 
 
+def expected_cta_sql(
+    ctas_method: CTASMethod, table: str, schema: Optional[str] = None
+) -> str:
+    target = quote_f(table)
+    if schema:
+        target = f"{quote_f(schema)}.{target}"
+    return (
+        f"CREATE {ctas_method.name} {target} AS\n"
+        "SELECT\n  name\nFROM birth_names\nLIMIT 1"
+    )
+
+
 def cta_result(ctas_method: CTASMethod):
     if backend() != "presto":
         return [], []
@@ -238,12 +250,8 @@ def test_run_sync_query_cta_config(
     if db_backend == "sqlite":
         # sqlite doesn't support schemas
         return
-    q = "`" if db_backend == "mysql" else '"'
     tmp_table_name = f"{TEST_SYNC_CTA}_{ctas_method.name.lower()}"
-    tbl = f"{q}{CTAS_SCHEMA_NAME}{q}.{q}{tmp_table_name}{q}"
-    expected = (
-        f"CREATE {ctas_method.name} {tbl} AS\nSELECT\n  name\nFROM birth_names\nLIMIT 1"
-    )
+    expected = expected_cta_sql(ctas_method, tmp_table_name, CTAS_SCHEMA_NAME)
     result = run_sql(
         test_client, QUERY, cta=True, ctas_method=ctas_method, tmp_table=tmp_table_name
     )
@@ -275,12 +283,8 @@ def test_run_async_query_cta_config(
     if db_backend == "sqlite":
         # sqlite doesn't support schemas
         return
-    q = "`" if db_backend == "mysql" else '"'
     tmp_table_name = f"{TEST_ASYNC_CTA_CONFIG}_{ctas_method.name.lower()}"
-    tbl = f"{q}{CTAS_SCHEMA_NAME}{q}.{q}{tmp_table_name}{q}"
-    expected = (
-        f"CREATE {ctas_method.name} {tbl} AS\nSELECT\n  name\nFROM birth_names\nLIMIT 1"
-    )
+    expected = expected_cta_sql(ctas_method, tmp_table_name, CTAS_SCHEMA_NAME)
     result = run_sql(
         test_client,
         QUERY,
@@ -309,12 +313,8 @@ def test_run_async_cta_query(
     ctas_method: CTASMethod,
 ) -> None:
     db_backend = backend()
-    q = "`" if db_backend == "mysql" else '"'
     table_name = f"{TEST_ASYNC_CTA}_{ctas_method.name.lower()}"
-    expected = (
-        f"CREATE {ctas_method.name} {q}{table_name}{q} AS\n"
-        "SELECT\n  name\nFROM birth_names\nLIMIT 1"
-    )
+    expected = expected_cta_sql(ctas_method, table_name)
     result = run_sql(
         test_client,
         QUERY,
@@ -345,12 +345,8 @@ def test_run_async_cta_query_with_lower_limit(
     ctas_method: CTASMethod,
 ) -> None:
     db_backend = backend()
-    q = "`" if db_backend == "mysql" else '"'
     tmp_table = f"{TEST_ASYNC_LOWER_LIMIT}_{ctas_method.name.lower()}"
-    expected = (
-        f"CREATE {ctas_method.name} {q}{tmp_table}{q} AS\n"
-        "SELECT\n  name\nFROM birth_names\nLIMIT 1"
-    )
+    expected = expected_cta_sql(ctas_method, tmp_table)
     result = run_sql(
         test_client,
         QUERY,

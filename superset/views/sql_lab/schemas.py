@@ -15,7 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from marshmallow import fields, Schema, validate
+from marshmallow import fields, Schema
+
+from superset.sqllab.schemas import tmp_table_name_validator
 
 
 class SqlJsonPayloadSchema(Schema):
@@ -30,10 +32,7 @@ class SqlJsonPayloadSchema(Schema):
     templateParams = fields.String(allow_none=True)  # noqa: N815
     tmp_table_name = fields.String(
         allow_none=True,
-        validate=validate.Regexp(
-            r"^([A-Za-z_][A-Za-z0-9_]*)?$",
-            error="tmp_table_name must contain only letters, digits, and underscores",
-        ),
+        validate=tmp_table_name_validator,
     )
     select_as_cta = fields.Boolean(allow_none=True)
     runAsync = fields.Boolean(allow_none=True)  # noqa: N815
