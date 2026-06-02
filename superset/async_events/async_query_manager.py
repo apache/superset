@@ -201,6 +201,7 @@ class AsyncQueryManager:
                     secure=self._jwt_cookie_secure,
                     domain=self._jwt_cookie_domain,
                     samesite=self._jwt_cookie_samesite,
+                    max_age=self._jwt_expiration_seconds,
                 )
 
             return response
