@@ -18,10 +18,17 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+import uuid
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+# Stable UUIDs make the test boundary realistic: the production command
+# loads by UUID, not integer ID. The test only mocks the DAO lookup, but
+# the argument shape should still match.
+_DATASET_UUID = str(uuid.uuid4())
+_MISSING_UUID = str(uuid.uuid4())
 
 
 def test_restore_dataset_clears_deleted_at(app_context: None) -> None:
@@ -29,7 +36,7 @@ def test_restore_dataset_clears_deleted_at(app_context: None) -> None:
     from superset.commands.dataset.restore import RestoreDatasetCommand
 
     dataset = MagicMock()
-    dataset.deleted_at = datetime(2026, 1, 1)
+    dataset.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
     dataset.id = 1
 
     with (
@@ -37,10 +44,15 @@ def test_restore_dataset_clears_deleted_at(app_context: None) -> None:
             "superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset
         ) as mock_find,
         patch("superset.commands.restore.security_manager") as mock_sec,
+        patch.object(
+            RestoreDatasetCommand,
+            "_has_active_logical_duplicate",
+            return_value=False,
+        ),
     ):
         mock_sec.raise_for_ownership.return_value = None
 
-        cmd = RestoreDatasetCommand("1")
+        cmd = RestoreDatasetCommand(_DATASET_UUID)
         cmd.run()
 
     mock_find.assert_called_once()
@@ -53,7 +65,7 @@ def test_restore_dataset_not_found_raises(app_context: None) -> None:
     from superset.commands.dataset.restore import RestoreDatasetCommand
 
     with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=None):
-        cmd = RestoreDatasetCommand("999")
+        cmd = RestoreDatasetCommand(_MISSING_UUID)
         with pytest.raises(DatasetNotFoundError):
             cmd.run()
 
@@ -67,7 +79,7 @@ def test_restore_active_dataset_raises_not_found(app_context: None) -> None:
     dataset.deleted_at = None  # not soft-deleted
 
     with patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset):
-        cmd = RestoreDatasetCommand("1")
+        cmd = RestoreDatasetCommand(_DATASET_UUID)
         with pytest.raises(DatasetNotFoundError):
             cmd.run()
 
@@ -79,7 +91,7 @@ def test_restore_dataset_forbidden_raises(app_context: None) -> None:
     from superset.exceptions import SupersetSecurityException
 
     dataset = MagicMock()
-    dataset.deleted_at = datetime(2026, 1, 1)
+    dataset.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
     def raise_security(*args: object, **kwargs: object) -> None:
         raise SupersetSecurityException(MagicMock())
@@ -90,6 +102,71 @@ def test_restore_dataset_forbidden_raises(app_context: None) -> None:
     ):
         mock_sec.raise_for_ownership = raise_security
 
-        cmd = RestoreDatasetCommand("1")
+        cmd = RestoreDatasetCommand(_DATASET_UUID)
         with pytest.raises(DatasetForbiddenError):
             cmd.run()
+
+
+def test_restore_dataset_logical_duplicate_raises(app_context: None) -> None:
+    """Restore raises DatasetLogicalDuplicateError when another active dataset
+    already references the same physical table.
+
+    SqlaTable uniqueness is enforced in application code (no DB constraint),
+    so a soft-deleted dataset can have its logical slot claimed by a new
+    active row before restore. The command refuses the restore so the
+    operator (not the database) sees a clean error.
+    """
+    from superset.commands.dataset.exceptions import DatasetLogicalDuplicateError
+    from superset.commands.dataset.restore import RestoreDatasetCommand
+
+    dataset = MagicMock()
+    dataset.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    dataset.id = 42
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch("superset.commands.restore.security_manager") as mock_sec,
+        patch.object(
+            RestoreDatasetCommand,
+            "_has_active_logical_duplicate",
+            return_value=True,
+        ) as mock_dup_check,
+    ):
+        mock_sec.raise_for_ownership.return_value = None
+
+        cmd = RestoreDatasetCommand(_DATASET_UUID)
+        with pytest.raises(DatasetLogicalDuplicateError):
+            cmd.run()
+
+    mock_dup_check.assert_called_once_with(dataset)
+
+
+def test_restore_dataset_no_logical_duplicate_when_none_exists(
+    app_context: None,
+) -> None:
+    """The duplicate check is consulted on every restore, even when the
+    answer is no — guards against a regression where the override silently
+    short-circuits and never queries.
+    """
+    from superset.commands.dataset.restore import RestoreDatasetCommand
+
+    dataset = MagicMock()
+    dataset.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    dataset.id = 42
+
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch("superset.commands.restore.security_manager") as mock_sec,
+        patch.object(
+            RestoreDatasetCommand,
+            "_has_active_logical_duplicate",
+            return_value=False,
+        ) as mock_dup_check,
+    ):
+        mock_sec.raise_for_ownership.return_value = None
+
+        cmd = RestoreDatasetCommand(_DATASET_UUID)
+        cmd.run()
+
+    mock_dup_check.assert_called_once_with(dataset)
+    dataset.restore.assert_called_once()

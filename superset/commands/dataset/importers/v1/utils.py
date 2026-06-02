@@ -290,6 +290,28 @@ def import_dataset(  # noqa: C901
         # contain "id"; what actually binds to the existing row is
         # the uuid uniqueness constraint used inside import_from_dict.
         if is_soft_deleted:
+            # Before clearing ``deleted_at``, refuse if another active dataset
+            # already references the same physical table. Otherwise the
+            # restore would produce two live ``SqlaTable`` rows for one
+            # physical table, breaking the logical-uniqueness contract. The
+            # query relies on the SoftDeleteMixin listener to consider only
+            # active rows, and excludes ``existing`` itself via ``id !=``.
+            if (
+                db.session.query(SqlaTable.id)
+                .filter(
+                    SqlaTable.database_id == existing.database_id,
+                    SqlaTable.catalog == existing.catalog,
+                    SqlaTable.schema == existing.schema,
+                    SqlaTable.table_name == existing.table_name,
+                    SqlaTable.id != existing.id,
+                )
+                .first()
+                is not None
+            ):
+                raise ImportFailedError(
+                    "Dataset cannot be restored via re-import because another "
+                    "active dataset already references the same physical table"
+                )
             existing.deleted_at = None
             db.session.flush()
             is_soft_deleted_match = True

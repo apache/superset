@@ -31,6 +31,7 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
 from superset.models.core import Database
@@ -165,11 +166,19 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         # multi-catalog is disabled.
         catalog = table.catalog or database.get_default_catalog()
 
-        dataset_query = db.session.query(SqlaTable).filter(
-            SqlaTable.table_name == table.table,
-            SqlaTable.schema == table.schema,
-            SqlaTable.catalog == catalog,
-            SqlaTable.database_id == database.id,
+        # Bypass the soft-delete visibility filter so a soft-deleted row with
+        # the same physical identity still blocks the create. Otherwise a
+        # delete-then-create-then-restore sequence could produce two live
+        # datasets pointing at the same physical table.
+        dataset_query = (
+            db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+            .filter(
+                SqlaTable.table_name == table.table,
+                SqlaTable.schema == table.schema,
+                SqlaTable.catalog == catalog,
+                SqlaTable.database_id == database.id,
+            )
         )
 
         if dataset_id:
@@ -188,12 +197,19 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         # multi-catalog is disabled.
         catalog = table.catalog or database.get_default_catalog()
 
-        dataset_query = db.session.query(SqlaTable).filter(
-            SqlaTable.table_name == table.table,
-            SqlaTable.database_id == database.id,
-            SqlaTable.schema == table.schema,
-            SqlaTable.catalog == catalog,
-            SqlaTable.id != dataset_id,
+        # Same rationale as ``validate_uniqueness`` above: bypass the
+        # soft-delete visibility filter so a soft-deleted twin blocks
+        # the update rather than being silently ignored.
+        dataset_query = (
+            db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+            .filter(
+                SqlaTable.table_name == table.table,
+                SqlaTable.database_id == database.id,
+                SqlaTable.schema == table.schema,
+                SqlaTable.catalog == catalog,
+                SqlaTable.id != dataset_id,
+            )
         )
         return not db.session.query(dataset_query.exists()).scalar()
 

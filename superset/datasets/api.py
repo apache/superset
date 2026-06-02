@@ -42,6 +42,7 @@ from superset.commands.dataset.exceptions import (
     DatasetDeleteFailedError,
     DatasetForbiddenError,
     DatasetInvalidError,
+    DatasetLogicalDuplicateError,
     DatasetNotFoundError,
     DatasetRefreshFailedError,
     DatasetRestoreFailedError,
@@ -975,6 +976,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             return self.response_404()
         except DatasetForbiddenError:
             return self.response_403()
+        except DatasetLogicalDuplicateError as ex:
+            return self.response_422(message=str(ex))
         except DatasetRestoreFailedError as ex:
             logger.error(
                 "Error restoring model %s: %s",

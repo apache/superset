@@ -196,3 +196,119 @@ class TestDatasetRestore(SupersetTestCase):
 
         rv = self.client.get(f"/api/v1/dataset/{dataset_id}")
         assert rv.status_code == 200
+
+    def test_restore_blocked_by_active_logical_duplicate(self):
+        """Restore returns 422 when another active dataset already references
+        the same physical table.
+
+        Without the duplicate check, the soft-deleted dataset's logical slot
+        could be claimed by a new active row and restore would silently
+        produce two live ``SqlaTable`` entries for one physical table.
+        """
+        dataset = self._get_example_dataset()
+        original_id = dataset.id
+        original_uuid = str(dataset.uuid)
+        database_id = dataset.database_id
+        catalog = dataset.catalog
+        schema = dataset.schema
+        table_name = dataset.table_name
+
+        self.login(ADMIN_USERNAME)
+
+        # Soft-delete the original.
+        rv = self.client.delete(f"/api/v1/dataset/{original_id}")
+        assert rv.status_code == 200
+
+        # Claim the logical slot with a new active dataset pointing at the
+        # same physical table.
+        twin = SqlaTable(
+            table_name=table_name,
+            database_id=database_id,
+            catalog=catalog,
+            schema=schema,
+        )
+        db.session.add(twin)
+        db.session.commit()
+        twin_id = twin.id
+
+        try:
+            rv = self.client.post(f"/api/v1/dataset/{original_uuid}/restore")
+            assert rv.status_code == 422, (
+                f"Expected 422 for logical-duplicate restore, "
+                f"got {rv.status_code}: {rv.data!r}"
+            )
+
+            # The original is still soft-deleted; restore did not mutate it.
+            row = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter(SqlaTable.id == original_id)
+                .one()
+            )
+            assert row.deleted_at is not None, (
+                "Original dataset should remain soft-deleted after blocked restore"
+            )
+        finally:
+            # Cleanup: remove the twin and clear deleted_at on the original
+            # so the example dataset is available to other tests.
+            db.session.delete(twin)
+            row = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter(SqlaTable.id == original_id)
+                .one()
+            )
+            row.restore()
+            db.session.commit()
+            # Ensure twin is fully gone before next test runs
+            assert (
+                db.session.query(SqlaTable).filter(SqlaTable.id == twin_id).first()
+                is None
+            )
+
+    def test_create_blocked_by_soft_deleted_logical_duplicate(self):
+        """Create returns 422 when a soft-deleted dataset references the same
+        physical table.
+
+        Defense-in-depth complement to
+        ``test_restore_blocked_by_active_logical_duplicate``: if the create
+        path enforces logical uniqueness against soft-deleted rows too, the
+        restore-conflict scenario can no longer arise from normal API use
+        (it can still arise from importer / admin paths, which restore
+        covers separately).
+        """
+        dataset = self._get_example_dataset()
+        original_id = dataset.id
+        database_id = dataset.database_id
+        catalog = dataset.catalog
+        schema = dataset.schema
+        table_name = dataset.table_name
+
+        self.login(ADMIN_USERNAME)
+
+        rv = self.client.delete(f"/api/v1/dataset/{original_id}")
+        assert rv.status_code == 200
+
+        try:
+            rv = self.client.post(
+                "/api/v1/dataset/",
+                json={
+                    "database": database_id,
+                    "catalog": catalog,
+                    "schema": schema,
+                    "table_name": table_name,
+                },
+            )
+            assert rv.status_code == 422, (
+                f"Expected 422 for create-blocked-by-soft-deleted, "
+                f"got {rv.status_code}: {rv.data!r}"
+            )
+        finally:
+            row = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter(SqlaTable.id == original_id)
+                .one()
+            )
+            row.restore()
+            db.session.commit()
