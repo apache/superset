@@ -21,6 +21,7 @@ import logging
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Callable
+from uuid import UUID
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
@@ -57,6 +58,7 @@ from superset.connectors.sqla.models import SqlaTable
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
+from superset.daos.version import VersionDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.filters import DatasetCertifiedFilter, DatasetIsNullOrEmptyFilter
 from superset.datasets.schemas import (
@@ -73,10 +75,15 @@ from superset.datasets.schemas import (
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
 )
-from superset.exceptions import SupersetSyntaxErrorException, SupersetTemplateException
+from superset.exceptions import (
+    SupersetSecurityException,
+    SupersetSyntaxErrorException,
+    SupersetTemplateException,
+)
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.utils import json
 from superset.utils.core import parse_boolean_string
+from superset.versioning.etag import set_version_etag, set_version_etag_by_uuid
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -472,7 +479,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
 
         # pylint: disable=import-outside-toplevel
-        from superset.daos.version import VersionDAO
         from superset.extensions import db as _db
 
         pre_dataset = (
@@ -508,8 +514,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 old_version_uuid=str(old_version_uuid) if old_version_uuid else None,
                 new_version_uuid=str(new_version_uuid) if new_version_uuid else None,
             )
-            from superset.versioning.etag import set_version_etag
-
             set_version_etag(response, new_version_uuid)
         except DatasetNotFoundError:
             response = self.response_404()
@@ -1336,9 +1340,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             except SupersetTemplateException as ex:
                 return self.response(ex.status, message=str(ex))
 
-        from superset.daos.version import VersionDAO
-        from superset.versioning.etag import set_version_etag
-
         return set_version_etag(
             self.response(200, **response),
             VersionDAO.current_live_version_uuid(SqlaTable, table.id, table.uuid),
@@ -1531,12 +1532,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        # pylint: disable=import-outside-toplevel
-        from uuid import UUID
-
-        from superset.daos.version import VersionDAO
-        from superset.exceptions import SupersetSecurityException
-
         try:
             entity_uuid = UUID(uuid_str)
         except ValueError:
@@ -1546,15 +1541,13 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         if entity is None:
             return self.response_404()
         try:
-            security_manager.raise_for_ownership(entity)
+            security_manager.raise_for_access(datasource=entity)
         except SupersetSecurityException:
             return self.response_403()
 
         versions = VersionDAO.list_versions(SqlaTable, entity_uuid, entity=entity)
         if versions is None:
             return self.response_404()
-        from superset.versioning.etag import set_version_etag_by_uuid
-
         return set_version_etag_by_uuid(
             self.response(200, result=versions, count=len(versions)),
             SqlaTable,
@@ -1613,12 +1606,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        # pylint: disable=import-outside-toplevel
-        from uuid import UUID
-
-        from superset.daos.version import VersionDAO
-        from superset.exceptions import SupersetSecurityException
-
         try:
             entity_uuid = UUID(uuid_str)
         except ValueError:
@@ -1632,7 +1619,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         if entity is None:
             return self.response_404()
         try:
-            security_manager.raise_for_ownership(entity)
+            security_manager.raise_for_access(datasource=entity)
         except SupersetSecurityException:
             return self.response_403()
 
@@ -1641,8 +1628,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         )
         if snapshot is None:
             return self.response_404()
-        from superset.versioning.etag import set_version_etag_by_uuid
-
         return set_version_etag_by_uuid(
             self.response(200, result=snapshot), SqlaTable, entity_uuid
         )
@@ -1702,8 +1687,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/422'
         """
         # pylint: disable=import-outside-toplevel
-        from uuid import UUID
-
         from superset.commands.dataset.restore_version import (
             RestoreDatasetVersionCommand,
         )
@@ -1726,8 +1709,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         except DatasetUpdateFailedError as ex:
             logger.error("Error restoring dataset version: %s", ex)
             return self.response_422(message=str(ex))
-        from superset.versioning.etag import set_version_etag_by_uuid
-
         return set_version_etag_by_uuid(
             self.response(200, message="OK"), SqlaTable, entity_uuid
         )

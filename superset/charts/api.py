@@ -19,6 +19,7 @@ import logging
 from datetime import datetime
 from io import BytesIO
 from typing import Any, cast, Optional
+from uuid import UUID
 from zipfile import is_zipfile, ZipFile
 
 from flask import redirect, request, Response, send_file, url_for
@@ -81,7 +82,11 @@ from superset.commands.importers.exceptions import (
 from superset.commands.importers.v1.utils import get_contents_from_bundle
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
-from superset.exceptions import ScreenshotImageNotAvailableException
+from superset.daos.version import VersionDAO
+from superset.exceptions import (
+    ScreenshotImageNotAvailableException,
+    SupersetSecurityException,
+)
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
@@ -94,6 +99,7 @@ from superset.utils.screenshots import (
     StatusValues,
 )
 from superset.utils.urls import get_url_path
+from superset.versioning.etag import set_version_etag, set_version_etag_by_uuid
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -312,9 +318,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         try:
             dash = ChartDAO.get_by_id_or_uuid(id_or_uuid)
             result = self.chart_get_response_schema.dump(dash)
-            from superset.daos.version import VersionDAO
-            from superset.versioning.etag import set_version_etag
-
             return set_version_etag(
                 self.response(200, result=result),
                 VersionDAO.current_live_version_uuid(Slice, dash.id, dash.uuid),
@@ -473,7 +476,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_400(message=error.messages)
 
         # pylint: disable=import-outside-toplevel
-        from superset.daos.version import VersionDAO
         from superset.extensions import db as _db
 
         pre_chart = _db.session.query(Slice).filter(Slice.id == pk).one_or_none()
@@ -505,8 +507,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
                 old_version_uuid=str(old_version_uuid) if old_version_uuid else None,
                 new_version_uuid=str(new_version_uuid) if new_version_uuid else None,
             )
-            from superset.versioning.etag import set_version_etag
-
             set_version_etag(response, new_version_uuid)
         except ChartNotFoundError:
             response = self.response_404()
@@ -1326,12 +1326,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        # pylint: disable=import-outside-toplevel
-        from uuid import UUID
-
-        from superset.daos.version import VersionDAO
-        from superset.exceptions import SupersetSecurityException
-
         try:
             entity_uuid = UUID(uuid_str)
         except ValueError:
@@ -1341,15 +1335,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if entity is None:
             return self.response_404()
         try:
-            security_manager.raise_for_ownership(entity)
+            security_manager.raise_for_access(chart=entity)
         except SupersetSecurityException:
             return self.response_403()
 
         versions = VersionDAO.list_versions(Slice, entity_uuid, entity=entity)
         if versions is None:
             return self.response_404()
-        from superset.versioning.etag import set_version_etag_by_uuid
-
         return set_version_etag_by_uuid(
             self.response(200, result=versions, count=len(versions)),
             Slice,
@@ -1404,12 +1396,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        # pylint: disable=import-outside-toplevel
-        from uuid import UUID
-
-        from superset.daos.version import VersionDAO
-        from superset.exceptions import SupersetSecurityException
-
         try:
             entity_uuid = UUID(uuid_str)
         except ValueError:
@@ -1423,7 +1409,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
         if entity is None:
             return self.response_404()
         try:
-            security_manager.raise_for_ownership(entity)
+            security_manager.raise_for_access(chart=entity)
         except SupersetSecurityException:
             return self.response_403()
 
@@ -1432,8 +1418,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         )
         if snapshot is None:
             return self.response_404()
-        from superset.versioning.etag import set_version_etag_by_uuid
-
         return set_version_etag_by_uuid(
             self.response(200, result=snapshot), Slice, entity_uuid
         )
@@ -1493,8 +1477,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/422'
         """
         # pylint: disable=import-outside-toplevel
-        from uuid import UUID
-
         from superset.commands.chart.restore_version import (
             RestoreChartVersionCommand,
         )
@@ -1517,8 +1499,6 @@ class ChartRestApi(BaseSupersetModelRestApi):
         except ChartUpdateFailedError as ex:
             logger.error("Error restoring chart version: %s", ex)
             return self.response_422(message=str(ex))
-        from superset.versioning.etag import set_version_etag_by_uuid
-
         return set_version_etag_by_uuid(
             self.response(200, message="OK"), Slice, entity_uuid
         )
