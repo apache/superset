@@ -77,6 +77,8 @@ import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { findPermission } from 'src/utils/findPermission';
 import { navigateTo } from 'src/utils/navigationUtils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+// TEMP: sc-103156 versioning demo. Revert before any commit.
+import VersionHistoryDropdown from './VersionHistoryDropdown';
 
 const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
@@ -122,6 +124,10 @@ const Actions = styled.div`
 
 const DASHBOARD_COLUMNS_TO_FETCH = [
   'id',
+  // TEMP: sc-103156 versioning demo. The version-history dropdown
+  // calls /api/v1/dashboard/<uuid>/versions/, so the row needs `uuid`.
+  // Revert this entry along with the dropdown component.
+  'uuid',
   'dashboard_title',
   'published',
   'url',
@@ -503,6 +509,13 @@ function DashboardList(props: DashboardListProps) {
                     </Tooltip>
                   )}
                 </ConfirmStatusChange>
+              )}
+              {/* TEMP: sc-103156 versioning demo. Revert before any commit. */}
+              {original.uuid && canEdit && (
+                <VersionHistoryDropdown
+                  dashboardUuid={original.uuid}
+                  onRestored={() => refreshData()}
+                />
               )}
             </Actions>
           );
