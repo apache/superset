@@ -494,33 +494,24 @@ def get_user_from_request() -> User:
     if hasattr(g, "user") and g.user:
         return g.user
 
-    # No auth source available — raise with diagnostic details
+    # No auth source available — log diagnostics server-side, raise generic
+    # client-facing error so no config details leak toward the client.
     auth_enabled = current_app.config.get("MCP_AUTH_ENABLED", False)
     jwt_configured = bool(
         current_app.config.get("MCP_JWKS_URI")
         or current_app.config.get("MCP_JWT_PUBLIC_KEY")
         or current_app.config.get("MCP_JWT_SECRET")
     )
-    details = [
-        f"No JWT access token in MCP request context "
-        f"(MCP_AUTH_ENABLED={auth_enabled}, "
-        f"JWT keys configured={jwt_configured})",
-        "No API key in Authorization header",
-        "MCP_DEV_USERNAME is not configured",
-        "g.user was not set by external middleware",
-    ]
-    configured_prefixes = current_app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
-    if isinstance(configured_prefixes, str):
-        prefix_example = configured_prefixes
-    elif configured_prefixes:
-        prefix_example = configured_prefixes[0]
-    else:
-        prefix_example = "sst_"
-    raise ValueError(
-        "No authenticated user found. Tried:\n"
-        + "\n".join(f"  - {d}" for d in details)
-        + f"\n\nEither pass a valid API key (Bearer {prefix_example}...), "
-        "JWT token, or configure MCP_DEV_USERNAME for development."
+    logger.debug(
+        "No auth source found. "
+        "MCP_AUTH_ENABLED=%s, JWT keys configured=%s, "
+        "MCP_DEV_USERNAME configured=%s",
+        auth_enabled,
+        jwt_configured,
+        bool(current_app.config.get("MCP_DEV_USERNAME")),
+    )
+    raise MCPNoAuthSourceError(
+        "Authentication required. No valid credentials provided."
     )
 
 
@@ -582,10 +573,20 @@ def _log_user_resolution_failure(exc: ValueError | PermissionError) -> None:
     All other failures (e.g. dev username not in DB, permission denied) are
     genuine credential failures and are logged at ERROR.
     """
-    if "No authenticated user found" in str(exc):
+    if isinstance(exc, MCPNoAuthSourceError):
         logger.debug("MCP: no auth source configured, unauthenticated request")
     else:
         logger.error("MCP user resolution failed, denying request: %s", exc)
+
+
+def _assert_user_active(user: User | None) -> None:
+    """Raise ValueError if the user account is disabled (no-op for None)."""
+    if user is None:
+        return
+    if not getattr(user, "is_active", getattr(user, "active", True)):
+        raise ValueError(
+            f"Account for user '{getattr(user, 'username', user)}' is disabled."
+        )
 
 
 def _setup_user_context() -> User | None:
@@ -657,6 +658,7 @@ def _setup_user_context() -> User | None:
                 g.pop("user", None)
             raise
 
+    _assert_user_active(user)
     g.user = user
     return user
 
