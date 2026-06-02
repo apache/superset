@@ -80,6 +80,16 @@ METHOD_PERMISSION_ATTR = "_method_permission_name"
 _warned_permissionless_tools: set[str] = set()
 
 
+class MCPNoAuthSourceError(ValueError):
+    """Raised when no authentication source is configured for MCP.
+
+    Inherits from ``ValueError`` so callers can catch ``ValueError`` broadly
+    and then use ``isinstance(exc, MCPNoAuthSourceError)`` to distinguish
+    "no auth configured at all" (safe to fail open) from other value errors
+    (fail closed).
+    """
+
+
 class MCPPermissionDeniedError(PermissionError):
     """Raised when user lacks required RBAC permission for an MCP tool.
 
