@@ -372,7 +372,6 @@ def test_get_dashboard_urls_with_exporting_dashboard_only(
     assert "12345678-1234-1234-1234-123456789abc" in result[0]
 
 
-
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
 def test_get_dashboard_urls_empty_dashboard_state_skips_permalink(
