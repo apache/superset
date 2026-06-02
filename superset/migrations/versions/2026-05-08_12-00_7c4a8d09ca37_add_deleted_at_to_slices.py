@@ -36,7 +36,7 @@ from superset.migrations.shared.utils import (
 
 # revision identifiers, used by Alembic.
 revision = "7c4a8d09ca37"
-down_revision = "a1b2c3d4e5f6"
+down_revision = "33d7e0e21daa"
 
 TABLE_NAME = "slices"
 INDEX_NAME = f"ix_{TABLE_NAME}_deleted_at"
