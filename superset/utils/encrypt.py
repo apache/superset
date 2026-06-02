@@ -83,6 +83,13 @@ class SQLAlchemyUtilsAdapter(  # pylint: disable=too-few-public-methods
             # ``engine`` kwarg (e.g. from the migrator) always takes precedence.
             if "engine" not in kwargs:
                 engine_name = app_config.get("SQLALCHEMY_ENCRYPTED_FIELD_ENGINE", "aes")
+                if engine_name not in ENCRYPTION_ENGINES:
+                    logger.warning(
+                        "Unrecognized SQLALCHEMY_ENCRYPTED_FIELD_ENGINE %r;"
+                        " falling back to AES-CBC. Valid engines: %s",
+                        engine_name,
+                        ", ".join(sorted(ENCRYPTION_ENGINES)),
+                    )
                 kwargs["engine"] = ENCRYPTION_ENGINES.get(engine_name, AesEngine)
             return EncryptedType(*args, lambda: app_config["SECRET_KEY"], **kwargs)
 
@@ -247,18 +254,30 @@ class SecretsMigrator:
         1. The column's configured type — current key + currently-configured
            engine. During an engine migration this reads the source ciphertext
            while the config still points at the source engine.
-        2. The previous key with the historical AES-CBC engine — covers
-           ``SECRET_KEY`` rotation, and (since the previous key defaults to the
-           current one in engine-migration mode) reading AES-CBC source data
-           after the config has already been flipped to the target engine.
+        2. The previous key under each supported engine. Trying the column's
+           configured engine covers ``SECRET_KEY`` rotation for any engine
+           (including AES-GCM); also trying the historical AES-CBC engine
+           covers an engine migration whose config was flipped to the target
+           engine *before* the migrator ran (the source data is still CBC under
+           the current key, which the previous key defaults to in
+           engine-migration mode).
         """
         decryptors = [encrypted_type]
         if self._previous_secret_key:
-            decryptors.append(
+            # Try the column's own engine first, then any remaining supported
+            # engines (notably the historical AES-CBC), de-duplicated so we
+            # never build the same decryptor twice.
+            engines: list[type[Any]] = [type(encrypted_type.engine)]
+            for engine in ENCRYPTION_ENGINES.values():
+                if engine not in engines:
+                    engines.append(engine)
+            decryptors.extend(
                 EncryptedType(
                     type_in=encrypted_type.underlying_type,
                     key=self._previous_secret_key,
+                    engine=engine,
                 )
+                for engine in engines
             )
         return decryptors
 

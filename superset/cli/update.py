@@ -115,7 +115,7 @@ def update_api_docs() -> None:
     "-e",
     "target_engine_name",
     required=False,
-    type=click.Choice(sorted(ENCRYPTION_ENGINES)),
+    type=click.Choice(sorted(ENCRYPTION_ENGINES), case_sensitive=False),
     help="Re-encrypt all app-encrypted fields with this encryption engine "
     "(e.g. 'aes-gcm' for authenticated encryption). The SECRET_KEY is "
     "unchanged. Take a metadata-DB backup first, then set "

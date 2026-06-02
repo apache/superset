@@ -161,6 +161,47 @@ def test_engine_migration_reads_cbc_after_config_already_flipped() -> None:
     assert gcm_column.process_result_value(new_value, DIALECT) == "hunter2"
 
 
+def _key_rotation_migrator(previous_secret_key: str) -> SecretsMigrator:
+    """Build a SecretsMigrator in key-rotation mode without an app context.
+
+    Like ``_engine_migrator`` but with no target engine: values are decrypted
+    under ``previous_secret_key`` and re-encrypted under the current key using
+    the column's own engine.
+    """
+    migrator = SecretsMigrator.__new__(SecretsMigrator)
+    migrator._secret_key = SECRET_KEY  # noqa: SLF001
+    migrator._target_engine = None  # noqa: SLF001
+    migrator._previous_secret_key = previous_secret_key  # noqa: SLF001
+    migrator._dialect = DIALECT  # noqa: SLF001
+    return migrator
+
+
+def test_key_rotation_for_aes_gcm_column() -> None:
+    """SECRET_KEY rotation works for an AES-GCM column.
+
+    The previous-key fallback must use the column's AES-GCM engine, otherwise
+    GCM ciphertext written under the old key cannot be decrypted and the
+    rotation rolls back.
+    """
+    old_key = "o" * 32
+    gcm_old = EncryptedType(String(1024), key=lambda: old_key, engine=AesGcmEngine)
+    old_value = gcm_old.process_bind_param("hunter2", DIALECT)
+    gcm_column = _encrypted_type(AesGcmEngine)
+
+    migrator = _key_rotation_migrator(previous_secret_key=old_key)
+    conn = MagicMock()
+    row = {"id": 1, "password": old_value}
+    stats = ReEncryptStats()
+
+    migrator._re_encrypt_row(  # noqa: SLF001
+        conn, row, "dbs", {"password": gcm_column}, ["id"], stats
+    )
+
+    assert stats == ReEncryptStats(re_encrypted=1)
+    new_value = conn.execute.call_args.kwargs["password"]
+    assert gcm_column.process_result_value(new_value, DIALECT) == "hunter2"
+
+
 def test_engine_migration_unreadable_value_counts_as_failure() -> None:
     """A value no engine/key can read is a failure, not a silent pass-through."""
     migrator = _engine_migrator(AesGcmEngine)
