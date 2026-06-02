@@ -59,6 +59,23 @@ test('builds a new owner from the option text label when not already in state', 
   ]);
 });
 
+test('leaves email undefined when option is cached but carries no email', () => {
+  // The option exists in the cache (so `opt` is defined) but has no
+  // OWNER_EMAIL_PROP, exercising the `?? undefined` branch directly.
+  const options = [
+    {
+      value: 6,
+      label: 'Dave Doe',
+      [OWNER_TEXT_LABEL_PROP]: 'Dave Doe',
+      // intentionally no OWNER_EMAIL_PROP
+    },
+  ];
+
+  expect(
+    parseSelectedOwners([{ value: 6, label: 'Dave Doe' }], options, []),
+  ).toEqual([{ id: 6, full_name: 'Dave Doe', email: undefined }]);
+});
+
 test('falls back to a string label when the option has no text label', () => {
   // No option in the cache => email stays undefined (not an empty string).
   expect(
