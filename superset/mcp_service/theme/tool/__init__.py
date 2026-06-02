@@ -14,11 +14,3 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-from .get_theme_info import get_theme_info
-from .list_themes import list_themes
-
-__all__ = [
-    "list_themes",
-    "get_theme_info",
-]
