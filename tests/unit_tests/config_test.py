@@ -349,3 +349,13 @@ def test_theme_default_logo_defaults() -> None:
     assert config.LOGO_TARGET_PATH is None
     assert config.THEME_DEFAULT["token"]["brandLogoHref"] == "/"
     assert config.THEME_DEFAULT["token"]["brandLogoUrl"] == config.APP_ICON
+
+
+def test_smtp_ssl_server_auth_defaults_to_true() -> None:
+    """
+    The shipped default for SMTP_SSL_SERVER_AUTH validates the SMTP server's
+    TLS certificate. Operators can still opt out by overriding it to False.
+    """
+    from superset import config
+
+    assert config.SMTP_SSL_SERVER_AUTH is True
