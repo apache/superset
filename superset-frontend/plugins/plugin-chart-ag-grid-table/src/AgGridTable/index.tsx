@@ -53,7 +53,8 @@ import { SearchOutlined } from '@ant-design/icons';
 import { debounce, isEqual } from 'lodash';
 import Pagination from './components/Pagination';
 import SearchSelectDropdown from './components/SearchSelectDropdown';
-import { SearchOption, SortByItem } from '../types';
+import { SearchOption, SortByItem, TableChartFormData } from '../types';
+import { HandlerFunction } from '@superset-ui/core';
 import getInitialSortState, { shouldSort } from '../utils/getInitialSortState';
 import getInitialFilterModel from '../utils/getInitialFilterModel';
 import reconcileColumnState from '../utils/reconcileColumnState';
@@ -108,6 +109,8 @@ export interface AgGridTableProps {
   metricColumns?: string[];
   gridRef?: RefObject<AgGridReact>;
   chartState?: AgGridChartState;
+  setControlValue?: HandlerFunction;
+  formData?: TableChartFormData;
 }
 
 ModuleRegistry.registerModules([AllCommunityModule, ClientSideRowModelModule]);
@@ -147,6 +150,8 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
     onFilterChanged,
     metricColumns = [],
     chartState,
+    setControlValue,
+    formData,
   }) => {
     const gridRef = useRef<AgGridReact>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -609,6 +614,9 @@ const AgGridDataTable: FunctionComponent<AgGridTableProps> = memo(
             lastFilteredColumn: serverPaginationData?.lastFilteredColumn,
             lastFilteredInputPosition:
               serverPaginationData?.lastFilteredInputPosition,
+            isActiveFilterValue,
+            setControlValue,
+            formData,
           }}
         />
         {serverPagination && (

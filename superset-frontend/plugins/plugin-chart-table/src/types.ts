@@ -27,6 +27,9 @@ import {
   QueryFormData,
   SetDataMaskHook,
   ContextMenuFilters,
+  CurrencyFormatter,
+  Currency,
+  HandlerFunction,
 } from '@superset-ui/core';
 import type {
   BasicColorFormatterType,
@@ -128,6 +131,14 @@ export interface TableChartTransformedProps<D extends DataRecord = DataRecord> {
   // column names for cross-filtering, so that adhoc columns with custom labels
   // emit the correct column name in cross-filter data masks
   columnLabelToNameMap?: Record<string, string>;
+  // For column header interactions to update explore controls
+  setControlValue?: HandlerFunction;
+  formData?: TableChartFormData;
+}
+
+export enum ColorSchemeEnum {
+  'Green' = 'Green',
+  'Red' = 'Red',
 }
 
 export default {};

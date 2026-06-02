@@ -46,6 +46,7 @@ import {
   IHeaderParams,
   CustomCellRendererProps,
 } from '@superset-ui/core/components/ThemedAgGridReact';
+import { HandlerFunction } from '@superset-ui/core';
 
 // Re-export shared types used by internal plugin files that import from './types'
 // Types used locally in this file - re-export from local binding
@@ -131,6 +132,7 @@ export interface AgGridTableChartTransformedProps<
   metricSqlExpressions: Record<string, string>;
   onChartStateChange?: (chartState: JsonObject) => void;
   chartState?: AgGridChartState;
+  setControlValue?: HandlerFunction;
 }
 
 export interface SortState {
@@ -152,6 +154,8 @@ export interface CustomContext {
   onColumnHeaderClicked: (args: { column: SortState }) => void;
   lastFilteredColumn?: string;
   lastFilteredInputPosition?: FilterInputPosition;
+  setControlValue?: HandlerFunction;
+  formData?: TableChartFormData;
 }
 
 export interface CustomHeaderParams extends IHeaderParams {

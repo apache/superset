@@ -476,7 +476,7 @@ const transformProps = (
     queriesData = [],
     ownState: serverPaginationData,
     filterState,
-    hooks: { setDataMask = () => {}, onChartStateChange },
+    hooks: { setDataMask = () => {}, onChartStateChange, setControlValue },
     emitCrossFilters,
     theme,
   } = chartProps;
@@ -785,6 +785,7 @@ const transformProps = (
     metricSqlExpressions,
     chartState,
     onChartStateChange,
+    setControlValue,
   };
 };
 
