@@ -24,18 +24,14 @@ from superset.charts.api import ChartRestApi
 def _make_api() -> ChartRestApi:
     """Create a minimally-initialized ChartRestApi for unit tests.
 
-    Bypasses ``__init__`` to avoid Flask app-context requirements while still
-    setting the attributes exercised by the access-check helpers under test.
+    Bypasses ``__init__`` to avoid Flask app-context requirements; the
+    access-check helpers under test only need the instance, not a fully
+    constructed Flask-AppBuilder API.
     """
-    api = ChartRestApi.__new__(ChartRestApi)
-    api.class_permission_name = "Chart"
-    return api
+    return ChartRestApi.__new__(ChartRestApi)
 
 
-@pytest.mark.parametrize("column_name", ["owners"])
-def test_pre_related_check_blocks_read_only_users(
-    column_name: str,
-) -> None:
+def test_pre_related_check_blocks_read_only_users() -> None:
     """Users without all-datasource access receive 403 on owners lookup."""
     api = _make_api()
     api.response_403 = MagicMock(return_value="forbidden")
@@ -44,7 +40,7 @@ def test_pre_related_check_blocks_read_only_users(
         "superset.charts.api.security_manager.can_access_all_datasources",
         return_value=False,
     ):
-        result = api._pre_related_check(column_name)
+        result = api._pre_related_check("owners")
 
     assert result == "forbidden"
 
