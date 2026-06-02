@@ -152,3 +152,53 @@ def test_time_grain_validation_with_config_addons(app_context: None) -> None:
     }
     result = schema.load(custom_data)
     assert result["time_grain"] == "PT10M"
+
+
+def test_post_processing_operation_validates_options(app_context: None) -> None:
+    """options are validated against the operation's option schema (leniently)."""
+    from superset.charts.schemas import ChartDataPostProcessingOperationSchema
+
+    schema = ChartDataPostProcessingOperationSchema()
+
+    # Valid prophet options load.
+    schema.load(
+        {
+            "operation": "prophet",
+            "options": {
+                "time_grain": "P1D",
+                "periods": 7,
+                "confidence_interval": 0.8,
+            },
+        }
+    )
+
+    # Out-of-range confidence_interval (must be 0-1) on a declared field is
+    # rejected.
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(
+            {
+                "operation": "prophet",
+                "options": {
+                    "time_grain": "P1D",
+                    "periods": 7,
+                    "confidence_interval": 2.0,
+                },
+            }
+        )
+    assert "options" in exc_info.value.messages
+
+    # Extra/unknown keys are tolerated (lenient validation).
+    schema.load(
+        {
+            "operation": "prophet",
+            "options": {
+                "time_grain": "P1D",
+                "periods": 7,
+                "confidence_interval": 0.8,
+                "some_future_option": True,
+            },
+        }
+    )
+
+    # An operation without a dedicated schema accepts arbitrary options.
+    schema.load({"operation": "flatten", "options": {"anything": [1, 2, 3]}})

@@ -22,7 +22,15 @@ from typing import Any, TYPE_CHECKING
 
 from flask import current_app
 from flask_babel import gettext as _
-from marshmallow import EXCLUDE, fields, post_load, Schema, validate
+from marshmallow import (
+    EXCLUDE,
+    fields,
+    post_load,
+    Schema,
+    validate,
+    validates_schema,
+    ValidationError,
+)
 from marshmallow.validate import Length, Range
 from marshmallow_union import Union
 
@@ -936,6 +944,42 @@ class ChartDataPostProcessingOperationSchema(Schema):
             },
         },
     )
+
+    # Map post-processing operation -> its options schema, for operations that
+    # declare one. Operations without a dedicated schema are not structurally
+    # validated here.
+    _OPTIONS_SCHEMAS: dict[str, type[Schema]] = {
+        "aggregate": ChartDataAggregateOptionsSchema,
+        "rolling": ChartDataRollingOptionsSchema,
+        "select": ChartDataSelectOptionsSchema,
+        "sort": ChartDataSortOptionsSchema,
+        "contribution": ChartDataContributionOptionsSchema,
+        "prophet": ChartDataProphetOptionsSchema,
+        "boxplot": ChartDataBoxplotOptionsSchema,
+        "pivot": ChartDataPivotOptionsSchema,
+        "geohash_decode": ChartDataGeohashDecodeOptionsSchema,
+        "geohash_encode": ChartDataGeohashEncodeOptionsSchema,
+        "geodetic_parse": ChartDataGeodeticParseOptionsSchema,
+    }
+
+    @validates_schema
+    def validate_options(self, data: dict[str, Any], **kwargs: Any) -> None:
+        """Validate ``options`` against the operation's option schema.
+
+        Validation is lenient (unknown keys are ignored) so it surfaces wrong
+        types / out-of-range values on declared fields without rejecting
+        payloads that carry extra keys.
+        """
+        operation = data.get("operation")
+        options = data.get("options")
+        if not isinstance(operation, str) or not isinstance(options, dict):
+            return
+        schema_cls = self._OPTIONS_SCHEMAS.get(operation)
+        if schema_cls is None:
+            return
+        errors = schema_cls(unknown=EXCLUDE).validate(options)
+        if errors:
+            raise ValidationError({"options": errors})
 
 
 class ChartDataFilterSchema(Schema):
