@@ -734,6 +734,10 @@ class ChartDataRestApi(ChartRestApi):
 
             # Sanitize chart name for filename
             filename = secure_filename(f"superset_{chart_name}_{timestamp}.csv")
+        else:
+            # Sanitize the client-provided filename before placing it in the
+            # Content-Disposition header to avoid header/path injection.
+            filename = secure_filename(filename) or "export.csv"
 
         logger.info("Creating streaming CSV response: %s", filename)
         if expected_rows:
