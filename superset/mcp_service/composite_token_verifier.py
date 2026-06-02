@@ -119,7 +119,11 @@ class CompositeTokenVerifier(TokenVerifier):
                     )
                     return None
                 user = sm.validate_api_key(token)
-                return user.username if user else None
+                username = user.username if user else None
+                # Zero out the local reference so the raw token string is not
+                # retained after validation returns (defense-in-depth).
+                token = ""  # noqa: S105
+                return username
         except Exception:  # noqa: BLE001 — catch-all: DB errors, FAB internals, etc.
             logger.warning(
                 "API key transport validation failed unexpectedly; rejecting token",

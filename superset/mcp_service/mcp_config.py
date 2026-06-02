@@ -388,7 +388,7 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
 def _build_composite_verifier(app: Flask, jwt_verifier: Any) -> CompositeTokenVerifier:
     """Build a CompositeTokenVerifier with API key prefixes from config."""
     if required_scopes := app.config.get("MCP_REQUIRED_SCOPES", []):
-        logger.warning(
+        logger.debug(
             "MCP_REQUIRED_SCOPES is configured but API key tokens bypass "
             "scope enforcement. API key holders gain access regardless of "
             "MCP_REQUIRED_SCOPES=%r.",
