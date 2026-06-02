@@ -78,6 +78,7 @@ export interface HydrateChartData {
   slice_id: number;
   slice_url: string;
   slice_name: string;
+  localized_name?: string;
   form_data: JsonObject;
   description: string;
   description_markeddown: string;
@@ -183,6 +184,7 @@ export const hydrateDashboard =
         slice_id: key,
         slice_url: slice.slice_url,
         slice_name: slice.slice_name,
+        localized_name: slice.localized_name,
         form_data: slice.form_data,
         viz_type: slice.form_data.viz_type,
         datasource: slice.form_data.datasource,
@@ -403,6 +405,9 @@ export const hydrateDashboard =
           // only persistent refreshFrequency will be saved to backend
           shouldPersistRefreshFrequency: false,
           css: dashboard.css || '',
+          // Display-only localized title; the canonical title lives in the
+          // header layout meta (meta.text) and is what edits/saves operate on.
+          localizedTitle: dashboard.localized_title,
           colorNamespace: metadata?.color_namespace || null,
           colorScheme: metadata?.color_scheme || null,
           editMode: editModeOverride ?? (canEdit && editMode),

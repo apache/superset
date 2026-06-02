@@ -758,6 +758,7 @@ const Chart = (props: ChartProps) => {
           props.updateSliceName(props.id, name)
         }
         sliceName={props.sliceName}
+        localizedName={slice.localized_name}
         supersetCanExplore={supersetCanExplore}
         supersetCanShare={supersetCanShare}
         supersetCanDownload={supersetCanDownload}
