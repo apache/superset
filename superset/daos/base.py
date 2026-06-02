@@ -632,6 +632,11 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
 
         return result
 
+    @staticmethod
+    def _escape_like(value: str) -> str:
+        """Escape LIKE/ILIKE wildcards to prevent wildcard injection."""
+        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
     @classmethod
     def _build_query(
         cls,
@@ -657,7 +662,11 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             for column_name in search_columns:
                 if hasattr(cls.model_cls, column_name):
                     column = getattr(cls.model_cls, column_name)
-                    search_filters.append(cast(column, Text).ilike(f"%{search}%"))
+                    search_filters.append(
+                        cast(column, Text).ilike(
+                            f"%{cls._escape_like(search)}%", escape="\\"
+                        )
+                    )
             if search_filters:
                 query = query.filter(or_(*search_filters))
         if custom_filters:
@@ -724,7 +733,11 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             for column_name in search_columns:
                 if hasattr(cls.model_cls, column_name):
                     column = getattr(cls.model_cls, column_name)
-                    search_filters.append(cast(column, Text).ilike(f"%{search}%"))
+                    search_filters.append(
+                        cast(column, Text).ilike(
+                            f"%{cls._escape_like(search)}%", escape="\\"
+                        )
+                    )
             if search_filters:
                 query = query.filter(or_(*search_filters))
         if custom_filters:
