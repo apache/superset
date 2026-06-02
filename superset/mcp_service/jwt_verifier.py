@@ -395,9 +395,15 @@ class MCPJWTVerifier(JWTVerifier):
         super().__init__(*args, **kwargs)
         # Surface permissive auth configuration at startup. Config-gated:
         # a verifier is only built when auth is enabled (see mcp_config).
+        # Use the raw config value — not self.algorithm — because the factory
+        # defaults algorithm to "RS256" before constructing the verifier, so
+        # self.algorithm is always truthy and the "not pinned" warning would
+        # never fire if we read the post-coercion attribute.
+        from flask import current_app
+
         _warn_on_weak_jwt_config(
             audience=getattr(self, "audience", None),
-            algorithm=getattr(self, "algorithm", None),
+            algorithm=current_app.config.get("MCP_JWT_ALGORITHM"),
         )
 
     def get_middleware(self) -> list[Any]:
