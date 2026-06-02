@@ -33,6 +33,10 @@ from unittest.mock import patch
 
 import pytest
 
+from superset.core.mcp.core_mcp_injection import (
+    create_prompt_decorator,
+    create_tool_decorator,
+)
 from superset.mcp_service.app import assert_all_tools_protected
 from superset.mcp_service.auth import mcp_auth_hook
 
@@ -110,21 +114,20 @@ def test_assert_all_tools_protected_respects_allowlist() -> None:
         }
     )
 
-    # Replace the module-level set so the function under test sees a
+    # Replace the module-level frozenset so the function under test sees a
     # deterministic allowlist regardless of which real tools exist.
     with patch(
         "superset.mcp_service.app.ALLOWED_UNPROTECTED",
-        {"public_health_probe"},
+        frozenset({"public_health_probe"}),
     ):
         # Should not raise — the tool is allowlisted.
         assert_all_tools_protected(mcp)
 
 
 def test_create_tool_decorator_fails_fast_on_registration_error() -> None:
-    """When ``mcp_auth_hook`` raises during decoration the decorator must
-    propagate the error instead of returning the unwrapped function — that
-    silent-return path was the bug #39395 closes."""
-    from superset.core.mcp.core_mcp_injection import create_tool_decorator
+    """When tool registration fails at any point after ``mcp_auth_hook`` wraps
+    the function, ``create_tool_decorator`` must re-raise instead of returning
+    the unwrapped function — the silent-return path was the bug #39395 closes."""
 
     def sample_tool() -> None:
         pass
@@ -143,7 +146,6 @@ def test_create_prompt_decorator_fails_fast_on_registration_error() -> None:
     of returning the unwrapped function. Prompts can expose system instructions
     and sensitive context to LLM clients — the same bypass risk as tools
     (raised by @aminghadersohi on PR #40412)."""
-    from superset.core.mcp.core_mcp_injection import create_prompt_decorator
 
     def sample_prompt() -> str:
         return "hi"

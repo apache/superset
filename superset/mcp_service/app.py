@@ -782,7 +782,10 @@ from superset.mcp_service.user.tool import (  # noqa: F401, E402
 #: here is a security-significant choice — review carefully. Entries are tools
 #: that intentionally run without authentication; ``generate_bug_report`` is
 #: public so users can collect diagnostics even when auth itself is broken.
-ALLOWED_UNPROTECTED: set[str] = {"generate_bug_report"}
+#: Frozen so accidental post-init mutation (``ALLOWED_UNPROTECTED.add(...)``)
+#: raises ``AttributeError`` rather than silently widening the security
+#: allowlist after the startup assertion has already run.
+ALLOWED_UNPROTECTED: frozenset[str] = frozenset({"generate_bug_report"})
 
 
 def assert_all_tools_protected(mcp_instance: FastMCP) -> None:
@@ -806,6 +809,12 @@ def assert_all_tools_protected(mcp_instance: FastMCP) -> None:
     # are ``FunctionTool`` objects with ``.name`` and ``.fn`` attributes.
     tools_checked = 0
     for key, component in mcp_instance.local_provider._components.items():
+        # Prompts and resources are intentionally skipped here. They use the
+        # same ``mcp_auth_hook`` (via ``create_prompt_decorator`` and the
+        # resource-level ``@mcp_auth_hook`` convention documented in
+        # ``mcp_service/CLAUDE.md``) but their bypass surface is different —
+        # ``protect=False`` on a prompt would need its own ``assert_all_
+        # prompts_protected`` check. Tracked as a follow-up per @aminghadersohi.
         if not key.startswith("tool:"):
             continue
         tools_checked += 1
