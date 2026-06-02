@@ -210,6 +210,7 @@ class TestEmailSmtp(SupersetTestCase):
     @mock.patch("smtplib.SMTP")
     def test_send_mime_ssl(self, mock_smtp, mock_smtp_ssl):
         current_app.config["SMTP_SSL"] = True
+        current_app.config["SMTP_SSL_SERVER_AUTH"] = False
         mock_smtp.return_value = mock.Mock()
         mock_smtp_ssl.return_value = mock.Mock()
         utils.send_mime_email(
