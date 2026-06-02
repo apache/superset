@@ -1237,7 +1237,9 @@ class TestRBACToolVisibilityMiddleware:
             ),
             patch(
                 "superset.mcp_service.middleware.get_user_from_request",
-                side_effect=ValueError("No authenticated user found"),
+                side_effect=ValueError(
+                    "Authentication required. No valid credentials provided."
+                ),
             ),
         ):
             result = await middleware.on_list_tools(MagicMock(), call_next)

@@ -23,7 +23,10 @@ disclosure (e.g., SQL fragments, schema names, table names) while preserving
 actionable error messages for LLM callers.
 """
 
+import logging
 import re
+
+logger = logging.getLogger(__name__)
 
 
 def _redact_sql_select(error_str: str, error_str_upper: str) -> str:
@@ -63,8 +66,24 @@ def _get_generic_error_message(error_str: str) -> str | None:
     return None
 
 
-def _sanitize_validation_error(error: Exception) -> str:
-    """SECURITY FIX: Sanitize validation errors to prevent disclosure."""
+def _sanitize_validation_error(error: Exception, log_original: bool = True) -> str:
+    """SECURITY FIX: Sanitize validation errors to prevent disclosure.
+
+    Args:
+        error: The original exception to sanitize for client-facing output.
+        log_original: When True (default), log the original (unsanitized)
+            error server-side at INFO level before returning the sanitized
+            version. This preserves full diagnostics for operators while the
+            client only ever receives the sanitized message. Set to False to
+            suppress the server-side log (e.g. when the caller already logged).
+    """
+    if log_original:
+        logger.info(
+            "Sanitizing validation error (%s): %s",
+            type(error).__name__,
+            error,
+        )
+
     error_str = str(error)
 
     # Pydantic tagged-union errors prefix the message with a long

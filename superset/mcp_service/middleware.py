@@ -511,7 +511,7 @@ class RBACToolVisibilityMiddleware(Middleware):
                 try:
                     user = get_user_from_request()
                 except ValueError as exc:
-                    if "No authenticated user found" in str(exc):
+                    if "Authentication required" in str(exc):
                         # No auth source configured at all → fail open.
                         # No log: this is expected in dev/internal deployments.
                         return tools
