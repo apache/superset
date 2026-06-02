@@ -268,7 +268,9 @@ class DashboardHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public
         return query
 
 
-class DashboardDeletedStateFilter(BaseDeletedStateFilter):  # pylint: disable=too-few-public-methods
+class DashboardDeletedStateFilter(  # pylint: disable=too-few-public-methods
+    BaseDeletedStateFilter
+):
     """Rison filter for the GET list that exposes soft-deleted dashboards."""
 
     arg_name = "dashboard_deleted_state"
