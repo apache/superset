@@ -33,6 +33,8 @@ from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
 
+_FLOAT_SPECIAL = frozenset({"NaN", "Infinity", "-Infinity"})
+
 
 def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list[str]:  # noqa: E741
     """De-duplicates a list of string by suffixing a counter
@@ -173,7 +175,6 @@ class SupersetResultSet:
         if data and (not isinstance(data, list) or not isinstance(data[0], tuple)):
             data = [tuple(row) for row in data]
         array = np.array(data, dtype=numpy_dtype)
-        _FLOAT_SPECIAL = frozenset({"NaN", "Infinity", "-Infinity"})
 
         for column in column_names:
             try:
