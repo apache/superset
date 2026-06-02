@@ -564,7 +564,7 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 "JWT authentication succeeded: client_id='%s', scopes=%s, "
                 "auth_method='bearer_jwt'",
                 _sanitize_for_log(client_id),
-                _sanitize_for_log(" ".join(sorted(scopes))),
+                _sanitize_for_log(" ".join(sorted(scopes)) or "(none)"),
             )
             return AccessToken(
                 token=token,
