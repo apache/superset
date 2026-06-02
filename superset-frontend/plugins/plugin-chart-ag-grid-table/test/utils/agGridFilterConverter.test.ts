@@ -325,7 +325,9 @@ describe('agGridFilterConverter', () => {
         },
       } as unknown as AgGridFilterModel;
 
-      const result2 = convertAgGridFiltersToSQL(emptyBoundFilterModel, ['revenue']);
+      const result2 = convertAgGridFiltersToSQL(emptyBoundFilterModel, [
+        'revenue',
+      ]);
       expect(result2.havingClause).toBeUndefined();
     });
   });
