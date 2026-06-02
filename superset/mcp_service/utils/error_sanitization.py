@@ -78,10 +78,18 @@ def _sanitize_validation_error(error: Exception, log_original: bool = True) -> s
             suppress the server-side log (e.g. when the caller already logged).
     """
     if log_original:
+        # Sanitize control characters before logging to prevent log-line injection.
+        safe_error = (
+            str(error)
+            .replace("\\", "\\\\")
+            .replace("\n", "\\n")
+            .replace("\r", "\\r")
+            .replace("\t", "\\t")
+        )
         logger.info(
             "Sanitizing validation error (%s): %s",
             type(error).__name__,
-            error,
+            safe_error,
         )
 
     error_str = str(error)

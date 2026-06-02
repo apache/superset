@@ -431,7 +431,7 @@ def get_user_from_request() -> User:
         or current_app.config.get("MCP_JWT_SECRET")
     )
     dev_username_configured = bool(current_app.config.get("MCP_DEV_USERNAME"))
-    logger.warning(
+    logger.debug(
         "MCP authentication failed: no valid credentials provided "
         "(no JWT access token, no API key, no g.user from middleware)"
     )
