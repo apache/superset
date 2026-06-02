@@ -150,6 +150,22 @@ test('renders table options without Select All option', async () => {
   );
 }, 15000);
 
+test('shows a helper message when table results are truncated', async () => {
+  fetchMock.get(catalogApiRoute, { result: [] });
+  fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
+  fetchMock.get(tablesApiRoute, {
+    ...getTableMockFunction(),
+    count: 5,
+  });
+
+  const props = createProps();
+  render(<TableSelector {...props} />, { useRedux: true, store });
+
+  expect(
+    await screen.findByText('Some tables are not shown. Refine your search.'),
+  ).toBeInTheDocument();
+});
+
 test('table select retain value if not in SQL Lab mode', async () => {
   fetchMock.get(catalogApiRoute, { result: [] });
   fetchMock.get(schemaApiRoute, { result: ['test_schema'] });
