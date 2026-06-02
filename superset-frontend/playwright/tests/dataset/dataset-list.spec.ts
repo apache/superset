@@ -379,7 +379,7 @@ test('should edit dataset name via modal', async ({
 
   // Verify success toast appears.
   const toast = new Toast(page);
-  await expect(toast.getSuccess()).toBeVisible({ timeout: 10000 });
+  await expect(toast.getSuccess()).toBeVisible({ timeout: TIMEOUT.PAGE_LOAD });
 
   // Verify via API that name was saved
   const updatedDatasetRes = await apiGetDataset(page, datasetId);
@@ -528,7 +528,7 @@ test.describe('import dataset', () => {
     // First response may be 409/422 indicating overwrite is required
     const overwriteInput = importModal.getOverwriteInput();
     await overwriteInput
-      .waitFor({ state: 'visible', timeout: 3000 })
+      .waitFor({ state: 'visible', timeout: TIMEOUT.CONFIRM_DIALOG })
       .catch(error => {
         if (!(error instanceof Error) || error.name !== 'TimeoutError') {
           throw error;
@@ -552,7 +552,9 @@ test.describe('import dataset', () => {
 
     // Verify success toast appears.
     const toast = new Toast(page);
-    await expect(toast.getSuccess()).toBeVisible({ timeout: 10000 });
+    await expect(toast.getSuccess()).toBeVisible({
+      timeout: TIMEOUT.PAGE_LOAD,
+    });
 
     // Refresh to see the imported dataset
     await datasetListPage.goto();

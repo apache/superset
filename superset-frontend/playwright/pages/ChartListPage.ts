@@ -32,13 +32,12 @@ export class ChartListPage {
   readonly bulkSelect: BulkSelect;
 
   /**
-   * Action button names for getByRole('button', { name })
-   * Verified: ChartList uses Icons.DeleteOutlined, Icons.UploadOutlined, Icons.EditOutlined
+   * Stable data-test keys for the row action buttons in ChartList.
    */
-  private static readonly ACTION_BUTTONS = {
-    DELETE: 'delete',
-    EDIT: 'edit',
-    EXPORT: 'upload',
+  private static readonly ACTION_TEST_IDS = {
+    DELETE: 'chart-row-delete',
+    EDIT: 'chart-row-edit',
+    EXPORT: 'chart-row-export',
   } as const;
 
   constructor(page: Page) {
@@ -98,9 +97,7 @@ export class ChartListPage {
    */
   async clickDeleteAction(chartName: string): Promise<void> {
     const row = this.table.getRow(chartName);
-    await row
-      .getByRole('button', { name: ChartListPage.ACTION_BUTTONS.DELETE })
-      .click();
+    await row.getByTestId(ChartListPage.ACTION_TEST_IDS.DELETE).click();
   }
 
   /**
@@ -109,9 +106,7 @@ export class ChartListPage {
    */
   async clickEditAction(chartName: string): Promise<void> {
     const row = this.table.getRow(chartName);
-    await row
-      .getByRole('button', { name: ChartListPage.ACTION_BUTTONS.EDIT })
-      .click();
+    await row.getByTestId(ChartListPage.ACTION_TEST_IDS.EDIT).click();
   }
 
   /**
@@ -120,9 +115,7 @@ export class ChartListPage {
    */
   async clickExportAction(chartName: string): Promise<void> {
     const row = this.table.getRow(chartName);
-    await row
-      .getByRole('button', { name: ChartListPage.ACTION_BUTTONS.EXPORT })
-      .click();
+    await row.getByTestId(ChartListPage.ACTION_TEST_IDS.EXPORT).click();
   }
 
   /**

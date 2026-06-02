@@ -32,13 +32,12 @@ export class DashboardListPage {
   readonly bulkSelect: BulkSelect;
 
   /**
-   * Action button names for getByRole('button', { name })
-   * DashboardList uses Icons.DeleteOutlined, Icons.UploadOutlined, Icons.EditOutlined
+   * Stable data-test keys for the row action buttons in DashboardList.
    */
-  private static readonly ACTION_BUTTONS = {
-    DELETE: 'delete',
-    EDIT: 'edit',
-    EXPORT: 'upload',
+  private static readonly ACTION_TEST_IDS = {
+    DELETE: 'dashboard-row-delete',
+    EDIT: 'dashboard-row-edit',
+    EXPORT: 'dashboard-row-export',
   } as const;
 
   constructor(page: Page) {
@@ -81,9 +80,7 @@ export class DashboardListPage {
    */
   async clickDeleteAction(dashboardName: string): Promise<void> {
     const row = this.table.getRow(dashboardName);
-    await row
-      .getByRole('button', { name: DashboardListPage.ACTION_BUTTONS.DELETE })
-      .click();
+    await row.getByTestId(DashboardListPage.ACTION_TEST_IDS.DELETE).click();
   }
 
   /**
@@ -92,9 +89,7 @@ export class DashboardListPage {
    */
   async clickEditAction(dashboardName: string): Promise<void> {
     const row = this.table.getRow(dashboardName);
-    await row
-      .getByRole('button', { name: DashboardListPage.ACTION_BUTTONS.EDIT })
-      .click();
+    await row.getByTestId(DashboardListPage.ACTION_TEST_IDS.EDIT).click();
   }
 
   /**
@@ -103,9 +98,7 @@ export class DashboardListPage {
    */
   async clickExportAction(dashboardName: string): Promise<void> {
     const row = this.table.getRow(dashboardName);
-    await row
-      .getByRole('button', { name: DashboardListPage.ACTION_BUTTONS.EXPORT })
-      .click();
+    await row.getByTestId(DashboardListPage.ACTION_TEST_IDS.EXPORT).click();
   }
 
   /**
