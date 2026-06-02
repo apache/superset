@@ -2446,6 +2446,8 @@ WELCOME_PAGE_LAST_TAB: Literal["examples", "all"] | tuple[str, list[dict[str, An
 ZIPPED_FILE_MAX_SIZE = 100 * 1024 * 1024  # 100MB
 # Max allowed compression ratio for a zipped file
 ZIP_FILE_MAX_COMPRESS_RATIO = 200.0
+# Max allowed total decompressed size across all entries in a zipped file
+ZIP_FILE_MAX_TOTAL_SIZE = 1024 * 1024 * 1024  # 1GB
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.  # noqa: E501
 # 'color' support only Ant Design semantic colors (e.g., 'error', 'warning', 'success', 'processing', 'default)  # noqa: E501

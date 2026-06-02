@@ -2110,8 +2110,17 @@ def check_is_safe_zip(zip_file: ZipFile) -> None:
             raise SupersetException("Found file with size above allowed threshold")
         uncompress_size += zip_file_element.file_size
         compress_size += zip_file_element.compress_size
-    compress_ratio = uncompress_size / compress_size
-    if compress_ratio > app.config["ZIP_FILE_MAX_COMPRESS_RATIO"]:
+    # Bound the total decompressed size, not just the per-file size, so an
+    # archive of many individually-allowed entries cannot exhaust memory.
+    if uncompress_size > app.config["ZIP_FILE_MAX_TOTAL_SIZE"]:
+        raise SupersetException("Found total uncompressed size above allowed threshold")
+    # Guard the division: a zero compressed size would otherwise raise
+    # ZeroDivisionError instead of a clean error. The total-size cap above
+    # still bounds memory when compress_size is reported as zero.
+    if (
+        compress_size
+        and uncompress_size / compress_size > app.config["ZIP_FILE_MAX_COMPRESS_RATIO"]
+    ):
         raise SupersetException("Zip compress ratio above allowed threshold")
 
 
