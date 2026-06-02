@@ -49,8 +49,7 @@ def test_create_rls_rule_forbidden_when_no_datasource_access() -> None:
             return_value=[],
         ),
         patch(
-            "superset.commands.security.create.security_manager."
-            "can_access_datasource",
+            "superset.commands.security.create.security_manager.can_access_datasource",
             return_value=False,
         ) as can_access,
     ):
@@ -71,8 +70,7 @@ def test_create_rls_rule_allowed_when_datasource_access() -> None:
             return_value=[],
         ),
         patch(
-            "superset.commands.security.create.security_manager."
-            "can_access_datasource",
+            "superset.commands.security.create.security_manager.can_access_datasource",
             return_value=True,
         ) as can_access,
     ):
@@ -94,8 +92,7 @@ def test_create_rls_rule_forbidden_if_any_datasource_denied() -> None:
             return_value=[],
         ),
         patch(
-            "superset.commands.security.create.security_manager."
-            "can_access_datasource",
+            "superset.commands.security.create.security_manager.can_access_datasource",
             side_effect=[True, False],
         ),
     ):
@@ -118,8 +115,7 @@ def test_update_rls_rule_forbidden_when_no_datasource_access() -> None:
             return_value=[],
         ),
         patch(
-            "superset.commands.security.update.security_manager."
-            "can_access_datasource",
+            "superset.commands.security.update.security_manager.can_access_datasource",
             return_value=False,
         ) as can_access,
     ):
@@ -144,8 +140,7 @@ def test_update_rls_rule_allowed_when_datasource_access() -> None:
             return_value=[],
         ),
         patch(
-            "superset.commands.security.update.security_manager."
-            "can_access_datasource",
+            "superset.commands.security.update.security_manager.can_access_datasource",
             return_value=True,
         ) as can_access,
     ):
