@@ -24,10 +24,23 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import Table, text, TypeDecorator
 from sqlalchemy.engine import Connection, Dialect, Row
 from sqlalchemy_utils import EncryptedType as SqlaEncryptedType
+from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine, AesGcmEngine
 
 
 class EncryptedType(SqlaEncryptedType):
     cache_ok = True
+
+
+# Named encryption engines selectable via the ``SQLALCHEMY_ENCRYPTED_FIELD_ENGINE``
+# config. "aes" (AES-CBC) is the historical default; "aes-gcm" is authenticated
+# encryption (recommended for new deployments). NOTE: switching an existing
+# deployment from "aes" to "aes-gcm" requires re-encrypting all stored secrets
+# first — see the SIP referenced in the docs. Changing this on a populated
+# database without that migration will make existing secrets undecryptable.
+ENCRYPTION_ENGINES = {
+    "aes": AesEngine,
+    "aes-gcm": AesGcmEngine,
+}
 
 
 ENC_ADAPTER_TAG_ATTR_NAME = "__created_by_enc_field_adapter__"
@@ -65,6 +78,12 @@ class SQLAlchemyUtilsAdapter(  # pylint: disable=too-few-public-methods
         **kwargs: Optional[dict[str, Any]],
     ) -> TypeDecorator:
         if app_config:
+            # Select the encryption engine from config, defaulting to the
+            # historical AES-CBC engine for backward compatibility. An explicit
+            # ``engine`` kwarg (e.g. from the migrator) always takes precedence.
+            if "engine" not in kwargs:
+                engine_name = app_config.get("SQLALCHEMY_ENCRYPTED_FIELD_ENGINE", "aes")
+                kwargs["engine"] = ENCRYPTION_ENGINES.get(engine_name, AesEngine)
             return EncryptedType(*args, lambda: app_config["SECRET_KEY"], **kwargs)
 
         raise Exception(  # pylint: disable=broad-exception-raised

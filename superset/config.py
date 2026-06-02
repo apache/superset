@@ -295,6 +295,16 @@ SQLALCHEMY_ENCRYPTED_FIELD_TYPE_ADAPTER = (  # pylint: disable=invalid-name
     SQLAlchemyUtilsAdapter
 )
 
+# Encryption engine used by the default SQLAlchemyUtilsAdapter for app-encrypted
+# fields. Options:
+#   "aes"     - AES-CBC (historical default; unauthenticated, queryable)
+#   "aes-gcm" - AES-GCM (authenticated encryption; recommended for NEW installs)
+# WARNING: changing this on a database that already holds encrypted secrets
+# (database passwords, SSH tunnel credentials, OAuth tokens, ...) will make
+# those values undecryptable unless they are re-encrypted first. See the
+# authenticated-encryption SIP/migration before switching an existing install.
+SQLALCHEMY_ENCRYPTED_FIELD_ENGINE: Literal["aes", "aes-gcm"] = "aes"
+
 # Extends the default SQLGlot dialects with additional dialects
 SQLGLOT_DIALECTS_EXTENSIONS: DialectExtensions | Callable[[], DialectExtensions] = {}
 
