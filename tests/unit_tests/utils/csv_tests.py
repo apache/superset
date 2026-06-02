@@ -63,12 +63,16 @@ def test_escape_value():
     result = csv.escape_value(" =10+2")
     assert result == "' =10+2"
 
-    # A leading tab or carriage return is also treated as a dangerous prefix.
-    result = csv.escape_value("\t=10+2")
-    assert result == "'\t=10+2"
+    # A leading tab or carriage return followed by a dangerous char was already
+    # handled by \s{1,} in the pre-existing regex. The cases below test the
+    # new behavior: tab/CR alone (not followed by a dangerous char) are now
+    # also treated as dangerous prefixes because some spreadsheet software trims
+    # leading whitespace and then evaluates the remaining content as a formula.
+    result = csv.escape_value("\t10")
+    assert result == "'\t10"
 
-    result = csv.escape_value("\r=10+2")
-    assert result == "'\r=10+2"
+    result = csv.escape_value("\rfoo")
+    assert result == "'\rfoo"
 
 
 def fake_get_chart_csv_data_none(chart_url, auth_cookies=None):
