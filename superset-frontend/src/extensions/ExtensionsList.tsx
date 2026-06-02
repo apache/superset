@@ -25,6 +25,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 import { Select, Switch } from '@superset-ui/core/components';
@@ -33,7 +34,11 @@ import { ListView } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { CHATBOT_LOCATION } from 'src/views/contributions';
-import { getRegisteredViewIds, subscribeToLocation } from 'src/core/views';
+import {
+  getRegisteredViewIds,
+  subscribeToRegistry,
+  getRegistryVersion,
+} from 'src/core/views';
 
 const PAGE_SIZE = 25;
 
@@ -76,13 +81,10 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
-  const [chatbotRegistryVersion, setChatbotRegistryVersion] = useState(0);
-  useEffect(
-    () =>
-      subscribeToLocation(CHATBOT_LOCATION, () =>
-        setChatbotRegistryVersion(v => v + 1),
-      ),
-    [],
+  // Re-evaluate the chatbot rows whenever a view registers or unregisters.
+  const chatbotRegistryVersion = useSyncExternalStore(
+    subscribeToRegistry,
+    getRegistryVersion,
   );
 
   useEffect(() => {
