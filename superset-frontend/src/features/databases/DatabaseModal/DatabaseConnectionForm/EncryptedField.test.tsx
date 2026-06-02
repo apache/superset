@@ -208,6 +208,16 @@ describe('EncryptedField', () => {
         expected: '123',
         description: 'numbers to strings',
       },
+      {
+        input: true,
+        expected: 'true',
+        description: 'true booleans to strings',
+      },
+      {
+        input: false,
+        expected: 'false',
+        description: 'false booleans to strings',
+      },
     ];
 
     test.each(createModeCases)(

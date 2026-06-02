@@ -72,7 +72,7 @@ export const EncryptedField = ({
   // user must re-enter credentials to change them. This also matches the
   // mount effect below, which resets the parameter to an empty string.
   const encryptedValue =
-    isEditMode || !paramValue
+    isEditMode || paramValue == null
       ? ''
       : typeof paramValue === 'object'
         ? JSON.stringify(paramValue)
