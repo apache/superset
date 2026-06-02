@@ -42,7 +42,7 @@ def test_run_after_validate_submits_job():
         mock_manager.parse_channel_id_from_request.return_value = "channel-123"
         mock_manager.submit_chart_data_job.return_value = {"job_id": "abc"}
 
-        command.validate(request=object())  # type: ignore[arg-type]
+        command.validate(request=MagicMock())
         result = command.run(form_data={"k": "v"}, user_id=42)
 
         mock_manager.submit_chart_data_job.assert_called_once_with(
