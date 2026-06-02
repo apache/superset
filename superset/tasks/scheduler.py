@@ -249,9 +249,7 @@ def prune_key_value(
     try:
         KeyValuePruneCommand(max_rows_per_run).run()
     except CommandException as ex:
-        logger.exception(
-            "An error occurred while pruning the key-value store: %s", ex
-        )
+        logger.exception("An error occurred while pruning the key-value store: %s", ex)
 
 
 @celery_app.task(name="tasks.execute", bind=True)

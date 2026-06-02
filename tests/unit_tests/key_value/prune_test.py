@@ -73,9 +73,7 @@ def test_prune_deletes_expired_entries(
 
     KeyValuePruneCommand().run()
 
-    remaining_ids = {
-        row.id for row in db.session.query(KeyValueEntry.id).all()
-    }
+    remaining_ids = {row.id for row in db.session.query(KeyValueEntry.id).all()}
     assert expired_ids.isdisjoint(remaining_ids)
     assert db.session.query(KeyValueEntry).count() == 0
 
@@ -92,9 +90,7 @@ def test_prune_retains_non_expired_and_no_expiry_entries(
 
     KeyValuePruneCommand().run()
 
-    remaining_ids = {
-        row.id for row in db.session.query(KeyValueEntry.id).all()
-    }
+    remaining_ids = {row.id for row in db.session.query(KeyValueEntry.id).all()}
     assert future.id in remaining_ids
     assert no_expiry.id in remaining_ids
     assert expired.id not in remaining_ids
