@@ -184,8 +184,8 @@ async def create_dataset(
             % (error_response.error_type, error_response.error)
         )
         return error_response
-    except DatasetCreateFailedError as exc:
-        logger.error("Dataset creation failed: %s", exc)
+    except DatasetCreateFailedError:
+        logger.exception("Dataset creation failed")
         await ctx.error("Dataset creation failed")
         return DatasetError.create(
             error="Dataset creation failed", error_type="CreateFailedError"

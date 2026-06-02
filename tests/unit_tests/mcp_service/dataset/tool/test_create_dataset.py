@@ -488,6 +488,32 @@ class TestCreateDataset:
         assert "schema" not in call_kwargs
 
     @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
+    @pytest.mark.asyncio
+    async def test_create_dataset_blank_catalog_normalized_to_none(
+        self, mock_command_class, mcp_server
+    ) -> None:
+        """Blank catalog string is treated as absent: not forwarded to the command."""
+        mock_dataset = _make_mock_dataset()
+        mock_command = MagicMock()
+        mock_command.run.return_value = mock_dataset
+        mock_command_class.return_value = mock_command
+
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "create_dataset",
+                {
+                    "request": {
+                        "database_id": 1,
+                        "catalog": "",
+                        "table_name": "orders",
+                    }
+                },
+            )
+
+        call_kwargs = mock_command_class.call_args[0][0]
+        assert "catalog" not in call_kwargs
+
+    @patch("superset.mcp_service.dataset.tool.create_dataset.CreateDatasetCommand")
     @patch(
         "superset.mcp_service.dataset.tool.create_dataset.serialize_dataset_object",
         return_value=None,
