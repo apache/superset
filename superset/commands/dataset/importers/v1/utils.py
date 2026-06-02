@@ -37,6 +37,7 @@ from superset.commands.dataset.exceptions import (
     MultiCatalogDisabledValidationError,
 )
 from superset.commands.exceptions import ImportFailedError
+from superset.commands.importers.v1.utils import find_existing_for_import
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.exceptions import SupersetSecurityException
@@ -234,8 +235,12 @@ def import_dataset(  # noqa: C901
         "can_write",
         "Dataset",
     )
-    from superset.commands.importers.v1.utils import find_existing_for_import
-
+    # `user` is None for background / example-loader paths (no Flask request
+    # user). Combined with ``can_write=True`` (typically from
+    # ``ignore_permissions=True``), the ownership check below is intentionally
+    # skipped because the caller has already established trust at the command
+    # level. This matches pre-existing overwrite behaviour but now also applies
+    # to soft-deleted matches via ``needs_mutation``.
     user = get_user()
     # Tracks whether we entered the soft-deleted mutation path so the
     # downstream `sync` decision (below) can reflect that an
@@ -376,7 +381,7 @@ def import_dataset(  # noqa: C901
     if data_uri and (not table_exists or force_data):
         load_data(data_uri, dataset, dataset.database)
 
-    if (user := get_user()) and user not in dataset.owners:
+    if user and user not in dataset.owners:
         dataset.owners.append(user)
 
     return dataset
