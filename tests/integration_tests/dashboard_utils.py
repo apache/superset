@@ -39,13 +39,20 @@ def get_table(
     # Bypass the soft-delete listener so the helper finds rows previously
     # soft-deleted by other tests in the same session. Without the
     # bypass, the listener hides them and a subsequent INSERT collides
-    # with the underlying (database_id, schema, table_name) unique
-    # constraint that survives soft-delete.
+    # with the underlying ``(database_id, catalog, schema, table_name)``
+    # unique constraint that survives soft-delete. Prefer live rows over
+    # soft-deleted ones via ``ORDER BY deleted_at IS NULL DESC, id`` —
+    # the filter doesn't include ``catalog``, so it can match more than
+    # one row when a soft-deleted row coexists with a live row that
+    # differs only by catalog (e.g. NULL vs ``"public"``). ``.first()``
+    # plus the live-first ordering keeps the behaviour predictable
+    # without surfacing a ``MultipleResultsFound`` for that case.
     return (
         db.session.query(SqlaTable)
         .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
         .filter_by(database_id=database.id, schema=schema, table_name=table_name)
-        .one_or_none()
+        .order_by(SqlaTable.deleted_at.is_(None).desc(), SqlaTable.id)
+        .first()
     )
 
 
