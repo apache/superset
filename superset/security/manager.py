@@ -86,6 +86,7 @@ from superset.utils.core import (
     get_username,
     RowLevelSecurityFilterType,
 )
+from superset.utils.decorators import transaction
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.urls import get_url_host
 
@@ -3702,18 +3703,31 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return self.get_guest_user_from_token(cast(GuestToken, token))
 
-    @staticmethod
-    def _is_guest_token_revoked(token: dict[str, Any]) -> bool:
+    @classmethod
+    def _is_guest_token_revoked(cls, token: dict[str, Any]) -> bool:
         """
-        Determine whether a guest token has been revoked via a version bump.
+        Determine whether a guest token has been revoked by any mechanism.
 
-        Revocation is opt-in (``GUEST_TOKEN_REVOCATION_ENABLED``). When disabled,
-        no token is ever considered revoked. When enabled, a token is revoked if
-        the version it was minted with is below the expected version. Tokens
-        minted before this feature existed carry no version claim and are treated
-        as :data:`DEFAULT_GUEST_TOKEN_REVOCATION_VERSION` (0), so they only become
-        revoked once an admin has explicitly bumped the expected version above 0.
+        Two complementary revocation mechanisms apply:
+
+        - **Global version bump** (opt-in via ``GUEST_TOKEN_REVOCATION_ENABLED``):
+          a token is revoked if the version it was minted with is below the
+          expected version. Tokens minted before this feature existed carry no
+          version claim and are treated as
+          :data:`DEFAULT_GUEST_TOKEN_REVOCATION_VERSION` (0), so they only become
+          revoked once an admin has explicitly bumped the expected version above 0.
+        - **Per-embedded-dashboard cutoff** (``guest_token_revoked_before``): a
+          token is revoked if its ``iat`` predates the revocation cutoff of any of
+          its embedded-dashboard resources.
         """
+        return cls._is_guest_token_revoked_by_version(
+            token
+        ) or cls._is_guest_token_revoked_by_embedded(token)
+
+    @staticmethod
+    def _is_guest_token_revoked_by_version(token: dict[str, Any]) -> bool:
+        """Return True if the token's revocation version is below the expected
+        version. Gated on ``GUEST_TOKEN_REVOCATION_ENABLED``."""
         if not get_conf()["GUEST_TOKEN_REVOCATION_ENABLED"]:
             return False
         token_version = token.get(
@@ -3724,6 +3738,43 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         except (TypeError, ValueError):
             token_version = DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
         return token_version < get_current_guest_token_revocation_version()
+
+    @staticmethod
+    def _is_guest_token_revoked_by_embedded(token: dict[str, Any]) -> bool:
+        """Return True if the token predates a revocation on any of its
+        embedded-dashboard resources (``guest_token_revoked_before``)."""
+        issued_at = token.get("iat")
+        if not issued_at:
+            return False
+
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.dashboard import EmbeddedDashboardDAO
+
+        for resource in token.get("resources") or []:
+            if resource.get("type") != GuestTokenResourceType.DASHBOARD.value:
+                continue
+            embedded = EmbeddedDashboardDAO.find_by_id(str(resource.get("id")))
+            revoked_before = getattr(embedded, "guest_token_revoked_before", None)
+            if revoked_before is not None and issued_at < revoked_before:
+                return True
+        return False
+
+    @transaction()
+    def revoke_guest_token_access(
+        self, embedded_uuid: str, before: Optional[int] = None
+    ) -> None:
+        """Revoke all guest tokens issued for an embedded dashboard before
+        ``before`` (epoch seconds, default: now). Subsequent tokens are
+        unaffected."""
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.dashboard import EmbeddedDashboardDAO
+
+        embedded = EmbeddedDashboardDAO.find_by_id(str(embedded_uuid))
+        if embedded is None:
+            return
+        embedded.guest_token_revoked_before = (
+            before if before is not None else int(self._get_current_epoch_time())
+        )
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(
