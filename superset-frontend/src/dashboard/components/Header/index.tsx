@@ -272,6 +272,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     maxUndoHistoryExceeded,
     editMode,
     lastModifiedTime,
+    localizedTitle,
   } = useSelector(
     (state: HeaderRootState) => ({
       expandedSlices: state.dashboardState.expandedSlices ?? {},
@@ -287,6 +288,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
       maxUndoHistoryExceeded: !!state.dashboardState.maxUndoHistoryExceeded,
       editMode: !!state.dashboardState.editMode,
       lastModifiedTime: state.lastModifiedTime ?? 0,
+      localizedTitle: state.dashboardState.localizedTitle,
     }),
     shallowEqual,
   );
@@ -619,14 +621,15 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
 
   const editableTitleProps = useMemo(
     () => ({
-      title: dashboardTitle,
+      // Editing operates on the canonical title; display localizes.
+      title: editMode ? dashboardTitle : (localizedTitle ?? dashboardTitle),
       canEdit: userCanEdit && editMode,
       onSave: handleChangeText,
       placeholder: t('Add the name of the dashboard'),
       label: t('Dashboard title'),
       showTooltip: false,
     }),
-    [dashboardTitle, editMode, handleChangeText, userCanEdit],
+    [dashboardTitle, localizedTitle, editMode, handleChangeText, userCanEdit],
   );
 
   const certifiedBadgeProps = useMemo(

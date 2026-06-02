@@ -165,6 +165,9 @@ export type DashboardState = {
   expandAllSlices?: boolean;
   refreshFrequency: number;
   shouldPersistRefreshFrequency?: boolean;
+  // Display-only localized dashboard title (read-only; canonical title is in
+  // the header layout meta). Present only when asset-translation is enabled.
+  localizedTitle?: string;
   colorNamespace?: string;
   isStarred?: boolean;
   lastRefreshTime?: number;
@@ -351,6 +354,7 @@ export type EmbeddedDashboard = {
 export type Slice = {
   slice_id: number;
   slice_name: string;
+  localized_name?: string;
   description: string;
   description_markdown: string;
   form_data: any;
