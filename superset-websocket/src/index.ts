@@ -396,8 +396,10 @@ export const isOriginAllowed = (request: http.IncomingMessage): boolean => {
     return true;
   }
 
+  // `origin` is typed as `string | string[] | undefined`; only a single,
+  // unambiguous string header is acceptable for an exact-match comparison.
   const origin = request.headers.origin;
-  if (!origin) {
+  if (typeof origin !== 'string') {
     return false;
   }
   return allowedOrigins.includes(origin);

@@ -101,7 +101,11 @@ function configFromFile(): Partial<ConfigType> {
 const isPresent = (s: string) => /\S+/.test(s);
 const toNumber = Number;
 const toBoolean = (s: string) => s.toLowerCase() === 'true';
-const toStringArray = (s: string) => s.split(',');
+const toStringArray = (s: string) =>
+  s
+    .split(',')
+    .map(entry => entry.trim())
+    .filter(entry => entry.length > 0);
 
 function applyEnvOverrides(config: ConfigType): ConfigType {
   const envVarConfigSetter: { [envVar: string]: (val: string) => void } = {
