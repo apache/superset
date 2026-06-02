@@ -17,6 +17,7 @@
 
 from flask_appbuilder import Model
 from sqlalchemy import (
+    Boolean,
     Column,
     DateTime,
     ForeignKey,
@@ -57,3 +58,7 @@ class UserAttribute(Model, AuditMixinNullable):
     # Stamped when the account is disabled, so outstanding sessions terminate
     # regardless of the session backend. NULL means "never invalidated".
     sessions_invalidated_at = Column(DateTime, nullable=True, index=True)
+    # When True, the user must change their password before they can use the
+    # rest of the app (enforced by the before-request hook in
+    # superset.security.password_change when ENABLE_FORCE_PASSWORD_CHANGE is on).
+    password_must_change = Column(Boolean, nullable=False, default=False)

@@ -640,6 +640,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         lm.request_loader(self.request_loader)
         return lm
 
+    def reset_password(self, userid: int, password: str) -> None:
+        """Reset a user's password and clear any pending forced-change flag.
+
+        Covers both the self-service reset and the admin "Reset Password" action,
+        which both route through this method.
+        """
+        super().reset_password(userid, password)
+        from superset.security.password_change import clear_password_must_change
+
+        clear_password_must_change(userid)
+
     def on_user_login(self, user: Any) -> None:
         # pylint: disable=import-outside-toplevel
         from superset.security.session_invalidation import stamp_login_time

@@ -362,6 +362,11 @@ RATELIMIT_ENABLED = os.environ.get("SUPERSET_ENV") == "production"
 RATELIMIT_APPLICATION = "50 per second"
 AUTH_RATE_LIMITED = True
 AUTH_RATE_LIMIT = "5 per second"
+
+# When enabled, users whose account is flagged with ``password_must_change``
+# (e.g. accounts provisioned by an administrator) are redirected to the
+# password-reset page until they set a new password. Off by default.
+ENABLE_FORCE_PASSWORD_CHANGE = False
 # A storage location conforming to the scheme in storage-scheme. See the limits
 # library for allowed values: https://limits.readthedocs.io/en/stable/storage.html
 # RATELIMIT_STORAGE_URI = "redis://host:port"
