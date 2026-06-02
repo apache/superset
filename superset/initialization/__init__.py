@@ -612,6 +612,61 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     # Surface exceptions during initialization of extensions
                     print(ex)
 
+    def init_versioning(self) -> None:
+        """Register SQLAlchemy-Continuum baseline and retention listeners.
+
+        Must be called after all versioned model classes have been imported so
+        that VERSIONED_MODELS can be populated and configure_mappers() has run.
+        """
+        from sqlalchemy.orm import Session  # noqa: F401
+        from sqlalchemy_continuum import version_class
+
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.dashboard import Dashboard
+        from superset.models.slice import Slice
+        from superset.versioning.baseline import (
+            register_baseline_listener,
+            VERSIONED_MODELS,
+        )
+
+        # Note: previously this block called ``configure_mappers()`` before
+        # importing the snapshot modules, believing their Table declarations
+        # needed ``version_transaction`` to exist. That's not actually the
+        # case — the snapshot tables reference ``version_transaction.id``
+        # only at the DB level (via the migration); the SQLAlchemy Table
+        # objects here intentionally declare ``transaction_id`` as a plain
+        # ``BigInteger`` without a FK to avoid the resolution dependency.
+        # Removing the global ``configure_mappers()`` avoids eagerly
+        # resolving relationships in other unrelated models (notably
+        # Flask-AppBuilder's AuditMixin on classes like Tag, whose
+        # ``created_by`` primaryjoin only resolves under specific class
+        # registry states in SQLAlchemy 1.4).
+        from superset.versioning.changes import (  # noqa: E402
+            register_change_record_listener,
+        )
+
+        # All versioned models — Dashboard / Slice / SqlaTable plus their
+        # children (TableColumn / SqlMetric) and the dashboard_slices
+        # M2M — go through Continuum's shadow tables. The JSON-snapshot
+        # path that previously backed dataset / dashboard child diffs
+        # has been removed (sc-103156 spike: full Continuum).
+        for model_cls in (Dashboard, Slice, SqlaTable):
+            try:
+                version_class(model_cls)  # ensure Continuum wired this model
+                VERSIONED_MODELS.append(model_cls)
+            except Exception:  # pylint: disable=broad-except  # noqa: S110
+                pass
+
+        register_baseline_listener()
+        register_change_record_listener()
+
+        # Retention is time-based and runs out-of-band as a Celery beat
+        # task — see ``superset/tasks/version_history_retention.py``
+        # and the ``version_history.prune_old_versions`` entry in
+        # ``CELERYBEAT_SCHEDULE`` (``superset/config.py``). The previous
+        # synchronous after_commit listener was retired so retention
+        # work doesn't add latency to user saves.
+
     def init_app_in_ctx(self) -> None:
         """
         Runs init logic in the context of the app
@@ -637,6 +692,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.init_views()
 
         self.init_all_dependencies_and_extensions()
+
+        # Must run after all versioned models are imported and mappers configured.
+        self.init_versioning()
 
     @staticmethod
     def _log_config_warning(message: str) -> None:
