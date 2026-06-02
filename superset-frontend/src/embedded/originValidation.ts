@@ -22,6 +22,25 @@
 export const MESSAGE_TYPE = '__embedded_comms__';
 
 /**
+ * Normalizes an allowed-domain entry to its origin (`scheme://host[:port]`),
+ * matching the comparison the backend performs via `flask_wtf.csrf.same_origin`.
+ *
+ * A browser-provided `event.origin` never carries a path or trailing slash, but
+ * configured allowed domains may (e.g. `https://example.com/` or
+ * `https://app.example.com/embed`). Reducing each entry to its origin keeps the
+ * frontend and backend in agreement about what an "allowed domain" is. Entries
+ * that cannot be parsed as a URL fall back to the raw value so an exact match is
+ * still possible.
+ */
+function normalizeToOrigin(domain: string): string {
+  try {
+    return new URL(domain).origin;
+  } catch {
+    return domain;
+  }
+}
+
+/**
  * Validates the origin of an incoming postMessage event against the dashboard's
  * configured allowed domains.
  *
@@ -37,7 +56,7 @@ export function isMessageOriginAllowed(
   if (!allowedDomains || allowedDomains.length === 0) {
     return true;
   }
-  if (allowedDomains.includes(origin)) {
+  if (allowedDomains.some(domain => normalizeToOrigin(domain) === origin)) {
     return true;
   }
   // eslint-disable-next-line no-console
@@ -60,7 +79,11 @@ export function validateMessageEvent(
     return false;
   }
 
-  if (typeof event.data !== 'object' || event.data.type !== MESSAGE_TYPE) {
+  if (
+    typeof event.data !== 'object' ||
+    event.data === null ||
+    event.data.type !== MESSAGE_TYPE
+  ) {
     return false;
   }
 

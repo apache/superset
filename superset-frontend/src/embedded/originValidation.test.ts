@@ -43,6 +43,22 @@ test('isMessageOriginAllowed allows an origin that is in the list', () => {
   ).toBe(true);
 });
 
+test('isMessageOriginAllowed matches a listed domain with a trailing slash', () => {
+  expect(
+    isMessageOriginAllowed('https://allowed.example.com', [
+      'https://allowed.example.com/',
+    ]),
+  ).toBe(true);
+});
+
+test('isMessageOriginAllowed matches a listed domain that includes a path', () => {
+  expect(
+    isMessageOriginAllowed('https://allowed.example.com', [
+      'https://allowed.example.com/embed',
+    ]),
+  ).toBe(true);
+});
+
 test('isMessageOriginAllowed rejects an origin that is not in the list and warns', () => {
   const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
   expect(
@@ -87,5 +103,10 @@ test('validateMessageEvent rejects a message whose data type does not match', ()
 
 test('validateMessageEvent rejects a message whose data is not an object', () => {
   const event = makeEvent('https://allowed.example.com', 'not-an-object');
+  expect(validateMessageEvent(event)).toBe(false);
+});
+
+test('validateMessageEvent rejects a message whose data is null', () => {
+  const event = makeEvent('https://allowed.example.com', null);
   expect(validateMessageEvent(event)).toBe(false);
 });
