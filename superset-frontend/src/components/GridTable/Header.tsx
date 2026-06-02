@@ -16,18 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  type MouseEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react';
+import { useCallback, useEffect, useState } from 'react';
+import type { Column, GridApi, SortDirection } from 'ag-grid-community';
+
 import { t } from '@apache-superset/core/translation';
 import { styled, useTheme } from '@apache-superset/core/theme';
-import type { Column, GridApi } from 'ag-grid-community';
-
 import { Icons } from '@superset-ui/core/components/Icons';
+
 import { PIVOT_COL_ID } from './constants';
 import { HeaderMenu } from './HeaderMenu';
 
@@ -37,10 +32,8 @@ interface Params {
   displayName: string;
   column: Column;
   api: GridApi;
-  setSort: (sort: string | null, multiSort: boolean) => void;
+  progressSort: (multiSort?: boolean) => void;
 }
-
-const SORT_DIRECTION = [null, 'asc', 'desc'];
 
 const HeaderCell = styled.div`
   display: flex;
@@ -91,7 +84,7 @@ export const Header: React.FC<Params> = ({
   enableFilterButton,
   enableSorting,
   displayName,
-  setSort,
+  progressSort,
   column,
   api,
 }: Params) => {
@@ -99,18 +92,14 @@ export const Header: React.FC<Params> = ({
   const colId = column.getColId();
   const pinnedLeft = column.isPinnedLeft();
   const pinnedRight = column.isPinnedRight();
-  const sortOption = useRef<number>(0);
   const [invisibleColumns, setInvisibleColumns] = useState<Column[]>([]);
-  const [currentSort, setCurrentSort] = useState<string | null>(null);
+  const [currentSort, setCurrentSort] = useState<SortDirection>(null);
   const [sortIndex, setSortIndex] = useState<number | null>();
   const onSort = useCallback(
-    (event: MouseEvent) => {
-      sortOption.current = (sortOption.current + 1) % SORT_DIRECTION.length;
-      const sort = SORT_DIRECTION[sortOption.current];
-      setSort(sort, event.shiftKey);
-      setCurrentSort(sort);
+    (event: React.MouseEvent) => {
+      progressSort(event.shiftKey);
     },
-    [setSort],
+    [progressSort],
   );
   const onVisibleChange = useCallback(
     (isVisible: boolean) => {
@@ -123,24 +112,22 @@ export const Header: React.FC<Params> = ({
     [api],
   );
 
-  const onSortChanged = useCallback(() => {
+  const syncSortState = useCallback(() => {
     const hasMultiSort = api
       .getAllDisplayedColumns()
-      .some(c => c.getSortIndex());
-    const updatedSortIndex = column.getSortIndex();
-    sortOption.current = SORT_DIRECTION.indexOf(column.getSort() ?? null);
+      .some(c => c.getColId() !== colId && c.getSort() !== null);
     setCurrentSort(column.getSort() ?? null);
-    setSortIndex(hasMultiSort ? updatedSortIndex : null);
-  }, [api, column]);
+    setSortIndex(hasMultiSort ? column.getSortIndex() : null);
+  }, [api, column, colId]);
 
   useEffect(() => {
-    api.addEventListener('sortChanged', onSortChanged);
+    column.addEventListener('columnStateUpdated', syncSortState);
 
     return () => {
       if (api.isDestroyed()) return;
-      api.removeEventListener('sortChanged', onSortChanged);
+      column.removeEventListener('columnStateUpdated', syncSortState);
     };
-  }, [api, onSortChanged]);
+  }, [column, syncSortState]);
 
   return (
     <>
