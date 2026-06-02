@@ -22,130 +22,108 @@ from __future__ import annotations
 from typing import Any
 
 # ---------------------------------------------------------------------------
-# Settings persistence — sqlite-backed round-trip tests via the Commands
+# Settings persistence (settings.py) — sqlite-backed round-trip tests
 # ---------------------------------------------------------------------------
 
 
-class TestGetExtensionSettingsCommand:
+class TestGetExtensionSettings:
     def test_returns_defaults_when_no_rows(self, app_context: Any) -> None:
-        from superset.commands.extension.settings.get import (
-            GetExtensionSettingsCommand,
-        )
+        from superset.extensions.settings import get_extension_settings
 
-        result = GetExtensionSettingsCommand().run()
+        result = get_extension_settings()
         assert result["active_chatbot_id"] is None
         assert result["enabled"] == {}
 
     def test_round_trips_active_chatbot_id(self, app_context: Any) -> None:
-        from superset.commands.extension.settings.get import (
-            GetExtensionSettingsCommand,
-        )
-        from superset.commands.extension.settings.update import (
-            UpdateExtensionSettingsCommand,
+        from superset.extensions.settings import (
+            get_extension_settings,
+            update_extension_settings,
         )
 
-        UpdateExtensionSettingsCommand({"active_chatbot_id": "acme.chatbot"}).run()
-        result = GetExtensionSettingsCommand().run()
+        update_extension_settings({"active_chatbot_id": "acme.chatbot"})
+        result = get_extension_settings()
         assert result["active_chatbot_id"] == "acme.chatbot"
 
     def test_round_trips_enabled_flags(self, app_context: Any) -> None:
-        from superset.commands.extension.settings.get import (
-            GetExtensionSettingsCommand,
-        )
-        from superset.commands.extension.settings.update import (
-            UpdateExtensionSettingsCommand,
+        from superset.extensions.settings import (
+            get_extension_settings,
+            update_extension_settings,
         )
 
-        UpdateExtensionSettingsCommand(
+        update_extension_settings(
             {"enabled": {"acme.chatbot": True, "acme.widget": False}}
-        ).run()
-        result = GetExtensionSettingsCommand().run()
+        )
+        result = get_extension_settings()
         assert result["enabled"]["acme.chatbot"] is True
         assert result["enabled"]["acme.widget"] is False
 
 
-class TestUpdateExtensionSettingsCommand:
+class TestUpdateExtensionSettings:
     def test_empty_string_active_chatbot_id_stored_as_none(
         self, app_context: Any
     ) -> None:
-        from superset.commands.extension.settings.get import (
-            GetExtensionSettingsCommand,
-        )
-        from superset.commands.extension.settings.update import (
-            UpdateExtensionSettingsCommand,
+        from superset.extensions.settings import (
+            get_extension_settings,
+            update_extension_settings,
         )
 
         # First set a value, then clear it via empty string.
-        UpdateExtensionSettingsCommand({"active_chatbot_id": "acme.chatbot"}).run()
-        UpdateExtensionSettingsCommand({"active_chatbot_id": ""}).run()
-        assert GetExtensionSettingsCommand().run()["active_chatbot_id"] is None
+        update_extension_settings({"active_chatbot_id": "acme.chatbot"})
+        update_extension_settings({"active_chatbot_id": ""})
+        assert get_extension_settings()["active_chatbot_id"] is None
 
     def test_non_bool_enabled_value_is_skipped(self, app_context: Any) -> None:
-        from superset.commands.extension.settings.get import (
-            GetExtensionSettingsCommand,
-        )
-        from superset.commands.extension.settings.update import (
-            UpdateExtensionSettingsCommand,
+        from superset.extensions.settings import (
+            get_extension_settings,
+            update_extension_settings,
         )
 
-        UpdateExtensionSettingsCommand({"enabled": {"acme.chatbot": "yes"}}).run()
+        # Unique id so the absence assertion can't collide with rows written by
+        # other tests sharing the module-scoped database.
+        update_extension_settings({"enabled": {"acme.nonbool_skip": "yes"}})
         # "yes" is not a bool — the row should not have been written.
-        result = GetExtensionSettingsCommand().run()
-        assert "acme.chatbot" not in result["enabled"]
+        result = get_extension_settings()
+        assert "acme.nonbool_skip" not in result["enabled"]
 
     def test_upsert_overwrites_existing_chatbot(self, app_context: Any) -> None:
-        from superset.commands.extension.settings.get import (
-            GetExtensionSettingsCommand,
-        )
-        from superset.commands.extension.settings.update import (
-            UpdateExtensionSettingsCommand,
+        from superset.extensions.settings import (
+            get_extension_settings,
+            update_extension_settings,
         )
 
-        UpdateExtensionSettingsCommand({"active_chatbot_id": "acme.chatbot"}).run()
-        UpdateExtensionSettingsCommand({"active_chatbot_id": "vendor.bot"}).run()
-        assert (
-            GetExtensionSettingsCommand().run()["active_chatbot_id"] == "vendor.bot"
-        )
+        update_extension_settings({"active_chatbot_id": "acme.chatbot"})
+        update_extension_settings({"active_chatbot_id": "vendor.bot"})
+        assert get_extension_settings()["active_chatbot_id"] == "vendor.bot"
 
     def test_upsert_overwrites_existing_enabled_flag(self, app_context: Any) -> None:
-        from superset.commands.extension.settings.get import (
-            GetExtensionSettingsCommand,
-        )
-        from superset.commands.extension.settings.update import (
-            UpdateExtensionSettingsCommand,
+        from superset.extensions.settings import (
+            get_extension_settings,
+            update_extension_settings,
         )
 
-        UpdateExtensionSettingsCommand({"enabled": {"acme.chatbot": True}}).run()
-        UpdateExtensionSettingsCommand({"enabled": {"acme.chatbot": False}}).run()
-        assert (
-            GetExtensionSettingsCommand().run()["enabled"]["acme.chatbot"] is False
-        )
+        update_extension_settings({"enabled": {"acme.chatbot": True}})
+        update_extension_settings({"enabled": {"acme.chatbot": False}})
+        assert get_extension_settings()["enabled"]["acme.chatbot"] is False
 
     def test_partial_update_leaves_other_keys_intact(self, app_context: Any) -> None:
-        from superset.commands.extension.settings.get import (
-            GetExtensionSettingsCommand,
-        )
-        from superset.commands.extension.settings.update import (
-            UpdateExtensionSettingsCommand,
+        from superset.extensions.settings import (
+            get_extension_settings,
+            update_extension_settings,
         )
 
-        UpdateExtensionSettingsCommand(
+        update_extension_settings(
             {"active_chatbot_id": "acme.chatbot", "enabled": {"acme.widget": True}}
-        ).run()
+        )
         # Update only enabled — active_chatbot_id must survive.
-        UpdateExtensionSettingsCommand({"enabled": {"acme.widget": False}}).run()
-        result = GetExtensionSettingsCommand().run()
+        update_extension_settings({"enabled": {"acme.widget": False}})
+        result = get_extension_settings()
         assert result["active_chatbot_id"] == "acme.chatbot"
         assert result["enabled"]["acme.widget"] is False
 
     def test_returns_current_state(self, app_context: Any) -> None:
-        from superset.commands.extension.settings.update import (
-            UpdateExtensionSettingsCommand,
-        )
+        from superset.extensions.settings import update_extension_settings
 
-        result = UpdateExtensionSettingsCommand(
-            {"active_chatbot_id": "acme.chatbot"}
-        ).run()
+        result = update_extension_settings({"active_chatbot_id": "acme.chatbot"})
         assert result["active_chatbot_id"] == "acme.chatbot"
 
 
@@ -159,7 +137,7 @@ class TestGetSettingsEndpoint:
         self, client: Any, full_api_access: None, mocker: Any
     ) -> None:
         mocker.patch(
-            "superset.extensions.api.GetExtensionSettingsCommand.run",
+            "superset.extensions.api.get_extension_settings",
             return_value={"active_chatbot_id": None, "enabled": {}},
         )
         resp = client.get("/api/v1/extensions/settings")
@@ -170,7 +148,7 @@ class TestGetSettingsEndpoint:
         self, client: Any, full_api_access: None, mocker: Any
     ) -> None:
         mocker.patch(
-            "superset.extensions.api.GetExtensionSettingsCommand.run",
+            "superset.extensions.api.get_extension_settings",
             return_value={
                 "active_chatbot_id": "acme.chatbot",
                 "enabled": {"acme.chatbot": True},
@@ -207,7 +185,7 @@ class TestPutSettingsEndpoint:
             "superset.extensions.api.security_manager.is_admin", return_value=True
         )
         mocker.patch(
-            "superset.extensions.api.UpdateExtensionSettingsCommand.run",
+            "superset.extensions.api.update_extension_settings",
             return_value={"active_chatbot_id": "acme.chatbot", "enabled": {}},
         )
         resp = client.put(
@@ -224,7 +202,7 @@ class TestPutSettingsEndpoint:
             "superset.extensions.api.security_manager.is_admin", return_value=True
         )
         mocker.patch(
-            "superset.extensions.api.UpdateExtensionSettingsCommand.run",
+            "superset.extensions.api.update_extension_settings",
             return_value={"active_chatbot_id": None, "enabled": {}},
         )
         resp = client.put("/api/v1/extensions/settings", json={})
