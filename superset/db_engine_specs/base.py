@@ -1305,6 +1305,38 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    def normalize_column_values(cls, col_values: list[Any]) -> list[Any]:
+        """
+        Engine-specific hook to normalize column values before PyArrow conversion.
+
+        Called when the initial pa.array() conversion raises an exception, giving
+        the engine a chance to clean up values (e.g. replace sentinel strings with
+        None) before a second conversion attempt.
+
+        :param col_values: Raw Python values for one column
+        :return: Normalized values; return the input list unchanged by default
+        """
+        return col_values
+
+    @classmethod
+    def resolve_column_type(
+        cls, cursor_type: str | None, pa_mapped: str | None
+    ) -> str | None:
+        """
+        Choose the reported column type from the cursor description type and the
+        type inferred by PyArrow.
+
+        The default prefers the cursor description when available.  Override in
+        engine specs where the cursor description is unreliable (e.g. pydruid
+        infers STRING from a None or special-float first row value).
+
+        :param cursor_type: Type string from the cursor description, or None
+        :param pa_mapped: Type string inferred by PyArrow, or None
+        :return: The type string to report for this column
+        """
+        return cursor_type or pa_mapped
+
+    @classmethod
     @deprecated(deprecated_in="3.0")
     def normalize_indexes(cls, indexes: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """

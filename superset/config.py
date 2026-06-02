@@ -558,11 +558,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Experimental PyArrow engine for CSV parsing (may have issues with dates/nulls)
     # @lifecycle: development
     "CSV_UPLOAD_PYARROW_ENGINE": False,
-    # Preserve numeric columns when Druid returns IEEE special floats (NaN,
-    # Infinity, -Infinity) as JSON strings, preventing PyArrow from inferring
-    # the column as string type.
-    # @lifecycle: development
-    "PRESERVE_NUMERIC_COLUMNS_FOR_SPECIAL_FLOATS": False,
     # Allow metrics and columns to be grouped into folders in the chart builder
     # @lifecycle: development
     "DATASET_FOLDERS": False,

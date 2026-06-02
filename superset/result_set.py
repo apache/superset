@@ -25,15 +25,12 @@ import pandas as pd
 import pyarrow as pa
 from numpy.typing import NDArray
 
-from superset import is_feature_enabled
 from superset.db_engine_specs import BaseEngineSpec
 from superset.superset_typing import DbapiDescription, DbapiResult, ResultSetColumnType
 from superset.utils import core as utils, json
 from superset.utils.core import GenericDataType
 
 logger = logging.getLogger(__name__)
-
-_FLOAT_SPECIAL = frozenset({"NaN", "Infinity", "-Infinity"})
 
 
 def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list[str]:  # noqa: E741
@@ -187,23 +184,20 @@ class SupersetResultSet:
                 TypeError,  # this is super hackey,
                 # https://issues.apache.org/jira/browse/ARROW-7855
             ):
-                col_values = array[column].tolist()
-                if is_feature_enabled("PRESERVE_NUMERIC_COLUMNS_FOR_SPECIAL_FLOATS"):
-                    col_values = [
-                        None if isinstance(v, str) and v in _FLOAT_SPECIAL else v
-                        for v in col_values
-                    ]
-                    try:
-                        pa_data.append(pa.array(col_values))
-                        continue
-                    except (
-                        pa.lib.ArrowInvalid,
-                        pa.lib.ArrowTypeError,
-                        pa.lib.ArrowNotImplementedError,
-                        ValueError,
-                        TypeError,
-                    ):
-                        pass
+                col_values = db_engine_spec.normalize_column_values(
+                    array[column].tolist()
+                )
+                try:
+                    pa_data.append(pa.array(col_values))
+                    continue
+                except (
+                    pa.lib.ArrowInvalid,
+                    pa.lib.ArrowTypeError,
+                    pa.lib.ArrowNotImplementedError,
+                    ValueError,
+                    TypeError,
+                ):
+                    pass
                 # attempt serialization of values as strings
                 stringified_arr = stringify_values(array[column])
                 pa_data.append(pa.array(stringified_arr.tolist()))
@@ -299,24 +293,7 @@ class SupersetResultSet:
         """Given a pyarrow data type, Returns a generic database type"""
         set_type = self._type_dict.get(col_name)
         pa_mapped = self.convert_pa_dtype(pa_dtype)
-
-        # pydruid infers column types from the first row value, so a None or
-        # special-float-string first value causes the column to be labelled
-        # STRING even when the actual data is numeric.  When the feature flag
-        # is enabled, prefer PyArrow's inferred type over a cursor-description
-        # STRING so that numeric columns are not misreported.
-        if (
-            is_feature_enabled("PRESERVE_NUMERIC_COLUMNS_FOR_SPECIAL_FLOATS")
-            and set_type == "STRING"
-            and pa_mapped is not None
-            and pa_mapped != "STRING"
-        ):
-            return pa_mapped
-
-        if set_type:
-            return set_type
-
-        return pa_mapped
+        return self.db_engine_spec.resolve_column_type(set_type, pa_mapped)
 
     def to_pandas_df(self) -> pd.DataFrame:
         return self.convert_table_to_df(self.table)

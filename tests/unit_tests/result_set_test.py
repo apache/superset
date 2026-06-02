@@ -24,7 +24,9 @@ import pandas as pd
 from numpy.core.multiarray import array
 from pytest_mock import MockerFixture
 
+
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.result_set import stringify_values, SupersetResultSet
 from superset.superset_typing import DbapiResult
 
@@ -267,7 +269,7 @@ def test_empty_column_names_do_not_rename_explicit_synthetic_names() -> None:
 
 
 # ---------------------------------------------------------------------------
-# PRESERVE_NUMERIC_COLUMNS_FOR_SPECIAL_FLOATS feature flag tests
+# DruidEngineSpec column normalization tests
 #
 # pydruid infers column types from the first row value, which causes two
 # related problems:
@@ -284,26 +286,19 @@ def test_empty_column_names_do_not_rename_explicit_synthetic_names() -> None:
 #     description.  pa.array() succeeds (producing float64) but
 #     data_type() used to return STRING because the cursor description won.
 #
-# With the flag enabled both cases should yield a numeric column type.
+# DruidEngineSpec overrides normalize_column_values and resolve_column_type
+# to handle both cases.  BaseEngineSpec preserves the original behaviour.
 # ---------------------------------------------------------------------------
 
 
-def test_druid_ieee_special_floats_preserved_as_numeric_with_flag_enabled(
-    mocker: MockerFixture,
-) -> None:
+def test_druid_ieee_special_floats_preserved_as_numeric() -> None:
     """
-    Case 1, flag ON: columns that mix IEEE special-float strings with real
-    numbers must keep their numeric type (specials become null).
+    Case 1, DruidEngineSpec: columns that mix IEEE special-float strings with
+    real numbers must keep their numeric type (specials become null).
     """
-    mocker.patch(
-        "superset.result_set.is_feature_enabled",
-        side_effect=lambda flag: flag
-        == "PRESERVE_NUMERIC_COLUMNS_FOR_SPECIAL_FLOATS",
-    )
-
     data = [("NaN",), (1.5,), ("Infinity",), (2.3,), ("-Infinity",), (None,)]
     description = [("metric", "STRING", None, None, None, None, None)]
-    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+    result_set = SupersetResultSet(data, description, DruidEngineSpec)  # type: ignore
 
     col = result_set.columns[0]
     assert col["type"] == "FLOAT"
@@ -317,19 +312,11 @@ def test_druid_ieee_special_floats_preserved_as_numeric_with_flag_enabled(
     assert pd.isna(df["metric"].iloc[5])  # None → null
 
 
-def test_druid_ieee_special_floats_stringified_with_flag_disabled(
-    mocker: MockerFixture,
-) -> None:
+def test_base_spec_ieee_special_floats_stringified() -> None:
     """
-    Case 1, flag OFF: existing behaviour must be preserved — columns with
-    mixed special-float strings and numbers fall through to string
-    serialisation.
+    Case 1, BaseEngineSpec: without Druid's override, columns with mixed
+    special-float strings and numbers fall through to string serialisation.
     """
-    mocker.patch(
-        "superset.result_set.is_feature_enabled",
-        return_value=False,
-    )
-
     data = [("NaN",), (1.5,), ("Infinity",)]
     description = [("metric", "STRING", None, None, None, None, None)]
     result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
@@ -343,23 +330,15 @@ def test_druid_ieee_special_floats_stringified_with_flag_disabled(
     assert df["metric"].iloc[2] == "Infinity"
 
 
-def test_druid_none_first_value_reports_numeric_type_with_flag_enabled(
-    mocker: MockerFixture,
-) -> None:
+def test_druid_none_first_value_reports_numeric_type() -> None:
     """
-    Case 2, flag ON: when the cursor description says STRING (pydruid's
-    first-row None inference) but PyArrow correctly infers float64, the
-    column must be reported as FLOAT, not STRING.
+    Case 2, DruidEngineSpec: when the cursor description says STRING (pydruid's
+    first-row None inference) but PyArrow correctly infers float64, the column
+    must be reported as FLOAT, not STRING.
     """
-    mocker.patch(
-        "superset.result_set.is_feature_enabled",
-        side_effect=lambda flag: flag
-        == "PRESERVE_NUMERIC_COLUMNS_FOR_SPECIAL_FLOATS",
-    )
-
     data = [(None,), (1.5,), (2.3,), (None,), (4.7,)]
     description = [("metric", "STRING", None, None, None, None, None)]
-    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+    result_set = SupersetResultSet(data, description, DruidEngineSpec)  # type: ignore
 
     col = result_set.columns[0]
     assert col["type"] == "FLOAT"
@@ -370,19 +349,11 @@ def test_druid_none_first_value_reports_numeric_type_with_flag_enabled(
     assert df["metric"].iloc[4] == 4.7
 
 
-def test_druid_none_first_value_reports_string_type_with_flag_disabled(
-    mocker: MockerFixture,
-) -> None:
+def test_base_spec_none_first_value_reports_string_type() -> None:
     """
-    Case 2, flag OFF: the cursor-description STRING type must continue to win
-    over PyArrow's float64 inference.  This preserves behaviour for deployments
-    that have not opted in.
+    Case 2, BaseEngineSpec: the cursor-description STRING type must continue
+    to win over PyArrow's float64 inference for non-Druid engines.
     """
-    mocker.patch(
-        "superset.result_set.is_feature_enabled",
-        return_value=False,
-    )
-
     data = [(None,), (1.5,), (2.3,)]
     description = [("metric", "STRING", None, None, None, None, None)]
     result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
@@ -391,21 +362,14 @@ def test_druid_none_first_value_reports_string_type_with_flag_disabled(
     assert col["type"] == "STRING"
 
 
-def test_non_string_cursor_type_unaffected_by_flag(mocker: MockerFixture) -> None:
+def test_non_string_cursor_type_unaffected_by_druid_spec() -> None:
     """
     Columns with a non-STRING cursor description type must not be affected by
-    the flag — this guards against regressions on databases that correctly
-    declare their column types.
+    DruidEngineSpec's resolve_column_type override.
     """
-    mocker.patch(
-        "superset.result_set.is_feature_enabled",
-        side_effect=lambda flag: flag
-        == "PRESERVE_NUMERIC_COLUMNS_FOR_SPECIAL_FLOATS",
-    )
-
     data = [(1,), (2,), (3,)]
     description = [("count", "INT", None, None, None, None, None)]
-    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+    result_set = SupersetResultSet(data, description, DruidEngineSpec)  # type: ignore
 
     col = result_set.columns[0]
     assert col["type"] == "INT"
