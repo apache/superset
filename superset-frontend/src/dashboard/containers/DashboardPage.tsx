@@ -30,6 +30,7 @@ import {
   useDashboardDatasets,
 } from 'src/hooks/apiResources';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
+import { clearDashboardHistory } from 'src/dashboard/actions/dashboardLayout';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import {
@@ -205,6 +206,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
             chartStates,
           }),
         );
+        dispatch(clearDashboardHistory());
 
         // Scroll to anchor element if specified in permalink state
         if (anchor) {

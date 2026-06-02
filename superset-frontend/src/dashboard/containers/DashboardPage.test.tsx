@@ -26,6 +26,8 @@ import {
 } from 'src/hooks/apiResources';
 import { SupersetClient } from '@superset-ui/core';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
+import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
+import { clearDashboardHistory } from 'src/dashboard/actions/dashboardLayout';
 import DashboardPage from './DashboardPage';
 
 const mockTheme = {
@@ -62,6 +64,11 @@ jest.mock('src/hooks/apiResources', () => ({
 jest.mock('src/dashboard/actions/hydrate', () => ({
   ...jest.requireActual('src/dashboard/actions/hydrate'),
   hydrateDashboard: jest.fn(() => ({ type: 'MOCK_HYDRATE' })),
+}));
+
+jest.mock('src/dashboard/actions/dashboardLayout', () => ({
+  ...jest.requireActual('src/dashboard/actions/dashboardLayout'),
+  clearDashboardHistory: jest.fn(() => ({ type: 'MOCK_CLEAR_HISTORY' })),
 }));
 
 jest.mock('src/dashboard/actions/datasources', () => ({
@@ -253,4 +260,34 @@ test('passes null theme when Redux dashboardInfo.theme is explicitly null (theme
     expect.objectContaining({ theme: null }),
     expect.anything(),
   );
+});
+
+test('clears undo history after hydrating the dashboard', async () => {
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  expect(hydrateDashboard).toHaveBeenCalled();
+  expect(clearDashboardHistory).toHaveBeenCalled();
+  const hydrateOrder = (hydrateDashboard as jest.Mock).mock
+    .invocationCallOrder[0];
+  const clearOrder = (clearDashboardHistory as jest.Mock).mock
+    .invocationCallOrder[0];
+  expect(clearOrder).toBeGreaterThan(hydrateOrder);
 });
