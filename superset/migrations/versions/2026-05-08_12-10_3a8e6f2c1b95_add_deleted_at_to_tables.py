@@ -43,10 +43,12 @@ INDEX_NAME = f"ix_{TABLE_NAME}_deleted_at"
 
 
 def upgrade() -> None:
+    """Add the soft-delete column and its supporting index to ``tables``."""
     add_columns(TABLE_NAME, Column("deleted_at", DateTime(), nullable=True))
     create_index(TABLE_NAME, INDEX_NAME, ["deleted_at"])
 
 
 def downgrade() -> None:
+    """Reverse ``upgrade``: drop the index, then the column."""
     drop_index(TABLE_NAME, INDEX_NAME)
     drop_columns(TABLE_NAME, "deleted_at")
