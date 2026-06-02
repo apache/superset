@@ -1001,12 +1001,8 @@ def test_is_valid_gsheets_url() -> None:
     assert GSheetsEngineSpec._is_valid_gsheets_url(
         "https://docs.google.com/spreadsheets/d/1/edit#gid=0"
     )
-    assert not GSheetsEngineSpec._is_valid_gsheets_url(
-        '"; DROP TABLE users; --'
-    )
-    assert not GSheetsEngineSpec._is_valid_gsheets_url(
-        "https://evil.com/sheet"
-    )
+    assert not GSheetsEngineSpec._is_valid_gsheets_url('"; DROP TABLE users; --')
+    assert not GSheetsEngineSpec._is_valid_gsheets_url("https://evil.com/sheet")
 
 
 def test_validate_parameters_skips_oauth2_connections_with_masked_encrypted_extra(
