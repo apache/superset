@@ -52,6 +52,11 @@ const allowedCssProperties = {
   'border-width': true,
   'border-radius': true,
   'vertical-align': true,
+  // Needed by ECharts tooltips for row transparency and text truncation.
+  opacity: true,
+  'max-width': true,
+  overflow: true,
+  'text-overflow': true,
 };
 
 const xssFilter = new FilterXSS({
