@@ -33,6 +33,7 @@ from typing import (
 )
 
 import sqlalchemy as sa
+from flask import current_app
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from pydantic import BaseModel, Field
@@ -772,7 +773,10 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             else:
                 query = query.order_by(asc(column))
         page = page
-        page_size = max(page_size, 1)
+        # Clamp the page size to a sane range: at least 1, and no larger than
+        # the configured upper bound, to keep result sets bounded.
+        max_page_size = current_app.config.get("SQLALCHEMY_DAO_MAX_PAGE_SIZE", 1000)
+        page_size = min(max(page_size, 1), max_page_size)
         query = query.offset(page * page_size).limit(page_size)
         items = query.all()
         # If columns are specified, SQLAlchemy returns Row objects (not tuples or
