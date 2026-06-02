@@ -42,3 +42,5 @@ export const FILTER_CONDITION_BODY_INDEX = {
   FIRST: 0,
   SECOND: 1,
 } as const;
+
+export const ROW_NUMBER_COL_ID = '__row_number__';
