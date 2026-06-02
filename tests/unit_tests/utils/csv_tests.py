@@ -63,6 +63,9 @@ def test_escape_value():
     result = csv.escape_value(" =10+2")
     assert result == "' =10+2"
 
+    result = csv.escape_value('  ""=10+2')
+    assert result == '\'  ""=10+2'
+
 
 def fake_get_chart_csv_data_none(chart_url, auth_cookies=None):
     return None
