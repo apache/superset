@@ -17,7 +17,7 @@
 """Add extension_settings and extension_enabled tables.
 
 Revision ID: b2c3d4e5f6a7
-Revises: ce6bd21901ab
+Revises: 33d7e0e21daa
 Create Date: 2026-05-25 00:00:00.000000
 
 """
@@ -26,7 +26,7 @@ import sqlalchemy as sa
 from alembic import op
 
 revision = "b2c3d4e5f6a7"
-down_revision = "ce6bd21901ab"
+down_revision = "33d7e0e21daa"
 
 
 def upgrade() -> None:
