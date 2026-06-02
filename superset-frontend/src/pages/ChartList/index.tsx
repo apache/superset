@@ -372,6 +372,7 @@ function ChartList(props: ChartListProps) {
             original: {
               url,
               slice_name: sliceName,
+              localized_name: localizedName,
               certified_by: certifiedBy,
               certification_details: certificationDetails,
               description,
@@ -388,7 +389,7 @@ function ChartList(props: ChartListProps) {
                   />{' '}
                 </>
               )}
-              {sliceName}
+              {localizedName ?? sliceName}
             </Link>
             {description && <InfoTooltip tooltip={description} />}
           </FlexRowContainer>
