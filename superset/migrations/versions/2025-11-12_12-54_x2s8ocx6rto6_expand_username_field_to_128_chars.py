@@ -55,6 +55,8 @@ def upgrade():
             current_length,
         )
         return
+    
+    op.execute("DROP VIEW IF EXISTS v_ab_user;")
 
     with op.batch_alter_table("ab_user") as batch_op:
         batch_op.alter_column(
@@ -65,6 +67,13 @@ def upgrade():
             type_=sa.String(128),
             existing_nullable=False,
         )
+        
+    op.execute("""
+        CREATE VIEW v_ab_user AS
+        SELECT ab_user.id, ab_user.first_name, ab_user.last_name, 
+               ab_user.username, ab_user.active, ab_user.email 
+        FROM ab_user; 
+    """)
 
 
 def downgrade():
@@ -85,6 +94,8 @@ def downgrade():
             current_length,
         )
         return
+        
+    op.execute("DROP VIEW IF EXISTS v_ab_user;")
 
     with op.batch_alter_table("ab_user") as batch_op:
         batch_op.alter_column(
@@ -95,3 +106,10 @@ def downgrade():
             type_=sa.String(64),
             existing_nullable=False,
         )
+        
+    op.execute("""
+        CREATE VIEW v_ab_user AS
+        SELECT ab_user.id, ab_user.first_name, ab_user.last_name, 
+               ab_user.username, ab_user.active, ab_user.email 
+        FROM ab_user;
+    """)
