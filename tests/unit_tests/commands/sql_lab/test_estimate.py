@@ -143,3 +143,51 @@ def test_raise_for_access_called_with_correct_database(
 
     call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
     assert call_kwargs["database"] is mock_database
+
+
+# ---------------------------------------------------------------------------
+# SQL security controls applied on the estimate path (parity with executor)
+# ---------------------------------------------------------------------------
+
+
+def _make_command_with_db(
+    sql: str, *, allow_dml: bool = False, engine: str = "postgresql"
+) -> QueryEstimationCommand:
+    command = QueryEstimationCommand(_make_params(sql=sql))
+    command._database = MagicMock()
+    command._database.db_engine_spec.engine = engine
+    command._database.allow_dml = allow_dml
+    command._catalog = None
+    command._schema = ""
+    return command
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+def test_apply_sql_security_blocks_dml_when_not_allowed(mock_app: MagicMock) -> None:
+    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    from superset.exceptions import SupersetDMLNotAllowedException
+
+    command = _make_command_with_db("INSERT INTO t VALUES (1)", allow_dml=False)
+    with pytest.raises(SupersetDMLNotAllowedException):
+        command._apply_sql_security("INSERT INTO t VALUES (1)")
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+def test_apply_sql_security_allows_dml_when_enabled(mock_app: MagicMock) -> None:
+    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    command = _make_command_with_db("INSERT INTO t VALUES (1)", allow_dml=True)
+    # No exception; SQL returned unchanged (RLS disabled by default).
+    assert command._apply_sql_security("INSERT INTO t VALUES (1)")
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+def test_apply_sql_security_blocks_disallowed_table(mock_app: MagicMock) -> None:
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {},
+        "DISALLOWED_SQL_TABLES": {"postgresql": {"secrets"}},
+    }
+    from superset.exceptions import SupersetDisallowedSQLTableException
+
+    command = _make_command_with_db("SELECT * FROM secrets", allow_dml=True)
+    with pytest.raises(SupersetDisallowedSQLTableException):
+        command._apply_sql_security("SELECT * FROM secrets")
