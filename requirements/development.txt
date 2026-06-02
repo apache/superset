@@ -183,6 +183,7 @@ cryptography==46.0.7
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   authlib
+    #   joserfc
     #   paramiko
     #   pyjwt
     #   pyopenssl
@@ -471,6 +472,8 @@ jmespath==1.1.0
     # via
     #   boto3
     #   botocore
+joserfc==1.6.8
+    # via apache-superset
 jsonpath-ng==1.7.0
     # via
     #   -c requirements/base-constraint.txt
