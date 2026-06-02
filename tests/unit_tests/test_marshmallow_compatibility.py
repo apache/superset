@@ -15,13 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""
-Unit tests for marshmallow 4.x compatibility module.
-
-This module tests the marshmallow_compatibility.py module that provides compatibility
-between Flask-AppBuilder 5.0.0 and marshmallow 4.x by handling missing
-auto-generated fields during schema initialization.
-"""
+"""Unit tests for the marshmallow compatibility shim."""
 
 from unittest.mock import patch
 
@@ -31,70 +25,74 @@ from marshmallow import fields, Schema
 from superset.marshmallow_compatibility import patch_marshmallow_for_flask_appbuilder
 
 
+@pytest.fixture(autouse=True)
+def restore_schema_init_fields():
+    """Restore Schema._init_fields after each test."""
+    original_method = Schema._init_fields
+    try:
+        yield
+    finally:
+        Schema._init_fields = original_method
+
+
 class TestMarshmallowCompatibility:
     """Test cases for the marshmallow 4.x compatibility module."""
 
     def test_patch_marshmallow_for_flask_appbuilder_applies_patch(self):
         """Test that the patch function correctly replaces Schema._init_fields."""
-        # Store original method
         original_method = Schema._init_fields
 
-        # Apply patch
         patch_marshmallow_for_flask_appbuilder()
 
-        # Verify the method was replaced
-        assert Schema._init_fields != original_method
         assert callable(Schema._init_fields)
-
-        # Restore original for other tests
-        Schema._init_fields = original_method
+        assert getattr(Schema._init_fields, "__superset_compat_patched__", False)
+        if not getattr(original_method, "__superset_compat_patched__", False):
+            assert Schema._init_fields != original_method
 
     def test_patch_functionality_with_real_schema_creation(self):
         """Test that the patch works with actual schema creation scenarios."""
-        # Store original method
-        original_method = Schema._init_fields
+        patch_marshmallow_for_flask_appbuilder()
 
-        try:
-            # Apply the patch
-            patch_marshmallow_for_flask_appbuilder()
+        class TestSchema(Schema):
+            name = fields.Str()
+            age = fields.Int()
 
-            # Create a simple schema - this should work without errors
-            class TestSchema(Schema):
-                name = fields.Str()
-                age = fields.Int()
-
-            # Schema creation should succeed
-            schema = TestSchema()
-            assert "name" in schema.declared_fields
-            assert "age" in schema.declared_fields
-            assert isinstance(schema.declared_fields["name"], fields.Str)
-            assert isinstance(schema.declared_fields["age"], fields.Int)
-
-        finally:
-            # Restore original method
-            Schema._init_fields = original_method
+        schema = TestSchema()
+        assert "name" in schema.declared_fields
+        assert "age" in schema.declared_fields
+        assert isinstance(schema.declared_fields["name"], fields.Str)
+        assert isinstance(schema.declared_fields["age"], fields.Int)
 
     def test_patch_handles_schema_with_no_fields(self):
         """Test that the patch works with schemas that have no declared fields."""
-        # Store original method
-        original_method = Schema._init_fields
+        patch_marshmallow_for_flask_appbuilder()
 
-        try:
-            # Apply the patch
+        class EmptySchema(Schema):
+            pass
+
+        schema = EmptySchema()
+        assert hasattr(schema, "declared_fields")
+
+    def test_patch_adds_missing_field_and_retries_initialization(self):
+        """Test that missing fields are injected as Raw fields and retried."""
+
+        def fake_init_fields(self: Schema):
+            if "missing_field" not in self.declared_fields:
+                raise KeyError("missing_field")
+            return "initialized"
+
+        with patch.object(Schema, "_init_fields", fake_init_fields):
             patch_marshmallow_for_flask_appbuilder()
 
-            # Create an empty schema
-            class EmptySchema(Schema):
-                pass
+            schema = object.__new__(Schema)
+            schema.declared_fields = {}
 
-            # Schema creation should succeed
-            schema = EmptySchema()
-            # Should have at least a declared_fields attribute
-            assert hasattr(schema, "declared_fields")
+            result = Schema._init_fields(schema)
 
-        finally:
-            # Restore original method
-            Schema._init_fields = original_method
+        assert result == "initialized"
+        assert isinstance(schema.declared_fields["missing_field"], fields.Raw)
+        assert schema.declared_fields["missing_field"].allow_none is True
+        assert schema.declared_fields["missing_field"].load_default is None
 
     def test_raw_field_creation_and_configuration(self):
         """Test that Raw fields can be created with the expected configuration."""
@@ -104,24 +102,6 @@ class TestMarshmallowCompatibility:
         assert isinstance(raw_field, fields.Raw)
         assert raw_field.allow_none is True
         assert raw_field.dump_only is True
-
-    @patch("builtins.print")
-    def test_print_function_can_be_mocked(self, mock_print):
-        """Test that print function can be mocked (for testing log output)."""
-        test_message = (
-            "Marshmallow compatibility: Added missing field 'test' as Raw field"
-        )
-        print(test_message)
-        mock_print.assert_called_once_with(test_message)
-
-    def test_keyerror_exception_handling(self):
-        """Test that KeyError exceptions can be caught and handled."""
-        try:
-            raise KeyError("test_field")
-        except KeyError as e:
-            # Verify we can extract the field name
-            field_name = str(e).strip("'\"")
-            assert field_name == "test_field"
 
     def test_schema_declared_fields_manipulation(self):
         """Test that we can manipulate schema declared_fields."""
@@ -166,12 +146,13 @@ class TestMarshmallowCompatibility:
 
     def test_patch_function_is_callable(self):
         """Test that the patch function can be called without errors."""
-        # This should not raise any exceptions
+        patch_marshmallow_for_flask_appbuilder()
+        patched_method = Schema._init_fields
+
+        patch_marshmallow_for_flask_appbuilder()
         patch_marshmallow_for_flask_appbuilder()
 
-        # Calling it multiple times should also be safe
-        patch_marshmallow_for_flask_appbuilder()
-        patch_marshmallow_for_flask_appbuilder()
+        assert Schema._init_fields is patched_method
 
     def test_marshmallow_schema_basic_functionality(self):
         """Test basic marshmallow schema functionality still works."""

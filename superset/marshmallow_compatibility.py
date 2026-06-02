@@ -52,7 +52,9 @@ def patch_marshmallow_for_flask_appbuilder() -> None:
     """
     import marshmallow
 
-    if getattr(marshmallow.Schema._init_fields, "_fab_patched", False):
+    if getattr(marshmallow.Schema._init_fields, "_fab_patched", False) or getattr(
+        marshmallow.Schema._init_fields, "__superset_compat_patched__", False
+    ):
         return  # already patched
 
     original_init_fields = marshmallow.Schema._init_fields
@@ -65,20 +67,23 @@ def patch_marshmallow_for_flask_appbuilder() -> None:
         # otherwise choke on; unknown non-FAB names are left to raise so genuine
         # schema bugs still surface.
         candidates = set(opts.fields or ()) | set(getattr(opts, "additional", ()) or ())
+        declared_fields = dict(getattr(self, "declared_fields", {}))
         for name in candidates:
-            if name not in self.declared_fields and _looks_like_fab_field(name):
+            if name not in declared_fields and _looks_like_fab_field(name):
                 logger.debug(
                     "marshmallow FAB compat: stubbing Raw field for %r on %s",
                     name,
                     type(self).__name__,
                 )
-                self.declared_fields[name] = marshmallow.fields.Raw(
+                declared_fields[name] = marshmallow.fields.Raw(
                     allow_none=True,
                     load_default=None,
                 )
+        self.declared_fields = declared_fields
         return original_init_fields(self)
 
     patched_init_fields._fab_patched = True  # type: ignore[attr-defined]
+    patched_init_fields.__superset_compat_patched__ = True  # type: ignore[attr-defined]
     marshmallow.Schema._init_fields = patched_init_fields
 
 
