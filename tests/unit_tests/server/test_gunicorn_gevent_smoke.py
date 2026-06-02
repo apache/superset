@@ -54,8 +54,7 @@ def _free_port() -> int:
 
 
 def _gunicorn_command() -> list[str]:
-    gunicorn_bin = shutil.which("gunicorn")
-    if gunicorn_bin:
+    if gunicorn_bin := shutil.which("gunicorn"):
         return [gunicorn_bin]
     # Fall back to the module entry point if the console script isn't on PATH.
     return [sys.executable, "-m", "gunicorn.app.wsgiapp"]
