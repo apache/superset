@@ -110,12 +110,15 @@ async def create_dataset(
     # None defaults in instance.__dict__ for fields whose names shadow deprecated
     # BaseModel classmethods, so direct attribute access returns the classmethod
     # instead of None when the field is omitted from the request.
+    # Use isinstance(x, str) rather than a truthy check: model_dump() may still
+    # return the classmethod object (which is truthy) for unset 'schema'/'catalog'
+    # fields when Pydantic resolves the value via getattr internally.
     _request_data = request.model_dump()
     _schema_raw = _request_data.get("schema")
-    schema = _schema_raw.strip() if _schema_raw else None
+    schema = _schema_raw.strip() if isinstance(_schema_raw, str) else None
     table_name = request.table_name.strip()
     _catalog_raw = _request_data.get("catalog")
-    catalog = _catalog_raw.strip() if _catalog_raw else None
+    catalog = _catalog_raw.strip() if isinstance(_catalog_raw, str) else None
 
     await ctx.info(
         "Registering physical table as dataset: database_id=%s, table=%s.%s"
