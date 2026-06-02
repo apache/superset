@@ -20,6 +20,7 @@ from __future__ import annotations
 import json
 from unittest.mock import Mock, patch
 
+import click
 import pytest
 from superset_extensions_cli.cli import (
     app,
@@ -718,7 +719,7 @@ exclude = []
 
     clean_dist(isolated_filesystem)
 
-    with pytest.raises(ValueError):
+    with pytest.raises(click.ClickException):
         copy_backend_files(isolated_filesystem)
 
     # Nothing outside the backend directory should have been staged into dist,

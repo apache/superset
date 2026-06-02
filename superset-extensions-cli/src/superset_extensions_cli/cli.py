@@ -244,7 +244,7 @@ def copy_backend_files(cwd: Path) -> None:
         # parent ("..") components before handing them to glob().
         pattern_parts = Path(pattern).parts
         if Path(pattern).is_absolute() or ".." in pattern_parts:
-            raise ValueError(
+            raise click.ClickException(
                 f"Invalid include pattern {pattern!r}: patterns must be "
                 "relative to the backend directory and may not contain '..'."
             )
@@ -256,7 +256,7 @@ def copy_backend_files(cwd: Path) -> None:
             # inside the backend directory before copying it into the bundle.
             resolved = f.resolve()
             if not resolved.is_relative_to(backend_dir):
-                raise ValueError(
+                raise click.ClickException(
                     f"Refusing to copy {f}: resolved path is outside the "
                     f"backend directory {backend_dir}."
                 )
