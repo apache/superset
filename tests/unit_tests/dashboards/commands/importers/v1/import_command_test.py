@@ -72,6 +72,13 @@ def test_dashboard_import_with_overwrite_replaces_charts(
     initial_chart_ids = db.session.scalars(select(dashboard_slices.c.slice_id)).all()
     assert len(initial_chart_ids) == 2
 
+    # ``ImportDashboardsCommand.run()`` is wrapped in ``@transaction``,
+    # so each production invocation gets its own DB (and Continuum)
+    # transaction. Calling ``_import`` directly twice in the same
+    # session would otherwise emit conflicting M2M shadow rows for
+    # ``dashboard_slices`` within a single Continuum tx.
+    db.session.commit()
+
     # Second import: same dashboard with only 1 chart (charts_config_2 has 1 chart)
     updated_configs = {
         **copy.deepcopy(databases_config),

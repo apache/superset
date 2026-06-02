@@ -40,6 +40,19 @@ class CopyDashboardCommand(BaseCommand):
     @transaction(on_error=partial(on_error, reraise=DashboardCopyError))
     def run(self) -> Dashboard:
         self.validate()
+        # Declare the high-level avenue before the copy touches the
+        # session. The change-record listener stamps
+        # ``version_transaction.action_kind = 'clone'`` so the new
+        # dashboard's baseline records read as "Cloned from <source>"
+        # in the timeline instead of "Dashboard created".
+        # Method-scoped imports — defer the versioning bootstrap path
+        # (``Model.metadata`` and Continuum-adjacent setup) out of this
+        # command's module-load graph; see ``changes.py`` module
+        # docstring for the broader init-order rationale.
+        from superset import db
+        from superset.versioning.changes import ACTION_KIND_KEY
+
+        db.session.info[ACTION_KIND_KEY] = "clone"
         return DashboardDAO.copy_dashboard(self._original_dash, self._properties)
 
     def validate(self) -> None:

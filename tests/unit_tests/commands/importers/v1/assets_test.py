@@ -111,6 +111,12 @@ def test_import_adds_dashboard_charts(mocker: MockerFixture, session: Session) -
     expected_number_of_charts = len(charts_config_1)
 
     ImportAssetsCommand._import(base_configs)
+    # ``ImportAssetsCommand.run()`` is wrapped in ``@transaction``,
+    # so each production invocation gets its own DB (and Continuum)
+    # transaction. Calling ``_import`` directly twice in the same
+    # session would otherwise emit conflicting M2M shadow rows for
+    # ``dashboard_slices`` within a single Continuum tx.
+    db.session.commit()
     ImportAssetsCommand._import(new_configs)
     dashboard_ids = db.session.scalars(
         select(dashboard_slices.c.dashboard_id).distinct()
@@ -578,6 +584,12 @@ def test_import_removes_dashboard_charts(
     expected_number_of_charts = len(charts_config_2)
 
     ImportAssetsCommand._import(base_configs)
+    # ``ImportAssetsCommand.run()`` is wrapped in ``@transaction``,
+    # so each production invocation gets its own DB (and Continuum)
+    # transaction. Calling ``_import`` directly twice in the same
+    # session would otherwise emit conflicting M2M shadow rows for
+    # ``dashboard_slices`` within a single Continuum tx.
+    db.session.commit()
     ImportAssetsCommand._import(new_configs)
     dashboard_ids = db.session.scalars(
         select(dashboard_slices.c.dashboard_id).distinct()
