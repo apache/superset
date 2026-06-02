@@ -23,7 +23,7 @@ import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from joserfc.errors import BadSignatureError, DecodeError, ExpiredTokenError
+from authlib.jose.errors import BadSignatureError, DecodeError, ExpiredTokenError
 
 from superset.mcp_service.jwt_verifier import (
     _auth_error_handler,
@@ -108,7 +108,7 @@ async def test_signature_verification_failed(hs256_verifier):
     with patch.object(
         hs256_verifier.jwt,
         "decode",
-        side_effect=BadSignatureError(),
+        side_effect=BadSignatureError(result=None),
     ):
         result = await hs256_verifier.load_access_token(token)
 
@@ -686,7 +686,7 @@ async def test_expired_token_during_decode(hs256_verifier):
     with patch.object(
         hs256_verifier.jwt,
         "decode",
-        side_effect=ExpiredTokenError("exp"),
+        side_effect=ExpiredTokenError(),
     ):
         result = await hs256_verifier.load_access_token(token)
 
