@@ -21,7 +21,11 @@ import pytest
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 
-from superset.dashboards.schemas import DashboardDatasetSchema, DashboardPostSchema
+from superset.dashboards.schemas import (
+    DashboardDatasetSchema,
+    DashboardPostSchema,
+    DashboardPutSchema,
+)
 
 GUEST_RESTRICTED_FIELDS = [
     "owners",
@@ -100,3 +104,47 @@ def test_dashboard_external_url_rejects_non_http(url: str) -> None:
     with pytest.raises(ValidationError) as exc_info:
         schema.load({"dashboard_title": "test", "external_url": url})
     assert "external_url" in exc_info.value.messages
+
+
+@pytest.mark.parametrize(
+    "css",
+    [
+        "",
+        ".header { color: red; font-weight: bold; }",
+        "div { background: url('/static/assets/images/bg.png') no-repeat; }",
+        "div { background: url(data:image/png;base64,iVBORw0KGgo=); }",
+        "a { color: #fff; } /* link to https://example.com is fine */",
+    ],
+)
+def test_dashboard_css_accepts_legitimate_styles(css: str) -> None:
+    """Ordinary CSS, including image url() references, is accepted."""
+    schema = DashboardPostSchema()
+    result = schema.load({"dashboard_title": "test", "css": css})
+    assert result["css"] == css
+
+
+@pytest.mark.parametrize(
+    "css",
+    [
+        "div { width: expression(alert(1)); }",
+        "div { background: url(javascript:alert(1)); }",
+        "body { background: url( 'javascript:alert(1)' ); }",
+        "@import url('https://evil.example.com/x.css');",
+        "a { content: 'javascript:alert(1)'; }",
+        "div { behavior: url(vbscript:msgbox(1)); }",
+    ],
+)
+def test_dashboard_css_rejects_dangerous_constructs(css: str) -> None:
+    """Custom CSS with script-ish constructs is rejected on input."""
+    schema = DashboardPostSchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({"dashboard_title": "test", "css": css})
+    assert "css" in exc_info.value.messages
+
+
+def test_dashboard_put_css_rejects_dangerous_constructs() -> None:
+    """The PUT schema applies the same CSS hardening."""
+    schema = DashboardPutSchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({"css": "div { width: expression(alert(1)); }"})
+    assert "css" in exc_info.value.messages
