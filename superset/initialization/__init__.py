@@ -671,6 +671,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """Register app-level request handlers"""
         from flask import request, Response
 
+        from superset.security.session_validation import (
+            register_inactive_user_logout,
+        )
+
+        # End the session of any user who is deactivated mid-session.
+        register_inactive_user_logout(self.superset_app)
+
         @self.superset_app.after_request
         def apply_http_headers(response: Response) -> Response:
             """Applies the configuration's http headers to all responses"""
