@@ -204,16 +204,16 @@ msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" est maintenant le thème par défaut du système"
 
 #, python-format
-msgid "% calculation"
-msgstr "% calcul"
+msgid "%% calculation"
+msgstr "%% calcul"
 
 #, python-format
-msgid "% of parent"
-msgstr "% de parent"
+msgid "%% of parent"
+msgstr "%% de parent"
 
 #, python-format
-msgid "% of total"
-msgstr "% du total"
+msgid "%% of total"
+msgstr "%% du total"
 
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
@@ -287,7 +287,7 @@ msgstr "%s%s"
 
 #, python-format
 msgid "%s ENCRYPTED EXTRA"
-msgstr "Secure Extra"
+msgstr "%s CHIFFREMENT SUPPLEMENTAIRE"
 
 #, python-format
 msgid "%s Error"
@@ -299,7 +299,7 @@ msgstr "%s MOT DE PASSE"
 
 #, python-format
 msgid "%s Physical"
-msgstr "Physique"
+msgstr "%s Physique"
 
 #, python-format
 msgid "%s SSH TUNNEL PASSWORD"
@@ -319,7 +319,7 @@ msgstr "%s Sélectionné"
 
 #, python-format
 msgid "%s Selected (%s)"
-msgstr "%s Sélectionné"
+msgstr "%s Sélectionné (%s)"
 
 #, python-format
 msgid "%s Selected (Physical)"
@@ -339,7 +339,7 @@ msgstr "%s URL"
 
 #, python-format
 msgid "%s Virtual"
-msgstr "Virtuel"
+msgstr "%s Virtuel"
 
 #, python-format
 msgid "%s aggregates(s)"
@@ -348,8 +348,8 @@ msgstr "%s agrégat(s)"
 #, python-format
 msgid "%s column"
 msgid_plural "%s columns"
-msgstr[0] "%s colonne(s)"
-msgstr[1] ""
+msgstr[0] "%s colonne"
+msgstr[1] "%s colonnes"
 
 #, python-format
 msgid "%s column(s)"
@@ -358,8 +358,8 @@ msgstr "%s colonne(s)"
 #, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
-msgstr[0] "Il y a 1 jour"
-msgstr[1] ""
+msgstr[0] "Il y a %s jour"
+msgstr[1] "Il y a %s jours"
 
 #, python-format
 msgid "%s hr ago"
@@ -369,7 +369,7 @@ msgstr[1] "%s rangées"
 
 #, python-format
 msgid "%s imported"
-msgstr "Données importées"
+msgstr "%s données importées"
 
 #, python-format
 msgid "%s item"
@@ -392,14 +392,14 @@ msgstr ""
 #, python-format
 msgid "%s metric"
 msgid_plural "%s metrics"
-msgstr[0] "Trier les mesures"
-msgstr[1] ""
+msgstr[0] "%s mesure"
+msgstr[1] "%s mesures"
 
 #, python-format
 msgid "%s min ago"
 msgid_plural "%s min ago"
-msgstr[0] "Il y a 1 mois"
-msgstr[1] ""
+msgstr[0] "Il y a %s minute"
+msgstr[1] "Il y a %s minutes"
 
 #, python-format
 msgid "%s operator(s)"
@@ -418,18 +418,18 @@ msgstr "%s option(s)"
 #, python-format
 msgid "%s out of %s column"
 msgid_plural "%s out of %s columns"
-msgstr[0] "Dimensionner automatiquement la colonne"
-msgstr[1] ""
+msgstr[0] "%s parmi %s colonne"
+msgstr[1] "%s parmi %s colonnes"
 
 #, python-format
 msgid "%s out of %s metric"
 msgid_plural "%s out of %s metrics"
-msgstr[0] "Trier les mesures"
-msgstr[1] ""
+msgstr[0] "%s parmi %s mesure"
+msgstr[1] "%s parmi %s mesures"
 
 #, python-format
 msgid "%s out of %s selected"
-msgstr "%s onglet Sélectionné"
+msgstr "%s parmi %s sélectionné(s)"
 
 #, python-format
 msgid "%s recipients"
@@ -456,8 +456,8 @@ msgstr[1] "%s rangées"
 #, python-format
 msgid "%s s ago"
 msgid_plural "%s s ago"
-msgstr[0] "Il y a 30 jours"
-msgstr[1] ""
+msgstr[0] "Il y a %s seconde"
+msgstr[1] "Il y a %s secondes"
 
 #, python-format
 msgid "%s saved metric(s)"
@@ -466,8 +466,8 @@ msgstr "%s mesure(s) sauvegardée(s)"
 #, python-format
 msgid "%s second"
 msgid_plural "%s seconds"
-msgstr[0] "5 secondes"
-msgstr[1] ""
+msgstr[0] "%s seconde"
+msgstr[1] "%s secondes"
 
 #, python-format
 msgid "%s semantic view(s) added"
@@ -558,7 +558,7 @@ msgstr ""
 
 #, python-format
 msgid "... and %d more"
-msgstr "... et %s autres"
+msgstr "... et %d autres"
 
 #, python-format
 msgid "... and %s more records"
@@ -1692,29 +1692,29 @@ msgstr ""
 #, python-format
 msgid "An error occurred while fetching %s"
 msgstr ""
-"Une erreur s'est produite lors de la récupération des informations %ss : %s"
+"Une erreur s'est produite lors de la récupération des informations: %s"
 
 #, python-format
 msgid "An error occurred while fetching %s info: %s"
 msgstr ""
-"Une erreur s'est produite durant la récupération des informations %s : %s"
+"Une erreur s'est produite pour récupérer %s informations  : %s"
 
 #, python-format
 msgid "An error occurred while fetching %s owner values: %s"
 msgstr ""
-"Une erreur s'est produite lors de la recherche des valeurs des "
+"Une erreur s'est produite lors de la recherche des %s valeurs des "
 "propriétaires : %s"
 
 #, python-format
 msgid "An error occurred while fetching %s related data"
 msgstr ""
-"Une erreur s'est produite lors de l'extraction des données relatives à "
+"Une erreur s'est produite lors de l'extraction de %s données relatives à "
 "l'ensemble de données"
 
 #, python-format
 msgid "An error occurred while fetching %s values: %s"
 msgstr ""
-"Une erreur s'est produite lors de l'extraction des valeurs de "
+"Une erreur s'est produite lors de l'extraction de %s valeurs de "
 "l’utilisateur·rice : %s"
 
 #, python-format
@@ -1805,10 +1805,8 @@ msgid "An error occurred while fetching schema values: %s"
 msgstr ""
 "Une erreur s'est produite lors de l'extraction des valeurs du schéma : %s"
 
-
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Une erreur s'est produite lors de l'extraction des Thèmes "
-
 
 msgid "An error occurred while fetching semantic layers"
 msgstr ""
@@ -1824,7 +1822,7 @@ msgstr ""
 #, python-format
 msgid "An error occurred while fetching table metadata for %s"
 msgstr ""
-"Une erreur s'est produite lors de l'extraction des métadonnées du tableau"
+"Une erreur s'est produite lors de l'extraction des métadonnées du tableau pour %s"
 
 msgid ""
 "An error occurred while fetching table metadata. Please contact your "
@@ -2115,7 +2113,7 @@ msgstr "Filtres appliqués (%d)"
 
 #, python-format
 msgid "Applied filters (%s)"
-msgstr "Filtres appliqués (%d)"
+msgstr "Filtres appliqués (%s)"
 
 #, python-format
 msgid "Applied filters: %s"
@@ -3232,7 +3230,7 @@ msgstr "Le choix de [Rayon du point] doit être présent dans [Grouper par]"
 
 #, python-format
 msgid "Choose a %s"
-msgstr "Choisissez une source"
+msgstr "Choisissez une %s"
 
 msgid "Choose a chart for displaying on the map"
 msgstr "Choisissez un graphique à afficher sur la carte"
@@ -3378,7 +3376,7 @@ msgstr "Effacer"
 
 #, python-format
 msgid "Clear %s filter"
-msgstr "reinitialiser tous les filtres"
+msgstr "Reinitialiser %s filtre(s)"
 
 msgid "Clear Sort"
 msgstr "Effacer le tri"
@@ -3826,7 +3824,7 @@ msgstr "Configuration"
 
 #, python-format
 msgid "Configure %s"
-msgstr "Confirmer la sauvegarde"
+msgstr "Configurer %s"
 
 msgid "Configure Advanced Time Range "
 msgstr "Configuration de la plage horaire avancée "
@@ -4152,7 +4150,7 @@ msgstr "Créé par moi"
 
 #, python-format
 msgid "Created by: %s"
-msgstr "Créé par"
+msgstr "Créé par: %s"
 
 msgid "Created on"
 msgstr "Créé le"
@@ -4402,7 +4400,7 @@ msgstr "Tableau de bord"
 
 #, python-format
 msgid "Dashboard %(dashboard_id)s not found"
-msgstr "Graphique %(id)s non trouvé"
+msgstr "Tableau de bord %(dashboard_id)s non trouvé"
 
 msgid "Dashboard Filter"
 msgstr "Filtres de tableau de bord"
@@ -5203,7 +5201,7 @@ msgstr "%s supprimé"
 
 #, python-format
 msgid "Deleted %s item(s)"
-msgstr "Supprimer l'élément"
+msgstr "%s élément(s) supprimé(s)"
 
 #, python-format
 msgid "Deleted group: %s"
@@ -5356,7 +5354,7 @@ msgstr "Dimensions"
 
 #, python-format
 msgid "Dimensions (%s)"
-msgstr "Dimensions"
+msgstr "Dimensions (%s)"
 
 msgid ""
 "Dimensions contain qualitative values such as names, dates, or geographical "
@@ -5450,14 +5448,14 @@ msgstr "Configuration d'affichage"
 
 #, python-format
 msgid "Display controls (%d)"
-msgstr "Configuration d'affichage"
+msgstr "Configuration d'affichage (%d)"
 
 #, python-format
 msgid "Display controls (%s)"
-msgstr "Configuration d'affichage"
+msgstr "Configuration d'affichage (%s)"
 
 msgid "Display cumulative total at end"
-msgstr "Afficher le total cumulé en fin"
+msgstr "Afficher le total cumulé à la fin"
 
 msgid "Display headers for each column at the top of the matrix"
 msgstr "Afficher les en-têtes de chaque colonne en haut de la matrice"
@@ -5672,7 +5670,6 @@ msgstr "Déposez une colonne temporelle ici ou cliquez sur"
 msgid "Drop columns/metrics here or click"
 msgstr "Déposez des colonnes/mesures ici ou cliquez sur"
 
-
 msgid "Dttm"
 msgstr "dttm"
 
@@ -5696,14 +5693,14 @@ msgstr "Dupliquer le jeu de données"
 
 #, python-format
 msgid "Duplicate folder name: %s"
-msgstr "Nom(s) de colonne dupliqué : %(columns)s"
+msgstr "Nom du dossier dupliqué: %s"
 
 msgid "Duplicate role"
 msgstr "Dupliquer le rôle"
 
 #, python-format
 msgid "Duplicate role %(name)s"
-msgstr "Nom(s) de colonne dupliqué : %(columns)s"
+msgstr "Role dupliqué %(name)s"
 
 msgid "Duplicate tab"
 msgstr "Dupliquer l'onglet"
@@ -5814,11 +5811,11 @@ msgstr "Modifier"
 
 #, python-format
 msgid "Edit %s"
-msgstr "Modifier la requête"
+msgstr "Modifier %s"
 
 #, python-format
 msgid "Edit %s in modal"
-msgstr "dans modal"
+msgstr "Modifier %s dans la modal"
 
 msgid "Edit CSS template properties"
 msgstr "Modifier les propriétés du modèle CSS"
@@ -6119,7 +6116,7 @@ msgstr "Largeur de la capture d'écran"
 
 #, python-format
 msgid "Ends with (ILIKE %x)"
-msgstr "Largeur de la capture d'écran"
+msgstr "Termine avec (ILIKE %x)"
 
 #, python-format
 msgid "Engine \"%(engine)s\" cannot be configured through parameters."
@@ -6352,7 +6349,7 @@ msgstr "Erreur : %(msg)s"
 
 #, python-format
 msgid "Error: %s"
-msgstr "erreur"
+msgstr "Erreur: %s"
 
 
 msgid "Error: permalink state not found"
@@ -6509,14 +6506,14 @@ msgstr "Échec de l'export, veuillez réessayer."
 
 #, python-format
 msgid "Export failed: %s"
-msgstr "Rapport échoué"
+msgstr "Echec lors de l'export: %s"
 
 msgid "Export screenshot (jpeg)"
 msgstr "[CHECK] Exporter la capture d'écran (jpeg)"
 
 #, python-format
 msgid "Export successful: %s"
-msgstr "Exporter en CSV intégralement"
+msgstr "Export réussi: %s"
 
 msgid "Export to .CSV"
 msgstr "Exporter en .CSV"
@@ -6678,7 +6675,7 @@ msgstr "Échec de la génération de l'URL de modification du graphique"
 
 #, python-format
 msgid "Failed to generate download: %s"
-msgstr "Échec de la génération de l'URL de modification du graphique"
+msgstr "Echec pour générer le téléchargement: %s"
 
 msgid "Failed to load chart data"
 msgstr "Échec du chargement des données du graphique"
@@ -6688,11 +6685,11 @@ msgstr "Échec du chargement des données du graphique."
 
 #, python-format
 msgid "Failed to load columns for %s %s"
-msgstr "Échec du chargement des données du graphique"
+msgstr "Échec lors du chargement des colonnes pour %s %s"
 
 
 msgid "Failed to load top values"
-msgstr "Échec de l'arrêt de la requête. %s"
+msgstr "Échec de l'arrêt de la requête"
 
 
 msgid "Failed to open file. Please try again."
@@ -6700,11 +6697,11 @@ msgstr "Échec de la validation de l'expression. Veuillez réessayer."
 
 #, python-format
 msgid "Failed to remove system dark theme: %s"
-msgstr "Supprimer le thème sombre du système"
+msgstr "Supprimer le thème sombre du système: %s"
 
 #, python-format
 msgid "Failed to remove system default theme: %s"
-msgstr "Supprimer le thème par défaut du système"
+msgstr "Supprimer le thème par défaut du système: %s"
 
 
 msgid "Failed to retrieve advanced type"
@@ -6712,7 +6709,7 @@ msgstr "Échec de l'extraction du type avancé"
 
 
 msgid "Failed to revoke API key"
-msgstr "Échec de l'arrêt de la requête. %s"
+msgstr "Échec de l'arrêt de la requête"
 
 
 msgid "Failed to save chart customization"
@@ -6731,18 +6728,18 @@ msgstr "Échec de la définition du thème local : configuration JSON invalide"
 
 #, python-format
 msgid "Failed to set system dark theme: %s"
-msgstr "Définir le thème sombre du système"
+msgstr "Définir le thème sombre du système: %s"
 
 #, python-format
 msgid "Failed to set system default theme: %s"
-msgstr "Définir le thème par défaut du système"
+msgstr "Définir le thème par défaut du système: %s"
 
 msgid "Failed to start remote query on a worker."
 msgstr "Échec du lancement d'une requête à distance sur un travailleur."
 
 
 msgid "Failed to stop query."
-msgstr "Échec de l'arrêt de la requête. %s"
+msgstr "Échec de l'arrêt de la requête."
 
 
 msgid "Failed to store query results. Please try again."
@@ -7665,7 +7662,7 @@ msgstr "Inclure une description qui sera envoyée avec votre rapport"
 
 #, python-format
 msgid "Include description to be sent with %s"
-msgstr "Inclure une description qui sera envoyée avec votre rapport"
+msgstr "Inclure une description qui sera envoyée avec %s"
 
 msgid "Include series name as an axis"
 msgstr "Inclure le nom de la série comme axe"
@@ -7919,7 +7916,7 @@ msgstr "Le rolling_type est invalide: %(type)s"
 
 #, python-format
 msgid "Invalid spatial point encountered: %(latlong)s"
-msgstr "Point géographique invalide : %s"
+msgstr "Point géographique invalide : %(latlong)s"
 
 
 msgid "Invalid state."
@@ -7927,7 +7924,7 @@ msgstr "Certificat invalide."
 
 #, python-format
 msgid "Invalid tab ids: %(tab_ids)s"
-msgstr "Identifiants d’onglet non valides : %s(tab_ids)"
+msgstr "Identifiants d’onglet invalides : %(tab_ids)s"
 
 msgid "Invalid username or password"
 msgstr "Le nom d’utilisateur ou le mot de passe est incorrect."
@@ -8955,7 +8952,7 @@ msgstr "Mesures"
 
 #, python-format
 msgid "Metrics (%s)"
-msgstr "Mesures"
+msgstr "Mesures (%s)"
 
 msgid "Metrics can't be used for both rows and columns at the same time"
 msgstr "Les mesures ne peuvent pas être utilisées en même temps pour les lignes et les columns"
@@ -9063,7 +9060,7 @@ msgstr "Minutes %s"
 
 #, python-format
 msgid "Missing %s"
-msgstr "Ensemble de données manquant"
+msgstr "%s manquant"
 
 msgid "Missing OAuth2 token"
 msgstr "Jeton OAuth2 manquant"
@@ -9101,7 +9098,7 @@ msgstr "Modifié par %s"
 
 #, python-format
 msgid "Modified from \"%s\" template"
-msgstr "Ajouter un modèle CSS"
+msgstr "Modifié depuis le template \"%s\""
 
 msgid "Monday"
 msgstr "Lundi"
@@ -9372,7 +9369,7 @@ msgstr "Aucune colonne trouvée"
 
 #, python-format
 msgid "No compatible %s found"
-msgstr "Aucun schéma compatible trouvé"
+msgstr "Aucune %s compatible trouvé"
 
 
 msgid "No compatible catalog found"
@@ -9492,11 +9489,11 @@ msgstr "Pas encore de règles"
 
 #, python-format
 msgid "No rows were returned for this %s"
-msgstr "Aucun résultat avec cet ensemble de données"
+msgstr "Aucun résultat obtenu pour %s"
 
 #, python-format
 msgid "No samples were returned for this %s"
-msgstr "Aucun échantillon n'a été renvoyé pour cet ensemble de données"
+msgstr "Aucun échantillon obtenu pour %s"
 
 
 msgid "No saved expressions found"
@@ -10518,8 +10515,7 @@ msgstr "Veuillez choisir au moins un groupe par"
 #, python-format
 msgid "Please select both a %s and a Chart type to proceed"
 msgstr ""
-"Veuillez sélectionner un ensemble de données et un type de graphique pour "
-"continuer"
+"Veuillez sélectionner %s et un type de graphique pour continuer"
 
 #, python-format
 msgid ""
@@ -10699,7 +10695,7 @@ msgstr "Continuer"
 
 #, python-format
 msgid "Processing export for %s"
-msgstr "Export en cours de réalisation pour %"
+msgstr "Export en cours de réalisation pour %s"
 
 msgid "Processing export..."
 msgstr "Génération de l'export..."
@@ -11645,7 +11641,7 @@ msgstr "Enregistrer sous"
 
 #, python-format
 msgid "Save as %s"
-msgstr "Enregistrer sous"
+msgstr "Enregistrer sous %s"
 
 msgid "Save as Dataset"
 msgstr "Enregistrer comme jeu de données"
@@ -11814,7 +11810,7 @@ msgstr "Rechercher"
 
 #, python-format
 msgid "Search %s records"
-msgstr "Registres bruts"
+msgstr "Rechercher parmi %s enregistrements"
 
 msgid "Search / Filter"
 msgstr "Rechercher / Filtrer"
@@ -11934,7 +11930,7 @@ msgstr "Sélectionner"
 
 #, python-format
 msgid "Select %s or type to search %s"
-msgstr "Sélectionner le schéma ou taper le nom des schémas"
+msgstr "Sélectionner %s ou écriver pour rechercher %s"
 
 msgid "Select ..."
 msgstr "Sélectionner…"
@@ -11961,7 +11957,7 @@ msgstr "Exclure les valeurs sélectionnées"
 
 #, python-format
 msgid "Select a %s"
-msgstr "Sélectionner les étiquette"
+msgstr "Sélectionner une %s"
 
 
 msgid "Select a CSS template"
@@ -12681,7 +12677,7 @@ msgstr "Afficher"
 
 #, python-format
 msgid "Show %s entries"
-msgstr "Afficher la mesure"
+msgstr "Afficher %s enregistrements"
 
 msgid "Show Bubbles"
 msgstr "Afficher les bulles"
@@ -13424,7 +13420,7 @@ msgstr "Réussite"
 
 #, python-format
 msgid "Successfully changed %s!"
-msgstr "Ensemble de données modifé avec succès"
+msgstr "%s a été modifié avec succès!"
 
 msgid "Suffix"
 msgstr "Suffixe"
@@ -13483,7 +13479,7 @@ msgstr "Bases de données prises en charge"
 
 #, python-format
 msgid "Swap %s"
-msgstr "Échanger le jeu de données"
+msgstr "Échanger %s"
 
 msgid "Swap rows and columns"
 msgstr "Échanger les rangées et les colonnes"
@@ -13591,8 +13587,8 @@ msgid ""
 "Table [%(table)s] could not be found, please double check your database "
 "connection, schema, and table name"
 msgstr ""
-"La tableau [%(table_name)s] n'a pu être trouvé, vérifiez à nouveau votre "
-"connexion à votre base de données, le schéma et le nom du tableau"
+"La table [%(table)s] n'a pu être trouvé, vérifiez à nouveau votre "
+"connexion à votre base de données, le schéma et le nom de la table"
 
 msgid ""
 "Table already exists. You can change your 'if table already exists' strategy "
@@ -13705,7 +13701,7 @@ msgstr "tags"
 
 #, python-format
 msgid "Task cancelled: %s"
-msgstr "Rapport échoué"
+msgstr "Tâche échouée: %s"
 
 
 msgid "Task could not be aborted."
@@ -13757,7 +13753,7 @@ msgstr "Erreur : %(error)s"
 
 #, python-format
 msgid "Template processing failed: %(ex)s"
-msgstr "Erreur : %(error)s"
+msgstr "Erreur : %(ex)s"
 
 msgid ""
 "Templated link, it's possible to include {{ metric }} or other values coming "
@@ -13798,7 +13794,7 @@ msgstr "Récupération de %s"
 
 #, python-format
 msgid "The %s linked to this chart may have been deleted."
-msgstr "L’ensemble de données lié à ce graphique semble avoir été effacé."
+msgstr "La ressource %s liée à ce graphique semble avoir été effacée."
 
 #, python-format
 msgid "The API response from %s does not match the IDatabaseTable interface."
@@ -14836,7 +14832,7 @@ msgstr "Il y a des alertes ou des rapports associés"
 
 #, python-format
 msgid "There are associated alerts or reports: %(report_names)s"
-msgstr "Il y a des alertes ou des rapports associés : %s,"
+msgstr "Il y a des alertes ou des rapports associés : %(report_names)s"
 
 msgid "There are no charts added to this dashboard"
 msgstr "Il n'y a pas de graphiques ajouté dans ce tableau de bord"
@@ -14985,7 +14981,7 @@ msgstr "Il y avait une erreur avec vore requête"
 
 #, python-format
 msgid "There was an issue cancelling the task: %s"
-msgstr "Il y a eu un problème lors de la suppression de %s : %s"
+msgstr "Il y a eu un problème lors de la suppression de la tâche : %s"
 
 #, python-format
 msgid "There was an issue deleting %s"
@@ -15005,8 +15001,7 @@ msgstr "Un problème s'est posé lors de la suppression des règles : %s"
 
 #, python-format
 msgid "There was an issue deleting the selected %s"
-msgstr ""
-"Il y a eu un problème lors de la suppression des %s sélectionné(e)s :%s"
+msgstr "Il y a eu un problème lors de la suppression des ressources %s sélectionnées"
 
 #, python-format
 msgid "There was an issue deleting the selected %s: %s"
@@ -15049,7 +15044,7 @@ msgstr "Il y a eu un problème lors de la suppression de : %s"
 
 #, python-format
 msgid "There was an issue duplicating the %s."
-msgstr "Il y a eu un problème de duplication de l'ensemble de données."
+msgstr "Il y a eu un problème de duplication de la ressource %s."
 
 #, python-format
 msgid "There was an issue duplicating the selected %s: %s"
@@ -15058,7 +15053,7 @@ msgstr ""
 
 #, python-format
 msgid "There was an issue exporting the %s"
-msgstr "Il y a eu un problème de duplication de l'ensemble de données."
+msgstr "Il y a eu une erreur lors de l'export de la ressource %s"
 
 #, python-format
 msgid "There was an issue exporting the selected %s"
@@ -15210,7 +15205,7 @@ msgstr ""
 
 #, python-format
 msgid "This column might be incompatible with current %s"
-msgstr "Cette colonne peut être incompatible avec l’ensemble de données actuel"
+msgstr "Cette colonne peut être incompatible avec l'actuelle ressource %s"
 
 msgid "This column might be incompatible with current dataset"
 msgstr "Cette colonne peut être incompatible avec l’ensemble de données actuel"
@@ -15352,7 +15347,7 @@ msgstr "La liste de valeurs du filtre ne peut pas être vide"
 
 #, python-format
 msgid "This filter might be incompatible with current %s"
-msgstr "Ce filtre pourrait être incompatible avec l’ensemble de données actuel"
+msgstr "Ce filtre pourrait être incompatible avec l'actuelle ressource %s"
 
 msgid "This folder is currently empty"
 msgstr "Ce dossier est vide"
@@ -15454,7 +15449,7 @@ msgstr "Cela peut être déclenché par :"
 #, python-format
 msgid "This metric might be incompatible with current %s"
 msgstr ""
-"Cette mesure pourrait être incompatible avec l’ensemble de données actuel"
+"Cette mesure pourrait être incompatible avec l'actuelle ressource %s"
 
 msgid "This name is already taken. Please choose another one."
 msgstr "Ce nom est déjà pris. Veuillez en choisir un autre."
@@ -16192,7 +16187,7 @@ msgstr "Aucune expression sauvegardée n'a été trouvée"
 
 #, python-format
 msgid "Unexpected time range: %(error)s"
-msgstr "Intervalle de temps inattendu: %s"
+msgstr "Plage temporelle inattendue: %(error)s"
 
 
 msgid "Ungroup By"
@@ -17693,7 +17688,7 @@ msgstr "Vous n'avez pas les droits de créer un tableau de bord"
 
 #, python-format
 msgid "You have been removed from task: %s"
-msgstr "Vous avez supprimé ce filtre."
+msgstr "Vous avez retiré de la tâche: %s"
 
 msgid "You have removed this filter."
 msgstr "Vous avez supprimé ce filtre."
@@ -17720,9 +17715,9 @@ msgid ""
 "You must be a %s owner in order to edit. Please reach out to a %s owner to "
 "request modifications or edit access."
 msgstr ""
-"Vous devez être propriétaire d'un ensemble de données pour pouvoir le "
-"modifier. Veuillez communiquer avec un propriétaire d’ensemble de données "
-"pour demander des modifications ou modifier l’accès."
+"Vous devez être propriétaire de la ressource %s pour pouvoir la "
+"modifier. Veuillez contacter un propriétaire de la ressource %s "
+"pour modifier vos permissions."
 
 msgid ""
 "You must be a dataset owner in order to edit. Please reach out to a dataset "
@@ -18388,7 +18383,7 @@ msgid ""
 "Deleting the database will break those objects."
 msgstr ""
 "La base de données %s est liée à %s graphiques qui apparaissent sur %s "
-"tableaux de bord et les utilisateurs ont des onglets %s SQL Lab ouverts qui "
+"tableaux de bord et les utilisateurs ont des onglets SQL Lab ouverts qui "
 "utilisent cette base de données. Êtes-vous sûr de vouloir continuer? "
 "Supprimer la base de données brisera ces objets."
 
@@ -18397,7 +18392,7 @@ msgid ""
 "is linked to %s charts that appear on %s dashboards. Are you sure you want "
 "to continue? Deleting the dataset will break those objects."
 msgstr ""
-"L'ensemble de données %s est lié aux graphiques %s qui apparaissent dans %s "
+"L'ensemble de données est lié aux graphiques %s qui apparaissent dans %s "
 "tableaux de bord. Êtes-vous sûr de vouloir continuer? La suppression de "
 "l'ensemble de données brisera ces objets."
 
