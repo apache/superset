@@ -14,12 +14,71 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from typing import Optional, TypedDict, Union
 
 from flask_appbuilder.security.sqla.models import Group, Role
 from flask_login import AnonymousUserMixin
 
 from superset.utils.backports import StrEnum
+
+logger = logging.getLogger(__name__)
+
+# JWT claim that carries the revocation version a token was minted with.
+GUEST_TOKEN_REVOCATION_CLAIM = "rev"  # noqa: S105
+
+# Tokens minted before the revocation feature existed carry no version claim.
+# They are treated as version 0, which is only rejected once an admin has
+# explicitly bumped the expected version above 0.
+DEFAULT_GUEST_TOKEN_REVOCATION_VERSION = 0
+
+
+def get_current_guest_token_revocation_version() -> int:
+    """
+    Return the minimum guest-token revocation version accepted at validation time.
+
+    The value is stored in the metadata database via the ``key_value`` store so it
+    can be bumped at runtime (e.g. via the ``revoke-guest-tokens`` CLI command)
+    without a code deploy. A missing entry means revocation has never been
+    triggered, so the default version is returned.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.key_value.shared_entries import get_shared_value
+    from superset.key_value.types import SharedKey
+
+    try:
+        value = get_shared_value(SharedKey.GUEST_TOKEN_REVOCATION_VERSION)
+    except Exception:  # pylint: disable=broad-except
+        # Never let a metadata-store hiccup hard-fail token validation; fall back
+        # to the default version (fail-open to the pre-feature behaviour).
+        logger.warning(
+            "Could not read guest token revocation version", exc_info=True
+        )
+        return DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
+    if value is None:
+        return DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        logger.warning("Invalid guest token revocation version stored: %r", value)
+        return DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
+
+
+def bump_guest_token_revocation_version() -> int:
+    """
+    Increment and persist the guest-token revocation version, revoking every
+    outstanding guest token minted with a lower version.
+
+    :return: the new revocation version
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.key_value.shared_entries import upsert_shared_value
+    from superset.key_value.types import SharedKey
+
+    new_version = get_current_guest_token_revocation_version() + 1
+    upsert_shared_value(SharedKey.GUEST_TOKEN_REVOCATION_VERSION, new_version)
+    logger.info("Bumped guest token revocation version to %d", new_version)
+    return new_version
 
 
 class GuestTokenUser(TypedDict, total=False):
@@ -64,6 +123,9 @@ class GuestToken(_GuestTokenRequired, total=False):
     """
 
     datasets: list[int]
+    # Revocation version the token was minted with. Absent on tokens minted
+    # before the revocation feature was introduced.
+    rev: int
 
 
 class GuestUser(AnonymousUserMixin):
