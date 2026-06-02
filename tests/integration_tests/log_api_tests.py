@@ -248,7 +248,15 @@ class TestLogApi(SupersetTestCase):
         db.session.delete(dash)
         db.session.commit()
 
-        assert response["result"][0]["item_title"] == "Papatohu Hokohoko"
+        # Find our dashboard's entry by URL rather than assuming ordering, since
+        # the shared test database may contain other recent activity.
+        ours = [
+            item
+            for item in response["result"]
+            if item.get("item_url") == "/superset/dashboard/loc_slug/"
+        ]
+        assert ours, "expected the seeded dashboard in recent activity"
+        assert ours[0]["item_title"] == "Papatohu Hokohoko"
 
     def test_get_recent_activity_actions_filter(self):
         """
