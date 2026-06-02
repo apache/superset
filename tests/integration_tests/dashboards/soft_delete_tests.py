@@ -21,7 +21,7 @@ from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME
+from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
 
 
 def _hard_delete_dashboard(dashboard_id: int) -> None:
@@ -241,6 +241,49 @@ class TestDashboardRestore(SupersetTestCase):
 
         rv = self.client.get(f"/api/v1/dashboard/{dashboard_id}")
         assert rv.status_code == 200
+
+        # Cleanup
+        _hard_delete_dashboard(dashboard_id)
+
+    def test_restore_uses_can_write_permission(self) -> None:
+        """Non-admin owner with ``can_write_Dashboard`` can hit the restore
+        endpoint.
+
+        Pins the permission contract: ``method_permission_name`` must map
+        ``restore`` to ``write`` so FAB's ``@protect`` resolves the gate to
+        ``can_write_Dashboard`` (which Alpha already carries), not the
+        implicit fallback ``can_restore_Dashboard`` (which no standard role
+        carries).
+
+        Without the mapping FAB defaults to ``can_<method>_<class>`` and
+        every non-admin would get 403 here — admins bypass FAB permission
+        checks entirely, so the admin-authed restore tests above don't
+        exercise the mapping.
+        """
+        alpha = self.get_user(ALPHA_USERNAME)
+        dashboard = Dashboard(
+            dashboard_title="restore_perm_test",
+            slug="slug_restore_perm_test",
+            owners=[alpha],
+            published=True,
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+        dashboard_id = dashboard.id
+        dashboard_uuid = str(dashboard.uuid)
+
+        self.login(ALPHA_USERNAME)
+        rv = self.client.delete(f"/api/v1/dashboard/{dashboard_id}")
+        assert rv.status_code == 200, (
+            f"Alpha owner soft-delete failed: {rv.status_code} {rv.data!r}"
+        )
+
+        rv = self.client.post(f"/api/v1/dashboard/{dashboard_uuid}/restore")
+        assert rv.status_code == 200, (
+            f"Expected 200 from Alpha owner restore (can_write_Dashboard), "
+            f"got {rv.status_code}: {rv.data!r}. If 403, "
+            "method_permission_name is missing 'restore': 'write'."
+        )
 
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
