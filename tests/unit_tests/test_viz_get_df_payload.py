@@ -105,6 +105,47 @@ def test_process_data_accepts_allowlisted_resample_method() -> None:
     assert not result.empty
 
 
+def test_run_extra_queries_rejects_excessive_time_compare() -> None:
+    """
+    Requesting more time-shift comparisons than ``VIZ_TIME_COMPARE_MAX`` must
+    raise ``QueryObjectValidationError`` before any sub-queries are issued.
+    """
+    max_compare = current_app.config["VIZ_TIME_COMPARE_MAX"]
+    obj = _timeseries_viz(
+        {"time_compare": [f"{i} days ago" for i in range(1, max_compare + 2)]}
+    )
+
+    with pytest.raises(QueryObjectValidationError):
+        obj.run_extra_queries()
+
+
+def test_deck_multi_rejects_excessive_sub_slices() -> None:
+    """
+    Requesting more deck.gl sub-slices than ``DECK_MULTI_MAX_SLICES`` must raise
+    ``QueryObjectValidationError`` before any sub-query is issued.
+    """
+    database = Database(database_name="d", sqlalchemy_uri="sqlite://")
+    datasource = SqlaTable(
+        table_name="t",
+        columns=[],
+        metrics=[],
+        main_dttm_col=None,
+        database=database,
+    )
+    max_slices = current_app.config["DECK_MULTI_MAX_SLICES"]
+    obj = viz.DeckGLMultiLayer(
+        datasource=datasource,
+        form_data={
+            "viz_type": "deck_multi",
+            "deck_slices": list(range(max_slices + 1)),
+        },
+        force=True,
+    )
+
+    with pytest.raises(QueryObjectValidationError):
+        obj.get_data(_resample_df())
+
+
 def test_get_df_payload_propagates_oauth2_redirect_error() -> None:
     """
     OAuth2RedirectError (a SupersetErrorException) must propagate out of
