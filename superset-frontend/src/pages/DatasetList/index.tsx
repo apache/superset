@@ -99,6 +99,8 @@ import { useSelector } from 'react-redux';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import type { BootstrapData } from 'src/types/bootstrapTypes';
+// TEMP: sc-103156 versioning demo. Revert before any commit.
+import VersionHistoryDropdown from './VersionHistoryDropdown';
 
 const SEMANTIC_LAYERS_FLAG = 'SEMANTIC_LAYERS' as FeatureFlag;
 type DatasetExtra = {
@@ -165,6 +167,7 @@ type Dataset = {
   source_type?: 'database' | 'semantic_layer';
   explore_url: string;
   id: number;
+  uuid?: string;
   owners: Array<Owner>;
   schema: string | null;
   table_name: string;
@@ -941,6 +944,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     <Icons.DeleteOutlined iconSize="l" />
                   </span>
                 </Tooltip>
+              )}
+              {/* TEMP: sc-103156 versioning demo. Revert before any commit. */}
+              {original.uuid && canEdit && (
+                <VersionHistoryDropdown
+                  datasetUuid={original.uuid}
+                  onRestored={() => refreshData()}
+                />
               )}
             </Actions>
           );
