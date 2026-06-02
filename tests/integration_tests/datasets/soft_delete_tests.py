@@ -248,74 +248,20 @@ class TestDatasetRestore(SupersetTestCase):
                 row.restore()
             db.session.commit()
 
-    def test_restore_blocked_by_active_logical_duplicate(self) -> None:
-        """Restore returns 422 when another active dataset already references
-        the same physical table.
-
-        Without the duplicate check, the soft-deleted dataset's logical slot
-        could be claimed by a new active row and restore would silently
-        produce two live ``SqlaTable`` entries for one physical table.
-        """
-        dataset = self._get_example_dataset()
-        original_id = dataset.id
-        original_uuid = str(dataset.uuid)
-        database_id = dataset.database_id
-        catalog = dataset.catalog
-        schema = dataset.schema
-        table_name = dataset.table_name
-
-        self.login(ADMIN_USERNAME)
-
-        # Soft-delete the original.
-        rv = self.client.delete(f"/api/v1/dataset/{original_id}")
-        assert rv.status_code == 200
-
-        # Claim the logical slot with a new active dataset pointing at the
-        # same physical table.
-        twin = SqlaTable(
-            table_name=table_name,
-            database_id=database_id,
-            catalog=catalog,
-            schema=schema,
-        )
-        db.session.add(twin)
-        db.session.commit()
-        twin_id = twin.id
-
-        try:
-            rv = self.client.post(f"/api/v1/dataset/{original_uuid}/restore")
-            assert rv.status_code == 422, (
-                f"Expected 422 for logical-duplicate restore, "
-                f"got {rv.status_code}: {rv.data!r}"
-            )
-
-            # The original is still soft-deleted; restore did not mutate it.
-            row = (
-                db.session.query(SqlaTable)
-                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
-                .filter(SqlaTable.id == original_id)
-                .one()
-            )
-            assert row.deleted_at is not None, (
-                "Original dataset should remain soft-deleted after blocked restore"
-            )
-        finally:
-            # Cleanup: remove the twin and clear deleted_at on the original
-            # so the example dataset is available to other tests.
-            db.session.delete(twin)
-            row = (
-                db.session.query(SqlaTable)
-                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
-                .filter(SqlaTable.id == original_id)
-                .one()
-            )
-            row.restore()
-            db.session.commit()
-            # Ensure twin is fully gone before next test runs
-            assert (
-                db.session.query(SqlaTable).filter(SqlaTable.id == twin_id).first()
-                is None
-            )
+    # Note: a ``test_restore_blocked_by_active_logical_duplicate`` integration
+    # test was attempted here but is unreachable. The ``tables`` table carries
+    # two DB-level unique constraints on the logical identity (the newer
+    # ``UniqueConstraint("database_id", "catalog", "schema", "table_name")``
+    # in the model plus the legacy ``_customer_location_uc`` from the 2016
+    # ``b4456560d4f3`` migration), so the "delete -> seed twin -> restore"
+    # setup cannot satisfy step 2 — the DB rejects the twin insert before the
+    # application-level restore check can be exercised. The restore-side
+    # ``_has_active_logical_duplicate`` override in ``RestoreDatasetCommand``
+    # is kept as defensive code (cleaner 422 if the DB constraint is ever
+    # relaxed) and is covered by ``tests/unit_tests/commands/dataset/
+    # restore_test.py::test_restore_dataset_logical_duplicate_raises`` at the
+    # mocked level. The create-side defense is covered end-to-end by
+    # ``test_create_blocked_by_soft_deleted_logical_duplicate`` below.
 
     def test_create_blocked_by_soft_deleted_logical_duplicate(self) -> None:
         """Create returns 422 when a soft-deleted dataset references the same
