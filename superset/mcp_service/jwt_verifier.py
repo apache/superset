@@ -392,18 +392,30 @@ class MCPJWTVerifier(JWTVerifier):
     """
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
+        # Capture the explicit algorithm kwarg before super().__init__() can
+        # coerce it (the factory defaults it to "RS256" when MCP_JWT_ALGORITHM
+        # is unset, so self.algorithm is always truthy post-construction).
+        explicit_algorithm = kwargs.get("algorithm")
         super().__init__(*args, **kwargs)
         # Surface permissive auth configuration at startup. Config-gated:
         # a verifier is only built when auth is enabled (see mcp_config).
-        # Use the raw config value — not self.algorithm — because the factory
-        # defaults algorithm to "RS256" before constructing the verifier, so
-        # self.algorithm is always truthy and the "not pinned" warning would
-        # never fire if we read the post-coercion attribute.
+        # Prefer the raw MCP_JWT_ALGORITHM config value over the constructor
+        # kwarg because the factory always supplies a non-None algorithm
+        # default; falling back to the kwarg lets unit tests that construct
+        # verifiers directly (without an app context) also get the warning
+        # when no algorithm is pinned.
         from flask import current_app
+
+        try:
+            config_algorithm = current_app.config.get("MCP_JWT_ALGORITHM")
+        except RuntimeError:
+            # No Flask application context (e.g. unit tests constructing the
+            # verifier directly). Fall back to the explicit constructor arg.
+            config_algorithm = None
 
         _warn_on_weak_jwt_config(
             audience=getattr(self, "audience", None),
-            algorithm=current_app.config.get("MCP_JWT_ALGORITHM"),
+            algorithm=config_algorithm or explicit_algorithm,
         )
 
     def get_middleware(self) -> list[Any]:
