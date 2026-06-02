@@ -804,9 +804,11 @@ def assert_all_tools_protected(mcp_instance: FastMCP) -> None:
     # FastMCP 3.x exposes components keyed as ``"<kind>:<name>@..."`` (tools,
     # prompts, resources) in the local provider's component dict. Tool values
     # are ``FunctionTool`` objects with ``.name`` and ``.fn`` attributes.
+    tools_checked = 0
     for key, component in mcp_instance.local_provider._components.items():
         if not key.startswith("tool:"):
             continue
+        tools_checked += 1
         name = getattr(component, "name", None) or key
         fn = getattr(component, "fn", None)
         if name in ALLOWED_UNPROTECTED:
@@ -817,6 +819,18 @@ def assert_all_tools_protected(mcp_instance: FastMCP) -> None:
                 f"All tools must use @tool() with protect=True or be explicitly "
                 f"allowlisted in ALLOWED_UNPROTECTED."
             )
+
+    # Defense against silent FastMCP API drift: if the private
+    # ``local_provider._components`` attribute or the ``"tool:"`` key prefix
+    # changes in a future FastMCP release, this loop would match nothing and
+    # vacuously return success. Log a warning so the regression is visible in
+    # the startup logs and routine ops review.
+    if tools_checked == 0:
+        logger.warning(
+            "assert_all_tools_protected inspected 0 tools — FastMCP internal "
+            "API (local_provider._components, 'tool:' key prefix) may have "
+            "changed. Review and update the iteration in app.py."
+        )
 
 
 def _remove_disabled_tools(disabled_tools: set[str]) -> None:

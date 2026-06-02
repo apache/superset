@@ -249,11 +249,14 @@ def create_prompt_decorator(
             return wrapped_func
 
         except Exception as e:
+            # Fail-fast: don't silently serve unprotected prompts. Returning
+            # the unwrapped function here would bypass mcp_auth_hook, leaving
+            # the prompt exposed without auth or context isolation (see
+            # #39395 — same invariant as create_tool_decorator).
             logger.error(
                 "Failed to register MCP prompt %s: %s", name or func.__name__, e
             )
-            # Return the original function so extension doesn't break
-            return func
+            raise
 
     # If called as @prompt (without parentheses)
     if callable(func_or_name):

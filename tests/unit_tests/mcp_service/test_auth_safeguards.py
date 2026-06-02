@@ -26,8 +26,9 @@ enforce that invariant:
    function when registration errors.
 """
 
+import logging
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, Callable
 from unittest.mock import patch
 
 import pytest
@@ -131,9 +132,78 @@ def test_create_tool_decorator_fails_fast_on_registration_error() -> None:
     # Make Tool.from_function raise — simulates any registration-time failure
     # in the path after mcp_auth_hook returns. Previously this would log an
     # error and return ``func`` unwrapped; now it must re-raise.
-    from typing import Callable
-
     decorator: Callable[..., Any] = create_tool_decorator()
     with patch("fastmcp.tools.Tool.from_function", side_effect=RuntimeError("boom")):
         with pytest.raises(RuntimeError, match="boom"):
             decorator(sample_tool)
+
+
+def test_create_prompt_decorator_fails_fast_on_registration_error() -> None:
+    """``create_prompt_decorator`` must propagate registration errors instead
+    of returning the unwrapped function. Prompts can expose system instructions
+    and sensitive context to LLM clients — the same bypass risk as tools
+    (raised by @aminghadersohi on PR #40412)."""
+    from superset.core.mcp.core_mcp_injection import create_prompt_decorator
+
+    def sample_prompt() -> str:
+        return "hi"
+
+    decorator: Callable[..., Any] = create_prompt_decorator()
+    with patch(
+        "fastmcp.prompts.Prompt.from_function", side_effect=RuntimeError("boom")
+    ):
+        with pytest.raises(RuntimeError, match="boom"):
+            decorator(sample_prompt)
+
+
+def test_assert_all_tools_protected_skips_non_tool_components() -> None:
+    """``local_provider._components`` mixes tools, prompts and resources under
+    different key prefixes. Only ``tool:`` entries should be checked — prompts
+    and resources have their own auth model and must not trip the assertion."""
+
+    def protected_fn() -> None:
+        pass
+
+    protected_fn._mcp_auth_protected = True  # type: ignore[attr-defined]
+
+    def unprotected_fn() -> None:
+        pass
+
+    # Hand-craft a components dict directly so prompt/resource keys are present
+    # (the helper only builds ``tool:`` entries).
+    components = {
+        "tool:list_charts@": SimpleNamespace(name="list_charts", fn=protected_fn),
+        "prompt:create_chart_guided@": SimpleNamespace(
+            name="create_chart_guided", fn=unprotected_fn
+        ),
+        "resource:chart://configs@": SimpleNamespace(
+            name="chart://configs", fn=unprotected_fn
+        ),
+    }
+    mcp = SimpleNamespace(
+        local_provider=SimpleNamespace(_components=components),
+    )
+
+    # Should not raise — the unprotected prompt/resource entries are skipped
+    # because their keys don't start with ``tool:``.
+    assert_all_tools_protected(mcp)
+
+
+def test_assert_all_tools_protected_warns_when_no_tools_found(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Defense against silent FastMCP API drift: if ``_components`` ever
+    contains no ``tool:`` entries (e.g. FastMCP renamed the attribute or
+    changed the key prefix), the function must log a warning rather than
+    return success vacuously."""
+    mcp = SimpleNamespace(
+        local_provider=SimpleNamespace(_components={}),
+    )
+
+    with caplog.at_level(logging.WARNING, logger="superset.mcp_service.app"):
+        assert_all_tools_protected(mcp)
+
+    assert any(
+        "inspected 0 tools" in rec.message and "FastMCP internal" in rec.message
+        for rec in caplog.records
+    ), "expected a 'no tools inspected' warning when components dict is empty"
