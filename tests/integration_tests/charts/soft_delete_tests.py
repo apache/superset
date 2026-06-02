@@ -277,6 +277,41 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
+    def test_restore_uses_can_write_permission(self) -> None:
+        """Non-admin owner with ``can_write_Chart`` can hit the restore
+        endpoint.
+
+        Pins the permission contract: ``method_permission_name`` must map
+        ``restore`` to ``write`` so FAB's ``@protect`` resolves the gate to
+        ``can_write_Chart`` (which Alpha already carries), not the implicit
+        fallback ``can_restore_Chart`` (which no standard role carries).
+
+        Without the mapping FAB defaults to ``can_<method>_<class>`` and
+        every non-admin would get 403 here — admins bypass FAB permission
+        checks entirely, so the admin-authed restore tests above don't
+        exercise the mapping.
+        """
+        alpha = self.get_user(ALPHA_USERNAME)
+        chart = self.insert_chart("restore_perm_test", [alpha.id], 1)
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+
+        self.login(ALPHA_USERNAME)
+        rv = self.client.delete(f"/api/v1/chart/{chart_id}")
+        assert rv.status_code == 200, (
+            f"Alpha owner soft-delete failed: {rv.status_code} {rv.data!r}"
+        )
+
+        rv = self.client.post(f"/api/v1/chart/{chart_uuid}/restore")
+        assert rv.status_code == 200, (
+            f"Expected 200 from Alpha owner restore (can_write_Chart), got "
+            f"{rv.status_code}: {rv.data!r}. If 403, "
+            "method_permission_name is missing 'restore': 'write'."
+        )
+
+        # Cleanup
+        _hard_delete_chart(chart_id)
+
     def test_restore_chart_reattaches_to_dashboards(self) -> None:
         """Soft-deleting a chart preserves dashboard_slices junction rows;
         restore makes the chart reappear in its dashboards automatically.
