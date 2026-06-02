@@ -24,7 +24,8 @@ from superset.mcp_service.utils.error_sanitization import _sanitize_validation_e
 
 def test_sanitize_redacts_table_name():
     error = ValueError("Invalid reference to table users in query")
-    result = _sanitize_validation_error(error)
+    # Pure content check — suppress the server-side INFO log of the original.
+    result = _sanitize_validation_error(error, log_original=False)
     assert "users" not in result
     assert "[REDACTED]" in result
 

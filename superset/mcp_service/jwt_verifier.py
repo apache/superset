@@ -50,26 +50,12 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import HTTPConnection, Request
 from starlette.responses import HTMLResponse, JSONResponse, Response
 
+from superset.mcp_service.utils.error_sanitization import (
+    sanitize_for_log as _sanitize_for_log,
+)
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
-
-
-def _sanitize_for_log(value: Any) -> str:
-    """Escape control characters in attacker-controlled values before logging.
-
-    Claim values (alg, iss, aud, client_id, ...) are attacker-controlled and
-    may contain newlines or other control characters that could be used to
-    forge or split log lines. Escaping ``\\n``/``\\r``/``\\t`` keeps each logged
-    value confined to a single, unambiguous log entry.
-    """
-    return (
-        str(value)
-        .replace("\\", "\\\\")
-        .replace("\n", "\\n")
-        .replace("\r", "\\r")
-        .replace("\t", "\\t")
-    )
 
 
 # Thread-safe storage for the specific JWT failure reason.
@@ -584,7 +570,7 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 token=token,
                 client_id=str(client_id),
                 scopes=scopes,
-                expires_at=int(exp) if exp else None,
+                expires_at=int(exp),
                 claims=dict(claims),
             )
 

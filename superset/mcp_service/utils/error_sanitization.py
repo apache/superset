@@ -25,8 +25,27 @@ actionable error messages for LLM callers.
 
 import logging
 import re
+from typing import Any
 
 logger = logging.getLogger(__name__)
+
+
+def sanitize_for_log(value: Any) -> str:
+    """Escape control characters in attacker-controlled values before logging.
+
+    Claim values (alg, iss, aud, client_id, ...) and error strings are
+    attacker-controlled and may contain newlines or other control characters
+    that could be used to forge or split log lines. Escaping ``\\n``/``\\r``/``\\t``
+    keeps each logged value confined to a single, unambiguous log entry.
+    Backslash is escaped first to avoid double-escaping the replacements.
+    """
+    return (
+        str(value)
+        .replace("\\", "\\\\")
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+    )
 
 
 def _redact_sql_select(error_str: str, error_str_upper: str) -> str:
@@ -79,13 +98,7 @@ def _sanitize_validation_error(error: Exception, log_original: bool = True) -> s
     """
     if log_original:
         # Sanitize control characters before logging to prevent log-line injection.
-        safe_error = (
-            str(error)
-            .replace("\\", "\\\\")
-            .replace("\n", "\\n")
-            .replace("\r", "\\r")
-            .replace("\t", "\\t")
-        )
+        safe_error = sanitize_for_log(error)
         logger.info(
             "Sanitizing validation error (%s): %s",
             type(error).__name__,

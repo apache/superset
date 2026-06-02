@@ -43,6 +43,7 @@ from superset.mcp_service.auth import (
     _get_app_context_manager,
     get_user_from_request,
     is_tool_visible_to_current_user,
+    MCPNoAuthSourceError,
     MCPPermissionDeniedError,
 )
 from superset.mcp_service.constants import (
@@ -511,7 +512,7 @@ class RBACToolVisibilityMiddleware(Middleware):
                 try:
                     user = get_user_from_request()
                 except ValueError as exc:
-                    if "Authentication required" in str(exc):
+                    if isinstance(exc, MCPNoAuthSourceError):
                         # No auth source configured at all → fail open.
                         # No log: this is expected in dev/internal deployments.
                         return tools
