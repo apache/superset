@@ -254,6 +254,20 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
     return extension_data
 
 
+def is_extension_blocked(extension: LoadedExtension) -> bool:
+    """
+    Return True if the extension is denied by the ``EXTENSION_BLOCKLIST`` config.
+
+    Each blocklist entry is either an extension id (blocks every version of that
+    extension) or ``"<id>@<version>"`` (blocks only that exact version).
+    """
+    blocklist = set(current_app.config.get("EXTENSION_BLOCKLIST") or [])
+    if not blocklist:
+        return False
+    manifest = extension.manifest
+    return manifest.id in blocklist or f"{manifest.id}@{manifest.version}" in blocklist
+
+
 def get_extensions() -> dict[str, LoadedExtension]:
     extensions: dict[str, LoadedExtension] = {}
 
@@ -265,6 +279,15 @@ def get_extensions() -> dict[str, LoadedExtension]:
             abs_dist_path = str((Path(path) / "dist").resolve())
             extension = get_loaded_extension(files, source_base_path=abs_dist_path)
             extension_id = extension.manifest.id
+            if is_extension_blocked(extension):
+                logger.warning(
+                    "Refusing to load blocklisted extension %s (ID: %s, "
+                    "version: %s) from local filesystem",
+                    extension.name,
+                    extension_id,
+                    extension.manifest.version,
+                )
+                continue
             extensions[extension_id] = extension
             logger.info(
                 "Loading extension %s (ID: %s) from local filesystem",
@@ -280,6 +303,15 @@ def get_extensions() -> dict[str, LoadedExtension]:
 
         for extension in discover_and_load_extensions(extensions_path):
             extension_id = extension.manifest.id
+            if is_extension_blocked(extension):
+                logger.warning(
+                    "Refusing to load blocklisted extension %s (ID: %s, "
+                    "version: %s) from discovery path",
+                    extension.name,
+                    extension_id,
+                    extension.manifest.version,
+                )
+                continue
             if extension_id not in extensions:  # Don't override LOCAL_EXTENSIONS
                 extensions[extension_id] = extension
                 logger.info(
