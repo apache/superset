@@ -383,6 +383,13 @@ function simpleFilterToWhereClause(
     // accept finite numeric bounds (date ranges are handled separately above).
     // Numeric strings from serialized filter state are coerced; anything that
     // isn't a finite number is dropped rather than concatenated as raw SQL.
+    // Reject null/empty bounds explicitly: Number(null) and Number('') both
+    // coerce to 0, which would otherwise produce a misleading BETWEEN ... AND 0.
+    const isCoercibleBound = (bound: FilterValue): boolean =>
+      (typeof bound === 'number' || typeof bound === 'string') && bound !== '';
+    if (!isCoercibleBound(value) || !isCoercibleBound(filterTo)) {
+      return '';
+    }
     const from = Number(value);
     const to = Number(filterTo);
     if (!Number.isFinite(from) || !Number.isFinite(to)) {

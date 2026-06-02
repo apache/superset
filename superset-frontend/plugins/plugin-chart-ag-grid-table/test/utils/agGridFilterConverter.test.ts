@@ -794,9 +794,10 @@ describe('agGridFilterConverter', () => {
       const result = convertAgGridFiltersToSQL(filterModel);
 
       // The malicious range condition is dropped, so its payload never reaches
-      // the WHERE clause; the sibling numeric condition is unaffected.
+      // the WHERE clause; the sibling numeric condition survives unchanged.
       expect(result.complexWhere ?? '').not.toContain('1=1');
       expect(result.complexWhere ?? '').not.toContain('BETWEEN');
+      expect(result.complexWhere).toBe('age > 5');
     });
 
     test('should keep numeric inRange bounds (including numeric strings)', () => {
@@ -820,7 +821,9 @@ describe('agGridFilterConverter', () => {
 
       const result = convertAgGridFiltersToSQL(filterModel);
 
-      expect(result.complexWhere).toContain('BETWEEN 18 AND 65');
+      // Assert the full compound clause so the upper bound and the sibling
+      // condition are both validated, not just the BETWEEN fragment.
+      expect(result.complexWhere).toBe('(age BETWEEN 18 AND 65 AND age < 100)');
     });
   });
 
