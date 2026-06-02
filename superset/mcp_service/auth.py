@@ -138,7 +138,15 @@ def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) 
 
         class_permission_name = getattr(func, CLASS_PERMISSION_ATTR, None)
         if not class_permission_name:
-            # No RBAC configured for this tool; allow by default.
+            # No RBAC configured for this tool; allow by default. This is a
+            # supported configuration (a protected tool may intentionally
+            # declare no permission class), but surface it so an accidental
+            # omission on a sensitive tool doesn't silently fail open.
+            logger.warning(
+                "Tool %s is permission-protected but declares no "
+                "class_permission_name; allowing access without an RBAC check",
+                func.__name__,
+            )
             return True
 
         method_permission_name = getattr(func, METHOD_PERMISSION_ATTR, "read")
