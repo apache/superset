@@ -37,9 +37,19 @@ def health() -> FlaskResponse:
 @talisman(force_https=False)
 def version() -> FlaskResponse:
     """
-    Return comprehensive version information including Git SHA
-    and branch when available.
+    Return version information for the running Superset instance.
+
+    When ``EXPOSE_VERSION_INFO`` is True (default) this returns the full
+    version metadata, including the Git SHA and branch name when available.
+    When it is False, only the human-readable version string is returned and
+    build-specific details (Git SHA, full SHA, build number, branch name) are
+    omitted so they are not exposed to unauthenticated callers.
     """
     from superset.utils.version import get_version_metadata
 
-    return jsonify(get_version_metadata())
+    metadata = get_version_metadata()
+
+    if not app.config.get("EXPOSE_VERSION_INFO", True):
+        metadata = {"version_string": metadata.get("version_string", "unknown")}
+
+    return jsonify(metadata)

@@ -312,3 +312,13 @@ def test_full_setting(
     assert dttm_col.is_dttm
     assert dttm_col.python_date_format == "epoch_s"
     assert dttm_col.expression == "CAST(dttm as INTEGER)"
+
+
+def test_expose_version_info_defaults_to_true() -> None:
+    """
+    The /version endpoint preserves its existing behavior by default. Operators
+    can set EXPOSE_VERSION_INFO = False to omit build-specific details.
+    """
+    from superset import config
+
+    assert config.EXPOSE_VERSION_INFO is True

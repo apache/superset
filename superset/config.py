@@ -156,6 +156,14 @@ VERSION_SHA = _try_json_readsha(VERSION_INFO_FILE, VERSION_SHA_LENGTH)
 # can be replaced at build time to expose build information.
 BUILD_NUMBER = None
 
+# Controls how much detail the unauthenticated ``/version`` endpoint returns.
+# When True (default, preserves existing behavior) the endpoint returns the full
+# version metadata, including the Git SHA and branch name when available. Set to
+# False to return only the human-readable version string and omit the Git SHA,
+# full SHA, build number, and branch name, so deployment-specific build details
+# are not exposed to unauthenticated callers.
+EXPOSE_VERSION_INFO = True
+
 # default viz used in chart explorer & SQL Lab explore
 DEFAULT_VIZ_TYPE = "table"
 
