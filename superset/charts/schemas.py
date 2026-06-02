@@ -62,6 +62,34 @@ def get_time_grain_choices() -> Any:
     ]
 
 
+# Fallback upper bound for the number of Prophet forecast periods when the
+# application config cannot be read (for example, outside of an app context).
+DEFAULT_MAX_PROPHET_PERIODS = 10000
+
+
+def get_max_prophet_periods() -> int:
+    """Get the configured upper bound for Prophet forecast periods."""
+    try:
+        return current_app.config.get(
+            "MAX_PROPHET_PERIODS", DEFAULT_MAX_PROPHET_PERIODS
+        )
+    except RuntimeError:
+        # Outside app context, fall back to the default bound
+        return DEFAULT_MAX_PROPHET_PERIODS
+
+
+def validate_prophet_periods(value: int) -> None:
+    """Ensure the number of Prophet forecast periods stays within bounds."""
+    Range(
+        min=1,
+        max=get_max_prophet_periods(),
+        error=_(
+            "`periods` must be between 1 and %(max)s",
+            max=get_max_prophet_periods(),
+        ),
+    )(value)
+
+
 #
 # RISON/JSON schemas for query parameters
 #
@@ -242,7 +270,7 @@ class ChartPostSchema(Schema):
         metadata={"description": certification_details_description}, allow_none=True
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-    external_url = fields.String(allow_none=True)
+    external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     uuid = fields.UUID(allow_none=True)
 
 
@@ -300,7 +328,7 @@ class ChartPutSchema(Schema):
         metadata={"description": certification_details_description}, allow_none=True
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-    external_url = fields.String(allow_none=True)
+    external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.Integer(metadata={"description": tags_description}))
     uuid = fields.UUID(allow_none=True)
 
@@ -656,8 +684,9 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "description": "Time periods (in units of `time_grain`) to predict into "
             "the future",
             "example": 7,
-            "min": 0,
+            "min": 1,
         },
+        validate=validate_prophet_periods,
         required=True,
     )
     confidence_interval = fields.Float(
@@ -1671,7 +1700,7 @@ class ImportV1ChartSchema(Schema):
     version = fields.String(required=True)
     dataset_uuid = fields.UUID(required=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-    external_url = fields.String(allow_none=True)
+    external_url = fields.String(allow_none=True, validate=utils.validate_external_url)
     tags = fields.List(fields.String(), allow_none=True)
 
 

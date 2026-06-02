@@ -14,11 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Union
+from typing import Any, Optional, Union
+from urllib.parse import urlparse
 
 from marshmallow import validate, ValidationError
 
 from superset.utils import json
+
+ALLOWED_URL_SCHEMES = {"http", "https"}
 
 
 class OneOfCaseInsensitive(validate.OneOf):
@@ -51,3 +54,26 @@ def validate_json(value: Union[bytes, bytearray, str]) -> None:
         json.validate_json(value)
     except json.JSONDecodeError as ex:
         raise ValidationError("JSON not valid") from ex
+
+
+def validate_external_url(value: Optional[str]) -> None:
+    """
+    Validator for externally managed object URLs.
+
+    Restricts the accepted URL schemes to ``http`` and ``https`` so that
+    other schemes (for example ``javascript:``, ``data:`` or ``vbscript:``)
+    cannot be stored and later rendered by clients. Empty values are allowed
+    since the field is optional.
+
+    :param value: the URL to validate
+    :raises ValidationError: if the value uses a disallowed scheme
+    """
+    if not value:
+        return
+
+    scheme = urlparse(value).scheme.lower()
+    if scheme not in ALLOWED_URL_SCHEMES:
+        raise ValidationError(
+            "URL must use one of the following schemes: "
+            f"{', '.join(sorted(ALLOWED_URL_SCHEMES))}."
+        )

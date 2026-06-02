@@ -1351,6 +1351,10 @@ MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 # Maximum number of rows returned for any analytical database query
 SQL_MAX_ROW = 100000
 
+# Maximum number of forecast periods accepted by the Prophet post-processing
+# operation. Bounds resource usage when predicting into the future.
+MAX_PROPHET_PERIODS = 10000
+
 # Maximum number of rows for any query with Server Pagination in Table Viz type
 TABLE_VIZ_MAX_ROW_SERVER = 500000
 

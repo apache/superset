@@ -23,6 +23,7 @@ from marshmallow.validate import Length, ValidationError
 from superset import security_manager
 from superset.tags.models import TagType
 from superset.utils import json
+from superset.utils.schema import validate_external_url
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -317,6 +318,17 @@ class DashboardDatasetSchema(Schema):
         if security_manager.is_guest_user():
             del serialized["owners"]
             del serialized["database"]
+            # Guest users should never receive fields that expose internal
+            # connection or query details.
+            for key in (
+                "sql",
+                "select_star",
+                "perm",
+                "edit_url",
+                "fetch_values_predicate",
+                "template_params",
+            ):
+                serialized.pop(key, None)
         return serialized
 
 
@@ -376,7 +388,7 @@ class DashboardPostSchema(BaseDashboardSchema):
         metadata={"description": certification_details_description}, allow_none=True
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-    external_url = fields.String(allow_none=True)
+    external_url = fields.String(allow_none=True, validate=validate_external_url)
     uuid = fields.UUID(allow_none=True)
 
 
@@ -440,7 +452,7 @@ class DashboardPutSchema(BaseDashboardSchema):
         metadata={"description": certification_details_description}, allow_none=True
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-    external_url = fields.String(allow_none=True)
+    external_url = fields.String(allow_none=True, validate=validate_external_url)
     tags = fields.List(
         fields.Integer(metadata={"description": tags_description}, allow_none=True)
     )
@@ -512,7 +524,7 @@ class ImportV1DashboardSchema(Schema):
     metadata = fields.Dict()
     version = fields.String(required=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-    external_url = fields.String(allow_none=True)
+    external_url = fields.String(allow_none=True, validate=validate_external_url)
     certified_by = fields.String(allow_none=True)
     certification_details = fields.String(allow_none=True)
     published = fields.Boolean(allow_none=True)

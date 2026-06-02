@@ -468,11 +468,14 @@ class DatabaseSSHTunnel(Schema):
     username = fields.String()
 
     # Basic Authentication
-    password = fields.String(required=False)
+    # Credential fields are load-only: accepted on input but never serialized
+    # back in responses. Response paths that surface a masked placeholder do so
+    # explicitly (see SSHTunnel.data and mask_password_info).
+    password = fields.String(required=False, load_only=True)
 
     # password protected private key authentication
-    private_key = fields.String(required=False)
-    private_key_password = fields.String(required=False)
+    private_key = fields.String(required=False, load_only=True)
+    private_key_password = fields.String(required=False, load_only=True)
 
     @validates_schema
     def validate_authentication(self, data: dict[str, Any], **kwargs: Any) -> None:
