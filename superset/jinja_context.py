@@ -1105,6 +1105,7 @@ class JinjaTemplateProcessor(BaseTemplateProcessor):
                 "get_guest_user_attribute": partial(
                     safe_proxy, extra_cache.get_guest_user_attribute
                 ),
+                "i18n": partial(safe_proxy, i18n_macro),
             }
         )
 
@@ -1249,6 +1250,24 @@ def get_template_processor(
     else:
         template_processor = NoOpTemplateProcessor
     return template_processor(database=database, table=table, query=query, **kwargs)
+
+
+def i18n_macro(default_text: str) -> str:
+    """Jinja macro for translating asset metadata into the viewer's locale.
+
+    Usage in a templated field (e.g. a chart axis label or native filter name)::
+
+        {{ i18n('Sales') }}
+
+    Resolution is delegated to the configured ``TRANSLATION_HOOK`` and gated by
+    the ``ENABLE_I18N_ASSET_TRANSLATIONS`` feature flag; when the feature is off
+    or no translation exists, the original text is returned unchanged. See
+    ``superset.utils.i18n`` and SIP-161.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.utils.i18n import translate
+
+    return translate(default_text, model_name="template", field_name="i18n") or ""
 
 
 def dataset_macro(

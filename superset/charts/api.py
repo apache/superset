@@ -295,6 +295,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "dashboards.dashboard_title",
         "params",
         "slice_name",
+        "localized_name",
         "slice_url",
         "table.default_endpoint",
         "table.table_name",
