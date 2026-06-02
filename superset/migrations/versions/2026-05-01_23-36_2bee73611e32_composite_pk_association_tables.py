@@ -475,7 +475,21 @@ def _downgrade_mysql_table(
     for the combined-ALTER form, and the constitution allows raw SQL for
     dialect-specific DDL with no programmatic equivalent (preferring
     triple-quoted strings for legibility).
+
+    Belt-and-braces guard: ``t.name`` is interpolated as a backtick-quoted
+    identifier in the ALTER statements below. The value comes from
+    ``AFFECTED_TABLES`` (a module-level literal), so SQL injection is
+    structurally precluded. The explicit ``allowed`` check here makes
+    that invariant load-bearing rather than implicit, so a future
+    refactor that loosens the call-site can't slip past review.
     """
+    allowed = {a.name for a in AFFECTED_TABLES}
+    if t.name not in allowed:
+        raise RuntimeError(
+            f"Refusing to ALTER unknown table {t.name!r}: "
+            f"only AFFECTED_TABLES entries may flow through this path."
+        )
+
     fks = insp.get_foreign_keys(t.name)
 
     for fk in fks:
