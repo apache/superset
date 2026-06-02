@@ -14,20 +14,31 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any, cast
+
 from flask import current_app
 from pytest_mock import MockerFixture
 
 from superset.extensions import appbuilder
-from superset.security.guest_token import GUEST_TOKEN_REVOCATION_CLAIM
+from superset.security.guest_token import (
+    GUEST_TOKEN_REVOCATION_CLAIM,
+    GuestTokenResources,
+    GuestTokenResourceType,
+    GuestTokenRlsRule,
+    GuestTokenUser,
+)
 from superset.security.manager import SupersetSecurityManager
 
-USER = {"username": "guest"}
-RESOURCES = [{"type": "dashboard", "id": "some-uuid"}]
-RLS: list = []
+USER: GuestTokenUser = {"username": "guest"}
+RESOURCES: GuestTokenResources = [
+    {"type": GuestTokenResourceType.DASHBOARD, "id": "some-uuid"}
+]
+RLS: list[GuestTokenRlsRule] = []
 
 
-def _decode(sm: SupersetSecurityManager, raw_token: bytes) -> dict:
-    return sm.parse_jwt_guest_token(raw_token)
+def _decode(sm: SupersetSecurityManager, raw_token: bytes) -> dict[str, Any]:
+    # PyJWT returns a str at runtime, though the helper is typed as bytes.
+    return sm.parse_jwt_guest_token(cast(str, raw_token))
 
 
 def test_minted_token_carries_revocation_claim_when_enabled(

@@ -51,9 +51,7 @@ def get_current_guest_token_revocation_version() -> int:
     except Exception:  # pylint: disable=broad-except
         # Never let a metadata-store hiccup hard-fail token validation; fall back
         # to the default version (fail-open to the pre-feature behaviour).
-        logger.warning(
-            "Could not read guest token revocation version", exc_info=True
-        )
+        logger.warning("Could not read guest token revocation version", exc_info=True)
         return DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
     if value is None:
         return DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
