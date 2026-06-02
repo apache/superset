@@ -37,10 +37,28 @@ export function useGridColumns(
             .filter((column: string) => Object.keys(data[0]).includes(column))
             .map((key, index) => {
               const colType = coltypes?.[index];
-              const headerLabel = columnDisplayNames?.[key] ?? key;
+
+              const rawHeader = columnDisplayNames?.[key] ?? key;
+              let cleanHeader = rawHeader;
+
+              try {
+                let jsonToParse = rawHeader;
+                let suffix = '';
+
+                if (rawHeader.endsWith('__contribution')) {
+                  jsonToParse = rawHeader.replace('__contribution', '');
+                  suffix = ' (contribution)';
+                }
+
+                const parsed = JSON.parse(jsonToParse);
+                if (parsed && typeof parsed === 'object' && parsed.label) {
+                  cleanHeader = `${parsed.label}${suffix}`;
+                }
+              } catch (_) {}
+
               return {
                 label: key,
-                headerName: headerLabel,
+                headerName: cleanHeader,
                 render: ({ value }: { value: unknown }) => {
                   if (value === true) {
                     return Constants.BOOL_TRUE_DISPLAY;
