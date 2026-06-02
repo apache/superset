@@ -3001,7 +3001,11 @@ class TestDatasetApi(SupersetTestCase):
         # datasets that share a ``table_name`` fails at INSERT regardless of
         # schema. Postgres and MySQL behave correctly.
         if get_main_database().backend == "sqlite":
-            return
+            pytest.skip(
+                "SQLite has a legacy single-column unique constraint on "
+                "table_name that prevents seeding two same-name datasets in "
+                "different schemas"
+            )
 
         self.login(ADMIN_USERNAME)
         admin_id = self.get_user("admin").id
@@ -3025,6 +3029,9 @@ class TestDatasetApi(SupersetTestCase):
             schema="schema_b",
             fetch_metadata=False,
         )
+        # Hand the seed rows to teardown before any assertion can fail, so a
+        # mid-test failure can't leak them into subsequent tests.
+        self.items_to_delete = [ds_schema_a, ds_schema_b]
 
         # Case 1: ask for an existing schema — must return that exact dataset,
         # not raise MultipleResultsFound.
@@ -3053,10 +3060,6 @@ class TestDatasetApi(SupersetTestCase):
         assert json.loads(rv.data.decode("utf-8"))["result"] == {
             "table_id": ds_schema_b.id
         }
-
-        # Cleanup the seed rows; the "new schema" path creates an additional
-        # dataset that the test_client owns — also handed off to teardown.
-        self.items_to_delete = [ds_schema_a, ds_schema_b]
 
     @pytest.mark.usefixtures(
         "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"

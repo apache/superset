@@ -1111,7 +1111,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         # — applying the default would miss them.
         schema = body.get("schema") or None
         catalog = body.get("catalog") or None
-        if table := DatasetDAO.get_table_by_schema_and_name(
+        if table := DatasetDAO.get_table_by_catalog_schema_and_name(
             database_id, schema, table_name, catalog=catalog
         ):
             return self.response(200, result={"table_id": table.id})

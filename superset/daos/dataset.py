@@ -425,7 +425,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         )
 
     @staticmethod
-    def get_table_by_schema_and_name(
+    def get_table_by_catalog_schema_and_name(
         database_id: int,
         schema: str | None,
         table_name: str,
