@@ -1750,6 +1750,122 @@ describe('dbReducer', () => {
     });
   });
 
+  test('EncryptedExtraInputChange stores empty value verbatim (does not delete)', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.EncryptedExtraInputChange,
+      payload: { name: 'service_account_info', value: '' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        masked_encrypted_extra: JSON.stringify({
+          service_account_info: { type: 'service_account' },
+          other: 'keep-me',
+        }),
+      },
+      action,
+    );
+
+    // Generic input change must not delete keys — that's reserved for the
+    // explicit `ClearEncryptedExtraKey` action used by the public/private
+    // toggle. Backends may distinguish absent-key from empty-string.
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      masked_encrypted_extra: '{"service_account_info":"","other":"keep-me"}',
+    });
+  });
+
+  test.each([
+    ['the literal string "null"', 'null'],
+    ['malformed JSON', 'not json'],
+    ['a JSON primitive', '42'],
+    ['a JSON array', '[1,2,3]'],
+  ])(
+    'EncryptedExtraInputChange recovers when masked_encrypted_extra is %s',
+    (_label, value) => {
+      const action: DBReducerActionType = {
+        type: ActionType.EncryptedExtraInputChange,
+        payload: { name: 'foo', value: 'bar' },
+      };
+      const currentState = dbReducer(
+        { ...databaseFixture, masked_encrypted_extra: value },
+        action,
+      );
+
+      // Reducer recovers and starts fresh — no crash, no leaked bad value.
+      expect(currentState).toEqual({
+        ...databaseFixture,
+        masked_encrypted_extra: '{"foo":"bar"}',
+      });
+    },
+  );
+
+  test('ClearEncryptedExtraKey removes the named key from masked_encrypted_extra', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ClearEncryptedExtraKey,
+      payload: { name: 'service_account_info' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        masked_encrypted_extra: JSON.stringify({
+          service_account_info: { type: 'service_account' },
+          other: 'keep-me',
+        }),
+      },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      masked_encrypted_extra: '{"other":"keep-me"}',
+    });
+  });
+
+  test('ClearEncryptedExtraKey is a no-op when the key is already absent', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ClearEncryptedExtraKey,
+      payload: { name: 'missing' },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        masked_encrypted_extra: '{"other":"keep-me"}',
+      },
+      action,
+    );
+
+    expect(currentState).toEqual({
+      ...databaseFixture,
+      masked_encrypted_extra: '{"other":"keep-me"}',
+    });
+  });
+
+  test.each([
+    ['the literal string "null"', 'null'],
+    ['malformed JSON', 'not json'],
+    ['a JSON primitive', '42'],
+    ['a JSON array', '[1,2,3]'],
+  ])(
+    'ClearEncryptedExtraKey recovers when masked_encrypted_extra is %s',
+    (_label, value) => {
+      const action: DBReducerActionType = {
+        type: ActionType.ClearEncryptedExtraKey,
+        payload: { name: 'service_account_info' },
+      };
+      const currentState = dbReducer(
+        { ...databaseFixture, masked_encrypted_extra: value },
+        action,
+      );
+
+      // Recovery path produces a clean `{}` rather than crashing.
+      expect(currentState).toEqual({
+        ...databaseFixture,
+        masked_encrypted_extra: '{}',
+      });
+    },
+  );
+
   test('it will set state to payload from extra input change when checkbox', () => {
     const action: DBReducerActionType = {
       type: ActionType.ExtraInputChange,
