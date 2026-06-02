@@ -20,10 +20,14 @@ import { FilterXSS, getDefaultWhiteList } from 'xss';
 import { DataRecordValue } from '../types';
 
 // Restrict inline `style` attributes to a small set of presentational CSS
-// properties. Layout/positioning properties (e.g. position, z-index, width,
-// height) are intentionally excluded so that sanitized markup cannot affect
-// surrounding page layout. The `xss` library also validates property values
-// against this allowlist, stripping unsupported constructs such as url()/expression().
+// properties. Overlay/positioning properties (e.g. position, z-index, top,
+// left, transform) and sizing properties that could cover the page (e.g.
+// width, height) are intentionally excluded so that sanitized markup cannot
+// escape its container to overlay or obscure the surrounding page. The
+// allowlisted spacing/border properties (margin, padding, border) can still
+// affect layout within the container, which is acceptable. The `xss` library
+// also validates property values against this allowlist, stripping unsupported
+// constructs such as url()/expression().
 const allowedCssProperties = {
   color: true,
   'background-color': true,
