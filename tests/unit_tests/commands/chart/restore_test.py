@@ -18,18 +18,23 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from superset.commands.chart.exceptions import (
+    ChartForbiddenError,
+    ChartNotFoundError,
+)
+from superset.commands.chart.restore import RestoreChartCommand
+from superset.exceptions import SupersetSecurityException
+
 
 def test_restore_chart_clears_deleted_at(app_context: None) -> None:
     """RestoreChartCommand.run() restores a soft-deleted chart."""
-    from superset.commands.chart.restore import RestoreChartCommand
-
     chart = MagicMock()
-    chart.deleted_at = datetime(2026, 1, 1)
+    chart.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
     chart.id = 1
 
     with (
@@ -49,9 +54,6 @@ def test_restore_chart_clears_deleted_at(app_context: None) -> None:
 
 def test_restore_chart_not_found_raises(app_context: None) -> None:
     """RestoreChartCommand raises ChartNotFoundError for missing chart."""
-    from superset.commands.chart.exceptions import ChartNotFoundError
-    from superset.commands.chart.restore import RestoreChartCommand
-
     with patch("superset.daos.chart.ChartDAO.find_by_id", return_value=None):
         cmd = RestoreChartCommand("999")
         with pytest.raises(ChartNotFoundError):
@@ -60,9 +62,6 @@ def test_restore_chart_not_found_raises(app_context: None) -> None:
 
 def test_restore_active_chart_raises_not_found(app_context: None) -> None:
     """RestoreChartCommand raises ChartNotFoundError for non-deleted chart."""
-    from superset.commands.chart.exceptions import ChartNotFoundError
-    from superset.commands.chart.restore import RestoreChartCommand
-
     chart = MagicMock()
     chart.deleted_at = None  # not soft-deleted
 
@@ -74,12 +73,8 @@ def test_restore_active_chart_raises_not_found(app_context: None) -> None:
 
 def test_restore_chart_forbidden_raises(app_context: None) -> None:
     """RestoreChartCommand raises ChartForbiddenError on permission check."""
-    from superset.commands.chart.exceptions import ChartForbiddenError
-    from superset.commands.chart.restore import RestoreChartCommand
-    from superset.exceptions import SupersetSecurityException
-
     chart = MagicMock()
-    chart.deleted_at = datetime(2026, 1, 1)
+    chart.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
     def raise_security(*args: object, **kwargs: object) -> None:
         raise SupersetSecurityException(MagicMock())
