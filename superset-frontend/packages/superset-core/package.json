@@ -22,6 +22,10 @@
       "types": "./lib/dashboard/index.d.ts",
       "default": "./lib/dashboard/index.js"
     },
+    "./dataset": {
+      "types": "./lib/dataset/index.d.ts",
+      "default": "./lib/dataset/index.js"
+    },
     "./explore": {
       "types": "./lib/explore/index.d.ts",
       "default": "./lib/explore/index.js"

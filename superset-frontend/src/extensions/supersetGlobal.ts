@@ -31,6 +31,7 @@ import type {
   commands,
   core,
   dashboard,
+  dataset,
   editors,
   explore,
   extensions,
@@ -46,6 +47,7 @@ export interface SupersetGlobal {
   core: typeof core;
   commands: typeof commands;
   dashboard: typeof dashboard;
+  dataset: typeof dataset;
   editors: typeof editors;
   explore: typeof explore;
   extensions: typeof extensions;
