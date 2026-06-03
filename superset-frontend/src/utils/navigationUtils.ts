@@ -75,13 +75,20 @@ const SAFE_PATH_PARSE_ORIGIN = 'http://navigation-utils.invalid';
 // protocol-relative `//host` reject from above.
 // RF-4 (review-fix Slice 1–8): URL strings containing C0/C1 controls
 // (`\t`/`\n`/`\r`/etc., DEL, U+0080..U+009F) or Unicode zero-width / bidi
-// formatting marks (U+200B..U+200F, U+2028, U+2029, U+FEFF) are rejected
-// outright. Browsers strip leading C0 controls before parsing the
-// leading-slash branch, so `\t//evil.com` would otherwise leave the
-// leading-slash check unable to see the protocol-relative `//`.
-// Defence-in-depth — no known active bypass against the current
-// allow-list, but the regex would otherwise depend on browser-specific
-// normalisation behaviour.
+// formatting marks (U+200B..U+200F, U+202A..U+202E, U+2066..U+2069,
+// U+2028, U+2029, U+FEFF) are rejected outright. Browsers strip leading
+// C0 controls before parsing the leading-slash branch, so `\t//evil.com`
+// would otherwise leave the leading-slash check unable to see the
+// protocol-relative `//`. Defence-in-depth — no known active bypass
+// against the current allow-list, but the regex would otherwise depend
+// on browser-specific normalisation behaviour.
+//
+// CR-M1 / AR-L1 (review-fix Slice 1–8, round 2): the bidi range was
+// extended to cover the explicit-direction format characters U+202A..E
+// (LRE/RLE/PDF/LRO/RLO) and U+2066..9 (LRI/RLI/FSI/PDI). WHATWG strips
+// these before parsing the host, but the RF-4 comment had promised them
+// while the regex only covered U+200E/F — closing the documentation
+// drift the multi-slice code review surfaced.
 const SAFE_NAVIGATION_URL_RE =
   /^(?:\/(?!\/)|https?:\/\/|ftp:\/\/|mailto:|tel:)/i;
 const USERINFO_BEARING_SCHEME_RE = /^(?:https?|ftp):\/\//i;
@@ -89,7 +96,11 @@ const USERINFO_BEARING_SCHEME_RE = /^(?:https?|ftp):\/\//i;
 // literal so source-file tooling (Babel parser, prettier, eslint) does
 // not have to round-trip raw bidi / zero-width / line-separator bytes.
 const FORBIDDEN_CONTROL_CHARS_RE = new RegExp(
-  '[\\x00-\\x1F\\x7F-\\x9F\\u200B-\\u200F\\u2028\\u2029\\uFEFF]',
+  '[\\x00-\\x1F\\x7F-\\x9F' +
+    '\\u200B-\\u200F' +
+    '\\u202A-\\u202E' +
+    '\\u2066-\\u2069' +
+    '\\u2028\\u2029\\uFEFF]',
 );
 
 function assertSafeNavigationUrl(url: string): string {

@@ -157,6 +157,33 @@ class TestExploreRedirect(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @mock.patch("superset.commands.explore.form_data.create.CreateFormDataCommand")
+    @pytest.mark.parametrize(
+        "slice_id_value",
+        ["abc", [1, 2], {"id": 1}, True],
+    )
+    def test_explore_root_arm1_slice_id_non_int(
+        self, mock_command_cls: mock.Mock, slice_id_value
+    ):
+        """AR-M1 (review-fix Slice 1–8, round 2): a non-int, non-None
+        ``form_data.slice_id`` (string, list, dict, bool) used to survive
+        the ``is None`` guard and reach ``CommandParameters(chart_id=...)``,
+        500ing downstream when the cache write tried to coerce it.
+
+        The tightened ``isinstance(slice_id, int)`` guard (excluding
+        ``bool`` because it is a subclass of ``int``) treats any non-int
+        shape the same as missing: fall back to the typed query parse
+        (or 0). Chart ID lands as the integer fallback, not the malformed
+        value.
+        """
+        mock_command_cls.return_value.run.return_value = "random_key"
+        self.login(ADMIN_USERNAME)
+        form_data = {"slice_id": slice_id_value, "datasource": "1__table"}
+        rv = self.client.get(f"/explore/?form_data={quote(json.dumps(form_data))}")
+        assert rv.status_code == 302
+        assert mock_command_cls.call_args.kwargs["chart_id"] == 0
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @mock.patch("superset.commands.explore.form_data.create.CreateFormDataCommand")
     def test_explore_slice_id_precedence_form_data_wins(
         self, mock_command_cls: mock.Mock
     ):

@@ -154,6 +154,32 @@ describe('openInNewTab', () => {
       });
     },
   );
+
+  // CR-M1 / AR-L1 (review-fix Slice 1–8, round 2): the bidi formatting
+  // ranges U+202A..U+202E (LRE/RLE/PDF/LRO/RLO) and U+2066..U+2069
+  // (LRI/RLI/FSI/PDI) were promised by the RF-4 comment but missing from
+  // the original regex. Pin them directly so a documentation/regex drift
+  // can't reintroduce the gap.
+  test.each([
+    ['‪/foo', 'U+202A LRE'],
+    ['‫/foo', 'U+202B RLE'],
+    ['‬/foo', 'U+202C PDF'],
+    ['‭/foo', 'U+202D LRO'],
+    ['‮/foo', 'U+202E RLO'],
+    ['⁦/foo', 'U+2066 LRI'],
+    ['⁧/foo', 'U+2067 RLI'],
+    ['⁨/foo', 'U+2068 FSI'],
+    ['⁩/foo', 'U+2069 PDI'],
+  ])(
+    'refuses URL containing %s bidi formatting mark (CR-M1/AR-L1)',
+    async (unsafeUrl: string, _label: string) => {
+      await withApplicationRoot('/superset/', async () => {
+        const { openInNewTab } = await import('src/utils/navigationUtils');
+        expect(() => openInNewTab(unsafeUrl)).toThrow(/refused unsafe URL/);
+        expect(openSpy).not.toHaveBeenCalled();
+      });
+    },
+  );
 });
 
 describe('redirect', () => {

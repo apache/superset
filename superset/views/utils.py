@@ -269,7 +269,15 @@ def get_explore_redirect_url() -> str | None:  # noqa: C901
         return None
 
     slice_id = parsed_form_data.get("slice_id")
-    if slice_id is None:
+    if not isinstance(slice_id, int) or isinstance(slice_id, bool):
+        # AR-M1 (review-fix Slice 1–8, round 2): residual AF-3 gap — a
+        # non-int, non-None `form_data.slice_id` (`"abc"`, `[1, 2]`, `{}`,
+        # `True`) used to survive the `is None` guard and surface as 500
+        # downstream when `CommandParameters(chart_id=...)` reached the
+        # cache write. Treat any non-int shape the same as missing and
+        # fall back to the typed query parse. `bool` is excluded because
+        # it is a subclass of `int` in Python — `True` would otherwise
+        # become `chart_id=1`.
         # AF-3: previously `int(request.args.get("slice_id", 0))` blew up on
         # non-numeric values (`?slice_id=abc`). `type=int` returns None on
         # parse failure; coerce to 0 to preserve historical default.
