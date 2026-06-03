@@ -116,9 +116,9 @@ class TestDashboardActivityView(SupersetTestCase):
         assert rv.status_code == 400
 
     def test_activity_denies_non_owner(self) -> None:
-        """Mirrors sc-103156 T056 — Alpha doesn't own the admin-fixture
-        dashboard, so raise_for_ownership rejects with 403 before the
-        activity layer runs."""
+        """Mirrors sc-103156 T056 — Alpha lacks read access to the
+        admin-fixture dashboard, so ``raise_for_access(dashboard=)``
+        rejects with 403 before the activity layer runs."""
         _persist_fixture_state()
         dashboard = _get_birth_names_dashboard()
         assert dashboard is not None
@@ -642,8 +642,9 @@ class TestChartActivityView(SupersetTestCase):
         assert rv.status_code == 400
 
     def test_chart_activity_denies_non_owner(self) -> None:
-        """Same shape as the dashboard endpoint: Alpha lacks ownership
-        on the admin-fixture chart so raise_for_ownership returns 403."""
+        """Same shape as the dashboard endpoint: Alpha lacks read access
+        to the admin-fixture chart so ``raise_for_access(chart=)``
+        returns 403."""
         _persist_fixture_state()
         chart = self._get_birth_names_chart()
         assert chart is not None

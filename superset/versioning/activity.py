@@ -1001,13 +1001,27 @@ class PathEntityResponseError(Exception):
         self.response = response
 
 
+# Maps the versioned model class to the keyword argument
+# ``security_manager.raise_for_access`` expects for the per-resource gate.
+# Mirrors the per-endpoint pattern already used on the ``/versions/``
+# endpoints in ``charts/api.py`` / ``dashboards/api.py`` / ``datasets/api.py``.
+_RAISE_FOR_ACCESS_KWARG: dict[str, str] = {
+    "Slice": "chart",
+    "Dashboard": "dashboard",
+    "SqlaTable": "datasource",
+}
+
+
 def resolve_endpoint_path_entity(api: Any, model_cls: type, uuid_str: str) -> Any:
     """Run the standard path-entity preflight for an activity endpoint:
 
     1. Parse *uuid_str* into a UUID (or raise → 400).
     2. Look up the live entity via ``VersionDAO.find_active_by_uuid``
        (or raise → 404).
-    3. Run ``security_manager.raise_for_ownership`` (or raise → 403).
+    3. Run ``security_manager.raise_for_access`` with the resource-typed
+       kwarg (or raise → 403). The activity timeline is readable by
+       any role with the resource's existing read access; restore /
+       write-side actions live on the ``/versions/`` endpoints.
 
     Returns the live entity on success. Raises
     :class:`PathEntityResponseError` carrying the appropriate error
@@ -1036,8 +1050,9 @@ def resolve_endpoint_path_entity(api: Any, model_cls: type, uuid_str: str) -> An
     if entity is None:
         raise PathEntityResponseError(api.response_404())
 
+    kwarg = _RAISE_FOR_ACCESS_KWARG[model_cls.__name__]
     try:
-        security_manager.raise_for_ownership(entity)
+        security_manager.raise_for_access(**{kwarg: entity})
     except SupersetSecurityException as exc:
         raise PathEntityResponseError(api.response_403()) from exc
 
