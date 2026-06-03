@@ -1730,3 +1730,44 @@ def test_markdown_with_markup_wrap() -> None:
 
     assert isinstance(result, Markup)
     assert "<strong>bold</strong>" in str(result)
+
+
+def test_send_email_smtp_strips_crlf_from_subject() -> None:
+    """
+    CR/LF characters are stripped from the email subject so the value cannot
+    be used to inject additional email headers (header folding/splitting).
+    """
+    from email.mime.multipart import MIMEMultipart
+
+    from superset.utils.core import send_email_smtp
+
+    captured: dict[str, MIMEMultipart] = {}
+
+    def capture_mutator(msg: MIMEMultipart, **kwargs: Any) -> MIMEMultipart:
+        captured["msg"] = msg
+        return msg
+
+    config = {
+        "SMTP_MAIL_FROM": "from@example.com",
+        "EMAIL_HEADER_MUTATOR": capture_mutator,
+        "SMTP_HOST": "localhost",
+        "SMTP_PORT": 25,
+        "SMTP_USER": "",
+        "SMTP_PASSWORD": "",
+        "SMTP_STARTTLS": False,
+        "SMTP_SSL": False,
+        "SMTP_SSL_SERVER_AUTH": False,
+    }
+
+    send_email_smtp(
+        to="to@example.com",
+        subject="Hello\r\nBcc: attacker@example.com",
+        html_content="<b>body</b>",
+        config=config,
+        dryrun=True,
+    )
+
+    subject = captured["msg"]["Subject"]
+    assert "\r" not in subject
+    assert "\n" not in subject
+    assert subject == "Hello Bcc: attacker@example.com"

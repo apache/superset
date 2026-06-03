@@ -24,6 +24,10 @@ assists people when migrating to a new version.
 
 ## Next
 
+### YDB now uses a native sqlglot dialect
+
+YDB SQL parsing now relies on the dedicated [`ydb-sqlglot-plugin`](https://pypi.org/project/ydb-sqlglot-plugin/) dialect, which registers itself with sqlglot automatically. YDB users must install this plugin (e.g., via `pip install "apache-superset[ydb]"`) to avoid a `ValueError` when Superset parses YDB queries.
+
 ### Dataset import validates catalog against the target connection
 
 Importing a dataset now validates the `catalog` field against the target database connection. When the connection has multi-catalog disabled (`allow_multi_catalog` off) and the dataset's catalog is not the connection's default catalog, the import fails instead of silently persisting the non-default catalog. This matches the validation already enforced on the dataset update path and prevents imported datasets from querying an unintended database.

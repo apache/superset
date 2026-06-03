@@ -1831,9 +1831,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # If it IS a datetime series, we still need to clear conflicts
                     query_object_clone.filter = copy.deepcopy(query_object_clone.filter)
 
-                    # For relative offsets with datetime series, ensure the temporal
-                    # filter matches our range
-                    temporal_col = query_object_clone.granularity or x_axis_label
+                    # Match against the column of the existing TEMPORAL_RANGE
+                    # filter rather than the X-axis label so adhoc Custom SQL
+                    # x-axes (label != underlying time column) still get shifted.
+                    temporal_col = self._get_temporal_column_for_filter(
+                        query_object, x_axis_label
+                    )
 
                     # Update any existing temporal filters to match our shifted range
                     for flt in query_object_clone.filter:

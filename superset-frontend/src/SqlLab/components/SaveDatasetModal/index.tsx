@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
+import { sanitizeUrl } from '@braintree/sanitize-url';
 import { useCallback, useState, FormEvent } from 'react';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { Radio, RadioChangeEvent } from '@superset-ui/core/components/Radio';
@@ -43,7 +43,8 @@ import {
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
-import { useAppDispatch, useAppSelector } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
+import { useAppSelector } from 'src/SqlLab/hooks/useAppSelector';
 import rison from 'rison';
 import { createDatasource } from 'src/SqlLab/actions/sqlLab';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -244,9 +245,9 @@ export const SaveDatasetModal = ({
 
   const createWindow = (url: string) => {
     if (openWindow) {
-      window.open(url, '_blank', 'noreferrer');
+      window.open(sanitizeUrl(url), '_blank', 'noreferrer');
     } else {
-      window.location.href = url;
+      window.location.href = sanitizeUrl(url);
     }
   };
   const formDataWithDefaults = {
