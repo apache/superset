@@ -99,6 +99,7 @@ def list_versions_endpoint(
         api.response(200, result=versions, count=len(versions)),
         model_cls,
         entity_uuid,
+        entity_id=entity.id,
     )
 
 
@@ -126,7 +127,10 @@ def get_version_endpoint(
     if snapshot is None:
         return api.response_404()
     return set_version_etag_by_uuid(
-        api.response(200, result=snapshot), model_cls, entity_uuid
+        api.response(200, result=snapshot),
+        model_cls,
+        entity_uuid,
+        entity_id=entity.id,
     )
 
 

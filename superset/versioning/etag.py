@@ -43,25 +43,32 @@ def set_version_etag(response: "Response", version_uuid: UUID | None) -> "Respon
 
 
 def set_version_etag_by_uuid(
-    response: "Response", model_cls: type[Model], entity_uuid: UUID
+    response: "Response",
+    model_cls: type[Model],
+    entity_uuid: UUID,
+    *,
+    entity_id: int | None = None,
 ) -> "Response":
     """Attach ``ETag`` derived from *entity_uuid*'s current live version.
 
-    Looks up ``entity_id`` from *entity_uuid* via the model's ``uuid`` column,
-    then derives ``version_uuid`` via :class:`VersionDAO`. No-op when the
-    entity is missing or has no version rows yet.
+    If *entity_id* is provided the helper uses it directly; otherwise it
+    runs ``SELECT id WHERE uuid = ?`` to resolve it. Pass *entity_id*
+    from call sites that already have the entity in hand (e.g. via
+    :func:`superset.versioning.api_helpers.resolve_endpoint_path_entity`)
+    so the lookup doesn't fire twice — every list/get versions request
+    previously cost an extra round-trip here on top of the resolve.
 
-    Prefer :func:`set_version_etag` when the caller already has the entity's
-    integer id — this helper costs an extra ``SELECT id WHERE uuid = ?``.
+    No-op when the entity is missing or has no version rows yet.
     """
     # pylint: disable=import-outside-toplevel
     from superset.daos.version import VersionDAO
 
-    entity_id = db.session.scalar(
-        sa.select(model_cls.id).where(model_cls.uuid == entity_uuid)
-    )
     if entity_id is None:
-        return response
+        entity_id = db.session.scalar(
+            sa.select(model_cls.id).where(model_cls.uuid == entity_uuid)
+        )
+        if entity_id is None:
+            return response
     return set_version_etag(
         response,
         VersionDAO.current_live_version_uuid(model_cls, entity_id, entity_uuid),
