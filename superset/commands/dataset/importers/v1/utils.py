@@ -312,6 +312,12 @@ def import_dataset(  # noqa: C901
                     "Dataset cannot be restored via re-import because another "
                     "active dataset already references the same physical table"
                 )
+            # Snapshot ``deleted_at`` so we can roll back the clear if the
+            # downstream ``import_from_dict`` hits the legacy
+            # ``MultipleResultsFound`` fallback. Without the rollback, an
+            # ambiguous import would leave the dataset half-restored
+            # (``deleted_at = None`` but upload contents unapplied).
+            original_deleted_at = existing.deleted_at
             existing.deleted_at = None
             db.session.flush()
             is_soft_deleted_match = True
@@ -368,11 +374,28 @@ def import_dataset(  # noqa: C901
         # fail because the UUID match will try to update `examples.NULL.users` to
         # `examples.public.users`, resulting in a conflict.
         #
-        # When that happens, we return the original dataset, unmodified.
-        # Bypasses the visibility filter so a soft-deleted duplicate can
-        # be located too — without the bypass the listener would hide
-        # the row and the `.one()` would raise NoResultFound, masking
-        # the original MultipleResultsFound.
+        # In the soft-deleted-restore case we cannot silently return
+        # the unmodified row: ``existing.deleted_at`` was already
+        # cleared above and the operator expects a restore-with-update.
+        # Returning the row without applying the upload would produce a
+        # half-restored state. Roll back the ``deleted_at`` clear and
+        # raise so the operator can resolve the legacy-NULL-schema
+        # ambiguity before re-uploading.
+        if is_soft_deleted_match:
+            existing.deleted_at = original_deleted_at
+            db.session.flush()
+            raise ImportFailedError(
+                "Soft-deleted dataset has an ambiguous legacy duplicate "
+                "(likely from the NULL-schema migration). Cannot restore-"
+                "and-update via re-import; resolve the duplicate manually "
+                "before retrying."
+            ) from None
+        # On the non-soft-deleted overwrite path the legacy contract
+        # holds: return the existing row unmodified. Bypasses the
+        # visibility filter so a soft-deleted duplicate can be located
+        # too — without the bypass the listener would hide the row and
+        # the ``.one()`` would raise NoResultFound, masking the
+        # original MultipleResultsFound.
         dataset = (
             db.session.query(SqlaTable)
             .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})

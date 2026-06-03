@@ -267,12 +267,11 @@ class TestDatasetRestore(SupersetTestCase):
         """Create returns 422 when a soft-deleted dataset references the same
         physical table.
 
-        Defense-in-depth complement to
-        ``test_restore_blocked_by_active_logical_duplicate``: if the create
-        path enforces logical uniqueness against soft-deleted rows too, the
-        restore-conflict scenario can no longer arise from normal API use
-        (it can still arise from importer / admin paths, which restore
-        covers separately).
+        Pins the contract that ``DatasetDAO.validate_uniqueness`` bypasses
+        the soft-delete visibility filter, so a soft-deleted row blocks
+        creation of a new dataset at the same logical identity at the
+        application layer (clean 422 instead of an opaque 500
+        IntegrityError from the DB-level unique constraint).
         """
         dataset = self._get_example_dataset()
         original_id = dataset.id
