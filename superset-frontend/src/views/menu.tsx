@@ -31,6 +31,7 @@ import { ThemeProvider } from '@apache-superset/core/theme';
 import { theme } from '@apache-superset/core/theme';
 import Menu from 'src/features/home/Menu';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import initPreamble from 'src/preamble';
 import { setupStore } from './store';
 import querystring from 'query-string';
 
@@ -67,5 +68,9 @@ const app = (
 
 const menuMountPoint = document.getElementById('app-menu');
 if (menuMountPoint) {
-  createRoot(menuMountPoint).render(app);
+  initPreamble()
+    .catch(() => {}) // preamble logs failures internally; always render the menu
+    .then(() => {
+      createRoot(menuMountPoint).render(app);
+    });
 }
