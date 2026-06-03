@@ -52,6 +52,7 @@ from superset.versioning.activity.kinds import (
     EntityWindows,
     Window,
 )
+from superset.versioning.activity.windows import _row_within_any_window
 from superset.versioning.changes import version_changes_table
 
 # ---- Path-entity resolution -----------------------------------------------
@@ -221,9 +222,6 @@ def _fetch_change_records(
     sequence DESC)`` — the secondary keys break ties for AV-006's
     stable-ordering contract.
     """
-    # pylint: disable=import-outside-toplevel
-    from superset.versioning.activity.scope import _row_within_any_window
-
     if not entity_window_tuples:
         return []
 

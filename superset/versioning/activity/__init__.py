@@ -36,14 +36,19 @@ first argument to serve all three endpoint families:
 
 Package layout (descends from public entry point to leaf helpers):
 
-* :mod:`.orchestrator` — :func:`get_activity` (public), the request
-  param parser (:func:`parse_activity_query_params`), and the
-  observability instrumentation that T037/T038 specify.
-* :mod:`.scope` — pure window arithmetic + scope resolution
-  (:func:`_resolve_scope` / :func:`_resolve_dashboard_scope` /
-  :func:`_resolve_chart_scope`, plus :func:`_intersect_windows` /
+* :mod:`.orchestrator` — :func:`get_activity` (public), the
+  ``activity_endpoint`` REST helper, the request param parser
+  (:func:`parse_activity_query_params`), and the observability
+  instrumentation that T037/T038 specify.
+* :mod:`.scope` — scope resolution (DB-touching):
+  :func:`_resolve_scope` / :func:`_resolve_dashboard_scope` /
+  :func:`_resolve_chart_scope` / :func:`_resolve_related_scope`.
+* :mod:`.windows` — pure window arithmetic on half-open
+  ``[start_tx, end_tx)`` intervals: :func:`_intersect_windows` /
   :func:`_union_windows` / :func:`_merge_entity_windows` /
-  :func:`_row_within_any_window`).
+  :func:`_row_within_any_window`. Extracted from :mod:`.scope` so
+  :mod:`.queries` can import the pure helpers at module-top instead
+  of through a cycle-dodging lazy import.
 * :mod:`.queries` — every DB-touching helper: Phase A relationship
   walks, Phase B change-record fetch, name denormalization,
   path-entity resolution, and tombstone-state lookup.
@@ -124,18 +129,20 @@ from superset.versioning.activity.render import (
     _SUMMARY_VERBS,
 )
 from superset.versioning.activity.scope import (
-    _intersect_windows,
-    _merge_entity_windows,
     _resolve_chart_scope,
     _resolve_dashboard_scope,
     _resolve_related_scope,
     _resolve_scope,
-    _row_within_any_window,
-    _union_windows,
 )
 from superset.versioning.activity.visibility import (
     _filter_records_by_visibility,
     _resolve_visibility,
+)
+from superset.versioning.activity.windows import (
+    _intersect_windows,
+    _merge_entity_windows,
+    _row_within_any_window,
+    _union_windows,
 )
 
 # Re-exported from api_helpers so the three /activity/ endpoint
