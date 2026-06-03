@@ -41,6 +41,7 @@ from flask import flash, session
 from flask_babel import gettext as __
 from flask_login import current_user, logout_user
 from sqlalchemy import event, inspect
+from sqlalchemy.exc import IntegrityError
 from werkzeug.wrappers import Response
 
 logger = logging.getLogger(__name__)
@@ -140,27 +141,40 @@ def invalidate_user_sessions(connection: Any, user_id: int) -> None:
     """Stamp the invalidation epoch for ``user_id`` using ``connection``.
 
     Upserts the user's ``UserAttribute`` row so the mechanism works even for
-    users that have no attribute row yet.
+    users that have no attribute row yet. ``user_attribute.user_id`` carries a
+    unique constraint, so the insert is safe against a concurrent disable of the
+    same user: the loser's insert raises ``IntegrityError``, which is caught and
+    retried as an update rather than creating a duplicate row.
     """
     # pylint: disable=import-outside-toplevel
     from superset.models.user_attributes import UserAttribute
 
     table = UserAttribute.__table__
     now = _utcnow().replace(tzinfo=None)
-    result = connection.execute(
-        table.update()
-        .where(table.c.user_id == user_id)
-        .values(sessions_invalidated_at=now, changed_on=now)
-    )
-    if result.rowcount == 0:
-        connection.execute(
-            table.insert().values(
-                user_id=user_id,
-                sessions_invalidated_at=now,
-                created_on=now,
-                changed_on=now,
+
+    def _stamp_existing() -> int:
+        return connection.execute(
+            table.update()
+            .where(table.c.user_id == user_id)
+            .values(sessions_invalidated_at=now, changed_on=now)
+        ).rowcount
+
+    if _stamp_existing():
+        return
+
+    try:
+        with connection.begin_nested():
+            connection.execute(
+                table.insert().values(
+                    user_id=user_id,
+                    sessions_invalidated_at=now,
+                    created_on=now,
+                    changed_on=now,
+                )
             )
-        )
+    except IntegrityError:
+        # A concurrent disable inserted the row first; stamp it instead.
+        _stamp_existing()
 
 
 def _stamp_epoch_on_disable(_mapper: Any, connection: Any, target: Any) -> None:

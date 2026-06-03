@@ -34,8 +34,7 @@ class TestSessionInvalidation(SupersetTestCase):
         db.session.commit()
 
     def tearDown(self) -> None:
-        user = self.get_user(USERNAME)
-        if user:
+        if user := self.get_user(USERNAME):
             db.session.query(UserAttribute).filter_by(user_id=user.id).delete()
             db.session.delete(user)
             db.session.commit()

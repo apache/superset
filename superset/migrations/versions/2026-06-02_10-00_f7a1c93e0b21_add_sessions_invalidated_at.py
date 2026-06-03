@@ -23,6 +23,7 @@ Create Date: 2026-06-02 10:00:00.000000
 """
 
 import sqlalchemy as sa
+from alembic import op
 
 from superset.migrations.shared.utils import (
     add_columns,
@@ -38,13 +39,25 @@ down_revision = "33d7e0e21daa"
 TABLE = "user_attribute"
 COLUMN = "sessions_invalidated_at"
 INDEX = "ix_user_attribute_sessions_invalidated_at"
+UQ = "uq_user_attribute_user_id"
 
 
 def upgrade():
     add_columns(TABLE, sa.Column(COLUMN, sa.DateTime(), nullable=True))
     create_index(TABLE, INDEX, [COLUMN])
+    # The model treats ``user_attribute`` as one row per user (all readers use
+    # ``extra_attributes[0]``). Enforce that invariant so the session-invalidation
+    # upsert is race-safe. Drop any pre-existing duplicates, keeping the lowest
+    # ``id`` per user, before adding the unique constraint.
+    op.execute(
+        f"DELETE FROM {TABLE} WHERE id NOT IN "  # noqa: S608
+        f"(SELECT min_id FROM (SELECT MIN(id) AS min_id FROM {TABLE} "
+        f"GROUP BY user_id) AS keep)"
+    )
+    op.create_unique_constraint(UQ, TABLE, ["user_id"])
 
 
 def downgrade():
+    op.drop_constraint(UQ, TABLE, type_="unique")
     drop_index(TABLE, INDEX)
     drop_columns(TABLE, COLUMN)
