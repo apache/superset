@@ -414,10 +414,10 @@ def generate_dashboard(  # noqa: C901
 
         # Convert to our response format
         from superset.mcp_service.dashboard.schemas import (
-            _humanize_timestamp,
             serialize_chart_summary,
             serialize_tag_object,
         )
+        from superset.mcp_service.utils.response_utils import humanize_timestamp
 
         include_data_model_metadata = user_can_view_data_model_metadata()
         dashboard_info = DashboardInfo(
@@ -428,8 +428,8 @@ def generate_dashboard(  # noqa: C901
             published=dashboard.published,
             created_on=dashboard.created_on,
             changed_on=dashboard.changed_on,
-            created_on_humanized=_humanize_timestamp(dashboard.created_on),
-            changed_on_humanized=_humanize_timestamp(dashboard.changed_on),
+            created_on_humanized=humanize_timestamp(dashboard.created_on),
+            changed_on_humanized=humanize_timestamp(dashboard.changed_on),
             created_by=dashboard.created_by_name or None,
             changed_by=dashboard.changed_by_name or None,
             uuid=str(dashboard.uuid) if dashboard.uuid else None,

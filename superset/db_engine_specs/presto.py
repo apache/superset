@@ -78,6 +78,7 @@ SCHEMA_DOES_NOT_EXIST_REGEX = re.compile(
     "line (?P<location>.+?): .*Schema '(?P<schema_name>.+?)' does not exist"
 )
 CONNECTION_ACCESS_DENIED_REGEX = re.compile("Access Denied: Invalid credentials")
+CONNECTION_ACCESS_DENIED_401_REGEX = re.compile(r"Unexpected status code 401")
 CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
     r"Failed to establish a new connection: \[Errno 8\] nodename nor servname "
     "provided, or not known"
@@ -966,6 +967,11 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             __('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
             {},
+        ),
+        CONNECTION_ACCESS_DENIED_401_REGEX: (
+            __("Unexpected HTTP 401 response. Check your credentials."),
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            {"invalid_credentials": True},
         ),
         CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),

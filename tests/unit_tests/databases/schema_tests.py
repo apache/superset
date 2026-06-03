@@ -378,3 +378,18 @@ def test_import_schema_allows_masked_fields_for_existing_db(
     }
     # Should not raise - masked values are allowed for existing DBs
     schema.load(config)
+
+
+def test_ssh_tunnel_server_address_rejects_non_hostnames() -> None:
+    """server_address must look like a hostname/IP, not a URL or arbitrary text."""
+    from superset.databases.schemas import DatabaseSSHTunnel
+
+    schema = DatabaseSSHTunnel()
+    base = {"server_port": 22, "username": "u", "private_key": "k"}
+
+    for address in ("10.0.0.5", "ssh.internal.example.com", "[::1]", "bastion_host"):
+        schema.load({**base, "server_address": address})
+
+    for bad in ("http://evil/", "1.2.3.4/../x", "a b", "file:///etc/passwd"):
+        with pytest.raises(ValidationError):
+            schema.load({**base, "server_address": bad})
