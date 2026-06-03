@@ -1688,7 +1688,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         from superset.versioning.schemas import ActivityResponseSchema
 
         try:
-            entity = activity_module.resolve_endpoint_path_entity(
+            entity, _ = activity_module.resolve_endpoint_path_entity(
                 self, SqlaTable, uuid_str
             )
         except activity_module.PathEntityResponseError as exc:

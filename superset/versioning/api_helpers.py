@@ -92,7 +92,9 @@ class PathEntityResponseError(Exception):
         self.response = response
 
 
-def resolve_endpoint_path_entity(api: Any, model_cls: type, uuid_str: str) -> Any:
+def resolve_endpoint_path_entity(
+    api: Any, model_cls: type, uuid_str: str
+) -> tuple[Any, UUID]:
     """Run the standard path-entity preflight for a /versions/ or
     /activity/ endpoint:
 
@@ -102,12 +104,15 @@ def resolve_endpoint_path_entity(api: Any, model_cls: type, uuid_str: str) -> An
     3. Run ``security_manager.raise_for_access`` with the resource-typed
        kwarg (or raise → 403).
 
-    Returns the live entity on success. Raises
+    Returns ``(entity, entity_uuid)`` on success — the parsed UUID is
+    threaded out so callers don't re-parse the path-string. Raises
     :class:`PathEntityResponseError` carrying the appropriate error
     Response on any failure; the endpoint method should::
 
         try:
-            entity = resolve_endpoint_path_entity(self, Dashboard, uuid_str)
+            entity, entity_uuid = resolve_endpoint_path_entity(
+                self, Dashboard, uuid_str
+            )
         except PathEntityResponseError as exc:
             return exc.response
 
@@ -130,7 +135,7 @@ def resolve_endpoint_path_entity(api: Any, model_cls: type, uuid_str: str) -> An
     except SupersetSecurityException as exc:
         raise PathEntityResponseError(api.response_403()) from exc
 
-    return entity
+    return entity, entity_uuid
 
 
 def list_versions_endpoint(
@@ -140,10 +145,9 @@ def list_versions_endpoint(
 ) -> Response:
     """Body of ``GET /api/v1/{resource}/<uuid>/versions/``."""
     try:
-        entity = resolve_endpoint_path_entity(api, model_cls, uuid_str)
+        entity, entity_uuid = resolve_endpoint_path_entity(api, model_cls, uuid_str)
     except PathEntityResponseError as exc:
         return exc.response
-    entity_uuid = UUID(uuid_str)
 
     versions = VersionDAO.list_versions(model_cls, entity_uuid, entity=entity)
     if versions is None:
@@ -164,10 +168,9 @@ def get_version_endpoint(
 ) -> Response:
     """Body of ``GET /api/v1/{resource}/<uuid>/versions/<version_uuid>/``."""
     try:
-        entity = resolve_endpoint_path_entity(api, model_cls, uuid_str)
+        entity, entity_uuid = resolve_endpoint_path_entity(api, model_cls, uuid_str)
     except PathEntityResponseError as exc:
         return exc.response
-    entity_uuid = UUID(uuid_str)
 
     try:
         version_uuid = UUID(version_uuid_str)
