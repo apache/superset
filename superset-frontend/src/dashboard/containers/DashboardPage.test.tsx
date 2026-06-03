@@ -28,6 +28,7 @@ import { SupersetClient } from '@superset-ui/core';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { clearDashboardHistory } from 'src/dashboard/actions/dashboardLayout';
+import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import DashboardPage from './DashboardPage';
 
 const mockTheme = {
@@ -233,6 +234,78 @@ test('uses theme from Redux dashboardInfo when it differs from API response (Pro
   );
 });
 
+test('document.title tracks the live Redux dashboard title after a rename, not the stale API value', async () => {
+  // Renaming a dashboard updates the live title in Redux
+  // (dashboardLayout HEADER meta.text) and persists via an in-SPA save with
+  // no full reload, so the useDashboard() API result stays stale. The browser
+  // tab title must follow the live title, otherwise a newly created dashboard
+  // keeps showing "[ untitled dashboard ]" after being renamed and saved.
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        dashboardLayout: {
+          past: [],
+          future: [],
+          present: {
+            [DASHBOARD_HEADER_ID]: {
+              id: DASHBOARD_HEADER_ID,
+              type: 'HEADER',
+              meta: { text: 'Live Renamed Title' },
+            },
+          },
+        },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  // API result (mockDashboard.dashboard_title) is 'Test Dashboard', but the
+  // live title is 'Live Renamed Title' — the tab title must reflect the latter.
+  await waitFor(() => {
+    expect(document.title).toBe('Live Renamed Title');
+  });
+});
+
+test('document.title falls back to the API dashboard_title before the layout is hydrated', async () => {
+  // Before hydration there is no HEADER component in the layout, so the tab
+  // title should still come from the dashboard API response.
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+
+  await waitFor(() => {
+    expect(document.title).toBe('Test Dashboard');
+  });
+});
+
 test('passes null theme when Redux dashboardInfo.theme is explicitly null (theme removed)', async () => {
   render(
     <Suspense fallback="loading">
@@ -285,7 +358,9 @@ test('clears undo history after hydrating the dashboard', async () => {
 
   expect(hydrateDashboard).toHaveBeenCalled();
   expect(clearDashboardHistory).toHaveBeenCalled();
-  const hydrateOrder = (hydrateDashboard as jest.Mock).mock.invocationCallOrder[0];
-  const clearOrder = (clearDashboardHistory as jest.Mock).mock.invocationCallOrder[0];
+  const hydrateOrder = (hydrateDashboard as jest.Mock).mock
+    .invocationCallOrder[0];
+  const clearOrder = (clearDashboardHistory as jest.Mock).mock
+    .invocationCallOrder[0];
   expect(clearOrder).toBeGreaterThan(hydrateOrder);
 });
