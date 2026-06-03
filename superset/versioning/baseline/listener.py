@@ -47,15 +47,27 @@ from superset.versioning.baseline.collection import (
 from superset.versioning.baseline.dirty import _force_parent_dirty_on_child_change
 from superset.versioning.baseline.insertion import _insert_baseline_and_children
 
+# Sentinel attribute set on the session target after first successful
+# registration — same pattern as
+# :mod:`superset.versioning.changes.listener`. Subsequent calls become
+# no-ops so test fixtures that instantiate multiple Superset apps per
+# process don't attach a second copy of the listener to the shared
+# ``db.session`` (every flush would otherwise run the baseline pass
+# twice).
+_REGISTERED_SENTINEL = "_versioning_baseline_listener_registered"
+
 
 def register_baseline_listener() -> None:
     """Attach the before_flush listener that captures baseline versions.
 
     Call this after ``VERSIONED_MODELS`` has been populated and
-    ``make_versioned()`` has run.
+    ``make_versioned()`` has run. Idempotent — repeat calls are no-ops.
     """
     # pylint: disable=import-outside-toplevel
     from superset.extensions import db
+
+    if getattr(db.session, _REGISTERED_SENTINEL, False):
+        return
 
     # insert=True prepends us in the listener chain so we run BEFORE
     # Continuum's before_flush. Continuum's pending Transaction object
@@ -79,3 +91,5 @@ def register_baseline_listener() -> None:
             count = _shadow_row_count(session, obj, version_table)
             if count == 0:
                 _insert_baseline_and_children(session, obj, version_table)
+
+    setattr(db.session, _REGISTERED_SENTINEL, True)
