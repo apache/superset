@@ -1055,6 +1055,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         for key, value in data["result"].items():
             # We can't assert timestamp values or id/urls
             if key not in (
+                "can_edit",
                 "changed_on_delta_humanized",
                 "id",
                 "thumbnail_url",

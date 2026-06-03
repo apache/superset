@@ -560,6 +560,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         for key, value in data["result"].items():
             # We can't assert timestamp values
             if key not in (
+                "can_edit",
                 "changed_on",
                 "changed_on_delta_humanized",
                 "created_on_delta_humanized",
