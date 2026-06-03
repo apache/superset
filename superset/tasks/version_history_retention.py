@@ -207,10 +207,26 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
 
     tx_table = versioning_manager.transaction_cls.__table__
 
-    # ``engine.begin()`` opens its own transaction. The Celery task runs
-    # outside the request-bound DB session, so we use a fresh connection
-    # rather than ``db.session`` to avoid stepping on web-request state.
-    with db.engine.begin() as conn:
+    # The Celery task runs outside the request-bound DB session, so we
+    # use a fresh connection rather than ``db.session`` to avoid stepping
+    # on web-request state.
+    #
+    # Isolation level: SERIALIZABLE. The prune is logically a multi-step
+    # read-then-write (candidate-vs-preserved SELECTs feeding the shadow
+    # DELETEs). At READ COMMITTED there is a TOCTOU window — a save
+    # committing between the preserved-ids snapshot and the DELETEs can
+    # leave a stale view of which transaction ids are still serving as
+    # the live row of some entity, and a shadow row that became live
+    # mid-task can be silently dropped. SERIALIZABLE makes the prune
+    # atomic against concurrent writers. Postgres surfaces conflicts as
+    # ``SerializationFailure``; the outer Celery wrapper logs and
+    # returns ``{"error": 1}`` so the next firing retries from a clean
+    # slate. SQLite is single-writer so SERIALIZABLE is the only level
+    # available; MySQL InnoDB and Postgres both support it natively.
+    with (
+        db.engine.connect().execution_options(isolation_level="SERIALIZABLE") as conn,
+        conn.begin(),
+    ):
         tx_ids = _candidate_transaction_ids(conn, cutoff, parent_tables)
         if not tx_ids:
             return {"pruned_transactions": 0, "cutoff": cutoff.isoformat()}
