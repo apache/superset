@@ -67,6 +67,10 @@ from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.extensions import db
+from superset.versioning.api_helpers import (  # noqa: F401
+    PathEntityResponseError,
+    resolve_endpoint_path_entity,
+)
 from superset.versioning.changes import (
     _ENTITY_KIND_BY_CLASS_NAME,
     version_changes_table,
@@ -989,74 +993,13 @@ class ActivityParamsError(ValueError):
     no other callers should depend on the exception type."""
 
 
-class PathEntityResponseError(Exception):
-    """Carries a pre-built error ``Response`` from
-    :func:`resolve_endpoint_path_entity`. The endpoint catches this and
-    returns the carried response directly. The shape exists so the
-    UUID-parse + find-by-uuid + ownership-check dance can live in one
-    place across the three activity-view endpoint families."""
-
-    def __init__(self, response: Any) -> None:
-        super().__init__("PathEntityResponseError")
-        self.response = response
-
-
-# Maps the versioned model class to the keyword argument
-# ``security_manager.raise_for_access`` expects for the per-resource gate.
-# Mirrors the per-endpoint pattern already used on the ``/versions/``
-# endpoints in ``charts/api.py`` / ``dashboards/api.py`` / ``datasets/api.py``.
-_RAISE_FOR_ACCESS_KWARG: dict[str, str] = {
-    "Slice": "chart",
-    "Dashboard": "dashboard",
-    "SqlaTable": "datasource",
-}
-
-
-def resolve_endpoint_path_entity(api: Any, model_cls: type, uuid_str: str) -> Any:
-    """Run the standard path-entity preflight for an activity endpoint:
-
-    1. Parse *uuid_str* into a UUID (or raise → 400).
-    2. Look up the live entity via ``VersionDAO.find_active_by_uuid``
-       (or raise → 404).
-    3. Run ``security_manager.raise_for_access`` with the resource-typed
-       kwarg (or raise → 403). The activity timeline is readable by
-       any role with the resource's existing read access; restore /
-       write-side actions live on the ``/versions/`` endpoints.
-
-    Returns the live entity on success. Raises
-    :class:`PathEntityResponseError` carrying the appropriate error
-    Response on any failure; the endpoint method should::
-
-        try:
-            entity = resolve_endpoint_path_entity(self, Dashboard, uuid_str)
-        except PathEntityResponseError as exc:
-            return exc.response
-
-    *api* is the FAB ``ModelRestApi`` instance — we call
-    ``api.response_400`` / ``api.response_403`` / ``api.response_404``
-    on it. Pass ``self`` from the endpoint method.
-    """
-    # pylint: disable=import-outside-toplevel
-    from superset import security_manager
-    from superset.daos.version import VersionDAO
-    from superset.exceptions import SupersetSecurityException
-
-    try:
-        entity_uuid = UUID(uuid_str)
-    except ValueError as exc:
-        raise PathEntityResponseError(api.response_400(message="Invalid UUID")) from exc
-
-    entity = VersionDAO.find_active_by_uuid(model_cls, entity_uuid)
-    if entity is None:
-        raise PathEntityResponseError(api.response_404())
-
-    kwarg = _RAISE_FOR_ACCESS_KWARG[model_cls.__name__]
-    try:
-        security_manager.raise_for_access(**{kwarg: entity})
-    except SupersetSecurityException as exc:
-        raise PathEntityResponseError(api.response_403()) from exc
-
-    return entity
+# ``PathEntityResponseError`` and ``resolve_endpoint_path_entity`` are
+# imported at the top of this module from
+# :mod:`superset.versioning.api_helpers` and re-exported here so that
+# the three ``/activity/`` endpoint callers in
+# ``charts/api.py`` / ``dashboards/api.py`` / ``datasets/api.py``
+# (which import via ``activity_module.<name>``) keep working without
+# an import-path migration.
 
 
 def parse_activity_query_params(args: Any) -> dict[str, Any]:

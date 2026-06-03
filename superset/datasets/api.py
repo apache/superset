@@ -1559,9 +1559,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        return list_versions_endpoint(
-            self, SqlaTable, uuid_str, access_kwarg="datasource"
-        )
+        return list_versions_endpoint(self, SqlaTable, uuid_str)
 
     @expose(
         "/<uuid_str>/versions/<version_uuid_str>/",
@@ -1615,9 +1613,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        return get_version_endpoint(
-            self, SqlaTable, uuid_str, version_uuid_str, access_kwarg="datasource"
-        )
+        return get_version_endpoint(self, SqlaTable, uuid_str, version_uuid_str)
 
     @expose("/<uuid_str>/activity/", methods=("GET",))
     @protect()

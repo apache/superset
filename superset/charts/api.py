@@ -1351,7 +1351,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        return list_versions_endpoint(self, Slice, uuid_str, access_kwarg="chart")
+        return list_versions_endpoint(self, Slice, uuid_str)
 
     @expose(
         "/<uuid_str>/versions/<version_uuid_str>/",
@@ -1401,9 +1401,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        return get_version_endpoint(
-            self, Slice, uuid_str, version_uuid_str, access_kwarg="chart"
-        )
+        return get_version_endpoint(self, Slice, uuid_str, version_uuid_str)
 
     @expose("/<uuid_str>/activity/", methods=("GET",))
     @protect()

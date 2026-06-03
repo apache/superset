@@ -2367,9 +2367,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        return list_versions_endpoint(
-            self, Dashboard, uuid_str, access_kwarg="dashboard"
-        )
+        return list_versions_endpoint(self, Dashboard, uuid_str)
 
     @expose(
         "/<uuid_str>/versions/<version_uuid_str>/",
@@ -2419,9 +2417,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        return get_version_endpoint(
-            self, Dashboard, uuid_str, version_uuid_str, access_kwarg="dashboard"
-        )
+        return get_version_endpoint(self, Dashboard, uuid_str, version_uuid_str)
 
     @expose("/<uuid_str>/activity/", methods=("GET",))
     @protect()
