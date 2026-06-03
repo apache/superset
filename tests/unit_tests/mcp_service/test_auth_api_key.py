@@ -113,7 +113,7 @@ def test_api_key_disabled_skips_auth(app) -> None:
 
         # Without API key auth or MCP_DEV_USERNAME, should raise ValueError
         # about no authenticated user (not about invalid API key)
-        with pytest.raises(ValueError, match="No authenticated user found"):
+        with pytest.raises(ValueError, match="Authentication required"):
             get_user_from_request()
 
     # SecurityManager API key methods should never be called
@@ -137,7 +137,7 @@ def test_no_request_context_skips_api_key_auth(app) -> None:
         # Explicitly mock has_request_context to False because the test
         # framework's app fixture may implicitly provide a request context.
         with patch("superset.mcp_service.auth.has_request_context", return_value=False):
-            with pytest.raises(ValueError, match="No authenticated user found"):
+            with pytest.raises(ValueError, match="Authentication required"):
                 get_user_from_request()
 
     mock_sm.extract_api_key_from_request.assert_not_called()
@@ -172,7 +172,7 @@ def test_fab_without_extract_method_skips_gracefully(app) -> None:
         app.appbuilder = MagicMock()
         app.appbuilder.sm = mock_sm
 
-        with pytest.raises(ValueError, match="No authenticated user found"):
+        with pytest.raises(ValueError, match="Authentication required"):
             get_user_from_request()
 
 
