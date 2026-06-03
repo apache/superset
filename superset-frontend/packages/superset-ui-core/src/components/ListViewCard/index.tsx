@@ -271,11 +271,9 @@ function ListViewCard({
           description={
             description ? (
               <Tooltip title={description}>
-                <span>{description}</span>
+                <span tabIndex={0}>{description}</span>
               </Tooltip>
-            ) : (
-              description
-            )
+            ) : null
           }
           avatar={avatar || null}
         />
