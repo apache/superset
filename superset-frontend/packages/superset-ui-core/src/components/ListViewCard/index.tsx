@@ -50,21 +50,11 @@ const StyledCard = styled(Card)`
       }
     }
 
-    /* Truncate long descriptions (e.g. localized "Modified at" timestamps)
-       so they don't overflow the card. The full value remains accessible
-       via the tooltip wrapper applied around the description. */
+    /* Allow long descriptions (e.g. localized "Modified at" timestamps)
+       to wrap naturally instead of being clipped by the card. */
     .ant-card-meta-description {
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      
-      /* Ensure ellipsis works by making the span behave as block-level */
-      span {
-        display: block;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
+      white-space: normal;
+      overflow-wrap: anywhere;
     }
   `}
 `;
@@ -276,13 +266,7 @@ function ListViewCard({
               </div>
             </TitleContainer>
           }
-          description={
-            description ? (
-              <Tooltip title={description}>
-                <span>{description}</span>
-              </Tooltip>
-            ) : null
-          }
+          description={description || null}
           avatar={avatar || null}
         />
       )}
