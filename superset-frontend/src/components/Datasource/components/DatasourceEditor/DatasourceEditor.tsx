@@ -2354,6 +2354,12 @@ function DatasourceEditor({
     };
   }, [datasource, onDatasourcePropChange]);
 
+  // Reference the retained helper without rendering it, mirroring the canonical
+  // class-based component on master where the Spatial tab is defined but not
+  // wired into the tab list. This keeps its translatable strings extractable
+  // while satisfying the no-unused-variable check.
+  void renderSpatialTab;
+
   const tabItems = useMemo(
     () => [
       {
