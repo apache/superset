@@ -16,7 +16,7 @@
 # under the License.
 
 from flask_appbuilder import Model
-from sqlalchemy import Column, ForeignKey, Integer, String
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from superset import security_manager
@@ -42,3 +42,8 @@ class UserAttribute(Model, AuditMixinNullable):
     welcome_dashboard_id = Column(Integer, ForeignKey("dashboards.id"))
     welcome_dashboard = relationship("Dashboard")
     avatar_url = Column(String(100))
+    # When set, any session for this user whose login predates this timestamp
+    # is forced to log out (see ``superset.security.session_invalidation``).
+    # Stamped when the account is disabled, so outstanding sessions terminate
+    # regardless of the session backend. NULL means "never invalidated".
+    sessions_invalidated_at = Column(DateTime, nullable=True, index=True)

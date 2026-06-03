@@ -734,6 +734,23 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 gc.collect()
             return response
 
+        @self.superset_app.before_request
+        def enforce_session_validity() -> Any:
+            """Force logout of sessions invalidated by a per-user epoch."""
+            from superset.security.session_invalidation import (
+                enforce_session_validity as _enforce,
+            )
+
+            return _enforce()
+
+        # Stamp the per-user invalidation epoch when an account is disabled,
+        # so outstanding sessions are terminated on their next request.
+        from superset.security.session_invalidation import (
+            register_session_invalidation_events,
+        )
+
+        register_session_invalidation_events(appbuilder.sm.user_model)
+
         @self.superset_app.context_processor
         def get_common_bootstrap_data() -> dict[str, Any]:
             # Import here to avoid circular imports
