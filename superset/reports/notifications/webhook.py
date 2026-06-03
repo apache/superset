@@ -109,6 +109,11 @@ class WebhookNotification(BaseNotification):
             raise NotificationParamException(
                 "Webhook failed: URL must include a valid hostname."
             )
+        # Operators with internal webhook targets (chatops bridges, internal
+        # automation, etc.) can opt out of the private-IP block via
+        # ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS.
+        if current_app.config["ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS"]:
+            return
         if not is_safe_host(parsed.hostname):
             raise NotificationParamException("Webhook URL target host is not allowed.")
 

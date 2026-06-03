@@ -24,6 +24,12 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Webhook alerts/reports block private/internal hosts by default
+
+Webhook alert/report dispatch (`WebhookNotification.send`) now validates the target URL's host against the same private/internal-IP block applied to dataset import URLs. If the resolved host is in a loopback, link-local, private (RFC-1918), shared-CGNAT, or multicast range, the webhook is rejected with `NotificationParamException`.
+
+Deployments that intentionally point webhooks at internal targets (chatops bridges, internal automation servers, on-premises Mattermost/Rocket.Chat, etc.) can opt out by setting `ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS = True` in `superset_config.py`. This mirrors the existing `DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS` opt-out for dataset imports.
+
 ### Dataset import validates catalog against the target connection
 
 Importing a dataset now validates the `catalog` field against the target database connection. When the connection has multi-catalog disabled (`allow_multi_catalog` off) and the dataset's catalog is not the connection's default catalog, the import fails instead of silently persisting the non-default catalog. This matches the validation already enforced on the dataset update path and prevents imported datasets from querying an unintended database.

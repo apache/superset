@@ -64,8 +64,7 @@ def test_get_cancel_query_id() -> None:
 def test_cancel_query(post_mock: Mock) -> None:
     query = Query()
     database = Database(
-        database_name="test_impala",
-        sqlalchemy_uri="impala://impala.example.com:21050/default",
+        database_name="test_impala", sqlalchemy_uri="impala://localhost:21050/default"
     )
     query.database = database
 
@@ -76,7 +75,7 @@ def test_cancel_query(post_mock: Mock) -> None:
     result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
 
     post_mock.assert_called_once_with(
-        "http://impala.example.com:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
+        "http://localhost:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
         timeout=3,
     )
     assert result is True
@@ -86,8 +85,7 @@ def test_cancel_query(post_mock: Mock) -> None:
 def test_cancel_query_failed(post_mock: Mock) -> None:
     query = Query()
     database = Database(
-        database_name="test_impala",
-        sqlalchemy_uri="impala://impala.example.com:21050/default",
+        database_name="test_impala", sqlalchemy_uri="impala://localhost:21050/default"
     )
     query.database = database
 
@@ -98,7 +96,7 @@ def test_cancel_query_failed(post_mock: Mock) -> None:
     result = spec.cancel_query(None, query, "6940643a2731718b:9fbdba2000000000")
 
     post_mock.assert_called_once_with(
-        "http://impala.example.com:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
+        "http://localhost:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
         timeout=3,
     )
     assert result is False
@@ -108,8 +106,7 @@ def test_cancel_query_failed(post_mock: Mock) -> None:
 def test_cancel_query_exception(post_mock: Mock) -> None:
     query = Query()
     database = Database(
-        database_name="test_impala",
-        sqlalchemy_uri="impala://impala.example.com:21050/default",
+        database_name="test_impala", sqlalchemy_uri="impala://localhost:21050/default"
     )
     query.database = database
 

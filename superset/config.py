@@ -1998,6 +1998,13 @@ REPORT_MINIMUM_INTERVAL = int(timedelta(minutes=0).total_seconds())
 # Enforce HTTPS for webhook alerts/reports
 ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
 
+# When True, webhook alert/report dispatch is permitted to call private/internal
+# IP addresses (RFC-1918, loopback, link-local). Intended for deployments where
+# the webhook target is on an internal network (a chatops bridge, an internal
+# Mattermost/Rocket.Chat, an automation server, etc.). Leave False (the default)
+# in any internet-facing deployment.
+ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS: bool = False
+
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 

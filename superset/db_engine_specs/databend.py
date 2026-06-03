@@ -41,7 +41,7 @@ from superset.db_engine_specs.exceptions import SupersetDBAPIDatabaseError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils.core import GenericDataType
 from superset.utils.hashing import hash_from_str
-from superset.utils.network import is_port_open, is_safe_host
+from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -352,10 +352,10 @@ class DatabendConnectEngineSpec(BasicParametersMixin, DatabendEngineSpec):
                     {"missing": ["host"]},
                 )
             ]
-        if not is_safe_host(host):
+        if not is_hostname_valid(host):
             return [
                 SupersetError(
-                    "The hostname provided can't be resolved or is not allowed.",
+                    "The hostname provided can't be resolved.",
                     SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
                     ErrorLevel.ERROR,
                     {"invalid": ["host"]},
