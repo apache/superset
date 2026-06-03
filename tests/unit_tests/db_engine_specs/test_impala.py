@@ -60,8 +60,9 @@ def test_get_cancel_query_id() -> None:
     )
 
 
+@patch("superset.db_engine_specs.impala.is_safe_host", return_value=True)
 @patch("requests.post")
-def test_cancel_query(post_mock: Mock) -> None:
+def test_cancel_query(post_mock: Mock, _safe_host: Mock) -> None:  # noqa: PT019
     query = Query()
     database = Database(
         database_name="test_impala",
@@ -82,8 +83,9 @@ def test_cancel_query(post_mock: Mock) -> None:
     assert result is True
 
 
+@patch("superset.db_engine_specs.impala.is_safe_host", return_value=True)
 @patch("requests.post")
-def test_cancel_query_failed(post_mock: Mock) -> None:
+def test_cancel_query_failed(post_mock: Mock, _safe_host: Mock) -> None:  # noqa: PT019
     query = Query()
     database = Database(
         database_name="test_impala",
@@ -104,8 +106,9 @@ def test_cancel_query_failed(post_mock: Mock) -> None:
     assert result is False
 
 
+@patch("superset.db_engine_specs.impala.is_safe_host", return_value=True)
 @patch("requests.post")
-def test_cancel_query_exception(post_mock: Mock) -> None:
+def test_cancel_query_exception(post_mock: Mock, _safe_host: Mock) -> None:  # noqa: PT019
     query = Query()
     database = Database(
         database_name="test_impala",
