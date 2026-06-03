@@ -367,6 +367,18 @@ def import_dashboard(  # noqa: C901
         # used inside import_from_dict.
         if is_soft_deleted:
             existing.deleted_at = None
+            # Apply the incoming slug to the existing row before flushing.
+            # On the partial-index dialects (Postgres / MySQL 8.0.13+) the
+            # active-slug constraint sees the row's post-flush state. If
+            # the old slug was claimed by another active dashboard while
+            # this one was soft-deleted, the operator would resolve it by
+            # uploading a YAML with a different (safe) slug — the flush
+            # below must reflect that change, or the implicit-restore
+            # path fails on the stale DB slug even though the upload was
+            # supposed to fix it. Pre-applying ``slug`` lets the documented
+            # restore-and-update flow work as the docstring describes.
+            if "slug" in config:
+                existing.slug = config["slug"]
             db.session.flush()
         config["id"] = existing.id
     elif not can_write:
