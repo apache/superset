@@ -32,6 +32,7 @@ import { ReactNode } from 'react';
 export interface NativeFiltersFormItem {
   scope: NativeFilterScope;
   name: string;
+  titleLabel?: string;
   filterType: string;
   dataset: {
     value: number;

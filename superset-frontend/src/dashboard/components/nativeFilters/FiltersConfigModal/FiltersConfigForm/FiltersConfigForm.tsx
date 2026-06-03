@@ -1007,6 +1007,30 @@ const FiltersConfigForm = (
                     </StyledFormItem>
                   )}
                 </StyledContainer>
+                {!isChartCustomization && (
+                  <StyledRowContainer>
+                    <StyledFormItem
+                      expanded={expanded}
+                      name={['filters', filterId, 'titleLabel']}
+                      label={
+                        <StyledLabel>
+                          {t('Chart title label')}
+                          <InfoTooltip
+                            tooltip={t(
+                              'When set, this label is used instead of the filter name in dynamic chart titles.',
+                            )}
+                          />
+                        </StyledLabel>
+                      }
+                      initialValue={filterToEdit?.titleLabel}
+                    >
+                      <Input
+                        placeholder={t('e.g. West Coast Region')}
+                        onChange={debouncedFormChanged}
+                      />
+                    </StyledFormItem>
+                  </StyledRowContainer>
+                )}
                 {formFilter?.filterType === 'filter_time' && (
                   <FilterTypeInfo expanded={expanded}>
                     {t(`Dashboard time range filters apply to temporal columns defined in

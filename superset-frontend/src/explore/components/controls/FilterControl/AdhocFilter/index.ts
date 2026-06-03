@@ -44,6 +44,7 @@ interface AdhocFilterInput {
   deck_slices?: unknown;
   layerFilterScope?: unknown;
   filterOptionName?: string;
+  titleLabel?: string;
   // Allow additional properties for flexibility
   [key: string]: unknown;
 }
@@ -62,6 +63,7 @@ export default class AdhocFilter {
   deck_slices?: unknown;
   layerFilterScope?: unknown;
   filterOptionName: string;
+  titleLabel?: string;
 
   constructor(adhocFilter: AdhocFilterInput) {
     this.expressionType = adhocFilter.expressionType || ExpressionTypes.Simple;
@@ -111,6 +113,8 @@ export default class AdhocFilter {
       `filter_${Math.random().toString(36).substring(2, 15)}_${Math.random()
         .toString(36)
         .substring(2, 15)}`;
+
+    this.titleLabel = adhocFilter.titleLabel as string | undefined;
   }
 
   duplicateWith(nextFields: Partial<AdhocFilterInput>): AdhocFilter {
@@ -129,6 +133,7 @@ export default class AdhocFilter {
       deck_slices: this.deck_slices,
       layerFilterScope: this.layerFilterScope,
       filterOptionName: this.filterOptionName,
+      titleLabel: this.titleLabel,
       ...nextFields,
     };
     return new AdhocFilter(currentFields);
@@ -142,7 +147,8 @@ export default class AdhocFilter {
       adhocFilter.operator === this.operator &&
       adhocFilter.operatorId === this.operatorId &&
       adhocFilter.comparator === this.comparator &&
-      adhocFilter.subject === this.subject
+      adhocFilter.subject === this.subject &&
+      adhocFilter.titleLabel === this.titleLabel
     );
   }
 

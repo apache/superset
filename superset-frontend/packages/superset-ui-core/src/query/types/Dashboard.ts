@@ -69,6 +69,7 @@ export type Filter = {
   defaultDataMask: DataMask;
   id: string; // randomly generated at filter creation
   name: string;
+  titleLabel?: string;
   scope: NativeFilterScope;
   filterType: string;
   targets: Partial<NativeFilterTarget>[];

@@ -19,7 +19,7 @@
 import type React from 'react';
 import { createRef, Component, type RefObject } from 'react';
 import { type SupersetTheme } from '@apache-superset/core/theme';
-import { Button, Icons, Select } from '@superset-ui/core/components';
+import { Button, Icons, Input, Select } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
 import { SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
@@ -432,6 +432,20 @@ export default class AdhocFilterEditPopover extends Component<
             },
           ]}
         />
+        <div style={{ marginTop: 8 }}>
+          <Input
+            value={this.state.adhocFilter.titleLabel ?? ''}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+              this.onAdhocFilterChange(
+                this.state.adhocFilter.duplicateWith({
+                  titleLabel: e.target.value || undefined,
+                }),
+              );
+            }}
+            placeholder={t('Title label (optional)')}
+            maxLength={100}
+          />
+        </div>
         {hasDeckSlices && (
           <LayerSelectContainer>
             <Select

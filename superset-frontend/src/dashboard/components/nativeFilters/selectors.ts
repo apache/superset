@@ -199,6 +199,7 @@ const getRejectedColumns = (chart: any): Set<string> =>
 export type Indicator = {
   column?: QueryFormColumn;
   name: string;
+  titleLabel?: string;
   value?: any;
   status?: IndicatorStatus;
   path?: string[];

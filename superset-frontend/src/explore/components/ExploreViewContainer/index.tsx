@@ -320,6 +320,12 @@ function getDisplaySliceTitle(
     }
 
     const filterMeta = filter as Record<string, unknown>;
+    if (
+      typeof filterMeta.titleLabel === 'string' &&
+      filterMeta.titleLabel.length > 0
+    ) {
+      return filterMeta.titleLabel;
+    }
     const subject = filterMeta.subject;
     const subjectName =
       typeof subject === 'string'
