@@ -140,6 +140,15 @@ def test_jwt_needs_refresh(async_query_manager):
     )
     assert async_query_manager._jwt_needs_refresh(near_expiry) is True
 
+    # Already-expired token is refreshed (decode raises ExpiredSignatureError)
+    past = now - timedelta(hours=2)
+    expired = encode(
+        {"channel": "abc", "iat": past, "exp": past + timedelta(hours=1)},
+        JWT_TOKEN_SECRET,
+        algorithm="HS256",
+    )
+    assert async_query_manager._jwt_needs_refresh(expired) is True
+
 
 @mark.parametrize(
     "cache_type, cache_backend",
