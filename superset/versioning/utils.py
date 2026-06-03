@@ -18,8 +18,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from contextlib import contextmanager
-from typing import Any, Iterator, Optional
+from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
@@ -56,7 +57,7 @@ def single_flush_scope(session: Session) -> Iterator[None]:
 
 def read_row_outside_flush(
     session: Session, table: sa.Table, entity_id: int
-) -> Optional[dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Read the row with ``id == entity_id`` from *table* without triggering
     an autoflush. Returns the row as a plain dict, or ``None`` when no row
     matches.

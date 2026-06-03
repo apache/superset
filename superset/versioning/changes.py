@@ -67,7 +67,7 @@ from __future__ import annotations
 import logging
 from datetime import date, datetime
 from decimal import Decimal
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 import sqlalchemy as sa
@@ -702,7 +702,7 @@ def _append_child_records_to_buffer(
         logger.exception("version_changes: child-diff failed for tx %s", tx_id)
 
 
-def _current_transaction_id(session: Session) -> Optional[int]:
+def _current_transaction_id(session: Session) -> int | None:
     """Return the Continuum transaction id for *session*'s current unit of
     work, or ``None`` when Continuum has no active transaction (e.g. raw
     SQL execution outside the ORM's flush flow).

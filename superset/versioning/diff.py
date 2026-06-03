@@ -44,9 +44,9 @@ an app context or DB.
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
-from typing import Any, Callable, Optional
+from typing import Any
 
 from superset.utils import json as _json
 
@@ -720,8 +720,8 @@ def _meta_excluding_position(node: dict[str, Any]) -> dict[str, Any]:
 
 def _diff_layout_node(
     node_id: str,
-    pre_node: Optional[dict[str, Any]],
-    post_node: Optional[dict[str, Any]],
+    pre_node: dict[str, Any] | None,
+    post_node: dict[str, Any] | None,
 ) -> list[ChangeRecord]:
     """Diff one component slot in the layout dict and return records for
     the logical action — add, remove, move, edit.

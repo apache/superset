@@ -18,7 +18,7 @@
 
 from __future__ import annotations
 
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 from uuid import UUID
 
 import sqlalchemy as sa
@@ -30,7 +30,7 @@ if TYPE_CHECKING:
     from flask import Response
 
 
-def set_version_etag(response: "Response", version_uuid: Optional[UUID]) -> "Response":
+def set_version_etag(response: "Response", version_uuid: UUID | None) -> "Response":
     """Attach ``ETag: "<version_uuid>"`` to *response*.
 
     Uses RFC 7232 strong-validator form (no leading ``W/``); the response
