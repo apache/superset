@@ -40,9 +40,8 @@ def _intersect_windows(outer: Window, inner: Window) -> Window | None:
     Returns the clipped overlap, or ``None`` when they are disjoint.
     ``end_tx = None`` means "open ended (current)" and acts like
     positive infinity. Thin wrapper over :meth:`Window.intersect` —
-    kept as a free function so legacy call sites and tests don't have
-    to migrate to method form in lockstep with the Value Object
-    promotion (DDD T3).
+    kept as a free function so callers and tests don't have to migrate
+    to method form in lockstep with the dataclass promotion.
     """
     return outer.intersect(inner)
 

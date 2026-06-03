@@ -40,16 +40,15 @@ in their resource's model graph (Chart → Dataset → Database for
 ``ChartFilter``, etc.); a module-top import would trip mapper
 resolution before Continuum's ``make_versioned()`` has finished.
 
-**Integration shape.** This is a **Conformist** relationship (Evans,
-Blue Book Ch. 14) with the host's security-filter context: the
-activity-view does not translate or re-implement the FAB filter
-predicate, it consumes whatever ``DashboardAccessFilter`` /
-``ChartFilter`` / ``DatasourceFilter`` returns. That keeps the
-activity stream's visibility posture identical to the list
-endpoints' — operator-controlled and stable — at the cost of having
-no anti-corruption layer. Future entities added to the activity
-surface must extend the dispatch table in ``_resolve_visibility``
-to include their access-filter class.
+**Integration shape.** The activity-view consumes FAB's access-filter
+classes (``DashboardAccessFilter`` / ``ChartFilter`` /
+``DatasourceFilter``) directly rather than translating them or
+re-implementing the predicate. That keeps the activity stream's
+visibility posture identical to the list endpoints' — operator-
+controlled and stable — at the cost of coupling to FAB's exact
+filter shape. Future entities added to the activity surface must
+extend the dispatch table in ``_resolve_visibility`` to include
+their access-filter class.
 """
 
 from __future__ import annotations

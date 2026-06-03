@@ -101,16 +101,17 @@ class Window:
     """A validity window in Continuum transaction-id space, half-open as
     ``[start_tx, end_tx)``.
 
-    A Value Object: equal by attributes, immutable, no identity over
-    time. Constructor enforces the half-open invariant; helper methods
-    are pure (no DB, no side-effects). ``end_tx = None`` means
-    "open ended (current)" and behaves like positive infinity.
+    Immutable and equal-by-attributes — two windows with the same
+    ``start_tx`` / ``end_tx`` are interchangeable. Constructor rejects
+    ``end_tx <= start_tx``. ``end_tx = None`` means "open ended
+    (current)" and acts as positive infinity throughout the helpers.
 
-    Promoted from a tuple alias to a dataclass (DDD T3) so consumers
-    read ``window.start_tx`` / ``window.contains(tx)`` instead of
-    ``window[0]`` / hand-rolled predicates — and so the closure-of-
-    operations property (every operation on a ``Window`` returns a
-    ``Window`` or a derived value) lives on the type itself.
+    Helper methods (``contains`` / ``intersect`` / ``merges_with``)
+    live on the type so callers don't re-implement the half-open
+    predicate inline. Previously a ``tuple[int, int | None]`` alias;
+    promoted to a dataclass so a function accepting a ``Window`` can't
+    silently accept any other 2-tuple and so the constructor enforces
+    the half-open invariant.
     """
 
     start_tx: int
@@ -155,10 +156,10 @@ class Window:
 
 #: A related-entity scope row: ``(api_kind, entity_id, [windows])``.
 #: ``api_kind`` is the DTO-facing kind (``"Slice"``, etc.), not the
-#: table-stored kind. Left as a tuple alias for now — promoting to a
-#: dataclass is a follow-up (the kind+id pair is logically a key, the
-#: window list is its value; a registry/Map shape may be a better fit
-#: than a flat dataclass).
+#: table-stored kind. Left as a tuple alias for now — the
+#: ``(api_kind, entity_id)`` pair is logically a key with the window
+#: list as its value, so a dict shape may fit better than a flat
+#: dataclass when this is revisited.
 EntityWindows = tuple[str, int, list[Window]]
 
 

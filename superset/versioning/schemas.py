@@ -183,11 +183,10 @@ ACTIVITY_CHANGE_OPERATIONS: tuple[str, ...] = (
 
 #: Allowed values for ``ActivityRecordSchema.action_kind`` — the
 #: transaction-level avenue. ``null`` (omitted from the enum, signalled
-#: by ``allow_none``) means "ordinary save". Sourced from the
-#: ``ACTION_KINDS`` Published Language constant in
-#: :mod:`superset.versioning.changes` so a future addition (e.g.
-#: ``"thumbnail_warm"``) only has to update the constant; the schema
-#: picks it up automatically.
+#: by ``allow_none``) means "ordinary save". Sourced from
+#: :data:`superset.versioning.changes.ACTION_KINDS` so a future
+#: addition (e.g. ``"thumbnail_warm"``) only has to update that
+#: constant; the schema picks it up automatically.
 ACTIVITY_ACTION_KINDS: tuple[str, ...] = tuple(sorted(ACTION_KINDS))
 
 
