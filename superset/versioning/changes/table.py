@@ -76,7 +76,7 @@ version_changes_table = sa.Table(
 # by this value (``WHERE entity_kind = 'chart'`` for the chart history
 # endpoint, etc.) — kept short and user-facing-ish so downstream tools
 # consuming the raw table read sensibly.
-_ENTITY_KIND_BY_CLASS_NAME: dict[str, str] = {
+ENTITY_KIND_BY_CLASS_NAME: dict[str, str] = {
     "Slice": "chart",
     "Dashboard": "dashboard",
     "SqlaTable": "dataset",

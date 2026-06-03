@@ -38,7 +38,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
 from superset.versioning.baseline import CONTINUUM_BOOKKEEPING_COLUMNS
-from superset.versioning.changes.state import _jsonable
+from superset.versioning.changes.state import jsonable
 from superset.versioning.diff import (
     ChangeRecord,
     diff_dashboard_slices,
@@ -47,7 +47,7 @@ from superset.versioning.diff import (
 )
 
 
-def _shadow_rows_valid_at(
+def shadow_rows_valid_at(
     session: Session,
     shadow_table: sa.Table,
     fk_col_name: str,
@@ -87,7 +87,7 @@ def _shadow_rows_valid_at(
     # ``version_changes.from_value/to_value`` JSON column write.
     return [
         {
-            k: _jsonable(v)
+            k: jsonable(v)
             for k, v in dict(row).items()
             if k not in CONTINUUM_BOOKKEEPING_COLUMNS
         }
@@ -180,16 +180,16 @@ def _dataset_child_records_for_tx_from_shadows(
         if prior_tx is None:
             continue
 
-        post_cols = _shadow_rows_valid_at(
+        post_cols = shadow_rows_valid_at(
             session, cols_tbl, "table_id", dataset_id, transaction_id
         )
-        pre_cols = _shadow_rows_valid_at(
+        pre_cols = shadow_rows_valid_at(
             session, cols_tbl, "table_id", dataset_id, prior_tx
         )
-        post_metrics = _shadow_rows_valid_at(
+        post_metrics = shadow_rows_valid_at(
             session, metrics_tbl, "table_id", dataset_id, transaction_id
         )
-        pre_metrics = _shadow_rows_valid_at(
+        pre_metrics = shadow_rows_valid_at(
             session, metrics_tbl, "table_id", dataset_id, prior_tx
         )
 

@@ -25,15 +25,15 @@ entry point to leaf helpers:
   Holds ``ACTION_KIND_KEY``, the buffer-key constants, and the per-tx
   ``action_kind`` stamper.
 * :mod:`.state` — per-entity diff dispatch: pre-state read,
-  post-state serialisation, JSON-safety coercion (``_jsonable``),
+  post-state serialisation, JSON-safety coercion (``jsonable``),
   cached scalar-field discovery, and bulk-insert into the
   ``version_changes`` table.
 * :mod:`.shadow_queries` — shadow-table reads that drive child-
   collection diffs (dataset columns/metrics, dashboard slice
-  membership). Includes the validity-strategy ``_shadow_rows_valid_at``
+  membership). Includes the validity-strategy ``shadow_rows_valid_at``
   helper consumed externally by :mod:`superset.versioning.queries`.
 * :mod:`.table` — the SQLAlchemy ``Table`` definition for
-  ``version_changes`` plus the ``_ENTITY_KIND_BY_CLASS_NAME`` mapping
+  ``version_changes`` plus the ``ENTITY_KIND_BY_CLASS_NAME`` mapping
   consumed by the API + activity-view modules.
 
 The re-exports below preserve the prior ``from
@@ -51,9 +51,9 @@ from superset.versioning.changes.listener import (
     ACTION_KINDS,
     register_change_record_listener,
 )
-from superset.versioning.changes.shadow_queries import _shadow_rows_valid_at
+from superset.versioning.changes.shadow_queries import shadow_rows_valid_at
 from superset.versioning.changes.table import (
-    _ENTITY_KIND_BY_CLASS_NAME,
+    ENTITY_KIND_BY_CLASS_NAME,
     version_changes_table,
 )
 
@@ -63,8 +63,8 @@ __all__ = [
     "ACTION_KIND_KEY",
     "ACTION_KIND_RESTORE",
     "ACTION_KINDS",
-    "_ENTITY_KIND_BY_CLASS_NAME",
-    "_shadow_rows_valid_at",
+    "ENTITY_KIND_BY_CLASS_NAME",
     "register_change_record_listener",
+    "shadow_rows_valid_at",
     "version_changes_table",
 ]

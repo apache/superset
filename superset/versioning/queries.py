@@ -148,9 +148,9 @@ def _entity_kind_for(model_cls: type) -> str | None:
     """Return the ``version_changes.entity_kind`` value for *model_cls*, or
     ``None`` when the class isn't in the change-records taxonomy."""
     # pylint: disable=import-outside-toplevel
-    from superset.versioning.changes import _ENTITY_KIND_BY_CLASS_NAME
+    from superset.versioning.changes import ENTITY_KIND_BY_CLASS_NAME
 
-    return _ENTITY_KIND_BY_CLASS_NAME.get(model_cls.__name__)
+    return ENTITY_KIND_BY_CLASS_NAME.get(model_cls.__name__)
 
 
 def find_active_by_uuid(model_cls: type, entity_uuid: UUID) -> Any | None:
@@ -496,15 +496,15 @@ def get_version(
     if model_cls is SqlaTable:
         # pylint: disable=import-outside-toplevel
         from superset.connectors.sqla.models import SqlMetric, TableColumn
-        from superset.versioning.changes import _shadow_rows_valid_at
+        from superset.versioning.changes import shadow_rows_valid_at
 
         target_tx = row["transaction_id"]
         cols_tbl = version_class(TableColumn).__table__
         metrics_tbl = version_class(SqlMetric).__table__
-        result["columns"] = _shadow_rows_valid_at(
+        result["columns"] = shadow_rows_valid_at(
             db.session, cols_tbl, "table_id", entity.id, target_tx
         )
-        result["metrics"] = _shadow_rows_valid_at(
+        result["metrics"] = shadow_rows_valid_at(
             db.session, metrics_tbl, "table_id", entity.id, target_tx
         )
 
