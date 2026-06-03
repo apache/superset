@@ -19,7 +19,7 @@
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
-import { QueryFormData, JsonObject } from '@superset-ui/core';
+import { QueryFormData, JsonObject, LatestQueryFormData } from '@superset-ui/core';
 import {
   Tooltip,
   Button,
@@ -59,7 +59,7 @@ interface ExploreActions {
   fetchFaveStar: (sliceId: number) => void;
   saveFaveStar: (sliceId: number, isStarred: boolean) => void;
   redirectSQLLab: (
-    formData: QueryFormData,
+    formData: QueryFormData | LatestQueryFormData,
     history?: ReturnType<typeof useHistory> | false,
   ) => void;
 }
@@ -191,7 +191,7 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   const { redirectSQLLab } = actions;
 
   const redirectToSQLLab = useCallback(
-    (redirectFormData: QueryFormData, openNewWindow = false) => {
+    (redirectFormData: LatestQueryFormData, openNewWindow = false) => {
       redirectSQLLab(redirectFormData, !openNewWindow && history);
     },
     [redirectSQLLab, history],
@@ -236,10 +236,100 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     [formData, sliceName],
   );
 
+  const shouldShowDynamicTitle =
+    formData?.show_dynamic_title === true ||
+    formData?.showDynamicTitle === true;
+
   const formDiffs = useMemo(
     () => getChartFormDiffs(originalFormData, currentFormData),
     [originalFormData, currentFormData],
   );
+
+  const getFilterName = useCallback((filter: unknown): string | undefined => {
+    if (!filter || typeof filter !== 'object') {
+      return undefined;
+    }
+
+    const filterMeta = filter as Record<string, unknown>;
+    const subject = filterMeta.subject;
+    const subjectName =
+      typeof subject === 'string'
+        ? subject
+        : subject && typeof subject === 'object'
+          ? [
+              (subject as Record<string, unknown>).label,
+              (subject as Record<string, unknown>).column_name,
+              (subject as Record<string, unknown>).name,
+              (subject as Record<string, unknown>).column,
+            ].find(
+              candidate =>
+                typeof candidate === 'string' && candidate.length > 0,
+            )
+          : undefined;
+
+    if (typeof subjectName === 'string' && subjectName.length > 0) {
+      return subjectName;
+    }
+
+    const candidates = [filterMeta.column, filterMeta.label, filterMeta.name];
+    return candidates.find(
+      candidate => typeof candidate === 'string' && candidate.length > 0,
+    ) as string | undefined;
+  }, []);
+
+  const getBaseTitleWithoutDynamicSuffix = useCallback((title: string) => {
+    return title.replace(/\s+by\s+.+$/i, '').trimEnd();
+  }, []);
+
+  const displayTitle = useMemo(() => {
+    if (!shouldShowDynamicTitle) {
+      return getBaseTitleWithoutDynamicSuffix(sliceName ?? '');
+    }
+
+    const appliedFilters = chart.queriesResponse?.[0]?.applied_filters;
+    const adhocFilters = formData?.adhoc_filters;
+    const extraFormData = formData?.extra_form_data as
+      | Record<string, unknown>
+      | undefined;
+    const nativeFilters = extraFormData?.filters;
+
+    const hasFormDataFilterSource =
+      Array.isArray(adhocFilters) || Array.isArray(nativeFilters);
+    const activeFilters = hasFormDataFilterSource
+      ? [
+          ...(Array.isArray(adhocFilters) ? adhocFilters : []),
+          ...(Array.isArray(nativeFilters) ? nativeFilters : []),
+        ]
+      : Array.isArray(appliedFilters)
+        ? appliedFilters
+        : [];
+
+    const activeFilterNames = Array.isArray(activeFilters)
+      ? [
+          ...new Set(
+            activeFilters
+              .map(filter => getFilterName(filter))
+              .filter((name): name is string => Boolean(name)),
+          ),
+        ]
+      : [];
+
+    const baseTitle = getBaseTitleWithoutDynamicSuffix(sliceName ?? '');
+
+    if (!activeFilterNames.length) {
+      return baseTitle;
+    }
+
+    const dynamicSuffix = `by ${activeFilterNames.join(', ')}`;
+    return baseTitle ? `${baseTitle} ${dynamicSuffix}` : dynamicSuffix;
+  }, [
+    chart.queriesResponse,
+    formData,
+    getBaseTitleWithoutDynamicSuffix,
+    getFilterName,
+    shouldShowDynamicTitle,
+    sliceName,
+  ]);
 
   const {
     showModal: showUnsavedChangesModal,
@@ -274,12 +364,13 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     <>
       <PageHeaderWithActions
         editableTitleProps={{
-          title: sliceName ?? '',
+          title: displayTitle,
           canEdit:
             !slice ||
-            canOverwrite ||
-            (user?.userId !== undefined &&
-              (slice?.owners || []).includes(user.userId)),
+            ((canOverwrite ||
+              (user?.userId !== undefined &&
+                (slice?.owners || []).includes(user.userId))) &&
+             !shouldShowDynamicTitle),
           onSave: actions.updateChartTitle,
           placeholder: t('Add the name of the chart'),
           label: t('Chart title'),
@@ -345,6 +436,7 @@ export const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
       {isPropertiesModalOpen && (
         <PropertiesModal
           show={isPropertiesModalOpen}
+          initialName={displayTitle}
           onHide={closePropertiesModal}
           onSave={updateSlice}
           slice={slice}

@@ -120,6 +120,19 @@ const config: ControlPanelConfig = {
             },
           },
         ],
+        [<ControlSubSectionHeader>{t('Chart Title')}</ControlSubSectionHeader>],
+        [
+          {
+            name: 'show_dynamic_title',
+            config: {
+              type: 'CheckboxControl',
+              label: t('Show dynamic chart title'),
+              renderTrigger: true,
+              default: false,
+              description: t('Update the chart title dynamically based on the data.'),
+            },
+          },
+        ],
       ],
     },
   ],

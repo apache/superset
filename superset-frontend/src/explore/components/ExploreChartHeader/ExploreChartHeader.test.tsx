@@ -391,6 +391,158 @@ describe('ExploreChartHeader', () => {
     );
   });
 
+  test('does not allow editing title when showDynamicTitle is enabled', async () => {
+    const props = createProps({
+      formData: {
+        ...createProps().chart.latestQueryFormData,
+        showDynamicTitle: true,
+        adhoc_filters: [{ subject: 'country' }],
+      },
+      chart: {
+        ...createProps().chart,
+        queriesResponse: [
+          {
+            applied_filters: [{ column: 'country' }],
+          },
+        ],
+      },
+    });
+
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    const titleInput = await screen.findByDisplayValue(
+      'Age distribution of respondents by country',
+    );
+    expect(titleInput).toBeDisabled();
+
+    await userEvent.click(titleInput);
+    expect(props.actions.updateChartTitle).not.toHaveBeenCalled();
+  });
+
+  test('shows dynamic title in chart properties modal', async () => {
+    const props = createProps({
+      formData: {
+        ...createProps().chart.latestQueryFormData,
+        showDynamicTitle: true,
+        adhoc_filters: [{ subject: 'country' }],
+      },
+      chart: {
+        ...createProps().chart,
+        queriesResponse: [
+          {
+            applied_filters: [{ column: 'country' }],
+          },
+        ],
+      },
+    });
+
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    await userEvent.click(screen.getByLabelText('Menu actions trigger'));
+    await userEvent.click(screen.getByText('Edit chart properties'));
+
+    const nameInput = await screen.findByRole('textbox', { name: 'Name' });
+    expect(nameInput).toHaveValue('Age distribution of respondents by country');
+  });
+
+  test('does not append duplicate dynamic suffix when title already matches', async () => {
+    const props = createProps({
+      sliceName: 'Age distribution of respondents by country',
+      formData: {
+        ...createProps().chart.latestQueryFormData,
+        showDynamicTitle: true,
+        adhoc_filters: [{ subject: 'country' }],
+      },
+      chart: {
+        ...createProps().chart,
+        queriesResponse: [
+          {
+            applied_filters: [{ column: 'country' }],
+          },
+        ],
+      },
+    });
+
+    render(<ExploreHeader {...props} />, { useRedux: true });
+
+    expect(
+      await screen.findByDisplayValue(
+        'Age distribution of respondents by country',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByDisplayValue(
+        'Age distribution of respondents by country by country',
+      ),
+    ).not.toBeInTheDocument();
+  });
+
+  test('updates dynamic title when filters are added, edited, or removed', async () => {
+    const baseProps = createProps({
+      formData: {
+        ...createProps().chart.latestQueryFormData,
+        showDynamicTitle: true,
+        adhoc_filters: [],
+      },
+      chart: {
+        ...createProps().chart,
+        queriesResponse: null,
+      },
+    });
+
+    const { rerender } = render(<ExploreHeader {...baseProps} />, {
+      useRedux: true,
+    });
+
+    expect(
+      await screen.findByDisplayValue('Age distribution of respondents'),
+    ).toBeInTheDocument();
+
+    rerender(
+      <ExploreHeader
+        {...baseProps}
+        formData={{
+          ...baseProps.formData,
+          adhoc_filters: [{ subject: 'country' }],
+        }}
+      />,
+    );
+
+    expect(
+      await screen.findByDisplayValue(
+        'Age distribution of respondents by country',
+      ),
+    ).toBeInTheDocument();
+
+    rerender(
+      <ExploreHeader
+        {...baseProps}
+        formData={{
+          ...baseProps.formData,
+          adhoc_filters: [{ subject: 'state' }],
+        }}
+      />,
+    );
+
+    expect(
+      await screen.findByDisplayValue('Age distribution of respondents by state'),
+    ).toBeInTheDocument();
+
+    rerender(
+      <ExploreHeader
+        {...baseProps}
+        formData={{
+          ...baseProps.formData,
+          adhoc_filters: [],
+        }}
+      />,
+    );
+
+    expect(
+      await screen.findByDisplayValue('Age distribution of respondents'),
+    ).toBeInTheDocument();
+  });
+
   test('Save chart', async () => {
     const setSaveChartModalVisibilitySpy = jest.spyOn(
       saveModalActions,
