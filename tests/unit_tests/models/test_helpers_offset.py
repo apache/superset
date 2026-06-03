@@ -61,10 +61,14 @@ def test_helpers_guards_offset_with_supports_offset_flag() -> None:
     unguarded: list[int] = []
 
     class Visitor(ast.NodeVisitor):
+        """Flag `.offset()` assignments not guarded by a `supports_offset` check."""
+
         def __init__(self) -> None:
+            """Track nesting depth inside `supports_offset`-guarded `if` blocks."""
             self._in_guarded_if = 0
 
         def visit_If(self, node: ast.If) -> None:  # noqa: N802
+            """Descend into the body under a `supports_offset` guard when present."""
             if _uses_supports_offset(node.test):
                 self._in_guarded_if += 1
                 for child in node.body:
@@ -76,6 +80,7 @@ def test_helpers_guards_offset_with_supports_offset_flag() -> None:
                 self.generic_visit(node)
 
         def visit_Assign(self, node: ast.Assign) -> None:  # noqa: N802
+            """Record any `qry = qry.offset(...)` seen outside a guard."""
             if _is_qry_offset_assignment(node) and self._in_guarded_if == 0:
                 unguarded.append(node.lineno)
             self.generic_visit(node)
