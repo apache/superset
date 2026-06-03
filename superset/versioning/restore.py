@@ -128,8 +128,22 @@ def _stamp_audit_fields_for_restore(entity: Any) -> None:
     """Overwrite ``changed_on`` / ``changed_by_fk`` on *entity* with the
     current time and current user id, so that the restore is attributed
     to the restoring user rather than the version snapshot's original
-    author."""
+    author.
+
+    Charts additionally carry ``last_saved_at`` / ``last_saved_by_fk``
+    columns (stamped by ``UpdateChartCommand`` on ordinary saves and
+    surfaced in the Charts list page's "last edited by" column). Without
+    overwriting these, the chart list still shows the snapshot's
+    original author after a restore, contradicting the user-visible
+    timeline.
+    """
+    now = datetime.utcnow()
+    user_id = get_user_id()
     if hasattr(entity, "changed_on"):
-        entity.changed_on = datetime.utcnow()
+        entity.changed_on = now
     if hasattr(entity, "changed_by_fk"):
-        entity.changed_by_fk = get_user_id()
+        entity.changed_by_fk = user_id
+    if hasattr(entity, "last_saved_at"):
+        entity.last_saved_at = now
+    if hasattr(entity, "last_saved_by_fk"):
+        entity.last_saved_by_fk = user_id
