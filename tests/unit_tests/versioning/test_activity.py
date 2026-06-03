@@ -33,23 +33,27 @@ from __future__ import annotations
 import pytest
 
 from superset.versioning.activity import (
-    _API_KIND_TO_TABLE,
-    _build_summary,
-    _changed_by_dict,
-    _collect_impact_pairs,
-    _DEFAULT_PAGE_SIZE,
-    _impact_for_record,
-    _intersect_windows,
-    _MAX_PAGE_SIZE,
-    _merge_entity_windows,
-    _resolve_scope,
-    _row_within_any_window,
-    _TABLE_KIND_TO_API,
-    _union_windows,
     ActivityParamsError,
     EntityWindows,
     parse_activity_query_params,
     Window,
+)
+from superset.versioning.activity.impact import (
+    _collect_impact_pairs,
+    _impact_for_record,
+)
+from superset.versioning.activity.kinds import _API_KIND_TO_TABLE, _TABLE_KIND_TO_API
+from superset.versioning.activity.orchestrator import (
+    _DEFAULT_PAGE_SIZE,
+    _MAX_PAGE_SIZE,
+)
+from superset.versioning.activity.render import _build_summary, _changed_by_dict
+from superset.versioning.activity.scope import _resolve_scope
+from superset.versioning.activity.windows import (
+    _intersect_windows,
+    _merge_entity_windows,
+    _row_within_any_window,
+    _union_windows,
 )
 
 # ---- _intersect_windows ---------------------------------------------------
@@ -456,7 +460,7 @@ def test_metric_prefix_matches_versioning_namespace_convention() -> None:
     review — a future PR renaming the prefix would fail this assertion
     and require explicit acknowledgement.
     """
-    from superset.versioning.activity import _METRIC_PREFIX
+    from superset.versioning.activity.orchestrator import _METRIC_PREFIX
 
     assert _METRIC_PREFIX == "superset.activity_view", (
         f"Activity-view metrics prefix changed from "

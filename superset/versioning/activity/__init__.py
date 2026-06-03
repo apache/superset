@@ -62,100 +62,35 @@ Package layout (descends from public entry point to leaf helpers):
 * :mod:`.kinds` — the kind-translation tables, the ``Window`` /
   ``EntityWindows`` type aliases, and :func:`_load_shadow_model`.
 
+The public surface (re-exported here) is the eight symbols below.
+Sub-module privates are intentionally NOT re-exported — tests and
+new internal callers should import them from their owning submodule
+(e.g. ``from superset.versioning.activity.windows import
+_intersect_windows``) so the package's public API stays scannable.
+
 ``PathEntityResponseError`` and ``resolve_endpoint_path_entity`` are
 re-exported here from :mod:`superset.versioning.api_helpers` (where
 they live alongside the ``/versions/`` endpoint handlers) so the
-three ``/activity/`` endpoint callers in ``charts/api.py`` /
-``dashboards/api.py`` / ``datasets/api.py`` (which import via
-``activity_module.<name>``) keep working without an import-path
-migration.
-
-Re-exports below preserve every symbol previously importable from
-``superset.versioning.activity`` — public, test-private, and
-``activity_module.<name>``-style call sites are all unaffected.
+three ``/activity/`` endpoint callers can ``from
+superset.versioning.activity import resolve_endpoint_path_entity``
+without crossing into the ``/versions/`` module name.
 """
 
 from __future__ import annotations
 
-from superset.versioning.activity.impact import (
-    _batch_chart_counts,
-    _collect_impact_pairs,
-    _impact_for_record,
-)
-from superset.versioning.activity.kinds import (
-    _API_KIND_LABEL,
-    _API_KIND_TO_TABLE,
-    _load_shadow_model,
-    _NAME_COLUMN,
-    _NOT_FOUND_EXC,
-    _TABLE_KIND_TO_API,
-    _USER_FACING_KIND,
-    EntityWindows,
-    Window,
-)
+from superset.versioning.activity.kinds import EntityWindows, Window
 from superset.versioning.activity.orchestrator import (
-    _DEFAULT_PAGE_SIZE,
-    _emit_request_shape_attributes,
-    _MAX_PAGE_SIZE,
-    _METRIC_PREFIX,
-    _parse_include,
-    _parse_iso_datetime,
-    _parse_optional_iso,
-    _parse_page,
-    _parse_page_size,
-    _phase_timer,
-    _VALID_INCLUDE_VALUES,
     activity_endpoint,
     ActivityParamsError,
     get_activity,
     parse_activity_query_params,
 )
-from superset.versioning.activity.queries import (
-    _batch_datasets_used_by_charts,
-    _charts_attached_to_dashboard,
-    _check_entity_tombstones,
-    _datasets_used_by_chart,
-    _denormalize_entity_names,
-    _fetch_change_records,
-    _resolve_names_for_kind,
-    _resolve_path_entity,
-    _select_change_rows_for_kinds,
-)
-from superset.versioning.activity.render import (
-    _build_summary,
-    _changed_by_dict,
-    _decorate_records,
-    _lookup_entity_uuids,
-    _SUMMARY_VERBS,
-)
-from superset.versioning.activity.scope import (
-    _resolve_chart_scope,
-    _resolve_dashboard_scope,
-    _resolve_related_scope,
-    _resolve_scope,
-)
-from superset.versioning.activity.visibility import (
-    _filter_records_by_visibility,
-    _resolve_visibility,
-)
-from superset.versioning.activity.windows import (
-    _intersect_windows,
-    _merge_entity_windows,
-    _row_within_any_window,
-    _union_windows,
-)
-
-# Re-exported from api_helpers so the three /activity/ endpoint
-# callers (which import via ``activity_module.PathEntityResponseError``
-# / ``activity_module.resolve_endpoint_path_entity``) keep working
-# without an import-path migration.
 from superset.versioning.api_helpers import (
     PathEntityResponseError,
     resolve_endpoint_path_entity,
 )
 
 __all__ = [
-    # Public API
     "ActivityParamsError",
     "EntityWindows",
     "PathEntityResponseError",
@@ -164,50 +99,4 @@ __all__ = [
     "get_activity",
     "parse_activity_query_params",
     "resolve_endpoint_path_entity",
-    # Test-imported privates (kept stable for test_activity.py)
-    "_API_KIND_LABEL",
-    "_API_KIND_TO_TABLE",
-    "_DEFAULT_PAGE_SIZE",
-    "_MAX_PAGE_SIZE",
-    "_METRIC_PREFIX",
-    "_NAME_COLUMN",
-    "_NOT_FOUND_EXC",
-    "_SUMMARY_VERBS",
-    "_TABLE_KIND_TO_API",
-    "_USER_FACING_KIND",
-    "_VALID_INCLUDE_VALUES",
-    "_batch_chart_counts",
-    "_batch_datasets_used_by_charts",
-    "_build_summary",
-    "_changed_by_dict",
-    "_charts_attached_to_dashboard",
-    "_check_entity_tombstones",
-    "_collect_impact_pairs",
-    "_datasets_used_by_chart",
-    "_decorate_records",
-    "_denormalize_entity_names",
-    "_emit_request_shape_attributes",
-    "_fetch_change_records",
-    "_filter_records_by_visibility",
-    "_impact_for_record",
-    "_intersect_windows",
-    "_load_shadow_model",
-    "_lookup_entity_uuids",
-    "_merge_entity_windows",
-    "_parse_include",
-    "_parse_iso_datetime",
-    "_parse_optional_iso",
-    "_parse_page",
-    "_parse_page_size",
-    "_phase_timer",
-    "_resolve_chart_scope",
-    "_resolve_dashboard_scope",
-    "_resolve_names_for_kind",
-    "_resolve_path_entity",
-    "_resolve_related_scope",
-    "_resolve_scope",
-    "_resolve_visibility",
-    "_row_within_any_window",
-    "_select_change_rows_for_kinds",
-    "_union_windows",
 ]
