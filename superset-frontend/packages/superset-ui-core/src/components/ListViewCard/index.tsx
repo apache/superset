@@ -55,7 +55,6 @@ const StyledCard = styled(Card)`
     .ant-card-meta-description {
       white-space: normal;
       overflow-wrap: break-word;
-      word-break: break-word;
     }
   `}
 `;
