@@ -952,6 +952,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             )
         )
 
+    def is_set_operation(self) -> bool:
+        """
+        Check if the statement is a top-level set operation (UNION/INTERSECT/EXCEPT).
+        """
+        return isinstance(self._parsed, exp.SetOperation)
+
     def parse_predicate(self, predicate: str) -> exp.Expression:
         """
         Parse a predicate string into an AST.
