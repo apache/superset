@@ -86,21 +86,23 @@ class TestGuestTokenRevocation(SupersetTestCase):
             return security_manager.get_guest_user_from_request(request)
 
     def test_token_issued_before_revocation_is_rejected(self) -> None:
+        # Anchor all ``iat`` values at or before the real current time so PyJWT
+        # does not reject a token as not-yet-valid (ImmatureSignatureError).
         base = int(time.time())
-        token = self._mint(iat=base)
+        token = self._mint(iat=base - 20)
 
         # Valid before any revocation.
         assert self._validate(token) is not None
 
-        # Revoke at base + 10: tokens issued before that instant are rejected.
+        # Revoke at base - 10: tokens issued before that instant are rejected.
         self.embedded.guest_token_revoked_before = datetime.fromtimestamp(
-            base + 10, timezone.utc
+            base - 10, timezone.utc
         ).replace(tzinfo=None)
         db.session.commit()
         assert self._validate(token) is None
 
         # A token issued after the revocation instant is still accepted.
-        newer_token = self._mint(iat=base + 20)
+        newer_token = self._mint(iat=base)
         assert self._validate(newer_token) is not None
 
     def test_revoke_endpoint_revokes_outstanding_tokens(self) -> None:
@@ -149,19 +151,21 @@ class TestGuestTokenRevocation(SupersetTestCase):
 
     def test_legacy_dashboard_id_token_is_revoked(self) -> None:
         # Tokens carrying a dashboard id (rather than the embedded uuid) must
-        # also be subject to per-dashboard revocation.
+        # also be subject to per-dashboard revocation. Anchor all ``iat`` values
+        # at or before the real current time so PyJWT does not reject a token as
+        # not-yet-valid (ImmatureSignatureError).
         base = int(time.time())
-        token = self._mint_with_dashboard_id(iat=base)
+        token = self._mint_with_dashboard_id(iat=base - 20)
         assert self._validate(token) is not None
 
         self.embedded.guest_token_revoked_before = datetime.fromtimestamp(
-            base + 10, timezone.utc
+            base - 10, timezone.utc
         ).replace(tzinfo=None)
         db.session.commit()
         assert self._validate(token) is None
 
         # A dashboard-id token issued after the revocation instant is accepted.
-        assert self._validate(self._mint_with_dashboard_id(iat=base + 20)) is not None
+        assert self._validate(self._mint_with_dashboard_id(iat=base)) is not None
 
     def test_token_without_iat_is_treated_as_revoked(self) -> None:
         # A signed token that omits ``iat`` cannot be positioned against a
