@@ -289,11 +289,13 @@ class ExtraCache:
         from superset.views.utils import get_form_data
 
         if has_request_context() and request.args.get(param):
-            return request.args.get(param, default)
-
-        form_data, _ = get_form_data()
-        url_params = form_data.get("url_params") or {}
-        result = url_params.get(param, default)
+            result = request.args.get(param, default)
+        else:
+            form_data, _ = get_form_data()
+            url_params = form_data.get("url_params") or {}
+            result = url_params.get(param, default)
+        # Escape the value regardless of its source (request args or form
+        # data); both are interpolated into the rendered SQL.
         if result and escape_result and self.dialect:
             # use the dialect specific quoting logic to escape string
             result = String().literal_processor(dialect=self.dialect)(value=result)[
@@ -382,6 +384,18 @@ class ExtraCache:
             - you want to handle generating custom SQL conditions for a filter
             - you want to have the ability for filter inside the main query for speed
             purposes
+
+        Always use the ``where_in`` filter for list membership rather than
+        building SQL by hand. The filter renders values with dialect-safe quoting
+        (via SQLAlchemy's ``literal_binds`` compilation) instead of interpolating
+        them directly into the SQL string.
+
+        .. warning::
+
+            Do not manually escape filter values (for example, with
+            ``replace("'", "''")``). Hand-rolled escaping is error-prone and easy
+            to get wrong across dialects. Rely on the ``where_in`` filter so values
+            are quoted safely by the engine.
 
         Usage example::
 

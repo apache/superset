@@ -927,6 +927,101 @@ def test_processing_time_offsets_falls_back_to_config_row_limit(processor):
     assert captured[0]["row_offset"] == 0
 
 
+def test_processing_time_offsets_updates_temporal_filter_with_adhoc_x_axis(processor):
+    """Offset query's TEMPORAL_RANGE filter must be shifted when the X-axis is
+    an adhoc Custom SQL column whose label differs from the underlying time
+    column. Previously the filter was matched against the X-axis label, which
+    never equals the dataset column, so the filter stayed at the original
+    range and the offset query AND'd both ranges together (empty intersection).
+    """
+    from superset.common.query_object import QueryObject
+    from superset.models.helpers import ExploreMixin
+
+    processor._qc_datasource.processing_time_offsets = (
+        ExploreMixin.processing_time_offsets.__get__(processor._qc_datasource)
+    )
+
+    df = pd.DataFrame(
+        {
+            "wedding_date_cast": pd.to_datetime(["2025-01-01", "2025-02-01"]),
+            "SUM(revenue)": [110, 120],
+        }
+    )
+
+    adhoc_x_axis = {
+        "label": "wedding_date_cast",
+        "sqlExpression": "CAST(wedding_date AS TIMESTAMP)",
+        "expressionType": "SQL",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1M",
+    }
+
+    query_object = QueryObject(
+        datasource=MagicMock(),
+        granularity=None,
+        columns=[adhoc_x_axis],
+        metrics=["SUM(revenue)"],
+        is_timeseries=True,
+        row_limit=10000,
+        time_offsets=["1 year ago"],
+        filters=[
+            {
+                "col": "wedding_date",
+                "op": "TEMPORAL_RANGE",
+                "val": "2025-01-01 : 2026-06-01",
+            }
+        ],
+    )
+
+    captured: list[dict[str, Any]] = []
+
+    def fake_query(dct: dict[str, Any]) -> MagicMock:
+        captured.append(dct)
+        result = MagicMock()
+        result.df = pd.DataFrame()
+        result.query = "SELECT 1"
+        return result
+
+    processor._qc_datasource.query = fake_query
+    processor._qc_datasource.normalize_df = MagicMock(return_value=pd.DataFrame())
+
+    with (
+        patch(
+            "superset.models.helpers.get_since_until_from_query_object",
+            return_value=(pd.Timestamp("2025-01-01"), pd.Timestamp("2026-06-01")),
+        ),
+        patch(
+            "superset.common.utils.query_cache_manager.QueryCacheManager"
+        ) as mock_cache_manager,
+        patch.object(
+            processor._qc_datasource,
+            "get_time_grain",
+            return_value="P1M",
+        ),
+        patch.object(
+            processor._qc_datasource,
+            "join_offset_dfs",
+            return_value=df,
+        ),
+    ):
+        mock_cache = MagicMock()
+        mock_cache.is_loaded = False
+        mock_cache_manager.get.return_value = mock_cache
+
+        processor._qc_datasource.processing_time_offsets(
+            df, query_object, None, None, False
+        )
+
+    assert len(captured) == 1
+    temporal_filters = [
+        flt for flt in captured[0]["filter"] if flt.get("op") == "TEMPORAL_RANGE"
+    ]
+    assert len(temporal_filters) == 1
+    val = temporal_filters[0]["val"]
+    assert "2024-01-01" in val, f"Expected shifted-from-dttm in val, got: {val!r}"
+    assert "2025-06-01" in val, f"Expected shifted-to-dttm in val, got: {val!r}"
+
+
 def test_ensure_totals_available_updates_cache_values():
     """
     Test that ensure_totals_available() updates the query objects AND
