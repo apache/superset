@@ -21,7 +21,6 @@ import logging
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Callable
-from uuid import UUID
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
@@ -76,14 +75,18 @@ from superset.datasets.schemas import (
     openapi_spec_methods_override,
 )
 from superset.exceptions import (
-    SupersetSecurityException,
     SupersetSyntaxErrorException,
     SupersetTemplateException,
 )
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.utils import json
 from superset.utils.core import parse_boolean_string, sanitize_cookie_token
-from superset.versioning.etag import set_version_etag, set_version_etag_by_uuid
+from superset.versioning.api_helpers import (
+    get_version_endpoint,
+    list_versions_endpoint,
+    restore_version_endpoint,
+)
+from superset.versioning.etag import set_version_etag
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -1538,26 +1541,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        try:
-            entity_uuid = UUID(uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid UUID")
-
-        entity = VersionDAO.find_active_by_uuid(SqlaTable, entity_uuid)
-        if entity is None:
-            return self.response_404()
-        try:
-            security_manager.raise_for_access(datasource=entity)
-        except SupersetSecurityException:
-            return self.response_403()
-
-        versions = VersionDAO.list_versions(SqlaTable, entity_uuid, entity=entity)
-        if versions is None:
-            return self.response_404()
-        return set_version_etag_by_uuid(
-            self.response(200, result=versions, count=len(versions)),
-            SqlaTable,
-            entity_uuid,
+        return list_versions_endpoint(
+            self, SqlaTable, uuid_str, access_kwarg="datasource"
         )
 
     @expose(
@@ -1612,30 +1597,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        try:
-            entity_uuid = UUID(uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid UUID")
-        try:
-            version_uuid = UUID(version_uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid version UUID")
-
-        entity = VersionDAO.find_active_by_uuid(SqlaTable, entity_uuid)
-        if entity is None:
-            return self.response_404()
-        try:
-            security_manager.raise_for_access(datasource=entity)
-        except SupersetSecurityException:
-            return self.response_403()
-
-        snapshot = VersionDAO.get_version(
-            SqlaTable, entity_uuid, version_uuid, entity=entity
-        )
-        if snapshot is None:
-            return self.response_404()
-        return set_version_etag_by_uuid(
-            self.response(200, result=snapshot), SqlaTable, entity_uuid
+        return get_version_endpoint(
+            self, SqlaTable, uuid_str, version_uuid_str, access_kwarg="datasource"
         )
 
     @expose(
@@ -1697,24 +1660,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             RestoreDatasetVersionCommand,
         )
 
-        try:
-            entity_uuid = UUID(uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid UUID")
-        try:
-            version_uuid = UUID(version_uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid version UUID")
-
-        try:
-            RestoreDatasetVersionCommand(entity_uuid, version_uuid).run()
-        except DatasetNotFoundError:
-            return self.response_404()
-        except DatasetForbiddenError:
-            return self.response_403()
-        except DatasetUpdateFailedError as ex:
-            logger.error("Error restoring dataset version: %s", ex)
-            return self.response_422(message=str(ex))
-        return set_version_etag_by_uuid(
-            self.response(200, message="OK"), SqlaTable, entity_uuid
+        return restore_version_endpoint(
+            self,
+            SqlaTable,
+            uuid_str,
+            version_uuid_str,
+            restore_command_cls=RestoreDatasetVersionCommand,
+            not_found_exc=DatasetNotFoundError,
+            forbidden_exc=DatasetForbiddenError,
+            update_failed_exc=DatasetUpdateFailedError,
+            resource_label="dataset",
         )

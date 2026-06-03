@@ -19,7 +19,6 @@ import logging
 from datetime import datetime
 from io import BytesIO
 from typing import Any, cast, Optional
-from uuid import UUID
 from zipfile import is_zipfile, ZipFile
 
 from flask import current_app, redirect, request, Response, send_file, url_for
@@ -85,7 +84,6 @@ from superset.daos.chart import ChartDAO
 from superset.daos.version import VersionDAO
 from superset.exceptions import (
     ScreenshotImageNotAvailableException,
-    SupersetSecurityException,
 )
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
@@ -100,7 +98,12 @@ from superset.utils.screenshots import (
     StatusValues,
 )
 from superset.utils.urls import get_url_path
-from superset.versioning.etag import set_version_etag, set_version_etag_by_uuid
+from superset.versioning.api_helpers import (
+    get_version_endpoint,
+    list_versions_endpoint,
+    restore_version_endpoint,
+)
+from superset.versioning.etag import set_version_etag
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -1330,27 +1333,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        try:
-            entity_uuid = UUID(uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid UUID")
-
-        entity = VersionDAO.find_active_by_uuid(Slice, entity_uuid)
-        if entity is None:
-            return self.response_404()
-        try:
-            security_manager.raise_for_access(chart=entity)
-        except SupersetSecurityException:
-            return self.response_403()
-
-        versions = VersionDAO.list_versions(Slice, entity_uuid, entity=entity)
-        if versions is None:
-            return self.response_404()
-        return set_version_etag_by_uuid(
-            self.response(200, result=versions, count=len(versions)),
-            Slice,
-            entity_uuid,
-        )
+        return list_versions_endpoint(self, Slice, uuid_str, access_kwarg="chart")
 
     @expose(
         "/<uuid_str>/versions/<version_uuid_str>/",
@@ -1400,30 +1383,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        try:
-            entity_uuid = UUID(uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid UUID")
-        try:
-            version_uuid = UUID(version_uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid version UUID")
-
-        entity = VersionDAO.find_active_by_uuid(Slice, entity_uuid)
-        if entity is None:
-            return self.response_404()
-        try:
-            security_manager.raise_for_access(chart=entity)
-        except SupersetSecurityException:
-            return self.response_403()
-
-        snapshot = VersionDAO.get_version(
-            Slice, entity_uuid, version_uuid, entity=entity
-        )
-        if snapshot is None:
-            return self.response_404()
-        return set_version_etag_by_uuid(
-            self.response(200, result=snapshot), Slice, entity_uuid
+        return get_version_endpoint(
+            self, Slice, uuid_str, version_uuid_str, access_kwarg="chart"
         )
 
     @expose(
@@ -1485,24 +1446,14 @@ class ChartRestApi(BaseSupersetModelRestApi):
             RestoreChartVersionCommand,
         )
 
-        try:
-            entity_uuid = UUID(uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid UUID")
-        try:
-            version_uuid = UUID(version_uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid version UUID")
-
-        try:
-            RestoreChartVersionCommand(entity_uuid, version_uuid).run()
-        except ChartNotFoundError:
-            return self.response_404()
-        except ChartForbiddenError:
-            return self.response_403()
-        except ChartUpdateFailedError as ex:
-            logger.error("Error restoring chart version: %s", ex)
-            return self.response_422(message=str(ex))
-        return set_version_etag_by_uuid(
-            self.response(200, message="OK"), Slice, entity_uuid
+        return restore_version_endpoint(
+            self,
+            Slice,
+            uuid_str,
+            version_uuid_str,
+            restore_command_cls=RestoreChartVersionCommand,
+            not_found_exc=ChartNotFoundError,
+            forbidden_exc=ChartForbiddenError,
+            update_failed_exc=ChartUpdateFailedError,
+            resource_label="chart",
         )

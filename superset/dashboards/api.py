@@ -20,7 +20,6 @@ import logging
 from datetime import datetime
 from io import BytesIO
 from typing import Any, Callable, cast
-from uuid import UUID
 from zipfile import is_zipfile, ZipFile
 
 import rison
@@ -123,7 +122,6 @@ from superset.dashboards.schemas import (
 )
 from superset.exceptions import (
     ScreenshotImageNotAvailableException,
-    SupersetSecurityException,
 )
 from superset.extensions import event_logger, security_manager
 from superset.models.dashboard import Dashboard
@@ -144,7 +142,12 @@ from superset.utils.screenshots import (
     ScreenshotCachePayload,
 )
 from superset.utils.urls import get_url_path
-from superset.versioning.etag import set_version_etag, set_version_etag_by_uuid
+from superset.versioning.api_helpers import (
+    get_version_endpoint,
+    list_versions_endpoint,
+    restore_version_endpoint,
+)
+from superset.versioning.etag import set_version_etag
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -2342,26 +2345,8 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        try:
-            entity_uuid = UUID(uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid UUID")
-
-        entity = VersionDAO.find_active_by_uuid(Dashboard, entity_uuid)
-        if entity is None:
-            return self.response_404()
-        try:
-            security_manager.raise_for_access(dashboard=entity)
-        except SupersetSecurityException:
-            return self.response_403()
-
-        versions = VersionDAO.list_versions(Dashboard, entity_uuid, entity=entity)
-        if versions is None:
-            return self.response_404()
-        return set_version_etag_by_uuid(
-            self.response(200, result=versions, count=len(versions)),
-            Dashboard,
-            entity_uuid,
+        return list_versions_endpoint(
+            self, Dashboard, uuid_str, access_kwarg="dashboard"
         )
 
     @expose(
@@ -2412,30 +2397,8 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        try:
-            entity_uuid = UUID(uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid UUID")
-        try:
-            version_uuid = UUID(version_uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid version UUID")
-
-        entity = VersionDAO.find_active_by_uuid(Dashboard, entity_uuid)
-        if entity is None:
-            return self.response_404()
-        try:
-            security_manager.raise_for_access(dashboard=entity)
-        except SupersetSecurityException:
-            return self.response_403()
-
-        snapshot = VersionDAO.get_version(
-            Dashboard, entity_uuid, version_uuid, entity=entity
-        )
-        if snapshot is None:
-            return self.response_404()
-        return set_version_etag_by_uuid(
-            self.response(200, result=snapshot), Dashboard, entity_uuid
+        return get_version_endpoint(
+            self, Dashboard, uuid_str, version_uuid_str, access_kwarg="dashboard"
         )
 
     @expose(
@@ -2497,24 +2460,14 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             RestoreDashboardVersionCommand,
         )
 
-        try:
-            entity_uuid = UUID(uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid UUID")
-        try:
-            version_uuid = UUID(version_uuid_str)
-        except ValueError:
-            return self.response_400(message="Invalid version UUID")
-
-        try:
-            RestoreDashboardVersionCommand(entity_uuid, version_uuid).run()
-        except DashboardNotFoundError:
-            return self.response_404()
-        except DashboardForbiddenError:
-            return self.response_403()
-        except DashboardUpdateFailedError as ex:
-            logger.error("Error restoring dashboard version: %s", ex)
-            return self.response_422(message=str(ex))
-        return set_version_etag_by_uuid(
-            self.response(200, message="OK"), Dashboard, entity_uuid
+        return restore_version_endpoint(
+            self,
+            Dashboard,
+            uuid_str,
+            version_uuid_str,
+            restore_command_cls=RestoreDashboardVersionCommand,
+            not_found_exc=DashboardNotFoundError,
+            forbidden_exc=DashboardForbiddenError,
+            update_failed_exc=DashboardUpdateFailedError,
+            resource_label="dashboard",
         )
