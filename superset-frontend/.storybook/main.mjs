@@ -18,9 +18,9 @@
  */
 
 // This file has been automatically migrated to valid ESM format by Storybook.
-import path from 'path';
-import { createRequire } from "node:module";
-import { fileURLToPath } from 'url';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 // Superset's webpack.config.js
 import customConfig from '../webpack.config.js';
 
@@ -109,8 +109,6 @@ export default {
       alias: {
         ...config.resolve?.alias,
         ...customConfig.resolve?.alias,
-        // // Fix for Storybook 8.6.x with React 17 - resolve ESM module paths
-        // 'react-dom/test-utils': require.resolve('react-dom/test-utils'),
         // Shared storybook utilities
         '@storybook-shared': path.join(__dirname, 'shared'),
       },
