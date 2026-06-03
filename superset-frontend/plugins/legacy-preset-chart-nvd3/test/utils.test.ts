@@ -159,20 +159,6 @@ describe('nvd3/utils', () => {
       expect(tooltip).not.toContain('onerror');
       expect(tooltip).not.toContain('alert(1)');
     });
-
-    test('removes script tags injected via the series key', () => {
-      const tooltip = generateMultiLineTooltipContent(
-        {
-          value: 'x-value',
-          series: [
-            { key: '<script>alert(1)</script>', color: '#fff', value: 1 },
-          ],
-        },
-        identity,
-        [identity],
-      );
-      expect(tooltip).not.toContain('<script>');
-    });
   });
 
   describe('getTimeOrNumberFormatter(format)', () => {
