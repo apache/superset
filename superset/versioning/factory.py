@@ -85,13 +85,13 @@ def _has_dirty_versioned_children(target: Any, uow: Any) -> bool:
 
     Used by :meth:`SkipUnmodifiedPlugin._is_no_op_update` so a parent
     UPDATE that was force-flagged by
-    :func:`baseline._force_parent_dirty_on_child_change` is preserved
+    :func:`baseline.force_parent_dirty_on_child_change` is preserved
     even though the parent's own scalars match the previous version.
     """
     # pylint: disable=import-outside-toplevel
-    from superset.versioning.baseline import _child_to_parent_registry
+    from superset.versioning.baseline import child_to_parent_registry
 
-    child_map = _child_to_parent_registry()
+    child_map = child_to_parent_registry()
     target_cls = type(target)
     for _key, op in uow.operations.items():
         entry = child_map.get(type(op.target))
@@ -241,7 +241,7 @@ class SkipUnmodifiedPlugin(Plugin):
         1. If any versioned child (e.g. a ``TableColumn`` whose ``table``
            is *target*) has an operation in ``uow.operations``, the parent
            is being force-touched by
-           ``baseline._force_parent_dirty_on_child_change`` to anchor the
+           ``baseline.force_parent_dirty_on_child_change`` to anchor the
            child changes against a parent shadow row. Keep the row.
         2. ``is_modified(target)`` — cheap SQLAlchemy attribute-history
            check. Returns ``False`` when only excluded columns/relationships

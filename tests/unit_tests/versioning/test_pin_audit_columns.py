@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Unit tests for ``_pin_audit_columns`` in ``superset.versioning.baseline``.
+"""Unit tests for ``pin_audit_columns`` in ``superset.versioning.baseline``.
 
 Locks in the SA-version-dependent semantic the helper relies on: calling
 ``attributes.flag_modified(parent, "changed_by_fk")`` causes SQLAlchemy
@@ -24,7 +24,7 @@ mechanism that prevents a stale ``g.user.id`` from being written into
 the parent's ``changed_by_fk`` when the synthetic flag-flush triggers
 an UPDATE during an autoflush at a time when the test user has already
 been deleted from ``ab_user`` (the original failure mode that motivated
-``_pin_audit_columns``; see ``baseline.py`` docstring).
+``pin_audit_columns``; see ``baseline.py`` docstring).
 
 If a future SQLAlchemy version changes this behavior — i.e. ``onupdate``
 fires even when the column is in dirty attribute history — this test
@@ -66,13 +66,13 @@ def _make_dummy_mapped_class() -> tuple[Any, sa.engine.Engine]:
 
 
 def test_flag_modified_suppresses_onupdate_callable() -> None:
-    """The contract ``_pin_audit_columns`` depends on: when an attribute
+    """The contract ``pin_audit_columns`` depends on: when an attribute
     is marked dirty via ``flag_modified``, SQLAlchemy uses the in-memory
     value rather than invoking the column's ``onupdate=callable``.
 
     The cascade fixed in sc-103156 T062 (and in PR #40451's discussion)
     relied on this exact behavior — without it, the synthetic UPDATE that
-    ``_force_parent_dirty_on_child_change`` triggers would stamp
+    ``force_parent_dirty_on_child_change`` triggers would stamp
     ``changed_by_fk`` with whatever ``get_user_id()`` resolves to at flush
     time, including stale user ids from a teardown autoflush.
 
@@ -83,8 +83,8 @@ def test_flag_modified_suppresses_onupdate_callable() -> None:
     calling ``flag_modified``, which forces a load). In the
     ``expire_on_commit=True`` path the attribute would be expired and
     ``flag_modified`` would raise ``InvalidRequestError`` — that case
-    is the production path ``_pin_audit_columns`` catches and skips
-    (covered in ``test_pin_audit_columns_tolerates_invalid_request_error``).
+    is the production path ``pin_audit_columns`` catches and skips
+    (covered in ``testpin_audit_columns_tolerates_invalid_request_error``).
     """
     from sqlalchemy.orm import attributes, sessionmaker
 
@@ -116,7 +116,7 @@ def test_flag_modified_suppresses_onupdate_callable() -> None:
             assert row.changed_by_fk == 42, (
                 f"Expected in-memory value 42, got {row.changed_by_fk} — "
                 "SA may have changed flag_modified semantics; "
-                "_pin_audit_columns would no longer suppress get_user_id()"
+                "pin_audit_columns would no longer suppress get_user_id()"
             )
 
         # And the onupdate callable was NOT invoked.
@@ -129,7 +129,7 @@ def test_flag_modified_suppresses_onupdate_callable() -> None:
 def test_onupdate_does_fire_without_flag_modified() -> None:
     """Sanity check / negative case: without ``flag_modified``, the
     ``onupdate`` callable DOES fire on a regular update. Pins the half
-    of the contract we DON'T want for ``_pin_audit_columns``."""
+    of the contract we DON'T want for ``pin_audit_columns``."""
     from sqlalchemy.orm import sessionmaker
 
     parent_cls, engine = _make_dummy_mapped_class()
@@ -155,23 +155,23 @@ def test_onupdate_does_fire_without_flag_modified() -> None:
             assert row.changed_by_fk == 9999
 
 
-def test_pin_audit_columns_skips_missing_attribute() -> None:
-    """``_pin_audit_columns`` must tolerate parents that don't carry the
+def testpin_audit_columns_skips_missing_attribute() -> None:
+    """``pin_audit_columns`` must tolerate parents that don't carry the
     audit attributes (e.g., a model variant without ``AuditMixin``).
     Uses a bare object so ``hasattr`` returns False."""
     # pylint: disable=import-outside-toplevel
-    from superset.versioning.baseline import _pin_audit_columns
+    from superset.versioning.baseline import pin_audit_columns
 
     class NoAuditMixin:
         pass
 
     parent = NoAuditMixin()
     # Must not raise.
-    _pin_audit_columns(parent)
+    pin_audit_columns(parent)
 
 
-def test_pin_audit_columns_tolerates_invalid_request_error() -> None:
-    """``_pin_audit_columns`` catches ``InvalidRequestError`` raised when
+def testpin_audit_columns_tolerates_invalid_request_error() -> None:
+    """``pin_audit_columns`` catches ``InvalidRequestError`` raised when
     an attribute is unloaded in instance state — e.g., on a freshly
     constructed ``session.new`` instance whose attribute defaults haven't
     fired yet. Without this guard, the listener would crash mid-flush
@@ -181,7 +181,7 @@ def test_pin_audit_columns_tolerates_invalid_request_error() -> None:
 
     from sqlalchemy.exc import InvalidRequestError
 
-    from superset.versioning.baseline import _pin_audit_columns
+    from superset.versioning.baseline import pin_audit_columns
 
     class _HasAuditCols:
         changed_by_fk = 1
@@ -195,7 +195,7 @@ def test_pin_audit_columns_tolerates_invalid_request_error() -> None:
     ) as mock_flag:
         # Must not raise — must swallow the InvalidRequestError per
         # attribute and keep going.
-        _pin_audit_columns(parent)
+        pin_audit_columns(parent)
         assert mock_flag.call_count == 2
 
 

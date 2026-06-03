@@ -23,7 +23,7 @@ Two pieces:
   ``end_transaction_id`` / ``operation_type``). Re-used outside this
   package as a filter (the change-record listener strips these from
   JSON record values).
-* :func:`_insert_baseline_shadow_row` — copies a live row into a
+* :func:`insert_baseline_shadow_row` — copies a live row into a
   shadow ``Table`` as a synthetic ``operation_type=0`` baseline at
   the given transaction id. The other modules in this package use it
   for every parent and child baseline insert.
@@ -44,7 +44,7 @@ CONTINUUM_BOOKKEEPING_COLUMNS: frozenset[str] = frozenset(
 )
 
 
-def _insert_baseline_shadow_row(
+def insert_baseline_shadow_row(
     conn: Any,
     version_table: sa.Table,
     source_row: Any,

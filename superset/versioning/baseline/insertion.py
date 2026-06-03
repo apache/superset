@@ -18,7 +18,7 @@
 
 Two complementary helpers:
 
-* :func:`_insert_baseline_and_children` — top-level glue called by
+* :func:`insert_baseline_and_children` — top-level glue called by
   the listener. Wraps the work in ``session.no_autoflush`` (so
   ``session.connection()`` doesn't trigger a flush of Continuum's
   pending Transaction object before our direct-SQL insert claims its
@@ -38,14 +38,14 @@ from typing import Any
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
-from superset.versioning.baseline.children import _CHILD_BASELINE_HANDLERS
-from superset.versioning.baseline.shadow import _insert_baseline_shadow_row
+from superset.versioning.baseline.children import CHILD_BASELINE_HANDLERS
+from superset.versioning.baseline.shadow import insert_baseline_shadow_row
 from superset.versioning.utils import read_row_outside_flush
 
 logger = logging.getLogger(__name__)
 
 
-def _insert_baseline_and_children(
+def insert_baseline_and_children(
     session: Session, obj: Any, version_table: Any
 ) -> None:
     """Insert the parent baseline row, then baseline the parent's child
@@ -121,7 +121,7 @@ def _insert_baseline_row(
         )
     )
     tx_id = result.inserted_primary_key[0]
-    _insert_baseline_shadow_row(conn, version_table, row, tx_id)
+    insert_baseline_shadow_row(conn, version_table, row, tx_id)
     return tx_id
 
 
@@ -131,12 +131,12 @@ def _baseline_children_for_parent(
     """Baseline a parent's child collections under the parent's baseline tx.
 
     Dispatches via the
-    :data:`~superset.versioning.baseline.children._CHILD_BASELINE_HANDLERS`
+    :data:`~superset.versioning.baseline.children.CHILD_BASELINE_HANDLERS`
     table to per-entity handlers. A handler failure is logged but does
     not block the parent baseline.
     """
     parent_name = type(parent_obj).__name__
-    handler = _CHILD_BASELINE_HANDLERS.get(parent_name)
+    handler = CHILD_BASELINE_HANDLERS.get(parent_name)
     if handler is None:
         return
     try:

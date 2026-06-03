@@ -18,7 +18,7 @@
 
 After a parent baseline row lands in :mod:`.insertion`, this module's
 handlers write the parent's child baselines under the same transaction
-id. The dispatch table :data:`_CHILD_BASELINE_HANDLERS` is keyed on
+id. The dispatch table :data:`CHILD_BASELINE_HANDLERS` is keyed on
 the parent class name (avoids an import-cycle with the entity modules,
 which can't be loaded at app-init time).
 
@@ -43,7 +43,7 @@ from typing import Any
 import sqlalchemy as sa
 from sqlalchemy.orm import Session
 
-from superset.versioning.baseline.shadow import _insert_baseline_shadow_row
+from superset.versioning.baseline.shadow import insert_baseline_shadow_row
 
 
 def _baseline_dataset_children(session: Session, dataset: Any, tx_id: int) -> None:
@@ -107,7 +107,7 @@ def _baseline_dashboard_children(session: Session, dashboard: Any, tx_id: int) -
 # handlers it references because module-level dict literals evaluate
 # at import time and need the names already bound.
 _ChildBaselineHandler = Callable[[Session, Any, int], None]
-_CHILD_BASELINE_HANDLERS: dict[str, _ChildBaselineHandler] = {
+CHILD_BASELINE_HANDLERS: dict[str, _ChildBaselineHandler] = {
     "SqlaTable": _baseline_dataset_children,
     "Dashboard": _baseline_dashboard_children,
 }
@@ -150,7 +150,7 @@ def _insert_child_baseline_rows(
         return
 
     for row in rows:
-        _insert_baseline_shadow_row(conn, child_version_table, row, tx_id)
+        insert_baseline_shadow_row(conn, child_version_table, row, tx_id)
 
 
 def _baseline_attached_slices(
@@ -209,4 +209,4 @@ def _baseline_attached_slices(
 def _insert_synthetic_slice_baseline(
     conn: Any, slice_ver_table: sa.Table, slice_row: Any, tx_id: int
 ) -> None:
-    _insert_baseline_shadow_row(conn, slice_ver_table, slice_row, tx_id)
+    insert_baseline_shadow_row(conn, slice_ver_table, slice_row, tx_id)

@@ -273,7 +273,7 @@ class TestSkipUnmodifiedPlugin(SupersetTestCase):
         """Editing a ``TableColumn`` description MUST mint a parent
         ``tables_version`` row even though the parent's own scalars are
         unchanged. Without the force-touch in
-        ``baseline._force_parent_dirty_on_child_change``, child-only
+        ``baseline.force_parent_dirty_on_child_change``, child-only
         edits leave the dataset's version-history dropdown empty.
         """
         db.session.commit()
