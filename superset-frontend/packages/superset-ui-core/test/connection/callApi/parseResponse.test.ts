@@ -183,6 +183,26 @@ describe('parseResponse()', () => {
     expect(responseBigNumber.json.constructor).toEqual('constructor');
   });
 
+  test('handles big numbers in scientific notation when `parseMethod=json-bigint`', async () => {
+    const mockScientificUrl = '/mock/get/scientific';
+    const mockScientificPayload =
+      '{ "big_double": 4.799703045723905e+32, "negative_big": -4.799703045723905e+32, "small": 1 }';
+    fetchMock.get(mockScientificUrl, mockScientificPayload);
+
+    const responseBigNumber = await parseResponse(
+      callApi({ url: mockScientificUrl, method: 'GET' }),
+      'json-bigint',
+    );
+
+    expect(`${responseBigNumber.json.big_double}`).toEqual(
+      '479970304572390500000000000000000',
+    );
+    expect(`${responseBigNumber.json.negative_big}`).toEqual(
+      '-479970304572390500000000000000000',
+    );
+    expect(responseBigNumber.json.small).toEqual(1);
+  });
+
   test('rejects if request.ok=false', async () => {
     expect.assertions(3);
     const mockNotOkayUrl = '/mock/notokay/url';

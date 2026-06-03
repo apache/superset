@@ -61,7 +61,7 @@ import { RESPONSIVE_WIDTH } from 'src/filters/components/common';
 import { dispatchHoverAction, dispatchFocusAction } from './utils';
 import { FilterControlProps } from './types';
 import { getFormData } from '../../utils';
-import { useFilterDependencies } from './state';
+import { useFilterDependencies, useTransitiveParentIds } from './state';
 import { useFilterOutlined } from '../useFilterOutlined';
 
 const HEIGHT = 32;
@@ -83,6 +83,35 @@ const StyledDiv = styled.div<{
 `;
 
 const queriesDataPlaceholder = [{ data: [{}] }];
+
+type TimeGrainFilterConfig = {
+  time_grains?: string[];
+};
+
+export const applyTimeGrainAllowlist = (
+  filterType: string,
+  allowedTimeGrains: string[] | undefined,
+  results: ChartDataResponseResult[],
+): ChartDataResponseResult[] => {
+  if (filterType !== 'filter_timegrain' || !allowedTimeGrains?.length) {
+    return results;
+  }
+
+  return results.map(result => {
+    if (!Array.isArray(result.data)) {
+      return result;
+    }
+
+    return {
+      ...result,
+      data: result.data.filter(row =>
+        allowedTimeGrains.includes(
+          (row as { duration?: string }).duration ?? '',
+        ),
+      ),
+    };
+  });
+};
 
 const useShouldFilterRefresh = () => {
   const isDashboardRefreshing = useSelector<RootState, boolean>(
@@ -114,11 +143,15 @@ const FilterValue: FC<FilterValueProps> = ({
 }) => {
   const { id, targets, filterType } = filter;
   const isCustomization = isChartCustomization(filter);
+  const allowedTimeGrains = isCustomization
+    ? undefined
+    : (filter as TimeGrainFilterConfig).time_grains;
   const adhocFilters = isCustomization ? undefined : filter.adhoc_filters;
   const timeRange = isCustomization ? undefined : filter.time_range;
   const granularitySqla = isCustomization ? undefined : filter.granularity_sqla;
   const metadata = getChartMetadataRegistry().get(filterType);
   const dependencies = useFilterDependencies(id, dataMaskSelected);
+  const transitiveParentIds = useTransitiveParentIds(id);
   const shouldRefresh = useShouldFilterRefresh();
 
   const behaviors = useMemo(
@@ -187,12 +220,15 @@ const FilterValue: FC<FilterValueProps> = ({
       dashboardId,
     });
     const filterOwnState = filter.dataMask?.ownState || {};
-    if ((filter.cascadeParentIds ?? []).length) {
-      // Prevent unnecessary backend requests by validating parent filter selections first
+    if (transitiveParentIds.length) {
+      // Prevent unnecessary backend requests by validating ancestor filter
+      // selections first. We walk the full transitive ancestor chain (not just
+      // direct parents) so the counts line up with `dependencies`, which is
+      // itself built from the transitive chain by `useFilterDependencies`.
 
       let selectedParentFilterValueCounts = 0;
       let isTimeRangeSelected = false;
-      (filter.cascadeParentIds ?? []).forEach(pId => {
+      transitiveParentIds.forEach(pId => {
         const extraFormData = dataMaskSelected?.[pId]?.extraFormData;
         if (extraFormData?.filters?.length) {
           selectedParentFilterValueCounts += extraFormData.filters.length;
@@ -202,7 +238,7 @@ const FilterValue: FC<FilterValueProps> = ({
         }
       });
 
-      // check if all parent filters with defaults have a value selected
+      // check if all ancestor filters with defaults have a value selected
 
       const depsCount = dependencies.filters?.length ?? 0;
       const hasTimeRangeDeps = Boolean(dependencies?.time_range);
@@ -212,7 +248,7 @@ const FilterValue: FC<FilterValueProps> = ({
         (hasTimeRangeDeps && !isTimeRangeSelected)
       ) {
         // child filter should not request backend until it
-        // has all the required information from parent filters
+        // has all the required information from ancestor filters
         return;
       }
       setHasDepsFilterValue(false);
@@ -247,12 +283,24 @@ const FilterValue: FC<FilterValueProps> = ({
             // deal with getChartDataRequest transforming the response data
             const result = 'result' in json ? json.result[0] : json;
             if (response.status === 200) {
-              setState([result as ChartDataResponseResult]);
+              setState(
+                applyTimeGrainAllowlist(filterType, allowedTimeGrains, [
+                  result as ChartDataResponseResult,
+                ]),
+              );
+              setError(undefined);
               handleFilterLoadFinish();
             } else if (response.status === 202) {
               waitForAsyncData(result as Parameters<typeof waitForAsyncData>[0])
                 .then((asyncResult: ChartDataResponseResult[]) => {
-                  setState(asyncResult);
+                  setState(
+                    applyTimeGrainAllowlist(
+                      filterType,
+                      allowedTimeGrains,
+                      asyncResult,
+                    ),
+                  );
+                  setError(undefined);
                   handleFilterLoadFinish();
                 })
                 .catch((error: Response) => {
@@ -267,7 +315,13 @@ const FilterValue: FC<FilterValueProps> = ({
               );
             }
           } else {
-            setState(json.result as ChartDataResponseResult[]);
+            setState(
+              applyTimeGrainAllowlist(
+                filterType,
+                allowedTimeGrains,
+                json.result as ChartDataResponseResult[],
+              ),
+            );
             setError(undefined);
             handleFilterLoadFinish();
           }
@@ -286,11 +340,13 @@ const FilterValue: FC<FilterValueProps> = ({
     groupby,
     handleFilterLoadFinish,
     filter,
+    allowedTimeGrains,
     hasDataSource,
     isRefreshing,
     shouldRefresh,
     dataMaskSelected,
     setHasDepsFilterValue,
+    transitiveParentIds,
   ]);
 
   useEffect(() => {

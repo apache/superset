@@ -36,10 +36,13 @@ const {
 } = require('webpack-manifest-plugin');
 const ForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
 const ReactRefreshWebpackPlugin = require('@pmmmwh/react-refresh-webpack-plugin');
-const parsedArgs = require('yargs').argv;
+const yargs = require('yargs');
+const { hideBin } = require('yargs/helpers');
 const Visualizer = require('webpack-visualizer-plugin2');
 const getProxyConfig = require('./webpack.proxy-config');
 const packageConfig = require('./package.json');
+
+const parsedArgs = yargs(hideBin(process.argv)).parse();
 
 // input dir
 const APP_DIR = path.resolve(__dirname, './');
@@ -200,9 +203,16 @@ if (!process.env.CI) {
 if (isDevMode) {
   plugins.push(
     new ReactRefreshWebpackPlugin({
-      // Exclude service worker from React Refresh - it runs in a worker context
-      // without DOM/window and doesn't need HMR
-      exclude: /service-worker/,
+      // Exclude:
+      //   - node_modules (the plugin's default — must be re-added when overriding
+      //     `exclude`, otherwise pre-bundled ESM packages such as
+      //     react-checkbox-tree get the refresh loader injected into their
+      //     nested webpack runtime, causing
+      //     `__webpack_require__.$Refresh$ is undefined` at module factory
+      //     execution time.
+      //   - service worker (runs in a worker context without DOM/window and
+      //     does not need HMR).
+      exclude: [/node_modules/, /service-worker/],
     }),
   );
 }
@@ -392,7 +402,6 @@ const config = {
               'react-dom',
               'redux',
               'react-redux',
-              'react-sortable-hoc',
               'react-table',
               'react-ace',
               'webpack.*',
@@ -502,10 +511,7 @@ const config = {
       {
         test: /\.tsx?$/,
         exclude: [/\.test.tsx?$/, /node_modules/],
-        // Skip thread-loader in dev mode - it breaks HMR by running in worker threads
-        use: isDevMode
-          ? [createSwcLoader('typescript', true)]
-          : ['thread-loader', createSwcLoader('typescript', true)],
+        use: [createSwcLoader('typescript', true)],
       },
       {
         test: /\.jsx?$/,

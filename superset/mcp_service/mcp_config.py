@@ -42,12 +42,32 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 MCP_SERVICE_HOST = "localhost"
 MCP_SERVICE_PORT = 5008
 
+# Bug-report support contact surfaced by the generate_bug_report tool. Each
+# deployment should override this in superset_config.py to point users at the
+# right channel (e.g. an internal support address, a vendor support team).
+# When unset, the tool falls back to a neutral default that points at the
+# user's Superset administrator and the Apache Superset issue tracker.
+MCP_BUG_REPORT_CONTACT: str | None = None
+
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
 
 # MCP RBAC - when True, tools with class_permission_name are checked
 # against the FAB security_manager before execution.
 MCP_RBAC_ENABLED = True
+
+# MCP Disabled Tools - a set of tool names to remove from the MCP server at
+# startup. Disabled tools are silently omitted from tool discovery, so AI
+# clients never see them. Use this when a Superset-provided tool conflicts with
+# a custom tool added via an extension and you want to suppress the built-in
+# version.
+#
+# Example:
+#   MCP_DISABLED_TOOLS = {"execute_sql", "health_check"}
+#
+# Extension-prefixed tools can also be disabled using their full name:
+#   MCP_DISABLED_TOOLS = {"extensions.myorg.myext.some_tool"}
+MCP_DISABLED_TOOLS: set[str] = set()
 
 # MCP JWT Debug Errors - controls server-side JWT debug logging.
 # When False (default), uses the default JWTVerifier with minimal logging.
@@ -59,12 +79,6 @@ MCP_RBAC_ENABLED = True
 # per RFC 6750 Section 3.1. This flag NEVER affects client-facing output.
 MCP_JWT_DEBUG_ERRORS = False
 
-# Enable parse_request decorator for MCP tools.
-# When True (default), tool requests are automatically parsed from JSON strings
-# to Pydantic models, working around a Claude Code double-serialization bug
-# (https://github.com/anthropics/claude-code/issues/5504).
-# Set to False to disable and let FastMCP handle request parsing natively.
-MCP_PARSE_REQUEST_ENABLED = True
 
 # Session configuration for local development
 MCP_SESSION_CONFIG = {
@@ -224,7 +238,6 @@ MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
     "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
     "excluded_tools": [  # Tools to skip size checking
         "health_check",  # Always small
-        "get_chart_preview",  # Returns URLs, not data
         "generate_explore_link",  # Returns URLs
         "open_sql_lab_with_context",  # Returns URLs
         "search_tools",  # Returns tool schemas for discovery (intentionally large)
@@ -261,6 +274,18 @@ MCP_RESPONSE_SIZE_CONFIG: Dict[str, Any] = {
 # - Set compact_schemas=False to disable schema compaction only (full $defs
 #   and descriptions in search results, tool search still active).
 # - Set max_description_length=0 to disable description truncation only.
+#
+# Summary Mode (include_schemas):
+# --------------------------------
+# When include_schemas=False (default), search results omit inputSchema
+# entirely and include a lightweight "parameters_hint" field listing
+# top-level parameter names (e.g. "page, page_size, search, filters").
+# This reduces per-search token cost by ~80% vs compact mode while still
+# conveying what parameters a tool accepts.  Full schemas remain available
+# when invoking the tool via call_tool.
+# - Set include_schemas=True to restore full inputSchema in search results.
+# - compact_schemas is ignored when include_schemas=False (no schema to
+#   compact); max_description_length still applies in summary mode.
 # =============================================================================
 MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
     "enabled": True,  # Enabled by default — reduces initial context by ~70%
@@ -272,8 +297,9 @@ MCP_TOOL_SEARCH_CONFIG: Dict[str, Any] = {
     ],
     "search_tool_name": "search_tools",  # Name of the search tool
     "call_tool_name": "call_tool",  # Name of the call proxy tool
-    "compact_schemas": True,  # Strip $defs and simplify $ref in search results
+    "compact_schemas": True,  # Strip $defs/$ref (requires include_schemas=True)
     "max_description_length": 300,  # Truncate tool descriptions (0 = no truncation)
+    "include_schemas": True,  # full inputSchema in search results
 }
 
 
@@ -317,10 +343,10 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
 
             auth_provider = DetailedJWTVerifier(**common_kwargs)
         else:
-            # Default JWTVerifier: minimal logging, generic error responses.
-            from fastmcp.server.auth.providers.jwt import JWTVerifier
+            # MCPJWTVerifier: minimal logging + browser-friendly error page.
+            from superset.mcp_service.jwt_verifier import MCPJWTVerifier
 
-            auth_provider = JWTVerifier(**common_kwargs)
+            auth_provider = MCPJWTVerifier(**common_kwargs)
 
         return auth_provider
     except Exception:
@@ -389,6 +415,7 @@ def get_mcp_config(app_config: Dict[str, Any] | None = None) -> Dict[str, Any]:
         "MCP_SERVICE_PORT": MCP_SERVICE_PORT,
         "MCP_DEBUG": MCP_DEBUG,
         "MCP_RBAC_ENABLED": MCP_RBAC_ENABLED,
+        "MCP_DISABLED_TOOLS": set(MCP_DISABLED_TOOLS),
         **MCP_SESSION_CONFIG,
         **MCP_CSRF_CONFIG,
     }

@@ -235,7 +235,11 @@ class ChartDataRestApi(ChartRestApi):
                 # templating pulls form data from the request globally, so this
                 # fallback ensures it has the filters and extra_form_data applied
                 # when used in get_sqla_query which constructs the final query.
-                g.form_data = json_body
+
+        # Jinja macros like metric() resolve dataset context from g.form_data
+        # when not given an explicit dataset_id. For GET requests there is no
+        # JSON body, so we must always expose the saved query context here.
+        g.form_data = json_body
 
         try:
             query_context = self._create_query_context_from_form(json_body)
@@ -612,6 +616,13 @@ class ChartDataRestApi(ChartRestApi):
     def _extract_export_params_from_request(self) -> tuple[str | None, int | None]:
         """Extract filename and expected_rows from request for streaming exports."""
         filename = request.form.get("filename")
+        if filename:
+            # Sanitize the user-supplied filename before it is used in the
+            # Content-Disposition header (consistent with the generated-name
+            # path). secure_filename may reduce a name consisting entirely of
+            # unsupported characters to an empty string, in which case fall back
+            # to the generated default downstream.
+            filename = secure_filename(filename) or None
         if filename:
             logger.info("FRONTEND PROVIDED FILENAME: %s", filename)
 

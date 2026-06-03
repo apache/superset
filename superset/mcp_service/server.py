@@ -25,12 +25,14 @@ For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL.
 import logging
 import os
 from collections.abc import Sequence
-from typing import Annotated, Any
+from typing import Annotated, Any, Callable
 
 import uvicorn
+from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
+from superset.mcp_service.jwt_verifier import BrowserHelloMiddleware
 from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
     MCP_STORE_CONFIG,
@@ -40,6 +42,7 @@ from superset.mcp_service.middleware import (
     create_response_size_guard_middleware,
     GlobalErrorHandlerMiddleware,
     LoggingMiddleware,
+    RBACToolVisibilityMiddleware,
     StructuredContentStripperMiddleware,
 )
 from superset.mcp_service.storage import _create_redis_store
@@ -74,6 +77,34 @@ def _suppress_third_party_warnings() -> None:
     )
 
 
+class FastMCPValidationFilter(logging.Filter):
+    """Downgrade FastMCP's user-error logs from ERROR to WARNING.
+
+    FastMCP's server.py logs ValidationError and ToolError at ERROR level
+    via logger.exception() before our GlobalErrorHandlerMiddleware sees it.
+    These are user errors (LLM sent bad params, access denied, not found)
+    and are expected in normal MCP operation — they should not pollute
+    ERROR-level logs in Datadog.
+
+    Only "Error validating tool" messages are downgraded — these are
+    always Pydantic ValidationErrors (bad params from LLM). "Error calling
+    tool" messages are NOT downgraded because our middleware wraps both
+    user errors and system errors in ToolError, making it impossible to
+    distinguish them by exception type alone.
+    """
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        # NOTE: This matches the literal log message from FastMCP's server.py
+        # (fastmcp/server/server.py line ~1245). If FastMCP changes this
+        # message format, this filter will stop working silently.
+        if record.levelno != logging.ERROR:
+            return True
+        if "Error validating tool" in record.getMessage():
+            record.levelno = logging.WARNING
+            record.levelname = "WARNING"
+        return True
+
+
 def configure_logging(debug: bool = False) -> None:
     """Configure logging for the MCP service."""
     import sys
@@ -101,6 +132,13 @@ def configure_logging(debug: bool = False) -> None:
 
         # Use logging instead of print to avoid stdout contamination
         logging.info("🔍 SQL Debug logging enabled")
+
+    # FastMCP's server.py logs ValidationError/ToolError at ERROR via
+    # logger.exception() before our middleware sees it. These are user errors
+    # (bad params from LLM) and should not pollute ERROR logs.
+    # Downgrade these specific messages from ERROR to WARNING.
+    fastmcp_server_logger = logging.getLogger("fastmcp.server.server")
+    fastmcp_server_logger.addFilter(FastMCPValidationFilter())
 
 
 def create_event_store(config: dict[str, Any] | None = None) -> Any | None:
@@ -201,7 +239,43 @@ def _simplify_optional_union(result: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def _compact_schema(obj: Any) -> Any:
+def _resolve_ref(
+    obj: dict[str, Any],
+    defs: dict[str, Any],
+    resolving: frozenset[str],
+) -> Any:
+    """Resolve a ``$ref`` pointer by inlining its definition from *defs*.
+
+    Falls back to ``{"type": "object"}`` when the definition is missing
+    or would cause a circular reference.
+    """
+    ref_path: str = obj["$ref"]
+    ref_name = ref_path.rsplit("/", 1)[-1] if "/" in ref_path else ""
+    definition = defs.get(ref_name) if ref_name else None
+
+    if definition is not None and ref_name not in resolving:
+        inlined = _compact_schema(
+            definition,
+            _defs=defs,
+            _resolving=resolving | {ref_name},
+        )
+        if isinstance(inlined, dict):
+            if desc := obj.get("description"):
+                inlined.setdefault("description", desc)
+        return inlined
+
+    replacement: dict[str, Any] = {"type": "object"}
+    if desc := obj.get("description"):
+        replacement["description"] = desc
+    return replacement
+
+
+def _compact_schema(
+    obj: Any,
+    *,
+    _defs: dict[str, Any] | None = None,
+    _resolving: frozenset[str] | None = None,
+) -> Any:
     """Collapse ``$defs`` and ``$ref`` pointers in a JSON Schema.
 
     Search results only need enough schema detail for the LLM to identify
@@ -212,28 +286,35 @@ def _compact_schema(obj: Any) -> Any:
     Transformations applied:
 
     * ``$defs`` sections are removed entirely.
-    * ``{"$ref": "..."}`` is replaced with ``{"type": "object"}``.
+    * ``{"$ref": "..."}`` is resolved by inlining the referenced
+      definition from ``$defs``.  If the definition cannot be found
+      (or would cause a circular reference), the ref is replaced with
+      ``{"type": "object"}``.
     * ``anyOf``/``oneOf`` lists containing only a ``$ref`` and
       ``{"type": "null"}`` (Pydantic's Optional encoding) are collapsed
       to the simplified non-null variant.
     """
     if isinstance(obj, list):
-        return [_compact_schema(item) for item in obj]
+        return [
+            _compact_schema(item, _defs=_defs, _resolving=_resolving) for item in obj
+        ]
     if not isinstance(obj, dict):
         return obj
 
-    # Direct $ref → generic object type
+    # On the first (top-level) call, extract $defs for later resolution.
+    if _defs is None:
+        _defs = obj.get("$defs", {})
+    if _resolving is None:
+        _resolving = frozenset()
+
     if "$ref" in obj:
-        replacement: dict[str, Any] = {"type": "object"}
-        if desc := obj.get("description"):
-            replacement["description"] = desc
-        return replacement
+        return _resolve_ref(obj, _defs, _resolving)
 
     result: dict[str, Any] = {}
     for key, value in obj.items():
         if key == "$defs":
             continue
-        result[key] = _compact_schema(value)
+        result[key] = _compact_schema(value, _defs=_defs, _resolving=_resolving)
 
     return _simplify_optional_union(result)
 
@@ -254,6 +335,20 @@ def _truncate_description(text: str, max_length: int) -> str:
     return truncated.rstrip() + "..."
 
 
+def _extract_parameter_names(input_schema: dict[str, Any]) -> str:
+    """Extract top-level parameter names from a JSON Schema as a hint string.
+
+    Returns a comma-separated string of property names from the schema's
+    ``properties`` key, or an empty string if none are found.
+
+    Example: ``"page, page_size, search, filters, select_columns"``
+    """
+    properties = input_schema.get("properties", {})
+    if not properties:
+        return ""
+    return ", ".join(properties.keys())
+
+
 def _serialize_tools_without_output_schema(
     tools: Sequence[Any],
 ) -> list[dict[str, Any]]:
@@ -265,7 +360,9 @@ def _serialize_tools_without_output_schema(
     """
     results = []
     for tool in tools:
-        data = tool.to_mcp_tool().model_dump(mode="json", exclude_none=True)
+        data = tool.to_mcp_tool().model_dump(
+            mode="json", exclude_none=True, exclude={"outputSchema"}
+        )
         data.pop("outputSchema", None)
         if input_schema := data.get("inputSchema"):
             data["inputSchema"] = _strip_titles(input_schema)
@@ -273,22 +370,102 @@ def _serialize_tools_without_output_schema(
     return results
 
 
+def _build_summary_serializer(max_desc: int) -> Any:
+    """Build a summary-mode serializer that omits ``inputSchema``.
+
+    Returns a callable that serializes each tool to ``name``,
+    ``description`` (optionally truncated), and a ``parameters_hint``
+    string listing top-level parameter names.  ``inputSchema`` and
+    ``outputSchema`` are stripped entirely.
+    """
+
+    def _summary_serializer(tools: Sequence[Any]) -> list[dict[str, Any]]:
+        results = []
+        for tool in tools:
+            data = tool.to_mcp_tool().model_dump(
+                mode="json", exclude_none=True, exclude={"outputSchema"}
+            )
+            data.pop("outputSchema", None)
+            if input_schema := data.pop("inputSchema", None):
+                hint = _extract_parameter_names(input_schema)
+                if hint:
+                    data["parameters_hint"] = hint
+            if max_desc and (desc := data.get("description")):
+                data["description"] = _truncate_description(desc, max_desc)
+            results.append(data)
+        return results
+
+    return _summary_serializer
+
+
+def _tool_allowed_for_current_user(tool: Any) -> bool:
+    """Return whether the current Flask user can see this tool in search results."""
+    try:
+        from flask import g, has_app_context
+
+        from superset.mcp_service.auth import (
+            _get_app_context_manager,
+            get_user_from_request,
+            is_tool_visible_to_current_user,
+        )
+
+        def _check() -> bool:
+            if not getattr(g, "user", None):
+                try:
+                    g.user = get_user_from_request()
+                except PermissionError:
+                    # Invalid credentials (bad API key) → deny all, matching
+                    # RBACToolVisibilityMiddleware's fail-closed behaviour.
+                    return False
+                except ValueError:
+                    # No auth source configured → only pass public tools
+                    # (those with no class-level permission requirement).
+                    func = getattr(tool, "fn", tool)
+                    return not getattr(func, "_class_permission_name", None)
+            return is_tool_visible_to_current_user(tool)
+
+        if has_app_context():
+            return _check()
+        with _get_app_context_manager():
+            return _check()
+    except (AttributeError, RuntimeError, ValueError):
+        logger.debug("Could not evaluate tool search permission", exc_info=True)
+        return False
+
+
+def _filter_tools_by_current_user_permission(tools: Sequence[Any]) -> list[Any]:
+    """Filter search candidates to tools the current user can execute."""
+    return [tool for tool in tools if _tool_allowed_for_current_user(tool)]
+
+
 def _create_search_result_serializer(
     config: dict[str, Any],
 ) -> Any:
     """Build a search-result serializer from the tool-search config.
 
-    When ``compact_schemas`` is enabled (default), the serializer applies
-    additional compaction on top of the base serialization:
+    When ``include_schemas`` is False (default), delegates to
+    :func:`_build_summary_serializer`, which strips ``inputSchema``
+    entirely and adds a ``parameters_hint`` field with comma-separated
+    top-level parameter names.  This reduces per-search token cost by
+    ~80% vs compact mode while still conveying what parameters a tool
+    accepts.
 
-    * ``$defs`` sections and ``$ref`` pointers are collapsed
-      (see :func:`_compact_schema`).
+    When ``include_schemas`` is True, the full ``compact_schemas``/
+    ``max_description_length`` pipeline applies (existing behavior):
+
+    * ``$defs`` sections and ``$ref`` pointers are collapsed when
+      ``compact_schemas`` is True (see :func:`_compact_schema`).
     * Tool descriptions are truncated to ``max_description_length`` chars.
 
-    This reduces per-search-call token cost by ~40-60 % while keeping
-    enough detail for the LLM to identify the right tool and construct
-    a basic invocation.
+    Full schemas remain available when the tool is invoked via ``call_tool``.
     """
+    include_schemas = config.get("include_schemas", False)
+
+    if not include_schemas:
+        max_desc = config.get("max_description_length", 300)
+        return _build_summary_serializer(max_desc)
+
+    # include_schemas=True: apply full compact_schemas/max_description_length pipeline
     compact = config.get("compact_schemas", True)
     # Description truncation defaults to 300 when compact_schemas is on,
     # but is disabled when compact_schemas is off (unless explicitly set).
@@ -304,10 +481,8 @@ def _create_search_result_serializer(
             if compact:
                 if input_schema := data.get("inputSchema"):
                     data["inputSchema"] = _compact_schema(input_schema)
-            if max_desc and "description" in data:
-                data["description"] = _truncate_description(
-                    data["description"], max_desc
-                )
+            if max_desc and (desc := data.get("description")):
+                data["description"] = _truncate_description(desc, max_desc)
         return results
 
     return _serializer
@@ -414,7 +589,7 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
             Use this to execute tools discovered via search_tools.
             """
             if name in {transform._call_tool_name, transform._search_tool_name}:
-                raise ValueError(
+                raise ToolError(
                     f"'{name}' is a synthetic search tool and cannot be "
                     f"called via the call_tool proxy"
                 )
@@ -429,26 +604,11 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
         tool = Tool.from_function(fn=call_tool, name=transform._call_tool_name)
         return _fix_call_tool_arguments(tool)
 
-    if strategy == "regex":
-        from fastmcp.server.transforms.search import RegexSearchTransform
-
-        class _FixedRegexSearchTransform(RegexSearchTransform):
-            """Regex search with fixed call_tool schema and arg normalization."""
-
-            def _make_call_tool(self) -> Tool:
-                return _make_normalizing_call_tool(self)
-
-        transform = _FixedRegexSearchTransform(**kwargs)
-    else:
-        from fastmcp.server.transforms.search import BM25SearchTransform
-
-        class _FixedBM25SearchTransform(BM25SearchTransform):
-            """BM25 search with fixed call_tool schema and arg normalization."""
-
-            def _make_call_tool(self) -> Tool:
-                return _make_normalizing_call_tool(self)
-
-        transform = _FixedBM25SearchTransform(**kwargs)
+    transform = _create_search_transform(
+        strategy=strategy,
+        kwargs=kwargs,
+        make_normalizing_call_tool=_make_normalizing_call_tool,
+    )
 
     mcp_instance.add_transform(transform)
     logger.info(
@@ -457,6 +617,49 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
         kwargs["max_results"],
         kwargs["always_visible"],
     )
+
+
+def _create_search_transform(
+    *,
+    strategy: str,
+    kwargs: dict[str, Any],
+    make_normalizing_call_tool: Callable[[Any], Any],
+) -> Any:
+    """Create the configured search transform with tool-permission filtering."""
+    from fastmcp.server.context import Context
+
+    if strategy == "regex":
+        from fastmcp.server.transforms.search import RegexSearchTransform
+
+        class _FixedRegexSearchTransform(RegexSearchTransform):
+            """Regex search with fixed call_tool schema and arg normalization."""
+
+            async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
+                """Return only tools visible to the current authenticated user."""
+                tools = await super()._get_visible_tools(ctx)
+                return _filter_tools_by_current_user_permission(tools)
+
+            def _make_call_tool(self) -> Any:
+                """Build the normalized ``call_tool`` proxy for regex search."""
+                return make_normalizing_call_tool(self)
+
+        return _FixedRegexSearchTransform(**kwargs)
+
+    from fastmcp.server.transforms.search import BM25SearchTransform
+
+    class _FixedBM25SearchTransform(BM25SearchTransform):
+        """BM25 search with fixed call_tool schema and arg normalization."""
+
+        async def _get_visible_tools(self, ctx: Context) -> Sequence[Any]:
+            """Return only tools visible to the current authenticated user."""
+            tools = await super()._get_visible_tools(ctx)
+            return _filter_tools_by_current_user_permission(tools)
+
+        def _make_call_tool(self) -> Any:
+            """Build the normalized ``call_tool`` proxy for BM25 search."""
+            return make_normalizing_call_tool(self)
+
+    return _FixedBM25SearchTransform(**kwargs)
 
 
 def _create_auth_provider(flask_app: Any) -> Any | None:
@@ -501,13 +704,64 @@ def build_middleware_list() -> list[Middleware]:
 
     1. StructuredContentStripper — safety net, converts exceptions
        to safe ToolResult text for transports that can't encode errors
-    2. LoggingMiddleware — logs tool calls with success/failure status
-    3. GlobalErrorHandler — catches tool exceptions, raises ToolError
+    2. RBACToolVisibilityMiddleware — filters tools/list by RBAC;
+       positioned inside the Stripper so it sees full tool objects
+       (with outputSchema) before stripping occurs
+    3. LoggingMiddleware — logs tool calls with success/failure status
+    4. GlobalErrorHandler — catches tool exceptions, raises ToolError
     """
     return [
         StructuredContentStripperMiddleware(),
+        RBACToolVisibilityMiddleware(),
         LoggingMiddleware(),
         GlobalErrorHandlerMiddleware(),
+    ]
+
+
+def _build_starlette_middleware(
+    flask_app: Any | None = None, auth_provider: Any | None = None
+) -> list[Any]:
+    from starlette.middleware import Middleware as StarletteMiddleware
+
+    if flask_app is None:
+        from superset.mcp_service.flask_singleton import get_flask_app
+
+        flask_app = get_flask_app()
+    # Auth is active only when an instantiated provider was passed in.
+    # Config-flag presence is not sufficient — MCP_AUTH_FACTORY may return
+    # None, and use_factory_config auth lives outside Flask config entirely.
+    auth_enabled = auth_provider is not None
+    app_name: str = flask_app.config.get("APP_NAME", "Superset")
+    app_icon: str = flask_app.config.get("APP_ICON", "")
+    base_page_config: dict[str, Any] = {
+        "title": f"{app_name} MCP Server",
+        "server_key": app_name.lower().replace(" ", "-"),
+        "app_name": app_name,
+    }
+    if app_icon:
+        if app_icon.startswith(("http://", "https://")):
+            base_page_config["logo_url"] = app_icon
+        elif app_icon.startswith("/"):
+            # Relative path — combine with Superset webserver address if configured
+            superset_addr = flask_app.config.get(
+                "SUPERSET_WEBSERVER_ADDRESS", ""
+            ).rstrip("/")
+            if superset_addr:
+                base_page_config["logo_url"] = f"{superset_addr}{app_icon}"
+    mcp_hello_page = flask_app.config.get("MCP_HELLO_PAGE")
+    if mcp_hello_page is not None and not isinstance(mcp_hello_page, dict):
+        logger.warning(
+            "MCP_HELLO_PAGE must be a dict, ignoring value of type %s",
+            type(mcp_hello_page).__name__,
+        )
+        mcp_hello_page = None
+    page_config: dict[str, Any] = {**base_page_config, **(mcp_hello_page or {})}
+    return [
+        StarletteMiddleware(
+            BrowserHelloMiddleware,
+            auth_enabled=auth_enabled,
+            page_config=page_config,
+        )
     ]
 
 
@@ -544,6 +798,9 @@ def run_server(
         logging.info("Creating MCP app from factory configuration...")
         factory_config = get_mcp_factory_config()
         mcp_instance = create_mcp_app(**factory_config)
+        # Capture the actual auth object so the hello page reflects real auth state
+        auth_provider = factory_config.get("auth")
+        flask_app = None
 
         # Apply tool search transform if configured
         tool_search_config = MCP_TOOL_SEARCH_CONFIG
@@ -588,6 +845,11 @@ def run_server(
     # Create EventStore for session management (Redis for multi-pod, None for in-memory)
     event_store = create_event_store(event_store_config)
 
+    starlette_middleware = _build_starlette_middleware(
+        flask_app=flask_app,
+        auth_provider=auth_provider,
+    )
+
     env_key = f"FASTMCP_RUNNING_{port}"
     if not os.environ.get(env_key):
         os.environ[env_key] = "1"
@@ -601,6 +863,7 @@ def run_server(
                     transport="streamable-http",
                     event_store=event_store,
                     stateless_http=True,
+                    middleware=starlette_middleware,
                 )
                 uvicorn.run(app, host=host, port=port)
             else:
@@ -611,6 +874,7 @@ def run_server(
                     host=host,
                     port=port,
                     stateless_http=True,
+                    middleware=starlette_middleware,
                 )
         except Exception as e:
             logging.error("FastMCP failed: %s", e)

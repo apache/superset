@@ -49,7 +49,7 @@ const StyleControl = (props: CustomControlConfig<StyleCustomControlProps>) => {
     <div>
       <ControlHeader>
         <div>
-          {props.label}
+          {typeof props.label === 'function' ? null : props.label}
           {htmlSanitization && (
             <InfoTooltip
               iconStyle={{ marginLeft: theme.sizeUnit }}
@@ -87,8 +87,8 @@ export const styleControlSetItem: ControlSetItem = {
     valueKey: null,
 
     validators: [],
-    mapStateToProps: ({ controls, common }) => ({
-      value: controls?.handlebars_template?.value,
+    mapStateToProps: ({ form_data, common }) => ({
+      value: form_data?.styleTemplate ?? form_data?.style_template,
       htmlSanitization: common?.conf?.HTML_SANITIZATION ?? true,
     }),
   },

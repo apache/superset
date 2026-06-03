@@ -22,7 +22,7 @@ from typing import Any, cast, Optional
 from zipfile import is_zipfile, ZipFile
 
 from flask import redirect, request, Response, send_file, url_for
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
@@ -514,7 +514,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
@@ -570,7 +570,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/<pk>/cache_screenshot/", methods=("GET",))
     @protect()
-    @rison(screenshot_query_schema)
+    @parse_rison(screenshot_query_schema)
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -728,7 +728,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     @expose("/<pk>/thumbnail/<digest>/", methods=("GET",))
     @protect()
-    @rison(thumbnail_query_schema)
+    @parse_rison(thumbnail_query_schema)
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -824,7 +824,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_export_ids_schema)
+    @parse_rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
@@ -886,7 +886,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
     @expose("/favorite_status/", methods=("GET",))
     @protect()
     @safe
-    @rison(get_fav_star_ids_schema)
+    @parse_rison(get_fav_star_ids_schema)
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: (

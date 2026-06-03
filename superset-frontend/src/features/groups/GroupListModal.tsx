@@ -28,6 +28,7 @@ import {
   Select,
   AsyncSelect,
 } from '@superset-ui/core/components';
+import { getUserDisplayLabel } from 'src/features/users/utils';
 import { FormValues, GroupModalProps } from './types';
 import { createGroup, fetchUserOptions, updateGroup } from './utils';
 
@@ -94,7 +95,7 @@ function GroupListModal({
     users:
       group?.users?.map(user => ({
         value: user.id,
-        label: user.username,
+        label: getUserDisplayLabel(user),
       })) || [],
   };
 

@@ -34,7 +34,7 @@ from marshmallow import (
     validates,
     validates_schema,
 )
-from marshmallow.validate import Length, OneOf, Range, ValidationError
+from marshmallow.validate import Length, OneOf, Range, Regexp, ValidationError
 from sqlalchemy import MetaData
 from werkzeug.datastructures import FileStorage
 
@@ -449,7 +449,21 @@ class DatabaseSSHTunnel(Schema):
     id = fields.Integer(
         allow_none=True, metadata={"description": "SSH Tunnel ID (for updates)"}
     )
-    server_address = fields.String()
+    # Restrict the SSH tunnel host to a plausible hostname / IP literal. This
+    # rejects values carrying URL structure, whitespace, or path separators —
+    # defense in depth against using the tunnel host as an SSRF vector.
+    server_address = fields.String(
+        validate=[
+            Length(min=1, max=256),
+            Regexp(
+                r"^[A-Za-z0-9._:\-\[\]]+$",
+                error=(
+                    "server_address must be a valid hostname or IP address "
+                    "(letters, digits, and '.', '_', '-', ':', '[', ']' only)"
+                ),
+            ),
+        ]
+    )
     server_port = fields.Integer()
     username = fields.String()
 
@@ -1074,6 +1088,9 @@ class EngineInformationSchema(Schema):
                 "Engines like Elasticsearch SQL return False."
             )
         }
+    )
+    supports_schemas = fields.Boolean(
+        metadata={"description": "The database uses schemas to organize tables"}
     )
 
 
