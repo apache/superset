@@ -36,6 +36,7 @@ mappers are configured.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -324,22 +325,44 @@ def _select_change_rows_for_kinds(
 
     out: list[dict[str, Any]] = []
     for table_kind, entity_ids in ids_by_kind.items():
-        stmt = (
-            sa.select(*select_cols)
-            .select_from(join_tree)
-            .where(
-                vc.c.entity_kind == table_kind,
-                vc.c.entity_id.in_(entity_ids),
+        # Chunk ``entity_ids`` to stay inside SQLite's
+        # ``SQLITE_MAX_VARIABLE_NUMBER`` floor (default 999, raised to
+        # 32766 in 3.32+ but the older limit ships in many builds). The
+        # bind count grows linearly with chart-on-dashboard count; a
+        # dashboard built from a huge chart library can reach the floor.
+        # Postgres + MySQL accept the full list, but the chunk is
+        # dialect-agnostic for simplicity.
+        for chunk in _chunked_ids(entity_ids, _ENTITY_ID_CHUNK_SIZE):
+            stmt = (
+                sa.select(*select_cols)
+                .select_from(join_tree)
+                .where(
+                    vc.c.entity_kind == table_kind,
+                    vc.c.entity_id.in_(chunk),
+                )
             )
-        )
-        if since is not None:
-            stmt = stmt.where(tx_tbl.c.issued_at >= since)
-        if until is not None:
-            stmt = stmt.where(tx_tbl.c.issued_at < until)
-        out.extend(
-            dict(row) for row in db.session.connection().execute(stmt).mappings().all()
-        )
+            if since is not None:
+                stmt = stmt.where(tx_tbl.c.issued_at >= since)
+            if until is not None:
+                stmt = stmt.where(tx_tbl.c.issued_at < until)
+            out.extend(
+                dict(row)
+                for row in db.session.connection().execute(stmt).mappings().all()
+            )
     return out
+
+
+# Bind-parameter floor: see ``_select_change_rows_for_kinds`` docstring.
+# 500 leaves room for the two literal-string filters and the optional
+# since/until datetime params.
+_ENTITY_ID_CHUNK_SIZE = 500
+
+
+def _chunked_ids(ids: set[int], size: int) -> Iterator[list[int]]:
+    """Yield *ids* in fixed-size lists. Final chunk may be smaller."""
+    items = list(ids)
+    for i in range(0, len(items), size):
+        yield items[i : i + size]
 
 
 # ---- Name denormalization -------------------------------------------------
@@ -446,28 +469,33 @@ def _check_entity_tombstones(
     for api_kind, entity_id in distinct_entities:
         by_kind.setdefault(api_kind, []).append(entity_id)
 
-    for api_kind, entity_ids in by_kind.items():
-        if api_kind not in _NAME_COLUMN:
-            for entity_id in entity_ids:
-                result[(api_kind, entity_id)] = {
-                    "deleted": True,
-                    "deletion_state": None,
-                }
-            continue
+    # ``no_autoflush`` mirrors the defensive posture of the listener-
+    # side reads. Today's callers run from request-path code with no
+    # pending writes; a future caller that probes tombstones before a
+    # flush would otherwise trigger autoflush mid-read.
+    with db.session.no_autoflush:
+        for api_kind, entity_ids in by_kind.items():
+            if api_kind not in _NAME_COLUMN:
+                for entity_id in entity_ids:
+                    result[(api_kind, entity_id)] = {
+                        "deleted": True,
+                        "deletion_state": None,
+                    }
+                continue
 
-        model_name, _ = _NAME_COLUMN[api_kind]
-        model_cls = _load_shadow_model(model_name)
-        live_tbl = model_cls.__table__  # type: ignore[attr-defined]
-        has_deleted_at = "deleted_at" in live_tbl.c
+            model_name, _ = _NAME_COLUMN[api_kind]
+            model_cls = _load_shadow_model(model_name)
+            live_tbl = model_cls.__table__  # type: ignore[attr-defined]
+            has_deleted_at = "deleted_at" in live_tbl.c
 
-        cols = [live_tbl.c.id]
-        if has_deleted_at:
-            cols.append(live_tbl.c.deleted_at)
-        rows = (
-            db.session.connection()
-            .execute(sa.select(*cols).where(live_tbl.c.id.in_(entity_ids)))
-            .all()
-        )
+            cols = [live_tbl.c.id]
+            if has_deleted_at:
+                cols.append(live_tbl.c.deleted_at)
+            rows = (
+                db.session.connection()
+                .execute(sa.select(*cols).where(live_tbl.c.id.in_(entity_ids)))
+                .all()
+            )
         live: dict[int, Any] = {}
         for row in rows:
             live[row[0]] = row[1] if has_deleted_at else None

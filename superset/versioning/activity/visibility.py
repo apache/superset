@@ -53,6 +53,7 @@ their access-filter class.
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from superset.extensions import db
@@ -61,6 +62,8 @@ from superset.versioning.activity.kinds import (
     _NAME_COLUMN,
     _TABLE_KIND_TO_API,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _filter_records_by_visibility(
@@ -141,9 +144,27 @@ def _resolve_visibility(
 
     visible: dict[tuple[str, int], bool] = {}
     for api_kind, entity_ids in by_kind.items():
-        if api_kind not in _NAME_COLUMN or api_kind not in access_filter_classes:
-            # Unknown kind → pass through. Same semantics as the prior
-            # ``_can_read`` fallthrough.
+        if api_kind in _NAME_COLUMN and api_kind not in access_filter_classes:
+            # The kind is in the change-records taxonomy but is missing
+            # an access-filter wiring — almost certainly a future-entity
+            # addition that updated ``_TABLE_KIND_TO_API`` but forgot
+            # the visibility dispatch. Fail closed: the activity stream
+            # must not silently disclose change records for an entity
+            # whose access predicate is unimplemented. Warn so the gap
+            # surfaces in CI / staging logs before production.
+            logger.warning(
+                "activity visibility: no access filter wired for kind %r; "
+                "denying %d records",
+                api_kind,
+                len(entity_ids),
+            )
+            for entity_id in entity_ids:
+                visible[(api_kind, entity_id)] = False
+            continue
+        if api_kind not in _NAME_COLUMN:
+            # Kind isn't in the change-records taxonomy at all — not
+            # something the activity-view emits today. Pass through so
+            # the decorator can mark it as a tombstone if appropriate.
             for entity_id in entity_ids:
                 visible[(api_kind, entity_id)] = True
             continue

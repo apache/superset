@@ -166,22 +166,29 @@ def _lookup_entity_uuids(
             continue
         by_kind.setdefault(api_kind, []).append(entity_id)
 
-    for api_kind, entity_ids in by_kind.items():
-        if api_kind not in _NAME_COLUMN:
-            continue
-        model_cls = _load_shadow_model(_NAME_COLUMN[api_kind][0])
-        live_tbl = model_cls.__table__  # type: ignore[attr-defined]
-        rows = (
-            db.session.connection()
-            .execute(
-                sa.select(live_tbl.c.id, live_tbl.c.uuid).where(
-                    live_tbl.c.id.in_(entity_ids)
+    # ``no_autoflush`` mirrors the defensive posture of the baseline +
+    # change-record listeners: this helper reads from live tables to
+    # resolve uuids, and a future caller that resolves an entity before
+    # the parent flush would otherwise trigger autoflush mid-read.
+    # Today's call sites run from request-path code with no pending
+    # session state, so the cost of the guard is zero.
+    with db.session.no_autoflush:
+        for api_kind, entity_ids in by_kind.items():
+            if api_kind not in _NAME_COLUMN:
+                continue
+            model_cls = _load_shadow_model(_NAME_COLUMN[api_kind][0])
+            live_tbl = model_cls.__table__  # type: ignore[attr-defined]
+            rows = (
+                db.session.connection()
+                .execute(
+                    sa.select(live_tbl.c.id, live_tbl.c.uuid).where(
+                        live_tbl.c.id.in_(entity_ids)
+                    )
                 )
+                .all()
             )
-            .all()
-        )
-        for row in rows:
-            result[(api_kind, row[0])] = row[1]
+            for row in rows:
+                result[(api_kind, row[0])] = row[1]
     return result
 
 
