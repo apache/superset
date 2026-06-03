@@ -57,6 +57,14 @@ const StyledCard = styled(Card)`
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+      
+      /* Ensure ellipsis works by making the span behave as block-level */
+      span {
+        display: block;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
     }
   `}
 `;
@@ -271,7 +279,7 @@ function ListViewCard({
           description={
             description ? (
               <Tooltip title={description}>
-                <span tabIndex={0}>{description}</span>
+                <span>{description}</span>
               </Tooltip>
             ) : null
           }
