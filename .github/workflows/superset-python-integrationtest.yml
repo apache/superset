@@ -49,9 +49,6 @@ jobs:
         image: mysql:8.0
         # Authenticated pulls use our higher Docker Hub rate limit. Empty on
         # fork PRs (secrets unavailable) -> runner falls back to anonymous.
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         env:
           MYSQL_ROOT_PASSWORD: root
         ports:
@@ -63,9 +60,6 @@ jobs:
           --health-retries=5
       redis:
         image: redis:7-alpine
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         options: --entrypoint redis-server
         ports:
           - 16379:6379
@@ -140,9 +134,6 @@ jobs:
     services:
       postgres:
         image: postgres:17-alpine
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -152,9 +143,6 @@ jobs:
           - 15432:5432
       redis:
         image: redis:7-alpine
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         ports:
           - 16379:6379
     steps:
@@ -204,9 +192,6 @@ jobs:
     services:
       redis:
         image: redis:7-alpine
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         ports:
           - 16379:6379
     steps:
