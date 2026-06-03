@@ -1879,6 +1879,7 @@ function DatasourceEditor({
                               {
                                 name: 'formatQuery',
                                 key: 'ctrl+shift+f',
+                                descr: t('Format SQL query'),
                                 func: () => {
                                   onQueryFormat();
                                 },
@@ -1901,6 +1902,7 @@ function DatasourceEditor({
                             {
                               name: 'formatQuery',
                               key: 'ctrl+shift+f',
+                              descr: t('Format SQL query'),
                               func: () => {
                                 onQueryFormat();
                               },

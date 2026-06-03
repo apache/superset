@@ -34,6 +34,7 @@ import ControlHeader from 'src/explore/components/ControlHeader';
 interface HotkeyConfig {
   name: string;
   key: string;
+  descr?: string;
   func: () => void;
 }
 

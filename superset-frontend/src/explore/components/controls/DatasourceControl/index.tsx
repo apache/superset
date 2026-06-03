@@ -49,6 +49,7 @@ import ViewQueryModalFooter from 'src/explore/components/controls/ViewQueryModal
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
 import { safeStringify } from 'src/utils/safeStringify';
+import { datasetLabelLower } from 'src/features/semanticLayers/label';
 import { Link } from 'react-router-dom';
 
 // Extended Datasource interface with all properties used in this component
@@ -344,7 +345,7 @@ export default function DatasourceControl({
 
   const canAccessSqlLab = userHasPermission(user, 'SQL Lab', 'menu_access');
 
-  const editText = t('Edit dataset');
+  const editText = t('Edit %s', datasetLabelLower());
   const requestedQuery = {
     datasourceKey: `${datasource.id}__${datasource.type}`,
     sql: datasource.sql,
@@ -356,7 +357,9 @@ export default function DatasourceControl({
       label: !allowEdit ? (
         <Tooltip
           title={t(
-            'You must be a dataset owner in order to edit. Please reach out to a dataset owner to request modifications or edit access.',
+            'You must be a %s owner in order to edit. Please reach out to a %s owner to request modifications or edit access.',
+            datasetLabelLower(),
+            datasetLabelLower(),
           )}
         >
           {editText}
@@ -371,7 +374,7 @@ export default function DatasourceControl({
 
   defaultDatasourceMenuItems.push({
     key: CHANGE_DATASET,
-    label: t('Swap dataset'),
+    label: t('Swap %s', datasetLabelLower()),
   });
 
   if (!isMissingDatasource && canAccessSqlLab) {
@@ -447,7 +450,7 @@ export default function DatasourceControl({
 
   queryDatasourceMenuItems.push({
     key: SAVE_AS_DATASET,
-    label: <span>{t('Save as dataset')}</span>,
+    label: <span>{t('Save as %s', datasetLabelLower())}</span>,
   });
 
   const queryDatasourceMenu = (
@@ -458,7 +461,7 @@ export default function DatasourceControl({
 
   const titleText =
     isMissingDatasource && !datasource.name
-      ? t('Missing dataset')
+      ? t('Missing %s', datasetLabelLower())
       : getDatasourceTitle(datasource);
 
   const tooltip = titleText;
@@ -524,14 +527,15 @@ export default function DatasourceControl({
           ) : (
             <ErrorAlert
               type="warning"
-              message={t('Missing dataset')}
+              message={t('Missing %s', datasetLabelLower())}
               descriptionPre={false}
               descriptionDetailsCollapsed={false}
               descriptionDetails={
                 <>
                   <p>
                     {t(
-                      'The dataset linked to this chart may have been deleted.',
+                      'The %s linked to this chart may have been deleted.',
+                      datasetLabelLower(),
                     )}
                   </p>
                   <p>
@@ -541,7 +545,7 @@ export default function DatasourceControl({
                         handleMenuItemClick({ key: CHANGE_DATASET })
                       }
                     >
-                      {t('Swap dataset')}
+                      {t('Swap %s', datasetLabelLower())}
                     </Button>
                   </p>
                 </>
