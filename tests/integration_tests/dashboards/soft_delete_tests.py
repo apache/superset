@@ -451,3 +451,110 @@ class TestDashboardRestore(SupersetTestCase):
         # Cleanup
         _hard_delete_dashboard(first_id)
         _hard_delete_dashboard(second_id)
+
+    def test_restore_via_import_with_slug_rename(self) -> None:
+        """Restore-via-import succeeds when the upload changes the slug to a
+        free value, even when the soft-deleted dashboard's old slug is now
+        owned by another active dashboard.
+
+        Pins the fix for the flush-ordering bug Richard called out on #40128:
+        without pre-applying ``config["slug"]`` to ``existing`` before
+        ``db.session.flush()``, the partial-index constraint would reject
+        the flush at the row's stale old slug — even though the operator
+        uploaded a YAML with a different (free) slug specifically to
+        resolve the conflict.
+
+        Postgres / MySQL 8.0.13+ only (the fallback dialects can't reach
+        the conflict state because the full unique constraint blocks the
+        slug claim by the second dashboard before this scenario can be
+        set up).
+        """
+        from superset.commands.dashboard.importers.v1.utils import (
+            import_dashboard,
+        )
+
+        self._skip_if_no_partial_index()
+
+        old_slug = "renamed_test_old_slug"
+        new_slug = "renamed_test_new_slug"
+        admin = self.get_user("admin")
+
+        original = Dashboard(
+            dashboard_title="rename_target",
+            slug=old_slug,
+            owners=[admin],
+            published=True,
+        )
+        db.session.add(original)
+        db.session.commit()
+        original_id = original.id
+        original_uuid = str(original.uuid)
+
+        # Soft-delete the original via the API so the route is exercised.
+        self.login(ADMIN_USERNAME)
+        rv = self.client.delete(f"/api/v1/dashboard/{original_id}")
+        assert rv.status_code == 200
+
+        # Claim the old slug with a new active dashboard. This only succeeds
+        # on partial-index dialects (skipped above for others).
+        claimant = Dashboard(
+            dashboard_title="rename_claimant",
+            slug=old_slug,
+            owners=[admin],
+            published=True,
+        )
+        db.session.add(claimant)
+        db.session.commit()
+        claimant_id = claimant.id
+
+        # Build a v1-importer config that re-imports the original's UUID
+        # with a different (free) slug. Mirrors the shape of a YAML upload
+        # decoded by ImportDashboardsCommand before reaching ``import_dashboard``.
+        config = {
+            "dashboard_title": "rename_target",
+            "description": None,
+            "css": "",
+            "slug": new_slug,
+            "uuid": original_uuid,
+            "position": {},
+            "metadata": {},
+            "version": "1.0.0",
+            "is_managed_externally": False,
+            "external_url": None,
+            "certified_by": None,
+            "certification_details": None,
+            "published": True,
+            "theme_id": None,
+        }
+
+        try:
+            restored = import_dashboard(config, overwrite=False)
+            assert restored.id == original_id, (
+                "Restore-via-import must reuse the soft-deleted row's PK, "
+                "not create a new dashboard"
+            )
+            assert restored.deleted_at is None, (
+                "Restore should have cleared deleted_at on the original row"
+            )
+            assert restored.slug == new_slug, (
+                f"Slug should have been renamed to {new_slug!r} during the "
+                f"restore-and-update; got {restored.slug!r}. The fix at "
+                "commands/dashboard/importers/v1/utils.py applies the "
+                "incoming slug to ``existing`` before flushing so the "
+                "partial-index constraint sees the post-flush state with "
+                "the new slug rather than the stale old one."
+            )
+
+            # The claimant is unchanged.
+            claimant_row = (
+                db.session.query(Dashboard)
+                .filter(Dashboard.id == claimant_id)
+                .one()
+            )
+            assert claimant_row.slug == old_slug, (
+                "Slug rename of the restored dashboard must not perturb the "
+                "active claimant that owns the old slug"
+            )
+        finally:
+            _hard_delete_dashboard(original_id)
+            _hard_delete_dashboard(claimant_id)
