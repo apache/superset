@@ -125,6 +125,42 @@ describe('nvd3/utils', () => {
     );
   });
 
+  describe('generateMultiLineTooltipContent()', () => {
+    const identity = (value: any) => value;
+
+    test('renders the series key in the tooltip markup', () => {
+      const tooltip = generateMultiLineTooltipContent(
+        {
+          value: 'x-value',
+          series: [{ key: 'Region A', color: '#fff', value: 1 }],
+        },
+        identity,
+        [identity],
+      );
+      expect(tooltip).toContain('Region A');
+    });
+
+    test('strips a script payload from a malicious series key', () => {
+      const tooltip = generateMultiLineTooltipContent(
+        {
+          value: 'x-value',
+          series: [
+            {
+              key: '<img src=x onerror="alert(1)">',
+              color: '#fff',
+              value: 1,
+            },
+          ],
+        },
+        identity,
+        [identity],
+      );
+      // DOMPurify removes the event handler that would execute on render.
+      expect(tooltip).not.toContain('onerror');
+      expect(tooltip).not.toContain('alert(1)');
+    });
+  });
+
   describe('getTimeOrNumberFormatter(format)', () => {
     test('is a function', () => {
       expect(typeof getTimeOrNumberFormatter).toBe('function');
