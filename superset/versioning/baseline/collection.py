@@ -18,16 +18,16 @@
 
 Three helpers cooperate on the listener's "should I baseline" decision:
 
-* :func:`_collect_parents_to_baseline` — walks ``session.dirty`` /
+* :func:`collect_parents_to_baseline` — walks ``session.dirty`` /
   ``new`` / ``deleted`` and returns the unique parent entities to
   consider (directly-dirty versioned parents + parents reachable from
-  dirty children via :func:`_child_to_parent_registry`).
-* :func:`_version_table_for` — resolves a Continuum shadow Table for
+  dirty children via :func:`child_to_parent_registry`).
+* :func:`version_table_for` — resolves a Continuum shadow Table for
   one parent object.
-* :func:`_shadow_row_count` — counts existing shadow rows for the
+* :func:`shadow_row_count` — counts existing shadow rows for the
   parent's id; ``0`` is the signal to insert a baseline.
 
-:func:`_child_to_parent_registry` is also exposed because
+:func:`child_to_parent_registry` is also exposed because
 :mod:`superset.versioning.factory` consumes it via inline import.
 
 **Inline imports.** ``versioning.baseline`` is imported during
@@ -52,7 +52,7 @@ VERSIONED_MODELS: list[type] = []
 logger = logging.getLogger(__name__)
 
 
-def _collect_parents_to_baseline(session: Session) -> dict[int, Any]:
+def collect_parents_to_baseline(session: Session) -> dict[int, Any]:
     """Return parents-to-baseline as ``{id(obj): obj}`` keyed by Python
     object identity to dedupe across ``session.dirty + new + deleted``.
 
@@ -60,7 +60,7 @@ def _collect_parents_to_baseline(session: Session) -> dict[int, Any]:
     from dirty/new/deleted children via the child→parent registry.
     """
     parents: dict[int, Any] = {}
-    child_map = _child_to_parent_registry()
+    child_map = child_to_parent_registry()
     for obj in list(session.dirty) + list(session.new) + list(session.deleted):
         if type(obj) in VERSIONED_MODELS:
             parents[id(obj)] = obj
@@ -76,7 +76,7 @@ def _collect_parents_to_baseline(session: Session) -> dict[int, Any]:
 
 
 @functools.cache
-def _child_to_parent_registry() -> dict[type, tuple[str, type]]:
+def child_to_parent_registry() -> dict[type, tuple[str, type]]:
     """Map child entity class → (parent-relationship-attr, parent class).
 
     When a dirty child of a known type appears in session.dirty/new/deleted,
@@ -87,8 +87,8 @@ def _child_to_parent_registry() -> dict[type, tuple[str, type]]:
     flush B reads children from DB AFTER flush A already pushed UPDATEs,
     capturing post-edit state.
 
-    Cached because this is called from ``_force_parent_dirty_on_child_change``
-    and ``_collect_parents_to_baseline`` on every save flush. The returned
+    Cached because this is called from ``force_parent_dirty_on_child_change``
+    and ``collect_parents_to_baseline`` on every save flush. The returned
     mapping depends only on the (fixed at import time) child model classes,
     so an unbounded ``functools.cache`` is the right shape — no invalidation
     needed.
@@ -105,7 +105,7 @@ def _child_to_parent_registry() -> dict[type, tuple[str, type]]:
     }
 
 
-def _version_table_for(obj: Any) -> Any:
+def version_table_for(obj: Any) -> Any:
     """Return Continuum's shadow ``Table`` for *obj*'s class, or ``None``
     when the class isn't registered (forks / plugins that subclass without
     ``__versioned__``).
@@ -120,7 +120,7 @@ def _version_table_for(obj: Any) -> Any:
         return None
 
 
-def _shadow_row_count(session: Session, obj: Any, version_table: Any) -> int | None:
+def shadow_row_count(session: Session, obj: Any, version_table: Any) -> int | None:
     """Return number of shadow rows for *obj.id* in *version_table*, or
     ``None`` when the version table is missing (migration not yet applied)
     or the count query raised unexpectedly.

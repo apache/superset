@@ -39,13 +39,13 @@ from sqlalchemy import event
 from sqlalchemy.orm import Session
 
 from superset.versioning.baseline.collection import (
-    _collect_parents_to_baseline,
-    _shadow_row_count,
-    _version_table_for,
+    collect_parents_to_baseline,
+    shadow_row_count,
+    version_table_for,
     VERSIONED_MODELS,
 )
-from superset.versioning.baseline.dirty import _force_parent_dirty_on_child_change
-from superset.versioning.baseline.insertion import _insert_baseline_and_children
+from superset.versioning.baseline.dirty import force_parent_dirty_on_child_change
+from superset.versioning.baseline.insertion import insert_baseline_and_children
 
 # Sentinel attribute set on the session target after first successful
 # registration — same pattern as
@@ -81,15 +81,15 @@ def register_baseline_listener() -> None:
             return
         # Make sure a child-only edit promotes the parent to ``session.dirty``
         # before Continuum's before_flush reads the dirty set.
-        _force_parent_dirty_on_child_change(session)
-        for obj in _collect_parents_to_baseline(session).values():
+        force_parent_dirty_on_child_change(session)
+        for obj in collect_parents_to_baseline(session).values():
             if type(obj) not in VERSIONED_MODELS:
                 continue
-            version_table = _version_table_for(obj)
+            version_table = version_table_for(obj)
             if version_table is None:
                 continue
-            count = _shadow_row_count(session, obj, version_table)
+            count = shadow_row_count(session, obj, version_table)
             if count == 0:
-                _insert_baseline_and_children(session, obj, version_table)
+                insert_baseline_and_children(session, obj, version_table)
 
     setattr(db.session, _REGISTERED_SENTINEL, True)

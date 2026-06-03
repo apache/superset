@@ -23,7 +23,7 @@ set — so Continuum's UnitOfWork never creates a parent UPDATE
 operation, no parent shadow row is written, and the version-history
 dropdown comes back empty for column/metric-only saves.
 
-:func:`_force_parent_dirty_on_child_change` walks dirty/new/deleted
+:func:`force_parent_dirty_on_child_change` walks dirty/new/deleted
 children, looks them up in the child→parent registry (in
 :mod:`.collection`), and ``attributes.flag_modified``s a deterministic
 non-excluded column on the parent. SQLAlchemy adds the parent to
@@ -31,7 +31,7 @@ non-excluded column on the parent. SQLAlchemy adds the parent to
 scalars mirror the previous version (only the children actually
 changed).
 
-:func:`_pin_audit_columns` is a companion: when the parent is force-
+:func:`pin_audit_columns` is a companion: when the parent is force-
 flagged, we pin ``changed_by_fk`` / ``changed_on`` to their current
 in-memory values so the parent UPDATE doesn't invoke the audit
 columns' ``onupdate=get_user_id`` / ``onupdate=datetime.now`` hooks
@@ -50,12 +50,12 @@ from typing import Any
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import attributes, Session
 
-from superset.versioning.baseline.collection import _child_to_parent_registry
+from superset.versioning.baseline.collection import child_to_parent_registry
 
 logger = logging.getLogger(__name__)
 
 
-def _force_parent_dirty_on_child_change(session: Session) -> None:
+def force_parent_dirty_on_child_change(session: Session) -> None:
     """Mark a versioned parent as dirty whenever one of its versioned
     children appears in ``session.dirty``/``new``/``deleted`` but the
     parent's own scalars haven't been edited.
@@ -85,7 +85,7 @@ def _force_parent_dirty_on_child_change(session: Session) -> None:
     # dirty filter and the already-new short-circuit below.
     dirty_set = session.dirty
     new_set = session.new
-    child_map = _child_to_parent_registry()
+    child_map = child_to_parent_registry()
     for obj in list(session.dirty) + list(session.new) + list(session.deleted):
         entry = child_map.get(type(obj))
         if entry is None:
@@ -152,10 +152,10 @@ def _force_parent_dirty_on_child_change(session: Session) -> None:
             # flag was redundant; safely skip. Hit by
             # ``test_create_dataset_item`` (POST /api/v1/dataset/).
             continue
-        _pin_audit_columns(parent)
+        pin_audit_columns(parent)
 
 
-def _pin_audit_columns(parent: Any) -> None:
+def pin_audit_columns(parent: Any) -> None:
     """Pin ``changed_by_fk`` and ``changed_on`` to their current in-memory
     values on a flag-flushed parent.
 
