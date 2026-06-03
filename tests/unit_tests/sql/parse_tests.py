@@ -17,6 +17,8 @@
 # pylint: disable=invalid-name, redefined-outer-name, too-many-lines
 
 
+import logging
+
 import pytest
 from pytest_mock import MockerFixture
 from sqlglot import Dialects, exp, parse_one
@@ -1162,6 +1164,30 @@ def test_has_mutation(engine: str, sql: str, expected: bool) -> None:
     Test the `has_mutation` method.
     """
     assert SQLScript(sql, engine).has_mutation() == expected
+
+
+@pytest.mark.parametrize(
+    "engine, sql, expected",
+    [
+        # Plain SELECT parses to a proper AST node.
+        ("postgresql", "SELECT * FROM foo", False),
+        # CALL parses to ``exp.Command`` on Postgres.
+        ("postgresql", "CALL my_proc(1);", True),
+        # A script that mixes a parseable statement with an unparseable one
+        # is still flagged so strict scoping can refuse the whole script.
+        ("postgresql", "SELECT 1; CALL my_proc();", True),
+        # Non-sqlglot engines (e.g. Kusto KQL) do not produce a parseable
+        # AST and cannot have their tables enumerated, so they must be
+        # flagged as unparseable to fail closed under strict scoping.
+        ("kustokql", "print 1", True),
+    ],
+)
+def test_has_unparseable_statement(engine: str, sql: str, expected: bool) -> None:
+    """
+    Test the `has_unparseable_statement` property used by strict scoping to
+    refuse statements that sqlglot couldn't fully model.
+    """
+    assert SQLScript(sql, engine).has_unparseable_statement is expected
 
 
 @pytest.mark.parametrize(
@@ -3311,3 +3337,21 @@ def test_backtick_invalid_sql_still_fails() -> None:
     sql = "SELECT * FROM `table` WHERE"
     with pytest.raises(SupersetParseError):
         SQLScript(sql, "base")
+
+
+def test_backtick_fallback_logs_warning(caplog: pytest.LogCaptureFixture) -> None:
+    """
+    Test that the MySQL dialect fallback emits a warning log.
+
+    When the base dialect fails to parse SQL containing backticks and the
+    parser falls back to the MySQL dialect, the fallback should be observable
+    via a warning log.
+    """
+    sql = "SELECT * FROM `my_table`"
+    with caplog.at_level(logging.WARNING, logger="superset.sql.parse"):
+        SQLScript(sql, "base")
+
+    assert any(
+        record.levelname == "WARNING" and "MySQL dialect" in record.getMessage()
+        for record in caplog.records
+    )

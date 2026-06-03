@@ -1422,6 +1422,13 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "schedule": crontab(minute=0, hour=0),
         #     "kwargs": {"retention_period_days": 90, "max_rows_per_run": 10000},
         # },
+        # Uncomment to enable pruning of expired entries from the key-value store
+        # (for example, rows left behind by the metastore cache backend)
+        # "prune_key_value": {
+        #     "task": "prune_key_value",
+        #     "schedule": crontab(minute=0, hour=0),
+        #     "kwargs": {"max_rows_per_run": 10000},
+        # },
         # Uncomment to enable Slack channel cache warm-up
         # "slack.cache_channels": {
         #     "task": "slack.cache_channels",

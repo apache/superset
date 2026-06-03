@@ -438,6 +438,25 @@ def test_url_param_unescaped_default_form_data() -> None:
         assert cache.url_param("bar", "O'Malley", escape_result=False) == "O'Malley"
 
 
+def test_url_param_escaped_request_args() -> None:
+    """
+    Values read from the request query string are escaped the same way as
+    values from ``form_data`` (both are interpolated into the rendered SQL).
+    """
+    with current_app.test_request_context(query_string={"foo": "O'Brien"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo") == "O''Brien"
+
+
+def test_url_param_unescaped_request_args() -> None:
+    """
+    ``escape_result=False`` still opts out of escaping for request-args values.
+    """
+    with current_app.test_request_context(query_string={"foo": "O'Brien"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo", escape_result=False) == "O'Brien"
+
+
 def test_safe_proxy_primitive() -> None:
     """
     Test the ``safe_proxy`` helper with a function returning a ``str``.

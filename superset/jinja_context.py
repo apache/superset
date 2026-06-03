@@ -288,11 +288,13 @@ class ExtraCache:
         from superset.views.utils import get_form_data
 
         if has_request_context() and request.args.get(param):
-            return request.args.get(param, default)
-
-        form_data, _ = get_form_data()
-        url_params = form_data.get("url_params") or {}
-        result = url_params.get(param, default)
+            result = request.args.get(param, default)
+        else:
+            form_data, _ = get_form_data()
+            url_params = form_data.get("url_params") or {}
+            result = url_params.get(param, default)
+        # Escape the value regardless of its source (request args or form
+        # data); both are interpolated into the rendered SQL.
         if result and escape_result and self.dialect:
             # use the dialect specific quoting logic to escape string
             result = String().literal_processor(dialect=self.dialect)(value=result)[

@@ -73,7 +73,7 @@ class Api(BaseSupersetView):
         query_context.raise_for_access()
         result = query_context.get_payload()
         payload_json = result["queries"]
-        return json.dumps(payload_json, default=json.json_int_dttm_ser, ignore_nan=True)
+        return self.json_response(payload_json)
 
     @event_logger.log_this
     @api
