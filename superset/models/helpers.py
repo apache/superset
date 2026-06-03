@@ -307,7 +307,7 @@ class UUIDMixin:  # pylint: disable=too-few-public-methods
         if isinstance(value, str):
             try:
                 return uuid.UUID(value)
-            except (ValueError, AttributeError):
+            except ValueError:
                 return value
         return value
 
