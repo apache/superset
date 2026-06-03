@@ -38,6 +38,7 @@ import sqlalchemy as sa
 from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
+from superset.versioning.baseline import CONTINUUM_BOOKKEEPING_COLUMNS
 
 # Fixed UUIDv5 namespace under which per-(entity, transaction) version UUIDs
 # are derived. Never change this constant — changing it invalidates every
@@ -466,7 +467,7 @@ def get_version(
     # metadata columns.
     result: dict[str, Any] = {}
     for col in ver_tbl.columns:
-        if col.name in {"transaction_id", "end_transaction_id", "operation_type"}:
+        if col.name in CONTINUUM_BOOKKEEPING_COLUMNS:
             continue
         value = row[col.name]
         # uuid columns come back as UUID instances; make them JSON-safe.

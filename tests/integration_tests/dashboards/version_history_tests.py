@@ -18,7 +18,7 @@
 
 T015 — dashboard version capture (single version per save; no extra rows from
        process_tab_diff)
-T018 — retention pruning (keep at most SUPERSET_VERSION_HISTORY_MAX_VERSIONS)
+T018 — retention pruning (drop rows older than SUPERSET_VERSION_HISTORY_RETENTION_DAYS)
 T027 — dashboard version list endpoint
 """
 
@@ -152,7 +152,7 @@ class TestDashboardVersionCapture(SupersetTestCase):
 
 
 class TestDashboardVersionRetention(SupersetTestCase):
-    """T018 — retention pruning caps history at SUPERSET_VERSION_HISTORY_MAX_VERSIONS."""  # noqa: E501
+    """T018 — retention pruning drops shadow rows older than SUPERSET_VERSION_HISTORY_RETENTION_DAYS."""  # noqa: E501
 
     @pytest.fixture(autouse=True)
     def _load_data(self, load_birth_names_dashboard_with_slices):  # noqa: PT004, F811

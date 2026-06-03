@@ -30,7 +30,7 @@ Three concerns live here:
    on the three entity classes, which avoids import-order coupling at
    app-init time).
 
-Bulk insert ofthe computed records into the ``version_changes`` table
+Bulk insert of the computed records into the ``version_changes`` table
 lives here too — it's the tail of the per-entity compute pipeline.
 """
 
