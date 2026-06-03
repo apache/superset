@@ -266,20 +266,44 @@ class UUIDMixin:  # pylint: disable=too-few-public-methods
 
     @validates("uuid")
     def _coerce_uuid(self, key: str, value: Any) -> Any:  # noqa: ARG002
-        # ``UUIDType`` only coerces on SQL bind / SQL result. Importers and
-        # ad-hoc construction (e.g., ``SqlMetric(uuid="…string…")``) leave
-        # the in-memory attribute as a ``str`` until the next DB round-trip
-        # refreshes it. SQLAlchemy-Continuum versioning on a child mapper
-        # (``TableColumn``, ``SqlMetric``) changes the post-INSERT
-        # attribute-expire behaviour enough that the refresh doesn't happen
-        # before the caller reads the attribute, breaking
-        # ``test_import_dataset``'s ``metric.uuid == uuid.UUID(...)``
-        # assertion (string-vs-UUID inequality). Coerce defensively here
-        # so callers always see a ``UUID``, regardless of where the value
-        # came from. Pass non-UUID-shaped strings through unchanged so test
-        # mocks with placeholder strings (e.g. ``"dashboard-uuid-7"``)
-        # still work — the SQL bind layer will surface a clearer error
-        # if such a value is ever written to the DB.
+        """Coerce well-formed UUID strings to ``uuid.UUID`` on assignment;
+        pass everything else through untouched.
+
+        **Why coerce.** ``UUIDType`` only converts at SQL bind / SQL
+        result time. Importers and ad-hoc construction
+        (``SqlMetric(uuid="…string…")``) leave the in-memory attribute
+        as a ``str`` until the next DB round-trip refreshes it. With
+        SQLAlchemy-Continuum versioning attached to a child mapper
+        (``TableColumn`` / ``SqlMetric``), the post-INSERT attribute-
+        expire behaviour changes enough that the refresh doesn't happen
+        before the caller reads the attribute — breaking equality
+        assertions like ``test_import_dataset``'s
+        ``metric.uuid == uuid.UUID(...)`` because str ≠ UUID. Coercing
+        defensively here makes the in-memory attribute always a UUID
+        regardless of provenance.
+
+        **Why the non-UUID-string escape hatch.** Tightening this
+        validator to raise on non-UUID strings would break a small set
+        of existing unit tests that use human-readable placeholder
+        strings as fixture uuids (e.g.
+        ``test_dashboard_schemas.py``'s ``"dashboard-uuid-7"`` and
+        analogous placeholders in importer tests). The fixtures use
+        these placeholders for legibility — they're only ever compared
+        by string equality, never written to a real database. Letting
+        them through unchanged keeps the fixtures working at the cost
+        of deferring "real" UUID malformation to the SQL bind layer,
+        which raises a clearer "invalid input syntax for type uuid"
+        error keyed to the actual column.
+
+        **Tightening path** (if amin M1 is ever revisited): replace
+        the ``return value`` in the ``except`` branch with
+        ``raise ValueError(f"Invalid UUID: {value!r}")``, then run the
+        unit test suite and migrate any remaining placeholder fixtures
+        to ``uuid.uuid4()`` (use
+        ``rg '''SqlMetric\\(uuid="[^"]*"|"dashboard-uuid|"slice-uuid'''``
+        to find them). The full migration touches ~5–10 fixture files
+        and is non-breaking outside tests.
+        """
         if isinstance(value, str):
             try:
                 return uuid.UUID(value)
