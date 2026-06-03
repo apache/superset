@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List
 
 from flask import g
@@ -618,6 +618,17 @@ class EmbeddedDashboardDAO(BaseDAO[EmbeddedDashboard]):
         embedded.allow_domain_list = ",".join(allowed_domains)
         dashboard.embedded = [embedded]
         return embedded
+
+    @staticmethod
+    def revoke_guest_tokens(dashboard: Dashboard) -> None:
+        """
+        Revoke outstanding guest tokens for this dashboard's embedded
+        configuration by stamping ``guest_token_revoked_before`` to now. Guest
+        tokens issued before this instant are rejected on their next request.
+        """
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+        for embedded in dashboard.embedded:
+            embedded.guest_token_revoked_before = now
 
     @classmethod
     def create(

@@ -3588,6 +3588,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise ValueError("Guest token does not contain an rls_rules claim")
             if token.get("type") != "guest":
                 raise ValueError("This is not a guest token.")
+            if self._guest_token_is_revoked(token):
+                raise ValueError("Guest token has been revoked.")
         except Exception:  # pylint: disable=broad-except
             # The login manager will handle sending 401s.
             # We don't need to send a special error message.
@@ -3595,6 +3597,58 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return None
 
         return self.get_guest_user_from_token(cast(GuestToken, token))
+
+    def _guest_token_is_revoked(self, token: dict[str, Any]) -> bool:
+        """
+        Return True if any dashboard resource referenced by the token has been
+        revoked since the token was issued — i.e. the token's ``iat`` predates
+        that embedded dashboard's ``guest_token_revoked_before``.
+
+        Revocation is per embedded dashboard, so revoking one embed does not
+        affect guest tokens for other dashboards. Superset always issues guest
+        tokens with an ``iat`` claim, so a token that lacks one cannot be
+        positioned relative to a revocation instant; such tokens are treated as
+        revoked (fail closed) rather than silently bypassing the check.
+        """
+        # pylint: disable=import-outside-toplevel
+        from datetime import timezone
+
+        from superset.daos.dashboard import EmbeddedDashboardDAO
+        from superset.models.dashboard import Dashboard
+
+        iat = token.get("iat")
+        if iat is None:
+            return True
+        for resource in token.get("resources") or []:
+            if resource.get("type") != GuestTokenResourceType.DASHBOARD.value:
+                continue
+            resource_id = str(resource["id"])
+            # A resource id may be an embedded uuid or, for legacy tokens, a
+            # dashboard id/slug. Resolve both so revocation applies regardless of
+            # which form the token carries.
+            embedded = EmbeddedDashboardDAO.find_by_id(resource_id)
+            if embedded:
+                embedded_configs = [embedded]
+            else:
+                dashboard = Dashboard.get(resource_id)
+                embedded_configs = list(dashboard.embedded) if dashboard else []
+            revoked_before = next(
+                (
+                    config.guest_token_revoked_before
+                    for config in embedded_configs
+                    if config.guest_token_revoked_before is not None
+                ),
+                None,
+            )
+            if revoked_before is None:
+                continue
+            # The column is a naive UTC ``DateTime``; compare in UTC so the
+            # check isn't skewed by the server's local offset.
+            if revoked_before.tzinfo is None:
+                revoked_before = revoked_before.replace(tzinfo=timezone.utc)
+            if iat < revoked_before.timestamp():
+                return True
+        return False
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(

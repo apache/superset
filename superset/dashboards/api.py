@@ -244,6 +244,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         "get_embedded",
         "set_embedded",
         "delete_embedded",
+        "revoke_embedded",
         "thumbnail",
         "copy_dash",
         "cache_dashboard_screenshot",
@@ -2132,6 +2133,57 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/500'
         """
         DeleteEmbeddedDashboardCommand(dashboard).run()
+        return self.response(200, message="OK")
+
+    @expose("/<id_or_slug>/embedded/revoke", methods=("POST",))
+    @protect()
+    @safe
+    @permission_name("set_embedded")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.revoke_embedded"
+        ),
+        log_to_statsd=False,
+    )
+    @with_dashboard
+    def revoke_embedded(self, dashboard: Dashboard) -> Response:
+        """Revoke outstanding guest tokens for the dashboard's embedded config.
+        ---
+        post:
+          summary: Revoke active guest sessions for the dashboard
+          description: >-
+            Rejects guest tokens for this dashboard that were issued before now,
+            terminating outstanding embedded guest sessions without affecting
+            other dashboards.
+          parameters:
+          - in: path
+            schema:
+              type: string
+            name: id_or_slug
+            description: The dashboard id or slug
+          responses:
+            200:
+              description: Successfully revoked active guest tokens
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            401:
+              $ref: '#/components/responses/401'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # When the dashboard has no embedded configuration there are no guest
+        # tokens to revoke. Mirror ``delete_embedded`` and treat this as an
+        # idempotent no-op (200) rather than a 404 so cleanup/retry flows that
+        # call revoke unconditionally succeed.
+        if dashboard.embedded:
+            EmbeddedDashboardDAO.revoke_guest_tokens(dashboard)
+            db.session.commit()  # pylint: disable=consider-using-transaction
         return self.response(200, message="OK")
 
     @expose("/<id_or_slug>/copy/", methods=("POST",))

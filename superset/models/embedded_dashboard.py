@@ -17,7 +17,7 @@
 import uuid
 
 from flask_appbuilder import Model
-from sqlalchemy import Column, ForeignKey, Integer, Text
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy_utils import UUIDType
 
@@ -50,6 +50,10 @@ class EmbeddedDashboard(Model, AuditMixinNullable):
         back_populates="embedded",
         foreign_keys=[dashboard_id],
     )
+    # Guest tokens for this embedded dashboard issued (``iat``) before this
+    # timestamp are rejected, revoking outstanding guest sessions for just this
+    # dashboard. NULL means "never revoked".
+    guest_token_revoked_before = Column(DateTime, nullable=True)
 
     @property
     def allowed_domains(self) -> list[str]:

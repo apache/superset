@@ -32,6 +32,10 @@ Disabling a user account (setting `active` to `False`, via the admin UI, REST AP
 
 YDB SQL parsing now relies on the dedicated [`ydb-sqlglot-plugin`](https://pypi.org/project/ydb-sqlglot-plugin/) dialect, which registers itself with sqlglot automatically. YDB users must install this plugin (e.g., via `pip install "apache-superset[ydb]"`) to avoid a `ValueError` when Superset parses YDB queries.
 
+### Per-dashboard guest token revocation
+
+Embedded dashboards can now revoke their outstanding guest tokens without affecting other dashboards or rotating the global `GUEST_TOKEN_JWT_SECRET`. `POST /api/v1/dashboard/<id_or_slug>/embedded/revoke` stamps `embedded_dashboards.guest_token_revoked_before` (added by a migration); guest tokens for that dashboard whose `iat` predates the timestamp are then rejected. Tokens issued afterwards are unaffected, and dashboards that were never revoked (NULL) behave exactly as before.
+
 ### Dataset import validates catalog against the target connection
 
 Importing a dataset now validates the `catalog` field against the target database connection. When the connection has multi-catalog disabled (`allow_multi_catalog` off) and the dataset's catalog is not the connection's default catalog, the import fails instead of silently persisting the non-default catalog. This matches the validation already enforced on the dataset update path and prevents imported datasets from querying an unintended database.
