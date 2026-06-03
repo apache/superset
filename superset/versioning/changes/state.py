@@ -92,7 +92,7 @@ def _cached_scalar_fields(model_cls: type) -> frozenset[str]:
     return _SCALAR_FIELDS_CACHE[model_cls]
 
 
-def _jsonable(value: Any) -> Any:
+def jsonable(value: Any) -> Any:
     """Convert a column value into a JSON-serialisable form.
 
     Slice has ``last_saved_at`` (datetime), datasets have datetime
@@ -124,11 +124,11 @@ def _orm_to_post_state(obj: Any) -> dict[str, Any]:
     We only read declared column attributes — not relationships or
     hybrid properties — because the diff engine operates on scalar
     values per its documented API. Values are passed through
-    :func:`_jsonable` so the dict is JSON-safe end-to-end.
+    :func:`jsonable` so the dict is JSON-safe end-to-end.
     """
     state = sa.inspect(obj)
     return {
-        col.key: _jsonable(getattr(obj, col.key)) for col in state.mapper.column_attrs
+        col.key: jsonable(getattr(obj, col.key)) for col in state.mapper.column_attrs
     }
 
 
@@ -151,7 +151,7 @@ def _read_pre_state(
     # strings so both sides of the diff compare on the same form and
     # any value that ends up in ``from_value`` / ``to_value`` is
     # acceptable to the JSON column on insert.
-    return {key: _jsonable(value) for key, value in result.items()}
+    return {key: jsonable(value) for key, value in result.items()}
 
 
 def _compute_records_for_entity(session: Session, obj: Any) -> list[ChangeRecord]:

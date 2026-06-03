@@ -76,7 +76,7 @@ from superset.versioning.changes.state import (
     _bulk_insert_records,
     _compute_records_for_entity,
 )
-from superset.versioning.changes.table import _ENTITY_KIND_BY_CLASS_NAME
+from superset.versioning.changes.table import ENTITY_KIND_BY_CLASS_NAME
 from superset.versioning.diff import (
     ChangeRecord,
     fold_dashboard_layout_with_chart_changes,
@@ -149,7 +149,7 @@ def _process_dirty_entity_into_buffer(
     buffer: dict[tuple[str, int], list[ChangeRecord]],
 ) -> None:
     """Compute scalar change records for one dirty entity + append to buffer."""
-    entity_kind = _ENTITY_KIND_BY_CLASS_NAME.get(type(obj).__name__)
+    entity_kind = ENTITY_KIND_BY_CLASS_NAME.get(type(obj).__name__)
     if entity_kind is None:
         return
     entity_id = getattr(obj, "id", None)
