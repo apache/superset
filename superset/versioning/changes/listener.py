@@ -117,13 +117,13 @@ _PROCESSED_TXS_KEY = "_version_changes_processed_txs"
 # transaction.
 ACTION_KIND_KEY = "_versioning_action_kind"
 
-# Recognised ``action_kind`` values — the Published Language between the
-# four command-side stampers (restore / import / clone) and the listener
-# that writes them to ``version_transaction.action_kind``. Schemas /
-# response decorators that need an allowlist read from ``ACTION_KINDS``
-# so a future addition (e.g. ``"thumbnail_warm"``) only has to update
-# this one constant. ``None`` is *not* a member — it represents the
-# default "ordinary save" path that never sets the key.
+# Recognised ``action_kind`` values — the single source of truth shared
+# by the four command-side stampers (restore / import / clone) and the
+# listener that writes them to ``version_transaction.action_kind``.
+# Schemas / response decorators that need an allowlist read from
+# ``ACTION_KINDS`` so a future addition (e.g. ``"thumbnail_warm"``) only
+# has to update this one constant. ``None`` is *not* a member — it
+# represents the default "ordinary save" path that never sets the key.
 ACTION_KIND_RESTORE = "restore"
 ACTION_KIND_IMPORT = "import"
 ACTION_KIND_CLONE = "clone"
