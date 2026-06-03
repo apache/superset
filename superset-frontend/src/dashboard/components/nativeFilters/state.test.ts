@@ -1047,3 +1047,100 @@ test('useIsFilterInScope: deeply nested tabs — default path includes inner-tab
   // CHART-Inner2's tab parent TAB-Inner2 is not in default path → out of scope.
   expect(result.current(innerNonDefaultFilter)).toBe(false);
 });
+
+test('useIsFilterInScope: nested Tabs mounted under hideTab:true — outer ancestor merged so outer-tab scoping is preserved', () => {
+  // hideTab:true skips the top-level Tabs but a nested Tabs can still mount
+  // and dispatch setActiveTab. activeTabs holds only the inner id; without
+  // ancestor merging, filters whose charts have tabParents=[outer, inner]
+  // would be marked out-of-scope because the outer id is missing.
+  (useSelector as jest.Mock).mockImplementation((selector: Function) => {
+    const mockState = {
+      dashboardState: { activeTabs: ['TAB-Inner1'] },
+      dashboardLayout: {
+        present: {
+          ROOT_ID: { type: 'ROOT', id: 'ROOT_ID', children: ['TABS-1'] },
+          'TABS-1': {
+            type: 'TABS',
+            id: 'TABS-1',
+            children: ['TAB-Outer1', 'TAB-Outer2'],
+          },
+          'TAB-Outer1': {
+            type: 'TAB',
+            id: 'TAB-Outer1',
+            children: ['TABS-2'],
+          },
+          'TAB-Outer2': {
+            type: 'TAB',
+            id: 'TAB-Outer2',
+            children: ['CHART-Outer2'],
+          },
+          'TABS-2': {
+            type: 'TABS',
+            id: 'TABS-2',
+            children: ['TAB-Inner1', 'TAB-Inner2'],
+          },
+          'TAB-Inner1': {
+            type: 'TAB',
+            id: 'TAB-Inner1',
+            children: ['CHART-Inner1'],
+          },
+          'TAB-Inner2': {
+            type: 'TAB',
+            id: 'TAB-Inner2',
+            children: ['CHART-Inner2'],
+          },
+          'CHART-Inner1': {
+            type: 'CHART',
+            meta: { chartId: 11 },
+            parents: ['ROOT_ID', 'TAB-Outer1', 'TABS-2', 'TAB-Inner1'],
+          },
+          'CHART-Inner2': {
+            type: 'CHART',
+            meta: { chartId: 12 },
+            parents: ['ROOT_ID', 'TAB-Outer1', 'TABS-2', 'TAB-Inner2'],
+          },
+          'CHART-Outer2': {
+            type: 'CHART',
+            meta: { chartId: 20 },
+            parents: ['ROOT_ID', 'TAB-Outer2'],
+          },
+        },
+      },
+    };
+    return selector(mockState);
+  });
+
+  const innerActiveFilter: Filter = {
+    id: 'filter_inner1_active',
+    name: 'Filter scoped to active inner tab',
+    filterType: 'filter_select',
+    type: NativeFilterType.NativeFilter,
+    chartsInScope: [11],
+    scope: { rootPath: ['TAB-Inner1'], excluded: [] },
+    controlValues: {},
+    defaultDataMask: {},
+    cascadeParentIds: [],
+    targets: [{ column: { name: 'col' }, datasetId: 1 }],
+    description: 'Filter on the active inner tab',
+  };
+
+  const otherOuterFilter: Filter = {
+    id: 'filter_other_outer',
+    name: 'Filter scoped to non-default outer tab',
+    filterType: 'filter_select',
+    type: NativeFilterType.NativeFilter,
+    chartsInScope: [20],
+    scope: { rootPath: ['TAB-Outer2'], excluded: [] },
+    controlValues: {},
+    defaultDataMask: {},
+    cascadeParentIds: [],
+    targets: [{ column: { name: 'col' }, datasetId: 2 }],
+    description: 'Filter on the other outer tab — must stay out of scope',
+  };
+
+  const { result } = renderHook(() => useIsFilterInScope());
+  // Outer ancestor TAB-Outer1 is merged into the active path → in scope.
+  expect(result.current(innerActiveFilter)).toBe(true);
+  // TAB-Outer2 is not in the active path → out of scope, scoping preserved.
+  expect(result.current(otherOuterFilter)).toBe(false);
+});
