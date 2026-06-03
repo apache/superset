@@ -86,6 +86,7 @@ import Mousetrap from 'mousetrap';
 import { clearDatasetCache } from 'src/utils/cachedSupersetGet';
 import { makeUrl } from 'src/utils/pathUtils';
 import { DatabaseSelector } from '../../../DatabaseSelector';
+import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
 import Field from '../Field';
@@ -2305,6 +2306,53 @@ function DatasourceEditor({
     () => (datasource.metrics?.length ? sortMetrics(datasource.metrics) : []),
     [datasource.metrics, sortMetrics],
   );
+
+  // Retained to mirror the canonical (class-based) component on master: the
+  // Spatial tab definition is kept available even though it is not currently
+  // wired into the rendered tab list. Removing it would also drop its
+  // translatable strings and regress existing translations.
+  const renderSpatialTab = useCallback(() => {
+    const { spatials, all_cols: allCols } = datasource;
+
+    return {
+      key: TABS_KEYS.SPATIAL,
+      label: <CollectionTabTitle collection={spatials} title={t('Spatial')} />,
+      children: (
+        <CollectionTable
+          tableColumns={['name', 'config']}
+          sortColumns={['name']}
+          onChange={value => onDatasourcePropChange('spatials', value)}
+          itemGenerator={() => ({
+            name: t('<new spatial>'),
+            type: t('<no type>'),
+            config: null,
+          })}
+          collection={spatials ?? []}
+          allowDeletes
+          itemRenderers={{
+            name: (d, onChange) => (
+              <EditableTitle
+                canEdit
+                title={d as string}
+                onSaveTitle={onChange}
+              />
+            ),
+            config: (v, onChange) => (
+              <SpatialControl
+                value={
+                  v as {
+                    type: 'latlong' | 'delimited' | 'geohash';
+                  }
+                }
+                onChange={onChange}
+                choices={allCols?.map(col => [col, col] as [string, string])}
+              />
+            ),
+          }}
+        />
+      ),
+    };
+  }, [datasource, onDatasourcePropChange]);
 
   const tabItems = useMemo(
     () => [
