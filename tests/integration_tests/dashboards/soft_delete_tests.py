@@ -16,6 +16,8 @@
 # under the License.
 """Integration tests for dashboard soft-delete and restore."""
 
+from typing import Any
+
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
@@ -510,7 +512,7 @@ class TestDashboardRestore(SupersetTestCase):
         # Build a v1-importer config that re-imports the original's UUID
         # with a different (free) slug. Mirrors the shape of a YAML upload
         # decoded by ImportDashboardsCommand before reaching ``import_dashboard``.
-        config = {
+        config: dict[str, Any] = {
             "dashboard_title": "rename_target",
             "description": None,
             "css": "",
@@ -547,9 +549,7 @@ class TestDashboardRestore(SupersetTestCase):
 
             # The claimant is unchanged.
             claimant_row = (
-                db.session.query(Dashboard)
-                .filter(Dashboard.id == claimant_id)
-                .one()
+                db.session.query(Dashboard).filter(Dashboard.id == claimant_id).one()
             )
             assert claimant_row.slug == old_slug, (
                 "Slug rename of the restored dashboard must not perturb the "
