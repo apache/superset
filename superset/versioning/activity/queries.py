@@ -16,13 +16,13 @@
 # under the License.
 """DB-touching helpers for the activity-view read path.
 
-All Phase A relationship walks (``_charts_attached_to_dashboard``,
-``_datasets_used_by_chart``, ``_batch_datasets_used_by_charts``),
-the Phase B change-record fetch (``_fetch_change_records`` /
+All Phase A relationship walks (``charts_attached_to_dashboard``,
+``datasets_used_by_chart``, ``batch_datasets_used_by_charts``),
+the Phase B change-record fetch (``fetch_change_records`` /
 ``_select_change_rows_for_kinds``), the name-denormalization helpers
-(``_resolve_names_for_kind`` / ``_denormalize_entity_names``), the
-path-entity resolution helper (``_resolve_path_entity``), and the
-tombstone-state lookup (``_check_entity_tombstones``) live here.
+(``_resolve_names_for_kind`` / ``denormalize_entity_names``), the
+path-entity resolution helper (``resolve_path_entity``), and the
+tombstone-state lookup (``check_entity_tombstones``) live here.
 
 Each helper is a thin SELECT-and-shape function — no orchestration,
 no business logic. Callers in :mod:`scope`, :mod:`render`, and
@@ -45,21 +45,21 @@ import sqlalchemy as sa
 
 from superset.extensions import db
 from superset.versioning.activity.kinds import (
-    _API_KIND_TO_TABLE,
-    _load_shadow_model,
-    _NAME_COLUMN,
-    _NOT_FOUND_EXC,
-    _TABLE_KIND_TO_API,
+    API_KIND_TO_TABLE,
     EntityWindows,
+    load_shadow_model,
+    NAME_COLUMN,
+    NOT_FOUND_EXC,
+    TABLE_KIND_TO_API,
     Window,
 )
-from superset.versioning.activity.windows import _row_within_any_window
+from superset.versioning.activity.windows import row_within_any_window
 from superset.versioning.changes import version_changes_table
 
 # ---- Path-entity resolution -----------------------------------------------
 
 
-def _resolve_path_entity(model_cls: type, entity_uuid: UUID) -> tuple[Any, int]:
+def resolve_path_entity(model_cls: type, entity_uuid: UUID) -> tuple[Any, int]:
     """Resolve *entity_uuid* to ``(live_entity, entity_id)`` or raise a
     typed 404 per AV-009.
 
@@ -74,7 +74,7 @@ def _resolve_path_entity(model_cls: type, entity_uuid: UUID) -> tuple[Any, int]:
     entity = find_active_by_uuid(model_cls, entity_uuid)
     if entity is None:
         api_kind = model_cls.__name__
-        exc_cls = _NOT_FOUND_EXC.get(api_kind)
+        exc_cls = NOT_FOUND_EXC.get(api_kind)
         if exc_cls is None:
             raise LookupError(
                 f"Activity view does not support model class {api_kind!r}"
@@ -86,7 +86,7 @@ def _resolve_path_entity(model_cls: type, entity_uuid: UUID) -> tuple[Any, int]:
 # ---- Phase A: relationship-traversal queries ------------------------------
 
 
-def _charts_attached_to_dashboard(dashboard_id: int) -> list[tuple[int, Window]]:
+def charts_attached_to_dashboard(dashboard_id: int) -> list[tuple[int, Window]]:
     """Return ``(slice_id, window)`` for every chart that has ever been on
     *dashboard_id*, with each association's validity window in
     transaction-id space.
@@ -123,13 +123,13 @@ def _charts_attached_to_dashboard(dashboard_id: int) -> list[tuple[int, Window]]
     return [(row[0], Window(row[1], row[2])) for row in rows]
 
 
-def _datasets_used_by_chart(slice_id: int) -> list[tuple[int, Window]]:
+def datasets_used_by_chart(slice_id: int) -> list[tuple[int, Window]]:
     """Return ``(datasource_id, window)`` for every dataset that *slice_id*
     has ever pointed at, with each association's validity window.
 
     Single-slice form, used by ``_resolve_chart_scope`` where there
     is only one chart to walk. The dashboard-scope path calls
-    :func:`_batch_datasets_used_by_charts` instead so the query fires
+    :func:`batch_datasets_used_by_charts` instead so the query fires
     once for all slices on the dashboard, not once per slice.
 
     Reads from ``slices_version`` (the chart parent shadow). Filters to
@@ -137,18 +137,18 @@ def _datasets_used_by_chart(slice_id: int) -> list[tuple[int, Window]]:
     the chart → ``SqlaTable`` dependency edge (not legacy/other
     datasources). Rows with ``operation_type = 2`` are excluded.
     """
-    return _batch_datasets_used_by_charts({slice_id}).get(slice_id, [])
+    return batch_datasets_used_by_charts({slice_id}).get(slice_id, [])
 
 
-def _batch_datasets_used_by_charts(
+def batch_datasets_used_by_charts(
     slice_ids: set[int],
 ) -> dict[int, list[tuple[int, Window]]]:
-    """Batch form of :func:`_datasets_used_by_chart`. Returns
+    """Batch form of :func:`datasets_used_by_chart`. Returns
     ``{slice_id: [(dataset_id, window), ...]}`` in a single query so the
     dashboard-scope walker doesn't fire one query per chart on the
     dashboard. The previous per-slice shape became O(n_charts) round-
     trips, which dominated ``get_activity`` latency on dashboards with
-    rich history (profile run 2026-05-26 showed `_resolve_scope`
+    rich history (profile run 2026-05-26 showed `resolve_scope`
     accounting for ~1.9s out of 4s p95).
     """
     if not slice_ids:
@@ -192,7 +192,7 @@ def _batch_datasets_used_by_charts(
 # ---- Phase B: change-record fetch -----------------------------------------
 
 
-def _fetch_change_records(
+def fetch_change_records(
     entity_window_tuples: list[EntityWindows],
     since: datetime | None,
     until: datetime | None,
@@ -234,7 +234,7 @@ def _fetch_change_records(
     windows_by_entity: dict[tuple[str, int], list[Window]] = {}
     ids_by_kind: dict[str, set[int]] = {}
     for api_kind, entity_id, windows in entity_window_tuples:
-        table_kind = _API_KIND_TO_TABLE.get(api_kind)
+        table_kind = API_KIND_TO_TABLE.get(api_kind)
         if table_kind is None or not windows:
             continue
         ids_by_kind.setdefault(table_kind, set()).add(entity_id)
@@ -247,7 +247,7 @@ def _fetch_change_records(
     filtered = [
         row
         for row in rows
-        if _row_within_any_window(
+        if row_within_any_window(
             row, windows_by_entity.get((row["entity_kind"], row["entity_id"]), [])
         )
     ]
@@ -378,11 +378,11 @@ def _resolve_names_for_kind(
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import version_class
 
-    if api_kind not in _NAME_COLUMN:
+    if api_kind not in NAME_COLUMN:
         return {}
 
-    model_name, name_col = _NAME_COLUMN[api_kind]
-    model_cls = _load_shadow_model(model_name)
+    model_name, name_col = NAME_COLUMN[api_kind]
+    model_cls = load_shadow_model(model_name)
     shadow_tbl = version_class(model_cls).__table__
     ids = sorted({eid for eid, _ in pairs})
     rows = (
@@ -410,7 +410,7 @@ def _resolve_names_for_kind(
     return resolved
 
 
-def _denormalize_entity_names(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def denormalize_entity_names(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Resolve each record's ``entity_name`` from the shadow row valid at
     its ``transaction_id``. Adds an ``entity_name`` key to every record;
     mutates and returns *records* for convenient chaining.
@@ -425,8 +425,8 @@ def _denormalize_entity_names(records: list[dict[str, Any]]) -> list[dict[str, A
 
     needed_by_kind: dict[str, set[tuple[int, int]]] = {}
     for record in records:
-        api_kind = _TABLE_KIND_TO_API.get(record["entity_kind"])
-        if api_kind is None or api_kind not in _NAME_COLUMN:
+        api_kind = TABLE_KIND_TO_API.get(record["entity_kind"])
+        if api_kind is None or api_kind not in NAME_COLUMN:
             continue
         needed_by_kind.setdefault(api_kind, set()).add(
             (record["entity_id"], record["transaction_id"])
@@ -440,7 +440,7 @@ def _denormalize_entity_names(records: list[dict[str, Any]]) -> list[dict[str, A
             resolved[(api_kind, entity_id, target_tx)] = name
 
     for record in records:
-        api_kind_for_record = _TABLE_KIND_TO_API.get(record["entity_kind"], "")
+        api_kind_for_record = TABLE_KIND_TO_API.get(record["entity_kind"], "")
         key = (api_kind_for_record, record["entity_id"], record["transaction_id"])
         record["entity_name"] = resolved.get(key, "")
     return records
@@ -449,7 +449,7 @@ def _denormalize_entity_names(records: list[dict[str, Any]]) -> list[dict[str, A
 # ---- Live-row existence + soft-delete state -------------------------------
 
 
-def _check_entity_tombstones(
+def check_entity_tombstones(
     distinct_entities: set[tuple[str, int]],
 ) -> dict[tuple[str, int], dict[str, Any]]:
     """For each ``(api_kind, entity_id)``, report ``deleted`` (no live
@@ -475,7 +475,7 @@ def _check_entity_tombstones(
     # flush would otherwise trigger autoflush mid-read.
     with db.session.no_autoflush:
         for api_kind, entity_ids in by_kind.items():
-            if api_kind not in _NAME_COLUMN:
+            if api_kind not in NAME_COLUMN:
                 for entity_id in entity_ids:
                     result[(api_kind, entity_id)] = {
                         "deleted": True,
@@ -483,8 +483,8 @@ def _check_entity_tombstones(
                     }
                 continue
 
-            model_name, _ = _NAME_COLUMN[api_kind]
-            model_cls = _load_shadow_model(model_name)
+            model_name, _ = NAME_COLUMN[api_kind]
+            model_cls = load_shadow_model(model_name)
             live_tbl = model_cls.__table__  # type: ignore[attr-defined]
             has_deleted_at = "deleted_at" in live_tbl.c
 

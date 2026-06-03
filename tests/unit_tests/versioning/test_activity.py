@@ -21,9 +21,9 @@ in isolation: window intersection, scope resolution branching, entity-
 window merging, AV-012 summary headlines, ``changed_by`` projection,
 read-predicate fall-through, and the no-impact paths of
 ``_compute_impact``. The DB-touching helpers
-(``_charts_attached_to_dashboard``, ``_datasets_used_by_chart``,
-``_fetch_change_records``, ``_denormalize_entity_names``,
-``_check_entity_tombstones``, ``_lookup_entity_uuids``) are exercised
+(``charts_attached_to_dashboard``, ``datasets_used_by_chart``,
+``fetch_change_records``, ``denormalize_entity_names``,
+``check_entity_tombstones``, ``_lookup_entity_uuids``) are exercised
 by the integration suite in
 ``tests/integration_tests/versioning/activity_view_tests.py``.
 """
@@ -39,24 +39,24 @@ from superset.versioning.activity import (
     Window,
 )
 from superset.versioning.activity.impact import (
-    _collect_impact_pairs,
-    _impact_for_record,
+    collect_impact_pairs,
+    impact_for_record,
 )
-from superset.versioning.activity.kinds import _API_KIND_TO_TABLE, _TABLE_KIND_TO_API
+from superset.versioning.activity.kinds import API_KIND_TO_TABLE, TABLE_KIND_TO_API
 from superset.versioning.activity.orchestrator import (
     _DEFAULT_PAGE_SIZE,
     _MAX_PAGE_SIZE,
 )
 from superset.versioning.activity.render import _build_summary, _changed_by_dict
-from superset.versioning.activity.scope import _resolve_scope
+from superset.versioning.activity.scope import resolve_scope
 from superset.versioning.activity.windows import (
-    _intersect_windows,
-    _merge_entity_windows,
-    _row_within_any_window,
-    _union_windows,
+    intersect_windows,
+    merge_entity_windows,
+    row_within_any_window,
+    union_windows,
 )
 
-# ---- _intersect_windows ---------------------------------------------------
+# ---- intersect_windows ---------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -89,48 +89,48 @@ from superset.versioning.activity.windows import (
 def test_intersect_windows(
     outer: Window, inner: Window, expected: Window | None
 ) -> None:
-    assert _intersect_windows(outer, inner) == expected
+    assert intersect_windows(outer, inner) == expected
 
 
-# ---- _resolve_scope -------------------------------------------------------
+# ---- resolve_scope -------------------------------------------------------
 
 
 def test_resolve_scope_self_only_for_dashboard() -> None:
     """``include='self'`` yields exactly one tuple covering all transactions."""
-    assert _resolve_scope("Dashboard", 42, "self") == [
+    assert resolve_scope("Dashboard", 42, "self") == [
         ("Dashboard", 42, [Window(0, None)]),
     ]
 
 
 def test_resolve_scope_self_only_for_chart() -> None:
-    assert _resolve_scope("Slice", 7, "self") == [("Slice", 7, [Window(0, None)])]
+    assert resolve_scope("Slice", 7, "self") == [("Slice", 7, [Window(0, None)])]
 
 
 def test_resolve_scope_self_only_for_dataset() -> None:
-    assert _resolve_scope("SqlaTable", 9, "self") == [
+    assert resolve_scope("SqlaTable", 9, "self") == [
         ("SqlaTable", 9, [Window(0, None)]),
     ]
 
 
 def test_dataset_has_no_related_scope() -> None:
     """AV-004: datasets are not transitive recipients of activity in V2."""
-    assert _resolve_scope("SqlaTable", 9, "related") == []
+    assert resolve_scope("SqlaTable", 9, "related") == []
 
 
 def test_dataset_all_returns_only_self() -> None:
     """For datasets, ``include='all'`` == ``include='self'`` (AV-004)."""
-    assert _resolve_scope("SqlaTable", 9, "all") == [
+    assert resolve_scope("SqlaTable", 9, "all") == [
         ("SqlaTable", 9, [Window(0, None)]),
     ]
 
 
-# ---- _merge_entity_windows -----------------------------------------------
+# ---- merge_entity_windows -----------------------------------------------
 
 
 def test_merge_entity_windows_collapses_repeated_keys() -> None:
     """Repeated ``(api_kind, entity_id)`` entries union their window lists
     so the fetch query's OR-clause stays compact."""
-    merged = _merge_entity_windows(
+    merged = merge_entity_windows(
         [
             ("Slice", 1, [Window(0, 100)]),
             ("Slice", 1, [Window(200, 300)]),
@@ -148,7 +148,7 @@ def test_merge_entity_windows_preserves_singletons() -> None:
         ("Slice", 1, [Window(0, 100)]),
         ("Dashboard", 2, [Window(10, 20)]),
     ]
-    merged = _merge_entity_windows(inputs)
+    merged = merge_entity_windows(inputs)
     assert sorted(merged) == sorted(inputs)
 
 
@@ -158,7 +158,7 @@ def test_merge_entity_windows_unions_overlapping_windows_for_one_entity() -> Non
     This guards the SQLite expression-tree limit: a fixture that
     re-creates a chart-on-dashboard association across many transactions
     used to produce N separate OR branches in the fetch query (one per
-    redundant window). _merge_entity_windows must coalesce them.
+    redundant window). merge_entity_windows must coalesce them.
     """
     scope: list[EntityWindows] = [
         ("Slice", 1, [Window(10, 20)]),
@@ -166,11 +166,11 @@ def test_merge_entity_windows_unions_overlapping_windows_for_one_entity() -> Non
         ("Slice", 1, [Window(25, 30)]),  # touches
         ("Slice", 1, [Window(40, 50)]),  # disjoint
     ]
-    merged = _merge_entity_windows(scope)
+    merged = merge_entity_windows(scope)
     assert merged == [("Slice", 1, [Window(10, 30), Window(40, 50)])]
 
 
-# ---- _union_windows -------------------------------------------------------
+# ---- union_windows -------------------------------------------------------
 
 
 @pytest.mark.parametrize(
@@ -206,41 +206,41 @@ def test_merge_entity_windows_unions_overlapping_windows_for_one_entity() -> Non
     ],
 )
 def test_union_windows(windows: list[Window], expected: list[Window]) -> None:
-    assert _union_windows(windows) == expected
+    assert union_windows(windows) == expected
 
 
-# ---- _row_within_any_window (Python post-filter for the fetch query) ------
+# ---- row_within_any_window (Python post-filter for the fetch query) ------
 
 
 def test_row_in_window_inside() -> None:
-    assert _row_within_any_window({"transaction_id": 15}, [Window(10, 20)])
+    assert row_within_any_window({"transaction_id": 15}, [Window(10, 20)])
 
 
 def test_row_in_window_at_start_boundary_inclusive() -> None:
     """Half-open: ``[10, 20)`` includes 10."""
-    assert _row_within_any_window({"transaction_id": 10}, [Window(10, 20)])
+    assert row_within_any_window({"transaction_id": 10}, [Window(10, 20)])
 
 
 def test_row_in_window_at_end_boundary_exclusive() -> None:
     """Half-open: ``[10, 20)`` excludes 20."""
-    assert not _row_within_any_window({"transaction_id": 20}, [Window(10, 20)])
+    assert not row_within_any_window({"transaction_id": 20}, [Window(10, 20)])
 
 
 def test_row_in_open_ended_window() -> None:
     """``end=None`` means +∞."""
-    assert _row_within_any_window({"transaction_id": 999}, [Window(10, None)])
+    assert row_within_any_window({"transaction_id": 999}, [Window(10, None)])
 
 
 def test_row_in_any_of_several_windows() -> None:
-    assert _row_within_any_window(
+    assert row_within_any_window(
         {"transaction_id": 50},
         [Window(10, 20), Window(40, 60), Window(90, 100)],
     )
 
 
 def test_row_in_no_windows_returns_false() -> None:
-    assert not _row_within_any_window({"transaction_id": 50}, [])
-    assert not _row_within_any_window(
+    assert not row_within_any_window({"transaction_id": 50}, [])
+    assert not row_within_any_window(
         {"transaction_id": 25}, [Window(10, 20), Window(30, 40)]
     )
 
@@ -251,8 +251,8 @@ def test_row_in_no_windows_returns_false() -> None:
 def test_kind_translation_is_bijective_for_supported_kinds() -> None:
     """Every API kind maps to a table kind and back to the same value.
     Locks in the contract that the two maps don't drift."""
-    for api_kind, table_kind in _API_KIND_TO_TABLE.items():
-        assert _TABLE_KIND_TO_API[table_kind] == api_kind
+    for api_kind, table_kind in API_KIND_TO_TABLE.items():
+        assert TABLE_KIND_TO_API[table_kind] == api_kind
 
 
 # ---- _build_summary (AV-012) ---------------------------------------------
@@ -312,7 +312,7 @@ def test_changed_by_projects_only_display_fields() -> None:
     assert "username" not in result
 
 
-# ---- _impact_for_record (pure, post-batch) -------------------------------
+# ---- impact_for_record (pure, post-batch) -------------------------------
 
 
 def test_impact_for_record_dashboard_path_dataset_related_uses_count() -> None:
@@ -320,44 +320,44 @@ def test_impact_for_record_dashboard_path_dataset_related_uses_count() -> None:
     ``SqlaTable``. The count comes from the pre-batched lookup."""
     record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
     counts = {(5, 100): 3}
-    assert _impact_for_record(record, "Dashboard", counts) == {"charts": 3}
+    assert impact_for_record(record, "Dashboard", counts) == {"charts": 3}
 
 
 def test_impact_for_record_missing_count_yields_none() -> None:
     """A pair the batch query didn't return (no matching siblings)
     collapses to ``None`` rather than ``{"charts": 0}``."""
     record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
-    assert _impact_for_record(record, "Dashboard", {}) is None
+    assert impact_for_record(record, "Dashboard", {}) is None
 
 
 def test_impact_for_record_zero_count_yields_none() -> None:
     """Explicit zero in the counts map is treated the same as missing —
     no impact field on the wire."""
     record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
-    assert _impact_for_record(record, "Dashboard", {(5, 100): 0}) is None
+    assert impact_for_record(record, "Dashboard", {(5, 100): 0}) is None
 
 
 def test_impact_for_record_dashboard_path_chart_related_yields_none() -> None:
     """Dashboard → chart is a direct dependency; no further sibling
     layer to count."""
     record = {"entity_kind": "chart", "entity_id": 5, "transaction_id": 100}
-    assert _impact_for_record(record, "Dashboard", {(5, 100): 999}) is None
+    assert impact_for_record(record, "Dashboard", {(5, 100): 999}) is None
 
 
 def test_impact_for_record_chart_path_with_dataset_related_yields_none() -> None:
     """Chart → dataset: the chart is itself the only dependent of the
     dataset edit."""
     record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
-    assert _impact_for_record(record, "Slice", {(5, 100): 999}) is None
+    assert impact_for_record(record, "Slice", {(5, 100): 999}) is None
 
 
 def test_impact_for_record_dataset_path_yields_none() -> None:
     """Datasets have no transitive layer (AV-004)."""
     record = {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100}
-    assert _impact_for_record(record, "SqlaTable", {(5, 100): 999}) is None
+    assert impact_for_record(record, "SqlaTable", {(5, 100): 999}) is None
 
 
-# ---- _collect_impact_pairs -----------------------------------------------
+# ---- collect_impact_pairs -----------------------------------------------
 
 
 def test_collect_impact_pairs_dashboard_path_collects_only_datasets() -> None:
@@ -369,7 +369,7 @@ def test_collect_impact_pairs_dashboard_path_collects_only_datasets() -> None:
         {"entity_kind": "chart", "entity_id": 9, "transaction_id": 300},
         {"entity_kind": "dashboard", "entity_id": 1, "transaction_id": 400},
     ]
-    assert _collect_impact_pairs(records, "Dashboard") == {(5, 100), (7, 200)}
+    assert collect_impact_pairs(records, "Dashboard") == {(5, 100), (7, 200)}
 
 
 def test_collect_impact_pairs_dedupes_repeated_pairs() -> None:
@@ -380,7 +380,7 @@ def test_collect_impact_pairs_dedupes_repeated_pairs() -> None:
         {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100},
         {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100},
     ]
-    pairs = _collect_impact_pairs(records, "Dashboard")
+    pairs = collect_impact_pairs(records, "Dashboard")
     assert pairs == {(5, 100)}
 
 
@@ -390,18 +390,18 @@ def test_collect_impact_pairs_chart_path_returns_empty() -> None:
     records = [
         {"entity_kind": "dataset", "entity_id": 5, "transaction_id": 100},
     ]
-    assert _collect_impact_pairs(records, "Slice") == set()
+    assert collect_impact_pairs(records, "Slice") == set()
 
 
 def test_collect_impact_pairs_dataset_path_returns_empty() -> None:
     records = [
         {"entity_kind": "chart", "entity_id": 5, "transaction_id": 100},
     ]
-    assert _collect_impact_pairs(records, "SqlaTable") == set()
+    assert collect_impact_pairs(records, "SqlaTable") == set()
 
 
 def test_collect_impact_pairs_empty_records_returns_empty() -> None:
-    assert _collect_impact_pairs([], "Dashboard") == set()
+    assert collect_impact_pairs([], "Dashboard") == set()
 
 
 # ---- parse_activity_query_params (shared API helper) ---------------------

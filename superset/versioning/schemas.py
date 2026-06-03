@@ -136,7 +136,7 @@ class VersionListResponseSchema(Schema):
 #: lowercase strings; the activity layer's internal kind dispatch keys off
 #: ``model_cls.__name__`` (``Dashboard`` / ``Slice`` / ``SqlaTable``) and
 #: translates to these labels at the JSON boundary in
-#: :func:`superset.versioning.activity._decorate_records`.
+#: :func:`superset.versioning.activity.decorate_records`.
 ACTIVITY_ENTITY_KINDS: tuple[str, ...] = ("dashboard", "chart", "dataset")
 
 #: Allowed values for ``ActivityRecordSchema.source`` (spec AV-013).

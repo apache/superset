@@ -25,7 +25,7 @@ dashboard→dataset records), ``version_uuid``, ``changed_by``.
 
 This module collects all those decorations:
 
-* :func:`_decorate_records` — orchestrates the per-page additions in
+* :func:`decorate_records` — orchestrates the per-page additions in
   one pass: pulls tombstones + uuids + impact counts in batches, then
   walks records adding the synthesized fields and stripping the
   internal-only columns the API contract doesn't expose.
@@ -46,18 +46,18 @@ import sqlalchemy as sa
 
 from superset.extensions import db
 from superset.versioning.activity.impact import (
-    _batch_chart_counts,
-    _collect_impact_pairs,
-    _impact_for_record,
+    batch_chart_counts,
+    collect_impact_pairs,
+    impact_for_record,
 )
 from superset.versioning.activity.kinds import (
-    _API_KIND_LABEL,
-    _load_shadow_model,
-    _NAME_COLUMN,
-    _TABLE_KIND_TO_API,
-    _USER_FACING_KIND,
+    API_KIND_LABEL,
+    load_shadow_model,
+    NAME_COLUMN,
+    TABLE_KIND_TO_API,
+    USER_FACING_KIND,
 )
-from superset.versioning.activity.queries import _check_entity_tombstones
+from superset.versioning.activity.queries import check_entity_tombstones
 from superset.versioning.queries import derive_version_uuid
 
 _SUMMARY_VERBS: dict[str, str] = {
@@ -76,7 +76,7 @@ _SUMMARY_VERBS: dict[str, str] = {
 }
 
 
-def _decorate_records(
+def decorate_records(
     records: list[dict[str, Any]],
     path_kind: str,
     path_id: int,
@@ -87,29 +87,29 @@ def _decorate_records(
     ``summary``, ``impact``, ``version_uuid``, ``changed_by``.
 
     Mutates and returns *records* for chaining. Records are expected to
-    already carry ``entity_name`` from :func:`_denormalize_entity_names`.
+    already carry ``entity_name`` from :func:`denormalize_entity_names`.
     """
     if not records:
         return records
 
     distinct: set[tuple[str, int]] = {
         (
-            _TABLE_KIND_TO_API.get(r["entity_kind"], ""),
+            TABLE_KIND_TO_API.get(r["entity_kind"], ""),
             r["entity_id"],
         )
         for r in records
-        if _TABLE_KIND_TO_API.get(r["entity_kind"])
+        if TABLE_KIND_TO_API.get(r["entity_kind"])
     }
-    tombstones = _check_entity_tombstones(distinct)
+    tombstones = check_entity_tombstones(distinct)
     uuids = _lookup_entity_uuids(distinct, tombstones)
     # Pre-compute impact counts for the whole page in one batch query
     # instead of one COUNT per related record (was N+1).
-    impact_counts = _batch_chart_counts(
-        path_id, _collect_impact_pairs(records, path_kind)
+    impact_counts = batch_chart_counts(
+        path_id, collect_impact_pairs(records, path_kind)
     )
 
     for record in records:
-        api_kind = _TABLE_KIND_TO_API.get(record["entity_kind"], "")
+        api_kind = TABLE_KIND_TO_API.get(record["entity_kind"], "")
         entity_id = record["entity_id"]
         tombstone = tombstones.get(
             (api_kind, entity_id), {"deleted": True, "deletion_state": None}
@@ -120,7 +120,7 @@ def _decorate_records(
         # Emit the user-facing form ("dashboard"/"chart"/"dataset") on the
         # wire; the internal class-name (api_kind) is kept above for the
         # remaining decoration steps that key off model_cls.__name__.
-        record["entity_kind"] = _USER_FACING_KIND.get(api_kind, api_kind)
+        record["entity_kind"] = USER_FACING_KIND.get(api_kind, api_kind)
         record["entity_uuid"] = str(entity_uuid) if entity_uuid else None
         record["entity_deleted"] = tombstone["deleted"]
         record["entity_deletion_state"] = tombstone["deletion_state"]
@@ -137,7 +137,7 @@ def _decorate_records(
             record["impact"] = None
         else:
             record["summary"] = _build_summary(api_kind, record)
-            record["impact"] = _impact_for_record(record, path_kind, impact_counts)
+            record["impact"] = impact_for_record(record, path_kind, impact_counts)
 
         # Strip the internal-only columns the API contract doesn't expose.
         for key in (
@@ -174,9 +174,9 @@ def _lookup_entity_uuids(
     # session state, so the cost of the guard is zero.
     with db.session.no_autoflush:
         for api_kind, entity_ids in by_kind.items():
-            if api_kind not in _NAME_COLUMN:
+            if api_kind not in NAME_COLUMN:
                 continue
-            model_cls = _load_shadow_model(_NAME_COLUMN[api_kind][0])
+            model_cls = load_shadow_model(NAME_COLUMN[api_kind][0])
             live_tbl = model_cls.__table__  # type: ignore[attr-defined]
             rows = (
                 db.session.connection()
@@ -195,7 +195,7 @@ def _lookup_entity_uuids(
 def _build_summary(api_kind: str, record: dict[str, Any]) -> str:
     """Build the AV-012 headline for a related record:
     ``"<Kind label> <verb>: <entity_name>"``."""
-    label = _API_KIND_LABEL.get(api_kind, api_kind)
+    label = API_KIND_LABEL.get(api_kind, api_kind)
     verb = _SUMMARY_VERBS.get(record.get("kind", ""), "updated")
     name = record.get("entity_name") or ""
     return f"{label} {verb}: {name}" if name else f"{label} {verb}"

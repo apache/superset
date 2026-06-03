@@ -58,15 +58,15 @@ from typing import Any
 
 from superset.extensions import db
 from superset.versioning.activity.kinds import (
-    _load_shadow_model,
-    _NAME_COLUMN,
-    _TABLE_KIND_TO_API,
+    load_shadow_model,
+    NAME_COLUMN,
+    TABLE_KIND_TO_API,
 )
 
 logger = logging.getLogger(__name__)
 
 
-def _filter_records_by_visibility(
+def filter_records_by_visibility(
     records: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """Drop records whose source entity the requester can't read.
@@ -88,7 +88,7 @@ def _filter_records_by_visibility(
 
     distinct: set[tuple[str, int]] = {
         (
-            _TABLE_KIND_TO_API.get(r["entity_kind"], r["entity_kind"]),
+            TABLE_KIND_TO_API.get(r["entity_kind"], r["entity_kind"]),
             r["entity_id"],
         )
         for r in records
@@ -99,7 +99,7 @@ def _filter_records_by_visibility(
         for r in records
         if visible.get(
             (
-                _TABLE_KIND_TO_API.get(r["entity_kind"], r["entity_kind"]),
+                TABLE_KIND_TO_API.get(r["entity_kind"], r["entity_kind"]),
                 r["entity_id"],
             ),
             True,  # tombstone / unknown kind → pass through
@@ -144,10 +144,10 @@ def _resolve_visibility(
 
     visible: dict[tuple[str, int], bool] = {}
     for api_kind, entity_ids in by_kind.items():
-        if api_kind in _NAME_COLUMN and api_kind not in access_filter_classes:
+        if api_kind in NAME_COLUMN and api_kind not in access_filter_classes:
             # The kind is in the change-records taxonomy but is missing
             # an access-filter wiring — almost certainly a future-entity
-            # addition that updated ``_TABLE_KIND_TO_API`` but forgot
+            # addition that updated ``TABLE_KIND_TO_API`` but forgot
             # the visibility dispatch. Fail closed: the activity stream
             # must not silently disclose change records for an entity
             # whose access predicate is unimplemented. Warn so the gap
@@ -161,14 +161,14 @@ def _resolve_visibility(
             for entity_id in entity_ids:
                 visible[(api_kind, entity_id)] = False
             continue
-        if api_kind not in _NAME_COLUMN:
+        if api_kind not in NAME_COLUMN:
             # Kind isn't in the change-records taxonomy at all — not
             # something the activity-view emits today. Pass through so
             # the decorator can mark it as a tombstone if appropriate.
             for entity_id in entity_ids:
                 visible[(api_kind, entity_id)] = True
             continue
-        model_cls = _load_shadow_model(_NAME_COLUMN[api_kind][0])
+        model_cls = load_shadow_model(NAME_COLUMN[api_kind][0])
 
         # Live ids — what exists at all. Used to decide tombstone vs
         # not-visible: an id missing from this set is tombstoned and

@@ -19,8 +19,8 @@
 Extracted from the DB-touching scope resolution so that:
 
 * :mod:`scope` (DB-touching) can import this module at module-top.
-* :mod:`queries._fetch_change_records` can import
-  :func:`_row_within_any_window` at module-top instead of through a
+* :mod:`queries.fetch_change_records` can import
+  :func:`row_within_any_window` at module-top instead of through a
   lazy import that previously dodged a ``scope ↔ queries`` cycle.
 
 Everything here is pure Python — no DB, no Flask. ``end_tx = None``
@@ -34,7 +34,7 @@ from typing import Any
 from superset.versioning.activity.kinds import EntityWindows, Window
 
 
-def _intersect_windows(outer: Window, inner: Window) -> Window | None:
+def intersect_windows(outer: Window, inner: Window) -> Window | None:
     """Intersect two half-open ``[start_tx, end_tx)`` windows.
 
     Returns the clipped overlap, or ``None`` when they are disjoint.
@@ -46,23 +46,23 @@ def _intersect_windows(outer: Window, inner: Window) -> Window | None:
     return outer.intersect(inner)
 
 
-def _row_within_any_window(row: dict[str, Any], windows: list[Window]) -> bool:
+def row_within_any_window(row: dict[str, Any], windows: list[Window]) -> bool:
     """``True`` iff ``row['transaction_id']`` falls inside at least one
     of *windows*. Half-open interval semantics match
-    :func:`_intersect_windows`."""
+    :func:`intersect_windows`."""
     if not windows:
         return False
     tx_id = row["transaction_id"]
     return any(w.contains(tx_id) for w in windows)
 
 
-def _merge_entity_windows(scope: list[EntityWindows]) -> list[EntityWindows]:
+def merge_entity_windows(scope: list[EntityWindows]) -> list[EntityWindows]:
     """Collapse repeated ``(api_kind, entity_id)`` entries by unioning
     their window lists, and collapse overlapping/touching windows
     within each entity into one.
 
     The OR-clause in
-    :func:`~superset.versioning.activity.queries._fetch_change_records`
+    :func:`~superset.versioning.activity.queries.fetch_change_records`
     generates one branch per (kind, id, window) tuple. Without the
     within-entity union, a chart that's been attached-and-detached
     many times (or that repeated fixture loads have populated the M2M
@@ -76,12 +76,12 @@ def _merge_entity_windows(scope: list[EntityWindows]) -> list[EntityWindows]:
     for api_kind, entity_id, windows in scope:
         merged.setdefault((api_kind, entity_id), []).extend(windows)
     return [
-        (api_kind, entity_id, _union_windows(windows))
+        (api_kind, entity_id, union_windows(windows))
         for (api_kind, entity_id), windows in merged.items()
     ]
 
 
-def _union_windows(windows: list[Window]) -> list[Window]:
+def union_windows(windows: list[Window]) -> list[Window]:
     """Sort + merge overlapping/touching half-open intervals.
 
     Pure function — no DB. Touching ``[a, b)`` and ``[b, c)`` merge into

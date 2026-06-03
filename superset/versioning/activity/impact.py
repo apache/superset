@@ -22,12 +22,12 @@ the dashboard at that transaction that were pointing at the dataset.
 This module computes that count in a single batched query per
 request:
 
-* :func:`_collect_impact_pairs` — pulls the distinct
+* :func:`collect_impact_pairs` — pulls the distinct
   ``(dataset_id, transaction_id)`` pairs that need counts.
-* :func:`_batch_chart_counts` — one SQL query joining
+* :func:`batch_chart_counts` — one SQL query joining
   ``dashboard_slices_version`` and ``slices_version`` to count
   the matching charts validity-strategy-style.
-* :func:`_impact_for_record` — pure projection from the pre-fetched
+* :func:`impact_for_record` — pure projection from the pre-fetched
   counts onto each record (returns ``None`` for non-Dashboard paths
   or non-SqlaTable kinds, matching data-model.md §"``impact``
   computation").
@@ -44,10 +44,10 @@ from typing import Any
 import sqlalchemy as sa
 
 from superset.extensions import db
-from superset.versioning.activity.kinds import _TABLE_KIND_TO_API
+from superset.versioning.activity.kinds import TABLE_KIND_TO_API
 
 
-def _collect_impact_pairs(
+def collect_impact_pairs(
     records: list[dict[str, Any]], path_kind: str
 ) -> set[tuple[int, int]]:
     """Distinct ``(dataset_id, transaction_id)`` pairs from *records*
@@ -62,11 +62,11 @@ def _collect_impact_pairs(
     return {
         (record["entity_id"], record["transaction_id"])
         for record in records
-        if _TABLE_KIND_TO_API.get(record["entity_kind"]) == "SqlaTable"
+        if TABLE_KIND_TO_API.get(record["entity_kind"]) == "SqlaTable"
     }
 
 
-def _batch_chart_counts(
+def batch_chart_counts(
     dashboard_id: int, pairs: set[tuple[int, int]]
 ) -> dict[tuple[int, int], int]:
     """For every ``(dataset_id, target_tx)`` in *pairs*, count the
@@ -138,7 +138,7 @@ def _batch_chart_counts(
     return {pair: len(slice_ids) for pair, slice_ids in matches.items()}
 
 
-def _impact_for_record(
+def impact_for_record(
     record: dict[str, Any],
     path_kind: str,
     counts: dict[tuple[int, int], int],
@@ -150,7 +150,7 @@ def _impact_for_record(
     ``path=Dashboard`` and ``related=SqlaTable`` shapes carry an
     impact; everything else returns ``None``.
     """
-    api_kind = _TABLE_KIND_TO_API.get(record["entity_kind"])
+    api_kind = TABLE_KIND_TO_API.get(record["entity_kind"])
     if path_kind != "Dashboard" or api_kind != "SqlaTable":
         return None
     key = (record["entity_id"], record["transaction_id"])

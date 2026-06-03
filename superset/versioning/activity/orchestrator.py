@@ -20,15 +20,15 @@ This is the public entry point for the activity-view read path. One
 function — :func:`get_activity` — dispatches on the path entity's
 model class to assemble the cross-entity activity stream:
 
-1. ``_resolve_path_entity`` (queries.py) — resolve UUID → live entity.
-2. ``_resolve_scope`` (scope.py) — build the related-entity window list.
-3. ``_fetch_change_records`` (queries.py) — pull rows from
+1. ``resolve_path_entity`` (queries.py) — resolve UUID → live entity.
+2. ``resolve_scope`` (scope.py) — build the related-entity window list.
+3. ``fetch_change_records`` (queries.py) — pull rows from
    ``version_changes`` joined with ``version_transaction`` and ``ab_user``.
-4. ``_filter_records_by_visibility`` (visibility.py) — silent AV-008
+4. ``filter_records_by_visibility`` (visibility.py) — silent AV-008
    drop of records the requester can't read.
-5. ``_denormalize_entity_names`` (queries.py) — resolve entity names
+5. ``denormalize_entity_names`` (queries.py) — resolve entity names
    from the shadow row valid at each record's transaction_id.
-6. ``_decorate_records`` (render.py) — synthesize the ActivityRecord
+6. ``decorate_records`` (render.py) — synthesize the ActivityRecord
    DTO fields and strip internal-only columns.
 7. Paginate in Python over the post-filter list.
 
@@ -52,13 +52,13 @@ from flask import Response
 
 from superset.versioning.activity.kinds import EntityWindows
 from superset.versioning.activity.queries import (
-    _denormalize_entity_names,
-    _fetch_change_records,
-    _resolve_path_entity,
+    denormalize_entity_names,
+    fetch_change_records,
+    resolve_path_entity,
 )
-from superset.versioning.activity.render import _decorate_records
-from superset.versioning.activity.scope import _resolve_scope
-from superset.versioning.activity.visibility import _filter_records_by_visibility
+from superset.versioning.activity.render import decorate_records
+from superset.versioning.activity.scope import resolve_scope
+from superset.versioning.activity.visibility import filter_records_by_visibility
 from superset.versioning.api_helpers import (
     PathEntityResponseError,
     resolve_endpoint_path_entity,
@@ -176,12 +176,12 @@ def get_activity(
     Raises ``DashboardNotFoundError`` / ``ChartNotFoundError`` /
     ``DatasetNotFoundError`` when the path entity doesn't exist (AV-009).
     """
-    _path_entity, path_id = _resolve_path_entity(model_cls, entity_uuid)
+    _path_entity, path_id = resolve_path_entity(model_cls, entity_uuid)
     path_kind = model_cls.__name__
     kind_key = path_kind.lower()  # "dashboard" / "slice" / "sqlatable"
 
     with _phase_timer(kind_key, "relationship_resolution_ms"):
-        entity_windows = _resolve_scope(path_kind, path_id, include)
+        entity_windows = resolve_scope(path_kind, path_id, include)
     if not entity_windows:
         _emit_request_shape_attributes(
             kind_key,
@@ -199,13 +199,13 @@ def get_activity(
     # tombstone probes + impact counts on records the requester
     # can't see (AV-008's silent-filter contract).
     with _phase_timer(kind_key, "fetch_ms"):
-        records = _fetch_change_records(entity_windows, since, until)
+        records = fetch_change_records(entity_windows, since, until)
     with _phase_timer(kind_key, "visibility_filter_ms"):
-        records = _filter_records_by_visibility(records)
+        records = filter_records_by_visibility(records)
     with _phase_timer(kind_key, "denormalize_ms"):
-        records = _denormalize_entity_names(records)
+        records = denormalize_entity_names(records)
     with _phase_timer(kind_key, "decorate_ms"):
-        records = _decorate_records(records, path_kind, path_id)
+        records = decorate_records(records, path_kind, path_id)
 
     total = len(records)
     bounded_size = max(1, min(page_size, _MAX_PAGE_SIZE))

@@ -41,12 +41,12 @@ Package layout (descends from public entry point to leaf helpers):
   (:func:`parse_activity_query_params`), and the observability
   instrumentation that T037/T038 specify.
 * :mod:`.scope` — scope resolution (DB-touching):
-  :func:`_resolve_scope` / :func:`_resolve_dashboard_scope` /
+  :func:`resolve_scope` / :func:`_resolve_dashboard_scope` /
   :func:`_resolve_chart_scope` / :func:`_resolve_related_scope`.
 * :mod:`.windows` — pure window arithmetic on half-open
-  ``[start_tx, end_tx)`` intervals: :func:`_intersect_windows` /
-  :func:`_union_windows` / :func:`_merge_entity_windows` /
-  :func:`_row_within_any_window`. Extracted from :mod:`.scope` so
+  ``[start_tx, end_tx)`` intervals: :func:`intersect_windows` /
+  :func:`union_windows` / :func:`merge_entity_windows` /
+  :func:`row_within_any_window`. Extracted from :mod:`.scope` so
   :mod:`.queries` can import the pure helpers at module-top instead
   of through a cycle-dodging lazy import.
 * :mod:`.queries` — every DB-touching helper: Phase A relationship
@@ -60,13 +60,13 @@ Package layout (descends from public entry point to leaf helpers):
   the ActivityRecord DTO (summary headlines, ``changed_by`` projection,
   uuid lookup).
 * :mod:`.kinds` — the kind-translation tables, the ``Window`` /
-  ``EntityWindows`` type aliases, and :func:`_load_shadow_model`.
+  ``EntityWindows`` type aliases, and :func:`load_shadow_model`.
 
 The public surface (re-exported here) is the eight symbols below.
 Sub-module privates are intentionally NOT re-exported — tests and
 new internal callers should import them from their owning submodule
 (e.g. ``from superset.versioning.activity.windows import
-_intersect_windows``) so the package's public API stays scannable.
+intersect_windows``) so the package's public API stays scannable.
 
 ``PathEntityResponseError`` and ``resolve_endpoint_path_entity`` are
 re-exported here from :mod:`superset.versioning.api_helpers` (where

@@ -20,7 +20,7 @@ Composes :mod:`~superset.versioning.activity.queries` (Phase A
 relationship walks) and :mod:`~superset.versioning.activity.windows`
 (pure interval arithmetic) into the
 ``list[EntityWindows]`` scope that
-:func:`~superset.versioning.activity.queries._fetch_change_records`
+:func:`~superset.versioning.activity.queries.fetch_change_records`
 consumes.
 
 The functions here read the DB (via the Phase A helpers in
@@ -34,19 +34,19 @@ from __future__ import annotations
 
 from superset.versioning.activity.kinds import EntityWindows, Window
 from superset.versioning.activity.queries import (
-    _batch_datasets_used_by_charts,
-    _charts_attached_to_dashboard,
-    _datasets_used_by_chart,
+    batch_datasets_used_by_charts,
+    charts_attached_to_dashboard,
+    datasets_used_by_chart,
 )
 from superset.versioning.activity.windows import (
-    _intersect_windows,
-    _merge_entity_windows,
+    intersect_windows,
+    merge_entity_windows,
 )
 
 
-def _resolve_scope(path_kind: str, path_id: int, include: str) -> list[EntityWindows]:
+def resolve_scope(path_kind: str, path_id: int, include: str) -> list[EntityWindows]:
     """Build the ``[(api_kind, entity_id, [windows])]`` list that
-    :func:`~superset.versioning.activity.queries._fetch_change_records`
+    :func:`~superset.versioning.activity.queries.fetch_change_records`
     consumes, branching by *path_kind* and *include* mode."""
     want_self = include in ("all", "self")
     want_related = include in ("all", "related")
@@ -75,13 +75,13 @@ def _resolve_dashboard_scope(dashboard_id: int) -> list[EntityWindows]:
     attachment, chart-on-dataset)."""
     scope: list[EntityWindows] = []
     chart_windows: dict[int, list[Window]] = {}
-    for slice_id, window in _charts_attached_to_dashboard(dashboard_id):
+    for slice_id, window in charts_attached_to_dashboard(dashboard_id):
         chart_windows.setdefault(slice_id, []).append(window)
 
     # One query for the dataset-history of every chart on the dashboard,
     # not one query per chart. The per-slice form was O(n_charts) round-
     # trips which dominated p95 on rich dashboards.
-    dataset_windows_by_slice = _batch_datasets_used_by_charts(set(chart_windows))
+    dataset_windows_by_slice = batch_datasets_used_by_charts(set(chart_windows))
 
     for slice_id, attachment_windows in chart_windows.items():
         scope.append(("Slice", slice_id, list(attachment_windows)))
@@ -89,15 +89,15 @@ def _resolve_dashboard_scope(dashboard_id: int) -> list[EntityWindows]:
         for attachment in attachment_windows:
             for dataset_id, chart_dataset_window in dataset_windows:
                 if (
-                    intersect := _intersect_windows(attachment, chart_dataset_window)
+                    intersect := intersect_windows(attachment, chart_dataset_window)
                 ) is not None:
                     scope.append(("SqlaTable", dataset_id, [intersect]))
-    return _merge_entity_windows(scope)
+    return merge_entity_windows(scope)
 
 
 def _resolve_chart_scope(slice_id: int) -> list[EntityWindows]:
     """Datasets the chart pointed at over its full history."""
     scope: list[EntityWindows] = []
-    for dataset_id, window in _datasets_used_by_chart(slice_id):
+    for dataset_id, window in datasets_used_by_chart(slice_id):
         scope.append(("SqlaTable", dataset_id, [window]))
-    return _merge_entity_windows(scope)
+    return merge_entity_windows(scope)

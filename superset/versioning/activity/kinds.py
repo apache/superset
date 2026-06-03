@@ -25,7 +25,7 @@ mappings here translate between them. Adjacent kind-keyed dicts live
 here too: the per-kind human-readable label, the user-facing
 lowercase form, and the 404 exception class.
 
-The :func:`_load_shadow_model` helper exists in the same module
+The :func:`load_shadow_model` helper exists in the same module
 because each lookup is keyed on the same set of class names — keeping
 it adjacent to the mappings makes the kind-translation surface
 discoverable at a glance.
@@ -38,26 +38,26 @@ from dataclasses import dataclass
 from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.dataset.exceptions import DatasetNotFoundError
-from superset.versioning.changes import _ENTITY_KIND_BY_CLASS_NAME
+from superset.versioning.changes import ENTITY_KIND_BY_CLASS_NAME
 
 # ---- Kind translation -----------------------------------------------------
 
 # ``version_changes.entity_kind`` stores the friendly downstream-tooling
 # value (``"chart"``, ``"dashboard"``, ``"dataset"``) per sc-103156's
-# ``_ENTITY_KIND_BY_CLASS_NAME``. The activity-view DTO returns the
+# ``ENTITY_KIND_BY_CLASS_NAME``. The activity-view DTO returns the
 # Python class name instead (``"Slice"``, ``"Dashboard"``,
 # ``"SqlaTable"``) so the contract aligns with ``__class__.__name__``
 # (data-model.md §"``ActivityRecord`` DTO"). Translate at the boundary.
-_TABLE_KIND_TO_API: dict[str, str] = {
+TABLE_KIND_TO_API: dict[str, str] = {
     table_kind: class_name
-    for class_name, table_kind in _ENTITY_KIND_BY_CLASS_NAME.items()
+    for class_name, table_kind in ENTITY_KIND_BY_CLASS_NAME.items()
 }
-_API_KIND_TO_TABLE: dict[str, str] = dict(_ENTITY_KIND_BY_CLASS_NAME)
+API_KIND_TO_TABLE: dict[str, str] = dict(ENTITY_KIND_BY_CLASS_NAME)
 
 # Human-readable label for AV-012 summary headlines
 # ("Dataset updated: Sales Transactions"). Keyed by the internal API kind
 # (Python class name; matches ``model_cls.__name__``).
-_API_KIND_LABEL: dict[str, str] = {
+API_KIND_LABEL: dict[str, str] = {
     "Dashboard": "Dashboard",
     "Slice": "Chart",
     "SqlaTable": "Dataset",
@@ -68,8 +68,8 @@ _API_KIND_LABEL: dict[str, str] = {
 # ``ActivityRecordSchema.entity_kind`` enum. Internal code keeps the
 # Python class-name form because it matches ``model_cls.__name__`` and is
 # convenient for dispatch — translation happens at serialization time
-# only, in :func:`render._decorate_records`.
-_USER_FACING_KIND: dict[str, str] = {
+# only, in :func:`render.decorate_records`.
+USER_FACING_KIND: dict[str, str] = {
     "Dashboard": "dashboard",
     "Slice": "chart",
     "SqlaTable": "dataset",
@@ -77,7 +77,7 @@ _USER_FACING_KIND: dict[str, str] = {
 
 # 404 exception class per API kind. Each accepts a string positional arg
 # (the path-entity UUID) that gets formatted into the exception message.
-_NOT_FOUND_EXC: dict[str, type[Exception]] = {
+NOT_FOUND_EXC: dict[str, type[Exception]] = {
     "Dashboard": DashboardNotFoundError,
     "Slice": ChartNotFoundError,
     "SqlaTable": DatasetNotFoundError,
@@ -86,7 +86,7 @@ _NOT_FOUND_EXC: dict[str, type[Exception]] = {
 # Per-API-kind (model class name, display column) used by
 # ``_resolve_names_for_kind`` to read the user-facing entity name from
 # the shadow table valid at a given transaction.
-_NAME_COLUMN: dict[str, tuple[str, str]] = {
+NAME_COLUMN: dict[str, tuple[str, str]] = {
     "Dashboard": ("Dashboard", "dashboard_title"),
     "Slice": ("Slice", "slice_name"),
     "SqlaTable": ("SqlaTable", "table_name"),
@@ -163,7 +163,7 @@ class Window:
 EntityWindows = tuple[str, int, list[Window]]
 
 
-def _load_shadow_model(model_name: str) -> type:
+def load_shadow_model(model_name: str) -> type:
     """Inline-import a shadow model class by name. Deferred until call
     time because the versioning package is initialised before all model
     mappers are configured (same idiom used throughout
