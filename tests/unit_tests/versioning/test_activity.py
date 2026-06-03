@@ -30,14 +30,13 @@ by the integration suite in
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Optional
 
 import pytest
 
 from superset.versioning.activity import (
     _API_KIND_TO_TABLE,
     _build_summary,
-    _can_read,
     _changed_by_dict,
     _collect_impact_pairs,
     _DEFAULT_PAGE_SIZE,
@@ -299,19 +298,6 @@ def test_changed_by_projects_only_display_fields() -> None:
     assert "username" not in result
 
 
-# ---- _can_read fallthrough -----------------------------------------------
-
-
-def test_can_read_returns_true_for_unsupported_kind() -> None:
-    """Unknown kinds aren't subject to the per-kind security predicate,
-    so they pass through (defensive default; tombstones land here too)."""
-
-    class _StubSecurityManager:
-        pass
-
-    assert _can_read("UnknownKind", object(), _StubSecurityManager()) is True
-
-
 # ---- _impact_for_record (pure, post-batch) -------------------------------
 
 
@@ -455,53 +441,6 @@ def test_parser_error_is_a_value_error() -> None:
     it correctly."""
     with pytest.raises(ValueError, match="include"):
         parse_activity_query_params({"include": "nope"})
-
-
-# ---- _can_read per-kind dispatch -----------------------------------------
-
-
-class _StubSM:
-    """Stand-in for ``security_manager`` exposing only the three
-    activity-relevant predicates."""
-
-    def __init__(
-        self,
-        dashboard: bool = True,
-        chart: bool = True,
-        datasource: bool = True,
-    ) -> None:
-        self._dashboard = dashboard
-        self._chart = chart
-        self._datasource = datasource
-
-    def can_access_dashboard(self, _entity: Any) -> bool:
-        return self._dashboard
-
-    def can_access_chart(self, _entity: Any) -> bool:
-        return self._chart
-
-    def can_access_datasource(self, _entity: Any) -> bool:
-        return self._datasource
-
-
-def test_can_read_dispatches_to_dashboard_predicate() -> None:
-    """AV-008: Dashboard kind uses ``can_access_dashboard``."""
-    assert _can_read("Dashboard", object(), _StubSM(dashboard=True)) is True
-    assert _can_read("Dashboard", object(), _StubSM(dashboard=False)) is False
-
-
-def test_can_read_dispatches_to_chart_predicate() -> None:
-    """T025 / AV-008: a chart record gated by ``can_access_chart``."""
-    assert _can_read("Slice", object(), _StubSM(chart=True)) is True
-    assert _can_read("Slice", object(), _StubSM(chart=False)) is False
-
-
-def test_can_read_dispatches_to_datasource_predicate() -> None:
-    """A dataset record is gated by ``can_access_datasource`` — datasources
-    are the dataset-and-legacy ``BaseDatasource`` umbrella in the security
-    manager, so this is the right predicate for ``SqlaTable``."""
-    assert _can_read("SqlaTable", object(), _StubSM(datasource=True)) is True
-    assert _can_read("SqlaTable", object(), _StubSM(datasource=False)) is False
 
 
 # ---- Observability metric-key convention (T050 cross-coupling) ----------

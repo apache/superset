@@ -748,17 +748,14 @@ def _filter_records_by_visibility(
     payload exposes no navigable ``entity_uuid``, so there's nothing
     sensitive left to gate.
 
-    The requesting user is read from Flask-Login by the security manager
-    methods (``can_access_dashboard`` / ``can_access_chart`` /
-    ``can_access_datasource``); no explicit user parameter is threaded
-    through here. If a CLI/Celery bypass becomes necessary in the
-    future, add it then with a real call site.
+    Visibility is resolved SQL-side via each resource's existing access
+    filter, which reads the requesting user from Flask-Login internally
+    (no explicit user parameter threads through here). If a CLI/Celery
+    bypass becomes necessary in the future, add it then with a real call
+    site.
     """
-    # pylint: disable=import-outside-toplevel
     if not records:
         return records
-
-    from superset import security_manager
 
     distinct: set[tuple[str, int]] = {
         (
@@ -767,7 +764,7 @@ def _filter_records_by_visibility(
         )
         for r in records
     }
-    visible = _resolve_visibility(distinct, security_manager)
+    visible = _resolve_visibility(distinct)
     return [
         r
         for r in records
@@ -783,49 +780,80 @@ def _filter_records_by_visibility(
 
 def _resolve_visibility(
     distinct_entities: set[tuple[str, int]],
-    security_manager: Any,
 ) -> dict[tuple[str, int], bool]:
     """Return ``{(api_kind, entity_id): can_read}`` for the live row of
     each entity. Missing live rows (tombstoned) map to ``True`` — the
     decorator handles the deleted-state messaging separately.
+
+    Visibility is computed SQL-side via each resource's existing access
+    filter (``DashboardAccessFilter`` / ``ChartFilter`` /
+    ``DatasourceFilter``). These are the same filters FAB's
+    ``ModelRestApi`` applies to ``base_filters`` on list endpoints, so
+    the activity-view visibility check matches the rest of the read
+    surface byte-for-byte. Two queries per kind (one for live ids, one
+    for the access-filtered subset) replace the N-call
+    ``security_manager.can_access_<kind>(entity)`` loop that dominated
+    latency on dashboard-scope activity responses with many related
+    entities (sqlalchemy-review W-NEW-1).
     """
+    # pylint: disable=import-outside-toplevel
+    from flask_appbuilder.models.sqla.interface import SQLAInterface
+
+    from superset.charts.filters import ChartFilter
+    from superset.dashboards.filters import DashboardAccessFilter
+    from superset.views.base import DatasourceFilter
+
+    access_filter_classes: dict[str, type] = {
+        "Dashboard": DashboardAccessFilter,
+        "Slice": ChartFilter,
+        "SqlaTable": DatasourceFilter,
+    }
+
     by_kind: dict[str, list[int]] = {}
     for api_kind, entity_id in distinct_entities:
         by_kind.setdefault(api_kind, []).append(entity_id)
 
     visible: dict[tuple[str, int], bool] = {}
     for api_kind, entity_ids in by_kind.items():
-        if api_kind not in _NAME_COLUMN:
+        if api_kind not in _NAME_COLUMN or api_kind not in access_filter_classes:
+            # Unknown kind → pass through. Same semantics as the prior
+            # ``_can_read`` fallthrough.
             for entity_id in entity_ids:
                 visible[(api_kind, entity_id)] = True
             continue
         model_cls = _load_shadow_model(_NAME_COLUMN[api_kind][0])
-        live_rows = (
-            db.session.query(model_cls)
+
+        # Live ids — what exists at all. Used to decide tombstone vs
+        # not-visible: an id missing from this set is tombstoned and
+        # passes through (True); an id in this set but absent from the
+        # access-filtered set is denied (False).
+        live_ids = {
+            row[0]
+            for row in db.session.query(model_cls.id)  # type: ignore[attr-defined]
             .filter(model_cls.id.in_(entity_ids))  # type: ignore[attr-defined]
             .all()
-        )
-        live_by_id = {row.id: row for row in live_rows}
+        }
+
+        # Apply the SQL-side access filter to a query restricted to the
+        # candidate ids. Same predicate FAB uses for list endpoints, so
+        # results are consistent with the rest of the read surface.
+        access_filter = access_filter_classes[api_kind]("id", SQLAInterface(model_cls))
+        visible_ids = {
+            row[0]
+            for row in access_filter.apply(
+                db.session.query(model_cls.id).filter(  # type: ignore[attr-defined]
+                    model_cls.id.in_(entity_ids)  # type: ignore[attr-defined]
+                ),
+                value=None,
+            ).all()
+        }
+
         for entity_id in entity_ids:
-            entity = live_by_id.get(entity_id)
-            if entity is None:
+            if entity_id not in live_ids:
                 visible[(api_kind, entity_id)] = True
-                continue
-            visible[(api_kind, entity_id)] = _can_read(
-                api_kind, entity, security_manager
-            )
+            else:
+                visible[(api_kind, entity_id)] = entity_id in visible_ids
     return visible
-
-
-def _can_read(api_kind: str, entity: Any, security_manager: Any) -> bool:
-    """Dispatch the security manager's per-kind read predicate."""
-    if api_kind == "Dashboard":
-        return bool(security_manager.can_access_dashboard(entity))
-    if api_kind == "Slice":
-        return bool(security_manager.can_access_chart(entity))
-    if api_kind == "SqlaTable":
-        return bool(security_manager.can_access_datasource(entity))
-    return True
 
 
 # ---- T012: Decorate records into the API shape ---------------------------
