@@ -35,6 +35,7 @@ shape.
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
@@ -46,6 +47,27 @@ from superset.extensions import security_manager
 from superset.versioning.etag import set_version_etag_by_uuid
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class RestoreEndpointSpec:
+    """Per-resource configuration for :func:`restore_version_endpoint`.
+
+    Bundles the five fields that differ across the three /versions/restore
+    endpoint families (chart / dashboard / dataset) so the endpoint
+    function signature stays at four call-time parameters instead of
+    nine. Each per-resource RestApi declares a module-level instance
+    (e.g. ``_CHART_RESTORE_SPEC``) and passes it through.
+
+    All fields are required; the dataclass is frozen so the spec can be
+    safely declared as a module-level constant.
+    """
+
+    command_cls: type
+    not_found_exc: type[Exception]
+    forbidden_exc: type[Exception]
+    update_failed_exc: type[Exception]
+    resource_label: str
 
 
 def _resolve_entity(
@@ -139,18 +161,14 @@ def restore_version_endpoint(
     model_cls: type,
     uuid_str: str,
     version_uuid_str: str,
-    restore_command_cls: type,
-    not_found_exc: type[Exception],
-    forbidden_exc: type[Exception],
-    update_failed_exc: type[Exception],
-    resource_label: str,
+    spec: RestoreEndpointSpec,
 ) -> Response:
     """Body of ``POST /api/v1/{resource}/<uuid>/versions/<version_uuid>/restore``.
 
     Does not use :func:`_resolve_entity` — the restore command runs
     its own ownership / existence checks via ``raise_for_ownership``
     in ``BaseRestoreVersionCommand.validate`` and turns failures into
-    the resource-specific exception triplet passed here.
+    the resource-specific exception triplet packed in *spec*.
     """
     try:
         entity_uuid = UUID(uuid_str)
@@ -162,13 +180,13 @@ def restore_version_endpoint(
         return api.response_400(message="Invalid version UUID")
 
     try:
-        restore_command_cls(entity_uuid, version_uuid).run()
-    except not_found_exc:
+        spec.command_cls(entity_uuid, version_uuid).run()
+    except spec.not_found_exc:
         return api.response_404()
-    except forbidden_exc:
+    except spec.forbidden_exc:
         return api.response_403()
-    except update_failed_exc as ex:
-        logger.error("Error restoring %s version: %s", resource_label, ex)
+    except spec.update_failed_exc as ex:
+        logger.error("Error restoring %s version: %s", spec.resource_label, ex)
         return api.response_422(message=str(ex))
     return set_version_etag_by_uuid(
         api.response(200, message="OK"), model_cls, entity_uuid
