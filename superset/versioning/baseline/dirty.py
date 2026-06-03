@@ -44,12 +44,15 @@ at the time, possibly a deleted test user under autoflush teardown).
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from sqlalchemy.exc import InvalidRequestError
 from sqlalchemy.orm import attributes, Session
 
 from superset.versioning.baseline.collection import _child_to_parent_registry
+
+logger = logging.getLogger(__name__)
 
 
 def _force_parent_dirty_on_child_change(session: Session) -> None:
@@ -77,9 +80,11 @@ def _force_parent_dirty_on_child_change(session: Session) -> None:
     from sqlalchemy_continuum import is_modified
     from sqlalchemy_continuum.utils import versioned_column_properties
 
-    # ``session.dirty`` is an IdentitySet — ``__contains__`` uses identity
-    # comparison, which is what we need for the phantom-dirty filter below.
+    # ``session.dirty`` / ``session.new`` are IdentitySets — ``__contains__``
+    # uses identity comparison, which is what we need for the phantom-
+    # dirty filter and the already-new short-circuit below.
     dirty_set = session.dirty
+    new_set = session.new
     child_map = _child_to_parent_registry()
     for obj in list(session.dirty) + list(session.new) + list(session.deleted):
         entry = child_map.get(type(obj))
@@ -106,6 +111,14 @@ def _force_parent_dirty_on_child_change(session: Session) -> None:
         parent_attr, parent_cls = entry
         parent = getattr(obj, parent_attr, None)
         if parent is None or type(parent) is not parent_cls:  # noqa: E721
+            continue
+        # Already-new short-circuit. If the parent itself is in
+        # ``session.new`` (typical during an import that adds a
+        # ``SqlaTable`` plus 50 fresh ``TableColumn`` children), it will
+        # INSERT in this flush regardless — the ``flag_modified`` call is
+        # redundant (and the attribute-default-not-yet-fired case below
+        # would just swallow an ``InvalidRequestError``). Skip the work.
+        if parent in new_set:
             continue
         col_keys = [prop.key for prop in versioned_column_properties(parent)]
         if not col_keys:
@@ -165,9 +178,27 @@ def _pin_audit_columns(parent: Any) -> None:
     and ``TestDatasetRestoreApi::test_restore_applies_scalar_field``
     in CI's full-suite ordering (autoflush during teardown).
     """
+    pinned_any = False
     for audit_col in ("changed_by_fk", "changed_on"):
         if hasattr(parent, audit_col):
             try:
                 attributes.flag_modified(parent, audit_col)
+                pinned_any = True
             except InvalidRequestError:
-                pass
+                continue
+    if not pinned_any and hasattr(parent, "changed_by_fk"):
+        # Both audit columns are present on the parent but neither
+        # ``flag_modified`` succeeded — typically because the parent is
+        # a freshly-constructed ``session.new`` instance whose attribute
+        # defaults haven't fired yet. Without the pin, the synthetic
+        # parent UPDATE in this flush invokes ``onupdate=get_user_id``
+        # and writes whoever ``g.user`` is at flush time, which under
+        # autoflush-during-teardown can point at a deleted test user
+        # and fail the FK to ``ab_user``. Surface this so the failure
+        # mode is debuggable from the log without inspection.
+        logger.info(
+            "baseline: skipped audit-column pin on %s id=%s "
+            "(attribute defaults not loaded)",
+            type(parent).__name__,
+            getattr(parent, "id", None),
+        )
