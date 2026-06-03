@@ -3061,6 +3061,87 @@ class TestDatasetApi(SupersetTestCase):
             "table_id": ds_schema_b.id
         }
 
+    def test_get_or_create_dataset_no_schema_finds_existing_with_schema(self):
+        """
+        Dataset API: regression for #30377 review feedback.
+
+        A caller that omits ``schema`` in the request must still find an
+        existing dataset stored with a non-NULL schema (the legacy
+        schema-blind matching behaviour). Without this, schema-unaware
+        callers would silently hit the create path and duplicate the
+        dataset.
+        """
+        if get_main_database().backend == "sqlite":
+            pytest.skip(
+                "SQLite has a legacy single-column unique constraint on "
+                "table_name that prevents seeding a non-NULL-schema row "
+                "with the same name elsewhere"
+            )
+
+        self.login(ADMIN_USERNAME)
+        admin_id = self.get_user("admin").id
+        examples_db = get_example_database()
+        table_name = "test_get_or_create_schema_blind"
+
+        ds = self.insert_dataset(
+            table_name,
+            [admin_id],
+            examples_db,
+            schema="some_schema",
+            fetch_metadata=False,
+        )
+        self.items_to_delete = [ds]
+
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={"table_name": table_name, "database_id": examples_db.id},
+        )
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8"))["result"] == {"table_id": ds.id}
+
+    def test_get_or_create_dataset_no_schema_returns_400_when_ambiguous(self):
+        """
+        Dataset API: regression for #30377 review feedback.
+
+        When two datasets share a ``table_name`` across different schemas
+        and the caller omits ``schema``, the API must return a 400 with an
+        actionable message rather than 500-ing on ``MultipleResultsFound``.
+        """
+        if get_main_database().backend == "sqlite":
+            pytest.skip(
+                "SQLite has a legacy single-column unique constraint on "
+                "table_name that prevents seeding two same-name datasets in "
+                "different schemas"
+            )
+
+        self.login(ADMIN_USERNAME)
+        admin_id = self.get_user("admin").id
+        examples_db = get_example_database()
+        table_name = "test_get_or_create_ambiguous"
+
+        ds_a = self.insert_dataset(
+            table_name,
+            [admin_id],
+            examples_db,
+            schema="schema_a",
+            fetch_metadata=False,
+        )
+        ds_b = self.insert_dataset(
+            table_name,
+            [admin_id],
+            examples_db,
+            schema="schema_b",
+            fetch_metadata=False,
+        )
+        self.items_to_delete = [ds_a, ds_b]
+
+        rv = self.client.post(
+            "api/v1/dataset/get_or_create/",
+            json={"table_name": table_name, "database_id": examples_db.id},
+        )
+        assert rv.status_code == 400
+        assert "Specify the 'schema' field" in rv.data.decode("utf-8")
+
     @pytest.mark.usefixtures(
         "load_energy_table_with_slice", "load_birth_names_dashboard_with_slices"
     )
