@@ -223,6 +223,114 @@ class TestDashboardVersionRetention(SupersetTestCase):
             dashboard.dashboard_title = original_title
             db.session.commit()
 
+    def test_retention_retries_on_serialization_failure(self) -> None:
+        """A transient ``OperationalError`` from the SERIALIZABLE pass
+        triggers an inline retry; the prune completes on the second
+        attempt and the stats dict records the retry count."""
+        from datetime import datetime, timedelta
+        from unittest.mock import patch
+
+        import sqlalchemy as sa
+        from sqlalchemy.exc import OperationalError
+
+        from superset.tasks import version_history_retention
+        from superset.tasks.version_history_retention import (
+            _prune_old_versions_impl,
+        )
+
+        # Backdate transactions so the prune has work to do.
+        _persist_fixture_state()
+        dashboard: Dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "USA Births Names")
+            .first()
+        )
+        original_title = dashboard.dashboard_title
+        try:
+            for i in range(3):
+                dashboard.dashboard_title = f"USA Births Names retry test {i}"
+                db.session.commit()
+
+            from sqlalchemy_continuum import versioning_manager
+
+            tx_table = versioning_manager.transaction_cls.__table__
+            from superset.extensions import db as _db
+
+            with _db.engine.begin() as conn:
+                conn.execute(
+                    sa.update(tx_table).values(
+                        issued_at=datetime.utcnow() - timedelta(days=100)
+                    )
+                )
+
+            original_run = version_history_retention._run_prune_pass
+            calls: list[int] = []
+
+            def flaky_run(*args: Any, **kwargs: Any) -> dict[str, Any]:
+                calls.append(1)
+                if len(calls) == 1:
+                    raise OperationalError(
+                        "SELECT 1", {}, Exception("could not serialize access")
+                    )
+                return original_run(*args, **kwargs)
+
+            with patch.object(
+                version_history_retention, "_run_prune_pass", side_effect=flaky_run
+            ):
+                # Patch sleep so the test doesn't actually wait through
+                # the backoff.
+                with patch.object(version_history_retention.time, "sleep"):
+                    stats = _prune_old_versions_impl(retention_days=30)
+
+            assert len(calls) == 2, (
+                f"Expected 2 _run_prune_pass calls (1 failure + 1 retry), "
+                f"got {len(calls)}"
+            )
+            assert stats.get("retried") == 1, stats
+            assert stats.get("pruned_transactions", 0) >= 1, stats
+        finally:
+            dashboard.dashboard_title = original_title
+            db.session.commit()
+
+    def test_retention_gives_up_after_max_attempts(self) -> None:
+        """When every attempt hits ``OperationalError``, the function
+        re-raises after the retry cap so the outer Celery wrapper logs
+        + returns ``{"error": 1}``."""
+        from unittest.mock import patch
+
+        from sqlalchemy.exc import OperationalError
+
+        from superset.tasks import version_history_retention
+        from superset.tasks.version_history_retention import (
+            _MAX_RETRY_ATTEMPTS,
+            _prune_old_versions_impl,
+        )
+
+        def always_fail(*args: Any, **kwargs: Any) -> dict[str, Any]:
+            raise OperationalError(
+                "SELECT 1", {}, Exception("could not serialize access")
+            )
+
+        call_count = 0
+
+        def counting_fail(*args: Any, **kwargs: Any) -> dict[str, Any]:
+            nonlocal call_count
+            call_count += 1
+            return always_fail(*args, **kwargs)
+
+        with patch.object(
+            version_history_retention,
+            "_run_prune_pass",
+            side_effect=counting_fail,
+        ):
+            with patch.object(version_history_retention.time, "sleep"):
+                with pytest.raises(OperationalError):
+                    _prune_old_versions_impl(retention_days=30)
+
+        assert call_count == _MAX_RETRY_ATTEMPTS, (
+            f"Expected exactly {_MAX_RETRY_ATTEMPTS} attempts; got {call_count}"
+        )
+
 
 class TestDashboardVersionListApi(SupersetTestCase):
     """T027 — GET /api/v1/dashboard/<uuid>/versions/ endpoint."""
