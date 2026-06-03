@@ -31,7 +31,7 @@ both the read endpoints and the ETag emission path in
 from __future__ import annotations
 
 import uuid
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 import sqlalchemy as sa
@@ -126,7 +126,7 @@ def _user_select_cols(user_tbl: sa.Table) -> list[Any]:
     ]
 
 
-def _changed_by_from_row(row: Any) -> Optional[dict[str, Any]]:
+def _changed_by_from_row(row: Any) -> dict[str, Any] | None:
     """Project the user columns from a query row onto the API's
     ``changed_by`` shape, or ``None`` for saves with no Flask user context
     (CLI / Celery / import / unauthenticated). Expects the user columns to
@@ -143,7 +143,7 @@ def _changed_by_from_row(row: Any) -> Optional[dict[str, Any]]:
     }
 
 
-def _entity_kind_for(model_cls: type) -> Optional[str]:
+def _entity_kind_for(model_cls: type) -> str | None:
     """Return the ``version_changes.entity_kind`` value for *model_cls*, or
     ``None`` when the class isn't in the change-records taxonomy."""
     # pylint: disable=import-outside-toplevel
@@ -152,7 +152,7 @@ def _entity_kind_for(model_cls: type) -> Optional[str]:
     return _ENTITY_KIND_BY_CLASS_NAME.get(model_cls.__name__)
 
 
-def find_active_by_uuid(model_cls: type, entity_uuid: UUID) -> Optional[Any]:
+def find_active_by_uuid(model_cls: type, entity_uuid: UUID) -> Any | None:
     """Return the live entity matching *entity_uuid*, or None if not found.
 
     Soft-delete filtering (deleted_at IS NOT NULL → return None) will be
@@ -177,7 +177,7 @@ def _get_version_count(model_cls: type, entity_id: int) -> int:
     )
 
 
-def current_version_number(model_cls: type, entity_id: int) -> Optional[int]:
+def current_version_number(model_cls: type, entity_id: int) -> int | None:
     """Return the 0-based ``version_number`` of the live row for *entity_id*
     — equivalent to the index of the most recent entry that
     :func:`list_versions` would return, or ``None`` when the entity has no
@@ -194,7 +194,7 @@ def current_version_number(model_cls: type, entity_id: int) -> Optional[int]:
     return count - 1 if count > 0 else None
 
 
-def current_live_transaction_id(model_cls: type, entity_id: int) -> Optional[int]:
+def current_live_transaction_id(model_cls: type, entity_id: int) -> int | None:
     """Return the Continuum ``transaction_id`` of the live row for
     *entity_id* — stable across retention pruning, unlike the index
     returned by :func:`current_version_number`.
@@ -213,7 +213,7 @@ def current_live_transaction_id(model_cls: type, entity_id: int) -> Optional[int
 
 def current_live_version_uuid(
     model_cls: type, entity_id: int, entity_uuid: UUID
-) -> Optional[UUID]:
+) -> UUID | None:
     """Return the deterministic ``version_uuid`` of the live row, or
     ``None`` when the entity has no version rows yet."""
     tx_id = current_live_transaction_id(model_cls, entity_id)
@@ -293,8 +293,8 @@ def list_versions(
     model_cls: type,
     entity_uuid: UUID,
     *,
-    entity: Optional[Any] = None,
-) -> Optional[list[dict[str, Any]]]:
+    entity: Any | None = None,
+) -> list[dict[str, Any]] | None:
     """Return the version history for the entity identified by *entity_uuid*.
 
     Returns ``None`` when no active entity matches the UUID — callers should
@@ -363,8 +363,8 @@ def resolve_version_uuid(
     entity_uuid: UUID,
     version_uuid: UUID,
     *,
-    entity: Optional[Any] = None,
-) -> Optional[int]:
+    entity: Any | None = None,
+) -> int | None:
     """Translate a ``version_uuid`` into the 0-based ``version_number`` that
     :func:`superset.versioning.restore.restore_version` accepts, or ``None``
     when the UUID does not match any version row of the given entity.
@@ -412,8 +412,8 @@ def get_version(
     entity_uuid: UUID,
     version_uuid: UUID,
     *,
-    entity: Optional[Any] = None,
-) -> Optional[dict[str, Any]]:
+    entity: Any | None = None,
+) -> dict[str, Any] | None:
     """Return the entity's state at the specified version as a dict.
 
     Read-only — nothing in the live database is modified. The returned

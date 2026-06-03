@@ -41,7 +41,8 @@ any are added) should be commented explicitly.
 
 import functools
 import logging
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy import event
@@ -287,7 +288,7 @@ def _version_table_for(obj: Any) -> Any:
         return None
 
 
-def _shadow_row_count(session: Session, obj: Any, version_table: Any) -> Optional[int]:
+def _shadow_row_count(session: Session, obj: Any, version_table: Any) -> int | None:
     """Return number of shadow rows for *obj.id* in *version_table*, or
     ``None`` when the version table is missing (migration not yet applied)
     or the count query raised unexpectedly.
@@ -352,7 +353,7 @@ def _insert_baseline_and_children(
 
 def _insert_baseline_row(
     session: Session, obj: Any, version_table: sa.Table
-) -> Optional[int]:
+) -> int | None:
     """Insert a synthetic baseline row capturing the pre-edit DB state of *obj*.
 
     Creates a version_transaction entry and an operation_type=0 version row.
