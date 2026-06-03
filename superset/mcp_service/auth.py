@@ -65,6 +65,10 @@ PERMISSION_PREFIX = "can_"
 CLASS_PERMISSION_ATTR = "_class_permission_name"
 METHOD_PERMISSION_ATTR = "_method_permission_name"
 
+# Tools already warned about for declaring no class_permission_name, so the
+# warning surfaces once per tool instead of on every protected-tool call.
+_warned_permissionless_tools: set[str] = set()
+
 
 class MCPNoAuthSourceError(ValueError):
     """Raised when no authentication source is available for a request.
@@ -138,7 +142,18 @@ def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) 
 
         class_permission_name = getattr(func, CLASS_PERMISSION_ATTR, None)
         if not class_permission_name:
-            # No RBAC configured for this tool; allow by default.
+            # No RBAC configured for this tool; allow by default. This is a
+            # supported configuration (a protected tool may intentionally
+            # declare no permission class), but surface it ONCE per tool so an
+            # accidental omission on a sensitive tool doesn't silently fail open
+            # — without emitting a WARNING on every protected-tool call.
+            if func.__name__ not in _warned_permissionless_tools:
+                _warned_permissionless_tools.add(func.__name__)
+                logger.warning(
+                    "Tool %s is permission-protected but declares no "
+                    "class_permission_name; allowing access without an RBAC check",
+                    func.__name__,
+                )
             return True
 
         method_permission_name = getattr(func, METHOD_PERMISSION_ATTR, "read")

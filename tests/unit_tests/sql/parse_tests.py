@@ -1441,6 +1441,26 @@ def test_has_destructive(sql: str, expected: bool) -> None:
 
 
 @pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("SELECT 1 UNION SELECT 2", True),
+        ("SELECT 1 UNION ALL SELECT 2", True),
+        ("SELECT 1 INTERSECT SELECT 2", True),
+        ("SELECT 1 EXCEPT SELECT 2", True),
+        ("SELECT 1", False),
+        ("WITH cte AS (SELECT 1) SELECT * FROM cte", False),
+        ("SELECT * FROM (SELECT 1 UNION SELECT 2) AS sub", False),
+    ],
+)
+def test_is_set_operation(sql: str, expected: bool) -> None:
+    """
+    Test that ``is_set_operation`` detects top-level UNION/INTERSECT/EXCEPT
+    but not nested set operations inside a sub-query.
+    """
+    assert SQLStatement(sql, "postgresql").is_set_operation() == expected
+
+
+@pytest.mark.parametrize(
     "kql, expected",
     [
         (".drop table T", True),
@@ -2712,7 +2732,7 @@ def test_rls_predicate_transformer(
             "SELECT * FROM some_table",
             Table("some_table"),
             """
-CREATE TABLE some_table AS
+CREATE TABLE "some_table" AS
 SELECT
   *
 FROM some_table
@@ -2722,7 +2742,7 @@ FROM some_table
             "SELECT * FROM some_table",
             Table("some_table", "schema1", "catalog1"),
             """
-CREATE TABLE catalog1.schema1.some_table AS
+CREATE TABLE "catalog1"."schema1"."some_table" AS
 SELECT
   *
 FROM some_table
