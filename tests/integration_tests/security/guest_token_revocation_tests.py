@@ -37,11 +37,13 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
 from tests.integration_tests.test_app import app
 
 
+@patch.dict(
+    "superset.extensions.feature_flag_manager._feature_flags",
+    EMBEDDED_SUPERSET=True,
+)
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices_class_scope")
 class TestGuestTokenRevocation(SupersetTestCase):
     def setUp(self) -> None:
-        with app.app_context():
-            app.config["EMBEDDED_SUPERSET"] = True
         self.dash = self.get_dash_by_slug("births")
         self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
         db.session.commit()
