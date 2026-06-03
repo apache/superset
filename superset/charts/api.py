@@ -58,6 +58,7 @@ from superset.charts.schemas import (
 from superset.commands.chart.create import CreateChartCommand
 from superset.commands.chart.delete import DeleteChartCommand
 from superset.commands.chart.exceptions import (
+    ChartAccessDeniedError,
     ChartCreateFailedError,
     ChartDeleteFailedError,
     ChartForbiddenError,
@@ -972,7 +973,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             AddFavoriteChartCommand(pk).run()
         except ChartNotFoundError:
             return self.response_404()
-        except ChartForbiddenError:
+        except (ChartAccessDeniedError, ChartForbiddenError):
             return self.response_403()
 
         return self.response(200, result="OK")
@@ -1017,9 +1018,9 @@ class ChartRestApi(BaseSupersetModelRestApi):
         try:
             DelFavoriteChartCommand(pk).run()
         except ChartNotFoundError:
-            self.response_404()
-        except ChartForbiddenError:
-            self.response_403()
+            return self.response_404()
+        except (ChartAccessDeniedError, ChartForbiddenError):
+            return self.response_403()
 
         return self.response(200, result="OK")
 
