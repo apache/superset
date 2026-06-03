@@ -186,7 +186,7 @@ SQL Lab Integration:
 - get_query_info: Get SQL query history details by ID
 
 Schema Discovery:
-- get_schema: Get schema metadata for chart/dataset/dashboard/database (columns, filters)
+- get_schema: Get schema metadata for chart/dataset/dashboard/database/report (columns, filters)
 
 Task Management (requires GLOBAL_TASK_FRAMEWORK feature flag):
 - list_tasks: List background tasks with status filtering and pagination
@@ -397,7 +397,7 @@ IMPORTANT - Tool-Only Interaction:
 
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
-- Use get_schema (chart/dataset/dashboard/database) to discover filterable columns,
+- Use get_schema (chart/dataset/dashboard/database/report) to discover filterable columns,
   sortable columns, and default columns for those resource types
 - For task and list_rls_filters tools, filterable/sortable columns are listed inline in
   each tool's docstring — get_schema does not cover these
