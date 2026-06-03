@@ -328,6 +328,19 @@ def upgrade() -> None:
     # row describes one atomic change (one field or one child-collection
     # element) that occurred to one entity during a save. See spec
     # FR-016..FR-021 and data-model.md §version_changes.
+    #
+    # ``(entity_kind, entity_id)`` is a polymorphic reference: depending
+    # on ``entity_kind`` (``"chart"`` / ``"dashboard"`` / ``"dataset"``)
+    # the ``entity_id`` is the integer PK on ``slices`` / ``dashboards`` /
+    # ``tables`` respectively. SQL has no native polymorphic FK, so the
+    # constraint is intentionally omitted — cleanup relies on the
+    # ``CASCADE`` from ``version_transaction.id`` plus command-layer
+    # ordering for entity deletes (the command that hard-deletes the
+    # entity runs inside the same transaction that prunes its history).
+    # A bare ``DELETE FROM <entity_table> WHERE id = X`` outside that
+    # transactional boundary leaves orphan ``version_changes`` rows
+    # whose ``entity_id`` references a vanished row — the read-side
+    # tombstone-state lookup handles this gracefully.
     # ------------------------------------------------------------------
     op.create_table(
         "version_changes",
