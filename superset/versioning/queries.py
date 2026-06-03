@@ -154,11 +154,7 @@ def _entity_kind_for(model_cls: type) -> str | None:
 
 
 def find_active_by_uuid(model_cls: type, entity_uuid: UUID) -> Any | None:
-    """Return the live entity matching *entity_uuid*, or None if not found.
-
-    Soft-delete filtering (deleted_at IS NOT NULL → return None) will be
-    added when sc-103157 is merged (T043).
-    """
+    """Return the live entity matching *entity_uuid*, or None if not found."""
     return (
         db.session.query(model_cls)
         .filter(model_cls.uuid == entity_uuid)  # type: ignore[attr-defined]
