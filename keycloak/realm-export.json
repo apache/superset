@@ -1,0 +1,99 @@
+{
+  "id": "superset-realm",
+  "realm": "superset-realm",
+  "displayName": "Superset SSO Realm",
+  "enabled": true,
+  "sslRequired": "none",
+  "accessTokenLifespan": 300,
+  "accessCodeLifespan": 60,
+  "users": [
+    {
+      "username": "testuser",
+      "enabled": true,
+      "email": "testuser@example.com",
+      "firstName": "Test",
+      "lastName": "User",
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "testpass123", "temporary": false }
+      ],
+      "realmRoles": ["superset_gamma"]
+    },
+    {
+      "username": "adminuser",
+      "enabled": true,
+      "email": "admin@example.com",
+      "firstName": "Admin",
+      "lastName": "User",
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "adminpass123", "temporary": false }
+      ],
+      "realmRoles": ["superset_admin"]
+    }
+  ],
+  "roles": {
+    "realm": [
+      { "name": "superset_admin", "description": "Mappa al ruolo Admin di Superset" },
+      { "name": "superset_alpha", "description": "Mappa al ruolo Alpha di Superset" },
+      { "name": "superset_gamma", "description": "Mappa al ruolo Gamma di Superset" },
+      { "name": "superset_sql_lab", "description": "Accesso a SQL Lab" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "superset",
+      "name": "Superset",
+      "description": "Client OIDC per Apache Superset",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "secret": "superset_secret_123",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [
+        "http://localhost:8088/oauth-authorized/keycloak"
+      ],
+      "webOrigins": [
+        "http://localhost:8088"
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "http://localhost:8088/*",
+        "access.token.lifespan": "300"
+      },
+      "protocolMappers": [
+        {
+          "name": "realm roles",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "config": {
+            "user.attribute": "roles",
+            "claim.name": "realm_access.roles",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String",
+            "multivalued": "true"
+          }
+        },
+        {
+          "name": "username",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-property-mapper",
+          "config": {
+            "user.attribute": "username",
+            "claim.name": "preferred_username",
+            "access.token.claim": "true",
+            "id.token.claim": "true",
+            "userinfo.token.claim": "true",
+            "jsonType.label": "String"
+          }
+        }
+      ],
+      "defaultClientScopes": ["openid", "profile", "email", "roles"],
+      "optionalClientScopes": []
+    }
+  ]
+}
