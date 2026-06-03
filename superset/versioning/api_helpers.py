@@ -129,7 +129,16 @@ def resolve_endpoint_path_entity(
     if entity is None:
         raise PathEntityResponseError(api.response_404())
 
-    kwarg = _RAISE_FOR_ACCESS_KWARG[model_cls.__name__]
+    # Direct ``[…]`` would leak the unknown model name into a generic 500
+    # via the unhandled ``KeyError`` exception text. The three resource
+    # families wired today cover every key; a future entity added to the
+    # versioning surface without updating this dispatch table should fail
+    # closed (the test suite picks it up) rather than silently disclose.
+    kwarg = _RAISE_FOR_ACCESS_KWARG.get(model_cls.__name__)
+    if kwarg is None:
+        raise LookupError(
+            f"No raise_for_access kwarg registered for {model_cls.__name__!r}"
+        )
     try:
         security_manager.raise_for_access(**{kwarg: entity})
     except SupersetSecurityException as exc:
