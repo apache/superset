@@ -126,7 +126,20 @@ def count_stats(po_file: Path) -> dict[str, int]:
     }
 
 
-def get_counts(translations_dir: Path) -> dict[str, dict[str, int]]:
+def get_counts(
+    translations_dir: Path,
+    failures: Optional[set[str]] = None,
+) -> dict[str, dict[str, int]]:
+    """Count translated/fuzzy entries for every ``.po`` file in a directory.
+
+    If ``failures`` is provided, the name of each language whose ``.po`` file
+    is present on disk but could not be counted (msgfmt non-zero exit, or
+    unparseable output) is added to it. Such a language is deliberately absent
+    from the returned mapping — but, unlike a language whose catalog was simply
+    deleted, it must not be mistaken for an intentional removal: a caller that
+    cares about the distinction (see :func:`cmd_compare`) can inspect
+    ``failures`` and treat it as a hard error.
+    """
     counts: dict[str, dict[str, int]] = {}
     for po_file in sorted(translations_dir.glob("*/LC_MESSAGES/messages.po")):
         lang = po_file.parent.parent.name
@@ -138,8 +151,11 @@ def get_counts(translations_dir: Path) -> dict[str, dict[str, int]]:
             # A malformed .po file (msgfmt non-zero exit, or stderr we
             # can't parse) is a real problem worth seeing, but it shouldn't
             # take the whole regression check down with it — that would
-            # hide every other language's status. Skip and warn instead;
-            # the missing lang will not appear in the comparison output.
+            # hide every other language's status. Skip and warn here; the
+            # caller is told which langs failed via ``failures`` so it can
+            # decide whether a present-but-uncountable catalog is fatal.
+            if failures is not None:
+                failures.add(lang)
             print(
                 f"WARNING: skipping {lang} — {po_file} could not be counted: {exc}",
                 file=sys.stderr,
@@ -223,7 +239,24 @@ def cmd_compare(
         before_raw: dict[str, object] = json.load(f)
     before = {lang: _normalize(entry) for lang, entry in before_raw.items()}
 
-    after = get_counts(translations_dir)
+    failures: set[str] = set()
+    after = get_counts(translations_dir, failures=failures)
+
+    # A baseline language whose catalog is *missing* from `after` is fine —
+    # that's an intentional catalog deletion (handled below like any other
+    # deletion). But a language whose .po file is still present yet could not
+    # be counted (msgfmt failed / output unparseable) is a hard error: leaving
+    # it out silently would let a corrupt catalog pass as "no regression".
+    broken = sorted(lang for lang in failures if lang in before)
+    if broken:
+        print("Translation check failed!\n")
+        for lang in broken:
+            print(f"  {lang}: catalog present but could not be counted (msgfmt error)")
+        print(
+            "\nFix the malformed .po file(s) above before merging — a catalog "
+            "that cannot be parsed must not be silently dropped."
+        )
+        sys.exit(1)
 
     # A regression is an *increase* in fuzzy entries: the PR's source diff
     # renamed/reworded strings, leaving their committed translations stranded.

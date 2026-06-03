@@ -48,11 +48,28 @@ def _compare(
     tmp_path: Path,
     before: Mapping[str, object],
     after: Mapping[str, object],
+    failures: set[str] | None = None,
 ) -> None:
-    """Run cmd_compare with a baseline file and a mocked 'after' state."""
+    """Run cmd_compare with a baseline file and a mocked 'after' state.
+
+    ``failures`` simulates languages whose .po file was present but could not
+    be counted; cmd_compare passes a ``failures`` set into get_counts, so the
+    mock populates it (mirroring the real get_counts contract).
+    """
+
+    def fake_get_counts(
+        _dir: Path, failures: set[str] | None = None
+    ) -> Mapping[str, object]:
+        if failures is not None and _simulated_failures:
+            failures.update(_simulated_failures)
+        return after
+
+    _simulated_failures = failures or set()
     before_file = tmp_path / "before.json"
     before_file.write_text(json.dumps(before), encoding="utf-8")
-    with patch.object(check_translation_regression, "get_counts", return_value=after):
+    with patch.object(
+        check_translation_regression, "get_counts", side_effect=fake_get_counts
+    ):
         check_translation_regression.cmd_compare(str(before_file), tmp_path)
 
 
@@ -94,6 +111,33 @@ def test_legacy_integer_baseline_is_tolerated(tmp_path: Path) -> None:
     before = {"fr": 100}
     after = {"fr": {"translated": 90, "fuzzy": 0}}
     _compare(tmp_path, before, after)  # deletion-only, no SystemExit
+
+
+def test_deleting_an_entire_catalog_is_not_a_regression(tmp_path: Path) -> None:
+    # The whole `fr` catalog was intentionally removed: it is absent from
+    # `after` and did NOT fail to count -> a legitimate deletion, not flagged.
+    before = {"fr": {"translated": 100, "fuzzy": 5}}
+    after: dict[str, object] = {}
+    _compare(tmp_path, before, after)  # no SystemExit
+
+
+def test_uncountable_baseline_catalog_is_a_hard_failure(tmp_path: Path) -> None:
+    # `fr` still exists on disk but msgfmt could not count it (malformed .po),
+    # so it is missing from `after` AND reported as a failure. This must NOT be
+    # mistaken for an intentional deletion — it is a hard error.
+    before = {"fr": {"translated": 100, "fuzzy": 5}}
+    after: dict[str, object] = {}
+    with pytest.raises(SystemExit) as exc:
+        _compare(tmp_path, before, after, failures={"fr"})
+    assert exc.value.code == 1
+
+
+def test_uncountable_new_catalog_not_in_baseline_is_ignored(tmp_path: Path) -> None:
+    # A catalog that fails to count but was not in the baseline can't be a
+    # regression of a previously-good translation, so it does not fail the run.
+    before = {"fr": {"translated": 100, "fuzzy": 5}}
+    after = {"fr": {"translated": 100, "fuzzy": 5}}
+    _compare(tmp_path, before, after, failures={"zz"})  # no SystemExit
 
 
 def test_writes_report_on_regression(tmp_path: Path) -> None:
