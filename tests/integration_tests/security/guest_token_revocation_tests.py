@@ -32,6 +32,7 @@ from superset.security.guest_token import (
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices_class_scope,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
 )
 from tests.integration_tests.test_app import app
 
