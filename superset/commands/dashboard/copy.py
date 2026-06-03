@@ -50,9 +50,9 @@ class CopyDashboardCommand(BaseCommand):
         # command's module-load graph; see ``changes.py`` module
         # docstring for the broader init-order rationale.
         from superset import db
-        from superset.versioning.changes import ACTION_KIND_KEY
+        from superset.versioning.changes import ACTION_KIND_CLONE, ACTION_KIND_KEY
 
-        db.session.info[ACTION_KIND_KEY] = "clone"
+        db.session.info[ACTION_KIND_KEY] = ACTION_KIND_CLONE
         return DashboardDAO.copy_dashboard(self._original_dash, self._properties)
 
     def validate(self) -> None:

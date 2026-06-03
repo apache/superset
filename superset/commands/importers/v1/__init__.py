@@ -95,9 +95,9 @@ class ImportModelsCommand(BaseCommand):
         # Method-scoped import — defers the versioning bootstrap path
         # out of this command's module-load graph; see ``changes.py``
         # module docstring for the broader init-order rationale.
-        from superset.versioning.changes import ACTION_KIND_KEY
+        from superset.versioning.changes import ACTION_KIND_IMPORT, ACTION_KIND_KEY
 
-        db.session.info[ACTION_KIND_KEY] = "import"
+        db.session.info[ACTION_KIND_KEY] = ACTION_KIND_IMPORT
 
         try:
             self._import(self._configs, self.overwrite, self.contents)
