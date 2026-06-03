@@ -102,6 +102,8 @@ Affecting the Docker build process:
   save some precious time on startup by `SUPERSET_LOAD_EXAMPLES=no docker compose up`
 - **SUPERSET_LOG_LEVEL (default=info)**: Can be set to debug, info, warning, error, critical
   for more verbose logging
+- **SUPERSET_DEBUG_ENABLED (default=false)**: Enable Werkzeug debugger with interactive console.
+  Set to `true` for debugging: `SUPERSET_DEBUG_ENABLED=true docker compose up`
 
 For more env vars that affect your configuration, see this
 [superset_config.py](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py)
