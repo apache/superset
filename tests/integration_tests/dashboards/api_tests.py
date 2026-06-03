@@ -700,6 +700,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             "can_get_embedded",
             "can_delete_embedded",
             "can_set_embedded",
+            "can_revoke_embedded",
             "can_cache_dashboard_screenshot",
             "can_put_chart_customizations",
         }
