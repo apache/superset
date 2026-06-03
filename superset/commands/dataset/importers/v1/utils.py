@@ -382,6 +382,11 @@ def import_dataset(  # noqa: C901
         # raise so the operator can resolve the legacy-NULL-schema
         # ambiguity before re-uploading.
         if is_soft_deleted_match:
+            # ``is_soft_deleted_match`` is only ever set inside the
+            # ``if existing := ...`` walrus block, so ``existing`` is
+            # guaranteed non-None here. The assert pins the invariant
+            # for mypy.
+            assert existing is not None
             existing.deleted_at = original_deleted_at
             db.session.flush()
             raise ImportFailedError(
