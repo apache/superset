@@ -165,7 +165,7 @@ A read-only companion to the version-history endpoints (above). Each entity type
 
 `count` is the total record count *after* the silent permission filter (see below), not the raw query size.
 
-**Authorisation:** reuses the resource's existing `can_write` permission. Workspace admins can read any entity's activity stream. The endpoint runs `raise_for_ownership` on the path entity — non-owners get `403`.
+**Authorisation:** reuses the resource's existing `can_read` permission. The endpoint runs `security_manager.raise_for_access(<resource>=path_entity)` — users without read access to the path entity get `403`. Workspace admins can read any entity's activity stream.
 
 **Silent permission filter (AV-008):** records whose source entity the requesting user can't read are silently dropped — no placeholder, no count contribution. The frontend cannot distinguish "no activity" from "you can't see this activity."
 
