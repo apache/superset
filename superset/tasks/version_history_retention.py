@@ -69,24 +69,34 @@ def _resolve_shadow_tables() -> tuple[list[sa.Table], list[sa.Table], sa.Table |
     """
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import version_class
+    from sqlalchemy_continuum.exc import ClassNotVersioned
 
     from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
 
+    # ``ClassNotVersioned`` is the only expected failure here — versioning
+    # init runs at startup; if it didn't, every class lookup raises this.
+    # Narrowing the catch keeps a real underlying failure (e.g. a metadata
+    # inconsistency after ``make_versioned``) from being silently swallowed
+    # into a no-op retention pass.
     parent_tables: list[sa.Table] = []
     for cls in (Dashboard, Slice, SqlaTable):
         try:
             parent_tables.append(version_class(cls).__table__)
-        except Exception:  # pylint: disable=broad-except  # noqa: S112
-            continue
+        except ClassNotVersioned:
+            logger.warning(
+                "retention: %s is not versioned; skipping shadow", cls.__name__
+            )
 
     child_tables: list[sa.Table] = []
     for cls in (TableColumn, SqlMetric):
         try:
             child_tables.append(version_class(cls).__table__)
-        except Exception:  # pylint: disable=broad-except  # noqa: S112
-            continue
+        except ClassNotVersioned:
+            logger.warning(
+                "retention: %s is not versioned; skipping shadow", cls.__name__
+            )
 
     metadata = parent_tables[0].metadata if parent_tables else None
     m2m_table = (
@@ -107,7 +117,8 @@ def _candidate_transaction_ids(
     prune: ``issued_at < cutoff`` AND not currently the live row of
     any versioned entity.
     """
-    from sqlalchemy_continuum import versioning_manager  # noqa: E402
+    # pylint: disable=import-outside-toplevel
+    from sqlalchemy_continuum import versioning_manager
 
     tx_table = versioning_manager.transaction_cls.__table__
     candidate_ids = [
