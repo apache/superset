@@ -109,6 +109,37 @@ def is_int(s: str) -> bool:
     return bool(re.match(r"^-?\d+$", s))
 
 
+def resolve_workflow_run_files(repo: str, sha: str) -> Optional[List[str]]:
+    """Resolve changed files for a workflow_run-triggered run.
+
+    When a workflow is gated behind another (e.g. running only after
+    pre-commit succeeds), GitHub re-dispatches it as a `workflow_run` event
+    whose context points at the default branch rather than the originating
+    diff. Recover the original event and head SHA from the workflow_run
+    payload, exposed via the WF_RUN_* env vars. Returns ``None`` (meaning
+    "assume all changed") when the diff can't be resolved.
+    """
+    original_event = os.getenv("WF_RUN_EVENT") or "push"
+    print("ORIGINAL_EVENT", original_event)
+    if original_event == "pull_request":
+        pr_number = os.getenv("WF_RUN_PR_NUMBER", "")
+        if not is_int(pr_number):
+            # Fork PRs don't populate workflow_run.pull_requests, so we can't
+            # resolve the diff -> assume all changed (run everything).
+            print("workflow_run without PR context, assuming all changed")
+            return None
+        files = fetch_changed_files_pr(repo, pr_number)
+        print("PR files:")
+        print_files(files)
+        return files
+
+    head_sha = os.getenv("WF_RUN_HEAD_SHA") or sha
+    files = fetch_changed_files_push(repo, head_sha)
+    print("Files touched since previous commit:")
+    print_files(files)
+    return files
+
+
 def main(event_type: str, sha: str, repo: str) -> None:
     """Main function to check for file changes based on event context."""
     print("SHA:", sha)
@@ -125,6 +156,9 @@ def main(event_type: str, sha: str, repo: str) -> None:
         files = fetch_changed_files_push(repo, sha)
         print("Files touched since previous commit:")
         print_files(files)
+
+    elif event_type == "workflow_run":
+        files = resolve_workflow_run_files(repo, sha)
 
     elif event_type in ("workflow_dispatch", "schedule"):
         # Manual or cron-triggered runs aren't tied to a specific diff, so

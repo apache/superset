@@ -1,12 +1,16 @@
 name: E2E
 
 on:
-  push:
-    branches:
-      - "master"
-      - "[0-9].[0-9]*"
-  pull_request:
-    types: [synchronize, opened, reopened, ready_for_review]
+  # Gated behind pre-commit: this workflow runs only after the "pre-commit
+  # checks" workflow completes, and (via the job-level `if` below) only when
+  # it succeeded. That keeps the expensive Cypress/Playwright runners from
+  # spinning up while a PR still has formatting/lint/type errors that
+  # pre-commit catches in a fraction of the time. pre-commit itself runs on
+  # push (master/release) and pull_request, so this preserves coverage for
+  # both event types.
+  workflow_run:
+    workflows: ["pre-commit checks"]
+    types: [completed]
   workflow_dispatch:
     inputs:
       use_dashboard:
@@ -23,11 +27,18 @@ on:
         default: ''
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  # workflow_run has no PR number in context; key on the originating branch.
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch || github.run_id }}
   cancel-in-progress: true
 
 jobs:
   changes:
+    # The pre-commit gate: only proceed when pre-commit succeeded (or on a
+    # manual dispatch). On failure this job is skipped, and every downstream
+    # job (needs: changes) is skipped with it — no runners are provisioned.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     permissions:
       contents: read
@@ -40,11 +51,18 @@ jobs:
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+      # The shared change-detector action reads the live event context, which
+      # under workflow_run points at the default branch. Call the script
+      # directly instead, passing the originating event/SHA/PR via WF_RUN_*.
       - name: Check for file changes
         id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WF_RUN_EVENT: ${{ github.event.workflow_run.event }}
+          WF_RUN_HEAD_SHA: ${{ github.event.workflow_run.head_sha }}
+          WF_RUN_PR_NUMBER: ${{ github.event.workflow_run.pull_requests[0].number }}
+        run: python scripts/change_detector.py
 
   cypress-matrix:
     needs: changes
@@ -63,7 +81,7 @@ jobs:
       matrix:
         parallel_id: [0, 1]
         browser: ["chrome"]
-        app_root: ${{ github.event_name == 'push' && fromJSON('["", "/app/prefix"]') || fromJSON('[""]') }}
+        app_root: ${{ github.event.workflow_run.event == 'push' && fromJSON('["", "/app/prefix"]') || fromJSON('[""]') }}
         # The /app/prefix variant (push events only) is smoke-tested on a single
         # shard rather than the full matrix, so exclude it from the other shards.
         exclude:
@@ -93,13 +111,13 @@ jobs:
     steps:
       # -------------------------------------------------------
       # Conditional checkout based on context
-      - name: Checkout for push or pull_request event
-        if: github.event_name == 'push' || github.event_name == 'pull_request'
+      - name: Checkout (gated by pre-commit via workflow_run)
+        if: github.event_name == 'workflow_run'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
           submodules: recursive
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.workflow_run.head_sha }}
       - name: Checkout using ref (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -177,7 +195,7 @@ jobs:
       fail-fast: false
       matrix:
         browser: ["chromium"]
-        app_root: ${{ github.event_name == 'push' && fromJSON('["", "/app/prefix"]') || fromJSON('[""]') }}
+        app_root: ${{ github.event.workflow_run.event == 'push' && fromJSON('["", "/app/prefix"]') || fromJSON('[""]') }}
     env:
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -200,13 +218,13 @@ jobs:
     steps:
       # -------------------------------------------------------
       # Conditional checkout based on context (same as Cypress workflow)
-      - name: Checkout for push or pull_request event
-        if: github.event_name == 'push' || github.event_name == 'pull_request'
+      - name: Checkout (gated by pre-commit via workflow_run)
+        if: github.event_name == 'workflow_run'
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           persist-credentials: false
           submodules: recursive
-          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+          ref: ${{ github.event.workflow_run.head_sha }}
       - name: Checkout using ref (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
@@ -274,3 +292,34 @@ jobs:
             ${{ github.workspace }}/superset-frontend/playwright-results/
             ${{ github.workspace }}/superset-frontend/test-results/
           name: playwright-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}
+
+  # workflow_run runs don't attach their checks to the originating PR, so post
+  # an aggregate commit status back onto the PR head SHA. Make THIS the required
+  # status check in branch protection (in place of the individual E2E jobs).
+  report-status:
+    needs: [cypress-matrix, playwright-tests]
+    if: always() && github.event_name == 'workflow_run'
+    runs-on: ubuntu-24.04
+    permissions:
+      statuses: write
+    steps:
+      - name: Report aggregate E2E status to PR commit
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        with:
+          script: |
+            // 'skipped' is acceptable: the change-detector legitimately skips
+            // jobs when no relevant files changed. Only real failures fail.
+            const results = [
+              '${{ needs.cypress-matrix.result }}',
+              '${{ needs.playwright-tests.result }}',
+            ];
+            const ok = results.every((r) => r === 'success' || r === 'skipped');
+            await github.rest.repos.createCommitStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              sha: context.payload.workflow_run.head_sha,
+              state: ok ? 'success' : 'failure',
+              context: 'E2E / required',
+              description: ok ? 'E2E passed (or skipped)' : 'E2E failed',
+              target_url: `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
