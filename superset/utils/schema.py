@@ -62,18 +62,24 @@ def validate_external_url(value: Optional[str]) -> None:
 
     Restricts the accepted URL schemes to ``http`` and ``https`` so that
     other schemes (for example ``javascript:``, ``data:`` or ``vbscript:``)
-    cannot be stored and later rendered by clients. Empty values are allowed
-    since the field is optional.
+    cannot be stored and later rendered by clients. The URL must also be
+    absolute (include a network location/host) so that malformed values such
+    as ``https:foo`` are rejected. Empty values are allowed since the field is
+    optional.
 
     :param value: the URL to validate
-    :raises ValidationError: if the value uses a disallowed scheme
+    :raises ValidationError: if the value uses a disallowed scheme or is not
+        an absolute URL
     """
     if not value:
         return
 
-    scheme = urlparse(value).scheme.lower()
+    parsed = urlparse(value)
+    scheme = parsed.scheme.lower()
     if scheme not in ALLOWED_URL_SCHEMES:
         raise ValidationError(
             "URL must use one of the following schemes: "
             f"{', '.join(sorted(ALLOWED_URL_SCHEMES))}."
         )
+    if not parsed.netloc:
+        raise ValidationError("URL must be absolute and include a host.")

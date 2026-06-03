@@ -70,22 +70,32 @@ DEFAULT_MAX_PROPHET_PERIODS = 10000
 def get_max_prophet_periods() -> int:
     """Get the configured upper bound for Prophet forecast periods."""
     try:
-        return current_app.config.get(
+        configured = current_app.config.get(
             "MAX_PROPHET_PERIODS", DEFAULT_MAX_PROPHET_PERIODS
         )
     except RuntimeError:
         # Outside app context, fall back to the default bound
         return DEFAULT_MAX_PROPHET_PERIODS
 
+    # Normalize to int so that overrides supplied as strings (for example via
+    # ``os.getenv``) don't cause a TypeError when compared by ``Range``. Fall
+    # back to the default for invalid or non-positive values.
+    try:
+        normalized = int(configured)
+    except (TypeError, ValueError):
+        return DEFAULT_MAX_PROPHET_PERIODS
+    return normalized if normalized > 0 else DEFAULT_MAX_PROPHET_PERIODS
+
 
 def validate_prophet_periods(value: int) -> None:
     """Ensure the number of Prophet forecast periods stays within bounds."""
+    max_periods = get_max_prophet_periods()
     Range(
         min=1,
-        max=get_max_prophet_periods(),
+        max=max_periods,
         error=_(
             "`periods` must be between 1 and %(max)s",
-            max=get_max_prophet_periods(),
+            max=max_periods,
         ),
     )(value)
 
