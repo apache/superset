@@ -54,10 +54,14 @@ def upgrade():
         f"(SELECT min_id FROM (SELECT MIN(id) AS min_id FROM {TABLE} "
         f"GROUP BY user_id) AS keep)"
     )
-    op.create_unique_constraint(UQ, TABLE, ["user_id"])
+    # SQLite has no ALTER ... ADD CONSTRAINT, so use batch mode (copy-and-move)
+    # which all dialects support.
+    with op.batch_alter_table(TABLE) as batch_op:
+        batch_op.create_unique_constraint(UQ, ["user_id"])
 
 
 def downgrade():
-    op.drop_constraint(UQ, TABLE, type_="unique")
+    with op.batch_alter_table(TABLE) as batch_op:
+        batch_op.drop_constraint(UQ, type_="unique")
     drop_index(TABLE, INDEX)
     drop_columns(TABLE, COLUMN)

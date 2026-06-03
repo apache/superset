@@ -26,9 +26,7 @@ from superset.security.session_invalidation import (
 def test_no_epoch_is_never_invalidated() -> None:
     """A user that was never disabled (NULL epoch) is never invalidated."""
     assert is_session_invalidated(login_at=None, invalidated_at=None) is False
-    assert (
-        is_session_invalidated(login_at=1_000.0, invalidated_at=None) is False
-    )
+    assert is_session_invalidated(login_at=1_000.0, invalidated_at=None) is False
 
 
 def test_epoch_with_no_login_time_fails_closed() -> None:
