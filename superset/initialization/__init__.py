@@ -1042,6 +1042,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_async_queries(self) -> None:
         if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            # In production, check_async_query_secret() already aborts startup when
+            # the default secret is present, so this branch is never reached with it.
+            # In debug/testing the check only warns, so skip async-query init here to
+            # avoid AsyncQueryManager.init_app() hard-failing on the too-short default
+            # secret and crashing startup despite the warn-only intent.
+            if (
+                self.config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET")
+                == CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
+            ):
+                return
             async_query_manager_factory.init_app(self.superset_app)
 
     def configure_task_manager(self) -> None:

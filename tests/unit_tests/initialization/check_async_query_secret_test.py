@@ -103,3 +103,38 @@ def test_check_async_query_secret_warns_only_in_debug(
 
     # Should not raise in debug mode.
     initializer.check_async_query_secret()
+
+
+def test_configure_async_queries_skips_init_with_default_secret(
+    mocker: MockerFixture,
+) -> None:
+    """In warn-only modes, async init is skipped so the short default secret cannot
+    crash startup via AsyncQueryManager.init_app()'s length check."""
+    mocker.patch(
+        "superset.initialization.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    factory = mocker.patch("superset.initialization.async_query_manager_factory")
+    initializer = _make_initializer(
+        CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET, debug=True
+    )
+
+    initializer.configure_async_queries()
+
+    factory.init_app.assert_not_called()
+
+
+def test_configure_async_queries_inits_with_overridden_secret(
+    mocker: MockerFixture,
+) -> None:
+    """A non-default secret proceeds to initialize the async query manager."""
+    mocker.patch(
+        "superset.initialization.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    factory = mocker.patch("superset.initialization.async_query_manager_factory")
+    initializer = _make_initializer("a-strong-random-secret-value-1234567890")
+
+    initializer.configure_async_queries()
+
+    factory.init_app.assert_called_once_with(initializer.superset_app)
