@@ -253,6 +253,111 @@ def test_shim_enabled_for_non_legacy_app_roots(app_root: str) -> None:
         assert shim._enabled is True  # noqa: SLF001
 
 
+# ---------------------------------------------------------------------------
+# Section A.1 — APPLICATION_ROOT case-sensitivity (P1-4 from the 2026-06-02
+# subdirectory test-gap audit). CR-M2 (deferred MEDIUM in the Slice 1–8 2nd
+# review) noted that `_enabled` uses byte-equality rather than `casefold()`.
+# These tests pin TODAY's documented behaviour so that:
+#   - A future `casefold()` introduction is a deliberate contract change
+#     (test updates alongside the code change).
+#   - An operator who deploys under `APPLICATION_ROOT=/Superset` or
+#     `/SUPERSET` (which is unusual but legal) gets the documented shape
+#     today: the shim stays enabled, and lowercase `/superset/...` inbound
+#     paths still 308 to the operator's casing.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "app_root",
+    ["/Superset", "/SUPERSET", "/SuperSet"],
+)
+def test_shim_enabled_for_mixed_case_app_roots(app_root: str) -> None:
+    """Mixed-case APPLICATION_ROOT values are NOT treated as the legacy
+    prefix — `_LEGACY_PREFIX` is the lowercase literal `/superset`, and
+    `_enabled` is computed via byte-equality (no `casefold()`). The shim
+    therefore stays active under any non-lowercase casing.
+
+    Pinning the case-sensitive comparison serves two purposes:
+      1. Documents the deliberate scope choice — the shim targets the
+         hardcoded `/superset/*` legacy URL pattern, not arbitrary casing
+         of the app-root config value.
+      2. Anchors CR-M2 (deferred MEDIUM): if a future commit graduates
+         the comparison to `casefold()` so `/Superset` == `/superset`, this
+         test fires and forces the contract change to be explicit.
+    """
+    shim = LegacyPrefixRedirectMiddleware(_sentinel_inner_app, app_root)
+    assert shim._enabled is True  # noqa: SLF001
+    assert shim.app_root_prefix == app_root
+
+
+@pytest.mark.parametrize(
+    "app_root",
+    [
+        # Multiple trailing slashes — rstrip("/") strips all of them, so
+        # both collapse to `/superset` and the shim disables.
+        "/superset/",
+        "/superset//",
+        "/superset///",
+    ],
+)
+def test_shim_disabled_for_trailing_slash_variants(app_root: str) -> None:
+    """Trailing-slash variants of `/superset` all collapse to `/superset`
+    via `rstrip("/")` and disable the shim — the RF-2 collision short-
+    circuit catches every shape an operator might write the app root as.
+
+    Pinning the multi-slash branch protects against a future maintainer
+    swapping `rstrip("/")` for `removesuffix("/")` (which strips only one)
+    and silently re-enabling the self-loop under `/superset//`.
+    """
+    shim = LegacyPrefixRedirectMiddleware(_sentinel_inner_app, app_root)
+    assert shim.app_root_prefix == "/superset"
+    assert shim._enabled is False  # noqa: SLF001
+
+
+@pytest.mark.parametrize(
+    "inbound_path",
+    [
+        "/Superset/welcome/",
+        "/SUPERSET/welcome/",
+        "/SuperSet/welcome/",
+    ],
+)
+def test_inbound_path_case_sensitivity_passes_through(inbound_path: str) -> None:
+    """Mixed-case inbound paths are NOT matched as legacy paths — the shim
+    only intercepts the lowercase `/superset/...` literal. Anything else
+    falls through to the inner app unchanged.
+
+    Counter-example: if `path_info.startswith(_LEGACY_PREFIX + "/")` were
+    swapped for a case-insensitive comparison, `/Superset/welcome/` under
+    root deployment would 308 to `/welcome/` — semantically reasonable but
+    a deliberate behaviour change that should land with an explicit pin
+    update here.
+    """
+    client = _build_client(app_root="/")
+    resp = client.get(inbound_path)
+    assert resp.status_code == 200
+    assert resp.data == _SENTINEL_BODY
+
+
+def test_lowercase_inbound_path_still_308s_under_mixed_case_app_root() -> None:
+    """When the operator deploys `APPLICATION_ROOT=/Superset` and a client
+    hits the legacy lowercase `/superset/welcome/`, the shim:
+      1. Matches the inbound path (case-sensitive against `_LEGACY_PREFIX`).
+      2. Builds the Location from the captured `app_root_prefix` — so the
+         redirect lands the client at the operator's casing.
+
+    This is the failure mode CR-M2 raised — but it does NOT produce a
+    self-loop, because `/Superset/welcome/` != `/superset/welcome/` at the
+    string level, so the inbound path of the redirected request will not
+    re-match the legacy prefix. Pin the documented shape: 308 to the
+    mixed-case canonical, no loop.
+    """
+    client = _build_client(app_root="/Superset")
+    resp = client.get("/superset/welcome/")
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == "/Superset/welcome/"
+
+
 def test_location_built_from_app_root_not_script_name() -> None:
     """The shim ignores `environ["SCRIPT_NAME"]` — `Location` is built
     from the construction-time `app_root` capture only.

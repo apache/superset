@@ -230,3 +230,27 @@ def test_slice_link_emits_script_name_under_subdirectory(
         html = str(slc.slice_link)
         assert 'href="/superset/explore/?slice_id=9"' in html
         assert "/superset/superset/" not in html
+
+
+def test_sqllab_permalink_external_url_is_single_prefixed(
+    app_context: None,
+) -> None:
+    """SqllabView mounts the permalink view at `/sqllab/p/<key>/`.
+
+    The clipboard URL surfaced by `superset/sqllab/permalink/api.py` is built
+    via `url_for("SqllabView.permalink_view", _external=True)`. Under
+    SCRIPT_NAME=/superset that emission must carry the prefix exactly once —
+    mirroring the dashboard/explore permalink pins so a future regression to
+    `SqllabView.route_base` (e.g. someone restoring the auto-derived
+    `/SqllabView` or a hard-coded `/superset/sqllab` prefix) surfaces here
+    rather than in user-reported broken share links.
+    """
+    from flask import current_app
+
+    with current_app.test_request_context(
+        "/",
+        environ_overrides={"SCRIPT_NAME": "/superset"},
+    ):
+        url = url_for("SqllabView.permalink_view", permalink="abc123", _external=True)
+        assert url.endswith("/superset/sqllab/p/abc123/")
+        assert "/superset/superset/" not in url
