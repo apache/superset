@@ -424,6 +424,141 @@ def test_position_json_chart_id_leaks_env_local_integers():
     )
 
 
+def _export_with_chart(
+    chart_uuid: str,
+    chart_id: int,
+    json_metadata: dict[str, Any],
+) -> dict[str, Any]:
+    """Export a single-chart dashboard and return the parsed YAML payload."""
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+
+    position = {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+        "GRID_ID": {
+            "children": ["CHART-aaa"],
+            "id": "GRID_ID",
+            "parents": ["ROOT_ID"],
+            "type": "GRID",
+        },
+        "CHART-aaa": {
+            "children": [],
+            "id": "CHART-aaa",
+            "meta": {
+                "chartId": chart_id,
+                "height": 20,
+                "sliceName": "Chart",
+                "uuid": chart_uuid,
+                "width": 4,
+            },
+            "parents": ["ROOT_ID", "GRID_ID"],
+            "type": "CHART",
+        },
+    }
+
+    dashboard = MagicMock()
+    dashboard.dashboard_title = "Test Dashboard"
+    dashboard.theme = None
+    dashboard.slices = []
+    dashboard.tags = []
+    dashboard.roles = []
+    dashboard.export_to_dict.return_value = {
+        "position_json": json.dumps(position),
+        "json_metadata": json.dumps(json_metadata),
+    }
+
+    with patch(
+        "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",
+        return_value=False,
+    ):
+        content = ExportDashboardsCommand._file_content(dashboard)
+
+    return yaml.safe_load(content)
+
+
+def test_stabilize_chart_ids_skips_invalid_uuid():
+    """A malformed meta.uuid must not abort the whole dashboard export."""
+    result = _export_with_chart(
+        "not-a-valid-uuid",
+        392,
+        {"native_filter_configuration": []},
+    )
+    chart_nodes = [
+        node
+        for node in result["position"].values()
+        if isinstance(node, dict) and node.get("type") == "CHART"
+    ]
+    # Export still succeeds; the unstabilizable node keeps its original chartId.
+    assert chart_nodes
+    assert chart_nodes[0]["meta"]["chartId"] == 392
+
+
+def test_stabilize_chart_ids_remaps_native_filter_scope():
+    """Native filter scope.excluded / chartsInScope must track the stabilized id."""
+    from superset.commands.dashboard.export import stable_chart_id
+
+    chart_uuid = "812bc377-ac09-475a-8d34-a63f7f087bd7"
+    new_id = stable_chart_id(chart_uuid)
+
+    result = _export_with_chart(
+        chart_uuid,
+        392,
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "NATIVE_FILTER-1",
+                    "scope": {"rootPath": ["ROOT_ID"], "excluded": [392]},
+                    "chartsInScope": [392],
+                }
+            ]
+        },
+    )
+
+    native_filter = result["metadata"]["native_filter_configuration"][0]
+    assert native_filter["scope"]["excluded"] == [new_id]
+    assert native_filter["chartsInScope"] == [new_id]
+
+
+def test_stabilize_chart_ids_remaps_cross_filter_configuration():
+    """global_chart_configuration and chart_configuration must be remapped."""
+    from superset.commands.dashboard.export import stable_chart_id
+
+    chart_uuid = "812bc377-ac09-475a-8d34-a63f7f087bd7"
+    new_id = stable_chart_id(chart_uuid)
+
+    result = _export_with_chart(
+        chart_uuid,
+        392,
+        {
+            "native_filter_configuration": [],
+            "global_chart_configuration": {
+                "scope": {"rootPath": ["ROOT_ID"], "excluded": [392]},
+                "chartsInScope": [392],
+            },
+            "chart_configuration": {
+                "392": {
+                    "id": 392,
+                    "crossFilters": {
+                        "scope": {"rootPath": ["ROOT_ID"], "excluded": [392]},
+                        "chartsInScope": [392],
+                    },
+                }
+            },
+        },
+    )
+
+    metadata = result["metadata"]
+    assert metadata["global_chart_configuration"]["scope"]["excluded"] == [new_id]
+    assert metadata["global_chart_configuration"]["chartsInScope"] == [new_id]
+
+    # chart_configuration is re-keyed and its inner id / scopes are remapped.
+    assert str(new_id) in metadata["chart_configuration"]
+    chart_config = metadata["chart_configuration"][str(new_id)]
+    assert chart_config["id"] == new_id
+    assert chart_config["crossFilters"]["scope"]["excluded"] == [new_id]
+    assert chart_config["crossFilters"]["chartsInScope"] == [new_id]
+
+
 def test_file_content_missing_dataset_preserves_dataset_id():
     """
     When DatasetDAO.find_by_id returns None for a display control target,

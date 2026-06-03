@@ -132,11 +132,13 @@ def _stabilize_chart_ids(payload: dict[str, Any]) -> None:
 
     Rewrites ``meta.chartId`` in every ``CHART`` position node to a value derived
     from ``meta.uuid`` and remaps the legacy, integer-keyed metadata references
-    (filter scopes, default filters, expanded slices, etc.) accordingly so the
-    bundle stays internally consistent. Mappings are applied defensively — a
-    reference whose source id is unknown is dropped rather than raising — so a
-    partially corrupt position never aborts the export. See ``stable_chart_id``
-    and issue #32972 for the motivation.
+    (filter scopes, default filters, expanded slices, native filter scopes, and
+    cross-filter/chart configuration) accordingly so the bundle stays internally
+    consistent and the import-side id remap resolves against the same IDs.
+    Mappings are applied defensively — a reference whose source id is unknown is
+    dropped rather than raising, and a node with a malformed ``meta.uuid`` is
+    skipped — so a partially corrupt position never aborts the export. See
+    ``stable_chart_id`` and issue #32972 for the motivation.
     """
     position = payload.get("position")
     if not isinstance(position, dict):
@@ -155,7 +157,17 @@ def _stabilize_chart_ids(payload: dict[str, Any]) -> None:
             old_id = meta.get("chartId")
             if chart_uuid is None:
                 continue
-            new_id = stable_chart_id(str(chart_uuid))
+            try:
+                new_id = stable_chart_id(str(chart_uuid))
+            except ValueError:
+                # A malformed ``meta.uuid`` (corrupt position_json) must not
+                # abort the whole export — skip stabilizing this single node
+                # and leave its existing chartId untouched.
+                logger.warning(
+                    "Skipping chart id stabilization for invalid uuid %r",
+                    chart_uuid,
+                )
+                continue
             if isinstance(old_id, int):
                 id_map[old_id] = new_id
             meta["chartId"] = new_id
@@ -218,6 +230,40 @@ def _stabilize_chart_ids(payload: dict[str, Any]) -> None:
                     if (new_key := remap_id(old_key)) is not None
                 }
             )
+
+    def remap_scope(container: Any) -> None:
+        """Remap ``scope.excluded`` and ``chartsInScope`` of a filter container.
+
+        Shared by native filters and (global) cross-filter configuration, which
+        both denormalize the charts a filter applies to into these two lists.
+        """
+        if not isinstance(container, dict):
+            return
+        scope = container.get("scope")
+        if isinstance(scope, dict) and isinstance(scope.get("excluded"), list):
+            scope["excluded"] = remap_ids(scope["excluded"])
+        if isinstance(container.get("chartsInScope"), list):
+            container["chartsInScope"] = remap_ids(container["chartsInScope"])
+
+    if isinstance(metadata.get("native_filter_configuration"), list):
+        for native_filter in metadata["native_filter_configuration"]:
+            remap_scope(native_filter)
+
+    if isinstance(metadata.get("global_chart_configuration"), dict):
+        remap_scope(metadata["global_chart_configuration"])
+
+    if isinstance(metadata.get("chart_configuration"), dict):
+        new_chart_configuration: dict[str, Any] = {}
+        for old_key, chart_config in metadata["chart_configuration"].items():
+            new_key = remap_id(old_key)
+            if new_key is None:
+                continue
+            if isinstance(chart_config, dict):
+                if isinstance(chart_config.get("id"), int):
+                    chart_config["id"] = new_key
+                remap_scope(chart_config.get("crossFilters"))
+            new_chart_configuration[str(new_key)] = chart_config
+        metadata["chart_configuration"] = new_chart_configuration
 
 
 class ExportDashboardsCommand(ExportModelsCommand):
