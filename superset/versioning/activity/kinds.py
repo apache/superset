@@ -33,6 +33,8 @@ discoverable at a glance.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -93,13 +95,70 @@ _NAME_COLUMN: dict[str, tuple[str, str]] = {
 
 # ---- Types ----------------------------------------------------------------
 
-#: A validity window in Continuum transaction-id space, half-open as
-#: ``[start_tx, end_tx)``. ``end_tx = None`` means "open ended (current)".
-Window = tuple[int, int | None]
+
+@dataclass(frozen=True)
+class Window:
+    """A validity window in Continuum transaction-id space, half-open as
+    ``[start_tx, end_tx)``.
+
+    A Value Object: equal by attributes, immutable, no identity over
+    time. Constructor enforces the half-open invariant; helper methods
+    are pure (no DB, no side-effects). ``end_tx = None`` means
+    "open ended (current)" and behaves like positive infinity.
+
+    Promoted from a tuple alias to a dataclass (DDD T3) so consumers
+    read ``window.start_tx`` / ``window.contains(tx)`` instead of
+    ``window[0]`` / hand-rolled predicates — and so the closure-of-
+    operations property (every operation on a ``Window`` returns a
+    ``Window`` or a derived value) lives on the type itself.
+    """
+
+    start_tx: int
+    end_tx: int | None
+
+    def __post_init__(self) -> None:
+        if self.end_tx is not None and self.end_tx <= self.start_tx:
+            raise ValueError(
+                f"Window end_tx must be > start_tx; "
+                f"got [{self.start_tx}, {self.end_tx})"
+            )
+
+    def contains(self, tx_id: int) -> bool:
+        """``True`` iff *tx_id* falls inside this half-open interval."""
+        return self.start_tx <= tx_id and (self.end_tx is None or tx_id < self.end_tx)
+
+    def intersect(self, other: Window) -> Window | None:
+        """Return the clipped overlap of this window with *other*, or
+        ``None`` when they are disjoint. ``end_tx = None`` acts as
+        positive infinity on either side."""
+        start = max(self.start_tx, other.start_tx)
+        end: int | None
+        if self.end_tx is None:
+            end = other.end_tx
+        elif other.end_tx is None:
+            end = self.end_tx
+        else:
+            end = min(self.end_tx, other.end_tx)
+        if end is not None and end <= start:
+            return None
+        return Window(start, end)
+
+    def merges_with(self, other: Window) -> bool:
+        """``True`` iff *self* and *other* overlap or touch (so their
+        union is one contiguous window). Assumes the caller has placed
+        them in start-ascending order."""
+        if self.end_tx is None:
+            # self extends to +∞; everything past it merges in.
+            return True
+        return other.start_tx <= self.end_tx
+
 
 #: A related-entity scope row: ``(api_kind, entity_id, [windows])``.
 #: ``api_kind`` is the DTO-facing kind (``"Slice"``, etc.), not the
-#: table-stored kind.
+#: table-stored kind. Left as a tuple alias for now — promoting to a
+#: dataclass is a follow-up (the kind+id pair is logically a key, the
+#: window list is its value; a registry/Map shape may be a better fit
+#: than a flat dataclass).
 EntityWindows = tuple[str, int, list[Window]]
 
 

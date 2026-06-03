@@ -53,7 +53,7 @@ def _resolve_scope(path_kind: str, path_id: int, include: str) -> list[EntityWin
 
     scope: list[EntityWindows] = []
     if want_self:
-        scope.append((path_kind, path_id, [(0, None)]))
+        scope.append((path_kind, path_id, [Window(0, None)]))
     if want_related:
         scope.extend(_resolve_related_scope(path_kind, path_id))
     return scope

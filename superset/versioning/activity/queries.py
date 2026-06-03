@@ -119,7 +119,7 @@ def _charts_attached_to_dashboard(dashboard_id: int) -> list[tuple[int, Window]]
         )
         .all()
     )
-    return [(row[0], (row[1], row[2])) for row in rows]
+    return [(row[0], Window(row[1], row[2])) for row in rows]
 
 
 def _datasets_used_by_chart(slice_id: int) -> list[tuple[int, Window]]:
@@ -180,7 +180,10 @@ def _batch_datasets_used_by_charts(
     grouped: dict[int, list[tuple[int, Window]]] = {}
     for row in rows:
         grouped.setdefault(row["id"], []).append(
-            (row["datasource_id"], (row["transaction_id"], row["end_transaction_id"]))
+            (
+                row["datasource_id"],
+                Window(row["transaction_id"], row["end_transaction_id"]),
+            )
         )
     return grouped
 

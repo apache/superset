@@ -39,21 +39,12 @@ def _intersect_windows(outer: Window, inner: Window) -> Window | None:
 
     Returns the clipped overlap, or ``None`` when they are disjoint.
     ``end_tx = None`` means "open ended (current)" and acts like
-    positive infinity.
+    positive infinity. Thin wrapper over :meth:`Window.intersect` —
+    kept as a free function so legacy call sites and tests don't have
+    to migrate to method form in lockstep with the Value Object
+    promotion (DDD T3).
     """
-    o_start, o_end = outer
-    i_start, i_end = inner
-    start = max(o_start, i_start)
-    end: int | None
-    if o_end is None:
-        end = i_end
-    elif i_end is None:
-        end = o_end
-    else:
-        end = min(o_end, i_end)
-    if end is not None and end <= start:
-        return None
-    return (start, end)
+    return outer.intersect(inner)
 
 
 def _row_within_any_window(row: dict[str, Any], windows: list[Window]) -> bool:
@@ -63,9 +54,7 @@ def _row_within_any_window(row: dict[str, Any], windows: list[Window]) -> bool:
     if not windows:
         return False
     tx_id = row["transaction_id"]
-    return any(
-        start <= tx_id and (end is None or tx_id < end) for start, end in windows
-    )
+    return any(w.contains(tx_id) for w in windows)
 
 
 def _merge_entity_windows(scope: list[EntityWindows]) -> list[EntityWindows]:
@@ -102,17 +91,19 @@ def _union_windows(windows: list[Window]) -> list[Window]:
     """
     if not windows:
         return []
-    sorted_windows = sorted(windows, key=lambda w: w[0])
+    sorted_windows = sorted(windows, key=lambda w: w.start_tx)
     out: list[Window] = [sorted_windows[0]]
-    for start, end in sorted_windows[1:]:
-        prev_start, prev_end = out[-1]
-        if prev_end is None:
+    for current in sorted_windows[1:]:
+        prev = out[-1]
+        if prev.end_tx is None:
             # Prior window is open-ended; it absorbs everything past.
             continue
-        if start <= prev_end:
+        if current.start_tx <= prev.end_tx:
             # Overlapping or touching — extend the prior window.
-            new_end: int | None = None if end is None else max(prev_end, end)
-            out[-1] = (prev_start, new_end)
+            new_end: int | None = (
+                None if current.end_tx is None else max(prev.end_tx, current.end_tx)
+            )
+            out[-1] = Window(prev.start_tx, new_end)
         else:
-            out.append((start, end))
+            out.append(current)
     return out

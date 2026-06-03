@@ -63,27 +63,27 @@ from superset.versioning.activity.windows import (
     "outer, inner, expected",
     [
         # Inner fully inside outer
-        ((10, 20), (15, 18), (15, 18)),
+        (Window(10, 20), Window(15, 18), Window(15, 18)),
         # Left overlap — clipped on the left
-        ((10, 20), (5, 15), (10, 15)),
+        (Window(10, 20), Window(5, 15), Window(10, 15)),
         # Right overlap — clipped on the right
-        ((10, 20), (15, 25), (15, 20)),
+        (Window(10, 20), Window(15, 25), Window(15, 20)),
         # Outer fully inside inner
-        ((10, 20), (5, 25), (10, 20)),
+        (Window(10, 20), Window(5, 25), Window(10, 20)),
         # Touching at end → half-open semantics yield disjoint
-        ((10, 20), (20, 30), None),
+        (Window(10, 20), Window(20, 30), None),
         # Disjoint to the right
-        ((10, 20), (25, 30), None),
+        (Window(10, 20), Window(25, 30), None),
         # Disjoint to the left
-        ((10, 20), (0, 5), None),
+        (Window(10, 20), Window(0, 5), None),
         # Open-ended outer (end_tx=None means +∞)
-        ((10, None), (5, 25), (10, 25)),
+        (Window(10, None), Window(5, 25), Window(10, 25)),
         # Open-ended inner
-        ((10, 20), (5, None), (10, 20)),
+        (Window(10, 20), Window(5, None), Window(10, 20)),
         # Both open-ended
-        ((10, None), (5, None), (10, None)),
+        (Window(10, None), Window(5, None), Window(10, None)),
         # Identical
-        ((10, 20), (10, 20), (10, 20)),
+        (Window(10, 20), Window(10, 20), Window(10, 20)),
     ],
 )
 def test_intersect_windows(
@@ -98,17 +98,17 @@ def test_intersect_windows(
 def test_resolve_scope_self_only_for_dashboard() -> None:
     """``include='self'`` yields exactly one tuple covering all transactions."""
     assert _resolve_scope("Dashboard", 42, "self") == [
-        ("Dashboard", 42, [(0, None)]),
+        ("Dashboard", 42, [Window(0, None)]),
     ]
 
 
 def test_resolve_scope_self_only_for_chart() -> None:
-    assert _resolve_scope("Slice", 7, "self") == [("Slice", 7, [(0, None)])]
+    assert _resolve_scope("Slice", 7, "self") == [("Slice", 7, [Window(0, None)])]
 
 
 def test_resolve_scope_self_only_for_dataset() -> None:
     assert _resolve_scope("SqlaTable", 9, "self") == [
-        ("SqlaTable", 9, [(0, None)]),
+        ("SqlaTable", 9, [Window(0, None)]),
     ]
 
 
@@ -120,7 +120,7 @@ def test_dataset_has_no_related_scope() -> None:
 def test_dataset_all_returns_only_self() -> None:
     """For datasets, ``include='all'`` == ``include='self'`` (AV-004)."""
     assert _resolve_scope("SqlaTable", 9, "all") == [
-        ("SqlaTable", 9, [(0, None)]),
+        ("SqlaTable", 9, [Window(0, None)]),
     ]
 
 
@@ -132,21 +132,21 @@ def test_merge_entity_windows_collapses_repeated_keys() -> None:
     so the fetch query's OR-clause stays compact."""
     merged = _merge_entity_windows(
         [
-            ("Slice", 1, [(0, 100)]),
-            ("Slice", 1, [(200, 300)]),
-            ("SqlaTable", 5, [(0, None)]),
+            ("Slice", 1, [Window(0, 100)]),
+            ("Slice", 1, [Window(200, 300)]),
+            ("SqlaTable", 5, [Window(0, None)]),
         ]
     )
     by_key = {(kind, eid): windows for kind, eid, windows in merged}
-    assert by_key[("Slice", 1)] == [(0, 100), (200, 300)]
-    assert by_key[("SqlaTable", 5)] == [(0, None)]
+    assert by_key[("Slice", 1)] == [Window(0, 100), Window(200, 300)]
+    assert by_key[("SqlaTable", 5)] == [Window(0, None)]
 
 
 def test_merge_entity_windows_preserves_singletons() -> None:
     """Non-duplicated entries pass through unchanged."""
     inputs: list[EntityWindows] = [
-        ("Slice", 1, [(0, 100)]),
-        ("Dashboard", 2, [(10, 20)]),
+        ("Slice", 1, [Window(0, 100)]),
+        ("Dashboard", 2, [Window(10, 20)]),
     ]
     merged = _merge_entity_windows(inputs)
     assert sorted(merged) == sorted(inputs)
@@ -161,13 +161,13 @@ def test_merge_entity_windows_unions_overlapping_windows_for_one_entity() -> Non
     redundant window). _merge_entity_windows must coalesce them.
     """
     scope: list[EntityWindows] = [
-        ("Slice", 1, [(10, 20)]),
-        ("Slice", 1, [(15, 25)]),  # overlaps
-        ("Slice", 1, [(25, 30)]),  # touches
-        ("Slice", 1, [(40, 50)]),  # disjoint
+        ("Slice", 1, [Window(10, 20)]),
+        ("Slice", 1, [Window(15, 25)]),  # overlaps
+        ("Slice", 1, [Window(25, 30)]),  # touches
+        ("Slice", 1, [Window(40, 50)]),  # disjoint
     ]
     merged = _merge_entity_windows(scope)
-    assert merged == [("Slice", 1, [(10, 30), (40, 50)])]
+    assert merged == [("Slice", 1, [Window(10, 30), Window(40, 50)])]
 
 
 # ---- _union_windows -------------------------------------------------------
@@ -177,23 +177,32 @@ def test_merge_entity_windows_unions_overlapping_windows_for_one_entity() -> Non
     "windows, expected",
     [
         # Disjoint windows pass through
-        ([(10, 20), (30, 40)], [(10, 20), (30, 40)]),
+        (
+            [Window(10, 20), Window(30, 40)],
+            [Window(10, 20), Window(30, 40)],
+        ),
         # Overlapping windows merge
-        ([(10, 20), (15, 25)], [(10, 25)]),
+        ([Window(10, 20), Window(15, 25)], [Window(10, 25)]),
         # Touching windows merge (half-open: [10,20) + [20,30) = [10,30))
-        ([(10, 20), (20, 30)], [(10, 30)]),
+        ([Window(10, 20), Window(20, 30)], [Window(10, 30)]),
         # Many overlapping windows collapse to one
-        ([(10, 20), (15, 25), (20, 30), (25, 35)], [(10, 35)]),
+        (
+            [Window(10, 20), Window(15, 25), Window(20, 30), Window(25, 35)],
+            [Window(10, 35)],
+        ),
         # Input order doesn't matter
-        ([(30, 40), (10, 20), (15, 25)], [(10, 25), (30, 40)]),
+        (
+            [Window(30, 40), Window(10, 20), Window(15, 25)],
+            [Window(10, 25), Window(30, 40)],
+        ),
         # Open-ended absorbs everything to the right
-        ([(10, None), (50, 60)], [(10, None)]),
+        ([Window(10, None), Window(50, 60)], [Window(10, None)]),
         # Open-ended at the right merges into open-ended
-        ([(10, 20), (15, None)], [(10, None)]),
+        ([Window(10, 20), Window(15, None)], [Window(10, None)]),
         # Empty input
         ([], []),
         # Single window pass-through
-        ([(5, 10)], [(5, 10)]),
+        ([Window(5, 10)], [Window(5, 10)]),
     ],
 )
 def test_union_windows(windows: list[Window], expected: list[Window]) -> None:
@@ -204,33 +213,36 @@ def test_union_windows(windows: list[Window], expected: list[Window]) -> None:
 
 
 def test_row_in_window_inside() -> None:
-    assert _row_within_any_window({"transaction_id": 15}, [(10, 20)])
+    assert _row_within_any_window({"transaction_id": 15}, [Window(10, 20)])
 
 
 def test_row_in_window_at_start_boundary_inclusive() -> None:
     """Half-open: ``[10, 20)`` includes 10."""
-    assert _row_within_any_window({"transaction_id": 10}, [(10, 20)])
+    assert _row_within_any_window({"transaction_id": 10}, [Window(10, 20)])
 
 
 def test_row_in_window_at_end_boundary_exclusive() -> None:
     """Half-open: ``[10, 20)`` excludes 20."""
-    assert not _row_within_any_window({"transaction_id": 20}, [(10, 20)])
+    assert not _row_within_any_window({"transaction_id": 20}, [Window(10, 20)])
 
 
 def test_row_in_open_ended_window() -> None:
     """``end=None`` means +∞."""
-    assert _row_within_any_window({"transaction_id": 999}, [(10, None)])
+    assert _row_within_any_window({"transaction_id": 999}, [Window(10, None)])
 
 
 def test_row_in_any_of_several_windows() -> None:
     assert _row_within_any_window(
-        {"transaction_id": 50}, [(10, 20), (40, 60), (90, 100)]
+        {"transaction_id": 50},
+        [Window(10, 20), Window(40, 60), Window(90, 100)],
     )
 
 
 def test_row_in_no_windows_returns_false() -> None:
     assert not _row_within_any_window({"transaction_id": 50}, [])
-    assert not _row_within_any_window({"transaction_id": 25}, [(10, 20), (30, 40)])
+    assert not _row_within_any_window(
+        {"transaction_id": 25}, [Window(10, 20), Window(30, 40)]
+    )
 
 
 # ---- Kind translation round-trip -----------------------------------------
