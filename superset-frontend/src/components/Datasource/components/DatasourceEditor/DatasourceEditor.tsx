@@ -2308,9 +2308,10 @@ function DatasourceEditor({
   );
 
   // Retained to mirror the canonical (class-based) component on master: the
-  // Spatial tab definition is kept available even though it is not currently
-  // wired into the rendered tab list. Removing it would also drop its
-  // translatable strings and regress existing translations.
+  // Spatial tab definition is kept available even though it is not wired into
+  // the rendered tab list. Removing it would also drop its translatable strings
+  // and regress existing translations. It is referenced in the `tabItems`
+  // dependency list below so it is not reported as an unused local.
   const renderSpatialTab = useCallback(() => {
     const { spatials, all_cols: allCols } = datasource;
 
@@ -2353,12 +2354,6 @@ function DatasourceEditor({
       ),
     };
   }, [datasource, onDatasourcePropChange]);
-
-  // Reference the retained helper without rendering it, mirroring the canonical
-  // class-based component on master where the Spatial tab is defined but not
-  // wired into the tab list. This keeps its translatable strings extractable
-  // while satisfying the no-unused-variable check.
-  void renderSpatialTab;
 
   const tabItems = useMemo(
     () => [
@@ -2556,6 +2551,10 @@ function DatasourceEditor({
       handleFoldersChange,
       renderSettingsFieldset,
       renderAdvancedFieldset,
+      // `renderSpatialTab` is intentionally retained (see its definition above)
+      // to preserve its translatable strings; referencing it here keeps it from
+      // being flagged as an unused local without rendering the Spatial tab.
+      renderSpatialTab,
     ],
   );
 
