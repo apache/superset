@@ -44,12 +44,14 @@ Idempotent: a second run prunes nothing.
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 from typing import Any
 
 import sqlalchemy as sa
 from flask import current_app
+from sqlalchemy.exc import OperationalError
 
 from superset.extensions import celery_app, db
 
@@ -217,50 +219,32 @@ def _chunked(items: list[int], size: int) -> Iterator[list[int]]:
         yield items[i : i + size]
 
 
-def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
-    """Pure-Python implementation of the prune. Split out from the
-    Celery task wrapper so unit tests can call it directly without the
-    Celery harness.
+#: Maximum number of attempts the prune will make before giving up.
+#: A daily Celery beat schedule means the next chance is 24h out, so
+#: a small inline retry materially improves the recovery time for the
+#: serialization-conflict path.
+_MAX_RETRY_ATTEMPTS = 3
 
-    Returns a stats dict for logging / test assertions.
-    """
-    if retention_days <= 0:
-        logger.info(
-            "version_history_retention: SUPERSET_VERSION_HISTORY_RETENTION_DAYS "
-            "<= 0; skipping",
-        )
-        return {"skipped": 1}
+#: Base for exponential backoff between retries (seconds). With the
+#: 3-attempt cap above, the worst-case extra latency added by retries
+#: is ``BASE + BASE*4`` = ~0.5s, which is well inside the prune's own
+#: typical runtime.
+_RETRY_BACKOFF_BASE_SECONDS = 0.1
 
-    parent_tables, child_tables, m2m_table = _resolve_shadow_tables()
-    if not parent_tables:
-        logger.warning(
-            "version_history_retention: no versioned classes resolved; skipping",
-        )
-        return {"skipped": 1}
 
-    cutoff = datetime.utcnow() - timedelta(days=retention_days)
-
-    # pylint: disable=import-outside-toplevel
-    from sqlalchemy_continuum import versioning_manager
-
-    tx_table = versioning_manager.transaction_cls.__table__
-
+def _run_prune_pass(
+    cutoff: datetime,
+    parent_tables: list[sa.Table],
+    child_tables: list[sa.Table],
+    m2m_table: sa.Table | None,
+    tx_table: sa.Table,
+) -> dict[str, Any]:
+    """One SERIALIZABLE pass of the prune. Caller wraps in the retry
+    loop so a serialization conflict re-opens a fresh connection +
+    transaction from a clean snapshot."""
     # The Celery task runs outside the request-bound DB session, so we
     # use a fresh connection rather than ``db.session`` to avoid stepping
     # on web-request state.
-    #
-    # Isolation level: SERIALIZABLE. The prune is logically a multi-step
-    # read-then-write (candidate-vs-preserved SELECTs feeding the shadow
-    # DELETEs). At READ COMMITTED there is a TOCTOU window — a save
-    # committing between the preserved-ids snapshot and the DELETEs can
-    # leave a stale view of which transaction ids are still serving as
-    # the live row of some entity, and a shadow row that became live
-    # mid-task can be silently dropped. SERIALIZABLE makes the prune
-    # atomic against concurrent writers. Postgres surfaces conflicts as
-    # ``SerializationFailure``; the outer Celery wrapper logs and
-    # returns ``{"error": 1}`` so the next firing retries from a clean
-    # slate. SQLite is single-writer so SERIALIZABLE is the only level
-    # available; MySQL InnoDB and Postgres both support it natively.
     with (
         db.engine.connect().execution_options(isolation_level="SERIALIZABLE") as conn,
         conn.begin(),
@@ -290,15 +274,94 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
                 or 0
             )
 
-    stats = {
+    return {
         "cutoff": cutoff.isoformat(),
         "pruned_transactions": tx_rows,
         "pruned_parent_shadows": parent_rows,
         "pruned_child_shadows": child_rows,
         "pruned_m2m_shadows": m2m_rows,
     }
-    logger.info("version_history_retention: %s", stats)
-    return stats
+
+
+def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
+    """Pure-Python implementation of the prune. Split out from the
+    Celery task wrapper so unit tests can call it directly without the
+    Celery harness.
+
+    Returns a stats dict for logging / test assertions.
+
+    Isolation level: SERIALIZABLE. The prune is logically a multi-step
+    read-then-write (candidate-vs-preserved SELECTs feeding the shadow
+    DELETEs). At READ COMMITTED there is a TOCTOU window — a save
+    committing between the preserved-ids snapshot and the DELETEs can
+    leave a stale view of which transaction ids are still serving as
+    the live row of some entity, and a shadow row that became live
+    mid-task can be silently dropped. SERIALIZABLE makes the prune
+    atomic against concurrent writers. SQLite is single-writer so
+    SERIALIZABLE is the only level available; MySQL InnoDB and Postgres
+    both support it natively.
+
+    Postgres surfaces conflicts as ``SerializationFailure`` (a subclass
+    of ``sqlalchemy.exc.OperationalError``). The prune retries up to
+    ``_MAX_RETRY_ATTEMPTS`` with exponential backoff before giving up
+    and letting the outer Celery wrapper log + return ``{"error": 1}``.
+    Without the inline retry, a single conflict pushes the next attempt
+    24 hours out (daily Celery beat), and under sustained write
+    pressure the prune can silently fail for many days in a row.
+    """
+    if retention_days <= 0:
+        logger.info(
+            "version_history_retention: SUPERSET_VERSION_HISTORY_RETENTION_DAYS "
+            "<= 0; skipping",
+        )
+        return {"skipped": 1}
+
+    parent_tables, child_tables, m2m_table = _resolve_shadow_tables()
+    if not parent_tables:
+        logger.warning(
+            "version_history_retention: no versioned classes resolved; skipping",
+        )
+        return {"skipped": 1}
+
+    cutoff = datetime.utcnow() - timedelta(days=retention_days)
+
+    # pylint: disable=import-outside-toplevel
+    from sqlalchemy_continuum import versioning_manager
+
+    tx_table = versioning_manager.transaction_cls.__table__
+
+    last_exc: OperationalError | None = None
+    for attempt in range(1, _MAX_RETRY_ATTEMPTS + 1):
+        try:
+            stats = _run_prune_pass(
+                cutoff, parent_tables, child_tables, m2m_table, tx_table
+            )
+        except OperationalError as exc:
+            last_exc = exc
+            if attempt == _MAX_RETRY_ATTEMPTS:
+                logger.warning(
+                    "version_history_retention: gave up after %d attempts: %s",
+                    _MAX_RETRY_ATTEMPTS,
+                    exc,
+                )
+                raise
+            backoff = _RETRY_BACKOFF_BASE_SECONDS * (4 ** (attempt - 1))
+            logger.info(
+                "version_history_retention: attempt %d hit %s; retrying in %.2fs",
+                attempt,
+                type(exc).__name__,
+                backoff,
+            )
+            time.sleep(backoff)
+            continue
+        else:
+            if attempt > 1:
+                stats["retried"] = attempt - 1
+            logger.info("version_history_retention: %s", stats)
+            return stats
+
+    # Unreachable — the loop above always returns or re-raises.
+    raise RuntimeError("retention retry loop exited without result") from last_exc
 
 
 @celery_app.task(name="version_history.prune_old_versions")
