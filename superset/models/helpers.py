@@ -1211,10 +1211,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # input with `SELECT ...`; other callers pass bare
                 # expressions. Detect and don't double-wrap, otherwise
                 # `SELECT SELECT ...` fails the sqlglot parse.
-                stripped = expression.strip()
                 sql_to_check = (
                     expression
-                    if stripped.upper().startswith("SELECT")
+                    if expression.strip().upper().startswith("SELECT")
                     else f"SELECT {expression}"
                 )
                 parsed = SQLScript(sql_to_check, engine=engine)
@@ -1227,12 +1226,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # mirroring the canonical execution-time gate in
                     # `superset.sql_lab._validate_query` so the user-facing
                     # error doesn't echo the operator's full denylist.
-                    found_tables: set[str] = set()
-                    for statement in parsed.statements:
-                        present = {table.table.lower() for table in statement.tables}
-                        for table in disallowed_tables:
-                            if table.lower() in present:
-                                found_tables.add(table)
+                    present_tables = {
+                        table.table.lower()
+                        for statement in parsed.statements
+                        for table in statement.tables
+                    }
+                    found_tables = {
+                        table
+                        for table in disallowed_tables
+                        if table.lower() in present_tables
+                    }
                     raise SupersetDisallowedSQLTableException(
                         found_tables or disallowed_tables
                     )
