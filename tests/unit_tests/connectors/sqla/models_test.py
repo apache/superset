@@ -276,7 +276,7 @@ def test_dataset_uniqueness(session: Session) -> None:
 
 def test_normalize_prequery_result_type_custom_sql() -> None:
     """
-    Test that the `_normalize_prequery_result_type` can hanndle custom SQL.
+    Test that the `_normalize_prequery_result_type` can handle custom SQL.
     """
     sqla_table = SqlaTable(
         table_name="my_sqla_table",
