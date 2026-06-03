@@ -139,7 +139,7 @@ export const SamplesPane = ({
     }
   }, [datasource, queryFormData, isRequest, queryForce, rowLimit]);
 
-  const columns = useGridColumns(colnames, coltypes, data, collabels);
+  const columns = useGridColumns(colnames, coltypes, collabels, data);
   const keywordFilter = useKeywordFilter(filterText);
   // Samples aren't capped by a chart's row_limit, just this pane's own
   // page-size selector, so RowCountLabel's default "chart" wording is wrong here.
