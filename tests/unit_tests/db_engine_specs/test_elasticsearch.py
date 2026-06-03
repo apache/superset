@@ -123,7 +123,12 @@ def _build_fake_database(transport_responses: list[dict[str, Any]]) -> MagicMock
 
     responses_iter = iter(transport_responses)
 
-    def perform_request(method, path, body=None, **_kwargs):
+    def perform_request(
+        method: str,
+        path: str,
+        body: dict[str, Any] | None = None,
+        **_kwargs: Any,
+    ) -> dict[str, Any]:
         return next(responses_iter)
 
     transport = MagicMock()
@@ -270,7 +275,7 @@ def test_fetch_data_with_cursor_closes_cursor_even_if_iteration_raises() -> None
     from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec
 
     class BoomError(RuntimeError):
-        pass
+        """Raised when the mocked transport fails during cursor iteration."""
 
     responses = [
         {"columns": [{"name": "a"}], "rows": [[0]], "cursor": "C1"},
@@ -279,7 +284,12 @@ def test_fetch_data_with_cursor_closes_cursor_even_if_iteration_raises() -> None
     call_count = {"n": 0}
     recorded_close = {}
 
-    def perform_request(method, path, body=None, **_kwargs):
+    def perform_request(
+        method: str,
+        path: str,
+        body: dict[str, Any] | None = None,
+        **_kwargs: Any,
+    ) -> dict[str, Any]:
         call_count["n"] += 1
         # calls: 1=initial query, 2=cursor follow-up (raises), 3=close
         if call_count["n"] == 2:
