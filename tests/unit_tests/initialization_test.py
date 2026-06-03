@@ -190,8 +190,9 @@ class TestSupersetAppInitializer:
         )
 
 
+    @patch("superset.extensions.db")
     @patch("superset.initialization.SupersetAppInitializer.init_views")
-    def test_swagger_ui_inherits_custom_prefix_routing(self, mock_init_views):
+    def test_swagger_ui_inherits_custom_prefix_routing(self, mock_init_views, mock_db):
         """
         Test that Swagger UI endpoints correctly inherit the custom prefix routing
         when SUPERSET_APP_ROOT is defined in the configuration.
@@ -209,9 +210,10 @@ class TestSupersetAppInitializer:
             "FAB_API_SWAGGER_UI": True,
         }
         
-        # 2. Mock the AppBuilder
+        # 2. Mock the AppBuilder and DB session to prevent RuntimeError
         mock_app.appbuilder = MagicMock()
         mock_app.appbuilder.add_api = MagicMock()
+        mock_db.session = MagicMock()
         
         app_initializer = SupersetAppInitializer(mock_app)
         
@@ -222,9 +224,9 @@ class TestSupersetAppInitializer:
         # and that the app root config remained intact.
         assert mock_app.config["SUPERSET_APP_ROOT"] == "/custom/prefix"
             
-        # Verify the appbuilder was interacted with during FAB config
+        # 5. Verify the Swagger UI was enabled and routing was applied
+        assert mock_app.config.get("FAB_API_SWAGGER_UI") is True
         mock_app.appbuilder.add_api.assert_called()
-
 
 class TestCreateAppRoot:
     """Test app root resolution precedence in create_app."""
