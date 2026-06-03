@@ -1684,24 +1684,9 @@ class DatasetRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
         """
         # pylint: disable=import-outside-toplevel
-        from superset.versioning import activity as activity_module
-        from superset.versioning.schemas import ActivityResponseSchema
+        from superset.versioning.activity import activity_endpoint
 
-        try:
-            entity, _ = activity_module.resolve_endpoint_path_entity(
-                self, SqlaTable, uuid_str
-            )
-        except activity_module.PathEntityResponseError as exc:
-            return exc.response
-
-        try:
-            params = activity_module.parse_activity_query_params(request.args)
-        except activity_module.ActivityParamsError as exc:
-            return self.response_400(message=str(exc))
-
-        records, count = activity_module.get_activity(SqlaTable, entity.uuid, **params)
-        payload = ActivityResponseSchema().dump({"result": records, "count": count})
-        return self.response(200, **payload)
+        return activity_endpoint(self, SqlaTable, uuid_str, request.args)
 
     @expose(
         "/<uuid_str>/versions/<version_uuid_str>/restore",

@@ -48,6 +48,8 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from flask import Response
+
 from superset.versioning.activity.kinds import EntityWindows
 from superset.versioning.activity.queries import (
     _denormalize_entity_names,
@@ -57,6 +59,10 @@ from superset.versioning.activity.queries import (
 from superset.versioning.activity.render import _decorate_records
 from superset.versioning.activity.scope import _resolve_scope
 from superset.versioning.activity.visibility import _filter_records_by_visibility
+from superset.versioning.api_helpers import (
+    PathEntityResponseError,
+    resolve_endpoint_path_entity,
+)
 
 _DEFAULT_PAGE_SIZE = 25
 _MAX_PAGE_SIZE = 200
@@ -215,6 +221,39 @@ def get_activity(
     )
 
     return records[offset : offset + bounded_size], total
+
+
+def activity_endpoint(
+    api: Any, model_cls: type, uuid_str: str, request_args: Any
+) -> Response:
+    """Body of ``GET /api/v1/{resource}/<uuid>/activity/``.
+
+    Same shape as :func:`superset.versioning.api_helpers.list_versions_endpoint`
+    for the ``/versions/`` endpoint family. Resolves the path entity,
+    parses the request query params, runs :func:`get_activity`, and
+    wraps the result through ``ActivityResponseSchema``.
+
+    *api* is the FAB ``ModelRestApi`` instance (pass ``self`` from the
+    endpoint method). *request_args* is ``request.args`` from
+    ``flask.request`` — passed explicitly so the helper is testable
+    without a live Flask context.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.versioning.schemas import ActivityResponseSchema
+
+    try:
+        entity, _ = resolve_endpoint_path_entity(api, model_cls, uuid_str)
+    except PathEntityResponseError as exc:
+        return exc.response
+
+    try:
+        params = parse_activity_query_params(request_args)
+    except ActivityParamsError as exc:
+        return api.response_400(message=str(exc))
+
+    records, count = get_activity(model_cls, entity.uuid, **params)
+    payload = ActivityResponseSchema().dump({"result": records, "count": count})
+    return api.response(200, **payload)
 
 
 # ---- Observability (T037 / T038) ------------------------------------------
