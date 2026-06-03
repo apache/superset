@@ -206,7 +206,11 @@ function updateDataMaskForFilterChanges(
     const hasExistingValue =
       existingValue !== undefined &&
       existingValue !== null &&
-      !(Array.isArray(existingValue) && existingValue.length === 0);
+      // Treat all-null arrays (range filters use [null, null] as their
+      // canonical cleared value) and empty arrays as "no value", consistent
+      // with `loadedHasValue` in fillNativeFilters above. `[].every()` is
+      // true, so this also covers the empty-array case.
+      !(Array.isArray(existingValue) && existingValue.every(v => v === null));
 
     const shouldPreserveState =
       existingFilter &&
