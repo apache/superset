@@ -359,6 +359,10 @@ class Slice(  # pylint: disable=too-many-public-methods
     @property
     def slice_link(self) -> Markup:
         name = escape(self.chart)
+        # ``self.url`` is ``/explore/?slice_id=<int>``; the only
+        # interpolation is the integer primary key, so the URL has no
+        # user-controlled segment to escape (unlike ``Dashboard.url``
+        # which embeds the user-set slug). ``noqa: S704`` is safe.
         return Markup(f'<a href="{self.url}">{name}</a>')  # noqa: S704
 
     @property

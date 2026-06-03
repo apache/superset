@@ -114,5 +114,11 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # ``if_exists=True`` makes the downgrade robust against a
+    # partial-application failure on upgrade (e.g. the first ``op.create_index``
+    # succeeded under Postgres' transactional DDL but a later one failed
+    # and rolled back the rest — repeated downgrade should not raise on
+    # the missing indexes). Postgres + SQLite + MySQL all accept the
+    # IF EXISTS clause.
     for table in SHADOW_TABLES:
-        op.drop_index(_index_name(table), table_name=table)
+        op.drop_index(_index_name(table), table_name=table, if_exists=True)

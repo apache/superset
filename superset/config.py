@@ -1433,8 +1433,9 @@ SUPERSET_META_DB_LIMIT: int | None = 1000
 # whose owning ``version_transaction.issued_at`` is older than this
 # value are pruned by the ``version_history.prune_old_versions``
 # Celery beat task (registered below in ``CeleryConfig.beat_schedule``).
-# The live row (``end_transaction_id IS NULL``) and baseline rows
-# (``operation_type=0``) are never pruned. ``0`` disables pruning.
+# Only the live row (``end_transaction_id IS NULL``) is preserved
+# unconditionally; baseline rows (``operation_type=0``) and any
+# historical row age out alongside the rest. ``0`` disables pruning.
 # Read from environment variable of the same name.
 SUPERSET_VERSION_HISTORY_RETENTION_DAYS: int = int(
     os.environ.get("SUPERSET_VERSION_HISTORY_RETENTION_DAYS", "30")
