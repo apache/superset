@@ -146,6 +146,7 @@ from superset.versioning.api_helpers import (
     get_version_endpoint,
     list_versions_endpoint,
     restore_version_endpoint,
+    RestoreEndpointSpec,
 )
 from superset.versioning.etag import set_version_etag
 from superset.views.base_api import (
@@ -165,6 +166,28 @@ from superset.views.filters import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _dashboard_restore_spec() -> RestoreEndpointSpec:
+    """Build the per-resource restore spec lazily.
+
+    Inline import: the restore command lives in
+    ``superset.commands.dashboard.restore_version``, which carries the
+    versioning bootstrap path. Defer the import to the method-scope to
+    keep this module's load graph clean of versioning init effects.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.commands.dashboard.restore_version import (
+        RestoreDashboardVersionCommand,
+    )
+
+    return RestoreEndpointSpec(
+        command_cls=RestoreDashboardVersionCommand,
+        not_found_exc=DashboardNotFoundError,
+        forbidden_exc=DashboardForbiddenError,
+        update_failed_exc=DashboardUpdateFailedError,
+        resource_label="dashboard",
+    )
 
 
 def with_dashboard(
@@ -2455,19 +2478,6 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             422:
               $ref: '#/components/responses/422'
         """
-        # pylint: disable=import-outside-toplevel
-        from superset.commands.dashboard.restore_version import (
-            RestoreDashboardVersionCommand,
-        )
-
         return restore_version_endpoint(
-            self,
-            Dashboard,
-            uuid_str,
-            version_uuid_str,
-            restore_command_cls=RestoreDashboardVersionCommand,
-            not_found_exc=DashboardNotFoundError,
-            forbidden_exc=DashboardForbiddenError,
-            update_failed_exc=DashboardUpdateFailedError,
-            resource_label="dashboard",
+            self, Dashboard, uuid_str, version_uuid_str, _dashboard_restore_spec()
         )

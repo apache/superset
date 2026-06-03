@@ -85,6 +85,7 @@ from superset.versioning.api_helpers import (
     get_version_endpoint,
     list_versions_endpoint,
     restore_version_endpoint,
+    RestoreEndpointSpec,
 )
 from superset.versioning.etag import set_version_etag
 from superset.views.base import DatasourceFilter
@@ -99,6 +100,28 @@ from superset.views.error_handling import handle_api_exception
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedOwners
 
 logger = logging.getLogger(__name__)
+
+
+def _dataset_restore_spec() -> RestoreEndpointSpec:
+    """Build the per-resource restore spec lazily.
+
+    Inline import: the restore command lives in
+    ``superset.commands.dataset.restore_version``, which carries the
+    versioning bootstrap path. Defer the import to the method-scope to
+    keep this module's load graph clean of versioning init effects.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.commands.dataset.restore_version import (
+        RestoreDatasetVersionCommand,
+    )
+
+    return RestoreEndpointSpec(
+        command_cls=RestoreDatasetVersionCommand,
+        not_found_exc=DatasetNotFoundError,
+        forbidden_exc=DatasetForbiddenError,
+        update_failed_exc=DatasetUpdateFailedError,
+        resource_label="dataset",
+    )
 
 
 class DatasetRestApi(BaseSupersetModelRestApi):
@@ -1655,19 +1678,6 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             422:
               $ref: '#/components/responses/422'
         """
-        # pylint: disable=import-outside-toplevel
-        from superset.commands.dataset.restore_version import (
-            RestoreDatasetVersionCommand,
-        )
-
         return restore_version_endpoint(
-            self,
-            SqlaTable,
-            uuid_str,
-            version_uuid_str,
-            restore_command_cls=RestoreDatasetVersionCommand,
-            not_found_exc=DatasetNotFoundError,
-            forbidden_exc=DatasetForbiddenError,
-            update_failed_exc=DatasetUpdateFailedError,
-            resource_label="dataset",
+            self, SqlaTable, uuid_str, version_uuid_str, _dataset_restore_spec()
         )
