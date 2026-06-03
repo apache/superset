@@ -44,6 +44,12 @@ assists people when migrating to a new version.
 
 YDB SQL parsing now relies on the dedicated [`ydb-sqlglot-plugin`](https://pypi.org/project/ydb-sqlglot-plugin/) dialect, which registers itself with sqlglot automatically. YDB users must install this plugin (e.g., via `pip install "apache-superset[ydb]"`) to avoid a `ValueError` when Superset parses YDB queries.
 
+### Embedded dashboards enforce configured Allowed Domains for postMessage
+
+The embedded dashboard page now validates the origin of incoming `postMessage` events against the dashboard's configured **Allowed Domains**. The server-rendered embedded page exposes the configured domains in its bootstrap payload, and the frontend rejects message events whose origin is not in that list.
+
+Enforcement only applies when the Allowed Domains list is non-empty. If the list is empty (the default), any origin is accepted, so there is no behavior change for embeds that did not configure Allowed Domains.
+
 ### Dataset import validates catalog against the target connection
 
 Importing a dataset now validates the `catalog` field against the target database connection. When the connection has multi-catalog disabled (`allow_multi_catalog` off) and the dataset's catalog is not the connection's default catalog, the import fails instead of silently persisting the non-default catalog. This matches the validation already enforced on the dataset update path and prevents imported datasets from querying an unintended database.
