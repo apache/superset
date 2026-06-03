@@ -80,13 +80,24 @@ class ColumnOperatorEnum(str, Enum):
         return op_func(column, value)
 
 
+def _escape_like(value: str) -> str:
+    """Escape LIKE/ILIKE wildcards to prevent wildcard injection."""
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 # Define operator_map as a module-level dict after the enum is defined
 operator_map: Dict[ColumnOperatorEnum, Any] = {
     ColumnOperatorEnum.eq: lambda col, val: col == val,
     ColumnOperatorEnum.ne: lambda col, val: col != val,
-    ColumnOperatorEnum.sw: lambda col, val: col.like(f"{val}%"),
-    ColumnOperatorEnum.ew: lambda col, val: col.like(f"%{val}"),
-    ColumnOperatorEnum.ct: lambda col, val: col.ilike(f"%{val}%"),
+    ColumnOperatorEnum.sw: lambda col, val: col.like(
+        f"{_escape_like(val)}%", escape="\\"
+    ),
+    ColumnOperatorEnum.ew: lambda col, val: col.like(
+        f"%{_escape_like(val)}", escape="\\"
+    ),
+    ColumnOperatorEnum.ct: lambda col, val: col.ilike(
+        f"%{_escape_like(val)}%", escape="\\"
+    ),
     ColumnOperatorEnum.in_: lambda col, val: col.in_(
         val if isinstance(val, (list, tuple)) else [val]
     ),
@@ -97,8 +108,12 @@ operator_map: Dict[ColumnOperatorEnum, Any] = {
     ColumnOperatorEnum.gte: lambda col, val: col >= val,
     ColumnOperatorEnum.lt: lambda col, val: col < val,
     ColumnOperatorEnum.lte: lambda col, val: col <= val,
-    ColumnOperatorEnum.like: lambda col, val: col.like(f"%{val}%"),
-    ColumnOperatorEnum.ilike: lambda col, val: col.ilike(f"%{val}%"),
+    ColumnOperatorEnum.like: lambda col, val: col.like(
+        f"%{_escape_like(val)}%", escape="\\"
+    ),
+    ColumnOperatorEnum.ilike: lambda col, val: col.ilike(
+        f"%{_escape_like(val)}%", escape="\\"
+    ),
     ColumnOperatorEnum.is_null: lambda col, _: col.is_(None),
     ColumnOperatorEnum.is_not_null: lambda col, _: col.isnot(None),
 }
@@ -657,7 +672,11 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             for column_name in search_columns:
                 if hasattr(cls.model_cls, column_name):
                     column = getattr(cls.model_cls, column_name)
-                    search_filters.append(cast(column, Text).ilike(f"%{search}%"))
+                    search_filters.append(
+                        cast(column, Text).ilike(
+                            f"%{_escape_like(search)}%", escape="\\"
+                        )
+                    )
             if search_filters:
                 query = query.filter(or_(*search_filters))
         if custom_filters:
@@ -724,7 +743,11 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
             for column_name in search_columns:
                 if hasattr(cls.model_cls, column_name):
                     column = getattr(cls.model_cls, column_name)
-                    search_filters.append(cast(column, Text).ilike(f"%{search}%"))
+                    search_filters.append(
+                        cast(column, Text).ilike(
+                            f"%{_escape_like(search)}%", escape="\\"
+                        )
+                    )
             if search_filters:
                 query = query.filter(or_(*search_filters))
         if custom_filters:

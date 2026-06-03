@@ -4005,6 +4005,10 @@ function mergeRecursive(obj1, obj2) {
 
   /*jshint forin:false */
   for (var p in obj2) {
+    // Skip keys that could pollute the object prototype.
+    if (p === '__proto__' || p === 'constructor' || p === 'prototype') {
+      continue;
+    }
     try {
       // Property in destination object set; update its value.
       if (obj2[p].constructor === Object) {
