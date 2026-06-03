@@ -29,6 +29,7 @@ concurrency:
 jobs:
   changes:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: read
@@ -51,6 +52,7 @@ jobs:
     if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
     # Somehow one test flakes on 24.04 for unknown reasons, this is the only GHA left on 22.04
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: read
@@ -170,6 +172,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: read
