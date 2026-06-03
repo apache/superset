@@ -76,6 +76,7 @@ from sqlalchemy import event
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import Session
 
+from superset.versioning.baseline import CONTINUUM_BOOKKEEPING_COLUMNS
 from superset.versioning.diff import (
     ChangeRecord,
     diff_dashboard,
@@ -395,9 +396,12 @@ def _shadow_rows_valid_at(
     # Coerce values to JSON-safe forms — raw shadow rows can carry
     # ``UUID``, ``datetime``, ``bytes`` etc. that don't survive the
     # ``version_changes.from_value/to_value`` JSON column write.
-    meta_cols = {"transaction_id", "end_transaction_id", "operation_type"}
     return [
-        {k: _jsonable(v) for k, v in dict(row).items() if k not in meta_cols}
+        {
+            k: _jsonable(v)
+            for k, v in dict(row).items()
+            if k not in CONTINUUM_BOOKKEEPING_COLUMNS
+        }
         for row in rows
     ]
 

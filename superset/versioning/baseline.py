@@ -57,6 +57,42 @@ logger = logging.getLogger(__name__)
 # register_baseline_listener() is called.
 VERSIONED_MODELS: list[type] = []
 
+# Continuum's per-shadow-row bookkeeping columns. Skipped when copying
+# content from a live row into a synthetic baseline shadow row; set
+# explicitly by the baseline writer so the row reads as a freshly-created
+# live row at the baseline transaction. See :func:`_insert_baseline_shadow_row`.
+CONTINUUM_BOOKKEEPING_COLUMNS: frozenset[str] = frozenset(
+    {"transaction_id", "end_transaction_id", "operation_type"}
+)
+
+
+def _insert_baseline_shadow_row(
+    conn: Any,
+    version_table: sa.Table,
+    source_row: Any,
+    tx_id: int,
+) -> None:
+    """Copy *source_row* into *version_table* as a synthetic baseline
+    (``operation_type=0``) shadow row at *tx_id*.
+
+    Content columns are copied through; the three Continuum bookkeeping
+    columns are set explicitly so the row reads as a freshly-created
+    live row at *tx_id*. Column objects (not names) are used as
+    ``values()`` keys to avoid the "Unconsumed column names" error that
+    a name-based dict hits when a Column's ``.key`` differs from its
+    ``.name`` — a thing Continuum-generated tables occasionally produce.
+    """
+    col_values: dict[Any, Any] = {}
+    for col in version_table.columns:
+        if col.name in CONTINUUM_BOOKKEEPING_COLUMNS:
+            continue
+        if col.name in source_row:
+            col_values[col] = source_row[col.name]
+    col_values[version_table.c.transaction_id] = tx_id
+    col_values[version_table.c.end_transaction_id] = None
+    col_values[version_table.c.operation_type] = 0
+    conn.execute(version_table.insert().values(col_values))
+
 
 # ---------------------------------------------------------------------------
 # Entry point
@@ -396,23 +432,7 @@ def _insert_baseline_row(
         )
     )
     tx_id = result.inserted_primary_key[0]
-
-    # Build version row using Column objects as keys to avoid name/key mismatches
-    # (string-based values(**dict) raises "Unconsumed column names" when a Column's
-    # .key differs from its .name, which can happen with Continuum-generated tables).
-    meta_col_names = {"transaction_id", "end_transaction_id", "operation_type"}
-    col_values: dict[Any, Any] = {}
-    for col in version_table.columns:
-        if col.name in meta_col_names:
-            continue
-        if col.name in row:
-            col_values[col] = row[col.name]
-
-    col_values[version_table.c.transaction_id] = tx_id
-    col_values[version_table.c.end_transaction_id] = None
-    col_values[version_table.c.operation_type] = 0
-
-    conn.execute(version_table.insert().values(col_values))
+    _insert_baseline_shadow_row(conn, version_table, row, tx_id)
     return tx_id
 
 
@@ -550,18 +570,8 @@ def _insert_child_baseline_rows(
     if not rows:
         return
 
-    meta_col_names = {"transaction_id", "end_transaction_id", "operation_type"}
     for row in rows:
-        col_values: dict[Any, Any] = {}
-        for col in child_version_table.columns:
-            if col.name in meta_col_names:
-                continue
-            if col.name in row:
-                col_values[col] = row[col.name]
-        col_values[child_version_table.c.transaction_id] = tx_id
-        col_values[child_version_table.c.end_transaction_id] = None
-        col_values[child_version_table.c.operation_type] = 0
-        conn.execute(child_version_table.insert().values(col_values))
+        _insert_baseline_shadow_row(conn, child_version_table, row, tx_id)
 
 
 def _baseline_attached_slices(
@@ -620,14 +630,4 @@ def _baseline_attached_slices(
 def _insert_synthetic_slice_baseline(
     conn: Any, slice_ver_table: sa.Table, slice_row: Any, tx_id: int
 ) -> None:
-    meta_col_names = {"transaction_id", "end_transaction_id", "operation_type"}
-    col_values: dict[Any, Any] = {}
-    for col in slice_ver_table.columns:
-        if col.name in meta_col_names:
-            continue
-        if col.name in slice_row:
-            col_values[col] = slice_row[col.name]
-    col_values[slice_ver_table.c.transaction_id] = tx_id
-    col_values[slice_ver_table.c.end_transaction_id] = None
-    col_values[slice_ver_table.c.operation_type] = 0
-    conn.execute(slice_ver_table.insert().values(col_values))
+    _insert_baseline_shadow_row(conn, slice_ver_table, slice_row, tx_id)
