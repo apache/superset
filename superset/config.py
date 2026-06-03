@@ -2541,6 +2541,12 @@ EXTENSIONS_PATH: str | None = None
 # extension found to be vulnerable or otherwise undesirable.
 EXTENSION_DENYLIST: list[str] = []
 
+# Minimum allowed version per extension id. An extension whose version is below
+# the configured minimum is refused, so a vulnerable release can be required to
+# be patched before it loads. Versions are compared with PEP 440 semantics, e.g.
+#   EXTENSION_VERSION_POLICY = {"acme.widget": "1.2.0"}
+EXTENSION_VERSION_POLICY: dict[str, str] = {}
+
 # Default polling interval for tasks (seconds)
 TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
 

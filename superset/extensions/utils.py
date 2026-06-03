@@ -267,6 +267,52 @@ def is_extension_denied(extension: LoadedExtension) -> bool:
     return extension.id in denylist or f"{extension.id}@{extension.version}" in denylist
 
 
+def is_extension_below_min_version(extension: LoadedExtension) -> bool:
+    """
+    Return True if the extension's version is below the minimum required for its
+    id by the ``EXTENSION_VERSION_POLICY`` config.
+
+    Versions are compared with PEP 440 semantics. An unparseable version (the
+    extension's or the configured minimum) fails closed — the extension is
+    treated as below the minimum rather than allowed past the policy.
+    """
+    from packaging.version import InvalidVersion, Version
+
+    policy: dict[str, str] = current_app.config.get("EXTENSION_VERSION_POLICY") or {}
+    minimum = policy.get(extension.id)
+    if not minimum:
+        return False
+    try:
+        return Version(extension.version) < Version(minimum)
+    except InvalidVersion:
+        logger.warning(
+            "Could not compare extension %s version %r against the minimum %r "
+            "required by EXTENSION_VERSION_POLICY; refusing it",
+            extension.id,
+            extension.version,
+            minimum,
+        )
+        return True
+
+
+def get_extension_rejection_reason(extension: LoadedExtension) -> str | None:
+    """
+    Return why an extension must not be loaded, or None if it may load.
+
+    Combines the static supply-chain checks (``EXTENSION_DENYLIST`` and
+    ``EXTENSION_VERSION_POLICY``).
+    """
+    if is_extension_denied(extension):
+        return "it is in EXTENSION_DENYLIST"
+    if is_extension_below_min_version(extension):
+        minimum = current_app.config["EXTENSION_VERSION_POLICY"][extension.id]
+        return (
+            f"its version {extension.version} is below the minimum {minimum} "
+            "required by EXTENSION_VERSION_POLICY"
+        )
+    return None
+
+
 def get_extensions() -> dict[str, LoadedExtension]:
     extensions: dict[str, LoadedExtension] = {}
 
@@ -278,13 +324,14 @@ def get_extensions() -> dict[str, LoadedExtension]:
             abs_dist_path = str((Path(path) / "dist").resolve())
             extension = get_loaded_extension(files, source_base_path=abs_dist_path)
             extension_id = extension.manifest.id
-            if is_extension_denied(extension):
+            if reason := get_extension_rejection_reason(extension):
                 logger.warning(
-                    "Refusing to load denylisted extension %s (ID: %s, "
-                    "version: %s) from local filesystem",
+                    "Refusing to load extension %s (ID: %s, version: %s) from "
+                    "local filesystem: %s",
                     extension.name,
                     extension_id,
-                    extension.manifest.version,
+                    extension.version,
+                    reason,
                 )
                 continue
             extensions[extension_id] = extension
@@ -302,13 +349,14 @@ def get_extensions() -> dict[str, LoadedExtension]:
 
         for extension in discover_and_load_extensions(extensions_path):
             extension_id = extension.manifest.id
-            if is_extension_denied(extension):
+            if reason := get_extension_rejection_reason(extension):
                 logger.warning(
-                    "Refusing to load denylisted extension %s (ID: %s, "
-                    "version: %s) from discovery path",
+                    "Refusing to load extension %s (ID: %s, version: %s) from "
+                    "discovery path: %s",
                     extension.name,
                     extension_id,
-                    extension.manifest.version,
+                    extension.version,
+                    reason,
                 )
                 continue
             if extension_id not in extensions:  # Don't override LOCAL_EXTENSIONS
