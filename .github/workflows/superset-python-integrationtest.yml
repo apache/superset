@@ -14,7 +14,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      python: ${{ steps.check.outputs.python }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   test-mysql:
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-24.04
     permissions:
       id-token: write
@@ -55,26 +75,17 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-        if: steps.check.outputs.python
       - name: Setup MySQL
-        if: steps.check.outputs.python
         uses: ./.github/actions/cached-dependencies
         with:
           run: setup-mysql
       - name: Start Celery worker
-        if: steps.check.outputs.python
         uses: ./.github/actions/cached-dependencies
         with:
           run: celery-worker
       - name: Python integration tests (MySQL)
-        if: steps.check.outputs.python
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
@@ -85,7 +96,6 @@ jobs:
           use_oidc: true
           slug: apache/superset
       - name: Generate database diagnostics for docs
-        if: steps.check.outputs.python
         env:
           SUPERSET_CONFIG: tests.integration_tests.superset_test_config
           SUPERSET__SQLALCHEMY_DATABASE_URI: |
@@ -108,13 +118,14 @@ jobs:
               print(f'Generated diagnostics for {len(docs)} databases')
           "
       - name: Upload database diagnostics artifact
-        if: steps.check.outputs.python
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: database-diagnostics
           path: databases-diagnostics.json
           retention-days: 7
   test-postgres:
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-24.04
     permissions:
       id-token: write
@@ -152,29 +163,20 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-        if: steps.check.outputs.python
         with:
           python-version: ${{ matrix.python-version }}
       - name: Setup Postgres
-        if: steps.check.outputs.python
         uses: ./.github/actions/cached-dependencies
         with:
           run: |
             setup-postgres
       - name: Start Celery worker
-        if: steps.check.outputs.python
         uses: ./.github/actions/cached-dependencies
         with:
           run: celery-worker
       - name: Python integration tests (PostgreSQL)
-        if: steps.check.outputs.python
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
@@ -186,6 +188,8 @@ jobs:
           slug: apache/superset
 
   test-sqlite:
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-24.04
     permissions:
       id-token: write
@@ -211,28 +215,19 @@ jobs:
         with:
           persist-credentials: false
           submodules: recursive
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-        if: steps.check.outputs.python
       - name: Install dependencies
-        if: steps.check.outputs.python
         uses: ./.github/actions/cached-dependencies
         with:
           run: |
             # sqlite needs this working directory
             mkdir ${{ github.workspace }}/.temp
       - name: Start Celery worker
-        if: steps.check.outputs.python
         uses: ./.github/actions/cached-dependencies
         with:
           run: celery-worker
       - name: Python integration tests (SQLite)
-        if: steps.check.outputs.python
         run: |
           ./scripts/python_tests.sh
       - name: Upload code coverage
