@@ -1081,6 +1081,14 @@ class EngineInformationSchema(Schema):
     supports_oauth2 = fields.Boolean(
         metadata={"description": "The database supports OAuth2"}
     )
+    supports_offset = fields.Boolean(
+        metadata={
+            "description": (
+                "The database supports OFFSET in SQL queries. "
+                "Engines like Elasticsearch SQL return False."
+            )
+        }
+    )
     supports_schemas = fields.Boolean(
         metadata={"description": "The database uses schemas to organize tables"}
     )
