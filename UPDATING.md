@@ -200,6 +200,7 @@ The array is empty for baseline (`operation_type=0`) transactions. `kind` enumer
 **Impact on external integrations:**
 
 - New tables populated on every save — `dashboards_version`, `slices_version`, `tables_version` (parent shadow tables for the three entity types), `table_columns_version`, `sql_metrics_version`, `dashboard_slices_version` (child shadow tables), plus the shared `version_transaction` and `version_changes` tables. External tooling that queries Superset's DB directly will see writes to these tables proportional to save traffic.
+- On MySQL, the large-payload shadow columns (`dashboards_version.{position_json,css,json_metadata}`, `slices_version.params`, `tables_version.sql`, `{table_columns,sql_metrics}_version.{description,expression}`) are declared `MEDIUMTEXT` to match their live counterparts (16 MB) — Postgres `TEXT` is unbounded and SQLite ignores the length. Operators inspecting the schema will see this dialect-specific type; no operator action is required for new deployments.
 - Existing entity endpoints (`GET`/`PUT /api/v1/{chart,dashboard,dataset}/<pk>`) gain an `ETag` response header and the save response gains `old_version_uuid` / `new_version_uuid` body fields. No existing fields are removed or repurposed.
 - Version capture is always active — no feature flag.
 
