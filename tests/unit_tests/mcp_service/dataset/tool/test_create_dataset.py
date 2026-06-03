@@ -18,7 +18,6 @@
 """Unit tests for create_dataset MCP tool."""
 
 import importlib
-import logging
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -26,12 +25,13 @@ from fastmcp import Client
 from fastmcp.exceptions import ToolError
 
 from superset.commands.dataset.exceptions import (
+    DatabaseNotFoundValidationError,
     DatasetCreateFailedError,
+    DatasetDataAccessIsNotAllowed,
     DatasetExistsValidationError,
     DatasetInvalidError,
     TableNotFoundValidationError,
 )
-from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
 from superset.sql.parse import Table
 from superset.utils import json
@@ -42,9 +42,6 @@ from superset.utils import json
 create_dataset_module = importlib.import_module(
     "superset.mcp_service.dataset.tool.create_dataset"
 )
-
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
 
 
 def _make_mock_dataset(
@@ -105,18 +102,6 @@ def mock_auth():
 
 class TestCreateDataset:
     """Tests for the create_dataset MCP tool."""
-
-    @pytest.fixture(autouse=True)
-    def mock_database_access(self):
-        """Provide a mock database and allow all table access by default."""
-        mock_db = MagicMock()
-        with (
-            patch(
-                "superset.daos.database.DatabaseDAO.find_by_id", return_value=mock_db
-            ),
-            patch("superset.extensions.security_manager.raise_for_access"),
-        ):
-            yield mock_db
 
     @patch.object(create_dataset_module, "CreateDatasetCommand")
     @pytest.mark.asyncio
@@ -328,51 +313,56 @@ class TestCreateDataset:
         assert data["error_type"] == "CreateFailedError"
         assert "Dataset creation failed" in data["error"]
 
+    @patch.object(create_dataset_module, "CreateDatasetCommand")
     @pytest.mark.asyncio
-    async def test_create_dataset_database_not_found(self, mcp_server) -> None:
-        """Returns DatabaseNotFoundError when database_id does not exist."""
-        with patch("superset.daos.database.DatabaseDAO.find_by_id", return_value=None):
-            async with Client(mcp_server) as client:
-                result = await client.call_tool(
-                    "create_dataset",
-                    {
-                        "request": {
-                            "database_id": 999,
-                            "table_name": "orders",
-                        }
-                    },
-                )
+    async def test_create_dataset_database_not_found(
+        self, mock_command_class, mcp_server
+    ) -> None:
+        """Returns DatabaseNotFoundError when CreateDatasetCommand raises it."""
+        mock_command = MagicMock()
+        mock_command.run.side_effect = DatasetInvalidError(
+            exceptions=[DatabaseNotFoundValidationError()]
+        )
+        mock_command_class.return_value = mock_command
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "create_dataset",
+                {
+                    "request": {
+                        "database_id": 999,
+                        "table_name": "orders",
+                    }
+                },
+            )
 
         data = json.loads(result.content[0].text)
         assert data["error_type"] == "DatabaseNotFoundError"
         assert "Database not found" in data["error"]
 
+    @patch.object(create_dataset_module, "CreateDatasetCommand")
     @pytest.mark.asyncio
-    async def test_create_dataset_access_denied(self, mcp_server) -> None:
-        """Returns AccessDeniedError when caller lacks table-level access."""
-        mock_db = MagicMock()
-        with (
-            patch(
-                "superset.daos.database.DatabaseDAO.find_by_id", return_value=mock_db
-            ),
-            patch(
-                "superset.extensions.security_manager.raise_for_access",
-                side_effect=SupersetSecurityException(
-                    MagicMock(message="Access is Denied")
-                ),
-            ),
-        ):
-            async with Client(mcp_server) as client:
-                result = await client.call_tool(
-                    "create_dataset",
-                    {
-                        "request": {
-                            "database_id": 1,
-                            "schema": "secret",
-                            "table_name": "restricted_table",
-                        }
-                    },
-                )
+    async def test_create_dataset_access_denied(
+        self, mock_command_class, mcp_server
+    ) -> None:
+        """Returns AccessDeniedError when CreateDatasetCommand raises it."""
+        mock_command = MagicMock()
+        mock_command.run.side_effect = DatasetInvalidError(
+            exceptions=[DatasetDataAccessIsNotAllowed("Access is Denied")]
+        )
+        mock_command_class.return_value = mock_command
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "create_dataset",
+                {
+                    "request": {
+                        "database_id": 1,
+                        "schema": "secret",
+                        "table_name": "restricted_table",
+                    }
+                },
+            )
 
         data = json.loads(result.content[0].text)
         assert data["error_type"] == "AccessDeniedError"

@@ -34,25 +34,29 @@ from superset.commands.dataset.exceptions import (
     DatasetCreateFailedError,
     DatasetInvalidError,
 )
-from superset.commands.exceptions import CommandInvalidError
-from superset.daos.database import DatabaseDAO
-from superset.exceptions import SupersetSecurityException
-from superset.extensions import event_logger, security_manager
+from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
     CreateDatasetRequest,
     DatasetError,
     DatasetInfo,
     serialize_dataset_object,
 )
-from superset.sql.parse import Table
 
 logger = logging.getLogger(__name__)
 
 
-def _classify_invalid_error(exc: CommandInvalidError) -> DatasetError:
+def _classify_invalid_error(exc: DatasetInvalidError) -> DatasetError:
     """Map DatasetInvalidError sub-exceptions to typed DatasetError responses."""
     classnames = exc.get_list_classnames()
     messages = exc.normalized_messages()
+    if "DatabaseNotFoundValidationError" in classnames:
+        return DatasetError.create(
+            error="Database not found", error_type="DatabaseNotFoundError"
+        )
+    if "DatasetDataAccessIsNotAllowed" in classnames:
+        return DatasetError.create(
+            error="Access denied", error_type="AccessDeniedError"
+        )
     if "DatasetExistsValidationError" in classnames:
         return DatasetError.create(error=str(messages), error_type="DatasetExistsError")
     if "TableNotFoundValidationError" in classnames:
@@ -105,49 +109,16 @@ async def create_dataset(
     Returns DatasetInfo on success or DatasetError on failure.
     Use list_databases to find the correct database_id.
     """
-    # Normalize schema, table_name, catalog: strip whitespace, treat blank as None.
-    # Use model_dump() for 'schema' and 'catalog': Pydantic v2 does not always store
-    # None defaults in instance.__dict__ for fields whose names shadow deprecated
-    # BaseModel classmethods, so direct attribute access returns the classmethod
-    # instead of None when the field is omitted from the request.
-    # Use isinstance(x, str) rather than a truthy check: model_dump() may still
-    # return the classmethod object (which is truthy) for unset 'schema'/'catalog'
-    # fields when Pydantic resolves the value via getattr internally.
-    _request_data = request.model_dump()
-    _schema_raw = _request_data.get("schema")
-    schema = (_schema_raw.strip() or None) if isinstance(_schema_raw, str) else None
-    table_name = request.table_name.strip()
-    _catalog_raw = _request_data.get("catalog")
-    catalog = (_catalog_raw.strip() or None) if isinstance(_catalog_raw, str) else None
+    schema = request.schema_
+    table_name = request.table_name
+    catalog = request.catalog
 
     await ctx.info(
-        "Registering physical table as dataset: database_id=%s, table=%s.%s"
-        % (request.database_id, schema, table_name)
+        "Registering physical table as dataset: database_id=%s, table=%s"
+        % (request.database_id, f"{schema}.{table_name}" if schema else table_name)
     )
 
     try:
-        # Look up the database so we can enforce table-level access before
-        # forwarding to CreateDatasetCommand, which only checks SQL-path access.
-        database = DatabaseDAO.find_by_id(request.database_id)
-        if database is None:
-            return DatasetError.create(
-                error="Database not found",
-                error_type="DatabaseNotFoundError",
-            )
-
-        # Enforce table-level access: prevents users with Dataset.write from
-        # registering tables in databases they cannot read.
-        table_obj = Table(table_name, schema, catalog)
-        try:
-            security_manager.raise_for_access(database=database, table=table_obj)
-        except SupersetSecurityException as exc:
-            logger.warning("Access denied to table %s: %s", table_obj, exc)
-            await ctx.warning("Access denied to table %s" % (table_obj,))
-            return DatasetError.create(
-                error="Access denied",
-                error_type="AccessDeniedError",
-            )
-
         dataset_properties: dict[str, object] = {
             "database": request.database_id,
             "table_name": table_name,
@@ -170,14 +141,18 @@ async def create_dataset(
             )
 
         await ctx.info(
-            "Dataset registered: id=%s, table=%s.%s" % (dataset.id, schema, table_name)
+            "Dataset registered: id=%s, table=%s"
+            % (
+                dataset.id,
+                f"{schema}.{table_name}" if schema else table_name,
+            )
         )
         return result
 
     except DatasetInvalidError as exc:
-        # CreateDatasetCommand.validate() collects DatasetExistsValidationError and
-        # TableNotFoundValidationError into DatasetInvalidError.exceptions, never
-        # raising them directly. Inspect the wrapped class names for a typed response.
+        # CreateDatasetCommand.validate() collects validation errors into
+        # DatasetInvalidError.exceptions, never raising them directly.
+        # Inspect the wrapped class names for a typed response.
         error_response = _classify_invalid_error(exc)
         await ctx.warning(
             "Dataset validation failed (%s): %s"
