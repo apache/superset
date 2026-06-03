@@ -174,22 +174,14 @@ class SupersetResultSet:
         array = np.array(data, dtype=numpy_dtype)
 
         for column in column_names:
-            try:
-                pa_data.append(pa.array(array[column].tolist()))
-            except (
-                pa.lib.ArrowInvalid,
-                pa.lib.ArrowTypeError,
-                pa.lib.ArrowNotImplementedError,
-                ValueError,
-                TypeError,  # this is super hackey,
-                # https://issues.apache.org/jira/browse/ARROW-7855
+            raw = array[column].tolist()
+            for col_values in (
+                raw,
+                db_engine_spec.normalize_column_values(raw),
             ):
-                col_values = db_engine_spec.normalize_column_values(
-                    array[column].tolist()
-                )
                 try:
                     pa_data.append(pa.array(col_values))
-                    continue
+                    break
                 except (
                     pa.lib.ArrowInvalid,
                     pa.lib.ArrowTypeError,
@@ -198,6 +190,7 @@ class SupersetResultSet:
                     TypeError,
                 ):
                     pass
+            else:
                 # attempt serialization of values as strings
                 stringified_arr = stringify_values(array[column])
                 pa_data.append(pa.array(stringified_arr.tolist()))
