@@ -1449,6 +1449,36 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             if is_alias_used_in_orderby(col):
                 col.name = f"{col.name}__"
 
+    def _raise_for_disallowed_sql(self, sql: str) -> None:
+        """
+        Mirror the DISALLOWED_SQL_* gate that sql_lab.execute_sql_statement
+        enforces so both query surfaces honour the same denylist.
+        """
+        engine = self.db_engine_spec.engine
+        disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(engine, set())
+        disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(engine, set())
+        if not (disallowed_functions or disallowed_tables):
+            return
+
+        parsed_script = SQLScript(sql, engine=engine)
+        if disallowed_functions and parsed_script.check_functions_present(
+            disallowed_functions
+        ):
+            raise SupersetDisallowedSQLFunctionException(disallowed_functions)
+        if disallowed_tables and parsed_script.check_tables_present(disallowed_tables):
+            # Report only the tables actually found in the query, mirroring the
+            # canonical execution-time gate so the user-facing error doesn't
+            # echo the operator's full denylist.
+            present_tables = {
+                table.table.lower()
+                for statement in parsed_script.statements
+                for table in statement.tables
+            }
+            found_tables = {
+                table for table in disallowed_tables if table.lower() in present_tables
+            }
+            raise SupersetDisallowedSQLTableException(found_tables or disallowed_tables)
+
     def query(self, query_obj: QueryObjectDict) -> QueryResult:
         """
         Executes the query and returns a dataframe.
@@ -1460,21 +1490,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         query_str_ext = self.get_query_str_extended(query_obj)
         sql = query_str_ext.sql
 
-        # Mirror the DISALLOWED_SQL_* gate that sql_lab.execute_sql_statement
-        # enforces so both query surfaces honour the same denylist.
-        engine = self.db_engine_spec.engine
-        disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(engine, set())
-        disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(engine, set())
-        if disallowed_functions or disallowed_tables:
-            parsed_script = SQLScript(sql, engine=engine)
-            if disallowed_functions and parsed_script.check_functions_present(
-                disallowed_functions
-            ):
-                raise SupersetDisallowedSQLFunctionException(disallowed_functions)
-            if disallowed_tables and parsed_script.check_tables_present(
-                disallowed_tables
-            ):
-                raise SupersetDisallowedSQLTableException(disallowed_tables)
+        self._raise_for_disallowed_sql(sql)
 
         status = QueryStatus.SUCCESS
         errors = None

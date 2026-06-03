@@ -150,6 +150,28 @@ def test_query_blocks_disallowed_table_on_chart_data_path(
     sqla_table.database.get_df.assert_not_called()  # type: ignore[attr-defined]
 
 
+def test_query_disallowed_table_error_reports_only_matched_tables(
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": {},
+            "DISALLOWED_SQL_TABLES": {
+                "postgresql": {"pg_authid", "pg_shadow", "pg_stat_activity"}
+            },
+        },
+        clear=False,
+    )
+    sqla_table = _build_sqla_table_for_query(mocker, "SELECT rolname FROM pg_authid")
+    with pytest.raises(SupersetDisallowedSQLTableException) as excinfo:
+        sqla_table.query(_query_obj())
+    message = str(excinfo.value)
+    assert "pg_authid" in message
+    assert "pg_shadow" not in message
+    assert "pg_stat_activity" not in message
+
+
 def test_query_allows_benign_sql_on_chart_data_path(mocker: MockerFixture) -> None:
     mocker.patch.dict(
         "flask.current_app.config",
