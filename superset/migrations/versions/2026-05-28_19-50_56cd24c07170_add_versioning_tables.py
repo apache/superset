@@ -81,6 +81,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy_utils import UUIDType
 
+from superset.utils.core import MediumText
+
 revision = "56cd24c07170"
 # Stacked on sc-105349-composite-association-pks (2bee73611e32) so the
 # Continuum shadow tables this migration creates can mirror the
@@ -142,13 +144,19 @@ def upgrade() -> None:
         sa.Column("changed_on", sa.DateTime(), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("dashboard_title", sa.String(500), nullable=True),
-        sa.Column("position_json", sa.Text(), nullable=True),
+        # ``MediumText()`` mirrors the live column type — on MySQL plain
+        # ``TEXT`` caps at 64 KB, which large dashboards exceed; an
+        # oversized live write would then fail the shadow INSERT under
+        # ``STRICT_TRANS_TABLES`` (or silently truncate without it) and
+        # corrupt the history. Postgres ``TEXT`` is unbounded and SQLite
+        # ignores the length annotation so this is MySQL-driven.
+        sa.Column("position_json", MediumText(), nullable=True),
         sa.Column("description", sa.Text(), nullable=True),
-        sa.Column("css", sa.Text(), nullable=True),
+        sa.Column("css", MediumText(), nullable=True),
         sa.Column("theme_id", sa.Integer(), nullable=True),
         sa.Column("certified_by", sa.Text(), nullable=True),
         sa.Column("certification_details", sa.Text(), nullable=True),
-        sa.Column("json_metadata", sa.Text(), nullable=True),
+        sa.Column("json_metadata", MediumText(), nullable=True),
         sa.Column("slug", sa.String(255), nullable=True),
         sa.Column("published", sa.Boolean(), nullable=True),
         sa.Column("is_managed_externally", sa.Boolean(), nullable=True),
@@ -200,7 +208,7 @@ def upgrade() -> None:
         sa.Column("datasource_type", sa.String(200), nullable=True),
         sa.Column("datasource_name", sa.String(2000), nullable=True),
         sa.Column("viz_type", sa.String(250), nullable=True),
-        sa.Column("params", sa.Text(), nullable=True),
+        sa.Column("params", MediumText(), nullable=True),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("cache_timeout", sa.Integer(), nullable=True),
         sa.Column("perm", sa.String(1000), nullable=True),
@@ -273,7 +281,7 @@ def upgrade() -> None:
         sa.Column("fetch_values_predicate", sa.Text(), nullable=True),
         sa.Column("schema", sa.String(255), nullable=True),
         sa.Column("catalog", sa.String(256), nullable=True),
-        sa.Column("sql", sa.Text(), nullable=True),
+        sa.Column("sql", MediumText(), nullable=True),
         sa.Column("is_sqllab_view", sa.Boolean(), nullable=True),
         sa.Column("template_params", sa.Text(), nullable=True),
         sa.Column("extra", sa.Text(), nullable=True),
@@ -407,10 +415,10 @@ def upgrade() -> None:
         sa.Column("advanced_data_type", sa.String(255), nullable=True),
         sa.Column("groupby", sa.Boolean(), nullable=True),
         sa.Column("filterable", sa.Boolean(), nullable=True),
-        sa.Column("description", sa.Text(), nullable=True),
+        sa.Column("description", MediumText(), nullable=True),
         sa.Column("table_id", sa.Integer(), nullable=True),
         sa.Column("is_dttm", sa.Boolean(), nullable=True),
-        sa.Column("expression", sa.Text(), nullable=True),
+        sa.Column("expression", MediumText(), nullable=True),
         sa.Column("python_date_format", sa.String(255), nullable=True),
         sa.Column("datetime_format", sa.String(100), nullable=True),
         sa.Column("extra", sa.Text(), nullable=True),
@@ -455,12 +463,12 @@ def upgrade() -> None:
         sa.Column("metric_name", sa.String(255), nullable=True),
         sa.Column("verbose_name", sa.String(1024), nullable=True),
         sa.Column("metric_type", sa.String(32), nullable=True),
-        sa.Column("description", sa.Text(), nullable=True),
+        sa.Column("description", MediumText(), nullable=True),
         sa.Column("d3format", sa.String(128), nullable=True),
         sa.Column("currency", sa.JSON(), nullable=True),
         sa.Column("warning_text", sa.Text(), nullable=True),
         sa.Column("table_id", sa.Integer(), nullable=True),
-        sa.Column("expression", sa.Text(), nullable=True),
+        sa.Column("expression", MediumText(), nullable=True),
         sa.Column("extra", sa.Text(), nullable=True),
         sa.Column("transaction_id", sa.BigInteger(), nullable=False),
         sa.Column("end_transaction_id", sa.BigInteger(), nullable=True),
