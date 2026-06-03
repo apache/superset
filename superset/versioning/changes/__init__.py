@@ -44,7 +44,11 @@ this package needs to change.
 from __future__ import annotations
 
 from superset.versioning.changes.listener import (
+    ACTION_KIND_CLONE,
+    ACTION_KIND_IMPORT,
     ACTION_KIND_KEY,
+    ACTION_KIND_RESTORE,
+    ACTION_KINDS,
     register_change_record_listener,
 )
 from superset.versioning.changes.shadow_queries import _shadow_rows_valid_at
@@ -54,7 +58,11 @@ from superset.versioning.changes.table import (
 )
 
 __all__ = [
+    "ACTION_KIND_CLONE",
+    "ACTION_KIND_IMPORT",
     "ACTION_KIND_KEY",
+    "ACTION_KIND_RESTORE",
+    "ACTION_KINDS",
     "_ENTITY_KIND_BY_CLASS_NAME",
     "_shadow_rows_valid_at",
     "register_change_record_listener",

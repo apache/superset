@@ -59,9 +59,9 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
         # Method-scoped import — defers the versioning bootstrap path
         # out of this command's module-load graph; see ``changes.py``
         # module docstring for the broader init-order rationale.
-        from superset.versioning.changes import ACTION_KIND_KEY
+        from superset.versioning.changes import ACTION_KIND_CLONE, ACTION_KIND_KEY
 
-        db.session.info[ACTION_KIND_KEY] = "clone"
+        db.session.info[ACTION_KIND_KEY] = ACTION_KIND_CLONE
         database_id = self._base_model.database_id
         table_name = self._properties["table_name"]
         owners = self._properties["owners"]

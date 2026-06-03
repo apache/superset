@@ -40,7 +40,7 @@ from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.daos.version import VersionDAO
 from superset.exceptions import SupersetSecurityException
-from superset.versioning.changes import ACTION_KIND_KEY
+from superset.versioning.changes import ACTION_KIND_KEY, ACTION_KIND_RESTORE
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +85,7 @@ class BaseRestoreVersionCommand(BaseCommand):
         # after_flush for the new ``version_transaction`` row and stamps
         # ``version_transaction.action_kind = 'restore'``. See
         # data-model.md §"Three dimensions" for the full design.
-        db.session.info[ACTION_KIND_KEY] = "restore"
+        db.session.info[ACTION_KIND_KEY] = ACTION_KIND_RESTORE
         entity = VersionDAO.restore_version(self.model_cls, self._uuid, version_number)
         if entity is None:
             # Race: entity deleted between validate() and now.
