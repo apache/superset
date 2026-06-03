@@ -35,7 +35,14 @@ from typing import Any, cast, Optional, TYPE_CHECKING
 import numpy as np
 import pandas as pd
 import polyline
-import pygeohash
+
+try:
+    import pygeohash
+except ImportError:
+    try:
+        import geohash as pygeohash  # type: ignore[no-redef]
+    except ImportError:
+        pygeohash = None  # type: ignore[assignment]
 from dateutil import relativedelta as rdelta
 from deprecation import deprecated
 from flask import current_app, request
@@ -1878,6 +1885,13 @@ class BaseDeckGLViz(BaseViz):
     @staticmethod
     @deprecated(deprecated_in="3.0")
     def reverse_geohash_decode(geohash_code: str) -> tuple[str, str]:
+        if not pygeohash:
+            raise SpatialException(
+                _(
+                    "The 'pygeohash' library is required to decode geohashes. "
+                    "Please install pygeohash."
+                )
+            )
         lat, lng = pygeohash.decode(geohash_code)
         return (lng, lat)
 
@@ -2181,6 +2195,13 @@ class DeckGrid(BaseDeckGLViz):
 
 @deprecated(deprecated_in="3.0")
 def geohash_to_json(geohash_code: str) -> list[list[float]]:
+    if not pygeohash:
+        raise SpatialException(
+            _(
+                "The 'pygeohash' library is required to decode geohashes. "
+                "Please install pygeohash."
+            )
+        )
     # Get the center and the error margins
     lat, lon, lat_err, lon_err = pygeohash.decode_exactly(geohash_code)
     # Calculate the Bounding Box

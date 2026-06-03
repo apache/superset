@@ -87,4 +87,56 @@ def test_geodetic_parse():
     assert series_to_list(post_df["longitude"]) == series_to_list(
         lonlat_df["longitude"]
     )
-    assert series_to_list(post_df["latitude"]), series_to_list(lonlat_df["latitude"])
+    assert series_to_list(post_df["latitude"]) == series_to_list(lonlat_df["latitude"])
+
+
+def test_geohash_optional_library_missing():
+    from unittest.mock import patch
+
+    import pytest
+
+    from superset.exceptions import InvalidPostProcessingError
+
+    # Test that geohash_decode and geohash_encode raise InvalidPostProcessingError
+    # when the underlying library is missing (mocked as None).
+    with patch("superset.utils.pandas_postprocessing.geography.geohash_lib", None):
+        with pytest.raises(InvalidPostProcessingError) as excinfo:
+            geohash_decode(
+                df=lonlat_df[["city", "geohash"]],
+                geohash="geohash",
+                latitude="latitude",
+                longitude="longitude",
+            )
+        assert "pygeohash" in str(excinfo.value)
+
+        with pytest.raises(InvalidPostProcessingError) as excinfo:
+            geohash_encode(
+                df=lonlat_df[["city", "latitude", "longitude"]],
+                latitude="latitude",
+                longitude="longitude",
+                geohash="geohash",
+            )
+        assert "pygeohash" in str(excinfo.value)
+
+
+def test_geohash_encode_positional_fallback():
+    from unittest.mock import MagicMock, patch
+
+    # Create a mock object that mimics python-geohash
+    # (throws TypeError on keyword arguments)
+    mock_geohash = MagicMock()
+    def side_effect(*args, **kwargs):
+        if kwargs:
+            raise TypeError("encode() got an unexpected keyword argument")
+        return "mocked_geohash"
+    mock_geohash.encode.side_effect = side_effect
+
+    target = "superset.utils.pandas_postprocessing.geography.geohash_lib"
+    with patch(target, mock_geohash):
+        post_df = geohash_encode(
+            df=lonlat_df[["city", "latitude", "longitude"]].head(1),
+            latitude="latitude",
+            longitude="longitude",
+            geohash="geohash",
+        )
+        assert post_df.iloc[0]["geohash"] == "mocked_geohash"

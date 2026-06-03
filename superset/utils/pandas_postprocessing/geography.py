@@ -16,7 +16,13 @@
 # under the License.
 from typing import Optional
 
-import pygeohash as geohash_lib
+try:
+    import pygeohash as geohash_lib
+except ImportError:
+    try:
+        import geohash as geohash_lib
+    except ImportError:
+        geohash_lib = None
 from flask_babel import gettext as _
 from geopy.point import Point
 from pandas import DataFrame
@@ -37,6 +43,13 @@ def geohash_decode(
     :param latitude: Name of new column to be created containing latitude.
     :return: DataFrame with decoded longitudes and latitudes
     """
+    if not geohash_lib:
+        raise InvalidPostProcessingError(
+            _(
+                "The 'pygeohash' library is required to decode geohashes. "
+                "Please install pygeohash."
+            )
+        )
     try:
         lonlat_df = DataFrame()
         lonlat_df["latitude"], lonlat_df["longitude"] = zip(
@@ -64,15 +77,30 @@ def geohash_encode(
     :param latitude: Name of source column containing latitude.
     :return: DataFrame with decoded longitudes and latitudes
     """
+    if not geohash_lib:
+        raise InvalidPostProcessingError(
+            _(
+                "The 'pygeohash' library is required to encode geohashes. "
+                "Please install pygeohash."
+            )
+        )
     try:
         encode_df = df[[latitude, longitude]]
         encode_df.columns = ["latitude", "longitude"]
-        encode_df["geohash"] = encode_df.apply(
-            lambda row: geohash_lib.encode(
-                latitude=row["latitude"], longitude=row["longitude"]
-            ),
-            axis=1,
-        )
+        try:
+            encode_df["geohash"] = encode_df.apply(
+                lambda row: geohash_lib.encode(
+                    latitude=row["latitude"], longitude=row["longitude"]
+                ),
+                axis=1,
+            )
+        except TypeError:
+            encode_df["geohash"] = encode_df.apply(
+                lambda row: geohash_lib.encode(
+                    row["latitude"], row["longitude"]
+                ),
+                axis=1,
+            )
         return _append_columns(df, encode_df, {"geohash": geohash})
     except ValueError as ex:
         raise InvalidPostProcessingError(_("Invalid longitude/latitude")) from ex
