@@ -64,7 +64,7 @@ export const SingleQueryResultPane = ({
   const [filterText, setFilterText] = useState('');
   const { gridHeight, measuredRef } = useGridHeight();
 
-  const columns = useGridColumns(colnames, coltypes, data, collabels);
+  const columns = useGridColumns(colnames, coltypes, collabels, data);
   const keywordFilter = useKeywordFilter(filterText);
 
   const handleInputChange = useCallback(

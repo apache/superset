@@ -130,7 +130,7 @@ export const SamplesPane = ({
     }
   }, [datasource, queryFormData, isRequest, queryForce, rowLimit]);
 
-  const columns = useGridColumns(colnames, coltypes, data, collabels);
+  const columns = useGridColumns(colnames, coltypes, collabels, data);
   const keywordFilter = useKeywordFilter(filterText);
 
   const handleInputChange = useCallback(

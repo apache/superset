@@ -31,24 +31,31 @@ import type { IRowNode } from 'ag-grid-community';
 
 const timeFormatter = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
 
+/**
+ * Builds Grid column definitions from query result metadata.
+ * Assumes {@link colnames}, {@link coltypes} and {@link collabels}
+ * have the same length and align. Only columns present in the first
+ * data row are included.
+ */
 export function useGridColumns(
   colnames: string[] | undefined,
   coltypes: GenericDataType[] | undefined,
+  collabels: string[] | undefined,
   data: Record<string, any>[] | undefined,
-  collabels?: string[] | undefined,
 ) {
   return useMemo(
     () =>
       colnames && data?.length
         ? colnames
-            .filter((column: string) => Object.keys(data[0]).includes(column))
-            .map((key, index) => {
-              const colType = coltypes?.[index];
-              const headerLabel = collabels?.[index];
+            .map((column, originalIndex) => [column, originalIndex] as const)
+            .filter(([column]) => Object.keys(data[0]).includes(column))
+            .map(([key, originalIndex]) => {
+              const colType = coltypes?.[originalIndex];
+              const headerLabel = collabels?.[originalIndex];
 
               return {
                 label: key,
-                headerName: cleanHeader,
+                headerName: headerLabel,
                 render: ({ value }: { value: unknown }) => {
                   if (value === true) {
                     return Constants.BOOL_TRUE_DISPLAY;
