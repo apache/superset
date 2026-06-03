@@ -32,6 +32,7 @@ from superset import db
 from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.models.sql_lab import Query
+from superset.utils.network import is_safe_host
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -209,6 +210,20 @@ class ImpalaEngineSpec(BaseEngineSpec):
         """
         try:
             impala_host = query.database.url_object.host
+            # The cancel call issues an outbound HTTP request from the
+            # Superset backend to whatever host the DB connection was
+            # configured with; validate it before the call to keep this
+            # path consistent with the dataset-import and webhook URL
+            # checks. Operators with internal Impala targets can opt out
+            # via IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS.
+            if not impala_host:
+                return False
+            if not app.config["IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS"]:
+                if not is_safe_host(impala_host):
+                    logger.warning(
+                        "Impala cancel_query refused: target host is not allowed"
+                    )
+                    return False
             url = f"http://{impala_host}:25000/cancel_query?query_id={cancel_query_id}"
             response = requests.post(url, timeout=3)
         except Exception:  # pylint: disable=broad-except

@@ -2005,6 +2005,14 @@ ALERT_REPORTS_WEBHOOK_HTTPS_ONLY = True
 # in any internet-facing deployment.
 ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS: bool = False
 
+# When True, Impala's cancel_query HTTP call is permitted to target hosts in
+# private/internal IP ranges (RFC-1918, loopback, link-local). Intended for
+# operators whose Impala cluster runs on an internal network. Leave False (the
+# default) in any deployment where untrusted users can create Impala database
+# connections, so a maliciously-configured impala:// URL cannot be used to
+# trigger outbound requests to internal targets via the cancel endpoint.
+IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS: bool = False
+
 # A custom prefix to use on all Alerts & Reports emails
 EMAIL_REPORTS_SUBJECT_PREFIX = "[Report] "
 
