@@ -74,7 +74,14 @@ LEGACY_SLUG_INDEX_NAME = "idx_unique_slug"
 
 
 def _mysql_supports_functional_index(bind: Connection) -> bool:
-    """Return True iff the connected MySQL is 8.0+ (supports functional indexes).
+    """Return True iff the connected MySQL is 8.0.13+ (supports functional indexes).
+
+    MySQL added functional key parts in 8.0.13; 8.0.0–8.0.12 reject the
+    ``(CASE WHEN deleted_at IS NULL THEN slug END)`` expression at index
+    creation time, so deployments on those patch releases must keep the
+    original full slug constraint. See
+    https://dev.mysql.com/doc/mysql/8.0/en/create-index.html for the
+    8.0.13 minimum.
 
     Excludes MariaDB even at server version ``>= (10, x)`` because MariaDB
     reports through the same ``server_version_info`` attribute but uses
@@ -84,7 +91,7 @@ def _mysql_supports_functional_index(bind: Connection) -> bool:
     """
     if getattr(bind.dialect, "is_mariadb", False):
         return False
-    return (bind.dialect.server_version_info or ()) >= (8, 0)
+    return (bind.dialect.server_version_info or ()) >= (8, 0, 13)
 
 
 def upgrade() -> None:
