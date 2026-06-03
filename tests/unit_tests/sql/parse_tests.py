@@ -2712,7 +2712,7 @@ def test_rls_predicate_transformer(
             "SELECT * FROM some_table",
             Table("some_table"),
             """
-CREATE TABLE some_table AS
+CREATE TABLE "some_table" AS
 SELECT
   *
 FROM some_table
@@ -2722,7 +2722,7 @@ FROM some_table
             "SELECT * FROM some_table",
             Table("some_table", "schema1", "catalog1"),
             """
-CREATE TABLE catalog1.schema1.some_table AS
+CREATE TABLE "catalog1"."schema1"."some_table" AS
 SELECT
   *
 FROM some_table
