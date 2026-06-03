@@ -2501,6 +2501,34 @@ class ExtraDynamicQueryFilters(TypedDict, total=False):
 EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 
 
+# Extra access query filters inject additional OR conditions into
+# ChartFilter and DashboardAccessFilter, enabling external systems
+# (e.g. folder permissions) to grant asset visibility.
+# The callable receives the current user ID and returns a subquery of asset IDs.
+class ExtraAccessQueryFilters(TypedDict, total=False):
+    charts: Callable[[int], Query]
+    dashboards: Callable[[int], Query]
+
+
+EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
+
+# Bypass hook for raise_for_access(). Return True to skip all permission checks
+# (including datasource). Receives keyword arguments matching raise_for_access().
+EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
+
+# Ownership bypass hook for raise_for_ownership(). Return True to allow edit/delete.
+# Receives (user_id, resource).
+EXTRA_OWNERSHIP_CHECKS: Callable[[int, Any], bool] | None = None
+
+# Skip auto-adding current user as owner on save. Return True to skip.
+# Receives user_id.
+EXTRA_OWNER_AUTO_ADD_SKIP: Callable[[int], bool] | None = None
+
+# Resolve additional edit permission beyond ownership.
+# Receives (user_id, resource). Return True if user can edit.
+EXTRA_CAN_EDIT_RESOLVER: Callable[[int, Any], bool] | None = None
+
+
 # The migrations that add catalog permissions might take a considerably long time
 # to execute as it has to create permissions to all schemas and catalogs from all
 # other catalogs accessible by the credentials. This flag allows to skip the

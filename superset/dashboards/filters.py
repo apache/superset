@@ -182,11 +182,23 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
 
             feature_flagged_filters.append(condition)
 
+        from flask import current_app
+
+        extra_access_filters = []
+        extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
+        if extra_dashboards_filter := extra_filters.get("dashboards"):
+            user_id = get_user_id()
+            if user_id:
+                extra_access_filters.append(
+                    Dashboard.id.in_(extra_dashboards_filter(user_id))
+                )
+
         query = query.filter(
             or_(
                 Dashboard.id.in_(owner_ids_query),
                 Dashboard.id.in_(datasource_perm_query),
                 *feature_flagged_filters,
+                *extra_access_filters,
             )
         )
 

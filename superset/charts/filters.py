@@ -104,12 +104,32 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if security_manager.can_access_all_datasources():
             return query
 
+        from flask import current_app
+
         table_alias = aliased(SqlaTable)
-        query = query.join(table_alias, self.model.datasource_id == table_alias.id)
-        query = query.join(
-            models.Database, table_alias.database_id == models.Database.id
+        dataset_query = (
+            query.join(table_alias, self.model.datasource_id == table_alias.id)
+            .join(models.Database, table_alias.database_id == models.Database.id)
+            .filter(get_dataset_access_filters(self.model))
         )
-        return query.filter(get_dataset_access_filters(self.model))
+
+        extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
+        if extra_charts_filter := extra_filters.get("charts"):
+            user_id = get_user_id()
+            if user_id:
+                extra_ids = extra_charts_filter(user_id)
+                return query.filter(
+                    or_(
+                        self.model.id.in_(
+                            dataset_query.with_entities(self.model.id).subquery()
+                        ),
+                        self.model.id.in_(extra_ids),
+                    )
+                )
+
+        return query.filter(
+            self.model.id.in_(dataset_query.with_entities(self.model.id).subquery())
+        )
 
 
 class ChartHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods

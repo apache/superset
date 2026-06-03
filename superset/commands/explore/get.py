@@ -160,9 +160,20 @@ class GetExploreCommand(BaseCommand, ABC):
         metadata = None
 
         if slc:
+            from flask import current_app
+
+            from superset.utils.core import get_user_id
+
+            user_id = get_user_id()
+            can_edit = any(owner.id == user_id for owner in slc.owners)
+            if not can_edit and user_id:
+                if resolver := current_app.config.get("EXTRA_CAN_EDIT_RESOLVER"):
+                    can_edit = resolver(user_id, slc)
+
             metadata = {
                 "created_on_humanized": slc.created_on_humanized,
                 "changed_on_humanized": slc.changed_on_humanized,
+                "can_edit": can_edit,
                 "owners": [owner.get_full_name() for owner in slc.owners],
                 "dashboards": [
                     {"id": dashboard.id, "dashboard_title": dashboard.dashboard_title}
