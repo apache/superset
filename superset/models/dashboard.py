@@ -221,7 +221,10 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
     @renders("dashboard_title")
     def dashboard_link(self) -> Markup:
         title = escape(self.dashboard_title or "<empty>")
-        return Markup(f'<a href="{self.url}">{title}</a>')
+        # self.url embeds the user-controlled slug; escape it before it is
+        # marked safe via Markup (mirrors SqlaTable.link).
+        url = escape(self.url)
+        return Markup(f'<a href="{url}">{title}</a>')
 
     @property
     def digest(self) -> str | None:

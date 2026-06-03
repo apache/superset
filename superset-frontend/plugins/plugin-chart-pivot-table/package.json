@@ -37,7 +37,7 @@
     "react-dom": "^18.2.0"
   },
   "devDependencies": {
-    "@babel/types": "^7.29.0",
+    "@babel/types": "^7.29.7",
     "@types/jest": "^30.0.0",
     "jest": "^30.4.2"
   }
