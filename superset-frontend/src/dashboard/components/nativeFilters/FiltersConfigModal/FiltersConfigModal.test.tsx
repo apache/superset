@@ -800,6 +800,73 @@ test('does not auto-create a filter when createNewOnOpen is false', () => {
   expect(screen.queryByText(DATASET_REGEX)).not.toBeInTheDocument();
 });
 
+test('enables save button and includes updated title when editing an existing divider', async () => {
+  jest.useFakeTimers();
+
+  const nativeFilterDividerConfig = [
+    {
+      id: 'NATIVE_FILTER_DIVIDER-1',
+      type: 'DIVIDER' as const,
+      title: 'First Edit',
+      description: '',
+      scope: { rootPath: ['ROOT'], excluded: [] },
+    },
+  ];
+
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterDividerConfig,
+      },
+    },
+    dashboardLayout,
+  };
+
+  const onSave = jest.fn();
+
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+    initialFilterId: 'NATIVE_FILTER_DIVIDER-1',
+    onSave,
+  });
+
+  // Save button should be disabled when no changes have been made
+  expect(screen.getByRole('button', { name: SAVE_REGEX })).toBeDisabled();
+
+  // Editing the title field should mark the divider modified and enable save
+  const titleInput = screen.getByRole('textbox', { name: /^title$/i });
+  await userEvent.clear(titleInput);
+  await userEvent.type(titleInput, 'Second Edit');
+
+  jest.advanceTimersByTime(1000);
+  jest.useRealTimers();
+
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: SAVE_REGEX }),
+    ).not.toBeDisabled(),
+  );
+
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        filterChanges: expect.objectContaining({
+          modified: expect.arrayContaining([
+            expect.objectContaining({
+              id: 'NATIVE_FILTER_DIVIDER-1',
+              title: 'Second Edit',
+            }),
+          ]),
+        }),
+      }),
+    ),
+  );
+}, 30000);
+
 test('empty state disappears when a filter is added via dropdown', async () => {
   defaultRender(defaultState(), {
     ...props,
