@@ -44,6 +44,7 @@ Idempotent: a second run prunes nothing.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -133,18 +134,31 @@ def _candidate_transaction_ids(
     # Build the set of transaction ids whose parent shadow includes a
     # live row (``end_transaction_id IS NULL``). Those transactions
     # represent the current state of an entity and must be preserved
-    # regardless of age.
+    # regardless of age. Chunked over candidate_ids to keep the bind-
+    # parameter count inside SQLite's ``SQLITE_MAX_VARIABLE_NUMBER``
+    # floor (see ``_TX_ID_CHUNK_SIZE`` below).
     preserved_ids: set[int] = set()
     for ptbl in parent_tables:
-        for row in conn.execute(
-            sa.select(ptbl.c.transaction_id)
-            .where(ptbl.c.transaction_id.in_(candidate_ids))
-            .where(ptbl.c.end_transaction_id.is_(None))
-            .distinct()
-        ):
-            preserved_ids.add(row[0])
+        for chunk in _chunked(candidate_ids, _TX_ID_CHUNK_SIZE):
+            for row in conn.execute(
+                sa.select(ptbl.c.transaction_id)
+                .where(ptbl.c.transaction_id.in_(chunk))
+                .where(ptbl.c.end_transaction_id.is_(None))
+                .distinct()
+            ):
+                preserved_ids.add(row[0])
 
     return [tx_id for tx_id in candidate_ids if tx_id not in preserved_ids]
+
+
+# SQLite's ``SQLITE_MAX_VARIABLE_NUMBER`` defaults to 999 (lifted to
+# 32766 in 3.32+ but the older limit can still apply in shipped
+# builds). Postgres + MySQL handle tens of thousands of bind params
+# without complaint, so the chunk size is dictated by the SQLite floor.
+# 500 leaves headroom for the ``transaction_id`` + ``end_transaction_id``
+# OR-pair (each ``tx_id`` is bound twice in the DELETE) plus a margin
+# for any other bound params in the surrounding statement.
+_TX_ID_CHUNK_SIZE = 500
 
 
 def _delete_for_transactions(
@@ -173,21 +187,34 @@ def _delete_for_transactions(
     (``end_transaction_id IS NULL`` is not ``IN`` anything; live rows'
     ``transaction_id`` is preserved by construction in
     :func:`_candidate_transaction_ids`).
+
+    ``tx_ids`` is chunked into batches of ``_TX_ID_CHUNK_SIZE`` so the
+    bind-parameter count stays inside SQLite's ``SQLITE_MAX_VARIABLE_
+    NUMBER`` limit. Postgres and MySQL would happily accept the full
+    list, but the floor is dialect-agnostic since the retention task is
+    the only path that accumulates open-ended id batches.
     """
     if not tx_ids:
         return 0
     total = 0
     for tbl in tables:
-        result = conn.execute(
-            sa.delete(tbl).where(
-                sa.or_(
-                    tbl.c.transaction_id.in_(tx_ids),
-                    tbl.c.end_transaction_id.in_(tx_ids),
+        for chunk in _chunked(tx_ids, _TX_ID_CHUNK_SIZE):
+            result = conn.execute(
+                sa.delete(tbl).where(
+                    sa.or_(
+                        tbl.c.transaction_id.in_(chunk),
+                        tbl.c.end_transaction_id.in_(chunk),
+                    )
                 )
             )
-        )
-        total += result.rowcount or 0
+            total += result.rowcount or 0
     return total
+
+
+def _chunked(items: list[int], size: int) -> Iterator[list[int]]:
+    """Yield *items* in fixed-size lists. Final chunk may be smaller."""
+    for i in range(0, len(items), size):
+        yield items[i : i + size]
 
 
 def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
@@ -252,11 +279,16 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
 
         # Drop the version_transaction rows themselves. ON DELETE
         # CASCADE on version_changes.transaction_id removes the
-        # associated change records automatically.
-        tx_rows = (
-            conn.execute(sa.delete(tx_table).where(tx_table.c.id.in_(tx_ids))).rowcount
-            or 0
-        )
+        # associated change records automatically. Same SQLite bind-
+        # parameter chunking applies as the shadow deletes above.
+        tx_rows = 0
+        for chunk in _chunked(tx_ids, _TX_ID_CHUNK_SIZE):
+            tx_rows += (
+                conn.execute(
+                    sa.delete(tx_table).where(tx_table.c.id.in_(chunk))
+                ).rowcount
+                or 0
+            )
 
     stats = {
         "cutoff": cutoff.isoformat(),
