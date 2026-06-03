@@ -34,6 +34,7 @@ from superset.app import SupersetApp
 from superset.mcp_service.auth import (
     _resolve_user_from_jwt_context,
     get_user_from_request,
+    MCPNoAuthSourceError,
 )
 from superset.mcp_service.composite_token_verifier import API_KEY_PASSTHROUGH_CLAIM
 
@@ -176,7 +177,7 @@ def test_api_key_disabled_skips_auth(app: SupersetApp) -> None:
 
     with _mock_sm_ctx(app, mock_sm):
         with _patch_access_token(_passthrough_access_token("sst_abc123")):
-            with pytest.raises(ValueError, match="No authenticated user found"):
+            with pytest.raises(MCPNoAuthSourceError):
                 get_user_from_request()
 
     mock_sm.validate_api_key.assert_not_called()
@@ -193,7 +194,7 @@ def test_no_access_token_skips_api_key_auth(app: SupersetApp) -> None:
 
     with _mock_sm_ctx(app, mock_sm):
         with _patch_access_token(None):
-            with pytest.raises(ValueError, match="No authenticated user found"):
+            with pytest.raises(MCPNoAuthSourceError):
                 get_user_from_request()
 
     mock_sm.validate_api_key.assert_not_called()
