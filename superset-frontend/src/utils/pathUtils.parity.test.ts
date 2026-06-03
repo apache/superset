@@ -36,9 +36,9 @@
 
 import { SupersetClientClass } from '@superset-ui/core';
 
-async function loadEnsureAppRoot(appRoot = '/superset'): Promise<
-  (path: string) => string
-> {
+async function loadEnsureAppRoot(
+  appRoot = '/superset',
+): Promise<(path: string) => string> {
   const bootstrap = { common: { application_root: appRoot } };
   document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(
     bootstrap,
