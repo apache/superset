@@ -840,7 +840,7 @@ test('enables save button and includes updated title when editing an existing di
   await userEvent.clear(titleInput);
   await userEvent.type(titleInput, 'Second Edit');
 
-  jest.advanceTimersByTime(1000);
+  jest.advanceTimersByTime(500);
   jest.useRealTimers();
 
   await waitFor(() =>
@@ -858,6 +858,72 @@ test('enables save button and includes updated title when editing an existing di
           modified: expect.arrayContaining([
             expect.objectContaining({
               id: 'NATIVE_FILTER_DIVIDER-1',
+              title: 'Second Edit',
+            }),
+          ]),
+        }),
+      }),
+    ),
+  );
+}, 30000);
+
+test('enables save button and includes updated title when editing an existing chart customization divider', async () => {
+  jest.useFakeTimers();
+
+  const chartCustomizationDividerConfig = [
+    {
+      id: 'CHART_CUSTOMIZATION_DIVIDER-1',
+      type: 'CHART_CUSTOMIZATION_DIVIDER' as const,
+      title: 'First Edit',
+      description: '',
+    },
+  ];
+
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        chart_customization_config: chartCustomizationDividerConfig,
+      },
+    },
+    dashboardLayout,
+  };
+
+  const onSave = jest.fn();
+
+  defaultRender(state, {
+    ...props,
+    createNewOnOpen: false,
+    initialFilterId: 'CHART_CUSTOMIZATION_DIVIDER-1',
+    onSave,
+  });
+
+  // Save button should be disabled when no changes have been made
+  expect(screen.getByRole('button', { name: SAVE_REGEX })).toBeDisabled();
+
+  // Editing the title field should mark the divider modified and enable save
+  const titleInput = screen.getByRole('textbox', { name: /^title$/i });
+  await userEvent.clear(titleInput);
+  await userEvent.type(titleInput, 'Second Edit');
+
+  jest.advanceTimersByTime(500);
+  jest.useRealTimers();
+
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: SAVE_REGEX }),
+    ).not.toBeDisabled(),
+  );
+
+  await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+
+  await waitFor(() =>
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        customizationChanges: expect.objectContaining({
+          modified: expect.arrayContaining([
+            expect.objectContaining({
+              id: 'CHART_CUSTOMIZATION_DIVIDER-1',
               title: 'Second Edit',
             }),
           ]),
