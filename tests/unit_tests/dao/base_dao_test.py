@@ -73,6 +73,12 @@ def test_column_operator_enum_apply_method() -> None:  # noqa: C901
         (ColumnOperatorEnum.ne, TestModel.name, "test", "test_model.name != 'test'"),
         (ColumnOperatorEnum.sw, TestModel.name, "test", "test_model.name LIKE 'test%'"),
         (ColumnOperatorEnum.ew, TestModel.name, "test", "test_model.name LIKE '%test'"),
+        (
+            ColumnOperatorEnum.ct,
+            TestModel.name,
+            "test",
+            "lower(test_model.name) LIKE lower('%test%')",
+        ),
         (ColumnOperatorEnum.in_, TestModel.id, [1, 2, 3], "test_model.id IN (1, 2, 3)"),
         (
             ColumnOperatorEnum.nin,
@@ -130,6 +136,7 @@ def test_column_operator_enum_apply_method() -> None:  # noqa: C901
         ColumnOperatorEnum.ne,
         ColumnOperatorEnum.sw,
         ColumnOperatorEnum.ew,
+        ColumnOperatorEnum.ct,
         ColumnOperatorEnum.in_,
         ColumnOperatorEnum.nin,
         ColumnOperatorEnum.gt,

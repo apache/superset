@@ -64,6 +64,41 @@ def test_render_description_with_html() -> None:
     assert '<td>&lt;a href="http://www.example.com"&gt;333&lt;/a&gt;</td>' in email_body
 
 
+def test_error_template_sanitizes_html() -> None:
+    # `superset.models.helpers`, a dependency of following imports,
+    # requires app context
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    content = NotificationContent(
+        name="test alert",
+        text='DB error near "<img src=x onerror=alert(1)><script>alert(2)</script>"',
+        header_data={
+            "notification_format": "PNG",
+            "notification_type": "Alert",
+            "owners": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+    email_body = (
+        EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
+        )
+        ._get_content()
+        .body
+    )
+
+    # Injected markup in the error text must be stripped, not rendered.
+    assert "<img" not in email_body
+    assert "<script>" not in email_body
+    assert "onerror=alert(1)" not in email_body
+
+
 @with_feature_flags(DATE_FORMAT_IN_EMAIL_SUBJECT=True)
 def test_email_subject_with_datetime() -> None:
     # `superset.models.helpers`, a dependency of following imports,
