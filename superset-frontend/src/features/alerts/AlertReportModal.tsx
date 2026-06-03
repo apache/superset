@@ -64,6 +64,7 @@ import {
   Loading,
   Select,
   Switch,
+  Tooltip,
   TreeSelect,
   Button,
   type CheckboxChangeEvent,
@@ -2403,15 +2404,17 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             />
                           </div>
                           <div>
-                            <Button
-                              aria-label={t('Open chart in new tab')}
-                              onClick={() =>
-                                openChartInNewTab(currentAlert?.chart?.value)
-                              }
-                              icon={<Icons.LinkOutlined iconSize="s" />}
-                              buttonSize="small"
-                              disabled={!currentAlert?.chart?.value}
-                            />
+                            <Tooltip title={t('Open chart in new tab')}>
+                              <Button
+                                aria-label={t('Open chart in new tab')}
+                                onClick={() =>
+                                  openChartInNewTab(currentAlert?.chart?.value)
+                                }
+                                icon={<Icons.LinkOutlined iconSize="s" />}
+                                buttonSize="small"
+                                disabled={!currentAlert?.chart?.value}
+                              />
+                            </Tooltip>
                           </div>
                         </div>
                       </>
@@ -2441,17 +2444,19 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                             />
                           </div>
                           <div>
-                            <Button
-                              aria-label={t('Open dashboard in new tab')}
-                              onClick={() =>
-                                openDashboardInNewTab(
-                                  currentAlert?.dashboard?.value,
-                                )
-                              }
-                              icon={<Icons.LinkOutlined iconSize="s" />}
-                              buttonSize="small"
-                              disabled={!currentAlert?.dashboard?.value}
-                            />
+                            <Tooltip title={t('Open dashboard in new tab')}>
+                              <Button
+                                aria-label={t('Open dashboard in new tab')}
+                                onClick={() =>
+                                  openDashboardInNewTab(
+                                    currentAlert?.dashboard?.value,
+                                  )
+                                }
+                                icon={<Icons.LinkOutlined iconSize="s" />}
+                                buttonSize="small"
+                                disabled={!currentAlert?.dashboard?.value}
+                              />
+                            </Tooltip>
                           </div>
                         </div>
                       </>
