@@ -54,7 +54,8 @@ const StyledCard = styled(Card)`
        to wrap naturally instead of being clipped by the card. */
     .ant-card-meta-description {
       white-space: normal;
-      overflow-wrap: anywhere;
+      overflow-wrap: break-word;
+      word-break: break-word;
     }
   `}
 `;
@@ -266,7 +267,7 @@ function ListViewCard({
               </div>
             </TitleContainer>
           }
-          description={description || null}
+          description={description ?? null}
           avatar={avatar || null}
         />
       )}
