@@ -682,6 +682,8 @@ test('completes XLSX export successfully with correct filename', async () => {
     expect(result.current.progress.status).toBe(ExportStatus.COMPLETED);
   });
 
+  const request = mockFetch.mock.calls[0][1];
+  expect(request.body.get('guest_token')).toBeNull();
   expect(result.current.progress.filename).toBe('report.xlsx');
   expect(onComplete).toHaveBeenCalledWith('blob:mock-url', 'report.xlsx');
 });
