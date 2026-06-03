@@ -75,7 +75,13 @@ from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
     get_since_until_from_time_range,
 )
-from superset.constants import CacheRegion, EMPTY_STRING, NULL_STRING, TimeGrain
+from superset.constants import (
+    CacheRegion,
+    EMPTY_STRING,
+    NULL_STRING,
+    SKIP_VISIBILITY_FILTER_CLASSES,
+    TimeGrain,
+)
 from superset.db_engine_specs.base import TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -84,6 +90,8 @@ from superset.exceptions import (
     InvalidPostProcessingError,
     QueryClauseValidationException,
     QueryObjectValidationError,
+    SupersetDisallowedSQLFunctionException,
+    SupersetDisallowedSQLTableException,
     SupersetErrorException,
     SupersetErrorsException,
     SupersetSecurityException,
@@ -661,8 +669,6 @@ class AuditMixinNullable(AuditMixin):
         return Markup(f'<span class="no-wrap">{self.changed_on_humanized}</span>')  # noqa: S704
 
 
-SKIP_VISIBILITY_FILTER_CLASSES = "_skip_visibility_filter_classes"
-
 # Shared sentinel for "no bypass requested" — returned by
 # ``_collect_bypass_classes`` on the common path so every primary SELECT
 # does not allocate a fresh empty set. ``frozenset`` so accidental
@@ -1188,6 +1194,51 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 expression = sanitize_clause(expression, engine)
             except QueryClauseValidationException as ex:
                 raise QueryObjectValidationError(ex.message) from ex
+            # Adhoc expressions are user-controlled SQL that ends up inside a
+            # `literal_column(...)`. Apply the operator-configured
+            # `DISALLOWED_SQL_FUNCTIONS` / `DISALLOWED_SQL_TABLES` gates at the
+            # validation step so a dangerous function call (e.g. `version()`,
+            # `pg_read_file(...)`, `query_to_xml(...)`) is rejected before the
+            # expression is incorporated into the final SQL. This complements
+            # the same gate applied at query-execution time and gives the
+            # adhoc-expression path defense in depth.
+            disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(
+                engine, set()
+            )
+            disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(engine, set())
+            if disallowed_functions or disallowed_tables:
+                # `_process_select_expression` (and siblings) pre-wraps the
+                # input with `SELECT ...`; other callers pass bare
+                # expressions. Detect and don't double-wrap, otherwise
+                # `SELECT SELECT ...` fails the sqlglot parse.
+                sql_to_check = (
+                    expression
+                    if expression.strip().upper().startswith("SELECT")
+                    else f"SELECT {expression}"
+                )
+                parsed = SQLScript(sql_to_check, engine=engine)
+                if disallowed_functions and parsed.check_functions_present(
+                    disallowed_functions
+                ):
+                    raise SupersetDisallowedSQLFunctionException(disallowed_functions)
+                if disallowed_tables and parsed.check_tables_present(disallowed_tables):
+                    # Report only the tables actually found in the expression,
+                    # mirroring the canonical execution-time gate in
+                    # `superset.sql_lab._validate_query` so the user-facing
+                    # error doesn't echo the operator's full denylist.
+                    present_tables = {
+                        table.table.lower()
+                        for statement in parsed.statements
+                        for table in statement.tables
+                    }
+                    found_tables = {
+                        table
+                        for table in disallowed_tables
+                        if table.lower() in present_tables
+                    }
+                    raise SupersetDisallowedSQLTableException(
+                        found_tables or disallowed_tables
+                    )
         return expression
 
     def _process_select_expression(
@@ -1783,9 +1834,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # If it IS a datetime series, we still need to clear conflicts
                     query_object_clone.filter = copy.deepcopy(query_object_clone.filter)
 
-                    # For relative offsets with datetime series, ensure the temporal
-                    # filter matches our range
-                    temporal_col = query_object_clone.granularity or x_axis_label
+                    # Match against the column of the existing TEMPORAL_RANGE
+                    # filter rather than the X-axis label so adhoc Custom SQL
+                    # x-axes (label != underlying time column) still get shifted.
+                    temporal_col = self._get_temporal_column_for_filter(
+                        query_object, x_axis_label
+                    )
 
                     # Update any existing temporal filters to match our shifted range
                     for flt in query_object_clone.filter:

@@ -44,13 +44,14 @@ Typical CI workflow
 1. Create a base-branch worktree alongside the PR worktree
 2. Run babel_update.sh in the base worktree (extract from BASE source)
 3. Record baseline:  python ... --count --translations-dir BASE_TREE > before.json
-4. Run babel_update.sh in the PR worktree (extract from PR source) starting
-   from the same pristine BASE translations
+4. Run babel_update.sh in the PR worktree (extract from PR source and keep
+   any committed PR .po updates)
 5. Compare:  python ... --compare before.json [--report report.md]
 
-Comparing two babel_update outputs that started from the same BASE .po files
-isolates regressions caused by the PR's source diff from any pre-existing
-drift on the base branch.
+Running babel_update on the base branch first isolates regressions caused by
+the PR's source diff from any pre-existing drift on the base branch, while the
+PR worktree run still allows committed .po updates to restore lost
+translations.
 """
 
 import argparse
