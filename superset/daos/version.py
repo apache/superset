@@ -29,7 +29,6 @@ New code should import from the versioning sub-modules directly.
 from __future__ import annotations
 
 from superset.versioning.queries import (
-    _get_version_count,
     current_live_transaction_id,
     current_live_version_uuid,
     current_version_number,
@@ -42,11 +41,7 @@ from superset.versioning.queries import (
     resolve_version_uuid,
     VERSION_UUID_NAMESPACE,
 )
-from superset.versioning.restore import (
-    _RESTORE_RELATIONS,
-    _stamp_audit_fields_for_restore,
-    restore_version,
-)
+from superset.versioning.restore import restore_version
 
 # Re-exports for ``from superset.daos.version import …`` consumers.
 __all__ = [
@@ -67,7 +62,6 @@ class VersionDAO:
 
     # --- read side (queries.py) -------------------------------------------
     find_active_by_uuid = staticmethod(find_active_by_uuid)
-    _get_version_count = staticmethod(_get_version_count)
     current_version_number = staticmethod(current_version_number)
     current_live_transaction_id = staticmethod(current_live_transaction_id)
     current_live_version_uuid = staticmethod(current_live_version_uuid)
@@ -77,6 +71,4 @@ class VersionDAO:
     get_version = staticmethod(get_version)
 
     # --- write side (restore.py) ------------------------------------------
-    _RESTORE_RELATIONS = _RESTORE_RELATIONS
     restore_version = staticmethod(restore_version)
-    _stamp_audit_fields_for_restore = staticmethod(_stamp_audit_fields_for_restore)
