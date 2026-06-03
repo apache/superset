@@ -39,7 +39,7 @@ This module collects all those decorations:
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 import sqlalchemy as sa
@@ -155,11 +155,11 @@ def _decorate_records(
 def _lookup_entity_uuids(
     distinct: set[tuple[str, int]],
     tombstones: dict[tuple[str, int], dict[str, Any]],
-) -> dict[tuple[str, int], Optional[UUID]]:
+) -> dict[tuple[str, int], UUID | None]:
     """Batch-fetch live ``uuid`` per ``(api_kind, entity_id)``. Tombstoned
     entities are skipped (their ``entity_uuid`` is null per data-model.md).
     """
-    result: dict[tuple[str, int], Optional[UUID]] = {}
+    result: dict[tuple[str, int], UUID | None] = {}
     by_kind: dict[str, list[int]] = {}
     for api_kind, entity_id in distinct:
         if tombstones.get((api_kind, entity_id), {}).get("deleted"):
@@ -194,7 +194,7 @@ def _build_summary(api_kind: str, record: dict[str, Any]) -> str:
     return f"{label} {verb}: {name}" if name else f"{label} {verb}"
 
 
-def _changed_by_dict(record: dict[str, Any]) -> Optional[dict[str, Any]]:
+def _changed_by_dict(record: dict[str, Any]) -> dict[str, Any] | None:
     """Project the user columns onto the ``changed_by`` shape, or
     ``None`` when no Flask user was attached to the save (CLI / Celery)
     or when the user has since been deleted from ``ab_user``.

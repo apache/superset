@@ -37,7 +37,7 @@ mappers are configured.
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 import sqlalchemy as sa
@@ -189,8 +189,8 @@ def _batch_datasets_used_by_charts(
 
 def _fetch_change_records(
     entity_window_tuples: list[EntityWindows],
-    since: Optional[datetime],
-    until: Optional[datetime],
+    since: datetime | None,
+    until: datetime | None,
 ) -> list[dict[str, Any]]:
     """Fetch all ``version_changes`` rows matching any of the supplied
     entity-window tuples, joined with ``version_transaction`` for
@@ -258,8 +258,8 @@ def _fetch_change_records(
 
 def _select_change_rows_for_kinds(
     ids_by_kind: dict[str, set[int]],
-    since: Optional[datetime],
-    until: Optional[datetime],
+    since: datetime | None,
+    until: datetime | None,
 ) -> list[dict[str, Any]]:
     """Fire one SELECT per entity_kind with ``entity_id IN (...)``;
     concatenate the results. Each SELECT joins ``version_transaction``
@@ -273,7 +273,18 @@ def _select_change_rows_for_kinds(
     Superset's multi-dialect requirement (at most 3 round-trips per
     request, bounded by the kind taxonomy). Do not "optimise" into a
     composite-tuple IN clause without verifying the SQL on all three
-    dialects."""
+    dialects.
+
+    **Init-order dependency.** ``tx_tbl.c.action_kind`` resolves only
+    after ``init_versioning()`` has run — the column is appended onto
+    Continuum's transaction Table by
+    ``superset.versioning.factory.VersionTransactionFactory`` at app
+    start via ``append_column`` + ``add_property``. This helper is
+    safe to call from request-path code because the app is fully
+    initialised by then; calling it from a script that imports the
+    versioning package without going through ``init_versioning()``
+    will raise ``AttributeError`` on the ``action_kind`` attribute
+    access below."""
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import versioning_manager
 
@@ -362,7 +373,7 @@ def _resolve_names_for_kind(
         )
         .all()
     )
-    per_entity: dict[int, list[tuple[int, Optional[int], Any]]] = {}
+    per_entity: dict[int, list[tuple[int, int | None, Any]]] = {}
     for row in rows:
         per_entity.setdefault(row[0], []).append((row[1], row[2], row[3]))
 

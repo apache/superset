@@ -29,6 +29,16 @@ for the access-filtered subset) replace the N-call
 ``security_manager.can_access_<kind>(entity)`` loop that dominated
 latency on dashboard-scope responses with many related entities
 (sqlalchemy-review W-NEW-1).
+
+**Inline imports.** ``_resolve_visibility`` defers the FAB-filter
+imports (``DashboardAccessFilter`` / ``ChartFilter`` /
+``DatasourceFilter`` and ``SQLAInterface``) until call time. Same
+init-order rationale as :mod:`superset.versioning.baseline` —
+``versioning`` packages are imported from ``init_versioning()``
+before all model mappers are configured, and the filter classes pull
+in their resource's model graph (Chart → Dataset → Database for
+``ChartFilter``, etc.); a module-top import would trip mapper
+resolution before Continuum's ``make_versioned()`` has finished.
 """
 
 from __future__ import annotations

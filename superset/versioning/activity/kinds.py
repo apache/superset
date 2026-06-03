@@ -33,8 +33,6 @@ discoverable at a glance.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -97,7 +95,7 @@ _NAME_COLUMN: dict[str, tuple[str, str]] = {
 
 #: A validity window in Continuum transaction-id space, half-open as
 #: ``[start_tx, end_tx)``. ``end_tx = None`` means "open ended (current)".
-Window = tuple[int, Optional[int]]
+Window = tuple[int, int | None]
 
 #: A related-entity scope row: ``(api_kind, entity_id, [windows])``.
 #: ``api_kind`` is the DTO-facing kind (``"Slice"``, etc.), not the

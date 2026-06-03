@@ -44,7 +44,7 @@ next door in :mod:`~superset.versioning.activity.queries`.
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from superset.versioning.activity.kinds import EntityWindows, Window
 from superset.versioning.activity.queries import (
@@ -54,7 +54,7 @@ from superset.versioning.activity.queries import (
 )
 
 
-def _intersect_windows(outer: Window, inner: Window) -> Optional[Window]:
+def _intersect_windows(outer: Window, inner: Window) -> Window | None:
     """Intersect two half-open ``[start_tx, end_tx)`` windows.
 
     Returns the clipped overlap, or ``None`` when they are disjoint.
@@ -64,7 +64,7 @@ def _intersect_windows(outer: Window, inner: Window) -> Optional[Window]:
     o_start, o_end = outer
     i_start, i_end = inner
     start = max(o_start, i_start)
-    end: Optional[int]
+    end: int | None
     if o_end is None:
         end = i_end
     elif i_end is None:
@@ -190,7 +190,7 @@ def _union_windows(windows: list[Window]) -> list[Window]:
             continue
         if start <= prev_end:
             # Overlapping or touching — extend the prior window.
-            new_end: Optional[int] = None if end is None else max(prev_end, end)
+            new_end: int | None = None if end is None else max(prev_end, end)
             out[-1] = (prev_start, new_end)
         else:
             out.append((start, end))

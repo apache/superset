@@ -45,7 +45,7 @@ from __future__ import annotations
 import contextlib
 from collections.abc import Iterator
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 from uuid import UUID
 
 from superset.versioning.activity.kinds import EntityWindows
@@ -90,7 +90,7 @@ def parse_activity_query_params(args: Any) -> dict[str, Any]:
     return params
 
 
-def _parse_optional_iso(raw: Optional[str], *, name: str) -> Optional[datetime]:
+def _parse_optional_iso(raw: str | None, *, name: str) -> datetime | None:
     """Parse a missing-or-ISO-datetime field; ``None`` for missing,
     ``ActivityParamsError`` for malformed."""
     if not raw:
@@ -120,7 +120,7 @@ def _parse_page(raw: str) -> int:
     return value
 
 
-def _parse_page_size(raw: Optional[str]) -> int:
+def _parse_page_size(raw: str | None) -> int:
     """``page_size`` honours the default when missing, raises when invalid,
     and silently clamps to ``_MAX_PAGE_SIZE`` (so ``?page_size=500``
     returns 200 records instead of a 400)."""
@@ -135,7 +135,7 @@ def _parse_page_size(raw: Optional[str]) -> int:
     return min(value, _MAX_PAGE_SIZE)
 
 
-def _parse_iso_datetime(value: str) -> Optional[datetime]:
+def _parse_iso_datetime(value: str) -> datetime | None:
     """Parse an ISO-8601 datetime string. Tolerates the trailing ``Z``
     suffix that Python <3.11 ``fromisoformat`` rejects."""
     candidate = value[:-1] + "+00:00" if value.endswith("Z") else value
@@ -149,8 +149,8 @@ def get_activity(
     model_cls: type,
     entity_uuid: UUID,
     *,
-    since: Optional[datetime] = None,
-    until: Optional[datetime] = None,
+    since: datetime | None = None,
+    until: datetime | None = None,
     include: str = "all",
     page: int = 0,
     page_size: int = _DEFAULT_PAGE_SIZE,

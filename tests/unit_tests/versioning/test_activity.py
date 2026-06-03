@@ -30,8 +30,6 @@ by the integration suite in
 
 from __future__ import annotations
 
-from typing import Optional
-
 import pytest
 
 from superset.versioning.activity import (
@@ -85,7 +83,7 @@ from superset.versioning.activity import (
     ],
 )
 def test_intersect_windows(
-    outer: Window, inner: Window, expected: Optional[Window]
+    outer: Window, inner: Window, expected: Window | None
 ) -> None:
     assert _intersect_windows(outer, inner) == expected
 

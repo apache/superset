@@ -39,7 +39,7 @@ inside another (no DB).
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 import sqlalchemy as sa
 
@@ -142,7 +142,7 @@ def _impact_for_record(
     record: dict[str, Any],
     path_kind: str,
     counts: dict[tuple[int, int], int],
-) -> Optional[dict[str, int]]:
+) -> dict[str, int] | None:
     """Synthesize the ``impact`` field for one record using the pre-
     fetched *counts* mapping. Pure function — no DB.
 
