@@ -14,10 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime
-
 import pandas as pd
-from pytz import timezone
 
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -107,8 +104,6 @@ def test_email_subject_with_datetime() -> None:
     from superset.reports.notifications.base import NotificationContent
     from superset.reports.notifications.email import EmailNotification
 
-    now = datetime.now(timezone("UTC"))
-
     datetime_pattern = "%Y-%m-%d"
 
     content = NotificationContent(
@@ -130,8 +125,12 @@ def test_email_subject_with_datetime() -> None:
             "execution_id": "test-execution-id",
         },
     )
-    subject = EmailNotification(
+    notification = EmailNotification(
         recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
-    )._get_subject()
+    )
+    subject = notification._get_subject()
     assert datetime_pattern not in subject
-    assert now.strftime(datetime_pattern) in subject
+    # Compare against the notification's own stamped timestamp rather than a
+    # separately-sampled clock, so the assertion can't flake when the test runs
+    # across the UTC midnight boundary.
+    assert notification.now.strftime(datetime_pattern) in subject
