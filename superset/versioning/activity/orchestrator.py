@@ -26,9 +26,9 @@ model class to assemble the cross-entity activity stream:
    ``version_changes`` joined with ``version_transaction`` and ``ab_user``.
 4. ``filter_records_by_visibility`` (visibility.py) — silent AV-008
    drop of records the requester can't read.
-5. ``denormalize_entity_names`` (queries.py) — resolve entity names
+5. ``apply_entity_name_denormalization`` (queries.py) — resolve entity names
    from the shadow row valid at each record's transaction_id.
-6. ``decorate_records`` (render.py) — synthesize the ActivityRecord
+6. ``apply_record_decoration`` (render.py) — synthesize the ActivityRecord
    DTO fields and strip internal-only columns.
 7. Paginate in Python over the post-filter list.
 
@@ -52,11 +52,11 @@ from flask import Response
 
 from superset.versioning.activity.kinds import EntityWindows
 from superset.versioning.activity.queries import (
-    denormalize_entity_names,
+    apply_entity_name_denormalization,
     fetch_change_records,
     resolve_path_entity,
 )
-from superset.versioning.activity.render import decorate_records
+from superset.versioning.activity.render import apply_record_decoration
 from superset.versioning.activity.scope import resolve_scope
 from superset.versioning.activity.visibility import filter_records_by_visibility
 from superset.versioning.api_helpers import (
@@ -203,9 +203,9 @@ def get_activity(
     with _phase_timer(kind_key, "visibility_filter_ms"):
         records = filter_records_by_visibility(records)
     with _phase_timer(kind_key, "denormalize_ms"):
-        records = denormalize_entity_names(records)
+        apply_entity_name_denormalization(records)
     with _phase_timer(kind_key, "decorate_ms"):
-        records = decorate_records(records, path_kind, path_id)
+        apply_record_decoration(records, path_kind, path_id)
 
     total = len(records)
     bounded_size = max(1, min(page_size, _MAX_PAGE_SIZE))

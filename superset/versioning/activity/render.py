@@ -25,7 +25,7 @@ dashboard→dataset records), ``version_uuid``, ``changed_by``.
 
 This module collects all those decorations:
 
-* :func:`decorate_records` — orchestrates the per-page additions in
+* :func:`apply_record_decoration` — orchestrates the per-page additions in
   one pass: pulls tombstones + uuids + impact counts in batches, then
   walks records adding the synthesized fields and stripping the
   internal-only columns the API contract doesn't expose.
@@ -76,21 +76,25 @@ _SUMMARY_VERBS: dict[str, str] = {
 }
 
 
-def decorate_records(
+def apply_record_decoration(
     records: list[dict[str, Any]],
     path_kind: str,
     path_id: int,
-) -> list[dict[str, Any]]:
-    """Add the synthesized ActivityRecord fields to each record:
+) -> None:
+    """Add the synthesized ActivityRecord fields to each record in place:
     ``entity_kind`` (translated to API form), ``entity_uuid``,
     ``entity_deleted``, ``entity_deletion_state``, ``source``,
     ``summary``, ``impact``, ``version_uuid``, ``changed_by``.
 
-    Mutates and returns *records* for chaining. Records are expected to
-    already carry ``entity_name`` from :func:`denormalize_entity_names`.
+    Mutates *records* in place; returns ``None``. Records are expected
+    to already carry ``entity_name`` from
+    :func:`apply_entity_name_denormalization`. The in-place mutation
+    avoids re-allocating thousands of dicts on hot dashboards; the
+    name + return signature make the side effect explicit instead of
+    pretending to be a pure projection.
     """
     if not records:
-        return records
+        return
 
     distinct: set[tuple[str, int]] = {
         (

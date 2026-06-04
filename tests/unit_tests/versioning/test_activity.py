@@ -22,7 +22,7 @@ window merging, AV-012 summary headlines, ``changed_by`` projection,
 read-predicate fall-through, and the no-impact paths of
 ``_compute_impact``. The DB-touching helpers
 (``charts_attached_to_dashboard``, ``datasets_used_by_chart``,
-``fetch_change_records``, ``denormalize_entity_names``,
+``fetch_change_records``, ``apply_entity_name_denormalization``,
 ``check_entity_tombstones``, ``_lookup_entity_uuids``) are exercised
 by the integration suite in
 ``tests/integration_tests/versioning/activity_view_tests.py``.

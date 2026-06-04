@@ -20,7 +20,7 @@ All Phase A relationship walks (``charts_attached_to_dashboard``,
 ``datasets_used_by_chart``, ``batch_datasets_used_by_charts``),
 the Phase B change-record fetch (``fetch_change_records`` /
 ``_select_change_rows_for_kinds``), the name-denormalization helpers
-(``_resolve_names_for_kind`` / ``denormalize_entity_names``), the
+(``_resolve_names_for_kind`` / ``apply_entity_name_denormalization``), the
 path-entity resolution helper (``resolve_path_entity``), and the
 tombstone-state lookup (``check_entity_tombstones``) live here.
 
@@ -410,18 +410,21 @@ def _resolve_names_for_kind(
     return resolved
 
 
-def denormalize_entity_names(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def apply_entity_name_denormalization(records: list[dict[str, Any]]) -> None:
     """Resolve each record's ``entity_name`` from the shadow row valid at
-    its ``transaction_id``. Adds an ``entity_name`` key to every record;
-    mutates and returns *records* for convenient chaining.
+    its ``transaction_id``. Adds an ``entity_name`` key to every record
+    in place; returns ``None``.
 
     The lookup is per (table-stored ``entity_kind``, ``entity_id``,
     ``transaction_id``) triple. One ``IN``-clause query per kind keeps
     round-trips bounded by the number of distinct kinds (≤3) regardless
-    of result-set size.
+    of result-set size. The in-place mutation avoids re-allocating
+    thousands of dicts on hot dashboards; the name + return signature
+    make the side effect explicit instead of pretending to be a pure
+    projection.
     """
     if not records:
-        return records
+        return
 
     needed_by_kind: dict[str, set[tuple[int, int]]] = {}
     for record in records:
@@ -443,7 +446,6 @@ def denormalize_entity_names(records: list[dict[str, Any]]) -> list[dict[str, An
         api_kind_for_record = TABLE_KIND_TO_API.get(record["entity_kind"], "")
         key = (api_kind_for_record, record["entity_id"], record["transaction_id"])
         record["entity_name"] = resolved.get(key, "")
-    return records
 
 
 # ---- Live-row existence + soft-delete state -------------------------------

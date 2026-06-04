@@ -68,7 +68,7 @@ API_KIND_LABEL: dict[str, str] = {
 # ``ActivityRecordSchema.entity_kind`` enum. Internal code keeps the
 # Python class-name form because it matches ``model_cls.__name__`` and is
 # convenient for dispatch — translation happens at serialization time
-# only, in :func:`render.decorate_records`.
+# only, in :func:`render.apply_record_decoration`.
 USER_FACING_KIND: dict[str, str] = {
     "Dashboard": "dashboard",
     "Slice": "chart",
