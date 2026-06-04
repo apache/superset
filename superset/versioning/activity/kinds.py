@@ -35,6 +35,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from flask_appbuilder import Model
+
 from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.dataset.exceptions import DatasetNotFoundError
@@ -163,7 +165,7 @@ class Window:
 EntityWindows = tuple[str, int, list[Window]]
 
 
-def load_shadow_model(model_name: str) -> type:
+def load_shadow_model(model_name: str) -> type[Model]:
     """Inline-import a shadow model class by name. Deferred until call
     time because the versioning package is initialised before all model
     mappers are configured (same idiom used throughout

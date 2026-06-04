@@ -400,9 +400,7 @@ class TestDashboardActivityView(SupersetTestCase):
         from superset.versioning.activity.queries import check_entity_tombstones
 
         _persist_fixture_state()
-        chart = (
-            db.session.query(Slice).filter(Slice.slice_name == "Girls").first()
-        )
+        chart = db.session.query(Slice).filter(Slice.slice_name == "Girls").first()
         dataset = _get_birth_names_dataset()
         assert chart is not None
         assert dataset is not None

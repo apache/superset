@@ -153,7 +153,6 @@ def apply_record_decoration(
             "last_name",
         ):
             record.pop(key, None)
-    return records
 
 
 def _lookup_entity_uuids(
