@@ -25,6 +25,7 @@ concurrency:
 jobs:
   changes:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: read
@@ -48,6 +49,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     continue-on-error: true
     permissions:
       contents: read
