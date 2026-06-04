@@ -42,6 +42,7 @@ from typing import Any
 from uuid import UUID
 
 import sqlalchemy as sa
+from flask_appbuilder import Model
 
 from superset.extensions import db
 from superset.versioning.activity.kinds import (
@@ -59,7 +60,7 @@ from superset.versioning.changes import version_changes_table
 # ---- Path-entity resolution -----------------------------------------------
 
 
-def resolve_path_entity(model_cls: type, entity_uuid: UUID) -> tuple[Any, int]:
+def resolve_path_entity(model_cls: type[Model], entity_uuid: UUID) -> tuple[Any, int]:
     """Resolve *entity_uuid* to ``(live_entity, entity_id)`` or raise a
     typed 404 per AV-009.
 

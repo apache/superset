@@ -93,7 +93,7 @@ class PathEntityResponseError(Exception):
 
 
 def resolve_endpoint_path_entity(
-    api: Any, model_cls: type, uuid_str: str
+    api: Any, model_cls: type[Model], uuid_str: str
 ) -> tuple[Any, UUID]:
     """Run the standard path-entity preflight for a /versions/ or
     /activity/ endpoint:

@@ -49,6 +49,7 @@ from typing import Any
 from uuid import UUID
 
 from flask import Response
+from flask_appbuilder import Model
 
 from superset.versioning.activity.kinds import EntityWindows
 from superset.versioning.activity.queries import (
@@ -152,7 +153,7 @@ def _parse_iso_datetime(value: str) -> datetime | None:
 
 
 def get_activity(
-    model_cls: type,
+    model_cls: type[Model],
     entity_uuid: UUID,
     *,
     since: datetime | None = None,
@@ -224,7 +225,7 @@ def get_activity(
 
 
 def activity_endpoint(
-    api: Any, model_cls: type, uuid_str: str, request_args: Any
+    api: Any, model_cls: type[Model], uuid_str: str, request_args: Any
 ) -> Response:
     """Body of ``GET /api/v1/{resource}/<uuid>/activity/``.
 
