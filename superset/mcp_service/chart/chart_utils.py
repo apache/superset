@@ -158,13 +158,21 @@ def validate_chart_dataset(
 
 
 def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> str:
-    """Generate an explore link for the given dataset and form data."""
+    """Generate an explore link for the given dataset and form data.
+
+    Prefers a durable explore permalink (DB-backed key-value store, does not
+    expire) over an ephemeral form_data_key (Redis cache, expires in ~24h).
+    Falls back to the form_data_key approach if permalink creation fails, then
+    to a plain dataset URL as a last resort.
+    """
     from sqlalchemy.exc import SQLAlchemyError
 
     from superset.commands.exceptions import CommandException
     from superset.commands.explore.form_data.parameters import CommandParameters
+    from superset.commands.explore.permalink.create import CreateExplorePermalinkCommand
     from superset.daos.dataset import DatasetDAO
     from superset.exceptions import SupersetException
+    from superset.explore.permalink.exceptions import ExplorePermalinkCreateFailedError
     from superset.mcp_service.commands.create_form_data import (
         MCPCreateFormDataCommand,
     )
@@ -200,7 +208,25 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
             "datasource": f"{numeric_dataset_id}__table",
         }
 
-        # Try to create form_data in cache using MCP-specific CreateFormDataCommand
+        # Try durable permalink first (DB-backed key-value store, does not expire)
+        try:
+            state = {"formData": form_data_with_datasource}
+            permalink_key = CreateExplorePermalinkCommand(state=state).run()
+            return f"{base_url}/explore/p/{permalink_key}/"
+        except (
+            ExplorePermalinkCreateFailedError,
+            SQLAlchemyError,
+            KeyError,
+            ValueError,
+            AttributeError,
+            TypeError,
+        ) as permalink_e:
+            logger.debug(
+                "Permalink generation failed, falling back to form_data_key: %s",
+                permalink_e,
+            )
+
+        # Fall back to ephemeral form_data_key (Redis-backed cache)
         cmd_params = CommandParameters(
             datasource_type=DatasourceType.TABLE,
             datasource_id=numeric_dataset_id,
@@ -208,11 +234,7 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
             tab_id=None,
             form_data=json.dumps(form_data_with_datasource),
         )
-
-        # Create the form_data cache entry and get the key
         form_data_key = MCPCreateFormDataCommand(cmd_params).run()
-
-        # Return URL with just the form_data_key
         return f"{base_url}/explore/?form_data_key={form_data_key}"
 
     except (

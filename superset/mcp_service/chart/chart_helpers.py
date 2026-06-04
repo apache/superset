@@ -26,6 +26,7 @@ URL parameter extraction. Config mapping logic lives in chart_utils.py.
 from __future__ import annotations
 
 import logging
+import re
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
@@ -695,6 +696,18 @@ def extract_form_data_key_from_url(url: str | None) -> str | None:
     parsed = urlparse(url)
     values = parse_qs(parsed.query).get("form_data_key", [])
     return values[0] if values else None
+
+
+def extract_permalink_key_from_url(url: str | None) -> str | None:
+    """Extract the permalink key from an explore permalink URL.
+
+    Matches the /explore/p/<key>/ pattern produced by CreateExplorePermalinkCommand.
+    Returns the key, or None if the URL does not follow that pattern.
+    """
+    if not url:
+        return None
+    match = re.search(r"/explore/p/([^/]+)/?", url)
+    return match.group(1) if match else None
 
 
 def _match_adhoc_by_subject(
