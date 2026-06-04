@@ -43,13 +43,15 @@ const DANGEROUS_LINK_PROTOCOLS = ['javascript', 'vbscript', 'data'];
  * untouched. Applied regardless of the EscapeMarkdownHtml feature flag.
  */
 export function transformLinkUri(uri: string): string {
-  // Per the WHATWG URL parser, browsers strip leading and trailing C0 control
+  // Per the WHATWG URL parser, browsers strip leading C0 control
   // characters (\x00-\x1f) and space before resolving the scheme, so e.g.
   // "\x01javascript:alert(1)" executes on click. Strip them here too,
   // otherwise the blocklist check below could be bypassed with a leading
-  // control character. (This also subsumes the previous .trim().)
+  // control character. The pattern is anchored at the start so it runs in
+  // linear time; trailing whitespace does not affect the scheme and is
+  // left for the renderer to handle.
   // eslint-disable-next-line no-control-regex
-  const url = (uri || '').replace(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/g, '');
+  const url = (uri || '').replace(/^[\u0000-\u0020]+/, '');
   const first = url.charAt(0);
   // Anchors and absolute/relative paths have no protocol.
   if (first === '#' || first === '/') {

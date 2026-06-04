@@ -59,23 +59,31 @@ describe('transformLinkUri', () => {
   const js = `java${'script'}`;
   const vbs = `vb${'script'}`;
 
+  // Cases are [label, uri] pairs: the raw URIs contain C0 control characters
+  // (\x00, \x01, \x1F) that are invalid in XML, so they must not be
+  // interpolated into the test name (the HTML/JUnit reporters serialize names
+  // to XML and would crash). The label keeps the reported name printable while
+  // the uri is exercised in the body.
   test.each([
-    `${js}:alert(1)`,
-    `Java${'Script'}:alert(1)`,
-    `  ${js}:alert(document.cookie)`,
-    `java\t${'script'}:alert(1)`,
+    ['javascript', `${js}:alert(1)`],
+    ['mixed-case JavaScript', `Java${'Script'}:alert(1)`],
+    ['leading whitespace', `  ${js}:alert(document.cookie)`],
+    ['tab inside scheme', `java\t${'script'}:alert(1)`],
     // Leading C0 control characters are stripped by the WHATWG URL parser
     // before the scheme is resolved, so they must not bypass the blocklist.
-    `\x01${js}:alert(1)`,
-    `\x00${js}:alert(1)`,
-    `\x1F${js}:alert(1)`,
+    ['leading 0x01 control', `\x01${js}:alert(1)`],
+    ['leading NUL (0x00)', `\x00${js}:alert(1)`],
+    ['leading 0x1F control', `\x1F${js}:alert(1)`],
     // C0 control characters inside the scheme are ignored by browsers too.
-    `java\x01${'script'}:alert(1)`,
-    `${vbs}:msgbox(1)`,
-    'data:text/html,<script>alert(1)</script>',
-  ])('blocks the script-executing protocol in %p', uri => {
-    expect(transformLinkUri(uri)).toBe('');
-  });
+    ['0x01 control inside scheme', `java\x01${'script'}:alert(1)`],
+    ['vbscript', `${vbs}:msgbox(1)`],
+    ['data: text/html', 'data:text/html,<script>alert(1)</script>'],
+  ])(
+    'blocks the script-executing protocol (%s)',
+    (_label: string, uri: string) => {
+      expect(transformLinkUri(uri)).toBe('');
+    },
+  );
 
   test.each([
     'https://superset.apache.org',
