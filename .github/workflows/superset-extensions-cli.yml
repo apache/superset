@@ -20,6 +20,7 @@ concurrency:
 jobs:
   test-superset-extensions-cli-package:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     strategy:
       matrix:
         python-version: ["previous", "current", "next"]
