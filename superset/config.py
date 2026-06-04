@@ -51,7 +51,7 @@ from sqlalchemy.orm.query import Query
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
-from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET, CHANGE_ME_SECRET_KEY
 from superset.jinja_context import BaseTemplateProcessor
 from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
@@ -311,6 +311,7 @@ WTF_CSRF_EXEMPT_LIST = [
     "superset.views.core.explore_json",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
+    "flask_appbuilder.security.views.acs",
 ]
 
 # Whether to run the web server in debug mode or not
@@ -432,10 +433,12 @@ LANGUAGES = {
     "pt_BR": {"flag": "br", "name": "Brazilian Portuguese"},
     "ru": {"flag": "ru", "name": "Russian"},
     "ko": {"flag": "kr", "name": "Korean"},
+    "cs": {"flag": "cz", "name": "Czech"},
     "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
+    "lv": {"flag": "lv", "name": "Latvian"},
     "nl": {"flag": "nl", "name": "Dutch"},
-    "uk": {"flag": "uk", "name": "Ukranian"},
+    "uk": {"flag": "ua", "name": "Ukrainian"},
     "mi": {"flag": "nz", "name": "Māori"},
 }
 # Turning off i18n by default as translation in most languages are
@@ -562,6 +565,17 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # in addition to relative timeshifts (e.g., "1 day ago")
     # @lifecycle: development
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
+    # Enable API key authentication via FAB SecurityManager
+    # When enabled, users can create/manage API keys in the User Info page
+    # @lifecycle: development
+    "FAB_API_KEY_ENABLED": False,
+    # Enable granular export controls (can_export_data, can_export_image,
+    # can_copy_clipboard) instead of the single can_csv permission
+    # @lifecycle: development
+    "GRANULAR_EXPORT_CONTROLS": False,
+    # Enable semantic layers and show semantic views alongside datasets
+    # @lifecycle: development
+    "SEMANTIC_LAYERS": False,
     # Enables advanced data type support
     # @lifecycle: development
     "ENABLE_ADVANCED_DATA_TYPES": False,
@@ -629,7 +643,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Experimental with potential security/performance risks.
     # See SUPERSET_META_DB_LIMIT.
     # @lifecycle: testing
-    # @docs: https://superset.apache.org/docs/configuration/databases/#querying-across-databases
+    # @docs: https://superset.apache.org/user-docs/databases/supported/superset-meta-database
     "ENABLE_SUPERSET_META_DB": False,
     # Enable query cost estimation. Supported in Presto, Postgres, and BigQuery.
     # Requires `cost_estimate_enabled: true` in database `extra` attribute.
@@ -714,6 +728,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "DATAPANEL_CLOSED_BY_DEFAULT": False,
+    # Hide the logout button in embedded contexts (e.g., when using SSO in iframes)
+    # @lifecycle: stable
+    # @category: runtime_config
+    # @docs: https://superset.apache.org/docs/configuration/networking-settings#hiding-the-logout-button-in-embedded-contexts
+    "DISABLE_EMBEDDED_SUPERSET_LOGOUT": False,
     # Enable drill-by functionality in charts
     # @lifecycle: stable
     # @category: runtime_config
@@ -1174,7 +1193,7 @@ HTML_SANITIZATION_SCHEMA_EXTENSIONS: dict[str, Any] = {}
 # than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
 # next available socket. PR #5039 added domain sharding for Superset,
 # and this feature can be enabled by configuration only (by default Superset
-# doesn't allow cross-domain request). This feature is deprecated, annd will be removed
+# doesn't allow cross-domain request). This feature is deprecated, and will be removed
 # in the next major version of Superset, as enabling HTTP2 will serve the same goals.
 SUPERSET_WEBSERVER_DOMAINS = None  # deprecated
 
@@ -1403,6 +1422,13 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "schedule": crontab(minute=0, hour=0),
         #     "kwargs": {"retention_period_days": 90, "max_rows_per_run": 10000},
         # },
+        # Uncomment to enable pruning of expired entries from the key-value store
+        # (for example, rows left behind by the metastore cache backend)
+        # "prune_key_value": {
+        #     "task": "prune_key_value",
+        #     "schedule": crontab(minute=0, hour=0),
+        #     "kwargs": {"max_rows_per_run": 10000},
+        # },
         # Uncomment to enable Slack channel cache warm-up
         # "slack.cache_channels": {
         #     "task": "slack.cache_channels",
@@ -1432,6 +1458,9 @@ DEFAULT_DB_ID = None
 
 # Timeout duration for SQL Lab synchronous queries
 SQLLAB_TIMEOUT = int(timedelta(seconds=30).total_seconds())
+
+# BigQuery max fetch size in MB (limits memory usage when fetching large results)
+BQ_FETCH_MAX_MB = 200
 
 # Timeout duration for SQL Lab query validation
 SQLLAB_VALIDATION_TIMEOUT = int(timedelta(seconds=10).total_seconds())
@@ -1627,6 +1656,13 @@ FAB_ADD_SECURITY_API = True
 FAB_ADD_SECURITY_PERMISSION_VIEW = False
 FAB_ADD_SECURITY_VIEW_MENU_VIEW = False
 FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
+
+# API Key Authentication via FAB SecurityManager
+# FAB reads this config directly to register the ApiKeyApi blueprint.
+# The FAB_API_KEY_ENABLED feature flag (in DEFAULT_FEATURE_FLAGS) controls
+# the frontend UI visibility independently.
+FAB_API_KEY_ENABLED = False
+FAB_API_KEY_PREFIXES = ["sst_"]
 
 # The link to a page containing common errors and their resolutions
 # It will be appended at the bottom of sql_lab errors.
@@ -1959,6 +1995,8 @@ ALERT_REPORTS_QUERY_EXECUTION_MAX_TRIES = 1
 # Custom width for screenshots
 ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH = 600
 ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH = 2400
+# Rewrite external links in alert/report emails to go through a warning page
+ALERT_REPORTS_ENABLE_LINK_REDIRECT = True
 # Set a minimum interval threshold between executions (for each Alert/Report)
 # Value should be an integer i.e. int(timedelta(minutes=5).total_seconds())
 # You can also assign a function to the config that returns the expected integer
@@ -1983,7 +2021,10 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 # For workspaces with 10k+ channels, consider increasing to 10
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
 
-# The webdriver to use for generating reports. Use one of the following
+# The webdriver to use for generating reports when using Selenium (not Playwright).
+# This setting is ignored when PLAYWRIGHT_REPORTS_AND_THUMBNAILS is enabled, as
+# Playwright always uses Chromium regardless of this value.
+# Use one of the following:
 # firefox
 #   Requires: geckodriver and firefox installations
 #   Limitations: can be buggy at times
@@ -2045,6 +2086,15 @@ DEFAULT_RELATIVE_END_TIME = "today"
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
     "postgresql": "PostgreSQLValidator",
+    # SQLite-based engines (SQLite, GSheets, Shillelagh) can use the
+    # SQLiteSQLValidator, but it requires the optional syntaqlite package:
+    #
+    #   pip install "apache-superset[sqlite]"
+    #
+    # Once installed, enable validation by uncommenting the lines below:
+    # "sqlite": "SQLiteSQLValidator",
+    # "gsheets": "SQLiteSQLValidator",
+    # "shillelagh": "SQLiteSQLValidator",
 }
 
 # A list of preferred databases, in order. These databases will be
@@ -2130,7 +2180,14 @@ TALISMAN_CONFIG = {
             "https://events.mapbox.com",
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
-            "https://a.basemaps.cartocdn.com",
+            "https://basemaps.cartocdn.com",
+            "https://*.basemaps.cartocdn.com",
+            "https://tiles.openfreemap.org",
+            "https://*.maptiler.com",
+            "https://tiles.stadiamaps.com",
+            "https://tiles.versatiles.org",
+            "https://*.protomaps.com",
+            "https://*.maplibre.org",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -2170,7 +2227,14 @@ TALISMAN_DEV_CONFIG = {
             "https://events.mapbox.com",
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
-            "https://a.basemaps.cartocdn.com",
+            "https://basemaps.cartocdn.com",
+            "https://*.basemaps.cartocdn.com",
+            "https://tiles.openfreemap.org",
+            "https://*.maptiler.com",
+            "https://tiles.stadiamaps.com",
+            "https://tiles.versatiles.org",
+            "https://*.protomaps.com",
+            "https://*.maplibre.org",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -2297,7 +2361,7 @@ GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
 
 # Embedded config options
 GUEST_ROLE_NAME = "Public"
-GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105
+GUEST_TOKEN_JWT_SECRET = CHANGE_ME_GUEST_TOKEN_JWT_SECRET
 GUEST_TOKEN_JWT_ALGO = "HS256"  # noqa: S105
 GUEST_TOKEN_HEADER_NAME = "X-GuestToken"  # noqa: S105
 GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
@@ -2445,6 +2509,12 @@ EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 # connection via the UI (without downtime).
 CATALOGS_SIMPLIFIED_MIGRATION: bool = False
 
+# Configure JWT subsystem to not enforce that the sub claim is a string
+# Set this variable to avoid breaking `/api/security` endpoints
+# TODO: remove this variable once pyjwt resolved the issue.
+# https://github.com/jpadilla/pyjwt/issues/1017
+# https://github.com/dpgaspar/Flask-AppBuilder/issues/2287
+JWT_VERIFY_SUB: bool = False
 
 # When updating a DB connection or manually triggering a perm sync, the command
 # happens in sync mode. If you have a celery worker configured, it's recommended
@@ -2474,28 +2544,30 @@ TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
 TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 
 # ---------------------------------------------------
-# Signal Cache Configuration
+# Distributed Coordination Configuration
 # ---------------------------------------------------
-# Shared Redis/Valkey configuration for signaling features that require
-# Redis-specific primitives (pub/sub messaging, distributed locks).
+# Shared Redis/Valkey backend for distributed coordination primitives.
 #
 # Uses Flask-Caching style configuration for consistency with other cache backends.
 # Set CACHE_TYPE to 'RedisCache' for standard Redis or 'RedisSentinelCache' for
 # Sentinel.
 #
-# These features cannot use generic cache backends because they rely on:
+# These features require Redis primitives unavailable in generic cache backends:
 # - Pub/Sub: Real-time message broadcasting between workers
 # - SET NX EX: Atomic lock acquisition with automatic expiration
+# - Streams: Persistent ordered event logs (future)
 #
 # When configured, enables:
 # - Real-time abort/completion notifications for GTF tasks (vs database polling)
 # - Redis-based distributed locking (vs KeyValueDAO-backed DistributedLock)
 #
-# Future: This cache will also be used by Global Async Queries, consolidating
-# GLOBAL_ASYNC_QUERIES_CACHE_BACKEND into this unified configuration.
+# Future: This backend will power a higher-level coordination service exposing
+# standardized interfaces for distributed locks, pub/sub, and streams — consolidating
+# all advanced Redis primitives under a single connection. Global Async Queries
+# (GLOBAL_ASYNC_QUERIES_CACHE_BACKEND) will also be migrated to this configuration.
 #
 # Example with standard Redis:
-# SIGNAL_CACHE_CONFIG: CacheConfig = {
+# DISTRIBUTED_COORDINATION_CONFIG: CacheConfig = {
 #     "CACHE_TYPE": "RedisCache",
 #     "CACHE_REDIS_HOST": "localhost",
 #     "CACHE_REDIS_PORT": 6379,
@@ -2504,7 +2576,7 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 # }
 #
 # Example with Redis Sentinel:
-# SIGNAL_CACHE_CONFIG: CacheConfig = {
+# DISTRIBUTED_COORDINATION_CONFIG: CacheConfig = {
 #     "CACHE_TYPE": "RedisSentinelCache",
 #     "CACHE_REDIS_SENTINELS": [("sentinel1", 26379), ("sentinel2", 26379)],
 #     "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
@@ -2512,7 +2584,7 @@ TASK_PROGRESS_UPDATE_THROTTLE_INTERVAL = 2  # seconds
 #     "CACHE_REDIS_DB": 0,
 #     "CACHE_REDIS_PASSWORD": "",
 # }
-SIGNAL_CACHE_CONFIG: CacheConfig | None = None
+DISTRIBUTED_COORDINATION_CONFIG: CacheConfig | None = None
 
 # Default lock TTL (time-to-live) in seconds for distributed locks.
 # Can be overridden per-call via the `ttl_seconds` parameter.

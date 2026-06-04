@@ -18,9 +18,9 @@
  */
 import { useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { Currency, ensureIsArray, getCurrencySymbol } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { CSSObject } from '@emotion/react';
 import { Select, type SelectProps } from '@superset-ui/core/components';
 import { ViewState } from 'src/views/types';
@@ -41,7 +41,7 @@ const CurrencyControlContainer = styled.div`
     display: flex;
     align-items: center;
 
-    & > :first-child {
+    & > :first-of-type {
       margin-right: ${theme.sizeUnit * 4}px;
       min-width: 0;
       flex: 1;
@@ -162,7 +162,7 @@ export const CurrencyControl = ({
       <ControlHeader {...props} />
       <CurrencyControlContainer
         css={css`
-          & > :first-child {
+          & > :first-of-type {
             ${symbolSelectAdditionalStyles};
           }
           & > :nth-child(2) {

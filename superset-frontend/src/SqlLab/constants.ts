@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
 import type { LabelType } from '@superset-ui/core/components';
 
 export const STATE_TYPE_MAP: Record<string, LabelType> = {
@@ -86,6 +86,8 @@ export const LOCALSTORAGE_MAX_USAGE_KB = 5 * 1024; // 5M
 export const LOCALSTORAGE_MAX_QUERY_RESULTS_KB = 1 * 1024; // 1M
 export const LOCALSTORAGE_WARNING_THRESHOLD = 0.9;
 export const LOCALSTORAGE_WARNING_MESSAGE_THROTTLE_MS = 8000; // danger type toast duration
+
+export const PREVIEW_QUERY_LIMIT = 100;
 
 // autocomplete score weights
 export const SQL_KEYWORD_AUTOCOMPLETE_SCORE = 100;

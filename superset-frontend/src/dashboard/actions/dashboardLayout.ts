@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
 import type { AnyAction } from 'redux';
 import type { ThunkDispatch } from 'redux-thunk';
 import { addWarningToast } from 'src/components/MessageToasts/actions';
@@ -34,6 +34,7 @@ import { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
 import { GetState, LayoutItem, RootState } from '../types';
 import { updateLayoutComponents } from './dashboardFilters';
 import { setUnsavedChanges } from './dashboardState';
+
 type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction>;
 
 // Component CRUD -------------------------------------------------------------

@@ -23,7 +23,7 @@ from uuid import UUID
 
 import pytest
 from freezegun import freeze_time
-from superset_core.api.tasks import TaskStatus
+from superset_core.tasks.types import TaskStatus
 
 from superset.tasks.context import TaskContext
 
@@ -82,8 +82,8 @@ def task_context(mock_task, mock_task_dao, mock_update_command, mock_flask_app):
         patch("superset.tasks.context.current_app") as mock_current_app,
         patch("superset.tasks.manager.cache_manager") as mock_cache_manager,
     ):
-        # Disable Redis by making signal_cache return None
-        mock_cache_manager.signal_cache = None
+        # Disable Redis by making distributed_coordination return None
+        mock_cache_manager.distributed_coordination = None
 
         # Configure current_app mock
         mock_current_app.config = mock_flask_app.config

@@ -16,13 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   ExtraFormData,
   TimeGranularity,
 } from '@superset-ui/core';
-import { tn } from '@apache-superset/core';
+import { tn } from '@apache-superset/core/translation';
 import { useEffect, useMemo, useState } from 'react';
 import {
   FormItem,
@@ -107,15 +107,22 @@ export default function PluginFilterTimegrain(
     );
   }
 
-  const options = (data || []).map(
-    (row: { name: string; duration: string }) => {
+  const options = (data || [])
+    .map((row: { name: string; duration: string }) => {
       const { name, duration } = row;
       return {
         label: name,
         value: duration,
       };
-    },
-  );
+    })
+    // Apply allowlist filter if time_grains is configured, but keep current selection visible
+    .filter(option => {
+      const allowlist = formData.time_grains;
+      if (!allowlist || allowlist.length === 0) {
+        return true;
+      }
+      return allowlist.includes(option.value) || value.includes(option.value);
+    });
 
   return (
     <FilterPluginStyle height={height} width={width}>

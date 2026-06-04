@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
-import { styled, Alert } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
+import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Loading } from '@superset-ui/core/components';
 import Table, {
@@ -182,7 +183,7 @@ export const tableColumnDefinition: ColumnsType<ITableColumn> = [
     dataIndex: 'type',
     key: 'type',
     width: '100px',
-    sorter: (a: ITableColumn, b: ITableColumn) => a.name.localeCompare(b.name),
+    sorter: (a: ITableColumn, b: ITableColumn) => a.type.localeCompare(b.type),
   },
 ];
 

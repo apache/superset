@@ -16,7 +16,7 @@
 # under the License.
 """Constants for the Global Task Framework (GTF)."""
 
-from superset_core.api.tasks import TaskStatus
+from superset_core.tasks.types import TaskStatus
 
 # Terminal states: Task execution has ended and dedup_key slot is freed
 TERMINAL_STATES: frozenset[str] = frozenset(

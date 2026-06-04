@@ -18,13 +18,15 @@
  */
 import memoizeOne from 'memoize-one';
 import { isString, isBoolean } from 'lodash';
-import { isBlank } from '@apache-superset/core';
+import { isBlank } from '@apache-superset/core/utils';
 import { addAlpha, DataRecord } from '@superset-ui/core';
+import tinycolor from 'tinycolor2';
 import {
   ColorFormatters,
   Comparator,
   ConditionalFormattingConfig,
   MultipleValueComparators,
+  ResolvedColorFormatterResult,
 } from '../types';
 
 export const round = (num: number, precision = 0) =>
@@ -33,6 +35,11 @@ export const round = (num: number, precision = 0) =>
 const MIN_OPACITY_BOUNDED = 0.05;
 const MIN_OPACITY_UNBOUNDED = 0;
 const MAX_OPACITY = 1;
+const READABLE_TEXT_COLORS = [
+  { r: 0, g: 0, b: 0 },
+  { r: 255, g: 255, b: 255 },
+];
+
 export const getOpacity = (
   value: number | string | boolean | null,
   cutoffPoint: number | string,
@@ -325,3 +332,59 @@ export const getColorFormatters = memoizeOne(
       [],
     ) ?? [],
 );
+
+export const getReadableTextColor = (
+  backgroundColor: string | undefined,
+  surfaceColor: string,
+): string | undefined => {
+  if (!backgroundColor) {
+    return undefined;
+  }
+
+  const background = tinycolor(backgroundColor);
+  const surface = tinycolor(surfaceColor);
+
+  if (!background.isValid() || !surface.isValid()) {
+    return undefined;
+  }
+
+  const { r: bgR, g: bgG, b: bgB, a: bgAlpha } = background.toRgb();
+  const { r: surfaceR, g: surfaceG, b: surfaceB } = surface.toRgb();
+  const alpha = bgAlpha;
+
+  const compositeColor = tinycolor({
+    r: bgR * alpha + surfaceR * (1 - alpha),
+    g: bgG * alpha + surfaceG * (1 - alpha),
+    b: bgB * alpha + surfaceB * (1 - alpha),
+  });
+
+  return tinycolor
+    .mostReadable(compositeColor, READABLE_TEXT_COLORS, {
+      includeFallbackColors: true,
+      level: 'AA',
+      size: 'small',
+    })
+    .toRgbString();
+};
+
+export const getNormalizedTextColor = (
+  color: string | undefined,
+): string | undefined => {
+  if (!color) {
+    return undefined;
+  }
+
+  const parsedColor = tinycolor(color);
+  if (!parsedColor.isValid()) {
+    return color;
+  }
+
+  return parsedColor.setAlpha(1).toRgbString();
+};
+
+export const getTextColorForBackground = (
+  result: ResolvedColorFormatterResult,
+  surfaceColor: string,
+): string | undefined =>
+  getNormalizedTextColor(result.color) ??
+  getReadableTextColor(result.backgroundColor, surfaceColor);

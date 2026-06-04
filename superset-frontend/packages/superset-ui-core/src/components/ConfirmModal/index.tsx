@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled } from '@apache-superset/core/ui';
-import { t } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { Icons, Modal, Typography, Button } from '@superset-ui/core/components';
 import type { FC, ReactElement, ReactNode } from 'react';
 

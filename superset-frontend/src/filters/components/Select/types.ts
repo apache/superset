@@ -25,12 +25,19 @@ import {
   QueryFormData,
   ChartDataResponseResult,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { RefObject } from 'react';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
 export type SelectValue = (number | string | null)[] | null | undefined;
+
+export enum SelectFilterOperatorType {
+  Exact = 'exact',
+  Contains = 'ilike_contains',
+  StartsWith = 'ilike_starts_with',
+  EndsWith = 'ilike_ends_with',
+}
 
 export interface PluginFilterSelectCustomizeProps {
   defaultValue?: SelectValue;
@@ -42,6 +49,7 @@ export interface PluginFilterSelectCustomizeProps {
   searchAllOptions: boolean;
   sortAscending?: boolean;
   sortMetric?: string;
+  operatorType?: SelectFilterOperatorType;
 }
 
 export type PluginFilterSelectQueryFormData = QueryFormData &
@@ -78,4 +86,5 @@ export const DEFAULT_FORM_DATA: PluginFilterSelectCustomizeProps = {
   multiSelect: true,
   searchAllOptions: false,
   sortAscending: true,
+  operatorType: SelectFilterOperatorType.Exact,
 };

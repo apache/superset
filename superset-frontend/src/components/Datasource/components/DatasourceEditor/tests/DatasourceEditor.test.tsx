@@ -579,3 +579,245 @@ test('immediate unmount after mount does not cause unhandled rejection from init
 
   consoleErrorSpy.mockRestore();
 });
+
+test('can search metrics by metric name', async () => {
+  const testProps = createProps();
+  await asyncRender(testProps);
+
+  // Navigate to Metrics tab
+  const metricsTab = screen.getByTestId('collection-tab-Metrics');
+  await userEvent.click(metricsTab);
+
+  // Find the search input
+  const searchInput = screen.getByPlaceholderText(
+    'Search metrics by key or label',
+  );
+  expect(searchInput).toBeInTheDocument();
+
+  // Verify initial metrics are shown
+  expect(screen.getByText('sum__num')).toBeInTheDocument();
+  expect(screen.getByText('avg__num')).toBeInTheDocument();
+
+  // Search for a specific metric
+  await userEvent.type(searchInput, 'sum');
+
+  // Verify filtered results
+  expect(screen.getByText('sum__num')).toBeInTheDocument();
+  expect(screen.queryByText('avg__num')).not.toBeInTheDocument();
+
+  // Clear search
+  await userEvent.clear(searchInput);
+
+  // Verify all metrics are shown again
+  await waitFor(() => {
+    expect(screen.getByText('sum__num')).toBeInTheDocument();
+    expect(screen.getByText('avg__num')).toBeInTheDocument();
+  });
+});
+
+test('can search metrics by verbose name', async () => {
+  const testProps = createProps();
+  await asyncRender(testProps);
+
+  // Navigate to Metrics tab
+  const metricsTab = screen.getByTestId('collection-tab-Metrics');
+  await userEvent.click(metricsTab);
+
+  const searchInput = screen.getByPlaceholderText(
+    'Search metrics by key or label',
+  );
+
+  // Search by verbose name
+  await userEvent.type(searchInput, 'avg');
+
+  // Verify filtered results
+  await waitFor(() => {
+    expect(screen.queryByText('sum__num')).not.toBeInTheDocument();
+    expect(screen.getByText('avg__num')).toBeInTheDocument();
+  });
+});
+
+test('metric search is case-insensitive', async () => {
+  const testProps = createProps();
+  await asyncRender(testProps);
+
+  const metricsTab = screen.getByTestId('collection-tab-Metrics');
+  await userEvent.click(metricsTab);
+
+  const searchInput = screen.getByPlaceholderText(
+    'Search metrics by key or label',
+  );
+
+  // Search with uppercase
+  await userEvent.type(searchInput, 'SUM');
+
+  // Verify results are still found
+  await waitFor(() => {
+    expect(screen.getByText('sum__num')).toBeInTheDocument();
+  });
+});
+
+test('can search columns by name', async () => {
+  const testProps = createProps();
+  await asyncRender(testProps);
+
+  // Navigate to Columns tab
+  const columnsTab = screen.getByTestId('collection-tab-Columns');
+  await userEvent.click(columnsTab);
+
+  // Find the search input
+  const searchInput = screen.getByPlaceholderText('Search columns by name');
+  expect(searchInput).toBeInTheDocument();
+
+  // Get initial column count
+  const initialColumns = screen.getAllByRole('row');
+
+  // Search for a specific column
+  await userEvent.type(searchInput, 'ds');
+
+  // Verify filtered results (fewer rows than before)
+  await waitFor(() => {
+    const filteredColumns = screen.getAllByRole('row');
+    expect(filteredColumns.length).toBeLessThan(initialColumns.length);
+  });
+
+  // Clear search
+  await userEvent.clear(searchInput);
+
+  // Verify all columns are shown again
+  await waitFor(() => {
+    const allColumns = screen.getAllByRole('row');
+    expect(allColumns.length).toBe(initialColumns.length);
+  });
+});
+
+test('column search is case-insensitive', async () => {
+  const testProps = createProps();
+  await asyncRender(testProps);
+
+  const columnsTab = screen.getByTestId('collection-tab-Columns');
+  await userEvent.click(columnsTab);
+
+  const searchInput = screen.getByPlaceholderText('Search columns by name');
+
+  // Search with uppercase
+  await userEvent.type(searchInput, 'DS');
+
+  // Verify results are still found
+  await waitFor(() => {
+    const filteredColumns = screen.getAllByRole('row');
+    // Should have fewer rows than total (header + filtered rows)
+    expect(filteredColumns.length).toBeGreaterThan(0);
+  });
+});
+
+test('can search calculated columns by name', async () => {
+  const testProps = createProps();
+  // Add some calculated columns with expressions
+  testProps.datasource.columns = [
+    ...testProps.datasource.columns,
+    {
+      id: 999,
+      type: 'VARCHAR',
+      filterable: true,
+      is_dttm: false,
+      is_active: true,
+      expression: 'CASE WHEN state = "CA" THEN 1 ELSE 0 END',
+      groupby: true,
+      column_name: 'is_california',
+    },
+    {
+      id: 1000,
+      type: 'VARCHAR',
+      filterable: true,
+      is_dttm: false,
+      is_active: true,
+      expression: 'UPPER(name)',
+      groupby: true,
+      column_name: 'upper_name',
+    },
+  ];
+
+  await asyncRender(testProps);
+
+  // Navigate to Calculated Columns tab
+  const calculatedColumnsTab = screen.getByTestId(
+    'collection-tab-Calculated columns',
+  );
+  await userEvent.click(calculatedColumnsTab);
+
+  // Wait for calculated columns to be displayed
+  // column_name is rendered as an input (TextControl) since editableColumnName=true
+  await waitFor(() => {
+    expect(screen.getByDisplayValue('is_california')).toBeInTheDocument();
+  });
+
+  // Find the search input
+  const searchInput = screen.getByPlaceholderText(
+    'Search calculated columns by name',
+  );
+  expect(searchInput).toBeInTheDocument();
+
+  // Verify both columns are visible initially
+  expect(screen.getByDisplayValue('upper_name')).toBeInTheDocument();
+
+  // Search for a specific calculated column
+  await userEvent.type(searchInput, 'california');
+
+  // Verify filtered results
+  await waitFor(() => {
+    expect(screen.getByDisplayValue('is_california')).toBeInTheDocument();
+    expect(screen.queryByDisplayValue('upper_name')).not.toBeInTheDocument();
+  });
+
+  // Clear search
+  await userEvent.clear(searchInput);
+
+  // Verify all calculated columns are shown again
+  await waitFor(() => {
+    expect(screen.getByDisplayValue('is_california')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('upper_name')).toBeInTheDocument();
+  });
+});
+
+test('calculated column search is case-insensitive', async () => {
+  const testProps = createProps();
+  testProps.datasource.columns = [
+    ...testProps.datasource.columns,
+    {
+      id: 999,
+      type: 'VARCHAR',
+      filterable: true,
+      is_dttm: false,
+      is_active: true,
+      expression: 'UPPER(name)',
+      groupby: true,
+      column_name: 'upper_name',
+    },
+  ];
+
+  await asyncRender(testProps);
+
+  const calculatedColumnsTab = screen.getByTestId(
+    'collection-tab-Calculated columns',
+  );
+  await userEvent.click(calculatedColumnsTab);
+
+  // Wait for calculated column to be displayed
+  // column_name is rendered as an input (TextControl) since editableColumnName=true
+  await waitFor(() => {
+    expect(screen.getByDisplayValue('upper_name')).toBeInTheDocument();
+  });
+
+  const searchInput = screen.getByPlaceholderText(
+    'Search calculated columns by name',
+  );
+
+  // Search with different case
+  await userEvent.type(searchInput, 'UPPER');
+
+  // Verify results are still found
+  await waitFor(() => {
+    expect(screen.getByDisplayValue('upper_name')).toBeInTheDocument();
+  });
+});

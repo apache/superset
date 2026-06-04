@@ -22,7 +22,8 @@ import cx from 'classnames';
 import type { JsonObject } from '@superset-ui/core';
 import type { ResizeStartCallback, ResizeCallback } from 're-resizable';
 
-import { t, css, styled } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
 import { SafeMarkdown } from '@superset-ui/core/components';
 import { EditorHost } from 'src/core/editors';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
@@ -42,13 +43,13 @@ import {
   GRID_BASE_UNIT,
 } from 'src/dashboard/util/constants';
 
-interface EditorInstance {
+export interface EditorInstance {
   resize?: (force: boolean) => void;
   getSession?: () => { setUseWrapMode: (wrap: boolean) => void };
   focus?: () => void;
 }
 
-interface MarkdownOwnProps {
+export interface MarkdownOwnProps {
   id: string;
   parentId: string;
   component: LayoutItem;
@@ -70,7 +71,7 @@ interface MarkdownOwnProps {
   updateComponents: (components: Record<string, LayoutItem>) => void;
 }
 
-interface MarkdownStateProps {
+export interface MarkdownStateProps {
   logEvent: (eventName: string, eventData: JsonObject) => void;
   addDangerToast: (msg: string) => void;
   undoLength: number;
@@ -79,9 +80,9 @@ interface MarkdownStateProps {
   htmlSchemaOverrides?: JsonObject;
 }
 
-type MarkdownProps = MarkdownOwnProps & MarkdownStateProps;
+export type MarkdownProps = MarkdownOwnProps & MarkdownStateProps;
 
-interface MarkdownState {
+export interface MarkdownState {
   isFocused: boolean;
   markdownSource: string;
   editor: EditorInstance | null;

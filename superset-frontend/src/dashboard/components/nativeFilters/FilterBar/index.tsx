@@ -41,7 +41,7 @@ import {
   ChartCustomization,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Constants } from '@superset-ui/core/components';
 import { useHistory } from 'react-router-dom';
 import { updateDataMask, removeDataMask } from 'src/dataMask/actions';
@@ -63,7 +63,7 @@ import { LOG_ACTIONS_CHANGE_DASHBOARD_FILTER } from 'src/logger/LogUtils';
 import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { isChartCustomization } from '../FiltersConfigModal/utils';
-import { checkIsApplyDisabled } from './utils';
+import { checkIsApplyDisabled, getFiltersToApply } from './utils';
 import { extractLabel } from '../selectors';
 import { FiltersBarProps } from './types';
 import {
@@ -107,8 +107,14 @@ const publishDataMask = debounce(
     const previousParams = new URLSearchParams(search);
     const newParams = new URLSearchParams();
     let dataMaskKey: string | null;
+    // Capture the raw, still-URL-encoded `f=` payload from the query string
+    // directly. URLSearchParams decodes values (and turns `+` into space), which
+    // would corrupt the Rison payload if we re-inserted it without re-encoding.
+    const rawRisonMatch = search.match(/[?&]f=([^&]*)/);
+    const rawRisonFilterValue = rawRisonMatch ? rawRisonMatch[1] : null;
+
     previousParams.forEach((value, key) => {
-      if (!EXCLUDED_URL_PARAMS.includes(key)) {
+      if (!EXCLUDED_URL_PARAMS.includes(key) && key !== 'f') {
         newParams.append(key, value);
       }
     });
@@ -144,13 +150,20 @@ const publishDataMask = debounce(
       // it when necessary. We strip any prefix so that history.replace adds it back and doesn't
       // double it up.
       const appRoot = applicationRoot();
-      let replacement_pathname = window.location.pathname;
-      if (appRoot !== '/' && replacement_pathname.startsWith(appRoot)) {
-        replacement_pathname = replacement_pathname.substring(appRoot.length);
+      let replacementPathname = window.location.pathname;
+      if (appRoot !== '/' && replacementPathname.startsWith(appRoot)) {
+        replacementPathname = replacementPathname.substring(appRoot.length);
       }
-      history.location.pathname = replacement_pathname;
+      // Manually reconstruct the search string to preserve Rison filter encoding
+      let searchString = newParams.toString();
+      if (rawRisonFilterValue) {
+        const separator = searchString ? '&' : '';
+        searchString = `${searchString}${separator}f=${rawRisonFilterValue}`;
+      }
+
       history.replace({
-        search: newParams.toString(),
+        pathname: replacementPathname,
+        search: searchString,
       });
     }
   },
@@ -196,6 +209,21 @@ const FilterBar: FC<FiltersBarProps> = ({
   >(state => state.user);
 
   const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
+  const inScopeFilterIds = useMemo(
+    () => new Set(filtersInScope.map(f => f.id)),
+    [filtersInScope],
+  );
+
+  const hasOutOfScopeRequiredFilters = useMemo(
+    () =>
+      nativeFilterValues.some(
+        filter =>
+          !inScopeFilterIds.has(filter.id) &&
+          !!filter.controlValues?.enableEmptyFilter,
+      ),
+    [nativeFilterValues, inScopeFilterIds],
+  );
+
   const [clearAllTriggers, setClearAllTriggers] = useState<
     Record<string, boolean>
   >({});
@@ -238,7 +266,19 @@ const FilterBar: FC<FiltersBarProps> = ({
             needsAutoApply);
 
         if (shouldDispatch) {
-          dispatch(updateDataMask(filter.id, dataMask));
+          // Strip validateStatus before dispatching to Redux
+          // validateStatus is UI-only state and shouldn't persist in Redux
+          const { filterState, ...restDataMask } = dataMask;
+          const dataMaskForRedux = filterState
+            ? {
+                ...restDataMask,
+                filterState: {
+                  ...filterState,
+                  validateStatus: undefined,
+                },
+              }
+            : dataMask;
+          dispatch(updateDataMask(filter.id, dataMaskForRedux));
         }
 
         // Mark filter as initialized after getting its first value WITH extraFormData
@@ -319,10 +359,49 @@ const FilterBar: FC<FiltersBarProps> = ({
   }, [dashboardId, filters, previousDashboardId, setDataMaskSelected]);
 
   const dataMaskAppliedText = JSON.stringify(dataMaskApplied);
+  const prevDataMaskAppliedRef = useRef(dataMaskApplied);
 
   useEffect(() => {
-    setDataMaskSelected(() => dataMaskApplied);
-  }, [dataMaskAppliedText, setDataMaskSelected, dashboardId]);
+    const dashboardChanged = dashboardId !== previousDashboardId;
+
+    if (dashboardChanged) {
+      setDataMaskSelected(() => dataMaskApplied);
+    } else {
+      const prevApplied = prevDataMaskAppliedRef.current;
+
+      // Only sync filters whose applied state actually changed
+      setDataMaskSelected(prev => {
+        let hasChanges = false;
+        const updated = { ...prev };
+
+        Object.entries(dataMaskApplied).forEach(([filterId, appliedMask]) => {
+          const prevAppliedMask = prevApplied[filterId];
+          const appliedChanged = !isEqual(appliedMask, prevAppliedMask);
+          const notInitialized = !prev[filterId];
+
+          if (appliedChanged || notInitialized) {
+            updated[filterId] = appliedMask;
+            hasChanges = true;
+          }
+        });
+
+        // Remove stale entries that no longer exist in dataMaskApplied
+        Object.keys(updated).forEach(filterId => {
+          if (
+            !isChartCustomization(filterId) &&
+            !(filterId in dataMaskApplied)
+          ) {
+            delete updated[filterId];
+            hasChanges = true;
+          }
+        });
+
+        return hasChanges ? updated : prev;
+      });
+    }
+
+    prevDataMaskAppliedRef.current = dataMaskApplied;
+  }, [dataMaskApplied, setDataMaskSelected, dashboardId, previousDashboardId]);
 
   useEffect(() => {
     // embedded users can't persist filter combinations
@@ -351,7 +430,13 @@ const FilterBar: FC<FiltersBarProps> = ({
     dispatch(logEvent(LOG_ACTIONS_CHANGE_DASHBOARD_FILTER, {}));
     setUpdateKey(1);
 
-    Object.entries(dataMaskSelected).forEach(([filterId, dataMask]) => {
+    const filtersToApply = getFiltersToApply(
+      dataMaskSelected,
+      inScopeFilterIds,
+    );
+
+    filtersToApply.forEach(filterId => {
+      const dataMask = dataMaskSelected[filterId];
       if (dataMask) {
         dispatch(updateDataMask(filterId, dataMask));
       }
@@ -407,6 +492,7 @@ const FilterBar: FC<FiltersBarProps> = ({
   }, [
     dataMaskSelected,
     dispatch,
+    inScopeFilterIds,
     pendingChartCustomizations,
     pendingCustomizationDataMasks,
     hasClearedChartCustomizations,
@@ -415,22 +501,30 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   const handleClearAll = useCallback(() => {
     const newClearAllTriggers = { ...clearAllTriggers };
+
     nativeFilterValues.forEach(filter => {
       const { id, filterType } = filter;
+
+      // Only clear in-scope filters
+      if (!inScopeFilterIds.has(id)) return;
+
       // Range filters use [null, null] as the cleared value; others use undefined
       const clearedValue =
         filterType === 'filter_range' ? [null, null] : undefined;
-      const clearedDataMask = {
-        filterState: { value: clearedValue },
-        extraFormData: {},
-      };
+      const isRequired = !!filter.controlValues?.enableEmptyFilter;
       if (dataMaskSelected[id]) {
-        dispatch(updateDataMask(id, clearedDataMask));
+        // Stage the cleared value locally; do NOT dispatch to Redux here.
+        // Persistence happens when the user clicks Apply.
         setDataMaskSelected(draft => {
           if (draft[id].filterState?.value !== undefined) {
             draft[id].filterState!.value = clearedValue;
           }
           draft[id].extraFormData = {};
+          if (draft[id].filterState) {
+            draft[id].filterState!.validateStatus = isRequired
+              ? 'error'
+              : undefined;
+          }
         });
         newClearAllTriggers[id] = true;
       }
@@ -468,6 +562,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     dataMaskSelected,
     dataMaskApplied,
     nativeFilterValues,
+    inScopeFilterIds,
     setDataMaskSelected,
     chartCustomizationValues,
     clearAllTriggers,
@@ -506,6 +601,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     dataMaskSelected,
     dataMaskApplied,
     filtersInScope.filter(isNativeFilter),
+    nativeFilterValues,
   );
 
   const isApplyDisabled =
@@ -520,24 +616,24 @@ const FilterBar: FC<FiltersBarProps> = ({
     () => (
       <ActionButtons
         filterBarOrientation={orientation}
-        width={verticalConfig?.width}
         onApply={handleApply}
         onClearAll={handleClearAll}
         dataMaskSelected={dataMaskSelected}
         dataMaskApplied={dataMaskApplied}
         isApplyDisabled={isApplyDisabled}
         chartCustomizationItems={chartCustomizationValues}
+        hasOutOfScopeRequiredFilters={hasOutOfScopeRequiredFilters}
       />
     ),
     [
       orientation,
-      verticalConfig?.width,
       handleApply,
       handleClearAll,
       dataMaskSelected,
       dataMaskApplied,
       isApplyDisabled,
       chartCustomizationValues,
+      hasOutOfScopeRequiredFilters,
     ],
   );
 

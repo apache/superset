@@ -18,7 +18,7 @@
  */
 
 import { ColumnMeta } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { getTooltipHTML } from '@superset-ui/core/components/AsyncAceEditor';
 import { COLUMN_AUTOCOMPLETE_SCORE } from 'src/SqlLab/constants';
 

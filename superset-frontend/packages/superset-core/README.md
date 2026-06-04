@@ -30,74 +30,98 @@ The official core package for building Apache Superset extensions and integratio
 npm install @apache-superset/core
 ```
 
-## 🏗️ Architecture
+## 🏗️ Package Structure
 
-The package is organized into logical namespaces, each providing specific functionality:
+The source is organized into focused namespaces, each in its own directory:
 
-- **`authentication`** - User authentication and authorization APIs
-- **`commands`** - Command registration and execution system
-- **`contributions`** - UI contribution points and customization APIs
-- **`core`** - Fundamental types, utilities, and lifecycle management
-- **`environment`** - Environment detection and configuration APIs
-- **`extensions`** - Extension management and metadata APIs
-- **`sqlLab`** - SQL Lab integration and event handling
+```
+src/
+├── authentication/
+├── commands/
+├── common/
+├── components/
+├── contributions/
+├── editors/
+├── extensions/
+├── menus/
+├── sqlLab/
+├── theme/
+├── translation/
+├── utils/
+├── views/
+└── index.ts
+```
 
 ## 🚀 Quick Start
 
-### Basic Extension Structure
+Frontend contributions are registered as module-level side effects from your extension's entry point.
 
-```typescript
-import {
-  core,
-  commands,
-  sqlLab,
-  authentication,
-} from '@apache-superset/core';
+### Views
 
-export function activate(context: core.ExtensionContext) {
-  // Register a command to save current query
-  const commandDisposable = commands.registerCommand(
-    'my_extension.save_query',
-    async () => {
-      const currentTab = sqlLab.getCurrentTab();
-      if (currentTab?.editor.content) {
-        const token = await authentication.getCSRFToken();
-        // Use token for secure API calls
-        console.log('Saving query with CSRF token:', token);
-      }
-    },
-  );
+Add custom panels or UI components at specific locations in the application:
 
-  // Listen for query execution events
-  const eventDisposable = sqlLab.onDidQueryRun(editor => {
-    console.log('Query executed:', editor.content.substring(0, 50) + '...');
-  });
+```tsx
+import { views } from '@apache-superset/core';
+import MyPanel from './MyPanel';
 
-  // Register a simple view
-  const viewDisposable = core.registerViewProvider(
-    'my_extension.panel',
-    () => (
-      <div>
-        <h3>My Extension</h3>
-        <button onClick={() => commands.executeCommand('my_extension.save_query')}>
-          Save Query
-        </button>
-      </div>
-    )
-  );
-
-  // Cleanup registration
-  context.subscriptions.push(commandDisposable, eventDisposable, viewDisposable);
-}
-
-export function deactivate() {
-  // Cleanup handled automatically via disposables
-}
+views.registerView(
+  { id: 'my-extension.main', name: 'My Panel Name' },
+  'sqllab.panels',
+  () => <MyPanel />,
+);
 ```
 
-## 🤝 Contributing
+### Commands
 
-We welcome contributions! Please see the [Developer Portal](https://superset.apache.org/developer_portal/) for details.
+Define named actions that can be triggered from menus, keyboard shortcuts, or code:
+
+```typescript
+import { commands } from '@apache-superset/core';
+
+commands.registerCommand(
+  {
+    id: 'my-extension.copy-query',
+    title: 'Copy Query',
+    icon: 'CopyOutlined',
+    description: 'Copy the current query to clipboard',
+  },
+  () => {
+    /* implementation */
+  },
+);
+```
+
+### Menus
+
+Attach commands to primary, secondary, or context menus at a given location:
+
+```typescript
+import { menus } from '@apache-superset/core';
+
+menus.registerMenuItem(
+  { view: 'sqllab.editor', command: 'my-extension.copy-query' },
+  'sqllab.editor',
+  'primary',
+);
+```
+
+### Editors
+
+Replace the default text editor for one or more languages:
+
+```typescript
+import { editors } from '@apache-superset/core';
+import MonacoSQLEditor from './MonacoSQLEditor';
+
+editors.registerEditor(
+  {
+    id: 'my-extension.monaco-sql',
+    name: 'Monaco SQL Editor',
+    languages: ['sql'],
+  },
+  MonacoSQLEditor,
+);
+```
 
 ## 📄 License
 
@@ -105,12 +129,6 @@ Licensed under the Apache License, Version 2.0. See [LICENSE](https://github.com
 
 ## 🔗 Links
 
-- [Apache Superset](https://superset.apache.org/)
-- [Documentation](https://superset.apache.org/docs/)
 - [Community](https://superset.apache.org/community/)
 - [GitHub Repository](https://github.com/apache/superset)
-- [Extension Development Guide](https://superset.apache.org/docs/extensions/)
-
----
-
-**Note**: This package is currently in release candidate status. APIs may change before the 1.0.0 release. Please check the [changelog](CHANGELOG.md) for breaking changes between versions.
+- [Extensions Documentation](https://superset.apache.org/developer-docs/extensions/overview)

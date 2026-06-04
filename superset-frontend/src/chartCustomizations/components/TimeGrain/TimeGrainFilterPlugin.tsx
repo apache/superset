@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, tn } from '@apache-superset/core';
+import { t, tn } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
   ExtraFormData,

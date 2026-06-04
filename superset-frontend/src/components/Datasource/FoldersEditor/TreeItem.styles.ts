@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 
 export const FOLDER_INDENTATION_WIDTH = 24;
 export const ITEM_INDENTATION_WIDTH = 4;
@@ -30,7 +30,7 @@ export const TreeItemContainer = styled.div<{
 }>`
   ${({ theme, depth, isDragging, isOverlay }) => `
     margin: 0 ${theme.marginMD}px;
-    margin-left: ${isOverlay ? ITEM_INDENTATION_WIDTH : (depth - 1) * FOLDER_INDENTATION_WIDTH + ITEM_INDENTATION_WIDTH}px;
+    margin-left: ${Math.max(0, (depth - 1) * FOLDER_INDENTATION_WIDTH + ITEM_INDENTATION_WIDTH)}px;
     padding-left: ${theme.paddingSM}px;
     display: flex;
     align-items: center;

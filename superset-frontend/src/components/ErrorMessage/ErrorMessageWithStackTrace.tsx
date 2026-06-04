@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ErrorSource, SupersetError } from '@superset-ui/core';
 import { Typography } from '@superset-ui/core/components';
 import { getErrorMessageComponentRegistry } from './getErrorMessageComponentRegistry';
@@ -38,6 +38,7 @@ type Props = {
   errorMitigationFunction?: () => void;
   fallback?: ReactNode;
   compact?: boolean;
+  closable?: boolean;
 };
 
 export function ErrorMessageWithStackTrace({
@@ -51,6 +52,7 @@ export function ErrorMessageWithStackTrace({
   descriptionDetails,
   fallback,
   compact,
+  closable = true,
 }: Props) {
   // Check if a custom error message component was registered for this message
   if (error) {
@@ -62,6 +64,7 @@ export function ErrorMessageWithStackTrace({
       return (
         <ErrorMessageComponent
           compact={compact}
+          closable={closable}
           error={error}
           source={source}
           subtitle={subtitle}
@@ -99,6 +102,7 @@ export function ErrorMessageWithStackTrace({
       description={description}
       descriptionDetails={computedDescriptionDetails}
       compact={compact}
+      closable={closable}
     />
   );
 }

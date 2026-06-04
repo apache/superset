@@ -19,7 +19,7 @@
 import { useCallback, useEffect, useMemo, useState, ReactNode } from 'react';
 import { useSelector } from 'react-redux';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   AdhocColumn,
   isAdhocColumn,
@@ -199,7 +199,7 @@ const ColumnSelectPopoverTriggerInner = ({
         open={visible}
         onOpenChange={handleTogglePopover}
         title={popoverTitle}
-        destroyTooltipOnHide
+        destroyOnHidden
       >
         {children}
       </ControlPopover>

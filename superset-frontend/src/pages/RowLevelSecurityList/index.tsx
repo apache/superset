@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { useCallback, useMemo, useState } from 'react';
 import { ConfirmStatusChange, Tooltip } from '@superset-ui/core/components';

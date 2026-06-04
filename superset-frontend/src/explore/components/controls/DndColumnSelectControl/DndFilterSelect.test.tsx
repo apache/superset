@@ -24,7 +24,7 @@ import {
   QueryFormData,
   QueryFormMetric,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { ColumnMeta } from '@superset-ui/chart-controls';
 import {
   fireEvent,
@@ -69,7 +69,7 @@ const baseFormData = {
 };
 
 const mockStore = configureStore([thunk]);
-const store = mockStore({});
+const store = mockStore({ explore: {} });
 
 function setup({
   value = undefined,

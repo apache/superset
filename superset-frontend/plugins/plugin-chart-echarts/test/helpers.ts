@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ChartProps, ChartDataResponseResult } from '@superset-ui/core';
-import { supersetTheme } from '@apache-superset/core/ui';
+import { supersetTheme } from '@apache-superset/core/theme';
 
 /**
  * Datasource shape used by Echarts Timeseries and Mixed Timeseries chart props.

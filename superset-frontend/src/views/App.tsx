@@ -24,7 +24,7 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { bindActionCreators } from 'redux';
-import { css } from '@apache-superset/core/ui';
+import { css } from '@apache-superset/core/theme';
 import { Layout, Loading } from '@superset-ui/core/components';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { ErrorBoundary } from 'src/components';
@@ -48,6 +48,14 @@ setupCodeOverrides();
 setupAGGridModules();
 
 const bootstrapData = getBootstrapData();
+
+// WCAG 3.1.2: Set the HTML lang attribute based on the current locale
+// so screen readers announce the correct language for the page content.
+// Normalize to BCP-47 format by replacing underscores with hyphens
+// so region subtags like "pt_BR" become valid "pt-BR" rather than being dropped.
+const locale =
+  bootstrapData.common?.locale || window.navigator.language || 'en';
+document.documentElement.lang = String(locale).replace(/_/g, '-');
 
 let lastLocationPathname: string;
 
@@ -75,35 +83,36 @@ const App = () => (
     <ScrollToTop />
     <LocationPathnameLogger />
     <RootContextProviders>
-      <ExtensionsStartup />
       <Menu
         data={bootstrapData.common.menu_data}
         isFrontendRoute={isFrontendRoute}
       />
-      <Switch>
-        {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
-          <Route path={path} key={path}>
-            <Suspense fallback={<Fallback />}>
-              <Layout>
-                <Layout.Content
-                  css={css`
-                    display: flex;
-                    flex-direction: column;
-                  `}
-                >
-                  <ErrorBoundary
+      <ExtensionsStartup>
+        <Switch>
+          {routes.map(({ path, Component, props = {}, Fallback = Loading }) => (
+            <Route path={path} key={path}>
+              <Suspense fallback={<Fallback />}>
+                <Layout>
+                  <Layout.Content
                     css={css`
-                      margin: 16px;
+                      display: flex;
+                      flex-direction: column;
                     `}
                   >
-                    <Component user={bootstrapData.user} {...props} />
-                  </ErrorBoundary>
-                </Layout.Content>
-              </Layout>
-            </Suspense>
-          </Route>
-        ))}
-      </Switch>
+                    <ErrorBoundary
+                      css={css`
+                        margin: 16px;
+                      `}
+                    >
+                      <Component user={bootstrapData.user} {...props} />
+                    </ErrorBoundary>
+                  </Layout.Content>
+                </Layout>
+              </Suspense>
+            </Route>
+          ))}
+        </Switch>
+      </ExtensionsStartup>
       <ToastContainer />
     </RootContextProviders>
   </Router>

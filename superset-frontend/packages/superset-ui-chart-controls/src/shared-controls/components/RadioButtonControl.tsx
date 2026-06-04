@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { JsonValue } from '@superset-ui/core';
 import { Radio, Tooltip, TooltipPlacement } from '@superset-ui/core/components';
 import { ControlHeader } from '../../components/ControlHeader';

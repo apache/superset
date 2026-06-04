@@ -29,7 +29,7 @@ import {
   NativeFilterTarget,
   ColumnOption,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { Dataset } from '@superset-ui/chart-controls';
 import { chart } from 'src/components/Chart/chartReducer';
 import componentTypes from 'src/dashboard/util/componentTypes';
@@ -38,7 +38,10 @@ import { UrlParamEntries } from 'src/utils/urlUtils';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import Owner from 'src/types/Owner';
+import Role from 'src/types/Role';
+import { TagType } from 'src/components/Tag/TagType';
 import { ChartState } from '../explore/types';
+import { AutoRefreshStatus } from './types/autoRefresh';
 
 export type { Dashboard } from 'src/types/Dashboard';
 
@@ -141,6 +144,15 @@ export type DashboardState = {
     data: JsonObject;
   };
   chartStates?: Record<string, JsonObject>;
+  autoRefreshStatus?: AutoRefreshStatus;
+  autoRefreshPaused?: boolean;
+  autoRefreshPausedByTab?: boolean;
+  lastSuccessfulRefresh?: number | null;
+  lastAutoRefreshTime?: number | null;
+  lastRefreshError?: string | null;
+  refreshErrorCount?: number;
+  autoRefreshFetchStartTime?: number | null;
+  autoRefreshPauseOnInactiveTab?: boolean;
   labelsColorMapMustSync?: boolean;
   sharedLabelsColorsMustSync?: boolean;
   maxUndoHistoryExceeded?: boolean;
@@ -195,16 +207,16 @@ export type DashboardInfo = {
   pendingChartCustomizations?: Record<string, ChartCustomization>;
   theme?: {
     id: number;
-    name: string;
+    theme_name: string;
+    json_data: string;
   } | null;
-  theme_id?: number | null;
   css?: string;
   slug?: string;
   last_modified_time: number;
   certified_by?: string;
   certification_details?: string;
-  roles?: { id: number }[] | number[];
-  tags?: { type?: string | number }[];
+  roles?: Role[];
+  tags?: TagType[];
   is_managed_externally?: boolean;
   dash_share_perm?: boolean;
   dash_save_perm?: boolean;

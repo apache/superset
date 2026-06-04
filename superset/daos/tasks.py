@@ -21,7 +21,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
-from superset_core.api.tasks import TaskProperties, TaskScope, TaskStatus
+from superset_core.tasks.types import TaskProperties, TaskScope, TaskStatus
 
 from superset.daos.base import BaseDAO
 from superset.daos.exceptions import DAODeleteFailedError

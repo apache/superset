@@ -18,7 +18,7 @@
  */
 import rison from 'rison';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   makeApi,
   SupersetClient,
@@ -34,6 +34,7 @@ import {
   getSSHPasswordsNeeded,
   getSSHPrivateKeysNeeded,
   getSSHPrivateKeyPasswordsNeeded,
+  getEncryptedExtraFieldsNeeded,
 } from 'src/views/CRUD/utils';
 import type {
   ListViewFetchDataConfig as FetchDataConfig,
@@ -44,7 +45,11 @@ import copyTextToClipboard from 'src/utils/copy';
 import { ensureAppRoot } from 'src/utils/pathUtils';
 import SupersetText from 'src/utils/textUtils';
 import { DatabaseObject } from 'src/features/databases/types';
-import { FavoriteStatus, ImportResourceName } from './types';
+import {
+  FavoriteStatus,
+  FileEncryptedExtraFields,
+  ImportResourceName,
+} from './types';
 
 interface ListViewResourceState<D extends object = any> {
   loading: boolean;
@@ -137,7 +142,7 @@ export function useListViewResource<D extends object = any>(
         return false;
       }
 
-      return Boolean(state.permissions.find(p => p === perm));
+      return Boolean(state.permissions.some(p => p === perm));
     },
     [state.permissions],
   );
@@ -439,6 +444,7 @@ interface ImportResourceState {
   sshPasswordNeeded: string[];
   sshPrivateKeyNeeded: string[];
   sshPrivateKeyPasswordNeeded: string[];
+  encryptedExtraFieldsNeeded: FileEncryptedExtraFields[];
   failed: boolean;
 }
 
@@ -454,6 +460,7 @@ export function useImportResource(
     sshPasswordNeeded: [],
     sshPrivateKeyNeeded: [],
     sshPrivateKeyPasswordNeeded: [],
+    encryptedExtraFieldsNeeded: [],
     failed: false,
   });
 
@@ -468,6 +475,7 @@ export function useImportResource(
       sshTunnelPasswords: Record<string, string> = {},
       sshTunnelPrivateKey: Record<string, string> = {},
       sshTunnelPrivateKeyPasswords: Record<string, string> = {},
+      encryptedExtraSecrets: Record<string, Record<string, string>> = {},
       overwrite = false,
     ) => {
       // Set loading state
@@ -522,6 +530,18 @@ export function useImportResource(
           JSON.stringify(sshTunnelPrivateKeyPasswords),
         );
       }
+      /* The import bundle may contain masked_encrypted_extra; if required
+       * the secrets should be provided by the user during import.
+       */
+      if (
+        encryptedExtraSecrets &&
+        Object.keys(encryptedExtraSecrets).length > 0
+      ) {
+        formData.append(
+          'encrypted_extra_secrets',
+          JSON.stringify(encryptedExtraSecrets),
+        );
+      }
 
       return SupersetClient.post({
         endpoint: `/api/v1/${resourceName}/import/`,
@@ -535,6 +555,7 @@ export function useImportResource(
             sshPasswordNeeded: [],
             sshPrivateKeyNeeded: [],
             sshPrivateKeyPasswordNeeded: [],
+            encryptedExtraFieldsNeeded: [],
             failed: false,
           });
           return true;
@@ -571,6 +592,9 @@ export function useImportResource(
                 sshPasswordNeeded: getSSHPasswordsNeeded(error.errors),
                 sshPrivateKeyNeeded: getSSHPrivateKeysNeeded(error.errors),
                 sshPrivateKeyPasswordNeeded: getSSHPrivateKeyPasswordsNeeded(
+                  error.errors,
+                ),
+                encryptedExtraFieldsNeeded: getEncryptedExtraFieldsNeeded(
                   error.errors,
                 ),
                 alreadyExists: getAlreadyExists(error.errors),

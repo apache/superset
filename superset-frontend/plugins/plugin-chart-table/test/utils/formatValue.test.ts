@@ -17,7 +17,7 @@
  * under the License.
  */
 import { CurrencyFormatter, getNumberFormatter } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { formatColumnValue } from '../../src/utils/formatValue';
 import { DataColumnMeta } from '../../src/types';
 

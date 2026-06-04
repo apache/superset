@@ -34,6 +34,7 @@ from superset.reports.notifications.exceptions import NotificationError
 from superset.utils import json
 from superset.utils.core import HeaderDataType, send_email_smtp
 from superset.utils.decorators import statsd_gauge
+from superset.utils.link_redirect import process_html_links
 
 logger = logging.getLogger(__name__)
 
@@ -99,13 +100,19 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
 
     def _error_template(self, text: str) -> str:
         call_to_action = self._get_call_to_action()
+        # The error text is derived from exception messages that can embed
+        # data-controlled content (e.g. crafted table/column names in a DB
+        # error). Strip all HTML before interpolating it into the email body,
+        # matching the sanitization applied to the normal content path.
+        # pylint: disable=no-member
+        safe_text = nh3.clean(text, tags=set(), attributes={})
         return __(
             """
             <p>Your report/alert was unable to be generated because of the following error: %(text)s</p>
             <p>Please check your dashboard/chart for errors.</p>
             <p><b><a href="%(url)s">%(call_to_action)s</a></b></p>
             """,  # noqa: E501
-            text=text,
+            text=safe_text,
             url=self._content.url,
             call_to_action=call_to_action,
         )
@@ -133,6 +140,9 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             attributes=ALLOWED_ATTRIBUTES,
         )
 
+        # Rewrite external links to go through the redirect warning page
+        description = process_html_links(description)
+
         # Strip malicious HTML from embedded data, allowing only table elements
         if self._content.embedded_data is not None:
             df = self._content.embedded_data
@@ -144,6 +154,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
                 tags=TABLE_TAGS,
                 attributes=ALLOWED_TABLE_ATTRIBUTES,
             )
+            html_table = process_html_links(html_table)
         else:
             html_table = ""
 

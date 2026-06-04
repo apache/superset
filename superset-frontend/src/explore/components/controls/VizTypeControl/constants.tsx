@@ -18,7 +18,7 @@
  */
 import { ReactElement } from 'react';
 import { VizType } from '@superset-ui/core';
-import { css } from '@apache-superset/core/ui';
+import { css } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { VizMeta } from './types';
 

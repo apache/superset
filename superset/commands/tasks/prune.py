@@ -19,7 +19,7 @@ import time
 from datetime import datetime, timedelta
 
 import sqlalchemy as sa
-from superset_core.api.tasks import TaskStatus
+from superset_core.tasks.types import TaskStatus
 
 from superset import db
 from superset.commands.base import BaseCommand

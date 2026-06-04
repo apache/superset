@@ -18,7 +18,7 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ensureIsArray, usePrevious } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { isEqual } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -108,7 +108,7 @@ const getMetricsMatchingCurrentDataset = (
     );
   });
 
-interface MetricsControlProps {
+export interface MetricsControlProps {
   name: string;
   onChange: (value: unknown) => void;
   multi?: boolean;

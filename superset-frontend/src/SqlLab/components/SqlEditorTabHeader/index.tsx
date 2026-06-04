@@ -19,12 +19,18 @@
 import { useMemo, FC } from 'react';
 
 import { bindActionCreators } from 'redux';
-import { useSelector, useDispatch, shallowEqual } from 'react-redux';
+import { useSelector, shallowEqual } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { MenuDotsDropdown } from '@superset-ui/core/components';
 import { Menu, MenuItemType } from '@superset-ui/core/components/Menu';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { QueryState } from '@superset-ui/core';
-import { styled, css, SupersetTheme, useTheme } from '@apache-superset/core/ui';
+import {
+  styled,
+  css,
+  SupersetTheme,
+  useTheme,
+} from '@apache-superset/core/theme';
 import {
   removeQueryEditor,
   removeAllOtherQueryEditors,
@@ -85,7 +91,7 @@ const SqlEditorTabHeader: FC<Props> = ({ queryEditor }) => {
   );
   const StatusIcon = queryState ? STATE_ICONS[queryState] : STATE_ICONS.running;
 
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const actions = useMemo(
     () =>
       bindActionCreators(

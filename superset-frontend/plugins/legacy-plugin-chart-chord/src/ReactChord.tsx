@@ -17,7 +17,7 @@
  * under the License.
  */
 import { reactify } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import Component from './Chord';
 
 // Type-erase the render function to allow flexible prop spreading in the wrapper.

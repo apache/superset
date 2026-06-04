@@ -17,7 +17,7 @@
  * under the License.
  */
 import { PureComponent, ReactNode } from 'react';
-import { t } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
 import { JsonObject } from '@superset-ui/core';
 
 import { Loading } from '@superset-ui/core/components';
@@ -67,7 +67,7 @@ interface DashboardActions {
   setDatasources: (datasources: unknown) => void;
 }
 
-interface DashboardProps {
+export interface DashboardProps {
   actions: DashboardActions;
   dashboardId: number;
   editMode?: boolean;

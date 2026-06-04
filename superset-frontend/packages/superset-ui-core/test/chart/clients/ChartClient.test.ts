@@ -29,7 +29,7 @@ import {
   ChartMetadata,
   VizType,
 } from '@superset-ui/core';
-import { configure as configureTranslation } from '@apache-superset/core';
+import { configure as configureTranslation } from '@apache-superset/core/translation';
 
 import { LOGIN_GLOB } from '../fixtures/constants';
 import { sankeyFormData } from '../fixtures/formData';

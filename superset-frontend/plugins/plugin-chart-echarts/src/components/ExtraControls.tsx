@@ -18,7 +18,7 @@
  */
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { HandlerFunction, JsonValue } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { sharedControlComponents } from '@superset-ui/chart-controls';
 import { AreaChartStackControlOptions } from '../constants';
 
