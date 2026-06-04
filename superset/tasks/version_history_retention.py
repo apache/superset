@@ -358,12 +358,10 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
 
     cutoff = datetime.utcnow() - timedelta(days=retention_days)
 
-    last_exc: OperationalError | None = None
     for attempt in range(1, _MAX_RETRY_ATTEMPTS + 1):
         try:
             stats = _run_prune_pass(cutoff, tables)
         except OperationalError as exc:
-            last_exc = exc
             stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.retried")
             if attempt == _MAX_RETRY_ATTEMPTS:
                 logger.warning(
@@ -383,18 +381,19 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
             )
             time.sleep(backoff)
             continue
-        else:
-            if attempt > 1:
-                stats["retried"] = attempt - 1
-            stats_logger_manager.instance.gauge(
-                f"{_METRIC_PREFIX}.pruned_transactions",
-                stats.get("pruned_transactions", 0),
-            )
-            logger.info("version_history_retention: %s", stats)
-            return stats
+        if attempt > 1:
+            stats["retried"] = attempt - 1
+        stats_logger_manager.instance.gauge(
+            f"{_METRIC_PREFIX}.pruned_transactions",
+            stats.get("pruned_transactions", 0),
+        )
+        logger.info("version_history_retention: %s", stats)
+        return stats
 
-    # Unreachable — the loop above always returns or re-raises.
-    raise RuntimeError("retention retry loop exited without result") from last_exc
+    # The loop above always returns or re-raises; this is the type checker's
+    # placate-line. If it ever fires, the loop's exit condition has been
+    # changed incorrectly.
+    raise AssertionError("retention retry loop exited without result")
 
 
 @celery_app.task(name="version_history.prune_old_versions")

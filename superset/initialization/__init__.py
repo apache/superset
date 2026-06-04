@@ -628,6 +628,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         instead of revert-and-redeploy. Shadow tables already created by
         the migration stay; they just stop accumulating new rows.
         """
+        # Beat-schedule check first: the retention task is independent of
+        # save-path capture and remains useful for ageing-out rows already
+        # written by prior deploys. An operator hitting the kill-switch in
+        # anger may also be running a hand-rolled ``CeleryConfig`` that
+        # silently dropped the prune entry; surfacing both misconfigurations
+        # at the same restart is the cheap, observability-positive shape.
+        self._warn_if_retention_beat_missing()
+
         if not self.config.get("ENABLE_VERSIONING_CAPTURE", True):
             logger.warning(
                 "versioning: ENABLE_VERSIONING_CAPTURE is False; "
@@ -685,7 +693,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # ``CELERYBEAT_SCHEDULE`` (``superset/config.py``). The previous
         # synchronous after_commit listener was retired so retention
         # work doesn't add latency to user saves.
-        self._warn_if_retention_beat_missing()
+
+    _RETENTION_TASK_NAME = "version_history.prune_old_versions"
 
     def _warn_if_retention_beat_missing(self) -> None:
         """WARN at startup when the resolved Celery beat schedule has no
@@ -697,18 +706,30 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         never runs; disk grows until paged. The default config carries
         the entry; this check makes the misconfiguration visible in the
         deploy log before disk pressure makes it visible at 03:00.
+
+        Handles three shapes of ``CELERY_CONFIG``:
+        * ``None`` — Celery deliberately disabled, no retention either
+          way; return without warning.
+        * a class or module with a ``beat_schedule`` attribute — the
+          default ``CeleryConfig`` shape.
+        * a dict — Celery's documented "config as dict" shape, supported
+          by ``celery_app.config_from_object``.
         """
         celery_config = self.config.get("CELERY_CONFIG")
+        if celery_config is None:
+            return  # Celery disabled entirely; no retention task to warn about.
         beat_schedule = (
-            getattr(celery_config, "beat_schedule", None) if celery_config else None
+            celery_config.get("beat_schedule")
+            if isinstance(celery_config, dict)
+            else getattr(celery_config, "beat_schedule", None)
         )
-        if not beat_schedule or "version_history.prune_old_versions" not in beat_schedule:
+        if not beat_schedule or self._RETENTION_TASK_NAME not in beat_schedule:
             logger.warning(
                 "versioning: CELERY_CONFIG.beat_schedule is missing the "
-                "'version_history.prune_old_versions' entry — the retention "
-                "task will not fire and shadow tables will grow unbounded. "
-                "Either inherit from the default CeleryConfig or add the "
-                "entry to your override."
+                "%r entry — the retention task will not fire and shadow "
+                "tables will grow unbounded. Either inherit from the "
+                "default CeleryConfig or add the entry to your override.",
+                self._RETENTION_TASK_NAME,
             )
 
     def init_app_in_ctx(self) -> None:

@@ -1438,8 +1438,8 @@ SUPERSET_META_DB_LIMIT: int | None = 1000
 # This is an operational escape hatch — for use when a versioning-induced
 # regression needs a 30-second recovery instead of revert-and-redeploy —
 # not a feature flag. New deployments leave it on.
-ENABLE_VERSIONING_CAPTURE: bool = (
-    os.environ.get("ENABLE_VERSIONING_CAPTURE", "true").lower() == "true"
+ENABLE_VERSIONING_CAPTURE: bool = utils.parse_boolean_string(
+    os.environ.get("ENABLE_VERSIONING_CAPTURE", "true")
 )
 
 # Retention window (days) for entity version history. Version rows
