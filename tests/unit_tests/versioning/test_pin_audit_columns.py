@@ -84,7 +84,7 @@ def test_flag_modified_suppresses_onupdate_callable() -> None:
     ``expire_on_commit=True`` path the attribute would be expired and
     ``flag_modified`` would raise ``InvalidRequestError`` — that case
     is the production path ``pin_audit_columns`` catches and skips
-    (covered in ``testpin_audit_columns_tolerates_invalid_request_error``).
+    (covered in ``test_pin_audit_columns_tolerates_invalid_request_error``).
     """
     from sqlalchemy.orm import attributes, sessionmaker
 
@@ -155,7 +155,7 @@ def test_onupdate_does_fire_without_flag_modified() -> None:
             assert row.changed_by_fk == 9999
 
 
-def testpin_audit_columns_skips_missing_attribute() -> None:
+def test_pin_audit_columns_skips_missing_attribute() -> None:
     """``pin_audit_columns`` must tolerate parents that don't carry the
     audit attributes (e.g., a model variant without ``AuditMixin``).
     Uses a bare object so ``hasattr`` returns False."""
@@ -170,7 +170,7 @@ def testpin_audit_columns_skips_missing_attribute() -> None:
     pin_audit_columns(parent)
 
 
-def testpin_audit_columns_tolerates_invalid_request_error() -> None:
+def test_pin_audit_columns_tolerates_invalid_request_error() -> None:
     """``pin_audit_columns`` catches ``InvalidRequestError`` raised when
     an attribute is unloaded in instance state — e.g., on a freshly
     constructed ``session.new`` instance whose attribute defaults haven't
@@ -190,7 +190,7 @@ def testpin_audit_columns_tolerates_invalid_request_error() -> None:
     parent = _HasAuditCols()
 
     with patch(
-        "superset.versioning.baseline.attributes.flag_modified",
+        "superset.versioning.baseline.dirty.attributes.flag_modified",
         side_effect=InvalidRequestError("not loaded"),
     ) as mock_flag:
         # Must not raise — must swallow the InvalidRequestError per
