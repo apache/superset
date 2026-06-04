@@ -450,16 +450,13 @@ describe('async actions', () => {
       });
     });
 
-    /* oxlint-disable-next-line jest/no-disabled-tests */
-    test.skip('parses large number result without losing precision', () =>
+    test('parses large number result without losing precision', () =>
       makeRequest().then(() => {
         expect(fetchMock.callHistory.calls(fetchQueryEndpoint)).toHaveLength(1);
-        expect(dispatch.mock.calls.length).toBe(2);
-        expect(
-          dispatch.mock.calls[1][
-            dispatch.mock.calls[1].length - 1
-          ].results.data.toString(),
-        ).toBe(mockBigNumber);
+        expect(dispatch.mock.calls).toHaveLength(2);
+        const action = dispatch.mock.calls[1][0];
+        expect(typeof action.results.data).toBe('bigint');
+        expect(action.results.data.toString()).toBe(mockBigNumber);
       }));
 
     test('calls querySuccess on fetch success', () => {
