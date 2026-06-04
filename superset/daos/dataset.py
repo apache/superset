@@ -31,7 +31,6 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
-from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
 from superset.models.core import Database
@@ -170,22 +169,32 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         # the same physical identity still blocks the create. Otherwise a
         # delete-then-create-then-restore sequence could produce two live
         # datasets pointing at the same physical table.
-        dataset_query = (
-            db.session.query(SqlaTable)
-            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
-            .filter(
+        #
+        # The bypass MUST be session-scoped, not per-query. The
+        # ``db.session.query(dataset_query.exists()).scalar()`` pattern below
+        # builds an OUTER query whose ``execution_options`` are independent
+        # of the inner ``dataset_query`` — the listener fires on the outer
+        # execute and would attach ``deleted_at IS NULL`` to all SqlaTable
+        # references in the statement (including inside the EXISTS
+        # subquery) via ``with_loader_criteria(include_aliases=True)``.
+        # A per-query option on the inner query never reaches that listener.
+        from superset.models.helpers import (  # pylint: disable=import-outside-toplevel
+            skip_visibility_filter,
+        )
+
+        with skip_visibility_filter(db.session, SqlaTable):
+            dataset_query = db.session.query(SqlaTable).filter(
                 SqlaTable.table_name == table.table,
                 SqlaTable.schema == table.schema,
                 SqlaTable.catalog == catalog,
                 SqlaTable.database_id == database.id,
             )
-        )
 
-        if dataset_id:
-            # make sure the dataset found is different from the target (if any)
-            dataset_query = dataset_query.filter(SqlaTable.id != dataset_id)
+            if dataset_id:
+                # make sure the dataset found is different from the target (if any)
+                dataset_query = dataset_query.filter(SqlaTable.id != dataset_id)
 
-        return not db.session.query(dataset_query.exists()).scalar()
+            return not db.session.query(dataset_query.exists()).scalar()
 
     @staticmethod
     def validate_update_uniqueness(
@@ -197,21 +206,24 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         # multi-catalog is disabled.
         catalog = table.catalog or database.get_default_catalog()
 
-        # Same rationale as ``validate_uniqueness`` above: bypass the
-        # soft-delete visibility filter so a soft-deleted twin blocks
-        # the update rather than being silently ignored.
-        dataset_query = (
-            db.session.query(SqlaTable)
-            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
-            .filter(
+        # Same rationale as ``validate_uniqueness`` above: a soft-deleted
+        # twin must block the update rather than being silently ignored.
+        # The bypass is session-scoped, not per-query, because the EXISTS
+        # subquery pattern below leaves the inner Query's execution_options
+        # invisible to the outer execute (where the listener fires).
+        from superset.models.helpers import (  # pylint: disable=import-outside-toplevel
+            skip_visibility_filter,
+        )
+
+        with skip_visibility_filter(db.session, SqlaTable):
+            dataset_query = db.session.query(SqlaTable).filter(
                 SqlaTable.table_name == table.table,
                 SqlaTable.database_id == database.id,
                 SqlaTable.schema == table.schema,
                 SqlaTable.catalog == catalog,
                 SqlaTable.id != dataset_id,
             )
-        )
-        return not db.session.query(dataset_query.exists()).scalar()
+            return not db.session.query(dataset_query.exists()).scalar()
 
     @staticmethod
     def validate_columns_exist(dataset_id: int, columns_ids: list[int]) -> bool:
