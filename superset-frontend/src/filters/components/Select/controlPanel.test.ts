@@ -17,8 +17,20 @@
  * under the License.
  */
 import { GenericDataType } from '@apache-superset/core/common';
-import { getOperatorTypeChoices, isStringOperatorColumn } from './controlPanel';
+import config, {
+  getOperatorTypeChoices,
+  isStringOperatorColumn,
+} from './controlPanel';
 import { SelectFilterOperatorType } from './types';
+
+type ControlConfig = {
+  label?: unknown;
+  description?: unknown;
+};
+
+type ControlItem = {
+  config: ControlConfig;
+} | null;
 
 test('getOperatorTypeChoices only returns exact match for non-string columns', () => {
   expect(getOperatorTypeChoices(false)).toEqual([
@@ -40,4 +52,24 @@ test('isStringOperatorColumn returns true for string selected columns', () => {
       { column_name: 'name', type_generic: GenericDataType.String },
     ]),
   ).toBe(true);
+});
+
+test('Select controlPanel label and description functions return strings', () => {
+  const fns: Array<() => unknown> = [];
+  config.controlPanelSections.forEach(section => {
+    section?.controlSetRows.forEach(row => {
+      (row as ControlItem[]).forEach(item => {
+        if (item && typeof item === 'object' && 'config' in item) {
+          const { label, description } = item.config;
+          if (typeof label === 'function') fns.push(label as () => unknown);
+          if (typeof description === 'function')
+            fns.push(description as () => unknown);
+        }
+      });
+    });
+  });
+  expect(fns.length).toBeGreaterThan(0);
+  fns.forEach(fn => {
+    expect(typeof fn()).toBe('string');
+  });
 });

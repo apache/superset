@@ -45,10 +45,10 @@ Configuration:
 """
 
 import logging
-from contextlib import AbstractContextManager
+from contextlib import AbstractContextManager, nullcontext
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
-from flask import g, has_request_context
+from flask import current_app, g, has_app_context, has_request_context
 from flask_appbuilder.security.sqla.models import Group, User
 
 if TYPE_CHECKING:
@@ -64,6 +64,21 @@ logger = logging.getLogger(__name__)
 PERMISSION_PREFIX = "can_"
 CLASS_PERMISSION_ATTR = "_class_permission_name"
 METHOD_PERMISSION_ATTR = "_method_permission_name"
+
+# Tools already warned about for declaring no class_permission_name, so the
+# warning surfaces once per tool instead of on every protected-tool call.
+_warned_permissionless_tools: set[str] = set()
+
+
+class MCPNoAuthSourceError(ValueError):
+    """Raised when no authentication source is available for a request.
+
+    Subclasses ``ValueError`` so existing ``except ValueError`` handlers and
+    tests keep working, while callers that need to distinguish "no auth source
+    configured at all" (fail open in dev/internal deployments) from a genuine
+    credential failure (fail closed) can ``isinstance``-check instead of
+    matching a fragile message string.
+    """
 
 
 class MCPPermissionDeniedError(Exception):
@@ -88,7 +103,7 @@ class MCPPermissionDeniedError(Exception):
         super().__init__(message)
 
 
-def check_tool_permission(func: Callable[..., Any]) -> bool:
+def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) -> bool:
     """Check if the current user has RBAC permission for an MCP tool.
 
     Reads permission metadata stored on the function by the @tool decorator
@@ -99,6 +114,9 @@ def check_tool_permission(func: Callable[..., Any]) -> bool:
 
     Args:
         func: The tool function with optional permission attributes.
+        log_denial: When False, log denials at DEBUG level instead of WARNING.
+            Pass False for list-time visibility checks to avoid per-tool warning
+            noise for every hidden tool on every ``tools/list`` request.
 
     Returns:
         True if user has permission or no permission is required.
@@ -112,14 +130,30 @@ def check_tool_permission(func: Callable[..., Any]) -> bool:
         from superset import security_manager
 
         if not hasattr(g, "user") or not g.user:
-            logger.warning(
-                "No user context for permission check on tool: %s", func.__name__
-            )
+            if log_denial:
+                logger.warning(
+                    "No user context for permission check on tool: %s", func.__name__
+                )
+            else:
+                logger.debug(
+                    "No user context for permission check on tool: %s", func.__name__
+                )
             return False
 
         class_permission_name = getattr(func, CLASS_PERMISSION_ATTR, None)
         if not class_permission_name:
-            # No RBAC configured for this tool; allow by default.
+            # No RBAC configured for this tool; allow by default. This is a
+            # supported configuration (a protected tool may intentionally
+            # declare no permission class), but surface it ONCE per tool so an
+            # accidental omission on a sensitive tool doesn't silently fail open
+            # — without emitting a WARNING on every protected-tool call.
+            if func.__name__ not in _warned_permissionless_tools:
+                _warned_permissionless_tools.add(func.__name__)
+                logger.warning(
+                    "Tool %s is permission-protected but declares no "
+                    "class_permission_name; allowing access without an RBAC check",
+                    func.__name__,
+                )
             return True
 
         method_permission_name = getattr(func, METHOD_PERMISSION_ATTR, "read")
@@ -130,18 +164,77 @@ def check_tool_permission(func: Callable[..., Any]) -> bool:
         )
 
         if not has_permission:
-            logger.warning(
-                "Permission denied for user %s: %s on %s (tool: %s)",
-                g.user.username,
-                permission_str,
-                class_permission_name,
-                func.__name__,
-            )
+            if log_denial:
+                logger.warning(
+                    "Permission denied for user %s: %s on %s (tool: %s)",
+                    g.user.username,
+                    permission_str,
+                    class_permission_name,
+                    func.__name__,
+                )
+            else:
+                logger.debug(
+                    "Tool hidden for user %s: %s on %s (tool: %s)",
+                    g.user.username,
+                    permission_str,
+                    class_permission_name,
+                    func.__name__,
+                )
 
         return has_permission
 
     except (AttributeError, ValueError, RuntimeError) as e:
         logger.warning("Error checking tool permission: %s", e)
+        return False
+
+
+def is_tool_visible_to_current_user(tool: Any) -> bool:
+    """Return whether the current user can see a tool in tools/list.
+
+    Checks both RBAC permissions and data-model metadata privacy. The caller
+    must set ``g.user`` before calling this function.
+
+    This is the single source of truth for tool visibility — called from both
+    ``RBACToolVisibilityMiddleware`` (``tools/list``) and
+    ``_tool_allowed_for_current_user()`` (tool search).
+
+    Args:
+        tool: A FastMCP Tool object.
+
+    Returns:
+        True if the tool is visible to the current user, False otherwise.
+    """
+    try:
+        from flask import current_app
+
+        if not current_app.config.get("MCP_RBAC_ENABLED", True):
+            return True
+
+        tool_func = getattr(tool, "fn", None)
+        if tool_func is None:
+            return True
+
+        from superset.mcp_service.privacy import (
+            tool_requires_data_model_metadata_access,
+            user_can_view_data_model_metadata,
+        )
+
+        if (
+            tool_requires_data_model_metadata_access(tool_func)
+            and not user_can_view_data_model_metadata()
+        ):
+            return False
+
+        class_permission_name = getattr(tool_func, CLASS_PERMISSION_ATTR, None)
+        if not class_permission_name:
+            return True
+
+        return check_tool_permission(tool_func, log_denial=False)
+
+    except (AttributeError, RuntimeError, ValueError):
+        logger.debug(
+            "Could not evaluate tool visibility for current user", exc_info=True
+        )
         return False
 
 
@@ -354,28 +447,29 @@ def get_user_from_request() -> User:
     if hasattr(g, "user") and g.user:
         return g.user
 
-    # No auth source available — raise with diagnostic details
+    # No auth source available. Keep the client-facing message generic so it
+    # does not disclose server configuration; the detailed diagnostics are
+    # logged server-side only.
     auth_enabled = current_app.config.get("MCP_AUTH_ENABLED", False)
     jwt_configured = bool(
         current_app.config.get("MCP_JWKS_URI")
         or current_app.config.get("MCP_JWT_PUBLIC_KEY")
         or current_app.config.get("MCP_JWT_SECRET")
     )
-    details = [
-        f"No JWT access token in MCP request context "
-        f"(MCP_AUTH_ENABLED={auth_enabled}, "
-        f"JWT keys configured={jwt_configured})",
-        "No API key in Authorization header",
-        "MCP_DEV_USERNAME is not configured",
-        "g.user was not set by external middleware",
-    ]
-    configured_prefixes = current_app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
-    prefix_example = configured_prefixes[0] if configured_prefixes else "sst_"
-    raise ValueError(
-        "No authenticated user found. Tried:\n"
-        + "\n".join(f"  - {d}" for d in details)
-        + f"\n\nEither pass a valid API key (Bearer {prefix_example}...), "
-        "JWT token, or configure MCP_DEV_USERNAME for development."
+    dev_username_configured = bool(current_app.config.get("MCP_DEV_USERNAME"))
+    logger.debug(
+        "MCP authentication failed: no valid credentials provided "
+        "(no JWT access token, no API key, no g.user from middleware)"
+    )
+    logger.debug(
+        "MCP auth diagnostics: MCP_AUTH_ENABLED=%s, JWT keys configured=%s, "
+        "MCP_DEV_USERNAME configured=%s",
+        auth_enabled,
+        jwt_configured,
+        dev_username_configured,
+    )
+    raise MCPNoAuthSourceError(
+        "Authentication required. No valid credentials provided."
     )
 
 
@@ -430,6 +524,34 @@ def check_chart_data_access(chart: Any) -> "DatasetValidationResult":
     return validate_chart_dataset(chart, check_access=True)
 
 
+def _log_user_resolution_failure(exc: ValueError) -> None:
+    """Log a user-resolution ValueError at the appropriate level.
+
+    ``MCPNoAuthSourceError`` (no JWT, no API key, no MCP_DEV_USERNAME
+    configured) is expected in unauthenticated/dev deployments and during
+    tools/list scanning — log at DEBUG to avoid ERROR noise. All other
+    ValueErrors (e.g. dev username not in DB) are genuine credential failures
+    and are logged at ERROR.
+    """
+    if isinstance(exc, MCPNoAuthSourceError):
+        logger.debug("MCP: no auth source configured, unauthenticated request")
+    else:
+        logger.error("MCP user resolution failed, denying request: %s", exc)
+
+
+def _reject_if_inactive(user: User | None) -> None:
+    """Raise ``ValueError`` if the resolved user account is deactivated.
+
+    A still-valid JWT or API key must not grant MCP access to a user whose
+    account has been disabled. This mirrors Flask-Login's ``is_active`` check
+    for web sessions, which the MCP auth path does not otherwise go through.
+    """
+    if user is not None and not (
+        getattr(user, "is_active", True) and getattr(user, "active", True)
+    ):
+        raise ValueError("User account is disabled")
+
+
 def _setup_user_context() -> User | None:
     """
     Set up user context for MCP tool execution.
@@ -457,6 +579,7 @@ def _setup_user_context() -> User | None:
     for attempt in range(2):
         try:
             user = get_user_from_request()
+            _reject_if_inactive(user)
 
             # Validate user has necessary relationships loaded.
             # Force access to ensure they're loaded if lazy.
@@ -495,7 +618,7 @@ def _setup_user_context() -> User | None:
             # proceed as a different user in multi-tenant deployments.
             # Clear g.user so error/audit logging doesn't attribute
             # the denied request to the middleware-provided identity.
-            logger.error("MCP user resolution failed, denying request: %s", e)
+            _log_user_resolution_failure(e)
             if has_request_context():
                 g.pop("user", None)
             raise
@@ -557,6 +680,37 @@ def _remove_session_safe() -> None:
         db.session.remove()  # retry: session deregisters cleanly after invalidation
 
 
+def _get_app_context_manager() -> AbstractContextManager[None]:
+    """Return the right context manager for the current Flask state.
+
+    When a request context is present, external middleware (e.g.
+    Preset's WorkspaceContextMiddleware) has already set ``g.user``
+    on a per-request app context — reuse it via ``nullcontext()``.
+
+    When only a bare app context exists (no request context), push a
+    **new** app context so concurrent tool calls do not share one ``g``
+    namespace (which would cause ``g.user`` races under asyncio).
+
+    When no context exists at all, push a fresh app context from the
+    Flask singleton.
+
+    This is the single source of truth for context selection — called
+    from both ``mcp_auth_hook`` (tool execution) and
+    ``RBACToolVisibilityMiddleware`` (tools/list filtering).
+    """
+    if has_request_context():
+        return nullcontext()
+    if has_app_context():
+        # Push a new context for the CURRENT app (not get_flask_app()
+        # which may return a different instance in test environments).
+        return current_app._get_current_object().app_context()
+    # Deferred: importing at module level would trigger create_app() before
+    # Superset is fully initialised (e.g. during unit-test collection).
+    from superset.mcp_service.flask_singleton import get_flask_app
+
+    return get_flask_app().app_context()
+
+
 def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
     """
     Authentication and authorization decorator for MCP tools.
@@ -571,41 +725,9 @@ def mcp_auth_hook(tool_func: F) -> F:  # noqa: C901
 
     Supports both sync and async tool functions.
     """
-    import contextlib
     import functools
     import inspect
     import types
-
-    from flask import current_app, has_app_context, has_request_context
-
-    def _get_app_context_manager() -> AbstractContextManager[None]:
-        """Push a fresh app context unless a request context is active.
-
-        When a request context is present, external middleware (e.g.
-        Preset's WorkspaceContextMiddleware) has already set ``g.user``
-        on a per-request app context — reuse it via ``nullcontext()``.
-
-        When only a bare app context exists (no request context), we must
-        push a **new** app context. The MCP server typically runs inside
-        a long-lived app context (e.g. ``__main__.py`` wraps
-        ``mcp.run()`` in ``app.app_context()``). When FastMCP dispatches
-        concurrent tool calls via ``asyncio.create_task()``, each task
-        inherits the parent's ``ContextVar`` *value* — a reference to the
-        **same** ``AppContext`` object. Without a fresh push, all tasks
-        share one ``g`` namespace and concurrent ``g.user`` mutations
-        race: one user's identity can overwrite another's before
-        ``get_user_id()`` runs during the SQLAlchemy INSERT flush,
-        attributing the created asset to the wrong user.
-        """
-        if has_request_context():
-            return contextlib.nullcontext()
-        if has_app_context():
-            # Push a new context for the CURRENT app (not get_flask_app()
-            # which may return a different instance in test environments).
-            return current_app._get_current_object().app_context()
-        from superset.mcp_service.flask_singleton import get_flask_app
-
-        return get_flask_app().app_context()
 
     is_async = inspect.iscoroutinefunction(tool_func)
 

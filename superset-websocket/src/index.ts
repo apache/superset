@@ -18,7 +18,7 @@
  */
 import * as http from 'http';
 import * as net from 'net';
-import WebSocket from 'ws';
+import WebSocket, { WebSocketServer } from 'ws';
 import { randomUUID } from 'crypto';
 import jwt, { Algorithm } from 'jsonwebtoken';
 import { parse } from 'cookie';
@@ -141,7 +141,7 @@ export const buildRedisOpts = (baseConfig: RedisConfig) => {
 // initialize servers
 const redis = new Redis(buildRedisOpts(opts.redis));
 const httpServer = http.createServer();
-export const wss = new WebSocket.Server({
+export const wss = new WebSocketServer({
   noServer: true,
   clientTracking: false,
 });
@@ -300,13 +300,24 @@ const readChannelId = (request: http.IncomingMessage): string => {
   return channelId;
 };
 
+// Redis stream IDs have the form '<millisecondsTime>-<sequenceNumber>',
+// e.g. '1607477697866-0'.
+const REDIS_STREAM_ID_REGEX = /^\d{1,15}-\d{1,10}$/;
+
 /**
- * Extracts the `last_id` query param value from an HTTP request
+ * Extracts the `last_id` query param value from an HTTP request, returning it
+ * only when it is a well-formed Redis stream ID. Malformed values are ignored
+ * (returns null) rather than being passed through to incrementId / Redis.
  */
-const getLastId = (request: http.IncomingMessage): string | null => {
+export const getLastId = (request: http.IncomingMessage): string | null => {
   const url = new URL(String(request.url), 'http://0.0.0.0');
-  const queryParams = url.searchParams;
-  return queryParams.get('last_id');
+  const lastId = url.searchParams.get('last_id');
+  if (lastId === null) return null;
+  if (!REDIS_STREAM_ID_REGEX.test(lastId)) {
+    logger.warn(`Ignoring malformed last_id query param: ${lastId}`);
+    return null;
+  }
+  return lastId;
 };
 
 /**
@@ -466,7 +477,7 @@ export const cleanChannel = (channel: string) => {
 
 if (startServer) {
   // init server event listeners
-  wss.on('connection', function (ws) {
+  wss.on('connection', function (ws: WebSocket) {
     ws.on('error', console.error);
   });
   wss.on('connection', wsConnection);
