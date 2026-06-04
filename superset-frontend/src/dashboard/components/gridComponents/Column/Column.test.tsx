@@ -19,9 +19,6 @@
 import React from 'react';
 import { fireEvent, render } from 'spec/helpers/testing-library';
 
-import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
-import IconButton from 'src/dashboard/components/IconButton';
-
 import { getMockStore } from 'spec/fixtures/mockStore';
 import { dashboardLayout as mockLayout } from 'spec/fixtures/mockDashboardLayout';
 import { initialState } from 'src/SqlLab/fixtures';
@@ -176,21 +173,24 @@ test('should render a DeleteComponentButton in editMode', () => {
   expect(getByTestId('mock-delete-component-button')).toBeInTheDocument();
 });
 
-/* oxlint-disable-next-line jest/no-disabled-tests */
-test.skip('should render a BackgroundStyleDropdown when focused', () => {
-  let wrapper: ReturnType<typeof setup> = setup({
+test('should render a BackgroundStyleDropdown when focused', () => {
+  const { queryByTestId, container } = setup({
     component: columnWithoutChildren,
+    editMode: true,
   });
-  expect((wrapper as any).find(BackgroundStyleDropdown)).toBeFalsy();
 
-  // we cannot set props on the Row because of the WithDragDropContext wrapper
-  wrapper = setup({ component: columnWithoutChildren, editMode: true });
-  (wrapper as any)
-    .find(IconButton)
-    .at(1) // first one is delete button
-    .simulate('click');
+  // Before focus: dropdown is absent
+  expect(
+    queryByTestId('mock-background-style-dropdown'),
+  ).not.toBeInTheDocument();
 
-  expect((wrapper as any).find(BackgroundStyleDropdown)).toBeTruthy();
+  // Click the settings IconButton to trigger focus
+  const settingsButton = container.querySelector('div[role="button"]');
+  expect(settingsButton).toBeInTheDocument();
+  fireEvent.click(settingsButton!);
+
+  // After focus: dropdown is present
+  expect(queryByTestId('mock-background-style-dropdown')).toBeInTheDocument();
 });
 
 test('should call deleteComponent when deleted', () => {
