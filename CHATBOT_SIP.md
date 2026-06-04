@@ -37,9 +37,7 @@ Day: May, 2026
    the dashboard's charts (each flagged with its current visibility)
    The chatbot must be notified when the page context changes (navigation entity change, title change) without polling.
    The page context the chatbot receives must be host-derived and aligned with the current user's backend-authorized application view: the host computes it and exposes only what the current user is already authorized to see. The chatbot must not read the host's Redux store or other internal state to assemble context (the chatbot must not depend on internal frontend structure to assemble the context).
-   The chatbot must support conversation state/history (owned by the extension, never the host) 3) Administration
-   An admin can enable/disable the chatbot and when more than one chatbot extension is installed, choose which one is active.
-   This administration is surfaced directly in the UI through the existing Extensions list page (`/extensions/`, `superset-frontend/src/extensions/ExtensionsList.tsx`). For each installed extension the page renders an enable/disable toggle, and for any extension that registers a `superset.chatbot` view it renders a "Set as default chatbot" / "Remove default" control (a star icon) that marks the single active chatbot. Selections are persisted server-side via the `/api/v1/extensions/settings` endpoint and propagated live to the host mount point (`notifyExtensionSettingsChanged`), so enabling, disabling, or switching the default chatbot takes effect without a reload. The candidate chatbots offered in the picker are resolved from the views registered at the `superset.chatbot` location (`getRegisteredViewIds(CHATBOT_LOCATION)`), so the singleton selection policy described in §3.2 is driven by this admin UI.
+   The chatbot must support conversation state/history (owned by the extension, never the host)
 
 2.1 Non-functional requirements
 Context sharing must respect Superset permission and security boundaries. The host must not expose entities, metadata, or datasource-derived context the current user is not authorized to access.
@@ -49,19 +47,40 @@ Context change notifications must not require polling.
 Third-party chatbot failures must not break the main application (fault isolation at the mount boundary).
 The integration system must remain extensible for future AI capabilities and additional application surfaces.
 The architecture should avoid hard dependency on any specific LLM vendor.
-The system must support incremental adoption and migration from existing integrations. 3. Proposed Extension Point
-3.1 Summary
-One extension point is proposed.
-Extension Point
-Contribution Area ID
-Registration API
-Cardinality
-Chatbot bubble
-`superset.chatbot`
-`views.registerView()`
-Exclusive (singleton)
+The system must support incremental adoption and migration from existing integrations.
 
-3.2 The Chatbot Bubble
+3. Administration
+   Administrators can manage chatbot availability and select the default chatbot when multiple chatbot extensions are installed.
+   Administration is exposed through the existing Extensions page (/extensions/, superset-frontend/src/extensions/ExtensionsList.tsx). Each installed extension provides an enable/disable control, while extensions that register a superset.chatbot view expose an additional action allowing administrators to designate a single default chatbot. This selection is enforced as a singleton, ensuring that only one chatbot can be active at a time.
+   Configuration is persisted through the /api/v1/extensions/settings endpoint and propagated at runtime via notifyExtensionSettingsChanged, allowing changes to take effect immediately without requiring a page reload. Available chatbot candidates are discovered dynamically from extensions registered at the superset.chatbot location using getRegisteredViewIds(CHATBOT_LOCATION).
+   Scope
+   The administration model introduced by this SIP is deployment-wide and applies globally to all users.
+   Extension availability and default chatbot selection are stored in the extension_enabled and extension_settings tables without any user-specific association. As a result, these settings answer the question:
+   Which extensions and chatbot integrations are available for this Superset deployment?
+   rather than:
+   Which extensions or chatbot integrations does a specific user prefer to use?
+   This separation is intentional. Deployment administrators are responsible for determining which extensions are available within the environment, while user-specific preferences are considered a separate concern.
+   Future User-Level Preferences
+   Per-user extension preferences are an important capability and are expected to be supported in the future. However, this SIP intentionally does not introduce user-scoped state into the extension availability model.
+   Instead of extending extension_enabled with a user_fk, user-specific preferences should be layered on top of deployment availability using the following model:
+   available (admin-managed) AND user-preference (user-managed)
+   The recommended persistence layer for user preferences is the Extension Storage API (PR #39171), which is designed around per-user storage and already supports persistent user settings. This approach is consistent with the model established by SIP-127 (User Preferences), where user configuration is managed independently from deployment-wide administration.
+   The current chatbot resolution mechanism already accommodates this evolution. The existing getActiveChatbot(adminSelectedId, enabledMap) contract can be extended in the future to consume a user-merged availability map without requiring architectural changes to the administration layer.
+   Consequently, this SIP focuses exclusively on deployment-level availability and default chatbot selection. User-specific overrides remain explicitly out of scope and may be introduced in a future proposal.
+
+4. Proposed Extension Point
+   4.1 Summary
+   One extension point is proposed.
+   Extension Point
+   Contribution Area ID
+   Registration API
+   Cardinality
+   Chatbot bubble
+   `superset.chatbot`
+   `views.registerView()`
+   Exclusive (singleton)
+
+4.2 The Chatbot Bubble
 Contribution area: `superset.chatbot`
 The host renders a fixed mount point at the bottom-right corner of the Superset application shell. A chatbot extension registers a single React component into this slot, and the host renders it persistently across all routes (dashboard, SQL Lab, explore, datasets, etc.).
 New contribution scope — manifest schema change required the static contribution schema in `@apache-superset/core` is currently SQL-Lab-only: `ViewContributions` only accepts a `sqllab` scope keyed by `SqlLabLocation`.
@@ -78,13 +97,14 @@ Unlike most contribution areas (which accept multiple contributions and render t
 Two floating bubbles in the same corner would be confusing, and the conversation model is fundamentally singular.
 If no chatbot extension is installed, the corner stays empty and no bubble appears.
 If exactly one chatbot extension is installed, its component is mounted automatically.
-If multiple chatbot extensions are installed, the host resolves the conflict via the admin setting (see §5, Singleton conflict resolution — resolved).
+If multiple chatbot extensions are installed, the host resolves the conflict via the admin setting (see §3, Administration — the "Default chatbot" selection).
 
 Note that the existing `registerView` / `getViews(location)` registry already supports "multiple contributions registered at a location, host chooses what to render".
 
-Singleton behavior is therefore a host-side selection policy at the `superset.chatbot` location, not a new registration primitive: the host enumerates the candidates registered at `superset.chatbot` and picks one according to the admin setting (see §2, Administration).
+Singleton behavior is therefore a host-side selection policy at the `superset.chatbot` location, not a new registration primitive: the host enumerates the candidates registered at `superset.chatbot` and picks one according to the admin setting (see §3, Administration).
 
 `getViews` does not expose providers — by design there is a concrete limitation in the public API as it exists today. `getViews(location)` returns `View[] | undefined` — i.e. only the view descriptors (`id`, `name`, `description`, `icon`).
+
 It does not return the `provider` functions that `registerView` was given.
 
 This is important to state precisely, because it is not an oversight to "fix" by widening `getViews`:
@@ -112,7 +132,7 @@ adminSelectedId && candidates.includes(adminSelectedId)
 const provider = getViewProvider('superset.chatbot', selectedId);
 return provider ? { id: selectedId, provider } : undefined;
 
-`ChatbotMount` (`src/components/ChatbotMount/index.tsx`) fetches the admin setting from `/api/v1/extensions/settings`, passes `active_chatbot_id` and the enabled map to `getActiveChatbot`, and renders the result. It re-resolves reactively whenever settings change (via `subscribeToExtensionSettings`) or a new chatbot view registers (via `subscribeToLocation`). The chatbot is not rendered at all until the settings fetch completes, avoiding a flash of the wrong chatbot on load.
+`ChatbotMount` (`src/components/ChatbotMount/index.tsx`) fetches the admin setting from `/api/v1/extensions/settings`, passes `active_chatbot_id` and the enabled map to `getActiveChatbot`, and renders the result. It re-resolves reactively whenever settings change (via `subscribeToExtensionSettings`) or a new chatbot view registers (via `subscribeToRegistry` / `getRegistryVersion`, consumed through `useSyncExternalStore`). The chatbot is not rendered at all until the settings fetch completes, avoiding a flash of the wrong chatbot on load.
 
 `getViews()` remains a descriptor-only public API. `resolveView(id)` (also in `src/core/views/index.ts`) is a rendering shortcut used by SQLLab panels and multi-view slots that takes a known id and returns a `ReactElement` directly. It is not used for chatbot resolution: the host needs to apply the enabled/admin policy before rendering anything, and `resolveView` skips all of that — it has no concept of enabled state, admin preference, or the settings-load gate in `ChatbotMount`. `getActiveChatbot` is the correct entry point regardless of how many chatbots are installed.
 
@@ -160,7 +180,7 @@ The host resolves exactly one active chatbot provider and mounts it
 at the application-shell level.
 
 The chatbot needs an icon:
-It identifies the chatbot in the admin "Default chatbot" picker (see §5) and in any contribution manifest listing, and it is the natural identity for the collapsed bubble.
+It identifies the chatbot in the admin "Default chatbot" picker (see §3, Administration) and in any contribution manifest listing, and it is the natural identity for the collapsed bubble.
 
 The `View` interface in `@apache-superset/core` is `{ id, name, description?, icon? }`,
 where `icon` is an optional host-resolved icon identifier (a `string`). The
@@ -216,10 +236,8 @@ Route/page surface, including the `onDidChangePage` change event
 
 Namespaces this SIP must add — required core work, only `sqlLab`, `authentication`, `commands`, `menus` and `editors` currently exist in `@apache-superset/core` (`superset-frontend/packages/superset-core/src/`).
 
-There was no `dashboard`, `explore`, `dataset`, or `navigation` namespace before
-this SIP, and no `navigation.onDidChangePage` event — this SIP is what introduces
-them. `dashboard`, `explore`, and `navigation` are now implemented; `dataset` is
-specified here but not yet implemented (see Migration Plan).
+There is no `dashboard`, `explore`, `dataset`, or `navigation` namespace today, and no
+`navigation.onDidChangePage` event, these do not exist yet — this SIP is what introduces them.
 Each new namespace must follow the established `sqlLab` shape: a
 state getter plus an `Event<T>` change subscription. Concretely, this SIP requires
 adding:
@@ -327,14 +345,14 @@ return store.getState().dashboard;
 would incorrectly expose internal dashboard state directly to extensions and would tightly couple extensions to the host implementation.
 Instead, namespaces must expose normalized semantic context objects.
 
-// ✅ Expose a stable semantic contract. Each field is normalized from a
-//    distinct internal slice — the extension never sees raw Redux state:
-//      dashboardId / title  ← dashboardInfo
-//      filters              ← dataMask ∩ nativeFilters  (normalized FilterValue[])
-//      charts               ← sliceEntities.slices      (normalized ChartSummary[],
-//                             visibility resolved against dashboardLayout + activeTabs)
+// ✅ Expose a stable semantic contract. Each field is normalized from a distinct internal slice — the extension never sees raw Redux state:
+// dashboardId / title ← dashboardInfo
+// filters ← dataMask ∩ nativeFilters (normalized FilterValue[])
+// charts ← sliceEntities.slices (normalized ChartSummary[],
+// visibility resolved against dashboardLayout + activeTabs)
+
 getCurrentDashboard(): DashboardContext | undefined {
-  return { dashboardId, title, filters, charts };
+return { dashboardId, title, filters, charts };
 }
 // where each chart is reduced to a stable ChartSummary, mirroring ChartContext.
 // All dashboard charts are returned; `isVisible` marks the ones on the active
@@ -342,12 +360,12 @@ getCurrentDashboard(): DashboardContext | undefined {
 // is currently viewing. Raw slices (nativeFilters, sliceEntities) are never
 // exposed — only the normalized shapes above.
 interface ChartSummary {
-  chartId: number;
-  chartName: string;
-  vizType: string;
-  datasourceId: number | null;
-  datasourceName: string | null;
-  isVisible: boolean;
+chartId: number;
+chartName: string;
+vizType: string;
+datasourceId: number | null;
+datasourceName: string | null;
+isVisible: boolean;
 }
 
 Per-surface context contracts
@@ -422,6 +440,7 @@ page-change events
 It should not embed full entity payloads already exposed through other namespaces;
 the focused entity itself is read from the per-surface namespace (e.g.
 `dashboard.getCurrentDashboard()`), not from `navigation`.
+It should not embed full entity payloads already exposed through other namespaces.
 
 Namespace compatibility
 Namespace contracts are part of the public Superset extension API surface and follow the normal compatibility guarantees of @apache-superset/core.
@@ -431,7 +450,7 @@ Extensions should depend only on the documented namespace contracts and not on i
 Reusing existing permission logic
 The backend scoping required above (notably the dashboard-context endpoint) must reuse the host's existing permission checks — the same ChartFilter / datasource-access and can_access logic already used by the API layer — rather than reimplementing parallel filtering logic. This ensures the context the chatbot receives cannot drift from the backend authorization model.
 
-4. Design decision
+5. Design decision
    Host-derived context vs. chatbot-assembled context
    Multiple approaches were evaluated for how chatbot extensions receive page context.
    Option 1 — chatbot-assembled context
@@ -502,6 +521,7 @@ For example, dashboard chatbot context requires a stable representation of:
 dashboard entities
 dashboard filter state
 the dashboard's charts (with visibility)
+
 rather than direct exposure of internal frontend state structures.
 The namespace layer therefore acts as:
 a semantic normalization layer
@@ -539,7 +559,7 @@ The host does not animate the bubble or panel — animation is the extension's r
 The chatbot extension is initialized as part of the application shell lifecycle so the bubble is available consistently across routes and can be invoked immediately by the user. Since extensions are delivered through Module Federation, chatbot implementations should still be mindful of remote bundle size and avoid expensive synchronous initialization work during activation or first render.
 If the chatbot extension fails to load (Module Federation fetch error, runtime exception during activation), the host logs the error, shows a notification and leaves the corner empty rather than displaying a broken placeholder.
 
-5. Open Questions
+6. Open Questions
 
 Per-page visibility. Should the chatbot extension declare which pages it's relevant for (e.g., "only show on dashboard and SQL Lab")?
 Two options:
@@ -550,11 +570,13 @@ The first is simpler and keeps the host policy-free; the second is more discover
 Generalizing the slot. Should superset.chatbot be a chatbot-specific area, or should it generalize to something like app.floating-action that could accept multiple stacked widgets (chatbot, tour guide, notification widget)?
 My recommendation is to keep it chatbot-specific for now. If other floating-widget use cases emerge, introduce a separate contribution area rather than overloading this one.
 
-6. Related Documents
+7. Related Documents
    Contribution types
    Client actions
+   Add storage API for extensions (#39171)
+   [SIP-127] User Preferences (#28047)
 
-7. Migration Plan
+8. Migration Plan
    Base branch chat-prototype
 
 Required core changes
@@ -610,7 +632,8 @@ extension point to be implementable:
   extension-facing contract.
 
 - Admin setting for singleton conflict resolution (the "Default chatbot" picker,
-  §5 option (c)). ✅ Implemented — Extensions page (`/extensions`) with star icon
+  see §3, Administration). ✅ Implemented — Extensions page (`/extensions`) with star icon
+
   per chatbot row; persisted via `GET/PUT /api/v1/extensions/settings`
   (`active_chatbot_id` field).
 
@@ -619,7 +642,7 @@ extension point to be implementable:
   identifies chatbots by name only.
   Open decision before implementation: whether the field is static (set at `registerView()`) or runtime-updatable by the chatbot owner; this SIP recommends static.
 
-8. Phases
+9. Phases
    The required core changes above are sequenced into the following phases. Tickets
    must reference these phase numbers (P1–P4) — there is no other phase numbering for
    this SIP.
@@ -638,10 +661,11 @@ extension point to be implementable:
   but that path only captures registrations made synchronously during module
   evaluation.
   ⚠️ Open item: whether teardown needs an async-aware `deactivate(): Promise<void>`
-  hook that the host awaits. Async *registration* tracking is resolved by the
+  hook that the host awaits. Async _registration_ tracking is resolved by the
   `context.subscriptions` model above; the remaining question is only whether the
   host should await an extension's own async cleanup (`Disposable.dispose()` is
   not awaited). Still pending.
+
   ⚠️ Open item: app-root contribution scope in `ViewContributions` manifest schema
   so `superset.chatbot` can be declared in `extension.json`. Still pending.
 
