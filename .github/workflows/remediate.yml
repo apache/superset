@@ -4,6 +4,12 @@ on:
   issues:
     types: [labeled]
 
+# Grant the workflow token the minimum scope it needs. The bot checks out a
+# separate public repository and authenticates to Devin via DEVIN_API_KEY, so
+# the default GITHUB_TOKEN only needs read access to this repository.
+permissions:
+  contents: read
+
 jobs:
   remediate:
     # Skip the runner entirely unless the trigger label was the one just added.
@@ -11,13 +17,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Check out the remediation bot
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           # Omitting `ref` checks out the bot repo's default branch.
           repository: DaiIshida4869/devin-issue-remediation-bot
+          # Avoid leaving the checkout token persisted in the local git config;
+          # this job runs no git operations that need it.
+          persist-credentials: false
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
 
       - name: Install dependencies
         run: uv sync --frozen
@@ -37,7 +46,7 @@ jobs:
 
       - name: Upload observability artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: devin-remediation-data
           path: data/
