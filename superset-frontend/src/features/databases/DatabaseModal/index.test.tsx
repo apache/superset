@@ -2250,7 +2250,8 @@ describe('dbReducer', () => {
 
   // Regression test for https://github.com/apache/superset/issues/30504
   // When creating a database, the POST response doesn't include engine_information,
-  // but it should be preserved from the initial state set by DbSelected action.
+  // but it should be preserved from the state populated when the user selects a
+  // database engine.
   test('it preserves engine_information when Fetched action payload lacks it', () => {
     const initialState: Partial<DatabaseObject> = {
       database_name: 'TestDB',
