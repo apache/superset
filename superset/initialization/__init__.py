@@ -685,6 +685,31 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # ``CELERYBEAT_SCHEDULE`` (``superset/config.py``). The previous
         # synchronous after_commit listener was retired so retention
         # work doesn't add latency to user saves.
+        self._warn_if_retention_beat_missing()
+
+    def _warn_if_retention_beat_missing(self) -> None:
+        """WARN at startup when the resolved Celery beat schedule has no
+        ``version_history.prune_old_versions`` entry.
+
+        Operators who redefine ``CeleryConfig`` in ``superset_config.py``
+        — instead of subclassing or merging the default — silently lose
+        the retention task. Capture continues writing rows; the prune
+        never runs; disk grows until paged. The default config carries
+        the entry; this check makes the misconfiguration visible in the
+        deploy log before disk pressure makes it visible at 03:00.
+        """
+        celery_config = self.config.get("CELERY_CONFIG")
+        beat_schedule = (
+            getattr(celery_config, "beat_schedule", None) if celery_config else None
+        )
+        if not beat_schedule or "version_history.prune_old_versions" not in beat_schedule:
+            logger.warning(
+                "versioning: CELERY_CONFIG.beat_schedule is missing the "
+                "'version_history.prune_old_versions' entry — the retention "
+                "task will not fire and shadow tables will grow unbounded. "
+                "Either inherit from the default CeleryConfig or add the "
+                "entry to your override."
+            )
 
     def init_app_in_ctx(self) -> None:
         """
