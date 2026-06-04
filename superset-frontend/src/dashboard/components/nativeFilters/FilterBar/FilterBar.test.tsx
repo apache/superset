@@ -902,3 +902,61 @@ test('Clear All on a required filter disables Apply via validateStatus', async (
   expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   updateDataMaskSpy.mockRestore();
 });
+
+test('FilterBar renders the configured filter name in the bar', async () => {
+  const filterId = 'NATIVE_FILTER-name-render';
+  const filter = createFilter({
+    id: filterId,
+    name: 'Region',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 7, column: { name: 'region' } }],
+    chartsInScope: [18],
+  });
+  const state = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      filterBarOrientation: FilterBarOrientation.Vertical,
+      metadata: {
+        native_filter_configuration: [filter],
+        chart_configuration: {},
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    dataMask: { [filterId]: createDataMask(filterId, undefined, {}) },
+    nativeFilters: {
+      filters: { [filterId]: filter },
+      filtersState: {},
+    },
+  };
+
+  const props = createOpenedBarProps();
+  renderFilterBar(props, state);
+  await act(async () => {
+    jest.advanceTimersByTime(300);
+  });
+
+  expect(await screen.findByText('Region')).toBeInTheDocument();
+});
+
+test('Clicking the gear "Add or edit filters and controls" item opens the FiltersConfigModal', async () => {
+  const props = createOpenedBarProps();
+  renderFilterBar(props, stateWithoutNativeFilters);
+  await act(async () => {
+    jest.advanceTimersByTime(100);
+  });
+
+  const gear = await screen.findByTestId('filterbar-orientation-icon');
+  userEvent.click(gear);
+
+  const addEditItem = await screen.findByText(
+    'Add or edit filters and controls',
+  );
+  userEvent.click(addEditItem);
+
+  expect(await screen.findByTestId('filter-modal')).toBeInTheDocument();
+});

@@ -110,4 +110,22 @@ describe('createNewOnOpen', () => {
     expect(getByRole('alert')).toBeInTheDocument();
     expect(getByRole('alert')).toHaveTextContent('There are unsaved changes.');
   });
+
+  test('confirm-cancel button proceeds with cancel after the unsaved alert', async () => {
+    const onCancel = jest.fn();
+    const { getByRole, getByTestId, findByRole } = setup({
+      onCancel,
+      createNewOnOpen: false,
+    });
+    const dropdownButton = getByTestId('new-item-dropdown-button');
+    fireEvent.mouseEnter(dropdownButton);
+    const addFilterMenuItem = await findByRole('menuitem', {
+      name: /add filter/i,
+    });
+    fireEvent.click(addFilterMenuItem);
+    fireEvent.click(getByRole('button', { name: 'Cancel' }));
+    // Alert is shown; user clicks the confirm-cancel button to discard changes.
+    fireEvent.click(getByTestId('native-filter-modal-confirm-cancel-button'));
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
 });
