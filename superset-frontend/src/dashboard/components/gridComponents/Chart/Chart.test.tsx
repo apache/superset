@@ -170,9 +170,13 @@ test('should call changeFilter when ChartContainer calls addFilter', () => {
   setup();
   const { addFilter } = capturedChartContainerProps;
   expect(addFilter).toBeDefined();
-  (addFilter as Function)('testCol', ['testVal']);
+  (addFilter as (...args: unknown[]) => void)('testCol', ['testVal']);
   expect(changeFilter).toHaveBeenCalledTimes(1);
-  expect(changeFilter).toHaveBeenCalledWith(queryId, { testCol: ['testVal'] }, true);
+  expect(changeFilter).toHaveBeenCalledWith(
+    queryId,
+    { testCol: ['testVal'] },
+    true,
+  );
 });
 
 test('should call exportChart when exportCSV is clicked', async () => {
