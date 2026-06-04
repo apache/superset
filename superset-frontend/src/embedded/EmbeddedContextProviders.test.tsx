@@ -37,7 +37,7 @@ describe('EmbeddedContextProviders — getInitialThemeMode', () => {
     });
   }
 
-  it('returns ThemeMode.DARK when ?theme=dark', async () => {
+  test('returns ThemeMode.DARK when ?theme=dark', async () => {
     setSearch('?theme=dark');
     const { getThemeController } = await import(
       'src/embedded/EmbeddedContextProviders'
@@ -45,7 +45,7 @@ describe('EmbeddedContextProviders — getInitialThemeMode', () => {
     expect(getThemeController().mode).toBe(ThemeMode.DARK);
   });
 
-  it('returns ThemeMode.SYSTEM when ?theme=system', async () => {
+  test('returns ThemeMode.SYSTEM when ?theme=system', async () => {
     setSearch('?theme=system');
     const { getThemeController } = await import(
       'src/embedded/EmbeddedContextProviders'
@@ -53,7 +53,7 @@ describe('EmbeddedContextProviders — getInitialThemeMode', () => {
     expect(getThemeController().mode).toBe(ThemeMode.SYSTEM);
   });
 
-  it('returns ThemeMode.DEFAULT when ?theme=light', async () => {
+  test('returns ThemeMode.DEFAULT when ?theme=light', async () => {
     setSearch('?theme=light');
     const { getThemeController } = await import(
       'src/embedded/EmbeddedContextProviders'
@@ -61,7 +61,7 @@ describe('EmbeddedContextProviders — getInitialThemeMode', () => {
     expect(getThemeController().mode).toBe(ThemeMode.DEFAULT);
   });
 
-  it('returns ThemeMode.DEFAULT when no theme param', async () => {
+  test('returns ThemeMode.DEFAULT when no theme param', async () => {
     setSearch('');
     const { getThemeController } = await import(
       'src/embedded/EmbeddedContextProviders'
@@ -69,7 +69,7 @@ describe('EmbeddedContextProviders — getInitialThemeMode', () => {
     expect(getThemeController().mode).toBe(ThemeMode.DEFAULT);
   });
 
-  it('returns ThemeMode.DEFAULT for an unrecognised value', async () => {
+  test('returns ThemeMode.DEFAULT for an unrecognised value', async () => {
     setSearch('?theme=invalid');
     const { getThemeController } = await import(
       'src/embedded/EmbeddedContextProviders'
