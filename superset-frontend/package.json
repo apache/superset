@@ -202,7 +202,7 @@
     "nanoid": "^5.1.11",
     "ol": "^10.9.0",
     "pretty-ms": "^9.3.0",
-    "query-string": "9.3.1",
+    "query-string": "9.4.0",
     "re-resizable": "^6.11.2",
     "react": "^18.2.0",
     "react-arborist": "^3.8.0",
