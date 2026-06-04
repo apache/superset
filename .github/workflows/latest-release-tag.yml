@@ -19,8 +19,10 @@ jobs:
 
     - name: Check for latest tag
       id: latest-tag
+      env:
+        RELEASE_TAG_NAME: ${{ github.event.release.tag_name }}
       run: |
-        source ./scripts/tag_latest_release.sh $(echo ${{ github.event.release.tag_name }}) --dry-run
+        source ./scripts/tag_latest_release.sh "$RELEASE_TAG_NAME" --dry-run
 
     - name: Configure Git
       run: |
@@ -29,7 +31,7 @@ jobs:
 
     - name: Run latest-tag
       uses: ./.github/actions/latest-tag
-      if: (! ${{ steps.latest-tag.outputs.SKIP_TAG }} )
+      if: steps.latest-tag.outputs.SKIP_TAG != 'true'
       with:
         description: Superset latest release
         tag-name: latest

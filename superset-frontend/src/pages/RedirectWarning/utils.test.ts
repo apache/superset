@@ -57,28 +57,28 @@ test('isAllowedScheme allows relative URLs (unparseable as absolute)', () => {
 });
 
 test('getTargetUrl reads the url query parameter', () => {
-  Object.defineProperty(window, 'location', {
-    value: { search: '?url=https%3A%2F%2Fexample.com%2Fpage' },
-    writable: true,
-  });
+  const locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    search: '?url=https%3A%2F%2Fexample.com%2Fpage',
+  } as Location);
   expect(getTargetUrl()).toBe('https://example.com/page');
+  locationSpy.mockRestore();
 });
 
 test('getTargetUrl returns empty string when url param is missing', () => {
-  Object.defineProperty(window, 'location', {
-    value: { search: '' },
-    writable: true,
-  });
+  const locationSpy = jest
+    .spyOn(window, 'location', 'get')
+    .mockReturnValue({ search: '' } as Location);
   expect(getTargetUrl()).toBe('');
+  locationSpy.mockRestore();
 });
 
 test('getTargetUrl does not double-decode percent-encoded values', () => {
   // %253A is the double-encoding of ":" — after one decode it should remain %3A
-  Object.defineProperty(window, 'location', {
-    value: { search: '?url=javascript%253Aalert(1)' },
-    writable: true,
-  });
+  const locationSpy = jest
+    .spyOn(window, 'location', 'get')
+    .mockReturnValue({ search: '?url=javascript%253Aalert(1)' } as Location);
   expect(getTargetUrl()).toBe('javascript%3Aalert(1)');
+  locationSpy.mockRestore();
 });
 
 test('trustUrl stores and isUrlTrusted retrieves a URL', () => {

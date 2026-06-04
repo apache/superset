@@ -97,7 +97,7 @@ export function createWrapper(options?: Options) {
     }
 
     if (useDnd) {
-      // @ts-expect-error react-dnd types not updated for React 18
+      // @ts-ignore react-dnd's DndProviderProps omits `children` under React 18 types
       result = <DndProvider backend={HTML5Backend}>{result}</DndProvider>;
     }
 
@@ -150,5 +150,35 @@ export async function selectOption(option: string, selectName?: string) {
       document.querySelector('.rc-virtual-list')!,
     ).getByText(option),
   );
+  await userEvent.click(item);
+}
+
+/**
+ * Select an option from a compact pill filter (new UI that replaced comboboxes).
+ * Clicks the pill button matching the label, then clicks the option in the panel.
+ */
+export async function selectPillOption(option: string, pillLabel?: string) {
+  let pill: HTMLElement;
+  if (pillLabel) {
+    // Find the pill whose text content includes the label
+    pill = await waitFor(() => {
+      const pills = screen.getAllByTestId('compact-filter-pill');
+      const match = pills.find(p => p.textContent?.includes(pillLabel));
+      if (!match)
+        throw new Error(`Could not find pill with label "${pillLabel}"`);
+      return match;
+    });
+  } else {
+    pill = await screen.findByTestId('compact-filter-pill');
+  }
+  await userEvent.click(pill);
+  // Wait for the option list to appear and click the item
+  const item = await waitFor(() => {
+    const listbox = document.querySelector('[role="listbox"]');
+    if (!listbox) throw new Error('No listbox found');
+    const opt = within(listbox as HTMLElement).getByText(option);
+    if (!opt) throw new Error(`Option "${option}" not found`);
+    return opt;
+  });
   await userEvent.click(item);
 }

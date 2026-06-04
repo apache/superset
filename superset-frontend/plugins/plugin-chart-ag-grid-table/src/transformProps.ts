@@ -507,6 +507,7 @@ const transformProps = (
     conditional_formatting: conditionalFormatting,
     comparison_color_enabled: comparisonColorEnabled = false,
     comparison_color_scheme: comparisonColorScheme = ColorSchemeEnum.Green,
+    show_numbered_column: showNumberedColumn = false,
   } = formData;
 
   const allowRearrangeColumns = true;
@@ -785,6 +786,7 @@ const transformProps = (
     metricSqlExpressions,
     chartState,
     onChartStateChange,
+    showNumberedColumn,
   };
 };
 
