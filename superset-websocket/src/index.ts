@@ -390,6 +390,33 @@ export const httpRequest = (
 };
 
 /**
+ * Validates the `Origin` header of a WebSocket upgrade request against the
+ * configured `allowedOrigins` list, mitigating Cross-Site WebSocket Hijacking.
+ *
+ * When `allowedOrigins` is empty the check is skipped (preserving existing
+ * behavior); a single `'*'` entry explicitly allows any origin. Otherwise the
+ * request's `Origin` must exactly match one of the configured origins.
+ */
+export const isOriginAllowed = (request: http.IncomingMessage): boolean => {
+  const { allowedOrigins } = opts;
+
+  if (!allowedOrigins || allowedOrigins.length === 0) {
+    return true;
+  }
+  if (allowedOrigins.includes('*')) {
+    return true;
+  }
+
+  // `origin` is typed as `string | string[] | undefined`; only a single,
+  // unambiguous string header is acceptable for an exact-match comparison.
+  const origin = request.headers.origin;
+  if (typeof origin !== 'string') {
+    return false;
+  }
+  return allowedOrigins.includes(origin);
+};
+
+/**
  * HTTP `upgrade` event handler, called via httpServer
  */
 export const httpUpgrade = (
@@ -397,6 +424,16 @@ export const httpUpgrade = (
   socket: net.Socket,
   head: Buffer,
 ) => {
+  if (!isOriginAllowed(request)) {
+    logger.error(
+      `Rejecting WebSocket upgrade from disallowed origin: ${
+        request.headers.origin || '(none)'
+      }`,
+    );
+    socket.destroy();
+    return;
+  }
+
   try {
     readChannelId(request);
   } catch (err) {
