@@ -219,7 +219,7 @@ export function useDrillDownState({
       })
       .catch(err => {
         if (!cancelled) {
-          setError(err?.message || t('Failed to load drill-down data'));
+          setError(err?.message || t('Failed to load chart data'));
         }
       })
       .finally(() => {
