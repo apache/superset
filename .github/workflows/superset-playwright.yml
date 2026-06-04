@@ -23,9 +23,30 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      python: ${{ steps.check.outputs.python }}
+      frontend: ${{ steps.check.outputs.frontend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   # NOTE: Required Playwright tests are in superset-e2e.yml (E2E / playwright-tests)
   # This workflow contains only experimental tests that run in shadow mode
   playwright-tests-experimental:
+    needs: changes
+    if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-22.04
     continue-on-error: true
     permissions:
@@ -80,51 +101,56 @@ jobs:
           ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
           submodules: recursive
       # -------------------------------------------------------
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-        if: steps.check.outputs.python || steps.check.outputs.frontend
       - name: Setup postgres
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
       - name: Import test data
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: playwright_testdata
       - name: Setup Node.js
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version-file: './superset-frontend/.nvmrc'
       - name: Install npm dependencies
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: Build javascript packages
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
+      - name: Build embedded SDK
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: build-embedded-sdk
       - name: Install Playwright
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: playwright-install
       - name: Run Playwright (Experimental Tests)
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
         with:
           run: playwright-run "${{ matrix.app_root }}" experimental/
+      - name: Run Playwright (Embedded Tests)
+        uses: ./.github/actions/cached-dependencies
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scope embedded-only env vars to this step. Setting them at the job
+          # level enabled the EMBEDDED_SUPERSET feature flag inside Flask for
+          # the preceding "Required Tests" and "Experimental Tests" steps too,
+          # which loads extra handlers and destabilizes the werkzeug dev
+          # server under the 2-worker Playwright load. Required Tests should
+          # match master's Flask configuration.
+          SUPERSET_FEATURE_EMBEDDED_SUPERSET: "true"
+          INCLUDE_EMBEDDED: "true"
+        with:
+          run: playwright-run "${{ matrix.app_root }}" embedded
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root

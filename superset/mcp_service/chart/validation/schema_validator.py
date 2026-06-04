@@ -392,21 +392,46 @@ class SchemaValidator:
                 ],
                 error_code="INVALID_BIG_NUMBER_METRIC_TYPE",
             )
-        if not metric.get("aggregate") and not metric.get("saved_metric"):
+        if (
+            not metric.get("aggregate")
+            and not metric.get("saved_metric")
+            and not metric.get("sql_expression")
+        ):
             return False, ChartGenerationError(
                 error_type="missing_metric_aggregate",
-                message="Big Number metric must include an aggregate function "
-                "or reference a saved metric",
-                details="The metric must have an 'aggregate' field "
-                "or 'saved_metric': true",
+                message="Big Number metric must include an aggregate function, "
+                "a saved metric reference, or a SQL expression",
+                details="The metric must have an 'aggregate' field, "
+                "'saved_metric': true, or 'sql_expression'",
                 suggestions=[
                     "Add 'aggregate' to your metric: "
                     "{'name': 'col', 'aggregate': 'SUM'}",
                     "Or use a saved metric: "
                     "{'name': 'total_sales', 'saved_metric': true}",
+                    "Or a custom SQL metric: "
+                    "{'sql_expression': 'SUM(a)/SUM(b)', 'label': 'Ratio'}",
                     "Valid aggregates: SUM, COUNT, AVG, MIN, MAX",
                 ],
                 error_code="MISSING_BIG_NUMBER_AGGREGATE",
+            )
+        # ``label`` may be any JSON type here (pre-Pydantic), so test the
+        # string-ness explicitly before calling ``.strip()``.
+        label = metric.get("label")
+        if metric.get("sql_expression") and not (
+            isinstance(label, str) and label.strip()
+        ):
+            return False, ChartGenerationError(
+                error_type="missing_sql_metric_label",
+                message="Big Number metric with sql_expression requires a label",
+                details=(
+                    "Custom SQL metrics have no column name to derive a label "
+                    "from, so 'label' is required for display."
+                ),
+                suggestions=[
+                    "Add a 'label': "
+                    "{'sql_expression': 'SUM(a)/SUM(b)', 'label': 'Ratio'}",
+                ],
+                error_code="MISSING_SQL_METRIC_LABEL",
             )
 
         show_trendline = config.get("show_trendline", False)

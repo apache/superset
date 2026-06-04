@@ -71,7 +71,7 @@ dependencies = [
     "marshmallow>=3.0, <4",
     "marshmallow-union>=0.1",
     "msgpack>=1.0.0, <1.2",
-    "nh3>=0.2.11, <0.4",
+    "nh3>=0.3.5, <0.4",
     "numpy>1.23.5, <2.3",
     "packaging",
     # --------------------------
@@ -123,7 +123,7 @@ bigquery = [
 ]
 clickhouse = ["clickhouse-connect>=0.13.0, <2.0"]
 cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
-crate = ["sqlalchemy-cratedb>=0.40.1, <1"]
+crate = ["sqlalchemy-cratedb>=0.41.0, <1"]
 d1 = [
     "superset-engine-d1>=0.1.0",
     "sqlalchemy-d1>=0.1.0",
@@ -135,7 +135,7 @@ databricks = [
     "databricks-sqlalchemy==1.0.5",
 ]
 db2 = ["ibm-db-sa>0.3.8, <=0.4.4"]
-denodo = ["denodo-sqlalchemy>=1.0.6,<2.1.0"]
+denodo = ["denodo-sqlalchemy>=2.0.5,<2.1.0"]
 dremio = ["sqlalchemy-dremio>=1.2.1, <4"]
 drill = ["sqlalchemy-drill>=1.1.10, <2"]
 druid = ["pydruid>=0.6.5,<0.7"]
@@ -154,7 +154,7 @@ fastmcp = [
 ]
 firebird = ["sqlalchemy-firebird>=0.7.0, <2.2"]
 firebolt = ["firebolt-sqlalchemy>=1.0.0, <2"]
-gevent = ["gevent>=23.9.1"]
+gevent = ["gevent>=26.4.0"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.4, <2"]
 hana = ["hdbcli==2.28.20", "sqlalchemy_hana==0.4.0"]
 hive = [
@@ -190,7 +190,7 @@ risingwave = ["sqlalchemy-risingwave"]
 shillelagh = ["shillelagh[all]>=1.4.4, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.1.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.2.4, <2"]
-sqlite = ["syntaqlite>=0.1.0"]
+sqlite = ["syntaqlite>=0.1.0,<0.5.0"]
 spark = [
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7",
@@ -208,7 +208,7 @@ netezza = ["nzalchemy>=11.0.2"]
 starrocks = ["starrocks>=1.0.0"]
 doris = ["pydoris>=1.0.0, <2.0.0"]
 oceanbase = ["oceanbase_py>=0.0.1"]
-ydb = ["ydb-sqlalchemy>=0.1.2"]
+ydb = ["ydb-sqlalchemy>=0.1.2", "ydb-sqlglot-plugin>=0.2.5"]
 development = [
     # no bounds for apache-superset-extensions-cli until a stable version
     "apache-superset-extensions-cli",
@@ -225,7 +225,7 @@ development = [
     "progress>=1.5,<2",
     "psutil",
     "pyfakefs",
-    "pyinstrument>=4.0.2,<6",
+    "pyinstrument>=5.1.2,<6",
     "pylint",
     "pytest<8.0.0", # hairy issue with pytest >=8 where current_app proxies are not set in time
     "pytest-asyncio",
@@ -235,7 +235,7 @@ development = [
     "ruff",
     "sqloxide",
     "statsd",
-    "syntaqlite>=0.1.0",
+    "syntaqlite>=0.4.2,<0.5.0",
 ]
 
 [project.urls]
@@ -456,6 +456,7 @@ authorized_licenses = [
     "isc license (iscl)",
     "isc license",
     "mit",
+    "mit and psf-2.0",
     "mit-cmu",
     "mozilla public license 2.0 (mpl 2.0)",
     "osi approved",
