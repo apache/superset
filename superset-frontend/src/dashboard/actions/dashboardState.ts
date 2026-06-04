@@ -238,8 +238,11 @@ export function togglePublished(isPublished: boolean): TogglePublishedAction {
 export function savePublished(
   id: number,
   isPublished: boolean,
-): (dispatch: AppDispatch) => Promise<void> {
-  return function savePublishedThunk(dispatch: AppDispatch): Promise<void> {
+): (dispatch: AppDispatch, getState: GetState) => Promise<void> {
+  return function savePublishedThunk(
+    dispatch: AppDispatch,
+    getState: GetState,
+  ): Promise<void> {
     return SupersetClient.put({
       endpoint: `/api/v1/dashboard/${id}`,
       headers: { 'Content-Type': 'application/json' },
@@ -248,21 +251,30 @@ export function savePublished(
       }),
     })
       .then(() => {
-        dispatch(
-          addSuccessToast(
-            isPublished
-              ? t('This dashboard is now published')
-              : t('This dashboard is now hidden'),
-          ),
-        );
-        dispatch(togglePublished(isPublished));
+        // Only update state if this is still the current dashboard
+        // This prevents stale responses from affecting the UI after navigation
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            addSuccessToast(
+              isPublished
+                ? t('This dashboard is now published')
+                : t('This dashboard is now hidden'),
+            ),
+          );
+          dispatch(togglePublished(isPublished));
+        }
       })
       .catch(() => {
-        dispatch(
-          addDangerToast(
-            t('You do not have permissions to edit this dashboard.'),
-          ),
-        );
+        // Only show error if this is still the current dashboard
+        const currentId = getState().dashboardInfo?.id;
+        if (currentId === id) {
+          dispatch(
+            addDangerToast(
+              t('You do not have permissions to edit this dashboard.'),
+            ),
+          );
+        }
       });
   };
 }
