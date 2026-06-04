@@ -182,10 +182,7 @@ testWithAssets(
     // Now track POST /api/v1/chart/data requests around Clear All
     const postsAfterClearAll: string[] = [];
     const handler = (req: any) => {
-      if (
-        req.url().includes('/api/v1/chart/data') &&
-        req.method() === 'POST'
-      ) {
+      if (req.url().includes('/api/v1/chart/data') && req.method() === 'POST') {
         postsAfterClearAll.push(req.url());
       }
     };

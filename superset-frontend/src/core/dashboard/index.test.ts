@@ -92,7 +92,6 @@ test('getCurrentDashboard returns undefined when not on dashboard page', () => {
   expect(dashboard.getCurrentDashboard()).toBeUndefined();
 });
 
-
 test('getCurrentDashboard returns undefined when dashboardInfo is absent', () => {
   mockState = makeState({ dashboardInfo: undefined });
   expect(dashboard.getCurrentDashboard()).toBeUndefined();
@@ -122,9 +121,13 @@ test('getCurrentDashboard excludes dataMask entries not in nativeFilters', () =>
 
 test('filter array value is a defensive copy — mutation does not affect Redux state', () => {
   const ctx = dashboard.getCurrentDashboard();
-  const original = [...(mockState as any).dataMask['filter-1'].filterState.value];
+  const original = [
+    ...(mockState as any).dataMask['filter-1'].filterState.value,
+  ];
   (ctx!.filters[0].value as string[]).push('East');
-  expect((mockState as any).dataMask['filter-1'].filterState.value).toEqual(original);
+  expect((mockState as any).dataMask['filter-1'].filterState.value).toEqual(
+    original,
+  );
 });
 
 // Action type strings match the constants in src/dashboard/actions/hydrate
