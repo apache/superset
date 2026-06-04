@@ -930,6 +930,9 @@ const config: Config = {
             <a href="https://bsky.app/profile/apachesuperset.bsky.social" target="_blank" rel="noopener noreferrer" title="Follow us on Bluesky" aria-label="Bluesky">
               <img src="/img/community/bluesky-symbol.svg" alt="Bluesky" />
             </a>
+            <a href="https://reddit.com/r/apache-superset" target="_blank" rel="noopener noreferrer" title="Follow us on Reddit" aria-label="Reddit">
+              <img src="/img/community/reddit-symbol.svg" alt="Reddit" />
+            </a>
           </div>
           <div class="footer__ci-services">
             <span>CI powered by</span>

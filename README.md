@@ -192,7 +192,8 @@ Try out Superset's [quickstart](https://superset.apache.org/docs/quickstart/) gu
 - Follow us on social media:
   [X](https://x.com/apachesuperset) |
   [LinkedIn](https://www.linkedin.com/company/apache-superset) |
-  [Bluesky](https://bsky.app/profile/apachesuperset.bsky.social)
+  [Bluesky](https://bsky.app/profile/apachesuperset.bsky.social) |
+  [Reddit](https://reddit.com/r/apache-superset)
 - If you want to help troubleshoot GitHub Issues involving the numerous database drivers that Superset supports, please consider adding your name and the databases you have access to on the [Superset Database Familiarity Rolodex](https://docs.google.com/spreadsheets/d/1U1qxiLvOX0kBTUGME1AHHi6Ywel6ECF8xk_Qy-V9R8c/edit#gid=0)
 - Join Superset's Town Hall and [Operational Model](https://preset.io/blog/the-superset-operational-model-wants-you/) recurring meetings. Meeting info is available on the [Superset Community Calendar](https://superset.apache.org/community)
 
