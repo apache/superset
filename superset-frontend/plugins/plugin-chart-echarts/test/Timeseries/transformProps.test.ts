@@ -1724,10 +1724,10 @@ describe('Tooltip with long labels', () => {
       },
     ];
 
-    // Should still work with fallback to value
+    // Should fall back to the x-value (value[xIndex]) and render it in the title
     const result = tooltipFormatter(mockParams);
-    expect(result).toBeDefined();
     expect(typeof result).toBe('string');
+    expect(result).toContain('599616000000');
   });
 
   test('should handle item tooltips correctly', () => {
@@ -1748,8 +1748,9 @@ describe('Tooltip with long labels', () => {
       seriesName: 'San Francisco',
     };
 
+    // The item-tooltip x-value (value[xIndex]) should appear in the title
     const result = tooltipFormatter(mockParams);
-    expect(result).toBeDefined();
     expect(typeof result).toBe('string');
+    expect(result).toContain('599616000000');
   });
 });
