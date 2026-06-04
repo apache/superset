@@ -375,3 +375,6 @@ async def test_list_databases_does_not_expose_sensitive_credential_columns(
     assert not sensitive.intersection(data.get("columns_available", []))
     for row in data.get("databases", []):
         assert not sensitive.intersection(row.keys())
+    # Verify the exploit path: DAO must never receive sensitive column names.
+    dao_columns = mock_list.call_args.kwargs["columns"]
+    assert not sensitive.intersection(dao_columns)

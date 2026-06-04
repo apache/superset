@@ -230,6 +230,35 @@ def test_model_list_tool_rejects_only_excluded_columns_raises():
         tool.run_tool(select_columns=["password", "sqlalchemy_uri"])
 
 
+def test_model_list_tool_without_explicit_all_columns_allows_non_default_columns():
+    """Without an explicit all_columns, select_columns is not restricted to
+    default_columns — only USER_DIRECTORY_FIELDS are filtered out."""
+    captured: dict = {}
+
+    class CapturingDAO:
+        @classmethod
+        def list(cls, columns=None, **kwargs):
+            captured["columns"] = columns
+            return [], 0
+
+    tool = ModelListCore(
+        dao_class=CapturingDAO,
+        output_schema=DummyOutputSchema,
+        item_serializer=dummy_serializer,
+        filter_type=None,
+        default_columns=["id", "name"],
+        search_columns=["name"],
+        list_field_name="items",
+        output_list_schema=DummyListSchema,
+        # all_columns intentionally not passed
+    )
+
+    result = tool.run_tool(select_columns=["id", "description"])
+
+    assert "description" in result.columns_requested
+    assert "description" in (captured.get("columns") or [])
+
+
 def test_model_list_tool_rejects_private_order_column():
     tool = ModelListCore(
         dao_class=DummyDAO,
