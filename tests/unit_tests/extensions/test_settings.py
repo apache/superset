@@ -207,7 +207,13 @@ class TestUpdateExtensionSettingsValidation:
 # GET /api/v1/extensions/settings
 # ---------------------------------------------------------------------------
 
+# The settings routes are only registered when ENABLE_EXTENSIONS is on at
+# app-init time, so the endpoint tests parametrize the app fixture to enable it
+# (otherwise the route is absent and requests 404).
+_ENABLE_EXTENSIONS = [{"FEATURE_FLAGS": {"ENABLE_EXTENSIONS": True}}]
 
+
+@pytest.mark.parametrize("app", _ENABLE_EXTENSIONS, indirect=True)
 class TestGetSettingsEndpoint:
     def test_authenticated_user_can_read(
         self, client: Any, full_api_access: None, mocker: Any
@@ -241,6 +247,7 @@ class TestGetSettingsEndpoint:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.parametrize("app", _ENABLE_EXTENSIONS, indirect=True)
 class TestPutSettingsEndpoint:
     def test_non_admin_rejected(
         self, client: Any, full_api_access: None, mocker: Any
