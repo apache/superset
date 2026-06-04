@@ -3316,6 +3316,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         FAB does not expose an eager-loading option on ``find_user``, so the
         query logic is mirrored here with joinedload options added. Review this
         method when upgrading FAB to ensure it stays in sync with upstream.
+
+        Mirrors ``BaseSecurityManager.find_user`` as of flask-appbuilder==5.2.1
+        (``flask_appbuilder/security/sqla/manager.py``). Re-check upstream when
+        bumping the FAB pin in ``requirements/base.txt``.
         """
         eager = [
             joinedload(self.user_model.roles),

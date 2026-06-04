@@ -215,8 +215,6 @@ def is_tool_visible_to_current_user(tool: Any) -> bool:
         True if the tool is visible to the current user, False otherwise.
     """
     try:
-        from flask import current_app
-
         if not current_app.config.get("MCP_RBAC_ENABLED", True):
             return True
 
@@ -348,7 +346,10 @@ def _redact_access_token(access_token: Any) -> None:
     try:
         object.__setattr__(access_token, "token", "")
     except (AttributeError, TypeError):
-        pass  # immutable AccessToken; LoggingMiddleware handles sanitization
+        # Immutable AccessToken: the raw token still lives on the object.
+        # Log so the failure is visible; downstream log sanitization (where
+        # configured) must redact it.
+        logger.debug("Could not redact raw API key from AccessToken")
 
 
 def _load_api_key_user_by_username(username: str) -> User:
@@ -378,9 +379,9 @@ def _validate_api_key_fallback(app: Any, api_key_string: str | None) -> User:
 
     user = sm.validate_api_key(api_key_string)
     if not user:
+        create_url = app.config.get("MCP_API_KEY_CREATE_URL", "/profile/")
         raise PermissionError(
-            "Invalid or expired API key. "
-            "Create a new key at /api/v1/security/api_keys/."
+            f"Invalid or expired API key. Create a new key at {create_url}."
         )
 
     user_with_rels = load_user_with_relationships(username=user.username)

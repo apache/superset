@@ -80,6 +80,13 @@ class CompositeTokenVerifier(TokenVerifier):
         )
         self._jwt_verifier = jwt_verifier
         self._app = app
+        if app is None:
+            logger.warning(
+                "CompositeTokenVerifier created without a Flask app; API keys "
+                "will not be validated at the transport layer. Invalid keys are "
+                "rejected later at the Flask layer instead. Pass app=<flask_app> "
+                "to enable transport-layer rejection."
+            )
         valid: list[str] = []
         invalid_count = 0
         for prefix in api_key_prefixes:
@@ -120,8 +127,9 @@ class CompositeTokenVerifier(TokenVerifier):
                     return None
                 user = sm.validate_api_key(token)
                 username = user.username if user else None
-                # Zero out the local reference so the raw token string is not
-                # retained after validation returns (defense-in-depth).
+                # Unbind the local reference so this frame no longer points at
+                # the raw token (defense-in-depth). Python does not zero the
+                # underlying string memory on rebind.
                 token = ""  # noqa: S105
                 return username
         except Exception:  # noqa: BLE001 — catch-all: DB errors, FAB internals, etc.

@@ -90,6 +90,12 @@ MCP_JWT_DEBUG_ERRORS = False
 # Superset logs a startup warning to make the implicit enablement visible.
 MCP_API_KEY_ENABLED: bool | None = None
 
+# URL surfaced to users when an API key is rejected, pointing them at the
+# place to create or rotate a key. Defaults to the FAB user profile page;
+# deployments that manage keys elsewhere can override this to point at their
+# own key-management UI without forking the auth code.
+MCP_API_KEY_CREATE_URL = "/profile/"
+
 
 # Session configuration for local development
 MCP_SESSION_CONFIG = {
@@ -388,10 +394,11 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
 def _build_composite_verifier(app: Flask, jwt_verifier: Any) -> CompositeTokenVerifier:
     """Build a CompositeTokenVerifier with API key prefixes from config."""
     if required_scopes := app.config.get("MCP_REQUIRED_SCOPES", []):
-        logger.debug(
+        logger.warning(
             "MCP_REQUIRED_SCOPES is configured but API key tokens bypass "
             "scope enforcement. API key holders gain access regardless of "
-            "MCP_REQUIRED_SCOPES=%r.",
+            "MCP_REQUIRED_SCOPES=%r. Enforce per-key authorization via FAB "
+            "roles/RBAC instead.",
             required_scopes,
         )
     raw_prefixes: str | Sequence[str] = app.config.get("FAB_API_KEY_PREFIXES", ["sst_"])
