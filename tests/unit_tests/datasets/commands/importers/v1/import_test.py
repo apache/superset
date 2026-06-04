@@ -1330,24 +1330,30 @@ def test_import_soft_deleted_dataset_restore_removes_orphan_children(
     )
 
 
-def test_import_dataset_multiple_results_fallback_finds_soft_deleted(
+def test_import_dataset_multiple_results_on_soft_delete_match_raises_and_rolls_back(
     mocker: MockerFixture,
     session: Session,
 ) -> None:
     """
-    The MultipleResultsFound exception handler inside import_dataset does
-    a second lookup by uuid via ``.one()``. That fallback bypasses the
-    soft-delete visibility filter so a soft-deleted duplicate is still
-    returnable — without the bypass the listener would hide it and the
-    fallback's ``.one()`` would raise ``NoResultFound``, masking the
-    original ``MultipleResultsFound`` with a misleading error.
+    When ``find_existing_for_import`` resolves a soft-deleted row by UUID
+    and the subsequent ``import_from_dict`` hits the legacy NULL-schema
+    ambiguity (``MultipleResultsFound``), the importer must:
 
-    Reproduce: monkey-patch ``SqlaTable.import_from_dict`` to raise
-    ``MultipleResultsFound`` and seed two rows with the same uuid (one
-    live, one soft-deleted). The fallback's ``.one()`` would normally
-    return ambiguous, so we narrow with the bypass-aware filter.
+      1. Roll back the ``deleted_at`` clear it just applied — without
+         the rollback the dataset would be left half-restored
+         (``deleted_at = None`` but no upload content applied).
+      2. Raise ``ImportFailedError`` with the legacy-duplicate message
+         so the operator resolves the duplicate manually before retrying.
+
+    Reproduce: seed a soft-deleted row with the target UUID and monkey-
+    patch ``import_from_dict`` to raise ``MultipleResultsFound``. The
+    importer must surface the guard exception, and the row's
+    ``deleted_at`` must still be set after the call returns.
     """
     from sqlalchemy.exc import MultipleResultsFound
+
+    from superset.commands.exceptions import ImportFailedError
+    from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
     mocker.patch.object(
@@ -1366,26 +1372,29 @@ def test_import_dataset_multiple_results_fallback_finds_soft_deleted(
     config = copy.deepcopy(dataset_fixture)
     config["database_id"] = database.id
 
-    # Seed a soft-deleted row with the target uuid directly. Without the
-    # bypass on the fallback query, the listener would hide this row and
-    # .one() would raise NoResultFound.
+    original_deleted_at = datetime(2026, 1, 1, 12, 0, 0)
     soft_deleted = SqlaTable(
         table_name="ambiguous_dataset",
         database_id=database.id,
         uuid=config["uuid"],
-        deleted_at=datetime(2026, 1, 1, 12, 0, 0),
+        deleted_at=original_deleted_at,
     )
     db.session.add(soft_deleted)
     db.session.flush()
 
-    # Should return the row (the only one matching the uuid), not raise
-    # NoResultFound. The importer clears ``deleted_at`` on the soft-deleted
-    # match before ``import_from_dict`` is called, so the row returned by
-    # the fallback no longer reports as soft-deleted — what we verify here
-    # is that the bypass found the row at all rather than masking the
-    # original ``MultipleResultsFound`` with a misleading error.
-    result = import_dataset(config)
-    assert result.uuid == config["uuid"]
+    with pytest.raises(ImportFailedError, match="ambiguous legacy duplicate"):
+        import_dataset(config)
+
+    reloaded = (
+        db.session.query(SqlaTable)
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+        .filter_by(uuid=config["uuid"])
+        .one()
+    )
+    assert reloaded.deleted_at == original_deleted_at, (
+        "deleted_at was not rolled back after MultipleResultsFound on "
+        "the soft-delete-match path; the row is left half-restored"
+    )
 
 
 def test_import_soft_deleted_dataset_ignore_permissions_restores_in_place(
