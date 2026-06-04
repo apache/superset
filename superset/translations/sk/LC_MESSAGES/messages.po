@@ -3104,6 +3104,9 @@ msgstr "Zmeny grafu"
 msgid "Chart could not be created."
 msgstr "Graf sa nepodarilo vytvoriť."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Graf sa nepodarilo aktualizovať."
 
