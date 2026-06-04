@@ -1026,6 +1026,15 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
         return self.response(200, result="OK")
 
+    def _pre_related_check(self, column_name: str) -> Optional[Response]:
+        """Restrict the owners related field to users with write access."""
+        if (
+            column_name == "owners"
+            and not security_manager.can_access_all_datasources()
+        ):
+            return self.response_403()
+        return None
+
     @expose("/warm_up_cache", methods=("PUT",))
     @protect()
     @safe
