@@ -143,7 +143,6 @@ def test_downgrade_preserves_soft_deleted_row_data(engine: Engine) -> None:
                     ]
                 )
             )
-            conn.commit()
 
             migration.downgrade()
 
