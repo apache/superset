@@ -25,6 +25,23 @@ import AdhocFilterEditPopover from '.';
 import AdhocFilter from '../AdhocFilter';
 import { Clauses, ExpressionTypes } from '../types';
 
+jest.mock('src/components/SQLEditorWithValidation', () => ({
+  __esModule: true,
+  default: ({
+    value,
+    onChange,
+  }: {
+    value: string;
+    onChange: (v: string) => void;
+  }) => (
+    <textarea
+      data-test="sql-editor"
+      defaultValue={value}
+      onChange={e => onChange(e.target.value)}
+    />
+  ),
+}));
+
 const simpleAdhocFilter = new AdhocFilter({
   expressionType: ExpressionTypes.Simple,
   subject: 'value',
@@ -120,26 +137,20 @@ describe('AdhocFilterEditPopover', () => {
     ).toBeDisabled();
   });
 
-  /* oxlint-disable-next-line jest/no-disabled-tests */
-  test.skip('updates the filter when changes are made', async () => {
+  test('updates the filter when changes are made', async () => {
     const onChange = jest.fn();
     renderPopover({
       onChange,
       adhocFilter: sqlAdhocFilter,
     });
 
-    // Switch to SQL tab
-    await userEvent.click(screen.getByRole('tab', { name: /custom sql/i }));
+    // The SQL tab is already active since adhocFilter.expressionType is SQL
+    const sqlEditor = screen.getByTestId('sql-editor');
+    fireEvent.change(sqlEditor, { target: { value: 'COUNT(*) > 0' } });
 
-    // Find and update the SQL editor
-    const sqlInput = screen.getByTestId('sql-input');
-    fireEvent.change(sqlInput, { target: { value: 'COUNT(*) > 0' } });
-
-    // Wait for validation to complete
-    await screen.findByRole('button', { name: /save/i });
-
-    // Click save button
-    const saveButton = screen.getByRole('button', { name: /save/i });
+    const saveButton = screen.getByTestId(
+      'adhoc-filter-edit-popover-save-button',
+    );
     await userEvent.click(saveButton);
 
     expect(onChange).toHaveBeenCalledWith(
