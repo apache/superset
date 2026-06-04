@@ -20,18 +20,22 @@
 from flask_appbuilder import Model
 from sqlalchemy import Boolean, Column, Integer, String
 
+# Shared column length for extension/chatbot identifiers; reused by request
+# validation so oversized keys are rejected with a 400 before hitting the DB.
+EXTENSION_ID_MAX_LENGTH = 250
+
 
 class ExtensionSettings(Model):  # pylint: disable=too-few-public-methods
     """Global admin settings for extensions (singleton row, id=1)."""
 
     __tablename__ = "extension_settings"
     id = Column(Integer, primary_key=True)
-    active_chatbot_id = Column(String(250), nullable=True)
+    active_chatbot_id = Column(String(EXTENSION_ID_MAX_LENGTH), nullable=True)
 
 
 class ExtensionEnabled(Model):  # pylint: disable=too-few-public-methods
     """Per-extension enable/disable flag."""
 
     __tablename__ = "extension_enabled"
-    extension_id = Column(String(250), primary_key=True)
+    extension_id = Column(String(EXTENSION_ID_MAX_LENGTH), primary_key=True)
     enabled = Column(Boolean, nullable=False, default=True)

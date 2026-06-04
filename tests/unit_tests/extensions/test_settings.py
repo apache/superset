@@ -207,3 +207,83 @@ class TestPutSettingsEndpoint:
         )
         resp = client.put("/api/v1/extensions/settings", json={})
         assert resp.status_code == 200
+
+    def test_non_object_body_rejected(
+        self, client: Any, full_api_access: None, mocker: Any
+    ) -> None:
+        mocker.patch(
+            "superset.extensions.api.security_manager.is_admin", return_value=True
+        )
+        update = mocker.patch(
+            "superset.extensions.api.update_extension_settings",
+        )
+        resp = client.put("/api/v1/extensions/settings", json=["not", "an", "object"])
+        assert resp.status_code == 400
+        update.assert_not_called()
+
+    def test_non_string_active_chatbot_id_rejected(
+        self, client: Any, full_api_access: None, mocker: Any
+    ) -> None:
+        mocker.patch(
+            "superset.extensions.api.security_manager.is_admin", return_value=True
+        )
+        update = mocker.patch(
+            "superset.extensions.api.update_extension_settings",
+        )
+        # An int must be rejected with a 400, not silently coerced to null.
+        resp = client.put(
+            "/api/v1/extensions/settings", json={"active_chatbot_id": 123}
+        )
+        assert resp.status_code == 400
+        update.assert_not_called()
+
+    def test_null_active_chatbot_id_is_accepted(
+        self, client: Any, full_api_access: None, mocker: Any
+    ) -> None:
+        mocker.patch(
+            "superset.extensions.api.security_manager.is_admin", return_value=True
+        )
+        mocker.patch(
+            "superset.extensions.api.update_extension_settings",
+            return_value={"active_chatbot_id": None, "enabled": {}},
+        )
+        resp = client.put(
+            "/api/v1/extensions/settings", json={"active_chatbot_id": None}
+        )
+        assert resp.status_code == 200
+
+    def test_oversized_active_chatbot_id_rejected(
+        self, client: Any, full_api_access: None, mocker: Any
+    ) -> None:
+        from superset.extensions.models import EXTENSION_ID_MAX_LENGTH
+
+        mocker.patch(
+            "superset.extensions.api.security_manager.is_admin", return_value=True
+        )
+        update = mocker.patch(
+            "superset.extensions.api.update_extension_settings",
+        )
+        resp = client.put(
+            "/api/v1/extensions/settings",
+            json={"active_chatbot_id": "x" * (EXTENSION_ID_MAX_LENGTH + 1)},
+        )
+        assert resp.status_code == 400
+        update.assert_not_called()
+
+    def test_oversized_enabled_key_rejected(
+        self, client: Any, full_api_access: None, mocker: Any
+    ) -> None:
+        from superset.extensions.models import EXTENSION_ID_MAX_LENGTH
+
+        mocker.patch(
+            "superset.extensions.api.security_manager.is_admin", return_value=True
+        )
+        update = mocker.patch(
+            "superset.extensions.api.update_extension_settings",
+        )
+        resp = client.put(
+            "/api/v1/extensions/settings",
+            json={"enabled": {"x" * (EXTENSION_ID_MAX_LENGTH + 1): True}},
+        )
+        assert resp.status_code == 400
+        update.assert_not_called()

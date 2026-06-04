@@ -23,6 +23,7 @@ from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
 from superset.extensions import security_manager
+from superset.extensions.models import EXTENSION_ID_MAX_LENGTH
 from superset.extensions.settings import (
     get_extension_settings,
     update_extension_settings,
@@ -31,6 +32,23 @@ from superset.extensions.utils import (
     build_extension_data,
     get_extensions,
 )
+
+
+def _is_valid_chatbot_id(value: Any) -> bool:
+    """active_chatbot_id must be null or a non-empty, length-bounded string."""
+    if value is None:
+        return True
+    return isinstance(value, str) and 0 < len(value) <= EXTENSION_ID_MAX_LENGTH
+
+
+def _are_valid_enabled_keys(enabled: Any) -> bool:
+    """The enabled map must be an object keyed by length-bounded extension ids."""
+    if not isinstance(enabled, dict):
+        return False
+    return all(
+        isinstance(key, str) and 0 < len(key) <= EXTENSION_ID_MAX_LENGTH
+        for key in enabled
+    )
 
 
 class ExtensionsRestApi(BaseApi):
@@ -218,6 +236,20 @@ class ExtensionsRestApi(BaseApi):
         body = request.get_json(silent=True)
         if not isinstance(body, dict):
             return self.response(400, message="Request body must be a JSON object.")
+        if "active_chatbot_id" in body and not _is_valid_chatbot_id(
+            body["active_chatbot_id"]
+        ):
+            return self.response(
+                400,
+                message="active_chatbot_id must be null or a non-empty string "
+                f"of at most {EXTENSION_ID_MAX_LENGTH} characters.",
+            )
+        if "enabled" in body and not _are_valid_enabled_keys(body["enabled"]):
+            return self.response(
+                400,
+                message="enabled keys must be non-empty strings of at most "
+                f"{EXTENSION_ID_MAX_LENGTH} characters.",
+            )
         result = update_extension_settings(body)
         return self.response(200, result=result)
 

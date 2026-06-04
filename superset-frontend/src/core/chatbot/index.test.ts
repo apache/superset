@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import * as viewsModule from 'src/core/views';
 import { views } from 'src/core/views';
 import { CHATBOT_LOCATION } from 'src/views/contributions';
 import { getActiveChatbot } from './index';
@@ -154,6 +155,36 @@ test('getActiveChatbot excludes disabled extensions before applying admin pin', 
   expect(active?.id).toBe('first.chatbot');
 });
 
+test('getActiveChatbot falls through to the next candidate when one fails to resolve', () => {
+  const secondProvider = () => React.createElement('div', null, 'Second');
+  disposables.push(
+    views.registerView(
+      { id: 'first.chatbot', name: 'First Chatbot' },
+      CHATBOT_LOCATION,
+      () => React.createElement('div', null, 'First'),
+    ),
+    views.registerView(
+      { id: 'second.chatbot', name: 'Second Chatbot' },
+      CHATBOT_LOCATION,
+      secondProvider,
+    ),
+  );
+
+  // Simulate a stale registration: the id is still listed but its provider no
+  // longer resolves. Resolution must skip it instead of returning undefined.
+  jest
+    .spyOn(viewsModule, 'getViewProvider')
+    .mockImplementation((location, id) =>
+      id === 'first.chatbot' ? undefined : secondProvider,
+    );
+
+  const active = getActiveChatbot();
+  expect(active?.id).toBe('second.chatbot');
+  expect(active?.provider).toBe(secondProvider);
+
+  jest.restoreAllMocks();
+});
+
 test('getActiveChatbot returns undefined when all candidates are disabled', () => {
   disposables.push(
     views.registerView(
@@ -163,7 +194,5 @@ test('getActiveChatbot returns undefined when all candidates are disabled', () =
     ),
   );
 
-  expect(
-    getActiveChatbot(null, { 'superset.chatbot': false }),
-  ).toBeUndefined();
+  expect(getActiveChatbot(null, { 'superset.chatbot': false })).toBeUndefined();
 });

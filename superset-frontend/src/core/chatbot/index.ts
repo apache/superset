@@ -73,15 +73,20 @@ export const getActiveChatbot = (
     return undefined;
   }
 
-  const selectedId =
+  // Try the admin-pinned id first, then fall back through the remaining
+  // candidates in registration order. A candidate may fail to resolve if its
+  // registration became stale, so we keep looking instead of giving up.
+  const ordered =
     adminSelectedId && candidates.includes(adminSelectedId)
-      ? adminSelectedId
-      : candidates[0];
+      ? [adminSelectedId, ...candidates.filter(id => id !== adminSelectedId)]
+      : candidates;
 
-  const provider = getViewProvider(CHATBOT_LOCATION, selectedId);
-  if (!provider) {
-    return undefined;
+  for (const id of ordered) {
+    const provider = getViewProvider(CHATBOT_LOCATION, id);
+    if (provider) {
+      return { id, provider };
+    }
   }
 
-  return { id: selectedId, provider };
+  return undefined;
 };
