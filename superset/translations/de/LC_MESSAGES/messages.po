@@ -4421,6 +4421,9 @@ msgstr "Die Farbkonfiguration des Dashboards konnte nicht aktualisiert werden."
 msgid "Dashboard could not be deleted."
 msgstr "Dashboard konnte nicht gelöscht werden."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Das Dashboard konnte nicht aktualisiert werden."
 
