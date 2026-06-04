@@ -33,22 +33,18 @@ test('returns ThemeMode.DARK when ?theme=dark', () => {
 });
 
 test('returns ThemeMode.SYSTEM when ?theme=system', () => {
-  locationSpy = jest
-    .spyOn(window, 'location', 'get')
-    .mockReturnValue({
-      ...window.location,
-      search: '?theme=system',
-    } as Location);
+  locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?theme=system',
+  } as Location);
   expect(getInitialThemeMode()).toBe(ThemeMode.SYSTEM);
 });
 
 test('returns ThemeMode.DEFAULT when ?theme=light', () => {
-  locationSpy = jest
-    .spyOn(window, 'location', 'get')
-    .mockReturnValue({
-      ...window.location,
-      search: '?theme=light',
-    } as Location);
+  locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?theme=light',
+  } as Location);
   expect(getInitialThemeMode()).toBe(ThemeMode.DEFAULT);
 });
 
@@ -60,11 +56,9 @@ test('returns ThemeMode.DEFAULT when no theme param', () => {
 });
 
 test('returns ThemeMode.DEFAULT for an unrecognised value', () => {
-  locationSpy = jest
-    .spyOn(window, 'location', 'get')
-    .mockReturnValue({
-      ...window.location,
-      search: '?theme=invalid',
-    } as Location);
+  locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?theme=invalid',
+  } as Location);
   expect(getInitialThemeMode()).toBe(ThemeMode.DEFAULT);
 });
