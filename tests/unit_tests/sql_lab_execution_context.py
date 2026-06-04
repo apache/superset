@@ -16,8 +16,11 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, too-many-locals
 
+from unittest.mock import MagicMock
+
 import pytest
 
+from superset.exceptions import SupersetException
 from superset.sql.parse import CTASMethod
 from superset.sqllab.sqllab_execution_context import (
     CreateTableAsSelect,
@@ -101,3 +104,32 @@ def test_create_table_as_select():
     assert ctas.ctas_method == CTASMethod.TABLE
     assert ctas.target_schema_name == "public"
     assert ctas.target_table_name == "temp_table"
+
+
+def test_set_database_accepts_matching_id(query_params):
+    context = SqlJsonExecutionContext(query_params)
+    database = MagicMock()
+    database.id = 1
+    database.get_default_catalog.return_value = "default_catalog"
+
+    context.set_database(database)
+
+    assert context.database is database
+
+
+def test_set_database_rejects_mismatched_id(query_params):
+    context = SqlJsonExecutionContext(query_params)
+    database = MagicMock()
+    database.id = 999
+
+    with pytest.raises(SupersetException):
+        context.set_database(database)
+
+
+def test_set_database_rejects_none_database_id(query_params):
+    context = SqlJsonExecutionContext(query_params)
+    database = MagicMock()
+    database.id = None
+
+    with pytest.raises(SupersetException):
+        context.set_database(database)
