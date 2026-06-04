@@ -225,8 +225,7 @@ test('redirects when no files are provided', async () => {
   });
 });
 
-// eslint-disable-next-line jest/no-disabled-tests
-test.skip('handles CSV file correctly', async () => {
+test('handles CSV file correctly', async () => {
   const fileHandle = createMockFileHandle('test.csv');
   setupLaunchQueue(fileHandle);
 
