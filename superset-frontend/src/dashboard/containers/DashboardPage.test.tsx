@@ -285,7 +285,9 @@ test('clears undo history after hydrating the dashboard', async () => {
 
   expect(hydrateDashboard).toHaveBeenCalled();
   expect(clearDashboardHistory).toHaveBeenCalled();
-  const hydrateOrder = (hydrateDashboard as jest.Mock).mock.invocationCallOrder[0];
-  const clearOrder = (clearDashboardHistory as jest.Mock).mock.invocationCallOrder[0];
+  const hydrateOrder = (hydrateDashboard as jest.Mock).mock
+    .invocationCallOrder[0];
+  const clearOrder = (clearDashboardHistory as jest.Mock).mock
+    .invocationCallOrder[0];
   expect(clearOrder).toBeGreaterThan(hydrateOrder);
 });
