@@ -369,6 +369,7 @@ class WebDriverPlaywright(WebDriverProxy):
                             element_name,
                             tile_height,
                             load_wait=self._screenshot_load_wait,
+                            animation_wait=selenium_animation_wait,
                         )
                         if img is None:
                             logger.warning(
