@@ -141,3 +141,32 @@ def test_unsafe_no_config(app: Flask) -> None:
     app.config["WEBDRIVER_BASEURL"] = ""
     app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"] = ""
     assert not is_safe_redirect_url("https://anything.com")
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "/%09///evil.com",  # tab percent-encoded
+        "/%0a///evil.com",  # LF percent-encoded
+        "/%0A///evil.com",
+        "/%0d///evil.com",  # CR percent-encoded
+        "/%0D///evil.com",
+        "/\t///evil.com",  # literal tab
+        "/\n///evil.com",  # literal LF
+        "/\r///evil.com",  # literal CR
+        "/%09/%09//evil.com",  # multiple TABs
+        "/\t\t//evil.com",
+    ],
+)
+def test_unsafe_url_with_browser_stripped_whitespace(app: Flask, url: str) -> None:
+    """Browsers per the WHATWG URL spec strip TAB/LF/CR from URLs before
+    parsing, so a path like ``/%09///host`` is navigated to ``//host``
+    (a protocol-relative URL) even though the unprocessed string does not
+    start with ``//``. The check must normalize the input the same way."""
+    assert not is_safe_redirect_url(url)
+
+
+def test_safe_path_with_tab_in_internal_segment(app: Flask) -> None:
+    """A tab inside a regular path segment is still a relative URL after
+    stripping; it must not flip the result to safe-then-unsafe."""
+    assert is_safe_redirect_url("/dashboard/1?from=tab%09inside")
