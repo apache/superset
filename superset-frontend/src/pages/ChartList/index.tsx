@@ -494,9 +494,9 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
-        accessor: 'last_saved_at',
+        accessor: 'changed_on_delta_humanized',
         size: 'xl',
-        id: 'last_saved_at',
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {

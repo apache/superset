@@ -1,0 +1,25 @@
+---
+id: annotation-layers
+title: "Annotation Layers"
+description: "Annotation Layers"
+custom_edit_url: null
+---
+
+Manage annotation layers and annotations for charts.
+
+| Method | Endpoint | Path |
+|--------|----------|------|
+| `DELETE` | [Delete multiple annotation layers in a bulk operation](./delete-multiple-annotation-layers-in-a-bulk-operation) | `/api/v1/annotation_layer/` |
+| `GET` | [Get a list of annotation layers (annotation-layer)](./get-a-list-of-annotation-layers-annotation-layer) | `/api/v1/annotation_layer/` |
+| `POST` | [Create an annotation layer (annotation-layer)](./create-an-annotation-layer-annotation-layer) | `/api/v1/annotation_layer/` |
+| `GET` | [Get metadata information about this API resource (annotation-layer--info)](./get-metadata-information-about-this-api-resource-annotation-layer-info) | `/api/v1/annotation_layer/_info` |
+| `DELETE` | [Delete annotation layer (annotation-layer-pk)](./delete-annotation-layer-annotation-layer-pk) | `/api/v1/annotation_layer/{pk}` |
+| `GET` | [Get an annotation layer (annotation-layer-pk)](./get-an-annotation-layer-annotation-layer-pk) | `/api/v1/annotation_layer/{pk}` |
+| `PUT` | [Update an annotation layer (annotation-layer-pk)](./update-an-annotation-layer-annotation-layer-pk) | `/api/v1/annotation_layer/{pk}` |
+| `DELETE` | [Bulk delete annotation layers](./bulk-delete-annotation-layers) | `/api/v1/annotation_layer/{pk}/annotation/` |
+| `GET` | [Get a list of annotation layers (annotation-layer-pk-annotation)](./get-a-list-of-annotation-layers-annotation-layer-pk-annotation) | `/api/v1/annotation_layer/{pk}/annotation/` |
+| `POST` | [Create an annotation layer (annotation-layer-pk-annotation)](./create-an-annotation-layer-annotation-layer-pk-annotation) | `/api/v1/annotation_layer/{pk}/annotation/` |
+| `DELETE` | [Delete annotation layer (annotation-layer-pk-annotation-annotation-id)](./delete-annotation-layer-annotation-layer-pk-annotation-annotation-id) | `/api/v1/annotation_layer/{pk}/annotation/{annotation_id}` |
+| `GET` | [Get an annotation layer (annotation-layer-pk-annotation-annotation-id)](./get-an-annotation-layer-annotation-layer-pk-annotation-annotation-id) | `/api/v1/annotation_layer/{pk}/annotation/{annotation_id}` |
+| `PUT` | [Update an annotation layer (annotation-layer-pk-annotation-annotation-id)](./update-an-annotation-layer-annotation-layer-pk-annotation-annotation-id) | `/api/v1/annotation_layer/{pk}/annotation/{annotation_id}` |
+| `GET` | [Get related fields data (annotation-layer-related-column-name)](./get-related-fields-data-annotation-layer-related-column-name) | `/api/v1/annotation_layer/related/{column_name}` |

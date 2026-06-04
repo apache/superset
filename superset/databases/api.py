@@ -1327,6 +1327,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "viz_type": chart.viz_type,
             }
             for chart in data["charts"]
+            if security_manager.can_access_chart(chart)
         ]
         dashboards = [
             {
@@ -1336,6 +1337,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "title": dashboard.dashboard_title,
             }
             for dashboard in data["dashboards"]
+            if security_manager.can_access_dashboard(dashboard)
         ]
         sqllab_tab_states = [
             {"id": tab_state.id, "label": tab_state.label, "active": tab_state.active}
