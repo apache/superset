@@ -51,10 +51,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
 
-const FILTERBAR_SRC = readFileSync(
-  join(__dirname, 'index.tsx'),
-  'utf8',
-);
+const FILTERBAR_SRC = readFileSync(join(__dirname, 'index.tsx'), 'utf8');
 
 // ---------------------------------------------------------------------------
 // (A) Source-pin: the two patterns that implement the contract.
@@ -66,7 +63,7 @@ test('FilterBar/index.tsx guards history.replace by the configured app root', ()
   // Explore (`/explore/?slice_id=...`), the FilterBar's debounced commit must
   // not stomp Explore's query string with native_filters_key.
   expect(FILTERBAR_SRC).toContain(
-    "window.location.pathname.startsWith(`${applicationRoot()}/dashboard`)",
+    'window.location.pathname.startsWith(`${applicationRoot()}/dashboard`)',
   );
 });
 
@@ -165,7 +162,8 @@ const SCENARIOS: ReadonlyArray<Scenario> = [
     shouldReplace: false,
   },
   {
-    description: 'subdir deploy on bare app root (no /dashboard) — short-circuits',
+    description:
+      'subdir deploy on bare app root (no /dashboard) — short-circuits',
     appRoot: '/superset',
     pathname: '/superset/',
     shouldReplace: false,
@@ -203,9 +201,7 @@ test.each(SCENARIOS)(
       // The dedupe contract: no `/superset/superset/...` ever reaches React
       // Router. Even if the source-pin drifts, this catches the user-visible
       // symptom.
-      expect(result.replacementPathname).not.toMatch(
-        /\/superset\/superset\//,
-      );
+      expect(result.replacementPathname).not.toMatch(/\/superset\/superset\//);
     } else {
       expect(result.replacementPathname).toBeUndefined();
     }

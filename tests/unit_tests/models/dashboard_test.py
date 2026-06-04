@@ -46,13 +46,22 @@ def test_dashboard_link_escapes_slug(app_context: None) -> None:
 
 
 def test_dashboard_link_renders_plain_slug(app_context: None) -> None:
-    """A normal slug renders a working link."""
+    """A normal slug renders a working link under a subdirectory deployment.
+
+    `dashboard_link` uses `url_for`, which prepends the request's script root
+    so the rendered href is correct under both root and `/superset`
+    deployments. The test pins the `/superset` shape by passing `base_url`
+    with the prefix path — werkzeug derives `SCRIPT_NAME` from the base URL's
+    path and the URL adapter then prepends it on `url_for`. Passing
+    `environ_base={"SCRIPT_NAME": "/superset"}` alone is not enough: the URL
+    adapter is built from the parsed base URL, not raw environ values.
+    """
     dash = Dashboard()
     dash.id = 7
     dash.dashboard_title = "Sales"
     dash.slug = "sales"
 
-    with current_app.test_request_context("/"):
+    with current_app.test_request_context("/", base_url="http://localhost/superset/"):
         link = str(dash.dashboard_link())
 
     assert "/superset/dashboard/sales/" in link
