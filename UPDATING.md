@@ -191,10 +191,11 @@ The array is empty for baseline (`operation_type=0`) transactions. `kind` enumer
 - First save after an entity already exists in the DB creates a retroactive baseline version so the UI can show "what this looked like before I edited it."
 - Tags, owners, and roles are **not** versioned in v1 (ADR-005). A restore leaves those at their live values.
 
-**New config key:**
+**New config keys:**
 
 | Key | Default | Purpose |
 |---|---|---|
+| `ENABLE_VERSIONING_CAPTURE` | `True` | Master switch for the two before-flush listeners that drive version capture. Default-on; set to `False` in `superset_config.py` (or via the env var of the same name) for an operational kill-switch — when a versioning-induced save-path regression needs a 30-second recovery (restart workers, capture stops) instead of revert + redeploy. Existing shadow tables stay; `/versions/` and `/activity/` endpoints continue to work read-only against captured history. New deployments leave it on. |
 | `SUPERSET_VERSION_HISTORY_RETENTION_DAYS` | `30` | Versions older than this many days are pruned by a nightly Celery beat task (`superset.tasks.version_history_retention.prune_old_versions`). Each entity's live row (`end_transaction_id IS NULL`) is always preserved; closed historical rows including the baseline age out with the rest. Set to `0` to disable retention entirely. |
 
 **Impact on external integrations:**
@@ -202,7 +203,7 @@ The array is empty for baseline (`operation_type=0`) transactions. `kind` enumer
 - New tables populated on every save — `dashboards_version`, `slices_version`, `tables_version` (parent shadow tables for the three entity types), `table_columns_version`, `sql_metrics_version`, `dashboard_slices_version` (child shadow tables), plus the shared `version_transaction` and `version_changes` tables. External tooling that queries Superset's DB directly will see writes to these tables proportional to save traffic.
 - On MySQL, the large-payload shadow columns (`dashboards_version.{position_json,css,json_metadata}`, `slices_version.params`, `tables_version.sql`, `{table_columns,sql_metrics}_version.{description,expression}`) are declared `MEDIUMTEXT` to match their live counterparts (16 MB) — Postgres `TEXT` is unbounded and SQLite ignores the length. Operators inspecting the schema will see this dialect-specific type; no operator action is required for new deployments.
 - Existing entity endpoints (`GET`/`PUT /api/v1/{chart,dashboard,dataset}/<pk>`) gain an `ETag` response header and the save response gains `old_version_uuid` / `new_version_uuid` body fields. No existing fields are removed or repurposed.
-- Version capture is always active — no feature flag.
+- Version capture is on by default but operationally disable-able via `ENABLE_VERSIONING_CAPTURE=False` — an escape hatch for capture-induced regressions, not a feature flag. The migrations and the endpoints are not gated; only the listeners that write new shadow rows on save.
 
 ### Selectable encryption engine for app-encrypted fields (AES-GCM)
 

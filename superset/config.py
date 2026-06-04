@@ -1429,6 +1429,19 @@ DATETIME_FORMAT_DETECTION_SAMPLE_SIZE = 1000
 # The limit for the Superset Meta DB when the feature flag ENABLE_SUPERSET_META_DB is on
 SUPERSET_META_DB_LIMIT: int | None = 1000
 
+# Master switch for entity-version-history capture. Default ``True`` —
+# every save of a chart, dashboard, or dataset writes shadow rows + a
+# ``version_changes`` record. Set to ``False`` in ``superset_config.py``
+# (or via the env var of the same name) to disable the two before-flush
+# listeners that drive capture; existing shadow tables stay intact and
+# the /versions/ + /activity/ endpoints continue to work read-only.
+# This is an operational escape hatch — for use when a versioning-induced
+# regression needs a 30-second recovery instead of revert-and-redeploy —
+# not a feature flag. New deployments leave it on.
+ENABLE_VERSIONING_CAPTURE: bool = (
+    os.environ.get("ENABLE_VERSIONING_CAPTURE", "true").lower() == "true"
+)
+
 # Retention window (days) for entity version history. Version rows
 # whose owning ``version_transaction.issued_at`` is older than this
 # value are pruned by the ``version_history.prune_old_versions``

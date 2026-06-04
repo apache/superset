@@ -617,7 +617,26 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         Must be called after all versioned model classes have been imported so
         that VERSIONED_MODELS can be populated and configure_mappers() has run.
+
+        ``ENABLE_VERSIONING_CAPTURE`` (default ``True``) gates the two
+        before-flush listener registrations. The flag is operational, not
+        feature: every deployment captures version history by default. The
+        switch exists so an operator who observes a versioning-induced
+        regression (e.g. a save-path slowdown attributable to the
+        change-record listener) can disable capture in
+        ``superset_config.py`` and restart workers — a 30-second recovery
+        instead of revert-and-redeploy. Shadow tables already created by
+        the migration stay; they just stop accumulating new rows.
         """
+        if not self.config.get("ENABLE_VERSIONING_CAPTURE", True):
+            logger.warning(
+                "versioning: ENABLE_VERSIONING_CAPTURE is False; "
+                "skipping baseline + change-record listener registration. "
+                "Save-path capture is disabled; existing shadow tables and "
+                "/versions/ endpoints continue to work read-only."
+            )
+            return
+
         from sqlalchemy.orm import Session  # noqa: F401
         from sqlalchemy_continuum import version_class
 
