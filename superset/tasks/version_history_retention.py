@@ -54,7 +54,7 @@ import sqlalchemy as sa
 from flask import current_app
 from sqlalchemy.exc import OperationalError
 
-from superset.extensions import celery_app, db
+from superset.extensions import celery_app, db, stats_logger_manager
 
 logger = logging.getLogger(__name__)
 
@@ -254,6 +254,15 @@ _RETRY_BACKOFF_BASE_SECONDS = 0.1
 #: Backoff for attempt N is ``BASE * (FACTOR ** (N - 1))``.
 _RETRY_BACKOFF_FACTOR = 4
 
+#: Statsd metric prefix for retention emissions. Mirrors the activity-view
+#: orchestrator's ``superset.activity_view.*`` namespace so a single
+#: Grafana filter (``superset.versioning.*``) catches both sides of the
+#: feature. The pruned-count gauge fires every run; the skipped counter
+#: fires for the "retention disabled" and "no versioned classes" cases;
+#: the retried counter fires when the SERIALIZABLE block tripped at
+#: least one conflict before settling.
+_METRIC_PREFIX = "superset.versioning.retention"
+
 
 def _run_prune_pass(cutoff: datetime, tables: ShadowTables) -> dict[str, Any]:
     """One SERIALIZABLE pass of the prune. Caller wraps in the retry
@@ -333,6 +342,7 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
             "version_history_retention: SUPERSET_VERSION_HISTORY_RETENTION_DAYS "
             "<= 0; skipping",
         )
+        stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped")
         return {"skipped": 1}
 
     # pylint: disable=import-outside-toplevel
@@ -343,6 +353,7 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
         logger.warning(
             "version_history_retention: no versioned classes resolved; skipping",
         )
+        stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.skipped")
         return {"skipped": 1}
 
     cutoff = datetime.utcnow() - timedelta(days=retention_days)
@@ -353,6 +364,7 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
             stats = _run_prune_pass(cutoff, tables)
         except OperationalError as exc:
             last_exc = exc
+            stats_logger_manager.instance.incr(f"{_METRIC_PREFIX}.retried")
             if attempt == _MAX_RETRY_ATTEMPTS:
                 logger.warning(
                     "version_history_retention: gave up after %d attempts: %s",
@@ -374,6 +386,10 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
         else:
             if attempt > 1:
                 stats["retried"] = attempt - 1
+            stats_logger_manager.instance.gauge(
+                f"{_METRIC_PREFIX}.pruned_transactions",
+                stats.get("pruned_transactions", 0),
+            )
             logger.info("version_history_retention: %s", stats)
             return stats
 
