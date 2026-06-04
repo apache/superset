@@ -69,6 +69,13 @@ def downgrade():
     1. It may have been created by the original migration (e0f6f91c2055)
     2. Dropping it would cause data loss
 
-    The table will be properly dropped when downgrading past e0f6f91c2055.
+    Downgrade behavior depends on the user's migration history:
+    - Users who already have e0f6f91c2055 applied: the table is dropped by
+      that migration's own downgrade() when they downgrade past it.
+    - 3.0.x-only upgraders (the bug this replay fixes): e0f6f91c2055 is not in
+      their history, so nothing ever drops the table. It intentionally persists
+      after a downgrade -- there is no safe way to distinguish a table created
+      by this replay from one created by the original migration, so we err on
+      the side of preserving user data.
     """
     pass
