@@ -16,6 +16,7 @@ concurrency:
 jobs:
   changes:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: read
@@ -36,6 +37,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     permissions:
       id-token: write
     env:
@@ -121,6 +123,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     permissions:
       id-token: write
     strategy:
@@ -179,6 +182,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     permissions:
       id-token: write
     env:
