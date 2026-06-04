@@ -1193,7 +1193,7 @@ HTML_SANITIZATION_SCHEMA_EXTENSIONS: dict[str, Any] = {}
 # than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
 # next available socket. PR #5039 added domain sharding for Superset,
 # and this feature can be enabled by configuration only (by default Superset
-# doesn't allow cross-domain request). This feature is deprecated, annd will be removed
+# doesn't allow cross-domain request). This feature is deprecated, and will be removed
 # in the next major version of Superset, as enabling HTTP2 will serve the same goals.
 SUPERSET_WEBSERVER_DOMAINS = None  # deprecated
 
