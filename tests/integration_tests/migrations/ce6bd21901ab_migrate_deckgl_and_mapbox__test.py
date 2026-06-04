@@ -101,14 +101,61 @@ def test_upgrade_mapbox_with_non_mapbox_style():
     assert "map_renderer" not in params
 
 
-def test_migrate_deckgl_slice_mapbox_style():
+@pytest.mark.parametrize(
+    ("mapbox_style", "expected_map_renderer", "expected_modified"),
+    [
+        ("mapbox://styles/mapbox/dark-v9", "mapbox", True),
+        (
+            "tile://https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            None,
+            False,
+        ),
+        ("https://tile.openstreetmap.org/{z}/{x}/{y}.png", None, False),
+        (None, None, False),
+        ("https://example.com/styles/custom-style.json", None, False),
+    ],
+)
+def test_migrate_deckgl_slice_map_renderer_classification(
+    mapbox_style, expected_map_renderer, expected_modified
+):
+    params = {
+        "viz_type": "deck_arc",
+        "other_param": "value",
+    }
+    if mapbox_style is not None:
+        params["mapbox_style"] = mapbox_style
+
     slc = Slice(
         slice_name="Test Arc",
+        viz_type="deck_arc",
+        params=json.dumps(params),
+    )
+
+    modified = _migrate_deckgl_slice(slc)
+
+    assert modified is expected_modified
+    migrated_params = json.loads(slc.params)
+    if mapbox_style is not None:
+        assert migrated_params["mapbox_style"] == mapbox_style
+    else:
+        assert "mapbox_style" not in migrated_params
+    if expected_map_renderer is None:
+        assert "map_renderer" not in migrated_params
+    else:
+        assert migrated_params["map_renderer"] == expected_map_renderer
+    assert migrated_params["viz_type"] == "deck_arc"  # viz_type unchanged
+    assert migrated_params["other_param"] == "value"
+
+
+def test_migrate_deckgl_slice_preserves_existing_map_renderer():
+    slc = Slice(
+        slice_name="Test Arc Existing Renderer",
         viz_type="deck_arc",
         params=json.dumps(
             {
                 "viz_type": "deck_arc",
                 "mapbox_style": "mapbox://styles/mapbox/dark-v9",
+                "map_renderer": "maplibre",
                 "other_param": "value",
             }
         ),
@@ -116,51 +163,10 @@ def test_migrate_deckgl_slice_mapbox_style():
 
     modified = _migrate_deckgl_slice(slc)
 
-    assert modified is True
+    assert modified is False
     params = json.loads(slc.params)
+    assert params["map_renderer"] == "maplibre"
     assert params["mapbox_style"] == "mapbox://styles/mapbox/dark-v9"
-    assert params["map_renderer"] == "mapbox"
-    assert params["viz_type"] == "deck_arc"  # viz_type unchanged
-    assert params["other_param"] == "value"
-
-
-def test_migrate_deckgl_slice_open_style():
-    """All existing deck_* charts get map_renderer='mapbox' for backwards compat."""
-    slc = Slice(
-        slice_name="Test Scatter",
-        viz_type="deck_scatter",
-        params=json.dumps(
-            {
-                "viz_type": "deck_scatter",
-                "mapbox_style": "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json",
-            }
-        ),
-    )
-
-    modified = _migrate_deckgl_slice(slc)
-
-    assert modified is True
-    params = json.loads(slc.params)
-    assert (
-        params["mapbox_style"]
-        == "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json"
-    )
-    assert params["map_renderer"] == "mapbox"
-
-
-def test_migrate_deckgl_slice_no_mapbox_style():
-    """Slices without mapbox_style still get map_renderer='mapbox'."""
-    slc = Slice(
-        slice_name="Test Arc No Style",
-        viz_type="deck_arc",
-        params=json.dumps({"viz_type": "deck_arc", "other_param": "value"}),
-    )
-
-    modified = _migrate_deckgl_slice(slc)
-
-    assert modified is True
-    params = json.loads(slc.params)
-    assert params["map_renderer"] == "mapbox"
     assert params["other_param"] == "value"
 
 

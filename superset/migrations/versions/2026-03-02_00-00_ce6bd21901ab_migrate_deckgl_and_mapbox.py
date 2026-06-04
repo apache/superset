@@ -116,11 +116,10 @@ class MigrateMapBox(MigrateViz):
 
 
 def _migrate_deckgl_slice(slc: Slice) -> bool:
-    """Set map_renderer='mapbox' for all existing deck.gl slices.
+    """Set map_renderer='mapbox' for deck.gl slices using Mapbox styles.
 
-    This ensures full backwards compatibility: existing charts keep using the
-    Mapbox renderer. Users can later switch to MapLibre in the chart controls.
-    Only new charts will default to MapLibre.
+    Existing non-Mapbox styles remain without a renderer value so they continue
+    through the MapLibre-compatible path.
 
     Returns True if the slice was modified.
     """
@@ -129,6 +128,10 @@ def _migrate_deckgl_slice(slc: Slice) -> bool:
         return False
 
     if "map_renderer" in params:
+        return False
+
+    mapbox_style = params.get("mapbox_style", "")
+    if not isinstance(mapbox_style, str) or not mapbox_style.startswith("mapbox://"):
         return False
 
     params["map_renderer"] = "mapbox"
