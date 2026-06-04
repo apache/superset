@@ -50,9 +50,22 @@ class ThemeMemoryStorageAdapter implements ThemeStorage {
   }
 }
 
+/**
+ * Reads the `?theme=` URL parameter set by the embed SDK via
+ * `dashboardUiConfig.urlParams` and returns the corresponding ThemeMode.
+ * Falls back to ThemeMode.DEFAULT when the param is absent or unrecognised.
+ */
+function getInitialThemeMode(): ThemeMode {
+  const params = new URLSearchParams(window.location.search);
+  const theme = params.get('theme');
+  if (theme === 'dark') return ThemeMode.DARK;
+  if (theme === 'system') return ThemeMode.SYSTEM;
+  return ThemeMode.DEFAULT;
+}
+
 const themeController = new ThemeController({
   storage: new ThemeMemoryStorageAdapter(),
-  initialMode: ThemeMode.DEFAULT,
+  initialMode: getInitialThemeMode(),
 });
 
 export const getThemeController = (): ThemeController => themeController;
