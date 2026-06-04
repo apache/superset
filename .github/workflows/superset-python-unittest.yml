@@ -74,3 +74,25 @@ jobs:
           verbose: true
           use_oidc: true
           slug: apache/superset
+
+  # Stable required-status-check anchor. `unit-tests` is a matrix job gated on
+  # change detection, so on non-Python PRs it is skipped and never produces its
+  # `unit-tests (current)` context (a job-level skip happens before matrix
+  # expansion). This always-running job reports a single context that branch
+  # protection can require: it passes when unit-tests succeeded or was skipped,
+  # and fails only on a real failure.
+  unit-tests-required:
+    needs: [changes, unit-tests]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check unit-tests result
+        env:
+          RESULT: ${{ needs.unit-tests.result }}
+        run: |
+          if [ "$RESULT" != "success" ] && [ "$RESULT" != "skipped" ]; then
+            echo "unit-tests did not pass (result: $RESULT)"
+            exit 1
+          fi
+          echo "unit-tests result: $RESULT"
