@@ -25,7 +25,14 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
 
+import pytest
+
 from superset.extensions.api import _validate_segment
+
+# The extension routes are only registered when ENABLE_EXTENSIONS is on at
+# app-init time, so the endpoint tests parametrize the app fixture to enable it
+# (otherwise the route is absent and requests 404).
+_ENABLE_EXTENSIONS = [{"FEATURE_FLAGS": {"ENABLE_EXTENSIONS": True}}]
 
 # ---------------------------------------------------------------------------
 # _validate_segment helper
@@ -84,6 +91,7 @@ def _make_fake_extension(manifest_id: str = "acme.chatbot") -> MagicMock:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.parametrize("app", _ENABLE_EXTENSIONS, indirect=True)
 class TestPostEndpoint:
     def _post(self, client: Any, data: dict[str, Any], full_api_access: None) -> Any:
         return client.post(
@@ -298,6 +306,7 @@ class TestPostEndpoint:
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.parametrize("app", _ENABLE_EXTENSIONS, indirect=True)
 class TestDeleteEndpoint:
     def test_non_admin_rejected(
         self, client: Any, full_api_access: None, mocker: Any
