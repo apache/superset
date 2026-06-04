@@ -5,6 +5,8 @@ on:
     branches:
       - "master"
       - "[0-9].[0-9]*"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
   workflow_dispatch:
     inputs:
       use_dashboard:
@@ -28,6 +30,7 @@ jobs:
   cypress-matrix:
     # Somehow one test flakes on 24.04 for unknown reasons, this is the only GHA left on 22.04
     runs-on: ubuntu-22.04
+    if: github.event.pull_request.draft == false
     permissions:
       contents: read
       pull-requests: read
