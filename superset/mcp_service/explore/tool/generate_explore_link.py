@@ -32,7 +32,6 @@ from superset.extensions import event_logger
 from superset.mcp_service.auth import has_dataset_access
 from superset.mcp_service.chart.chart_helpers import (
     extract_form_data_key_from_url,
-    extract_permalink_key_from_url,
 )
 from superset.mcp_service.chart.chart_utils import (
     generate_explore_link as generate_url,
@@ -42,6 +41,9 @@ from superset.mcp_service.chart.chart_utils import (
 from superset.mcp_service.chart.compile import validate_and_compile
 from superset.mcp_service.chart.schemas import (
     GenerateExploreLinkRequest,
+)
+from superset.mcp_service.utils.url_utils import (
+    extract_permalink_key_from_url,
 )
 
 logger = logging.getLogger(__name__)
@@ -215,7 +217,7 @@ async def generate_explore_link(
         # Add datasource to form_data for consistency with generate_chart
         # Only set if not already present to avoid overwriting
         if "datasource" not in form_data:
-            form_data["datasource"] = f"{request.dataset_id}__table"
+            form_data["datasource"] = f"{dataset.id}__table"
 
         await ctx.debug(
             "Form data generated with keys: %s, has_viz_type=%s, has_datasource=%s"

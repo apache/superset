@@ -57,6 +57,22 @@ def get_superset_base_url() -> str:
         return default_url
 
 
+def extract_permalink_key_from_url(url: str | None) -> str | None:
+    """Extract the permalink key from an explore permalink URL.
+
+    Matches the /explore/p/<key>/ pattern produced by
+    CreateExplorePermalinkCommand.  Returns the key, or None if the URL
+    does not follow that pattern.
+    """
+    if not url:
+        return None
+    path = urlparse(url).path
+    parts = [p for p in path.split("/") if p]
+    if len(parts) >= 3 and parts[-3] == "explore" and parts[-2] == "p":
+        return parts[-1]
+    return None
+
+
 def get_mcp_service_url() -> str:
     """
     Get the MCP service base URL where screenshot endpoints are served.
