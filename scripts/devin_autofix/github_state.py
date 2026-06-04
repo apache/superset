@@ -135,14 +135,22 @@ def get_issue_comments(issue_number: int) -> list[dict[str, Any]]:
 
 
 def find_active_markers(issue_number: int) -> list[RunMarker]:
-    """Return all active run markers for an issue."""
+    """Return markers for runs whose latest status is still active.
+
+    Multiple comments may reference the same ``run_id`` (e.g. a "run started"
+    comment followed by a "returned to human" comment).  Only the **last**
+    marker per ``run_id`` determines whether the run is active.
+    """
     comments = get_issue_comments(issue_number)
-    markers: list[RunMarker] = []
+
+    # Keep the last marker seen for each run_id (comments are chronological).
+    latest_by_run: dict[str, RunMarker] = {}
     for comment in comments:
         marker = parse_marker(comment.get("body", ""))
-        if marker and marker.status in ACTIVE_STATUSES:
-            markers.append(marker)
-    return markers
+        if marker and marker.run_id:
+            latest_by_run[marker.run_id] = marker
+
+    return [m for m in latest_by_run.values() if m.status in ACTIVE_STATUSES]
 
 
 def find_all_markers(issue_number: int) -> list[RunMarker]:
