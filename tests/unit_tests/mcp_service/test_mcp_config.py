@@ -354,3 +354,86 @@ def test_create_default_mcp_auth_factory_api_key_only():
     result = create_default_mcp_auth_factory(mock_app)
 
     assert isinstance(result, CompositeTokenVerifier)
+
+
+def test_get_mcp_api_key_enabled_fab_fallback_logs_startup_warning():
+    """startup_warning=True logs a warning when the value is inherited from FAB."""
+    from superset.mcp_service.mcp_config import get_mcp_api_key_enabled
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: (
+        None
+        if key == "MCP_API_KEY_ENABLED"
+        else (True if key == "FAB_API_KEY_ENABLED" else default)
+    )
+
+    with patch("superset.mcp_service.mcp_config.logger") as mock_logger:
+        result = get_mcp_api_key_enabled(mock_app, startup_warning=True)
+
+    assert result is True
+    mock_logger.warning.assert_called_once()
+
+
+def test_create_default_mcp_auth_factory_jwt_with_keys():
+    """JWT auth with keys configured returns the built JWT verifier."""
+    from superset.mcp_service.mcp_config import create_default_mcp_auth_factory
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_ENABLED": True,
+        "MCP_API_KEY_ENABLED": False,
+        "FAB_API_KEY_ENABLED": False,
+        "MCP_JWT_SECRET": "shhh",
+    }.get(key, default)
+
+    sentinel = object()
+    with patch(
+        "superset.mcp_service.mcp_config._build_jwt_verifier", return_value=sentinel
+    ) as mock_build:
+        result = create_default_mcp_auth_factory(mock_app)
+
+    assert result is sentinel
+    mock_build.assert_called_once()
+
+
+def test_create_default_mcp_auth_factory_jwt_enabled_without_keys_returns_none():
+    """MCP_AUTH_ENABLED=True with no keys/secret and no API key auth returns None."""
+    from superset.mcp_service.mcp_config import create_default_mcp_auth_factory
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_ENABLED": True,
+        "MCP_API_KEY_ENABLED": False,
+        "FAB_API_KEY_ENABLED": False,
+    }.get(key, default)
+
+    with patch("superset.mcp_service.mcp_config.logger") as mock_logger:
+        result = create_default_mcp_auth_factory(mock_app)
+
+    assert result is None
+    mock_logger.warning.assert_called_once()
+
+
+def test_create_default_mcp_auth_factory_jwt_build_failure_returns_none():
+    """A JWT verifier build failure with no API key fallback returns None."""
+    from superset.mcp_service.mcp_config import create_default_mcp_auth_factory
+
+    mock_app = MagicMock()
+    mock_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_AUTH_ENABLED": True,
+        "MCP_API_KEY_ENABLED": False,
+        "FAB_API_KEY_ENABLED": False,
+        "MCP_JWT_SECRET": "shhh",
+    }.get(key, default)
+
+    with (
+        patch(
+            "superset.mcp_service.mcp_config._build_jwt_verifier",
+            side_effect=ValueError("bad key"),
+        ),
+        patch("superset.mcp_service.mcp_config.logger") as mock_logger,
+    ):
+        result = create_default_mcp_auth_factory(mock_app)
+
+    assert result is None
+    mock_logger.error.assert_called_once()
