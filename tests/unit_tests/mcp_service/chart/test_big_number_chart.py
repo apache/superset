@@ -188,6 +188,33 @@ class TestBigNumberChartConfig:
         assert config.filters is not None
         assert len(config.filters) == 1
 
+    def test_with_aggregation_sum(self) -> None:
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="ds",
+            show_trendline=True,
+            aggregation="sum",
+        )
+        assert config.aggregation == "sum"
+
+    def test_with_aggregation_last_value(self) -> None:
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="ds",
+            show_trendline=True,
+            aggregation="LAST_VALUE",
+        )
+        assert config.aggregation == "LAST_VALUE"
+
+    def test_aggregation_defaults_to_none(self) -> None:
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+        )
+        assert config.aggregation is None
+
     def test_extra_fields_forbidden(self) -> None:
         with pytest.raises(ValueError, match="Unknown field 'unknown_field'"):
             BigNumberChartConfig(
@@ -306,6 +333,48 @@ class TestMapBigNumberConfig:
         assert "granularity_sqla" not in form_data
         assert "time_grain_sqla" not in form_data
         assert "start_y_axis_at_zero" not in form_data
+
+    def test_with_aggregation_sum(self) -> None:
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="order_date",
+            show_trendline=True,
+            aggregation="sum",
+        )
+        form_data = map_big_number_config(config)
+        assert form_data["aggregation"] == "sum"
+
+    def test_with_aggregation_last_value(self) -> None:
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="order_date",
+            show_trendline=True,
+            aggregation="LAST_VALUE",
+        )
+        form_data = map_big_number_config(config)
+        assert form_data["aggregation"] == "LAST_VALUE"
+
+    def test_aggregation_absent_when_not_set(self) -> None:
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            temporal_column="order_date",
+            show_trendline=True,
+        )
+        form_data = map_big_number_config(config)
+        assert "aggregation" not in form_data
+
+    def test_aggregation_not_set_for_big_number_total(self) -> None:
+        config = BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="revenue", aggregate="SUM"),
+            aggregation="sum",
+        )
+        form_data = map_big_number_config(config)
+        assert form_data["viz_type"] == "big_number_total"
+        assert "aggregation" not in form_data
 
 
 class TestMapConfigToFormDataBigNumber:
