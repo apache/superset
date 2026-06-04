@@ -540,6 +540,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Set this to True on any engine spec where at least one row must be
     # fetched for cursor.description to be populated.
     type_probe_needs_row: bool = False
+    requires_column_value_normalization: bool = False
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
     custom_errors: dict[

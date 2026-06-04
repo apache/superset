@@ -51,6 +51,7 @@ class DruidEngineSpec(BaseEngineSpec):
     # pydruid builds cursor.description from the first returned row, so a
     # WHERE FALSE query (zero rows) leaves description as None.
     type_probe_needs_row = True
+    requires_column_value_normalization = True
 
     metadata = {
         "description": (

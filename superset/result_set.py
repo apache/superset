@@ -175,10 +175,10 @@ class SupersetResultSet:
 
         for column in column_names:
             raw = array[column].tolist()
-            for col_values in (
-                raw,
-                db_engine_spec.normalize_column_values(raw),
-            ):
+            attempts: list[list[Any]] = [raw]
+            if db_engine_spec.requires_column_value_normalization:
+                attempts.append(db_engine_spec.normalize_column_values(raw))
+            for col_values in attempts:
                 try:
                     pa_data.append(pa.array(col_values))
                     break
