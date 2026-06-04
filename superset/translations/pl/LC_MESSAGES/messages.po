@@ -3155,6 +3155,9 @@ msgstr "Zmiany wykresu"
 msgid "Chart could not be created."
 msgstr "Nie można utworzyć wykresu."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Nie można zaktualizować wykresu."
 

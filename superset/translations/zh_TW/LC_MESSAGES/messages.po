@@ -3030,6 +3030,9 @@ msgstr "圖表變化"
 msgid "Chart could not be created."
 msgstr "您的圖表無法創建。"
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "您的圖表無法更新。"
 
