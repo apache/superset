@@ -22,33 +22,18 @@ from flask import request, send_file
 from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
-from superset.extensions import security_manager
-from superset.extensions.models import EXTENSION_ID_MAX_LENGTH
-from superset.extensions.settings import (
-    get_extension_settings,
-    update_extension_settings,
+from superset.commands.extension.settings.exceptions import (
+    ExtensionSettingsInvalidError,
 )
+from superset.commands.extension.settings.get import GetExtensionSettingsCommand
+from superset.commands.extension.settings.update import (
+    UpdateExtensionSettingsCommand,
+)
+from superset.extensions import security_manager
 from superset.extensions.utils import (
     build_extension_data,
     get_extensions,
 )
-
-
-def _is_valid_chatbot_id(value: Any) -> bool:
-    """active_chatbot_id must be null or a non-empty, length-bounded string."""
-    if value is None:
-        return True
-    return isinstance(value, str) and 0 < len(value) <= EXTENSION_ID_MAX_LENGTH
-
-
-def _are_valid_enabled_keys(enabled: Any) -> bool:
-    """The enabled map must be an object keyed by length-bounded extension ids."""
-    if not isinstance(enabled, dict):
-        return False
-    return all(
-        isinstance(key, str) and 0 < len(key) <= EXTENSION_ID_MAX_LENGTH
-        for key in enabled
-    )
 
 
 class ExtensionsRestApi(BaseApi):
@@ -202,7 +187,7 @@ class ExtensionsRestApi(BaseApi):
             200:
               description: Extension settings
         """
-        return self.response(200, result=get_extension_settings())
+        return self.response(200, result=GetExtensionSettingsCommand().run())
 
     @protect()
     @safe
@@ -228,6 +213,8 @@ class ExtensionsRestApi(BaseApi):
           responses:
             200:
               description: Updated settings
+            400:
+              $ref: '#/components/responses/400'
             403:
               $ref: '#/components/responses/403'
         """
@@ -236,22 +223,14 @@ class ExtensionsRestApi(BaseApi):
         body = request.get_json(silent=True)
         if not isinstance(body, dict):
             return self.response(400, message="Request body must be a JSON object.")
-        if "active_chatbot_id" in body and not _is_valid_chatbot_id(
-            body["active_chatbot_id"]
-        ):
-            return self.response(
-                400,
-                message="active_chatbot_id must be null or a non-empty string "
-                f"of at most {EXTENSION_ID_MAX_LENGTH} characters.",
-            )
-        if "enabled" in body and not _are_valid_enabled_keys(body["enabled"]):
-            return self.response(
-                400,
-                message="enabled keys must be non-empty strings of at most "
-                f"{EXTENSION_ID_MAX_LENGTH} characters.",
-            )
-        result = update_extension_settings(body)
-        return self.response(200, result=result)
+        # Pre-validate so malformed input returns a 400 rather than the 500 that
+        # the FAB @safe wrapper would produce for an uncaught command exception.
+        try:
+            command = UpdateExtensionSettingsCommand(body)
+            command.validate()
+        except ExtensionSettingsInvalidError as ex:
+            return self.response(400, message=str(ex.normalized_messages()))
+        return self.response(200, result=command.run())
 
     @protect()
     @safe
