@@ -229,8 +229,36 @@ def test_raises_when_no_auth_source(app) -> None:
         app.config.pop("MCP_DEV_USERNAME", None)
         g.pop("user", None)
         with patch("fastmcp.server.dependencies.get_access_token", return_value=None):
-            with pytest.raises(ValueError, match="No authenticated user found"):
+            with pytest.raises(ValueError, match="Authentication required"):
                 get_user_from_request()
+
+
+def test_no_auth_source_error_message_has_no_config_details(app) -> None:
+    """Client-facing auth error must be generic — no server config disclosed.
+
+    Diagnostics (MCP_AUTH_ENABLED, JWT key presence, MCP_DEV_USERNAME,
+    API key prefixes) must go to server-side logs, never the exception
+    message returned toward the client.
+    """
+    with app.app_context():
+        app.config.pop("MCP_DEV_USERNAME", None)
+        g.pop("user", None)
+        with patch("fastmcp.server.dependencies.get_access_token", return_value=None):
+            with pytest.raises(ValueError, match="Authentication required") as exc_info:
+                get_user_from_request()
+
+    message = str(exc_info.value)
+    assert message == "Authentication required. No valid credentials provided."
+    # No configuration diagnostics should leak into the client-facing message
+    for leak in (
+        "MCP_AUTH_ENABLED",
+        "MCP_DEV_USERNAME",
+        "JWT keys",
+        "API key",
+        "sst_",
+        "Bearer",
+    ):
+        assert leak not in message
 
 
 def test_dev_username_not_found_raises(app) -> None:
@@ -535,3 +563,43 @@ def test_setup_user_context_propagates_valueerror(app) -> None:
                 _setup_user_context()
             # g.user should be cleared after ValueError (no misleading audit)
             assert not hasattr(g, "user") or g.user is None
+
+
+def test_setup_user_context_rejects_disabled_user(app) -> None:
+    """A deactivated account must be denied even with a valid token.
+
+    The MCP auth path does not go through Flask-Login's is_active check, so
+    this guards that a disabled user (active=False) cannot authenticate.
+    """
+    from superset.mcp_service.auth import _setup_user_context
+
+    disabled_user = _make_mock_user("disabled_user")
+    disabled_user.is_active = False
+    disabled_user.active = False
+
+    with app.test_request_context():
+        with patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=disabled_user,
+        ):
+            with pytest.raises(ValueError, match="disabled"):
+                _setup_user_context()
+            assert not hasattr(g, "user") or g.user is None
+
+
+def test_setup_user_context_allows_active_user(app) -> None:
+    """An active account authenticates normally."""
+    from superset.mcp_service.auth import _setup_user_context
+
+    active_user = _make_mock_user("active_user")
+    active_user.is_active = True
+    active_user.active = True
+
+    with app.test_request_context():
+        with patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=active_user,
+        ):
+            result = _setup_user_context()
+            assert result is active_user
+            assert g.user is active_user

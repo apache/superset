@@ -102,6 +102,14 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
                         field_name="sql",
                     )
                 )
+        elif database:
+            try:
+                security_manager.raise_for_access(
+                    database=database,
+                    table=table,
+                )
+            except SupersetSecurityException as ex:
+                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
         try:
             owners = self.populate_owners(owner_ids)
             self._properties["owners"] = owners

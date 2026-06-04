@@ -354,6 +354,124 @@ def test_filter_values_query_context_filters() -> None:
     assert cache.applied_filters == ["name"]
 
 
+def test_get_filters_escaped_val_string_adhoc() -> None:
+    """
+    ``get_filters`` exposes an ``escaped_val`` companion for string values
+    when a dialect is configured, while leaving ``val`` raw.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": "O'Brien",
+                            "expressionType": "SIMPLE",
+                            "operator": "LIKE",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(dialect=dialect())
+        result = cache.get_filters("name")
+        assert result == [
+            {
+                "op": "LIKE",
+                "col": "name",
+                "val": "O'Brien",
+                "escaped_val": "O''Brien",
+            }
+        ]
+
+
+def test_get_filters_escaped_val_list_adhoc() -> None:
+    """
+    ``get_filters`` produces an ``escaped_val`` list with every string
+    member dialect-escaped; non-string members pass through untouched.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": ["O'Brien", "Smith"],
+                            "expressionType": "SIMPLE",
+                            "operator": "in",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(dialect=dialect())
+        result = cache.get_filters("name")
+        assert result == [
+            {
+                "op": "IN",
+                "col": "name",
+                "val": ["O'Brien", "Smith"],
+                "escaped_val": ["O''Brien", "Smith"],
+            }
+        ]
+
+
+def test_get_filters_escaped_val_query_context_filters() -> None:
+    """
+    The ``escaped_val`` companion is also populated when filters arrive via
+    the drill-to-detail ``query_context_filters`` path.
+    """
+    cache = ExtraCache(
+        dialect=dialect(),
+        query_context_filters=[
+            {"col": "name", "op": "LIKE", "val": "O'Brien"},
+        ],
+    )
+    assert cache.get_filters("name") == [
+        {
+            "op": "LIKE",
+            "col": "name",
+            "val": "O'Brien",
+            "escaped_val": "O''Brien",
+        }
+    ]
+
+
+def test_get_filters_no_escaped_val_without_dialect() -> None:
+    """
+    Without a dialect ``get_filters`` returns the original schema, with no
+    ``escaped_val`` key — preserving backwards compatibility for callers
+    that did not opt into a dialect-aware processor.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": "O'Brien",
+                            "expressionType": "SIMPLE",
+                            "operator": "LIKE",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache()
+        result = cache.get_filters("name")
+        assert result == [{"op": "LIKE", "col": "name", "val": "O'Brien"}]
+        assert "escaped_val" not in result[0]
+
+
 def test_url_param_query() -> None:
     """
     Test the ``url_param`` macro.
@@ -436,6 +554,25 @@ def test_url_param_unescaped_default_form_data() -> None:
     ):
         cache = ExtraCache(dialect=dialect())
         assert cache.url_param("bar", "O'Malley", escape_result=False) == "O'Malley"
+
+
+def test_url_param_escaped_request_args() -> None:
+    """
+    Values read from the request query string are escaped the same way as
+    values from ``form_data`` (both are interpolated into the rendered SQL).
+    """
+    with current_app.test_request_context(query_string={"foo": "O'Brien"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo") == "O''Brien"
+
+
+def test_url_param_unescaped_request_args() -> None:
+    """
+    ``escape_result=False`` still opts out of escaping for request-args values.
+    """
+    with current_app.test_request_context(query_string={"foo": "O'Brien"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo", escape_result=False) == "O'Brien"
 
 
 def test_safe_proxy_primitive() -> None:

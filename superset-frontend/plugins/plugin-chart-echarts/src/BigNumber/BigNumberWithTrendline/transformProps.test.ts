@@ -288,9 +288,7 @@ describe('BigNumberWithTrendline transformProps', () => {
       height: 300,
       queriesData: [
         {
-          data: [
-            { __timestamp: 1, value: 100 },
-          ] as unknown as BigNumberDatum[],
+          data: [{ __timestamp: 1, value: 100 }] as unknown as BigNumberDatum[],
           colnames: ['__timestamp', 'value'],
           coltypes: ['TEMPORAL', 'NUMERIC'],
         },
