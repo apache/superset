@@ -229,7 +229,7 @@ def test_raises_when_no_auth_source(app) -> None:
         app.config.pop("MCP_DEV_USERNAME", None)
         g.pop("user", None)
         with patch("fastmcp.server.dependencies.get_access_token", return_value=None):
-            with pytest.raises(ValueError, match="No authenticated user found"):
+            with pytest.raises(ValueError, match="Authentication required"):
                 get_user_from_request()
 
 
@@ -285,7 +285,7 @@ def test_mcp_auth_hook_clears_stale_g_user(app) -> None:
         # framework's autouse app_context fixture may implicitly provide
         # a request context in some CI environments.
         with (
-            patch("flask.has_request_context", return_value=False),
+            patch("superset.mcp_service.auth.has_request_context", return_value=False),
             patch(
                 "superset.mcp_service.auth.get_user_from_request",
                 side_effect=lambda: _assert_cleared_then_return(),
@@ -324,7 +324,7 @@ def test_mcp_auth_hook_clears_stale_g_user_async(app) -> None:
     with app.app_context():
         g.user = stale_user
         with (
-            patch("flask.has_request_context", return_value=False),
+            patch("superset.mcp_service.auth.has_request_context", return_value=False),
             patch(
                 "superset.mcp_service.auth.get_user_from_request",
                 side_effect=lambda: _assert_cleared_then_return(),
