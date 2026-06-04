@@ -20,7 +20,7 @@ import { AppSection } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
-import RangeFilterPlugin from './RangeFilterPlugin';
+import RangeFilterPlugin, { calculateStep } from './RangeFilterPlugin';
 import { RangeDisplayMode, type PluginFilterRangeProps } from './types';
 import { SingleValueType } from './SingleValueType';
 import transformProps from './transformProps';
@@ -443,4 +443,38 @@ describe('RangeFilterPlugin', () => {
       );
     });
   });
+});
+
+test('calculateStep returns ~100 steps for integer ranges', () => {
+  // 0..100 -> 1, 0..1000 -> 10
+  expect(calculateStep(0, 100)).toBe(1);
+  expect(calculateStep(0, 1000)).toBe(10);
+});
+
+test('calculateStep produces sub-unit steps for small decimal ranges', () => {
+  // 0..1 -> ~0.01, giving roughly 100 increments
+  expect(calculateStep(0, 1)).toBeCloseTo(0.01, 10);
+  // 0..0.1 -> ~0.001
+  expect(calculateStep(0, 0.1)).toBeCloseTo(0.001, 10);
+});
+
+test('calculateStep is numerically stable for floating-point ranges', () => {
+  // 0.05..0.07 computes to 0.020000000000000004 internally; should still
+  // yield a sensible step rather than over-counting decimal places.
+  const step = calculateStep(0.05, 0.07);
+  expect(step).toBeGreaterThan(0);
+  expect(step).toBeLessThanOrEqual(0.01);
+});
+
+test('calculateStep handles negative and offset decimal ranges', () => {
+  expect(calculateStep(-1, 1)).toBeCloseTo(0.02, 10);
+});
+
+test('calculateStep never returns 0 for tiny ranges', () => {
+  expect(calculateStep(0, 0.0000001)).toBeGreaterThan(0);
+});
+
+test('calculateStep falls back for non-positive ranges', () => {
+  expect(calculateStep(5, 5)).toBe(0.01);
+  expect(calculateStep(10, 5)).toBe(0.01);
 });

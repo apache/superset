@@ -143,6 +143,24 @@ const getLabel = (
   return '';
 };
 
+// Calculate appropriate step size for decimal values.
+// Uses a consistent approach for all ranges to avoid floating-point string parsing issues.
+export const calculateStep = (minValue: number, maxValue: number): number => {
+  const range = maxValue - minValue;
+  if (range <= 0) return 0.01;
+
+  // Calculate step to give approximately 100 steps across the range
+  const idealSteps = 100;
+  let step = range / idealSteps;
+
+  // Round step to a nice value (0.0001, 0.001, 0.01, 0.1, 1, 10, etc.)
+  const magnitude = Math.pow(10, Math.floor(Math.log10(step)));
+  step = Math.round(step / magnitude) * magnitude;
+
+  // Ensure we don't return 0 for very small ranges
+  return step || 0.0001;
+};
+
 const validateRange = (
   values: RangeValue,
   min: number,
@@ -235,28 +253,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
   // @ts-expect-error
   const { min, max }: { min: number; max: number } = row;
 
-  // Calculate appropriate step size for decimal values
-  // Uses a consistent approach for all ranges to avoid floating-point string parsing issues
-  const calculateStep = useCallback((minValue: number, maxValue: number) => {
-    const range = maxValue - minValue;
-    if (range <= 0) return 0.01;
-
-    // Calculate step to give approximately 100 steps across the range
-    const idealSteps = 100;
-    let step = range / idealSteps;
-
-    // Round step to a nice value (0.0001, 0.001, 0.01, 0.1, 1, 10, etc.)
-    const magnitude = Math.pow(10, Math.floor(Math.log10(step)));
-    step = Math.round(step / magnitude) * magnitude;
-
-    // Ensure we don't return 0 for very small ranges
-    return step || 0.0001;
-  }, []);
-
   const sliderStep = useMemo(
     () =>
       min !== undefined && max !== undefined ? calculateStep(min, max) : 0.01,
-    [min, max, calculateStep],
+    [min, max],
   );
   const { groupby, enableSingleValue, enableEmptyFilter, defaultValue } =
     formData;
