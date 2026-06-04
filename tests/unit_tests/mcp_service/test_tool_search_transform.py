@@ -869,7 +869,7 @@ def test_tool_search_permission_filter_hides_disallowed_tools():
     with app.app_context():
         g.user = SimpleNamespace(username="viewer")
         with patch(
-            "superset.security_manager", new_callable=MagicMock
+            "superset.mcp_service.auth.security_manager", new_callable=MagicMock
         ) as security_manager:
             security_manager.can_access.side_effect = [True, False]
 
@@ -970,7 +970,9 @@ def test_tool_search_permission_filter_still_applies_rbac_to_metadata_tools() ->
                 "superset.mcp_service.privacy.user_can_view_data_model_metadata",
                 return_value=True,
             ),
-            patch("superset.security_manager", new_callable=Mock) as security_manager,
+            patch(
+                "superset.mcp_service.auth.security_manager", new_callable=Mock
+            ) as security_manager,
         ):
             security_manager.can_access.return_value = False
             result = _filter_tools_by_current_user_permission([metadata, public])
@@ -997,7 +999,9 @@ def test_tool_search_permission_filter_resolves_user_from_request() -> None:
                 "superset.mcp_service.auth.get_user_from_request",
                 return_value=SimpleNamespace(username="viewer"),
             ),
-            patch("superset.security_manager", new_callable=Mock) as security_manager,
+            patch(
+                "superset.mcp_service.auth.security_manager", new_callable=Mock
+            ) as security_manager,
         ):
             security_manager.can_access.return_value = True
             result = _filter_tools_by_current_user_permission([protected])
@@ -1023,7 +1027,9 @@ def test_tool_search_permission_filter_keeps_get_schema_visible_without_metadata
                 "superset.mcp_service.privacy.user_can_view_data_model_metadata",
                 return_value=False,
             ),
-            patch("superset.security_manager", new_callable=Mock) as security_manager,
+            patch(
+                "superset.mcp_service.auth.security_manager", new_callable=Mock
+            ) as security_manager,
         ):
             security_manager.can_access.return_value = True
             result = _filter_tools_by_current_user_permission([schema_tool])
