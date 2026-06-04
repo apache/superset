@@ -14,7 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
+
 import pandas as pd
+from freezegun import freeze_time
+from pytz import timezone
 
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -125,12 +129,18 @@ def test_email_subject_with_datetime() -> None:
             "execution_id": "test-execution-id",
         },
     )
-    notification = EmailNotification(
-        recipient=ReportRecipients(type=ReportRecipientType.EMAIL), content=content
-    )
-    subject = notification._get_subject()
+    # Freeze the clock to a fixed, distinctive instant and construct the
+    # notification *under* the freeze. The subject date must reflect this
+    # frozen moment, which is only possible if the timestamp is stamped per
+    # instance at construction/send time. If the timestamp were a class
+    # attribute evaluated at import time (the regression this fixes), it would
+    # carry the real import-time date instead and this assertion would fail.
+    frozen_now = datetime(2021, 4, 22, 12, 0, 0, tzinfo=timezone("UTC"))
+    with freeze_time(frozen_now):
+        notification = EmailNotification(
+            recipient=ReportRecipients(type=ReportRecipientType.EMAIL),
+            content=content,
+        )
+        subject = notification._get_subject()
     assert datetime_pattern not in subject
-    # Compare against the notification's own stamped timestamp rather than a
-    # separately-sampled clock, so the assertion can't flake when the test runs
-    # across the UTC midnight boundary.
-    assert notification.now.strftime(datetime_pattern) in subject
+    assert frozen_now.strftime(datetime_pattern) in subject

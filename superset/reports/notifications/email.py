@@ -88,10 +88,11 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
         self, recipient: ReportRecipients, content: NotificationContent
     ) -> None:
         super().__init__(recipient, content)
-        # Stamp the notification's creation time once, at send time, so the date
-        # rendered into the subject (when DATE_FORMAT_IN_EMAIL_SUBJECT is enabled)
-        # reflects the actual send time rather than the moment this module was
-        # first imported by the worker process.
+        # Stamp each notification with its own timestamp at construction, which
+        # happens per recipient immediately before the email is dispatched. The
+        # date rendered into the subject (when DATE_FORMAT_IN_EMAIL_SUBJECT is
+        # enabled) therefore tracks the dispatch time. A module- or class-level
+        # value would instead freeze on the first import in a long-running worker.
         self.now = datetime.now(timezone("UTC"))
 
     @property
