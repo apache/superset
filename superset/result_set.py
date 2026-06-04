@@ -175,22 +175,20 @@ class SupersetResultSet:
 
         for column in column_names:
             raw = array[column].tolist()
-            attempts: list[list[Any]] = [raw]
             if db_engine_spec.requires_column_value_normalization:
-                attempts.append(db_engine_spec.normalize_column_values(raw))
-            for col_values in attempts:
-                try:
-                    pa_data.append(pa.array(col_values))
-                    break
-                except (
-                    pa.lib.ArrowInvalid,
-                    pa.lib.ArrowTypeError,
-                    pa.lib.ArrowNotImplementedError,
-                    ValueError,
-                    TypeError,
-                ):
-                    pass
+                col_values = db_engine_spec.normalize_column_values(raw)
             else:
+                col_values = raw
+            try:
+                pa_data.append(pa.array(col_values))
+            except (
+                pa.lib.ArrowInvalid,
+                pa.lib.ArrowTypeError,
+                pa.lib.ArrowNotImplementedError,
+                ValueError,
+                TypeError,  # this is super hackey,
+                # https://issues.apache.org/jira/browse/ARROW-7855
+            ):
                 # attempt serialization of values as strings
                 stringified_arr = stringify_values(array[column])
                 pa_data.append(pa.array(stringified_arr.tolist()))
