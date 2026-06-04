@@ -451,6 +451,42 @@ def test_adjust_engine_params_catalog_as_host() -> None:
     assert str(uri) == "bigquery://other-project/"
 
 
+def test_adjust_engine_params_schema_as_dataset() -> None:
+    """
+    Test that passing a schema sets it as the BigQuery default dataset.
+
+    BigQuery requires table names to be fully qualified (project.dataset.table)
+    unless a default dataset is set via the URL database component. When schema
+    is provided, the URL database should be updated so unqualified table names
+    resolve to schema.table_name.
+    """
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    url = make_url("bigquery://project")
+
+    # Without schema, URL is unchanged
+    uri = BigQueryEngineSpec.adjust_engine_params(url, {})[0]
+    assert str(uri) == "bigquery://project"
+
+    # With schema, database component is set to enable default dataset
+    uri = BigQueryEngineSpec.adjust_engine_params(
+        url,
+        {},
+        schema="my_dataset",
+    )[0]
+    assert uri.database == "my_dataset"
+
+    # catalog + schema: catalog goes to host, schema goes to database
+    uri = BigQueryEngineSpec.adjust_engine_params(
+        url,
+        {},
+        catalog="other-project",
+        schema="my_dataset",
+    )[0]
+    assert uri.host == "other-project"
+    assert uri.database == "my_dataset"
+
+
 def test_get_materialized_view_names() -> None:
     """
     Test get_materialized_view_names method.

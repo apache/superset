@@ -742,6 +742,10 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
     ) -> tuple[URL, dict[str, Any]]:
         if catalog:
             uri = uri.set(host=catalog, database="")
+        if schema:
+            # Setting database to schema makes it the BigQuery default dataset,
+            # so unqualified table names in SQL resolve to schema.table_name.
+            uri = uri.set(database=schema)
 
         return uri, connect_args
 
