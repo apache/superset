@@ -63,8 +63,36 @@ jest.mock(
 jest.mock(
   'src/dashboard/components/menu/WithPopoverMenu',
   () =>
-    ({ children }: { children: React.ReactNode }) => (
-      <div data-test="mock-with-popover-menu">{children}</div>
+    ({
+      children,
+      menuItems,
+      isFocused,
+      editMode,
+    }: {
+      children: React.ReactNode;
+      menuItems?: React.ReactNode[];
+      isFocused?: boolean;
+      editMode?: boolean;
+    }) => (
+      <div data-test="mock-with-popover-menu">
+        {children}
+        {editMode && isFocused && menuItems && menuItems.length > 0 && (
+          <div data-test="mock-popover-menu">
+            {menuItems.map((node: React.ReactNode, i: number) => (
+              <div key={i}>{node}</div>
+            ))}
+          </div>
+        )}
+      </div>
+    ),
+);
+jest.mock(
+  'src/dashboard/components/menu/BackgroundStyleDropdown',
+  () =>
+    ({ id }: { id: string }) => (
+      <div data-test="mock-background-style-dropdown" data-id={id}>
+        BackgroundStyleDropdown
+      </div>
     ),
 );
 jest.mock(
