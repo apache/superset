@@ -267,7 +267,7 @@ a > span > svg {
 .footer__social-links {
   background-color: #173036;
   position: absolute;
-  top: 45px;
+  top: 52px;
   left: 0;
   width: 100%;
   padding: 10px 0;
@@ -343,7 +343,7 @@ a > span > svg {
   }
 
   .footer__social-links {
-    top: 42px;
+    top: 44px;
     gap: 20px;
     padding: 8px 16px;
   }
