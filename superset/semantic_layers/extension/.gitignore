@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build outputs from the frontend bundler. The top-level dist/ is checked in
+# because this extension ships as an in-built bundle loaded via LOCAL_EXTENSIONS.
+frontend/dist/
+*.supx
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+*.egg
+.venv/
+venv/
+env/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local

@@ -2529,6 +2529,13 @@ except ImportError:
 LOCAL_EXTENSIONS: list[str] = []
 EXTENSIONS_PATH: str | None = None
 
+# When True, dataset queries are routed through the dataset semantic-layer
+# extension (``superset/semantic_layers/extension``) instead of the legacy
+# ``get_sqla_query`` path. The semantic view builds the SQL via sqlglot and
+# the mapper handles the QueryObject → SemanticQuery translation. Falls back
+# to the legacy path on any error.
+USE_DATASET_SEMANTIC_VIEW: bool = False
+
 # Default polling interval for tasks (seconds)
 TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10
 

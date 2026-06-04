@@ -19,10 +19,12 @@ from __future__ import annotations
 
 import builtins
 import logging
+import sys
 from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import timedelta
+from pathlib import Path
 from typing import Any, Callable, cast, Optional, Union
 
 import pandas as pd
@@ -71,6 +73,7 @@ from superset_core.common.models import Dataset as CoreDataset
 from superset import db, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.db_query_status import QueryStatus
+from superset.common.query_object import QueryObject
 from superset.connectors.sqla.utils import (
     get_columns_description,
     get_physical_table_metadata,
@@ -2138,6 +2141,67 @@ class SqlaTable(
     def text(self, clause: str) -> TextClause:
         """Returns a text clause using ExploreMixin implementation"""
         return ExploreMixin.text(self, clause)
+
+    @property
+    def implementation(self) -> Any:
+        """
+        Expose the dataset as a ``SemanticView`` instance.
+
+        The dataset semantic-layer extension (``superset/semantic_layers/
+        extension``) wraps a ``SqlaTable`` in a ``DatasetSemanticView``,
+        translating the dataset's columns and metrics into semantic dimensions
+        and metrics. This property exists so the same mapper-based execution
+        path used by stored semantic views (``mapper.get_results``) can drive
+        plain dataset queries when ``USE_DATASET_SEMANTIC_VIEW`` is enabled.
+        """
+        # The extension's backend lives outside the regular Python path; add it
+        # the first time we need it. The ``@semantic_layer`` decorator has
+        # already been monkey-patched by ``inject_semantic_layer_implementations``
+        # at app init, so importing here is safe at runtime.
+        extension_src = (
+            Path(__file__).resolve().parents[1]
+            / "semantic_layers"
+            / "extension"
+            / "backend"
+            / "src"
+        )
+        extension_src_str = str(extension_src)
+        if extension_src_str not in sys.path:
+            sys.path.insert(0, extension_src_str)
+
+        from preset_io.dataset_semantic_layer import DatasetSemanticView
+
+        return DatasetSemanticView(self)
+
+    def get_query_result(self, query_object: QueryObject) -> QueryResult:
+        """
+        Route dataset queries through the dataset semantic-layer extension
+        when ``USE_DATASET_SEMANTIC_VIEW`` is enabled, otherwise fall back to
+        the legacy ``ExploreMixin`` path.
+
+        The mapper in ``superset.semantic_layers.mapper`` handles the
+        ``QueryObject`` → ``SemanticQuery`` translation (filters, time range,
+        group limit, ordering, time offsets), so all we add here is the
+        feature-flag gate and a safety fallback for cases the semantic view
+        does not yet support.
+        """
+        if current_app.config.get("USE_DATASET_SEMANTIC_VIEW"):
+            from superset.semantic_layers.mapper import get_results
+
+            try:
+                # ``mapper.get_results`` reads ``query_object.datasource.implementation``;
+                # ensure we are the datasource on the in-memory QueryObject.
+                if query_object.datasource is None:
+                    query_object.datasource = self
+                return get_results(query_object)
+            except Exception:  # pylint: disable=broad-except
+                logger.warning(
+                    "Semantic-view execution failed for dataset %s; falling "
+                    "back to the legacy query path.",
+                    self.table_name,
+                    exc_info=True,
+                )
+        return ExploreMixin.get_query_result(self, query_object)
 
 
 sa.event.listen(SqlaTable, "before_update", SqlaTable.before_update)

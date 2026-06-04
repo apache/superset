@@ -1,0 +1,13 @@
+[project]
+name = "preset_io-dataset_semantic_layer"
+version = "0.1.0"
+license = "All Rights Reserved"
+dependencies = [
+    "sqlglot",
+]
+
+[tool.apache_superset_extensions.build]
+include = [
+    "src/preset_io/dataset_semantic_layer/**/*.py",
+]
+exclude = []
