@@ -85,11 +85,11 @@ github:
           - pre-commit (current)
           - pre-commit (previous)
           - test-mysql
-          - test-postgres (current)
+          - test-postgres-required
           - test-postgres-hive
           - test-postgres-presto
           - test-sqlite
-          - unit-tests (current)
+          - unit-tests-required
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false
