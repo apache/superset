@@ -19,11 +19,17 @@
 import { t } from '@apache-superset/core/translation';
 import {
   columnChoices,
+  ControlPanelState,
   ControlPanelConfig,
   formatSelectOptions,
   sharedControls,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
+import type { MapProvider } from '@superset-ui/core/utils/mapStyles';
+import {
+  getPointClusterMapRendererProps,
+  POINT_CLUSTER_MAPLIBRE_STYLE_CHOICES,
+} from './utils/mapControls';
 
 const columnsConfig = sharedControls.entity;
 
@@ -200,14 +206,15 @@ const config: ControlPanelConfig = {
               label: t('Map Renderer'),
               clearable: false,
               renderTrigger: true,
-              choices: [
-                ['maplibre', t('MapLibre (open-source)')],
-                ['mapbox', t('Mapbox (API key required)')],
-              ],
+              options: getPointClusterMapRendererProps().options,
               default: 'maplibre',
               description: t(
                 'MapLibre is open-source and requires no API key. Mapbox requires MAPBOX_API_KEY to be configured on the server.',
               ),
+              mapStateToProps: (state: ControlPanelState) =>
+                getPointClusterMapRendererProps(
+                  state.form_data?.map_renderer as MapProvider | undefined,
+                ),
             },
           },
         ],
@@ -220,24 +227,7 @@ const config: ControlPanelConfig = {
               clearable: false,
               renderTrigger: true,
               freeForm: true,
-              choices: [
-                [
-                  'https://tiles.openfreemap.org/styles/liberty',
-                  t('Liberty (OpenFreeMap)'),
-                ],
-                [
-                  'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
-                  t('Light (Carto)'),
-                ],
-                [
-                  'https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json',
-                  t('Dark (Carto)'),
-                ],
-                [
-                  'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
-                  t('Streets (Carto)'),
-                ],
-              ],
+              choices: POINT_CLUSTER_MAPLIBRE_STYLE_CHOICES,
               default: 'https://tiles.openfreemap.org/styles/liberty',
               description: t(
                 'Base layer map style. See MapLibre documentation: %s',
