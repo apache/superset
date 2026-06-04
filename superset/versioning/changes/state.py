@@ -24,7 +24,7 @@ Three concerns live here:
 2. **State capture** — :func:`_orm_to_post_state` serialises the
    in-memory ORM object; :func:`_read_pre_state` reads the corresponding
    pre-flush row directly from the DB inside ``session.no_autoflush``.
-3. **Diff dispatch** — :func:`_compute_records_for_entity` routes to the
+3. **Diff dispatch** — :func:`compute_records_for_entity` routes to the
    right :mod:`superset.versioning.diff` helper based on the model
    class name (string dispatch keeps this module free of hard imports
    on the three entity classes, which avoids import-order coupling at
@@ -155,7 +155,7 @@ def _read_pre_state(
     return {key: jsonable(value) for key, value in result.items()}
 
 
-def _compute_records_for_entity(session: Session, obj: Any) -> list[ChangeRecord]:
+def compute_records_for_entity(session: Session, obj: Any) -> list[ChangeRecord]:
     """Diff the pre-state (from DB) against the post-state (in memory).
 
     Dispatches to :func:`diff_slice` / :func:`diff_dashboard` /
@@ -195,7 +195,7 @@ def _compute_records_for_entity(session: Session, obj: Any) -> list[ChangeRecord
     return []
 
 
-def _bulk_insert_records(
+def bulk_insert_records(
     session: Session,
     transaction_id: int,
     buffered: dict[tuple[str, int], list[ChangeRecord]],
