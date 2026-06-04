@@ -15,6 +15,7 @@ jobs:
     # Skip the runner entirely unless the trigger label was the one just added.
     if: github.event.label.name == 'devin-remediate'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - name: Check out the remediation bot
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
@@ -27,6 +28,9 @@ jobs:
 
       - name: Set up uv
         uses: astral-sh/setup-uv@d4b2f3b6ecc6e67c4457f6d3e41ec42d3d0fcb86 # v5.4.2
+        with:
+          version: "0.11.19"
+          python-version: "3.12"
 
       - name: Install dependencies
         run: uv sync --frozen
