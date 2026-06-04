@@ -116,12 +116,11 @@ jobs:
           DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
           DEVIN_ORG_ID: ${{ secrets.DEVIN_ORG_ID }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+          TRIGGER_COMMENT_ID: ${{ github.event.comment.id || 0 }}
+          TRIGGERED_BY: ${{ github.event.comment.user.login || github.actor }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
-          ISSUE_NUMBER="${{ github.event.issue.number || inputs.issue_number }}"
-          TRIGGER_COMMENT_ID="${{ github.event.comment.id || 0 }}"
-          TRIGGERED_BY="${{ github.event.comment.user.login || github.actor }}"
-          RUN_URL="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-
           python -m scripts.devin_autofix.start_session \
             --issue-number "$ISSUE_NUMBER" \
             --trigger-comment-id "$TRIGGER_COMMENT_ID" \
