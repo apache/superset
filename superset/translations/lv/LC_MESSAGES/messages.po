@@ -4362,6 +4362,9 @@ msgstr "Informācijas paneļa krāsu konfigurāciju nevarēja atjaunināt."
 msgid "Dashboard could not be deleted."
 msgstr "Infopaneli nevarēja dzēst."
 
+msgid "Dashboard could not be restored."
+msgstr ""
+
 msgid "Dashboard could not be updated."
 msgstr "Infopaneli nevarēja atjaunināt."
 
