@@ -499,20 +499,20 @@ def check_entity_tombstones(
                 .execute(sa.select(*cols).where(live_tbl.c.id.in_(entity_ids)))
                 .all()
             )
-        live: dict[int, Any] = {}
-        for row in rows:
-            live[row[0]] = row[1] if has_deleted_at else None
+            live: dict[int, Any] = {}
+            for row in rows:
+                live[row[0]] = row[1] if has_deleted_at else None
 
-        for entity_id in entity_ids:
-            if entity_id not in live:
-                result[(api_kind, entity_id)] = {
-                    "deleted": True,
-                    "deletion_state": None,
-                }
-            else:
-                deleted_at = live[entity_id]
-                result[(api_kind, entity_id)] = {
-                    "deleted": False,
-                    "deletion_state": "soft_deleted" if deleted_at else None,
-                }
+            for entity_id in entity_ids:
+                if entity_id not in live:
+                    result[(api_kind, entity_id)] = {
+                        "deleted": True,
+                        "deletion_state": None,
+                    }
+                else:
+                    deleted_at = live[entity_id]
+                    result[(api_kind, entity_id)] = {
+                        "deleted": False,
+                        "deletion_state": "soft_deleted" if deleted_at else None,
+                    }
     return result

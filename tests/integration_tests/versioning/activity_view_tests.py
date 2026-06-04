@@ -382,6 +382,51 @@ class TestDashboardActivityView(SupersetTestCase):
         finally:
             db.session.rollback()
 
+    def test_check_entity_tombstones_handles_multiple_kinds(self) -> None:
+        """Regression for the v4 indent slip in ``check_entity_tombstones``:
+        when called with ``distinct_entities`` spanning multiple kinds,
+        every kind must get its tombstone-state result, not just the
+        one iterated last.
+
+        Pre-fix, the per-entity result-population block sat outside the
+        ``for api_kind in by_kind.items():`` loop, so all but the
+        last-iterated kind silently fell through to the call-site
+        default ``{"deleted": True}`` in ``render.apply_record_decoration``
+        — live entities were rendered as tombstoned in the API response.
+        The previous tombstone test exercised only one kind, so dict
+        iteration order made the bug invisible.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.versioning.activity.queries import check_entity_tombstones
+
+        _persist_fixture_state()
+        chart = (
+            db.session.query(Slice).filter(Slice.slice_name == "Girls").first()
+        )
+        dataset = _get_birth_names_dataset()
+        assert chart is not None
+        assert dataset is not None
+
+        distinct = {("Slice", chart.id), ("SqlaTable", dataset.id)}
+        result = check_entity_tombstones(distinct)
+
+        assert ("Slice", chart.id) in result, (
+            "Multi-kind call must populate every kind; got keys: "
+            f"{sorted(result.keys())}"
+        )
+        assert ("SqlaTable", dataset.id) in result
+        assert result[("Slice", chart.id)] == {
+            "deleted": False,
+            "deletion_state": None,
+        }, f"Live chart should report deleted=False; got {result[('Slice', chart.id)]}"
+        assert result[("SqlaTable", dataset.id)] == {
+            "deleted": False,
+            "deletion_state": None,
+        }, (
+            f"Live dataset should report deleted=False; "
+            f"got {result[('SqlaTable', dataset.id)]}"
+        )
+
     def test_activity_excludes_records_after_retention_prune(self) -> None:
         """T051 / AV-010: retention bounds the activity feed. After
         ``_prune_old_versions_impl`` drops shadow / change-record rows
