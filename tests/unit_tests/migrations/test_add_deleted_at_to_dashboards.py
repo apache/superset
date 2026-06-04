@@ -45,6 +45,7 @@ from alembic.operations import Operations
 from sqlalchemy import (
     Column,
     create_engine,
+    Index,
     insert,
     inspect,
     Integer,
@@ -52,7 +53,6 @@ from sqlalchemy import (
     select,
     String,
     Table,
-    UniqueConstraint,
 )
 from sqlalchemy.engine import Engine
 
@@ -78,14 +78,18 @@ def engine() -> Engine:
     """
     engine = create_engine("sqlite:///:memory:")
     md = MetaData()
-    Table(
+    table = Table(
         TABLE_NAME,
         md,
         Column("id", Integer, primary_key=True),
         Column("dashboard_title", String(500)),
         Column("slug", String(255)),
-        UniqueConstraint("slug", name=LEGACY_SLUG_INDEX_NAME),
     )
+    # Production seeds the legacy slug uniqueness as a named UNIQUE INDEX,
+    # not a column-level UNIQUE constraint. Mirror that here so ``inspect()
+    # .get_indexes()`` reports it — column-level UNIQUE on SQLite is not
+    # surfaced by the indexes inspector.
+    Index(LEGACY_SLUG_INDEX_NAME, table.c.slug, unique=True)
     md.create_all(engine)
     return engine
 
