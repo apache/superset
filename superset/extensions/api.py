@@ -58,6 +58,10 @@ def _validate_segment(value: str) -> bool:
 class ExtensionsRestApi(BaseApi):
     allow_browser_login = True
     resource_name = "extensions"
+    # FAB's BaseApi defaults csrf_exempt to True; these endpoints use
+    # cookie/session auth (allow_browser_login) and include state-changing
+    # routes (settings PUT, upload POST, delete), so CSRF protection must apply.
+    csrf_exempt = False
     class_permission_name = "Extensions"
     base_permissions = [
         "can_get_list",
