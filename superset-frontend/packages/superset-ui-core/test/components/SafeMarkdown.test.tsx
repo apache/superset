@@ -64,6 +64,13 @@ describe('transformLinkUri', () => {
     `Java${'Script'}:alert(1)`,
     `  ${js}:alert(document.cookie)`,
     `java\t${'script'}:alert(1)`,
+    // Leading C0 control characters are stripped by the WHATWG URL parser
+    // before the scheme is resolved, so they must not bypass the blocklist.
+    `\x01${js}:alert(1)`,
+    `\x00${js}:alert(1)`,
+    `\x1F${js}:alert(1)`,
+    // C0 control characters inside the scheme are ignored by browsers too.
+    `java\x01${'script'}:alert(1)`,
     `${vbs}:msgbox(1)`,
     'data:text/html,<script>alert(1)</script>',
   ])('blocks the script-executing protocol in %p', uri => {

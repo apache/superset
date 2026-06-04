@@ -43,7 +43,13 @@ const DANGEROUS_LINK_PROTOCOLS = ['javascript', 'vbscript', 'data'];
  * untouched. Applied regardless of the EscapeMarkdownHtml feature flag.
  */
 export function transformLinkUri(uri: string): string {
-  const url = (uri || '').trim();
+  // Per the WHATWG URL parser, browsers strip leading and trailing C0 control
+  // characters (\x00-\x1f) and space before resolving the scheme, so e.g.
+  // "\x01javascript:alert(1)" executes on click. Strip them here too,
+  // otherwise the blocklist check below could be bypassed with a leading
+  // control character. (This also subsumes the previous .trim().)
+  // eslint-disable-next-line no-control-regex
+  const url = (uri || '').replace(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/g, '');
   const first = url.charAt(0);
   // Anchors and absolute/relative paths have no protocol.
   if (first === '#' || first === '/') {
@@ -62,9 +68,11 @@ export function transformLinkUri(uri: string): string {
   if (hashIndex !== -1 && colon > hashIndex) {
     return url;
   }
-  // Whitespace inside the scheme (e.g. "java\tscript:") is ignored by browsers,
-  // so strip it before comparing against the blocklist.
-  const scheme = url.slice(0, colon).replace(/\s/g, '').toLowerCase();
+  // Whitespace and C0 control characters inside the scheme (e.g.
+  // "java\tscript:" or "java\x01script:") are ignored by browsers, so strip
+  // them before comparing against the blocklist.
+  // eslint-disable-next-line no-control-regex
+  const scheme = url.slice(0, colon).replace(/[\u0000-\u0020]/g, '').toLowerCase();
   return DANGEROUS_LINK_PROTOCOLS.includes(scheme) ? '' : url;
 }
 
