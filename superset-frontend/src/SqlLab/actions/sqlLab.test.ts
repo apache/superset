@@ -105,10 +105,7 @@ describe('async actions', () => {
     fetchMock.removeRoute(fetchQueryEndpoint);
     fetchMock.get(
       fetchQueryEndpoint,
-      JSON.stringify({
-        data: mockBigNumber,
-        query: { sqlEditorId: 'dfsadfs' },
-      }),
+      `{ "data": ${mockBigNumber}, "query": { "sqlEditorId": "dfsadfs" } }`,
       { name: fetchQueryEndpoint },
     );
 
