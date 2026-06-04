@@ -108,6 +108,7 @@ def test_verify_host_key_mismatch_raises(
     with pytest.raises(SSHTunnelHostKeyVerificationError):
         manager._verify_host_key(tunnel)
 
+    mock_create_connection.assert_called_once()
     transport.close.assert_called_once()
 
 
