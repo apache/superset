@@ -91,6 +91,17 @@ def test_is_gamma_pvm_excludes_export_image(app_context: None) -> None:
     assert sm._is_gamma_pvm(pvm) is False
 
 
+def test_api_key_view_menu_is_admin_only() -> None:
+    """Regression test: 'ApiKey' must be in ADMIN_ONLY_VIEW_MENUS.
+
+    FAB registers an ApiKeyApi blueprint when FAB_API_KEY_ENABLED=True.
+    Without this guard any Gamma user could reach the API key management
+    endpoints.  A rename or removal of the entry would silently re-open
+    that access hole.
+    """
+    assert "ApiKey" in SupersetSecurityManager.ADMIN_ONLY_VIEW_MENUS
+
+
 def test_is_gamma_pvm_allows_copy_clipboard(app_context: None) -> None:
     """Verify _is_gamma_pvm returns True for can_copy_clipboard."""
     from superset.extensions import appbuilder
