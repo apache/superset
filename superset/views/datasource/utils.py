@@ -14,8 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
-from typing import Any, Iterable, Optional
+from typing import Any, Iterable, Optional, TYPE_CHECKING
 
 from flask import current_app as app
 
@@ -27,6 +29,9 @@ from superset.constants import CacheRegion
 from superset.daos.datasource import DatasourceDAO
 from superset.utils.core import QueryStatus
 from superset.views.datasource.schemas import SamplesPayloadSchema
+
+if TYPE_CHECKING:
+    from superset.daos.datasource import Datasource
 
 logger = logging.getLogger(__name__)
 
@@ -94,13 +99,17 @@ def get_samples(  # pylint: disable=too-many-arguments
     force: bool = False,
     page: int = 1,
     per_page: int = 1000,
-    payload: Optional[SamplesPayloadSchema] = None,
+    payload: SamplesPayloadSchema | None = None,
+    datasource: Datasource | None = None,
+    dashboard_id: int | None = None,
 ) -> dict[str, Any]:
-    datasource = DatasourceDAO.get_datasource(
-        datasource_type=datasource_type,
-        database_id_or_uuid=str(datasource_id),
-    )
+    if datasource is None:
+        datasource = DatasourceDAO.get_datasource(
+            datasource_type=datasource_type,
+            database_id_or_uuid=str(datasource_id),
+        )
 
+    form_data = {"dashboardId": dashboard_id} if dashboard_id else None
     limit_clause = get_limit_clause(page, per_page)
 
     # todo(yongjie): Constructing count(*) and samples in the same query_context,
@@ -112,6 +121,7 @@ def get_samples(  # pylint: disable=too-many-arguments
                 "id": datasource.id,
             },
             queries=[limit_clause],
+            form_data=form_data,
             result_type=ChartDataResultType.SAMPLES,
             force=force,
         )
@@ -128,6 +138,7 @@ def get_samples(  # pylint: disable=too-many-arguments
                 "id": datasource.id,
             },
             queries=[{**payload, **limit_clause}],
+            form_data=form_data,
             result_type=ChartDataResultType.DRILL_DETAIL,
             force=force,
         )
@@ -148,6 +159,7 @@ def get_samples(  # pylint: disable=too-many-arguments
             "id": datasource.id,
         },
         queries=[{**payload, **count_star_metric} if payload else count_star_metric],
+        form_data=form_data,
         result_type=ChartDataResultType.FULL,
         force=force,
     )

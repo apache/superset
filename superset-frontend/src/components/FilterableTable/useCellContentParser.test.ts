@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { renderHook } from '@testing-library/react-hooks';
+import { renderHook } from '@testing-library/react';
 import { useCellContentParser } from './useCellContentParser';
 
 test('should return NULL for null cell data', () => {

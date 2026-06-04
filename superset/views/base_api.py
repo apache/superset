@@ -18,11 +18,18 @@ from __future__ import annotations
 
 import functools
 import logging
-from typing import Any, Callable, cast
+from typing import Any, Callable, cast, Optional
 
 from flask import request, Response
 from flask_appbuilder import Model, ModelRestApi
-from flask_appbuilder.api import BaseApi, expose, protect, rison, safe
+from flask_appbuilder.api import (
+    BaseApi,
+    expose,
+    protect,
+    rison as parse_rison,
+    safe,
+)
+from flask_appbuilder.const import API_FILTERS_RIS_KEY
 from flask_appbuilder.models.filters import BaseFilter, Filters
 from flask_appbuilder.models.sqla.filters import FilterStartsWith
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -371,6 +378,35 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
             self.add_columns = [model_id]
         super()._init_properties()
 
+    def _handle_filters_args(self, rison_args: dict[str, Any]) -> Filters:
+        """
+        Build a request-scoped ``Filters`` instance from Rison-encoded args.
+
+        Overrides :meth:`flask_appbuilder.api.ModelRestApi._handle_filters_args`,
+        which mutates ``self._filters`` (a single instance shared across
+        requests on the same API view). Under concurrent traffic that shared
+        state can leak filters from one request into another — e.g. two
+        parallel ``GET /api/v1/<resource>/`` calls filtering by different
+        values can return mixed results.
+
+        Returning a fresh ``Filters`` per call keeps each request isolated.
+        Applies to every subclass of ``BaseSupersetModelRestApi``
+        (datasets, charts, dashboards, saved queries, queries, databases,
+        etc.) — see issue #33828 for the original report on the dataset
+        endpoint.
+
+        :param rison_args: Arguments parsed from the API request's
+            Rison-encoded ``q`` parameter.
+        :returns: A request-scoped ``Filters`` instance joined with the
+            API's base filters.
+        """
+        filters = self.datamodel.get_filters(
+            search_columns=self.search_columns,
+            search_filters=self.search_filters,
+        )
+        filters.rest_add_filters(rison_args.get(API_FILTERS_RIS_KEY, []))
+        return filters.get_joined_filters(self._base_filters)
+
     def _get_related_filter(
         self, datamodel: SQLAInterface, column_name: str, value: str
     ) -> Filters:
@@ -530,11 +566,19 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
         self.send_stats_metrics(response, self.delete.__name__, duration)
         return response
 
+    def ensure_owners_write_access(self, column_name: str) -> Optional[Response]:
+        """Restrict the owners related field to users with write access."""
+        if column_name == "owners" and not security_manager.can_access(
+            "can_write", self.class_permission_name
+        ):
+            return self.response_403()
+        return None
+
     @expose("/related/<column_name>", methods=("GET",))
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_related_schema)
+    @parse_rison(get_related_schema)
     @handle_api_exception
     def related(self, column_name: str, **kwargs: Any) -> FlaskResponse:
         """Get related fields data.
@@ -564,11 +608,15 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             500:
               $ref: '#/components/responses/500'
         """
+        if response := self.ensure_owners_write_access(column_name):
+            return response
         if column_name not in self.allowed_rel_fields:
             self.incr_stats("error", self.related.__name__)
             return self.response_404()
@@ -613,7 +661,7 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_related_schema)
+    @parse_rison(get_related_schema)
     @handle_api_exception
     def distinct(self, column_name: str, **kwargs: Any) -> FlaskResponse:
         """Get distinct values from field data.

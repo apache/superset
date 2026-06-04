@@ -34,18 +34,32 @@ export const usePermissions = () => {
   const canCsvLegacy = useSelector((state: RootState) =>
     findPermission('can_csv', 'Superset', state.user?.roles),
   );
-  const canExportData = useSelector((state: RootState) =>
+  const canExportCsvSqlLab = useSelector((state: RootState) =>
+    findPermission('can_export_csv', 'SQLLab', state.user?.roles),
+  );
+  const canExportDataGranular = useSelector((state: RootState) =>
     findPermission('can_export_data', 'Superset', state.user?.roles),
   );
-  const canExportImage = useSelector((state: RootState) =>
+  const canExportImageGranular = useSelector((state: RootState) =>
     findPermission('can_export_image', 'Superset', state.user?.roles),
   );
-  const canCopyClipboard = useSelector((state: RootState) =>
+  const canCopyClipboardGranular = useSelector((state: RootState) =>
     findPermission('can_copy_clipboard', 'Superset', state.user?.roles),
   );
-  const canDownload = isFeatureEnabled(FeatureFlag.GranularExportControls)
-    ? canExportData
+  const granularExport = isFeatureEnabled(FeatureFlag.GranularExportControls);
+  const canExportData = granularExport ? canExportDataGranular : canCsvLegacy;
+  const canExportImage = granularExport ? canExportImageGranular : canCsvLegacy;
+  const canCopyClipboard = granularExport
+    ? canCopyClipboardGranular
     : canCsvLegacy;
+  const canDownload = canExportData;
+  // SQL Lab uses a separate legacy permission (can_export_csv on SQLLab)
+  const canExportDataSqlLab = granularExport
+    ? canExportDataGranular
+    : canExportCsvSqlLab;
+  const canCopyClipboardSqlLab = granularExport
+    ? canCopyClipboardGranular
+    : canExportCsvSqlLab;
   const canDrill = useSelector((state: RootState) =>
     findPermission('can_drill', 'Dashboard', state.user?.roles),
   );
@@ -69,8 +83,10 @@ export const usePermissions = () => {
     canDatasourceSamples,
     canDownload,
     canExportData,
+    canExportDataSqlLab,
     canExportImage,
     canCopyClipboard,
+    canCopyClipboardSqlLab,
     canDrill,
     canDrillBy,
     canDrillToDetail,
