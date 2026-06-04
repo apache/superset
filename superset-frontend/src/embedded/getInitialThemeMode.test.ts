@@ -19,45 +19,43 @@
 import { ThemeMode } from '@apache-superset/core/theme';
 import { getInitialThemeMode } from './getInitialThemeMode';
 
-describe('getInitialThemeMode', () => {
-  const originalLocation = window.location;
+let locationSpy: jest.SpyInstance;
 
-  afterEach(() => {
-    Object.defineProperty(window, 'location', {
-      value: originalLocation,
-      writable: true,
-    });
-  });
+afterEach(() => {
+  locationSpy.mockRestore();
+});
 
-  function setSearch(search: string) {
-    Object.defineProperty(window, 'location', {
-      value: { ...window.location, search },
-      writable: true,
-    });
-  }
+test('returns ThemeMode.DARK when ?theme=dark', () => {
+  locationSpy = jest
+    .spyOn(window, 'location', 'get')
+    .mockReturnValue({ ...window.location, search: '?theme=dark' } as Location);
+  expect(getInitialThemeMode()).toBe(ThemeMode.DARK);
+});
 
-  test('returns ThemeMode.DARK when ?theme=dark', () => {
-    setSearch('?theme=dark');
-    expect(getInitialThemeMode()).toBe(ThemeMode.DARK);
-  });
+test('returns ThemeMode.SYSTEM when ?theme=system', () => {
+  locationSpy = jest
+    .spyOn(window, 'location', 'get')
+    .mockReturnValue({ ...window.location, search: '?theme=system' } as Location);
+  expect(getInitialThemeMode()).toBe(ThemeMode.SYSTEM);
+});
 
-  test('returns ThemeMode.SYSTEM when ?theme=system', () => {
-    setSearch('?theme=system');
-    expect(getInitialThemeMode()).toBe(ThemeMode.SYSTEM);
-  });
+test('returns ThemeMode.DEFAULT when ?theme=light', () => {
+  locationSpy = jest
+    .spyOn(window, 'location', 'get')
+    .mockReturnValue({ ...window.location, search: '?theme=light' } as Location);
+  expect(getInitialThemeMode()).toBe(ThemeMode.DEFAULT);
+});
 
-  test('returns ThemeMode.DEFAULT when ?theme=light', () => {
-    setSearch('?theme=light');
-    expect(getInitialThemeMode()).toBe(ThemeMode.DEFAULT);
-  });
+test('returns ThemeMode.DEFAULT when no theme param', () => {
+  locationSpy = jest
+    .spyOn(window, 'location', 'get')
+    .mockReturnValue({ ...window.location, search: '' } as Location);
+  expect(getInitialThemeMode()).toBe(ThemeMode.DEFAULT);
+});
 
-  test('returns ThemeMode.DEFAULT when no theme param', () => {
-    setSearch('');
-    expect(getInitialThemeMode()).toBe(ThemeMode.DEFAULT);
-  });
-
-  test('returns ThemeMode.DEFAULT for an unrecognised value', () => {
-    setSearch('?theme=invalid');
-    expect(getInitialThemeMode()).toBe(ThemeMode.DEFAULT);
-  });
+test('returns ThemeMode.DEFAULT for an unrecognised value', () => {
+  locationSpy = jest
+    .spyOn(window, 'location', 'get')
+    .mockReturnValue({ ...window.location, search: '?theme=invalid' } as Location);
+  expect(getInitialThemeMode()).toBe(ThemeMode.DEFAULT);
 });
