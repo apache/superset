@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-04 15:45+0200\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -28,7 +28,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1246,6 +1246,9 @@ msgstr "Додати нову кольорову гамму"
 msgid "Add new formatter"
 msgstr "Додати нову умову"
 
+msgid "Add numbered column"
+msgstr ""
+
 msgid "Add or edit display controls"
 msgstr "Додати або редагувати контроль вигляду"
 
@@ -1787,7 +1790,7 @@ msgstr "Не вдалось одержати інформацію про схе�
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Не вдалось одержати доступні теми"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Не вдалось одержати інформацію про схему: %s"
 
@@ -1855,7 +1858,7 @@ msgstr "Не вдалося розібрати ключ."
 msgid "An error occurred while pruning logs "
 msgstr "Не вдалося очистити журнали "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Не вдалося відтворити візуалізацію: %s"
 
@@ -2403,7 +2406,7 @@ msgstr "Основний ступінь"
 msgid "Base height"
 msgstr "Основна висота"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Стиль карти основного шару. Переглянути документацію Mapbox: %s"
 
@@ -4142,6 +4145,12 @@ msgstr "Нетиповий запит"
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Нетипові показники вимкнено для цього набору даних"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+msgid "Custom SQL fields cannot contain set operations."
+msgstr ""
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Нетипові поля запиту не можуть містити підзапити."
@@ -9110,7 +9119,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "Немає стовпців у таблиці"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Ще немає %s"
 
@@ -9196,6 +9205,9 @@ msgstr "Не визначено"
 
 msgid "Not equal to (≠)"
 msgstr "Не дорівнює (≠)"
+
+msgid "Not found"
+msgstr ""
 
 msgid "Not in"
 msgstr "Не в"
@@ -10226,6 +10238,12 @@ msgstr "Ідентифікатор проєкту"
 msgid "Proportional"
 msgstr "Пропорційний"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Оприлюднений"
 
@@ -10975,6 +10993,12 @@ msgstr "Запити"
 
 msgid "SQL Lab"
 msgstr "Майстерня запитів"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 msgid "SQL Lab queries"
 msgstr "Збережені запити"
@@ -15145,6 +15169,9 @@ msgstr "Введіть значення"
 msgid "Type is required"
 msgstr "Тип обовʼязковий"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr "Тип діаграми, яку показувати у нитці"
 
@@ -15306,6 +15333,9 @@ msgstr "Скасувати дію"
 
 msgid "Undo?"
 msgstr "Скасувати?"
+
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
 
 msgid "Unexpected error"
 msgstr "Неочікувана помилка"
@@ -16252,6 +16282,9 @@ msgstr "Чи показувати найменше чи найбільше зн�
 
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Чи показувати найменше чи найбільше значення на осі Y"
+
+msgid "Whether to display the numbered column"
+msgstr ""
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Чи показувати числові значення у комірках"
@@ -17828,25 +17861,8 @@ msgstr "your-project-1234-a1"
 msgid "zoom area"
 msgstr "ділянка масштабування"
 
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
-
 msgid "© Layer attribution"
 msgstr "© Атрибут шару"
+
+msgid "№"
+msgstr ""
