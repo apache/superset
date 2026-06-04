@@ -43,6 +43,7 @@ from typing import Any
 from uuid import UUID
 
 import sqlalchemy as sa
+from flask_appbuilder import Model
 from sqlalchemy.orm import Session
 
 from superset.versioning.changes.table import version_changes_table
@@ -65,7 +66,7 @@ logger = logging.getLogger(__name__)
 _SCALAR_FIELDS_CACHE: dict[type, frozenset[str]] = {}
 
 
-def _cached_scalar_fields(model_cls: type) -> frozenset[str]:
+def _cached_scalar_fields(model_cls: type[Model]) -> frozenset[str]:
     """Cached wrapper around :func:`scalar_fields_for`."""
     if model_cls not in _SCALAR_FIELDS_CACHE:
         # ``Slice.params`` is walked by ``diff_slice_params`` for kind
@@ -133,7 +134,7 @@ def _orm_to_post_state(obj: Any) -> dict[str, Any]:
 
 
 def _read_pre_state(
-    session: Session, model_cls: type, entity_id: int
+    session: Session, model_cls: type[Model], entity_id: int
 ) -> dict[str, Any] | None:
     """Read the entity's pre-flush row directly from the DB and convert
     non-JSON-safe types to strings so both sides of the diff compare on

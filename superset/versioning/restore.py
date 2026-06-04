@@ -30,6 +30,7 @@ from datetime import datetime
 from typing import Any
 from uuid import UUID
 
+from flask_appbuilder import Model
 from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
@@ -54,7 +55,7 @@ _RESTORE_RELATIONS: dict[str, list[str]] = {
 
 
 def restore_version(
-    model_cls: type,
+    model_cls: type[Model],
     entity_uuid: UUID,
     version_num: int,
 ) -> Any | None:

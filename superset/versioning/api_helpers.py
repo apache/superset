@@ -40,6 +40,7 @@ from typing import Any
 from uuid import UUID
 
 from flask import Response
+from flask_appbuilder import Model
 
 from superset.daos.version import VersionDAO
 from superset.exceptions import SupersetSecurityException
@@ -72,7 +73,7 @@ class RestoreEndpointSpec:
 
 def _resolve_entity(
     api: Any,
-    model_cls: type,
+    model_cls: type[Model],
     uuid_str: str,
     access_kwarg: str,
 ) -> tuple[Any, UUID] | Response:
@@ -104,7 +105,7 @@ def _resolve_entity(
 
 def list_versions_endpoint(
     api: Any,
-    model_cls: type,
+    model_cls: type[Model],
     uuid_str: str,
     access_kwarg: str,
 ) -> Response:
@@ -127,7 +128,7 @@ def list_versions_endpoint(
 
 def get_version_endpoint(
     api: Any,
-    model_cls: type,
+    model_cls: type[Model],
     uuid_str: str,
     version_uuid_str: str,
     access_kwarg: str,
@@ -158,7 +159,7 @@ def get_version_endpoint(
 
 def restore_version_endpoint(
     api: Any,
-    model_cls: type,
+    model_cls: type[Model],
     uuid_str: str,
     version_uuid_str: str,
     spec: RestoreEndpointSpec,
