@@ -1,0 +1,44 @@
+name: Devin issue remediation
+
+on:
+  issues:
+    types: [labeled]
+
+jobs:
+  remediate:
+    # Skip the runner entirely unless the trigger label was the one just added.
+    if: github.event.label.name == 'devin-remediate'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the remediation bot
+        uses: actions/checkout@v4
+        with:
+          # Omitting `ref` checks out the bot repo's default branch.
+          repository: DaiIshida4869/devin-issue-remediation-bot
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Remediate the labeled issue
+        env:
+          DEVIN_API_KEY: ${{ secrets.DEVIN_API_KEY }}
+          DEVIN_ORG_ID: ${{ secrets.DEVIN_ORG_ID }}
+        run: uv run python main.py remediate --event "$GITHUB_EVENT_PATH" --require-label
+
+      - name: Publish the report to the run summary
+        if: always()
+        run: |
+          if [ -f data/report.md ]; then
+            cat data/report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload observability artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: devin-remediation-data
+          path: data/
+          if-no-files-found: ignore
