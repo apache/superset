@@ -37,6 +37,7 @@ import superset.views.utils
 from superset import dataframe, db, security_manager, sql_lab
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
+from superset.commands.dashboard.exceptions import DashboardAccessDeniedError
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.models import SqlaTable
 from superset.db_engine_specs.base import BaseEngineSpec
@@ -936,6 +937,36 @@ class TestCore(SupersetTestCase):
         # Round-trips back to the original value when decoded.
         parsed = parse_qs(urlsplit(location).query)
         assert parsed["native_filters"] == [native_filters_value]
+
+    @mock.patch(
+        "superset.commands.dashboard.permalink.get.GetDashboardPermalinkCommand.run"
+    )
+    def test_dashboard_permalink_redirects_anonymous_access_denied(
+        self,
+        get_dashboard_permalink_mock,
+    ):
+        get_dashboard_permalink_mock.side_effect = DashboardAccessDeniedError()
+
+        resp = self.client.get("/superset/dashboard/p/123/")
+
+        expected_url = "/login/?next=%2Fsuperset%2Fdashboard%2Fp%2F123%2F"
+
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == expected_url
+
+    @mock.patch(
+        "superset.commands.dashboard.permalink.get.GetDashboardPermalinkCommand.run"
+    )
+    def test_dashboard_permalink_returns_404_for_missing_state(
+        self,
+        get_dashboard_permalink_mock,
+    ):
+        get_dashboard_permalink_mock.return_value = None
+
+        resp = self.client.get("/superset/dashboard/p/123/")
+
+        assert resp.status_code == 404
+        assert "Location" not in resp.headers
 
 
 class TestLocalePatch(SupersetTestCase):
