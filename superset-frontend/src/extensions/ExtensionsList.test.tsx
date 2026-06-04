@@ -17,7 +17,13 @@
  * under the License.
  */
 import userEvent from '@testing-library/user-event';
-import { fireEvent, render, screen, waitFor, within } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
 import ExtensionsList from './ExtensionsList';
 
@@ -36,7 +42,9 @@ jest.mock('src/components', () => ({
         {(data ?? []).map((row: any) =>
           columns.map((col: any) => (
             <td key={`${row.id}-${col.id}`}>
-              {col.Cell ? col.Cell({ row: { original: row } }) : row[col.accessor]}
+              {col.Cell
+                ? col.Cell({ row: { original: row } })
+                : row[col.accessor]}
             </td>
           )),
         )}
@@ -195,7 +203,9 @@ test('clicking delete opens confirmation dialog', async () => {
   await userEvent.click(screen.getByTestId('delete-extension'));
 
   await waitFor(() => {
-    expect(screen.getByText(/are you sure you want to delete/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/are you sure you want to delete/i),
+    ).toBeInTheDocument();
   });
 });
 
@@ -263,7 +273,9 @@ test('pressing Enter on star span triggers set-default action', async () => {
   renderList();
   await waitFor(() => screen.getByText('chatbot'));
 
-  fireEvent.keyDown(screen.getByTestId('set-default-chatbot'), { key: 'Enter' });
+  fireEvent.keyDown(screen.getByTestId('set-default-chatbot'), {
+    key: 'Enter',
+  });
 
   await waitFor(() => {
     expect(mockPut).toHaveBeenCalled();
@@ -277,9 +289,7 @@ test('uploading a non-.supx file shows danger toast without calling API', async 
   const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
   uploadFile(input, new File(['x'], 'evil.zip', { type: 'application/zip' }));
 
-  expect(addDangerToast).toHaveBeenCalledWith(
-    expect.stringMatching(/\.supx/i),
-  );
+  expect(addDangerToast).toHaveBeenCalledWith(expect.stringMatching(/\.supx/i));
   expect(mockPost).not.toHaveBeenCalled();
 });
 
@@ -288,7 +298,10 @@ test('uploading a .supx file calls POST endpoint and refreshes list', async () =
   renderList();
 
   const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
-  uploadFile(input, new File(['PK'], 'my.supx', { type: 'application/octet-stream' }));
+  uploadFile(
+    input,
+    new File(['PK'], 'my.supx', { type: 'application/octet-stream' }),
+  );
 
   await waitFor(() => {
     expect(mockPost).toHaveBeenCalledWith(
