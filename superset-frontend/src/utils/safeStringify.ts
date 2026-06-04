@@ -1,0 +1,47 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+/**
+ * A Stringify function that will not crash when it runs into circular JSON references,
+ * unlike JSON.stringify. Circular references are replaced with a '[Circular]' string placeholder.
+ * @param object any JSON object to be stringified
+ */
+export function safeStringify(object: any): string {
+  const cache = new Set();
+  return JSON.stringify(object, (key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (cache.has(value)) {
+        try {
+          // Quick deep copy to duplicate if this is a repeat rather than a circle.
+          return JSON.parse(JSON.stringify(value));
+        } catch (err) {
+          // Replace circular reference with a placeholder
+          if (process.env.NODE_ENV !== 'production') {
+            console.warn(
+              `Circular reference detected and replaced with '[Circular]' placeholder (key: "${key}")`,
+            );
+          }
+          return '[Circular]';
+        }
+      }
+      cache.add(value);
+    }
+    return value;
+  });
+}

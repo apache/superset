@@ -1,0 +1,56 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import findParentId from 'src/dashboard/util/findParentId';
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('findParentId', () => {
+  const layout = {
+    a: {
+      id: 'a',
+      children: ['b', 'r', 'k'],
+    },
+    b: {
+      id: 'b',
+      children: ['x', 'y', 'z'],
+    },
+    z: {
+      id: 'z',
+      children: [],
+    },
+  };
+  test('should return the correct parentId', () => {
+    expect(findParentId({ childId: 'b', layout })).toBe('a');
+    expect(findParentId({ childId: 'z', layout })).toBe('b');
+  });
+
+  test('should return null if the parent cannot be found', () => {
+    expect(findParentId({ childId: 'a', layout })).toBeNull();
+  });
+
+  test('should not throw error and return null with bad / missing inputs', () => {
+    // @ts-expect-error
+    expect(findParentId(null)).toBeNull();
+    // @ts-expect-error
+    expect(findParentId({ layout })).toBeNull();
+    // @ts-expect-error
+    expect(findParentId({ childId: 'a' })).toBeNull();
+    // @ts-expect-error
+    expect(findParentId({ childId: 'a', layout: null })).toBeNull();
+  });
+});

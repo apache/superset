@@ -1,0 +1,47 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { mainMetric } from '../../src';
+
+describe('mainMetric', () => {
+  test('is null when no options', () => {
+    expect(mainMetric([])).toBeUndefined();
+    expect(mainMetric(null)).toBeUndefined();
+  });
+  test('prefers the "count" metric when first', () => {
+    const metrics = [
+      { metric_name: 'count', uuid: '1' },
+      { metric_name: 'foo', uuid: '2' },
+    ];
+    expect(mainMetric(metrics)).toBe('count');
+  });
+  test('prefers the "count" metric when not first', () => {
+    const metrics = [
+      { metric_name: 'foo', uuid: '1' },
+      { metric_name: 'count', uuid: '2' },
+    ];
+    expect(mainMetric(metrics)).toBe('count');
+  });
+  test('selects the first metric when "count" is not an option', () => {
+    const metrics = [
+      { metric_name: 'foo', uuid: '2' },
+      { metric_name: 'not_count', uuid: '2' },
+    ];
+    expect(mainMetric(metrics)).toBe('foo');
+  });
+});

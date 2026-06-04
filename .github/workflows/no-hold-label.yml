@@ -1,0 +1,31 @@
+name: Hold Label Check
+
+on:
+  pull_request:
+    types: [labeled, unlabeled, opened, reopened, synchronize]
+
+permissions:
+  pull-requests: read
+
+# Let each label event run to completion. Cancelling in-progress runs leaves
+# CANCELLED entries in the PR's check-suite rollup, which poisons GitHub's
+# `status:success` search filter even though all real CI passed. The job is
+# a tiny no-op github-script call, so the wasted compute is negligible.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  check-hold-label:
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Check for 'hold' label
+      uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          const payload = context.payload.pull_request
+          const holdLabelPresent = !!payload.labels.find(label => label.name.includes('hold'))
+          if (holdLabelPresent) {
+            core.setFailed('Hold label is present, merge is blocked.')
+          }

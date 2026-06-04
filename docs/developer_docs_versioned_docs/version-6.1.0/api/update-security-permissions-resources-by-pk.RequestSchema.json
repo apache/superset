@@ -1,0 +1,1 @@
+{"title":"Body","body":{"content":{"application/json":{"schema":{"properties":{"permission_id":{},"view_menu_id":{}},"type":"object","title":"PermissionViewMenuApi.put"},"example":{"permission_id":{},"view_menu_id":{}}}},"description":"Model schema","required":true}}

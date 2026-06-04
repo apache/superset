@@ -1,0 +1,124 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { useCallback, useMemo, ReactNode } from 'react';
+import rison from 'rison';
+import { t } from '@apache-superset/core/translation';
+import {
+  JsonResponse,
+  ClientErrorObject,
+  getClientErrorObject,
+} from '@superset-ui/core';
+import { AsyncSelect } from '@superset-ui/core/components';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
+import {
+  Dataset,
+  DatasetSelectLabel,
+} from 'src/features/datasets/DatasetSelectLabel';
+import {
+  datasetLabel,
+  datasetLabelLower,
+  datasetsLabelLower,
+} from 'src/features/semanticLayers/label';
+
+interface DatasetSelectProps {
+  onChange: (value: { label: string | ReactNode; value: number }) => void;
+  value?: { label: string | ReactNode; value: number };
+  excludeDatasetIds?: number[];
+}
+
+const getErrorMessage = ({ error, message }: ClientErrorObject) => {
+  let errorText = message || error || t('An error has occurred');
+  if (message === 'Forbidden') {
+    errorText = t('You do not have permission to edit this dashboard');
+  }
+  return errorText;
+};
+
+export const loadDatasetOptions = async (
+  search: string,
+  page: number,
+  pageSize: number,
+  excludeDatasetIds: number[] = [],
+) => {
+  const query = rison.encode({
+    columns: ['id', 'table_name', 'database.database_name', 'schema'],
+    filters: [{ col: 'table_name', opr: 'ct', value: search }],
+    page,
+    page_size: pageSize,
+    order_column: 'table_name',
+    order_direction: 'asc',
+  });
+  return cachedSupersetGet({
+    endpoint: `/api/v1/dataset/?q=${query}`,
+  })
+    .then((response: JsonResponse) => {
+      const filteredResult = response.json.result.filter(
+        (item: Dataset) => !excludeDatasetIds.includes(item.id),
+      );
+
+      const list: {
+        label: string | ReactNode;
+        value: string | number;
+        table_name: string;
+      }[] = filteredResult.map((item: Dataset) => ({
+        ...item,
+        label: DatasetSelectLabel(item),
+        value: item.id,
+        table_name: item.table_name,
+      }));
+      return {
+        data: list,
+        totalCount: response.json.count ?? 0,
+      };
+    })
+    .catch(async error => {
+      const errorMessage = getErrorMessage(await getClientErrorObject(error));
+      throw new Error(errorMessage);
+    });
+};
+
+const DatasetSelect = ({
+  onChange,
+  value,
+  excludeDatasetIds = [],
+}: DatasetSelectProps) => {
+  const loadDatasetOptionsCallback = useCallback(
+    (search: string, page: number, pageSize: number) =>
+      loadDatasetOptions(search, page, pageSize, excludeDatasetIds),
+    [excludeDatasetIds],
+  );
+
+  return (
+    <AsyncSelect
+      ariaLabel={datasetLabel()}
+      value={value}
+      options={loadDatasetOptionsCallback}
+      onChange={onChange}
+      optionFilterProps={['table_name']}
+      notFoundContent={t('No compatible %s found', datasetsLabelLower())}
+      placeholder={t('Select a %s', datasetLabelLower())}
+    />
+  );
+};
+
+const MemoizedSelect = (props: DatasetSelectProps) =>
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useMemo(() => <DatasetSelect {...props} />, []);
+
+export default MemoizedSelect;

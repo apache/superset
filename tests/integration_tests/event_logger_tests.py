@@ -1,0 +1,317 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+import logging
+import time
+import unittest
+from datetime import timedelta
+from typing import Any, Optional
+from unittest.mock import patch
+
+from flask import current_app  # noqa: F401
+from freezegun import freeze_time
+
+from superset import security_manager
+from superset.utils.log import (
+    AbstractEventLogger,
+    DBEventLogger,
+    get_event_logger_from_cfg_value,
+)
+from tests.integration_tests.test_app import app
+
+
+class TestEventLogger(unittest.TestCase):
+    def test_correct_config_object(self):
+        # test that assignment of concrete AbstractBaseClass impl returns
+        # unmodified object
+        obj = DBEventLogger()
+        res = get_event_logger_from_cfg_value(obj)
+        assert obj is res
+
+    def test_config_class_deprecation(self):
+        # test that assignment of a class object to EVENT_LOGGER is correctly
+        # deprecated
+        res = None
+
+        # print warning if a class is assigned to EVENT_LOGGER
+        with self.assertLogs(level="WARNING"):
+            res = get_event_logger_from_cfg_value(DBEventLogger)
+
+        # class is instantiated and returned
+        assert isinstance(res, DBEventLogger)
+
+    def test_raises_typeerror_if_not_abc(self):
+        # test that assignment of non AbstractEventLogger derived type raises
+        # TypeError
+        with self.assertRaises(TypeError):  # noqa: PT027
+            get_event_logger_from_cfg_value(logging.getLogger())
+
+    @patch.object(DBEventLogger, "log")
+    def test_log_this(self, mock_log):
+        logger = DBEventLogger()
+
+        @logger.log_this
+        def test_func():
+            time.sleep(0.05)
+            return 1
+
+        with app.test_request_context("/superset/dashboard/1/?myparam=foo"):
+            result = test_func()
+            payload = mock_log.call_args[1]
+            assert result == 1
+            assert payload["records"] == [
+                {
+                    "myparam": "foo",
+                    "path": "/superset/dashboard/1/",
+                    "url_rule": "/superset/dashboard/<dashboard_id_or_slug>/",
+                    "object_ref": test_func.__qualname__,
+                }
+            ]
+            assert payload["duration_ms"] >= 50
+
+    @patch.object(DBEventLogger, "log")
+    def test_log_this_with_extra_payload(self, mock_log):
+        logger = DBEventLogger()
+
+        @logger.log_this_with_extra_payload
+        def test_func(arg1, add_extra_log_payload, karg1=1):
+            time.sleep(0.1)
+            add_extra_log_payload(foo="bar")
+            return arg1 * karg1
+
+        with app.test_request_context():
+            result = test_func(1, karg1=2)  # pylint: disable=no-value-for-parameter
+            payload = mock_log.call_args[1]
+            assert result == 2
+            assert payload["records"] == [
+                {
+                    "foo": "bar",
+                    "path": "/",
+                    "karg1": 2,
+                    "object_ref": test_func.__qualname__,
+                }
+            ]
+            assert payload["duration_ms"] >= 100
+
+    @patch("superset.utils.core.g", spec={})
+    @freeze_time("Jan 14th, 2020", auto_tick_seconds=15)
+    def test_context_manager_log(self, mock_g):
+        class DummyEventLogger(AbstractEventLogger):
+            def __init__(self):
+                self.records = []
+
+            def log(
+                self,
+                user_id: Optional[int],
+                action: str,
+                dashboard_id: Optional[int],
+                duration_ms: Optional[int],
+                slice_id: Optional[int],
+                referrer: Optional[str],
+                *args: Any,
+                **kwargs: Any,
+            ):
+                self.records.append(
+                    {**kwargs, "user_id": user_id, "duration": duration_ms}
+                )
+
+        logger = DummyEventLogger()
+
+        with app.test_request_context():
+            mock_g.user = security_manager.find_user("gamma")
+            with logger(action="foo", engine="bar"):
+                pass
+
+        assert logger.records == [
+            {
+                "records": [{"path": "/", "engine": "bar"}],
+                "database_id": None,
+                "user_id": 2,
+                "duration": 15000,
+                "curated_payload": {},
+                "curated_form_data": {},
+            }
+        ]
+
+    @patch("superset.utils.core.g", spec={})
+    def test_context_manager_log_with_context(self, mock_g):
+        class DummyEventLogger(AbstractEventLogger):
+            def __init__(self):
+                self.records = []
+
+            def log(
+                self,
+                user_id: Optional[int],
+                action: str,
+                dashboard_id: Optional[int],
+                duration_ms: Optional[int],
+                slice_id: Optional[int],
+                referrer: Optional[str],
+                *args: Any,
+                **kwargs: Any,
+            ):
+                self.records.append(
+                    {**kwargs, "user_id": user_id, "duration": duration_ms}
+                )
+
+        logger = DummyEventLogger()
+
+        with app.test_request_context():
+            mock_g.user = security_manager.find_user("gamma")
+            logger.log_with_context(
+                action="foo",
+                duration=timedelta(days=64, seconds=29156, microseconds=10),
+                object_ref={"baz": "food"},
+                log_to_statsd=False,
+                payload_override={"engine": "sqlite"},
+            )
+
+        assert logger.records == [
+            {
+                "records": [
+                    {
+                        "path": "/",
+                        "object_ref": {"baz": "food"},
+                        "payload_override": {"engine": "sqlite"},
+                    }
+                ],
+                "database_id": None,
+                "user_id": 2,
+                "duration": 5558756000,
+                "curated_payload": {},
+                "curated_form_data": {},
+            }
+        ]
+
+    @patch("superset.utils.core.g", spec={})
+    def test_log_with_context_user_null(self, mock_g):
+        class DummyEventLogger(AbstractEventLogger):
+            def __init__(self):
+                self.records = []
+
+            def log(
+                self,
+                user_id: Optional[int],
+                action: str,
+                dashboard_id: Optional[int],
+                duration_ms: Optional[int],
+                slice_id: Optional[int],
+                referrer: Optional[str],
+                *args: Any,
+                **kwargs: Any,
+            ):
+                self.records.append(
+                    {**kwargs, "user_id": user_id, "duration": duration_ms}
+                )
+
+        logger = DummyEventLogger()
+
+        with app.test_request_context():
+            mock_g.side_effect = Exception("oops")
+            logger.log_with_context(
+                action="foo",
+                duration=timedelta(days=64, seconds=29156, microseconds=10),
+                object_ref={"baz": "food"},
+                log_to_statsd=False,
+                payload_override={"engine": "sqlite"},
+            )
+
+        assert logger.records[0]["user_id"] == None  # noqa: E711
+
+    @patch.object(DBEventLogger, "log")
+    def test_log_this_with_context_and_extra_payload(self, mock_log):
+        logger = DBEventLogger()
+
+        @logger.log_this_with_context(action="test_action", allow_extra_payload=True)
+        def test_func(arg1, add_extra_log_payload, karg1=1):
+            time.sleep(0.1)
+            add_extra_log_payload(custom_field="custom_value")
+            return arg1 * karg1
+
+        with app.test_request_context():
+            result = test_func(1, karg1=2)  # pylint: disable=no-value-for-parameter
+            payload = mock_log.call_args[1]
+            assert result == 2
+            assert payload["records"] == [
+                {
+                    "custom_field": "custom_value",
+                    "path": "/",
+                    "karg1": 2,
+                    "object_ref": test_func.__qualname__,
+                }
+            ]
+            assert payload["duration_ms"] >= 100
+
+    @patch("superset.db")
+    def test_curated_payload_used_when_records_empty(self, mock_db):
+        """Test that curated_payload is used when records is empty (MCP pattern).
+
+        MCP middleware passes curated_payload instead of records. This test verifies
+        that DBEventLogger.log() creates a Log entry from curated_payload when
+        records is empty.
+        """
+        logger = DBEventLogger()
+
+        with app.test_request_context():
+            logger.log(
+                user_id=1,
+                action="mcp_tool_call",
+                dashboard_id=None,
+                duration_ms=100,
+                slice_id=None,
+                referrer=None,
+                curated_payload={"tool": "list_charts", "success": True},
+            )
+
+        # Verify bulk_save_objects was called with one Log object
+        mock_db.session.bulk_save_objects.assert_called_once()
+        logs = mock_db.session.bulk_save_objects.call_args[0][0]
+        assert len(logs) == 1
+        assert logs[0].action == "mcp_tool_call"
+        assert logs[0].duration_ms == 100
+        # Verify JSON contains the curated_payload data
+        from superset.utils import json as json_utils
+
+        payload = json_utils.loads(logs[0].json)
+        assert payload["tool"] == "list_charts"
+        assert payload["success"] is True
+
+    @patch("superset.db")
+    def test_records_takes_precedence_over_curated_payload(self, mock_db):
+        """Test that records takes precedence over curated_payload."""
+        logger = DBEventLogger()
+
+        with app.test_request_context():
+            logger.log(
+                user_id=1,
+                action="test_action",
+                dashboard_id=None,
+                duration_ms=50,
+                slice_id=None,
+                referrer=None,
+                records=[{"from_records": True}],
+                curated_payload={"from_curated": True},
+            )
+
+        # Verify only records data is used, not curated_payload
+        mock_db.session.bulk_save_objects.assert_called_once()
+        logs = mock_db.session.bulk_save_objects.call_args[0][0]
+        assert len(logs) == 1
+        from superset.utils import json as json_utils
+
+        payload = json_utils.loads(logs[0].json)
+        assert payload.get("from_records") is True
+        assert "from_curated" not in payload

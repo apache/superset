@@ -1,0 +1,96 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { memo, useMemo } from 'react';
+import { useSelector } from 'react-redux';
+import { t } from '@apache-superset/core/translation';
+import { css, SupersetTheme } from '@apache-superset/core/theme';
+import { Flex, Icons } from '@superset-ui/core/components';
+import { getChartKey } from 'src/explore/exploreUtils';
+import { ExplorePageState } from 'src/explore/types';
+import { FastVizSwitcherProps } from './types';
+import { VizTile } from './VizTile';
+import { FEATURED_CHARTS, CUSTOM_CHART_ICONS } from './constants';
+
+export const antdIconProps = {
+  iconSize: 'l' as const,
+  css: (theme: SupersetTheme) => css`
+    padding: ${theme.sizeUnit}px;
+    & > * {
+      line-height: 0;
+    }
+  `,
+};
+
+export const FastVizSwitcher = memo(
+  ({ currentSelection, onChange }: FastVizSwitcherProps) => {
+    const currentViz = useSelector<ExplorePageState, string | undefined>(
+      state =>
+        state.charts?.[getChartKey(state.explore)]?.latestQueryFormData
+          ?.viz_type,
+    );
+    const vizTiles = useMemo(() => {
+      const vizTiles = [...FEATURED_CHARTS];
+      if (
+        currentSelection &&
+        FEATURED_CHARTS.every(
+          featuredVizMeta => featuredVizMeta.name !== currentSelection,
+        ) &&
+        currentSelection !== currentViz
+      ) {
+        vizTiles.unshift({
+          name: currentSelection,
+          icon: CUSTOM_CHART_ICONS[currentSelection] || (
+            <Icons.MonitorOutlined {...antdIconProps} aria-label={t('Chart')} />
+          ),
+        });
+      }
+      if (
+        currentViz &&
+        FEATURED_CHARTS.every(
+          featuredVizMeta => featuredVizMeta.name !== currentViz,
+        )
+      ) {
+        vizTiles.unshift({
+          name: currentViz,
+          icon: CUSTOM_CHART_ICONS[currentViz] || (
+            <Icons.CheckSquareOutlined
+              {...antdIconProps}
+              aria-label="check-square"
+            />
+          ),
+        });
+      }
+      return vizTiles;
+    }, [currentSelection, currentViz]);
+
+    return (
+      <Flex justify="space-between" gap={4} data-test="fast-viz-switcher">
+        {vizTiles.map(vizMeta => (
+          <VizTile
+            vizMeta={vizMeta}
+            isActive={currentSelection === vizMeta.name}
+            isRendered={currentViz === vizMeta.name}
+            onTileClick={onChange}
+            key={vizMeta.name}
+          />
+        ))}
+      </Flex>
+    );
+  },
+);

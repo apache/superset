@@ -1,0 +1,239 @@
+# Python integration tests
+name: Python-Integration
+
+on:
+  push:
+    branches:
+      - "master"
+      - "[0-9].[0-9]*"
+  pull_request:
+    types: [synchronize, opened, reopened, ready_for_review]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      python: ${{ steps.check.outputs.python }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+  test-mysql:
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+      REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI: |
+        mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
+    services:
+      mysql:
+        image: mysql:8.0
+        # Authenticated pulls use our higher Docker Hub rate limit. Empty on
+        # fork PRs (secrets unavailable) -> runner falls back to anonymous.
+        credentials:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        env:
+          MYSQL_ROOT_PASSWORD: root
+        ports:
+          - 13306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+      redis:
+        image: redis:7-alpine
+        credentials:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        options: --entrypoint redis-server
+        ports:
+          - 16379:6379
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+      - name: Setup MySQL
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: setup-mysql
+      - name: Start Celery worker
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: celery-worker
+      - name: Python integration tests (MySQL)
+        run: |
+          ./scripts/python_tests.sh
+      - name: Upload code coverage
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        with:
+          flags: python,mysql
+          verbose: true
+          use_oidc: true
+          slug: apache/superset
+      - name: Generate database diagnostics for docs
+        env:
+          SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+          SUPERSET__SQLALCHEMY_DATABASE_URI: |
+            mysql+mysqldb://superset:superset@127.0.0.1:13306/superset?charset=utf8mb4&binary_prefix=true
+        run: |
+          python -c "
+          import json
+          from superset.app import create_app
+          from superset.db_engine_specs.lib import generate_yaml_docs
+          app = create_app()
+          with app.app_context():
+              docs = generate_yaml_docs()
+              # Wrap in the expected format
+              output = {
+                  'generated': '$(date -Iseconds)',
+                  'databases': docs
+              }
+              with open('databases-diagnostics.json', 'w') as f:
+                  json.dump(output, f, indent=2, default=str)
+              print(f'Generated diagnostics for {len(docs)} databases')
+          "
+      - name: Upload database diagnostics artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: database-diagnostics
+          path: databases-diagnostics.json
+          retention-days: 7
+  test-postgres:
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    strategy:
+      matrix:
+        python-version: ["current", "previous", "next"]
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+      REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI: postgresql+psycopg2://superset:superset@127.0.0.1:15432/superset
+    services:
+      postgres:
+        image: postgres:17-alpine
+        credentials:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        env:
+          POSTGRES_USER: superset
+          POSTGRES_PASSWORD: superset
+        ports:
+          # Use custom ports for services to avoid accidentally connecting to
+          # GitHub action runner's default installations
+          - 15432:5432
+      redis:
+        image: redis:7-alpine
+        credentials:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        ports:
+          - 16379:6379
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Setup Postgres
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: |
+            setup-postgres
+      - name: Start Celery worker
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: celery-worker
+      - name: Python integration tests (PostgreSQL)
+        run: |
+          ./scripts/python_tests.sh
+      - name: Upload code coverage
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        with:
+          flags: python,postgres
+          verbose: true
+          use_oidc: true
+          slug: apache/superset
+
+  test-sqlite:
+    needs: changes
+    if: needs.changes.outputs.python == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      id-token: write
+    env:
+      PYTHONPATH: ${{ github.workspace }}
+      SUPERSET_CONFIG: tests.integration_tests.superset_test_config
+      REDIS_PORT: 16379
+      SUPERSET__SQLALCHEMY_DATABASE_URI: |
+        sqlite:///${{ github.workspace }}/.temp/superset.db?check_same_thread=true
+      SUPERSET__SQLALCHEMY_EXAMPLES_URI: |
+        sqlite:///${{ github.workspace }}/.temp/examples.db?check_same_thread=true
+    services:
+      redis:
+        image: redis:7-alpine
+        credentials:
+          username: ${{ secrets.DOCKERHUB_USER }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+        ports:
+          - 16379:6379
+    steps:
+      - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+          submodules: recursive
+      - name: Setup Python
+        uses: ./.github/actions/setup-backend/
+      - name: Install dependencies
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: |
+            # sqlite needs this working directory
+            mkdir ${{ github.workspace }}/.temp
+      - name: Start Celery worker
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: celery-worker
+      - name: Python integration tests (SQLite)
+        run: |
+          ./scripts/python_tests.sh
+      - name: Upload code coverage
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
+        with:
+          flags: python,sqlite
+          verbose: true
+          use_oidc: true
+          slug: apache/superset

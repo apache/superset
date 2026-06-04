@@ -1,0 +1,611 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { FC, ChangeEvent, useEffect, useState, useRef } from 'react';
+
+import {
+  Input,
+  InputRef,
+  Select,
+  Tooltip,
+  type SelectValue,
+} from '@superset-ui/core/components';
+import { t } from '@apache-superset/core/translation';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  isDefined,
+  SupersetClient,
+} from '@superset-ui/core';
+import { styled, useTheme, css } from '@apache-superset/core/theme';
+import {
+  Operators,
+  OPERATORS_OPTIONS,
+  HAVING_OPERATORS,
+  MULTI_OPERATORS,
+  CUSTOM_OPERATORS,
+  DISABLE_INPUT_OPERATORS,
+  AGGREGATES,
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
+} from 'src/explore/constants';
+import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
+import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import { optionLabel } from 'src/utils/common';
+import {
+  ColumnMeta,
+  Dataset,
+  isTemporalColumn,
+} from '@superset-ui/chart-controls';
+import useAdvancedDataTypes from './useAdvancedDataTypes';
+import { useDatePickerInAdhocFilter } from '../utils';
+import { useDefaultTimeFilter } from '../../DateFilterControl/utils';
+import { Clauses, ExpressionTypes } from '../types';
+
+const SelectWithLabel = styled(Select)<{ labelText: string }>`
+  .ant-select-selector::after {
+    content: ${({ labelText }) => labelText || '\\A0'};
+    display: inline-block;
+    white-space: nowrap;
+    color: ${({ theme }) => theme.colorTextSecondary};
+    width: max-content;
+  }
+`;
+
+export interface SimpleExpressionType {
+  expressionType: keyof typeof ExpressionTypes;
+  column: ColumnMeta;
+  aggregate: keyof typeof AGGREGATES;
+  label: string;
+}
+export interface SQLExpressionType {
+  expressionType: keyof typeof ExpressionTypes;
+  sqlExpression: string;
+  label: string;
+}
+
+export interface MetricColumnType {
+  saved_metric_name: string;
+}
+
+export type ColumnType =
+  | ColumnMeta
+  | SimpleExpressionType
+  | SQLExpressionType
+  | MetricColumnType;
+
+export interface Props {
+  adhocFilter: AdhocFilter;
+  onChange: (filter: AdhocFilter) => void;
+  options: ColumnType[];
+  datasource: Dataset;
+  partitionColumn?: string;
+  operators?: Operators[];
+  validHandler: (isValid: boolean) => void;
+  onHeightChange?: (heightDifference: number) => void;
+  popoverRef?: HTMLDivElement | null;
+}
+
+export interface AdvancedDataTypesState {
+  parsedAdvancedDataType: string;
+  advancedDataTypeOperatorList: string[];
+  errorMessage: string;
+}
+
+export const useSimpleTabFilterProps = (props: Props) => {
+  const defaultTimeFilter = useDefaultTimeFilter();
+
+  const isOperatorRelevant = (operator: Operators, subject: string) => {
+    const column = props.datasource.columns?.find(
+      col => col.column_name === subject,
+    );
+    const isColumnBoolean =
+      !!column && (column.type === 'BOOL' || column.type === 'BOOLEAN');
+    const isColumnNumber =
+      !!column && (column.type === 'INT' || column.type === 'INTEGER');
+    const isColumnFunction = !!column && !!column.expression;
+
+    if (operator && operator === Operators.LatestPartition) {
+      const { partitionColumn } = props;
+      return partitionColumn && subject && subject === partitionColumn;
+    }
+    if (operator && operator === Operators.TemporalRange) {
+      // hide the TEMPORAL_RANGE operator
+      return false;
+    }
+    if (operator === Operators.IsTrue || operator === Operators.IsFalse) {
+      return isColumnBoolean || isColumnNumber || isColumnFunction;
+    }
+    if (isColumnBoolean) {
+      return operator === Operators.IsNull || operator === Operators.IsNotNull;
+    }
+    return (
+      props.adhocFilter.clause !== Clauses.Having ||
+      HAVING_OPERATORS.indexOf(operator) !== -1
+    );
+  };
+  const onSubjectChange = (id: string) => {
+    const option = props.options.find(
+      option =>
+        ('column_name' in option && option.column_name === id) ||
+        ('optionName' in option && option.optionName === id),
+    );
+    let subject = '';
+    let clause;
+    // infer the new clause based on what subject was selected.
+    if (option && 'column_name' in option) {
+      subject = option.column_name;
+      clause = Clauses.Where;
+    } else if (option && 'saved_metric_name' in option) {
+      subject = option.saved_metric_name;
+      clause = Clauses.Having;
+    } else if (option?.label) {
+      subject = option.label;
+      clause = Clauses.Having;
+    }
+    let { operator, operatorId, comparator } = props.adhocFilter;
+    operator =
+      operator &&
+      operatorId &&
+      isOperatorRelevant(operatorId as Operators, subject)
+        ? OPERATOR_ENUM_TO_OPERATOR_TYPE[
+            operatorId as keyof typeof OPERATOR_ENUM_TO_OPERATOR_TYPE
+          ].operation
+        : null;
+    if (!isDefined(operator)) {
+      // if operator is `null`, use the `IN` and reset the comparator.
+      operator = Operators.In;
+      operatorId = Operators.In;
+      comparator = undefined;
+    }
+
+    if (isTemporalColumn(id, props.datasource)) {
+      subject = id;
+      operator = Operators.TemporalRange;
+      operatorId = Operators.TemporalRange;
+      comparator = defaultTimeFilter;
+    }
+
+    props.onChange(
+      props.adhocFilter.duplicateWith({
+        subject,
+        clause,
+        operator,
+        expressionType: ExpressionTypes.Simple,
+        operatorId,
+        comparator,
+      }),
+    );
+  };
+  const onOperatorChange = (operatorId: Operators) => {
+    const currentComparator = props.adhocFilter.comparator;
+    let newComparator;
+    // convert between list of comparators and individual comparators
+    // (e.g. `in ('North America', 'Africa')` to `== 'North America'`)
+    if (MULTI_OPERATORS.has(operatorId)) {
+      newComparator = Array.isArray(currentComparator)
+        ? currentComparator
+        : [currentComparator].filter(element => element != null);
+    } else {
+      newComparator = Array.isArray(currentComparator)
+        ? currentComparator[0]
+        : currentComparator;
+    }
+    if (operatorId && CUSTOM_OPERATORS.has(operatorId)) {
+      props.onChange(
+        props.adhocFilter.duplicateWith({
+          subject: props.adhocFilter.subject,
+          clause: Clauses.Where,
+          operatorId,
+          operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation,
+          expressionType: ExpressionTypes.Sql,
+          datasource: props.datasource,
+        }),
+      );
+    } else {
+      props.onChange(
+        props.adhocFilter.duplicateWith({
+          operatorId,
+          operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[operatorId].operation,
+          comparator: newComparator,
+          expressionType: ExpressionTypes.Simple,
+        }),
+      );
+    }
+  };
+  const onComparatorChange = (comparator: string) => {
+    props.onChange(
+      props.adhocFilter.duplicateWith({
+        comparator,
+        expressionType: ExpressionTypes.Simple,
+      }),
+    );
+  };
+  const clearOperator = (): void => {
+    props.onChange(
+      props.adhocFilter.duplicateWith({
+        operatorId: undefined,
+        operator: undefined,
+      }),
+    );
+  };
+  const onDatePickerChange = (columnName: string, timeRange: string) => {
+    props.onChange(
+      props.adhocFilter.duplicateWith({
+        subject: columnName,
+        operator: Operators.TemporalRange,
+        comparator: timeRange,
+        expressionType: ExpressionTypes.Simple,
+      }),
+    );
+  };
+  return {
+    onSubjectChange,
+    onOperatorChange,
+    onComparatorChange,
+    isOperatorRelevant,
+    clearOperator,
+    onDatePickerChange,
+  };
+};
+
+const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
+  const {
+    onSubjectChange,
+    onOperatorChange,
+    isOperatorRelevant,
+    onComparatorChange,
+    onDatePickerChange,
+  } = useSimpleTabFilterProps(props);
+  const [comparator, setComparator] = useState(props.adhocFilter.comparator);
+  const comparatorInputRef = useRef<InputRef | null>(null);
+  const [suggestions, setSuggestions] = useState<
+    Record<'label' | 'value', any>[]
+  >([]);
+  const [loadingComparatorSuggestions, setLoadingComparatorSuggestions] =
+    useState<boolean>(false);
+  const [hasFocusedComparator, setHasFocusedComparator] =
+    useState<boolean>(false);
+
+  const {
+    advancedDataTypesState,
+    subjectAdvancedDataType,
+    fetchAdvancedDataTypeValueCallback,
+    fetchSubjectAdvancedDataType,
+  } = useAdvancedDataTypes(props.validHandler);
+  // TODO: This does not need to exist, just use the advancedTypeOperatorList list
+  const isOperatorRelevantWrapper = (operator: Operators, subject: string) =>
+    subjectAdvancedDataType
+      ? isOperatorRelevant(operator, subject) &&
+        advancedDataTypesState.advancedDataTypeOperatorList.includes(operator)
+      : isOperatorRelevant(operator, subject);
+  const onInputComparatorChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { value } = event.target;
+    setComparator(value);
+    onComparatorChange(value);
+  };
+
+  const renderSubjectOptionLabel = (option: ColumnType) => (
+    <FilterDefinitionOption
+      option={
+        option as unknown as {
+          column_name?: string;
+          saved_metric_name?: string;
+          label?: string;
+          type?: string;
+          [key: string]: unknown;
+        }
+      }
+    />
+  );
+
+  const getOptionsRemaining = () => {
+    // if select is multi/value is array, we show the options not selected
+    const valuesFromSuggestionsLength = Array.isArray(comparator)
+      ? comparator.filter(v => suggestions.includes(v)).length
+      : 0;
+    return suggestions ? suggestions.length - valuesFromSuggestionsLength : 0;
+  };
+  const createSuggestionsPlaceholder = () => {
+    const optionsRemaining = getOptionsRemaining();
+    const placeholder = t('%s option(s)', optionsRemaining);
+    return optionsRemaining ? placeholder : '';
+  };
+
+  const handleSubjectChange = (subject: string) => {
+    setComparator(undefined);
+    onSubjectChange(subject);
+  };
+
+  let columns = props.options;
+  const { subject, operator, operatorId } = props.adhocFilter;
+
+  const subjectValue =
+    typeof subject === 'string'
+      ? subject
+      : subject && 'column_name' in subject
+        ? subject.column_name
+        : undefined;
+
+  const subjectSelectProps = {
+    ariaLabel: t('Select subject'),
+    value: subjectValue,
+    onChange: handleSubjectChange,
+    notFoundContent: t(
+      'No such column found. To filter on a metric, try the Custom SQL tab.',
+    ),
+    autoFocus: !subject,
+    placeholder: '',
+  };
+
+  subjectSelectProps.placeholder =
+    props.adhocFilter.clause === Clauses.Where
+      ? t('%s column(s)', columns.length)
+      : t('To filter on a metric, use Custom SQL tab.');
+  columns = props.options.filter(
+    option => 'column_name' in option && option.column_name,
+  );
+
+  const subjectString = typeof subject === 'string' ? subject : '';
+  const operatorSelectProps = {
+    placeholder: t(
+      '%s operator(s)',
+      (props.operators ?? OPERATORS_OPTIONS).filter(op =>
+        isOperatorRelevantWrapper(op, subjectString),
+      ).length,
+    ),
+    value: operatorId,
+    onChange: onOperatorChange,
+    autoFocus: !!subjectSelectProps.value && !operator,
+    ariaLabel: t('Select operator'),
+  };
+
+  const shouldFocusComparator =
+    !!subjectSelectProps.value && !!operatorSelectProps.value;
+
+  const isUnaryOperator =
+    operatorId !== undefined &&
+    DISABLE_INPUT_OPERATORS.includes(operatorId as Operators);
+
+  const hasComparatorOptions =
+    (operatorId && MULTI_OPERATORS.has(operatorId as Operators)) ||
+    suggestions.length > 0;
+
+  const comparatorSelectProps = {
+    allowClear: true,
+    allowNewOptions: true,
+    ariaLabel: t('Comparator option'),
+    mode:
+      operatorId && MULTI_OPERATORS.has(operatorId as Operators)
+        ? ('multiple' as const)
+        : ('single' as const),
+    loading: loadingComparatorSuggestions,
+    value: comparator as SelectValue,
+    onChange: onComparatorChange,
+    notFoundContent: t('Type a value here'),
+    placeholder: createSuggestionsPlaceholder(),
+  };
+
+  const comparatorHasValue =
+    comparator != null &&
+    comparator !== '' &&
+    (Array.isArray(comparator)
+      ? comparator.length > 0
+      : String(comparator).length > 0);
+  const labelText = comparatorHasValue ? createSuggestionsPlaceholder() : '';
+
+  const datePicker = useDatePickerInAdhocFilter({
+    columnName:
+      typeof props.adhocFilter.subject === 'string'
+        ? props.adhocFilter.subject
+        : undefined,
+    timeRange:
+      props.adhocFilter.operator === Operators.TemporalRange
+        ? (props.adhocFilter.comparator as string | undefined)
+        : undefined,
+    datasource: props.datasource,
+    onChange: onDatePickerChange,
+  });
+
+  useEffect(() => {
+    const refreshComparatorSuggestions = () => {
+      const { datasource } = props;
+      const col = props.adhocFilter.subject;
+      const having = props.adhocFilter.clause === Clauses.Having;
+
+      if (col && datasource && datasource.filter_select && !having) {
+        const controller = new AbortController();
+        const { signal } = controller;
+        if (loadingComparatorSuggestions) {
+          controller.abort();
+        }
+        setLoadingComparatorSuggestions(true);
+        SupersetClient.get({
+          signal,
+          endpoint: `/api/v1/datasource/${datasource.type}/${datasource.id}/column/${col}/values/`,
+        })
+          .then(({ json }) => {
+            setSuggestions(
+              json.result.map(
+                (suggestion: null | number | boolean | string) => ({
+                  value: suggestion,
+                  label: optionLabel(suggestion),
+                }),
+              ),
+            );
+            setLoadingComparatorSuggestions(false);
+          })
+          .catch(() => {
+            setSuggestions([]);
+            setLoadingComparatorSuggestions(false);
+          });
+      }
+    };
+
+    if (!datePicker) {
+      refreshComparatorSuggestions();
+    }
+    // loadingComparatorSuggestions intentionally omitted - set inside effect, would cause infinite loop
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    props.adhocFilter.subject,
+    props.adhocFilter.clause,
+    props.datasource,
+    datePicker,
+  ]);
+
+  useEffect(() => {
+    if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
+      fetchSubjectAdvancedDataType(
+        props.options,
+        props.adhocFilter.subject,
+        props.validHandler,
+      );
+    }
+  }, [
+    props.adhocFilter.subject,
+    props.options,
+    props.validHandler,
+    fetchSubjectAdvancedDataType,
+  ]);
+
+  useEffect(() => {
+    if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
+      const comparatorValue =
+        comparator === undefined
+          ? ''
+          : typeof comparator === 'string'
+            ? comparator
+            : String(comparator);
+      fetchAdvancedDataTypeValueCallback(
+        comparatorValue,
+        advancedDataTypesState,
+        subjectAdvancedDataType,
+      );
+    }
+    // advancedDataTypesState intentionally omitted - set by the callback, would cause infinite API calls
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [comparator, subjectAdvancedDataType, fetchAdvancedDataTypeValueCallback]);
+
+  useEffect(() => {
+    if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
+      setComparator(props.adhocFilter.comparator);
+    }
+  }, [props.adhocFilter.comparator]);
+
+  useEffect(() => {
+    if (
+      shouldFocusComparator &&
+      !hasFocusedComparator &&
+      comparatorInputRef.current
+    ) {
+      comparatorInputRef.current.focus();
+      setHasFocusedComparator(true);
+    }
+
+    if (!shouldFocusComparator) {
+      setHasFocusedComparator(false);
+    }
+  }, [shouldFocusComparator, hasFocusedComparator]);
+
+  const theme = useTheme();
+
+  // another name for columns, just for following previous naming.
+  const subjectComponent = (
+    <Select
+      css={{
+        marginBottom: theme.marginXS,
+      }}
+      data-test="select-element"
+      options={columns.map(column => ({
+        value:
+          ('column_name' in column && column.column_name) ||
+          ('optionName' in column && column.optionName) ||
+          '',
+        key:
+          ('id' in column && column.id) ||
+          ('optionName' in column && column.optionName) ||
+          undefined,
+        label: renderSubjectOptionLabel(column),
+      }))}
+      {...subjectSelectProps}
+    />
+  );
+
+  const operatorsAndOperandComponent = (
+    <>
+      <Select
+        options={(props.operators ?? OPERATORS_OPTIONS)
+          .filter(op => isOperatorRelevantWrapper(op, subjectString))
+          .map((option, index) => ({
+            value: option,
+            label: OPERATOR_ENUM_TO_OPERATOR_TYPE[option].display,
+            key: option,
+            order: index,
+          }))}
+        {...operatorSelectProps}
+      />
+      {!isUnaryOperator &&
+        (hasComparatorOptions ? (
+          <Tooltip
+            title={
+              advancedDataTypesState.errorMessage ||
+              advancedDataTypesState.parsedAdvancedDataType
+            }
+          >
+            <SelectWithLabel
+              css={css`
+                margin-top: ${theme.marginXS}px;
+              `}
+              labelText={labelText}
+              options={suggestions}
+              {...comparatorSelectProps}
+            />
+          </Tooltip>
+        ) : (
+          <Tooltip
+            title={
+              advancedDataTypesState.errorMessage ||
+              advancedDataTypesState.parsedAdvancedDataType
+            }
+          >
+            <div
+              css={css`
+                margin-top: ${theme.marginXS}px;
+              `}
+            />
+            <Input
+              data-test="adhoc-filter-simple-value"
+              name="filter-value"
+              ref={comparatorInputRef}
+              onChange={onInputComparatorChange}
+              value={typeof comparator === 'string' ? comparator : undefined}
+              placeholder={t('Filter value (case sensitive)')}
+            />
+          </Tooltip>
+        ))}
+    </>
+  );
+  return (
+    <>
+      {subjectComponent}
+      {datePicker ?? operatorsAndOperandComponent}
+    </>
+  );
+};
+
+export default AdhocFilterEditPopoverSimpleTabContent;

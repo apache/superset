@@ -1,0 +1,35 @@
+codecov:
+    notify:
+        after_n_builds: 4
+ignore:
+  - "superset/migrations/versions/*.py"
+  - "superset-frontend/packages/superset-ui-demo/**/*"
+  - "**/*.stories.tsx"
+  - "**/*.stories.jsx"
+coverage:
+  status:
+    project:
+      default:
+        informational: true
+        # Commits pushed to master should not make the overall
+        # project coverage decrease:
+        target: auto
+        threshold: 0%
+      core-packages-ts:
+        target: 100%
+        paths:
+          - 'superset-frontend/packages'
+          - '!superset-frontend/packages/**/*.jsx'
+          - '!superset-frontend/packages/**/*.tsx'
+      core-packages-tsx:
+        target: 50%
+        paths:
+          - 'superset-frontend/packages/**/*.jsx'
+          - 'superset-frontend/packages/**/*.tsx'
+    patch:
+      default:
+        informational: true
+        threshold: 0%
+flag_management:
+  default_rules:
+    carryforward: true

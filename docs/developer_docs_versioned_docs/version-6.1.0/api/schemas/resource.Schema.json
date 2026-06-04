@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"type":"string"},"type":{"enum":["dashboard"]}},"required":["id","type"],"type":"object","title":"Resource"},"schemaType":"response"}
