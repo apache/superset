@@ -4813,6 +4813,9 @@ msgstr "Ultima Modifica"
 msgid "Chart could not be created."
 msgstr "La tua query non può essere salvata"
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "La tua query non può essere salvata"
 

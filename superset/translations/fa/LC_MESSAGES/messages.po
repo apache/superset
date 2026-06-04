@@ -3274,6 +3274,9 @@ msgstr "تغییرات نمودار"
 msgid "Chart could not be created."
 msgstr "نمودار نتوانسته ایجاد شود."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "نمودار نتوانست به‌روزرسانی شود."
 

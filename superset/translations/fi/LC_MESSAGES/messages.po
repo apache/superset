@@ -5396,6 +5396,9 @@ msgstr "Kaaviota ei voitu luoda."
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
 #, fuzzy
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Kaaviota ei voitu päivittää."
 

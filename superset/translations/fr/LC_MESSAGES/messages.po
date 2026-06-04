@@ -3175,6 +3175,9 @@ msgstr "Changements de graphique"
 msgid "Chart could not be created."
 msgstr "Le graphique n'a pas pu être créé."
 
+msgid "Chart could not be restored."
+msgstr ""
+
 msgid "Chart could not be updated."
 msgstr "Le graphique n'a pas pu être mis à jour."
 
