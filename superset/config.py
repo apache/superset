@@ -2524,9 +2524,11 @@ EXTRA_OWNERSHIP_CHECKS: Callable[[int, Any], bool] | None = None
 # Receives user_id.
 EXTRA_OWNER_AUTO_ADD_SKIP: Callable[[int], bool] | None = None
 
-# Resolve additional edit permission beyond ownership.
-# Receives (user_id, resource). Return True if user can edit.
-EXTRA_CAN_EDIT_RESOLVER: Callable[[int, Any], bool] | None = None
+# Inject additional users into the owners/editors array in API responses.
+# Receives the resource (chart/dashboard model). Returns a list of user dicts
+# matching the owners schema (e.g. [{"id": 1, "first_name": "...", ...}]).
+# Used in Slice.data, ChartRestApi.get(), and DashboardRestApi.get().
+EXTRA_OWNERS_RESOLVER: Callable[[Any], list[dict[str, Any]]] | None = None
 
 
 # The migrations that add catalog permissions might take a considerably long time

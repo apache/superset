@@ -130,7 +130,7 @@ from superset.tasks.thumbnails import (
 )
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.core import get_user_id, parse_boolean_string
+from superset.utils.core import parse_boolean_string
 from superset.utils.file import get_filename
 from superset.utils.pdf import build_pdf_from_screenshots
 from superset.utils.screenshots import (
@@ -519,13 +519,8 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             schema = self.dashboard_get_response_schema
 
         result = schema.dump(dash)
-        can_edit = security_manager.is_owner(dash)
-        if not can_edit:
-            if resolver := current_app.config.get("EXTRA_CAN_EDIT_RESOLVER"):
-                user_id = get_user_id()
-                if user_id:
-                    can_edit = resolver(user_id, dash)
-        result["can_edit"] = can_edit
+        if resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"):
+            result["owners"].extend(resolver(dash))
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )

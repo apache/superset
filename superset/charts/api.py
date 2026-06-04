@@ -86,7 +86,6 @@ from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.utils import json
-from superset.utils.core import get_user_id
 from superset.utils.screenshots import (
     ChartScreenshot,
     DEFAULT_CHART_WINDOW_SIZE,
@@ -309,13 +308,8 @@ class ChartRestApi(BaseSupersetModelRestApi):
         try:
             dash = ChartDAO.get_by_id_or_uuid(id_or_uuid)
             result = self.chart_get_response_schema.dump(dash)
-            can_edit = security_manager.is_owner(dash)
-            if not can_edit:
-                if resolver := current_app.config.get("EXTRA_CAN_EDIT_RESOLVER"):
-                    user_id = get_user_id()
-                    if user_id:
-                        can_edit = resolver(user_id, dash)
-            result["can_edit"] = can_edit
+            if resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"):
+                result["owners"].extend(resolver(dash))
             return self.response(200, result=result)
         except ChartNotFoundError:
             return self.response_404()
