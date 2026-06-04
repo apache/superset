@@ -912,6 +912,7 @@ test('recovery flow: fetchSystemDefaultTheme returns theme → applies fetched t
     // Verify API was called to fetch system default theme
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/v1/theme/'),
+      expect.any(Object),
     );
 
     // Verify the fetched theme was applied via applyThemeWithRecovery
@@ -1080,6 +1081,24 @@ test('setThemeConfig sets complete theme configuration', () => {
   expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
   expect(controller.canSetTheme()).toBe(true);
   expect(controller.canSetMode()).toBe(true);
+});
+
+test('setThemeConfig flags an active theme config override', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({ default: {}, dark: {} }),
+  );
+
+  const controller = createController({ defaultTheme: { token: {} } });
+
+  // No override until setThemeConfig is called (e.g. from the Embedded SDK).
+  expect(controller.hasThemeConfigOverride()).toBe(false);
+
+  controller.setThemeConfig({
+    theme_default: DEFAULT_THEME,
+    theme_dark: DARK_THEME,
+  });
+
+  expect(controller.hasThemeConfigOverride()).toBe(true);
 });
 
 test('setThemeConfig handles theme_default only', () => {

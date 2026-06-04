@@ -27,7 +27,7 @@ import {
   themeObject as supersetThemeObject,
   normalizeThemeConfig,
 } from '@apache-superset/core/theme';
-import { makeApi } from '@superset-ui/core';
+import { makeApi, SupersetClient } from '@superset-ui/core';
 import type {
   BootstrapThemeData,
   BootstrapThemeDataConfig,
@@ -98,6 +98,11 @@ export class ThemeController {
   private dashboardThemes: Map<string, Theme> = new Map();
 
   private dashboardCrudTheme: AnyThemeConfig | null = null;
+
+  // Tracks whether an explicit theme config override has been applied via
+  // setThemeConfig (e.g. from the Embedded SDK). When set, it must take
+  // precedence over a dashboard-level theme.
+  private themeConfigOverride = false;
 
   // Track loaded font URLs to avoid duplicate injections
   private loadedFontUrls: Set<string> = new Set();
@@ -468,6 +473,15 @@ export class ThemeController {
   }
 
   /**
+   * Checks if an explicit theme config override has been applied via
+   * setThemeConfig (e.g. from the Embedded SDK). When true, this override
+   * takes precedence over any dashboard-level theme.
+   */
+  public hasThemeConfigOverride(): boolean {
+    return this.themeConfigOverride;
+  }
+
+  /**
    * Gets the applied theme ID (for UI display purposes).
    */
   public getAppliedThemeId(): number | null {
@@ -512,6 +526,7 @@ export class ThemeController {
   public setThemeConfig(config: SupersetThemeConfig): void {
     this.defaultTheme = config.theme_default;
     this.darkTheme = config.theme_dark || null;
+    this.themeConfigOverride = true;
 
     let newMode: ThemeMode;
     try {
@@ -1015,30 +1030,79 @@ export class ThemeController {
    */
   private async fetchSystemDefaultTheme(): Promise<AnyThemeConfig | null> {
     try {
-      // Try to fetch theme marked as system default (is_system_default=true)
-      const defaultResponse = await fetch(
-        '/api/v1/theme/?q=(filters:!((col:is_system_default,opr:eq,value:!t)))',
-      );
-      if (defaultResponse.ok) {
-        const data = await defaultResponse.json();
-        if (data.result?.length > 0) {
-          const themeConfig = JSON.parse(data.result[0].json_data);
+      // Try to use SupersetClient first if it has been configured
+      try {
+        const response = await SupersetClient.get({
+          endpoint:
+            '/api/v1/theme/?q=(filters:!((col:is_system_default,opr:eq,value:!t)))',
+        });
+        if (response.json?.result?.length > 0) {
+          const themeConfig = JSON.parse(response.json.result[0].json_data);
           if (themeConfig && typeof themeConfig === 'object') {
             return themeConfig;
+          }
+        }
+      } catch (clientError) {
+        // If SupersetClient is not configured yet or request fails, fall back to native fetch
+        const headers: Record<string, string> = {};
+        try {
+          const guestToken = SupersetClient.getGuestToken();
+          if (guestToken) {
+            headers['X-GuestToken'] = guestToken;
+          }
+        } catch (tokenError) {
+          // Ignore token retrieval error
+        }
+
+        const defaultResponse = await fetch(
+          '/api/v1/theme/?q=(filters:!((col:is_system_default,opr:eq,value:!t)))',
+          { headers },
+        );
+        if (defaultResponse.ok) {
+          const data = await defaultResponse.json();
+          if (data.result?.length > 0) {
+            const themeConfig = JSON.parse(data.result[0].json_data);
+            if (themeConfig && typeof themeConfig === 'object') {
+              return themeConfig;
+            }
           }
         }
       }
 
       // Fallback: Try to fetch system theme named 'THEME_DEFAULT'
-      const fallbackResponse = await fetch(
-        '/api/v1/theme/?q=(filters:!((col:theme_name,opr:eq,value:THEME_DEFAULT),(col:is_system,opr:eq,value:!t)))',
-      );
-      if (fallbackResponse.ok) {
-        const fallbackData = await fallbackResponse.json();
-        if (fallbackData.result?.length > 0) {
-          const themeConfig = JSON.parse(fallbackData.result[0].json_data);
+      try {
+        const response = await SupersetClient.get({
+          endpoint:
+            '/api/v1/theme/?q=(filters:!((col:theme_name,opr:eq,value:THEME_DEFAULT),(col:is_system,opr:eq,value:!t)))',
+        });
+        if (response.json?.result?.length > 0) {
+          const themeConfig = JSON.parse(response.json.result[0].json_data);
           if (themeConfig && typeof themeConfig === 'object') {
             return themeConfig;
+          }
+        }
+      } catch (clientError) {
+        const headers: Record<string, string> = {};
+        try {
+          const guestToken = SupersetClient.getGuestToken();
+          if (guestToken) {
+            headers['X-GuestToken'] = guestToken;
+          }
+        } catch (tokenError) {
+          // Ignore
+        }
+
+        const fallbackResponse = await fetch(
+          '/api/v1/theme/?q=(filters:!((col:theme_name,opr:eq,value:THEME_DEFAULT),(col:is_system,opr:eq,value:!t)))',
+          { headers },
+        );
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          if (fallbackData.result?.length > 0) {
+            const themeConfig = JSON.parse(fallbackData.result[0].json_data);
+            if (themeConfig && typeof themeConfig === 'object') {
+              return themeConfig;
+            }
           }
         }
       }

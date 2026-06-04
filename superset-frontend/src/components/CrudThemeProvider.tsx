@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useEffect, useMemo } from 'react';
+import { ReactNode, useContext, useEffect, useMemo } from 'react';
 import { logging } from '@apache-superset/core/utils';
 import {
   Theme,
@@ -24,6 +24,7 @@ import {
   isThemeConfigDark,
 } from '@apache-superset/core/theme';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { ThemeContext } from 'src/theme/ThemeProvider';
 import type { Dashboard } from 'src/types/Dashboard';
 
 interface CrudThemeProviderProps {
@@ -41,6 +42,13 @@ export default function CrudThemeProvider({
   children,
   theme,
 }: CrudThemeProviderProps) {
+  // An explicit theme config override (e.g. supplied via the Embedded SDK)
+  // applies on the global theme controller and must win over the
+  // dashboard-level theme. When such an override is active, skip the
+  // dashboard theme so the override is not shadowed by this nested provider.
+  const themeContext = useContext(ThemeContext);
+  const hasThemeConfigOverride = themeContext?.hasThemeConfigOverride ?? false;
+
   const { dashboardTheme, fontUrls } = useMemo(() => {
     if (!theme?.json_data) {
       return { dashboardTheme: null, fontUrls: undefined };
@@ -83,7 +91,7 @@ export default function CrudThemeProvider({
     };
   }, [dashboardTheme, fontUrls]);
 
-  if (!dashboardTheme) {
+  if (!dashboardTheme || hasThemeConfigOverride) {
     return <>{children}</>;
   }
 
