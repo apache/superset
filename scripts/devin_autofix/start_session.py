@@ -41,6 +41,7 @@ from scripts.devin_autofix.github_state import (
     find_active_markers,
     get_issue,
     post_comment,
+    remove_label,
     REPO,
     RunMarker,
 )
@@ -273,6 +274,7 @@ def main() -> None:
         f"{marker.to_marker()}"
     )
     post_comment(issue_number, update_body)
+    remove_label(issue_number, "devin-autofix/returned-human")
     add_label(issue_number, "devin-autofix/in-progress")
 
     # Write outputs for workflow

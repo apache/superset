@@ -121,6 +121,19 @@ def get_pr_checks(pr_number: int) -> list[dict[str, str]]:
     return results
 
 
+def is_pr_merged(pr_number: int) -> bool:
+    """Return True if the pull request has been merged."""
+    resp = requests.get(
+        f"{GITHUB_API}/repos/{REPO}/pulls/{pr_number}",
+        headers=_github_headers(),
+        timeout=30,
+    )
+    resp.raise_for_status()
+    pr: dict[str, Any] = resp.json()
+    merged: bool = pr.get("merged", False)
+    return merged
+
+
 def _find_issues_with_active_runs() -> list[int]:
     """Find issue numbers that have active autofix runs."""
     issue_numbers: set[int] = set()
@@ -173,6 +186,24 @@ def _handle_returned_to_human(
     remove_label(issue_number, "devin-autofix/in-progress")
     add_label(issue_number, "devin-autofix/returned-human")
     print(f"  Run {marker.run_id} returned to human: {return_reason}")
+
+
+def _handle_complete(
+    issue_number: int,
+    marker: RunMarker,
+) -> None:
+    """Mark a run as complete when its PR has been merged."""
+    marker.status = "complete"
+    body = (
+        f"✅ **Devin Autofix** — complete\n\n"
+        f"- **PR:** [#{marker.pr_number}]({marker.pr_url}) has been merged.\n"
+        f"- **Session:** [link]({marker.devin_session_url})\n\n"
+        f"{marker.to_marker()}"
+    )
+    post_comment(issue_number, body)
+    remove_label(issue_number, "devin-autofix/waiting-review")
+    add_label(issue_number, "devin-autofix/complete")
+    print(f"  Run {marker.run_id} complete (PR #{marker.pr_number} merged)")
 
 
 def _handle_new_pr(
@@ -261,6 +292,14 @@ def process_run(issue_number: int, marker: RunMarker) -> None:
     if pull_requests and not marker.pr_link_commented:
         _handle_new_pr(issue_number, marker, pull_requests)
     elif marker.pr_number and marker.status == "waiting_review":
+        # Check if the PR has been merged
+        try:
+            if is_pr_merged(marker.pr_number):
+                _handle_complete(issue_number, marker)
+                return
+        except Exception as exc:
+            print(f"  Error checking merge status for PR #{marker.pr_number}: {exc}")
+
         try:
             checks = get_pr_checks(marker.pr_number)
             marker.checks = checks
