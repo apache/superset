@@ -39,6 +39,10 @@ from superset.extensions.utils import (
 class ExtensionsRestApi(BaseApi):
     allow_browser_login = True
     resource_name = "extensions"
+    # FAB's BaseApi defaults csrf_exempt to True; these endpoints use
+    # cookie/session auth (allow_browser_login) and include state-changing
+    # routes (settings PUT, upload POST, delete), so CSRF protection must apply.
+    csrf_exempt = False
 
     def response(self, status_code: int, **kwargs: Any) -> Response:
         """Helper method to create JSON responses."""
