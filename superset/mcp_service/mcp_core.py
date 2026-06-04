@@ -187,6 +187,14 @@ class ModelListCore(BaseCore, Generic[L]):
 
         parsed_columns = parse_json_or_list(select_columns, param_name="select_columns")
         columns_to_load = filter_user_directory_columns(parsed_columns)
+
+        # Restrict to the declared allowlist so callers cannot probe for columns
+        # excluded from columns_available (e.g. password, sqlalchemy_uri) that
+        # still exist on the ORM model.
+        if self._all_columns:
+            allowed = set(self._all_columns)
+            columns_to_load = [col for col in columns_to_load if col in allowed]
+
         if not columns_to_load:
             raise ValueError("select_columns contains no valid columns")
 
