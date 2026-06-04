@@ -91,6 +91,27 @@ The array is empty for baseline (`operation_type=0`) transactions. `kind` enumer
 - Existing entity endpoints (`GET`/`PUT /api/v1/{chart,dashboard,dataset}/<pk>`) gain an `ETag` response header and the save response gains `old_version_uuid` / `new_version_uuid` body fields. No existing fields are removed or repurposed.
 - Version capture is always active — no feature flag.
 
+**Querying the shadow tables — audit columns are frozen at capture time:**
+
+The parent shadow tables (`dashboards_version`, `slices_version`, `tables_version`) deliberately exclude the audit columns `changed_on`, `created_on`, `changed_by_fk`, and `created_by_fk` from version capture. The "who changed this version, and when?" facts live on `version_transaction.user_id` and `version_transaction.issued_at` instead — every shadow row carries a `transaction_id` FK to that row.
+
+Consequence for external tooling: a query that joins a shadow table to `ab_user` via `changed_by_fk` (e.g. `SELECT u.username FROM dashboards_version v JOIN ab_user u ON v.changed_by_fk = u.id`) returns whatever audit metadata was captured at *baseline* time — typically stale or null — not the user who produced the version. The correct join is through the transaction row:
+
+```sql
+SELECT u.username, t.issued_at, v.dashboard_title
+FROM dashboards_version v
+JOIN version_transaction t ON v.transaction_id = t.id
+LEFT JOIN ab_user u ON t.user_id = u.id
+```
+
+The exclusion is deliberate (the audit columns would otherwise grow proportional to save count with redundant data) — but operators writing reports against the shadow tables need to know which join carries the version's authorship.
+
+**Behavior change — `ImportExportMixin.reset_ownership`:**
+
+The ownership-reset helper used by every import/clone/duplicate path was rewritten so that when a Flask user is present in `g.user`, `created_by` and `changed_by` are assigned to that user explicitly. Previously the helper left both fields `None` and relied on the FAB column default to backfill at flush time. The new shape was forced by the versioning capture path: when Continuum-attached relationships are present, the `None` propagates through to the FK and suppresses the column default, leaving the imported entity with no recorded author.
+
+The behavior change applies to **every** `ImportModelsCommand` / `CopyDashboardCommand` / `DuplicateDatasetCommand` invocation, not just versioning-adjacent ones. Operators who notice imported entities now consistently carry the importing user as `created_by` / `changed_by` (where previously some imports landed with `None` audit fields under specific FAB session configurations) are seeing this change.
+
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:
