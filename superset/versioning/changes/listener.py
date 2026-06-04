@@ -73,8 +73,8 @@ from superset.versioning.changes.shadow_queries import (
     _dataset_child_records_for_tx_from_shadows,
 )
 from superset.versioning.changes.state import (
-    _bulk_insert_records,
-    _compute_records_for_entity,
+    bulk_insert_records,
+    compute_records_for_entity,
 )
 from superset.versioning.changes.table import ENTITY_KIND_BY_CLASS_NAME
 from superset.versioning.diff import (
@@ -156,7 +156,7 @@ def _process_dirty_entity_into_buffer(
     if entity_id is None:
         return
     try:
-        records = _compute_records_for_entity(session, obj)
+        records = compute_records_for_entity(session, obj)
     except Exception:  # pylint: disable=broad-except
         logger.exception(
             "version_changes: diff failed for %s id=%s",
@@ -268,7 +268,7 @@ def _persist_buffered_records(
     boundary safety net so a malformed record can't crash the user's save.
     """
     try:
-        _bulk_insert_records(session, tx_id, buffer)
+        bulk_insert_records(session, tx_id, buffer)
     except OperationalError:
         # version_changes table missing (migration not yet applied).
         pass

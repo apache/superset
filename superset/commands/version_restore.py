@@ -36,6 +36,8 @@ import logging
 from typing import Any
 from uuid import UUID
 
+from flask_appbuilder import Model
+
 from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.daos.version import VersionDAO
@@ -57,7 +59,7 @@ class BaseRestoreVersionCommand(BaseCommand):
 
     #: Subclass overrides — the versioned model class (``Slice`` /
     #: ``Dashboard`` / ``SqlaTable``).
-    model_cls: type
+    model_cls: type[Model]
 
     #: Subclass overrides — exception classes raised on the matching
     #: failure modes. ``not_found_exc`` covers both "no such entity"

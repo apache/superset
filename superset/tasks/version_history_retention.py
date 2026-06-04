@@ -46,6 +46,7 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Iterator
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -58,17 +59,30 @@ from superset.extensions import celery_app, db
 logger = logging.getLogger(__name__)
 
 
-def _resolve_shadow_tables() -> tuple[list[sa.Table], list[sa.Table], sa.Table | None]:
-    """Resolve the (parent, child, m2m) shadow Table objects from
-    Continuum's mapper registry.
+@dataclass(frozen=True)
+class ShadowTables:
+    """The four Continuum-managed Table objects the prune walks.
 
-    Returns:
-        (parent_tables, child_tables, dashboard_slices_version_table)
+    Bundled here so the prune helper's signature stays at two arguments
+    instead of five. The shape is set once at task entry by
+    ``_resolve_shadow_tables`` and threaded through the retry loop.
+    """
+
+    parent: list[sa.Table]
+    child: list[sa.Table]
+    m2m: sa.Table | None
+    transaction: sa.Table
+
+
+def _resolve_shadow_tables(tx_table: sa.Table) -> ShadowTables:
+    """Resolve the parent / child / m2m shadow Tables from Continuum's
+    mapper registry and bundle them with the transaction Table.
 
     ``dashboard_slices_version`` is M2M-tracked by Continuum and lives
     in metadata under that name (Continuum auto-creates the Table; it
-    isn't registered as a versioned class). Returned separately because
-    it doesn't follow the parent/child class shape.
+    isn't registered as a versioned class). Carried separately on the
+    ``ShadowTables`` dataclass because it doesn't follow the parent /
+    child class shape.
     """
     # pylint: disable=import-outside-toplevel
     from sqlalchemy_continuum import version_class
@@ -108,7 +122,12 @@ def _resolve_shadow_tables() -> tuple[list[sa.Table], list[sa.Table], sa.Table |
         else None
     )
 
-    return parent_tables, child_tables, m2m_table
+    return ShadowTables(
+        parent=parent_tables,
+        child=child_tables,
+        m2m=m2m_table,
+        transaction=tx_table,
+    )
 
 
 def _candidate_transaction_ids(
@@ -225,20 +244,18 @@ def _chunked(items: list[int], size: int) -> Iterator[list[int]]:
 #: serialization-conflict path.
 _MAX_RETRY_ATTEMPTS = 3
 
-#: Base for exponential backoff between retries (seconds). With the
-#: 3-attempt cap above, the worst-case extra latency added by retries
-#: is ``BASE + BASE*4`` = ~0.5s, which is well inside the prune's own
+#: Base for exponential backoff between retries (seconds). Worst-case
+#: extra latency with the 3-attempt cap above and the factor below is
+#: ``BASE + BASE * FACTOR`` = ~0.5s — well inside the prune's own
 #: typical runtime.
 _RETRY_BACKOFF_BASE_SECONDS = 0.1
 
+#: Exponential-backoff multiplier between successive retry attempts.
+#: Backoff for attempt N is ``BASE * (FACTOR ** (N - 1))``.
+_RETRY_BACKOFF_FACTOR = 4
 
-def _run_prune_pass(
-    cutoff: datetime,
-    parent_tables: list[sa.Table],
-    child_tables: list[sa.Table],
-    m2m_table: sa.Table | None,
-    tx_table: sa.Table,
-) -> dict[str, Any]:
+
+def _run_prune_pass(cutoff: datetime, tables: ShadowTables) -> dict[str, Any]:
     """One SERIALIZABLE pass of the prune. Caller wraps in the retry
     loop so a serialization conflict re-opens a fresh connection +
     transaction from a clean snapshot."""
@@ -249,15 +266,15 @@ def _run_prune_pass(
         db.engine.connect().execution_options(isolation_level="SERIALIZABLE") as conn,
         conn.begin(),
     ):
-        tx_ids = _candidate_transaction_ids(conn, cutoff, parent_tables)
+        tx_ids = _candidate_transaction_ids(conn, cutoff, tables.parent)
         if not tx_ids:
             return {"pruned_transactions": 0, "cutoff": cutoff.isoformat()}
 
-        parent_rows = _delete_for_transactions(conn, parent_tables, tx_ids)
-        child_rows = _delete_for_transactions(conn, child_tables, tx_ids)
+        parent_rows = _delete_for_transactions(conn, tables.parent, tx_ids)
+        child_rows = _delete_for_transactions(conn, tables.child, tx_ids)
         m2m_rows = (
-            _delete_for_transactions(conn, [m2m_table], tx_ids)
-            if m2m_table is not None
+            _delete_for_transactions(conn, [tables.m2m], tx_ids)
+            if tables.m2m is not None
             else 0
         )
 
@@ -269,7 +286,9 @@ def _run_prune_pass(
         for chunk in _chunked(tx_ids, _TX_ID_CHUNK_SIZE):
             tx_rows += (
                 conn.execute(
-                    sa.delete(tx_table).where(tx_table.c.id.in_(chunk))
+                    sa.delete(tables.transaction).where(
+                        tables.transaction.c.id.in_(chunk)
+                    )
                 ).rowcount
                 or 0
             )
@@ -316,8 +335,11 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
         )
         return {"skipped": 1}
 
-    parent_tables, child_tables, m2m_table = _resolve_shadow_tables()
-    if not parent_tables:
+    # pylint: disable=import-outside-toplevel
+    from sqlalchemy_continuum import versioning_manager
+
+    tables = _resolve_shadow_tables(versioning_manager.transaction_cls.__table__)
+    if not tables.parent:
         logger.warning(
             "version_history_retention: no versioned classes resolved; skipping",
         )
@@ -325,17 +347,10 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
 
     cutoff = datetime.utcnow() - timedelta(days=retention_days)
 
-    # pylint: disable=import-outside-toplevel
-    from sqlalchemy_continuum import versioning_manager
-
-    tx_table = versioning_manager.transaction_cls.__table__
-
     last_exc: OperationalError | None = None
     for attempt in range(1, _MAX_RETRY_ATTEMPTS + 1):
         try:
-            stats = _run_prune_pass(
-                cutoff, parent_tables, child_tables, m2m_table, tx_table
-            )
+            stats = _run_prune_pass(cutoff, tables)
         except OperationalError as exc:
             last_exc = exc
             if attempt == _MAX_RETRY_ATTEMPTS:
@@ -345,7 +360,9 @@ def _prune_old_versions_impl(retention_days: int) -> dict[str, Any]:
                     exc,
                 )
                 raise
-            backoff = _RETRY_BACKOFF_BASE_SECONDS * (4 ** (attempt - 1))
+            backoff = _RETRY_BACKOFF_BASE_SECONDS * (
+                _RETRY_BACKOFF_FACTOR ** (attempt - 1)
+            )
             logger.info(
                 "version_history_retention: attempt %d hit %s; retrying in %.2fs",
                 attempt,
