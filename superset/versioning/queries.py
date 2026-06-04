@@ -35,6 +35,7 @@ from typing import Any
 from uuid import UUID
 
 import sqlalchemy as sa
+from flask_appbuilder import Model
 from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
@@ -65,7 +66,7 @@ def derive_version_uuid(entity_uuid: UUID, transaction_id: int) -> UUID:
 
 
 def _resolve_version_tables(
-    model_cls: type,
+    model_cls: type[Model],
 ) -> tuple[sa.Table, sa.Table, sa.Table]:
     """Return the (version, transaction, user) ``Table`` objects used by the
     listing and snapshot queries.
@@ -144,7 +145,7 @@ def _changed_by_from_row(row: Any) -> dict[str, Any] | None:
     }
 
 
-def _entity_kind_for(model_cls: type) -> str | None:
+def _entity_kind_for(model_cls: type[Model]) -> str | None:
     """Return the ``version_changes.entity_kind`` value for *model_cls*, or
     ``None`` when the class isn't in the change-records taxonomy."""
     # pylint: disable=import-outside-toplevel
@@ -153,7 +154,7 @@ def _entity_kind_for(model_cls: type) -> str | None:
     return ENTITY_KIND_BY_CLASS_NAME.get(model_cls.__name__)
 
 
-def find_active_by_uuid(model_cls: type, entity_uuid: UUID) -> Any | None:
+def find_active_by_uuid(model_cls: type[Model], entity_uuid: UUID) -> Any | None:
     """Return the live entity matching *entity_uuid*, or None if not found."""
     return (
         db.session.query(model_cls)
@@ -162,7 +163,7 @@ def find_active_by_uuid(model_cls: type, entity_uuid: UUID) -> Any | None:
     )
 
 
-def _get_version_count(model_cls: type, entity_id: int) -> int:
+def _get_version_count(model_cls: type[Model], entity_id: int) -> int:
     """Return the number of historical version rows for *entity_id*."""
     ver_cls = version_class(model_cls)
     return (
@@ -174,7 +175,7 @@ def _get_version_count(model_cls: type, entity_id: int) -> int:
     )
 
 
-def current_version_number(model_cls: type, entity_id: int) -> int | None:
+def current_version_number(model_cls: type[Model], entity_id: int) -> int | None:
     """Return the 0-based ``version_number`` of the live row for *entity_id*
     — equivalent to the index of the most recent entry that
     :func:`list_versions` would return, or ``None`` when the entity has no
@@ -191,7 +192,7 @@ def current_version_number(model_cls: type, entity_id: int) -> int | None:
     return count - 1 if count > 0 else None
 
 
-def current_live_transaction_id(model_cls: type, entity_id: int) -> int | None:
+def current_live_transaction_id(model_cls: type[Model], entity_id: int) -> int | None:
     """Return the Continuum ``transaction_id`` of the live row for
     *entity_id* — stable across retention pruning, unlike the index
     returned by :func:`current_version_number`.
@@ -209,7 +210,7 @@ def current_live_transaction_id(model_cls: type, entity_id: int) -> int | None:
 
 
 def current_live_version_uuid(
-    model_cls: type, entity_id: int, entity_uuid: UUID
+    model_cls: type[Model], entity_id: int, entity_uuid: UUID
 ) -> UUID | None:
     """Return the deterministic ``version_uuid`` of the live row, or
     ``None`` when the entity has no version rows yet."""
@@ -287,7 +288,7 @@ def list_change_records_batch(
 
 
 def list_versions(
-    model_cls: type,
+    model_cls: type[Model],
     entity_uuid: UUID,
     *,
     entity: Any | None = None,
@@ -356,7 +357,7 @@ def list_versions(
 
 
 def resolve_version_uuid(
-    model_cls: type,
+    model_cls: type[Model],
     entity_uuid: UUID,
     version_uuid: UUID,
     *,
@@ -405,7 +406,7 @@ def resolve_version_uuid(
 
 
 def get_version(
-    model_cls: type,
+    model_cls: type[Model],
     entity_uuid: UUID,
     version_uuid: UUID,
     *,
