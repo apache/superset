@@ -26,9 +26,10 @@ import { DynamicPluginProvider } from 'src/components';
 import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
-import { type ThemeStorage, ThemeMode } from '@apache-superset/core/theme';
+import { type ThemeStorage } from '@apache-superset/core/theme';
 import { store } from 'src/views/store';
 import querystring from 'query-string';
+import { getInitialThemeMode } from './getInitialThemeMode';
 
 /**
  * In-memory implementation of ThemeStorage interface for embedded contexts.
@@ -48,19 +49,6 @@ class ThemeMemoryStorageAdapter implements ThemeStorage {
   removeItem(key: string): void {
     this.storage.delete(key);
   }
-}
-
-/**
- * Reads the `?theme=` URL parameter set by the embed SDK via
- * `dashboardUiConfig.urlParams` and returns the corresponding ThemeMode.
- * Falls back to ThemeMode.DEFAULT when the param is absent or unrecognised.
- */
-function getInitialThemeMode(): ThemeMode {
-  const params = new URLSearchParams(window.location.search);
-  const theme = params.get('theme');
-  if (theme === 'dark') return ThemeMode.DARK;
-  if (theme === 'system') return ThemeMode.SYSTEM;
-  return ThemeMode.DEFAULT;
 }
 
 const themeController = new ThemeController({
