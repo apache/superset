@@ -128,6 +128,10 @@ const SliceContainer = styled.div`
 
 const EMPTY_OBJECT: Record<string, never> = {};
 
+// Stable no-op fallback for optional callbacks so we don't allocate a new
+// function on every render (keeps referential equality for memoized children).
+const NOOP = () => {};
+
 // Helper function to get chart state with fallback
 const getChartStateWithFallback = (
   chartState: { state?: JsonObject } | undefined,
@@ -767,7 +771,7 @@ const Chart = (props: ChartProps) => {
           timeout={timeout}
           triggerQuery={chart.triggerQuery}
           vizType={slice.viz_type}
-          setControlValue={props.setControlValue ?? (() => {})}
+          setControlValue={props.setControlValue ?? NOOP}
           datasetsStatus={
             datasetsStatus as 'loading' | 'error' | 'complete' | undefined
           }
