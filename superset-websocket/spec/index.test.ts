@@ -152,6 +152,43 @@ describe('server', () => {
     });
   });
 
+  describe('getLastId', () => {
+    const requestWithUrl = (url: string): http.IncomingMessage => {
+      const request = new http.IncomingMessage(new net.Socket());
+      request.url = url;
+      return request;
+    };
+
+    test('returns null when last_id is absent', () => {
+      expect(server.getLastId(requestWithUrl('http://localhost'))).toBeNull();
+    });
+
+    test('returns a well-formed Redis stream ID', () => {
+      expect(
+        server.getLastId(
+          requestWithUrl('http://localhost?last_id=1607477697866-0'),
+        ),
+      ).toEqual('1607477697866-0');
+    });
+
+    test.each([
+      'abc-xyz',
+      '1607477697866',
+      '1607477697866-',
+      '-0',
+      '1607477697866-0; DROP TABLE',
+      '1607477697866-0-0',
+    ])('returns null for malformed last_id %p', value => {
+      expect(
+        server.getLastId(
+          requestWithUrl(
+            `http://localhost?last_id=${encodeURIComponent(value)}`,
+          ),
+        ),
+      ).toBeNull();
+    });
+  });
+
   describe('redisUrlFromConfig', () => {
     test('it builds a valid Redis URL from defaults', () => {
       expect(
@@ -391,6 +428,23 @@ describe('server', () => {
       );
       expect(fetchRangeFromStreamSpy).not.toHaveBeenCalled();
       expect(wsEventMock).toHaveBeenCalledWith('pong', expect.any(Function));
+    });
+
+    test('valid JWT, malformed lastId is ignored', async () => {
+      const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+      const request = getRequest(
+        validToken,
+        'http://localhost?last_id=abc-xyz',
+      );
+
+      server.wsConnection(ws, request);
+
+      expect(trackClientSpy).toHaveBeenCalledWith(
+        channelId,
+        socketInstanceExpected,
+      );
+      // Malformed last_id must not trigger a stream range fetch.
+      expect(fetchRangeFromStreamSpy).not.toHaveBeenCalled();
     });
 
     test('valid JWT, with lastId', async () => {

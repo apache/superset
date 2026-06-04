@@ -1283,3 +1283,59 @@ def test_start_oauth2_dance_falls_back_to_url_for(mocker: MockerFixture) -> None
     error = exc_info.value.error
 
     assert error.extra["redirect_uri"] == fallback_uri
+
+
+def test_get_table_names_strips_schema_with_regex_metacharacters(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_table_names strips a schema prefix containing regex
+    metacharacters without raising and without mangling unrelated names.
+    """
+    schema = "a.b(c)"
+
+    inspector = mocker.MagicMock()
+    inspector.get_table_names.return_value = [
+        f"{schema}.orders",
+        "axbc.other",
+    ]
+
+    database = mocker.MagicMock()
+
+    spec = BaseEngineSpec
+    mocker.patch.object(spec, "try_remove_schema_from_table_name", True)
+
+    tables = spec.get_table_names(database, inspector, schema)
+
+    # The real schema prefix is stripped; the look-alike name is left intact
+    # because the metacharacters are escaped before being used as a regex.
+    # "axbc.other" would match the old unescaped pattern ^a.b(c)\. and be
+    # incorrectly stripped — the escaped version correctly preserves it.
+    assert tables == {"orders", "axbc.other"}
+
+
+def test_get_view_names_strips_schema_with_regex_metacharacters(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that get_view_names strips a schema prefix containing regex
+    metacharacters without raising and without mangling unrelated names.
+    """
+    schema = "a.b(c)"
+
+    inspector = mocker.MagicMock()
+    inspector.get_view_names.return_value = [
+        f"{schema}.report",
+        "axbc.other",
+    ]
+
+    database = mocker.MagicMock()
+
+    spec = BaseEngineSpec
+    mocker.patch.object(spec, "try_remove_schema_from_table_name", True)
+
+    views = spec.get_view_names(database, inspector, schema)
+
+    # "axbc.other" would match the old unescaped pattern ^a.b(c)\. and be
+    # incorrectly stripped — the escaped version correctly preserves it.
+    assert views == {"report", "axbc.other"}

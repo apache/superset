@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { sanitizeUrl } from '@braintree/sanitize-url';
 import rison from 'rison';
 import { PureComponent, useCallback, type ReactNode } from 'react';
 import { connect, ConnectedProps } from 'react-redux';
@@ -1771,7 +1772,7 @@ class DatasourceEditor extends PureComponent<
   renderOpenInSqlLabLink(isError = false) {
     return (
       <a
-        href={this.getSQLLabUrl()}
+        href={sanitizeUrl(this.getSQLLabUrl())}
         target="_blank"
         rel="noopener noreferrer"
         css={theme => css`

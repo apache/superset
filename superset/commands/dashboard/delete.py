@@ -48,7 +48,10 @@ class DeleteEmbeddedDashboardCommand(BaseCommand):
         return EmbeddedDashboardDAO.delete(self._dashboard.embedded)
 
     def validate(self) -> None:
-        pass
+        try:
+            security_manager.raise_for_ownership(self._dashboard)
+        except SupersetSecurityException as ex:
+            raise DashboardForbiddenError() from ex
 
 
 class DeleteDashboardCommand(BaseCommand):
