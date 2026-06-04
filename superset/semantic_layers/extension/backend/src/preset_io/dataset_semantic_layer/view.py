@@ -274,8 +274,18 @@ class DatasetSemanticView(SemanticView):
     ) -> sqlglot_exp.Expression | None:
         if not filters:
             return None
-        # Sort to make the resulting SQL deterministic.
-        ordered = sorted(filters)
+        # Sort to make the resulting SQL deterministic. Filter's default
+        # tuple ordering eventually compares ``Dimension`` instances, which
+        # are not orderable, so use a stable string key instead.
+        ordered = sorted(
+            filters,
+            key=lambda f: (
+                f.type.value,
+                f.column.id if f.column is not None else "",
+                f.operator.value,
+                repr(f.value),
+            ),
+        )
         combined = self._filter_predicate(ordered[0])
         for filter_ in ordered[1:]:
             combined = sqlglot_exp.And(

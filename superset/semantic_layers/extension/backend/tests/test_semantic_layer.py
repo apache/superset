@@ -62,3 +62,19 @@ def test_get_semantic_view_returns_dataset_view(mocker, dataset: MagicMock) -> N
 
     assert isinstance(view, DatasetSemanticView)
     assert view.uid() == "dataset:1"
+
+
+def test_get_semantic_views_returns_empty_when_no_id() -> None:
+    layer = DatasetSemanticLayer.from_configuration({})
+    assert layer.get_semantic_views({}) == set()
+
+
+def test_get_semantic_views_resolves_dataset(mocker, dataset: MagicMock) -> None:
+    mocker.patch(
+        "preset_io.dataset_semantic_layer.layer.get_dataset_by_id",
+        return_value=dataset,
+    )
+    layer = DatasetSemanticLayer.from_configuration({})
+    views = layer.get_semantic_views({"dataset_id": "1"})
+    assert len(views) == 1
+    assert next(iter(views)).uid() == "dataset:1"
