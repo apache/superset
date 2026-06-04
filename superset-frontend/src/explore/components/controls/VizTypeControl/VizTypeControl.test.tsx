@@ -39,13 +39,13 @@ import {
   EchartsTimeseriesLineChartPlugin,
 } from '../../../../../plugins/plugin-chart-echarts/src';
 import TableChartPlugin from '../../../../../plugins/plugin-chart-table/src';
-import { MultiChartPlugin } from '../../../../../plugins/legacy-preset-chart-deckgl/src';
+import { MultiChartPlugin } from '../../../../../plugins/preset-chart-deckgl/src';
 import VizTypeControl, { VIZ_TYPE_CONTROL_TEST_ID } from './index';
 
 // Mock scrollIntoView to avoid errors in test environment
 jest.mock('scroll-into-view-if-needed', () => jest.fn());
 
-jest.useFakeTimers();
+jest.useFakeTimers({ advanceTimers: true });
 
 class MainPreset extends Preset {
   constructor() {

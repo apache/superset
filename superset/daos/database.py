@@ -26,7 +26,7 @@ from sqlalchemy.orm import joinedload
 from superset import is_feature_enabled
 from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelingNotEnabledError
 from superset.connectors.sqla.models import SqlaTable
-from superset.daos.base import BaseDAO
+from superset.daos.base import BaseDAO, SKIP_VISIBILITY_FILTER_CLASSES
 from superset.databases.filters import DatabaseFilter
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import db
@@ -73,6 +73,8 @@ class DatabaseDAO(BaseDAO[Database]):
         skip_base_filter: bool = False,
         id_column: str | None = None,
         query_options: list[Any] | None = None,
+        *,
+        skip_visibility_filter: bool = False,
     ) -> Database | None:
         """
         Find a database by id, eagerly loading the SSH tunnel relationship.
@@ -81,6 +83,10 @@ class DatabaseDAO(BaseDAO[Database]):
         if query_options:
             all_options.extend(query_options)
         query = db.session.query(cls.model_cls).options(*all_options)
+        if skip_visibility_filter:
+            query = query.execution_options(
+                **{SKIP_VISIBILITY_FILTER_CLASSES: {cls.model_cls}}
+            )
         query = cls._apply_base_filter(query, skip_base_filter)
 
         column_name = id_column or cls.id_column_name

@@ -1,0 +1,68 @@
+---
+id: get-dashboards-tabs
+title: "Get dashboard's tabs"
+description: "Returns a list of a dashboard's tabs and dashboard's nested tree structure for associated tabs."
+sidebar_label: "Get dashboard's tabs"
+hide_title: true
+hide_table_of_contents: true
+api: eJzFV9tu3DYQ/RViUCA2qnjjNg+Ggjw4qXNrkBrxBm1hGc6sOLtioiUVcrSxK+jfi6Eu3luDJgWaJ0nkzPCc4ZBz1ICmkHtTsXEWUnhLXHsbFKrSBFZurlBpDMXModf3gmKcBYVWbwxaCkxasSdSgX2dc+1JzZ1XGILLDcZZnIUjSKBCj0ti8gHSy2Zr+TPDBXnFBSmjZXV5G5dKlPPKcFChrBeQgBGXCrmABCwuCVIw+tr5637e06faeNKQsq8pgZAXtERIG+DbSqwDe2MX0LZXYhwqZwMFmf/pwQN55M4yWZZXrKrS5Cg4Jx+CgG3W4lXeVeTZdN6eQl1GL8O0DLsGWJbXko/4rrWRqFieb9hsQUyGATf7QDnHAZxdS86/sFBemFJ7smsmkBuf1yX6gynODmGMi97jrYSt0JPlsBH1n8CMTmy4pL2WKyzrfTM7jMYgMMXZ7hpftg/neFs61Bfdluyma18C6QaXVQd73LK2FdPNqvxlKMBYxOL58D/Vx5JCwMW/SsomytERnqBWUt4UOFUv7QpLo9Xd0VKVdyujScMeOmu+HZfj78vlncWaC+fNX6RTdVpzQZb79dV4hvcQWXfsmPz8fZk8c35mtCabqj9drbSz91gVuCJVkV+aEIQRO4V5TiEoLkxQnoKrfU77CI7xOnYPvy+7N47V3NVWp2pa0FBCpEcKSjsKyjpWdGOkuHYZjTHiuoHy2hu+jZ3gw2eG9PJK7mLGhXSHu4MX4CqBm/u503QRkXXNo0S7kBvt3dvXkECJMyrvPvu0ppDXvlT3/1DPz6Yqg4K5SieT0uVYFi5wevLg5GSClZmsjidjq5kcT+SsZ6CyLLNK3X+hMjjtqy1mPFVPCD159cPp06dnFxfX099+PXuTAbTJCOz8lgtn16CNAyM4s6yc5yGZIbOZHTqRejwOHy2IDwSH+noGSedXEGry4XGzxSODVGXQc8lA/dhX5zW7j2TbzB5mtvLG8sGA60hq7eDwcJ3pK1zhRdznNbYbg3fb4WwQwiNJ/IyG1Zw4LyLHb2PYbNBMh2+1vW/C9/2wdU3HdRqpvu88WnkI70eZ7bBqZBxxbmWhN3IlHZVucSCmh49AinhJXDgNKSyIo+7hAlLYZdHcaZY2EpJkkV8NCqn2ksu9KYHt4/VappWmFZWuWpJl1UWKW9UFairv2OWubNPJpJFQbdpIDbY70Z7Wgd1yCCGt3BuclTQIjRhG3jXNMbbPCBMSIFsv5QD3n/KIR3gz/ovp9FyNcdoEBM1mvJHvDriLiErJnGg/kYYvz6N+cX4ryN5U9f7Ruo0KcLiNooboSMY7qYFZLJdnzi9R4r36fQq9mpSC7mbvlFQk3SbifO1p7ikU3xqkFZE7dx2dDfR1RT7QugpaG5La6exWx11KAi8x9odeJz8n3tH12yla6zX/w39Bz5vphidViSb2vFiyTX92LgErI+yOBemwDiSQbqj+SOVqKKZLaJoZBnrny7aV4U81eWk4V3f13P2ImCDvGtI5loG+kIuDt70mOVRf97+yl+Kgcu0tjGIZIIGPdLv5P9NeyQmJ11sE3Bmc5jnF+3Vw3REFG3fR8zOpOpFNa0pgrL3+RaLvhdU0nUV3X7YjytgqBGDb/g2Q6vDx
+sidebar_class_name: "get api-method"
+info_path: developer-docs/api/superset
+custom_edit_url: null
+hide_send_button: true
+show_extensions: true
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Get dashboard's tabs"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/dashboard/{id_or_slug}/tabs"}
+  context={"endpoint"}
+>
+
+</MethodEndpoint>
+
+
+
+Returns a list of a dashboard's tabs and dashboard's nested tree structure for associated tabs.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  {...require("./get-dashboards-tabs.ParamsDetails.json")}
+>
+
+</ParamsDetails>
+
+<RequestSchema
+  {...require("./get-dashboards-tabs.RequestSchema.json")}
+>
+
+</RequestSchema>
+
+<StatusCodes
+  {...require("./get-dashboards-tabs.StatusCodes.json")}
+>
+
+</StatusCodes>

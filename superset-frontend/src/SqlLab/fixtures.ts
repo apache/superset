@@ -362,7 +362,7 @@ export const queryWithNoQueryLimit = {
       },
       {
         is_dttm: false,
-        name: 'gender',
+        column_name: 'gender',
         type: 'STRING',
       },
     ],

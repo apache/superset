@@ -167,6 +167,7 @@ class DatasetPostSchema(Schema):
     external_url = fields.String(allow_none=True)
     normalize_columns = fields.Boolean(load_default=False)
     always_filter_main_dttm = fields.Boolean(load_default=False)
+    currency_code_column = fields.String(allow_none=True, validate=Length(0, 250))
     template_params = fields.String(allow_none=True)
     uuid = fields.UUID(allow_none=True)
 
