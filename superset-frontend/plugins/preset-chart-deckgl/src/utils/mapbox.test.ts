@@ -17,15 +17,22 @@
  * under the License.
  */
 
-import {
-  getMapboxApiKeyFromBootstrap,
-  hasMapboxApiKey as hasBootstrapMapboxApiKey,
-} from '@superset-ui/core/utils/mapStyles';
+import { getMapboxApiKey, hasMapboxApiKey } from './mapbox';
 
-export function getMapboxApiKey(): string {
-  return getMapboxApiKeyFromBootstrap();
-}
+const setBootstrap = (conf: Record<string, unknown>) => {
+  document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify({
+    common: { conf },
+  })}'></div>`;
+};
 
-export function hasMapboxApiKey(): boolean {
-  return hasBootstrapMapboxApiKey();
-}
+test('deck.gl Mapbox helpers read key presence from bootstrap data', () => {
+  setBootstrap({ MAPBOX_API_KEY: 'pk.test' });
+
+  expect(getMapboxApiKey()).toBe('pk.test');
+  expect(hasMapboxApiKey()).toBe(true);
+
+  setBootstrap({});
+
+  expect(getMapboxApiKey()).toBe('');
+  expect(hasMapboxApiKey()).toBe(false);
+});

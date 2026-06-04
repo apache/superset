@@ -27,6 +27,12 @@ import {
   SequentialScheme,
 } from '@superset-ui/core';
 import {
+  getBootstrapDataFromDocument,
+  getMapRendererOptions,
+  OSM_TILE_STYLE_CHOICE,
+  type MapProvider,
+} from '@superset-ui/core/utils/mapStyles';
+import {
   ControlPanelState,
   CustomControlItem,
   D3_FORMAT_OPTIONS,
@@ -40,15 +46,23 @@ import {
   isColorSchemeTypeVisible,
 } from './utils';
 import { TooltipTemplateControl } from './TooltipTemplateControl';
+import { hasMapboxApiKey } from '../utils/mapbox';
 
 const categoricalSchemeRegistry = getCategoricalSchemeRegistry();
 const sequentialSchemeRegistry = getSequentialSchemeRegistry();
 
 export const DEFAULT_DECKGL_COLOR = { r: 158, g: 158, b: 158, a: 1 };
 
-let deckglTiles: string[][];
+type DeckGLTileChoice = [string, string];
+type MapStyleVisibilityProps = {
+  controls?: {
+    map_renderer?: { value?: unknown };
+  };
+};
 
-export const DEFAULT_DECKGL_TILES = [
+let deckglTiles: DeckGLTileChoice[];
+
+export const DEFAULT_DECKGL_TILES: DeckGLTileChoice[] = [
   [
     'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
     'Light (Carto)',
@@ -62,9 +76,10 @@ export const DEFAULT_DECKGL_TILES = [
     'Streets (Carto)',
   ],
   ['https://tiles.openfreemap.org/styles/liberty', 'Liberty (OpenFreeMap)'],
+  [OSM_TILE_STYLE_CHOICE.value, OSM_TILE_STYLE_CHOICE.label],
 ];
 
-export const DEFAULT_MAPBOX_TILES = [
+export const DEFAULT_MAPBOX_TILES: DeckGLTileChoice[] = [
   ['mapbox://styles/mapbox/streets-v9', 'Streets (Mapbox)'],
   ['mapbox://styles/mapbox/dark-v9', 'Dark (Mapbox)'],
   ['mapbox://styles/mapbox/light-v9', 'Light (Mapbox)'],
@@ -73,13 +88,27 @@ export const DEFAULT_MAPBOX_TILES = [
   ['mapbox://styles/mapbox/outdoors-v9', 'Outdoors (Mapbox)'],
 ];
 
+const isDeckGLTileChoices = (value: unknown): value is DeckGLTileChoice[] =>
+  Array.isArray(value) &&
+  value.every(
+    choice =>
+      Array.isArray(choice) &&
+      choice.length >= 2 &&
+      typeof choice[0] === 'string' &&
+      typeof choice[1] === 'string',
+  );
+
 const getDeckGLTiles = () => {
   if (!deckglTiles) {
-    const appContainer = document.getElementById('app');
-    const { common } = JSON.parse(
-      appContainer?.getAttribute('data-bootstrap') || '{}',
-    );
-    deckglTiles = common?.deckgl_tiles ?? DEFAULT_DECKGL_TILES;
+    const bootstrapData = getBootstrapDataFromDocument();
+    const deckglTilesOverride = (
+      bootstrapData as {
+        common?: { deckgl_tiles?: unknown };
+      } | null
+    )?.common?.deckgl_tiles;
+    deckglTiles = isDeckGLTileChoices(deckglTilesOverride)
+      ? deckglTilesOverride
+      : DEFAULT_DECKGL_TILES;
   }
   return deckglTiles;
 };
@@ -425,15 +454,26 @@ export const mapProvider = {
     label: t('Map Renderer'),
     clearable: false,
     renderTrigger: true,
-    choices: [
-      ['maplibre', t('MapLibre (open-source)')],
-      ['mapbox', t('Mapbox (API key required)')],
-    ],
+    options: getMapRendererOptions({ hasMapboxKey: hasMapboxApiKey() }),
     default: 'maplibre',
     description: t(
       'Select the map tile provider. MapLibre is open-source and requires no API key. ' +
         'Mapbox requires MAPBOX_API_KEY to be configured in Superset.',
     ),
+    mapStateToProps: (state: ControlPanelState) => {
+      const hasKey = hasMapboxApiKey();
+      return {
+        options: getMapRendererOptions({
+          hasMapboxKey: hasKey,
+          currentValue: state.form_data?.map_renderer as
+            | MapProvider
+            | undefined,
+        }),
+        warning: hasKey
+          ? undefined
+          : t('Mapbox requires MAPBOX_API_KEY to be configured on the server.'),
+      };
+    },
   },
 };
 
@@ -450,7 +490,7 @@ export const maplibreStyle = {
     description: t(
       'Base layer map style. Accepts a MapLibre-compatible style URL.',
     ),
-    visibility: ({ controls }: ControlPanelState) =>
+    visibility: ({ controls }: MapStyleVisibilityProps) =>
       controls?.map_renderer?.value !== 'mapbox',
   },
 };
@@ -468,7 +508,7 @@ export const mapboxStyle = {
     description: t(
       'Base layer map style. Accepts a Mapbox style URL (mapbox://styles/...).',
     ),
-    visibility: ({ controls }: ControlPanelState) =>
+    visibility: ({ controls }: MapStyleVisibilityProps) =>
       controls?.map_renderer?.value === 'mapbox',
   },
 };
