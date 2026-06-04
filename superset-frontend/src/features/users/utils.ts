@@ -44,6 +44,15 @@ export const deleteUser = async (userId: number) =>
     endpoint: `/api/v1/security/users/${userId}`,
   });
 
+export const getUserDisplayLabel = (user: {
+  first_name?: string;
+  last_name?: string;
+  username?: string;
+}): string =>
+  [user.first_name, user.last_name].filter(Boolean).join(' ') ||
+  user.username ||
+  t('N/A');
+
 export const atLeastOneRoleOrGroup =
   (fieldToCheck: 'roles' | 'groups') =>
   ({

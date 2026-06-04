@@ -27,7 +27,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      python: ${{ steps.check.outputs.python }}
+      frontend: ${{ steps.check.outputs.frontend }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        with:
+          persist-credentials: false
+      - name: Check for file changes
+        id: check
+        uses: ./.github/actions/change-detector/
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   cypress-matrix:
+    needs: changes
+    if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
     # Somehow one test flakes on 24.04 for unknown reasons, this is the only GHA left on 22.04
     runs-on: ubuntu-22.04
     permissions:
@@ -40,9 +61,14 @@ jobs:
       # https://github.com/cypress-io/github-action/issues/48
       fail-fast: false
       matrix:
-        parallel_id: [0, 1, 2, 3, 4, 5]
+        parallel_id: [0, 1]
         browser: ["chrome"]
         app_root: ${{ github.event_name == 'push' && fromJSON('["", "/app/prefix"]') || fromJSON('[""]') }}
+        # The /app/prefix variant (push events only) is smoke-tested on a single
+        # shard rather than the full matrix, so exclude it from the other shards.
+        exclude:
+          - parallel_id: 1
+            app_root: "/app/prefix"
     env:
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -89,51 +115,38 @@ jobs:
           ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
           submodules: recursive
       # -------------------------------------------------------
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-        if: steps.check.outputs.python || steps.check.outputs.frontend
       - name: Setup postgres
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
       - name: Import test data
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: testdata
       - name: Setup Node.js
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version-file: './superset-frontend/.nvmrc'
       - name: Install npm dependencies
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: Build javascript packages
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
       - name: Install cypress
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: cypress-install
       - name: Run Cypress
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
           PARALLEL_ID: ${{ matrix.parallel_id }}
-          PARALLELISM: 6
+          PARALLELISM: 2
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           NODE_OPTIONS: "--max-old-space-size=4096"
         with:
@@ -141,8 +154,9 @@ jobs:
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
+        env:
+          APP_ROOT: ${{ matrix.app_root }}
         run: |
-          APP_ROOT="${{ matrix.app_root }}"
           SAFE_APP_ROOT=${APP_ROOT//\//_}
           echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
       - name: Upload Artifacts
@@ -153,6 +167,8 @@ jobs:
           name: cypress-artifact-${{ github.run_id }}-${{ github.job }}-${{ matrix.browser }}-${{ matrix.parallel_id }}--${{ steps.set-safe-app-root.outputs.safe_app_root }}
 
   playwright-tests:
+    needs: changes
+    if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-22.04
     permissions:
       contents: read
@@ -206,46 +222,37 @@ jobs:
           ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
           submodules: recursive
       # -------------------------------------------------------
-      - name: Check for file changes
-        id: check
-        uses: ./.github/actions/change-detector/
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
-        if: steps.check.outputs.python || steps.check.outputs.frontend
       - name: Setup postgres
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: setup-postgres
       - name: Import test data
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: playwright_testdata
       - name: Setup Node.js
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version-file: './superset-frontend/.nvmrc'
       - name: Install npm dependencies
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: npm-install
       - name: Build javascript packages
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: build-instrumented-assets
+      - name: Build embedded SDK
+        uses: ./.github/actions/cached-dependencies
+        with:
+          run: build-embedded-sdk
       - name: Install Playwright
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         with:
           run: playwright-install
       - name: Run Playwright (Required Tests)
-        if: steps.check.outputs.python || steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
@@ -254,8 +261,9 @@ jobs:
       - name: Set safe app root
         if: failure()
         id: set-safe-app-root
+        env:
+          APP_ROOT: ${{ matrix.app_root }}
         run: |
-          APP_ROOT="${{ matrix.app_root }}"
           SAFE_APP_ROOT=${APP_ROOT//\//_}
           echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
       - name: Upload Playwright Artifacts

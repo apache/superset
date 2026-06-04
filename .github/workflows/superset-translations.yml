@@ -84,13 +84,15 @@ jobs:
       # drift on the base branch.
       - name: Fetch base ref and create comparison worktree
         if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
+        env:
+          PR_BASE_REF: ${{ github.event.pull_request.base.ref }}
         run: |
           # For PRs use the base branch; for direct pushes compare against the previous commit.
-          BASE_REF="${{ github.event.pull_request.base.ref }}"
+          BASE_REF="$PR_BASE_REF"
           if [ -n "$BASE_REF" ]; then
             git fetch --depth=1 origin "$BASE_REF"
           else
-            git fetch --depth=2 origin "${{ github.ref }}"
+            git fetch --depth=2 origin "$GITHUB_REF"
           fi
           git worktree add /tmp/base-worktree FETCH_HEAD
 
@@ -111,13 +113,9 @@ jobs:
             --translations-dir /tmp/base-worktree/superset/translations \
             > /tmp/before.json
 
-      # Reset the PR worktree's translations to the pristine BASE state so
-      # both babel_update runs start from the same .po files. The only
-      # difference between the runs is the source code.
-      - name: Reset PR worktree translations to pristine BASE
-        if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
-        run: git checkout FETCH_HEAD -- superset/translations/
-
+      # Run babel_update against the PR source and PR translations. This keeps
+      # committed .po fixes in play while the base babel_update above still
+      # cancels out translation drift already present on the base branch.
       - name: Run babel_update against PR source
         if: steps.check.outputs.python == 'true' || steps.check.outputs.frontend == 'true'
         run: ./scripts/translations/babel_update.sh

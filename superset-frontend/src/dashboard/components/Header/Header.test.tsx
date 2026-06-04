@@ -611,6 +611,21 @@ test('should toggle the edit mode', () => {
   expect(logEvent).toHaveBeenCalled();
 });
 
+test('should NOT render the Edit dashboard button when embedded', () => {
+  // Embedded (Embedded SDK) dashboards authenticate with a guest token and so
+  // have no userId. The Edit button must be hidden even with edit permission,
+  // since the embedded context cannot handle entering/exiting edit mode.
+  const embeddedCanEditState = {
+    dashboardInfo: {
+      ...initialState.dashboardInfo,
+      dash_edit_perm: true,
+      userId: undefined,
+    },
+  };
+  setup(embeddedCanEditState);
+  expect(screen.queryByTestId('edit-dashboard-button')).not.toBeInTheDocument();
+});
+
 test('should render the dropdown icon', () => {
   setup();
   expect(screen.getByRole('img', { name: 'ellipsis' })).toBeInTheDocument();
