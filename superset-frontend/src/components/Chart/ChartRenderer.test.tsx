@@ -173,17 +173,14 @@ test('should detect changes in matrixify properties', () => {
     chartStatus: 'success',
   };
 
-  render(<ChartRenderer {...(initialProps as ChartRendererProps)} />);
-
-  // Since we can't directly test shouldComponentUpdate, we verify the component
-  // correctly identifies matrixify-related properties by checking the implementation
-  expect((initialProps.formData as JsonObject).matrixify_mode_rows).toBe(
-    'metrics',
+  const { getByTestId } = render(
+    <ChartRenderer {...(initialProps as ChartRendererProps)} />,
   );
-  expect((initialProps.formData as JsonObject).matrixify_dimension_x).toEqual({
-    dimension: 'country',
-    values: ['USA'],
-  });
+
+  // Verify matrixify-related formData is forwarded through to the chart
+  expect(getByTestId('mock-super-chart')).toHaveTextContent(
+    JSON.stringify(initialProps.formData),
+  );
 });
 
 test('should detect changes in postTransformProps', () => {

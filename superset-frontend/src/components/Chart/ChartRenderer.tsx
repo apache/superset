@@ -37,6 +37,7 @@ import {
   QueryFormData,
   AnnotationData,
   DataMask,
+  FilterState,
   QueryData,
   JsonObject,
   LatestQueryFormData,
@@ -101,12 +102,6 @@ interface OwnState {
   [key: string]: unknown;
 }
 
-// Types for filter state
-interface FilterState {
-  value?: FilterValue[];
-  [key: string]: unknown;
-}
-
 // Props interface
 export interface ChartRendererProps {
   annotationData?: AnnotationData;
@@ -134,7 +129,6 @@ export interface ChartRendererProps {
     merge?: boolean,
     refresh?: boolean,
   ) => void;
-  setDataMask?: (dataMask: DataMask) => void;
   onFilterMenuOpen?: (chartId: number, column: string) => void;
   onFilterMenuClose?: (chartId: number, column: string) => void;
   ownState?: OwnState;
