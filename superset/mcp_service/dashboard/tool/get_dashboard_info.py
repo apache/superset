@@ -39,6 +39,7 @@ from superset.mcp_service.dashboard.schemas import (
     dashboard_serializer,
     DashboardError,
     DashboardInfo,
+    DEFAULT_GET_DASHBOARD_INFO_COLUMNS,
     GetDashboardInfoRequest,
     redact_filter_state_data_model_metadata,
 )
@@ -248,9 +249,20 @@ async def get_dashboard_info(
                     result.is_permalink_state,
                 )
             )
+            # When permalink_key is supplied and the caller did not explicitly
+            # override select_columns, ensure filter_state is present so the
+            # caller gets the data they came for.
+            effective_select_columns = list(request.select_columns)
+            if (
+                request.permalink_key
+                and effective_select_columns == list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS)
+                and "filter_state" not in effective_select_columns
+            ):
+                effective_select_columns.append("filter_state")
+
             return result.model_dump(
                 mode="json",
-                context={"select_columns": request.select_columns},
+                context={"select_columns": effective_select_columns},
             )
         else:
             await ctx.warning(
