@@ -308,9 +308,6 @@ class TestThemeApi(SupersetTestCase):
         assert rv.status_code == 404
 
     @pytest.mark.usefixtures("create_themes")
-    @pytest.mark.skip(
-        "DELETE endpoint not properly registered due to route method exclusion"
-    )
     def test_delete_theme(self):
         """
         Theme API: Test delete
@@ -330,9 +327,6 @@ class TestThemeApi(SupersetTestCase):
         assert model is None
 
     @pytest.mark.usefixtures("create_themes")
-    @pytest.mark.skip(
-        "DELETE endpoint not properly registered due to route method exclusion"
-    )
     def test_delete_theme_not_found(self):
         """
         Theme API: Test delete not found
