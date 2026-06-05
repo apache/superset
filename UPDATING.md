@@ -49,6 +49,10 @@ Two opt-in static gates control which extensions are allowed to load:
 
 Both default to empty (no behavior change). They apply to both the `LOCAL_EXTENSIONS` and `EXTENSIONS_PATH` load paths.
 
+### Dynamic Group By respects the sort toggle for display values
+
+The Dynamic Group By chart customization now orders its display values according to the "Sort display control values" toggle: ascending (A–Z), descending (Z–A), or the dataset's source order when the toggle is unset. Previously the dropdown always sorted alphabetically. Existing dashboards where the toggle was never set will show options in source order instead of A–Z; open the customization and enable the toggle to restore alphabetical ordering.
+
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:
