@@ -171,14 +171,12 @@ class SupersetResultSet:
         # only do expensive recasting if datatype is not standard list of tuples
         if data and (not isinstance(data, list) or not isinstance(data[0], tuple)):
             data = [tuple(row) for row in data]
-        array = np.array(data, dtype=numpy_dtype)
+        columns = np.array(data, dtype=numpy_dtype)
 
         for column in column_names:
-            raw = array[column].tolist()
+            col_values = columns[column].tolist()
             if db_engine_spec.requires_column_value_normalization:
-                col_values = db_engine_spec.normalize_column_values(raw)
-            else:
-                col_values = raw
+                col_values = db_engine_spec.normalize_column_values(col_values)
             try:
                 pa_data.append(pa.array(col_values))
             except (
@@ -190,7 +188,7 @@ class SupersetResultSet:
                 # https://issues.apache.org/jira/browse/ARROW-7855
             ):
                 # attempt serialization of values as strings
-                stringified_arr = stringify_values(array[column])
+                stringified_arr = stringify_values(columns[column])
                 pa_data.append(pa.array(stringified_arr.tolist()))
 
         if pa_data:  # pylint: disable=too-many-nested-blocks
@@ -199,19 +197,19 @@ class SupersetResultSet:
                     # TODO: revisit nested column serialization once nested types
                     #  are added as a natively supported column type in Superset
                     #  (superset.utils.core.GenericDataType).
-                    stringified_arr = stringify_values(array[column])
+                    stringified_arr = stringify_values(columns[column])
                     pa_data[i] = pa.array(stringified_arr.tolist())
 
                 elif pa.types.is_temporal(pa_data[i].type):
                     # workaround for bug converting
                     # `psycopg2.tz.FixedOffsetTimezone` tzinfo values.
                     # related: https://issues.apache.org/jira/browse/ARROW-5248
-                    sample = self.first_nonempty(array[column])
+                    sample = self.first_nonempty(columns[column])
                     if sample and isinstance(sample, datetime.datetime):
                         try:
                             if sample.tzinfo:
                                 tz = sample.tzinfo
-                                series = pd.Series(array[column])
+                                series = pd.Series(columns[column])
                                 series = pd.to_datetime(
                                     series, utc=True, errors="coerce"
                                 )
