@@ -62,6 +62,7 @@ import {
   isFilterId,
   isChartCustomizationId,
   transformDividerId,
+  isDivider,
 } from './utils';
 import { ConfigModalContent } from './ConfigModalContent';
 import ConfigModalSidebar from './ConfigModalSidebar';
@@ -455,13 +456,29 @@ function FiltersConfigModal({
     ? Icons.FullscreenExitOutlined
     : Icons.FullscreenOutlined;
 
-  const handleValuesChange = useMemo(
+  const debouncedHandleErroredItems = useMemo(
     () =>
       debounce(() => {
         setSaveAlertVisible(false);
         modalSaveLogic.handleErroredItems();
       }, Constants.SLOW_DEBOUNCE),
     [modalSaveLogic],
+  );
+
+  const handleValuesChange = useCallback(
+    (changedValues: Partial<NativeFiltersForm>) => {
+      debouncedHandleErroredItems();
+      // DividerConfigForm doesn't call handleModifyItem on change the way
+      // FiltersConfigForm does, so detect divider field changes here and mark
+      // the divider as modified so canSave becomes true and the save payload
+      // includes the updated divider values.
+      Object.keys(changedValues?.filters ?? {}).forEach(id => {
+        if (isDivider(id)) {
+          handleModifyItem(id);
+        }
+      });
+    },
+    [debouncedHandleErroredItems, handleModifyItem],
   );
 
   const handleActiveFilterPanelChange = useCallback(
