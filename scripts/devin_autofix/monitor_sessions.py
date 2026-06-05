@@ -34,7 +34,7 @@ from scripts.devin_autofix.github_state import (
     ACTIVE_STATUSES,
     add_label,
     get_issue_comments,
-    get_open_issues_with_label,
+    get_issues_with_label,
     GITHUB_API,
     parse_marker,
     post_comment,
@@ -135,11 +135,15 @@ def is_pr_merged(pr_number: int) -> bool:
 
 
 def _find_issues_with_active_runs() -> list[int]:
-    """Find issue numbers that have active autofix runs."""
+    """Find issue numbers that have active autofix labels.
+
+    Scans issues in **all** states (open and closed) so that runs whose
+    PR merge auto-closed the issue are still finalized.
+    """
     issue_numbers: set[int] = set()
 
     for label in ["devin-autofix/in-progress", "devin-autofix/waiting-review"]:
-        issues = get_open_issues_with_label(label)
+        issues = get_issues_with_label(label, state="all")
         for issue in issues:
             # Skip pull requests (they also appear in issue search)
             if "pull_request" not in issue:
@@ -201,6 +205,7 @@ def _handle_complete(
         f"{marker.to_marker()}"
     )
     post_comment(issue_number, body)
+    remove_label(issue_number, "devin-autofix/in-progress")
     remove_label(issue_number, "devin-autofix/waiting-review")
     add_label(issue_number, "devin-autofix/complete")
     print(f"  Run {marker.run_id} complete (PR #{marker.pr_number} merged)")
@@ -284,6 +289,32 @@ def process_run(issue_number: int, marker: RunMarker) -> None:
         f"PRs={len(pull_requests)}"
     )
 
+    # Resolve the PR number from the marker or the Devin session.
+    pr_number = marker.pr_number
+    pr_url = marker.pr_url
+    if not pr_number and pull_requests:
+        pr_info = pull_requests[0]
+        pr_url = pr_info.get("url", "")
+        pr_number = pr_info.get("number")
+        if not pr_number and pr_url:
+            parts = pr_url.rstrip("/").split("/")
+            try:
+                pr_number = int(parts[-1])
+            except (ValueError, IndexError):
+                pass
+
+    # Check for a merged PR first — this can happen from any active status
+    # (e.g. if the PR was opened and merged between monitor polls).
+    if pr_number:
+        try:
+            if is_pr_merged(pr_number):
+                marker.pr_number = pr_number
+                marker.pr_url = pr_url
+                _handle_complete(issue_number, marker)
+                return
+        except Exception as exc:
+            print(f"  Error checking merge status for PR #{pr_number}: {exc}")
+
     is_terminal = session_status in TERMINAL_STATUSES
     if is_terminal and not pull_requests and marker.status == "in_progress":
         _handle_returned_to_human(issue_number, marker, session)
@@ -292,14 +323,6 @@ def process_run(issue_number: int, marker: RunMarker) -> None:
     if pull_requests and not marker.pr_link_commented:
         _handle_new_pr(issue_number, marker, pull_requests)
     elif marker.pr_number and marker.status == "waiting_review":
-        # Check if the PR has been merged
-        try:
-            if is_pr_merged(marker.pr_number):
-                _handle_complete(issue_number, marker)
-                return
-        except Exception as exc:
-            print(f"  Error checking merge status for PR #{marker.pr_number}: {exc}")
-
         try:
             checks = get_pr_checks(marker.pr_number)
             marker.checks = checks
