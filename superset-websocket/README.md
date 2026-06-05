@@ -145,4 +145,32 @@ HEAD /health
 
 ## Containerization
 
-*TODO: containerize websocket server*
+The WebSocket server includes a multi-stage `Dockerfile` that builds and runs the
+application in a production-ready Node.js container.
+
+### Building the image
+
+From the `superset-websocket` directory:
+
+```bash
+docker build -t superset-websocket .
+```
+
+### Running the container
+
+Mount your `config.json` and expose the configured port (default `8080`):
+
+```bash
+docker run -d \
+  -p 8080:8080 \
+  -v "$(pwd)/config.json:/home/superset-websocket/config.json:ro" \
+  superset-websocket
+```
+
+### Verifying the container
+
+Confirm the server is running by hitting the health-check endpoint:
+
+```bash
+curl -f http://localhost:8080/health
+```
