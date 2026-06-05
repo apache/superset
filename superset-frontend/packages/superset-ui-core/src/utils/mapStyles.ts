@@ -17,6 +17,8 @@
  * under the License.
  */
 
+import { t } from '@apache-superset/core/translation';
+
 export type MapProvider = 'maplibre' | 'mapbox';
 
 export type MapStyleChoice = {
@@ -38,7 +40,7 @@ export type RasterTileMapStyle = {
       type: 'raster';
       tiles: string[];
       tileSize: 256;
-      attribution: string;
+      attribution?: string;
     };
   };
   layers: [
@@ -59,21 +61,21 @@ export const OSM_TILE_STYLE_URL =
 export const OSM_TILE_ATTRIBUTION = '© OpenStreetMap contributors';
 export const OSM_TILE_STYLE_CHOICE: MapStyleChoice = {
   value: OSM_TILE_STYLE_URL,
-  label: 'Streets (OSM)',
+  label: t('Streets (OSM)'),
   attribution: OSM_TILE_ATTRIBUTION,
 };
 
 export const MAPLIBRE_RENDERER_OPTION: MapRendererOption = {
   value: 'maplibre',
-  label: 'MapLibre (open-source)',
+  label: t('MapLibre (open-source)'),
 };
 export const MAPBOX_RENDERER_OPTION: MapRendererOption = {
   value: 'mapbox',
-  label: 'Mapbox (API key required)',
+  label: t('Mapbox (API key required)'),
 };
 export const DISABLED_MAPBOX_RENDERER_OPTION: MapRendererOption = {
   ...MAPBOX_RENDERER_OPTION,
-  label: 'Mapbox (MAPBOX_API_KEY required)',
+  label: t('Mapbox (MAPBOX_API_KEY required)'),
   disabled: true,
 };
 
@@ -146,14 +148,18 @@ export function isRasterTileTemplate(value: unknown): value is string {
 }
 
 export function buildRasterTileMapStyle(value: string): RasterTileMapStyle {
+  const tileUrl = unwrapTileProtocol(value);
+  const attribution =
+    tileUrl === OSM_TILE_STYLE_URL ? { attribution: OSM_TILE_ATTRIBUTION } : {};
+
   return {
     version: 8,
     sources: {
       [RASTER_SOURCE_ID]: {
         type: 'raster',
-        tiles: [unwrapTileProtocol(value)],
+        tiles: [tileUrl],
         tileSize: 256,
-        attribution: OSM_TILE_ATTRIBUTION,
+        ...attribution,
       },
     },
     layers: [

@@ -21,9 +21,18 @@ import { ControlPanelState } from '@superset-ui/chart-controls';
 import { OSM_TILE_STYLE_URL } from '@superset-ui/core/utils/mapStyles';
 import { mapProvider, maplibreStyle } from './Shared_DeckGL';
 
-const setBootstrap = (conf: Record<string, unknown>) => {
+const setBootstrap = ({
+  conf = {},
+  deckglTiles,
+}: {
+  conf?: Record<string, unknown>;
+  deckglTiles?: unknown;
+}) => {
   document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify({
-    common: { conf },
+    common: {
+      conf,
+      ...(deckglTiles === undefined ? {} : { deckgl_tiles: deckglTiles }),
+    },
   })}'></div>`;
 };
 
@@ -47,7 +56,7 @@ test('deck.gl MapLibre style choices expose Streets (OSM)', () => {
 });
 
 test('deck.gl map renderer disables Mapbox with an explanation when no key exists', () => {
-  setBootstrap({});
+  setBootstrap({ conf: {} });
 
   const props = getMapProviderProps('maplibre');
 
@@ -65,7 +74,7 @@ test('deck.gl map renderer disables Mapbox with an explanation when no key exist
 });
 
 test('deck.gl map renderer keeps saved Mapbox visible while disabled without a key', () => {
-  setBootstrap({});
+  setBootstrap({ conf: {} });
 
   const props = getMapProviderProps('mapbox');
 
@@ -77,7 +86,7 @@ test('deck.gl map renderer keeps saved Mapbox visible while disabled without a k
 });
 
 test('deck.gl map renderer enables Mapbox when a key exists', () => {
-  setBootstrap({ MAPBOX_API_KEY: 'pk.test' });
+  setBootstrap({ conf: { MAPBOX_API_KEY: 'pk.test' } });
 
   const props = getMapProviderProps('maplibre');
 
@@ -86,4 +95,59 @@ test('deck.gl map renderer enables Mapbox when a key exists', () => {
     { value: 'mapbox', label: 'Mapbox (API key required)' },
   ]);
   expect(props.warning).toBeUndefined();
+});
+
+test('deck.gl map style falls back to default tiles for empty overrides', async () => {
+  jest.resetModules();
+  setBootstrap({ deckglTiles: [] });
+
+  const { maplibreStyle: maplibreStyleWithEmptyOverride } =
+    await import('./Shared_DeckGL');
+
+  expect(maplibreStyleWithEmptyOverride.config.choices).toContainEqual([
+    OSM_TILE_STYLE_URL,
+    'Streets (OSM)',
+  ]);
+  expect(maplibreStyleWithEmptyOverride.config.default).toBe(
+    'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  );
+});
+
+test('deck.gl map style falls back to default tiles for malformed overrides', async () => {
+  jest.resetModules();
+  setBootstrap({
+    deckglTiles: [
+      ['https://tiles.example.com/{z}/{x}/{y}.png'],
+      ['https://tiles.example.com/{z}/{x}/{y}.png', 'Custom', 'Extra'],
+      ['', 'Empty URL'],
+    ],
+  });
+
+  const { maplibreStyle: maplibreStyleWithMalformedOverride } =
+    await import('./Shared_DeckGL');
+
+  expect(maplibreStyleWithMalformedOverride.config.choices).toContainEqual([
+    OSM_TILE_STYLE_URL,
+    'Streets (OSM)',
+  ]);
+  expect(maplibreStyleWithMalformedOverride.config.default).toBe(
+    'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
+  );
+});
+
+test('deck.gl map style accepts well-formed tile overrides', async () => {
+  jest.resetModules();
+  setBootstrap({
+    deckglTiles: [['https://tiles.example.com/style.json', 'Custom']],
+  });
+
+  const { maplibreStyle: maplibreStyleWithCustomOverride } =
+    await import('./Shared_DeckGL');
+
+  expect(maplibreStyleWithCustomOverride.config.choices).toEqual([
+    ['https://tiles.example.com/style.json', 'Custom'],
+  ]);
+  expect(maplibreStyleWithCustomOverride.config.default).toBe(
+    'https://tiles.example.com/style.json',
+  );
 });

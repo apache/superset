@@ -90,12 +90,15 @@ export const DEFAULT_MAPBOX_TILES: DeckGLTileChoice[] = [
 
 const isDeckGLTileChoices = (value: unknown): value is DeckGLTileChoice[] =>
   Array.isArray(value) &&
+  value.length > 0 &&
   value.every(
     choice =>
       Array.isArray(choice) &&
-      choice.length >= 2 &&
+      choice.length === 2 &&
       typeof choice[0] === 'string' &&
-      typeof choice[1] === 'string',
+      choice[0].trim().length > 0 &&
+      typeof choice[1] === 'string' &&
+      choice[1].trim().length > 0,
   );
 
 const getDeckGLTiles = () => {

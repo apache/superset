@@ -28,6 +28,41 @@ import {
   resolveMapStyle,
 } from './mapStyles';
 
+test('map renderer and OSM style labels are localizable', async () => {
+  jest.resetModules();
+  jest.doMock('@apache-superset/core/translation', () => ({
+    t: (label: string) => `translated:${label}`,
+  }));
+
+  const {
+    getMapRendererOptions: getTranslatedMapRendererOptions,
+    OSM_TILE_STYLE_CHOICE: translatedOsmTileStyleChoice,
+    OSM_TILE_STYLE_URL: translatedOsmTileStyleUrl,
+    OSM_TILE_ATTRIBUTION: translatedOsmTileAttribution,
+  } = await import('./mapStyles');
+
+  expect(translatedOsmTileStyleChoice).toEqual({
+    value: translatedOsmTileStyleUrl,
+    label: 'translated:Streets (OSM)',
+    attribution: translatedOsmTileAttribution,
+  });
+  expect(getTranslatedMapRendererOptions({ hasMapboxKey: true })).toEqual([
+    { value: 'maplibre', label: 'translated:MapLibre (open-source)' },
+    { value: 'mapbox', label: 'translated:Mapbox (API key required)' },
+  ]);
+  expect(getTranslatedMapRendererOptions({ hasMapboxKey: false })).toEqual([
+    { value: 'maplibre', label: 'translated:MapLibre (open-source)' },
+    {
+      value: 'mapbox',
+      label: 'translated:Mapbox (MAPBOX_API_KEY required)',
+      disabled: true,
+    },
+  ]);
+
+  jest.dontMock('@apache-superset/core/translation');
+  jest.resetModules();
+});
+
 test('OSM style choice uses the approved label, URL, and attribution', () => {
   expect(OSM_TILE_STYLE_CHOICE).toEqual({
     value: OSM_TILE_STYLE_URL,
@@ -100,6 +135,25 @@ test('tile protocol raster templates are unwrapped before style resolution', () 
     expect(style.sources['osm-raster-tiles'].tiles).toEqual([
       OSM_TILE_STYLE_URL,
     ]);
+    expect(style.sources['osm-raster-tiles'].attribution).toBe(
+      OSM_TILE_ATTRIBUTION,
+    );
+  }
+});
+
+test('custom raster tile templates do not receive OSM attribution', () => {
+  const customTileUrl = 'https://tiles.example.com/{z}/{x}/{y}.png';
+  const style = resolveMapStyle(
+    `tile://${customTileUrl}`,
+    'default-style.json',
+  );
+
+  expect(typeof style).toBe('object');
+  if (typeof style !== 'string') {
+    expect(style.sources['osm-raster-tiles'].tiles).toEqual([customTileUrl]);
+    expect(style.sources['osm-raster-tiles']).not.toHaveProperty(
+      'attribution',
+    );
   }
 });
 
