@@ -17,13 +17,15 @@
  * under the License.
  */
 import { t, tn, ensureIsArray, ExtraFormData } from '@superset-ui/core';
-import { useEffect, useState, useMemo } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import {
   FormItem,
   type FormItemProps,
+  LabeledValue,
   Select,
   type SelectValue,
 } from '@superset-ui/core/components';
+import { propertyComparator } from '@superset-ui/core/components/Select/utils';
 import { FilterPluginStyle, StatusMessage } from '../common';
 import { PluginFilterGroupByProps, ColumnOption, ColumnData } from './types';
 
@@ -115,6 +117,20 @@ export default function PluginFilterDynamicGroupBy(
     [data],
   );
 
+  const sortComparator = useCallback(
+    (a: LabeledValue, b: LabeledValue) => {
+      if (formData.sortAscending === undefined) {
+        return 0;
+      }
+      const labelComparator = propertyComparator('label');
+      if (formData.sortAscending) {
+        return labelComparator(a, b);
+      }
+      return labelComparator(b, a);
+    },
+    [formData.sortAscending],
+  );
+
   return (
     <FilterPluginStyle height={height} width={width}>
       <FormItem validateStatus={filterState.validateStatus} {...formItemData}>
@@ -131,6 +147,7 @@ export default function PluginFilterDynamicGroupBy(
             ref={inputRef}
             options={options}
             onOpenChange={setFilterActive}
+            sortComparator={sortComparator}
           />
         </div>
       </FormItem>

@@ -31,6 +31,10 @@ Importing a dataset now validates the `catalog` field against the target databas
 
 If you relied on importing datasets with a non-default catalog, enable "Allow changing catalogs" on the target connection, or set the dataset's catalog to the connection's default before importing.
 
+### Dynamic Group By respects the sort toggle for display values
+
+The Dynamic Group By chart customization now orders its display values according to the "Sort display control values" toggle: ascending (A–Z), descending (Z–A), or the dataset's source order when the toggle is unset. Previously the dropdown always sorted alphabetically. Existing dashboards where the toggle was never set will show options in source order instead of A–Z; open the customization and enable the toggle to restore alphabetical ordering.
+
 ### MCP Tool Observability
 
 MCP (Model Context Protocol) tools now include enhanced observability instrumentation for monitoring and debugging:
