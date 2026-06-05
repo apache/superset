@@ -24,6 +24,7 @@ single dataframe.
 
 """
 
+import dataclasses
 from datetime import date, datetime, time, timedelta, tzinfo
 from time import time as current_time
 from typing import Any, cast, Sequence, TypeGuard
@@ -56,7 +57,11 @@ from superset.common.utils.time_range_utils import get_since_until_from_query_ob
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import NO_TIME_RANGE
 from superset.models.helpers import QueryResult
-from superset.superset_typing import AdhocColumn
+from superset.semantic_layers.adhoc import (
+    adhoc_column_to_semantic_dimension,
+    adhoc_metric_to_semantic_metric,
+)
+from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils.core import (
     FilterOperator,
     QueryObjectFilterClause,
@@ -258,16 +263,92 @@ def _normalize_column(column: str | AdhocColumn, dimension_names: set[str]) -> s
     - A string (dimension name directly)
     - An AdhocColumn with isColumnReference=True and sqlExpression containing the
       dimension name
+
+    Used by callers that only care about the resolved *name* (e.g. validating
+    that a granularity column matches a real dimension). Synthetic adhocs
+    (non-column-reference) carry no dimension name and should be routed
+    through :func:`_resolve_dimension` instead.
     """
     if isinstance(column, str):
         return column
 
-    # Handle column references (e.g., from time-series charts)
+    # Column reference adhocs unwrap to their underlying column name.
     if column.get("isColumnReference") and (sql_expr := column.get("sqlExpression")):
         if sql_expr in dimension_names:
             return sql_expr
 
-    raise ValueError("Adhoc dimensions are not supported in Semantic Views.")
+    # Synthetic adhoc: the label *is* the resolved name in semantic-layer
+    # terms (we use it as the Dimension id/name when materialising). Falling
+    # back here keeps validators happy with adhoc dicts and defers actual
+    # resolution to ``_resolve_dimension``.
+    if label := column.get("label"):
+        return label
+
+    raise ValueError("Adhoc column is missing a ``label``.")
+
+
+def _resolve_dimension(
+    column: str | AdhocColumn,
+    dataset: BaseDatasource,
+    dimensions_by_name: dict[str, Dimension],
+    template_processor: Any | None,
+) -> Dimension:
+    """
+    Resolve a column entry (string name or adhoc dict) to a ``Dimension``.
+
+    Strings look up a saved dimension by name. Adhoc dicts marked
+    ``isColumnReference=True`` re-use the matching saved dimension so its
+    metadata (type, grain) is preserved. Anything else is synthesised via
+    :func:`adhoc_column_to_semantic_dimension`.
+    """
+    if isinstance(column, str):
+        if column not in dimensions_by_name:
+            raise ValueError(
+                f"Dimension {column!r} is not defined in the Semantic View."
+            )
+        return dimensions_by_name[column]
+
+    return adhoc_column_to_semantic_dimension(
+        column,
+        dataset,
+        dimensions_by_name,
+        template_processor,
+    )
+
+
+def _resolve_metric(
+    metric: str | AdhocMetric,
+    dataset: BaseDatasource,
+    metrics_by_name: dict[str, Metric],
+    template_processor: Any | None,
+) -> Metric:
+    """
+    Resolve a metric entry (string name or adhoc dict) to a ``Metric``.
+    """
+    if isinstance(metric, str):
+        if metric not in metrics_by_name:
+            raise ValueError(
+                f"Metric {metric!r} is not defined in the Semantic View."
+            )
+        return metrics_by_name[metric]
+    return adhoc_metric_to_semantic_metric(metric, dataset, template_processor)
+
+
+def _get_template_processor(dataset: BaseDatasource) -> Any | None:
+    """
+    Build a template processor for adhoc Jinja rendering, or ``None`` when
+    the datasource doesn't expose one (e.g. a cube-mode semantic view, where
+    adhocs aren't supported anyway).
+    """
+    get_template_processor = getattr(dataset, "get_template_processor", None)
+    if get_template_processor is None:
+        return None
+    return get_template_processor()
+
+
+def _stamp_grain(dimension: Dimension, grain: Grain) -> Dimension:
+    """Return a copy of ``dimension`` with the supplied grain set."""
+    return dataclasses.replace(dimension, grain=grain)
 
 
 def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
@@ -278,33 +359,54 @@ def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
     visualization and more on semantics.
     """
     semantic_view = query_object.datasource.implementation
+    dataset = query_object.datasource
 
     all_metrics = {metric.name: metric for metric in semantic_view.metrics}
     all_dimensions = {
         dimension.name: dimension for dimension in semantic_view.dimensions
     }
 
-    # Normalize columns (may be dicts with isColumnReference=True for time-series)
-    dimension_names = set(all_dimensions.keys())
-    normalized_columns = {
-        _normalize_column(column, dimension_names) for column in query_object.columns
-    }
+    template_processor = _get_template_processor(dataset)
 
-    metrics = [all_metrics[metric] for metric in (query_object.metrics or [])]
+    metrics = [
+        _resolve_metric(metric, dataset, all_metrics, template_processor)
+        for metric in (query_object.metrics or [])
+    ]
+
+    # Resolve each requested column, preserving order and deduplicating by id.
+    seen_dim_ids: set[str] = set()
+    dimensions: list[Dimension] = []
+    for column in query_object.columns:
+        dim = _resolve_dimension(
+            column,
+            dataset,
+            all_dimensions,
+            template_processor,
+        )
+        if dim.id in seen_dim_ids:
+            continue
+        seen_dim_ids.add(dim.id)
+        dimensions.append(dim)
 
     grain = _convert_time_grain(query_object.extras.get("time_grain_sqla"))
-    dimensions = [
-        dimension
-        for dimension in semantic_view.dimensions
-        if dimension.name in normalized_columns
-        and (
-            # if a grain is specified, only include the time dimension if its grain
-            # matches the requested grain
-            grain is None
-            or dimension.name != query_object.granularity
-            or dimension.grain == grain
-        )
-    ]
+    if grain is not None and query_object.granularity:
+        # Apply the requested grain to the granularity dimension. For cube-mode
+        # views that pre-declare grain on their dimensions, keep the existing
+        # "only include the matching-grain version" semantic. For dataset-mode
+        # views (dimensions have grain=None), the view applies the grain via
+        # the engine spec at SQL build time, so we just stamp the grain on
+        # the dimension here.
+        dimensions = [
+            (
+                _stamp_grain(dim, grain)
+                if dim.name == query_object.granularity and dim.grain is None
+                else dim
+            )
+            for dim in dimensions
+            if dim.name != query_object.granularity
+            or dim.grain is None
+            or dim.grain == grain
+        ]
 
     order = _get_order_from_query_object(query_object, all_metrics, all_dimensions)
     limit = query_object.row_limit
@@ -928,32 +1030,53 @@ def validate_query_object(
 
 def _validate_metrics(query_object: ValidatedQueryObject) -> None:
     """
-    Make sure metrics are defined in the semantic view.
+    Make sure metrics are defined in the semantic view or are valid adhocs.
+
+    Validation of adhoc metrics is delegated to ``_resolve_metric`` — it
+    raises if the SIMPLE shape is malformed or the SQL fails Jinja /
+    safety checks.
     """
     semantic_view = query_object.datasource.implementation
+    dataset = query_object.datasource
+    metrics_by_name = {metric.name: metric for metric in semantic_view.metrics}
+    template_processor = _get_template_processor(dataset)
 
-    if any(not isinstance(metric, str) for metric in (query_object.metrics or [])):
-        raise ValueError("Adhoc metrics are not supported in Semantic Views.")
+    labels: list[str] = []
+    for metric in query_object.metrics or []:
+        resolved = _resolve_metric(
+            metric, dataset, metrics_by_name, template_processor
+        )
+        labels.append(resolved.id)
 
-    metric_names = {metric.name for metric in semantic_view.metrics}
-    if not set(query_object.metrics or []) <= metric_names:
-        raise ValueError("All metrics must be defined in the Semantic View.")
+    if len(labels) != len(set(labels)):
+        raise ValueError(
+            "Duplicate metric labels are not supported in Semantic Views."
+        )
 
 
 def _validate_dimensions(query_object: ValidatedQueryObject) -> None:
     """
-    Make sure all dimensions are defined in the semantic view.
+    Make sure all dimensions are defined in the semantic view or are valid
+    adhocs. Synthesized adhoc columns are validated via ``_resolve_dimension``.
     """
     semantic_view = query_object.datasource.implementation
-    dimension_names = {dimension.name for dimension in semantic_view.dimensions}
+    dataset = query_object.datasource
+    dimensions_by_name = {
+        dimension.name: dimension for dimension in semantic_view.dimensions
+    }
+    template_processor = _get_template_processor(dataset)
 
-    # Normalize all columns to dimension names
-    normalized_columns = [
-        _normalize_column(column, dimension_names) for column in query_object.columns
-    ]
+    labels: list[str] = []
+    for column in query_object.columns:
+        resolved = _resolve_dimension(
+            column, dataset, dimensions_by_name, template_processor
+        )
+        labels.append(resolved.id)
 
-    if not set(normalized_columns) <= dimension_names:
-        raise ValueError("All dimensions must be defined in the Semantic View.")
+    if len(labels) != len(set(labels)):
+        raise ValueError(
+            "Duplicate column labels are not supported in Semantic Views."
+        )
 
 
 def _validate_filters(query_object: ValidatedQueryObject) -> None:

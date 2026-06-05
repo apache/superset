@@ -50,9 +50,14 @@ from superset.semantic_layers.mapper import (
     _get_group_limit_filters,
     _get_group_limit_from_query_object,
     _get_order_from_query_object,
+    _get_template_processor,
     _get_time_bounds,
     _get_time_filter,
     _normalize_column,
+    _resolve_dimension,
+    _resolve_metric,
+    _stamp_grain,
+    _validate_dimensions,
     _validate_filters,
     _validate_granularity,
     _validate_group_limit,
@@ -1035,7 +1040,10 @@ def test_validate_query_object_undefined_metric_error(
         columns=["order_date"],
     )
 
-    with pytest.raises(ValueError, match="All metrics must be defined"):
+    with pytest.raises(
+        ValueError,
+        match="Metric 'undefined_metric' is not defined in the Semantic View",
+    ):
         validate_query_object(query_object)
 
 
@@ -1051,7 +1059,10 @@ def test_validate_query_object_undefined_dimension_error(
         columns=["undefined_dimension"],
     )
 
-    with pytest.raises(ValueError, match="All dimensions must be defined"):
+    with pytest.raises(
+        ValueError,
+        match="Dimension 'undefined_dimension' is not defined in the Semantic View",
+    ):
         validate_query_object(query_object)
 
 
@@ -1800,28 +1811,31 @@ def test_get_results_empty_requests(
 
 def test_normalize_column_adhoc_not_in_dimensions() -> None:
     """
-    Test _normalize_column raises error for AdhocColumn with sqlExpression not in dims.
+    Adhoc columns whose sqlExpression doesn't match an existing dimension fall
+    back to using the label as the resolved name. Actual SQL synthesis is the
+    job of _resolve_dimension; _normalize_column only surfaces a name.
     """
     dimension_names = {"category", "region"}
     adhoc_column: AdhocColumn = {
+        "label": "custom_dim",
         "isColumnReference": True,
         "sqlExpression": "unknown_dimension",
     }
 
-    with pytest.raises(ValueError, match="Adhoc dimensions are not supported"):
-        _normalize_column(adhoc_column, dimension_names)
+    assert _normalize_column(adhoc_column, dimension_names) == "custom_dim"
 
 
-def test_normalize_column_adhoc_missing_sql_expression() -> None:
+def test_normalize_column_adhoc_missing_label_raises() -> None:
     """
-    Test _normalize_column raises error for AdhocColumn without sqlExpression.
+    When neither a matching column reference nor a label is provided there's
+    no resolvable name and _normalize_column raises.
     """
     dimension_names = {"category", "region"}
     adhoc_column: AdhocColumn = {
         "isColumnReference": True,
     }
 
-    with pytest.raises(ValueError, match="Adhoc dimensions are not supported"):
+    with pytest.raises(ValueError, match="Adhoc column is missing"):
         _normalize_column(adhoc_column, dimension_names)
 
 
@@ -2265,11 +2279,12 @@ def test_validate_query_object_no_datasource() -> None:
     assert result is False
 
 
-def test_validate_metrics_adhoc_error(
+def test_validate_metrics_adhoc_with_bad_shape_raises(
     mocker: MockerFixture,
 ) -> None:
     """
-    Test validation error for adhoc metrics.
+    Adhoc metrics are now supported, but invalid shapes (missing
+    expressionType, etc.) still raise via the adhoc resolver.
     """
     mock_datasource = mocker.Mock()
     category_dim = Dimension("category", "category", pa.utf8(), "category", "Category")
@@ -2279,13 +2294,15 @@ def test_validate_metrics_adhoc_error(
 
     mock_datasource.implementation.dimensions = {category_dim}
     mock_datasource.implementation.metrics = {sales_metric}
+    # Strip the template processor; we just want to verify the shape check.
+    mock_datasource.get_template_processor.return_value = None
 
-    # Manually create a query object with an adhoc metric
     query_object = mocker.Mock()
     query_object.datasource = mock_datasource
+    # Missing expressionType — the resolver doesn't know how to interpret this.
     query_object.metrics = [{"label": "adhoc", "sqlExpression": "SUM(x)"}]
 
-    with pytest.raises(ValueError, match="Adhoc metrics are not supported"):
+    with pytest.raises(Exception, match="expressionType"):
         _validate_metrics(query_object)
 
 
@@ -3111,3 +3128,171 @@ def test_coerce_time_invalid_string_raises() -> None:
 def test_coerce_time_rejects_other_types() -> None:
     with pytest.raises(ValueError, match="Invalid time value"):
         _coerce_scalar_filter_value(123, _dim(pa.time64("us")))
+
+
+# ---------------------------------------------------------------------------
+# Adhoc + grain resolver coverage
+# ---------------------------------------------------------------------------
+
+
+def test_get_template_processor_returns_none_when_unsupported() -> None:
+    """A bare object without ``get_template_processor`` returns None."""
+
+    class Plain:
+        pass
+
+    assert _get_template_processor(Plain()) is None
+
+
+def test_stamp_grain_returns_new_dimension_with_grain() -> None:
+    dim = Dimension(id="dt", name="dt", type=pa.timestamp("us"))
+    stamped = _stamp_grain(dim, Grains.DAY)
+    assert stamped.grain == Grains.DAY
+    # Original is unchanged (frozen dataclass).
+    assert dim.grain is None
+
+
+def _adhoc_dataset() -> MagicMock:
+    ds = MagicMock()
+    ds.database_id = 1
+    ds.schema = "public"
+    ds.database.db_engine_spec.engine = "postgresql"
+    ds.quote_identifier = lambda name: f'"{name}"'
+    ds._process_select_expression = lambda expression, **kwargs: expression  # noqa: U100
+    ds.get_template_processor.return_value = None
+    return ds
+
+
+def test_resolve_metric_for_adhoc_simple_dict() -> None:
+    ds = _adhoc_dataset()
+    metric = _resolve_metric(
+        {
+            "expressionType": "SIMPLE",
+            "label": "total",
+            "aggregate": "SUM",
+            "column": {"column_name": "x"},
+        },
+        ds,
+        {},
+        None,
+    )
+    assert metric.id == "total"
+    assert metric.definition == 'SUM("x")'
+
+
+def test_resolve_dimension_for_adhoc_dict() -> None:
+    ds = _adhoc_dataset()
+    dim = _resolve_dimension(
+        {"label": "calc", "sqlExpression": "UPPER(country)"},
+        ds,
+        {},
+        None,
+    )
+    assert dim.id == "calc"
+    assert dim.definition == "UPPER(country)"
+
+
+def test_validate_metrics_duplicate_label_raises() -> None:
+    ds = _adhoc_dataset()
+    view = MagicMock()
+    view.metrics = []
+    view.dimensions = []
+    ds.implementation = view
+
+    query = MagicMock()
+    query.datasource = ds
+    query.metrics = [
+        {
+            "expressionType": "SIMPLE",
+            "label": "dup",
+            "aggregate": "SUM",
+            "column": {"column_name": "x"},
+        },
+        {
+            "expressionType": "SIMPLE",
+            "label": "dup",
+            "aggregate": "SUM",
+            "column": {"column_name": "y"},
+        },
+    ]
+
+    with pytest.raises(ValueError, match="Duplicate metric labels"):
+        _validate_metrics(query)
+
+
+def test_validate_dimensions_duplicate_label_raises() -> None:
+    ds = _adhoc_dataset()
+    view = MagicMock()
+    view.metrics = []
+    view.dimensions = []
+    ds.implementation = view
+
+    query = MagicMock()
+    query.datasource = ds
+    query.columns = [
+        {"label": "dup", "sqlExpression": "x"},
+        {"label": "dup", "sqlExpression": "y"},
+    ]
+
+    with pytest.raises(ValueError, match="Duplicate column labels"):
+        _validate_dimensions(query)
+
+
+def test_map_query_object_dedups_dimensions_by_id(mocker: MockerFixture) -> None:
+    """Two requested columns resolving to the same dim id collapse to one."""
+    ds = _adhoc_dataset()
+    existing = Dimension(id="country", name="country", type=pa.utf8())
+    view = MagicMock()
+    view.metrics = []
+    view.dimensions = [existing]
+    ds.implementation = view
+    ds.fetch_values_predicate = None
+
+    query = ValidatedQueryObject(
+        datasource=ds,
+        metrics=[],
+        # Same dim referenced twice — once as a string, once as a column ref.
+        columns=[
+            "country",
+            {"label": "country", "sqlExpression": "country", "isColumnReference": True},
+        ],
+    )
+
+    sem_queries = map_query_object(query)
+    assert len(sem_queries[0].dimensions) == 1
+
+
+def test_map_query_object_stamps_grain_on_granularity_dim(
+    mocker: MockerFixture,
+) -> None:
+    """A grain request stamps the grain onto the matching dimension."""
+    ds = _adhoc_dataset()
+    dt_dim = Dimension(id="dt", name="dt", type=pa.timestamp("us"))
+    view = MagicMock()
+    view.metrics = []
+    view.dimensions = [dt_dim]
+    ds.implementation = view
+    ds.fetch_values_predicate = None
+
+    query = ValidatedQueryObject(
+        datasource=ds,
+        metrics=[],
+        columns=["dt"],
+        granularity="dt",
+        extras={"time_grain_sqla": "P1D"},
+    )
+
+    sem_queries = map_query_object(query)
+    dim = sem_queries[0].dimensions[0]
+    assert dim.grain == Grains.DAY
+
+
+def test_normalize_column_adhoc_label_only() -> None:
+    """Adhoc with no isColumnReference falls back to its label."""
+    assert (
+        _normalize_column({"label": "calc", "sqlExpression": "x"}, set()) == "calc"
+    )
+
+
+def test_normalize_column_string_passthrough() -> None:
+    assert _normalize_column("category", {"category", "region"}) == "category"

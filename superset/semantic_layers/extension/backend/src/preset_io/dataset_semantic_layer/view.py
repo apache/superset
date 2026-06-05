@@ -176,10 +176,14 @@ class DatasetSemanticView(SemanticView):
     # ------------------------------------------------------------------
 
     def _dimension_column(self, dimension: Dimension) -> "TableColumn":
+        # Callers (currently only ``_dimension_expression``) check membership
+        # before invoking this helper, so the match is guaranteed.
         for column in self.dataset.columns:
             if column.column_name == dimension.id:
                 return column
-        raise ValueError(f'Dimension "{dimension.id}" is not part of this dataset.')
+        raise ValueError(  # pragma: no cover - guarded by caller
+            f'Dimension "{dimension.id}" is not part of this dataset.'
+        )
 
     def _metric_column(self, metric: Metric) -> "SqlMetric":
         for sql_metric in self.dataset.metrics:
@@ -188,10 +192,76 @@ class DatasetSemanticView(SemanticView):
         raise ValueError(f'Metric "{metric.id}" is not part of this dataset.')
 
     def _dimension_expression(self, dimension: Dimension) -> sqlglot_exp.Expression:
+        # Synthesised adhoc dimensions don't correspond to a dataset column;
+        # their ``definition`` carries the SQL we should emit.
+        dataset_column_names = {col.column_name for col in self.dataset.columns}
+        if dimension.id not in dataset_column_names:
+            if not dimension.definition:
+                raise ValueError(
+                    f'Dimension "{dimension.id}" is not part of this dataset.'
+                )
+            base: sqlglot_exp.Expression = sqlglot.parse_one(
+                dimension.definition,
+                dialect=self._sqlglot_dialect,
+            )
+            return self._apply_grain(dimension, base)
+
         column = self._dimension_column(dimension)
         if column.expression:
-            return sqlglot.parse_one(column.expression, dialect=self._sqlglot_dialect)
-        return sqlglot_exp.column(column.column_name, quoted=True)
+            base = sqlglot.parse_one(
+                column.expression,
+                dialect=self._sqlglot_dialect,
+            )
+        else:
+            base = sqlglot_exp.column(column.column_name, quoted=True)
+        return self._apply_grain(dimension, base)
+
+    def _apply_grain(
+        self,
+        dimension: Dimension,
+        base_expr: sqlglot_exp.Expression,
+    ) -> sqlglot_exp.Expression:
+        """
+        Wrap ``base_expr`` in the engine spec's time-grain template when the
+        dimension carries a grain. Engines that don't model the requested
+        grain return the unwrapped expression — same fallback the legacy path
+        uses.
+        """
+        if dimension.grain is None:
+            return base_expr
+
+        engine_spec = self.dataset.database.db_engine_spec
+        template = engine_spec.get_time_grain_expressions().get(
+            dimension.grain.representation
+        )
+        if not template:
+            return base_expr
+
+        # ``{func}`` / ``{type}`` placeholders (BigQuery, MS SQL) require the
+        # engine spec's full ``get_timestamp_expr`` machinery to resolve.
+        if "{func}" in template or "{type}" in template:
+            import sqlalchemy as sa
+
+            sa_col = sa.column(
+                base_expr.sql(dialect=self._sqlglot_dialect),
+                is_literal=True,
+            )
+            tse = engine_spec.get_timestamp_expr(
+                sa_col,
+                None,
+                dimension.grain.representation,
+            )
+            sql_str = str(
+                tse.compile(
+                    dialect=self.dataset.database.get_dialect(),
+                    compile_kwargs={"literal_binds": True},
+                )
+            )
+            return sqlglot.parse_one(sql_str, dialect=self._sqlglot_dialect)
+
+        col_sql = base_expr.sql(dialect=self._sqlglot_dialect)
+        grain_sql = template.replace("{col}", col_sql)
+        return sqlglot.parse_one(grain_sql, dialect=self._sqlglot_dialect)
 
     def _metric_expression(self, metric: Metric) -> sqlglot_exp.Expression:
         sql_metric = self._metric_column(metric)
@@ -202,22 +272,82 @@ class DatasetSemanticView(SemanticView):
         Build the FROM clause. Physical datasets reference the table directly;
         virtual datasets wrap their SQL as a subquery so the rest of the AST
         can treat the source like a table.
+
+        For virtual datasets, RLS rules from the underlying tables referenced
+        in ``dataset.sql`` are injected into the inner SQL. When the engine
+        spec asks for ``AS_SUBQUERY``-style RLS, the dataset's own RLS
+        predicates wrap the source in an extra ``SELECT * FROM … WHERE`` so
+        the rest of the AST is unaffected.
         """
         dataset = self.dataset
-        if dataset.sql:
-            inner = sqlglot.parse_one(dataset.sql, dialect=self._sqlglot_dialect)
-            return sqlglot_exp.Subquery(this=inner, alias="virtual_dataset")
 
-        parts = [
-            sqlglot_exp.to_identifier(part, quoted=True)
-            for part in (dataset.catalog, dataset.schema, dataset.table_name)
-            if part
+        if dataset.sql:
+            inner_sql = self._rls_apply_to_virtual_sql() or dataset.sql
+            inner = sqlglot.parse_one(inner_sql, dialect=self._sqlglot_dialect)
+            source: sqlglot_exp.Expression = sqlglot_exp.Subquery(
+                this=inner, alias="virtual_dataset"
+            )
+        else:
+            parts = [
+                sqlglot_exp.to_identifier(part, quoted=True)
+                for part in (dataset.catalog, dataset.schema, dataset.table_name)
+                if part
+            ]
+            if len(parts) == 1:
+                source = sqlglot_exp.Table(this=parts[0])
+            elif len(parts) == 2:
+                source = sqlglot_exp.Table(this=parts[1], db=parts[0])
+            else:
+                source = sqlglot_exp.Table(this=parts[2], db=parts[1], catalog=parts[0])
+
+        if self._rls_should_wrap_subquery():
+            rls_clauses = self._rls_predicates()
+            if rls_clauses:
+                source = self._wrap_with_rls(source, rls_clauses)
+
+        return source
+
+    # ------------------------------------------------------------------
+    # RLS
+    # ------------------------------------------------------------------
+
+    def _rls_predicates(self) -> list[str]:
+        """Outer RLS predicates for the dataset, rendered as SQL strings."""
+        from superset.semantic_layers.rls import render_rls_predicates
+
+        return render_rls_predicates(self.dataset)
+
+    def _rls_apply_to_virtual_sql(self) -> str | None:
+        from superset.semantic_layers.rls import apply_rls_to_virtual_sql
+
+        return apply_rls_to_virtual_sql(self.dataset)
+
+    def _rls_should_wrap_subquery(self) -> bool:
+        from superset.semantic_layers.rls import get_rls_method
+        from superset.sql.parse import RLSMethod
+
+        return get_rls_method(self.dataset) == RLSMethod.AS_SUBQUERY
+
+    def _wrap_with_rls(
+        self,
+        source: sqlglot_exp.Expression,
+        rls_clauses: list[str],
+    ) -> sqlglot_exp.Subquery:
+        """Wrap ``source`` in ``SELECT * FROM source WHERE <AND-ed RLS>``."""
+        parsed = [
+            sqlglot.parse_one(clause, dialect=self._sqlglot_dialect)
+            for clause in rls_clauses
         ]
-        if len(parts) == 1:
-            return sqlglot_exp.Table(this=parts[0])
-        if len(parts) == 2:
-            return sqlglot_exp.Table(this=parts[1], db=parts[0])
-        return sqlglot_exp.Table(this=parts[2], db=parts[1], catalog=parts[0])
+        combined = parsed[0]
+        for predicate in parsed[1:]:
+            combined = sqlglot_exp.And(this=combined, expression=predicate)
+        inner = (
+            sqlglot_exp.Select()
+            .select(sqlglot_exp.Star())
+            .from_(source)
+            .where(combined)
+        )
+        return sqlglot_exp.Subquery(this=inner, alias="rls_wrapped")
 
     def _filter_predicate(self, filter_: Filter) -> sqlglot_exp.Expression:
         if filter_.operator == Operator.ADHOC:
@@ -316,6 +446,20 @@ class DatasetSemanticView(SemanticView):
         where_filters = {f for f in filters if f.type == PredicateType.WHERE}
         having_filters = {f for f in filters if f.type == PredicateType.HAVING}
 
+        # Add the dataset's outer RLS predicates as ADHOC where-filters when
+        # the engine wants AS_PREDICATE-style RLS. AS_SUBQUERY-style RLS is
+        # handled in ``_source_table`` instead.
+        if not self._rls_should_wrap_subquery():
+            for clause in self._rls_predicates():
+                where_filters = where_filters | {
+                    Filter(
+                        type=PredicateType.WHERE,
+                        column=None,
+                        operator=Operator.ADHOC,
+                        value=clause,
+                    )
+                }
+
         if query.group_limit is not None and query.group_limit.group_others:
             return self._build_with_others(query, where_filters, having_filters)
         if query.group_limit is not None:
@@ -356,10 +500,16 @@ class DatasetSemanticView(SemanticView):
             select = select.where(where_predicate)
 
         # GROUP BY when aggregating: any metric is an aggregate, so all
-        # non-aggregate dimensions need to be in GROUP BY.
+        # non-aggregate dimensions need to be in GROUP BY. For grain-bucketed
+        # dimensions we GROUP BY the full bucketed expression because dialects
+        # disagree on whether SELECT aliases are visible in GROUP BY.
         if query.metrics and query.dimensions:
             group_by_columns = [
-                sqlglot_exp.column(dimension.id, quoted=True)
+                (
+                    self._dimension_expression(dimension)
+                    if dimension.grain is not None
+                    else sqlglot_exp.column(dimension.id, quoted=True)
+                )
                 for dimension in query.dimensions
             ]
             select = select.group_by(*group_by_columns)
@@ -427,10 +577,16 @@ class DatasetSemanticView(SemanticView):
 
         # When ordering by a metric we need an aggregation; GROUP BY the
         # limited dimensions so each combination collapses to a single row.
+        # Use full expressions for grain-bucketed dims (alias resolution in
+        # GROUP BY isn't portable).
         if group_limit.metric is not None:
             select = select.group_by(
                 *[
-                    sqlglot_exp.column(dim.id, quoted=True)
+                    (
+                        self._dimension_expression(dim)
+                        if dim.grain is not None
+                        else sqlglot_exp.column(dim.id, quoted=True)
+                    )
                     for dim in group_limit.dimensions
                 ]
             )
@@ -582,9 +738,22 @@ class DatasetSemanticView(SemanticView):
         dimension: Dimension,
         filters: set[Filter] | None = None,
     ) -> SemanticResult:
-        where = self._combine_predicates(
-            {f for f in (filters or set()) if f.type == PredicateType.WHERE}
-        )
+        where_filters = {
+            f for f in (filters or set()) if f.type == PredicateType.WHERE
+        }
+        # Add outer RLS predicates as ADHOC filters; AS_SUBQUERY-mode RLS is
+        # wrapped into ``_source_table`` already.
+        if not self._rls_should_wrap_subquery():
+            for clause in self._rls_predicates():
+                where_filters.add(
+                    Filter(
+                        type=PredicateType.WHERE,
+                        column=None,
+                        operator=Operator.ADHOC,
+                        value=clause,
+                    )
+                )
+        where = self._combine_predicates(where_filters)
         select = (
             sqlglot_exp.Select()
             .distinct()

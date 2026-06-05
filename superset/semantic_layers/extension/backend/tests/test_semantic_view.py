@@ -39,6 +39,26 @@ def _make_metric(name, expression) -> MagicMock:
     return metric
 
 
+@pytest.fixture(autouse=True)
+def stub_rls_module(monkeypatch: pytest.MonkeyPatch):
+    """
+    Stub ``superset.semantic_layers.rls`` so tests don't need a Flask app.
+    Individual tests can override these by re-monkeypatching the module's
+    attributes.
+    """
+    import sys
+    import types
+
+    from superset.sql.parse import RLSMethod
+
+    rls_stub = types.ModuleType("superset.semantic_layers.rls")
+    rls_stub.render_rls_predicates = lambda dataset: []
+    rls_stub.apply_rls_to_virtual_sql = lambda dataset: None
+    rls_stub.get_rls_method = lambda dataset: RLSMethod.AS_PREDICATE
+    monkeypatch.setitem(sys.modules, "superset.semantic_layers.rls", rls_stub)
+    yield rls_stub
+
+
 @pytest.fixture
 def dataset() -> MagicMock:
     db = MagicMock()
@@ -863,3 +883,257 @@ def test_get_row_count_wraps_query(dataset: MagicMock) -> None:
     assert "COUNT(*)" in sql_arg
     assert "FROM (" in sql_arg
     assert result.results.to_pydict()["COUNT"][0] == 3
+
+
+# ---------------------------------------------------------------------------
+# RLS
+# ---------------------------------------------------------------------------
+
+
+def test_rls_as_predicate_appended_to_where(dataset: MagicMock, stub_rls_module) -> None:
+    stub_rls_module.render_rls_predicates = lambda ds: ["tenant_id = 7"]
+    view = DatasetSemanticView(dataset)
+    country = next(d for d in view.dimensions if d.id == "country")
+
+    sql = view.compile_query(SemanticQuery(metrics=[], dimensions=[country]))
+    assert 'WHERE tenant_id = 7' in sql
+
+
+def test_rls_as_predicate_combined_with_existing_filter(
+    dataset: MagicMock,
+    stub_rls_module,
+) -> None:
+    stub_rls_module.render_rls_predicates = lambda ds: ["tenant_id = 7"]
+    view = DatasetSemanticView(dataset)
+    country = next(d for d in view.dimensions if d.id == "country")
+    status = next(d for d in view.dimensions if d.id == "status")
+
+    sql = view.compile_query(
+        SemanticQuery(
+            metrics=[],
+            dimensions=[country],
+            filters={
+                Filter(
+                    type=PredicateType.WHERE,
+                    column=status,
+                    operator=Operator.EQUALS,
+                    value="open",
+                ),
+            },
+        )
+    )
+    assert "tenant_id = 7" in sql
+    assert "\"status\" = 'open'" in sql
+    assert " AND " in sql
+
+
+def test_rls_multiple_clauses_anded(dataset: MagicMock, stub_rls_module) -> None:
+    stub_rls_module.render_rls_predicates = lambda ds: ["a = 1", "b = 2"]
+    view = DatasetSemanticView(dataset)
+    country = next(d for d in view.dimensions if d.id == "country")
+
+    sql = view.compile_query(SemanticQuery(metrics=[], dimensions=[country]))
+    # Both clauses present, AND-ed.
+    assert "a = 1" in sql
+    assert "b = 2" in sql
+
+
+def test_rls_as_subquery_multiple_clauses_anded(
+    dataset: MagicMock,
+    stub_rls_module,
+) -> None:
+    """Subquery-wrap mode AND-s multiple RLS clauses inside the wrap."""
+    from superset.sql.parse import RLSMethod
+
+    stub_rls_module.get_rls_method = lambda ds: RLSMethod.AS_SUBQUERY
+    stub_rls_module.render_rls_predicates = lambda ds: ["a = 1", "b = 2"]
+    view = DatasetSemanticView(dataset)
+    country = next(d for d in view.dimensions if d.id == "country")
+
+    sql = view.compile_query(SemanticQuery(metrics=[], dimensions=[country]))
+    assert "a = 1" in sql
+    assert "b = 2" in sql
+    assert " AND " in sql
+
+
+def test_adhoc_dimension_compiles_via_definition(dataset: MagicMock) -> None:
+    """An adhoc dimension (no matching column, but with a ``definition``) is
+    parsed and emitted as the SELECT expression."""
+    adhoc = Dimension(
+        id="upper_country",
+        name="upper_country",
+        type=pa.null(),
+        definition="UPPER(country)",
+    )
+    view = DatasetSemanticView(dataset)
+    sql = view.compile_query(SemanticQuery(metrics=[], dimensions=[adhoc]))
+    assert 'UPPER(country) AS "upper_country"' in sql
+
+
+def test_rls_as_subquery_wraps_source(dataset: MagicMock, stub_rls_module) -> None:
+    from superset.sql.parse import RLSMethod
+
+    stub_rls_module.get_rls_method = lambda ds: RLSMethod.AS_SUBQUERY
+    stub_rls_module.render_rls_predicates = lambda ds: ["tenant_id = 7"]
+    view = DatasetSemanticView(dataset)
+    country = next(d for d in view.dimensions if d.id == "country")
+
+    sql = view.compile_query(SemanticQuery(metrics=[], dimensions=[country]))
+    # Source wrapped in a subquery containing the RLS predicate; no top-level WHERE.
+    assert "FROM (SELECT * FROM" in sql
+    assert "WHERE tenant_id = 7" in sql
+    assert sql.count(" WHERE ") == 1  # only the wrap, not also outer
+
+
+def test_rls_as_subquery_no_wrap_when_no_predicates(
+    dataset: MagicMock,
+    stub_rls_module,
+) -> None:
+    from superset.sql.parse import RLSMethod
+
+    stub_rls_module.get_rls_method = lambda ds: RLSMethod.AS_SUBQUERY
+    stub_rls_module.render_rls_predicates = lambda ds: []
+    view = DatasetSemanticView(dataset)
+    country = next(d for d in view.dimensions if d.id == "country")
+
+    sql = view.compile_query(SemanticQuery(metrics=[], dimensions=[country]))
+    # No RLS rules → no wrap, plain table reference.
+    assert 'FROM "public"."orders"' in sql
+    assert "rls_wrapped" not in sql
+
+
+def test_rls_virtual_dataset_inner_apply(dataset: MagicMock, stub_rls_module) -> None:
+    dataset.sql = "SELECT * FROM raw_orders"
+    stub_rls_module.apply_rls_to_virtual_sql = (
+        lambda ds: "SELECT * FROM raw_orders WHERE tenant_id = 7"
+    )
+    view = DatasetSemanticView(dataset)
+    country = next(d for d in view.dimensions if d.id == "country")
+
+    sql = view.compile_query(SemanticQuery(metrics=[], dimensions=[country]))
+    assert "raw_orders WHERE tenant_id = 7" in sql
+
+
+def test_rls_virtual_dataset_no_inner_change_falls_back(
+    dataset: MagicMock,
+    stub_rls_module,
+) -> None:
+    dataset.sql = "SELECT * FROM raw_orders"
+    stub_rls_module.apply_rls_to_virtual_sql = lambda ds: None
+    view = DatasetSemanticView(dataset)
+    country = next(d for d in view.dimensions if d.id == "country")
+
+    sql = view.compile_query(SemanticQuery(metrics=[], dimensions=[country]))
+    assert "FROM (SELECT * FROM raw_orders)" in sql
+
+
+# ---------------------------------------------------------------------------
+# Time grain
+# ---------------------------------------------------------------------------
+
+
+def _engine_spec_with_grain_map(grain_map: dict) -> MagicMock:
+    spec = MagicMock()
+    spec.engine = "postgresql"
+    spec.get_time_grain_expressions.return_value = grain_map
+    return spec
+
+
+def test_grain_simple_template_buckets_dimension(dataset: MagicMock) -> None:
+    """``{col}``-only templates are formatted directly and reparsed."""
+    import dataclasses
+    from superset_core.semantic_layers.types import Grains
+
+    dataset.database.db_engine_spec = _engine_spec_with_grain_map(
+        {"P1D": "DATE_TRUNC('day', {col})"}
+    )
+    view = DatasetSemanticView(dataset)
+    country = next(d for d in view.dimensions if d.id == "country")
+    grained = dataclasses.replace(country, grain=Grains.DAY)
+    total = next(m for m in view.metrics if m.id == "total_amount")
+
+    sql = view.compile_query(
+        SemanticQuery(metrics=[total], dimensions=[grained])
+    )
+    # sqlglot normalizes the time-unit literal's case for Postgres.
+    assert 'DATE_TRUNC(\'DAY\', "country") AS "country"' in sql
+    # GROUP BY uses the full bucketed expression, not the alias.
+    assert 'GROUP BY DATE_TRUNC(\'DAY\', "country")' in sql
+
+
+def test_grain_unsupported_falls_back_to_raw(dataset: MagicMock) -> None:
+    """When the engine doesn't model the requested grain, no wrap is applied."""
+    import dataclasses
+    from superset_core.semantic_layers.types import Grain, Grains
+
+    # The map is empty → no template matches.
+    dataset.database.db_engine_spec = _engine_spec_with_grain_map({})
+    view = DatasetSemanticView(dataset)
+    country = next(d for d in view.dimensions if d.id == "country")
+    grained = dataclasses.replace(country, grain=Grains.DAY)
+
+    sql = view.compile_query(SemanticQuery(metrics=[], dimensions=[grained]))
+    assert 'SELECT "country" AS "country"' in sql
+    assert "DATE_TRUNC" not in sql
+
+
+def test_grain_func_placeholder_uses_engine_spec(
+    dataset: MagicMock,
+    mocker,
+) -> None:
+    """``{func}``/``{type}`` placeholders defer to engine spec's get_timestamp_expr."""
+    import dataclasses
+    from superset_core.semantic_layers.types import Grains
+
+    fake_spec = _engine_spec_with_grain_map({"P1D": "{func}({col}, DAY)"})
+    # get_timestamp_expr is the engine spec's escape hatch; return a fake
+    # SQLAlchemy expression whose str() form is the rendered SQL.
+    fake_te = MagicMock()
+    fake_te.compile.return_value = 'TIMESTAMP_TRUNC("country", DAY)'
+    fake_spec.get_timestamp_expr.return_value = fake_te
+    dataset.database.db_engine_spec = fake_spec
+
+    view = DatasetSemanticView(dataset)
+    country = next(d for d in view.dimensions if d.id == "country")
+    grained = dataclasses.replace(country, grain=Grains.DAY)
+
+    view.compile_query(SemanticQuery(metrics=[], dimensions=[grained]))
+    # The placeholder path must consult the engine spec's get_timestamp_expr
+    # rather than substituting directly. We don't assert on the rendered SQL
+    # because sqlglot may canonicalize non-native function names per dialect.
+    fake_spec.get_timestamp_expr.assert_called_once()
+
+
+def test_grain_applied_to_calculated_dimension(dataset: MagicMock) -> None:
+    """Grain wraps a calculated column's expression, not a bare column."""
+    import dataclasses
+    from superset_core.semantic_layers.types import Grains
+
+    calc = _make_column("created_at_minus_1", expression="created_at - INTERVAL 1 DAY")
+    dataset.columns = list(dataset.columns) + [calc]
+    dataset.database.db_engine_spec = _engine_spec_with_grain_map(
+        {"P1D": "DATE_TRUNC('day', {col})"}
+    )
+
+    view = DatasetSemanticView(dataset)
+    dim = next(d for d in view.dimensions if d.id == "created_at_minus_1")
+    grained = dataclasses.replace(dim, grain=Grains.DAY)
+
+    sql = view.compile_query(SemanticQuery(metrics=[], dimensions=[grained]))
+    # The grain wraps the calculated expression; sqlglot re-renders the
+    # interval literal so we check the structural pieces individually.
+    assert "DATE_TRUNC('DAY'," in sql
+    assert "created_at - INTERVAL" in sql
+
+
+def test_rls_applied_to_get_values(dataset: MagicMock, stub_rls_module) -> None:
+    import pandas as pd
+
+    stub_rls_module.render_rls_predicates = lambda ds: ["tenant_id = 7"]
+    dataset.database.get_df.return_value = pd.DataFrame({"country": []})
+    view = DatasetSemanticView(dataset)
+    country = next(d for d in view.dimensions if d.id == "country")
+
+    view.get_values(country)
+    sql_arg = dataset.database.get_df.call_args.args[0]
+    assert "tenant_id = 7" in sql_arg
