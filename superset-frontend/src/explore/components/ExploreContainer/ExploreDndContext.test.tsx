@@ -110,16 +110,15 @@ test('drop with no canDrop validator defaults to accepting the item', () => {
 });
 
 test('no-op when there is no droppable target', () => {
-  const onDrop = jest.fn();
   expect(() =>
-    resolveDragEnd(active({ type: COLUMN, value: {}, onDrop }), null),
+    resolveDragEnd(active({ type: COLUMN, value: {} }), null),
   ).not.toThrow();
 });
 
 test('no-op when dropping onto itself', () => {
   const onDrop = jest.fn();
   resolveDragEnd(
-    active({ type: COLUMN, value: {}, onDrop }, 'same'),
+    active({ type: COLUMN, value: {} }, 'same'),
     over({ accept: [COLUMN], onDrop }, 'same'),
   );
   expect(onDrop).not.toHaveBeenCalled();
