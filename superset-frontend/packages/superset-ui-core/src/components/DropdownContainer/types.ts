@@ -86,11 +86,6 @@ export interface DropdownContainerProps {
    * Force render popover content before it's first opened
    */
   forceRender?: boolean;
-  /**
-   * Always show the dropdown button, even when no items are overflowing.
-   * Useful to prevent button flickering during layout recalculations.
-   */
-  alwaysShowDropdownButton?: boolean;
 }
 
 export type DropdownRef = HTMLDivElement & { open: () => void };
