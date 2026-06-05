@@ -1056,7 +1056,9 @@ async def test_get_dataset_info_not_found(mock_info, mcp_server):
         assert result.data["error_type"] == "not_found"
 
 
-# TODO (Phase 3+): Add tests for get_dataset_available_filters tool
+# Dataset filter discovery is covered by the unified get_schema tool tests:
+# tests/unit_tests/mcp_service/system/tool/test_get_schema.py
+# (TestGetSchemaFilterColumnsDiscovery)
 
 
 @pytest.mark.asyncio

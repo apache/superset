@@ -520,6 +520,129 @@ class TestGetSchemaToolViaClient:
                     )
 
 
+class TestGetSchemaFilterColumnsDiscovery:
+    """Test that dashboard and dataset filter discovery works through get_schema.
+
+    These tests verify that the unified get_schema tool properly exposes
+    filter_columns for dashboard and dataset model types, replacing the
+    former individual get_*_available_filters tools.
+    """
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_dashboard_filter_columns_returned(self, mock_filters, mcp_server):
+        """Dashboard filter_columns are populated from DAO via get_schema."""
+        mock_filters.return_value = {
+            "dashboard_title": ["eq", "ilike", "sw"],
+            "published": ["eq"],
+            "slug": ["eq", "ilike"],
+            "certified": ["eq"],
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "dashboard"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        filters = data["schema_info"]["filter_columns"]
+
+        assert "dashboard_title" in filters
+        assert set(filters["dashboard_title"]) == {"eq", "ilike", "sw"}
+        assert "published" in filters
+        assert filters["published"] == ["eq"]
+        assert "slug" in filters
+        assert "certified" in filters
+
+    @patch("superset.daos.dataset.DatasetDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_dataset_filter_columns_returned(self, mock_filters, mcp_server):
+        """Dataset filter_columns are populated from DAO via get_schema."""
+        mock_filters.return_value = {
+            "table_name": ["eq", "sw", "ilike"],
+            "schema": ["eq", "in"],
+            "database": ["rel_o_m"],
+            "is_sqllab_view": ["eq"],
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "dataset"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        filters = data["schema_info"]["filter_columns"]
+
+        assert "table_name" in filters
+        assert set(filters["table_name"]) == {"eq", "sw", "ilike"}
+        assert "schema" in filters
+        assert set(filters["schema"]) == {"eq", "in"}
+        assert "database" in filters
+        assert "is_sqllab_view" in filters
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_dashboard_filter_columns_operators_match_dao(
+        self, mock_filters, mcp_server
+    ):
+        """Operators in dashboard filter_columns exactly mirror DAO output."""
+        expected_filters = {
+            "dashboard_title": ["eq", "ilike"],
+            "published": ["eq"],
+            "created_by_fk": ["eq", "in"],
+            "changed_by_fk": ["eq", "in"],
+        }
+        mock_filters.return_value = expected_filters
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "dashboard"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        filters = data["schema_info"]["filter_columns"]
+
+        # Non-user-directory columns are passed through exactly
+        assert "dashboard_title" in filters
+        assert set(filters["dashboard_title"]) == {"eq", "ilike"}
+        assert "published" in filters
+
+        # User FK columns are allowed for ID-based filtering
+        assert "created_by_fk" in filters
+        assert "changed_by_fk" in filters
+
+    @patch("superset.daos.dataset.DatasetDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_dataset_filter_columns_operators_match_dao(
+        self, mock_filters, mcp_server
+    ):
+        """Operators in dataset filter_columns exactly mirror DAO output."""
+        expected_filters = {
+            "table_name": ["eq", "sw"],
+            "schema": ["eq"],
+            "created_by_fk": ["eq", "in"],
+            "changed_by_fk": ["eq", "in"],
+        }
+        mock_filters.return_value = expected_filters
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "dataset"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        filters = data["schema_info"]["filter_columns"]
+
+        assert "table_name" in filters
+        assert set(filters["table_name"]) == {"eq", "sw"}
+        assert "schema" in filters
+        assert filters["schema"] == ["eq"]
+
+        # User FK columns are allowed for ID-based filtering
+        assert "created_by_fk" in filters
+        assert "changed_by_fk" in filters
+
+
 class TestGetSchemaEdgeCases:
     """Test edge cases for get_schema tool."""
 
