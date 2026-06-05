@@ -84,10 +84,14 @@ class SQLAlchemyUtilsAdapter(  # pylint: disable=too-few-public-methods
             if "engine" not in kwargs:
                 engine_name = app_config.get("SQLALCHEMY_ENCRYPTED_FIELD_ENGINE", "aes")
                 if engine_name not in ENCRYPTION_ENGINES:
+                    # Do not log the configured value itself: it originates from
+                    # the app config (which also holds the SECRET_KEY), and
+                    # static analysis flags interpolating any config-sourced
+                    # value into a log as potential clear-text secret logging.
+                    # The set of valid engines is enough to diagnose the typo.
                     logger.warning(
-                        "Unrecognized SQLALCHEMY_ENCRYPTED_FIELD_ENGINE %r;"
+                        "Unrecognized SQLALCHEMY_ENCRYPTED_FIELD_ENGINE;"
                         " falling back to AES-CBC. Valid engines: %s",
-                        engine_name,
                         ", ".join(sorted(ENCRYPTION_ENGINES)),
                     )
                 kwargs["engine"] = ENCRYPTION_ENGINES.get(engine_name, AesEngine)
