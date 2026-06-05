@@ -161,10 +161,13 @@ test('should preserve table styling after sanitization (fixes ECharts tooltip fo
     </table>
   `;
 
+  // The `xss` CSS filter normalizes declarations, dropping the space after
+  // each colon (e.g. `opacity: 0.8;` becomes `opacity:0.8;`) while preserving
+  // the property/value pairs themselves.
   const sanitized = sanitizeHtml(tableWithStyles);
-  expect(sanitized).toContain('style="opacity: 0.8;"');
-  expect(sanitized).toContain('style="text-align: left; padding-left: 0px;"');
-  expect(sanitized).toContain('style="text-align: right; padding-left: 16px;"');
+  expect(sanitized).toContain('style="opacity:0.8;"');
+  expect(sanitized).toContain('style="text-align:left; padding-left:0px;"');
+  expect(sanitized).toContain('style="text-align:right; padding-left:16px;"');
 
   const data = [
     ['Metric', 'Value'],
@@ -172,10 +175,10 @@ test('should preserve table styling after sanitization (fixes ECharts tooltip fo
   ];
   const html = tooltipHtml(data, 'Test Tooltip');
 
-  expect(html).toContain('style="opacity: 0.8;"');
-  expect(html).toContain('text-align: left');
-  expect(html).toContain('text-align: right');
-  expect(html).toContain('padding-left: 0px');
-  expect(html).toContain('padding-left: 16px');
-  expect(html).toContain('max-width: 300px');
+  expect(html).toContain('style="opacity:0.8;"');
+  expect(html).toContain('text-align:left');
+  expect(html).toContain('text-align:right');
+  expect(html).toContain('padding-left:0px');
+  expect(html).toContain('padding-left:16px');
+  expect(html).toContain('max-width:300px');
 });

@@ -17,13 +17,48 @@
 
 """Tests for MCP field-level permission helpers."""
 
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
+
+from flask import current_app
 
 from superset.mcp_service.utils.permissions_utils import (
     apply_field_permissions_to_columns,
     filter_sensitive_data,
     get_allowed_fields,
+    user_has_permission,
 )
+
+
+def test_user_has_permission_admin_uses_configured_role_name():
+    """The admin bypass honors AUTH_ROLE_ADMIN, not a hardcoded 'Admin'."""
+
+    def _role(name: str) -> Mock:
+        role = Mock()
+        role.name = name  # set after construction (Mock intercepts name=)
+        return role
+
+    original = current_app.config["AUTH_ROLE_ADMIN"]
+    current_app.config["AUTH_ROLE_ADMIN"] = "Superuser"
+    try:
+        admin = Mock()
+        admin.roles = [_role("Superuser")]
+        admin.groups = []
+        assert user_has_permission(admin, "can_read", "Chart") is True
+
+        # The previously-hardcoded "Admin" name no longer grants the bypass;
+        # it falls through to the real permission check. Mock that check to
+        # deny explicitly (rather than relying on incidental Mock behavior) and
+        # assert the helper actually consulted security_manager.has_access.
+        not_admin = Mock()
+        not_admin.roles = [_role("Admin")]
+        not_admin.groups = []
+        with patch(
+            "superset.security_manager.has_access", return_value=False
+        ) as has_access:
+            assert user_has_permission(not_admin, "can_read", "Chart") is False
+        has_access.assert_called_once_with("can_read", "Chart", not_admin)
+    finally:
+        current_app.config["AUTH_ROLE_ADMIN"] = original
 
 
 def test_get_allowed_fields_always_denies_user_directory_fields():

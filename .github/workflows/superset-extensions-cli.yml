@@ -20,9 +20,12 @@ concurrency:
 jobs:
   test-superset-extensions-cli-package:
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     strategy:
       matrix:
-        python-version: ["previous", "current", "next"]
+        # Full version spread on push (master/release) + nightly; current only
+        # on PRs to cut runner cost (cross-version breaks are caught at merge).
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["previous", "current", "next"]') }}
     defaults:
       run:
         working-directory: superset-extensions-cli
@@ -53,7 +56,7 @@ jobs:
 
       - name: Upload coverage reports to Codecov
         if: steps.check.outputs.superset-extensions-cli
-        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v5
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         with:
           file: ./coverage.xml
           flags: superset-extensions-cli

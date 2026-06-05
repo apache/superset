@@ -30,6 +30,31 @@ The `DURATION` number formatter now uses `Intl.DurationFormat` for locale-aware 
 
 To preserve sub-second precision in custom duration formatters, enable `formatSubMilliseconds`.
 
+### YDB now uses a native sqlglot dialect
+
+YDB SQL parsing now relies on the dedicated [`ydb-sqlglot-plugin`](https://pypi.org/project/ydb-sqlglot-plugin/) dialect, which registers itself with sqlglot automatically. YDB users must install this plugin (e.g., via `pip install "apache-superset[ydb]"`) to avoid a `ValueError` when Superset parses YDB queries.
+
+### Embedded dashboards enforce configured Allowed Domains for postMessage
+
+The embedded dashboard page now validates the origin of incoming `postMessage` events against the dashboard's configured **Allowed Domains**. The server-rendered embedded page exposes the configured domains in its bootstrap payload, and the frontend rejects message events whose origin is not in that list.
+
+Enforcement only applies when the Allowed Domains list is non-empty. If the list is empty (the default), any origin is accepted, so there is no behavior change for embeds that did not configure Allowed Domains.
+
+### Dataset import validates catalog against the target connection
+
+Importing a dataset now validates the `catalog` field against the target database connection. When the connection has multi-catalog disabled (`allow_multi_catalog` off) and the dataset's catalog is not the connection's default catalog, the import fails instead of silently persisting the non-default catalog. This matches the validation already enforced on the dataset update path and prevents imported datasets from querying an unintended database.
+
+If you relied on importing datasets with a non-default catalog, enable "Allow changing catalogs" on the target connection, or set the dataset's catalog to the connection's default before importing.
+
+### Extension supply-chain controls (denylist + version policy)
+
+Two opt-in static gates control which extensions are allowed to load:
+
+- `EXTENSION_DENYLIST` refuses extensions matching an id (every version) or `id@version` (a single version), e.g. `["compromised-extension", "other-ext@1.2.3"]`.
+- `EXTENSION_VERSION_POLICY` enforces a minimum version per extension id, e.g. `{"acme.widget": "1.2.0"}` (PEP 440 comparison); a release below the minimum is refused.
+
+Both default to empty (no behavior change). They apply to both the `LOCAL_EXTENSIONS` and `EXTENSIONS_PATH` load paths.
+
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:

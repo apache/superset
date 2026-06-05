@@ -24,7 +24,6 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Annotated, Any, Dict, List, Literal
 
-import humanize
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -54,6 +53,7 @@ from superset.mcp_service.utils import (
     escape_llm_context_delimiters,
     sanitize_for_llm_context,
 )
+from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.utils import json
 
 
@@ -65,17 +65,18 @@ class DatasetFilter(ColumnOperator):
     value: The value to filter by (type depends on col and opr).
     """
 
-    col: Literal[
+    col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "table_name",
         "schema",
         "database_name",
+        "created_by_fk",
+        "changed_by_fk",
     ] = Field(
         ...,
-        description=(
-            "Column to filter on. Valid values: 'table_name', 'schema', "
-            "'database_name'. Other column names (e.g. 'created_by_fk', 'id') "
-            "are not valid filter columns and will cause a validation error."
-        ),
+        description="Column to filter on. Use get_schema(model_type='dataset') for "
+        "available filter columns. To filter by a person, first call find_users "
+        "to resolve a name to a user ID, then filter by created_by_fk or "
+        "changed_by_fk with that integer ID.",
     )
     opr: ColumnOperatorEnum = Field(
         ...,
@@ -553,13 +554,6 @@ def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
     return value
 
 
-def _humanize_timestamp(dt: datetime | None) -> str | None:
-    """Convert a datetime to a humanized string like '2 hours ago'."""
-    if dt is None:
-        return None
-    return humanize.naturaltime(datetime.now() - dt)
-
-
 def _sanitize_dataset_info_for_llm_context(dataset_info: DatasetInfo) -> DatasetInfo:
     """Wrap dataset read-path descriptive fields before LLM exposure."""
     payload = dataset_info.model_dump(mode="python")
@@ -658,7 +652,7 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
             params = None
     columns = [
         TableColumnInfo(
-            column_name=getattr(col, "column_name", None),
+            column_name=getattr(col, "column_name", None) or "",
             verbose_name=getattr(col, "verbose_name", None),
             type=getattr(col, "type", None),
             is_dttm=getattr(col, "is_dttm", None),
@@ -670,7 +664,7 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     ]
     metrics = [
         SqlMetricInfo(
-            metric_name=getattr(metric, "metric_name", None),
+            metric_name=getattr(metric, "metric_name", None) or "",
             verbose_name=getattr(metric, "verbose_name", None),
             expression=getattr(metric, "expression", None),
             description=getattr(metric, "description", None),
@@ -690,11 +684,11 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
             certified_by=getattr(dataset, "certified_by", None),
             certification_details=getattr(dataset, "certification_details", None),
             changed_on=getattr(dataset, "changed_on", None),
-            changed_on_humanized=_humanize_timestamp(
+            changed_on_humanized=humanize_timestamp(
                 getattr(dataset, "changed_on", None)
             ),
             created_on=getattr(dataset, "created_on", None),
-            created_on_humanized=_humanize_timestamp(
+            created_on_humanized=humanize_timestamp(
                 getattr(dataset, "created_on", None)
             ),
             tags=[

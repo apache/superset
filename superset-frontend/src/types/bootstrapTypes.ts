@@ -178,6 +178,9 @@ export interface BootstrapData {
   config?: any;
   embedded?: {
     dashboard_id: string;
+    // Domains allowed to embed this dashboard. An empty/undefined list means
+    // any domain is allowed (no restriction).
+    allowed_domains?: string[];
   };
   requested_query?: JsonObject;
 }

@@ -239,7 +239,10 @@ describe('ListView', () => {
   });
 
   test('calls fetchData on sort', async () => {
-    const sortHeader = screen.getAllByTestId('sort-header')[1];
+    // sort-header[0] is the first data column ('id'); the select-all
+    // column header carries `data-test="header-toggle-all"` instead
+    // of `sort-header` (see TableCollection's `header.cell` slot).
+    const sortHeader = screen.getAllByTestId('sort-header')[0];
     await userEvent.click(sortHeader);
 
     expect(mockedPropsComprehensive.fetchData).toHaveBeenCalledWith({
@@ -301,15 +304,19 @@ describe('ListView', () => {
   });
 
   test('renders UI filters', () => {
-    const filterControls = screen.getAllByRole('combobox');
-    expect(filterControls).toHaveLength(2);
+    // select and datetime_range filters render as compact pill buttons;
+    // search filter renders as a text input
+    const filterPills = screen.getAllByTestId('compact-filter-pill');
+    expect(filterPills).toHaveLength(3); // ID, Age, Time
   });
 
   test('calls fetchData on filter', async () => {
-    // Handle select filter
-    const selectFilter = screen.getAllByRole('combobox')[0];
-    await userEvent.click(selectFilter);
-    const option = screen.getByText('foo');
+    // Click the ID compact pill to open its option panel
+    const idPill = screen.getByRole('button', { name: 'ID' });
+    await userEvent.click(idPill);
+
+    // Wait for and click the 'foo' option in the dropdown panel
+    const option = await screen.findByRole('option', { name: 'foo' });
     await userEvent.click(option);
 
     // Handle search filter
@@ -341,7 +348,10 @@ describe('ListView', () => {
       initialSort: [{ id: 'something' }],
     });
 
-    const sortSelect = screen.getByTestId('card-sort-select');
+    const sortSelectContainer = screen.getByTestId('card-sort-select');
+    const sortSelect = sortSelectContainer.querySelector(
+      '[data-test="compact-filter-pill"]',
+    ) as HTMLElement;
     await userEvent.click(sortSelect);
 
     const sortOption = screen.getByText('Alphabetical');
