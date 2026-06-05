@@ -30,13 +30,26 @@ import { Event } from '../common';
 
 /**
  * The set of top-level application surfaces.
- * `'other'` covers any route not explicitly enumerated.
+ *
+ * `'explore'`, `'dashboard'` and `'dataset'` are the single-entity
+ * editing/viewing surfaces where `explore.getCurrentChart()` /
+ * `dashboard.getCurrentDashboard()` / `dataset.getCurrentDataset()` resolve to a
+ * concrete entity. `'chart_list'`, `'dashboard_list'` and `'dataset_list'` are
+ * the browse/list surfaces, distinct from those because no single entity is
+ * active. `'sqllab'` is the SQL editor where `sqlLab.getCurrentTab()` resolves;
+ * `'query_history'` and `'saved_queries'` are the related SQL Lab browse pages,
+ * which are not the editor. `'other'` covers any route not explicitly enumerated.
  */
 export type PageType =
   | 'dashboard'
+  | 'dashboard_list'
   | 'explore'
+  | 'chart_list'
   | 'sqllab'
+  | 'query_history'
+  | 'saved_queries'
   | 'dataset'
+  | 'dataset_list'
   | 'home'
   | 'other';
 

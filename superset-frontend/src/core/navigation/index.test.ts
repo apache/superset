@@ -84,6 +84,38 @@ test('sqllab path is matched with and without trailing slash', async () => {
   notifyPageChange('/sqllab');
   expect(navigation.getPageType()).toBe('sqllab');
   notifyPageChange('/explore/');
-  notifyPageChange('/sqllab/history');
+  notifyPageChange('/sqllab/');
   expect(navigation.getPageType()).toBe('sqllab');
+});
+
+test('chart and dashboard list pages get their own page types', async () => {
+  const { notifyPageChange, navigation } = await importNavigation();
+  notifyPageChange('/chart/list/');
+  expect(navigation.getPageType()).toBe('chart_list');
+  notifyPageChange('/dashboard/list/');
+  expect(navigation.getPageType()).toBe('dashboard_list');
+});
+
+test('dataset list and single-dataset pages get distinct page types', async () => {
+  const { notifyPageChange, navigation } = await importNavigation();
+  notifyPageChange('/tablemodelview/list/');
+  expect(navigation.getPageType()).toBe('dataset_list');
+  notifyPageChange('/dataset/42');
+  expect(navigation.getPageType()).toBe('dataset');
+});
+
+test('sqllab editor, query history, and saved queries get distinct page types', async () => {
+  const { notifyPageChange, navigation } = await importNavigation();
+  notifyPageChange('/sqllab/');
+  expect(navigation.getPageType()).toBe('sqllab');
+  notifyPageChange('/sqllab/history/');
+  expect(navigation.getPageType()).toBe('query_history');
+  notifyPageChange('/savedqueryview/list/');
+  expect(navigation.getPageType()).toBe('saved_queries');
+});
+
+test('chart/add resolves to explore, not chart_list', async () => {
+  const { notifyPageChange, navigation } = await importNavigation();
+  notifyPageChange('/chart/add');
+  expect(navigation.getPageType()).toBe('explore');
 });
