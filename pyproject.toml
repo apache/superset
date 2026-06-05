@@ -154,7 +154,7 @@ fastmcp = [
 ]
 firebird = ["sqlalchemy-firebird>=0.7.0, <2.2"]
 firebolt = ["firebolt-sqlalchemy>=1.0.0, <2"]
-gevent = ["gevent>=23.9.1"]
+gevent = ["gevent>=26.4.0"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.4, <2"]
 hana = ["hdbcli==2.28.20", "sqlalchemy_hana==0.4.0"]
 hive = [
@@ -208,7 +208,7 @@ netezza = ["nzalchemy>=11.0.2"]
 starrocks = ["starrocks>=1.0.0"]
 doris = ["pydoris>=1.0.0, <2.0.0"]
 oceanbase = ["oceanbase_py>=0.0.1"]
-ydb = ["ydb-sqlalchemy>=0.1.2"]
+ydb = ["ydb-sqlalchemy>=0.1.2", "ydb-sqlglot-plugin>=0.2.5"]
 development = [
     # no bounds for apache-superset-extensions-cli until a stable version
     "apache-superset-extensions-cli",
@@ -225,7 +225,7 @@ development = [
     "progress>=1.5,<2",
     "psutil",
     "pyfakefs",
-    "pyinstrument>=4.0.2,<6",
+    "pyinstrument>=5.1.2,<6",
     "pylint",
     "pytest<8.0.0", # hairy issue with pytest >=8 where current_app proxies are not set in time
     "pytest-asyncio",
@@ -456,6 +456,7 @@ authorized_licenses = [
     "isc license (iscl)",
     "isc license",
     "mit",
+    "mit and psf-2.0",
     "mit-cmu",
     "mozilla public license 2.0 (mpl 2.0)",
     "osi approved",

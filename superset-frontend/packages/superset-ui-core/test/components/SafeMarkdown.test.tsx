@@ -20,6 +20,7 @@ import { render } from '@testing-library/react';
 import {
   getOverrideHtmlSchema,
   SafeMarkdown,
+  transformLinkUri,
 } from '../../src/components/SafeMarkdown/SafeMarkdown';
 
 /**
@@ -49,6 +50,63 @@ describe('getOverrideHtmlSchema', () => {
     expect(result.clobberPrefix).toEqual('custom-prefix');
     expect(result.attributes).toEqual({ '*': ['size', 'src'], h1: ['style'] });
     expect(result.tagNames).toEqual(['h1', 'h2', 'h3', 'iframe']);
+  });
+});
+
+describe('transformLinkUri', () => {
+  // Build script-executing protocols via concatenation so the literal URLs
+  // don't trip the no-script-url lint rule.
+  const js = `java${'script'}`;
+  const vbs = `vb${'script'}`;
+
+  // Cases are [label, uri] pairs: the raw URIs contain C0 control characters
+  // (\x00, \x01, \x1F) that are invalid in XML, so they must not be
+  // interpolated into the test name (the HTML/JUnit reporters serialize names
+  // to XML and would crash). The label keeps the reported name printable while
+  // the uri is exercised in the body.
+  test.each([
+    ['javascript', `${js}:alert(1)`],
+    ['mixed-case JavaScript', `Java${'Script'}:alert(1)`],
+    ['leading whitespace', `  ${js}:alert(document.cookie)`],
+    ['tab inside scheme', `java\t${'script'}:alert(1)`],
+    // Leading C0 control characters are stripped by the WHATWG URL parser
+    // before the scheme is resolved, so they must not bypass the blocklist.
+    ['leading 0x01 control', `\x01${js}:alert(1)`],
+    ['leading NUL (0x00)', `\x00${js}:alert(1)`],
+    ['leading 0x1F control', `\x1F${js}:alert(1)`],
+    // C0 control characters inside the scheme are ignored by browsers too.
+    ['0x01 control inside scheme', `java\x01${'script'}:alert(1)`],
+    ['vbscript', `${vbs}:msgbox(1)`],
+    ['data: text/html', 'data:text/html,<script>alert(1)</script>'],
+  ])(
+    'blocks the script-executing protocol (%s)',
+    (_label: string, uri: string) => {
+      expect(transformLinkUri(uri)).toBe('');
+    },
+  );
+
+  test.each([
+    'https://superset.apache.org',
+    'http://example.com/path?q=1',
+    'mailto:someone@example.com',
+    '/relative/path',
+    '#section',
+  ])('keeps the safe URL %p unchanged', uri => {
+    expect(transformLinkUri(uri)).toBe(uri);
+  });
+
+  test.each([
+    'custom-scheme://open/thing',
+    'slack://channel?id=1',
+    `foo:bar?${js}:alert(1)`,
+  ])('preserves custom link scheme %p (see #26211)', uri => {
+    expect(transformLinkUri(uri)).toBe(uri);
+  });
+
+  test('handles empty and nullish input', () => {
+    expect(transformLinkUri('')).toBe('');
+    // @ts-expect-error -- guarding runtime nullish input
+    expect(transformLinkUri(undefined)).toBe('');
   });
 });
 

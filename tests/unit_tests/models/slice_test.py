@@ -16,7 +16,7 @@
 # under the License.
 
 import uuid
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import pytest
 from parameterized import parameterized
@@ -123,3 +123,26 @@ class TestSlice:
 
         result = slc.datasource_url()
         assert result is None
+
+    def test_icons_escapes_datasource_html(self):
+        """icons must HTML-escape the datasource name and edit URL."""
+        slc = Slice()
+        with (
+            patch.object(
+                Slice,
+                "datasource_edit_url",
+                new_callable=PropertyMock,
+                return_value='/x"onmouseover=alert(1)',
+            ),
+            patch.object(
+                Slice,
+                "datasource",
+                new_callable=PropertyMock,
+                return_value="<img src=x onerror=alert(1)>",
+            ),
+        ):
+            html = slc.icons
+
+        # The injected tag and attribute-breakout quote are escaped.
+        assert "<img" not in html
+        assert '"onmouseover' not in html
