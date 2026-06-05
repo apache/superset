@@ -16,6 +16,7 @@
 # under the License.
 from unittest.mock import Mock, patch
 
+import pytest
 import sshtunnel
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
@@ -23,12 +24,35 @@ from cryptography.hazmat.primitives.asymmetric.rsa import (
     generate_private_key as generate_rsa_key,
 )
 from cryptography.hazmat.primitives.serialization import (
+    BestAvailableEncryption,
     Encoding,
     NoEncryption,
     PrivateFormat,
 )
+from paramiko import Ed25519Key, PasswordRequiredException, RSAKey, SSHException
 
 from superset.extensions.ssh import SSHManager, SSHManagerFactory
+
+
+def _make_manager() -> SSHManager:
+    app = Mock()
+    app.config = {
+        "SSH_TUNNEL_LOCAL_BIND_ADDRESS": "127.0.0.1",
+        "SSH_TUNNEL_TIMEOUT_SEC": 10.0,
+        "SSH_TUNNEL_PACKET_TIMEOUT_SEC": 10.0,
+    }
+    return SSHManager(app)
+
+
+def _make_ssh_tunnel(private_key: str, private_key_password: str | None = None) -> Mock:
+    ssh_tunnel = Mock()
+    ssh_tunnel.server_address = "ssh.example.com"
+    ssh_tunnel.server_port = 22
+    ssh_tunnel.username = "tunneluser"
+    ssh_tunnel.password = None
+    ssh_tunnel.private_key = private_key
+    ssh_tunnel.private_key_password = private_key_password
+    return ssh_tunnel
 
 
 def test_ssh_tunnel_timeout_setting() -> None:
@@ -72,21 +96,8 @@ def test_create_tunnel_accepts_ed25519_private_key() -> None:
     test does not actually open a network connection — only the key
     parsing path is exercised.
     """
-    app = Mock()
-    app.config = {
-        "SSH_TUNNEL_LOCAL_BIND_ADDRESS": "127.0.0.1",
-        "SSH_TUNNEL_TIMEOUT_SEC": 10.0,
-        "SSH_TUNNEL_PACKET_TIMEOUT_SEC": 10.0,
-    }
-    manager = SSHManager(app)
-
-    ssh_tunnel = Mock()
-    ssh_tunnel.server_address = "ssh.example.com"
-    ssh_tunnel.server_port = 22
-    ssh_tunnel.username = "tunneluser"
-    ssh_tunnel.password = None
-    ssh_tunnel.private_key = _make_ed25519_pem()
-    ssh_tunnel.private_key_password = None
+    manager = _make_manager()
+    ssh_tunnel = _make_ssh_tunnel(_make_ed25519_pem())
 
     with patch("superset.extensions.ssh.sshtunnel.open_tunnel") as mock_open:
         manager.create_tunnel(
@@ -96,7 +107,7 @@ def test_create_tunnel_accepts_ed25519_private_key() -> None:
     # Key-type-agnostic loader must produce a paramiko PKey usable as ssh_pkey.
     assert mock_open.called, "open_tunnel was never invoked — key parsing aborted"
     forwarded_pkey = mock_open.call_args.kwargs["ssh_pkey"]
-    assert forwarded_pkey is not None
+    assert isinstance(forwarded_pkey, Ed25519Key)
 
 
 def test_create_tunnel_accepts_rsa_private_key_unchanged() -> None:
@@ -116,29 +127,16 @@ def test_create_tunnel_accepts_rsa_private_key_unchanged() -> None:
         .decode()
     )
 
-    app = Mock()
-    app.config = {
-        "SSH_TUNNEL_LOCAL_BIND_ADDRESS": "127.0.0.1",
-        "SSH_TUNNEL_TIMEOUT_SEC": 10.0,
-        "SSH_TUNNEL_PACKET_TIMEOUT_SEC": 10.0,
-    }
-    manager = SSHManager(app)
-
-    ssh_tunnel = Mock()
-    ssh_tunnel.server_address = "ssh.example.com"
-    ssh_tunnel.server_port = 22
-    ssh_tunnel.username = "tunneluser"
-    ssh_tunnel.password = None
-    ssh_tunnel.private_key = rsa_pem
-    ssh_tunnel.private_key_password = None
+    manager = _make_manager()
+    ssh_tunnel = _make_ssh_tunnel(rsa_pem)
 
     with patch("superset.extensions.ssh.sshtunnel.open_tunnel") as mock_open:
         manager.create_tunnel(
             ssh_tunnel, "postgresql://user:pass@db.example.com:5432/x"
         )
 
-    assert mock_open.called
-    assert mock_open.call_args.kwargs["ssh_pkey"] is not None
+    assert mock_open.called, "open_tunnel was never invoked — RSA key parsing aborted"
+    assert isinstance(mock_open.call_args.kwargs["ssh_pkey"], RSAKey)
 
 
 def test_create_tunnel_accepts_ecdsa_private_key() -> None:
@@ -157,21 +155,8 @@ def test_create_tunnel_accepts_ecdsa_private_key() -> None:
         .decode()
     )
 
-    app = Mock()
-    app.config = {
-        "SSH_TUNNEL_LOCAL_BIND_ADDRESS": "127.0.0.1",
-        "SSH_TUNNEL_TIMEOUT_SEC": 10.0,
-        "SSH_TUNNEL_PACKET_TIMEOUT_SEC": 10.0,
-    }
-    manager = SSHManager(app)
-
-    ssh_tunnel = Mock()
-    ssh_tunnel.server_address = "ssh.example.com"
-    ssh_tunnel.server_port = 22
-    ssh_tunnel.username = "tunneluser"
-    ssh_tunnel.password = None
-    ssh_tunnel.private_key = ecdsa_pem
-    ssh_tunnel.private_key_password = None
+    manager = _make_manager()
+    ssh_tunnel = _make_ssh_tunnel(ecdsa_pem)
 
     with patch("superset.extensions.ssh.sshtunnel.open_tunnel") as mock_open:
         manager.create_tunnel(
@@ -180,3 +165,54 @@ def test_create_tunnel_accepts_ecdsa_private_key() -> None:
 
     assert mock_open.called, "open_tunnel was never invoked — ECDSA key parsing aborted"
     assert mock_open.call_args.kwargs["ssh_pkey"] is not None
+
+
+def test_create_tunnel_passphrase_protected_key_without_password() -> None:
+    """
+    A passphrase-protected key supplied without a passphrase must surface as
+    ``PasswordRequiredException`` (an actionable "key requires passphrase"
+    signal) rather than being absorbed by the per-type loop and reported as a
+    generic "Unable to parse" error.
+    """
+    encrypted_pem = (
+        Ed25519PrivateKey.generate()
+        .private_bytes(
+            encoding=Encoding.PEM,
+            format=PrivateFormat.OpenSSH,
+            encryption_algorithm=BestAvailableEncryption(b"correct horse"),
+        )
+        .decode()
+    )
+
+    manager = _make_manager()
+    ssh_tunnel = _make_ssh_tunnel(encrypted_pem, private_key_password=None)
+
+    with patch("superset.extensions.ssh.sshtunnel.open_tunnel") as mock_open:
+        with pytest.raises(PasswordRequiredException):
+            manager.create_tunnel(
+                ssh_tunnel, "postgresql://user:pass@db.example.com:5432/x"
+            )
+
+    assert not mock_open.called
+
+
+def test_create_tunnel_invalid_key_raises_combined_error() -> None:
+    """
+    When a key parses as none of the supported types, ``_load_private_key``
+    raises ``SSHException`` whose message lists every type that was attempted,
+    so the failure clearly communicates that all loaders were tried.
+    """
+    manager = _make_manager()
+    ssh_tunnel = _make_ssh_tunnel("not a valid private key")
+
+    with patch("superset.extensions.ssh.sshtunnel.open_tunnel") as mock_open:
+        with pytest.raises(SSHException) as exc_info:
+            manager.create_tunnel(
+                ssh_tunnel, "postgresql://user:pass@db.example.com:5432/x"
+            )
+
+    message = str(exc_info.value)
+    assert "Ed25519Key" in message
+    assert "ECDSAKey" in message
+    assert "RSAKey" in message
+    assert not mock_open.called

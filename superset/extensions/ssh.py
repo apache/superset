@@ -47,9 +47,11 @@ _SSH_KEY_TYPES: tuple[type[PKey], ...] = (Ed25519Key, ECDSAKey, RSAKey)
 def _load_private_key(pem: str, password: str | None) -> PKey:
     """Load a private key PEM regardless of algorithm (ed25519, ECDSA, RSA).
 
-    paramiko does not expose a polymorphic ``PKey.from_private_key``; each
-    key class only accepts its own format. Iterate over the supported types
-    and return the first that parses cleanly.
+    paramiko 3.2+ has ``PKey.from_path()`` for polymorphic loading, but it
+    requires a filesystem path; writing private key material to disk would be a
+    security regression. Each per-class loader only accepts its own format, so
+    iterate over the supported types on the in-memory ``StringIO`` and return
+    the first that parses cleanly.
     """
     last_exc: SSHException | None = None
     for key_class in _SSH_KEY_TYPES:
@@ -59,7 +61,10 @@ def _load_private_key(pem: str, password: str | None) -> PKey:
             raise
         except SSHException as exc:
             last_exc = exc
-            continue
+    # NOTE: last_exc holds the error from the final attempt (RSAKey), not the
+    # closest-matching type. For a corrupted ed25519 key, the appended message
+    # reflects RSAKey's parse error; the full type list above still identifies
+    # all types attempted.
     raise SSHException(
         "Unable to parse SSH private key as any of "
         f"{', '.join(k.__name__ for k in _SSH_KEY_TYPES)}: {last_exc}"
@@ -88,6 +93,9 @@ class SSHManager:
         ssh_tunnel: "SSHTunnel",
         sqlalchemy_database_uri: str,
     ) -> sshtunnel.SSHTunnelForwarder:
+        # Deferred import to break a circular import:
+        # superset.utils.ssh_tunnel -> superset.databases.ssh_tunnel.models
+        # -> superset.extensions -> superset.extensions.ssh (this module).
         from superset.utils.ssh_tunnel import get_default_port
 
         url = make_url_safe(sqlalchemy_database_uri)
