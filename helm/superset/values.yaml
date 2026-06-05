@@ -61,6 +61,8 @@ secretEnv:
   # -- Change to false in order to support externally created secret (Binami "Sealed Secrets" for Kubernetes or External Secrets Operator)
   # note: when externally creating the secret, the chart still expects to pull values from a secret with the name of the release defaults to `release-name-superset-env` - full logic located in _helpers.tpl file: `define "superset.fullname"`
   create: true
+  # -- Annotations to be added to the secret
+  annotations: {}
 
 # -- Specify service account name to be used
 serviceAccountName: ~
@@ -81,6 +83,9 @@ bootstrapScript: |
 # -- The name of the secret which we will use to generate a superset_config.py file
 # Note: this secret must have the key superset_config.py in it and can include other files as well
 configFromSecret: '{{ template "superset.fullname" . }}-config'
+
+# -- Annotations to be added to the secret which contains configuration files
+secretConfigAnnotations: {}
 
 # -- The name of the secret which we will use to populate env vars in deployed pods
 # This can be useful for secret keys, etc.
@@ -892,6 +897,8 @@ supersetWebsockets:
       "jwtSecret": "CHANGE-ME",
       "jwtCookieName": "async-token",
     }
+  # -- Annotations to be added to the secret which contains config.json
+  configAnntotaions: {}
   service:
     type: ClusterIP
     annotations: {}
