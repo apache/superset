@@ -261,7 +261,7 @@ class TestDatasetRestore(SupersetTestCase):
     # defensive code (cleaner 422 if the DB constraint is ever relaxed) and is
     # covered by ``tests/unit_tests/commands/dataset/restore_test.py::
     # test_restore_dataset_logical_duplicate_raises`` plus the catalog-
-    # normalization tests in ``tests/unit_tests/daos/test_dataset_dao.py`` at
+    # normalization tests in ``tests/unit_tests/dao/dataset_test.py`` at
     # the mocked level. The create-side defense is covered end-to-end by
     # ``test_create_blocked_by_soft_deleted_logical_duplicate`` below.
 

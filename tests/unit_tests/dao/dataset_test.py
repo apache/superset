@@ -176,3 +176,65 @@ def test_update_dataset_related_metadata_updates_changed_on(
         update_metrics_mock.assert_not_called()
 
     base_update_mock.assert_called_once_with(item, expected_attributes)
+
+
+def _mock_dataset(catalog: str | None, default_catalog: str) -> MagicMock:
+    """A SqlaTable-shaped mock with controllable catalog values."""
+    model = MagicMock()
+    model.id = 1
+    model.database_id = 7
+    model.schema = "public"
+    model.table_name = "users"
+    model.catalog = catalog
+    model.database.get_default_catalog.return_value = default_catalog
+    return model
+
+
+def test_has_active_logical_duplicate_normalizes_unset_catalog(
+    app_context: None,
+) -> None:
+    """A row stored with ``catalog = None`` is matched against the database
+    default catalog, the same rule ``validate_uniqueness`` applies.
+
+    This is the gap the soft-delete reviews flagged: restore/re-import
+    compared the raw stored ``catalog`` while create/update normalized it, so
+    a soft-deleted ``catalog = NULL`` row and an active default-catalog twin
+    could be treated as different physical tables.
+    """
+    model = _mock_dataset(catalog=None, default_catalog="default_cat")
+
+    with patch("superset.daos.dataset.db") as mock_db:
+        mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+        assert DatasetDAO.has_active_logical_duplicate(model) is False
+
+    # Normalization must consult the database default when catalog is unset.
+    model.database.get_default_catalog.assert_called_once()
+
+
+def test_has_active_logical_duplicate_keeps_explicit_catalog(
+    app_context: None,
+) -> None:
+    """When the row carries an explicit catalog, the default is not consulted."""
+    model = _mock_dataset(catalog="explicit_cat", default_catalog="default_cat")
+
+    with patch("superset.daos.dataset.db") as mock_db:
+        mock_db.session.query.return_value.filter.return_value.first.return_value = None
+
+        assert DatasetDAO.has_active_logical_duplicate(model) is False
+
+    model.database.get_default_catalog.assert_not_called()
+
+
+def test_has_active_logical_duplicate_true_when_twin_found(
+    app_context: None,
+) -> None:
+    """A matching active row makes the helper report a duplicate."""
+    model = _mock_dataset(catalog="explicit_cat", default_catalog="default_cat")
+
+    with patch("superset.daos.dataset.db") as mock_db:
+        mock_db.session.query.return_value.filter.return_value.first.return_value = (
+            MagicMock()
+        )
+
+        assert DatasetDAO.has_active_logical_duplicate(model) is True
