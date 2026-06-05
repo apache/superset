@@ -302,10 +302,12 @@ class SupersetResultSet:
     def to_pandas_df(self) -> pd.DataFrame:
         df = self.convert_table_to_df(self.table)
         # Restore nested/JSON columns as Python objects instead of strings
-        # This allows JSON data to be used directly in templates like Handlebars
+        # This allows JSON data to be used directly in templates like Handlebars.
+        # Nested column keys are drawn from the same column_names used to build
+        # the table/df, so every key is guaranteed to be present as a column.
         for column, values in self._nested_columns.items():
-            if column in df.columns:
-                df[column] = values
+            assert column in df.columns
+            df[column] = values
         return df
 
     @property

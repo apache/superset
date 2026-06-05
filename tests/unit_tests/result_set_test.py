@@ -27,6 +27,7 @@ from pytest_mock import MockerFixture
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.result_set import stringify_values, SupersetResultSet
 from superset.superset_typing import DbapiResult
+from superset.utils import json as superset_json
 
 
 def test_column_names_as_bytes() -> None:
@@ -298,15 +299,47 @@ def test_json_data_type_preserved_as_objects() -> None:
     assert df["json_col"].iloc[2] is None
     assert df["json_col"].iloc[3] == {"mixed": "string"}
 
-    # Verify the data can be serialized to JSON (as it would be for API response)
-    from superset.utils import json as superset_json
+    # Plain TEXT/VARCHAR columns must be left untouched as strings, even when
+    # adjacent to a JSON column.
+    assert df["text_col"].iloc[0] == "text1"
+    assert df["text_col"].iloc[3] == "text4"
 
+    # Verify the data can be serialized to JSON (as it would be for API response)
     records = df.to_dict(orient="records")
     json_output = superset_json.dumps(records)
     parsed = superset_json.loads(json_output)
     assert parsed[0]["json_col"]["key"] == "value1"
     assert parsed[0]["json_col"]["nested"]["a"] == 1
     assert parsed[1]["json_col"]["items"] == [1, 2, 3]
+
+
+def test_json_formatted_string_in_text_column_stays_string() -> None:
+    """
+    A plain TEXT/VARCHAR column whose values happen to be JSON-formatted strings
+    must be left unchanged as strings. There is no content-sniffing: only columns
+    that the driver returns as actual nested Python objects (dicts/lists) are
+    preserved as objects.
+
+    See: https://github.com/apache/superset/issues/25125
+    """
+    data = [
+        (1, '{"key": "val"}'),
+        (2, "[1, 2, 3]"),
+        (3, "not json at all"),
+    ]
+    description = [
+        ("id", 23, None, None, None, None, None),  # INT
+        ("text_col", 1043, None, None, None, None, None),  # VARCHAR
+    ]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+    df = result_set.to_pandas_df()
+
+    # Values stay as raw strings, never parsed into dict/list.
+    assert df["text_col"].iloc[0] == '{"key": "val"}'
+    assert isinstance(df["text_col"].iloc[0], str)
+    assert df["text_col"].iloc[1] == "[1, 2, 3]"
+    assert isinstance(df["text_col"].iloc[1], str)
+    assert df["text_col"].iloc[2] == "not json at all"
 
 
 def test_json_data_with_homogeneous_structure() -> None:
