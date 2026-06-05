@@ -698,6 +698,10 @@ class WebDriverSelenium(WebDriverProxy):
         logger.debug("Sleeping for %i seconds", selenium_headstart)
         sleep(selenium_headstart)
 
+        # WebDriver cleanup is intentionally not performed in this method. When the
+        # driver is used persistently (e.g., cache warmup), cleanup is handled
+        # externally via destroy(). When used for one-off screenshots, the caller or
+        # __del__ handles cleanup.
         try:
             try:
                 # page didn't load
@@ -794,10 +798,4 @@ class WebDriverSelenium(WebDriverProxy):
         except Exception as ex:
             logger.warning("exception in webdriver", exc_info=ex)
             raise
-        finally:
-            # When used as a persistent driver (e.g., cache warmup),
-            # cleanup is handled externally via destroy().
-            # When used for one-off screenshots, the caller or __del__
-            # handles cleanup.
-            pass
         return img

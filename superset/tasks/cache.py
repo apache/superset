@@ -21,7 +21,6 @@ from typing import Any, Optional, Union
 
 from celery.utils.log import get_task_logger
 from flask import current_app
-from selenium.common.exceptions import WebDriverException
 from sqlalchemy import and_, func
 from sqlalchemy.orm import selectinload
 
@@ -262,8 +261,8 @@ def cache_warmup(
                 logger.info("Fetching %s", url)
                 wd.get_screenshot(url, "grid-container")
                 results["success"].append(url)
-            except (WebDriverException, Exception) as ex:  # noqa: BLE001
-                logger.exception("Error warming up cache for %s: %s", url, ex)
+            except Exception:  # noqa: BLE001
+                logger.exception("Error warming up cache for %s", url)
                 results["errors"].append(url)
     finally:
         # Ensure WebDriver is properly cleaned up

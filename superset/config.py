@@ -1029,6 +1029,10 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
 # CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor("admin")]
+#
+# NOTE: The `cache-warmup` Celery task no longer consults CACHE_WARMUP_EXECUTORS.
+# It authenticates as the single user configured via SUPERSET_CACHE_WARMUP_USER
+# (defined below). This setting is retained for other executor-based code paths.
 CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER]
 
 # ---------------------------------------------------
