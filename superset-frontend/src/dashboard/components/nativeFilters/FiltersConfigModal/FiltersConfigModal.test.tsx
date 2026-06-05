@@ -655,6 +655,8 @@ test('reorders filters via keyboard (Space, ArrowDown, Space)', async () => {
 }, 30000);
 
 test('updates sidebar title when filter name changes', async () => {
+  jest.useFakeTimers();
+
   const nativeFilterConfig = [
     buildNativeFilter('NATIVE_FILTER-1', 'state', []),
     buildNativeFilter('NATIVE_FILTER-2', 'country', []),
@@ -687,11 +689,16 @@ test('updates sidebar title when filter name changes', async () => {
   await userEvent.clear(filterNameInput);
   await userEvent.type(filterNameInput, 'New Filter Name');
 
+  // Flush the 500ms debounce that triggers the sidebar title recomputation.
+  jest.advanceTimersByTime(1000);
+
+  jest.useRealTimers();
+
   await waitFor(() => {
     const tabsAfterChange = within(filterContainer).getAllByRole('tab');
     expect(tabsAfterChange[0]).toHaveTextContent('New Filter Name');
   });
-});
+}, 30000);
 
 test('modifies the name of a filter', async () => {
   jest.useFakeTimers();
