@@ -20,6 +20,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from sqlalchemy.dialects import sqlite
 
+from superset.daos.database import DatabaseDAO
 from superset.db_engine_specs.odps import OdpsBaseEngineSpec, OdpsEngineSpec
 from superset.sql.parse import Partition, Table
 
@@ -67,7 +68,7 @@ def test_odps_engine_spec_select_star_with_partition() -> None:
         query.compile(dialect=sqlite.dialect())
     )
     dialect = sqlite.dialect()
-    partition = Partition(is_partitioned_table=True, partition_column=["month"])
+    partition = Partition(is_partitioned_table=True, partition_column=("month",))
 
     sql = OdpsEngineSpec.select_star(
         database=database,
@@ -85,8 +86,6 @@ def test_odps_engine_spec_select_star_with_partition() -> None:
 
 def test_is_odps_partitioned_table_non_odps_backend() -> None:
     """Returns (False, []) immediately for non-ODPS databases; no network call made."""
-    from superset.daos.database import DatabaseDAO
-
     database = MagicMock()
     database.backend = "postgresql"
 
@@ -97,8 +96,6 @@ def test_is_odps_partitioned_table_non_odps_backend() -> None:
 
 def test_is_odps_partitioned_table_missing_pyodps() -> None:
     """Returns (False, []) with a warning when pyodps is not installed."""
-    from superset.daos.database import DatabaseDAO
-
     database = MagicMock()
     database.backend = "odps"
     database.sqlalchemy_uri = (
@@ -106,7 +103,7 @@ def test_is_odps_partitioned_table_missing_pyodps() -> None:
     )
     database.password = "mysecret"  # noqa: S105
 
-    with patch.dict("sys.modules", {"odps": None}):
+    with patch("superset.daos.database.ODPS", None):
         result = DatabaseDAO.is_odps_partitioned_table(database, "some_table")
 
     assert result == (False, [])
@@ -116,15 +113,12 @@ def test_is_odps_partitioned_table_uri_no_match(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Logs a warning and returns (False, []) when the URI doesn't match the pattern."""
-    from superset.daos.database import DatabaseDAO
-
     database = MagicMock()
     database.backend = "odps"
     database.sqlalchemy_uri = "odps://invalid-uri-format"
     database.password = "secret"  # noqa: S105
 
-    mock_odps_module = MagicMock()
-    with patch.dict("sys.modules", {"odps": mock_odps_module}):
+    with patch("superset.daos.database.ODPS", MagicMock()):
         with caplog.at_level(logging.WARNING, logger="superset.daos.database"):
             result = DatabaseDAO.is_odps_partitioned_table(database, "some_table")
 
@@ -134,8 +128,6 @@ def test_is_odps_partitioned_table_uri_no_match(
 
 def test_is_odps_partitioned_table_partitioned(monkeypatch: pytest.MonkeyPatch) -> None:
     """Returns (True, [field_names]) for a partitioned ODPS table."""
-    from superset.daos.database import DatabaseDAO
-
     database = MagicMock()
     database.backend = "odps"
     database.sqlalchemy_uri = (
@@ -153,9 +145,8 @@ def test_is_odps_partitioned_table_partitioned(monkeypatch: pytest.MonkeyPatch) 
     mock_odps_client.get_table.return_value = mock_table
     mock_odps_class = MagicMock(return_value=mock_odps_client)
 
-    with patch.dict("sys.modules", {"odps": MagicMock(ODPS=mock_odps_class)}):
-        with patch("superset.daos.database.ODPS", mock_odps_class, create=True):
-            result = DatabaseDAO.is_odps_partitioned_table(database, "my_table")
+    with patch("superset.daos.database.ODPS", mock_odps_class):
+        result = DatabaseDAO.is_odps_partitioned_table(database, "my_table")
 
     assert result == (True, ["month"])
 
@@ -164,8 +155,6 @@ def test_is_odps_partitioned_table_not_partitioned(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Returns (False, []) for a non-partitioned ODPS table."""
-    from superset.daos.database import DatabaseDAO
-
     database = MagicMock()
     database.backend = "odps"
     database.sqlalchemy_uri = (
@@ -179,7 +168,7 @@ def test_is_odps_partitioned_table_not_partitioned(
     mock_odps_client.get_table.return_value = mock_table
     mock_odps_class = MagicMock(return_value=mock_odps_client)
 
-    with patch.dict("sys.modules", {"odps": MagicMock(ODPS=mock_odps_class)}):
+    with patch("superset.daos.database.ODPS", mock_odps_class):
         result = DatabaseDAO.is_odps_partitioned_table(database, "my_table")
 
     assert result == (False, [])

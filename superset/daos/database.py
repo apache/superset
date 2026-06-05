@@ -21,7 +21,17 @@ import re
 from typing import Any
 from urllib.parse import unquote
 
+import requests
+from flask import current_app as app
 from sqlalchemy.orm import joinedload
+
+try:
+    from odps import ODPS, options as odps_options
+    from odps.errors import BaseODPSError
+except ImportError:
+    ODPS = None
+    odps_options = None
+    BaseODPSError = None
 
 from superset import is_feature_enabled
 from superset.commands.database.ssh_tunnel.exceptions import SSHTunnelingNotEnabledError
@@ -265,9 +275,7 @@ class DatabaseDAO(BaseDAO[Database]):
             raise ValueError("Database not found")
         if database.backend != "odps":
             return False, []
-        try:
-            from odps import ODPS
-        except ImportError:
+        if ODPS is None:
             logger.warning("pyodps is not installed, cannot check ODPS partition info")
             return False, []
         uri = database.sqlalchemy_uri
@@ -285,13 +293,30 @@ class DatabaseDAO(BaseDAO[Database]):
             access_id = match.group("username")
             project = match.group("project")
             endpoint = match.group("endpoint")
-            odps_client = ODPS(access_id, access_key, project, endpoint=endpoint)
-            table = odps_client.get_table(table_name)
-            if table.exist_partition:
-                partition_spec = table.table_schema.partitions
-                partition_fields = [partition.name for partition in partition_spec]
-                return True, partition_fields
-            return False, []
+            # `get_table` is a synchronous network call. Bound it with a
+            # configurable connect/read timeout so an unreachable or slow ODPS
+            # endpoint can't block the worker indefinitely.
+            timeout = app.config.get("ODPS_PARTITION_DETECT_TIMEOUT", 30)
+            if odps_options is not None:
+                odps_options.connect_timeout = timeout
+                odps_options.read_timeout = timeout
+            try:
+                odps_client = ODPS(access_id, access_key, project, endpoint=endpoint)
+                table = odps_client.get_table(table_name)
+                if table.exist_partition:
+                    partition_spec = table.table_schema.partitions
+                    partition_fields = [partition.name for partition in partition_spec]
+                    return True, partition_fields
+                return False, []
+            except (BaseODPSError, requests.exceptions.RequestException) as ex:
+                # Network/auth/lookup failures against ODPS shouldn't break table
+                # preview; fall back to the non-partitioned path.
+                logger.warning(
+                    "Error fetching ODPS partition info for table %r: %s",
+                    table_name,
+                    ex,
+                )
+                return False, []
         logger.warning(
             "ODPS sqlalchemy_uri did not match the expected pattern; "
             "unable to determine partition info for table %r",

@@ -145,9 +145,9 @@ def test_partition() -> None:
     Test the `Partition` class and its string conversion.
     """
     # Test partitioned table with partition columns
-    partition = Partition(is_partitioned_table=True, partition_column=["col1", "col2"])
+    partition = Partition(is_partitioned_table=True, partition_column=("col1", "col2"))
     assert partition.is_partitioned_table is True
-    assert partition.partition_column == ["col1", "col2"]
+    assert partition.partition_column == ("col1", "col2")
     assert (
         str(partition)
         == "Partition(is_partitioned_table=True, partition_column=[col1, col2])"
@@ -163,11 +163,16 @@ def test_partition() -> None:
     )
 
     # Test equality
-    partition1 = Partition(is_partitioned_table=True, partition_column=["col1"])
-    partition2 = Partition(is_partitioned_table=True, partition_column=["col1"])
-    partition3 = Partition(is_partitioned_table=True, partition_column=["col2"])
+    partition1 = Partition(is_partitioned_table=True, partition_column=("col1",))
+    partition2 = Partition(is_partitioned_table=True, partition_column=("col1",))
+    partition3 = Partition(is_partitioned_table=True, partition_column=("col2",))
     assert partition1 == partition2
     assert partition1 != partition3
+
+    # A frozen dataclass with a tuple field must be hashable (a list field would
+    # raise TypeError: unhashable type at hash time).
+    assert hash(partition1) == hash(partition2)
+    assert len({partition1, partition2, partition3}) == 2
 
 
 def extract_tables_from_sql(sql: str, engine: str = "postgresql") -> set[Table]:

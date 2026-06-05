@@ -1086,25 +1086,18 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except SupersetSecurityException as ex:
             # instead of raising 403, raise 404 to hide table existence
             raise TableNotFoundException("No such table") from ex
-        try:
-            is_partitioned_table, partition_fields = (
-                DatabaseDAO.is_odps_partitioned_table(database, table_name)
-            )
-        except Exception as ex:  # pylint: disable=broad-except
-            logger.warning(
-                "Error determining ODPS partition info for table %s: %s; "
-                "falling back to non-partitioned path",
-                table_name,
-                error_msg_from_exception(ex),
-            )
-            is_partitioned_table, partition_fields = False, []
-        partition = Partition(is_partitioned_table, partition_fields)
-        if is_partitioned_table:
-            from superset.db_engine_specs.odps import OdpsEngineSpec
-
-            payload = OdpsEngineSpec.get_table_metadata(database, table, partition)
-        else:
-            payload = database.db_engine_spec.get_table_metadata(database, table)
+        # `is_odps_partitioned_table` returns (False, []) for non-ODPS backends
+        # and handles its own optional-dependency / network / auth failures
+        # internally, so any exception escaping here is an unexpected programming
+        # error that should propagate rather than be silently swallowed.
+        is_partitioned_table, partition_fields = DatabaseDAO.is_odps_partitioned_table(
+            database, table_name
+        )
+        partition = Partition(is_partitioned_table, tuple(partition_fields))
+        # Partition info is engine-agnostic at this layer: the generic dispatch
+        # passes it to the engine spec, which decides whether to use it. Non-ODPS
+        # specs ignore the parameter.
+        payload = database.db_engine_spec.get_table_metadata(database, table, partition)
 
         return self.response(200, **payload)
 

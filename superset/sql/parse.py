@@ -332,11 +332,11 @@ class Partition:
     is_partitioned_table and partition_column,
     used to provide partition information
     Here is an example of an object:
-    {"is_partitioned_table": true, "partition_column": ["month", "day"]}
+    Partition(is_partitioned_table=True, partition_column=("month", "day"))
     """
 
     is_partitioned_table: bool
-    partition_column: list[str] | None = None
+    partition_column: tuple[str, ...] | None = None
 
     def __str__(self) -> str:
         """
