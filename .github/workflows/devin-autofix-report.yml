@@ -56,7 +56,7 @@ jobs:
         with:
           name: devin-autofix-report
           path: |
-            report_output/automation_report.md
+            report_output/automation_report.html
             report_output/automation_runs.csv
             report_output/automation_runs.sqlite
           retention-days: 90
