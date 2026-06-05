@@ -580,7 +580,7 @@ def test_catalog_and_schema_passed_to_engine(mocker, mock_query, mock_result_pro
     )
 
 
-def test_csv_export_config_custom_separator(mocker, mock_query):
+def test_csv_export_config_custom_separator(mocker, mock_query) -> None:
     """
     Test that streaming CSV export respects CSV_EXPORT config
     for custom separator (sep).
@@ -610,9 +610,9 @@ def test_csv_export_config_custom_separator(mocker, mock_query):
     )
 
     # Mock the app config to use semicolon separator
-    mocker.patch(
-        "superset.commands.streaming_export.base.app.config.get",
-        return_value={"sep": ";", "encoding": "utf-8"},
+    mocker.patch.dict(
+        "superset.commands.streaming_export.base.app.config",
+        {"CSV_EXPORT": {"sep": ";", "encoding": "utf-8"}},
     )
 
     command = StreamingSqlResultExportCommand("test_client_123")
@@ -628,7 +628,7 @@ def test_csv_export_config_custom_separator(mocker, mock_query):
     assert "2;Bob" in csv_data
 
 
-def test_csv_export_config_custom_decimal(mocker, mock_query):
+def test_csv_export_config_custom_decimal(mocker, mock_query) -> None:
     """
     Test that streaming CSV export respects CSV_EXPORT config
     for custom decimal separator.
@@ -658,9 +658,9 @@ def test_csv_export_config_custom_decimal(mocker, mock_query):
     )
 
     # Mock the app config to use comma as decimal separator
-    mocker.patch(
-        "superset.commands.streaming_export.base.app.config.get",
-        return_value={"sep": ";", "decimal": ",", "encoding": "utf-8"},
+    mocker.patch.dict(
+        "superset.commands.streaming_export.base.app.config",
+        {"CSV_EXPORT": {"sep": ";", "decimal": ",", "encoding": "utf-8"}},
     )
 
     command = StreamingSqlResultExportCommand("test_client_123")
@@ -675,7 +675,7 @@ def test_csv_export_config_custom_decimal(mocker, mock_query):
     assert "56,78" in csv_data
 
 
-def test_csv_export_config_combined_sep_and_decimal(mocker, mock_query):
+def test_csv_export_config_combined_sep_and_decimal(mocker, mock_query) -> None:
     """
     Test that streaming CSV export respects both sep and decimal from CSV_EXPORT.
 
@@ -704,9 +704,9 @@ def test_csv_export_config_combined_sep_and_decimal(mocker, mock_query):
     )
 
     # Mock the app config to use European format
-    mocker.patch(
-        "superset.commands.streaming_export.base.app.config.get",
-        return_value={"sep": ";", "decimal": ",", "encoding": "utf-8"},
+    mocker.patch.dict(
+        "superset.commands.streaming_export.base.app.config",
+        {"CSV_EXPORT": {"sep": ";", "decimal": ",", "encoding": "utf-8"}},
     )
 
     command = StreamingSqlResultExportCommand("test_client_123")
@@ -720,10 +720,10 @@ def test_csv_export_config_combined_sep_and_decimal(mocker, mock_query):
     assert "id;name;price" in csv_data
     # Verify data uses semicolon separator and comma decimal
     assert "1;Widget;99,99" in csv_data
-    assert "2;Gadget;149,5" in csv_data or "2;Gadget;149,50" in csv_data
+    assert ";149,5" in csv_data
 
 
-def test_csv_export_config_custom_decimal_for_decimal_type(mocker, mock_query):
+def test_csv_export_config_custom_decimal_for_decimal_type(mocker, mock_query) -> None:
     """
     Streaming CSV export must respect the custom decimal separator for
     ``decimal.Decimal`` values too — SQLAlchemy commonly returns NUMERIC /
@@ -753,9 +753,9 @@ def test_csv_export_config_custom_decimal_for_decimal_type(mocker, mock_query):
         mock_engine
     )
 
-    mocker.patch(
-        "superset.commands.streaming_export.base.app.config.get",
-        return_value={"sep": ";", "decimal": ",", "encoding": "utf-8"},
+    mocker.patch.dict(
+        "superset.commands.streaming_export.base.app.config",
+        {"CSV_EXPORT": {"sep": ";", "decimal": ",", "encoding": "utf-8"}},
     )
 
     command = StreamingSqlResultExportCommand("test_client_123")

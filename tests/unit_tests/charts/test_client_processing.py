@@ -2791,7 +2791,7 @@ def test_apply_client_processing_csv_format_default_na_behavior():
 
 
 @with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
-def test_apply_client_processing_csv_format_custom_separator():
+def test_apply_client_processing_csv_format_custom_separator() -> None:
     """
     Test that apply_client_processing respects CSV_EXPORT config
     for custom separator and decimal character.
@@ -2842,7 +2842,7 @@ def test_apply_client_processing_csv_format_custom_separator():
 
 
 @with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
-def test_apply_client_processing_csv_pivot_table_custom_separator():
+def test_apply_client_processing_csv_pivot_table_custom_separator() -> None:
     """
     Test that apply_client_processing respects CSV_EXPORT config
     for pivot table exports with custom separator and decimal character.

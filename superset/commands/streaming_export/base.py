@@ -204,8 +204,18 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         start_time = time.time()
         total_bytes = 0
 
-        # Get CSV export configuration
-        csv_export_config = app.config.get("CSV_EXPORT", {})
+        # Get CSV export configuration. CSV_EXPORT has an explicit default in
+        # config.py, so index directly rather than using .get() with a hardcoded
+        # fallback that would silently mask a misconfiguration removing the key.
+        #
+        # The streaming path only honors the `sep` and `decimal` keys from
+        # CSV_EXPORT. Unlike the non-streaming path in
+        # superset.charts.client_processing (which builds the whole file with a
+        # single DataFrame.to_csv(**CSV_EXPORT) call), this path writes rows
+        # incrementally via csv.writer, so the remaining pandas to_csv kwargs
+        # (e.g. quotechar, lineterminator, encoding) do not map onto it and are
+        # intentionally not applied here.
+        csv_export_config = app.config["CSV_EXPORT"]
         delimiter = csv_export_config.get("sep", ",")
         decimal_separator = csv_export_config.get("decimal", ".")
 
