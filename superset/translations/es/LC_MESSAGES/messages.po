@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-04 18:39-0700\n"
+"POT-Creation-Date: 2026-06-05 13:45-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -1269,8 +1269,9 @@ msgstr "Añadir nuevo formateador de color"
 msgid "Add new formatter"
 msgstr "Añadir nuevo formateador"
 
+#, fuzzy
 msgid "Add numbered column"
-msgstr ""
+msgstr " para añadir columnas calculadas"
 
 #, fuzzy
 msgid "Add or edit display controls"
@@ -2250,8 +2251,9 @@ msgstr "¿Seguro que quieres eliminar las reglas seleccionadas?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "¿Seguro que quieres eliminar las capas seleccionadas?"
 
+#, fuzzy
 msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
+msgstr "¿Seguro que quieres eliminar los usuarios seleccionados?"
 
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "¿Seguro que quieres eliminar los roles seleccionados?"
@@ -4060,8 +4062,9 @@ msgstr "La conexión ha fallado; revisa tu configuración"
 msgid "Connection failed, please check your connection settings."
 msgstr "La conexión ha fallado; revisa la configuración de tu conexión"
 
+#, fuzzy
 msgid "Connection looks good!"
-msgstr ""
+msgstr "Conexión"
 
 #, fuzzy
 msgid "Contains"
@@ -4141,8 +4144,9 @@ msgstr "Copiar consulta de partición al portapapeles"
 msgid "Copy permalink to clipboard"
 msgstr "Copiar enlace permanente al portapapeles"
 
+#, fuzzy
 msgid "Copy query URL"
-msgstr ""
+msgstr "Copiar URL de la consulta"
 
 msgid "Copy query link to your clipboard"
 msgstr "Copiar el enlace de la consulta al portapapeles"
@@ -4398,8 +4402,9 @@ msgstr ""
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr ""
 
+#, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
-msgstr ""
+msgstr "Los campos SQL personalizados no pueden contener subconsultas."
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Los campos SQL personalizados no pueden contener subconsultas."
@@ -5280,8 +5285,9 @@ msgstr "Eliminar rol"
 msgid "Delete item"
 msgstr "Eliminar plantilla"
 
+#, fuzzy
 msgid "Delete query"
-msgstr ""
+msgstr "¿Eliminar la consulta?"
 
 msgid "Delete role"
 msgstr "Eliminar rol"
@@ -5940,8 +5946,8 @@ msgstr "Duración en ms (1,40008 => 1 ms 400 µs 80 ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Duración en ms (100.40008 => 100 ms 400 µs 80 ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Duración en ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Duración en ms (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Duración en ms (66 000 => 1 m 6 s)"
@@ -5990,9 +5996,9 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "ERROR"
 
-#, python-format
+#, fuzzy, python-format
 msgid "ERROR: %s"
-msgstr ""
+msgstr "Error: %(msg)s"
 
 msgid "Edge length"
 msgstr "Longitud del borde"
@@ -6087,8 +6093,9 @@ msgstr "Editar regla"
 msgid "Edit properties"
 msgstr "Editar propiedades"
 
+#, fuzzy
 msgid "Edit query"
-msgstr ""
+msgstr "Editar usuario"
 
 #, fuzzy
 msgid "Edit report"
@@ -6725,8 +6732,9 @@ msgstr "La descarga del PDF ha fallado; actualiza e inténtalo de nuevo."
 msgid "Export failed: %s"
 msgstr "El informe ha fallado"
 
+#, fuzzy
 msgid "Export query"
-msgstr ""
+msgstr "¿Consulta vacía?"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
@@ -8694,8 +8702,9 @@ msgstr "Columna de líneas"
 msgid "Lines encoding"
 msgstr "Codificación de líneas"
 
+#, fuzzy
 msgid "Link Copied!"
-msgstr ""
+msgstr "SQL copiado"
 
 #, fuzzy
 msgid "List"
@@ -9853,8 +9862,9 @@ msgstr "Sin definir"
 msgid "Not equal to (≠)"
 msgstr "No es igual a (≠)"
 
+#, fuzzy
 msgid "Not found"
-msgstr ""
+msgstr "No se ha encontrado ningún gráfico"
 
 msgid "Not in"
 msgstr "No está en"
@@ -15186,8 +15196,9 @@ msgstr "Se ha producido un error al recuperar el estado de favorito: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Se ha producido un error al recuperar los gráficos y paneles filtrados:"
 
+#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr ""
+msgstr "Se ha producido un error al cargar los esquemas"
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -15292,9 +15303,9 @@ msgstr "Ha habido un problema al eliminar los paneles seleccionados: "
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "Ha habido un problema al eliminar las capas seleccionadas: %s"
 
-#, python-format
+#, fuzzy, python-format
 msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
+msgstr "Ha habido un problema al eliminar las plantillas seleccionadas: %s"
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -15332,8 +15343,9 @@ msgstr "Ha habido un problema al eliminar los gráficos seleccionados: %s"
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Ha habido un problema al eliminar los paneles seleccionados: "
 
+#, fuzzy
 msgid "There was an issue exporting the selected queries"
-msgstr ""
+msgstr "Ha habido un problema al eliminar las plantillas seleccionadas: %s"
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -16459,8 +16471,11 @@ msgstr "Deshacer la acción"
 msgid "Undo?"
 msgstr "¿Deshacer?"
 
+#, fuzzy
 msgid "Unexpected HTTP 401 response. Check your credentials."
 msgstr ""
+"Se ha producido un error inesperado; comprueba tus registros para obtener"
+" más información"
 
 msgid "Unexpected error"
 msgstr "Error inesperado"
@@ -17459,8 +17474,9 @@ msgstr "Si se deben mostrar los valores mínimo y máximo del eje X"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Si se deben mostrar los valores mínimo y máximo del eje Y"
 
+#, fuzzy
 msgid "Whether to display the numbered column"
-msgstr ""
+msgstr "Si se debe mostrar la línea de tendencia"
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Si se deben mostrar los valores numéricos dentro de las celdas"
@@ -18884,8 +18900,9 @@ msgstr "Se requiere autorización"
 msgid "quarter"
 msgstr "trimestre"
 
+#, fuzzy
 msgid "queries"
-msgstr ""
+msgstr "Consultas"
 
 msgid "query"
 msgstr "consulta"

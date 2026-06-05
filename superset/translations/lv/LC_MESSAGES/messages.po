@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-04 18:39-0700\n"
+"POT-Creation-Date: 2026-06-05 13:45-0700\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -1248,8 +1248,9 @@ msgstr "Pievienot jaunu krāsu formatētāju"
 msgid "Add new formatter"
 msgstr "Pievienot jaunu formatētāju"
 
+#, fuzzy
 msgid "Add numbered column"
-msgstr ""
+msgstr " lai pievienotu aprēķinātās kolonnas"
 
 msgid "Add or edit display controls"
 msgstr "Pievienot vai rediģēt displeja vadības elementus"
@@ -2174,8 +2175,9 @@ msgstr "Vai tiešām vēlaties dzēst atlasītās grupas?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Vai tiešām vēlaties dzēst izvēlētos slāņus?"
 
+#, fuzzy
 msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
+msgstr "Vai tiešām vēlaties dzēst izvēlētos lietotājus?"
 
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Vai tiešām vēlaties dzēst izvēlētās lomas?"
@@ -3857,8 +3859,9 @@ msgstr "Savienojums neizdevās, lūdzu, pārbaudiet savienojuma iestatījumus"
 msgid "Connection failed, please check your connection settings."
 msgstr "Savienojums neizdevās, lūdzu, pārbaudiet savienojuma iestatījumus."
 
+#, fuzzy
 msgid "Connection looks good!"
-msgstr ""
+msgstr "Savienojums"
 
 msgid "Contains"
 msgstr "Satur"
@@ -3936,8 +3939,9 @@ msgstr "Kopēt partīcijas vaicājumu starpliktuvē"
 msgid "Copy permalink to clipboard"
 msgstr "Kopēt pastāvīgo saiti starpliktuvē"
 
+#, fuzzy
 msgid "Copy query URL"
-msgstr ""
+msgstr "KOPĒT VAICĀJUMU"
 
 msgid "Copy query link to your clipboard"
 msgstr "Kopēt vaicājuma saiti starpliktuvē"
@@ -4185,8 +4189,9 @@ msgstr "Pielāgoti SQL ad-hoc rādītāji nav iespējoti šai datu kopai"
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr ""
 
+#, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
-msgstr ""
+msgstr "Pielāgotie SQL lauki nevar saturēt apakšvaicājumus."
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Pielāgotie SQL lauki nevar saturēt apakšvaicājumus."
@@ -5001,8 +5006,9 @@ msgstr "Dzēst grupu"
 msgid "Delete item"
 msgstr "Dzēst objektu"
 
+#, fuzzy
 msgid "Delete query"
-msgstr ""
+msgstr "Dzēst vaicājumu?"
 
 msgid "Delete role"
 msgstr "Dzēst lomu"
@@ -5632,8 +5638,8 @@ msgstr "Ilgums ms (1.40008 => 1ms 400µs 80ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Ilgums ms (100.40008 => 100ms 400µs 80ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Ilgums ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Ilgums ms (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Ilgums ms (66000 => 1m 6s)"
@@ -5677,9 +5683,9 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "KĻŪDA"
 
-#, python-format
+#, fuzzy, python-format
 msgid "ERROR: %s"
-msgstr ""
+msgstr "Kļūda: %s"
 
 msgid "Edge length"
 msgstr "Malas garums"
@@ -5770,8 +5776,9 @@ msgstr "Rediģēt grupu"
 msgid "Edit properties"
 msgstr "Rediģēt rekvizītus"
 
+#, fuzzy
 msgid "Edit query"
-msgstr ""
+msgstr "Rediģēt lietotāju"
 
 msgid "Edit report"
 msgstr "Rediģēt ziņojumu"
@@ -6350,8 +6357,9 @@ msgstr "Eksports neizdevās – lūdzu, mēģiniet vēlreiz"
 msgid "Export failed: %s"
 msgstr "Eksports neizdevās: %s"
 
+#, fuzzy
 msgid "Export query"
-msgstr ""
+msgstr "Tukšs vaicājums?"
 
 msgid "Export screenshot (jpeg)"
 msgstr "Eksportēt ekrānuzņēmumu (jpeg)"
@@ -8169,8 +8177,9 @@ msgstr "Līniju kolonna"
 msgid "Lines encoding"
 msgstr "Līniju kodējums"
 
+#, fuzzy
 msgid "Link Copied!"
-msgstr ""
+msgstr "Kods kopēts!"
 
 msgid "List"
 msgstr "Saraksts"
@@ -9269,8 +9278,9 @@ msgstr "Nav definēts"
 msgid "Not equal to (≠)"
 msgstr "Nav vienāds ar (≠)"
 
+#, fuzzy
 msgid "Not found"
-msgstr ""
+msgstr "Diagramma nav atrasta"
 
 msgid "Not in"
 msgstr "Neietilpst"
@@ -14246,8 +14256,9 @@ msgstr "Ielādējot favorīta statusu, radās kļūda: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Ielādējot filtrētās diagrammas un paneļus, radās kļūda:"
 
+#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr ""
+msgstr "Ielādējot shēmas, radās kļūda"
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -14345,9 +14356,9 @@ msgstr "Dzēšot atlasītos paneļus, radās problēma: "
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "Dzēšot atlasītos slāņus, radās problēma: %s"
 
-#, python-format
+#, fuzzy, python-format
 msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
+msgstr "Radās problēma, dzēšot izvēlētos motīvus: %s"
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -14383,8 +14394,9 @@ msgstr "Radās problēma, eksportējot atlasītās diagrammas"
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Radās problēma, eksportējot izvēlētos informācijas paneļus"
 
+#, fuzzy
 msgid "There was an issue exporting the selected queries"
-msgstr ""
+msgstr "Radās problēma ar izvēlēto motīvu eksportēšanu"
 
 msgid "There was an issue exporting the selected themes"
 msgstr "Radās problēma ar izvēlēto motīvu eksportēšanu"
@@ -15414,8 +15426,9 @@ msgstr "Atsaukt darbību"
 msgid "Undo?"
 msgstr "Atsaukt?"
 
+#, fuzzy
 msgid "Unexpected HTTP 401 response. Check your credentials."
-msgstr ""
+msgstr "Radās neparedzēta kļūda, lūdzu pārbaudiet žurnālus detaļām"
 
 msgid "Unexpected error"
 msgstr "Neparedzēta kļūda"
@@ -16359,8 +16372,9 @@ msgstr "Vai rādīt X ass minimālās un maksimālās vērtības"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Vai rādīt Y ass minimālās un maksimālās vērtības"
 
+#, fuzzy
 msgid "Whether to display the numbered column"
-msgstr ""
+msgstr "Vai rādīt tendences līniju"
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Vai rādīt skaitliskās vērtības šūnās"
@@ -17733,8 +17747,9 @@ msgstr "Nepieciešama autorizācija"
 msgid "quarter"
 msgstr "ceturksnis"
 
+#, fuzzy
 msgid "queries"
-msgstr ""
+msgstr "Vaicājumi"
 
 msgid "query"
 msgstr "vaicājums"

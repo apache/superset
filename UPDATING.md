@@ -40,6 +40,12 @@ assists people when migrating to a new version.
 
 - **New config flag `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE` (default `False`).** Share/permalink URLs now substitute `window.location.origin` for the backend-supplied origin so a proxied or subdirectory-deployed Superset never hands the user an unreachable internal hostname. Operators whose reverse proxy correctly forwards `X-Forwarded-Host` *and* who want permalinks to carry the backend's literal origin can opt out by setting `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE = True` in `superset_config.py`. Default `False` (rewrite is on); flipping the default would regress the dominant proxied/subdir deployment to an unreachable host.
 
+### Duration formatter precision
+
+The `DURATION` number formatter now uses `Intl.DurationFormat` for locale-aware output. By default, sub-second fields are omitted, so values that previously displayed fractional seconds with `pretty-ms`, such as `10500` milliseconds rendering as `10.5s`, now render as `10s`.
+
+To preserve sub-second precision in custom duration formatters, enable `formatSubMilliseconds`.
+
 ### YDB now uses a native sqlglot dialect
 
 YDB SQL parsing now relies on the dedicated [`ydb-sqlglot-plugin`](https://pypi.org/project/ydb-sqlglot-plugin/) dialect, which registers itself with sqlglot automatically. YDB users must install this plugin (e.g., via `pip install "apache-superset[ydb]"`) to avoid a `ValueError` when Superset parses YDB queries.
@@ -64,6 +70,10 @@ Two opt-in static gates control which extensions are allowed to load:
 - `EXTENSION_VERSION_POLICY` enforces a minimum version per extension id, e.g. `{"acme.widget": "1.2.0"}` (PEP 440 comparison); a release below the minimum is refused.
 
 Both default to empty (no behavior change). They apply to both the `LOCAL_EXTENSIONS` and `EXTENSIONS_PATH` load paths.
+
+### Dynamic Group By respects the sort toggle for display values
+
+The Dynamic Group By chart customization now orders its display values according to the "Sort display control values" toggle: ascending (A–Z), descending (Z–A), or the dataset's source order when the toggle is unset. Previously the dropdown always sorted alphabetically. Existing dashboards where the toggle was never set will show options in source order instead of A–Z; open the customization and enable the toggle to restore alphabetical ordering.
 
 ### Granular Export Controls
 

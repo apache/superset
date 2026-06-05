@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-04 18:39-0700\n"
+"POT-Creation-Date: 2026-06-05 13:45-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -1254,8 +1254,9 @@ msgstr "Přidat nový formátovač barev"
 msgid "Add new formatter"
 msgstr "Přidat nový formátovač"
 
+#, fuzzy
 msgid "Add numbered column"
-msgstr ""
+msgstr " pro přidání počítaných sloupců"
 
 #, fuzzy
 msgid "Add or edit display controls"
@@ -2201,8 +2202,9 @@ msgstr "Opravdu chcete smazat vybrané skupiny?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Opravdu chcete smazat vybrané vrstvy?"
 
+#, fuzzy
 msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
+msgstr "Opravdu chcete smazat vybrané uživatele?"
 
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Opravdu chcete smazat vybrané role?"
@@ -3906,8 +3908,9 @@ msgstr "Připojení selhalo, zkontrolujte prosím nastavení připojení"
 msgid "Connection failed, please check your connection settings."
 msgstr "Připojení selhalo, zkontrolujte prosím nastavení připojení."
 
+#, fuzzy
 msgid "Connection looks good!"
-msgstr ""
+msgstr "Připojení"
 
 #, fuzzy
 msgid "Contains"
@@ -3987,8 +3990,9 @@ msgstr "Kopírovat dotaz oddílu do schránky"
 msgid "Copy permalink to clipboard"
 msgstr "Kopírovat trvalý odkaz do schránky"
 
+#, fuzzy
 msgid "Copy query URL"
-msgstr ""
+msgstr "KOPÍROVAT DOTAZ"
 
 msgid "Copy query link to your clipboard"
 msgstr "Kopírovat odkaz na dotaz do schránky"
@@ -4242,8 +4246,9 @@ msgstr "Vlastní SQL ad-hoc metriky nejsou pro tuto sadu dat povoleny"
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr ""
 
+#, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
-msgstr ""
+msgstr "Vlastní pole SQL nemohou obsahovat poddotazy."
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Vlastní pole SQL nemohou obsahovat poddotazy."
@@ -5081,8 +5086,9 @@ msgstr "Smazat skupinu"
 msgid "Delete item"
 msgstr "Smazat položku"
 
+#, fuzzy
 msgid "Delete query"
-msgstr ""
+msgstr "Smazat dotaz?"
 
 msgid "Delete role"
 msgstr "Smazat roli"
@@ -5735,8 +5741,8 @@ msgstr "Trvání v ms (1.40008 => 1ms 400µs 80ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Trvání v ms (100.40008 => 100ms 400µs 80ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Trvání v ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Trvání v ms (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Trvání v ms (66000 => 1m 6s)"
@@ -5780,9 +5786,9 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "CHYBA"
 
-#, python-format
+#, fuzzy, python-format
 msgid "ERROR: %s"
-msgstr ""
+msgstr "Chyba: %s"
 
 msgid "Edge length"
 msgstr "Délka hrany"
@@ -5877,8 +5883,9 @@ msgstr "Upravit skupinu"
 msgid "Edit properties"
 msgstr "Upravit vlastnosti"
 
+#, fuzzy
 msgid "Edit query"
-msgstr ""
+msgstr "Upravit uživatele"
 
 #, fuzzy
 msgid "Edit report"
@@ -6487,8 +6494,9 @@ msgstr "Export selhal - prosím zkuste to znovu"
 msgid "Export failed: %s"
 msgstr "Export selhal: %s"
 
+#, fuzzy
 msgid "Export query"
-msgstr ""
+msgstr "Prázdný dotaz?"
 
 msgid "Export screenshot (jpeg)"
 msgstr "Exportovat screenshot (jpeg)"
@@ -8356,8 +8364,9 @@ msgstr "Sloupec spojnic"
 msgid "Lines encoding"
 msgstr "Kódování spojnic"
 
+#, fuzzy
 msgid "Link Copied!"
-msgstr ""
+msgstr "Kód zkopírován!"
 
 #, fuzzy
 msgid "List"
@@ -9480,8 +9489,9 @@ msgstr "Nedefinováno"
 msgid "Not equal to (≠)"
 msgstr "Nerovná se (≠)"
 
+#, fuzzy
 msgid "Not found"
-msgstr ""
+msgstr "Graf nenalezen"
 
 msgid "Not in"
 msgstr "Není v"
@@ -14555,8 +14565,9 @@ msgstr "Při načítání stavu oblíbenosti došlo k chybě: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Při načítání filtrovaných grafů a nástěnek došlo k chybě:"
 
+#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr ""
+msgstr "Při načítání schémat došlo k chybě"
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -14659,9 +14670,9 @@ msgstr "Při mazání vybraných nástěnek došlo k problému: "
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "Při mazání vybraných vrstev došlo k problému: %s"
 
-#, python-format
+#, fuzzy, python-format
 msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
+msgstr "Při mazání vybraných témat došlo k problému: %s"
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -14699,8 +14710,9 @@ msgstr "Při exportu vybraných grafů došlo k problému: %s"
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Při exportu vybraných nástěnek došlo k problému."
 
+#, fuzzy
 msgid "There was an issue exporting the selected queries"
-msgstr ""
+msgstr "Při exportu vybraných šablon došlo k problému: %s"
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -15749,8 +15761,11 @@ msgstr "Vrátit akci zpět"
 msgid "Undo?"
 msgstr "Zpět?"
 
+#, fuzzy
 msgid "Unexpected HTTP 401 response. Check your credentials."
 msgstr ""
+"Došlo k neočekávané chybě, zkontrolujte prosím své protokoly pro "
+"podrobnosti"
 
 msgid "Unexpected error"
 msgstr "Neočekávaná chyba"
@@ -16713,8 +16728,9 @@ msgstr "Zda zobrazit minimální a maximální hodnoty osy X"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Zda zobrazit minimální a maximální hodnoty osy Y"
 
+#, fuzzy
 msgid "Whether to display the numbered column"
-msgstr ""
+msgstr "Zda zobrazit trendovou čáru"
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Zda zobrazit číselné hodnoty v buňkách"
@@ -18108,8 +18124,9 @@ msgstr "Vyžadováno oprávnění"
 msgid "quarter"
 msgstr "čtvrtletí"
 
+#, fuzzy
 msgid "queries"
-msgstr ""
+msgstr "Dotazy"
 
 msgid "query"
 msgstr "dotaz"

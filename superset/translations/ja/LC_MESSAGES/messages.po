@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-04 18:39-0700\n"
+"POT-Creation-Date: 2026-06-05 13:45-0700\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -1153,8 +1153,9 @@ msgstr "新しいカラー形式を追加"
 msgid "Add new formatter"
 msgstr "新しい形式を追加"
 
+#, fuzzy
 msgid "Add numbered column"
-msgstr ""
+msgstr "計算列を追加する"
 
 msgid "Add or edit display controls"
 msgstr "表示コントロールを追加または編集"
@@ -2026,8 +2027,9 @@ msgstr "選択したグループを削除してもよろしいですか？"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "選択したレイヤーを削除してもよろしいですか？"
 
+#, fuzzy
 msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
+msgstr "選択したユーザーを削除してもよろしいですか？"
 
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "選択したロールを削除してもよろしいですか？"
@@ -3608,8 +3610,9 @@ msgstr "接続に失敗しました。接続設定を確認してください"
 msgid "Connection failed, please check your connection settings."
 msgstr "接続に失敗しました。接続設定を確認してください。"
 
+#, fuzzy
 msgid "Connection looks good!"
-msgstr ""
+msgstr "接続"
 
 msgid "Contains"
 msgstr "含む"
@@ -3687,8 +3690,9 @@ msgstr "パーティションクエリをクリップボードにコピー"
 msgid "Copy permalink to clipboard"
 msgstr "固定リンクをクリップボードにコピー"
 
+#, fuzzy
 msgid "Copy query URL"
-msgstr ""
+msgstr "クエリをコピー"
 
 msgid "Copy query link to your clipboard"
 msgstr "クエリのリンクをクリップボードにコピー"
@@ -3931,8 +3935,9 @@ msgstr "このデータセットではカスタムSQLアドホックメトリッ
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr ""
 
+#, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
-msgstr ""
+msgstr "カスタムSQLフィールドにサブクエリを含めることはできません。"
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "カスタムSQLフィールドにサブクエリを含めることはできません。"
@@ -4692,8 +4697,9 @@ msgstr "グループを削除"
 msgid "Delete item"
 msgstr "項目を削除"
 
+#, fuzzy
 msgid "Delete query"
-msgstr ""
+msgstr "クエリを削除しますか？"
 
 msgid "Delete role"
 msgstr "ロールを削除"
@@ -5256,8 +5262,8 @@ msgstr "所要時間(ミリ秒) (1.40008 => 1ms 400µs 80ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "所要時間(ミリ秒) (100.40008 => 100ms 400µs 80ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "所要時間(ミリ秒) (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "所要時間(ミリ秒) (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "所要時間(ミリ秒) (66000 => 1分6秒)"
@@ -5301,9 +5307,9 @@ msgstr "メールレポートのCTA"
 msgid "ERROR"
 msgstr "エラー"
 
-#, python-format
+#, fuzzy, python-format
 msgid "ERROR: %s"
-msgstr ""
+msgstr "エラー: %s"
 
 msgid "Edge length"
 msgstr "エッジの長さ"
@@ -5394,8 +5400,9 @@ msgstr "グループを編集"
 msgid "Edit properties"
 msgstr "プロパティを編集"
 
+#, fuzzy
 msgid "Edit query"
-msgstr ""
+msgstr "ユーザーを編集"
 
 msgid "Edit report"
 msgstr "レポートを編集"
@@ -5966,8 +5973,9 @@ msgstr "エクスポートに失敗しました。再試行してください"
 msgid "Export failed: %s"
 msgstr "エクスポート失敗: %s"
 
+#, fuzzy
 msgid "Export query"
-msgstr ""
+msgstr "クエリが空ですか？"
 
 msgid "Export screenshot (jpeg)"
 msgstr "スクリーンショットをエクスポート (JPEG)"
@@ -7711,8 +7719,9 @@ msgstr "線の列"
 msgid "Lines encoding"
 msgstr "線のエンコーディング"
 
+#, fuzzy
 msgid "Link Copied!"
-msgstr ""
+msgstr "コードをコピーしました！"
 
 msgid "List"
 msgstr "一覧"
@@ -8780,8 +8789,9 @@ msgstr "未定義"
 msgid "Not equal to (≠)"
 msgstr "等しくない (≠)"
 
+#, fuzzy
 msgid "Not found"
-msgstr ""
+msgstr "チャートが見つかりません"
 
 msgid "Not in"
 msgstr "次を含まない (Not in)"
@@ -13436,8 +13446,9 @@ msgstr "お気に入り状態の取得中にエラーが発生しました: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "フィルタリングされたチャートおよびダッシュボードの取得中にエラーが発生しました:"
 
+#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr ""
+msgstr "スキーマの読み込み中にエラーが発生しました"
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -13535,9 +13546,9 @@ msgstr "選択したダッシュボードの削除中に問題が発生しまし
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "選択したレイヤーの削除中に問題が発生しました: %s"
 
-#, python-format
+#, fuzzy, python-format
 msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
+msgstr "選択したテーマの削除中に問題が発生しました: %s"
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -13573,8 +13584,9 @@ msgstr "選択したチャートのエクスポート中に問題が発生しま
 msgid "There was an issue exporting the selected dashboards"
 msgstr "選択したダッシュボードのエクスポート中に問題が発生しました"
 
+#, fuzzy
 msgid "There was an issue exporting the selected queries"
-msgstr ""
+msgstr "選択したテーマのエクスポート中に問題が発生しました"
 
 msgid "There was an issue exporting the selected themes"
 msgstr "選択したテーマのエクスポート中に問題が発生しました"
@@ -14520,8 +14532,9 @@ msgstr "操作を元に戻す"
 msgid "Undo?"
 msgstr "元に戻しますか？"
 
+#, fuzzy
 msgid "Unexpected HTTP 401 response. Check your credentials."
-msgstr ""
+msgstr "予期しないエラーが発生しました。詳細についてはログを確認してください"
 
 msgid "Unexpected error"
 msgstr "予期しないエラー"
@@ -15367,8 +15380,9 @@ msgstr "X軸の最小値と最大値を表示するかどうか"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Y軸の最小値と最大値を表示するかどうか"
 
+#, fuzzy
 msgid "Whether to display the numbered column"
-msgstr ""
+msgstr "トレンドラインを表示するかどうか"
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "セル内の数値を表示するかどうか"
@@ -16693,8 +16707,9 @@ msgstr "認証が必要です"
 msgid "quarter"
 msgstr "四半期"
 
+#, fuzzy
 msgid "queries"
-msgstr ""
+msgstr "クエリ"
 
 msgid "query"
 msgstr "クエリ"

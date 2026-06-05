@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-04 18:39-0700\n"
+"POT-Creation-Date: 2026-06-05 13:45-0700\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -1240,8 +1240,9 @@ msgstr "Ajouter un nouveau formateur de couleur"
 msgid "Add new formatter"
 msgstr "Ajouter un nouveau formateur"
 
+#, fuzzy
 msgid "Add numbered column"
-msgstr ""
+msgstr " pour ajouter des colonnes calculées"
 
 msgid "Add or edit display controls"
 msgstr "Ajouter ou modifier les contrôles d'affichage"
@@ -2202,8 +2203,9 @@ msgstr "Voulez-vous vraiment supprimer les groupes sélectionnées?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Voulez-vous vraiment supprimer les couches sélectionnées?"
 
+#, fuzzy
 msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
+msgstr "Voulez-vous vraiment supprimer les utilisateurs sélectionnées?"
 
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Voulez-vous vraiment supprimer les roles sélectionnées?"
@@ -3921,8 +3923,9 @@ msgstr "La connexion a échoué, veuillez vérifier vos paramètres de connexion
 msgid "Connection failed, please check your connection settings."
 msgstr "La connexion a échoué, veuillez vérifier vos paramètres de connexion"
 
+#, fuzzy
 msgid "Connection looks good!"
-msgstr ""
+msgstr "Connexion"
 
 msgid "Contains"
 msgstr "Contient"
@@ -4002,8 +4005,9 @@ msgstr "Copier la requête de partition vers le presse-papier"
 msgid "Copy permalink to clipboard"
 msgstr "Copier le lien dans le presse-papiers"
 
+#, fuzzy
 msgid "Copy query URL"
-msgstr ""
+msgstr "Copier la requête"
 
 msgid "Copy query link to your clipboard"
 msgstr "Copier le lien de la requête vers le presse-papier"
@@ -4260,8 +4264,9 @@ msgstr ""
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr ""
 
+#, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
-msgstr ""
+msgstr "Les champs SQL personnalisés ne peuvent pas contenir de sous-requêtes."
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Les champs SQL personnalisés ne peuvent pas contenir de sous-requêtes."
@@ -5111,8 +5116,9 @@ msgstr "supprimer le groupe"
 msgid "Delete item"
 msgstr "Supprimer l'élément"
 
+#, fuzzy
 msgid "Delete query"
-msgstr ""
+msgstr "Supprimer la requête?"
 
 msgid "Delete role"
 msgstr "supprimer le rôle"
@@ -5757,8 +5763,8 @@ msgstr "Durée en ms (1.40008 => 1ms 400µs 80ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Durée en ms (100.40008 => 100ms 400µs 80ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Durée en ms (66000 => 1m 6s)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Durée en ms (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Durée en ms (66000 => 1m 6s)"
@@ -5803,9 +5809,9 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "ERREUR"
 
-#, python-format
+#, fuzzy, python-format
 msgid "ERROR: %s"
-msgstr ""
+msgstr "erreur"
 
 msgid "Edge length"
 msgstr "Longueur du bord"
@@ -5898,8 +5904,9 @@ msgstr "mode edition"
 msgid "Edit properties"
 msgstr "Modifier les propriétés"
 
+#, fuzzy
 msgid "Edit query"
-msgstr ""
+msgstr "Modifier la requête"
 
 msgid "Edit report"
 msgstr "Modifier le rapport"
@@ -6521,8 +6528,9 @@ msgstr "Échec de l'export, veuillez réessayer."
 msgid "Export failed: %s"
 msgstr "Rapport échoué"
 
+#, fuzzy
 msgid "Export query"
-msgstr ""
+msgstr "Requête vide ?"
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8458,8 +8466,9 @@ msgstr "Colonne des lignes"
 msgid "Lines encoding"
 msgstr "Codage des lignes"
 
+#, fuzzy
 msgid "Link Copied!"
-msgstr ""
+msgstr "Code copié!"
 
 #, fuzzy
 msgid "List"
@@ -9633,8 +9642,9 @@ msgstr "Indéfini"
 msgid "Not equal to (≠)"
 msgstr "Différent de (≠)"
 
+#, fuzzy
 msgid "Not found"
-msgstr ""
+msgstr "Graphique non trouvé"
 
 #, fuzzy
 msgid "Not in"
@@ -14969,8 +14979,9 @@ msgstr "Erreur à la récupération du statut favori de ce tableau de bord : %s
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Erreur à la récupération du statut favori de ce tableau de bord : %s"
 
+#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr ""
+msgstr "Une erreur s'est produite lors de la récupération des schémas"
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -15092,9 +15103,11 @@ msgstr ""
 "Il y a eu un problème lors de la suppression des couches sélectionnées : "
 "%s"
 
-#, python-format
+#, fuzzy, python-format
 msgid "There was an issue deleting the selected queries: %s"
 msgstr ""
+"Il y a eu un problème lors de la suppression des modèles sélectionnées : "
+"%s"
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -15140,8 +15153,11 @@ msgstr ""
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Il y a eu un problème lors de la suppression des graphiques sélectionnés: "
 
+#, fuzzy
 msgid "There was an issue exporting the selected queries"
 msgstr ""
+"Il y a eu un problème lors de la suppression des modèles sélectionnées : "
+"%s"
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -16235,8 +16251,11 @@ msgstr "Annuler l'action"
 msgid "Undo?"
 msgstr "Annuler?"
 
+#, fuzzy
 msgid "Unexpected HTTP 401 response. Check your credentials."
 msgstr ""
+"Une erreur inattendue s'est produite, veuillez consulter vos journaux "
+"pour plus de détails"
 
 msgid "Unexpected error"
 msgstr "Erreur inattendue"
@@ -17253,8 +17272,9 @@ msgstr "Affichage ou non des valeurs min et max de l’axe des absisses"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Affichage ou non des valeurs min et max de l’axe des ordonnées"
 
+#, fuzzy
 msgid "Whether to display the numbered column"
-msgstr ""
+msgstr "Affichage ou non de la ligne de tendance"
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Affichage ou non des valeurs numériques dans les cellules"
@@ -18709,8 +18729,9 @@ msgstr "Autorisation requise"
 msgid "quarter"
 msgstr "trimestre"
 
+#, fuzzy
 msgid "queries"
-msgstr ""
+msgstr "Requêtes "
 
 msgid "query"
 msgstr "requête"

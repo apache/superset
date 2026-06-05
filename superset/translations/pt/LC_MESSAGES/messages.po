@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-04 18:39-0700\n"
+"POT-Creation-Date: 2026-06-05 13:45-0700\n"
 "PO-Revision-Date: 2018-03-12 16:24+0000\n"
 "Last-Translator: Nuno Heli Beires <nuno.beires@douroeci.com>\n"
 "Language: pt\n"
@@ -1182,8 +1182,9 @@ msgstr ""
 msgid "Add new formatter"
 msgstr ""
 
+#, fuzzy
 msgid "Add numbered column"
-msgstr ""
+msgstr "Lista de Colunas"
 
 #, fuzzy
 msgid "Add or edit display controls"
@@ -3862,8 +3863,9 @@ msgstr ""
 msgid "Connection failed, please check your connection settings."
 msgstr ""
 
+#, fuzzy
 msgid "Connection looks good!"
-msgstr ""
+msgstr "Conexão de teste"
 
 #, fuzzy
 msgid "Contains"
@@ -3949,8 +3951,9 @@ msgstr "Copiar query de partição para a área de transferência"
 msgid "Copy permalink to clipboard"
 msgstr "Copiar query de partição para a área de transferência"
 
+#, fuzzy
 msgid "Copy query URL"
-msgstr ""
+msgstr "Query vazia?"
 
 msgid "Copy query link to your clipboard"
 msgstr "Copiar query de partição para a área de transferência"
@@ -5075,8 +5078,9 @@ msgstr "Eliminar"
 msgid "Delete item"
 msgstr "Carregue um modelo"
 
+#, fuzzy
 msgid "Delete query"
-msgstr ""
+msgstr "Executar a query selecionada"
 
 #, fuzzy
 msgid "Delete role"
@@ -5690,7 +5694,7 @@ msgstr ""
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr ""
 
-msgid "Duration in ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr ""
 
 msgid "Duration in ms (66000 => 1m 6s)"
@@ -5738,9 +5742,9 @@ msgstr ""
 msgid "ERROR"
 msgstr "Erro"
 
-#, python-format
+#, fuzzy, python-format
 msgid "ERROR: %s"
-msgstr ""
+msgstr "Erro"
 
 msgid "Edge length"
 msgstr ""
@@ -5846,8 +5850,9 @@ msgstr "Query vazia?"
 msgid "Edit properties"
 msgstr "Editar propriedades da visualização"
 
+#, fuzzy
 msgid "Edit query"
-msgstr ""
+msgstr "Query vazia?"
 
 #, fuzzy
 msgid "Edit report"
@@ -6473,8 +6478,9 @@ msgstr ""
 msgid "Export failed: %s"
 msgstr "Nome do modelo"
 
+#, fuzzy
 msgid "Export query"
-msgstr ""
+msgstr "Query vazia?"
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8386,8 +8392,9 @@ msgstr "Coluna de tempo"
 msgid "Lines encoding"
 msgstr ""
 
+#, fuzzy
 msgid "Link Copied!"
-msgstr ""
+msgstr "Copiado!"
 
 #, fuzzy
 msgid "List"
@@ -9554,8 +9561,9 @@ msgstr "Indefinido"
 msgid "Not equal to (≠)"
 msgstr ""
 
+#, fuzzy
 msgid "Not found"
-msgstr ""
+msgstr "Visualização %(id)s não encontrada"
 
 #, fuzzy
 msgid "Not in"
@@ -14609,8 +14617,9 @@ msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 
+#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr ""
+msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -14717,9 +14726,9 @@ msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 msgid "There was an issue deleting the selected layers: %s"
 msgstr ""
 
-#, python-format
+#, fuzzy, python-format
 msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
+msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -14757,8 +14766,9 @@ msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 
+#, fuzzy
 msgid "There was an issue exporting the selected queries"
-msgstr ""
+msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -16638,8 +16648,9 @@ msgstr ""
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr ""
 
+#, fuzzy
 msgid "Whether to display the numbered column"
-msgstr ""
+msgstr "Selecione uma métrica para visualizar"
 
 msgid "Whether to display the numerical values within the cells"
 msgstr ""
@@ -18033,8 +18044,9 @@ msgstr ""
 msgid "quarter"
 msgstr "Query"
 
+#, fuzzy
 msgid "queries"
-msgstr ""
+msgstr "Séries"
 
 msgid "query"
 msgstr "Query"

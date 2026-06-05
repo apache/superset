@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-04 18:39-0700\n"
+"POT-Creation-Date: 2026-06-05 13:45-0700\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -1250,8 +1250,9 @@ msgstr "Afegir nou formatador de color"
 msgid "Add new formatter"
 msgstr "Afegir nou formatador"
 
+#, fuzzy
 msgid "Add numbered column"
-msgstr ""
+msgstr " per afegir columnes calculades"
 
 #, fuzzy
 msgid "Add or edit display controls"
@@ -2214,8 +2215,9 @@ msgstr "Estàs segur que vols eliminar les regles seleccionades?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Estàs segur que vols eliminar les capes seleccionades?"
 
+#, fuzzy
 msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
+msgstr "Estàs segur que vols eliminar els usuaris seleccionats?"
 
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Estàs segur que vols eliminar els rols seleccionats?"
@@ -3928,8 +3930,9 @@ msgstr "La connexió ha fallat, si us plau comprova la configuració de connexi�
 msgid "Connection failed, please check your connection settings."
 msgstr "La connexió ha fallat, si us plau comprova la configuració de connexió."
 
+#, fuzzy
 msgid "Connection looks good!"
-msgstr ""
+msgstr "Connexió"
 
 #, fuzzy
 msgid "Contains"
@@ -4009,8 +4012,9 @@ msgstr "Copiar consulta de partició al porta-retalls"
 msgid "Copy permalink to clipboard"
 msgstr "Copiar enllaç permanent al porta-retalls"
 
+#, fuzzy
 msgid "Copy query URL"
-msgstr ""
+msgstr "Copiar URL de consulta"
 
 msgid "Copy query link to your clipboard"
 msgstr "Copiar enllaç de consulta al teu porta-retalls"
@@ -4265,8 +4269,9 @@ msgstr ""
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr ""
 
+#, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
-msgstr ""
+msgstr "Els camps SQL personalitzats no poden contenir sub-consultes."
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Els camps SQL personalitzats no poden contenir sub-consultes."
@@ -5099,8 +5104,9 @@ msgstr "Eliminar rol"
 msgid "Delete item"
 msgstr "Eliminar plantilla"
 
+#, fuzzy
 msgid "Delete query"
-msgstr ""
+msgstr "Eliminar Consulta?"
 
 msgid "Delete role"
 msgstr "Eliminar rol"
@@ -5741,8 +5747,8 @@ msgstr "Duració en ms (1.40008 => 1ms 400µs 80ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Duració en ms (100.40008 => 100ms 400µs 80ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Duració en ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Duració en ms (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Duració en ms (66000 => 1m 6s)"
@@ -5787,9 +5793,9 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "ERROR"
 
-#, python-format
+#, fuzzy, python-format
 msgid "ERROR: %s"
-msgstr ""
+msgstr "Error: %(msg)s"
 
 msgid "Edge length"
 msgstr "Longitud de vora"
@@ -5883,8 +5889,9 @@ msgstr "Editar Regla"
 msgid "Edit properties"
 msgstr "Editar propietats"
 
+#, fuzzy
 msgid "Edit query"
-msgstr ""
+msgstr "Editar usuari"
 
 #, fuzzy
 msgid "Edit report"
@@ -6497,8 +6504,9 @@ msgstr "La descàrrega PDF ha fallat, si us plau actualitza i torna-ho a provar.
 msgid "Export failed: %s"
 msgstr "L'informe ha fallat"
 
+#, fuzzy
 msgid "Export query"
-msgstr ""
+msgstr "Consulta buida?"
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8365,8 +8373,9 @@ msgstr "Columna de línies"
 msgid "Lines encoding"
 msgstr "Codificació de línies"
 
+#, fuzzy
 msgid "Link Copied!"
-msgstr ""
+msgstr "SQL Copiat!"
 
 #, fuzzy
 msgid "List"
@@ -9495,8 +9504,9 @@ msgstr "No definit"
 msgid "Not equal to (≠)"
 msgstr "No igual a (≠)"
 
+#, fuzzy
 msgid "Not found"
-msgstr ""
+msgstr "Gràfic no trobat"
 
 msgid "Not in"
 msgstr "No en"
@@ -14625,8 +14635,9 @@ msgstr "Hi ha hagut un error obtenint l'estat de favorit: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Hi ha hagut un error obtenint els gràfics i dashboards filtrats:"
 
+#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr ""
+msgstr "Hi ha hagut un error carregant els esquemes"
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -14729,9 +14740,9 @@ msgstr "Hi ha hagut un problema eliminant els dashboards seleccionats: "
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "Hi ha hagut un problema eliminant les capes seleccionades: %s"
 
-#, python-format
+#, fuzzy, python-format
 msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
+msgstr "Hi ha hagut un problema eliminant les plantilles seleccionades: %s"
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -14769,8 +14780,9 @@ msgstr "Hi ha hagut un problema eliminant els gràfics seleccionats: %s"
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Hi ha hagut un problema eliminant els dashboards seleccionats: "
 
+#, fuzzy
 msgid "There was an issue exporting the selected queries"
-msgstr ""
+msgstr "Hi ha hagut un problema eliminant les plantilles seleccionades: %s"
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -15822,8 +15834,11 @@ msgstr "Desfer l'acció"
 msgid "Undo?"
 msgstr "Desfer?"
 
+#, fuzzy
 msgid "Unexpected HTTP 401 response. Check your credentials."
 msgstr ""
+"Ha ocorregut un error inesperat, si us plau comprova els teus logs per "
+"detalls"
 
 msgid "Unexpected error"
 msgstr "Error inesperat"
@@ -16766,8 +16781,9 @@ msgstr "Si mostrar els valors mínims i màxims de l'eix X"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Si mostrar els valors mínims i màxims de l'eix Y"
 
+#, fuzzy
 msgid "Whether to display the numbered column"
-msgstr ""
+msgstr "Si mostrar la línia de tendència"
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Si mostrar els valors numèrics dins les cel·les"
@@ -18167,8 +18183,9 @@ msgstr "Autorització necessària"
 msgid "quarter"
 msgstr "trimestre"
 
+#, fuzzy
 msgid "queries"
-msgstr ""
+msgstr "Consultes"
 
 msgid "query"
 msgstr "consulta"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-06-04 18:39-0700\n"
+"POT-Creation-Date: 2026-06-05 13:45-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -1176,8 +1176,9 @@ msgstr "增加新的的顏色格式化器"
 msgid "Add new formatter"
 msgstr "新增格式化"
 
+#, fuzzy
 msgid "Add numbered column"
-msgstr ""
+msgstr "增加計算列"
 
 #, fuzzy
 msgid "Add or edit display controls"
@@ -2104,8 +2105,9 @@ msgstr "確定要删除選定的圖層嗎？"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "確定要删除選定的圖層嗎？"
 
+#, fuzzy
 msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
+msgstr "您確定要删除選定的查詢嗎？"
 
 #, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
@@ -3850,8 +3852,9 @@ msgstr "連接失敗，請檢查您的連接配置"
 msgid "Connection failed, please check your connection settings."
 msgstr "連接失敗，請檢查您的連接配置"
 
+#, fuzzy
 msgid "Connection looks good!"
-msgstr ""
+msgstr "連接"
 
 #, fuzzy
 msgid "Contains"
@@ -3937,8 +3940,9 @@ msgstr "將分區查詢複製到剪貼簿"
 msgid "Copy permalink to clipboard"
 msgstr "將查詢链接複製到剪貼簿"
 
+#, fuzzy
 msgid "Copy query URL"
-msgstr ""
+msgstr "複製查詢 URL"
 
 msgid "Copy query link to your clipboard"
 msgstr "將查詢链接複製到剪貼簿"
@@ -5035,8 +5039,9 @@ msgstr "删除"
 msgid "Delete item"
 msgstr "删除模板"
 
+#, fuzzy
 msgid "Delete query"
-msgstr ""
+msgstr "確定删除查詢？"
 
 #, fuzzy
 msgid "Delete role"
@@ -5648,7 +5653,7 @@ msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "時長(毫秒)(1.40008 => 1ms 400µs 80ns)"
 
 #, fuzzy
-msgid "Duration in ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "時長(毫秒)(66000 => 1m 6s)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
@@ -5697,9 +5702,9 @@ msgstr "啟用郵件報告"
 msgid "ERROR"
 msgstr "錯誤"
 
-#, python-format
+#, fuzzy, python-format
 msgid "ERROR: %s"
-msgstr ""
+msgstr "錯誤：%(msg)s"
 
 msgid "Edge length"
 msgstr "邊長"
@@ -5798,8 +5803,9 @@ msgstr "編輯規則"
 msgid "Edit properties"
 msgstr "編輯属性"
 
+#, fuzzy
 msgid "Edit query"
-msgstr ""
+msgstr "編輯查詢"
 
 #, fuzzy
 msgid "Edit report"
@@ -6433,8 +6439,9 @@ msgstr "圖片發送失敗，請刷新或重試"
 msgid "Export failed: %s"
 msgstr "報告失敗"
 
+#, fuzzy
 msgid "Export query"
-msgstr ""
+msgstr "查詢為空？"
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8358,8 +8365,9 @@ msgstr "線段列"
 msgid "Lines encoding"
 msgstr "線段编碼"
 
+#, fuzzy
 msgid "Link Copied!"
-msgstr ""
+msgstr "SQL 複製成功！"
 
 #, fuzzy
 msgid "List"
@@ -9526,8 +9534,9 @@ msgstr "未定義"
 msgid "Not equal to (≠)"
 msgstr "不等於（≠）"
 
+#, fuzzy
 msgid "Not found"
-msgstr ""
+msgstr "圖表 %(id)s 没有找到"
 
 #, fuzzy
 msgid "Not in"
@@ -14551,8 +14560,9 @@ msgstr "獲取此看板的收藏夹狀態時出現問題：%s。"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "獲取此看板的收藏夹狀態時出現問題：%s。"
 
+#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr ""
+msgstr "抱歉，這個看板在獲取圖表時發生錯誤："
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -14658,9 +14668,9 @@ msgstr "删除所選看板時出現問題："
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "删除所選圖層時出現問題：%s"
 
-#, python-format
+#, fuzzy, python-format
 msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
+msgstr "删除所選模板時出現問題：%s"
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -14698,8 +14708,9 @@ msgstr "删除所選圖表時出現問題：%s"
 msgid "There was an issue exporting the selected dashboards"
 msgstr "删除所選看板時出現問題："
 
+#, fuzzy
 msgid "There was an issue exporting the selected queries"
-msgstr ""
+msgstr "删除所選模板時出現問題：%s"
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -15669,8 +15680,9 @@ msgstr "還原這個動作"
 msgid "Undo?"
 msgstr "還原？"
 
+#, fuzzy
 msgid "Unexpected HTTP 401 response. Check your credentials."
-msgstr ""
+msgstr "發生意外錯誤，請檢查日誌以了解詳細訊息"
 
 msgid "Unexpected error"
 msgstr "意外錯誤。"
@@ -16581,8 +16593,9 @@ msgstr "是否顯示 X 軸的最小值和最大值"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "是否顯示 Y 軸的最小值和最大值"
 
+#, fuzzy
 msgid "Whether to display the numbered column"
-msgstr ""
+msgstr "是否顯示趋势線"
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "是否在單元格内顯示數值"
@@ -18004,8 +18017,9 @@ msgstr ""
 msgid "quarter"
 msgstr "季度"
 
+#, fuzzy
 msgid "queries"
-msgstr ""
+msgstr "查詢"
 
 msgid "query"
 msgstr "查詢"

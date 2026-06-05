@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-04 18:39-0700\n"
+"POT-Creation-Date: 2026-06-05 13:45-0700\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -1155,8 +1155,9 @@ msgstr ""
 msgid "Add new formatter"
 msgstr ""
 
+#, fuzzy
 msgid "Add numbered column"
-msgstr ""
+msgstr "컬럼 목록"
 
 #, fuzzy
 msgid "Add or edit display controls"
@@ -3878,8 +3879,9 @@ msgstr ""
 msgid "Copy permalink to clipboard"
 msgstr "클립보드에 복사하기"
 
+#, fuzzy
 msgid "Copy query URL"
-msgstr ""
+msgstr "Query 저장"
 
 msgid "Copy query link to your clipboard"
 msgstr "클립보드에 복사하기"
@@ -4967,8 +4969,9 @@ msgstr "삭제"
 msgid "Delete item"
 msgstr "템플릿 불러오기"
 
+#, fuzzy
 msgid "Delete query"
-msgstr ""
+msgstr "삭제"
 
 #, fuzzy
 msgid "Delete role"
@@ -5559,7 +5562,7 @@ msgstr ""
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr ""
 
-msgid "Duration in ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr ""
 
 msgid "Duration in ms (66000 => 1m 6s)"
@@ -5605,9 +5608,9 @@ msgstr ""
 msgid "ERROR"
 msgstr "%s 에러"
 
-#, python-format
+#, fuzzy, python-format
 msgid "ERROR: %s"
-msgstr ""
+msgstr "%s 에러"
 
 msgid "Edge length"
 msgstr ""
@@ -5706,8 +5709,9 @@ msgstr "Query 검색"
 msgid "Edit properties"
 msgstr ""
 
+#, fuzzy
 msgid "Edit query"
-msgstr ""
+msgstr "저장된 Query 수정"
 
 #, fuzzy
 msgid "Edit report"
@@ -6330,8 +6334,9 @@ msgstr ""
 msgid "Export failed: %s"
 msgstr "테이블 명"
 
+#, fuzzy
 msgid "Export query"
-msgstr ""
+msgstr "Query 공유"
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8199,8 +8204,9 @@ msgstr "컬럼 수정"
 msgid "Lines encoding"
 msgstr ""
 
+#, fuzzy
 msgid "Link Copied!"
-msgstr ""
+msgstr "복사됨!"
 
 #, fuzzy
 msgid "List"
@@ -9343,8 +9349,9 @@ msgstr "수정됨"
 msgid "Not equal to (≠)"
 msgstr ""
 
+#, fuzzy
 msgid "Not found"
-msgstr ""
+msgstr "데이터베이스를 찾을 수 없습니다."
 
 #, fuzzy
 msgid "Not in"
@@ -14278,8 +14285,9 @@ msgstr ""
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
+#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr ""
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -14385,9 +14393,9 @@ msgstr ""
 msgid "There was an issue deleting the selected layers: %s"
 msgstr ""
 
-#, python-format
+#, fuzzy, python-format
 msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -14425,8 +14433,9 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid "There was an issue exporting the selected dashboards"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
+#, fuzzy
 msgid "There was an issue exporting the selected queries"
-msgstr ""
+msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -17629,8 +17638,9 @@ msgstr ""
 msgid "quarter"
 msgstr "분기"
 
+#, fuzzy
 msgid "queries"
-msgstr ""
+msgstr "저장된 Query"
 
 msgid "query"
 msgstr "Query 공유"

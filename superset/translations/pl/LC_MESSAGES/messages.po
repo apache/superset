@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-04 18:39-0700\n"
+"POT-Creation-Date: 2026-06-05 13:45-0700\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1266,8 +1266,9 @@ msgstr "Dodaj nowy formater kolorów"
 msgid "Add new formatter"
 msgstr "Dodaj nowy formater"
 
+#, fuzzy
 msgid "Add numbered column"
-msgstr ""
+msgstr " aby dodać obliczane kolumny"
 
 #, fuzzy
 msgid "Add or edit display controls"
@@ -2242,8 +2243,9 @@ msgstr "Czy na pewno chcesz usunąć wybrane reguły?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Czy na pewno chcesz usunąć wybrane warstwy?"
 
+#, fuzzy
 msgid "Are you sure you want to delete the selected queries?"
-msgstr ""
+msgstr "Czy na pewno chcesz usunąć wybrane zapytania?"
 
 #, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
@@ -4014,8 +4016,9 @@ msgstr "Połączenie nie powiodło się, sprawdź ustawienia połączenia"
 msgid "Connection failed, please check your connection settings."
 msgstr "Połączenie nie powiodło się, sprawdź ustawienia połączenia."
 
+#, fuzzy
 msgid "Connection looks good!"
-msgstr ""
+msgstr "Połączenie"
 
 #, fuzzy
 msgid "Contains"
@@ -4101,8 +4104,9 @@ msgstr "Skopiuj zapytanie partycji do schowka"
 msgid "Copy permalink to clipboard"
 msgstr "Skopiuj stały link do schowka"
 
+#, fuzzy
 msgid "Copy query URL"
-msgstr ""
+msgstr "Skopiuj URL zapytania"
 
 msgid "Copy query link to your clipboard"
 msgstr "Skopiuj link do zapytania do schowka"
@@ -4382,8 +4386,9 @@ msgstr "Niestandardowe metryki SQL ad-hoc nie są włączone dla tego zestawu da
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
 msgstr ""
 
+#, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
-msgstr ""
+msgstr "Pola niestandardowego SQL nie mogą zawierać podzapytań."
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Pola niestandardowego SQL nie mogą zawierać podzapytań."
@@ -5265,8 +5270,9 @@ msgstr "usuń"
 msgid "Delete item"
 msgstr "Usuń szablon"
 
+#, fuzzy
 msgid "Delete query"
-msgstr ""
+msgstr "Usunąć zapytanie?"
 
 #, fuzzy
 msgid "Delete role"
@@ -5934,7 +5940,7 @@ msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Czas trwania w ms (100.40008 => 100ms 400µs 80ns)"
 
 #, fuzzy
-msgid "Duration in ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Czas trwania w ms (66000 => 1m 6s)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
@@ -5983,9 +5989,9 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "BŁĄD"
 
-#, python-format
+#, fuzzy, python-format
 msgid "ERROR: %s"
-msgstr ""
+msgstr "Błąd: %(msg)s"
 
 msgid "Edge length"
 msgstr "Długość krawędzi"
@@ -6086,8 +6092,9 @@ msgstr "Edytuj regułę"
 msgid "Edit properties"
 msgstr "Edytuj właściwości"
 
+#, fuzzy
 msgid "Edit query"
-msgstr ""
+msgstr "Edytuj zapytanie"
 
 #, fuzzy
 msgid "Edit report"
@@ -6740,8 +6747,9 @@ msgstr "Pobieranie obrazu nie powiodło się, odśwież i spróbuj ponownie."
 msgid "Export failed: %s"
 msgstr "Raport nie powiódł się"
 
+#, fuzzy
 msgid "Export query"
-msgstr ""
+msgstr "Puste zapytanie?"
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8698,8 +8706,9 @@ msgstr "Kolumna linii"
 msgid "Lines encoding"
 msgstr "Kodowanie linii"
 
+#, fuzzy
 msgid "Link Copied!"
-msgstr ""
+msgstr "SQL skopiowano!"
 
 #, fuzzy
 msgid "List"
@@ -9859,8 +9868,9 @@ msgstr "Nie zdefiniowano"
 msgid "Not equal to (≠)"
 msgstr "Nie równe (≠)"
 
+#, fuzzy
 msgid "Not found"
-msgstr ""
+msgstr "Nie znaleziono wykresu"
 
 msgid "Not in"
 msgstr "Nie w"
@@ -15254,8 +15264,9 @@ msgstr "Wystąpił błąd podczas pobierania statusu ulubionych: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Wystąpił błąd podczas pobierania filtrowanych wykresów i paneli:"
 
+#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr ""
+msgstr "Wystąpił błąd podczas ładowania schematów."
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -15367,9 +15378,9 @@ msgstr "Wystąpił problem podczas usuwania wybranych paneli:"
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "Wystąpił problem podczas usuwania wybranych warstw: %s"
 
-#, python-format
+#, fuzzy, python-format
 msgid "There was an issue deleting the selected queries: %s"
-msgstr ""
+msgstr "Wystąpił problem podczas usuwania wybranych szablonów: %s"
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -15407,8 +15418,9 @@ msgstr "Wystąpił problem podczas usuwania wybranych wykresów: %s"
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Wystąpił problem podczas usuwania wybranych paneli:"
 
+#, fuzzy
 msgid "There was an issue exporting the selected queries"
-msgstr ""
+msgstr "Wystąpił problem podczas usuwania wybranych szablonów: %s"
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -16501,8 +16513,9 @@ msgstr "Cofnij akcję"
 msgid "Undo?"
 msgstr "Cofnąć?"
 
+#, fuzzy
 msgid "Unexpected HTTP 401 response. Check your credentials."
-msgstr ""
+msgstr "Wystąpił nieoczekiwany błąd. Sprawdź dzienniki, aby uzyskać szczegóły."
 
 msgid "Unexpected error"
 msgstr "Nieoczekiwany błąd"
@@ -17508,8 +17521,9 @@ msgstr "Czy wyświetlać minimalne i maksymalne wartości osi X"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Czy wyświetlać minimalne i maksymalne wartości osi Y"
 
+#, fuzzy
 msgid "Whether to display the numbered column"
-msgstr ""
+msgstr "Czy wyświetlać linię trendu"
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Czy wyświetlać wartości liczbowe w komórkach"
@@ -19001,8 +19015,9 @@ msgstr "Wymagana autoryzacja"
 msgid "quarter"
 msgstr "kwartał"
 
+#, fuzzy
 msgid "queries"
-msgstr ""
+msgstr "Zapytania"
 
 msgid "query"
 msgstr "zapytanie"
