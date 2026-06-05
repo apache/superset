@@ -29,6 +29,7 @@ from freezegun import freeze_time
 import superset.cli.importexport
 import superset.cli.thumbnails
 import superset.cli.update
+import superset.utils.encrypt
 from superset import db
 from superset.models.dashboard import Dashboard
 from tests.integration_tests.fixtures.birth_names_dashboard import (
@@ -364,3 +365,71 @@ def test_re_encrypt_secrets_failure_exits_nonzero(app_context):
     # The failure path must be handled by the CLI, not leaked as an
     # uncaught exception.
     assert response.exception is None or isinstance(response.exception, SystemExit)
+
+
+def test_re_encrypt_secrets_engine_option_invokes_migrator(app_context):
+    """
+    When --engine is provided, the CLI must resolve the engine name to the
+    correct engine class and pass it to SecretsMigrator as target_engine.
+    """
+    from sqlalchemy_utils.types.encrypted.encrypted_type import AesGcmEngine
+
+    current_app.config.pop("PREVIOUS_SECRET_KEY", None)
+    runner = current_app.test_cli_runner()
+    with mock.patch.object(
+        superset.cli.update,
+        "SecretsMigrator",
+    ) as migrator_mock:
+        migrator_mock.return_value.run.return_value = (
+            superset.utils.encrypt.ReEncryptStats()
+        )
+        response = runner.invoke(
+            superset.cli.update.re_encrypt_secrets,
+            ["--engine", "aes-gcm"],
+        )
+
+    assert response.exit_code == 0
+    call_kwargs = migrator_mock.call_args.kwargs
+    assert call_kwargs.get("target_engine") is AesGcmEngine
+    assert call_kwargs.get("previous_secret_key") is None
+
+
+def test_re_encrypt_secrets_engine_option_case_insensitive(app_context):
+    """
+    The --engine option must be case-insensitive per
+    click.Choice(..., case_sensitive=False).
+    """
+    from sqlalchemy_utils.types.encrypted.encrypted_type import AesGcmEngine
+
+    current_app.config.pop("PREVIOUS_SECRET_KEY", None)
+    runner = current_app.test_cli_runner()
+    with mock.patch.object(
+        superset.cli.update,
+        "SecretsMigrator",
+    ) as migrator_mock:
+        migrator_mock.return_value.run.return_value = (
+            superset.utils.encrypt.ReEncryptStats()
+        )
+        response = runner.invoke(
+            superset.cli.update.re_encrypt_secrets,
+            ["--engine", "AES-GCM"],
+        )
+
+    assert response.exit_code == 0
+    assert migrator_mock.call_args.kwargs.get("target_engine") is AesGcmEngine
+
+
+def test_re_encrypt_secrets_engine_option_invalid_raises_usage(app_context):
+    """
+    An unrecognized engine name must produce a click usage error, not a
+    traceback or silent failure.
+    """
+    runner = current_app.test_cli_runner()
+    response = runner.invoke(
+        superset.cli.update.re_encrypt_secrets,
+        ["--engine", "nonexistent-engine"],
+    )
+
+    assert response.exit_code != 0
+    assert "Invalid value" in response.output or "Usage:" in response.output
+    assert "aes" in response.output or "aes-gcm" in response.output
