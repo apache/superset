@@ -71,8 +71,17 @@ services:
       - /bin/bash
       - -c
       - |
-        echo "Waiting for webpack dev server at host.docker.internal:9000/static/assets/manifest.json..."
-        until curl -sf -o /dev/null http://host.docker.internal:9000/static/assets/manifest.json; do
+        url="http://host.docker.internal:9000/static/assets/manifest.json"
+        max_attempts=150  # ~5 minutes at 2s intervals
+        echo "Waiting for webpack dev server at $url..."
+        attempt=0
+        until curl -sf --max-time 5 -o /dev/null "$url"; do
+          attempt=$((attempt + 1))
+          if [ "$attempt" -ge "$max_attempts" ]; then
+            echo "ERROR: webpack dev server did not serve $url after $max_attempts attempts (~5 minutes)." >&2
+            echo "Is the dev server running? With BUILD_SUPERSET_FRONTEND_IN_DOCKER=false you must start it on the host (e.g. 'npm run dev' in superset-frontend)." >&2
+            exit 1
+          fi
           sleep 2
         done
         echo "Webpack dev server is ready; starting nginx."
