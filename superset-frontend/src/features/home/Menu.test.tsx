@@ -32,13 +32,16 @@ jest.mock('@apache-superset/core/theme', () => ({
 
 const mockUseBreakpoint = jest.fn<{ md?: boolean }, []>(() => ({ md: true }));
 
-jest.mock('antd', () => ({
-  ...jest.requireActual('antd'),
-  Grid: {
-    ...jest.requireActual('antd').Grid,
-    useBreakpoint: () => mockUseBreakpoint(),
-  },
-}));
+jest.mock('antd', () => {
+  const actual = jest.requireActual('antd');
+  return {
+    ...actual,
+    Grid: {
+      ...actual.Grid,
+      useBreakpoint: () => mockUseBreakpoint(),
+    },
+  };
+});
 
 const dropdownItems = [
   {
