@@ -960,3 +960,47 @@ test('Clicking the gear "Add or edit filters and controls" item opens the Filter
 
   expect(await screen.findByTestId('filter-modal')).toBeInTheDocument();
 });
+
+test('FilterBar with orientation=Horizontal routes to Horizontal layout instead of Vertical', async () => {
+  // Migrated from the disabled Cypress spec _skip.horizontalFilterBar.test.ts:
+  // proves the orientation prop selects the Horizontal subtree. The settings
+  // gear (FilterBarSettings) is rendered only by Horizontal.tsx — Vertical.tsx
+  // does not mount it — so its presence is a horizontal-exclusive positive
+  // signal that won't false-pass if vertical heading copy is tuned. We flush
+  // all pending fake timers to clear useInitialization's setTimeout
+  // regardless of the production timeout literal.
+  const filter = createFilter({
+    id: 'NATIVE_FILTER-h1',
+    name: 'Horizontal filter',
+  });
+  const dataMask = createDataMask(filter.id);
+  const state = createStateWithFilter(filter, dataMask, {
+    filterBarOrientation: FilterBarOrientation.Horizontal,
+  });
+
+  render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
+    initialState: state,
+    useDnd: true,
+    useRedux: true,
+    useRouter: true,
+  });
+
+  await act(async () => {
+    jest.runAllTimers();
+  });
+
+  expect(screen.getByRole('img', { name: 'setting' })).toBeInTheDocument();
+});
+
+test('FilterBar with orientation=Vertical renders Vertical layout (sanity counterpart to the horizontal routing test)', () => {
+  // Paired control for the routing test above: with Vertical orientation,
+  // the settings gear must NOT be present (Vertical.tsx does not render
+  // FilterBarSettings). Confirms the routing signal is horizontal-exclusive,
+  // not a coincidence of when timers fire.
+  const props = createClosedBarProps();
+  renderFilterBar(props);
+  expect(screen.getByText('Filters and controls')).toBeInTheDocument();
+  expect(
+    screen.queryByRole('img', { name: 'setting' }),
+  ).not.toBeInTheDocument();
+});
