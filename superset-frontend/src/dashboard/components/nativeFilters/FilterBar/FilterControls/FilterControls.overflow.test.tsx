@@ -16,7 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act } from 'react';
 import { NativeFilterType, Preset } from '@superset-ui/core';
 import type { DataMaskStateWithId } from '@superset-ui/core';
 import type {
@@ -25,7 +24,7 @@ import type {
 } from '@superset-ui/core/components/DropdownContainer';
 import { SelectFilterPlugin } from 'src/filters/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { render, waitFor, within } from 'spec/helpers/testing-library';
+import { act, render, waitFor, within } from 'spec/helpers/testing-library';
 import FilterControls from './FilterControls';
 
 // Capture every props snapshot DropdownContainer receives, plus the latest

@@ -17,10 +17,12 @@
  * under the License.
  */
 import { NativeFilterType, Preset } from '@superset-ui/core';
+import type { Filter } from '@superset-ui/core';
 import { SelectFilterPlugin } from 'src/filters/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import HorizontalBar from './Horizontal';
+import type { HorizontalBarProps } from './types';
 
 // Register the select filter plugin once so FilterControl can render the
 // filter name without throwing when the plugin registry is consulted.
@@ -46,7 +48,7 @@ const defaultProps = {
   onPendingCustomizationDataMaskChange: jest.fn(),
 };
 
-const renderWrapper = (overrideProps?: Record<string, any>) =>
+const renderWrapper = (overrideProps?: Partial<HorizontalBarProps>) =>
   waitFor(() =>
     render(<HorizontalBar {...defaultProps} {...overrideProps} />, {
       useRedux: true,
@@ -78,7 +80,7 @@ test('should not render the empty message', async () => {
       {
         id: 'test',
         type: NativeFilterType.NativeFilter,
-      },
+      } as unknown as Filter,
     ],
   });
   expect(
@@ -110,20 +112,21 @@ test('should render the loading icon', async () => {
 // --- Tests migrated from disabled Cypress spec
 //     `_skip.horizontalFilterBar.test.ts` (sc-107387). ---
 
-const createSelectFilter = (id: string, name: string, column: string) => ({
-  id,
-  name,
-  type: NativeFilterType.NativeFilter,
-  filterType: 'filter_select',
-  targets: [{ datasetId: 2, column: { name: column } }],
-  defaultDataMask: { filterState: { value: null }, extraFormData: {} },
-  controlValues: {},
-  cascadeParentIds: [],
-  scope: { rootPath: ['ROOT_ID'], excluded: [] },
-  description: '',
-  chartsInScope: [],
-  tabsInScope: [],
-});
+const createSelectFilter = (id: string, name: string, column: string): Filter =>
+  ({
+    id,
+    name,
+    type: NativeFilterType.NativeFilter,
+    filterType: 'filter_select',
+    targets: [{ datasetId: 2, column: { name: column } }],
+    defaultDataMask: { filterState: { value: null }, extraFormData: {} },
+    controlValues: {},
+    cascadeParentIds: [],
+    scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    description: '',
+    chartsInScope: [],
+    tabsInScope: [],
+  }) as unknown as Filter;
 
 const buildStateWithFilters = (
   filters: ReturnType<typeof createSelectFilter>[],
@@ -168,7 +171,7 @@ const buildStateWithFilters = (
 
 const renderWithFilters = (
   filters: ReturnType<typeof createSelectFilter>[],
-  overrideProps?: Record<string, any>,
+  overrideProps?: Partial<HorizontalBarProps>,
 ) =>
   render(<HorizontalBar {...defaultProps} {...overrideProps} />, {
     useRedux: true,
