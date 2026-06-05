@@ -63,7 +63,7 @@ export function simulateDrop(
   item: { type: DndItemType; value: DndItemValue },
 ) {
   resolveDragEnd(
-    { id: 'drag-source', data: { current: { type: item.type, ...item } } },
+    { id: 'drag-source', data: { current: item } },
     { id: 'dropzone', data: { current: captured.current ?? {} } },
   );
 }

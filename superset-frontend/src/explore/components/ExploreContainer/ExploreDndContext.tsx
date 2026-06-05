@@ -113,7 +113,7 @@ export function resolveDragEnd(
   active: { id: UniqueIdentifier; data: { current?: ActiveDragData } },
   over: {
     id: UniqueIdentifier;
-    data: { current?: ActiveDragData & DroppableData };
+    data: { current?: Partial<ActiveDragData> & DroppableData };
   } | null,
 ): void {
   if (!over || active.id === over.id) {

@@ -16,17 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { resolveDragEnd } from './ExploreDndContext';
+import {
+  ActiveDragData,
+  DroppableData,
+  resolveDragEnd,
+} from './ExploreDndContext';
 
 const COLUMN = 'column';
 const METRIC = 'metric';
 
-const active = (data: Record<string, unknown>, id = 'drag-source') => ({
+const active = (data: ActiveDragData, id = 'drag-source') => ({
   id,
   data: { current: data },
 });
 
-const over = (data: Record<string, unknown>, id = 'dropzone-target') => ({
+const over = (
+  data: Partial<ActiveDragData> & DroppableData,
+  id = 'dropzone-target',
+) => ({
   id,
   data: { current: data },
 });
