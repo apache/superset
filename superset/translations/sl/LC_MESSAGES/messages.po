@@ -2216,9 +2216,8 @@ msgstr "Ali ste prepričani, da želite izbrisati izbrana pravila?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Ali ste prepričani, da želite izbrisati izbrane sloje?"
 
-#, fuzzy
 msgid "Are you sure you want to delete the selected queries?"
-msgstr "Ali ste prepričani, da želite izbrisati izbrane poizvedbe?"
+msgstr ""
 
 #, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
@@ -3931,9 +3930,8 @@ msgstr "Povezava neuspešna. Preverite nastavitve povezave"
 msgid "Connection failed, please check your connection settings."
 msgstr "Povezava neuspešna. Preverite nastavitve povezave."
 
-#, fuzzy
 msgid "Connection looks good!"
-msgstr "Povezava"
+msgstr ""
 
 #, fuzzy
 msgid "Contains"
@@ -4013,9 +4011,8 @@ msgstr "Kopiraj particijsko poizvedbo na odložišče"
 msgid "Copy permalink to clipboard"
 msgstr "Kopiraj povezavo v odložišče"
 
-#, fuzzy
 msgid "Copy query URL"
-msgstr "Kopiraj URL poizvedbe"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Kopiraj povezavo do poizvedbe v odložišče"
@@ -5103,9 +5100,8 @@ msgstr "Izberite datoteko"
 msgid "Delete item"
 msgstr "Izbriši predlogo"
 
-#, fuzzy
 msgid "Delete query"
-msgstr "Izbrišem poizvedbo?"
+msgstr ""
 
 #, fuzzy
 msgid "Delete role"
@@ -5808,9 +5804,9 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "NAPAKA"
 
-#, fuzzy, python-format
+#, python-format
 msgid "ERROR: %s"
-msgstr "Napaka: %(msg)s"
+msgstr ""
 
 msgid "Edge length"
 msgstr "Dolžina povezave"
@@ -5906,9 +5902,8 @@ msgstr "Uredi pravilo"
 msgid "Edit properties"
 msgstr "Uredi lastnosti"
 
-#, fuzzy
 msgid "Edit query"
-msgstr "Uredi poizvedbo"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6527,9 +6522,8 @@ msgstr "Prenos slike ni uspel. Osvežite in poskusite ponovno."
 msgid "Export failed: %s"
 msgstr "Poročilo ni uspelo"
 
-#, fuzzy
 msgid "Export query"
-msgstr "Prazna poizvedba?"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8405,9 +8399,8 @@ msgstr "Stolpec črt"
 msgid "Lines encoding"
 msgstr "Kodiranje črt"
 
-#, fuzzy
 msgid "Link Copied!"
-msgstr "SQL kopiran!"
+msgstr ""
 
 #, fuzzy
 msgid "List"
@@ -14616,9 +14609,8 @@ msgstr "Napaka pri pridobivanju statusa \"Priljubljeno\": %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Napaka pri pridobivanju filtriranih grafikonov in nadzornih plošč:"
 
-#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr "Napaka pri nalaganju shem"
+msgstr ""
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -14721,9 +14713,9 @@ msgstr "Pri brisanju izbranih nadzornih plošč je prišlo do težave: "
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "Pri brisanju izbranih slojev je prišlo do težave: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue deleting the selected queries: %s"
-msgstr "Pri brisanju izbranih predlog je prišlo do težave: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -14761,9 +14753,8 @@ msgstr "Pri brisanju izbranih grafikonov je prišlo do težave: %s"
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Pri brisanju izbranih nadzornih plošč je prišlo do težave: "
 
-#, fuzzy
 msgid "There was an issue exporting the selected queries"
-msgstr "Pri brisanju izbranih predlog je prišlo do težave: %s"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -18162,9 +18153,8 @@ msgstr "Potrebna je avtorizacija"
 msgid "quarter"
 msgstr "četrtletje"
 
-#, fuzzy
 msgid "queries"
-msgstr "Poizvedbe"
+msgstr ""
 
 msgid "query"
 msgstr "poizvedba"

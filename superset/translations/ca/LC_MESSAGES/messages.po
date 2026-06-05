@@ -2215,9 +2215,8 @@ msgstr "Estàs segur que vols eliminar les regles seleccionades?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Estàs segur que vols eliminar les capes seleccionades?"
 
-#, fuzzy
 msgid "Are you sure you want to delete the selected queries?"
-msgstr "Estàs segur que vols eliminar els usuaris seleccionats?"
+msgstr ""
 
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Estàs segur que vols eliminar els rols seleccionats?"
@@ -3930,9 +3929,8 @@ msgstr "La connexió ha fallat, si us plau comprova la configuració de connexi�
 msgid "Connection failed, please check your connection settings."
 msgstr "La connexió ha fallat, si us plau comprova la configuració de connexió."
 
-#, fuzzy
 msgid "Connection looks good!"
-msgstr "Connexió"
+msgstr ""
 
 #, fuzzy
 msgid "Contains"
@@ -4012,9 +4010,8 @@ msgstr "Copiar consulta de partició al porta-retalls"
 msgid "Copy permalink to clipboard"
 msgstr "Copiar enllaç permanent al porta-retalls"
 
-#, fuzzy
 msgid "Copy query URL"
-msgstr "Copiar URL de consulta"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Copiar enllaç de consulta al teu porta-retalls"
@@ -5104,9 +5101,8 @@ msgstr "Eliminar rol"
 msgid "Delete item"
 msgstr "Eliminar plantilla"
 
-#, fuzzy
 msgid "Delete query"
-msgstr "Eliminar Consulta?"
+msgstr ""
 
 msgid "Delete role"
 msgstr "Eliminar rol"
@@ -5793,9 +5789,9 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "ERROR"
 
-#, fuzzy, python-format
+#, python-format
 msgid "ERROR: %s"
-msgstr "Error: %(msg)s"
+msgstr ""
 
 msgid "Edge length"
 msgstr "Longitud de vora"
@@ -5889,9 +5885,8 @@ msgstr "Editar Regla"
 msgid "Edit properties"
 msgstr "Editar propietats"
 
-#, fuzzy
 msgid "Edit query"
-msgstr "Editar usuari"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6504,9 +6499,8 @@ msgstr "La descàrrega PDF ha fallat, si us plau actualitza i torna-ho a provar.
 msgid "Export failed: %s"
 msgstr "L'informe ha fallat"
 
-#, fuzzy
 msgid "Export query"
-msgstr "Consulta buida?"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8373,9 +8367,8 @@ msgstr "Columna de línies"
 msgid "Lines encoding"
 msgstr "Codificació de línies"
 
-#, fuzzy
 msgid "Link Copied!"
-msgstr "SQL Copiat!"
+msgstr ""
 
 #, fuzzy
 msgid "List"
@@ -14635,9 +14628,8 @@ msgstr "Hi ha hagut un error obtenint l'estat de favorit: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Hi ha hagut un error obtenint els gràfics i dashboards filtrats:"
 
-#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr "Hi ha hagut un error carregant els esquemes"
+msgstr ""
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -14740,9 +14732,9 @@ msgstr "Hi ha hagut un problema eliminant els dashboards seleccionats: "
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "Hi ha hagut un problema eliminant les capes seleccionades: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue deleting the selected queries: %s"
-msgstr "Hi ha hagut un problema eliminant les plantilles seleccionades: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -14780,9 +14772,8 @@ msgstr "Hi ha hagut un problema eliminant els gràfics seleccionats: %s"
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Hi ha hagut un problema eliminant els dashboards seleccionats: "
 
-#, fuzzy
 msgid "There was an issue exporting the selected queries"
-msgstr "Hi ha hagut un problema eliminant les plantilles seleccionades: %s"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -18183,9 +18174,8 @@ msgstr "Autorització necessària"
 msgid "quarter"
 msgstr "trimestre"
 
-#, fuzzy
 msgid "queries"
-msgstr "Consultes"
+msgstr ""
 
 msgid "query"
 msgstr "consulta"

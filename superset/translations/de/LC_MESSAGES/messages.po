@@ -2221,9 +2221,8 @@ msgstr "Möchten Sie die ausgewählten Ebenen wirklich löschen?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Möchten Sie die ausgewählten Ebenen wirklich löschen?"
 
-#, fuzzy
 msgid "Are you sure you want to delete the selected queries?"
-msgstr "Möchten Sie die ausgewählten Abfragen wirklich löschen?"
+msgstr ""
 
 #, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
@@ -3986,9 +3985,8 @@ msgstr ""
 "Verbindung fehlgeschlagen, bitte überprüfen Sie Ihre "
 "Verbindungseinstellungen."
 
-#, fuzzy
 msgid "Connection looks good!"
-msgstr "Verbindung"
+msgstr ""
 
 #, fuzzy
 msgid "Contains"
@@ -4068,9 +4066,8 @@ msgstr "Partitionsabfrage in Zwischenablage kopieren"
 msgid "Copy permalink to clipboard"
 msgstr "Permalink in Zwischenablage kopieren"
 
-#, fuzzy
 msgid "Copy query URL"
-msgstr "Abfrage-URL kopieren"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Abfragelink in die Zwischenablage kopieren"
@@ -5183,9 +5180,8 @@ msgstr "Löschen"
 msgid "Delete item"
 msgstr "Vorlage löschen"
 
-#, fuzzy
 msgid "Delete query"
-msgstr "Abfrage löschen?"
+msgstr ""
 
 #, fuzzy
 msgid "Delete role"
@@ -5880,9 +5876,9 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "FEHLER"
 
-#, fuzzy, python-format
+#, python-format
 msgid "ERROR: %s"
-msgstr "Fehler: %(msg)s"
+msgstr ""
 
 msgid "Edge length"
 msgstr "Kantenlänge"
@@ -5978,9 +5974,8 @@ msgstr "Regel bearbeiten"
 msgid "Edit properties"
 msgstr "Eigenschaften bearbeiten"
 
-#, fuzzy
 msgid "Edit query"
-msgstr "Abfrage bearbeiten"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6609,9 +6604,8 @@ msgstr "Bilddownload fehlgeschlagen, bitte aktualisieren und erneut versuchen."
 msgid "Export failed: %s"
 msgstr "Bericht fehlgeschlagen"
 
-#, fuzzy
 msgid "Export query"
-msgstr "Leere Abfrage?"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8518,9 +8512,8 @@ msgstr "Linien-Spalte"
 msgid "Lines encoding"
 msgstr "Zeilenkodierung"
 
-#, fuzzy
 msgid "Link Copied!"
-msgstr "SQL kopiert!"
+msgstr ""
 
 #, fuzzy
 msgid "List"
@@ -14899,9 +14892,8 @@ msgstr ""
 "Beim Abrufen der gefilterten Diagramme und Dashboards ist ein Fehler "
 "aufgetreten:"
 
-#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr "Beim Abrufen gespeicherter Diagramme ist leider ein Fehler aufgetreten"
+msgstr ""
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -15005,9 +14997,9 @@ msgstr "Beim Löschen der ausgewählten Dashboards ist ein Problem aufgetreten: 
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "Beim Löschen der ausgewählten Ebenen ist ein Problem aufgetreten: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue deleting the selected queries: %s"
-msgstr "Beim Löschen der ausgewählten Vorlagen ist ein Problem aufgetreten: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -15045,9 +15037,8 @@ msgstr "Beim Löschen der ausgewählten Diagramme ist ein Problem aufgetreten: %
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Beim Löschen der ausgewählten Dashboards ist ein Problem aufgetreten: "
 
-#, fuzzy
 msgid "There was an issue exporting the selected queries"
-msgstr "Beim Löschen der ausgewählten Vorlagen ist ein Problem aufgetreten: %s"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -18562,9 +18553,8 @@ msgstr "Autorisierung erforderlich"
 msgid "quarter"
 msgstr "Quartal"
 
-#, fuzzy
 msgid "queries"
-msgstr "Abfragen"
+msgstr ""
 
 msgid "query"
 msgstr "Abfrage"

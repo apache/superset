@@ -2194,9 +2194,8 @@ msgstr "Weet u zeker dat u de geselecteerde regels wilt verwijderen?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Weet je zeker dat je de geselecteerde lagen wilt verwijderen?"
 
-#, fuzzy
 msgid "Are you sure you want to delete the selected queries?"
-msgstr "Weet je zeker dat je de geselecteerde query’s wilt verwijderen?"
+msgstr ""
 
 #, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
@@ -3947,9 +3946,8 @@ msgstr "Verbinding mislukt, controleer uw verbindingsinstellingen"
 msgid "Connection failed, please check your connection settings."
 msgstr "Verbinding mislukt, controleer uw verbindingsinstellingen"
 
-#, fuzzy
 msgid "Connection looks good!"
-msgstr "Verbinding"
+msgstr ""
 
 #, fuzzy
 msgid "Contains"
@@ -4031,9 +4029,8 @@ msgstr "Kopieer partitie query naar klembord"
 msgid "Copy permalink to clipboard"
 msgstr "Kopieer permalink naar klembord"
 
-#, fuzzy
 msgid "Copy query URL"
-msgstr "Kopieer query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Kopieer query link naar uw klembord"
@@ -5147,9 +5144,8 @@ msgstr "verwijder"
 msgid "Delete item"
 msgstr "Verwijder template"
 
-#, fuzzy
 msgid "Delete query"
-msgstr "Verwijder Query?"
+msgstr ""
 
 #, fuzzy
 msgid "Delete role"
@@ -5837,9 +5833,9 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "FOUT"
 
-#, fuzzy, python-format
+#, python-format
 msgid "ERROR: %s"
-msgstr "Fout: %(msg)s"
+msgstr ""
 
 msgid "Edge length"
 msgstr "Rand lengte"
@@ -5935,9 +5931,8 @@ msgstr "Bewerk Regel"
 msgid "Edit properties"
 msgstr "Eigenschappen bewerken"
 
-#, fuzzy
 msgid "Edit query"
-msgstr "Bewerk query"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6567,9 +6562,8 @@ msgstr ""
 msgid "Export failed: %s"
 msgstr "Rapport mislukt"
 
-#, fuzzy
 msgid "Export query"
-msgstr "Lege query?"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8470,9 +8464,8 @@ msgstr "Lijnen kolom"
 msgid "Lines encoding"
 msgstr "Lijnen codering"
 
-#, fuzzy
 msgid "Link Copied!"
-msgstr "SQL gekopieerd!"
+msgstr ""
 
 #, fuzzy
 msgid "List"
@@ -14767,9 +14760,8 @@ msgstr "Er is een fout opgetreden bij het ophalen van de favoriete status: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Er is een fout opgetreden bij het ophalen van de favoriete status: %s"
 
-#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr "Er is een fout opgetreden bij het laden van de schema's"
+msgstr ""
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -14876,9 +14868,9 @@ msgstr "Er was een probleem met het verwijderen van de geselecteerde dashboards:
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "Er was een probleem met het verwijderen van de geselecteerde lagen: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue deleting the selected queries: %s"
-msgstr "Er was een probleem met het verwijderen van de geselecteerde templates: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -14916,9 +14908,8 @@ msgstr "Er was een probleem met het verwijderen van de geselecteerde grafieken: 
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Er was een probleem met het verwijderen van de geselecteerde dashboards: "
 
-#, fuzzy
 msgid "There was an issue exporting the selected queries"
-msgstr "Er was een probleem met het verwijderen van de geselecteerde templates: %s"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -18386,9 +18377,8 @@ msgstr ""
 msgid "quarter"
 msgstr "kwartaal"
 
-#, fuzzy
 msgid "queries"
-msgstr "Queries"
+msgstr ""
 
 msgid "query"
 msgstr "query"

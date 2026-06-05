@@ -2203,9 +2203,8 @@ msgstr "Voulez-vous vraiment supprimer les groupes sélectionnées?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Voulez-vous vraiment supprimer les couches sélectionnées?"
 
-#, fuzzy
 msgid "Are you sure you want to delete the selected queries?"
-msgstr "Voulez-vous vraiment supprimer les utilisateurs sélectionnées?"
+msgstr ""
 
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Voulez-vous vraiment supprimer les roles sélectionnées?"
@@ -3923,9 +3922,8 @@ msgstr "La connexion a échoué, veuillez vérifier vos paramètres de connexion
 msgid "Connection failed, please check your connection settings."
 msgstr "La connexion a échoué, veuillez vérifier vos paramètres de connexion"
 
-#, fuzzy
 msgid "Connection looks good!"
-msgstr "Connexion"
+msgstr ""
 
 msgid "Contains"
 msgstr "Contient"
@@ -4005,9 +4003,8 @@ msgstr "Copier la requête de partition vers le presse-papier"
 msgid "Copy permalink to clipboard"
 msgstr "Copier le lien dans le presse-papiers"
 
-#, fuzzy
 msgid "Copy query URL"
-msgstr "Copier la requête"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Copier le lien de la requête vers le presse-papier"
@@ -5116,9 +5113,8 @@ msgstr "supprimer le groupe"
 msgid "Delete item"
 msgstr "Supprimer l'élément"
 
-#, fuzzy
 msgid "Delete query"
-msgstr "Supprimer la requête?"
+msgstr ""
 
 msgid "Delete role"
 msgstr "supprimer le rôle"
@@ -5809,9 +5805,9 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "ERREUR"
 
-#, fuzzy, python-format
+#, python-format
 msgid "ERROR: %s"
-msgstr "erreur"
+msgstr ""
 
 msgid "Edge length"
 msgstr "Longueur du bord"
@@ -5904,9 +5900,8 @@ msgstr "mode edition"
 msgid "Edit properties"
 msgstr "Modifier les propriétés"
 
-#, fuzzy
 msgid "Edit query"
-msgstr "Modifier la requête"
+msgstr ""
 
 msgid "Edit report"
 msgstr "Modifier le rapport"
@@ -6528,9 +6523,8 @@ msgstr "Échec de l'export, veuillez réessayer."
 msgid "Export failed: %s"
 msgstr "Rapport échoué"
 
-#, fuzzy
 msgid "Export query"
-msgstr "Requête vide ?"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8466,9 +8460,8 @@ msgstr "Colonne des lignes"
 msgid "Lines encoding"
 msgstr "Codage des lignes"
 
-#, fuzzy
 msgid "Link Copied!"
-msgstr "Code copié!"
+msgstr ""
 
 #, fuzzy
 msgid "List"
@@ -14979,9 +14972,8 @@ msgstr "Erreur à la récupération du statut favori de ce tableau de bord : %s
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Erreur à la récupération du statut favori de ce tableau de bord : %s"
 
-#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr "Une erreur s'est produite lors de la récupération des schémas"
+msgstr ""
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -15103,11 +15095,9 @@ msgstr ""
 "Il y a eu un problème lors de la suppression des couches sélectionnées : "
 "%s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue deleting the selected queries: %s"
 msgstr ""
-"Il y a eu un problème lors de la suppression des modèles sélectionnées : "
-"%s"
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -15153,11 +15143,8 @@ msgstr ""
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Il y a eu un problème lors de la suppression des graphiques sélectionnés: "
 
-#, fuzzy
 msgid "There was an issue exporting the selected queries"
 msgstr ""
-"Il y a eu un problème lors de la suppression des modèles sélectionnées : "
-"%s"
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -18729,9 +18716,8 @@ msgstr "Autorisation requise"
 msgid "quarter"
 msgstr "trimestre"
 
-#, fuzzy
 msgid "queries"
-msgstr "Requêtes "
+msgstr ""
 
 msgid "query"
 msgstr "requête"

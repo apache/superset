@@ -2202,9 +2202,8 @@ msgstr "Opravdu chcete smazat vybrané skupiny?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Opravdu chcete smazat vybrané vrstvy?"
 
-#, fuzzy
 msgid "Are you sure you want to delete the selected queries?"
-msgstr "Opravdu chcete smazat vybrané uživatele?"
+msgstr ""
 
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Opravdu chcete smazat vybrané role?"
@@ -3908,9 +3907,8 @@ msgstr "Připojení selhalo, zkontrolujte prosím nastavení připojení"
 msgid "Connection failed, please check your connection settings."
 msgstr "Připojení selhalo, zkontrolujte prosím nastavení připojení."
 
-#, fuzzy
 msgid "Connection looks good!"
-msgstr "Připojení"
+msgstr ""
 
 #, fuzzy
 msgid "Contains"
@@ -3990,9 +3988,8 @@ msgstr "Kopírovat dotaz oddílu do schránky"
 msgid "Copy permalink to clipboard"
 msgstr "Kopírovat trvalý odkaz do schránky"
 
-#, fuzzy
 msgid "Copy query URL"
-msgstr "KOPÍROVAT DOTAZ"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Kopírovat odkaz na dotaz do schránky"
@@ -5086,9 +5083,8 @@ msgstr "Smazat skupinu"
 msgid "Delete item"
 msgstr "Smazat položku"
 
-#, fuzzy
 msgid "Delete query"
-msgstr "Smazat dotaz?"
+msgstr ""
 
 msgid "Delete role"
 msgstr "Smazat roli"
@@ -5786,9 +5782,9 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "CHYBA"
 
-#, fuzzy, python-format
+#, python-format
 msgid "ERROR: %s"
-msgstr "Chyba: %s"
+msgstr ""
 
 msgid "Edge length"
 msgstr "Délka hrany"
@@ -5883,9 +5879,8 @@ msgstr "Upravit skupinu"
 msgid "Edit properties"
 msgstr "Upravit vlastnosti"
 
-#, fuzzy
 msgid "Edit query"
-msgstr "Upravit uživatele"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6494,9 +6489,8 @@ msgstr "Export selhal - prosím zkuste to znovu"
 msgid "Export failed: %s"
 msgstr "Export selhal: %s"
 
-#, fuzzy
 msgid "Export query"
-msgstr "Prázdný dotaz?"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr "Exportovat screenshot (jpeg)"
@@ -8364,9 +8358,8 @@ msgstr "Sloupec spojnic"
 msgid "Lines encoding"
 msgstr "Kódování spojnic"
 
-#, fuzzy
 msgid "Link Copied!"
-msgstr "Kód zkopírován!"
+msgstr ""
 
 #, fuzzy
 msgid "List"
@@ -14565,9 +14558,8 @@ msgstr "Při načítání stavu oblíbenosti došlo k chybě: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Při načítání filtrovaných grafů a nástěnek došlo k chybě:"
 
-#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr "Při načítání schémat došlo k chybě"
+msgstr ""
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -14670,9 +14662,9 @@ msgstr "Při mazání vybraných nástěnek došlo k problému: "
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "Při mazání vybraných vrstev došlo k problému: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue deleting the selected queries: %s"
-msgstr "Při mazání vybraných témat došlo k problému: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -14710,9 +14702,8 @@ msgstr "Při exportu vybraných grafů došlo k problému: %s"
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Při exportu vybraných nástěnek došlo k problému."
 
-#, fuzzy
 msgid "There was an issue exporting the selected queries"
-msgstr "Při exportu vybraných šablon došlo k problému: %s"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -18124,9 +18115,8 @@ msgstr "Vyžadováno oprávnění"
 msgid "quarter"
 msgstr "čtvrtletí"
 
-#, fuzzy
 msgid "queries"
-msgstr "Dotazy"
+msgstr ""
 
 msgid "query"
 msgstr "dotaz"

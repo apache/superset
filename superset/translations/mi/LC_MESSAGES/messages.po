@@ -2170,9 +2170,8 @@ msgstr "Kei te tino hiahia koe ki te muku i ngā ture kua tīpakohia?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Kei te tino hiahia koe ki te muku i ngā papa kua tīpakohia?"
 
-#, fuzzy
 msgid "Are you sure you want to delete the selected queries?"
-msgstr "Kei te tino hiahia koe ki te muku i ngā kaiwhakamahi kua tīpakohia?"
+msgstr ""
 
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Kei te tino hiahia koe ki te muku i ngā tūranga kua tīpakohia?"
@@ -3869,9 +3868,8 @@ msgstr "I rahua te hononga, tēnā tirohia ō tautuhinga hononga"
 msgid "Connection failed, please check your connection settings."
 msgstr "I rahua te hononga, tēnā tirohia ō tautuhinga hononga."
 
-#, fuzzy
 msgid "Connection looks good!"
-msgstr "Hononga"
+msgstr ""
 
 #, fuzzy
 msgid "Contains"
@@ -3951,9 +3949,8 @@ msgstr "Tārua pātai wāhanga ki te papatopenga"
 msgid "Copy permalink to clipboard"
 msgstr "Tārua hononga-ā-mau ki te papatopenga"
 
-#, fuzzy
 msgid "Copy query URL"
-msgstr "Tārua URL pātai"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Tārua hono pātai ki tō papatopenga"
@@ -5040,9 +5037,8 @@ msgstr "Muku tūranga"
 msgid "Delete item"
 msgstr "Muku tauira"
 
-#, fuzzy
 msgid "Delete query"
-msgstr "Muku Pātai?"
+msgstr ""
 
 msgid "Delete role"
 msgstr "Muku tūranga"
@@ -5722,9 +5718,9 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "HAPA"
 
-#, fuzzy, python-format
+#, python-format
 msgid "ERROR: %s"
-msgstr "Hapa: %(msg)s"
+msgstr ""
 
 msgid "Edge length"
 msgstr "Roa tapa"
@@ -5818,9 +5814,8 @@ msgstr "Whakatika Ture"
 msgid "Edit properties"
 msgstr "Whakatika āhuatanga"
 
-#, fuzzy
 msgid "Edit query"
-msgstr "Whakatika kaiwhakamahi"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6427,9 +6422,8 @@ msgstr "Tikanga tauira-anō Pandas"
 msgid "Export failed: %s"
 msgstr "I rahua te pūrongo"
 
-#, fuzzy
 msgid "Export query"
-msgstr "Pātai kau?"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8305,9 +8299,8 @@ msgstr "Tīwae rārangi"
 msgid "Lines encoding"
 msgstr "Whakakohu rārangi"
 
-#, fuzzy
 msgid "Link Copied!"
-msgstr "SQL Kua Tāruahia!"
+msgstr ""
 
 #, fuzzy
 msgid "List"
@@ -14522,9 +14515,8 @@ msgstr ""
 "I puta he hapa i te tikitanga o ngā kauwhata me ngā papatohu kua "
 "tātaritia:"
 
-#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr "I puta he hapa i te utanga o ngā hanga"
+msgstr ""
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -14627,9 +14619,9 @@ msgstr "I puta he take i te mukutanga o ngā papatohu kua tīpakohia: "
 msgid "There was an issue deleting the selected layers: %s"
 msgstr "I puta he take i te mukutanga o ngā papa kua tīpakohia: %s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue deleting the selected queries: %s"
-msgstr "I puta he take i te mukutanga o ngā tauira kua tīpakohia: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -14667,9 +14659,8 @@ msgstr "I puta he take i te mukutanga o ngā kauwhata kua tīpakohia: %s"
 msgid "There was an issue exporting the selected dashboards"
 msgstr "I puta he take i te mukutanga o ngā papatohu kua tīpakohia: "
 
-#, fuzzy
 msgid "There was an issue exporting the selected queries"
-msgstr "I puta he take i te mukutanga o ngā tauira kua tīpakohia: %s"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -18103,9 +18094,8 @@ msgstr "E hiahiatia ana te whakamana"
 msgid "quarter"
 msgstr "hautakiwā"
 
-#, fuzzy
 msgid "queries"
-msgstr "Pātai"
+msgstr ""
 
 msgid "query"
 msgstr "pātai"

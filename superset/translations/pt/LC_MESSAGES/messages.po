@@ -3863,9 +3863,8 @@ msgstr ""
 msgid "Connection failed, please check your connection settings."
 msgstr ""
 
-#, fuzzy
 msgid "Connection looks good!"
-msgstr "Conexão de teste"
+msgstr ""
 
 #, fuzzy
 msgid "Contains"
@@ -3951,9 +3950,8 @@ msgstr "Copiar query de partição para a área de transferência"
 msgid "Copy permalink to clipboard"
 msgstr "Copiar query de partição para a área de transferência"
 
-#, fuzzy
 msgid "Copy query URL"
-msgstr "Query vazia?"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Copiar query de partição para a área de transferência"
@@ -5078,9 +5076,8 @@ msgstr "Eliminar"
 msgid "Delete item"
 msgstr "Carregue um modelo"
 
-#, fuzzy
 msgid "Delete query"
-msgstr "Executar a query selecionada"
+msgstr ""
 
 #, fuzzy
 msgid "Delete role"
@@ -5742,9 +5739,9 @@ msgstr ""
 msgid "ERROR"
 msgstr "Erro"
 
-#, fuzzy, python-format
+#, python-format
 msgid "ERROR: %s"
-msgstr "Erro"
+msgstr ""
 
 msgid "Edge length"
 msgstr ""
@@ -5850,9 +5847,8 @@ msgstr "Query vazia?"
 msgid "Edit properties"
 msgstr "Editar propriedades da visualização"
 
-#, fuzzy
 msgid "Edit query"
-msgstr "Query vazia?"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6478,9 +6474,8 @@ msgstr ""
 msgid "Export failed: %s"
 msgstr "Nome do modelo"
 
-#, fuzzy
 msgid "Export query"
-msgstr "Query vazia?"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8392,9 +8387,8 @@ msgstr "Coluna de tempo"
 msgid "Lines encoding"
 msgstr ""
 
-#, fuzzy
 msgid "Link Copied!"
-msgstr "Copiado!"
+msgstr ""
 
 #, fuzzy
 msgid "List"
@@ -14617,9 +14611,8 @@ msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 
-#, fuzzy
 msgid "There was an error generating the permalink."
-msgstr "Desculpe, houve um erro ao gravar este dashbard: "
+msgstr ""
 
 #, fuzzy
 msgid "There was an error loading groups."
@@ -14726,9 +14719,9 @@ msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 msgid "There was an issue deleting the selected layers: %s"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "There was an issue deleting the selected queries: %s"
-msgstr "Desculpe, houve um erro ao gravar este dashbard: "
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
@@ -14766,9 +14759,8 @@ msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Desculpe, houve um erro ao gravar este dashbard: "
 
-#, fuzzy
 msgid "There was an issue exporting the selected queries"
-msgstr "Desculpe, houve um erro ao gravar este dashbard: "
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -18044,9 +18036,8 @@ msgstr ""
 msgid "quarter"
 msgstr "Query"
 
-#, fuzzy
 msgid "queries"
-msgstr "Séries"
+msgstr ""
 
 msgid "query"
 msgstr "Query"
