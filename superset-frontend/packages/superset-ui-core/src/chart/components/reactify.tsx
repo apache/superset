@@ -95,7 +95,14 @@ export default function reactify<Props extends object>(
     // Execute renderFn on mount and every update (mimics componentDidMount + componentDidUpdate)
     useEffect(() => {
       if (containerRef.current) {
-        renderFn(containerRef.current, props);
+        // `forwardRef` widens the props parameter to `PropsWithoutRef<...>`,
+        // which TypeScript can't narrow back to `Props & ReactifyProps` when
+        // `Props` is a generic `object`. The values are identical at runtime,
+        // so assert the original prop shape for `renderFn`.
+        renderFn(
+          containerRef.current,
+          props as Readonly<Props & ReactifyProps>,
+        );
       }
     });
 
