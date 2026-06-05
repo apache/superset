@@ -1654,16 +1654,30 @@ class TestGetDatasetInfoRequestValidators:
         )
         assert request.column_fields == ["column_name", "type"]
 
-    def test_column_fields_empty_list_falls_back_to_default(self):
-        """An explicit empty list for column_fields falls back to the default so that
-        filtering is not accidentally disabled by an empty column list."""
-        from superset.mcp_service.dataset.schemas import (
-            DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS,
-            GetDatasetInfoRequest,
-        )
+    def test_column_fields_empty_list_stays_empty(self):
+        """An explicit empty list for column_fields is preserved as-is."""
+        from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
 
         request = GetDatasetInfoRequest(identifier=1, column_fields=[])
-        assert request.column_fields == list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
+        assert request.column_fields == []
+
+    def test_column_fields_empty_list_serializes_column_name_only(self):
+        """An explicit empty list still includes the required column_name field."""
+        from superset.mcp_service.dataset.schemas import TableColumnInfo
+
+        column = TableColumnInfo(
+            column_name="region",
+            verbose_name="Region",
+            type="VARCHAR",
+            is_dttm=False,
+            groupby=True,
+            filterable=True,
+            description="Region dimension",
+        )
+
+        assert column.model_dump(context={"column_fields": []}) == {
+            "column_name": "region"
+        }
 
     def test_column_fields_none_falls_back_to_default(self):
         """When column_fields is None (not provided), the default columns are used."""

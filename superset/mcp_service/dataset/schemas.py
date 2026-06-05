@@ -110,7 +110,7 @@ class TableColumnInfo(BaseModel):
         data = serializer(self)
         if info.context and isinstance(info.context, dict):
             column_fields = info.context.get("column_fields")
-            if column_fields:
+            if column_fields is not None:
                 requested = set(column_fields)
                 requested.add("column_name")
                 return {k: v for k, v in data.items() if k in requested}
@@ -404,10 +404,10 @@ class GetDatasetInfoRequest(MetadataCacheControl):
     def _parse_column_fields(cls, value: Any) -> Any:
         from superset.mcp_service.utils.schema_utils import parse_json_or_list
 
-        if value is None:
+        if value is None or value == "":
             return list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
         parsed = parse_json_or_list(value, "column_fields")
-        return parsed if parsed else list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
+        return parsed
 
 
 class CreateVirtualDatasetRequest(BaseModel):
