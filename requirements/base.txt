@@ -60,7 +60,7 @@ cffi==2.0.0
     #   pynacl
 charset-normalizer==3.4.2
     # via requests
-click==8.2.1
+click==8.4.1
     # via
     #   apache-superset (pyproject.toml)
     #   celery
@@ -161,7 +161,7 @@ geopy==2.4.1
     # via apache-superset (pyproject.toml)
 google-auth==2.43.0
     # via shillelagh
-greenlet==3.1.1
+greenlet==3.5.0
     # via
     #   apache-superset (pyproject.toml)
     #   shillelagh
@@ -176,7 +176,7 @@ holidays==0.82
     # via apache-superset (pyproject.toml)
 humanize==4.12.3
     # via apache-superset (pyproject.toml)
-idna==3.10
+idna==3.15
     # via
     #   email-validator
     #   requests
@@ -208,7 +208,7 @@ kombu==5.5.3
     # via celery
 limits==5.1.0
     # via flask-limiter
-mako==1.3.11
+mako==1.3.12
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
@@ -241,7 +241,7 @@ msgpack==1.0.8
     # via apache-superset (pyproject.toml)
 msgspec==0.19.0
     # via flask-session
-nh3==0.2.21
+nh3==0.3.5
     # via apache-superset (pyproject.toml)
 numexpr==2.10.2
     # via -r requirements/base.in
@@ -421,7 +421,7 @@ sqlglot==30.8.0
     #   apache-superset-core
 sshtunnel==0.4.0
     # via apache-superset (pyproject.toml)
-tabulate==0.9.0
+tabulate==0.10.0
     # via apache-superset (pyproject.toml)
 trio==0.30.0
     # via
@@ -451,7 +451,7 @@ tzdata==2025.2
     #   pandas
 url-normalize==2.2.1
     # via requests-cache
-urllib3==2.6.3
+urllib3==2.7.0
     # via
     #   -r requirements/base.in
     #   requests

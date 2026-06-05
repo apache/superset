@@ -114,7 +114,9 @@ SQLGLOT_DIALECTS = {
     "teradatasql": Dialects.TERADATA,
     "trino": Dialects.TRINO,
     "vertica": Vertica,
-    "yql": Dialects.CLICKHOUSE,
+    # "ydb" is a plugin dialect (ydb-sqlglot-plugin) auto-discovered via entry_points,
+    # hence a string name rather than a class reference like the built-in dialects.
+    "yql": "ydb",
 }
 
 
@@ -589,6 +591,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # and the script contains backticks, retry with MySQL dialect which
             # supports backtick-quoted identifiers
             if (dialect is None or dialect == Dialects.DIALECT) and "`" in script:
+                logger.warning(
+                    "Parsing with base dialect failed for engine %r; "
+                    "script contains backticks, falling back to MySQL dialect",
+                    engine,
+                )
                 try:
                     statements = sqlglot.parse(script, dialect=Dialects.MYSQL)
                 except sqlglot.errors.ParseError:
@@ -916,9 +923,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :return: A new SQLStatement with the create table statement.
         """
         table_expr = exp.Table(
-            this=exp.Identifier(this=table.table),
-            db=exp.Identifier(this=table.schema) if table.schema else None,
-            catalog=exp.Identifier(this=table.catalog) if table.catalog else None,
+            this=exp.Identifier(this=table.table, quoted=True),
+            db=exp.Identifier(this=table.schema, quoted=True) if table.schema else None,
+            catalog=exp.Identifier(this=table.catalog, quoted=True)
+            if table.catalog
+            else None,
         )
         create_table = exp.Create(
             this=table_expr,
@@ -942,6 +951,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 if expression != self._parsed
             )
         )
+
+    def is_set_operation(self) -> bool:
+        """
+        Check if the statement is a top-level set operation (UNION/INTERSECT/EXCEPT).
+        """
+        return isinstance(self._parsed, exp.SetOperation)
 
     def parse_predicate(self, predicate: str) -> exp.Expression:
         """
@@ -1363,6 +1378,28 @@ class SQLScript:
         still separated by semi-colons.
         """
         return ";\n".join(statement.format(comments) for statement in self.statements)
+
+    @property
+    def has_unparseable_statement(self) -> bool:
+        """
+        True if any statement in the script cannot be fully modeled as an
+        AST whose table references Superset can enumerate. This covers two
+        cases that must both fail closed under strict scoping:
+
+        * SQLGlot ``exp.Command`` nodes: statements sqlglot recognises but
+          cannot fully parse (e.g. dynamic SQL inside a stored-procedure
+          call); ``extract_tables_from_statement`` cannot see the tables.
+        * Non-sqlglot engines (e.g. Kusto KQL): the statement class does
+          not produce a sqlglot AST at all and its
+          ``_extract_tables_from_statement`` returns an empty set, so the
+          per-table check would have nothing to enforce against.
+        """
+        for statement in self.statements:
+            if not isinstance(statement, SQLStatement):
+                return True
+            if isinstance(statement._parsed, exp.Command):  # noqa: SLF001
+                return True
+        return False
 
     def get_settings(self) -> dict[str, str | bool]:
         """

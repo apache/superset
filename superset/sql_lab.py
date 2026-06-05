@@ -18,6 +18,7 @@
 import dataclasses
 import logging
 import sys
+import traceback
 import uuid
 from contextlib import closing
 from datetime import datetime
@@ -122,6 +123,9 @@ def handle_query_error(
 
     db.session.commit()
     payload.update({"status": query.status, "error": msg, "errors": errors_payload})
+    if app.config.get("SHOW_STACKTRACE"):
+        if stacktrace := traceback.format_exc():
+            payload["stacktrace"] = stacktrace
     if troubleshooting_link := app.config["TROUBLESHOOTING_LINK"]:
         payload["link"] = troubleshooting_link
     return payload
@@ -192,7 +196,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                     log_params=log_params,
                 )
             except Exception as ex:  # pylint: disable=broad-except
-                logger.debug("Query %d: %s", query_id, ex)
+                logger.exception("Query %d: %s", query_id, ex)
                 stats_logger = app.config["STATS_LOGGER"]
                 stats_logger.incr("error_sqllab_unhandled")
                 query = get_query(query_id=query_id)
