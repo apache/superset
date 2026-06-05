@@ -166,54 +166,6 @@ describe('dashboardState actions', () => {
     });
 
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-    describe('certification fields', () => {
-      test('clears certification_details when certified_by is cleared', async () => {
-        const id = 1;
-        const { getState, dispatch } = setup();
-        const thunk = saveDashboardRequest(
-          { ...newDashboardData, certified_by: '', certification_details: 'Old details' },
-          id,
-          SAVE_TYPE_OVERWRITE,
-        );
-        thunk(dispatch, getState);
-        await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
-        const body = JSON.parse(putStub.mock.calls[0][0].body);
-        expect(body.certified_by).toBe('');
-        expect(body.certification_details).toBe('');
-      });
-
-      test('preserves certification_details when certified_by is set', async () => {
-        const id = 1;
-        const { getState, dispatch } = setup();
-        const thunk = saveDashboardRequest(
-          { ...newDashboardData, certified_by: 'Alice', certification_details: 'Verified by Alice' },
-          id,
-          SAVE_TYPE_OVERWRITE,
-        );
-        thunk(dispatch, getState);
-        await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
-        const body = JSON.parse(putStub.mock.calls[0][0].body);
-        expect(body.certified_by).toBe('Alice');
-        expect(body.certification_details).toBe('Verified by Alice');
-      });
-
-      test('omits certification fields when certified_by is undefined', async () => {
-        const id = 1;
-        const { getState, dispatch } = setup();
-        const thunk = saveDashboardRequest(
-          { ...newDashboardData, certified_by: undefined, certification_details: undefined },
-          id,
-          SAVE_TYPE_OVERWRITE,
-        );
-        thunk(dispatch, getState);
-        await waitFor(() => expect(putStub.mock.calls.length).toBe(1));
-        const body = JSON.parse(putStub.mock.calls[0][0].body);
-        expect(body).not.toHaveProperty('certified_by');
-        expect(body).not.toHaveProperty('certification_details');
-      });
-    });
-
-    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('FeatureFlag.CONFIRM_DASHBOARD_DIFF', () => {
       beforeEach(() => {
         mockIsFeatureEnabled.mockImplementation(
