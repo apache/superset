@@ -118,6 +118,11 @@ const createFetchRequest = async (
     formParams.expected_rows = expectedRows.toString();
   }
 
+  const guestToken = SupersetClient.getGuestToken();
+  if (guestToken) {
+    formParams.guest_token = guestToken;
+  }
+
   if ('client_id' in payload) {
     // SQL Lab export - pass client_id directly
     formParams.client_id = String(payload.client_id);
