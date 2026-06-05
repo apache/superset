@@ -14,18 +14,44 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 import mimetypes
+from collections.abc import Callable
 from io import BytesIO
 from typing import Any
 
-from flask import send_file
+import rison
+from flask import request, send_file
 from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
+from superset.extensions.types import LoadedExtension
 from superset.extensions.utils import (
     build_extension_data,
     get_extensions,
 )
+
+logger = logging.getLogger(__name__)
+
+ALLOWED_FILTER_COLUMNS = {"name", "id", "publisher", "version"}
+DEFAULT_PAGE_SIZE = 100
+
+
+_MANIFEST_FIELD_GETTERS: dict[str, Callable[..., str]] = {
+    "name": lambda m: m.name,
+    "id": lambda m: m.id,
+    "publisher": lambda m: m.publisher,
+    "version": lambda m: m.version,
+    "description": lambda m: m.description or "",
+}
+
+
+def _extension_field(ext: LoadedExtension, col: str) -> str:
+    """Retrieve a filterable/searchable field from a LoadedExtension."""
+    getter = _MANIFEST_FIELD_GETTERS.get(col)
+    if getter is None:
+        return ""
+    return getter(ext.manifest)
 
 
 class ExtensionsRestApi(BaseApi):
@@ -67,29 +93,47 @@ class ExtensionsRestApi(BaseApi):
         """
         return self.response(200, permissions=["can_read"])
 
-    # TODO: Support the q parameter
     @protect()
     @safe
     @expose("/", methods=("GET",))
     def get_list(self, **kwargs: Any) -> Response:
-        """List all enabled extensions.
+        """List enabled extensions with optional filtering.
         ---
         get_list:
-          summary: List all enabled extensions.
+          summary: List enabled extensions with optional filtering.
+          parameters:
+          - in: query
+            name: q
+            schema:
+              type: string
+            description: >
+              Rison-encoded query object. Supported keys:
+              ``filters`` – list of ``{col, opr, value}`` where *col* is
+              one of ``name``, ``id``, ``publisher``, ``version`` and
+              *opr* is ``eq``;
+              ``search`` – case-insensitive substring match across
+              name, id, description and publisher;
+              ``page`` / ``page_size`` – zero-based pagination.
           responses:
             200:
-              description: List of all enabled extensions
+              description: List of enabled extensions
               content:
                 application/json:
                   schema:
                     type: object
                     properties:
+                        count:
+                            type: integer
                         result:
                             type: array
                             items:
                               type: object
                               properties:
-                                remoteEntry:
+                                id:
+                                  type: string
+                                name:
+                                  type: string
+                                version:
                                   type: string
                                 remoteEntry:
                                   type: string
@@ -102,18 +146,68 @@ class ExtensionsRestApi(BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
-        result = []
         extensions = get_extensions()
-        for extension in extensions.values():
-            extension_data = build_extension_data(extension)
-            result.append(extension_data)
+        ext_list = list(extensions.values())
 
-        response = {
-            "result": result,
-            "count": len(result),
-        }
+        q_args: dict[str, Any] = {}
+        if q_str := request.args.get("q"):
+            try:
+                q_args = rison.loads(q_str)
+            except Exception:
+                return self.response_400(message="Invalid rison query parameter")
 
-        return self.response(200, **response)
+            if not isinstance(q_args, dict):
+                return self.response_400(
+                    message="Query parameter must be a rison object"
+                )
+
+            ext_list, error = self._apply_q(ext_list, q_args)
+            if error:
+                return self.response_400(message=error)
+
+        total_count = len(ext_list)
+
+        page = q_args.get("page")
+        page_size = q_args.get("page_size", DEFAULT_PAGE_SIZE)
+        if page is not None:
+            start = page * page_size
+            ext_list = ext_list[start : start + page_size]
+
+        result = [build_extension_data(ext) for ext in ext_list]
+        return self.response(200, result=result, count=total_count)
+
+    @staticmethod
+    def _apply_q(
+        ext_list: list[LoadedExtension], q_args: dict[str, Any]
+    ) -> tuple[list[LoadedExtension], str | None]:
+        """Apply filters and search from a parsed q parameter."""
+        if filters := q_args.get("filters"):
+            if not isinstance(filters, list):
+                return ext_list, "'filters' must be a list"
+            for f in filters:
+                col = f.get("col")
+                value = f.get("value")
+                if col not in ALLOWED_FILTER_COLUMNS:
+                    return ext_list, (
+                        f"Invalid filter column '{col}'. "
+                        f"Allowed: {', '.join(sorted(ALLOWED_FILTER_COLUMNS))}"
+                    )
+                ext_list = [
+                    ext for ext in ext_list if _extension_field(ext, col) == value
+                ]
+
+        if search := q_args.get("search"):
+            term = str(search).lower()
+            ext_list = [
+                ext
+                for ext in ext_list
+                if any(
+                    term in str(_extension_field(ext, field)).lower()
+                    for field in ("name", "id", "description", "publisher")
+                )
+            ]
+
+        return ext_list, None
 
     @protect()
     @safe
