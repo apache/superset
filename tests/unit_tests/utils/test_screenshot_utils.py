@@ -371,3 +371,29 @@ class TestTakeTiledScreenshot:
 
         sig = inspect.signature(take_tiled_screenshot)
         assert sig.parameters["load_wait"].default == 60
+
+    def test_per_tile_animation_wait_called_per_tile(self, mock_page):
+        """animation_wait adds an extra wait per tile after the spinner check."""
+        with patch("superset.utils.screenshot_utils.combine_screenshot_tiles"):
+            take_tiled_screenshot(
+                mock_page, "dashboard", tile_height=2000, animation_wait=5
+            )
+
+        # 3 tiles × (1 scroll settle + 1 animation wait) = 6 total calls
+        assert mock_page.wait_for_timeout.call_count == 6
+
+        animation_calls = [
+            call
+            for call in mock_page.wait_for_timeout.call_args_list
+            if call[0][0] == 5 * 1000
+        ]
+        assert len(animation_calls) == 3
+
+    def test_animation_wait_default_is_zero(self):
+        """animation_wait defaults to 0 so no extra per-tile wait by default."""
+        import inspect
+
+        from superset.utils.screenshot_utils import take_tiled_screenshot
+
+        sig = inspect.signature(take_tiled_screenshot)
+        assert sig.parameters["animation_wait"].default == 0

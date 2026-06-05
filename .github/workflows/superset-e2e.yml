@@ -29,6 +29,7 @@ concurrency:
 jobs:
   changes:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: read
@@ -51,6 +52,7 @@ jobs:
     if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
     # Somehow one test flakes on 24.04 for unknown reasons, this is the only GHA left on 22.04
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: read
@@ -61,9 +63,14 @@ jobs:
       # https://github.com/cypress-io/github-action/issues/48
       fail-fast: false
       matrix:
-        parallel_id: [0, 1, 2, 3, 4, 5]
+        parallel_id: [0, 1]
         browser: ["chrome"]
         app_root: ${{ github.event_name == 'push' && fromJSON('["", "/app/prefix"]') || fromJSON('[""]') }}
+        # The /app/prefix variant (push events only) is smoke-tested on a single
+        # shard rather than the full matrix, so exclude it from the other shards.
+        exclude:
+          - parallel_id: 1
+            app_root: "/app/prefix"
     env:
       SUPERSET_ENV: development
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -124,6 +131,8 @@ jobs:
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version-file: './superset-frontend/.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: 'superset-frontend/package-lock.json'
       - name: Install npm dependencies
         uses: ./.github/actions/cached-dependencies
         with:
@@ -141,7 +150,7 @@ jobs:
         env:
           CYPRESS_BROWSER: ${{ matrix.browser }}
           PARALLEL_ID: ${{ matrix.parallel_id }}
-          PARALLELISM: 6
+          PARALLELISM: 2
           CYPRESS_RECORD_KEY: ${{ secrets.CYPRESS_RECORD_KEY }}
           NODE_OPTIONS: "--max-old-space-size=4096"
         with:
@@ -165,6 +174,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true' || needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-22.04
+    timeout-minutes: 30
     permissions:
       contents: read
       pull-requests: read
@@ -231,6 +241,8 @@ jobs:
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version-file: './superset-frontend/.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: 'superset-frontend/package-lock.json'
       - name: Install npm dependencies
         uses: ./.github/actions/cached-dependencies
         with:

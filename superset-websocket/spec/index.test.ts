@@ -547,6 +547,105 @@ describe('server', () => {
       expect(socketDestroySpy).not.toHaveBeenCalled();
       expect(wssUpgradeSpy).toHaveBeenCalled();
     });
+
+    describe('origin validation', () => {
+      afterEach(() => {
+        server.opts.allowedOrigins = [];
+      });
+
+      const getRequestWithOrigin = (
+        token: string,
+        origin?: string,
+      ): http.IncomingMessage => {
+        const request = new http.IncomingMessage(new net.Socket());
+        request.method = 'GET';
+        request.headers = { cookie: `${config.jwtCookieName}=${token}` };
+        if (origin) request.headers.origin = origin;
+        request.url = 'http://localhost';
+        return request;
+      };
+
+      test('rejects upgrade from a disallowed origin', () => {
+        server.opts.allowedOrigins = ['https://superset.example.com'];
+        const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+        const request = getRequestWithOrigin(
+          validToken,
+          'https://evil.example',
+        );
+
+        server.httpUpgrade(request, socket, Buffer.alloc(5));
+
+        expect(socketDestroySpy).toHaveBeenCalled();
+        expect(wssUpgradeSpy).not.toHaveBeenCalled();
+      });
+
+      test('rejects upgrade with no origin when an allowlist is set', () => {
+        server.opts.allowedOrigins = ['https://superset.example.com'];
+        const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+        const request = getRequestWithOrigin(validToken);
+
+        server.httpUpgrade(request, socket, Buffer.alloc(5));
+
+        expect(socketDestroySpy).toHaveBeenCalled();
+        expect(wssUpgradeSpy).not.toHaveBeenCalled();
+      });
+
+      test('allows upgrade from an allowed origin', () => {
+        server.opts.allowedOrigins = ['https://superset.example.com'];
+        const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+        const request = getRequestWithOrigin(
+          validToken,
+          'https://superset.example.com',
+        );
+
+        server.httpUpgrade(request, socket, Buffer.alloc(5));
+
+        expect(socketDestroySpy).not.toHaveBeenCalled();
+        expect(wssUpgradeSpy).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('isOriginAllowed', () => {
+    const makeRequest = (origin?: string): http.IncomingMessage => {
+      const request = new http.IncomingMessage(new net.Socket());
+      if (origin) request.headers.origin = origin;
+      return request;
+    };
+
+    afterEach(() => {
+      server.opts.allowedOrigins = [];
+    });
+
+    test('allows any origin when allowlist is empty', () => {
+      server.opts.allowedOrigins = [];
+      expect(server.isOriginAllowed(makeRequest('https://anything'))).toBe(
+        true,
+      );
+      expect(server.isOriginAllowed(makeRequest())).toBe(true);
+    });
+
+    test('allows any origin when allowlist contains a wildcard', () => {
+      server.opts.allowedOrigins = ['*'];
+      expect(server.isOriginAllowed(makeRequest('https://anything'))).toBe(
+        true,
+      );
+    });
+
+    test('allows an exact-match origin', () => {
+      server.opts.allowedOrigins = ['https://a.example', 'https://b.example'];
+      expect(server.isOriginAllowed(makeRequest('https://b.example'))).toBe(
+        true,
+      );
+    });
+
+    test('rejects a non-matching or missing origin', () => {
+      server.opts.allowedOrigins = ['https://a.example'];
+      expect(server.isOriginAllowed(makeRequest('https://evil.example'))).toBe(
+        false,
+      );
+      expect(server.isOriginAllowed(makeRequest())).toBe(false);
+    });
   });
 
   const setReadyState = (ws: WebSocket, value: typeof ws.readyState) => {

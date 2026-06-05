@@ -16,6 +16,7 @@ concurrency:
 jobs:
   changes:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     permissions:
       contents: read
       pull-requests: read
@@ -36,6 +37,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     permissions:
       id-token: write
     env:
@@ -49,9 +51,6 @@ jobs:
         image: mysql:8.0
         # Authenticated pulls use our higher Docker Hub rate limit. Empty on
         # fork PRs (secrets unavailable) -> runner falls back to anonymous.
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         env:
           MYSQL_ROOT_PASSWORD: root
         ports:
@@ -63,9 +62,6 @@ jobs:
           --health-retries=5
       redis:
         image: redis:7-alpine
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         options: --entrypoint redis-server
         ports:
           - 16379:6379
@@ -127,11 +123,14 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     permissions:
       id-token: write
     strategy:
       matrix:
-        python-version: ["current", "previous", "next"]
+        # Full version spread on push (master/release) + nightly; current only
+        # on PRs to cut runner cost (cross-version breaks are caught at merge).
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "previous", "next"]') }}
     env:
       PYTHONPATH: ${{ github.workspace }}
       SUPERSET_CONFIG: tests.integration_tests.superset_test_config
@@ -140,9 +139,6 @@ jobs:
     services:
       postgres:
         image: postgres:17-alpine
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -152,9 +148,6 @@ jobs:
           - 15432:5432
       redis:
         image: redis:7-alpine
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         ports:
           - 16379:6379
     steps:
@@ -191,6 +184,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     permissions:
       id-token: write
     env:
@@ -204,9 +198,6 @@ jobs:
     services:
       redis:
         image: redis:7-alpine
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         ports:
           - 16379:6379
     steps:
@@ -237,3 +228,25 @@ jobs:
           verbose: true
           use_oidc: true
           slug: apache/superset
+
+  # Stable required-status-check anchor for the matrix-based test-postgres job.
+  # It is gated on change detection, so on non-Python PRs it is skipped and
+  # never produces its `test-postgres (current)` context (a job-level skip
+  # happens before matrix expansion). This always-running job reports a single
+  # context branch protection can require: it passes when test-postgres
+  # succeeded or was skipped, and fails only on a real failure.
+  test-postgres-required:
+    needs: [changes, test-postgres]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check test-postgres result
+        env:
+          RESULT: ${{ needs.test-postgres.result }}
+        run: |
+          if [ "$RESULT" != "success" ] && [ "$RESULT" != "skipped" ]; then
+            echo "test-postgres did not pass (result: $RESULT)"
+            exit 1
+          fi
+          echo "test-postgres result: $RESULT"
