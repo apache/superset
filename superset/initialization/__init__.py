@@ -681,8 +681,18 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             try:
                 version_class(model_cls)  # ensure Continuum wired this model
                 VERSIONED_MODELS.append(model_cls)
-            except Exception:  # pylint: disable=broad-except  # noqa: S110
-                pass
+            except Exception:  # pylint: disable=broad-except
+                # Continuum failed to wire versioning for this model. We
+                # boot in degraded mode rather than failing startup, but a
+                # silent skip would hide that change capture has stopped for
+                # the model — so surface it at WARNING with the traceback.
+                logger.warning(
+                    "Versioning is not wired for %s; change capture will be "
+                    "skipped for it. This usually means Continuum did not "
+                    "register a version class for the model.",
+                    model_cls.__name__,
+                    exc_info=True,
+                )
 
         register_baseline_listener()
         register_change_record_listener()
