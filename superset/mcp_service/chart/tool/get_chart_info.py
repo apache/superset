@@ -279,8 +279,11 @@ async def get_chart_info(
             )
             result = _build_unsaved_chart_info(request.form_data_key)
             if not can_view_data_model_metadata:
-                return redact_chart_data_model_fields(result)
-            return result
+                result = redact_chart_data_model_fields(result)
+            return result.model_dump(
+                mode="json",
+                context={"select_columns": request.select_columns},
+            )
 
     # At this point identifier must be set (validator ensures at least one
     # of identifier/form_data_key is provided, and the form_data_key-only

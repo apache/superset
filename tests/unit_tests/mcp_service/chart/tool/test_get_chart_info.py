@@ -492,4 +492,57 @@ class TestGetChartInfoPrivacy:
         assert result["datasource_name"] is None
         assert result["datasource_type"] is None
         assert result["filters"] is None
-        assert result["form_data"] is None
+        # form_data is excluded from default select_columns, so it won't
+        # appear in the response at all — which is even more restrictive than None.
+        assert "form_data" not in result
+
+    @pytest.mark.asyncio
+    async def test_unsaved_chart_select_columns_filters_response(
+        self, mcp_server
+    ) -> None:
+        """Unsaved-chart path (form_data_key without identifier) must apply
+        select_columns filtering just like the saved-chart path does."""
+        cached_form_data = (
+            '{"viz_type":"bar","datasource_name":"sales",'
+            '"datasource_type":"table","metrics":["revenue"]}'
+        )
+
+        with (
+            patch.object(
+                get_chart_info_module.event_logger,
+                "log_context",
+                return_value=nullcontext(),
+            ),
+            patch.object(
+                get_chart_info_module,
+                "user_can_view_data_model_metadata",
+                return_value=True,
+                create=True,
+            ),
+            patch.object(
+                get_chart_info_module,
+                "get_cached_form_data",
+                return_value=cached_form_data,
+            ),
+            patch("superset.mcp_service.auth.check_tool_permission", return_value=True),
+        ):
+            async with Client(mcp_server) as client:
+                # Explicit select_columns: only id and slice_name
+                response = await client.call_tool(
+                    "get_chart_info",
+                    {
+                        "request": GetChartInfoRequest(
+                            form_data_key="cached-key",
+                            select_columns=["id", "slice_name", "viz_type"],
+                        ).model_dump()
+                    },
+                )
+
+        result = json.loads(response.content[0].text)
+        # Only requested fields must be present
+        assert "id" in result
+        assert "slice_name" in result
+        assert "viz_type" in result
+        # Fields NOT in select_columns must be absent
+        assert "form_data" not in result
+        assert "datasource_name" not in result

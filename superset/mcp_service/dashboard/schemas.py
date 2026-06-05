@@ -311,7 +311,6 @@ DEFAULT_GET_DASHBOARD_INFO_COLUMNS: List[str] = [
     "cross_filters_enabled",
     "is_permalink_state",
     "permalink_key",
-    "filter_state",
 ]
 
 
@@ -360,7 +359,8 @@ class GetDashboardInfoRequest(MetadataCacheControl):
 
         if value is None:
             return list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS)
-        return parse_json_or_list(value, "select_columns")
+        parsed = parse_json_or_list(value, "select_columns")
+        return parsed if parsed else list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS)
 
 
 class GetDashboardLayoutRequest(BaseModel):

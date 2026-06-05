@@ -1654,12 +1654,16 @@ class TestGetDatasetInfoRequestValidators:
         )
         assert request.column_fields == ["column_name", "type"]
 
-    def test_column_fields_empty_list_stays_empty(self):
-        """An explicit empty list for column_fields is preserved as-is."""
-        from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
+    def test_column_fields_empty_list_falls_back_to_default(self):
+        """An explicit empty list for column_fields falls back to the default so that
+        filtering is not accidentally disabled by an empty column list."""
+        from superset.mcp_service.dataset.schemas import (
+            DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS,
+            GetDatasetInfoRequest,
+        )
 
         request = GetDatasetInfoRequest(identifier=1, column_fields=[])
-        assert request.column_fields == []
+        assert request.column_fields == list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
 
     def test_column_fields_none_falls_back_to_default(self):
         """When column_fields is None (not provided), the default columns are used."""

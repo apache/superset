@@ -396,7 +396,8 @@ class GetDatasetInfoRequest(MetadataCacheControl):
 
         if value is None:
             return list(DEFAULT_GET_DATASET_INFO_COLUMNS)
-        return parse_json_or_list(value, "select_columns")
+        parsed = parse_json_or_list(value, "select_columns")
+        return parsed if parsed else list(DEFAULT_GET_DATASET_INFO_COLUMNS)
 
     @field_validator("column_fields", mode="before")
     @classmethod
@@ -405,7 +406,8 @@ class GetDatasetInfoRequest(MetadataCacheControl):
 
         if value is None:
             return list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
-        return parse_json_or_list(value, "column_fields")
+        parsed = parse_json_or_list(value, "column_fields")
+        return parsed if parsed else list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
 
 
 class CreateVirtualDatasetRequest(BaseModel):

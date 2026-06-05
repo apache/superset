@@ -339,7 +339,8 @@ class GetChartInfoRequest(BaseModel):
 
         if value is None:
             return list(DEFAULT_GET_CHART_INFO_COLUMNS)
-        return parse_json_or_list(value, "select_columns")
+        parsed = parse_json_or_list(value, "select_columns")
+        return parsed if parsed else list(DEFAULT_GET_CHART_INFO_COLUMNS)
 
 
 def extract_filters_from_form_data(
