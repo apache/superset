@@ -17,7 +17,7 @@
 """Generate analytics reports from GitHub metadata for devin-autofix runs.
 
 Produces:
-  - automation_report.md
+  - automation_report.html
   - automation_runs.csv
   - automation_runs.sqlite
 
@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import os
 import pathlib
 import sqlite3
@@ -51,6 +52,7 @@ AUTOFIX_LABELS = [
     "devin-autofix/returned-human",
     "devin-autofix/merged",
     "devin-autofix/reverted",
+    "devin-autofix/complete",
 ]
 
 
@@ -95,15 +97,15 @@ def _search_issues_with_autofix_labels() -> list[dict[str, Any]]:
     return results
 
 
-def _get_latest_marker_for_issue(issue_number: int) -> RunMarker | None:
-    """Get the most recent marker for an issue."""
+def _get_all_markers_for_issue(issue_number: int) -> list[RunMarker]:
+    """Get the latest marker per run_id for an issue (captures retries)."""
     comments = get_issue_comments(issue_number)
-    latest: RunMarker | None = None
+    latest_by_run: dict[str, RunMarker] = {}
     for comment in comments:
         marker = parse_marker(comment.get("body", ""))
-        if marker:
-            latest = marker
-    return latest
+        if marker and marker.run_id:
+            latest_by_run[marker.run_id] = marker
+    return list(latest_by_run.values())
 
 
 def _get_pr_details(pr_number: int) -> dict[str, Any] | None:
@@ -184,102 +186,145 @@ def _seconds_between(start: datetime | None, end: datetime | None) -> int | None
     return None
 
 
+def _format_duration(seconds: int | None) -> str:
+    """Format seconds into a human-readable duration with appropriate units."""
+    if seconds is None:
+        return "N/A"
+    if seconds < 60:
+        return f"{seconds}s"
+    if seconds < 3600:
+        return f"{seconds / 60:.1f} min"
+    if seconds < 86400:
+        return f"{seconds / 3600:.1f} hr"
+    if seconds < 604800:
+        return f"{seconds / 86400:.1f} days"
+    return f"{seconds / 604800:.1f} weeks"
+
+
+def _resolve_status(marker: RunMarker, issue_labels: set[str]) -> str:
+    """Determine final status from marker status and issue labels."""
+    if "devin-autofix/merged" in issue_labels:
+        return "merged"
+    if "devin-autofix/complete" in issue_labels:
+        return "merged"
+    if "devin-autofix/reverted" in issue_labels:
+        return "reverted"
+    if marker.status == "complete":
+        return "merged"
+    return marker.status
+
+
+def _classify_ci(checks: list[dict[str, str]]) -> str:
+    """Classify overall CI result from individual check conclusions."""
+    if not checks:
+        return "N/A"
+    failed = sum(1 for c in checks if c["conclusion"] == "failure")
+    if failed > 0:
+        return "failed"
+    if all(c["conclusion"] == "success" for c in checks):
+        return "passed"
+    return "pending"
+
+
+def _get_issue_type(issue: dict[str, Any]) -> str:
+    """Extract issue type label."""
+    type_labels = ("bug", "feature", "refactor", "docs")
+    return next(
+        (lbl["name"] for lbl in issue.get("labels", []) if lbl["name"] in type_labels),
+        "unknown",
+    )
+
+
+def _build_row_for_marker(
+    marker: RunMarker,
+    issue: dict[str, Any],
+    issue_labels: set[str],
+) -> dict[str, Any]:
+    """Build a single analytics row from one marker."""
+    status = _resolve_status(marker, issue_labels)
+    pr_number = marker.pr_number
+    pr_url = marker.pr_url
+    pr_created_at: str | None = None
+    merged_at: str | None = None
+    review_outcome: str | None = None
+
+    if pr_number:
+        pr_details = _get_pr_details(pr_number)
+        if pr_details:
+            pr_created_at = pr_details.get("created_at")
+            merged_at = pr_details.get("merged_at")
+            if pr_details.get("merged"):
+                status = "merged"
+        reviews = _get_pr_reviews(pr_number)
+        for review in reversed(reviews):
+            state = review.get("state", "")
+            if state in (
+                "APPROVED",
+                "CHANGES_REQUESTED",
+                "DISMISSED",
+            ):
+                review_outcome = state.lower()
+                break
+
+    checks: list[dict[str, str]] = []
+    if pr_number:
+        checks = _get_pr_checks(pr_number)
+
+    triggered_at = marker.created_at
+    time_to_pr = _seconds_between(_parse_iso(triggered_at), _parse_iso(pr_created_at))
+    time_to_merge = _seconds_between(_parse_iso(triggered_at), _parse_iso(merged_at))
+
+    return {
+        "run_id": marker.run_id,
+        "issue_number": issue["number"],
+        "issue_type": _get_issue_type(issue),
+        "issue_title": issue.get("title", ""),
+        "issue_url": issue["html_url"],
+        "triggered_by": marker.triggered_by,
+        "status": status,
+        "devin_session_url": marker.devin_session_url,
+        "pr_number": pr_number,
+        "pr_url": pr_url,
+        "acceptance_criteria_source": (marker.acceptance_criteria_source),
+        "reviewer_login": marker.reviewer_login,
+        "review_requested": 1 if marker.review_requested else 0,
+        "checks_total": len(checks),
+        "checks_passed": sum(1 for c in checks if c["conclusion"] == "success"),
+        "checks_failed": sum(1 for c in checks if c["conclusion"] == "failure"),
+        "ci_result": _classify_ci(checks),
+        "review_outcome": review_outcome,
+        "merged": 1 if status == "merged" else 0,
+        "return_reason": (
+            marker.review_request_error
+            if marker.status == "returned_to_human"
+            else None
+        ),
+        "triggered_at": triggered_at,
+        "pr_created_at": pr_created_at,
+        "merged_at": merged_at,
+        "reverted_at": None,
+        "time_to_pr_seconds": time_to_pr,
+        "time_to_merge_seconds": time_to_merge,
+    }
+
+
 def build_run_rows(issues: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Build analytics rows from issue metadata."""
+    """Build analytics rows from issue metadata.
+
+    Collects ALL run markers per issue to properly count retries.
+    """
     rows: list[dict[str, Any]] = []
 
     for issue in issues:
         issue_number = issue["number"]
-        marker = _get_latest_marker_for_issue(issue_number)
-        if not marker:
+        markers = _get_all_markers_for_issue(issue_number)
+        if not markers:
             continue
 
-        # Determine final status
         issue_labels = {lbl["name"] for lbl in issue.get("labels", [])}
-        status = marker.status
-        if "devin-autofix/merged" in issue_labels:
-            status = "merged"
-        elif "devin-autofix/reverted" in issue_labels:
-            status = "reverted"
 
-        # PR details
-        pr_number = marker.pr_number
-        pr_url = marker.pr_url
-        pr_created_at: str | None = None
-        merged_at: str | None = None
-        review_outcome: str | None = None
-
-        if pr_number:
-            pr_details = _get_pr_details(pr_number)
-            if pr_details:
-                pr_created_at = pr_details.get("created_at")
-                merged_at = pr_details.get("merged_at")
-
-            # Reviews
-            reviews = _get_pr_reviews(pr_number)
-            for review in reversed(reviews):
-                state = review.get("state", "")
-                if state in ("APPROVED", "CHANGES_REQUESTED", "DISMISSED"):
-                    review_outcome = state.lower()
-                    break
-
-        # Checks
-        checks: list[dict[str, str]] = []
-        if pr_number:
-            checks = _get_pr_checks(pr_number)
-
-        checks_total = len(checks)
-        checks_passed = sum(1 for c in checks if c["conclusion"] == "success")
-        checks_failed = sum(1 for c in checks if c["conclusion"] == "failure")
-
-        # Timing
-        triggered_at = marker.created_at
-        time_to_pr = _seconds_between(
-            _parse_iso(triggered_at), _parse_iso(pr_created_at)
-        )
-        time_to_merge = _seconds_between(
-            _parse_iso(triggered_at), _parse_iso(merged_at)
-        )
-
-        rows.append(
-            {
-                "run_id": marker.run_id,
-                "issue_number": issue_number,
-                "issue_type": next(
-                    (
-                        lbl["name"]
-                        for lbl in issue.get("labels", [])
-                        if lbl["name"] in ("bug", "feature", "refactor", "docs")
-                    ),
-                    "unknown",
-                ),
-                "issue_title": issue.get("title", ""),
-                "issue_url": issue["html_url"],
-                "triggered_by": marker.triggered_by,
-                "status": status,
-                "devin_session_url": marker.devin_session_url,
-                "pr_number": pr_number,
-                "pr_url": pr_url,
-                "acceptance_criteria_source": marker.acceptance_criteria_source,
-                "reviewer_login": marker.reviewer_login,
-                "review_requested": 1 if marker.review_requested else 0,
-                "checks_total": checks_total,
-                "checks_passed": checks_passed,
-                "checks_failed": checks_failed,
-                "review_outcome": review_outcome,
-                "return_reason": (
-                    marker.review_request_error
-                    if marker.status == "returned_to_human"
-                    else None
-                ),
-                "triggered_at": triggered_at,
-                "pr_created_at": pr_created_at,
-                "merged_at": merged_at,
-                "reverted_at": None,
-                "time_to_pr_seconds": time_to_pr,
-                "time_to_merge_seconds": time_to_merge,
-            }
-        )
+        for marker in markers:
+            rows.append(_build_row_for_marker(marker, issue, issue_labels))
 
     return rows
 
@@ -361,215 +406,502 @@ def _compute_kpis(rows: list[dict[str, Any]]) -> dict[str, Any]:
     active = sum(1 for r in rows if r["status"] in ("in_progress", "waiting_review"))
     merged = sum(1 for r in rows if r["status"] == "merged")
     reverted = sum(1 for r in rows if r["status"] == "reverted")
+    returned = sum(1 for r in rows if r["status"] == "returned_to_human")
 
     total_checks = sum(r.get("checks_total") or 0 for r in rows)
     passed_checks = sum(r.get("checks_passed") or 0 for r in rows)
     check_pass_rate = (
-        f"{passed_checks / total_checks * 100:.1f}%" if total_checks > 0 else "N/A"
+        round(passed_checks / total_checks * 100, 1) if total_checks > 0 else None
     )
 
     req_count = sum(1 for r in rows if r.get("review_requested"))
     approved = sum(1 for r in rows if r.get("review_outcome") == "approved")
-    approval_rate = f"{approved / req_count * 100:.1f}%" if req_count > 0 else "N/A"
+    approval_rate = round(approved / req_count * 100, 1) if req_count > 0 else None
 
-    merge_rate = f"{merged / total * 100:.1f}%" if total > 0 else "N/A"
-    revert_rate = f"{reverted / merged * 100:.1f}%" if merged > 0 else "N/A"
+    merge_rate = round(merged / total * 100, 1) if total > 0 else None
+    revert_rate = round(reverted / merged * 100, 1) if merged > 0 else None
 
     pr_times = [r["time_to_pr_seconds"] for r in rows if r.get("time_to_pr_seconds")]
-    avg_to_pr = f"{sum(pr_times) / len(pr_times) / 60:.1f} min" if pr_times else "N/A"
+    avg_to_pr_seconds = int(sum(pr_times) / len(pr_times)) if pr_times else None
 
     merge_times = [
         r["time_to_merge_seconds"] for r in rows if r.get("time_to_merge_seconds")
     ]
-    avg_to_merge = (
-        f"{sum(merge_times) / len(merge_times) / 60:.1f} min" if merge_times else "N/A"
+    avg_to_merge_seconds = (
+        int(sum(merge_times) / len(merge_times)) if merge_times else None
     )
 
     return {
         "total": total,
         "active": active,
+        "merged": merged,
+        "reverted": reverted,
+        "returned": returned,
         "check_pass_rate": check_pass_rate,
         "approval_rate": approval_rate,
         "merge_rate": merge_rate,
         "revert_rate": revert_rate,
-        "avg_to_pr": avg_to_pr,
-        "avg_to_merge": avg_to_merge,
+        "avg_to_pr": _format_duration(avg_to_pr_seconds),
+        "avg_to_merge": _format_duration(avg_to_merge_seconds),
     }
 
 
-def _render_checks_and_reviews(rows: list[dict[str, Any]]) -> list[str]:
-    """Render check-failure and review-outcome sections."""
-    lines: list[str] = []
-
-    failed_check_rows = [r for r in rows if (r.get("checks_failed") or 0) > 0]
-    if failed_check_rows:
-        lines.extend(
-            [
-                "## Check Failures",
-                "",
-                "| Issue | PR | Failed | Total |",
-                "|-------|-----|--------|-------|",
-            ]
-        )
-        for r in failed_check_rows:
-            lines.append(
-                f"| [#{r['issue_number']}]({r['issue_url']}) "
-                f"| [#{r['pr_number']}]({r['pr_url']}) "
-                f"| {r['checks_failed']} | {r['checks_total']} |"
-            )
-        lines.append("")
-
-    reviewed_rows = [r for r in rows if r.get("review_outcome")]
-    if reviewed_rows:
-        lines.extend(
-            [
-                "## Review Outcomes",
-                "",
-                "| Issue | PR | Reviewer | Outcome |",
-                "|-------|-----|----------|---------|",
-            ]
-        )
-        for r in reviewed_rows:
-            lines.append(
-                f"| [#{r['issue_number']}]({r['issue_url']}) "
-                f"| [#{r['pr_number']}]({r['pr_url']}) "
-                f"| {r.get('reviewer_login') or '—'} "
-                f"| {r['review_outcome']} |"
-            )
-        lines.append("")
-
-    return lines
+def _build_status_counts(rows: list[dict[str, Any]]) -> dict[str, int]:
+    """Count rows by status for charting."""
+    counts: dict[str, int] = {}
+    for r in rows:
+        s = r["status"]
+        counts[s] = counts.get(s, 0) + 1
+    return counts
 
 
-def _render_detail_sections(
-    rows: list[dict[str, Any]],
-) -> list[str]:
-    """Render the per-section markdown tables for the report."""
-    lines: list[str] = []
-
-    # Active workflows
-    active_rows = [r for r in rows if r["status"] in ("in_progress", "waiting_review")]
-    if active_rows:
-        lines.extend(
-            [
-                "## Active Workflows",
-                "",
-                "| Issue | Status | Session | PR |",
-                "|-------|--------|---------|-----|",
-            ]
-        )
-        for r in active_rows:
-            pr_link = (
-                f"[#{r['pr_number']}]({r['pr_url']})" if r.get("pr_number") else "—"
-            )
-            session_link = (
-                f"[link]({r['devin_session_url']})"
-                if r.get("devin_session_url")
-                else "—"
-            )
-            lines.append(
-                f"| [#{r['issue_number']}]({r['issue_url']}) "
-                f"| {r['status']} | {session_link} | {pr_link} |"
-            )
-        lines.append("")
-
-    # Completed workflows
-    completed_rows = [r for r in rows if r["status"] == "merged"]
-    if completed_rows:
-        lines.extend(
-            [
-                "## Completed Workflows",
-                "",
-                "| Issue | PR | Time to PR | Time to Merge |",
-                "|-------|-----|------------|---------------|",
-            ]
-        )
-        for r in completed_rows:
-            ttp = (
-                f"{r['time_to_pr_seconds'] / 60:.1f} min"
-                if r.get("time_to_pr_seconds")
-                else "—"
-            )
-            ttm = (
-                f"{r['time_to_merge_seconds'] / 60:.1f} min"
-                if r.get("time_to_merge_seconds")
-                else "—"
-            )
-            lines.append(
-                f"| [#{r['issue_number']}]({r['issue_url']}) "
-                f"| [#{r['pr_number']}]({r['pr_url']}) | {ttp} | {ttm} |"
-            )
-        lines.append("")
-
-    # Returned to human
-    returned_rows = [r for r in rows if r["status"] == "returned_to_human"]
-    if returned_rows:
-        lines.extend(
-            [
-                "## Returned to Human",
-                "",
-                "| Issue | Reason | Session |",
-                "|-------|--------|---------|",
-            ]
-        )
-        for r in returned_rows:
-            session_link = (
-                f"[link]({r['devin_session_url']})"
-                if r.get("devin_session_url")
-                else "—"
-            )
-            lines.append(
-                f"| [#{r['issue_number']}]({r['issue_url']}) "
-                f"| {r.get('return_reason') or '—'} | {session_link} |"
-            )
-        lines.append("")
-
-    lines.extend(_render_checks_and_reviews(rows))
-
-    # Caveats
-    lines.extend(
-        [
-            "## Known Caveats",
-            "",
-            "- Report is generated from GitHub metadata and Devin session markers.",
-            "- Check pass rates reflect the latest head SHA at report time.",
-            "- Timing metrics use ISO timestamps from markers and GitHub API.",
-            "- Revert detection relies on the `devin-autofix/reverted` label.",
-            "",
-        ]
-    )
-    return lines
-
-
-def write_markdown(rows: list[dict[str, Any]], output_path: pathlib.Path) -> None:
-    """Generate a markdown analytics report."""
-    md_path = output_path / "automation_report.md"
+def write_html(rows: list[dict[str, Any]], output_path: pathlib.Path) -> None:
+    """Generate an HTML analytics report with charts and filterable table."""
+    html_path = output_path / "automation_report.html"
     now = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     kpi = _compute_kpis(rows)
+    status_counts = _build_status_counts(rows)
 
-    lines = [
-        "# Devin Autofix Analytics Report",
-        "",
-        f"Generated: {now}",
-        "",
-        "## Summary KPIs",
-        "",
-        "| Metric | Value |",
-        "|--------|-------|",
-        f"| Total attempts | {kpi['total']} |",
-        f"| Active attempts | {kpi['active']} |",
-        f"| Check pass rate | {kpi['check_pass_rate']} |",
-        f"| Review approval rate | {kpi['approval_rate']} |",
-        f"| Merge rate | {kpi['merge_rate']} |",
-        f"| Revert rate | {kpi['revert_rate']} |",
-        f"| Avg trigger→PR | {kpi['avg_to_pr']} |",
-        f"| Avg trigger→merge | {kpi['avg_to_merge']} |",
-        "",
-    ]
+    # Prepare table data as JSON for JavaScript filtering
+    table_rows = []
+    for r in rows:
+        table_rows.append(
+            {
+                "issue_type": r.get("issue_type", "unknown"),
+                "issue_title": r.get("issue_title", ""),
+                "issue_url": r.get("issue_url", ""),
+                "issue_number": r.get("issue_number"),
+                "pr_url": r.get("pr_url", ""),
+                "pr_number": r.get("pr_number"),
+                "status": r.get("status", ""),
+                "ci_result": r.get("ci_result", "N/A"),
+                "review_outcome": r.get("review_outcome") or "N/A",
+                "merged": bool(r.get("merged")),
+                "triggered_at": r.get("triggered_at", ""),
+            }
+        )
 
-    lines.extend(_render_detail_sections(rows))
-    md_path.write_text("\n".join(lines))
-    print(f"Markdown report written to {md_path}")
+    table_json = json.dumps(table_rows)
+    status_json = json.dumps(status_counts)
+
+    # KPI values for Chart.js
+    kpi_labels = json.dumps(["Merged", "Reverted", "Returned", "Active", "Other"])
+    other_count = kpi["total"] - (
+        kpi["merged"] + kpi["reverted"] + kpi["returned"] + kpi["active"]
+    )
+    kpi_values = json.dumps(
+        [
+            kpi["merged"],
+            kpi["reverted"],
+            kpi["returned"],
+            kpi["active"],
+            max(other_count, 0),
+        ]
+    )
+
+    check_pass_rate = (
+        kpi["check_pass_rate"] if kpi["check_pass_rate"] is not None else 0
+    )
+    approval_rate = kpi["approval_rate"] if kpi["approval_rate"] is not None else 0
+    merge_rate = kpi["merge_rate"] if kpi["merge_rate"] is not None else 0
+
+    # Pre-compute display strings to keep template lines short
+    merge_rate_display = f"{merge_rate}%" if kpi["merge_rate"] is not None else "N/A"
+    ci_rate_display = (
+        f"{check_pass_rate}%" if kpi["check_pass_rate"] is not None else "N/A"
+    )
+    approval_display = (
+        f"{approval_rate}%" if kpi["approval_rate"] is not None else "N/A"
+    )
+    revert_display = (
+        f"{kpi['revert_rate']}%" if kpi["revert_rate"] is not None else "N/A"
+    )
+
+    content = f"""\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Devin Autofix Report</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4"></script>
+<style>
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f5f7fa;
+    color: #1a1a2e;
+    padding: 24px;
+  }}
+  h1 {{
+    font-size: 1.8rem;
+    margin-bottom: 4px;
+  }}
+  .subtitle {{
+    color: #6b7280;
+    font-size: 0.9rem;
+    margin-bottom: 24px;
+  }}
+  .kpi-grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 16px;
+    margin-bottom: 32px;
+  }}
+  .kpi-card {{
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    text-align: center;
+  }}
+  .kpi-card .value {{
+    font-size: 2rem;
+    font-weight: 700;
+    color: #2563eb;
+  }}
+  .kpi-card .label {{
+    font-size: 0.8rem;
+    color: #6b7280;
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }}
+  .charts-row {{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 32px;
+  }}
+  .chart-card {{
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }}
+  .chart-card h3 {{
+    font-size: 1rem;
+    margin-bottom: 16px;
+    color: #374151;
+  }}
+  .chart-card canvas {{
+    max-height: 260px;
+  }}
+  .table-section {{
+    background: #fff;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }}
+  .table-section h2 {{
+    font-size: 1.2rem;
+    margin-bottom: 16px;
+  }}
+  .filters {{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+  }}
+  .filters select {{
+    padding: 6px 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    background: #fff;
+  }}
+  .table-wrap {{
+    overflow-x: auto;
+    max-height: 600px;
+    overflow-y: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+  }}
+  table {{
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }}
+  thead {{
+    position: sticky;
+    top: 0;
+    background: #f9fafb;
+    z-index: 1;
+  }}
+  th, td {{
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e5e7eb;
+    white-space: nowrap;
+  }}
+  th {{
+    font-weight: 600;
+    color: #374151;
+  }}
+  tr:hover {{
+    background: #f3f4f6;
+  }}
+  a {{
+    color: #2563eb;
+    text-decoration: none;
+  }}
+  a:hover {{
+    text-decoration: underline;
+  }}
+  .badge {{
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+  }}
+  .badge-merged {{ background: #d1fae5; color: #065f46; }}
+  .badge-reverted {{ background: #fee2e2; color: #991b1b; }}
+  .badge-active {{ background: #dbeafe; color: #1e40af; }}
+  .badge-returned {{ background: #fef3c7; color: #92400e; }}
+  .badge-passed {{ background: #d1fae5; color: #065f46; }}
+  .badge-failed {{ background: #fee2e2; color: #991b1b; }}
+  .badge-pending {{ background: #e5e7eb; color: #374151; }}
+  .badge-na {{ background: #f3f4f6; color: #6b7280; }}
+  @media (max-width: 768px) {{
+    .charts-row {{ grid-template-columns: 1fr; }}
+  }}
+</style>
+</head>
+<body>
+<h1>Devin Autofix Analytics Report</h1>
+<p class="subtitle">Generated: {now}</p>
+
+<div class="kpi-grid">
+  <div class="kpi-card">
+    <div class="value">{kpi["total"]}</div>
+    <div class="label">Total Attempts</div>
+  </div>
+  <div class="kpi-card">
+    <div class="value">{kpi["merged"]}</div>
+    <div class="label">Merged</div>
+  </div>
+  <div class="kpi-card">
+    <div class="value">{merge_rate_display}</div>
+    <div class="label">Merge Rate</div>
+  </div>
+  <div class="kpi-card">
+    <div class="value">{ci_rate_display}</div>
+    <div class="label">CI Pass Rate</div>
+  </div>
+  <div class="kpi-card">
+    <div class="value">{approval_display}</div>
+    <div class="label">Approval Rate</div>
+  </div>
+  <div class="kpi-card">
+    <div class="value">{revert_display}</div>
+    <div class="label">Revert Rate</div>
+  </div>
+  <div class="kpi-card">
+    <div class="value">{kpi["avg_to_pr"]}</div>
+    <div class="label">Avg Trigger &rarr; PR</div>
+  </div>
+  <div class="kpi-card">
+    <div class="value">{kpi["avg_to_merge"]}</div>
+    <div class="label">Avg Trigger &rarr; Merge</div>
+  </div>
+</div>
+
+<div class="charts-row">
+  <div class="chart-card">
+    <h3>Run Outcomes</h3>
+    <canvas id="outcomeChart"></canvas>
+  </div>
+  <div class="chart-card">
+    <h3>Success Rates</h3>
+    <canvas id="ratesChart"></canvas>
+  </div>
+</div>
+
+<div class="table-section">
+  <h2>Last 7 Days Activity</h2>
+  <div class="filters">
+    <select id="filter-status">
+      <option value="">All Statuses</option>
+    </select>
+    <select id="filter-issue-type">
+      <option value="">All Issue Types</option>
+    </select>
+    <select id="filter-ci">
+      <option value="">All CI Results</option>
+    </select>
+    <select id="filter-review">
+      <option value="">All Review Outcomes</option>
+    </select>
+    <select id="filter-merged">
+      <option value="">All Merged</option>
+      <option value="true">Merged</option>
+      <option value="false">Not Merged</option>
+    </select>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Issue Type</th>
+          <th>Summary</th>
+          <th>Issue</th>
+          <th>PR</th>
+          <th>Status</th>
+          <th>CI Result</th>
+          <th>Reviewer Outcome</th>
+          <th>Merged</th>
+        </tr>
+      </thead>
+      <tbody id="activity-table"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const ALL_ROWS = {table_json};
+const STATUS_COUNTS = {status_json};
+
+// --- Charts ---
+const outcomeCtx = document.getElementById('outcomeChart').getContext('2d');
+new Chart(outcomeCtx, {{
+  type: 'doughnut',
+  data: {{
+    labels: {kpi_labels},
+    datasets: [{{
+      data: {kpi_values},
+      backgroundColor: ['#10b981','#ef4444','#f59e0b','#3b82f6','#9ca3af'],
+    }}]
+  }},
+  options: {{
+    responsive: true,
+    plugins: {{
+      legend: {{ position: 'bottom' }}
+    }}
+  }}
+}});
+
+const ratesCtx = document.getElementById('ratesChart').getContext('2d');
+new Chart(ratesCtx, {{
+  type: 'bar',
+  data: {{
+    labels: ['CI Pass Rate', 'Approval Rate', 'Merge Rate'],
+    datasets: [{{
+      label: '%',
+      data: [{check_pass_rate}, {approval_rate}, {merge_rate}],
+      backgroundColor: ['#6366f1','#8b5cf6','#10b981'],
+      borderRadius: 6,
+    }}]
+  }},
+  options: {{
+    responsive: true,
+    scales: {{
+      y: {{ beginAtZero: true, max: 100 }}
+    }},
+    plugins: {{
+      legend: {{ display: false }}
+    }}
+  }}
+}});
+
+// --- Table Filtering ---
+const msPerWeek = 7 * 24 * 60 * 60 * 1000;
+const sevenDaysAgo = new Date(Date.now() - msPerWeek);
+const recentRows = ALL_ROWS.filter(r =>
+  !r.triggered_at || r.triggered_at >= sevenDaysAgo.toISOString()
+);
+
+function populateFilterOptions() {{
+  const sets = {{
+    status: new Set(),
+    issue_type: new Set(),
+    ci_result: new Set(),
+    review_outcome: new Set(),
+  }};
+  recentRows.forEach(r => {{
+    sets.status.add(r.status);
+    sets.issue_type.add(r.issue_type);
+    sets.ci_result.add(r.ci_result);
+    sets.review_outcome.add(r.review_outcome);
+  }});
+  const addOpts = (id, vals) => {{
+    const sel = document.getElementById(id);
+    [...vals].sort().forEach(v => {{
+      const opt = document.createElement('option');
+      opt.value = v;
+      opt.textContent = v;
+      sel.appendChild(opt);
+    }});
+  }};
+  addOpts('filter-status', sets.status);
+  addOpts('filter-issue-type', sets.issue_type);
+  addOpts('filter-ci', sets.ci_result);
+  addOpts('filter-review', sets.review_outcome);
+}}
+
+function badgeClass(s) {{
+  const map = {{
+    merged: 'badge-merged', passed: 'badge-merged',
+    approved: 'badge-merged',
+    reverted: 'badge-failed', failed: 'badge-failed',
+    changes_requested: 'badge-failed',
+    in_progress: 'badge-active',
+    waiting_review: 'badge-active',
+    returned_to_human: 'badge-returned',
+    pending: 'badge-pending',
+  }};
+  return map[s] || 'badge-na';
+}}
+
+function renderTable() {{
+  const fStatus = document.getElementById('filter-status').value;
+  const fType = document.getElementById('filter-issue-type').value;
+  const fCI = document.getElementById('filter-ci').value;
+  const fReview = document.getElementById('filter-review').value;
+  const fMerged = document.getElementById('filter-merged').value;
+
+  const filtered = recentRows.filter(r => {{
+    if (fStatus && r.status !== fStatus) return false;
+    if (fType && r.issue_type !== fType) return false;
+    if (fCI && r.ci_result !== fCI) return false;
+    if (fReview && r.review_outcome !== fReview) return false;
+    if (fMerged === 'true' && !r.merged) return false;
+    if (fMerged === 'false' && r.merged) return false;
+    return true;
+  }});
+
+  const tbody = document.getElementById('activity-table');
+  const trunc = (s, n) => s.length > n ? s.slice(0, n) + '...' : s;
+  const prLink = r => r.pr_url
+    ? `<a href="${{r.pr_url}}" target="_blank">#${{r.pr_number}}</a>`
+    : '\u2014';
+  const badge = (v) =>
+    `<span class="badge ${{badgeClass(v)}}">${{v}}</span>`;
+  tbody.innerHTML = filtered.map(r => `<tr>
+    <td>${{r.issue_type}}</td>
+    <td>${{trunc(r.issue_title, 60)}}</td>
+    <td><a href="${{r.issue_url}}" target="_blank">#${{r.issue_number}}</a></td>
+    <td>${{prLink(r)}}</td>
+    <td>${{badge(r.status)}}</td>
+    <td>${{badge(r.ci_result)}}</td>
+    <td>${{badge(r.review_outcome)}}</td>
+    <td>${{r.merged ? 'Yes' : 'No'}}</td>
+  </tr>`).join('');
+}}
+
+populateFilterOptions();
+renderTable();
+
+document.querySelectorAll('.filters select').forEach(sel => {{
+  sel.addEventListener('change', renderTable);
+}});
+</script>
+</body>
+</html>
+"""
+
+    html_path.write_text(content)
+    print(f"HTML report written to {html_path}")
 
 
 def main() -> None:
@@ -594,7 +926,7 @@ def main() -> None:
 
     write_sqlite(rows, output_path)
     write_csv(rows, output_path)
-    write_markdown(rows, output_path)
+    write_html(rows, output_path)
 
     print(f"\nReport artifacts written to {output_path}/")
 

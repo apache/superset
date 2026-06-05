@@ -36,7 +36,7 @@ The system consists of three GitHub Actions workflows backed by Python scripts:
    and updates labels.
 
 3. **`devin-autofix-report.yml`** — Runs on a schedule (every 6 hours) or on
-   demand. Generates analytics artifacts: `automation_report.md`,
+   demand. Generates analytics artifacts: `automation_report.html`,
    `automation_runs.csv`, and `automation_runs.sqlite`.
 
 ## Scripts
@@ -47,7 +47,7 @@ The system consists of three GitHub Actions workflows backed by Python scripts:
 | `start_session.py` | Creates a Devin session and posts initial markers |
 | `monitor_sessions.py` | Polls sessions, links PRs, requests reviewers |
 | `reviewers.py` | Reviewer request logic |
-| `report.py` | Analytics report generator (Markdown + CSV + SQLite) |
+| `report.py` | Analytics report generator (HTML + CSV + SQLite) |
 | `schema.sql` | SQLite schema for the analytics database |
 
 ## Labels
@@ -57,7 +57,8 @@ Status labels applied to issues:
 - `devin-autofix/in-progress` — Devin session active
 - `devin-autofix/waiting-review` — PR opened, review requested
 - `devin-autofix/returned-human` — Devin could not complete the fix
-- `devin-autofix/merged` — PR merged
+- `devin-autofix/merged` — PR merged (legacy)
+- `devin-autofix/complete` — PR merged (set by monitor)
 - `devin-autofix/reverted` — Fix was reverted
 
 ## Required Secrets
