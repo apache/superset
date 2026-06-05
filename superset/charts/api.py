@@ -310,7 +310,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             dash = ChartDAO.get_by_id_or_uuid(id_or_uuid)
             result = self.chart_get_response_schema.dump(dash)
             if resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"):
-                result["owners"].extend(resolver(dash))
+                result["extra_owners"] = resolver(dash)
             return self.response(200, result=result)
         except ChartNotFoundError:
             return self.response_404()

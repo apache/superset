@@ -225,8 +225,8 @@ class Slice(  # pylint: disable=too-many-public-methods
             "form_data": self.form_data,
             "query_context": self.query_context,
             "modified": self.modified(),
-            "owners": [owner.id for owner in self.owners]
-            + (
+            "owners": [owner.id for owner in self.owners],
+            "extra_owners": (
                 [u["id"] for u in resolver(self)]
                 if (resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"))
                 else []
