@@ -30,6 +30,10 @@ The `DURATION` number formatter now uses `Intl.DurationFormat` for locale-aware 
 
 To preserve sub-second precision in custom duration formatters, enable `formatSubMilliseconds`.
 
+### Cache warmup authenticates via SUPERSET_CACHE_WARMUP_USER
+
+The `cache-warmup` Celery task now drives a real WebDriver session for reliable authentication and reads the user to authenticate as from the new `SUPERSET_CACHE_WARMUP_USER` config option. It no longer consults `CACHE_WARMUP_EXECUTORS` for the warmup path. `SUPERSET_CACHE_WARMUP_USER` defaults to `None`, so the task fails fast with a clear message until you set it. Operators who previously relied on `CACHE_WARMUP_EXECUTORS` for cache warmup must set `SUPERSET_CACHE_WARMUP_USER` to a dedicated least-privilege user with access to the dashboards they want warmed up before the next warmup run.
+
 ### YDB now uses a native sqlglot dialect
 
 YDB SQL parsing now relies on the dedicated [`ydb-sqlglot-plugin`](https://pypi.org/project/ydb-sqlglot-plugin/) dialect, which registers itself with sqlglot automatically. YDB users must install this plugin (e.g., via `pip install "apache-superset[ydb]"`) to avoid a `ValueError` when Superset parses YDB queries.

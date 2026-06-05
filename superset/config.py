@@ -1029,6 +1029,10 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
 # CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor("admin")]
+#
+# NOTE: The `cache-warmup` Celery task no longer consults CACHE_WARMUP_EXECUTORS.
+# It authenticates as the single user configured via SUPERSET_CACHE_WARMUP_USER
+# (defined below). This setting is retained for other executor-based code paths.
 CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER]
 
 # ---------------------------------------------------
@@ -1069,6 +1073,11 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_NO_NULL_WARNING": True,
 }
 THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
+
+# Cache warmup user — must be set explicitly before enabling the cache-warmup
+# Celery task. Intentionally defaults to None so operators pick a dedicated
+# least-privilege user rather than inadvertently running warmup as "admin".
+SUPERSET_CACHE_WARMUP_USER: str | None = None
 
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
