@@ -17,13 +17,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TYPE_CHECKING
+from typing import Any, cast, TYPE_CHECKING
 
 from sqlalchemy import select, text
 from sqlalchemy.engine import Dialect
 
 from superset.databases.schemas import (
     TableMetadataColumnsResponse,
+    TableMetadataPrimaryKeyResponse,
     TableMetadataResponse,
 )
 from superset.databases.utils import (
@@ -66,7 +67,7 @@ class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
 
     @classmethod
     def get_table_metadata(
-        cls, database: Any, table: Table, partition: Partition | None = None
+        cls, database: Database, table: Table, partition: Partition | None = None
     ) -> TableMetadataResponse:
         """
         Get table metadata information, including type, pk, fks.
@@ -77,7 +78,7 @@ class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
         :param table: Table instance
         :return: Dict table metadata ready for API response
         """
-        keys = []
+        keys: list[Any] = []
         columns = database.get_columns(table)
         primary_key = database.get_pk_constraint(table)
         if primary_key and primary_key.get("constrained_columns"):
@@ -90,7 +91,7 @@ class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
         payload_columns: list[TableMetadataColumnsResponse] = []
         table_comment = database.get_table_comment(table)
         for col in columns:
-            dtype = get_col_type(col)
+            dtype = get_col_type(cast("dict[Any, Any]", col))
             payload_columns.append(
                 {
                     "name": col["column_name"],
@@ -120,7 +121,7 @@ class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
                     cols=columns,
                     partition=partition,
                 ),
-                "primaryKey": primary_key,
+                "primaryKey": cast("TableMetadataPrimaryKeyResponse", primary_key),
                 "foreignKeys": foreign_keys,
                 "indexes": keys,
                 "comment": table_comment,
@@ -173,7 +174,15 @@ class OdpsEngineSpec(BasicParametersMixin, OdpsBaseEngineSpec):
                 and len(partition.partition_column) > 0
             ):
                 partition_str = partition.partition_column[0]
-                partition_str_where = f"CAST({partition_str} AS STRING) LIKE '%'"
+                # `partition_str` is a column name sourced from ODPS schema
+                # metadata, so quote it through the dialect's identifier preparer
+                # to guard against names containing SQL metacharacters.
+                quoted = dialect.identifier_preparer.quote(partition_str)
+                # A match-all `LIKE '%'` predicate is used (rather than a real
+                # filter) purely to force ODPS to scan a partitioned table; the
+                # engine rejects an unpartitioned full-table preview, so this
+                # no-op predicate keeps the preview query valid.
+                partition_str_where = f"CAST({quoted} AS STRING) LIKE '%'"
                 qry = qry.where(text(partition_str_where))
         if limit:
             qry = qry.limit(limit)

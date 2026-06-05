@@ -296,7 +296,7 @@ class DatabaseDAO(BaseDAO[Database]):
             # `get_table` is a synchronous network call. Bound it with a
             # configurable connect/read timeout so an unreachable or slow ODPS
             # endpoint can't block the worker indefinitely.
-            timeout = app.config.get("ODPS_PARTITION_DETECT_TIMEOUT", 30)
+            timeout = app.config["ODPS_PARTITION_DETECT_TIMEOUT"]
             if odps_options is not None:
                 odps_options.connect_timeout = timeout
                 odps_options.read_timeout = timeout
