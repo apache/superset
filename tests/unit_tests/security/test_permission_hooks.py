@@ -23,7 +23,6 @@ tests/unit_tests/databases/api_test.py.
 from unittest.mock import Mock
 
 import pytest
-from flask import current_app
 
 from superset import db
 
@@ -64,98 +63,89 @@ def sample_user(app_context: None):
     db.session.flush()
 
 
-def test_extra_owners_resolver_injects_ids(sample_chart):
-    """EXTRA_OWNERS_RESOLVER injects extra owner IDs into Slice.data['owners']."""
+def test_extra_owners_resolver_injects_into_extra_owners(sample_chart, monkeypatch):
+    """EXTRA_OWNERS_RESOLVER populates Slice.data['extra_owners'], not 'owners'."""
+    from flask import current_app
+
     original_owner_ids = [o.id for o in sample_chart.owners]
 
-    # Without config — only real owners
-    original_config = current_app.config.get("EXTRA_OWNERS_RESOLVER")
-    current_app.config["EXTRA_OWNERS_RESOLVER"] = None
-    try:
-        data = sample_chart.data
-        assert data["owners"] == original_owner_ids
-    finally:
-        current_app.config["EXTRA_OWNERS_RESOLVER"] = original_config
+    # Without config — extra_owners is empty, owners unchanged
+    monkeypatch.setitem(current_app.config, "EXTRA_OWNERS_RESOLVER", None)
+    data = sample_chart.data
+    assert data["owners"] == original_owner_ids
+    assert data["extra_owners"] == []
 
-    # With config — extra owner injected
+    # With config — extra_owners populated, owners unchanged
     def _resolver(resource):
         return [{"id": 99999, "first_name": "Folder", "last_name": "Editor"}]
 
     resolver_mock = Mock(side_effect=_resolver)
+    monkeypatch.setitem(current_app.config, "EXTRA_OWNERS_RESOLVER", resolver_mock)
 
-    original_config = current_app.config.get("EXTRA_OWNERS_RESOLVER")
-    current_app.config["EXTRA_OWNERS_RESOLVER"] = resolver_mock
-    try:
-        data = sample_chart.data
-        assert 99999 in data["owners"]
-        assert resolver_mock.call_count == 1
-    finally:
-        current_app.config["EXTRA_OWNERS_RESOLVER"] = original_config
+    data = sample_chart.data
+    assert data["owners"] == original_owner_ids
+    assert 99999 in data["extra_owners"]
+    assert resolver_mock.call_count == 1
 
 
-def test_extra_owners_resolver_empty_returns_unchanged(sample_chart):
-    """EXTRA_OWNERS_RESOLVER returning empty list leaves owners unchanged."""
+def test_extra_owners_resolver_empty_returns_unchanged(sample_chart, monkeypatch):
+    """EXTRA_OWNERS_RESOLVER returning empty list leaves extra_owners empty."""
+    from flask import current_app
+
     resolver_mock = Mock(return_value=[])
+    monkeypatch.setitem(current_app.config, "EXTRA_OWNERS_RESOLVER", resolver_mock)
 
-    original_config = current_app.config.get("EXTRA_OWNERS_RESOLVER")
-    current_app.config["EXTRA_OWNERS_RESOLVER"] = resolver_mock
-    try:
-        data = sample_chart.data
-        original_owner_ids = [o.id for o in sample_chart.owners]
-        assert data["owners"] == original_owner_ids
-        assert resolver_mock.call_count == 1
-    finally:
-        current_app.config["EXTRA_OWNERS_RESOLVER"] = original_config
+    data = sample_chart.data
+    original_owner_ids = [o.id for o in sample_chart.owners]
+    assert data["owners"] == original_owner_ids
+    assert data["extra_owners"] == []
+    assert resolver_mock.call_count == 1
 
 
-def test_raise_for_access_bypass_skips_checks(app_context: None):
+def test_raise_for_access_bypass_skips_checks(app_context: None, monkeypatch):
     """EXTRA_RAISE_FOR_ACCESS_BYPASS returning True skips all permission checks."""
+    from flask import current_app
+
     from superset import security_manager
 
     bypass_mock = Mock(return_value=True)
+    monkeypatch.setitem(
+        current_app.config, "EXTRA_RAISE_FOR_ACCESS_BYPASS", bypass_mock
+    )
 
-    original_config = current_app.config.get("EXTRA_RAISE_FOR_ACCESS_BYPASS")
-    current_app.config["EXTRA_RAISE_FOR_ACCESS_BYPASS"] = bypass_mock
-    try:
-        security_manager.raise_for_access(dashboard=None, chart=None)
-        assert bypass_mock.call_count == 1
-    finally:
-        current_app.config["EXTRA_RAISE_FOR_ACCESS_BYPASS"] = original_config
+    security_manager.raise_for_access(dashboard=None, chart=None)
+    assert bypass_mock.call_count == 1
 
 
-def test_raise_for_access_no_bypass_without_config(app_context: None):
+def test_raise_for_access_no_bypass_without_config(app_context: None, monkeypatch):
     """Without EXTRA_RAISE_FOR_ACCESS_BYPASS, normal checks proceed."""
+    from flask import current_app
+
     from superset import security_manager
 
-    original_config = current_app.config.get("EXTRA_RAISE_FOR_ACCESS_BYPASS")
-    current_app.config["EXTRA_RAISE_FOR_ACCESS_BYPASS"] = None
-    try:
-        security_manager.raise_for_access(dashboard=None, chart=None)
-    finally:
-        current_app.config["EXTRA_RAISE_FOR_ACCESS_BYPASS"] = original_config
+    monkeypatch.setitem(current_app.config, "EXTRA_RAISE_FOR_ACCESS_BYPASS", None)
+    security_manager.raise_for_access(dashboard=None, chart=None)
 
 
-def test_ownership_check_allows_non_owner(sample_chart, sample_user):
+def test_ownership_check_allows_non_owner(sample_chart, sample_user, monkeypatch):
     """EXTRA_OWNERSHIP_CHECKS returning True allows a non-owner to pass."""
-    from flask import g
+    from flask import current_app, g
 
     from superset import security_manager
 
     check_mock = Mock(return_value=True)
+    monkeypatch.setitem(current_app.config, "EXTRA_OWNERSHIP_CHECKS", check_mock)
+    monkeypatch.setattr(g, "user", sample_user, raising=False)
 
-    original_config = current_app.config.get("EXTRA_OWNERSHIP_CHECKS")
-    current_app.config["EXTRA_OWNERSHIP_CHECKS"] = check_mock
-    try:
-        g.user = sample_user
-        security_manager.raise_for_ownership(sample_chart)
-        check_mock.assert_called_once()
-    finally:
-        current_app.config["EXTRA_OWNERSHIP_CHECKS"] = original_config
+    security_manager.raise_for_ownership(sample_chart)
+    check_mock.assert_called_once()
 
 
-def test_owner_auto_add_skip_prevents_auto_add(sample_user, app_context: None):
+def test_owner_auto_add_skip_prevents_auto_add(
+    sample_user, app_context: None, monkeypatch
+):
     """EXTRA_OWNER_AUTO_ADD_SKIP returning True prevents auto-adding current user."""
-    from flask import g
+    from flask import current_app, g
     from flask_appbuilder.security.sqla.models import User
 
     from superset.commands.utils import populate_owner_list
@@ -170,24 +160,22 @@ def test_owner_auto_add_skip_prevents_auto_add(sample_user, app_context: None):
     db.session.flush()
 
     skip_mock = Mock(return_value=True)
+    monkeypatch.setitem(current_app.config, "EXTRA_OWNER_AUTO_ADD_SKIP", skip_mock)
+    monkeypatch.setattr(g, "user", sample_user, raising=False)
 
-    original_config = current_app.config.get("EXTRA_OWNER_AUTO_ADD_SKIP")
-    current_app.config["EXTRA_OWNER_AUTO_ADD_SKIP"] = skip_mock
     try:
-        g.user = sample_user
         owners = populate_owner_list([other_user.id], default_to_user=False)
         assert len(owners) == 1
         assert owners[0].id == other_user.id
         skip_mock.assert_called_once()
     finally:
-        current_app.config["EXTRA_OWNER_AUTO_ADD_SKIP"] = original_config
         db.session.delete(other_user)
         db.session.flush()
 
 
-def test_owner_auto_add_without_skip(sample_user, app_context: None):
+def test_owner_auto_add_without_skip(sample_user, app_context: None, monkeypatch):
     """Without EXTRA_OWNER_AUTO_ADD_SKIP, current user is auto-added."""
-    from flask import g
+    from flask import current_app, g
     from flask_appbuilder.security.sqla.models import User
 
     from superset.commands.utils import populate_owner_list
@@ -201,15 +189,14 @@ def test_owner_auto_add_without_skip(sample_user, app_context: None):
     db.session.add(other_user)
     db.session.flush()
 
-    original_config = current_app.config.get("EXTRA_OWNER_AUTO_ADD_SKIP")
-    current_app.config["EXTRA_OWNER_AUTO_ADD_SKIP"] = None
+    monkeypatch.setitem(current_app.config, "EXTRA_OWNER_AUTO_ADD_SKIP", None)
+    monkeypatch.setattr(g, "user", sample_user, raising=False)
+
     try:
-        g.user = sample_user
         owners = populate_owner_list([other_user.id], default_to_user=False)
         owner_ids = [o.id for o in owners]
         assert sample_user.id in owner_ids
         assert other_user.id in owner_ids
     finally:
-        current_app.config["EXTRA_OWNER_AUTO_ADD_SKIP"] = original_config
         db.session.delete(other_user)
         db.session.flush()

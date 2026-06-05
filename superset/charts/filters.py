@@ -16,6 +16,7 @@
 # under the License.
 from typing import Any
 
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import aliased
@@ -104,27 +105,27 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         if security_manager.can_access_all_datasources():
             return query
 
-        from flask import current_app
-
         table_alias = aliased(SqlaTable)
         query = query.join(table_alias, self.model.datasource_id == table_alias.id)
         query = query.join(
             models.Database, table_alias.database_id == models.Database.id
         )
 
+        extra_access_filters = []
         extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
         if extra_charts_filter := extra_filters.get("charts"):
             user_id = get_user_id()
             if user_id:
-                extra_ids = extra_charts_filter(user_id)
-                return query.filter(
-                    or_(
-                        get_dataset_access_filters(self.model),
-                        self.model.id.in_(extra_ids),
-                    )
+                extra_access_filters.append(
+                    self.model.id.in_(extra_charts_filter(user_id))
                 )
 
-        return query.filter(get_dataset_access_filters(self.model))
+        return query.filter(
+            or_(
+                get_dataset_access_filters(self.model),
+                *extra_access_filters,
+            )
+        )
 
 
 class ChartHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods

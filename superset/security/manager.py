@@ -2930,6 +2930,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 datasource=datasource,
                 query_context=query_context,
             ):
+                logger.info(
+                    "EXTRA_RAISE_FOR_ACCESS_BYPASS granted access for user %s",
+                    get_user_id(),
+                )
                 return
 
         if sql and database:
@@ -3747,7 +3751,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # Extension hook: allow edit/delete if an external system grants access
             if ownership_check := current_app.config.get("EXTRA_OWNERSHIP_CHECKS"):
                 user_id = g.user.id if not g.user.is_anonymous else None
-                if user_id and ownership_check(user_id, resource):
+                if user_id and ownership_check(user_id, orig_resource):
                     return
 
             raise SupersetSecurityException(

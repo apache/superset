@@ -16,7 +16,7 @@
 # under the License.
 from typing import Any, Optional
 
-from flask import g
+from flask import current_app, g
 from flask_appbuilder.security.sqla.models import Role
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
@@ -181,8 +181,6 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
             )
 
             feature_flagged_filters.append(condition)
-
-        from flask import current_app
 
         extra_access_filters = []
         extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
