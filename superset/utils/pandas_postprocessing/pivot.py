@@ -123,6 +123,14 @@ def pivot(  # pylint: disable=too-many-arguments
             _("Pivot operation must include at least one aggregate")
         )
 
+    # An empty list is semantically equivalent to no groupby columns. Normalise
+    # it to None so that all downstream branches (column_fill_value, pivot_table,
+    # _restore_dropped_metric_columns) behave identically to the no-columns case.
+    # This matters for categorical bar charts whose form_data carries groupby=[]
+    # (the control panel default), causing series_columns=[] to be sent from the
+    # frontend and an empty columns list to arrive here.
+    columns = columns or None
+
     if columns and column_fill_value:
         df[columns] = df[columns].fillna(value=column_fill_value)
 

@@ -40,6 +40,30 @@ def test_pivot_without_columns():
     assert df["idx_nulls"].sum() == 1050
 
 
+def test_pivot_with_empty_columns_list():
+    """
+    Make sure pivot(columns=[]) produces the same output as pivot(columns=None).
+    An empty columns list arises when a categorical bar chart has no groupby
+    dimensions: the frontend sends series_columns=[] which maps to columns=[]
+    in the backend pivot post-processor.  pandas.pivot_table raises on some
+    versions when columns=[], so we normalise [] to None first.
+    """
+    df_none = pivot(
+        df=categories_df,
+        index=["name"],
+        aggregates=AGGREGATES_SINGLE,
+    )
+    df_empty = pivot(
+        df=categories_df,
+        index=["name"],
+        aggregates=AGGREGATES_SINGLE,
+        columns=[],
+    )
+    assert df_empty.columns.tolist() == df_none.columns.tolist()
+    assert len(df_empty) == len(df_none)
+    assert df_empty["idx_nulls"].sum() == df_none["idx_nulls"].sum()
+
+
 def test_pivot_with_single_column():
     """
     Make sure pivot with single column returns correct DataFrame
