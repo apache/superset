@@ -228,6 +228,43 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
+httproute:
+  # Create an HTTPRoute (Gateway API) to expose Superset through a Gateway as an
+  # alternative to the ingress above. Requires the Gateway API CRDs and a Gateway
+  # controller to be installed in the cluster.
+  enabled: false
+  # HTTPRoute apiVersion. Override to gateway.networking.k8s.io/v1beta1 for older
+  # Gateway API installations.
+  apiVersion: gateway.networking.k8s.io/v1
+  # parentRefs reference the Gateway(s) this HTTPRoute is attached to. At least one
+  # parentRef is required for the route to take effect.
+  parentRefs: []
+  #  - name: my-gateway
+  #    namespace: gateway-system
+  #    sectionName: http
+  # hostnames matched against the HTTP Host header to select this route (templated).
+  hostnames: []
+  #  - superset.example.com
+  # matches define conditions used to match requests against the primary (Superset)
+  # backend rule. Defaults to a PathPrefix "/" match, mirroring the ingress above.
+  matches:
+    - path:
+        type: PathPrefix
+        value: /
+  # filters applied to the primary backend rule, e.g. request header modifiers.
+  filters: []
+  # timeouts applied to the primary backend rule (Gateway API HTTPRouteTimeouts),
+  # e.g. request and backendRequest durations. Omitted when empty.
+  timeouts: {}
+  #  request: 30s
+  #  backendRequest: 30s
+  # additionalRules (templated) are prepended before the generated backend rules.
+  additionalRules: []
+  # extra labels for the HTTPRoute resource.
+  labels: {}
+  # annotations for the HTTPRoute resource.
+  annotations: {}
+
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
   # choice for the user. This also increases chances charts run on environments with little
