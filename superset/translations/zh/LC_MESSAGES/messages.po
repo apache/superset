@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-04 18:39-0700\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen \n"
 "Language: zh\n"
@@ -27,7 +27,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1178,6 +1178,9 @@ msgstr "增加新的的颜色格式化器"
 msgid "Add new formatter"
 msgstr "新增格式化"
 
+msgid "Add numbered column"
+msgstr ""
+
 #, fuzzy
 msgid "Add or edit display controls"
 msgstr "范围过滤"
@@ -1724,7 +1727,7 @@ msgstr "获取结构信息时出错：%s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "获取可用的CSS模板时出错"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "获取结构信息时出错：%s"
 
@@ -1797,7 +1800,7 @@ msgstr "更新值时出错。"
 msgid "An error occurred while pruning logs "
 msgstr "精简日志时出错 "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "渲染可视化时发生错误：%s"
 
@@ -2100,6 +2103,9 @@ msgstr "确实要删除选定的图层吗？"
 
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "确实要删除选定的图层吗？"
+
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
 
 #, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
@@ -3842,6 +3848,9 @@ msgstr "连接失败，请检查您的连接配置"
 msgid "Connection failed, please check your connection settings."
 msgstr "连接失败，请检查您的连接配置"
 
+msgid "Connection looks good!"
+msgstr ""
+
 #, fuzzy
 msgid "Contains"
 msgstr "连续式"
@@ -3925,6 +3934,9 @@ msgstr "将分区查询复制到剪贴板"
 #, fuzzy
 msgid "Copy permalink to clipboard"
 msgstr "将查询链接复制到剪贴板"
+
+msgid "Copy query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "将查询链接复制到剪贴板"
@@ -4191,6 +4203,12 @@ msgstr "自定义SQL"
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "此数据集无法启用自定义SQL即席查询、"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+msgid "Custom SQL fields cannot contain set operations."
+msgstr ""
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr ""
@@ -5015,6 +5033,9 @@ msgstr "删除"
 msgid "Delete item"
 msgstr "删除模板"
 
+msgid "Delete query"
+msgstr ""
+
 #, fuzzy
 msgid "Delete role"
 msgstr "删除"
@@ -5672,6 +5693,10 @@ msgstr "激活邮件报告"
 msgid "ERROR"
 msgstr "错误"
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr "边长"
 
@@ -5768,6 +5793,9 @@ msgstr "编辑规则"
 
 msgid "Edit properties"
 msgstr "编辑属性"
+
+msgid "Edit query"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6400,6 +6428,9 @@ msgstr "图片发送失败，请刷新或重试"
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "报告失败"
+
+msgid "Export query"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8321,6 +8352,9 @@ msgstr "线段列"
 msgid "Lines encoding"
 msgstr "线段编码"
 
+msgid "Link Copied!"
+msgstr ""
+
 #, fuzzy
 msgid "List"
 msgstr "最后一个"
@@ -9389,7 +9423,7 @@ msgstr "没有发现这样的列。若要在度量值上筛选，请尝试自定
 msgid "No table columns"
 msgstr "没有列"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "还没有 %s"
 
@@ -9485,6 +9519,9 @@ msgstr "未定义"
 #, fuzzy
 msgid "Not equal to (≠)"
 msgstr "不等于（≠）"
+
+msgid "Not found"
+msgstr ""
 
 #, fuzzy
 msgid "Not in"
@@ -10533,6 +10570,12 @@ msgstr "过时"
 msgid "Proportional"
 msgstr "比例"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "已发布"
 
@@ -10802,9 +10845,6 @@ msgstr "预过滤"
 #, fuzzy
 msgid "Registration date"
 msgstr "开始时间"
-
-msgid "Registration hash"
-msgstr ""
 
 msgid "Registration successful"
 msgstr ""
@@ -11319,6 +11359,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL 工具箱"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 #, fuzzy
 msgid "SQL Lab queries"
@@ -14492,6 +14538,9 @@ msgstr "获取此看板的收藏夹状态时出现问题：%s。"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "获取此看板的收藏夹状态时出现问题：%s。"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "您的请求有错误"
@@ -14597,6 +14646,10 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "删除所选图层时出现问题：%s"
 
 #, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "删除所选模板时出现问题：%s"
 
@@ -14631,6 +14684,9 @@ msgstr "删除所选图表时出现问题：%s"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "删除所选看板时出现问题："
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -14914,6 +14970,9 @@ msgid ""
 "dashboard. It is dynamically generated when adjusting the widgets size "
 "and positions by using drag & drop in the dashboard view"
 msgstr "这个JSON对象描述了部件在看板中的位置。它是动态生成的，可以通过拖放，在看板中调整整部件的大小和位置"
+
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
 
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
@@ -15451,6 +15510,9 @@ msgstr "请输入值"
 msgid "Type is required"
 msgstr "类型是必需的"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr ""
 
@@ -15594,6 +15656,9 @@ msgstr "撤销这个动作"
 msgid "Undo?"
 msgstr "撤消？"
 
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+
 msgid "Unexpected error"
 msgstr "意外错误。"
 
@@ -15672,6 +15737,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
@@ -16499,6 +16567,9 @@ msgstr "是否显示X轴的最小值和最大值"
 
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "是否显示Y轴的最小值和最大值"
+
+msgid "Whether to display the numbered column"
+msgstr ""
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "是否在单元格内显示数值"
@@ -17922,6 +17993,9 @@ msgstr ""
 msgid "quarter"
 msgstr "季度"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "查询"
 
@@ -18182,4 +18256,7 @@ msgid ""
 msgstr ""
 
 msgid "© Layer attribution"
+msgstr ""
+
+msgid "№"
 msgstr ""

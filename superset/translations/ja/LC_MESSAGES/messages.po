@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-04 18:39-0700\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1153,6 +1153,9 @@ msgstr "新しいカラー形式を追加"
 msgid "Add new formatter"
 msgstr "新しい形式を追加"
 
+msgid "Add numbered column"
+msgstr ""
+
 msgid "Add or edit display controls"
 msgstr "表示コントロールを追加または編集"
 
@@ -1667,7 +1670,7 @@ msgstr "スキーマの値を取得中にエラーが発生しました: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "利用可能なテーマの取得中にエラーが発生しました"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "スキーマの値を取得中にエラーが発生しました: %s"
 
@@ -1735,7 +1738,7 @@ msgstr "キーの解析中にエラーが発生しました。"
 msgid "An error occurred while pruning logs "
 msgstr "ログの削除(プルーニング)中にエラーが発生しました "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "視覚化(ビジュアライゼーション)のレンダリング中にエラーが発生しました: %s"
 
@@ -2023,6 +2026,9 @@ msgstr "選択したグループを削除してもよろしいですか？"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "選択したレイヤーを削除してもよろしいですか？"
 
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "選択したロールを削除してもよろしいですか？"
 
@@ -2256,7 +2262,7 @@ msgstr "基本の指数"
 msgid "Base height"
 msgstr "基本の高さ"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "ベースレイヤーのマップスタイル。Mapboxのドキュメントを参照: %s"
 
@@ -3602,6 +3608,9 @@ msgstr "接続に失敗しました。接続設定を確認してください"
 msgid "Connection failed, please check your connection settings."
 msgstr "接続に失敗しました。接続設定を確認してください。"
 
+msgid "Connection looks good!"
+msgstr ""
+
 msgid "Contains"
 msgstr "含む"
 
@@ -3677,6 +3686,9 @@ msgstr "パーティションクエリをクリップボードにコピー"
 
 msgid "Copy permalink to clipboard"
 msgstr "固定リンクをクリップボードにコピー"
+
+msgid "Copy query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "クエリのリンクをクリップボードにコピー"
@@ -3915,6 +3927,12 @@ msgstr "カスタムSQL"
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "このデータセットではカスタムSQLアドホックメトリックが有効になっていません"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+msgid "Custom SQL fields cannot contain set operations."
+msgstr ""
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "カスタムSQLフィールドにサブクエリを含めることはできません。"
@@ -4674,6 +4692,9 @@ msgstr "グループを削除"
 msgid "Delete item"
 msgstr "項目を削除"
 
+msgid "Delete query"
+msgstr ""
+
 msgid "Delete role"
 msgstr "ロールを削除"
 
@@ -5280,6 +5301,10 @@ msgstr "メールレポートのCTA"
 msgid "ERROR"
 msgstr "エラー"
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr "エッジの長さ"
 
@@ -5368,6 +5393,9 @@ msgstr "グループを編集"
 
 msgid "Edit properties"
 msgstr "プロパティを編集"
+
+msgid "Edit query"
+msgstr ""
 
 msgid "Edit report"
 msgstr "レポートを編集"
@@ -5937,6 +5965,9 @@ msgstr "エクスポートに失敗しました。再試行してください"
 #, python-format
 msgid "Export failed: %s"
 msgstr "エクスポート失敗: %s"
+
+msgid "Export query"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr "スクリーンショットをエクスポート (JPEG)"
@@ -7680,6 +7711,9 @@ msgstr "線の列"
 msgid "Lines encoding"
 msgstr "線のエンコーディング"
 
+msgid "Link Copied!"
+msgstr ""
+
 msgid "List"
 msgstr "一覧"
 
@@ -8661,7 +8695,7 @@ msgstr "該当する列が見つかりません。メトリックでフィルタ
 msgid "No table columns"
 msgstr "テーブル列がありません"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "%s はまだありません"
 
@@ -8745,6 +8779,9 @@ msgstr "未定義"
 
 msgid "Not equal to (≠)"
 msgstr "等しくない (≠)"
+
+msgid "Not found"
+msgstr ""
 
 msgid "Not in"
 msgstr "次を含まない (Not in)"
@@ -9716,6 +9753,12 @@ msgstr "プロジェクトID"
 msgid "Proportional"
 msgstr "比例"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "公開済み"
 
@@ -9963,9 +10006,6 @@ msgstr "登録"
 
 msgid "Registration date"
 msgstr "登録日"
-
-msgid "Registration hash"
-msgstr "登録ハッシュ"
 
 msgid "Registration successful"
 msgstr "登録が完了しました"
@@ -10446,6 +10486,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 msgid "SQL Lab queries"
 msgstr "SQL Lab クエリ"
@@ -13390,6 +13436,9 @@ msgstr "お気に入り状態の取得中にエラーが発生しました: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "フィルタリングされたチャートおよびダッシュボードの取得中にエラーが発生しました:"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "ユーザーの読み込み中にエラーが発生しました。"
@@ -13487,6 +13536,10 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "選択したレイヤーの削除中に問題が発生しました: %s"
 
 #, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "選択したテンプレートの削除中に問題が発生しました: %s"
 
@@ -13519,6 +13572,9 @@ msgstr "選択したチャートのエクスポート中に問題が発生しま
 
 msgid "There was an issue exporting the selected dashboards"
 msgstr "選択したダッシュボードのエクスポート中に問題が発生しました"
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 msgid "There was an issue exporting the selected themes"
 msgstr "選択したテーマのエクスポート中に問題が発生しました"
@@ -13802,6 +13858,9 @@ msgid ""
 msgstr ""
 "この JSON "
 "オブジェクトは、ダッシュボード内のウィジェットの配置を記述します。ダッシュボード表示画面でドラッグ＆ドロップによりサイズや位置を調整すると自動生成されます"
+
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
 
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
@@ -14310,6 +14369,9 @@ msgstr "値を入力してください"
 msgid "Type is required"
 msgstr "種類は必須です"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr "スパークラインに表示するチャートの種類"
 
@@ -14458,6 +14520,9 @@ msgstr "操作を元に戻す"
 msgid "Undo?"
 msgstr "元に戻しますか？"
 
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+
 msgid "Unexpected error"
 msgstr "予期しないエラー"
 
@@ -14531,6 +14596,9 @@ msgid "Unpin from the result panel"
 msgstr "結果パネルにピン留め"
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
@@ -15298,6 +15366,9 @@ msgstr "X軸の最小値と最大値を表示するかどうか"
 
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Y軸の最小値と最大値を表示するかどうか"
+
+msgid "Whether to display the numbered column"
+msgstr ""
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "セル内の数値を表示するかどうか"
@@ -16622,6 +16693,9 @@ msgstr "認証が必要です"
 msgid "quarter"
 msgstr "四半期"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "クエリ"
 
@@ -16853,3 +16927,6 @@ msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© レイヤー帰属情報"
+
+msgid "№"
+msgstr ""

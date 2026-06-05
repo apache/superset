@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-04 18:39-0700\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1155,6 +1155,9 @@ msgstr ""
 msgid "Add new formatter"
 msgstr ""
 
+msgid "Add numbered column"
+msgstr ""
+
 #, fuzzy
 msgid "Add or edit display controls"
 msgstr "테이블 추가"
@@ -1720,7 +1723,7 @@ msgid ""
 "administrator."
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching the configuration schema"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
@@ -1774,7 +1777,7 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid "An error occurred while pruning logs "
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
@@ -2085,6 +2088,9 @@ msgid "Are you sure you want to delete the selected groups?"
 msgstr ""
 
 msgid "Are you sure you want to delete the selected layers?"
+msgstr ""
+
+msgid "Are you sure you want to delete the selected queries?"
 msgstr ""
 
 msgid "Are you sure you want to delete the selected roles?"
@@ -3784,6 +3790,9 @@ msgstr "연결하는데 실패했습니다. 커넥션 "
 msgid "Connection failed, please check your connection settings."
 msgstr "연결하는데 실패했습니다. 커넥션 "
 
+msgid "Connection looks good!"
+msgstr ""
+
 #, fuzzy
 msgid "Contains"
 msgstr "컬럼 추가"
@@ -3868,6 +3877,9 @@ msgstr ""
 #, fuzzy
 msgid "Copy permalink to clipboard"
 msgstr "클립보드에 복사하기"
+
+msgid "Copy query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "클립보드에 복사하기"
@@ -4129,6 +4141,12 @@ msgid "Custom SQL"
 msgstr ""
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
+msgstr ""
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+msgid "Custom SQL fields cannot contain set operations."
 msgstr ""
 
 msgid "Custom SQL fields cannot contain sub-queries."
@@ -4949,6 +4967,9 @@ msgstr "삭제"
 msgid "Delete item"
 msgstr "템플릿 불러오기"
 
+msgid "Delete query"
+msgstr ""
+
 #, fuzzy
 msgid "Delete role"
 msgstr "삭제"
@@ -5584,6 +5605,10 @@ msgstr ""
 msgid "ERROR"
 msgstr "%s 에러"
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr ""
 
@@ -5679,6 +5704,9 @@ msgid "Edit group"
 msgstr "Query 검색"
 
 msgid "Edit properties"
+msgstr ""
+
+msgid "Edit query"
 msgstr ""
 
 #, fuzzy
@@ -6301,6 +6329,9 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "테이블 명"
+
+msgid "Export query"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8168,6 +8199,9 @@ msgstr "컬럼 수정"
 msgid "Lines encoding"
 msgstr ""
 
+msgid "Link Copied!"
+msgstr ""
+
 #, fuzzy
 msgid "List"
 msgstr "구분자"
@@ -9309,6 +9343,9 @@ msgstr "수정됨"
 msgid "Not equal to (≠)"
 msgstr ""
 
+msgid "Not found"
+msgstr ""
+
 #, fuzzy
 msgid "Not in"
 msgstr "주석"
@@ -10333,6 +10370,12 @@ msgstr "생성자"
 msgid "Proportional"
 msgstr ""
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr ""
 
@@ -10610,9 +10653,6 @@ msgstr "필터"
 #, fuzzy
 msgid "Registration date"
 msgstr "시작 시간"
-
-msgid "Registration hash"
-msgstr ""
 
 msgid "Registration successful"
 msgstr ""
@@ -11114,6 +11154,12 @@ msgstr ""
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 #, fuzzy
 msgid "SQL Lab queries"
@@ -14232,6 +14278,9 @@ msgstr ""
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
@@ -14337,6 +14386,10 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr ""
 
 #, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr ""
 
@@ -14371,6 +14424,9 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -14641,6 +14697,9 @@ msgid ""
 "This json object describes the positioning of the widgets in the "
 "dashboard. It is dynamically generated when adjusting the widgets size "
 "and positions by using drag & drop in the dashboard view"
+msgstr ""
+
+msgid "This link cannot be followed because its address is unsafe."
 msgstr ""
 
 msgid ""
@@ -15180,6 +15239,9 @@ msgstr "원본 값"
 msgid "Type is required"
 msgstr ""
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr ""
 
@@ -15321,6 +15383,9 @@ msgstr "주석"
 msgid "Undo?"
 msgstr ""
 
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+
 msgid "Unexpected error"
 msgstr ""
 
@@ -15397,6 +15462,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
@@ -16197,6 +16265,9 @@ msgid "Whether to display the min and max values of the X-axis"
 msgstr ""
 
 msgid "Whether to display the min and max values of the Y-axis"
+msgstr ""
+
+msgid "Whether to display the numbered column"
 msgstr ""
 
 msgid "Whether to display the numerical values within the cells"
@@ -17558,6 +17629,9 @@ msgstr ""
 msgid "quarter"
 msgstr "분기"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "Query 공유"
 
@@ -17801,4 +17875,7 @@ msgid ""
 msgstr ""
 
 msgid "© Layer attribution"
+msgstr ""
+
+msgid "№"
 msgstr ""

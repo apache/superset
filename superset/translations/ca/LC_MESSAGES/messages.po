@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-04 18:39-0700\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -30,7 +30,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1250,6 +1250,9 @@ msgstr "Afegir nou formatador de color"
 msgid "Add new formatter"
 msgstr "Afegir nou formatador"
 
+msgid "Add numbered column"
+msgstr ""
+
 #, fuzzy
 msgid "Add or edit display controls"
 msgstr "Afegir o editar filtres"
@@ -1827,7 +1830,7 @@ msgstr "S'ha produït un error mentre es recuperaven els valors de l'esquema: %s
 msgid "An error occurred while fetching semantic layer types"
 msgstr "S'ha produït un error mentre es recuperaven les plantilles CSS disponibles"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "S'ha produït un error mentre es recuperaven els valors de l'esquema: %s"
 
@@ -1902,7 +1905,7 @@ msgstr "S'ha produït un error mentre s'analitzava la clau."
 msgid "An error occurred while pruning logs "
 msgstr "S'ha produït un error mentre es netejaven els registres "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "S'ha produït un error mentre es renderitzava la visualització: %s"
 
@@ -2211,6 +2214,9 @@ msgstr "Estàs segur que vols eliminar les regles seleccionades?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Estàs segur que vols eliminar les capes seleccionades?"
 
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Estàs segur que vols eliminar els rols seleccionats?"
 
@@ -2455,7 +2461,7 @@ msgstr "Exponent base"
 msgid "Base height"
 msgstr "Alçada base"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Estil de mapa de capa base. Consulta la documentació de Mapbox: %s"
 
@@ -3922,6 +3928,9 @@ msgstr "La connexió ha fallat, si us plau comprova la configuració de connexi�
 msgid "Connection failed, please check your connection settings."
 msgstr "La connexió ha fallat, si us plau comprova la configuració de connexió."
 
+msgid "Connection looks good!"
+msgstr ""
+
 #, fuzzy
 msgid "Contains"
 msgstr "Continu"
@@ -3999,6 +4008,9 @@ msgstr "Copiar consulta de partició al porta-retalls"
 
 msgid "Copy permalink to clipboard"
 msgstr "Copiar enllaç permanent al porta-retalls"
+
+msgid "Copy query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Copiar enllaç de consulta al teu porta-retalls"
@@ -4249,6 +4261,12 @@ msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr ""
 "Les mètriques SQL ad-hoc personalitzades no estan habilitades per a "
 "aquest conjunt de dades"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+msgid "Custom SQL fields cannot contain set operations."
+msgstr ""
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Els camps SQL personalitzats no poden contenir sub-consultes."
@@ -5081,6 +5099,9 @@ msgstr "Eliminar rol"
 msgid "Delete item"
 msgstr "Eliminar plantilla"
 
+msgid "Delete query"
+msgstr ""
+
 msgid "Delete role"
 msgstr "Eliminar rol"
 
@@ -5766,6 +5787,10 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "ERROR"
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr "Longitud de vora"
 
@@ -5857,6 +5882,9 @@ msgstr "Editar Regla"
 
 msgid "Edit properties"
 msgstr "Editar propietats"
+
+msgid "Edit query"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6468,6 +6496,9 @@ msgstr "La descàrrega PDF ha fallat, si us plau actualitza i torna-ho a provar.
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "L'informe ha fallat"
+
+msgid "Export query"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8334,6 +8365,9 @@ msgstr "Columna de línies"
 msgid "Lines encoding"
 msgstr "Codificació de línies"
 
+msgid "Link Copied!"
+msgstr ""
+
 #, fuzzy
 msgid "List"
 msgstr "Últim"
@@ -9369,7 +9403,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "Cap columna de taula"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Cap %s encara"
 
@@ -9460,6 +9494,9 @@ msgstr "No definit"
 
 msgid "Not equal to (≠)"
 msgstr "No igual a (≠)"
+
+msgid "Not found"
+msgstr ""
 
 msgid "Not in"
 msgstr "No en"
@@ -10526,6 +10563,12 @@ msgstr "ID del Projecte"
 msgid "Proportional"
 msgstr "Proporcional"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Publicat"
 
@@ -10787,9 +10830,6 @@ msgstr "Pre-filtre"
 #, fuzzy
 msgid "Registration date"
 msgstr "Data d'inici"
-
-msgid "Registration hash"
-msgstr ""
 
 msgid "Registration successful"
 msgstr ""
@@ -11295,6 +11335,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 msgid "SQL Lab queries"
 msgstr "Consultes del SQL Lab"
@@ -14579,6 +14625,9 @@ msgstr "Hi ha hagut un error obtenint l'estat de favorit: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Hi ha hagut un error obtenint els gràfics i dashboards filtrats:"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Hi ha hagut un error carregant les taules"
@@ -14681,6 +14730,10 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "Hi ha hagut un problema eliminant les capes seleccionades: %s"
 
 #, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "Hi ha hagut un problema eliminant les plantilles seleccionades: %s"
 
@@ -14715,6 +14768,9 @@ msgstr "Hi ha hagut un problema eliminant els gràfics seleccionats: %s"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Hi ha hagut un problema eliminant els dashboards seleccionats: "
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -15047,6 +15103,9 @@ msgstr ""
 "Aquest objecte json descriu el posicionament dels widgets al dashboard. "
 "Es genera dinàmicament quan s'ajusta la mida dels widgets i posicions "
 "usant arrossegar i deixar anar a la vista del dashboard"
+
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
 
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
@@ -15597,6 +15656,9 @@ msgstr "Escriu un valor"
 msgid "Type is required"
 msgstr "El tipus és obligatori"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr ""
 
@@ -15760,6 +15822,9 @@ msgstr "Desfer l'acció"
 msgid "Undo?"
 msgstr "Desfer?"
 
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+
 msgid "Unexpected error"
 msgstr "Error inesperat"
 
@@ -15836,6 +15901,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
@@ -16697,6 +16765,9 @@ msgstr "Si mostrar els valors mínims i màxims de l'eix X"
 
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Si mostrar els valors mínims i màxims de l'eix Y"
+
+msgid "Whether to display the numbered column"
+msgstr ""
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Si mostrar els valors numèrics dins les cel·les"
@@ -18096,6 +18167,9 @@ msgstr "Autorització necessària"
 msgid "quarter"
 msgstr "trimestre"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "consulta"
 
@@ -18333,3 +18407,6 @@ msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© Atribució de capa"
+
+msgid "№"
+msgstr ""

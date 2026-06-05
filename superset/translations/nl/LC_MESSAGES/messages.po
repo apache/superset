@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-04 18:39-0700\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -22,7 +22,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1216,6 +1216,9 @@ msgstr "Voeg nieuwe kleur formatter toe"
 msgid "Add new formatter"
 msgstr "Nieuwe formatter toevoegen"
 
+msgid "Add numbered column"
+msgstr ""
+
 #, fuzzy
 msgid "Add or edit display controls"
 msgstr "Filters toevoegen en bewerken"
@@ -1799,7 +1802,7 @@ msgstr ""
 "Er is een fout opgetreden tijdens het ophalen van beschikbare CSS "
 "templates"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Er is een fout opgetreden tijdens het ophalen van schemawaarden: %s"
 
@@ -1880,7 +1883,7 @@ msgstr "Er is een fout opgetreden tijdens het parsen van de sleutel."
 msgid "An error occurred while pruning logs "
 msgstr "Er is een fout opgetreden tijdens opschonen van de logbestanden "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Er is een fout opgetreden bij het renderen van de visualisatie: %s"
 
@@ -2190,6 +2193,9 @@ msgstr "Weet u zeker dat u de geselecteerde regels wilt verwijderen?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Weet je zeker dat je de geselecteerde lagen wilt verwijderen?"
 
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
+
 #, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Weet u zeker dat u de geselecteerde regels wilt verwijderen?"
@@ -2443,7 +2449,7 @@ msgstr "Database poort"
 msgid "Base height"
 msgstr "Grafiek hoogte"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Basislaag kaartstijl. Zie Mapbox documentatie: %s"
 
@@ -3939,6 +3945,9 @@ msgstr "Verbinding mislukt, controleer uw verbindingsinstellingen"
 msgid "Connection failed, please check your connection settings."
 msgstr "Verbinding mislukt, controleer uw verbindingsinstellingen"
 
+msgid "Connection looks good!"
+msgstr ""
+
 #, fuzzy
 msgid "Contains"
 msgstr "Doorlopend"
@@ -4018,6 +4027,9 @@ msgstr "Kopieer partitie query naar klembord"
 
 msgid "Copy permalink to clipboard"
 msgstr "Kopieer permalink naar klembord"
+
+msgid "Copy query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Kopieer query link naar uw klembord"
@@ -4272,6 +4284,12 @@ msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr ""
 "Aangepaste SQL ad hoc statistieken zijn niet ingeschakeld voor deze "
 "dataset"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+msgid "Custom SQL fields cannot contain set operations."
+msgstr ""
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Aangepaste SQL velden mogen geen sub-query's bevatten."
@@ -5124,6 +5142,9 @@ msgstr "verwijder"
 msgid "Delete item"
 msgstr "Verwijder template"
 
+msgid "Delete query"
+msgstr ""
+
 #, fuzzy
 msgid "Delete role"
 msgstr "verwijder"
@@ -5810,6 +5831,10 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "FOUT"
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr "Rand lengte"
 
@@ -5903,6 +5928,9 @@ msgstr "Bewerk Regel"
 
 msgid "Edit properties"
 msgstr "Eigenschappen bewerken"
+
+msgid "Edit query"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6531,6 +6559,9 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "Rapport mislukt"
+
+msgid "Export query"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8431,6 +8462,9 @@ msgstr "Lijnen kolom"
 msgid "Lines encoding"
 msgstr "Lijnen codering"
 
+msgid "Link Copied!"
+msgstr ""
+
 #, fuzzy
 msgid "List"
 msgstr "Laatste"
@@ -9474,7 +9508,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "Geen tabelkolommen"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Nog geen %s"
 
@@ -9566,6 +9600,9 @@ msgstr "Niet gedefinieerd"
 
 msgid "Not equal to (≠)"
 msgstr "Niet gelijk aan (≠)"
+
+msgid "Not found"
+msgstr ""
 
 msgid "Not in"
 msgstr "Niet in"
@@ -10637,6 +10674,12 @@ msgstr "Verouderd"
 msgid "Proportional"
 msgstr "Proportioneel"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Gepubliceerd"
 
@@ -10900,9 +10943,6 @@ msgstr "Vooraf-filter"
 #, fuzzy
 msgid "Registration date"
 msgstr "Start datum"
-
-msgid "Registration hash"
-msgstr ""
 
 msgid "Registration successful"
 msgstr ""
@@ -11420,6 +11460,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL-lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 #, fuzzy
 msgid "SQL Lab queries"
@@ -14711,6 +14757,9 @@ msgstr "Er is een fout opgetreden bij het ophalen van de favoriete status: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Er is een fout opgetreden bij het ophalen van de favoriete status: %s"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Er is een fout opgetreden bij het laden van de tabellen"
@@ -14817,6 +14866,10 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "Er was een probleem met het verwijderen van de geselecteerde lagen: %s"
 
 #, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "Er was een probleem met het verwijderen van de geselecteerde templates: %s"
 
@@ -14851,6 +14904,9 @@ msgstr "Er was een probleem met het verwijderen van de geselecteerde grafieken: 
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Er was een probleem met het verwijderen van de geselecteerde dashboards: "
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -15186,6 +15242,9 @@ msgstr ""
 "dashboard. Het wordt dynamisch gegenereerd bij het aanpassen van de "
 "grootte en positie van widgets door te slepen en neer te zetten in de "
 "dashboard weergave"
+
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
 
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
@@ -15730,6 +15789,9 @@ msgstr "Voer een waarde in"
 msgid "Type is required"
 msgstr "Type is vereist"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr ""
 
@@ -15896,6 +15958,9 @@ msgstr "Actie ongedaan maken"
 msgid "Undo?"
 msgstr "Ongedaan maken?"
 
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+
 msgid "Unexpected error"
 msgstr "Onverwachte fout"
 
@@ -15973,6 +16038,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
@@ -16879,6 +16947,9 @@ msgstr "Of de min en max waarden van de X-as getoond moeten worden"
 
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Of de min en max waarden van de Y-as getoond moeten worden"
+
+msgid "Whether to display the numbered column"
+msgstr ""
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Of de numerieke waarden binnen de cellen moeten worden weergegeven"
@@ -18301,6 +18372,9 @@ msgstr ""
 msgid "quarter"
 msgstr "kwartaal"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "query"
 
@@ -18542,4 +18616,7 @@ msgid ""
 msgstr ""
 
 msgid "© Layer attribution"
+msgstr ""
+
+msgid "№"
 msgstr ""

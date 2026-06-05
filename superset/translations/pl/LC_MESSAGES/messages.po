@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-04 18:39-0700\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1266,6 +1266,9 @@ msgstr "Dodaj nowy formater kolorów"
 msgid "Add new formatter"
 msgstr "Dodaj nowy formater"
 
+msgid "Add numbered column"
+msgstr ""
+
 #, fuzzy
 msgid "Add or edit display controls"
 msgstr "Dodaj i edytuj filtry"
@@ -1854,7 +1857,7 @@ msgstr "Wystąpił błąd podczas usuwania wartości."
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Wystąpił błąd podczas pobierania dostępnych szablonów CSS."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Wystąpił błąd podczas usuwania wartości."
 
@@ -1928,7 +1931,7 @@ msgstr "Wystąpił błąd podczas analizowania klucza."
 msgid "An error occurred while pruning logs "
 msgstr "Wystąpił błąd podczas czyszczenia dzienników."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Wystąpił błąd podczas usuwania wartości."
 
@@ -2239,6 +2242,9 @@ msgstr "Czy na pewno chcesz usunąć wybrane reguły?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Czy na pewno chcesz usunąć wybrane warstwy?"
 
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
+
 #, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Czy na pewno chcesz usunąć wybrane reguły?"
@@ -2490,7 +2496,7 @@ msgstr "Port bazy danych"
 msgid "Base height"
 msgstr "Wysokość wykresu"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Styl mapy warstwy podstawowej. Zobacz dokumentację Mapbox: %s"
 
@@ -4008,6 +4014,9 @@ msgstr "Połączenie nie powiodło się, sprawdź ustawienia połączenia"
 msgid "Connection failed, please check your connection settings."
 msgstr "Połączenie nie powiodło się, sprawdź ustawienia połączenia."
 
+msgid "Connection looks good!"
+msgstr ""
+
 #, fuzzy
 msgid "Contains"
 msgstr "Ciągły"
@@ -4091,6 +4100,9 @@ msgstr "Skopiuj zapytanie partycji do schowka"
 
 msgid "Copy permalink to clipboard"
 msgstr "Skopiuj stały link do schowka"
+
+msgid "Copy query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Skopiuj link do zapytania do schowka"
@@ -4366,6 +4378,12 @@ msgstr "Niestandardowy SQL"
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Niestandardowe metryki SQL ad-hoc nie są włączone dla tego zestawu danych"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+msgid "Custom SQL fields cannot contain set operations."
+msgstr ""
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Pola niestandardowego SQL nie mogą zawierać podzapytań."
@@ -5247,6 +5265,9 @@ msgstr "usuń"
 msgid "Delete item"
 msgstr "Usuń szablon"
 
+msgid "Delete query"
+msgstr ""
+
 #, fuzzy
 msgid "Delete role"
 msgstr "usuń"
@@ -5962,6 +5983,10 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "BŁĄD"
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr "Długość krawędzi"
 
@@ -6060,6 +6085,9 @@ msgstr "Edytuj regułę"
 
 msgid "Edit properties"
 msgstr "Edytuj właściwości"
+
+msgid "Edit query"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6711,6 +6739,9 @@ msgstr "Pobieranie obrazu nie powiodło się, odśwież i spróbuj ponownie."
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "Raport nie powiódł się"
+
+msgid "Export query"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8667,6 +8698,9 @@ msgstr "Kolumna linii"
 msgid "Lines encoding"
 msgstr "Kodowanie linii"
 
+msgid "Link Copied!"
+msgstr ""
+
 #, fuzzy
 msgid "List"
 msgstr "Ostatni"
@@ -9732,7 +9766,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "Brak kolumn tabeli"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Jeszcze brak %s"
 
@@ -9824,6 +9858,9 @@ msgstr "Nie zdefiniowano"
 
 msgid "Not equal to (≠)"
 msgstr "Nie równe (≠)"
+
+msgid "Not found"
+msgstr ""
 
 msgid "Not in"
 msgstr "Nie w"
@@ -10931,6 +10968,12 @@ msgstr "Przestarzałe"
 msgid "Proportional"
 msgstr "Proporcjonalny"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Opublikowany"
 
@@ -11214,9 +11257,6 @@ msgstr "Filtr wstępny"
 #, fuzzy
 msgid "Registration date"
 msgstr "Data rozpoczęcia"
-
-msgid "Registration hash"
-msgstr ""
 
 msgid "Registration successful"
 msgstr ""
@@ -11764,6 +11804,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 #, fuzzy
 msgid "SQL Lab queries"
@@ -15208,6 +15254,9 @@ msgstr "Wystąpił błąd podczas pobierania statusu ulubionych: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Wystąpił błąd podczas pobierania filtrowanych wykresów i paneli:"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Wystąpił błąd podczas ładowania tabel."
@@ -15319,6 +15368,10 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "Wystąpił problem podczas usuwania wybranych warstw: %s"
 
 #, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "Wystąpił problem podczas usuwania wybranych szablonów: %s"
 
@@ -15353,6 +15406,9 @@ msgstr "Wystąpił problem podczas usuwania wybranych wykresów: %s"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Wystąpił problem podczas usuwania wybranych paneli:"
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -15691,6 +15747,9 @@ msgstr ""
 "Ten obiekt JSON opisuje rozmieszczenie widżetów w pulpicie. Jest "
 "generowany dynamicznie podczas zmiany rozmiaru i pozycji widżetów za "
 "pomocą metody przeciągnij i upuść w widoku pulpitu."
+
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
 
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
@@ -16276,6 +16335,9 @@ msgstr "Wpisz wartość"
 msgid "Type is required"
 msgstr "Typ jest wymagany"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr ""
 
@@ -16439,6 +16501,9 @@ msgstr "Cofnij akcję"
 msgid "Undo?"
 msgstr "Cofnąć?"
 
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+
 msgid "Unexpected error"
 msgstr "Nieoczekiwany błąd"
 
@@ -16519,6 +16584,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
@@ -17439,6 +17507,9 @@ msgstr "Czy wyświetlać minimalne i maksymalne wartości osi X"
 
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Czy wyświetlać minimalne i maksymalne wartości osi Y"
+
+msgid "Whether to display the numbered column"
+msgstr ""
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Czy wyświetlać wartości liczbowe w komórkach"
@@ -18930,6 +19001,9 @@ msgstr "Wymagana autoryzacja"
 msgid "quarter"
 msgstr "kwartał"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "zapytanie"
 
@@ -19198,4 +19272,7 @@ msgid ""
 msgstr ""
 
 msgid "© Layer attribution"
+msgstr ""
+
+msgid "№"
 msgstr ""

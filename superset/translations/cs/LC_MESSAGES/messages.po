@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-04 18:39-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -28,7 +28,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1254,6 +1254,9 @@ msgstr "Přidat nový formátovač barev"
 msgid "Add new formatter"
 msgstr "Přidat nový formátovač"
 
+msgid "Add numbered column"
+msgstr ""
+
 #, fuzzy
 msgid "Add or edit display controls"
 msgstr "Přidat nebo upravit ovládací prvky zobrazení"
@@ -1814,7 +1817,7 @@ msgstr "Při načítání hodnot schématu došlo k chybě: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Při načítání dostupných témat došlo k chybě"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Při načítání hodnot schématu došlo k chybě: %s"
 
@@ -1887,7 +1890,7 @@ msgstr "Při parsování klíče došlo k chybě."
 msgid "An error occurred while pruning logs "
 msgstr "Při promazávání protokolů došlo k chybě "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Při vykreslování vizualizace došlo k chybě: %s"
 
@@ -2198,6 +2201,9 @@ msgstr "Opravdu chcete smazat vybrané skupiny?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Opravdu chcete smazat vybrané vrstvy?"
 
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Opravdu chcete smazat vybrané role?"
 
@@ -2447,7 +2453,7 @@ msgstr "Exponent základu"
 msgid "Base height"
 msgstr "Výška základu"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Styl mapy základní vrstvy. Viz dokumentaci Mapbox: %s"
 
@@ -3900,6 +3906,9 @@ msgstr "Připojení selhalo, zkontrolujte prosím nastavení připojení"
 msgid "Connection failed, please check your connection settings."
 msgstr "Připojení selhalo, zkontrolujte prosím nastavení připojení."
 
+msgid "Connection looks good!"
+msgstr ""
+
 #, fuzzy
 msgid "Contains"
 msgstr "Obsahuje"
@@ -3977,6 +3986,9 @@ msgstr "Kopírovat dotaz oddílu do schránky"
 
 msgid "Copy permalink to clipboard"
 msgstr "Kopírovat trvalý odkaz do schránky"
+
+msgid "Copy query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Kopírovat odkaz na dotaz do schránky"
@@ -4226,6 +4238,12 @@ msgstr "Vlastní SQL"
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Vlastní SQL ad-hoc metriky nejsou pro tuto sadu dat povoleny"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+msgid "Custom SQL fields cannot contain set operations."
+msgstr ""
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Vlastní pole SQL nemohou obsahovat poddotazy."
@@ -5063,6 +5081,9 @@ msgstr "Smazat skupinu"
 msgid "Delete item"
 msgstr "Smazat položku"
 
+msgid "Delete query"
+msgstr ""
+
 msgid "Delete role"
 msgstr "Smazat roli"
 
@@ -5759,6 +5780,10 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "CHYBA"
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr "Délka hrany"
 
@@ -5851,6 +5876,9 @@ msgstr "Upravit skupinu"
 
 msgid "Edit properties"
 msgstr "Upravit vlastnosti"
+
+msgid "Edit query"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6458,6 +6486,9 @@ msgstr "Export selhal - prosím zkuste to znovu"
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "Export selhal: %s"
+
+msgid "Export query"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr "Exportovat screenshot (jpeg)"
@@ -8325,6 +8356,9 @@ msgstr "Sloupec spojnic"
 msgid "Lines encoding"
 msgstr "Kódování spojnic"
 
+msgid "Link Copied!"
+msgstr ""
+
 #, fuzzy
 msgid "List"
 msgstr "Seznam"
@@ -9357,7 +9391,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "Žádné sloupce tabulky"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Zatím žádné %s"
 
@@ -9445,6 +9479,9 @@ msgstr "Nedefinováno"
 
 msgid "Not equal to (≠)"
 msgstr "Nerovná se (≠)"
+
+msgid "Not found"
+msgstr ""
 
 msgid "Not in"
 msgstr "Není v"
@@ -10500,6 +10537,12 @@ msgstr "ID projektu"
 msgid "Proportional"
 msgstr "Proporcionální"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Zveřejněno"
 
@@ -10759,9 +10802,6 @@ msgstr "Registrovat"
 #, fuzzy
 msgid "Registration date"
 msgstr "Datum registrace"
-
-msgid "Registration hash"
-msgstr "Hash registrace"
 
 msgid "Registration successful"
 msgstr "Registrace úspěšná"
@@ -11268,6 +11308,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 msgid "SQL Lab queries"
 msgstr "Dotazy SQL Labu"
@@ -14509,6 +14555,9 @@ msgstr "Při načítání stavu oblíbenosti došlo k chybě: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Při načítání filtrovaných grafů a nástěnek došlo k chybě:"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Při načítání uživatelů došlo k chybě."
@@ -14611,6 +14660,10 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "Při mazání vybraných vrstev došlo k problému: %s"
 
 #, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "Při mazání vybraných šablon došlo k problému: %s"
 
@@ -14645,6 +14698,9 @@ msgstr "Při exportu vybraných grafů došlo k problému: %s"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Při exportu vybraných nástěnek došlo k problému."
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -14976,6 +15032,9 @@ msgstr ""
 "Tento objekt JSON popisuje umístění widgetů v nástěnce. Je generován "
 "dynamicky při úpravě velikosti a pozic widgetů pomocí přetahování v "
 "zobrazení nástěnky"
+
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
 
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
@@ -15524,6 +15583,9 @@ msgstr "Napište hodnotu"
 msgid "Type is required"
 msgstr "Typ je povinný"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr "Typ grafu pro zobrazení ve sparkline"
 
@@ -15687,6 +15749,9 @@ msgstr "Vrátit akci zpět"
 msgid "Undo?"
 msgstr "Zpět?"
 
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+
 msgid "Unexpected error"
 msgstr "Neočekávaná chyba"
 
@@ -15764,6 +15829,9 @@ msgid "Unpin from the result panel"
 msgstr "Připnout k panelu výsledků"
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
@@ -16644,6 +16712,9 @@ msgstr "Zda zobrazit minimální a maximální hodnoty osy X"
 
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Zda zobrazit minimální a maximální hodnoty osy Y"
+
+msgid "Whether to display the numbered column"
+msgstr ""
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Zda zobrazit číselné hodnoty v buňkách"
@@ -18037,6 +18108,9 @@ msgstr "Vyžadováno oprávnění"
 msgid "quarter"
 msgstr "čtvrtletí"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "dotaz"
 
@@ -18274,3 +18348,6 @@ msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© Atribuce vrstvy"
+
+msgid "№"
+msgstr ""

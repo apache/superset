@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-04 18:39-0700\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -31,7 +31,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1248,6 +1248,9 @@ msgstr "Pievienot jaunu krāsu formatētāju"
 msgid "Add new formatter"
 msgstr "Pievienot jaunu formatētāju"
 
+msgid "Add numbered column"
+msgstr ""
+
 msgid "Add or edit display controls"
 msgstr "Pievienot vai rediģēt displeja vadības elementus"
 
@@ -1794,7 +1797,7 @@ msgstr "Radās kļūda, iegūstot shēmu vērtības: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Radās kļūda, lejupielādējot pieejamos motīvus"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Radās kļūda, iegūstot shēmu vērtības: %s"
 
@@ -1864,7 +1867,7 @@ msgstr "Radās kļūda, apstrādājot atslēgu."
 msgid "An error occurred while pruning logs "
 msgstr "Radās kļūda, tīrot žurnālus "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Radās kļūda, attēlojot vizualizāciju: %s"
 
@@ -2171,6 +2174,9 @@ msgstr "Vai tiešām vēlaties dzēst atlasītās grupas?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Vai tiešām vēlaties dzēst izvēlētos slāņus?"
 
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Vai tiešām vēlaties dzēst izvēlētās lomas?"
 
@@ -2417,7 +2423,7 @@ msgstr "Bāzes eksponents"
 msgid "Base height"
 msgstr "Bāzes augstums"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Pamata slāņa kartes stils. Skatīt Mapbox dokumentāciju: %s"
 
@@ -3851,6 +3857,9 @@ msgstr "Savienojums neizdevās, lūdzu, pārbaudiet savienojuma iestatījumus"
 msgid "Connection failed, please check your connection settings."
 msgstr "Savienojums neizdevās, lūdzu, pārbaudiet savienojuma iestatījumus."
 
+msgid "Connection looks good!"
+msgstr ""
+
 msgid "Contains"
 msgstr "Satur"
 
@@ -3926,6 +3935,9 @@ msgstr "Kopēt partīcijas vaicājumu starpliktuvē"
 
 msgid "Copy permalink to clipboard"
 msgstr "Kopēt pastāvīgo saiti starpliktuvē"
+
+msgid "Copy query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Kopēt vaicājuma saiti starpliktuvē"
@@ -4169,6 +4181,12 @@ msgstr "Pielāgots SQL"
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Pielāgoti SQL ad-hoc rādītāji nav iespējoti šai datu kopai"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+msgid "Custom SQL fields cannot contain set operations."
+msgstr ""
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Pielāgotie SQL lauki nevar saturēt apakšvaicājumus."
@@ -4983,6 +5001,9 @@ msgstr "Dzēst grupu"
 msgid "Delete item"
 msgstr "Dzēst objektu"
 
+msgid "Delete query"
+msgstr ""
+
 msgid "Delete role"
 msgstr "Dzēst lomu"
 
@@ -5656,6 +5677,10 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "KĻŪDA"
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr "Malas garums"
 
@@ -5744,6 +5769,9 @@ msgstr "Rediģēt grupu"
 
 msgid "Edit properties"
 msgstr "Rediģēt rekvizītus"
+
+msgid "Edit query"
+msgstr ""
 
 msgid "Edit report"
 msgstr "Rediģēt ziņojumu"
@@ -6321,6 +6349,9 @@ msgstr "Eksports neizdevās – lūdzu, mēģiniet vēlreiz"
 #, python-format
 msgid "Export failed: %s"
 msgstr "Eksports neizdevās: %s"
+
+msgid "Export query"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr "Eksportēt ekrānuzņēmumu (jpeg)"
@@ -8138,6 +8169,9 @@ msgstr "Līniju kolonna"
 msgid "Lines encoding"
 msgstr "Līniju kodējums"
 
+msgid "Link Copied!"
+msgstr ""
+
 msgid "List"
 msgstr "Saraksts"
 
@@ -9148,7 +9182,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "Nav tabulas kolonnu"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Pagaidām nav %s"
 
@@ -9234,6 +9268,9 @@ msgstr "Nav definēts"
 
 msgid "Not equal to (≠)"
 msgstr "Nav vienāds ar (≠)"
+
+msgid "Not found"
+msgstr ""
 
 msgid "Not in"
 msgstr "Neietilpst"
@@ -10270,6 +10307,12 @@ msgstr "Projekta ID"
 msgid "Proportional"
 msgstr "Proporcionāls"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Publicēts"
 
@@ -10519,9 +10562,6 @@ msgstr "Reģistrēties"
 
 msgid "Registration date"
 msgstr "Reģistrācijas datums"
-
-msgid "Registration hash"
-msgstr "Reģistrācijas hash"
 
 #, fuzzy
 msgid "Registration successful"
@@ -11019,6 +11059,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL laboratorija"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 msgid "SQL Lab queries"
 msgstr "SQL laboratorijas vaicājumi"
@@ -14200,6 +14246,9 @@ msgstr "Ielādējot favorīta statusu, radās kļūda: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Ielādējot filtrētās diagrammas un paneļus, radās kļūda:"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Notika kļūda, ielādējot lietotājus."
@@ -14297,6 +14346,10 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "Dzēšot atlasītos slāņus, radās problēma: %s"
 
 #, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "Dzēšot atlasītās veidnes, radās problēma: %s"
 
@@ -14329,6 +14382,9 @@ msgstr "Radās problēma, eksportējot atlasītās diagrammas"
 
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Radās problēma, eksportējot izvēlētos informācijas paneļus"
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 msgid "There was an issue exporting the selected themes"
 msgstr "Radās problēma ar izvēlēto motīvu eksportēšanu"
@@ -14648,6 +14704,9 @@ msgstr ""
 "Šis JSON objekts apraksta logrīku pozicionēšanu panelī. Tas tiek "
 "dinamiski ģenerēts, pielāgojot logrīku izmērus un pozīcijas, izmantojot "
 "vilkšanu un nomešanu paneļa skatā"
+
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
 
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
@@ -15189,6 +15248,9 @@ msgstr "Ierakstiet vērtību"
 msgid "Type is required"
 msgstr "Veids ir obligāts"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr "Diagrammas veids, kas jāparāda sparkline"
 
@@ -15352,6 +15414,9 @@ msgstr "Atsaukt darbību"
 msgid "Undo?"
 msgstr "Atsaukt?"
 
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+
 msgid "Unexpected error"
 msgstr "Neparedzēta kļūda"
 
@@ -15425,6 +15490,9 @@ msgid "Unpin from the result panel"
 msgstr "Piespraust rezultātu panelī"
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
@@ -16290,6 +16358,9 @@ msgstr "Vai rādīt X ass minimālās un maksimālās vērtības"
 
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Vai rādīt Y ass minimālās un maksimālās vērtības"
+
+msgid "Whether to display the numbered column"
+msgstr ""
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Vai rādīt skaitliskās vērtības šūnās"
@@ -17662,6 +17733,9 @@ msgstr "Nepieciešama autorizācija"
 msgid "quarter"
 msgstr "ceturksnis"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "vaicājums"
 
@@ -17896,3 +17970,6 @@ msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© Slāņa attiecinājums"
+
+msgid "№"
+msgstr ""

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-04 18:39-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1269,6 +1269,9 @@ msgstr "Añadir nuevo formateador de color"
 msgid "Add new formatter"
 msgstr "Añadir nuevo formateador"
 
+msgid "Add numbered column"
+msgstr ""
+
 #, fuzzy
 msgid "Add or edit display controls"
 msgstr "Añadir o editar filtros"
@@ -1850,7 +1853,7 @@ msgstr "Se ha producido un error al recuperar los valores del esquema: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Se ha producido un error al recuperar las plantillas CSS disponibles"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Se ha producido un error al recuperar los valores del esquema: %s"
 
@@ -1925,7 +1928,7 @@ msgstr "Se ha producido un error al analizar la clave."
 msgid "An error occurred while pruning logs "
 msgstr "Se ha producido un error al depurar los registros "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Se ha producido un error al renderizar la visualización: %s"
 
@@ -2247,6 +2250,9 @@ msgstr "¿Seguro que quieres eliminar las reglas seleccionadas?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "¿Seguro que quieres eliminar las capas seleccionadas?"
 
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "¿Seguro que quieres eliminar los roles seleccionados?"
 
@@ -2512,7 +2518,7 @@ msgstr "Exponente de la base"
 msgid "Base height"
 msgstr "Altura de la base"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Estilo del mapa de la capa base. Consulta la documentación de Mapbox: %s"
 
@@ -4054,6 +4060,9 @@ msgstr "La conexión ha fallado; revisa tu configuración"
 msgid "Connection failed, please check your connection settings."
 msgstr "La conexión ha fallado; revisa la configuración de tu conexión"
 
+msgid "Connection looks good!"
+msgstr ""
+
 #, fuzzy
 msgid "Contains"
 msgstr "Continuo"
@@ -4131,6 +4140,9 @@ msgstr "Copiar consulta de partición al portapapeles"
 
 msgid "Copy permalink to clipboard"
 msgstr "Copiar enlace permanente al portapapeles"
+
+msgid "Copy query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Copiar el enlace de la consulta al portapapeles"
@@ -4382,6 +4394,12 @@ msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr ""
 "Las métricas «ad hoc» SQL personalizadas no están habilitadas para este "
 "conjunto de datos"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+msgid "Custom SQL fields cannot contain set operations."
+msgstr ""
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Los campos SQL personalizados no pueden contener subconsultas."
@@ -5262,6 +5280,9 @@ msgstr "Eliminar rol"
 msgid "Delete item"
 msgstr "Eliminar plantilla"
 
+msgid "Delete query"
+msgstr ""
+
 msgid "Delete role"
 msgstr "Eliminar rol"
 
@@ -5969,6 +5990,10 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "ERROR"
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr "Longitud del borde"
 
@@ -6061,6 +6086,9 @@ msgstr "Editar regla"
 
 msgid "Edit properties"
 msgstr "Editar propiedades"
+
+msgid "Edit query"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6696,6 +6724,9 @@ msgstr "La descarga del PDF ha fallado; actualiza e inténtalo de nuevo."
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "El informe ha fallado"
+
+msgid "Export query"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
@@ -8663,6 +8694,9 @@ msgstr "Columna de líneas"
 msgid "Lines encoding"
 msgstr "Codificación de líneas"
 
+msgid "Link Copied!"
+msgstr ""
+
 #, fuzzy
 msgid "List"
 msgstr "Último"
@@ -9727,7 +9761,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "No hay columnas de la tabla"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Todavía no hay %s"
 
@@ -9818,6 +9852,9 @@ msgstr "Sin definir"
 
 msgid "Not equal to (≠)"
 msgstr "No es igual a (≠)"
+
+msgid "Not found"
+msgstr ""
 
 msgid "Not in"
 msgstr "No está en"
@@ -10907,6 +10944,12 @@ msgstr "ID del proyecto"
 msgid "Proportional"
 msgstr "Proporcional"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Publicado"
 
@@ -11169,11 +11212,6 @@ msgstr "Filtro previo"
 #, fuzzy
 msgid "Registration date"
 msgstr "Fecha de inicio"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
-#, fuzzy
-msgid "Registration hash"
-msgstr "Hash de registro"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
@@ -11705,6 +11743,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 msgid "SQL Lab queries"
 msgstr "Consultas de SQL Lab"
@@ -15142,6 +15186,9 @@ msgstr "Se ha producido un error al recuperar el estado de favorito: %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Se ha producido un error al recuperar los gráficos y paneles filtrados:"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Se ha producido un error al cargar las tablas"
@@ -15246,6 +15293,10 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "Ha habido un problema al eliminar las capas seleccionadas: %s"
 
 #, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "Ha habido un problema al eliminar las plantillas seleccionadas: %s"
 
@@ -15280,6 +15331,9 @@ msgstr "Ha habido un problema al eliminar los gráficos seleccionados: %s"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Ha habido un problema al eliminar los paneles seleccionados: "
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -15649,6 +15703,9 @@ msgstr ""
 " de control. Se genera dinámicamente al ajustar el tamaño y las "
 "posiciones de los «widgets» arrastrando y soltando en la vista del panel "
 "de control."
+
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
 
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
@@ -16219,6 +16276,9 @@ msgstr "Introduce un valor"
 msgid "Type is required"
 msgstr "El tipo es obligatorio"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
 msgid "Type of chart to display in sparkline"
@@ -16399,6 +16459,9 @@ msgstr "Deshacer la acción"
 msgid "Undo?"
 msgstr "¿Deshacer?"
 
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+
 msgid "Unexpected error"
 msgstr "Error inesperado"
 
@@ -16477,6 +16540,9 @@ msgid "Unpin from the result panel"
 msgstr "Fijar en el panel de resultados"
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
@@ -17392,6 +17458,9 @@ msgstr "Si se deben mostrar los valores mínimo y máximo del eje X"
 
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Si se deben mostrar los valores mínimo y máximo del eje Y"
+
+msgid "Whether to display the numbered column"
+msgstr ""
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Si se deben mostrar los valores numéricos dentro de las celdas"
@@ -18815,6 +18884,9 @@ msgstr "Se requiere autorización"
 msgid "quarter"
 msgstr "trimestre"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "consulta"
 
@@ -19058,3 +19130,6 @@ msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© Atribución de la capa"
+
+msgid "№"
+msgstr ""

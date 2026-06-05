@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-04 18:39-0700\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -30,7 +30,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1219,6 +1219,9 @@ msgstr "Tāpiri kaihōputu tae hou"
 msgid "Add new formatter"
 msgstr "Tāpiri kaihōputu hou"
 
+msgid "Add numbered column"
+msgstr ""
+
 #, fuzzy
 msgid "Add or edit display controls"
 msgstr "Tāpiri, whakatika rānei i ngā tātari"
@@ -1782,7 +1785,7 @@ msgstr "I puta he hapa i te tikitanga o ngā uara hanga: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "I puta he hapa i te tikitanga o ngā tauira CSS wātea"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "I puta he hapa i te tikitanga o ngā uara hanga: %s"
 
@@ -1857,7 +1860,7 @@ msgstr "I puta he hapa i te poroporo o te kī."
 msgid "An error occurred while pruning logs "
 msgstr "I puta he hapa i te puretanga o ngā rārangi "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "I puta he hapa i te whakaatutanga o te whakakitenga: %s"
 
@@ -2166,6 +2169,9 @@ msgstr "Kei te tino hiahia koe ki te muku i ngā ture kua tīpakohia?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Kei te tino hiahia koe ki te muku i ngā papa kua tīpakohia?"
 
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Kei te tino hiahia koe ki te muku i ngā tūranga kua tīpakohia?"
 
@@ -2408,7 +2414,7 @@ msgstr "Pūmahi pūtake"
 msgid "Base height"
 msgstr "Teitei pūtake"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Kāhua papa pūtake. Tirohia te tuhinga a Mapbox: %s"
 
@@ -3861,6 +3867,9 @@ msgstr "I rahua te hononga, tēnā tirohia ō tautuhinga hononga"
 msgid "Connection failed, please check your connection settings."
 msgstr "I rahua te hononga, tēnā tirohia ō tautuhinga hononga."
 
+msgid "Connection looks good!"
+msgstr ""
+
 #, fuzzy
 msgid "Contains"
 msgstr "Auau tonu"
@@ -3938,6 +3947,9 @@ msgstr "Tārua pātai wāhanga ki te papatopenga"
 
 msgid "Copy permalink to clipboard"
 msgstr "Tārua hononga-ā-mau ki te papatopenga"
+
+msgid "Copy query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Tārua hono pātai ki tō papatopenga"
@@ -4185,6 +4197,12 @@ msgstr "SQL Ritenga"
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Kāore i whakahohengia ngā ine ad-hoc SQL Ritenga mō tēnei rārangi raraunga"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+msgid "Custom SQL fields cannot contain set operations."
+msgstr ""
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Kāore e taea e ngā āpure SQL Ritenga te whai i ngā pātai-iti."
@@ -5017,6 +5035,9 @@ msgstr "Muku tūranga"
 msgid "Delete item"
 msgstr "Muku tauira"
 
+msgid "Delete query"
+msgstr ""
+
 msgid "Delete role"
 msgstr "Muku tūranga"
 
@@ -5695,6 +5716,10 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "HAPA"
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr "Roa tapa"
 
@@ -5786,6 +5811,9 @@ msgstr "Whakatika Ture"
 
 msgid "Edit properties"
 msgstr "Whakatika āhuatanga"
+
+msgid "Edit query"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6391,6 +6419,9 @@ msgstr "Tikanga tauira-anō Pandas"
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "I rahua te pūrongo"
+
+msgid "Export query"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8266,6 +8297,9 @@ msgstr "Tīwae rārangi"
 msgid "Lines encoding"
 msgstr "Whakakohu rārangi"
 
+msgid "Link Copied!"
+msgstr ""
+
 #, fuzzy
 msgid "List"
 msgstr "Whakamutunga"
@@ -9295,7 +9329,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "Kāore he tīwae ripanga"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "Kāore anō he %s"
 
@@ -9384,6 +9418,9 @@ msgstr "Kāore i tautuhia"
 
 msgid "Not equal to (≠)"
 msgstr "Kāore e ōrite ki (≠)"
+
+msgid "Not found"
+msgstr ""
 
 msgid "Not in"
 msgstr "Kāore i roto i"
@@ -10441,6 +10478,12 @@ msgstr "ID Kaupapa"
 msgid "Proportional"
 msgstr "Tauōrite"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Kua Whakaputaina"
 
@@ -10702,9 +10745,6 @@ msgstr "Tātari-i-mua"
 #, fuzzy
 msgid "Registration date"
 msgstr "Rā tīmata"
-
-msgid "Registration hash"
-msgstr ""
 
 msgid "Registration successful"
 msgstr ""
@@ -11219,6 +11259,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 msgid "SQL Lab queries"
 msgstr "Pātai SQL Lab"
@@ -14466,6 +14512,9 @@ msgstr ""
 "I puta he hapa i te tikitanga o ngā kauwhata me ngā papatohu kua "
 "tātaritia:"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "I puta he hapa i te utanga o ngā ripanga"
@@ -14568,6 +14617,10 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "I puta he take i te mukutanga o ngā papa kua tīpakohia: %s"
 
 #, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "I puta he take i te mukutanga o ngā tauira kua tīpakohia: %s"
 
@@ -14602,6 +14655,9 @@ msgstr "I puta he take i te mukutanga o ngā kauwhata kua tīpakohia: %s"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "I puta he take i te mukutanga o ngā papatohu kua tīpakohia: "
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -14938,6 +14994,9 @@ msgstr ""
 "Ka whakamārama tēnei ahanoa json i te tūnga o ngā waeine i te papatohu. "
 "Ka hangaia autōkē ina whakatikatika i te rahi me ngā tūnga waeine mā te "
 "whakamahi i te tō & taka i te tirohanga papatohu"
+
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
 
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
@@ -15480,6 +15539,9 @@ msgstr "Pato tētahi uara"
 msgid "Type is required"
 msgstr "E hiahiatia ana te momo"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr ""
 
@@ -15641,6 +15703,9 @@ msgstr "Wetekina te mahi"
 msgid "Undo?"
 msgstr "Wete?"
 
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+
 msgid "Unexpected error"
 msgstr "Hapa ohorere"
 
@@ -15715,6 +15780,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
@@ -16619,6 +16687,9 @@ msgstr "Mēnā ka whakaatu i ngā uara iti me ngā uara rahi o te tukutuku-X"
 
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Mēnā ka whakaatu i ngā uara iti me ngā uara rahi o te tukutuku-Y"
+
+msgid "Whether to display the numbered column"
+msgstr ""
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Mēnā ka whakaatu i ngā uara tau i roto i ngā pūtau"
@@ -18018,6 +18089,9 @@ msgstr "E hiahiatia ana te whakamana"
 msgid "quarter"
 msgstr "hautakiwā"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "pātai"
 
@@ -18255,3 +18329,6 @@ msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© Whakatuakī Papa"
+
+msgid "№"
+msgstr ""

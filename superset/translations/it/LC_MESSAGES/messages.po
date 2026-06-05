@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-04 18:39-0700\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1160,6 +1160,9 @@ msgstr ""
 msgid "Add new formatter"
 msgstr ""
 
+msgid "Add numbered column"
+msgstr ""
+
 #, fuzzy
 msgid "Add or edit display controls"
 msgstr "Aggiungi filtro"
@@ -1714,7 +1717,7 @@ msgstr "Errore nel rendering della visualizzazione: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Errore nel recupero dei metadati della tabella"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Errore nel rendering della visualizzazione: %s"
 
@@ -1787,7 +1790,7 @@ msgstr "Errore nel creare il datasource"
 msgid "An error occurred while pruning logs "
 msgstr "Errore nel rendering della visualizzazione: %s"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Errore nel rendering della visualizzazione: %s"
 
@@ -2099,6 +2102,9 @@ msgid "Are you sure you want to delete the selected groups?"
 msgstr ""
 
 msgid "Are you sure you want to delete the selected layers?"
+msgstr ""
+
+msgid "Are you sure you want to delete the selected queries?"
 msgstr ""
 
 msgid "Are you sure you want to delete the selected roles?"
@@ -3801,6 +3807,9 @@ msgstr ""
 msgid "Connection failed, please check your connection settings."
 msgstr ""
 
+msgid "Connection looks good!"
+msgstr ""
+
 #, fuzzy
 msgid "Contains"
 msgstr "Colonna"
@@ -3884,6 +3893,9 @@ msgstr ""
 #, fuzzy
 msgid "Copy permalink to clipboard"
 msgstr "copia URL in appunti"
+
+msgid "Copy query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "copia URL in appunti"
@@ -4149,6 +4161,12 @@ msgid "Custom SQL"
 msgstr ""
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
+msgstr ""
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+msgid "Custom SQL fields cannot contain set operations."
 msgstr ""
 
 msgid "Custom SQL fields cannot contain sub-queries."
@@ -4982,6 +5000,9 @@ msgstr "Cancella"
 msgid "Delete item"
 msgstr "Template CSS"
 
+msgid "Delete query"
+msgstr ""
+
 #, fuzzy
 msgid "Delete role"
 msgstr "Cancella"
@@ -5626,6 +5647,10 @@ msgstr "Importa"
 msgid "ERROR"
 msgstr "Errore..."
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr ""
 
@@ -5719,6 +5744,9 @@ msgid "Edit group"
 msgstr "Ricerca Query"
 
 msgid "Edit properties"
+msgstr ""
+
+msgid "Edit query"
 msgstr ""
 
 #, fuzzy
@@ -6338,6 +6366,9 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "Nome Completo"
+
+msgid "Export query"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8233,6 +8264,9 @@ msgstr "Colonna del Tempo"
 msgid "Lines encoding"
 msgstr "Importa"
 
+msgid "Link Copied!"
+msgstr ""
+
 #, fuzzy
 msgid "List"
 msgstr "Altezza"
@@ -9397,6 +9431,9 @@ msgstr "Modificato"
 msgid "Not equal to (≠)"
 msgstr ""
 
+msgid "Not found"
+msgstr ""
+
 #, fuzzy
 msgid "Not in"
 msgstr "Azione"
@@ -10430,6 +10467,12 @@ msgstr "Creato il"
 msgid "Proportional"
 msgstr ""
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr ""
 
@@ -10706,9 +10749,6 @@ msgstr "Cerca / Filtra"
 #, fuzzy
 msgid "Registration date"
 msgstr "Ultima Modifica"
-
-msgid "Registration hash"
-msgstr ""
 
 msgid "Registration successful"
 msgstr ""
@@ -11217,6 +11257,12 @@ msgid "SQL"
 msgstr ""
 
 msgid "SQL Lab"
+msgstr ""
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
 msgstr ""
 
 #, fuzzy
@@ -14345,6 +14391,9 @@ msgstr ""
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Errore nel creare il datasource"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Errore nel creare il datasource"
@@ -14450,6 +14499,10 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr ""
 
 #, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr ""
 
@@ -14484,6 +14537,9 @@ msgstr "Errore nel recupero dati"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Errore nel creare il datasource"
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -14763,6 +14819,9 @@ msgstr ""
 "generato automaticamente nel momento in cui se ne cambia la posizione e "
 "la dimensione usando la funzione di drag & drop nella vista della "
 "dashboard. "
+
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
 
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
@@ -15303,6 +15362,9 @@ msgstr "Valore del filtro"
 msgid "Type is required"
 msgstr ""
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr ""
 
@@ -15447,6 +15509,9 @@ msgstr "Seleziona una colonna"
 msgid "Undo?"
 msgstr ""
 
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+
 msgid "Unexpected error"
 msgstr ""
 
@@ -15524,6 +15589,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
@@ -16328,6 +16396,9 @@ msgid "Whether to display the min and max values of the X-axis"
 msgstr ""
 
 msgid "Whether to display the min and max values of the Y-axis"
+msgstr ""
+
+msgid "Whether to display the numbered column"
 msgstr ""
 
 msgid "Whether to display the numerical values within the cells"
@@ -17721,6 +17792,9 @@ msgstr ""
 msgid "quarter"
 msgstr "condividi query"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "condividi query"
 
@@ -17966,4 +18040,7 @@ msgid ""
 msgstr ""
 
 msgid "© Layer attribution"
+msgstr ""
+
+msgid "№"
 msgstr ""

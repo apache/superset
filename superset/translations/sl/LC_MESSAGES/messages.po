@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-04 18:39-0700\n"
 "PO-Revision-Date: 2024-10-05 23:46+0200\n"
 "Last-Translator: dkrat7 <dkrat7 @github.com>\n"
 "Language: sl_SI\n"
@@ -27,7 +27,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 msgid ""
 "\n"
@@ -1266,6 +1266,9 @@ msgstr "Dodaj novo pravilo za barvo"
 msgid "Add new formatter"
 msgstr "Dodaj novo pravilo"
 
+msgid "Add numbered column"
+msgstr ""
+
 #, fuzzy
 msgid "Add or edit display controls"
 msgstr "Dodaj in uredi filtre"
@@ -1830,7 +1833,7 @@ msgstr "Pri pridobivanju vrednosti shem je prišlo do napake: %s"
 msgid "An error occurred while fetching semantic layer types"
 msgstr "Pri pridobivanju CSS predlog je prišlo do napake"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "Pri pridobivanju vrednosti shem je prišlo do napake: %s"
 
@@ -1905,7 +1908,7 @@ msgstr "Pri branju ključa je prišlo do težave."
 msgid "An error occurred while pruning logs "
 msgstr "Pri krajšanju dnevnikov je prišlo do napake "
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "Pri prikazovanju vizualizacije je prišlo do napake: %s"
 
@@ -2212,6 +2215,9 @@ msgstr "Ali ste prepričani, da želite izbrisati izbrana pravila?"
 msgid "Are you sure you want to delete the selected layers?"
 msgstr "Ali ste prepričani, da želite izbrisati izbrane sloje?"
 
+msgid "Are you sure you want to delete the selected queries?"
+msgstr ""
+
 #, fuzzy
 msgid "Are you sure you want to delete the selected roles?"
 msgstr "Ali ste prepričani, da želite izbrisati izbrana pravila?"
@@ -2462,7 +2468,7 @@ msgstr "Vrata podatkovne baze"
 msgid "Base height"
 msgstr "Višina grafikona"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "Slog osnovnega zemljevida. Glej dokumentacijo Mapbox: %s"
 
@@ -3923,6 +3929,9 @@ msgstr "Povezava neuspešna. Preverite nastavitve povezave"
 msgid "Connection failed, please check your connection settings."
 msgstr "Povezava neuspešna. Preverite nastavitve povezave."
 
+msgid "Connection looks good!"
+msgstr ""
+
 #, fuzzy
 msgid "Contains"
 msgstr "Zvezno"
@@ -4000,6 +4009,9 @@ msgstr "Kopiraj particijsko poizvedbo na odložišče"
 
 msgid "Copy permalink to clipboard"
 msgstr "Kopiraj povezavo v odložišče"
+
+msgid "Copy query URL"
+msgstr ""
 
 msgid "Copy query link to your clipboard"
 msgstr "Kopiraj povezavo do poizvedbe v odložišče"
@@ -4249,6 +4261,12 @@ msgstr "Prilagojen SQL"
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Prilagodljive ad-hoc SQL-mere za ta podatkovni set niso omogočene"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+msgid "Custom SQL fields cannot contain set operations."
+msgstr ""
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Prilagojena SQL-polja ne smejo vsebovati podpoizvedb."
@@ -5080,6 +5098,9 @@ msgstr "Izberite datoteko"
 msgid "Delete item"
 msgstr "Izbriši predlogo"
 
+msgid "Delete query"
+msgstr ""
+
 #, fuzzy
 msgid "Delete role"
 msgstr "Izberite datoteko"
@@ -5781,6 +5802,10 @@ msgstr "EMAIL_REPORTS_CTA"
 msgid "ERROR"
 msgstr "NAPAKA"
 
+#, python-format
+msgid "ERROR: %s"
+msgstr ""
+
 msgid "Edge length"
 msgstr "Dolžina povezave"
 
@@ -5874,6 +5899,9 @@ msgstr "Uredi pravilo"
 
 msgid "Edit properties"
 msgstr "Uredi lastnosti"
+
+msgid "Edit query"
+msgstr ""
 
 #, fuzzy
 msgid "Edit report"
@@ -6491,6 +6519,9 @@ msgstr "Prenos slike ni uspel. Osvežite in poskusite ponovno."
 #, fuzzy, python-format
 msgid "Export failed: %s"
 msgstr "Poročilo ni uspelo"
+
+msgid "Export query"
+msgstr ""
 
 msgid "Export screenshot (jpeg)"
 msgstr ""
@@ -8366,6 +8397,9 @@ msgstr "Stolpec črt"
 msgid "Lines encoding"
 msgstr "Kodiranje črt"
 
+msgid "Link Copied!"
+msgstr ""
+
 #, fuzzy
 msgid "List"
 msgstr "Zadnji"
@@ -9409,7 +9443,7 @@ msgstr ""
 msgid "No table columns"
 msgstr "Ni stolpcev tabel"
 
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "%s še ne obstajajo"
 
@@ -9499,6 +9533,9 @@ msgstr "Ni definirano"
 
 msgid "Not equal to (≠)"
 msgstr "Ni enako (≠)"
+
+msgid "Not found"
+msgstr ""
 
 msgid "Not in"
 msgstr "Ne vsebuje (NOT IN)"
@@ -10559,6 +10596,12 @@ msgstr "Zastarelo"
 msgid "Proportional"
 msgstr "Proporcionalno"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Objavljeno"
 
@@ -10817,9 +10860,6 @@ msgstr "Predfilter"
 #, fuzzy
 msgid "Registration date"
 msgstr "Začetni datum"
-
-msgid "Registration hash"
-msgstr ""
 
 msgid "Registration successful"
 msgstr ""
@@ -11330,6 +11370,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL laboratorij"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 #, fuzzy
 msgid "SQL Lab queries"
@@ -14560,6 +14606,9 @@ msgstr "Napaka pri pridobivanju statusa \"Priljubljeno\": %s"
 msgid "There was an error fetching the filtered charts and dashboards:"
 msgstr "Napaka pri pridobivanju filtriranih grafikonov in nadzornih plošč:"
 
+msgid "There was an error generating the permalink."
+msgstr ""
+
 #, fuzzy
 msgid "There was an error loading groups."
 msgstr "Napaka pri nalaganju tabel"
@@ -14662,6 +14711,10 @@ msgid "There was an issue deleting the selected layers: %s"
 msgstr "Pri brisanju izbranih slojev je prišlo do težave: %s"
 
 #, python-format
+msgid "There was an issue deleting the selected queries: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting the selected templates: %s"
 msgstr "Pri brisanju izbranih predlog je prišlo do težave: %s"
 
@@ -14696,6 +14749,9 @@ msgstr "Pri brisanju izbranih grafikonov je prišlo do težave: %s"
 #, fuzzy
 msgid "There was an issue exporting the selected dashboards"
 msgstr "Pri brisanju izbranih nadzornih plošč je prišlo do težave: "
+
+msgid "There was an issue exporting the selected queries"
+msgstr ""
 
 #, fuzzy
 msgid "There was an issue exporting the selected themes"
@@ -15024,6 +15080,9 @@ msgstr ""
 "Ta JSON objekt opisuje postavitev pripomočkov na nadzorni plošči. Ustvari"
 " se dinamično, ko prilagajamo velikost in postavitev pripomočkov z "
 "uporabo povleci&spusti v pogledu nadzorne plošče"
+
+msgid "This link cannot be followed because its address is unsafe."
+msgstr ""
 
 msgid ""
 "This link will take you to an external website. We cannot guarantee the "
@@ -15568,6 +15627,9 @@ msgstr "Vnesite vrednost"
 msgid "Type is required"
 msgstr "Tip je obvezen"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr ""
 
@@ -15725,6 +15787,9 @@ msgstr "Razveljavi dejanje"
 msgid "Undo?"
 msgstr "Povrni?"
 
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+
 msgid "Unexpected error"
 msgstr "Nepričakovana napaka"
 
@@ -15801,6 +15866,9 @@ msgid "Unpin from the result panel"
 msgstr ""
 
 msgid "Unpin from top"
+msgstr ""
+
+msgid "Unsafe link blocked"
 msgstr ""
 
 #, python-format
@@ -16686,6 +16754,9 @@ msgstr "Če želite prikaz min. in max. vrednosti X-osi"
 
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Če želite prikaz min. in max. vrednosti Y-osi"
+
+msgid "Whether to display the numbered column"
+msgstr ""
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Če želite v celicah prikazati numerične vrednosti"
@@ -18077,6 +18148,9 @@ msgstr "Potrebna je avtorizacija"
 msgid "quarter"
 msgstr "četrtletje"
 
+msgid "queries"
+msgstr ""
+
 msgid "query"
 msgstr "poizvedba"
 
@@ -18317,4 +18391,7 @@ msgid ""
 msgstr ""
 
 msgid "© Layer attribution"
+msgstr ""
+
+msgid "№"
 msgstr ""
