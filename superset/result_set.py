@@ -60,7 +60,7 @@ def dedup(l: list[str], suffix: str = "__", case_sensitive: bool = True) -> list
 
 
 def stringify(obj: Any) -> str:
-    return json.dumps(obj, default=json.json_iso_dttm_ser)
+    return json.dumps(obj, default=json.json_iso_dttm_ser, ensure_ascii=False)
 
 
 def stringify_values(array: NDArray[Any]) -> NDArray[Any]:
