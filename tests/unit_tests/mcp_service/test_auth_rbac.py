@@ -374,7 +374,7 @@ def test_scope_denies_when_token_lacks_required_scope(app_context) -> None:
     mock_sm = MagicMock()
     mock_sm.can_access = MagicMock(return_value=True)
     with (
-        patch("superset.security_manager", mock_sm),
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
         _patch_token_scopes(["superset:read"]),
     ):
         result = check_tool_permission(func)
@@ -390,7 +390,7 @@ def test_scope_allows_when_token_has_required_scope(app_context) -> None:
     mock_sm = MagicMock()
     mock_sm.can_access = MagicMock(return_value=True)
     with (
-        patch("superset.security_manager", mock_sm),
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
         _patch_token_scopes(["superset:read", "superset:write"]),
     ):
         result = check_tool_permission(func)
@@ -406,7 +406,7 @@ def test_scope_falls_back_to_rbac_when_token_has_no_scopes(app_context) -> None:
     mock_sm = MagicMock()
     mock_sm.can_access = MagicMock(return_value=True)
     with (
-        patch("superset.security_manager", mock_sm),
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
         _patch_token_scopes([]),
     ):
         result = check_tool_permission(func)
@@ -423,7 +423,7 @@ def test_scope_falls_back_to_rbac_when_no_jwt_context(app_context) -> None:
     mock_sm = MagicMock()
     mock_sm.can_access = MagicMock(return_value=True)
     with (
-        patch("superset.security_manager", mock_sm),
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
         _patch_token_scopes(None),
     ):
         result = check_tool_permission(func)
@@ -439,7 +439,7 @@ def test_scope_read_denied_when_token_lacks_read_scope(app_context) -> None:
     mock_sm = MagicMock()
     mock_sm.can_access = MagicMock(return_value=True)
     with (
-        patch("superset.security_manager", mock_sm),
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
         _patch_token_scopes(["some:other-scope"]),
     ):
         result = check_tool_permission(func)
@@ -457,7 +457,7 @@ def test_scope_denies_unmapped_method_for_scoped_token(app_context) -> None:
     mock_sm = MagicMock()
     mock_sm.can_access = MagicMock(return_value=True)
     with (
-        patch("superset.security_manager", mock_sm),
+        patch("superset.mcp_service.auth.security_manager", mock_sm),
         _patch_token_scopes(["superset:read", "superset:write"]),
     ):
         result = check_tool_permission(func)
@@ -473,7 +473,7 @@ def test_scope_execute_sql_query_requires_write_scope(app_context) -> None:
 
     mock_sm = MagicMock()
     mock_sm.can_access = MagicMock(return_value=True)
-    with patch("superset.security_manager", mock_sm):
+    with patch("superset.mcp_service.auth.security_manager", mock_sm):
         with _patch_token_scopes(["superset:read"]):
             assert check_tool_permission(func) is False
         with _patch_token_scopes(["superset:write"]):

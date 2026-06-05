@@ -60,7 +60,6 @@ from superset.mcp_service.mcp_config import (
     default_user_resolver,
     get_mcp_api_key_enabled,
 )
-
 from superset.mcp_service.utils.error_sanitization import (
     sanitize_for_log as _sanitize_for_log,
 )
@@ -196,6 +195,39 @@ class MCPPermissionDeniedError(PermissionError):
         super().__init__(message)
 
 
+def _log_scope_denial(
+    func: Callable[..., Any],
+    method_permission_name: str,
+    permission_str: str,
+    class_permission_name: str,
+    *,
+    log_denial: bool,
+) -> None:
+    """Log a scope-based denial for a tool the user has RBAC access to.
+
+    Extracted from ``check_tool_permission`` to keep that function's
+    cyclomatic complexity in check.
+    """
+    required_scope = _METHOD_TO_REQUIRED_SCOPE.get(method_permission_name)
+    if log_denial:
+        logger.warning(
+            "Scope denied for user %s: token lacks required scope "
+            "'%s' for %s on %s (tool: %s)",
+            g.user.username,
+            required_scope,
+            permission_str,
+            class_permission_name,
+            func.__name__,
+        )
+    else:
+        logger.debug(
+            "Tool hidden for user %s: token lacks required scope '%s' (tool: %s)",
+            g.user.username,
+            required_scope,
+            func.__name__,
+        )
+
+
 def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) -> bool:
     """Check if the current user has RBAC permission for an MCP tool.
 
@@ -261,25 +293,13 @@ def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) 
         # scope-less JWTs, dev-mode) fall through to RBAC-only behavior — see
         # ``_token_scope_allows``.
         if has_permission and not _token_scope_allows(method_permission_name):
-            required_scope = _METHOD_TO_REQUIRED_SCOPE.get(method_permission_name)
-            if log_denial:
-                logger.warning(
-                    "Scope denied for user %s: token lacks required scope "
-                    "'%s' for %s on %s (tool: %s)",
-                    g.user.username,
-                    required_scope,
-                    permission_str,
-                    class_permission_name,
-                    func.__name__,
-                )
-            else:
-                logger.debug(
-                    "Tool hidden for user %s: token lacks required scope "
-                    "'%s' (tool: %s)",
-                    g.user.username,
-                    required_scope,
-                    func.__name__,
-                )
+            _log_scope_denial(
+                func,
+                method_permission_name,
+                permission_str,
+                class_permission_name,
+                log_denial=log_denial,
+            )
             return False
 
         if not has_permission:
@@ -447,7 +467,6 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
             )
 
     # Use configurable resolver or default
-    from superset.mcp_service.mcp_config import default_user_resolver
 
     resolver = app.config.get("MCP_USER_RESOLVER", default_user_resolver)
     username = resolver(app, access_token)
