@@ -30,11 +30,13 @@ jest.mock('@apache-superset/core/theme', () => ({
   useTheme: jest.fn(),
 }));
 
+const mockUseBreakpoint = jest.fn<{ md?: boolean }, []>(() => ({ md: true }));
+
 jest.mock('antd', () => ({
   ...jest.requireActual('antd'),
   Grid: {
     ...jest.requireActual('antd').Grid,
-    useBreakpoint: () => ({ md: true }),
+    useBreakpoint: () => mockUseBreakpoint(),
   },
 }));
 
@@ -273,6 +275,8 @@ beforeEach(() => {
   applicationRootMock.mockReturnValue('');
   // By default useTheme returns the real default theme (brandLogoUrl is falsy)
   useThemeMock.mockReturnValue(CoreTheme.supersetTheme);
+  // By default simulate a desktop viewport (md breakpoint active)
+  mockUseBreakpoint.mockReturnValue({ md: true });
 });
 
 test('should render', async () => {
@@ -903,4 +907,35 @@ describe('active tab highlighting (regression #36403)', () => {
       'ant-menu-submenu-selected',
     );
   });
+});
+
+test('navbar renders horizontal when breakpoints are not yet measured (regression for layout flash)', async () => {
+  // Simulate first paint: useBreakpoint returns {} before the viewport is measured.
+  // screens.md is undefined, so isMd = (undefined !== false) = true → mode="horizontal".
+  mockUseBreakpoint.mockReturnValue({});
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  const navbar = await screen.findByTestId('navbar-top');
+  expect(navbar).toHaveClass('ant-menu-horizontal');
+  expect(navbar).not.toHaveClass('ant-menu-inline');
+});
+
+test('navbar renders inline on mobile viewport (md: false)', async () => {
+  // Simulate a mobile viewport where the md breakpoint is explicitly false.
+  // isMd = (false !== false) = false → mode="inline".
+  mockUseBreakpoint.mockReturnValue({ md: false });
+  useSelectorMock.mockReturnValue({ roles: user.roles });
+  render(<Menu {...mockedProps} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  const navbar = await screen.findByTestId('navbar-top');
+  expect(navbar).toHaveClass('ant-menu-inline');
 });
