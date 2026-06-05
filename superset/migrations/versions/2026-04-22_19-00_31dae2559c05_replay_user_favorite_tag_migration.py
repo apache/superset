@@ -33,7 +33,7 @@ utilities, ensuring the user_favorite_tag table exists regardless of the
 upgrade path taken.
 
 Revision ID: 31dae2559c05
-Revises: fd0c8583b46d
+Revises: 33d7e0e21daa
 Create Date: 2026-04-22 19:00:00.000000
 
 """
@@ -42,7 +42,7 @@ from importlib import import_module
 
 # revision identifiers, used by Alembic.
 revision = "31dae2559c05"
-down_revision = "fd0c8583b46d"
+down_revision = "33d7e0e21daa"
 
 # Import the original migration module
 module = import_module(
