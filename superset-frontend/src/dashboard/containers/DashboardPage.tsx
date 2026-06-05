@@ -159,7 +159,16 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const liveDashboardTitle = useSelector<RootState, string | undefined>(
     state => state.dashboardLayout?.present?.[DASHBOARD_HEADER_ID]?.meta?.text,
   );
-  const pageTitle = liveDashboardTitle || dashboard_title;
+  // Only trust the live layout title once the layout belongs to the dashboard
+  // being shown. During SPA dashboard-to-dashboard navigation the previous
+  // dashboard's layout lingers until the new one hydrates, so fall back to the
+  // freshly fetched API title until the hydrated dashboard matches.
+  const hydratedDashboardId = useSelector<RootState, number | undefined>(
+    state => state.dashboardInfo?.id,
+  );
+  const pageTitle =
+    (hydratedDashboardId === id ? liveDashboardTitle : undefined) ||
+    dashboard_title;
 
   // Get CSS from dashboardInfo (unified properties location)
   const css =
