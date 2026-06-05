@@ -208,7 +208,11 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
             "datasource": f"{numeric_dataset_id}__table",
         }
 
-        # Try durable permalink first (DB-backed key-value store, does not expire)
+        # Try durable permalink first (DB-backed key-value store, does not expire).
+        # CreateExplorePermalinkCommand wraps its internal failures (encode/create/
+        # SQLAlchemy errors) into ExplorePermalinkCreateFailedError, so catch only
+        # those expected modes here — letting programming errors (TypeError, etc.)
+        # surface instead of being silently masked by the form_data_key fallback.
         try:
             state = {"formData": form_data_with_datasource}
             permalink_key = CreateExplorePermalinkCommand(state=state).run()
@@ -216,10 +220,6 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
         except (
             ExplorePermalinkCreateFailedError,
             SQLAlchemyError,
-            KeyError,
-            ValueError,
-            AttributeError,
-            TypeError,
         ) as permalink_e:
             logger.debug(
                 "Permalink generation failed, falling back to form_data_key: %s",
@@ -241,12 +241,11 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
         CommandException,
         SupersetException,
         SQLAlchemyError,
-        KeyError,
-        ValueError,
-        AttributeError,
-        TypeError,
     ) as e:
-        # Fallback to basic explore URL with numeric ID if available
+        # Fallback to basic explore URL with numeric ID if available. Only the
+        # expected failure modes of dataset lookup / form_data creation are caught
+        # here; programming errors propagate to the tool handler so they aren't
+        # silently masked behind a fallback URL.
         logger.debug("Explore link generation fallback due to: %s", e)
         if numeric_dataset_id is not None:
             return (
