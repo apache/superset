@@ -30,6 +30,8 @@ by the integration suite in
 
 from __future__ import annotations
 
+from unittest.mock import patch
+
 import pytest
 
 from superset.versioning.activity import (
@@ -45,6 +47,7 @@ from superset.versioning.activity.impact import (
 from superset.versioning.activity.kinds import API_KIND_TO_TABLE, TABLE_KIND_TO_API
 from superset.versioning.activity.orchestrator import (
     _DEFAULT_PAGE_SIZE,
+    _emit_request_shape_attributes,
     _MAX_PAGE_SIZE,
 )
 from superset.versioning.activity.render import _build_summary, _changed_by_dict
@@ -484,3 +487,98 @@ def test_metric_prefix_matches_versioning_namespace_convention() -> None:
     assert _METRIC_PREFIX.startswith("superset."), (
         "All Superset metrics live under 'superset.*'; activity_view must too."
     )
+
+
+# ---- _emit_request_shape_attributes: related-entity counts ---------------
+#
+# The ``related_entity_count.*`` gauges report how many *other* entities an
+# activity request fanned out to. ``resolve_scope`` always prepends the path
+# entity itself (the "self" window) to the scope list, so the metric loop
+# must exclude that self entry — otherwise a chart/dataset request reports
+# one phantom related entity of its own kind.
+
+
+def _gauge_value(mock_sl: object, suffix: str) -> float:
+    """Return the value of the single ``gauge`` call whose metric name ends
+    with *suffix*. Fails loudly if absent so a renamed metric surfaces here."""
+    for call in mock_sl.gauge.call_args_list:  # type: ignore[attr-defined]
+        name = call.args[0]
+        if name.endswith(suffix):
+            return call.args[1]
+    emitted = [c.args[0] for c in mock_sl.gauge.call_args_list]  # type: ignore[attr-defined]
+    raise AssertionError(f"no gauge ending {suffix!r}; emitted {emitted}")
+
+
+@patch("superset.extensions.stats_logger_manager")
+def test_related_entity_count_excludes_self_for_chart(mock_mgr) -> None:
+    """A chart request scopes to itself + the datasets it used. The charts
+    gauge must read 0 (no *related* charts) even though the self Slice is in
+    the scope list; the datasets gauge counts only the two related datasets."""
+    sl = mock_mgr.instance
+    entity_windows: list[EntityWindows] = [
+        ("Slice", 7, [Window(0, None)]),  # self — must not be counted
+        ("SqlaTable", 5, [Window(0, None)]),  # related dataset
+        ("SqlaTable", 9, [Window(0, None)]),  # related dataset
+    ]
+
+    _emit_request_shape_attributes(
+        "slice",
+        include="all",
+        has_since_filter=False,
+        page_size=25,
+        record_count=3,
+        entity_windows=entity_windows,
+        path_kind="Slice",
+        path_id=7,
+    )
+
+    assert _gauge_value(sl, "related_entity_count.charts") == 0.0
+    assert _gauge_value(sl, "related_entity_count.datasets") == 2.0
+
+
+@patch("superset.extensions.stats_logger_manager")
+def test_related_entity_count_excludes_self_for_dataset(mock_mgr) -> None:
+    """Datasets have no related scope, so an ``include=all`` dataset request
+    scopes to itself only. The datasets gauge must read 0, not 1."""
+    sl = mock_mgr.instance
+    entity_windows: list[EntityWindows] = [
+        ("SqlaTable", 9, [Window(0, None)]),  # self only
+    ]
+
+    _emit_request_shape_attributes(
+        "sqlatable",
+        include="all",
+        has_since_filter=False,
+        page_size=25,
+        record_count=1,
+        entity_windows=entity_windows,
+        path_kind="SqlaTable",
+        path_id=9,
+    )
+
+    assert _gauge_value(sl, "related_entity_count.datasets") == 0.0
+
+
+@patch("superset.extensions.stats_logger_manager")
+def test_related_entity_count_counts_genuine_related_of_same_kind(mock_mgr) -> None:
+    """Self-exclusion keys on (kind, id), not kind alone: a dashboard whose
+    scope happened to include another dashboard would still count it."""
+    sl = mock_mgr.instance
+    entity_windows: list[EntityWindows] = [
+        ("Dashboard", 1, [Window(0, None)]),  # self
+        ("Slice", 5, [Window(0, None)]),  # related chart
+        ("Slice", 6, [Window(0, None)]),  # related chart
+    ]
+
+    _emit_request_shape_attributes(
+        "dashboard",
+        include="all",
+        has_since_filter=False,
+        page_size=25,
+        record_count=2,
+        entity_windows=entity_windows,
+        path_kind="Dashboard",
+        path_id=1,
+    )
+
+    assert _gauge_value(sl, "related_entity_count.charts") == 2.0

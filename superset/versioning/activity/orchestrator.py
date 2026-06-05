@@ -191,6 +191,8 @@ def get_activity(
             page_size=page_size,
             record_count=0,
             entity_windows=[],
+            path_kind=path_kind,
+            path_id=path_id,
         )
         return [], 0
 
@@ -219,6 +221,8 @@ def get_activity(
         page_size=bounded_size,
         record_count=total,
         entity_windows=entity_windows,
+        path_kind=path_kind,
+        path_id=path_id,
     )
 
     return records[offset : offset + bounded_size], total
@@ -289,6 +293,8 @@ def _emit_request_shape_attributes(
     page_size: int,
     record_count: int,
     entity_windows: list[EntityWindows],
+    path_kind: str,
+    path_id: int,
 ) -> None:
     """Emit non-PII shape counters about the request and its result set.
 
@@ -314,10 +320,14 @@ def _emit_request_shape_attributes(
     sl.gauge(f"{_METRIC_PREFIX}.{kind_key}.page_size", float(page_size))
     sl.gauge(f"{_METRIC_PREFIX}.{kind_key}.record_count", float(record_count))
 
-    # Per-related-kind entity counts (T038 explicit fields). Skip the
-    # path entity's own kind from the count — it's a constant 1.
+    # Per-related-kind entity counts (T038 explicit fields). The scope
+    # list includes the path entity itself (the "self" window); exclude
+    # it so the gauge reflects only the *related* entities the request
+    # fanned out to, not "this request touched itself".
     by_kind: dict[str, int] = {"Slice": 0, "SqlaTable": 0, "Dashboard": 0}
-    for api_kind, _entity_id, _windows in entity_windows:
+    for api_kind, entity_id, _windows in entity_windows:
+        if (api_kind, entity_id) == (path_kind, path_id):
+            continue
         if api_kind in by_kind:
             by_kind[api_kind] += 1
     sl.gauge(
