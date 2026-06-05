@@ -16,8 +16,6 @@
 # under the License.
 """Command to restore a soft-deleted chart."""
 
-import logging
-
 from superset.commands.chart.exceptions import (
     ChartForbiddenError,
     ChartNotFoundError,
@@ -26,8 +24,6 @@ from superset.commands.chart.exceptions import (
 from superset.commands.restore import BaseRestoreCommand
 from superset.daos.chart import ChartDAO
 from superset.models.slice import Slice
-
-logger = logging.getLogger(__name__)
 
 
 class RestoreChartCommand(BaseRestoreCommand[Slice]):
