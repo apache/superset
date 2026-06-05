@@ -218,10 +218,11 @@ def _classify_ci(checks: list[dict[str, str]]) -> str:
     """Classify overall CI result from individual check conclusions."""
     if not checks:
         return "N/A"
+    passed_conclusions = ("success", "skipped")
     failed = sum(1 for c in checks if c["conclusion"] == "failure")
     if failed > 0:
         return "failed"
-    if all(c["conclusion"] == "success" for c in checks):
+    if all(c["conclusion"] in passed_conclusions for c in checks):
         return "passed"
     return "pending"
 
@@ -437,6 +438,8 @@ def _compute_kpis(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "merged": merged,
         "reverted": reverted,
         "returned": returned,
+        "reviews_requested": req_count,
+        "approved": approved,
         "check_pass_rate": check_pass_rate,
         "approval_rate": approval_rate,
         "merge_rate": merge_rate,
@@ -483,6 +486,14 @@ def write_html(rows: list[dict[str, Any]], output_path: pathlib.Path) -> None:
 
     table_json = json.dumps(table_rows)
     status_json = json.dumps(status_counts)
+
+    # Reviewer outcome counts for chart
+    review_counts: dict[str, int] = {}
+    for r in rows:
+        outcome = r.get("review_outcome") or "pending"
+        review_counts[outcome] = review_counts.get(outcome, 0) + 1
+    review_labels_json = json.dumps(list(review_counts.keys()))
+    review_values_json = json.dumps(list(review_counts.values()))
 
     # KPI values for Chart.js
     kpi_labels = json.dumps(["Merged", "Reverted", "Returned", "Active", "Other"])
@@ -569,7 +580,7 @@ def write_html(rows: list[dict[str, Any]], output_path: pathlib.Path) -> None:
   }}
   .charts-row {{
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
     gap: 24px;
     margin-bottom: 32px;
   }}
@@ -690,6 +701,14 @@ def write_html(rows: list[dict[str, Any]], output_path: pathlib.Path) -> None:
     <div class="label">CI Pass Rate</div>
   </div>
   <div class="kpi-card">
+    <div class="value">{kpi["reviews_requested"]}</div>
+    <div class="label">Reviews Requested</div>
+  </div>
+  <div class="kpi-card">
+    <div class="value">{kpi["approved"]}</div>
+    <div class="label">Approved</div>
+  </div>
+  <div class="kpi-card">
     <div class="value">{approval_display}</div>
     <div class="label">Approval Rate</div>
   </div>
@@ -715,6 +734,10 @@ def write_html(rows: list[dict[str, Any]], output_path: pathlib.Path) -> None:
   <div class="chart-card">
     <h3>Success Rates</h3>
     <canvas id="ratesChart"></canvas>
+  </div>
+  <div class="chart-card">
+    <h3>Reviewer Outcomes</h3>
+    <canvas id="reviewChart"></canvas>
   </div>
 </div>
 
@@ -800,6 +823,26 @@ new Chart(ratesCtx, {{
     }},
     plugins: {{
       legend: {{ display: false }}
+    }}
+  }}
+}});
+
+const reviewCtx = document.getElementById('reviewChart').getContext('2d');
+new Chart(reviewCtx, {{
+  type: 'doughnut',
+  data: {{
+    labels: {review_labels_json},
+    datasets: [{{
+      data: {review_values_json},
+      backgroundColor: [
+        '#10b981','#ef4444','#f59e0b','#6366f1','#9ca3af'
+      ],
+    }}]
+  }},
+  options: {{
+    responsive: true,
+    plugins: {{
+      legend: {{ position: 'bottom' }}
     }}
   }}
 }});
