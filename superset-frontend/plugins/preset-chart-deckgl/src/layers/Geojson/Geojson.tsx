@@ -358,9 +358,19 @@ export type DeckGLGeoJsonProps = {
   emitCrossFilters?: boolean;
 };
 
-export function getPoints(data: Point[]) {
+export function getPoints(data?: Point[]) {
+  if (!Array.isArray(data)) {
+    return [];
+  }
+
   return data.reduce((acc: Array<any>, feature: any) => {
-    const bounds = geojsonExtent(feature);
+    let bounds;
+    try {
+      bounds = geojsonExtent(feature);
+    } catch {
+      return acc;
+    }
+
     if (bounds) {
       return [...acc, [bounds[0], bounds[1]], [bounds[2], bounds[3]]];
     }
@@ -383,13 +393,13 @@ const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
 
   const viewport: Viewport = useMemo(() => {
     if (formData.autozoom) {
-      const points = getPoints(payload.data.features) || [];
+      const points = getPoints(payload?.data?.features);
 
       if (points.length) {
         return fitViewport(props.viewport, {
           width,
           height,
-          points: getPoints(payload.data.features) || [],
+          points,
         });
       }
     }

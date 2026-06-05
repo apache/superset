@@ -17,6 +17,7 @@
  * under the License.
  */
 import type { ReactElement } from 'react';
+import type { ControlPanelSectionConfig } from '@superset-ui/chart-controls';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { render } from '@testing-library/react';
 import { SqlaFormData } from '@superset-ui/core';
@@ -26,7 +27,9 @@ import DeckGLGeoJson, {
   computeGeoJsonTextOptionsFromFormData,
   computeGeoJsonIconOptionsFromJsOutput,
   computeGeoJsonIconOptionsFromFormData,
+  getPoints,
 } from './Geojson';
+import controlPanel from './controlPanel';
 
 const mockDeckGLContainerProps: Array<Record<string, unknown>> = [];
 
@@ -142,6 +145,36 @@ test('computeGeoJsonIconOptionsFromFormData computes icon options based on form 
     height: 128,
     width: 128,
   });
+});
+
+test('controlPanel expands Map section so renderer controls are visible', () => {
+  const mapSection = controlPanel.controlPanelSections.find(
+    (
+      section: ControlPanelSectionConfig | null,
+    ): section is ControlPanelSectionConfig =>
+      section !== null && section.label === 'Map',
+  );
+
+  expect(mapSection).toBeDefined();
+  expect(mapSection?.expanded).toBe(true);
+});
+
+test('getPoints skips malformed GeoJSON entries instead of throwing', () => {
+  const features = [
+    {
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [1, 2] },
+      properties: {},
+    },
+    [[0, 0]],
+    null,
+  ] as unknown as Parameters<typeof getPoints>[0];
+
+  expect(getPoints(features)).toEqual([
+    [1, 2],
+    [1, 2],
+  ]);
+  expect(getPoints()).toEqual([]);
 });
 
 const renderWithTheme = (component: ReactElement) =>
