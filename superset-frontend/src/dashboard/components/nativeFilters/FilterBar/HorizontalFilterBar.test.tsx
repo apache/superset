@@ -114,7 +114,11 @@ test('should render the loading icon', async () => {
 // --- Tests migrated from disabled Cypress spec
 //     `_skip.horizontalFilterBar.test.ts` (sc-107387). ---
 
-const createSelectFilter = (id: string, name: string, column: string): Filter => ({
+const createSelectFilter = (
+  id: string,
+  name: string,
+  column: string,
+): Filter => ({
   id,
   name,
   type: NativeFilterType.NativeFilter,
