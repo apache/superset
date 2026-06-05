@@ -267,13 +267,15 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
             "is_managed_externally": self.is_managed_externally,
         }
 
-    def datasets_trimmed_for_slices(self) -> list[dict[str, Any]]:
+    def datasets_trimmed_for_slices(
+        self,
+    ) -> list[tuple[BaseDatasource, dict[str, Any]]]:
         slices_by_datasource: dict[int, set[Slice]] = defaultdict(set)
 
         for slc in self.slices:
             slices_by_datasource[slc.datasource_id].add(slc)
 
-        result: list[dict[str, Any]] = []
+        result: list[tuple[BaseDatasource, dict[str, Any]]] = []
 
         for _, slices in slices_by_datasource.items():
             # Use the eagerly-loaded datasource from any slice in the group
@@ -281,7 +283,7 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
 
             if datasource:
                 # Filter out unneeded fields from the datasource payload
-                result.append(datasource.data_for_slices(list(slices)))
+                result.append((datasource, datasource.data_for_slices(list(slices))))
 
         return result
 

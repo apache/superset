@@ -28,8 +28,8 @@ from pytz import timezone
 
 from superset import is_feature_enabled
 from superset.exceptions import SupersetErrorsException
-from superset.reports.models import ReportRecipientType
-from superset.reports.notifications.base import BaseNotification
+from superset.reports.models import ReportRecipients, ReportRecipientType
+from superset.reports.notifications.base import BaseNotification, NotificationContent
 from superset.reports.notifications.exceptions import NotificationError
 from superset.utils import json
 from superset.utils.core import HeaderDataType, send_email_smtp
@@ -83,7 +83,17 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
     """
 
     type = ReportRecipientType.EMAIL
-    now = datetime.now(timezone("UTC"))
+
+    def __init__(
+        self, recipient: ReportRecipients, content: NotificationContent
+    ) -> None:
+        super().__init__(recipient, content)
+        # Stamp each notification with its own timestamp at construction, which
+        # happens per recipient immediately before the email is dispatched. The
+        # date rendered into the subject (when DATE_FORMAT_IN_EMAIL_SUBJECT is
+        # enabled) therefore tracks the dispatch time. A module- or class-level
+        # value would instead freeze on the first import in a long-running worker.
+        self.now = datetime.now(timezone("UTC"))
 
     @property
     def _name(self) -> str:
