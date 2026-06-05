@@ -20,6 +20,7 @@ MCP tool: get_chart_info
 """
 
 import logging
+from typing import Any
 
 from fastmcp import Context
 from mcp.types import ToolAnnotations
@@ -215,7 +216,7 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
 @mcp_auth_hook(class_permission_name="Chart")
 async def get_chart_info(  # noqa: C901
     request: GetChartInfoRequest, ctx: Context
-) -> ChartInfo | ChartError:
+) -> dict[str, Any] | ChartError:
     """Get chart metadata by ID or UUID.
 
     IMPORTANT FOR LLM CLIENTS:
@@ -279,12 +280,14 @@ async def get_chart_info(  # noqa: C901
                 "form_data_key=%s" % (request.form_data_key,)
             )
             unsaved_result = _build_unsaved_chart_info(request.form_data_key)
-            if (
-                isinstance(unsaved_result, ChartInfo)
-                and not can_view_data_model_metadata
-            ):
+            if isinstance(unsaved_result, ChartError):
+                return unsaved_result
+            if not can_view_data_model_metadata:
                 unsaved_result = redact_chart_data_model_fields(unsaved_result)
-            return unsaved_result
+            return unsaved_result.model_dump(
+                mode="json",
+                context={"select_columns": request.select_columns},
+            )
 
     # At this point identifier must be set (validator ensures at least one
     # of identifier/form_data_key is provided, and the form_data_key-only
@@ -338,6 +341,11 @@ async def get_chart_info(  # noqa: C901
             error = await _attach_dashboard_filters(result, request.dashboard_id, ctx)
             if error is not None:
                 return error
+
+        return result.model_dump(
+            mode="json",
+            context={"select_columns": request.select_columns},
+        )
     else:
         await ctx.warning("Chart retrieval failed: error=%s" % (str(result),))
 
