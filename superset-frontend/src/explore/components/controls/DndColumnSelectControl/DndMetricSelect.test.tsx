@@ -24,9 +24,42 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
+import { useDroppable } from '@dnd-kit/core';
+import { useSortable } from '@dnd-kit/sortable';
 import { DndMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndMetricSelect';
 import { AGGREGATES } from 'src/explore/constants';
 import { EXPRESSION_TYPES } from '../MetricControl/AdhocMetric';
+import { DndItemType } from '../../DndItemType';
+import {
+  CapturedDroppable,
+  CapturedSortables,
+  captureDroppableData,
+  captureSortableData,
+  simulateDrop,
+  simulateReorder,
+} from './dndTestUtils';
+
+const captured: CapturedDroppable = { current: undefined };
+const sortables: CapturedSortables = { items: [] };
+
+jest.mock('@dnd-kit/core', () => ({
+  ...jest.requireActual('@dnd-kit/core'),
+  useDroppable: jest.fn(),
+}));
+
+jest.mock('@dnd-kit/sortable', () => ({
+  ...jest.requireActual('@dnd-kit/sortable'),
+  useSortable: jest.fn(),
+}));
+
+beforeEach(() => {
+  captured.current = undefined;
+  sortables.items = [];
+  (useDroppable as jest.Mock).mockImplementation(
+    captureDroppableData(captured),
+  );
+  (useSortable as jest.Mock).mockImplementation(captureSortableData(sortables));
+});
 
 const defaultProps = {
   savedMetrics: [
@@ -67,14 +100,20 @@ const adhocMetricB = {
 };
 
 test('renders with default props', () => {
-  render(<DndMetricSelect {...defaultProps} />, { useDndKit: true, useRedux: true });
+  render(<DndMetricSelect {...defaultProps} />, {
+    useDndKit: true,
+    useRedux: true,
+  });
   expect(
     screen.getByText('Drop a column/metric here or click'),
   ).toBeInTheDocument();
 });
 
 test('renders with default props and multi = true', () => {
-  render(<DndMetricSelect {...defaultProps} multi />, { useDndKit: true, useRedux: true });
+  render(<DndMetricSelect {...defaultProps} multi />, {
+    useDndKit: true,
+    useRedux: true,
+  });
   expect(
     screen.getByText('Drop columns/metrics here or click'),
   ).toBeInTheDocument();
@@ -303,8 +342,108 @@ test('update adhoc metric name when column label in dataset changes', () => {
   expect(screen.getByText('SUM(new col B name)')).toBeVisible();
 });
 
-// Note: Drag-and-drop tests removed - @dnd-kit uses pointer events instead of
-// HTML5 drag events. These tests require @dnd-kit-compatible testing utilities.
+// Drop behavior is exercised through `resolveDragEnd` (the production drag-end
+// dispatcher) because @dnd-kit's PointerSensor needs real layout that jsdom
+// cannot provide. See ./dndTestUtils and ExploreDndContext.test.tsx.
+
+test('can drag metrics (reorder dispatches through the reorder + drop path)', () => {
+  const onChange = jest.fn();
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      value={['metric_a', 'metric_b', adhocMetricB]}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  // DndMetricSelect reorders via moveLabel (internal state) finalized by
+  // onDropLabel. Verify both callbacks were registered on the sortable items
+  // and the drag-end path invokes them (which commits the change via onChange).
+  expect(sortables.items.length).toBeGreaterThanOrEqual(3);
+  expect(typeof sortables.items[0].onMoveLabel).toBe('function');
+  expect(typeof sortables.items[0].onDropLabel).toBe('function');
+
+  simulateReorder(sortables, 0, 2);
+  expect(onChange).toHaveBeenCalled();
+});
+
+test('cannot drop a duplicated item', () => {
+  const onChange = jest.fn();
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      value={['metric_a']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateDrop(captured, {
+    type: DndItemType.Metric,
+    value: { metric_name: 'metric_a' } as any,
+  });
+
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('can drop a saved metric when disallow_adhoc_metrics', () => {
+  const onChange = jest.fn();
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      value={['metric_b']}
+      onChange={onChange}
+      multi
+      datasource={{ extra: '{ "disallow_adhoc_metrics": true }' } as any}
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateDrop(captured, {
+    type: DndItemType.Metric,
+    value: { metric_name: 'metric_a' } as any,
+  });
+
+  expect(onChange).toHaveBeenLastCalledWith(['metric_b', 'metric_a']);
+});
+
+test('cannot drop non-saved metrics when disallow_adhoc_metrics', () => {
+  const onChange = jest.fn();
+  render(
+    <DndMetricSelect
+      {...defaultProps}
+      value={['metric_b']}
+      onChange={onChange}
+      multi
+      datasource={{ extra: '{ "disallow_adhoc_metrics": true }' } as any}
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  // Non-saved metric -> rejected.
+  simulateDrop(captured, {
+    type: DndItemType.Metric,
+    value: { metric_name: 'metric_c' } as any,
+  });
+  expect(onChange).not.toHaveBeenCalled();
+
+  // Column type -> rejected when adhoc metrics are disallowed.
+  simulateDrop(captured, {
+    type: DndItemType.Column,
+    value: { column_name: 'column_a' } as any,
+  });
+  expect(onChange).not.toHaveBeenCalled();
+
+  // Saved metric -> accepted.
+  simulateDrop(captured, {
+    type: DndItemType.Metric,
+    value: { metric_name: 'metric_a' } as any,
+  });
+  expect(onChange).toHaveBeenLastCalledWith(['metric_b', 'metric_a']);
+});
 
 test('title changes on custom SQL text change', async () => {
   let metricValues = [adhocMetricA, 'metric_b'];

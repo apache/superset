@@ -16,8 +16,41 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useDroppable } from '@dnd-kit/core';
+import { useSortable } from '@dnd-kit/sortable';
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import { DndColumnMetricSelect } from 'src/explore/components/controls/DndColumnSelectControl/DndColumnMetricSelect';
+import { DndItemType } from 'src/explore/components/DndItemType';
+import {
+  CapturedDroppable,
+  CapturedSortables,
+  captureDroppableData,
+  captureSortableData,
+  simulateDrop,
+  simulateReorder,
+} from './dndTestUtils';
+
+const captured: CapturedDroppable = { current: undefined };
+const sortables: CapturedSortables = { items: [] };
+
+jest.mock('@dnd-kit/core', () => ({
+  ...jest.requireActual('@dnd-kit/core'),
+  useDroppable: jest.fn(),
+}));
+
+jest.mock('@dnd-kit/sortable', () => ({
+  ...jest.requireActual('@dnd-kit/sortable'),
+  useSortable: jest.fn(),
+}));
+
+beforeEach(() => {
+  captured.current = undefined;
+  sortables.items = [];
+  (useDroppable as jest.Mock).mockImplementation(
+    captureDroppableData(captured),
+  );
+  (useSortable as jest.Mock).mockImplementation(captureSortableData(sortables));
+});
 
 const defaultProps = {
   name: 'test-control',
@@ -88,8 +121,116 @@ test('render selected columns and metrics correctly', () => {
   expect(screen.getByText('metric_a')).toBeVisible();
 });
 
-// Note: Drag-and-drop tests removed - @dnd-kit uses pointer events instead of
-// HTML5 drag events. These tests require @dnd-kit-compatible testing utilities.
+// Drop behavior is exercised through `resolveDragEnd` (the production drag-end
+// dispatcher) because @dnd-kit's PointerSensor needs real layout that jsdom
+// cannot provide. See ./dndTestUtils and ExploreDndContext.test.tsx.
+
+test('can drop columns and metrics', () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={['column_a', 'metric_a']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateDrop(captured, {
+    type: DndItemType.Column,
+    value: { column_name: 'column_b' } as any,
+  });
+  expect(onChange).toHaveBeenLastCalledWith([
+    'column_a',
+    'metric_a',
+    'column_b',
+  ]);
+
+  simulateDrop(captured, {
+    type: DndItemType.Metric,
+    value: { metric_name: 'metric_b' } as any,
+  });
+  expect(onChange).toHaveBeenLastCalledWith([
+    'column_a',
+    'metric_a',
+    'metric_b',
+  ]);
+});
+
+test('cannot drop duplicate items', () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={['column_a', 'metric_a']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  simulateDrop(captured, {
+    type: DndItemType.Column,
+    value: { column_name: 'column_a' } as any,
+  });
+  simulateDrop(captured, {
+    type: DndItemType.Metric,
+    value: { metric_name: 'metric_a' } as any,
+  });
+
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('can drop only selected metrics', () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={['column_a']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  // metric_c is not in selectedMetrics -> rejected
+  simulateDrop(captured, {
+    type: DndItemType.Metric,
+    value: { metric_name: 'metric_c' } as any,
+  });
+  expect(onChange).not.toHaveBeenCalled();
+
+  // metric_a is in selectedMetrics -> accepted
+  simulateDrop(captured, {
+    type: DndItemType.Metric,
+    value: { metric_name: 'metric_a' } as any,
+  });
+  expect(onChange).toHaveBeenLastCalledWith(['column_a', 'metric_a']);
+});
+
+test('can drag and reorder items', () => {
+  const onChange = jest.fn();
+  render(
+    <DndColumnMetricSelect
+      {...defaultProps}
+      value={['column_a', 'metric_a', 'column_b']}
+      onChange={onChange}
+      multi
+    />,
+    { useDndKit: true, useRedux: true },
+  );
+
+  // Reorder is dispatched via the active sortable item's onShiftOptions,
+  // which the control registers on each OptionWrapper. Drag index 0
+  // (column_a) onto index 2 (column_b) and verify the swap.
+  simulateReorder(sortables, 0, 2);
+  expect(onChange).toHaveBeenLastCalledWith([
+    'column_b',
+    'metric_a',
+    'column_a',
+  ]);
+});
 
 test('shows warning for aggregated DeckGL charts', () => {
   const values = ['column_a'];

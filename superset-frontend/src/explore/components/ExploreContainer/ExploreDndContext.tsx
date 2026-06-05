@@ -21,7 +21,6 @@ import {
   useContext,
   useState,
   useCallback,
-  useMemo,
   FC,
   Dispatch,
   useReducer,
@@ -31,10 +30,12 @@ import {
   useSensor,
   useSensors,
   PointerSensor,
+  KeyboardSensor,
   DragStartEvent,
   DragEndEvent,
   UniqueIdentifier,
 } from '@dnd-kit/core';
+import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { DatasourcePanelDndItem } from '../DatasourcePanel/types';
 
 /**
@@ -88,22 +89,68 @@ const dropzoneReducer = (state: DropzoneSet = {}, action: Action) => {
 };
 
 /**
- * Context for handling drag end events - controls register their onDrop handlers
+ * Shape of the data a droppable (e.g. DndSelectLabel) exposes via its
+ * `useDroppable` data object so that drops can be dispatched on drag end.
  */
-type DropHandler = (
-  activeId: UniqueIdentifier,
-  overId: UniqueIdentifier,
-  activeData: ActiveDragData,
-) => void;
-type DropHandlerSet = Record<string, DropHandler>;
+export interface DroppableData {
+  accept?: string[];
+  canDrop?: (item: DatasourcePanelDndItem) => boolean;
+  onDrop?: (item: DatasourcePanelDndItem) => void;
+  onDropValue?: (value: DatasourcePanelDndItem['value']) => void;
+}
 
-export const DropHandlersContext = createContext<{
-  register: (id: string, handler: DropHandler) => void;
-  unregister: (id: string) => void;
-}>({
-  register: () => {},
-  unregister: () => {},
-});
+/**
+ * Pure dispatch logic for a @dnd-kit drag-end event, extracted so it can be
+ * unit-tested without simulating pointer events (which jsdom cannot drive).
+ *
+ * Mirrors the original react-dnd behavior:
+ * - Same-list sortable reorder fires the active item's reorder callback.
+ * - External drops (DatasourcePanel -> control) only fire `onDrop` when the
+ *   dragged item's type is accepted AND the droppable's `canDrop` validator
+ *   passes (react-dnd never fired `drop` when `canDrop` was false).
+ */
+export function resolveDragEnd(
+  active: { id: UniqueIdentifier; data: { current?: ActiveDragData } },
+  over: {
+    id: UniqueIdentifier;
+    data: { current?: ActiveDragData & DroppableData };
+  } | null,
+): void {
+  if (!over || active.id === over.id) {
+    return;
+  }
+
+  const activeData = active.data.current;
+  const overData = over.data.current;
+
+  // Same-list sortable reorder: both endpoints carry a dragIndex and type.
+  if (
+    activeData &&
+    overData &&
+    typeof activeData.dragIndex === 'number' &&
+    typeof overData.dragIndex === 'number' &&
+    activeData.type === overData.type
+  ) {
+    const reorderCallback = activeData.onShiftOptions || activeData.onMoveLabel;
+    reorderCallback?.(activeData.dragIndex, overData.dragIndex);
+    activeData.onDropLabel?.();
+    return;
+  }
+
+  // External drop onto a droppable that exposes an onDrop handler.
+  if (activeData && overData?.onDrop) {
+    const { accept, canDrop, onDrop, onDropValue } = overData;
+    const item: DatasourcePanelDndItem = {
+      type: activeData.type as DatasourcePanelDndItem['type'],
+      value: activeData.value as DatasourcePanelDndItem['value'],
+    };
+    const typeAccepted = !accept || accept.includes(item.type);
+    if (typeAccepted && (canDrop?.(item) ?? true)) {
+      onDrop(item);
+      onDropValue?.(item.value);
+    }
+  }
+}
 
 interface ExploreDndContextProps {
   children: React.ReactNode;
@@ -114,23 +161,27 @@ interface ExploreDndContextProps {
  * Wraps @dnd-kit/core's DndContext and provides:
  * - Dragging state tracking (for visual feedback)
  * - Dropzone registration (for validation)
- * - Drop handler registration (for handling drops)
+ * - Drop dispatch via each droppable's `useDroppable` data object
  */
 export const ExploreDndContextProvider: FC<ExploreDndContextProps> = ({
   children,
 }) => {
   const [isDragging, setIsDragging] = useState(false);
   const [activeData, setActiveData] = useState<ActiveDragData | null>(null);
-  const [dropHandlers, setDropHandlers] = useState<DropHandlerSet>({});
 
   const dropzoneValue = useReducer(dropzoneReducer, {});
 
-  // Configure sensors for drag detection
+  // Configure sensors for drag detection. PointerSensor drives mouse/touch
+  // drags; KeyboardSensor adds keyboard-accessible reordering (an a11y win
+  // over the previous react-dnd HTML5 backend, which had none).
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 5, // 5px movement required before drag starts
       },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
 
@@ -147,105 +198,22 @@ export const ExploreDndContextProvider: FC<ExploreDndContextProps> = ({
     setActiveData(data || null);
   }, []);
 
-  const handleDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const { active, over } = event;
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
 
-      setIsDragging(false);
-      setActiveData(null);
+    setIsDragging(false);
+    setActiveData(null);
 
-      if (over && active.id !== over.id) {
-        const activeDataCurrent = active.data.current as
-          | ActiveDragData
-          | undefined;
-        const overDataCurrent = over.data.current as ActiveDragData | undefined;
-
-        // Check if this is a sortable reorder operation
-        // Both items need dragIndex and the same type
-        if (
-          activeDataCurrent &&
-          overDataCurrent &&
-          typeof activeDataCurrent.dragIndex === 'number' &&
-          typeof overDataCurrent.dragIndex === 'number' &&
-          activeDataCurrent.type === overDataCurrent.type
-        ) {
-          const { dragIndex } = activeDataCurrent;
-          const hoverIndex = overDataCurrent.dragIndex;
-
-          // Call the appropriate reorder callback
-          const reorderCallback =
-            activeDataCurrent.onShiftOptions || activeDataCurrent.onMoveLabel;
-          if (reorderCallback) {
-            reorderCallback(dragIndex, hoverIndex);
-          }
-
-          // Call onDropLabel if provided (for finalization after reorder)
-          activeDataCurrent.onDropLabel?.();
-          return;
-        }
-
-        // Handle external drop (from DatasourcePanel to a dropzone).
-        // Droppables (e.g. DndSelectLabel) expose their onDrop/onDropValue
-        // callbacks via the useDroppable data object, so consult that first.
-        const droppableData = over.data.current as
-          | {
-              accept?: string[];
-              onDrop?: (item: { type: string; value?: unknown }) => void;
-              onDropValue?: (value: unknown) => void;
-            }
-          | undefined;
-
-        if (activeDataCurrent && droppableData?.onDrop) {
-          const { accept, onDrop, onDropValue } = droppableData;
-          if (!accept || accept.includes(activeDataCurrent.type)) {
-            onDrop({
-              type: activeDataCurrent.type,
-              value: activeDataCurrent.value,
-            });
-            onDropValue?.(activeDataCurrent.value);
-            return;
-          }
-        }
-
-        // Fall back to handlers registered via DropHandlersContext.
-        const overId = String(over.id);
-        const handler = dropHandlers[overId];
-
-        if (handler && activeDataCurrent) {
-          handler(active.id, over.id, activeDataCurrent);
-        }
-      }
-    },
-    [dropHandlers],
-  );
+    resolveDragEnd(
+      active as Parameters<typeof resolveDragEnd>[0],
+      over as Parameters<typeof resolveDragEnd>[1],
+    );
+  }, []);
 
   const handleDragCancel = useCallback(() => {
     setIsDragging(false);
     setActiveData(null);
   }, []);
-
-  const registerDropHandler = useCallback(
-    (id: string, handler: DropHandler) => {
-      setDropHandlers(prev => ({ ...prev, [id]: handler }));
-    },
-    [],
-  );
-
-  const unregisterDropHandler = useCallback((id: string) => {
-    setDropHandlers(prev => {
-      const newHandlers = { ...prev };
-      delete newHandlers[id];
-      return newHandlers;
-    });
-  }, []);
-
-  const dropHandlersContextValue = useMemo(
-    () => ({
-      register: registerDropHandler,
-      unregister: unregisterDropHandler,
-    }),
-    [registerDropHandler, unregisterDropHandler],
-  );
 
   return (
     <DndContext
@@ -255,13 +223,11 @@ export const ExploreDndContextProvider: FC<ExploreDndContextProps> = ({
       onDragCancel={handleDragCancel}
     >
       <DropzoneContext.Provider value={dropzoneValue}>
-        <DropHandlersContext.Provider value={dropHandlersContextValue}>
-          <DraggingContext.Provider value={isDragging}>
-            <ActiveDragContext.Provider value={activeData}>
-              {children}
-            </ActiveDragContext.Provider>
-          </DraggingContext.Provider>
-        </DropHandlersContext.Provider>
+        <DraggingContext.Provider value={isDragging}>
+          <ActiveDragContext.Provider value={activeData}>
+            {children}
+          </ActiveDragContext.Provider>
+        </DraggingContext.Provider>
       </DropzoneContext.Provider>
     </DndContext>
   );

@@ -82,6 +82,9 @@ export default function DndSelectLabel({
     disabled: isLoading,
     data: {
       accept: acceptTypes,
+      // Mirrors react-dnd's `canDrop`: the drop only fires when this returns
+      // true, so duplicate/selection gating is preserved post-migration.
+      canDrop: dropValidator,
       onDrop: props.onDrop,
       onDropValue: props.onDropValue,
     },
@@ -98,7 +101,7 @@ export default function DndSelectLabel({
     });
   }, [active, acceptTypes, dropValidator]);
 
-  const dispatch = useContext(DropzoneContext)[1];
+  const [, dispatch] = useContext(DropzoneContext);
 
   useEffect(() => {
     dispatch({ key: props.name, canDrop: dropValidator });
