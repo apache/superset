@@ -43,6 +43,9 @@ import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import IconButton from 'src/dashboard/components/IconButton';
 import BackgroundStyleDropdown from 'src/dashboard/components/menu/BackgroundStyleDropdown';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
+import ComponentThemeProvider from 'src/dashboard/components/ComponentThemeProvider';
+import ComponentHeaderControls from 'src/dashboard/components/menu/ComponentHeaderControls';
+import ThemeSelectorModal from 'src/dashboard/components/ThemeSelectorModal';
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import { BACKGROUND_TRANSPARENT } from 'src/dashboard/util/constants';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
@@ -158,6 +161,7 @@ const Row = memo((props: RowProps) => {
   const [isInView, setIsInView] = useState(false);
   const [hoverMenuHovered, setHoverMenuHovered] = useState(false);
   const [containerHeight, setContainerHeight] = useState<number | null>(null);
+  const [themeModalOpen, setThemeModalOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const isComponentVisibleRef = useRef(isComponentVisible);
 
@@ -270,130 +274,151 @@ const Row = memo((props: RowProps) => {
   const remainColumnCount = availableColumnCount - occupiedColumnCount;
   const renderChild = useCallback(
     ({ dragSourceRef }: { dragSourceRef: RefObject<HTMLDivElement> }) => (
-      <WithPopoverMenu
-        isFocused={isFocused}
-        onChangeFocus={handleChangeFocus}
-        disableClick
-        menuItems={[
-          <BackgroundStyleDropdown
-            id={`${rowComponent.id}-background`}
-            value={backgroundStyle.value}
-            onChange={handleChangeBackground}
-          />,
-        ]}
-        editMode={editMode}
-      >
-        {editMode && (
-          <HoverMenu
-            onHover={handleMenuHover}
-            innerRef={dragSourceRef}
-            position="left"
-          >
-            <DragHandle position="left" />
-            <DeleteComponentButton onDelete={handleDeleteComponent} />
-            <IconButton
-              onClick={() => handleChangeFocus(true)}
-              icon={<Icons.SettingOutlined iconSize="l" />}
-            />
-          </HoverMenu>
-        )}
-        <GridRow
-          className={cx(
-            'grid-row',
-            rowItems.length === 0 && 'grid-row--empty',
-            hoverMenuHovered && 'grid-row--hovered',
-            backgroundStyle.className,
-          )}
-          data-test={`grid-row-${backgroundStyle.className}`}
-          ref={containerRef}
+      <ComponentThemeProvider layoutId={rowComponent.id}>
+        <WithPopoverMenu
+          isFocused={isFocused}
+          onChangeFocus={handleChangeFocus}
+          disableClick
+          menuItems={[
+            <BackgroundStyleDropdown
+              id={`${rowComponent.id}-background`}
+              value={backgroundStyle.value}
+              onChange={handleChangeBackground}
+            />,
+          ]}
           editMode={editMode}
         >
           {editMode && (
-            <Droppable
-              {...(rowItems.length === 0
-                ? {
-                    component: rowComponent,
-                    parentComponent: rowComponent,
-                    dropToChild: true,
-                  }
-                : {
-                    component: rowItems[0],
-                    parentComponent: rowComponent,
-                  })}
-              depth={depth}
-              index={0}
-              orientation="row"
-              onDrop={handleComponentDrop}
-              className={cx(
-                'empty-droptarget',
-                'empty-droptarget--vertical',
-                rowItems.length > 0 && 'droptarget-side',
-              )}
-              editMode
-              style={{
-                height: rowItems.length > 0 ? containerHeight : '100%',
-                ...(rowItems.length > 0 && { width: 16 }),
-              }}
+            <HoverMenu
+              onHover={handleMenuHover}
+              innerRef={dragSourceRef}
+              position="left"
             >
-              {({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) =>
-                dropIndicatorProps && <div {...dropIndicatorProps} />
-              }
-            </Droppable>
+              <DragHandle position="left" />
+              <DeleteComponentButton onDelete={handleDeleteComponent} />
+              <IconButton
+                onClick={() => handleChangeFocus(true)}
+                icon={<Icons.SettingOutlined iconSize="l" />}
+              />
+              <ComponentHeaderControls
+                items={[
+                  {
+                    key: 'apply-theme',
+                    label: t('Apply theme'),
+                    onClick: () => setThemeModalOpen(true),
+                  },
+                ]}
+                ariaLabel={t('Row options')}
+              />
+            </HoverMenu>
           )}
-          {rowItems.length === 0 && (
-            <div css={emptyRowContentStyles as any}>{t('Empty row')}</div>
+          {editMode && (
+            <ThemeSelectorModal
+              layoutId={rowComponent.id}
+              show={themeModalOpen}
+              onHide={() => setThemeModalOpen(false)}
+            />
           )}
-          {rowItems.length > 0 &&
-            rowItems.map((componentId, itemIndex) => (
-              <Fragment key={componentId}>
-                <DashboardComponent
-                  key={componentId}
-                  id={componentId}
-                  parentId={rowComponent.id as string}
-                  depth={depth + 1}
-                  index={itemIndex}
-                  availableColumnCount={remainColumnCount}
-                  columnWidth={columnWidth}
-                  onResizeStart={onResizeStart}
-                  onResize={onResize}
-                  onResizeStop={onResizeStop}
-                  isComponentVisible={isComponentVisible}
-                  onChangeTab={onChangeTab}
-                  isInView={isInView}
-                />
-                {editMode && (
-                  <Droppable
-                    component={rowItems}
-                    parentComponent={rowComponent}
-                    depth={depth}
-                    index={itemIndex + 1}
-                    orientation="row"
-                    onDrop={handleComponentDrop}
-                    className={cx(
-                      'empty-droptarget',
-                      'empty-droptarget--vertical',
-                      remainColumnCount === 0 &&
-                        itemIndex === rowItems.length - 1 &&
-                        'droptarget-side',
-                    )}
-                    editMode
-                    style={{
-                      height: containerHeight,
-                      ...(remainColumnCount === 0 &&
-                        itemIndex === rowItems.length - 1 && { width: 16 }),
-                    }}
-                  >
-                    {({
-                      dropIndicatorProps,
-                    }: {
-                      dropIndicatorProps: JsonObject;
-                    }) => dropIndicatorProps && <div {...dropIndicatorProps} />}
-                  </Droppable>
+          <GridRow
+            className={cx(
+              'grid-row',
+              rowItems.length === 0 && 'grid-row--empty',
+              hoverMenuHovered && 'grid-row--hovered',
+              backgroundStyle.className,
+            )}
+            data-test={`grid-row-${backgroundStyle.className}`}
+            ref={containerRef}
+            editMode={editMode}
+          >
+            {editMode && (
+              <Droppable
+                {...(rowItems.length === 0
+                  ? {
+                      component: rowComponent,
+                      parentComponent: rowComponent,
+                      dropToChild: true,
+                    }
+                  : {
+                      component: rowItems[0],
+                      parentComponent: rowComponent,
+                    })}
+                depth={depth}
+                index={0}
+                orientation="row"
+                onDrop={handleComponentDrop}
+                className={cx(
+                  'empty-droptarget',
+                  'empty-droptarget--vertical',
+                  rowItems.length > 0 && 'droptarget-side',
                 )}
-              </Fragment>
-            ))}
-        </GridRow>
-      </WithPopoverMenu>
+                editMode
+                style={{
+                  height: rowItems.length > 0 ? containerHeight : '100%',
+                  ...(rowItems.length > 0 && { width: 16 }),
+                }}
+              >
+                {({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) =>
+                  dropIndicatorProps && <div {...dropIndicatorProps} />
+                }
+              </Droppable>
+            )}
+            {rowItems.length === 0 && (
+              <div css={emptyRowContentStyles as any}>{t('Empty row')}</div>
+            )}
+            {rowItems.length > 0 &&
+              rowItems.map((componentId, itemIndex) => (
+                <Fragment key={componentId}>
+                  <DashboardComponent
+                    key={componentId}
+                    id={componentId}
+                    parentId={rowComponent.id as string}
+                    depth={depth + 1}
+                    index={itemIndex}
+                    availableColumnCount={remainColumnCount}
+                    columnWidth={columnWidth}
+                    onResizeStart={onResizeStart}
+                    onResize={onResize}
+                    onResizeStop={onResizeStop}
+                    isComponentVisible={isComponentVisible}
+                    onChangeTab={onChangeTab}
+                    isInView={isInView}
+                  />
+                  {editMode && (
+                    <Droppable
+                      component={rowItems}
+                      parentComponent={rowComponent}
+                      depth={depth}
+                      index={itemIndex + 1}
+                      orientation="row"
+                      onDrop={handleComponentDrop}
+                      className={cx(
+                        'empty-droptarget',
+                        'empty-droptarget--vertical',
+                        remainColumnCount === 0 &&
+                          itemIndex === rowItems.length - 1 &&
+                          'droptarget-side',
+                      )}
+                      editMode
+                      style={{
+                        height: containerHeight,
+                        ...(remainColumnCount === 0 &&
+                          itemIndex === rowItems.length - 1 && { width: 16 }),
+                      }}
+                    >
+                      {({
+                        dropIndicatorProps,
+                      }: {
+                        dropIndicatorProps: JsonObject;
+                      }) =>
+                        dropIndicatorProps && <div {...dropIndicatorProps} />
+                      }
+                    </Droppable>
+                  )}
+                </Fragment>
+              ))}
+          </GridRow>
+        </WithPopoverMenu>
+      </ComponentThemeProvider>
     ),
     [
       backgroundStyle.className,

@@ -45,6 +45,10 @@ import {
 import HoverMenu from '../../menu/HoverMenu';
 import DragHandle from '../../dnd/DragHandle';
 import DeleteComponentButton from '../../DeleteComponentButton';
+import ComponentThemeProvider from '../../ComponentThemeProvider';
+import ComponentHeaderControls from '../../menu/ComponentHeaderControls';
+import ThemeSelectorModal from '../../ThemeSelectorModal';
+import { t } from '@apache-superset/core/translation';
 
 const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
   width: 100%;
@@ -173,6 +177,7 @@ const TabsRenderer = memo<TabsRendererProps>(
     onTabTitleEditingChange,
   }) => {
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [themeModalOpen, setThemeModalOpen] = useState(false);
 
     // Use ref to always have access to the current tabIds in callbacks
     const tabIdsRef = useRef(tabIds);
@@ -209,66 +214,86 @@ const TabsRenderer = memo<TabsRendererProps>(
     const isDragging = activeId !== null;
 
     return (
-      <StyledTabsContainer
-        className="dashboard-component dashboard-component-tabs"
-        data-test="dashboard-component-tabs"
-        isDragging={isDragging}
-      >
-        {editMode && renderHoverMenu && tabsDragSourceRef && (
-          <HoverMenu innerRef={tabsDragSourceRef} position="left">
-            <DragHandle position="left" />
-            <DeleteComponentButton onDelete={handleDeleteComponent} />
-          </HoverMenu>
-        )}
+      <ComponentThemeProvider layoutId={tabsComponent.id}>
+        <StyledTabsContainer
+          className="dashboard-component dashboard-component-tabs"
+          data-test="dashboard-component-tabs"
+          isDragging={isDragging}
+        >
+          {editMode && renderHoverMenu && tabsDragSourceRef && (
+            <HoverMenu innerRef={tabsDragSourceRef} position="left">
+              <DragHandle position="left" />
+              <DeleteComponentButton onDelete={handleDeleteComponent} />
+              <ComponentHeaderControls
+                items={[
+                  {
+                    key: 'apply-theme',
+                    label: t('Apply theme'),
+                    onClick: () => setThemeModalOpen(true),
+                  },
+                ]}
+                ariaLabel={t('Tabs options')}
+              />
+            </HoverMenu>
+          )}
+          {editMode && (
+            <ThemeSelectorModal
+              layoutId={tabsComponent.id}
+              show={themeModalOpen}
+              onHide={() => setThemeModalOpen(false)}
+            />
+          )}
 
-        <LineEditableTabs
-          id={tabsComponent.id}
-          activeKey={activeKey}
-          onChange={key => {
-            if (typeof key === 'string') {
-              const tabIndex = tabIds.indexOf(key);
-              if (tabIndex !== -1) handleClickTab(tabIndex);
-            }
-          }}
-          onEdit={handleEdit}
-          data-test="nav-list"
-          type={editMode ? 'editable-card' : 'card'}
-          items={tabItems}
-          tabBarStyle={{ paddingLeft: tabBarPaddingLeft }}
-          fullHeight
-          {...(editMode && {
-            renderTabBar: (tabBarProps, DefaultTabBar) => (
-              <DndContext
-                key={tabIds.join('-')}
-                sensors={[sensor]}
-                onDragStart={onDragStart}
-                onDragEnd={onDragEnd}
-                onDragCancel={onDragCancel}
-                collisionDetection={closestCenter}
-              >
-                <SortableContext
-                  items={tabIds}
-                  strategy={horizontalListSortingStrategy}
+          <LineEditableTabs
+            id={tabsComponent.id}
+            activeKey={activeKey}
+            onChange={key => {
+              if (typeof key === 'string') {
+                const tabIndex = tabIds.indexOf(key);
+                if (tabIndex !== -1) handleClickTab(tabIndex);
+              }
+            }}
+            onEdit={handleEdit}
+            data-test="nav-list"
+            type={editMode ? 'editable-card' : 'card'}
+            items={tabItems}
+            tabBarStyle={{ paddingLeft: tabBarPaddingLeft }}
+            fullHeight
+            {...(editMode && {
+              renderTabBar: (tabBarProps, DefaultTabBar) => (
+                <DndContext
+                  key={tabIds.join('-')}
+                  sensors={[sensor]}
+                  onDragStart={onDragStart}
+                  onDragEnd={onDragEnd}
+                  onDragCancel={onDragCancel}
+                  collisionDetection={closestCenter}
                 >
-                  <DefaultTabBar {...tabBarProps}>
-                    {(node: React.ReactElement) => (
-                      <DraggableTabNode
-                        {...(node as React.ReactElement<DraggableTabNodeProps>)
-                          .props}
-                        key={node.key}
-                        data-node-key={node.key as string}
-                        disabled={isEditingTabTitle}
-                      >
-                        {node}
-                      </DraggableTabNode>
-                    )}
-                  </DefaultTabBar>
-                </SortableContext>
-              </DndContext>
-            ),
-          })}
-        />
-      </StyledTabsContainer>
+                  <SortableContext
+                    items={tabIds}
+                    strategy={horizontalListSortingStrategy}
+                  >
+                    <DefaultTabBar {...tabBarProps}>
+                      {(node: React.ReactElement) => (
+                        <DraggableTabNode
+                          {...(
+                            node as React.ReactElement<DraggableTabNodeProps>
+                          ).props}
+                          key={node.key}
+                          data-node-key={node.key as string}
+                          disabled={isEditingTabTitle}
+                        >
+                          {node}
+                        </DraggableTabNode>
+                      )}
+                    </DefaultTabBar>
+                  </SortableContext>
+                </DndContext>
+              ),
+            })}
+          />
+        </StyledTabsContainer>
+      </ComponentThemeProvider>
     );
   },
 );

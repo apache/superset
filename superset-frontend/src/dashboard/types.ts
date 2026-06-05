@@ -278,6 +278,12 @@ export type LayoutItemMeta = {
   code?: string;
   /** Background style value for columns and rows */
   background?: string;
+  /**
+   * Optional per-component theme override (CRUD `theme` resource id).
+   * `null` means "explicitly inherit"; a missing key means the same thing
+   * semantically. See ComponentThemeProvider for the inheritance walk.
+   */
+  themeId?: number | null;
   /** Allow additional meta properties used by different component types */
   [key: string]: unknown;
 };
@@ -373,6 +379,7 @@ export enum MenuKeys {
   ExportFullXlsx = 'export_full_xlsx',
   ForceRefresh = 'force_refresh',
   Fullscreen = 'fullscreen',
+  ApplyTheme = 'apply_theme',
   ToggleChartDescription = 'toggle_chart_description',
   ViewQuery = 'view_query',
   ViewResults = 'view_results',

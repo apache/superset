@@ -57,6 +57,7 @@ import { useDrillDetailMenuItems } from 'src/components/Chart/useDrillDetailMenu
 import { LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE } from 'src/logger/LogUtils';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import DrillDetailModal from 'src/components/Chart/DrillDetail/DrillDetailModal';
+import ThemeSelectorModal from 'src/dashboard/components/ThemeSelectorModal';
 import { usePermissions } from 'src/hooks/usePermissions';
 import { useDatasetDrillInfo } from 'src/hooks/apiResources/datasets';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
@@ -166,6 +167,13 @@ const SliceHeaderControls = (
   const [drillModalIsOpen, setDrillModalIsOpen] = useState(false);
   // setting openKeys undefined falls back to uncontrolled behaviour
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
+  const [themeModalOpen, setThemeModalOpen] = useState(false);
+
+  // Per-component theming is an edit-mode affordance only — viewers see the
+  // applied theme but can't change it.
+  const editMode = useSelector<RootState, boolean>(
+    state => !!state.dashboardState.editMode,
+  );
   const [openScopingModal, scopingModal] = useCrossFiltersScopingModal(
     props.slice.slice_id,
   );
@@ -257,6 +265,9 @@ const SliceHeaderControls = (
       case MenuKeys.ToggleChartDescription:
         // eslint-disable-next-line no-unused-expressions
         props.toggleExpandSlice?.(props.slice.slice_id);
+        break;
+      case MenuKeys.ApplyTheme:
+        setThemeModalOpen(true);
         break;
       case MenuKeys.ExploreChart:
         // eslint-disable-next-line no-unused-expressions
@@ -447,6 +458,13 @@ const SliceHeaderControls = (
       label: props.isDescriptionExpanded
         ? t('Hide chart description')
         : t('Show chart description'),
+    });
+  }
+
+  if (editMode) {
+    newMenuItems.push({
+      key: MenuKeys.ApplyTheme,
+      label: t('Apply theme'),
     });
   }
 
@@ -681,6 +699,13 @@ const SliceHeaderControls = (
         dataset={datasetWithVerboseMap}
       />
       {canEditCrossFilters && scopingModal}
+      {editMode && (
+        <ThemeSelectorModal
+          layoutId={componentId}
+          show={themeModalOpen}
+          onHide={() => setThemeModalOpen(false)}
+        />
+      )}
       {isFullSize && <Global styles={fullscreenStyles(theme)} />}
     </>
   );

@@ -33,7 +33,13 @@ import {
 } from '@apache-superset/core/theme';
 import { ThemeController } from './ThemeController';
 
-const ThemeContext = createContext<ThemeContextType | null>(null);
+// Exported so callers that want to opt out of `useThemeContext`'s
+// "must be used within a ThemeProvider" throw can read the context
+// directly and handle the null case themselves (e.g. components like
+// `ComponentThemeProvider` that need to behave as a pass-through when
+// rendered outside the dashboard's ThemeProvider tree, such as in
+// isolated component tests).
+export const ThemeContext = createContext<ThemeContextType | null>(null);
 
 interface ThemeProviderProps {
   children: React.ReactNode;
