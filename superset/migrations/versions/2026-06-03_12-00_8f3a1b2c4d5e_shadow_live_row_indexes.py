@@ -39,7 +39,23 @@ Index choice is dialect-specific:
   ``(id, end_transaction_id)``. MySQL's optimizer handles the
   ``IS NULL`` predicate against the composite efficiently.
 
-Surfaced by sqlalchemy-review pass W-NEW-4.
+It also adds a composite ``(table_id, transaction_id)`` index on the two
+child shadow tables (``table_columns_version`` / ``sql_metrics_version``).
+The dataset child-diff path queries these by parent ``table_id`` plus a
+transaction-range bound, neither of which the base migration's
+single-column indexes nor the ``id``-leading PK can serve:
+
+    SELECT ... FROM table_columns_version
+    WHERE table_id = ? AND transaction_id <= ? AND ...   (shadow_rows_valid_at)
+
+    SELECT max(transaction_id) FROM table_columns_version
+    WHERE table_id = ? AND transaction_id < ?            (prior-tx probe)
+
+A plain composite leading with ``table_id`` serves both on every dialect,
+so no partial-index split is needed here.
+
+Surfaced by sqlalchemy-review pass W-NEW-4 (live-row lookup) and a
+Codex sqlalchemy-review pass (child-diff ``table_id`` lookup).
 
 Revision ID: 8f3a1b2c4d5e
 Revises: 56cd24c07170
@@ -72,8 +88,21 @@ SHADOW_TABLES: tuple[str, ...] = (
 )
 
 
+# Child shadow tables whose rows are looked up by parent ``table_id`` plus a
+# transaction-range bound on the dataset child-diff path. Both carry a
+# nullable ``table_id`` mirroring the live row's FK to ``tables.id``.
+CHILD_SHADOW_TABLES: tuple[str, ...] = (
+    "table_columns_version",
+    "sql_metrics_version",
+)
+
+
 def _index_name(table: str) -> str:
     return f"ix_{table}_live_id"
+
+
+def _child_index_name(table: str) -> str:
+    return f"ix_{table}_table_id_transaction_id"
 
 
 def upgrade() -> None:
@@ -112,6 +141,17 @@ def upgrade() -> None:
                 unique=False,
             )
 
+    # Child-diff access pattern: filter by parent ``table_id`` plus a
+    # transaction-range bound. A plain composite serves this on every
+    # dialect, so no partial-index split is needed.
+    for table in CHILD_SHADOW_TABLES:
+        op.create_index(
+            _child_index_name(table),
+            table,
+            ["table_id", "transaction_id"],
+            unique=False,
+        )
+
 
 def downgrade() -> None:
     # Probe the inspector instead of emitting ``DROP INDEX IF EXISTS``:
@@ -125,5 +165,9 @@ def downgrade() -> None:
     inspector = sa.inspect(op.get_bind())
     for table in SHADOW_TABLES:
         index_name = _index_name(table)
+        if any(ix["name"] == index_name for ix in inspector.get_indexes(table)):
+            op.drop_index(index_name, table_name=table)
+    for table in CHILD_SHADOW_TABLES:
+        index_name = _child_index_name(table)
         if any(ix["name"] == index_name for ix in inspector.get_indexes(table)):
             op.drop_index(index_name, table_name=table)

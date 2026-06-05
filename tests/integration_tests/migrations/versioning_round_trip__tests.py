@@ -97,6 +97,17 @@ _SHADOW_TABLES_WITH_LIVE_INDEX: tuple[str, ...] = (
 )
 
 
+# Child shadow tables that additionally carry a ``(table_id, transaction_id)``
+# composite index (the ``8f3a1b2c4d5e`` migration adds it for the dataset
+# child-diff access pattern, which filters by parent ``table_id`` plus a
+# transaction-range bound). Parent shadows and the M2M shadow are excluded —
+# they aren't queried by ``table_id``.
+_CHILD_SHADOW_TABLES_WITH_TX_INDEX: tuple[str, ...] = (
+    "table_columns_version",
+    "sql_metrics_version",
+)
+
+
 def _run_migration(
     engine: sa.engine.Engine, migration_module: Any, direction: str
 ) -> None:
@@ -302,13 +313,32 @@ def test_round_trip_against_populated_shadow_tables() -> None:
         "M2M shadow shouldn't get the live-id partial index (no id column)"
     )
 
+    # The child-diff composite index exists on each child shadow. Parent
+    # shadows aren't queried by table_id, so they must NOT carry it.
+    for tbl in _CHILD_SHADOW_TABLES_WITH_TX_INDEX:
+        index_names = {ix[0] for ix in first_upgrade_shape[tbl]["indexes"]}
+        expected = f"ix_{tbl}_table_id_transaction_id"
+        assert expected in index_names, (
+            f"Expected child-diff composite index {expected!r} on {tbl} after "
+            f"8f3a1b2c4d5e upgrade; got {sorted(index_names)}"
+        )
+    for tbl in ("dashboards_version", "slices_version", "tables_version"):
+        parent_indexes = {ix[0] for ix in first_upgrade_shape[tbl]["indexes"]}
+        assert f"ix_{tbl}_table_id_transaction_id" not in parent_indexes, (
+            f"Parent shadow {tbl} shouldn't get the child-diff table_id index"
+        )
+
     # 2. Populate.
     _populate_shadow_rows(engine)
 
     # Sanity-check: rows actually landed.
     with engine.connect() as conn:
         for tbl in _VERSIONING_TABLES:
-            count = conn.execute(sa.text(f"SELECT COUNT(*) FROM {tbl}")).scalar_one()
+            # S608 justification: ``tbl`` comes from the hardcoded
+            # ``_VERSIONING_TABLES`` tuple in this module, never user input.
+            count = conn.execute(
+                sa.text(f"SELECT COUNT(*) FROM {tbl}")  # noqa: S608
+            ).scalar_one()
             assert count > 0, f"Expected rows in {tbl} after population; got 0"
 
     # 3. Downgrade in reverse migration order.
