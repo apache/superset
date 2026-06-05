@@ -1339,3 +1339,24 @@ def test_get_view_names_strips_schema_with_regex_metacharacters(
     # "axbc.other" would match the old unescaped pattern ^a.b(c)\. and be
     # incorrectly stripped — the escaped version correctly preserves it.
     assert views == {"report", "axbc.other"}
+
+
+def test_normalize_column_values_is_identity() -> None:
+    """BaseEngineSpec.normalize_column_values must return the input unchanged."""
+    values = [1, None, "text", 3.14]
+    assert BaseEngineSpec.normalize_column_values(values) is values
+
+
+def test_resolve_column_type_prefers_cursor_type() -> None:
+    """cursor_type wins over pa_mapped when both are present."""
+    assert BaseEngineSpec.resolve_column_type("INTEGER", "FLOAT") == "INTEGER"
+
+
+def test_resolve_column_type_falls_back_to_pa_mapped() -> None:
+    """pa_mapped is used when cursor_type is absent."""
+    assert BaseEngineSpec.resolve_column_type(None, "FLOAT") == "FLOAT"
+
+
+def test_resolve_column_type_returns_none_when_both_absent() -> None:
+    """None is returned when neither source provides a type."""
+    assert BaseEngineSpec.resolve_column_type(None, None) is None
