@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-05 12:59+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.18.0\n"
+"Generated-By: Babel 2.17.0\n"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pt_BR, ru, sk, sl, uk]
@@ -1965,6 +1965,12 @@ msgstr "เพิ่มตัวจัดรูปแบบสีใหม่"
 msgid "Add new formatter"
 msgstr "เพิ่มตัวจัดรูปแบบใหม่"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
+#, fuzzy
+msgid "Add numbered column"
+msgstr " เพื่อเพิ่มคอลัมน์ที่คำนวณ"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sk, uk]
 #, fuzzy
@@ -2935,7 +2941,7 @@ msgstr "เกิดข้อผิดพลาดขณะดึงธีมท
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while fetching semantic layers"
 msgstr "เกิดข้อผิดพลาดขณะดึงค่าสคีมา: %s"
 
@@ -3058,7 +3064,7 @@ msgstr "เกิดข้อผิดพลาดขณะตัดแต่ง
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, fuzzy
 msgid "An error occurred while refreshing the configuration schema"
 msgstr "เกิดข้อผิดพลาดขณะแสดงผลการแสดงข้อมูล: %s"
 
@@ -4060,7 +4066,7 @@ msgstr "ความสูงฐาน"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
-#, fuzzy, python-format
+#, fuzzy
 msgid "Base layer map style. Accepts a MapLibre-compatible style URL."
 msgstr "รูปแบบแผนที่เลเยอร์ฐาน ดูเอกสาร Mapbox: %s"
 
@@ -7275,6 +7281,15 @@ msgstr "SQL กำหนดเอง"
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "เมตริก SQL เฉพาะกิจแบบกำหนดเองไม่ได้เปิดใช้งานสำหรับชุดข้อมูลนี้"
 
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "ฟิลด์ SQL กำหนดเองไม่สามารถมีคำสั่งย่อยได้"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -9784,7 +9799,7 @@ msgstr "ระยะเวลาในหน่วยมิลลิวินา
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
-msgid "Duration in ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "ระยะเวลาในหน่วยมิลลิวินาที (10500 => 0:10.5)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -16360,7 +16375,7 @@ msgstr "ไม่มีคอลัมน์ในตาราง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy, python-format
+#, fuzzy
 msgid "No tasks yet"
 msgstr "ยังไม่มี %s"
 
@@ -16523,6 +16538,12 @@ msgstr "ไม่ได้กำหนด"
 #, fuzzy
 msgid "Not equal to (≠)"
 msgstr "ไม่เท่ากับ (≠)"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, tr, uk]
+#, fuzzy
+msgid "Not found"
+msgstr "ไม่พบแผนภูมิ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -18420,6 +18441,12 @@ msgstr "รหัสโครงการ"
 msgid "Proportional"
 msgstr "สัดส่วน"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -18910,12 +18937,6 @@ msgstr "ลงทะเบียน"
 #, fuzzy
 msgid "Registration date"
 msgstr "วันที่ลงทะเบียน"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
-# lv, ru, sk, uk]
-#, fuzzy
-msgid "Registration hash"
-msgstr "แฮชการลงทะเบียน"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, ru,
 # sk, uk]
@@ -19846,6 +19867,12 @@ msgstr "SQL"
 #, fuzzy
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
@@ -27026,6 +27053,9 @@ msgstr "พิมพ์ค่า"
 msgid "Type is required"
 msgstr "ต้องระบุประเภท"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
 #, fuzzy
@@ -27282,6 +27312,12 @@ msgstr "เลิกทำการกระทำ"
 #, fuzzy
 msgid "Undo?"
 msgstr "เลิกทำ?"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr "เกิดข้อผิดพลาดที่ไม่คาดคิด โปรดตรวจสอบบันทึกของคุณเพื่อดูรายละเอียด"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -28853,6 +28889,12 @@ msgstr "ว่าจะแสดงค่าต่ำสุดและสูง
 #, fuzzy
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "ว่าจะแสดงค่าต่ำสุดและสูงสุดของแกน Y หรือไม่"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "ว่าจะแสดงเส้นแนวโน้มหรือไม่"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -31658,6 +31700,12 @@ msgstr "ค่าจากน้อยไปมาก"
 msgid "value descending"
 msgstr "ค่าจากมากไปน้อย"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
+# fr, ja, lv, mi, ru, sk, uk]
+#, fuzzy
+msgid "valuename"
+msgstr "ชื่อตาราง"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -31757,28 +31805,11 @@ msgstr "your-project-1234-a1"
 msgid "zoom area"
 msgstr "พื้นที่ซูม"
 
-#, python-brace-format
-msgid ""
-"{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;"
-"\n"
-"\n"
-"/** The classic emailregex.com regex for RFC 5322-compliant emails */\n"
-"export const rfc5322Email =\n"
-"  "
-"/^(([^<>()[]\\.,;:s@\"]+(.[^<>()[]\\.,;:s@\"]+)*)|(\".+\"))@(([[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}.[0-9]{1,3}])|(([a-zA-Z-0-9]+.)+[a-zA-Z]{2,}))$/;"
-"\n"
-"\n"
-"/** A loose regex that allows Unicode characters, enforces length limits,"
-" and that's about it. */\n"
-"export const unicodeEmail = /^[^s@\"]{1,64}@[^s@]{1,255}$/u;\n"
-"export const idnEmail = unicodeEmail;\n"
-"\n"
-"export const browserEmail: RegExp =\n"
-"  /^[a-zA-Z0-9.!#$%&'*+/=?^_"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
 msgid "© Layer attribution"
 msgstr "© การระบุแหล่งที่มาของเลเยอร์"
+
+msgid "№"
+msgstr ""
