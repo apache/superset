@@ -363,7 +363,7 @@ Alternatively, perform a fresh install. This is a one-time migration; subsequent
 | supersetWebsockets.affinity | object | `{}` | Affinity to be added to supersetWebsockets deployment |
 | supersetWebsockets.command | list | `[]` |  |
 | supersetWebsockets.config | object | see `values.yaml` | The config.json to pass to the server, see https://github.com/apache/superset/tree/master/superset-websocket Note that the configuration can also read from environment variables (which will have priority), see https://github.com/apache/superset/blob/master/superset-websocket/src/config.ts for a list of supported variables |
-| supersetWebsockets.configAnntotaions | object | `{}` | Annotations to be added to the secret which contains config.json |
+| supersetWebsockets.configAnnotations | object | `{}` | Annotations to be added to the secret which contains config.json |
 | supersetWebsockets.containerSecurityContext | object | `{}` |  |
 | supersetWebsockets.deploymentAdditionalPodSpec | object | `{}` | Custom pod spec to be added to supersetWebsockets deployment |
 | supersetWebsockets.deploymentAnnotations | object | `{}` |  |

@@ -898,7 +898,7 @@ supersetWebsockets:
       "jwtCookieName": "async-token",
     }
   # -- Annotations to be added to the secret which contains config.json
-  configAnntotaions: {}
+  configAnnotations: {}
   service:
     type: ClusterIP
     annotations: {}
