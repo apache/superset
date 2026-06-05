@@ -819,6 +819,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     placement="bottom"
                   >
                     <span
+                      data-test="dataset-row-delete"
                       role="button"
                       tabIndex={0}
                       className="action-button"
@@ -835,6 +836,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     placement="bottom"
                   >
                     <span
+                      data-test="dataset-row-edit"
                       role="button"
                       tabIndex={0}
                       className="action-button"
@@ -880,6 +882,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   placement="bottom"
                 >
                   <span
+                    data-test="dataset-row-edit"
                     role="button"
                     tabIndex={0}
                     className={`action-button ${allowEdit ? '' : 'disabled'}`}
@@ -896,6 +899,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   placement="bottom"
                 >
                   <span
+                    data-test="dataset-row-export"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -912,6 +916,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   placement="bottom"
                 >
                   <span
+                    data-test="dataset-row-duplicate"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -928,6 +933,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   placement="bottom"
                 >
                   <span
+                    data-test="dataset-row-delete"
                     role="button"
                     tabIndex={0}
                     className="action-button"

@@ -56,6 +56,15 @@ Importing a dataset now validates the `catalog` field against the target databas
 
 If you relied on importing datasets with a non-default catalog, enable "Allow changing catalogs" on the target connection, or set the dataset's catalog to the connection's default before importing.
 
+### Extension supply-chain controls (denylist + version policy)
+
+Two opt-in static gates control which extensions are allowed to load:
+
+- `EXTENSION_DENYLIST` refuses extensions matching an id (every version) or `id@version` (a single version), e.g. `["compromised-extension", "other-ext@1.2.3"]`.
+- `EXTENSION_VERSION_POLICY` enforces a minimum version per extension id, e.g. `{"acme.widget": "1.2.0"}` (PEP 440 comparison); a release below the minimum is refused.
+
+Both default to empty (no behavior change). They apply to both the `LOCAL_EXTENSIONS` and `EXTENSIONS_PATH` load paths.
+
 ### Granular Export Controls
 
 A new feature flag `GRANULAR_EXPORT_CONTROLS` introduces three fine-grained permissions that replace the legacy `can_csv` permission:
