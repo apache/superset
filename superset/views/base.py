@@ -740,8 +740,8 @@ class CsvResponse(Response):
     default_mimetype = "text/csv"
 
     def __init__(self, response: Any = None, *args: Any, **kwargs: Any) -> None:
-        encoding = app.config["CSV_EXPORT"].get("encoding", "utf-8")
         if isinstance(response, str):
+            encoding = app.config["CSV_EXPORT"].get("encoding", "utf-8")
             response = response.encode(encoding)
         super().__init__(response, *args, **kwargs)
 
