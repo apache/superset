@@ -19,6 +19,7 @@
 from typing import Optional
 
 from pandas import DataFrame  # noqa: F401
+from sqlalchemy import or_
 
 from superset import db
 from superset.connectors.sqla.models import SqlaTable
@@ -40,23 +41,23 @@ def get_table(
     # soft-deleted by other tests in the same session. Without the
     # bypass, the listener hides them and a subsequent INSERT collides
     # with the underlying ``(database_id, catalog, schema, table_name)``
-    # unique constraint that survives soft-delete. Include ``catalog`` in
-    # the lookup (normalized to the database default, the same rule
-    # ``DatasetDAO.validate_uniqueness`` applies) so the helper can't bind
-    # to a different catalog variant when rows share
-    # ``(database_id, schema, table_name)`` but differ only by catalog
-    # (e.g. NULL vs ``"public"``). Within a single catalog, prefer live
-    # rows over soft-deleted ones via ``ORDER BY deleted_at IS NULL DESC``.
+    # unique constraint that survives soft-delete.
+    #
+    # Match rows whose catalog is either unset (NULL) or the database
+    # default — these are "the same physical table" the way
+    # ``DatasetDAO.validate_uniqueness`` treats them (``table.catalog or
+    # default``). Example rows are seeded with ``catalog = NULL`` while a
+    # connection that reports a default catalog (e.g. Postgres) would
+    # normalize to that default, so both must qualify. This still excludes
+    # an unrelated third catalog variant of the same table_name. Within the
+    # matched set, prefer live rows over soft-deleted ones via
+    # ``ORDER BY deleted_at IS NULL DESC``.
     catalog = database.get_default_catalog()
     return (
         db.session.query(SqlaTable)
         .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
-        .filter_by(
-            database_id=database.id,
-            catalog=catalog,
-            schema=schema,
-            table_name=table_name,
-        )
+        .filter_by(database_id=database.id, schema=schema, table_name=table_name)
+        .filter(or_(SqlaTable.catalog.is_(None), SqlaTable.catalog == catalog))
         .order_by(SqlaTable.deleted_at.is_(None).desc(), SqlaTable.id)
         .first()
     )
