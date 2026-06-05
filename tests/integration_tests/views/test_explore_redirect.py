@@ -185,7 +185,10 @@ class TestExploreRedirect(SupersetTestCase):
                     f"/explore/?form_data={quote(json.dumps(form_data))}"
                 )
                 assert rv.status_code == 302
-                assert mock_command_cls.call_args.kwargs["chart_id"] == 0
+                # ``CreateFormDataCommand(parameters)`` is called positionally
+                # with a ``CommandParameters`` dataclass; assert against
+                # ``args[0]`` (matches the sibling precedence test at L210).
+                assert mock_command_cls.call_args.args[0].chart_id == 0
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @mock.patch("superset.commands.explore.form_data.create.CreateFormDataCommand")
