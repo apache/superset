@@ -132,13 +132,7 @@ export default function DndSelectLabel({
     );
   }
 
-  // Handle drop events from dnd-kit
-  useEffect(() => {
-    if (isOver && active?.data.current && canDrop) {
-      // The actual drop is handled in ExploreDndContext's onDragEnd
-      // This effect is for any side effects needed during hover
-    }
-  }, [isOver, active, canDrop]);
+  // The actual drop is handled in ExploreDndContext's onDragEnd.
 
   // Wrap values in SortableContext if sortable
   const renderSortableValues = () => {
