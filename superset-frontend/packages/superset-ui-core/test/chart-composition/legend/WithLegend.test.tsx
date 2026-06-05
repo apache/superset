@@ -17,189 +17,117 @@
  * under the License.
  */
 
-import { triggerResizeObserver } from 'resize-observer-polyfill';
-import { promiseTimeout, WithLegend } from '@superset-ui/core';
+import '@testing-library/jest-dom';
 import { render } from '@testing-library/react';
+import { WithLegend } from '@superset-ui/core';
 
-let renderChart = jest.fn();
-let renderLegend = jest.fn();
+jest.mock('@visx/responsive', () => ({
+  ParentSize: ({
+    children,
+  }: {
+    children: (props: { width: number; height: number }) => React.ReactNode;
+  }) => children({ width: 800, height: 600 }),
+}));
 
-// TODO: rewrite to rtl
-/* oxlint-disable-next-line jest/no-disabled-tests */
-describe.skip('WithLegend', () => {
-  beforeEach(() => {
-    renderChart = jest.fn(() => <div className="chart" />);
-    renderLegend = jest.fn(() => <div className="legend" />);
-  });
+test('WithLegend applies custom className', () => {
+  const { container } = render(
+    <WithLegend
+      className="test-class"
+      renderChart={() => <div className="chart" />}
+    />,
+  );
+  expect(container.querySelector('.with-legend.test-class')).toBeInTheDocument();
+});
 
-  test('sets className', () => {
-    const { container } = render(
-      <WithLegend
-        className="test-class"
-        renderChart={renderChart}
-        renderLegend={renderLegend}
-      />,
-    );
-    expect(container.querySelectorAll('.test-class')).toHaveLength(1);
-  });
+test('WithLegend renders chart without legend when renderLegend is not provided', () => {
+  const renderChart = jest.fn(() => <div data-test="chart" />);
+  const { container } = render(
+    <WithLegend renderChart={renderChart} />,
+  );
+  expect(container.querySelector('[data-test="chart"]')).toBeInTheDocument();
+  expect(renderChart).toHaveBeenCalledTimes(1);
+  expect(container.querySelector('.legend-container')).not.toBeInTheDocument();
+});
 
-  test('renders when renderLegend is not set', () => {
-    const { container } = render(
-      <WithLegend
-        debounceTime={1}
-        width={500}
-        height={500}
-        renderChart={renderChart}
-      />,
-    );
+test('WithLegend renders both chart and legend', () => {
+  const renderChart = jest.fn(() => <div data-test="chart" />);
+  const renderLegend = jest.fn(() => <div data-test="legend" />);
+  const { container } = render(
+    <WithLegend renderChart={renderChart} renderLegend={renderLegend} />,
+  );
+  expect(container.querySelector('[data-test="chart"]')).toBeInTheDocument();
+  expect(container.querySelector('[data-test="legend"]')).toBeInTheDocument();
+  expect(renderChart).toHaveBeenCalledTimes(1);
+  expect(renderLegend).toHaveBeenCalledTimes(1);
+});
 
-    triggerResizeObserver();
-    // Have to delay more than debounceTime (1ms)
-    return promiseTimeout(() => {
-      expect(renderChart).toHaveBeenCalledTimes(1);
-      expect(container.querySelectorAll('div.chart')).toHaveLength(1);
-      expect(container.querySelectorAll('div.legend')).toHaveLength(0);
-    }, 100);
-  });
+test('WithLegend renders legend at top position with column direction', () => {
+  const { container } = render(
+    <WithLegend
+      position="top"
+      renderChart={() => <div />}
+      renderLegend={() => <div data-testid="legend" />}
+    />,
+  );
+  const wrapper = container.querySelector('.with-legend') as HTMLElement;
+  expect(wrapper.style.flexDirection).toBe('column');
+});
 
-  test('renders', () => {
-    const { container } = render(
-      <WithLegend
-        debounceTime={1}
-        width={500}
-        height={500}
-        renderChart={renderChart}
-        renderLegend={renderLegend}
-      />,
-    );
+test('WithLegend renders legend at bottom position with column-reverse direction', () => {
+  const { container } = render(
+    <WithLegend
+      position="bottom"
+      renderChart={() => <div />}
+      renderLegend={() => <div data-testid="legend" />}
+    />,
+  );
+  const wrapper = container.querySelector('.with-legend') as HTMLElement;
+  expect(wrapper.style.flexDirection).toBe('column-reverse');
+});
 
-    triggerResizeObserver();
-    // Have to delay more than debounceTime (1ms)
-    return promiseTimeout(() => {
-      expect(renderChart).toHaveBeenCalledTimes(1);
-      expect(renderLegend).toHaveBeenCalledTimes(1);
-      expect(container.querySelectorAll('div.chart')).toHaveLength(1);
-      expect(container.querySelectorAll('div.legend')).toHaveLength(1);
-    }, 100);
-  });
+test('WithLegend renders legend at left position with row direction', () => {
+  const renderLegend = jest.fn(() => <div />);
+  const { container } = render(
+    <WithLegend
+      position="left"
+      renderChart={() => <div />}
+      renderLegend={renderLegend}
+    />,
+  );
+  const wrapper = container.querySelector('.with-legend') as HTMLElement;
+  expect(wrapper.style.flexDirection).toBe('row');
+  expect(renderLegend).toHaveBeenCalledWith(
+    expect.objectContaining({ direction: 'column' }),
+  );
+});
 
-  test('renders without width or height', () => {
-    const { container } = render(
-      <WithLegend
-        debounceTime={1}
-        renderChart={renderChart}
-        renderLegend={renderLegend}
-      />,
-    );
+test('WithLegend renders legend at right position with row-reverse direction', () => {
+  const renderLegend = jest.fn(() => <div />);
+  const { container } = render(
+    <WithLegend
+      position="right"
+      renderChart={() => <div />}
+      renderLegend={renderLegend}
+    />,
+  );
+  const wrapper = container.querySelector('.with-legend') as HTMLElement;
+  expect(wrapper.style.flexDirection).toBe('row-reverse');
+  expect(renderLegend).toHaveBeenCalledWith(
+    expect.objectContaining({ direction: 'column' }),
+  );
+});
 
-    triggerResizeObserver();
-    // Have to delay more than debounceTime (1ms)
-    return promiseTimeout(() => {
-      expect(renderChart).toHaveBeenCalledTimes(1);
-      expect(renderLegend).toHaveBeenCalledTimes(1);
-      expect(container.querySelectorAll('div.chart')).toHaveLength(1);
-      expect(container.querySelectorAll('div.legend')).toHaveLength(1);
-    }, 100);
-  });
-
-  test('renders legend on the left', () => {
-    const { container } = render(
-      <WithLegend
-        debounceTime={1}
-        position="left"
-        renderChart={renderChart}
-        renderLegend={renderLegend}
-      />,
-    );
-
-    triggerResizeObserver();
-    // Have to delay more than debounceTime (1ms)
-    return promiseTimeout(() => {
-      expect(renderChart).toHaveBeenCalledTimes(1);
-      expect(renderLegend).toHaveBeenCalledTimes(1);
-      expect(container.querySelectorAll('div.chart')).toHaveLength(1);
-      expect(container.querySelectorAll('div.legend')).toHaveLength(1);
-    }, 100);
-  });
-
-  test('renders legend on the right', () => {
-    const { container } = render(
-      <WithLegend
-        debounceTime={1}
-        position="right"
-        renderChart={renderChart}
-        renderLegend={renderLegend}
-      />,
-    );
-
-    triggerResizeObserver();
-    // Have to delay more than debounceTime (1ms)
-    return promiseTimeout(() => {
-      expect(renderChart).toHaveBeenCalledTimes(1);
-      expect(renderLegend).toHaveBeenCalledTimes(1);
-      expect(container.querySelectorAll('div.chart')).toHaveLength(1);
-      expect(container.querySelectorAll('div.legend')).toHaveLength(1);
-    }, 100);
-  });
-
-  test('renders legend on the top', () => {
-    const { container } = render(
-      <WithLegend
-        debounceTime={1}
-        position="top"
-        renderChart={renderChart}
-        renderLegend={renderLegend}
-      />,
-    );
-
-    triggerResizeObserver();
-    // Have to delay more than debounceTime (1ms)
-    return promiseTimeout(() => {
-      expect(renderChart).toHaveBeenCalledTimes(1);
-      expect(renderLegend).toHaveBeenCalledTimes(1);
-      expect(container.querySelectorAll('div.chart')).toHaveLength(1);
-      expect(container.querySelectorAll('div.legend')).toHaveLength(1);
-    }, 100);
-  });
-
-  test('renders legend on the bottom', () => {
-    const { container } = render(
-      <WithLegend
-        debounceTime={1}
-        position="bottom"
-        renderChart={renderChart}
-        renderLegend={renderLegend}
-      />,
-    );
-
-    triggerResizeObserver();
-    // Have to delay more than debounceTime (1ms)
-    return promiseTimeout(() => {
-      expect(renderChart).toHaveBeenCalledTimes(1);
-      expect(renderLegend).toHaveBeenCalledTimes(1);
-      expect(container.querySelectorAll('div.chart')).toHaveLength(1);
-      expect(container.querySelectorAll('div.legend')).toHaveLength(1);
-    }, 100);
-  });
-
-  test('renders legend with justifyContent set', () => {
-    const { container } = render(
-      <WithLegend
-        debounceTime={1}
-        position="right"
-        legendJustifyContent="flex-start"
-        renderChart={renderChart}
-        renderLegend={renderLegend}
-      />,
-    );
-
-    triggerResizeObserver();
-    // Have to delay more than debounceTime (1ms)
-    return promiseTimeout(() => {
-      expect(renderChart).toHaveBeenCalledTimes(1);
-      expect(renderLegend).toHaveBeenCalledTimes(1);
-      expect(container.querySelectorAll('div.chart')).toHaveLength(1);
-      expect(container.querySelectorAll('div.legend')).toHaveLength(1);
-    }, 100);
-  });
+test('WithLegend applies custom legendJustifyContent', () => {
+  const { container } = render(
+    <WithLegend
+      position="right"
+      legendJustifyContent="flex-start"
+      renderChart={() => <div />}
+      renderLegend={() => <div />}
+    />,
+  );
+  const legendContainer = container.querySelector(
+    '.legend-container',
+  ) as HTMLElement;
+  expect(legendContainer.style.justifyContent).toBe('flex-start');
 });
