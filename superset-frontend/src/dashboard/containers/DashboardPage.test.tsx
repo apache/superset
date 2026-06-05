@@ -18,7 +18,13 @@
  */
 import type { ReactNode } from 'react';
 import { Suspense } from 'react';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  createStore,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import {
   useDashboard,
   useDashboardCharts,
@@ -27,7 +33,10 @@ import {
 import { SupersetClient } from '@superset-ui/core';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
-import { clearDashboardHistory } from 'src/dashboard/actions/dashboardLayout';
+import {
+  clearDashboardHistory,
+  UPDATE_COMPONENTS,
+} from 'src/dashboard/actions/dashboardLayout';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import DashboardPage from './DashboardPage';
 
@@ -276,6 +285,57 @@ test('document.title tracks the live Redux dashboard title after a rename, not t
   await waitFor(() => {
     expect(document.title).toBe('Live Renamed Title');
   });
+});
+
+test('document.title updates when the dashboard is renamed after mount', async () => {
+  // The bug is a live rename: the title is edited in Redux after the page has
+  // already mounted, so the tab title must react to the change rather than only
+  // reflecting the title present at initial render.
+  const store = createStore(
+    {
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: { sliceIds: [] },
+      dashboardLayout: {
+        past: [],
+        future: [],
+        present: {
+          [DASHBOARD_HEADER_ID]: {
+            id: DASHBOARD_HEADER_ID,
+            type: 'HEADER',
+            meta: { text: 'Title At Mount' },
+          },
+        },
+      },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+    reducerIndex,
+  );
+
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    { store, useRouter: true },
+  );
+
+  await waitFor(() => expect(document.title).toBe('Title At Mount'));
+
+  // Simulate the in-SPA rename mutating the live header title.
+  store.dispatch({
+    type: UPDATE_COMPONENTS,
+    payload: {
+      nextComponents: {
+        [DASHBOARD_HEADER_ID]: {
+          id: DASHBOARD_HEADER_ID,
+          type: 'HEADER',
+          meta: { text: 'Renamed After Mount' },
+        },
+      },
+    },
+  });
+
+  await waitFor(() => expect(document.title).toBe('Renamed After Mount'));
 });
 
 test('document.title falls back to the API dashboard_title before the layout is hydrated', async () => {
