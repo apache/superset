@@ -177,14 +177,14 @@ export const Panel: React.FC<Props> = ({ onClose }) => {
       <header
         style={{
           padding: '8px 12px',
-          background: '#1f6feb',
+          background: '#2da44e',
           color: '#fff',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
         }}
       >
-        <span>Reference Chatbot</span>
+        <span>Alt Chatbot</span>
         <button
           type="button"
           onClick={onClose}
@@ -225,7 +225,7 @@ export const Panel: React.FC<Props> = ({ onClose }) => {
       <div style={{ flex: 1, overflowY: 'auto', padding: 12 }}>
         {messages.length === 0 && (
           <p style={{ color: '#8c8c8c' }}>
-            Ask anything — replies are canned tokens streamed by the reference extension.
+            Ask anything — replies are canned tokens streamed by the Alt Chatbot extension.
           </p>
         )}
         {messages.map(m => (
@@ -242,7 +242,7 @@ export const Panel: React.FC<Props> = ({ onClose }) => {
                 display: 'inline-block',
                 padding: '4px 8px',
                 borderRadius: 6,
-                background: m.from === 'user' ? '#1f6feb' : '#eef0f3',
+                background: m.from === 'user' ? '#2da44e' : '#eef0f3',
                 color: m.from === 'user' ? '#fff' : '#1f2328',
                 maxWidth: '85%',
                 whiteSpace: 'pre-wrap',

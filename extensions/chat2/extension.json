@@ -1,0 +1,23 @@
+{
+  "publisher": "apache-superset",
+  "name": "alt-chatbot",
+  "displayName": "Alt Chatbot",
+  "description": "Second chatbot for testing multi-chatbot selection in the superset.chatbot contribution area.",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "permissions": [],
+  "contributes": {
+    "views": {
+      "app": {
+        "chatbot": [
+          {
+            "id": "apache-superset.alt-chatbot",
+            "name": "Alt Chatbot",
+            "description": "Second chatbot for testing singleton resolution.",
+            "icon": "Star"
+          }
+        ]
+      }
+    }
+  }
+}
