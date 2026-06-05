@@ -253,10 +253,8 @@ async def get_dashboard_info(
             # override select_columns, ensure filter_state is present so the
             # caller gets the data they came for.
             effective_select_columns = list(request.select_columns)
-            if (
-                request.permalink_key
-                and effective_select_columns == list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS)
-                and "filter_state" not in effective_select_columns
+            if request.permalink_key and effective_select_columns == list(
+                DEFAULT_GET_DASHBOARD_INFO_COLUMNS
             ):
                 effective_select_columns.append("filter_state")
 
