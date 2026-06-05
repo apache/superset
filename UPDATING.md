@@ -24,6 +24,12 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Duration formatter precision
+
+The `DURATION` number formatter now uses `Intl.DurationFormat` for locale-aware output. By default, sub-second fields are omitted, so values that previously displayed fractional seconds with `pretty-ms`, such as `10500` milliseconds rendering as `10.5s`, now render as `10s`.
+
+To preserve sub-second precision in custom duration formatters, enable `formatSubMilliseconds`.
+
 ### YDB now uses a native sqlglot dialect
 
 YDB SQL parsing now relies on the dedicated [`ydb-sqlglot-plugin`](https://pypi.org/project/ydb-sqlglot-plugin/) dialect, which registers itself with sqlglot automatically. YDB users must install this plugin (e.g., via `pip install "apache-superset[ydb]"`) to avoid a `ValueError` when Superset parses YDB queries.
