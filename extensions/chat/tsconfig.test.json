@@ -11,5 +11,6 @@
     ],
     "types": ["jest", "node"]
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": []
 }

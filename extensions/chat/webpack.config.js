@@ -17,9 +17,46 @@
  * under the License.
  */
 const path = require('path');
+const fs = require('fs');
 const { ModuleFederationPlugin } = require('webpack').container;
 const packageConfig = require('./package.json');
 const extensionConfig = require('./extension.json');
+
+const MODULE_FEDERATION_NAME = 'apacheSuperset_referenceChatbot';
+
+/**
+ * Emits the `manifest.json` the host reads from the extension `dist/` root.
+ *
+ * The host (`superset/extensions/utils.py`) expects an extension dist laid out
+ * as `dist/manifest.json` plus the federated bundle under `dist/frontend/dist/`.
+ * The manifest carries `extension.json` verbatim, plus the composite `id` and a
+ * `frontend` block naming the content-hashed `remoteEntry` so the host can load
+ * the right file. Because the hash is only known after the build, the manifest
+ * is written from the final asset names rather than checked in.
+ */
+class EmitManifestPlugin {
+  apply(compiler) {
+    compiler.hooks.afterEmit.tap('EmitManifestPlugin', compilation => {
+      const assets = Object.keys(compilation.assets);
+      const remoteEntry = assets.find(name => /^remoteEntry\..*\.js$/.test(name));
+      if (!remoteEntry) {
+        throw new Error('EmitManifestPlugin: no remoteEntry asset was emitted');
+      }
+      const manifest = {
+        ...extensionConfig,
+        id: `${extensionConfig.publisher}.${extensionConfig.name}`,
+        frontend: {
+          remoteEntry,
+          moduleFederationName: MODULE_FEDERATION_NAME,
+        },
+      };
+      fs.writeFileSync(
+        path.resolve(__dirname, 'dist', 'manifest.json'),
+        `${JSON.stringify(manifest, null, 2)}\n`,
+      );
+    });
+  }
+}
 
 module.exports = (env, argv) => {
   const isProd = argv.mode === 'production';
@@ -36,7 +73,7 @@ module.exports = (env, argv) => {
       clean: true,
       filename: isProd ? undefined : '[name].[contenthash].js',
       chunkFilename: '[name].[contenthash].js',
-      path: path.resolve(__dirname, 'dist'),
+      path: path.resolve(__dirname, 'dist', 'frontend', 'dist'),
       publicPath: `/api/v1/extensions/${extensionConfig.publisher}/${extensionConfig.name}/`,
     },
     resolve: { extensions: ['.ts', '.tsx', '.js', '.jsx'] },
@@ -49,7 +86,7 @@ module.exports = (env, argv) => {
     },
     plugins: [
       new ModuleFederationPlugin({
-        name: 'apacheSuperset_referenceChatbot',
+        name: MODULE_FEDERATION_NAME,
         filename: 'remoteEntry.[contenthash].js',
         exposes: { './index': './src/index.tsx' },
         shared: {
@@ -65,6 +102,7 @@ module.exports = (env, argv) => {
           },
         },
       }),
+      new EmitManifestPlugin(),
     ],
   };
 };
