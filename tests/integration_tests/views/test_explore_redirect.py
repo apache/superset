@@ -104,11 +104,7 @@ class TestExploreRedirect(SupersetTestCase):
         rv = self.client.get(f"/explore/?form_data={quote(json.dumps(form_data))}")
         assert rv.status_code == 200
 
-    @pytest.mark.parametrize(
-        "datasource_value",
-        [123, ["1__table"], {"id": 1, "type": "table"}, True],
-    )
-    def test_explore_root_rf1_datasource_non_string(self, datasource_value):
+    def test_explore_root_rf1_datasource_non_string(self):
         """RF-1 (review-fix Slice 1–8): a non-string ``datasource`` value
         (number, list, dict, bool) used to raise ``AttributeError: ... has
         no attribute 'split'`` inside ``datasource.split("__")`` and
@@ -119,10 +115,17 @@ class TestExploreRedirect(SupersetTestCase):
         shape — closing the residual AF-2 gap surfaced in the multi-slice
         code review.
         """
+        # ``@pytest.mark.parametrize`` is a no-op on ``unittest.TestCase``
+        # subclasses (see pytest docs on unittest interop), so we inline
+        # the cases as a ``subTest`` loop to keep per-shape reporting.
         self.login(ADMIN_USERNAME)
-        form_data = {"datasource": datasource_value}
-        rv = self.client.get(f"/explore/?form_data={quote(json.dumps(form_data))}")
-        assert rv.status_code == 200
+        for datasource_value in (123, ["1__table"], {"id": 1, "type": "table"}, True):
+            with self.subTest(datasource_value=datasource_value):
+                form_data = {"datasource": datasource_value}
+                rv = self.client.get(
+                    f"/explore/?form_data={quote(json.dumps(form_data))}"
+                )
+                assert rv.status_code == 200
 
     def test_explore_root_af2_datasource_invalid_enum(self):
         """AF-2 (enum): ``datasource="1__bogus"`` → 200, not 500.
@@ -157,13 +160,7 @@ class TestExploreRedirect(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @mock.patch("superset.commands.explore.form_data.create.CreateFormDataCommand")
-    @pytest.mark.parametrize(
-        "slice_id_value",
-        ["abc", [1, 2], {"id": 1}, True],
-    )
-    def test_explore_root_arm1_slice_id_non_int(
-        self, mock_command_cls: mock.Mock, slice_id_value
-    ):
+    def test_explore_root_arm1_slice_id_non_int(self, mock_command_cls: mock.Mock):
         """AR-M1 (review-fix Slice 1–8, round 2): a non-int, non-None
         ``form_data.slice_id`` (string, list, dict, bool) used to survive
         the ``is None`` guard and reach ``CommandParameters(chart_id=...)``,
@@ -175,12 +172,20 @@ class TestExploreRedirect(SupersetTestCase):
         (or 0). Chart ID lands as the integer fallback, not the malformed
         value.
         """
-        mock_command_cls.return_value.run.return_value = "random_key"
+        # ``@pytest.mark.parametrize`` is a no-op on ``unittest.TestCase``
+        # subclasses (see pytest docs on unittest interop), so we inline
+        # the cases as a ``subTest`` loop to keep per-shape reporting.
         self.login(ADMIN_USERNAME)
-        form_data = {"slice_id": slice_id_value, "datasource": "1__table"}
-        rv = self.client.get(f"/explore/?form_data={quote(json.dumps(form_data))}")
-        assert rv.status_code == 302
-        assert mock_command_cls.call_args.kwargs["chart_id"] == 0
+        for slice_id_value in ("abc", [1, 2], {"id": 1}, True):
+            with self.subTest(slice_id_value=slice_id_value):
+                mock_command_cls.reset_mock()
+                mock_command_cls.return_value.run.return_value = "random_key"
+                form_data = {"slice_id": slice_id_value, "datasource": "1__table"}
+                rv = self.client.get(
+                    f"/explore/?form_data={quote(json.dumps(form_data))}"
+                )
+                assert rv.status_code == 302
+                assert mock_command_cls.call_args.kwargs["chart_id"] == 0
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @mock.patch("superset.commands.explore.form_data.create.CreateFormDataCommand")

@@ -1665,6 +1665,9 @@ class TestRolePermission(SupersetTestCase):
             ["SupersetRegisterUserView", "register"],
             ["SupersetRegisterUserView", "activation"],
             ["RedirectView", "redirect_warning"],
+            # Serves the PWA web app manifest unauthenticated (PWA install
+            # fetches have no session); mirrors the RedirectView precedent.
+            ["PwaManifestView", "manifest"],
         ]
         unsecured_views = []
         for view_class in appbuilder.baseviews:
