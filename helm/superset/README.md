@@ -257,7 +257,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetWebsockets.affinity | object | `{}` | Affinity to be added to supersetWebsockets deployment |
 | supersetWebsockets.command | list | `[]` |  |
 | supersetWebsockets.config | object | see `values.yaml` | The config.json to pass to the server, see https://github.com/apache/superset/tree/master/superset-websocket Note that the configuration can also read from environment variables (which will have priority), see https://github.com/apache/superset/blob/master/superset-websocket/src/config.ts for a list of supported variables |
-| supersetWebsockets.configAnntotaions | object | `{}` | Annotations to be added to the secret which contains config.json |
+| supersetWebsockets.configAnnotations | object | `{}` | Annotations to be added to the secret which contains config.json |
 | supersetWebsockets.containerSecurityContext | object | `{}` |  |
 | supersetWebsockets.deploymentAnnotations | object | `{}` |  |
 | supersetWebsockets.enabled | bool | `false` | This is only required if you intend to use `GLOBAL_ASYNC_QUERIES` in `ws` mode see https://superset.apache.org/docs/contributing/misc#async-chart-queries |
