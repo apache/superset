@@ -193,7 +193,7 @@ class SupersetResultSet:
                 # before stringifying, since stringification removes
                 # the nested structure that the second loop relies on
                 # to detect via pa.types.is_nested().
-                original_values = array[column].tolist()
+                original_values = columns[column].tolist()
                 if any(
                     isinstance(v, (list, dict))
                     for v in original_values
