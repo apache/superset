@@ -46,6 +46,7 @@ import { Point } from '../../types';
 import { GetLayerType } from '../../factory';
 import { HIGHLIGHT_COLOR_ARRAY } from '../../utils';
 import { BLACK_COLOR, PRIMARY_COLOR } from '../../utilities/controls';
+import { getMapboxApiKey } from '../../utils/mapbox';
 
 type ProcessedFeature = Feature<Geometry, GeoJsonProperties> & {
   properties: JsonObject;
@@ -412,12 +413,21 @@ const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
     emitCrossFilters: props.emitCrossFilters,
   });
 
+  const mapProvider =
+    formData.map_renderer === 'mapbox' ? 'mapbox' : 'maplibre';
+  const mapStyle =
+    mapProvider === 'mapbox'
+      ? formData.mapbox_style || formData.map_style
+      : formData.maplibre_style || formData.map_style;
+
   return (
     <DeckGLContainerStyledWrapper
       ref={containerRef}
       viewport={viewport}
       layers={[layer]}
-      mapStyle={formData.map_style}
+      mapProvider={mapProvider}
+      mapStyle={mapStyle}
+      mapboxApiKey={getMapboxApiKey()}
       setControlValue={setControlValue}
       height={height}
       width={width}

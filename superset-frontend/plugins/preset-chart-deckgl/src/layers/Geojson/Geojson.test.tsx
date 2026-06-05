@@ -16,13 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { ReactElement } from 'react';
+// eslint-disable-next-line import/no-extraneous-dependencies
+import { render } from '@testing-library/react';
 import { SqlaFormData } from '@superset-ui/core';
-import {
+import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
+import DeckGLGeoJson, {
   computeGeoJsonTextOptionsFromJsOutput,
   computeGeoJsonTextOptionsFromFormData,
   computeGeoJsonIconOptionsFromJsOutput,
   computeGeoJsonIconOptionsFromFormData,
 } from './Geojson';
+
+const mockDeckGLContainerProps: Array<Record<string, unknown>> = [];
+
+jest.mock('../../DeckGLContainer', () => ({
+  DeckGLContainerStyledWrapper: (props: Record<string, unknown>) => {
+    mockDeckGLContainerProps.push(props);
+    const React = jest.requireActual('react');
+    return React.createElement(
+      'div',
+      { 'data-testid': 'deckgl-container' },
+      props.children,
+    );
+  },
+}));
+
+jest.mock('../../utils/mapbox', () => ({
+  getMapboxApiKey: () => 'bootstrap-mapbox-key',
+  hasMapboxApiKey: () => true,
+}));
 
 jest.mock('react-map-gl/maplibre', () => ({
   __esModule: true,
@@ -119,4 +142,123 @@ test('computeGeoJsonIconOptionsFromFormData computes icon options based on form 
     height: 128,
     width: 128,
   });
+});
+
+const renderWithTheme = (component: ReactElement) =>
+  render(<ThemeProvider theme={supersetTheme}>{component}</ThemeProvider>);
+
+const geoJsonProps = {
+  formData: {
+    datasource: 'test_datasource',
+    viz_type: 'deck_geojson',
+    slice_id: 1,
+    autozoom: false,
+    map_style: 'legacy-map-style',
+    extruded: false,
+    filled: true,
+    stroked: true,
+    line_width: 1,
+    line_width_unit: 'pixels',
+    point_radius_scale: 1,
+    enable_labels: false,
+    enable_icons: false,
+  },
+  payload: {
+    data: {
+      features: [
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [0, 0] },
+          properties: { name: 'Test point' },
+        },
+      ],
+    },
+  },
+  setControlValue: jest.fn(),
+  viewport: { longitude: 0, latitude: 0, zoom: 1 },
+  onAddFilter: jest.fn(),
+  height: 600,
+  width: 800,
+  filterState: {},
+  onContextMenu: jest.fn(),
+  setDataMask: jest.fn(),
+  emitCrossFilters: false,
+};
+
+const lastDeckGLContainerProps = () =>
+  mockDeckGLContainerProps
+    .slice()
+    .reverse()
+    .find(props => props?.viewport !== undefined);
+
+test('DeckGLGeoJson passes selected MapLibre renderer props to the container', () => {
+  mockDeckGLContainerProps.length = 0;
+
+  renderWithTheme(
+    <DeckGLGeoJson
+      {...geoJsonProps}
+      formData={{
+        ...geoJsonProps.formData,
+        map_renderer: 'maplibre',
+        maplibre_style: 'https://example.com/maplibre-style.json',
+        mapbox_style: 'mapbox://styles/mapbox/dark-v9',
+      }}
+    />,
+  );
+
+  expect(lastDeckGLContainerProps()).toEqual(
+    expect.objectContaining({
+      mapProvider: 'maplibre',
+      mapStyle: 'https://example.com/maplibre-style.json',
+      mapboxApiKey: 'bootstrap-mapbox-key',
+    }),
+  );
+});
+
+test('DeckGLGeoJson passes selected Mapbox renderer props to the container', () => {
+  mockDeckGLContainerProps.length = 0;
+
+  renderWithTheme(
+    <DeckGLGeoJson
+      {...geoJsonProps}
+      formData={{
+        ...geoJsonProps.formData,
+        map_renderer: 'mapbox',
+        maplibre_style: 'https://example.com/maplibre-style.json',
+        mapbox_style: 'mapbox://styles/mapbox/satellite-v9',
+      }}
+    />,
+  );
+
+  expect(lastDeckGLContainerProps()).toEqual(
+    expect.objectContaining({
+      mapProvider: 'mapbox',
+      mapStyle: 'mapbox://styles/mapbox/satellite-v9',
+      mapboxApiKey: 'bootstrap-mapbox-key',
+    }),
+  );
+});
+
+test('DeckGLGeoJson falls back to legacy map_style when provider-specific style is absent', () => {
+  mockDeckGLContainerProps.length = 0;
+
+  renderWithTheme(
+    <DeckGLGeoJson
+      {...geoJsonProps}
+      formData={{
+        ...geoJsonProps.formData,
+        map_renderer: 'maplibre',
+        maplibre_style: undefined,
+        map_style: 'legacy-map-style',
+      }}
+    />,
+  );
+
+  expect(lastDeckGLContainerProps()).toEqual(
+    expect.objectContaining({
+      mapProvider: 'maplibre',
+      mapStyle: 'legacy-map-style',
+      mapboxApiKey: 'bootstrap-mapbox-key',
+    }),
+  );
 });

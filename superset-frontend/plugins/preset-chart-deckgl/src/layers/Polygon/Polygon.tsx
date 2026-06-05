@@ -57,6 +57,7 @@ import { TooltipProps } from '../../components/Tooltip';
 import { GetLayerType } from '../../factory';
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import { DEFAULT_DECKGL_COLOR } from '../../utilities/Shared_DeckGL';
+import { getMapboxApiKey } from '../../utils/mapbox';
 import {
   createTooltipContent,
   CommonTooltipRows,
@@ -339,6 +340,12 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
     colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints
       ? getColorBreakpointsBuckets(formData.color_breakpoints)
       : getBuckets(formData, payload.data.features, accessor);
+  const mapProvider =
+    formData.map_renderer === 'mapbox' ? 'mapbox' : 'maplibre';
+  const mapStyle =
+    mapProvider === 'mapbox'
+      ? formData.mapbox_style || formData.map_style
+      : formData.maplibre_style || formData.map_style;
 
   return (
     <div style={{ position: 'relative' }}>
@@ -347,7 +354,9 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
         viewport={viewport}
         layers={getLayers()}
         setControlValue={setControlValue}
-        mapStyle={formData.map_style}
+        mapProvider={mapProvider}
+        mapStyle={mapStyle}
+        mapboxApiKey={getMapboxApiKey()}
         width={props.width}
         height={props.height}
       />
