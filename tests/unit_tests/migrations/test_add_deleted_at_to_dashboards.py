@@ -157,7 +157,9 @@ def test_downgrade_preserves_soft_deleted_row_data(engine: Engine) -> None:
                             "id": 2,
                             "dashboard_title": "Archived Dashboard",
                             "slug": "archived",
-                            "deleted_at": datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc),
+                            "deleted_at": datetime(
+                                2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc
+                            ),
                         },
                     ]
                 )
