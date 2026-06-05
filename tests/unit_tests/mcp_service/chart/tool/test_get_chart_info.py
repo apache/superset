@@ -23,7 +23,7 @@ privacy behavior.
 import importlib
 from contextlib import nullcontext
 from types import SimpleNamespace
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
@@ -36,6 +36,7 @@ from superset.mcp_service.chart.chart_helpers import (
     ChartNotOnDashboardError,
 )
 from superset.mcp_service.chart.schemas import (
+    ChartError,
     ChartInfo,
     extract_filters_from_form_data,
     GetChartInfoRequest,
@@ -546,3 +547,33 @@ class TestGetChartInfoPrivacy:
         # Fields NOT in select_columns must be absent
         assert "form_data" not in result
         assert "datasource_name" not in result
+
+    @pytest.mark.asyncio
+    async def test_unsaved_chart_error_returned_unchanged(self) -> None:
+        """ChartError results should not be serialized as success dictionaries."""
+        error = ChartError(error="Missing cached chart data", error_type="NotFound")
+
+        with (
+            patch.object(
+                get_chart_info_module.event_logger,
+                "log_context",
+                return_value=nullcontext(),
+            ),
+            patch.object(
+                get_chart_info_module,
+                "user_can_view_data_model_metadata",
+                return_value=True,
+                create=True,
+            ),
+            patch.object(
+                get_chart_info_module,
+                "_build_unsaved_chart_info",
+                return_value=error,
+            ),
+        ):
+            result = await get_chart_info_module.get_chart_info(
+                request=GetChartInfoRequest(form_data_key="missing-key"),
+                ctx=SimpleNamespace(info=AsyncMock()),
+            )
+
+        assert result is error

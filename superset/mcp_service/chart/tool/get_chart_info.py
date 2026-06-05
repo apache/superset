@@ -278,6 +278,8 @@ async def get_chart_info(
                 "form_data_key=%s" % (request.form_data_key,)
             )
             result = _build_unsaved_chart_info(request.form_data_key)
+            if isinstance(result, ChartError):
+                return result
             if not can_view_data_model_metadata:
                 result = redact_chart_data_model_fields(result)
             return result.model_dump(
