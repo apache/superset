@@ -61,6 +61,22 @@ DECKGL_VIZ_TYPES = [
 ]
 
 
+def _is_mapbox_style(style: Any) -> bool:
+    return isinstance(style, str) and style.startswith("mapbox://")
+
+
+def _copy_legacy_maplibre_style(data: dict[str, Any]) -> bool:
+    mapbox_style = data.get("mapbox_style")
+    if (
+        isinstance(mapbox_style, str)
+        and not _is_mapbox_style(mapbox_style)
+        and "maplibre_style" not in data
+    ):
+        data["maplibre_style"] = mapbox_style
+        return True
+    return False
+
+
 class MigrateMapBox(MigrateViz):
     """Migrate the legacy standalone Mapbox scatter chart to point_cluster_map."""
 
@@ -78,8 +94,10 @@ class MigrateMapBox(MigrateViz):
         # Set map_renderer so the new chart continues to use the Mapbox renderer,
         # which will pick up MAPBOX_API_KEY from the server config.
         mapbox_style = self.data.get("mapbox_style", "")
-        if isinstance(mapbox_style, str) and mapbox_style.startswith("mapbox://"):
+        if _is_mapbox_style(mapbox_style):
             self.data["map_renderer"] = "mapbox"
+        else:
+            _copy_legacy_maplibre_style(self.data)
 
     @classmethod
     def upgrade_slice(cls, slc: Slice) -> None:
@@ -116,10 +134,11 @@ class MigrateMapBox(MigrateViz):
 
 
 def _migrate_deckgl_slice(slc: Slice) -> bool:
-    """Set map_renderer='mapbox' for deck.gl slices using Mapbox styles.
+    """Preserve deck.gl renderer/style state after the MapLibre migration.
 
-    Existing non-Mapbox styles remain without a renderer value so they continue
-    through the MapLibre-compatible path.
+    True Mapbox styles get map_renderer='mapbox'. Non-Mapbox legacy
+    mapbox_style values are copied to maplibre_style so the MapLibre path keeps
+    rendering the saved style value.
 
     Returns True if the slice was modified.
     """
@@ -127,14 +146,18 @@ def _migrate_deckgl_slice(slc: Slice) -> bool:
     if not params:
         return False
 
-    if "map_renderer" in params:
-        return False
+    modified = False
 
     mapbox_style = params.get("mapbox_style", "")
-    if not isinstance(mapbox_style, str) or not mapbox_style.startswith("mapbox://"):
-        return False
+    if _is_mapbox_style(mapbox_style):
+        if "map_renderer" not in params:
+            params["map_renderer"] = "mapbox"
+            modified = True
+    else:
+        modified = _copy_legacy_maplibre_style(params)
 
-    params["map_renderer"] = "mapbox"
+    if not modified:
+        return False
     slc.params = json.dumps(params)
     return True
 

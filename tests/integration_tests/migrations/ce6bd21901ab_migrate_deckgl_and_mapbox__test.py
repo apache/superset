@@ -79,7 +79,7 @@ def test_upgrade_mapbox():
 
 @pytest.mark.usefixtures("app_context")
 def test_upgrade_mapbox_with_non_mapbox_style():
-    """Charts with non-mapbox:// style URLs should not get map_provider=mapbox."""
+    """Charts with non-mapbox:// style URLs should stay on the MapLibre path."""
     slc = Slice(
         slice_name="Test Mapbox Open Style",
         viz_type="mapbox",
@@ -98,25 +98,42 @@ def test_upgrade_mapbox_with_non_mapbox_style():
     assert slc.viz_type == "point_cluster_map"
     params = json.loads(slc.params)
     assert params["mapbox_style"] == "https://tiles.openfreemap.org/styles/liberty"
+    assert params["maplibre_style"] == "https://tiles.openfreemap.org/styles/liberty"
     assert "map_renderer" not in params
 
 
 @pytest.mark.parametrize(
-    ("mapbox_style", "expected_map_renderer", "expected_modified"),
+    (
+        "mapbox_style",
+        "expected_map_renderer",
+        "expected_maplibre_style",
+        "expected_modified",
+    ),
     [
-        ("mapbox://styles/mapbox/dark-v9", "mapbox", True),
+        ("mapbox://styles/mapbox/dark-v9", "mapbox", None, True),
         (
             "tile://https://tile.openstreetmap.org/{z}/{x}/{y}.png",
             None,
-            False,
+            "tile://https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            True,
         ),
-        ("https://tile.openstreetmap.org/{z}/{x}/{y}.png", None, False),
-        (None, None, False),
-        ("https://example.com/styles/custom-style.json", None, False),
+        (
+            "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            None,
+            "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+            True,
+        ),
+        (None, None, None, False),
+        (
+            "https://example.com/styles/custom-style.json",
+            None,
+            "https://example.com/styles/custom-style.json",
+            True,
+        ),
     ],
 )
 def test_migrate_deckgl_slice_map_renderer_classification(
-    mapbox_style, expected_map_renderer, expected_modified
+    mapbox_style, expected_map_renderer, expected_maplibre_style, expected_modified
 ):
     params = {
         "viz_type": "deck_arc",
@@ -143,8 +160,35 @@ def test_migrate_deckgl_slice_map_renderer_classification(
         assert "map_renderer" not in migrated_params
     else:
         assert migrated_params["map_renderer"] == expected_map_renderer
+    if expected_maplibre_style is None:
+        assert "maplibre_style" not in migrated_params
+    else:
+        assert migrated_params["maplibre_style"] == expected_maplibre_style
     assert migrated_params["viz_type"] == "deck_arc"  # viz_type unchanged
     assert migrated_params["other_param"] == "value"
+
+
+def test_migrate_deckgl_slice_preserves_existing_maplibre_style():
+    slc = Slice(
+        slice_name="Test Arc Existing MapLibre Style",
+        viz_type="deck_arc",
+        params=json.dumps(
+            {
+                "viz_type": "deck_arc",
+                "mapbox_style": "https://legacy.example.com/style.json",
+                "maplibre_style": "https://saved.example.com/style.json",
+                "other_param": "value",
+            }
+        ),
+    )
+
+    modified = _migrate_deckgl_slice(slc)
+
+    assert modified is False
+    params = json.loads(slc.params)
+    assert params["mapbox_style"] == "https://legacy.example.com/style.json"
+    assert params["maplibre_style"] == "https://saved.example.com/style.json"
+    assert params["other_param"] == "value"
 
 
 def test_migrate_deckgl_slice_preserves_existing_map_renderer():
