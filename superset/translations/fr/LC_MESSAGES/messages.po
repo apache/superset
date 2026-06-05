@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-05-31 07:03-0700\n"
+"POT-Creation-Date: 2026-06-05 12:59+0300\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language-Team: fr <LL@li.org>\n"
@@ -1236,6 +1236,10 @@ msgstr "Ajouter un nouveau formateur de couleur"
 
 msgid "Add new formatter"
 msgstr "Ajouter un nouveau formateur"
+
+#, fuzzy
+msgid "Add numbered column"
+msgstr " pour ajouter des colonnes calculées"
 
 msgid "Add or edit display controls"
 msgstr "Ajouter ou modifier les contrôles d'affichage"
@@ -4252,6 +4256,13 @@ msgstr ""
 "Les mesures SQL ponctuelles personnalisées ne sont pas activées pour cet "
 "ensemble de données"
 
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Les champs SQL personnalisés ne peuvent pas contenir de sous-requêtes."
+
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Les champs SQL personnalisés ne peuvent pas contenir de sous-requêtes."
 
@@ -5751,8 +5762,8 @@ msgstr "Durée en ms (1.40008 => 1ms 400µs 80ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Durée en ms (100.40008 => 100ms 400µs 80ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Durée en ms (66000 => 1m 6s)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Durée en ms (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Durée en ms (66000 => 1m 6s)"
@@ -10712,6 +10723,12 @@ msgstr "Déclassé"
 
 msgid "Proportional"
 msgstr "Proportionnel"
+
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
 
 msgid "Published"
 msgstr "Publié"
@@ -16169,6 +16186,12 @@ msgstr "Annuler l'action"
 msgid "Undo?"
 msgstr "Annuler?"
 
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+"Une erreur inattendue s'est produite, veuillez consulter vos journaux "
+"pour plus de détails"
+
 msgid "Unexpected error"
 msgstr "Erreur inattendue"
 
@@ -17175,6 +17198,10 @@ msgstr "Affichage ou non des valeurs min et max de l’axe des absisses"
 
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Affichage ou non des valeurs min et max de l’axe des ordonnées"
+
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Affichage ou non de la ligne de tendance"
 
 msgid "Whether to display the numerical values within the cells"
 msgstr "Affichage ou non des valeurs numériques dans les cellules"
@@ -18793,6 +18820,10 @@ msgstr "valeurs croissantes"
 msgid "value descending"
 msgstr "valeurs décroissantes"
 
+#, fuzzy
+msgid "valuename"
+msgstr "Nom du tableau"
+
 msgid "var"
 msgstr "var"
 
@@ -18877,3 +18908,6 @@ msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© Attribution de la couche"
+
+msgid "№"
+msgstr ""
