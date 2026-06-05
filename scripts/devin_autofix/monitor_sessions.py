@@ -46,7 +46,7 @@ from scripts.devin_autofix.reviewers import request_review
 
 DEVIN_API = "https://api.devin.ai/v3"
 
-TERMINAL_STATUSES = frozenset({"exit", "error"})
+TERMINAL_STATUSES = frozenset({"exit", "error", "suspended"})
 TERMINAL_DETAILS = frozenset(
     {
         "finished",
@@ -218,7 +218,7 @@ def _handle_new_pr(
 ) -> None:
     """Link a newly detected PR to the issue and request review."""
     pr_info = pull_requests[0]
-    pr_url = pr_info.get("url", "")
+    pr_url = pr_info.get("pr_url") or pr_info.get("url", "")
     pr_number = pr_info.get("number")
 
     if not pr_number and pr_url:
@@ -294,7 +294,7 @@ def process_run(issue_number: int, marker: RunMarker) -> None:
     pr_url = marker.pr_url
     if not pr_number and pull_requests:
         pr_info = pull_requests[0]
-        pr_url = pr_info.get("url", "")
+        pr_url = pr_info.get("pr_url") or pr_info.get("url", "")
         pr_number = pr_info.get("number")
         if not pr_number and pr_url:
             parts = pr_url.rstrip("/").split("/")
