@@ -22,9 +22,9 @@ from unittest.mock import patch
 import pytest
 import rison
 from flask.testing import FlaskClient
+from superset_core.extensions.types import Manifest, ManifestFrontend
 
 from superset.extensions.types import LoadedExtension
-from superset_core.extensions.types import Manifest, ManifestFrontend
 
 EXTENSIONS_LIST_URL = "/api/v1/extensions/"
 
@@ -61,7 +61,7 @@ def _make_extension(
         frontend={},
         backend={},
         version=version,
-        source_base_path="/tmp/fake",
+        source_base_path="/fake/extensions/path",  # noqa: S108
     )
 
 
@@ -84,13 +84,11 @@ def _mock_get_extensions() -> dict[str, LoadedExtension]:
 
 def _get_json(client: FlaskClient, url: str) -> dict[str, Any]:
     rv = client.get(url)
-    return rv.get_json()  # type: ignore[return-value]
+    return rv.get_json()
 
 
 @pytest.mark.parametrize("app", [_ENABLE_EXTENSIONS_CONFIG], indirect=True)
-def test_get_list_no_q_returns_all(
-    client: FlaskClient, full_api_access: None
-) -> None:
+def test_get_list_no_q_returns_all(client: FlaskClient, full_api_access: None) -> None:
     """GET /api/v1/extensions/ without q returns all extensions."""
     with patch(
         "superset.extensions.api.get_extensions",
@@ -102,9 +100,7 @@ def test_get_list_no_q_returns_all(
 
 
 @pytest.mark.parametrize("app", [_ENABLE_EXTENSIONS_CONFIG], indirect=True)
-def test_get_list_q_filter_by_name(
-    client: FlaskClient, full_api_access: None
-) -> None:
+def test_get_list_q_filter_by_name(client: FlaskClient, full_api_access: None) -> None:
     """GET /api/v1/extensions/?q=... filters by name field."""
     q = rison.dumps({"filters": [{"col": "name", "opr": "eq", "value": "charts"}]})
     with patch(
@@ -133,9 +129,7 @@ def test_get_list_q_filter_by_publisher(
 
 
 @pytest.mark.parametrize("app", [_ENABLE_EXTENSIONS_CONFIG], indirect=True)
-def test_get_list_q_search_text(
-    client: FlaskClient, full_api_access: None
-) -> None:
+def test_get_list_q_search_text(client: FlaskClient, full_api_access: None) -> None:
     """GET /api/v1/extensions/?q=... supports text search across name/description."""
     q = rison.dumps({"search": "dashboard"})
     with patch(
@@ -162,9 +156,7 @@ def test_get_list_q_search_case_insensitive(
 
 
 @pytest.mark.parametrize("app", [_ENABLE_EXTENSIONS_CONFIG], indirect=True)
-def test_get_list_q_no_matches(
-    client: FlaskClient, full_api_access: None
-) -> None:
+def test_get_list_q_no_matches(client: FlaskClient, full_api_access: None) -> None:
     """q that matches nothing returns empty result."""
     q = rison.dumps({"search": "nonexistent"})
     with patch(
@@ -177,9 +169,7 @@ def test_get_list_q_no_matches(
 
 
 @pytest.mark.parametrize("app", [_ENABLE_EXTENSIONS_CONFIG], indirect=True)
-def test_get_list_q_invalid_rison(
-    client: FlaskClient, full_api_access: None
-) -> None:
+def test_get_list_q_invalid_rison(client: FlaskClient, full_api_access: None) -> None:
     """Invalid rison q returns 400."""
     with patch(
         "superset.extensions.api.get_extensions",
@@ -204,9 +194,7 @@ def test_get_list_q_invalid_filter_col(
 
 
 @pytest.mark.parametrize("app", [_ENABLE_EXTENSIONS_CONFIG], indirect=True)
-def test_get_list_q_pagination(
-    client: FlaskClient, full_api_access: None
-) -> None:
+def test_get_list_q_pagination(client: FlaskClient, full_api_access: None) -> None:
     """q supports page and page_size for pagination."""
     q = rison.dumps({"page": 0, "page_size": 2})
     with patch(

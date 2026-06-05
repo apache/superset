@@ -16,8 +16,8 @@
 # under the License.
 import logging
 import mimetypes
-from io import BytesIO
 from collections.abc import Callable
+from io import BytesIO
 from typing import Any
 
 import rison
@@ -149,15 +149,12 @@ class ExtensionsRestApi(BaseApi):
         extensions = get_extensions()
         ext_list = list(extensions.values())
 
-        q_str = request.args.get("q")
         q_args: dict[str, Any] = {}
-        if q_str:
+        if q_str := request.args.get("q"):
             try:
                 q_args = rison.loads(q_str)
             except Exception:
-                return self.response_400(
-                    message="Invalid rison query parameter"
-                )
+                return self.response_400(message="Invalid rison query parameter")
 
             if not isinstance(q_args, dict):
                 return self.response_400(
@@ -196,14 +193,14 @@ class ExtensionsRestApi(BaseApi):
                         f"Allowed: {', '.join(sorted(ALLOWED_FILTER_COLUMNS))}"
                     )
                 ext_list = [
-                    ext for ext in ext_list
-                    if _extension_field(ext, col) == value
+                    ext for ext in ext_list if _extension_field(ext, col) == value
                 ]
 
         if search := q_args.get("search"):
             term = str(search).lower()
             ext_list = [
-                ext for ext in ext_list
+                ext
+                for ext in ext_list
                 if any(
                     term in str(_extension_field(ext, field)).lower()
                     for field in ("name", "id", "description", "publisher")
