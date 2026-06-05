@@ -940,7 +940,9 @@ async def test_list_dashboards_omits_requested_user_directory_fields(
         assert field not in data["columns_available"]
 
 
-# TODO (Phase 3+): Add tests for get_dashboard_available_filters tool
+# Dashboard filter discovery is covered by the unified get_schema tool tests:
+# tests/unit_tests/mcp_service/system/tool/test_get_schema.py
+# (TestGetSchemaFilterColumnsDiscovery)
 
 
 @patch("superset.mcp_service.mcp_core.ModelGetInfoCore._find_object")
