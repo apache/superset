@@ -178,6 +178,12 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         # references in the statement (including inside the EXISTS
         # subquery) via ``with_loader_criteria(include_aliases=True)``.
         # A per-query option on the inner query never reaches that listener.
+        #
+        # avoid app-init regression: a module-top import from
+        # ``superset.models.helpers`` eagerly loads ``core.py``, whose model
+        # classes evaluate ``encrypted_field_factory.create(...)`` at
+        # class-definition time and raise "App not initialized yet" when no
+        # Flask app context exists (see PR #40573).
         from superset.models.helpers import (  # pylint: disable=import-outside-toplevel
             skip_visibility_filter,
         )
@@ -211,6 +217,10 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         # The bypass is session-scoped, not per-query, because the EXISTS
         # subquery pattern below leaves the inner Query's execution_options
         # invisible to the outer execute (where the listener fires).
+        #
+        # avoid app-init regression: see ``validate_uniqueness`` above — a
+        # module-top import from ``superset.models.helpers`` raises
+        # "App not initialized yet" outside an app context (see PR #40573).
         from superset.models.helpers import (  # pylint: disable=import-outside-toplevel
             skip_visibility_filter,
         )
@@ -224,6 +234,38 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 SqlaTable.id != dataset_id,
             )
             return not db.session.query(dataset_query.exists()).scalar()
+
+    @staticmethod
+    def has_active_logical_duplicate(model: SqlaTable) -> bool:
+        """Return True iff another *active* dataset shares model's physical table.
+
+        Physical identity is ``(database_id, catalog, schema, table_name)``.
+        The catalog is normalized to the database default when unset — the same
+        rule ``validate_uniqueness``/``validate_update_uniqueness`` apply — so
+        create, update, restore, and re-import all agree on what counts as the
+        same physical table. (A soft-deleted row stored with ``catalog = NULL``
+        and an active twin stored with the default catalog are the same table.)
+
+        Relies on the ``SoftDeleteMixin`` listener to auto-append
+        ``deleted_at IS NULL``, so only active rows are considered;
+        ``id != model.id`` excludes the row itself. The caller assumes an active
+        Flask request / app context via ``db.session``.
+        """
+        # The catalog might not be set even if the database supports catalogs,
+        # in case multi-catalog is disabled.
+        catalog = model.catalog or model.database.get_default_catalog()
+        return (
+            db.session.query(SqlaTable.id)
+            .filter(
+                SqlaTable.database_id == model.database_id,
+                SqlaTable.catalog == catalog,
+                SqlaTable.schema == model.schema,
+                SqlaTable.table_name == model.table_name,
+                SqlaTable.id != model.id,
+            )
+            .first()
+            is not None
+        )
 
     @staticmethod
     def validate_columns_exist(dataset_id: int, columns_ids: list[int]) -> bool:

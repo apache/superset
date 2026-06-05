@@ -40,6 +40,7 @@ from superset.commands.exceptions import ImportFailedError
 from superset.commands.importers.v1.utils import find_existing_for_import
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
+from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.sql.parse import Table
@@ -294,20 +295,11 @@ def import_dataset(  # noqa: C901
             # already references the same physical table. Otherwise the
             # restore would produce two live ``SqlaTable`` rows for one
             # physical table, breaking the logical-uniqueness contract. The
-            # query relies on the SoftDeleteMixin listener to consider only
-            # active rows, and excludes ``existing`` itself via ``id !=``.
-            if (
-                db.session.query(SqlaTable.id)
-                .filter(
-                    SqlaTable.database_id == existing.database_id,
-                    SqlaTable.catalog == existing.catalog,
-                    SqlaTable.schema == existing.schema,
-                    SqlaTable.table_name == existing.table_name,
-                    SqlaTable.id != existing.id,
-                )
-                .first()
-                is not None
-            ):
+            # shared DAO helper relies on the SoftDeleteMixin listener to
+            # consider only active rows, excludes ``existing`` itself via
+            # ``id !=``, and normalizes the catalog the same way create/update
+            # uniqueness does.
+            if DatasetDAO.has_active_logical_duplicate(existing):
                 raise ImportFailedError(
                     "Dataset cannot be restored via re-import because another "
                     "active dataset already references the same physical table"

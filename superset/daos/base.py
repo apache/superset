@@ -81,9 +81,15 @@ class ColumnOperatorEnum(str, Enum):
         return op_func(column, value)
 
 
-def _escape_like(value: str) -> str:
-    """Escape LIKE/ILIKE wildcards to prevent wildcard injection."""
-    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+def _escape_like(value: Any) -> str:
+    """Escape LIKE/ILIKE wildcards to prevent wildcard injection.
+
+    ``ColumnOperator.value`` is typed ``Any``, so a non-string payload (e.g. a
+    numeric JSON value) can reach a LIKE-family operator. Coerce to ``str`` so
+    such input degrades to a literal match instead of raising ``AttributeError``.
+    """
+    text = "" if value is None else str(value)
+    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 # Define operator_map as a module-level dict after the enum is defined

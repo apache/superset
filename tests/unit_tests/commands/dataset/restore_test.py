@@ -44,9 +44,8 @@ def test_restore_dataset_clears_deleted_at(app_context: None) -> None:
             "superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset
         ) as mock_find,
         patch("superset.commands.restore.security_manager") as mock_sec,
-        patch.object(
-            RestoreDatasetCommand,
-            "_has_active_logical_duplicate",
+        patch(
+            "superset.daos.dataset.DatasetDAO.has_active_logical_duplicate",
             return_value=False,
         ),
     ):
@@ -126,9 +125,8 @@ def test_restore_dataset_logical_duplicate_raises(app_context: None) -> None:
     with (
         patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
         patch("superset.commands.restore.security_manager") as mock_sec,
-        patch.object(
-            RestoreDatasetCommand,
-            "_has_active_logical_duplicate",
+        patch(
+            "superset.daos.dataset.DatasetDAO.has_active_logical_duplicate",
             return_value=True,
         ) as mock_dup_check,
     ):
@@ -157,9 +155,8 @@ def test_restore_dataset_no_logical_duplicate_when_none_exists(
     with (
         patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
         patch("superset.commands.restore.security_manager") as mock_sec,
-        patch.object(
-            RestoreDatasetCommand,
-            "_has_active_logical_duplicate",
+        patch(
+            "superset.daos.dataset.DatasetDAO.has_active_logical_duplicate",
             return_value=False,
         ) as mock_dup_check,
     ):

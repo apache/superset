@@ -25,7 +25,6 @@ from superset.commands.dataset.exceptions import (
 from superset.commands.restore import BaseRestoreCommand
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
-from superset.extensions import db
 
 
 class RestoreDatasetCommand(BaseRestoreCommand[SqlaTable]):
@@ -47,34 +46,9 @@ class RestoreDatasetCommand(BaseRestoreCommand[SqlaTable]):
 
     def validate(self) -> SqlaTable:  # type: ignore[override]
         model = super().validate()
-        if self._has_active_logical_duplicate(model):
+        # ``SqlaTable`` uniqueness is enforced in application code (no DB
+        # constraint), so restoring must refuse if another active dataset
+        # claimed the same physical table while this one was soft-deleted.
+        if DatasetDAO.has_active_logical_duplicate(model):
             raise DatasetLogicalDuplicateError()
         return model
-
-    @staticmethod
-    def _has_active_logical_duplicate(model: SqlaTable) -> bool:
-        """Return True iff another active dataset uses the same physical table.
-
-        Relies on the ``SoftDeleteMixin`` listener to auto-append
-        ``deleted_at IS NULL`` to the query, so only active rows are
-        considered. ``id != model.id`` excludes the row being restored
-        from the match. A future change that adds
-        ``skip_visibility_filter=True`` to this path would silently
-        broaden the check to soft-deleted rows and could refuse a
-        legitimate restore.
-
-        Caller assumes an active Flask request / app context via
-        ``db.session``.
-        """
-        return (
-            db.session.query(SqlaTable.id)
-            .filter(
-                SqlaTable.database_id == model.database_id,
-                SqlaTable.catalog == model.catalog,
-                SqlaTable.schema == model.schema,
-                SqlaTable.table_name == model.table_name,
-                SqlaTable.id != model.id,
-            )
-            .first()
-            is not None
-        )

@@ -255,12 +255,14 @@ class TestDatasetRestore(SupersetTestCase):
     # in the model plus the legacy ``_customer_location_uc`` from the 2016
     # ``b4456560d4f3`` migration), so the "delete -> seed twin -> restore"
     # setup cannot satisfy step 2 — the DB rejects the twin insert before the
-    # application-level restore check can be exercised. The restore-side
-    # ``_has_active_logical_duplicate`` override in ``RestoreDatasetCommand``
-    # is kept as defensive code (cleaner 422 if the DB constraint is ever
-    # relaxed) and is covered by ``tests/unit_tests/commands/dataset/
-    # restore_test.py::test_restore_dataset_logical_duplicate_raises`` at the
-    # mocked level. The create-side defense is covered end-to-end by
+    # application-level restore check can be exercised. The restore-side check
+    # ``DatasetDAO.has_active_logical_duplicate`` (called from
+    # ``RestoreDatasetCommand.validate`` and the v1 importer) is kept as
+    # defensive code (cleaner 422 if the DB constraint is ever relaxed) and is
+    # covered by ``tests/unit_tests/commands/dataset/restore_test.py::
+    # test_restore_dataset_logical_duplicate_raises`` plus the catalog-
+    # normalization tests in ``tests/unit_tests/daos/test_dataset_dao.py`` at
+    # the mocked level. The create-side defense is covered end-to-end by
     # ``test_create_blocked_by_soft_deleted_logical_duplicate`` below.
 
     def test_create_blocked_by_soft_deleted_logical_duplicate(self) -> None:
