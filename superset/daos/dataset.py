@@ -240,16 +240,25 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         """Return True iff another *active* dataset shares model's physical table.
 
         Physical identity is ``(database_id, catalog, schema, table_name)``.
-        The catalog is normalized to the database default when unset — the same
-        rule ``validate_uniqueness``/``validate_update_uniqueness`` apply — so
-        create, update, restore, and re-import all agree on what counts as the
-        same physical table. (A soft-deleted row stored with ``catalog = NULL``
-        and an active twin stored with the default catalog are the same table.)
+        ``model``'s catalog is normalized to the database default when unset —
+        the same rule ``validate_uniqueness``/``validate_update_uniqueness``
+        apply — so create, update, restore, and re-import agree on what counts
+        as the same physical table. The normalization is one-sided (the probe
+        is normalized; the stored ``catalog`` column is compared as-is), matching
+        the sibling uniqueness checks: a row stored with ``catalog = NULL`` is
+        caught against an active twin stored with the default catalog, but the
+        symmetric stored-NULL case is not. Closing that is a separate change to
+        all three methods.
 
-        Relies on the ``SoftDeleteMixin`` listener to auto-append
-        ``deleted_at IS NULL``, so only active rows are considered;
-        ``id != model.id`` excludes the row itself. The caller assumes an active
-        Flask request / app context via ``db.session``.
+        Unlike ``validate_uniqueness``, this does NOT use
+        ``skip_visibility_filter``: it relies on the ``SoftDeleteMixin`` listener
+        to auto-append ``deleted_at IS NULL`` so only *active* rows match. Do not
+        add the bypass here — it would broaden the check to soft-deleted rows and
+        silently refuse legitimate restores. ``id != model.id`` excludes the row
+        itself.
+
+        Assumes an active app context and a session-attached ``model`` so
+        ``db.session`` and the lazy ``model.database`` relationship resolve.
         """
         # The catalog might not be set even if the database supports catalogs,
         # in case multi-catalog is disabled.
