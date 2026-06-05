@@ -33,11 +33,16 @@ const listeners = new Set<(pageType: PageType) => void>();
 
 function derivePageType(pathname: string): PageType {
   if (pathname.startsWith('/superset/dashboard/')) return 'dashboard';
+  if (pathname.startsWith('/dashboard/list')) return 'dashboard_list';
   if (pathname.startsWith('/explore/')) return 'explore';
   if (pathname.startsWith('/superset/explore/')) return 'explore';
   if (pathname.startsWith('/chart/add')) return 'explore';
+  if (pathname.startsWith('/chart/list')) return 'chart_list';
+  if (pathname.startsWith('/sqllab/history')) return 'query_history';
+  if (pathname.startsWith('/savedqueryview/list')) return 'saved_queries';
   if (pathname === '/sqllab' || pathname.startsWith('/sqllab/'))
     return 'sqllab';
+  if (pathname.startsWith('/tablemodelview/list')) return 'dataset_list';
   if (pathname.startsWith('/dataset/')) return 'dataset';
   if (pathname.startsWith('/superset/welcome/')) return 'home';
   return 'other';
