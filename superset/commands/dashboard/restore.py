@@ -56,7 +56,11 @@ class RestoreDashboardCommand(BaseRestoreCommand[Dashboard]):
         constraint-violation 500 on dialects without it.
         """
         model = super().validate()
-        if model.slug and self._has_active_slug_twin(model):
+        # Check ``is not None`` rather than truthiness: an empty-string slug is
+        # still subject to the partial unique index, so it must be guarded too
+        # (a falsy "" would otherwise skip the pre-check and fail later with an
+        # opaque IntegrityError).
+        if model.slug is not None and self._has_active_slug_twin(model):
             raise DashboardSlugConflictError()
         return model
 

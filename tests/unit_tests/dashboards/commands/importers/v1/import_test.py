@@ -18,7 +18,7 @@
 
 import copy
 from collections.abc import Generator
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 import pytest
@@ -354,7 +354,7 @@ def test_import_soft_deleted_dashboard_overwrite_restores_in_place(
     )
     assert junction_before == 1, "junction row precondition not established"
 
-    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
     session_with_data.flush()
 
     admin = User(
@@ -409,7 +409,7 @@ def test_import_soft_deleted_dashboard_non_overwrite_restores_for_owner(
     )
     assert existing is not None
     original_id = existing.id
-    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
     session_with_data.flush()
 
     admin = User(
@@ -445,7 +445,7 @@ def test_import_soft_deleted_dashboard_non_overwrite_raises_for_non_owner(
         .one_or_none()
     )
     assert existing is not None
-    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
     session_with_data.flush()
 
     non_owner = User(
@@ -484,7 +484,7 @@ def test_import_soft_deleted_dashboard_raises_when_caller_lacks_can_write(
         .one_or_none()
     )
     assert existing is not None
-    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
     session_with_data.flush()
 
     with pytest.raises(ImportFailedError) as excinfo:
@@ -509,7 +509,7 @@ def test_import_soft_deleted_dashboard_ignore_permissions_restores_in_place(
     )
     assert existing is not None
     original_id = existing.id
-    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
     session_with_data.flush()
 
     dashboard = import_dashboard(

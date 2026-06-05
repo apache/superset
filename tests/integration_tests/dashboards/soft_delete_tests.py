@@ -200,17 +200,19 @@ class TestDashboardRestore(SupersetTestCase):
         constraint.
 
         The 9e1f3b8c4d2a migration installs a partial unique index on
-        ``slug WHERE deleted_at IS NULL`` on PostgreSQL and MySQL 8.0+
-        (excluding MariaDB). SQLite and MySQL <8 / MariaDB keep the
+        ``slug WHERE deleted_at IS NULL`` on PostgreSQL and MySQL 8.0.13+
+        (excluding MariaDB). SQLite and MySQL <8.0.13 / MariaDB keep the
         original full constraint, so tests that exercise slug reuse
         across the soft-delete boundary are not meaningful on those
-        backends.
+        backends. The 8.0.13 minimum matches the migration: MySQL added the
+        functional key parts the partial index needs in 8.0.13 (8.0.0–8.0.12
+        reject it).
         """
         dialect = db.session.bind.dialect.name
         is_mariadb = getattr(db.session.bind.dialect, "is_mariadb", False)
         server_version = db.session.bind.dialect.server_version_info or ()
         partial_index_supported = dialect == "postgresql" or (
-            dialect == "mysql" and not is_mariadb and server_version >= (8, 0)
+            dialect == "mysql" and not is_mariadb and server_version >= (8, 0, 13)
         )
         if not partial_index_supported:
             self.skipTest(
@@ -338,9 +340,15 @@ class TestDashboardRestore(SupersetTestCase):
         time. This pins the API contract end-to-end (command → endpoint
         → 422 response).
 
-        The conflict guard runs in application code, so the test exercises
-        every dialect — not just those with a partial index.
+        The conflict guard runs in application code and is itself
+        dialect-independent, but setting up the active slug twin below
+        requires the partial unique index, so this scenario only runs on
+        partial-index dialects.
         """
+        # Skip before creating any rows so an unsupported dialect doesn't
+        # strand a soft-deleted dashboard from the setup below.
+        self._skip_if_no_partial_index()
+
         shared_slug = "slug_conflict_test"
         admin = self.get_user("admin")
 
@@ -360,11 +368,8 @@ class TestDashboardRestore(SupersetTestCase):
         self.client.delete(f"/api/v1/dashboard/{first_id}")
 
         # Second dashboard claims the same slug while the first is soft-deleted.
-        # This only succeeds on Postgres / MySQL 8+ where the partial index
-        # frees the slug; on SQLite / MySQL <8 / MariaDB the full unique
-        # constraint would still block this insert.
-        self._skip_if_no_partial_index()
-
+        # This only succeeds on Postgres / MySQL 8.0.13+ where the partial index
+        # frees the slug (skipped above for the fallback dialects).
         second = Dashboard(
             dashboard_title="conflict_second",
             slug=shared_slug,
