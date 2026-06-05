@@ -331,7 +331,7 @@
     "eslint-plugin-jest-dom": "^5.5.0",
     "eslint-plugin-lodash": "^7.4.0",
     "eslint-plugin-no-only-tests": "^3.4.0",
-    "eslint-plugin-prettier": "^5.5.5",
+    "eslint-plugin-prettier": "^5.5.6",
     "eslint-plugin-react-prefer-function-component": "^5.0.0",
     "eslint-plugin-react-you-might-not-need-an-effect": "^0.10.2",
     "eslint-plugin-storybook": "^0.8.0",
