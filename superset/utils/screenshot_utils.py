@@ -89,6 +89,7 @@ def take_tiled_screenshot(
     element_name: str,
     tile_height: int,
     load_wait: int = 60,
+    animation_wait: int = 0,
 ) -> bytes | None:
     """
     Take a tiled screenshot of a large dashboard by scrolling and capturing sections.
@@ -98,6 +99,7 @@ def take_tiled_screenshot(
         element_name: CSS class name of the element to screenshot
         tile_height: Height of each tile in pixels
         load_wait: Seconds to wait for charts to load per tile (default 60)
+        animation_wait: Seconds to wait for chart animations per tile (default 0)
 
     Returns:
         Combined screenshot bytes or None if failed
@@ -173,6 +175,12 @@ def take_tiled_screenshot(
                     num_tiles,
                     load_wait,
                 )
+
+            # Wait for chart animations (e.g. ECharts) to finish after spinner clears.
+            # The global animation wait before tiling only covers the first tile;
+            # subsequent tiles need their own wait after data loads.
+            if animation_wait > 0:
+                page.wait_for_timeout(animation_wait * 1000)
 
             # Calculate what portion of the element we want to capture for this tile
             tile_start_in_element = i * tile_height
