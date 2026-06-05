@@ -76,6 +76,8 @@ test('should render', async () => {
 
 test('should not render the empty message', async () => {
   await renderWrapper({
+    // Intentionally minimal — Horizontal only reads filterValues.length
+    // here, so the missing required Filter fields would never be read.
     filterValues: [
       {
         id: 'test',
@@ -112,21 +114,20 @@ test('should render the loading icon', async () => {
 // --- Tests migrated from disabled Cypress spec
 //     `_skip.horizontalFilterBar.test.ts` (sc-107387). ---
 
-const createSelectFilter = (id: string, name: string, column: string): Filter =>
-  ({
-    id,
-    name,
-    type: NativeFilterType.NativeFilter,
-    filterType: 'filter_select',
-    targets: [{ datasetId: 2, column: { name: column } }],
-    defaultDataMask: { filterState: { value: null }, extraFormData: {} },
-    controlValues: {},
-    cascadeParentIds: [],
-    scope: { rootPath: ['ROOT_ID'], excluded: [] },
-    description: '',
-    chartsInScope: [],
-    tabsInScope: [],
-  }) as unknown as Filter;
+const createSelectFilter = (id: string, name: string, column: string): Filter => ({
+  id,
+  name,
+  type: NativeFilterType.NativeFilter,
+  filterType: 'filter_select',
+  targets: [{ datasetId: 2, column: { name: column } }],
+  defaultDataMask: { filterState: { value: null }, extraFormData: {} },
+  controlValues: {},
+  cascadeParentIds: [],
+  scope: { rootPath: ['ROOT_ID'], excluded: [] },
+  description: '',
+  chartsInScope: [],
+  tabsInScope: [],
+});
 
 const buildStateWithFilters = (
   filters: ReturnType<typeof createSelectFilter>[],
