@@ -152,6 +152,43 @@ describe('server', () => {
     });
   });
 
+  describe('getLastId', () => {
+    const requestWithUrl = (url: string): http.IncomingMessage => {
+      const request = new http.IncomingMessage(new net.Socket());
+      request.url = url;
+      return request;
+    };
+
+    test('returns null when last_id is absent', () => {
+      expect(server.getLastId(requestWithUrl('http://localhost'))).toBeNull();
+    });
+
+    test('returns a well-formed Redis stream ID', () => {
+      expect(
+        server.getLastId(
+          requestWithUrl('http://localhost?last_id=1607477697866-0'),
+        ),
+      ).toEqual('1607477697866-0');
+    });
+
+    test.each([
+      'abc-xyz',
+      '1607477697866',
+      '1607477697866-',
+      '-0',
+      '1607477697866-0; DROP TABLE',
+      '1607477697866-0-0',
+    ])('returns null for malformed last_id %p', value => {
+      expect(
+        server.getLastId(
+          requestWithUrl(
+            `http://localhost?last_id=${encodeURIComponent(value)}`,
+          ),
+        ),
+      ).toBeNull();
+    });
+  });
+
   describe('redisUrlFromConfig', () => {
     test('it builds a valid Redis URL from defaults', () => {
       expect(
@@ -393,6 +430,23 @@ describe('server', () => {
       expect(wsEventMock).toHaveBeenCalledWith('pong', expect.any(Function));
     });
 
+    test('valid JWT, malformed lastId is ignored', async () => {
+      const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+      const request = getRequest(
+        validToken,
+        'http://localhost?last_id=abc-xyz',
+      );
+
+      server.wsConnection(ws, request);
+
+      expect(trackClientSpy).toHaveBeenCalledWith(
+        channelId,
+        socketInstanceExpected,
+      );
+      // Malformed last_id must not trigger a stream range fetch.
+      expect(fetchRangeFromStreamSpy).not.toHaveBeenCalled();
+    });
+
     test('valid JWT, with lastId', async () => {
       const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
       const lastId = '1615426152415-0';
@@ -492,6 +546,105 @@ describe('server', () => {
 
       expect(socketDestroySpy).not.toHaveBeenCalled();
       expect(wssUpgradeSpy).toHaveBeenCalled();
+    });
+
+    describe('origin validation', () => {
+      afterEach(() => {
+        server.opts.allowedOrigins = [];
+      });
+
+      const getRequestWithOrigin = (
+        token: string,
+        origin?: string,
+      ): http.IncomingMessage => {
+        const request = new http.IncomingMessage(new net.Socket());
+        request.method = 'GET';
+        request.headers = { cookie: `${config.jwtCookieName}=${token}` };
+        if (origin) request.headers.origin = origin;
+        request.url = 'http://localhost';
+        return request;
+      };
+
+      test('rejects upgrade from a disallowed origin', () => {
+        server.opts.allowedOrigins = ['https://superset.example.com'];
+        const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+        const request = getRequestWithOrigin(
+          validToken,
+          'https://evil.example',
+        );
+
+        server.httpUpgrade(request, socket, Buffer.alloc(5));
+
+        expect(socketDestroySpy).toHaveBeenCalled();
+        expect(wssUpgradeSpy).not.toHaveBeenCalled();
+      });
+
+      test('rejects upgrade with no origin when an allowlist is set', () => {
+        server.opts.allowedOrigins = ['https://superset.example.com'];
+        const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+        const request = getRequestWithOrigin(validToken);
+
+        server.httpUpgrade(request, socket, Buffer.alloc(5));
+
+        expect(socketDestroySpy).toHaveBeenCalled();
+        expect(wssUpgradeSpy).not.toHaveBeenCalled();
+      });
+
+      test('allows upgrade from an allowed origin', () => {
+        server.opts.allowedOrigins = ['https://superset.example.com'];
+        const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+        const request = getRequestWithOrigin(
+          validToken,
+          'https://superset.example.com',
+        );
+
+        server.httpUpgrade(request, socket, Buffer.alloc(5));
+
+        expect(socketDestroySpy).not.toHaveBeenCalled();
+        expect(wssUpgradeSpy).toHaveBeenCalled();
+      });
+    });
+  });
+
+  describe('isOriginAllowed', () => {
+    const makeRequest = (origin?: string): http.IncomingMessage => {
+      const request = new http.IncomingMessage(new net.Socket());
+      if (origin) request.headers.origin = origin;
+      return request;
+    };
+
+    afterEach(() => {
+      server.opts.allowedOrigins = [];
+    });
+
+    test('allows any origin when allowlist is empty', () => {
+      server.opts.allowedOrigins = [];
+      expect(server.isOriginAllowed(makeRequest('https://anything'))).toBe(
+        true,
+      );
+      expect(server.isOriginAllowed(makeRequest())).toBe(true);
+    });
+
+    test('allows any origin when allowlist contains a wildcard', () => {
+      server.opts.allowedOrigins = ['*'];
+      expect(server.isOriginAllowed(makeRequest('https://anything'))).toBe(
+        true,
+      );
+    });
+
+    test('allows an exact-match origin', () => {
+      server.opts.allowedOrigins = ['https://a.example', 'https://b.example'];
+      expect(server.isOriginAllowed(makeRequest('https://b.example'))).toBe(
+        true,
+      );
+    });
+
+    test('rejects a non-matching or missing origin', () => {
+      server.opts.allowedOrigins = ['https://a.example'];
+      expect(server.isOriginAllowed(makeRequest('https://evil.example'))).toBe(
+        false,
+      );
+      expect(server.isOriginAllowed(makeRequest())).toBe(false);
     });
   });
 
