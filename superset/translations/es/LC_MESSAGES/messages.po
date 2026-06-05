@@ -5930,9 +5930,8 @@ msgstr "Duración en ms (1,40008 => 1 ms 400 µs 80 ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Duración en ms (100.40008 => 100 ms 400 µs 80 ns)"
 
-#, fuzzy
 msgid "Duration in ms (10500 => 0:00:10.5)"
-msgstr "Duración en ms (10500 => 0:10.5)"
+msgstr "Duración en ms (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Duración en ms (66 000 => 1 m 6 s)"

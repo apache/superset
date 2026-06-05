@@ -5246,9 +5246,8 @@ msgstr "所要時間(ミリ秒) (1.40008 => 1ms 400µs 80ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "所要時間(ミリ秒) (100.40008 => 100ms 400µs 80ns)"
 
-#, fuzzy
 msgid "Duration in ms (10500 => 0:00:10.5)"
-msgstr "所要時間(ミリ秒) (10500 => 0:10.5)"
+msgstr "所要時間(ミリ秒) (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "所要時間(ミリ秒) (66000 => 1分6秒)"

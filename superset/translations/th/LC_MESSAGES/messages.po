@@ -9800,7 +9800,7 @@ msgstr "ระยะเวลาในหน่วยมิลลิวินา
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
 msgid "Duration in ms (10500 => 0:00:10.5)"
-msgstr "ระยะเวลาในหน่วยมิลลิวินาที (10500 => 0:10.5)"
+msgstr "ระยะเวลาในหน่วยมิลลิวินาที (10500 => 0:00:10.5)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
