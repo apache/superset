@@ -238,8 +238,11 @@ def detect_acceptance_criteria(issue_body: str | None) -> str:
     return "ai_inferred"
 
 
-def get_open_issues_with_label(label: str) -> list[dict[str, Any]]:
-    """Fetch open issues that have a given label."""
+def get_issues_with_label(label: str, state: str = "open") -> list[dict[str, Any]]:
+    """Fetch issues that have a given label.
+
+    ``state`` can be ``"open"``, ``"closed"``, or ``"all"``.
+    """
     issues: list[dict[str, Any]] = []
     page = 1
     while True:
@@ -248,7 +251,7 @@ def get_open_issues_with_label(label: str) -> list[dict[str, Any]]:
             headers=_headers(),
             params={
                 "labels": label,
-                "state": "open",
+                "state": state,
                 "per_page": str(100),
                 "page": str(page),
             },
@@ -261,3 +264,8 @@ def get_open_issues_with_label(label: str) -> list[dict[str, Any]]:
         issues.extend(batch)
         page += 1
     return issues
+
+
+def get_open_issues_with_label(label: str) -> list[dict[str, Any]]:
+    """Fetch open issues that have a given label."""
+    return get_issues_with_label(label, state="open")
