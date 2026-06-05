@@ -34,79 +34,81 @@ class TestDatasetSoftDelete(SupersetTestCase):
         assert dataset is not None, "No datasets found — load examples first"
         return dataset.id
 
-    def test_delete_dataset_soft_deletes(self) -> None:
-        """DELETE should set deleted_at instead of removing the row."""
-        dataset_id = self._get_example_dataset_id()
-        self.login(ADMIN_USERNAME)
+    def _restore_dataset(self, dataset_id: int) -> None:
+        """Restore a soft-deleted dataset (cleanup helper).
 
-        rv = self.client.delete(f"/api/v1/dataset/{dataset_id}")
-        assert rv.status_code == 200
-
+        Used in ``finally`` blocks so a failed assertion can't strand a
+        soft-deleted row and leak it into later tests; re-queries with the
+        visibility-filter bypass and only restores if still soft-deleted.
+        """
         row = (
             db.session.query(SqlaTable)
             .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
             .filter(SqlaTable.id == dataset_id)
             .one_or_none()
         )
-        assert row is not None
-        assert row.deleted_at is not None
+        if row is not None and row.deleted_at is not None:
+            row.restore()
+            db.session.commit()
 
-        # Cleanup: restore for other tests
-        row.restore()
-        db.session.commit()
+    def test_delete_dataset_soft_deletes(self) -> None:
+        """DELETE should set deleted_at instead of removing the row."""
+        dataset_id = self._get_example_dataset_id()
+        self.login(ADMIN_USERNAME)
+
+        try:
+            rv = self.client.delete(f"/api/v1/dataset/{dataset_id}")
+            assert rv.status_code == 200
+
+            row = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter(SqlaTable.id == dataset_id)
+                .one_or_none()
+            )
+            assert row is not None
+            assert row.deleted_at is not None
+        finally:
+            self._restore_dataset(dataset_id)
 
     def test_soft_deleted_dataset_excluded_from_list(self) -> None:
         """GET /api/v1/dataset/ should not include soft-deleted datasets."""
         dataset_id = self._get_example_dataset_id()
         self.login(ADMIN_USERNAME)
 
-        self.client.delete(f"/api/v1/dataset/{dataset_id}")
+        try:
+            self.client.delete(f"/api/v1/dataset/{dataset_id}")
 
-        rv = self.client.get("/api/v1/dataset/")
-        data = json.loads(rv.data)
-        ids = [d["id"] for d in data["result"]]
-        assert dataset_id not in ids
-
-        # Cleanup
-        row = (
-            db.session.query(SqlaTable)
-            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
-            .filter(SqlaTable.id == dataset_id)
-            .one_or_none()
-        )
-        if row:
-            row.restore()
-            db.session.commit()
+            rv = self.client.get("/api/v1/dataset/")
+            data = json.loads(rv.data)
+            ids = [d["id"] for d in data["result"]]
+            assert dataset_id not in ids
+        finally:
+            self._restore_dataset(dataset_id)
 
     def test_soft_deleted_dataset_included_in_list_when_requested(self) -> None:
         """GET /api/v1/dataset/ with dataset_deleted_state=include returns deleted datasets."""  # noqa: E501
         dataset_id = self._get_example_dataset_id()
         self.login(ADMIN_USERNAME)
 
-        self.client.delete(f"/api/v1/dataset/{dataset_id}")
+        try:
+            self.client.delete(f"/api/v1/dataset/{dataset_id}")
 
-        rison_query = "(filters:!((col:id,opr:dataset_deleted_state,value:include)))"
-        rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
-        assert rv.status_code == 200
+            rison_query = (
+                "(filters:!((col:id,opr:dataset_deleted_state,value:include)))"
+            )
+            rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
+            assert rv.status_code == 200
 
-        data = json.loads(rv.data)
-        deleted_row = next(
-            (row for row in data["result"] if row["id"] == dataset_id),
-            None,
-        )
-        assert deleted_row is not None
-        assert deleted_row["deleted_at"] is not None
-
-        # Cleanup
-        row = (
-            db.session.query(SqlaTable)
-            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
-            .filter(SqlaTable.id == dataset_id)
-            .one_or_none()
-        )
-        if row:
-            row.restore()
-            db.session.commit()
+            data = json.loads(rv.data)
+            deleted_row = next(
+                (row for row in data["result"] if row["id"] == dataset_id),
+                None,
+            )
+            assert deleted_row is not None
+            assert deleted_row["deleted_at"] is not None
+        finally:
+            self._restore_dataset(dataset_id)
 
     def test_only_filter_returns_only_soft_deleted_datasets(self) -> None:
         """dataset_deleted_state=only excludes live rows and returns only deleted ones."""  # noqa: E501
@@ -115,27 +117,19 @@ class TestDatasetSoftDelete(SupersetTestCase):
         live_id, deleted_id = ids[0], ids[1]
         self.login(ADMIN_USERNAME)
 
-        self.client.delete(f"/api/v1/dataset/{deleted_id}")
+        try:
+            self.client.delete(f"/api/v1/dataset/{deleted_id}")
 
-        rison_query = "(filters:!((col:id,opr:dataset_deleted_state,value:only)))"
-        rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
-        assert rv.status_code == 200
+            rison_query = "(filters:!((col:id,opr:dataset_deleted_state,value:only)))"
+            rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
+            assert rv.status_code == 200
 
-        data = json.loads(rv.data)
-        returned_ids = {row["id"] for row in data["result"]}
-        assert deleted_id in returned_ids
-        assert live_id not in returned_ids
-
-        # Cleanup
-        row = (
-            db.session.query(SqlaTable)
-            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
-            .filter(SqlaTable.id == deleted_id)
-            .one_or_none()
-        )
-        if row:
-            row.restore()
-            db.session.commit()
+            data = json.loads(rv.data)
+            returned_ids = {row["id"] for row in data["result"]}
+            assert deleted_id in returned_ids
+            assert live_id not in returned_ids
+        finally:
+            self._restore_dataset(deleted_id)
 
     def test_no_cascade_to_dependent_charts(self) -> None:
         """Soft-deleting a dataset should NOT cascade to its charts (FR-009, T018)."""
@@ -150,28 +144,22 @@ class TestDatasetSoftDelete(SupersetTestCase):
         )
         dependent_chart_ids = [c.id for c in dependent_charts]
 
-        # Soft-delete the dataset
-        self.client.delete(f"/api/v1/dataset/{dataset_id}")
+        try:
+            # Soft-delete the dataset
+            self.client.delete(f"/api/v1/dataset/{dataset_id}")
 
-        # Dependent charts should still be active (no cascade). On this
-        # branch ``Slice`` does not yet carry ``deleted_at`` (added by the
-        # charts soft-delete PR), so we only verify the row is still
-        # loadable through the default visibility-filtered query — which
-        # would return None if the chart had been soft-deleted.
-        for chart_id in dependent_chart_ids:
-            chart = db.session.query(Slice).filter(Slice.id == chart_id).one_or_none()
-            assert chart is not None, f"Chart {chart_id} should still be active"
-
-        # Cleanup
-        row = (
-            db.session.query(SqlaTable)
-            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
-            .filter(SqlaTable.id == dataset_id)
-            .one_or_none()
-        )
-        if row:
-            row.restore()
-            db.session.commit()
+            # Dependent charts should still be active (no cascade). On this
+            # branch ``Slice`` does not yet carry ``deleted_at`` (added by the
+            # charts soft-delete PR), so we only verify the row is still
+            # loadable through the default visibility-filtered query — which
+            # would return None if the chart had been soft-deleted.
+            for chart_id in dependent_chart_ids:
+                chart = (
+                    db.session.query(Slice).filter(Slice.id == chart_id).one_or_none()
+                )
+                assert chart is not None, f"Chart {chart_id} should still be active"
+        finally:
+            self._restore_dataset(dataset_id)
 
 
 class TestDatasetRestore(SupersetTestCase):
