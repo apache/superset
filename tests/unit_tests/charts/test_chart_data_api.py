@@ -16,6 +16,8 @@
 # under the License.
 from __future__ import annotations
 
+from unittest.mock import MagicMock
+
 from flask import Flask, g
 
 from superset.utils import json
@@ -69,3 +71,32 @@ def test_get_data_sets_g_form_data_without_dashboard_filter() -> None:
         assert hasattr(g, "form_data")
         assert g.form_data["datasource"] == {"id": 42, "type": "table"}
         assert g.form_data["queries"][0]["columns"] == ["col1"]
+
+
+def _extract_filename(form_value: str) -> str | None:
+    """Run _extract_export_params_from_request with a form filename value."""
+    from superset.charts.data.api import ChartDataRestApi
+
+    app = Flask(__name__)
+    with app.test_request_context("/", method="POST", data={"filename": form_value}):
+        filename, _ = ChartDataRestApi._extract_export_params_from_request(MagicMock())
+    return filename
+
+
+def test_extract_export_filename_sanitizes_special_characters() -> None:
+    """A malicious/path-y filename is sanitized before header/disk use."""
+    filename = _extract_filename('../../etc/pa"ss\r\nSet-Cookie: x')
+
+    assert filename is not None
+    for bad in ("/", "\\", '"', "\r", "\n", ".."):
+        assert bad not in filename
+
+
+def test_extract_export_filename_preserves_normal_name() -> None:
+    """A normal filename passes through unchanged."""
+    assert _extract_filename("my_export.csv") == "my_export.csv"
+
+
+def test_extract_export_filename_all_special_falls_back_to_none() -> None:
+    """A name with no usable characters becomes None (generated downstream)."""
+    assert _extract_filename("***") is None

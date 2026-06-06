@@ -31,7 +31,7 @@ test('formatDuration returns null for invalid inputs', () => {
 });
 
 test('formatDuration formats seconds correctly', () => {
-  expect(formatDuration(37.5)).toBe('37s');
+  expect(formatDuration(37.5)).toBe('37s 500ms');
   expect(formatDuration(1)).toBe('1s');
   expect(formatDuration(30)).toBe('30s');
 });
@@ -46,6 +46,10 @@ test('formatDuration formats hours correctly', () => {
   expect(formatDuration(3600)).toBe('1h');
   expect(formatDuration(3660)).toBe('1h 1m');
   expect(formatDuration(7200)).toBe('2h');
+});
+
+test('formatDuration limits output to two units', () => {
+  expect(formatDuration(93784)).toBe('1d 2h');
 });
 
 test('calculateEta returns null for invalid inputs', () => {

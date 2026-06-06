@@ -1416,7 +1416,7 @@ const FiltersConfigForm = (
                                           }}
                                         />
                                       </StyledRowFormItem>
-                                      {hasMetrics && (
+                                      {hasMetrics && !isChartCustomization && (
                                         <StyledRowSubFormItem
                                           expanded={expanded}
                                           name={[
