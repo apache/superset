@@ -158,6 +158,9 @@ afterEach(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Tests assert against the global document.title and the unmount restore
+  // effect can carry title state across tests, so reset it for isolation.
+  document.title = '';
   mockUseDashboard.mockReturnValue({
     result: mockDashboard,
     error: null,
