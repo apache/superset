@@ -19,6 +19,8 @@
 import { sanitizeUrl } from '@braintree/sanitize-url';
 import { ensureAppRoot } from './pathUtils';
 
+let pendingAssignUrl: string | null = null;
+
 export const navigateTo = (
   url: string,
   options?: { newWindow?: boolean; assign?: boolean },
@@ -30,7 +32,10 @@ export const navigateTo = (
       'noopener noreferrer',
     );
   } else if (options?.assign) {
-    window.location.assign(sanitizeUrl(ensureAppRoot(url)));
+    const sanitized = sanitizeUrl(ensureAppRoot(url));
+    if (pendingAssignUrl === sanitized) return;
+    pendingAssignUrl = sanitized;
+    window.location.assign(sanitized);
   } else {
     window.location.href = sanitizeUrl(ensureAppRoot(url));
   }
