@@ -35,8 +35,10 @@
  *             plugin-chart-echarts/src/Gauge (color-scheme resolution).
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import { apiPost, apiPut } from '../../helpers/api/requests';
+import { apiPostChart } from '../../helpers/api/chart';
+import { apiPut } from '../../helpers/api/requests';
 import { apiPostDashboard } from '../../helpers/api/dashboard';
+import { getDatasetByName } from '../../helpers/api/dataset';
 import { DashboardPage } from '../../pages/DashboardPage';
 
 const DATASET_NAME = 'birth_names';
@@ -46,20 +48,14 @@ const COLOR_INTERVAL_1: [number, number, number] = [31, 168, 201];
 const COLOR_INTERVAL_2: [number, number, number] = [69, 78, 124];
 const COLOR_UNUSED_3: [number, number, number] = [90, 193, 137];
 
-async function findDatasetIdByName(page: any, name: string): Promise<number> {
-  const query = `(filters:!((col:table_name,opr:eq,value:'${name}')))`;
-  const resp = await page.request.get(`api/v1/dataset/?q=${query}`);
-  const body = await resp.json();
-  if (!body.result?.length) {
-    throw new Error(`Dataset ${name} not found`);
-  }
-  return body.result[0].id;
-}
-
 testWithAssets(
   'Gauge renders configured interval colors on a dashboard (#28766)',
   async ({ page, testAssets }) => {
-    const datasetId = await findDatasetIdByName(page, DATASET_NAME);
+    const dataset = await getDatasetByName(page, DATASET_NAME);
+    if (!dataset) {
+      throw new Error(`Dataset ${DATASET_NAME} not found`);
+    }
+    const datasetId = dataset.id;
 
     const chartParams = {
       datasource: `${datasetId}__table`,
@@ -79,7 +75,7 @@ testWithAssets(
       number_format: 'SMART_NUMBER',
       value_formatter: '{value}',
     };
-    const chartResp = await apiPost(page, 'api/v1/chart/', {
+    const chartResp = await apiPostChart(page, {
       slice_name: `gauge_interval_colors_${Date.now()}`,
       viz_type: 'gauge_chart',
       datasource_id: datasetId,
@@ -87,7 +83,14 @@ testWithAssets(
       params: JSON.stringify(chartParams),
     });
     expect(chartResp.ok()).toBe(true);
-    const chartId: number = (await chartResp.json()).id;
+    const chartBody = await chartResp.json();
+    // Normalize: API may return id at top level or inside result.
+    const chartId: number = chartBody.result?.id ?? chartBody.id;
+    if (!chartId) {
+      throw new Error(
+        `Chart creation returned no id. Response: ${JSON.stringify(chartBody)}`,
+      );
+    }
     testAssets.trackChart(chartId);
 
     const chartLayoutKey = `CHART-${chartId}`;
