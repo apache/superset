@@ -372,3 +372,52 @@ test('does not inject font style element when no fontUrls in config', () => {
   const fontStyle = document.querySelector('style[data-superset-fonts]');
   expect(fontStyle).toBeNull();
 });
+
+test('prevents font injection and cleans up fonts when hasThemeConfigOverride becomes active', () => {
+  const fontUrl = 'https://fonts.example.com/custom.css';
+  const themeConfig = {
+    token: { colorPrimary: '#ff0000', fontUrls: [fontUrl] },
+  };
+
+  const { rerender } = render(
+    <ThemeContext.Provider
+      value={{ hasThemeConfigOverride: false } as unknown as ThemeContextType}
+    >
+      <CrudThemeProvider
+        theme={{
+          id: 1,
+          theme_name: 'Font Theme',
+          json_data: JSON.stringify(themeConfig),
+        }}
+      >
+        <div>Dashboard Content</div>
+      </CrudThemeProvider>
+    </ThemeContext.Provider>,
+  );
+
+  // Assert font is injected
+  let fontStyle = document.querySelector('style[data-superset-fonts]');
+  expect(fontStyle).not.toBeNull();
+  expect(fontStyle?.textContent).toContain(`@import url("${fontUrl}")`);
+
+  // Switch hasThemeConfigOverride dynamically to true
+  rerender(
+    <ThemeContext.Provider
+      value={{ hasThemeConfigOverride: true } as unknown as ThemeContextType}
+    >
+      <CrudThemeProvider
+        theme={{
+          id: 1,
+          theme_name: 'Font Theme',
+          json_data: JSON.stringify(themeConfig),
+        }}
+      >
+        <div>Dashboard Content</div>
+      </CrudThemeProvider>
+    </ThemeContext.Provider>,
+  );
+
+  // Assert font is cleaned up and removed
+  fontStyle = document.querySelector('style[data-superset-fonts]');
+  expect(fontStyle).toBeNull();
+});

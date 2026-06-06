@@ -151,7 +151,9 @@ class Theme(AuditMixinNullable, ImportExportMixin, Model):
 @sqla.event.listens_for(Theme, "after_update")
 @sqla.event.listens_for(Theme, "after_delete")
 def clear_bootstrap_cache(
-    mapper: sqla.orm.Mapper, connection: sqla.engine.Connection, target: Theme
+    _mapper: sqla.orm.Mapper,
+    _connection: sqla.engine.Connection,
+    _target: Theme,
 ) -> None:
     from superset.extensions import cache_manager
     from superset.views.base import cached_common_bootstrap_data
