@@ -502,6 +502,12 @@ DASHBOARD_EXTRA_COLUMNS: dict[str, ColumnMetadata] = {
     "charts": ColumnMetadata(
         name="charts", description="Charts in dashboard", type="list", is_default=False
     ),
+    "native_filters": ColumnMetadata(
+        name="native_filters",
+        description="Native filter configuration (name, type, targets)",
+        type="list",
+        is_default=False,
+    ),
 }
 
 
