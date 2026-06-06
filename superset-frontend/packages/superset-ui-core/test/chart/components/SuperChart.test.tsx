@@ -19,7 +19,9 @@
 
 import '@testing-library/jest-dom';
 import { render, screen } from '@superset-ui/core/spec';
-import { triggerResizeObserver } from 'resize-observer-polyfill';
+import MockResizeObserver, {
+  triggerResizeObserver,
+} from 'resize-observer-polyfill';
 import { ErrorBoundary } from 'react-error-boundary';
 
 import { promiseTimeout, SuperChart } from '@superset-ui/core';
@@ -70,10 +72,18 @@ describe('SuperChart', () => {
     new BuggyChartPlugin().configure({ key: ChartKeys.BUGGY }),
   ];
 
+  const OriginalResizeObserver = window.ResizeObserver;
+
   beforeAll(() => {
+    window.ResizeObserver =
+      MockResizeObserver as unknown as typeof ResizeObserver;
     plugins.forEach(p => {
       p.unregister().register();
     });
+  });
+
+  afterAll(() => {
+    window.ResizeObserver = OriginalResizeObserver;
   });
 
   beforeEach(() => {
@@ -273,9 +283,7 @@ describe('SuperChart', () => {
     });
   };
 
-  // Update the resize observer trigger to ensure it's called after component mount
-  /* oxlint-disable-next-line jest/no-disabled-tests, jest/expect-expect -- skipped test */
-  test.skip('works when width and height are percent', async () => {
+  test('works when width and height are percent', async () => {
     const { container } = render(
       <SuperChart
         chartType={ChartKeys.DILIGENT}
@@ -322,6 +330,7 @@ describe('SuperChart', () => {
     ]);
 
     await waitForDimensions(container, 300, 300);
+    expect(getDimensionText(container)).toBe('300x300');
   });
 
   test('passes the props with multiple queries to renderer correctly', async () => {
@@ -405,8 +414,7 @@ describe('SuperChart', () => {
       });
     });
 
-    /* oxlint-disable-next-line jest/no-disabled-tests */
-    test.skip('works when width and height are percent', async () => {
+    test('works when width and height are percent', async () => {
       const wrapper = createSizedWrapper();
       document.body.appendChild(wrapper);
 
