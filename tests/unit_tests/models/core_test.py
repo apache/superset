@@ -1556,3 +1556,44 @@ def test_database_execute_async_without_options(mocker: MockerFixture) -> None:
     mock_executor_class.assert_called_once_with(database)
     mock_executor.execute_async.assert_called_once_with("SELECT 1", None)
     assert result == mock_handle
+
+
+def test_clear_bootstrap_cache_logs_warning_on_failure(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that clear_bootstrap_cache logs a warning when cache invalidation fails.
+
+    Exercises the ``except Exception`` branch in the event listener so that
+    Codecov registers it as covered.  The function must not re-raise the
+    exception — callers (SQLAlchemy event dispatch) should be unaffected.
+    """
+    from superset.models.core import clear_bootstrap_cache
+
+    # Patch cache_manager so delete_memoized raises
+    mock_cache = mocker.MagicMock()
+    mock_cache.delete_memoized.side_effect = RuntimeError("Redis unavailable")
+
+    mock_cache_manager = mocker.patch("superset.models.core.cache_manager")
+    mock_cache_manager.cache = mock_cache
+
+    # Patch cached_common_bootstrap_data so the local import inside
+    # clear_bootstrap_cache resolves to our mock.
+    mocker.patch(
+        "superset.views.base.cached_common_bootstrap_data",
+        new=mocker.MagicMock(__name__="cached_common_bootstrap_data"),
+    )
+
+    mock_logger = mocker.patch("superset.models.core.logger")
+
+    # Should not raise even though delete_memoized raises
+    clear_bootstrap_cache(
+        _mapper=mocker.MagicMock(),
+        _connection=mocker.MagicMock(),
+        _target=mocker.MagicMock(),
+    )
+
+    # Verify logger.warning was called with the correct message format
+    mock_logger.warning.assert_called_once()
+    call_args = mock_logger.warning.call_args
+    assert call_args[0][0] == "Failed to clear theme bootstrap cache: %s"

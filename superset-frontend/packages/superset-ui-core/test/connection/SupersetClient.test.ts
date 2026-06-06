@@ -172,4 +172,15 @@ describe('SupersetClient', () => {
     const token = await SupersetClient.getCSRFToken();
     expect(token).toBe('my_token');
   });
+
+  test('guestTokenHeaderName returns the configured header name when instance exists', () => {
+    SupersetClient.configure({ guestTokenHeaderName: 'X-Custom-Guest' });
+    expect(SupersetClient.guestTokenHeaderName).toBe('X-Custom-Guest');
+  });
+
+  test('guestTokenHeaderName returns default X-GuestToken when instance is not configured', () => {
+    // Ensure instance is reset (afterEach calls SupersetClient.reset())
+    // Access the property without calling configure() first
+    expect(SupersetClient.guestTokenHeaderName).toBe('X-GuestToken');
+  });
 });
