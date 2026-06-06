@@ -145,14 +145,6 @@ Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
 - get_database_info: Get detailed database connection info by ID (backend, capabilities)
 
-CSS Templates:
-- list_css_templates: List CSS templates with advanced filters (1-based pagination)
-- get_css_template_info: Get CSS template details by ID (includes full css content)
-
-Themes:
-- list_themes: List themes with advanced filters (1-based pagination)
-- get_theme_info: Get theme details by ID or UUID (includes json_data configuration)
-
 Alerts & Reports:
 - list_reports: List alerts and reports with filtering and search (1-based pagination)
 - get_report_info: Get detailed alert/report schedule info by ID
@@ -185,7 +177,7 @@ SQL Lab Integration:
 - get_query_info: Get SQL query history details by ID
 
 Schema Discovery:
-- get_schema: Get schema metadata for chart/dataset/dashboard/database/css_template/theme (columns, filters)
+- get_schema: Get schema metadata for chart/dataset/dashboard/database/report (columns, filters)
 
 System Information:
 - get_instance_info: Get instance-wide statistics, metadata, and current user identity
@@ -676,10 +668,6 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     update_chart,
     update_chart_preview,
 )
-from superset.mcp_service.css_template.tool import (  # noqa: F401, E402
-    get_css_template_info,
-    list_css_templates,
-)
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
     generate_dashboard,
@@ -731,10 +719,6 @@ from superset.mcp_service.system.tool import (  # noqa: F401, E402
 from superset.mcp_service.tag.tool import (  # noqa: F401, E402
     get_tag_info,
     list_tags,
-)
-from superset.mcp_service.theme.tool import (  # noqa: F401, E402
-    get_theme_info,
-    list_themes,
 )
 
 
