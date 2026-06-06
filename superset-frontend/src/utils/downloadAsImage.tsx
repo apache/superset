@@ -18,6 +18,7 @@
  */
 import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
+import { getInstanceByDom } from 'echarts';
 import { kebabCase } from 'lodash';
 import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
@@ -221,32 +222,53 @@ const processCloneForVisibility = (clone: HTMLElement) => {
     });
 };
 
+// Re-render all ECharts instances inside `element` at the given devicePixelRatio.
+// Returns the affected container elements so the caller can restore them later.
+// ECharts re-renders synchronously on resize, but we still await a frame after
+// calling this so any scheduled ZRender flushes complete before cloning.
+const resizeEchartsInstances = (
+  element: Element,
+  devicePixelRatio: number,
+): HTMLElement[] => {
+  const containers: HTMLElement[] = [];
+  element.querySelectorAll('[_echarts_instance_]').forEach(el => {
+    const instance = getInstanceByDom(el as HTMLElement);
+    if (instance) {
+      containers.push(el as HTMLElement);
+      // devicePixelRatio is accepted by the underlying ZRender resize but is
+      // absent from ECharts' public ResizeOpts typedef — cast to work around it.
+      (instance.resize as Function)({ devicePixelRatio });
+    }
+  });
+  return containers;
+};
+
+const restoreEchartsInstances = (containers: HTMLElement[]) => {
+  const originalDpr = window.devicePixelRatio || 1;
+  containers.forEach(el => {
+    const instance = getInstanceByDom(el);
+    if (instance) {
+      (instance.resize as Function)({ devicePixelRatio: originalDpr });
+    }
+  });
+};
+
+// Copy canvas backing stores 1:1 into the cloned canvases.
+// ECharts has already been resized to IMAGE_DOWNLOAD_SCALE before cloning,
+// so the backing store is already at the target resolution — no additional
+// scaling is needed here.
 const preserveCanvasContent = (original: Element, clone: Element) => {
   const originalCanvases = original.querySelectorAll('canvas');
   const clonedCanvases = clone.querySelectorAll('canvas');
 
-  // Scale canvas content to match the download scale so dom-to-image gets a
-  // 1:1 pixel mapping instead of stretching already-rasterized pixels.
-  // Canvas libs (e.g. ECharts) render at devicePixelRatio scale internally, so
-  // we normalise back to CSS pixels first, then scale up to IMAGE_DOWNLOAD_SCALE.
-  const copyScale = IMAGE_DOWNLOAD_SCALE / (window.devicePixelRatio || 1);
-
   originalCanvases.forEach((originalCanvas, i) => {
-    if (originalCanvases[i] && clonedCanvases[i]) {
+    if (clonedCanvases[i]) {
       const clonedCanvas = clonedCanvases[i] as HTMLCanvasElement;
       const ctx = clonedCanvas.getContext('2d');
       if (ctx) {
-        clonedCanvas.width = Math.round(originalCanvas.width * copyScale);
-        clonedCanvas.height = Math.round(originalCanvas.height * copyScale);
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(
-          originalCanvas,
-          0,
-          0,
-          clonedCanvas.width,
-          clonedCanvas.height,
-        );
+        clonedCanvas.width = originalCanvas.width;
+        clonedCanvas.height = originalCanvas.height;
+        ctx.drawImage(originalCanvas, 0, 0);
       }
     }
   });
@@ -382,12 +404,15 @@ export default function downloadAsImageOptimized(
       const visibleColumnState =
         savedColumnState?.filter(col => !col.hide) ?? [];
       const originalWidth =
-        visibleColumnState.reduce((sum, col) => sum + (col.width ?? 0), 0) ||
-        agRootWrapper.offsetWidth;
+        visibleColumnState.reduce(
+          (sum: number, col) => sum + ((col.width as number | null) ?? 0),
+          0,
+        ) || agRootWrapper.offsetWidth;
 
       // Chrome SVG foreignObject bug: % min-height resolves against canvas height,
       // causing cells to expand to full image height and overlap adjacent rows.
       const cellFixups: CellFixup[] = [];
+      let agEchartsContainers: HTMLElement[] = [];
 
       try {
         await document.fonts.ready;
@@ -436,6 +461,14 @@ export default function downloadAsImageOptimized(
 
         const imageHeight = agRootWrapper.scrollHeight;
 
+        agEchartsContainers = resizeEchartsInstances(
+          agRootWrapper,
+          IMAGE_DOWNLOAD_SCALE,
+        );
+        await new Promise<void>(resolve =>
+          requestAnimationFrame(() => resolve()),
+        );
+
         const dataUrl = await domToImage.toJpeg(agRootWrapper, {
           bgcolor: theme?.colorBgContainer,
           filter,
@@ -457,6 +490,7 @@ export default function downloadAsImageOptimized(
           t('Image download failed, please refresh and try again.'),
         );
       } finally {
+        restoreEchartsInstances(agEchartsContainers);
         cellFixups.forEach(({ el, minHeight, overflow }) => {
           el.style.minHeight = minHeight;
           el.style.overflow = overflow;
@@ -476,6 +510,14 @@ export default function downloadAsImageOptimized(
 
     // All other chart types: use the clone-based approach
     let cleanup: (() => void) | null = null;
+
+    // Re-render ECharts at target scale before cloning so the canvas backing
+    // store is already at full resolution when preserveCanvasContent copies it.
+    const cloneEchartsContainers = resizeEchartsInstances(
+      elementToPrint,
+      IMAGE_DOWNLOAD_SCALE,
+    );
+    await new Promise<void>(resolve => requestAnimationFrame(() => resolve()));
 
     try {
       const { clone, cleanup: cleanupFn } = createEnhancedClone(
@@ -509,6 +551,7 @@ export default function downloadAsImageOptimized(
       );
     } finally {
       if (cleanup) cleanup();
+      restoreEchartsInstances(cloneEchartsContainers);
     }
   };
 }

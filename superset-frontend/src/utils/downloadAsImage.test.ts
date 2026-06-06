@@ -35,6 +35,11 @@ jest.mock('@apache-superset/core/translation', () => ({
   t: (str: string) => str,
 }));
 
+// No ECharts instances exist in jsdom; getInstanceByDom always returns undefined.
+jest.mock('echarts', () => ({
+  getInstanceByDom: jest.fn().mockReturnValue(undefined),
+}));
+
 const mockToJpeg = domToImage.toJpeg as jest.Mock;
 const mockAddWarningToast = addWarningToast as jest.Mock;
 
@@ -726,12 +731,4 @@ test('clone path passes scale >= 2 to toJpeg', async () => {
   expect(capturedScale).toBeGreaterThanOrEqual(2);
 
   document.body.removeChild(container);
-});
-
-test('scale formula enforces minimum 2 for standard and zero devicePixelRatio values', () => {
-  const computeScale = (dpr: number) => Math.max(dpr || 1, 2);
-  expect(computeScale(1)).toBe(2); // standard display: dpr=1 is truthy but Math.max clamps to 2
-  expect(computeScale(0)).toBe(2); // zero dpr: || gives 1, Math.max clamps to 2
-  expect(computeScale(2)).toBe(2); // exactly 2× retina
-  expect(computeScale(3)).toBe(3); // 3× retina: dpr wins over minimum
 });
