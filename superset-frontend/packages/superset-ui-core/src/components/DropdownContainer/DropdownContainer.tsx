@@ -72,15 +72,6 @@ export const DropdownContainer = forwardRef(
 
     const [showOverflow, setShowOverflow] = useState(false);
 
-    // When the item set changes, the overflow index is briefly reset while the
-    // new widths are measured (see the layout effect below). During that window
-    // the dropdown content momentarily becomes empty, which would hide and then
-    // re-show the trigger, causing a flicker. We track whether a recalculation
-    // is pending so the trigger can stay mounted across the transient (when it
-    // was showing content just before) without lingering in the steady state
-    // when nothing actually overflows.
-    const [recalculating, setRecalculating] = useState(false);
-
     // callback to update item widths so that the useLayoutEffect runs whenever
     // width of any of the child changes
     const recalculateItemWidths = useCallback(() => {
@@ -180,7 +171,6 @@ export const DropdownContainer = forwardRef(
             );
           } else {
             setOverflowingIndex(-1);
-            setRecalculating(true);
             return;
           }
         }
@@ -221,7 +211,6 @@ export const DropdownContainer = forwardRef(
         }
 
         setOverflowingIndex(newOverflowingIndex);
-        setRecalculating(false);
       }
     }, [
       current,
