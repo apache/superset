@@ -231,7 +231,7 @@ development = [
     "pytest-asyncio",
     "pytest-cov",
     "pytest-mock",
-    "python-ldap>=3.4.4",
+    "python-ldap>=3.4.7",
     "ruff",
     "sqloxide",
     "statsd",
