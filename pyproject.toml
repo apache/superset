@@ -199,7 +199,7 @@ spark = [
 ]
 tdengine = [
     "taospy>=2.7.21",
-    "taos-ws-py>=0.3.8"
+    "taos-ws-py>=0.6.9"
 ]
 teradata = ["teradatasql>=16.20.0.23"]
 thumbnails = [] # deprecated, will be removed in 7.0
