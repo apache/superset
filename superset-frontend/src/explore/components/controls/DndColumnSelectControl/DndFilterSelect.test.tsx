@@ -66,6 +66,7 @@ jest.mock('@dnd-kit/core', () => ({
 const captured: CapturedDroppable = { current: undefined };
 
 beforeEach(() => {
+  jest.clearAllMocks();
   captured.current = undefined;
   (useDroppable as jest.Mock).mockImplementation(
     captureDroppableData(captured),
@@ -116,10 +117,6 @@ function setup({
     />
   );
 }
-
-beforeEach(() => {
-  jest.clearAllMocks();
-});
 
 test('renders with default props', async () => {
   render(setup(), { useDndKit: true, store });
