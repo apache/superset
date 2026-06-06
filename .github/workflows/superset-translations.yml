@@ -41,6 +41,8 @@ jobs:
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
           node-version-file:  './superset-frontend/.nvmrc'
+          cache: 'npm'
+          cache-dependency-path: 'superset-frontend/package-lock.json'
       - name: Install dependencies
         if: steps.check.outputs.frontend
         uses: ./.github/actions/cached-dependencies
