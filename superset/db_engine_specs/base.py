@@ -72,6 +72,7 @@ from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.sql.parse import (
     BaseSQLStatement,
     LimitMethod,
+    Partition,
     RLSMethod,
     SQLScript,
     SQLStatement,
@@ -1355,12 +1356,15 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cls,
         database: Database,
         table: Table,
+        partition: Partition | None = None,
     ) -> TableMetadataResponse:
         """
         Returns basic table metadata
 
         :param database: Database instance
         :param table: A Table instance
+        :param partition: Optional partition info used by engines that support
+            partitioned tables (e.g. ODPS). Ignored by engines that don't.
         :return: Basic table metadata
         """
         return get_table_metadata(database, table)

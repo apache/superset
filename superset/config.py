@@ -1489,6 +1489,11 @@ SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = int(timedelta(seconds=10).total_seconds())
 # 0 means no timeout.
 SQLLAB_QUERY_RESULT_TIMEOUT = 0
 
+# Connect/read timeout (in seconds) for the synchronous network call made when
+# detecting ODPS (MaxCompute) partition info during table preview. Prevents an
+# unreachable or slow ODPS endpoint from blocking the web worker indefinitely.
+ODPS_PARTITION_DETECT_TIMEOUT = int(timedelta(seconds=30).total_seconds())
+
 # The cost returned by the databases is a relative value; in order to map the cost to
 # a tangible value you need to define a custom formatter that takes into consideration
 # your specific infrastructure. For example, you could analyze queries a posteriori by
