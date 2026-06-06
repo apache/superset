@@ -721,6 +721,7 @@ const Header = (): JSX.Element => {
                 <Button
                   css={discardBtnStyle}
                   buttonSize="small"
+                  disabled={!hasUnsavedChanges}
                   onClick={discardChanges}
                   buttonStyle="secondary"
                   data-test="discard-changes-button"

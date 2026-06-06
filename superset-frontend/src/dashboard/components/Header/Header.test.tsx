@@ -522,9 +522,9 @@ test('should disable both buttons when no actions available', () => {
   expect(onRedo).not.toHaveBeenCalled();
 });
 
-test('should render the "Discard changes" button', () => {
+test('should render the "Discard" button as disabled', () => {
   setup(editableState);
-  expect(screen.getByText('Discard')).toBeInTheDocument();
+  expect(screen.getByText('Discard').parentElement).toBeDisabled();
 });
 
 test('should render the "Save" button as disabled', () => {
