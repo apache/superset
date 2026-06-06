@@ -34,12 +34,13 @@
  *             (superset-frontend/plugins/plugin-chart-handlebars), e.g. by
  *             providing a moment-free formatDate or making moment resolvable.
  */
+import type { Page } from '@playwright/test';
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPost } from '../../helpers/api/requests';
 
 const DATASET_NAME = 'birth_names';
 
-async function findDatasetIdByName(page: any, name: string): Promise<number> {
+async function findDatasetIdByName(page: Page, name: string): Promise<number> {
   const query = `(filters:!((col:table_name,opr:eq,value:'${name}')))`;
   const resp = await page.request.get(`api/v1/dataset/?q=${query}`);
   const body = await resp.json();
