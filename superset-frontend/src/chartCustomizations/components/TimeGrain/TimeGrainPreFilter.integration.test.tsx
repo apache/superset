@@ -161,7 +161,9 @@ test('current selection stays visible when it is outside the pre-filter allowlis
   await waitFor(() => {
     const labels = screen.getAllByRole('option').map(o => o.textContent);
     expect(labels).toHaveLength(4);
-    expect(labels).toEqual(expect.arrayContaining(['Hour', 'Day', 'Week', 'Month']));
+    expect(labels).toEqual(
+      expect.arrayContaining(['Hour', 'Day', 'Week', 'Month']),
+    );
     expect(labels).not.toContain('Minute');
   });
 });
