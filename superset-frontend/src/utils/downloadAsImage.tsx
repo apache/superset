@@ -224,32 +224,39 @@ const processCloneForVisibility = (clone: HTMLElement) => {
 
 // Re-render all ECharts instances inside `element` at the given devicePixelRatio.
 // Returns the affected container elements so the caller can restore them later.
-// ECharts re-renders synchronously on resize, but we still await a frame after
-// calling this so any scheduled ZRender flushes complete before cloning.
+// ZRender reads window.devicePixelRatio internally during resize() rather than
+// accepting it as an option, so we spoof the global for the duration of the call.
 const resizeEchartsInstances = (
   element: Element,
-  devicePixelRatio: number,
+  targetDpr: number,
 ): HTMLElement[] => {
   const containers: HTMLElement[] = [];
   element.querySelectorAll('[_echarts_instance_]').forEach(el => {
     const instance = getInstanceByDom(el as HTMLElement);
     if (instance) {
       containers.push(el as HTMLElement);
-      // devicePixelRatio is accepted by the underlying ZRender resize but is
-      // absent from ECharts' public ResizeOpts typedef — cast to work around it.
-      (instance.resize as Function)({ devicePixelRatio });
+      const originalDpr = window.devicePixelRatio;
+      Object.defineProperty(window, 'devicePixelRatio', {
+        get: () => targetDpr,
+        configurable: true,
+      });
+      try {
+        instance.resize();
+      } finally {
+        Object.defineProperty(window, 'devicePixelRatio', {
+          get: () => originalDpr,
+          configurable: true,
+        });
+      }
     }
   });
   return containers;
 };
 
 const restoreEchartsInstances = (containers: HTMLElement[]) => {
-  const originalDpr = window.devicePixelRatio || 1;
+  // window.devicePixelRatio is already restored at this point; resize() re-reads it.
   containers.forEach(el => {
-    const instance = getInstanceByDom(el);
-    if (instance) {
-      (instance.resize as Function)({ devicePixelRatio: originalDpr });
-    }
+    getInstanceByDom(el)?.resize();
   });
 };
 
