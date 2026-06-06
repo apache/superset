@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -57,9 +57,10 @@ export function saveChartToDashboard(chartName: string, dashboardName: string) {
           '.ant-select-selection-search-input[aria-label*="Select a dashboard"]',
         )
         .type(dashboardName, { force: true });
-      cy.wrap($modal)
-        .find(`.ant-select-item-option[title="${dashboardName}"]`)
+      
+      cy.get(`.ant-select-item-option[title="${dashboardName}"]`)
         .click();
+      
       cy.getBySel('btn-modal-save').click();
       cy.wait('@update');
     });
