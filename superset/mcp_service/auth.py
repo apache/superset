@@ -213,7 +213,7 @@ def _log_scope_denial(
         logger.warning(
             "Scope denied for user %s: token lacks required scope "
             "'%s' for %s on %s (tool: %s)",
-            g.user.username,
+            _sanitize_for_log(g.user.username),
             required_scope,
             permission_str,
             class_permission_name,
@@ -222,7 +222,7 @@ def _log_scope_denial(
     else:
         logger.debug(
             "Tool hidden for user %s: token lacks required scope '%s' (tool: %s)",
-            g.user.username,
+            _sanitize_for_log(g.user.username),
             required_scope,
             func.__name__,
         )
