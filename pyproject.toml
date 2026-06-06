@@ -109,7 +109,7 @@ dependencies = [
     "watchdog>=6.0.0",
     "wtforms>=2.3.3, <4",
     "wtforms-json",
-    "xlsxwriter>=3.0.7, <3.3",
+    "xlsxwriter>=3.2.9, <3.3",
 ]
 
 [project.optional-dependencies]
