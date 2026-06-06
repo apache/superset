@@ -1641,6 +1641,65 @@ class TestDatasetDefaultColumnFiltering:
                 )
 
 
+class TestGetDatasetInfoRequestValidators:
+    """Unit tests for GetDatasetInfoRequest field validators."""
+
+    def test_column_fields_json_string_parses_to_list(self):
+        """JSON string input for column_fields is decoded into a list."""
+        from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
+
+        request = GetDatasetInfoRequest(
+            identifier=1,
+            column_fields='["column_name","type"]',
+        )
+        assert request.column_fields == ["column_name", "type"]
+
+    def test_column_fields_empty_list_stays_empty(self):
+        """An explicit empty list for column_fields is preserved as-is."""
+        from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
+
+        request = GetDatasetInfoRequest(identifier=1, column_fields=[])
+        assert request.column_fields == []
+
+    def test_column_fields_empty_list_serializes_column_name_only(self):
+        """An explicit empty list still includes the required column_name field."""
+        from superset.mcp_service.dataset.schemas import TableColumnInfo
+
+        column = TableColumnInfo(
+            column_name="region",
+            verbose_name="Region",
+            type="VARCHAR",
+            is_dttm=False,
+            groupby=True,
+            filterable=True,
+            description="Region dimension",
+        )
+
+        assert column.model_dump(context={"column_fields": []}) == {
+            "column_name": "region"
+        }
+
+    def test_column_fields_none_falls_back_to_default(self):
+        """When column_fields is None (not provided), the default columns are used."""
+        from superset.mcp_service.dataset.schemas import (
+            DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS,
+            GetDatasetInfoRequest,
+        )
+
+        request = GetDatasetInfoRequest(identifier=1, column_fields=None)
+        assert request.column_fields == list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
+
+    def test_column_fields_default_when_omitted(self):
+        """When column_fields is omitted entirely, the default columns are used."""
+        from superset.mcp_service.dataset.schemas import (
+            DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS,
+            GetDatasetInfoRequest,
+        )
+
+        request = GetDatasetInfoRequest(identifier=1)
+        assert request.column_fields == list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
+
+
 class TestDatasetSortableColumns:
     """Test sortable columns configuration for dataset tools."""
 
@@ -2043,12 +2102,10 @@ class TestListDatasetsCreatedByMe:
         with pytest.raises(ValidationError, match="created_by_me"):
             ListDatasetsRequest(created_by_me=True, search="My tables")
 
-    def test_dataset_filter_rejects_created_by_fk(self):
-        """created_by_fk is not a public filter column; use created_by_me instead."""
-        from pydantic import ValidationError
-
-        with pytest.raises(ValidationError):
-            DatasetFilter(col="created_by_fk", opr="eq", value=1)
+    def test_dataset_filter_accepts_created_by_fk(self):
+        """created_by_fk is exposed for person-filtering via find_users."""
+        f = DatasetFilter(col="created_by_fk", opr="eq", value=1)
+        assert f.col == "created_by_fk"
 
 
 class TestListDatasetsOwnedByMe:
@@ -2115,14 +2172,10 @@ class TestListDatasetsRequestWrapper:
             assert f.col == col
 
     def test_dataset_filter_invalid_col_raises(self) -> None:
-        """Column names not in the Literal are rejected with a validation error.
-
-        This guards against LLMs passing ``created_by_fk`` or similar
-        internal column names that are not exposed as filter fields.
-        """
+        """Column names not in the Literal are rejected with a validation error."""
         from pydantic import ValidationError
 
-        for bad_col in ("created_by_fk", "id", "database_id", "owner"):
+        for bad_col in ("id", "database_id", "owner"):
             with pytest.raises(ValidationError):
                 DatasetFilter(col=bad_col, opr="eq", value="1")
 

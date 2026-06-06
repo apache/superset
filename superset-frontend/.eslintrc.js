@@ -80,7 +80,7 @@ const restrictedImportsRules = {
   'no-jest-mock-console': {
     name: 'jest-mock-console',
     message: 'Please use native Jest spies, i.e. jest.spyOn(console, "warn")',
-  }
+  },
 };
 
 module.exports = {
