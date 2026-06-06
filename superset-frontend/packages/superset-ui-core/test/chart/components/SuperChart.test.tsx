@@ -330,6 +330,7 @@ describe('SuperChart', () => {
     ]);
 
     await waitForDimensions(container, 300, 300);
+    expect(getDimensionText(container)).toBe('300x300');
   });
 
   test('passes the props with multiple queries to renderer correctly', async () => {
