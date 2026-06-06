@@ -273,9 +273,7 @@ describe('SuperChart', () => {
     });
   };
 
-  // Update the resize observer trigger to ensure it's called after component mount
-  /* oxlint-disable-next-line jest/no-disabled-tests, jest/expect-expect -- skipped test */
-  test.skip('works when width and height are percent', async () => {
+  test('works when width and height are percent', async () => {
     const { container } = render(
       <SuperChart
         chartType={ChartKeys.DILIGENT}
@@ -405,8 +403,7 @@ describe('SuperChart', () => {
       });
     });
 
-    /* oxlint-disable-next-line jest/no-disabled-tests */
-    test.skip('works when width and height are percent', async () => {
+    test('works when width and height are percent', async () => {
       const wrapper = createSizedWrapper();
       document.body.appendChild(wrapper);
 
