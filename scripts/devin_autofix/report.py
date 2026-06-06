@@ -787,6 +787,7 @@ def write_html(rows: list[dict[str, Any]], output_path: pathlib.Path) -> None:
           <th>Summary</th>
           <th>Issue</th>
           <th>PR</th>
+          <th>Devin Session</th>
           <th>Status</th>
           <th>CI Result</th>
           <th>Reviewer Outcome</th>
@@ -935,6 +936,9 @@ function renderTable() {{
   const prLink = r => r.pr_url
     ? `<a href="${{r.pr_url}}" target="_blank">#${{r.pr_number}}</a>`
     : '\u2014';
+  const sessionLink = r => r.devin_session_url
+    ? `<a href="${{r.devin_session_url}}" target="_blank">Session</a>`
+    : '\u2014';
   const badge = (v) =>
     `<span class="badge ${{badgeClass(v)}}">${{v}}</span>`;
   tbody.innerHTML = filtered.map(r => `<tr>
@@ -942,6 +946,7 @@ function renderTable() {{
     <td>${{trunc(r.issue_title, 60)}}</td>
     <td><a href="${{r.issue_url}}" target="_blank">#${{r.issue_number}}</a></td>
     <td>${{prLink(r)}}</td>
+    <td>${{sessionLink(r)}}</td>
     <td>${{badge(r.status)}}</td>
     <td>${{badge(r.ci_result)}}</td>
     <td>${{badge(r.review_outcome)}}</td>
