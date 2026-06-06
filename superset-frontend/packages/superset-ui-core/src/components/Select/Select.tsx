@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
@@ -519,7 +519,8 @@ const Select = forwardRef(
               handleSelectAll();
             }}
           >
-            {t('Select all')} {`(${formatNumber('SMART_NUMBER', bulkSelectCounts.selectable)})`}
+            {t('Select all')}{' '}
+            {`(${formatNumber('SMART_NUMBER', bulkSelectCounts.selectable)})`}
           </Button>
           <Button
             type="link"
@@ -536,7 +537,8 @@ const Select = forwardRef(
               handleDeselectAll();
             }}
           >
-            {t('Clear')} {`(${formatNumber('SMART_NUMBER', bulkSelectCounts.deselectable)})`}
+            {t('Clear')}{' '}
+            {`(${formatNumber('SMART_NUMBER', bulkSelectCounts.deselectable)})`}
           </Button>
         </StyledBulkActionsContainer>
       ),
@@ -754,7 +756,10 @@ const Select = forwardRef(
           filterOption={handleFilterOption}
           filterSort={sortComparatorWithSearch}
           getPopupContainer={
-            getPopupContainer || (triggerNode => triggerNode.parentNode)
+            getPopupContainer ||
+            (triggerNode =>
+              (triggerNode?.closest('.ant-modal-content') as HTMLElement) ||
+              document.body)
           }
           headerPosition={headerPosition}
           labelInValue={labelInValue}
