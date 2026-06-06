@@ -266,6 +266,8 @@ def _build_row_for_marker(
             ):
                 review_outcome = state.lower()
                 break
+        if review_outcome is None and status == "merged":
+            review_outcome = "approved"
 
     checks: list[dict[str, str]] = []
     if pr_number:
@@ -309,10 +311,33 @@ def _build_row_for_marker(
     }
 
 
+_STATUS_PRIORITY: dict[str, int] = {
+    "merged": 0,
+    "reverted": 1,
+    "waiting_review": 2,
+    "in_progress": 3,
+    "returned_to_human": 4,
+}
+
+
+def _pick_best_row(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Pick the most representative row for an issue.
+
+    Prefers merged > reverted > waiting_review > in_progress > returned_to_human.
+    """
+    return min(
+        rows,
+        key=lambda r: (
+            _STATUS_PRIORITY.get(r["status"], 99),
+            0 if r.get("pr_number") else 1,
+        ),
+    )
+
+
 def build_run_rows(issues: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Build analytics rows from issue metadata.
 
-    Collects ALL run markers per issue to properly count retries.
+    Returns one row per issue, picking the most representative run.
     """
     rows: list[dict[str, Any]] = []
 
@@ -324,8 +349,10 @@ def build_run_rows(issues: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
         issue_labels = {lbl["name"] for lbl in issue.get("labels", [])}
 
-        for marker in markers:
-            rows.append(_build_row_for_marker(marker, issue, issue_labels))
+        candidate_rows = [
+            _build_row_for_marker(marker, issue, issue_labels) for marker in markers
+        ]
+        rows.append(_pick_best_row(candidate_rows))
 
     return rows
 
@@ -415,9 +442,9 @@ def _compute_kpis(rows: list[dict[str, Any]]) -> dict[str, Any]:
         round(passed_checks / total_checks * 100, 1) if total_checks > 0 else None
     )
 
-    req_count = sum(1 for r in rows if r.get("review_requested"))
+    with_pr = sum(1 for r in rows if r.get("pr_number"))
     approved = sum(1 for r in rows if r.get("review_outcome") == "approved")
-    approval_rate = round(approved / req_count * 100, 1) if req_count > 0 else None
+    approval_rate = round(approved / with_pr * 100, 1) if with_pr > 0 else None
 
     merge_rate = round(merged / total * 100, 1) if total > 0 else None
     revert_rate = round(reverted / merged * 100, 1) if merged > 0 else None
@@ -438,8 +465,6 @@ def _compute_kpis(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "merged": merged,
         "reverted": reverted,
         "returned": returned,
-        "reviews_requested": req_count,
-        "approved": approved,
         "check_pass_rate": check_pass_rate,
         "approval_rate": approval_rate,
         "merge_rate": merge_rate,
@@ -699,14 +724,6 @@ def write_html(rows: list[dict[str, Any]], output_path: pathlib.Path) -> None:
   <div class="kpi-card">
     <div class="value">{ci_rate_display}</div>
     <div class="label">CI Pass Rate</div>
-  </div>
-  <div class="kpi-card">
-    <div class="value">{kpi["reviews_requested"]}</div>
-    <div class="label">Reviews Requested</div>
-  </div>
-  <div class="kpi-card">
-    <div class="value">{kpi["approved"]}</div>
-    <div class="label">Approved</div>
   </div>
   <div class="kpi-card">
     <div class="value">{approval_display}</div>
