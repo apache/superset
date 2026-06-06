@@ -538,6 +538,25 @@ class TestCreateDataset:
         call_kwargs = mock_command_class.call_args[0][0]
         assert "catalog" not in call_kwargs
 
+    @pytest.mark.asyncio
+    async def test_create_dataset_non_string_namespace_rejected(
+        self, mcp_server
+    ) -> None:
+        """Non-string schema/catalog values fail validation, not silently dropped."""
+        async with Client(mcp_server) as client:
+            for field, value in (("schema", 123), ("catalog", {"name": "hive"})):
+                with pytest.raises(ToolError):
+                    await client.call_tool(
+                        "create_dataset",
+                        {
+                            "request": {
+                                "database_id": 1,
+                                "table_name": "orders",
+                                field: value,
+                            }
+                        },
+                    )
+
     @patch.object(create_dataset_module, "CreateDatasetCommand")
     @patch.object(create_dataset_module, "serialize_dataset_object", return_value=None)
     @pytest.mark.asyncio

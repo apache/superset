@@ -458,11 +458,16 @@ class CreateDatasetRequest(BaseModel):
 
     @field_validator("schema_", "catalog", mode="before")
     @classmethod
-    def _normalize_optional_str(cls, v: object) -> str | None:
-        """Strip whitespace and convert blank strings to None."""
+    def _normalize_optional_str(cls, v: object) -> object:
+        """Strip whitespace and convert blank strings to None.
+
+        Non-string values pass through unchanged so Pydantic's type validation
+        rejects them, rather than silently treating a malformed value (e.g. an
+        int or dict) as an omitted namespace.
+        """
         if isinstance(v, str):
             return v.strip() or None
-        return None
+        return v
 
     @field_validator("table_name", mode="before")
     @classmethod
