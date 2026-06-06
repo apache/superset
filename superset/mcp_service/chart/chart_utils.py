@@ -157,13 +157,22 @@ def validate_chart_dataset(
         )
 
 
-def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> str:
+def generate_explore_link(
+    dataset_id: int | str,
+    form_data: Dict[str, Any],
+    prefer_permalink: bool = True,
+) -> str:
     """Generate an explore link for the given dataset and form data.
 
     Prefers a durable explore permalink (DB-backed key-value store, does not
     expire) over an ephemeral form_data_key (Redis cache, expires in ~24h).
     Falls back to the form_data_key approach if permalink creation fails, then
     to a plain dataset URL as a last resort.
+
+    Set ``prefer_permalink=False`` for callers that depend on a ``form_data_key``
+    in the returned URL (e.g. preview flows that extract and re-cache the key);
+    this skips the permalink path and returns an ``/explore/?form_data_key=...``
+    URL directly.
     """
     from sqlalchemy.exc import SQLAlchemyError
 
@@ -213,18 +222,20 @@ def generate_explore_link(dataset_id: int | str, form_data: Dict[str, Any]) -> s
         # SQLAlchemy errors) into ExplorePermalinkCreateFailedError, so catch only
         # those expected modes here — letting programming errors (TypeError, etc.)
         # surface instead of being silently masked by the form_data_key fallback.
-        try:
-            state = {"formData": form_data_with_datasource}
-            permalink_key = CreateExplorePermalinkCommand(state=state).run()
-            return f"{base_url}/explore/p/{permalink_key}/"
-        except (
-            ExplorePermalinkCreateFailedError,
-            SQLAlchemyError,
-        ) as permalink_e:
-            logger.debug(
-                "Permalink generation failed, falling back to form_data_key: %s",
-                permalink_e,
-            )
+        # Callers that need a form_data_key URL opt out via prefer_permalink=False.
+        if prefer_permalink:
+            try:
+                state = {"formData": form_data_with_datasource}
+                permalink_key = CreateExplorePermalinkCommand(state=state).run()
+                return f"{base_url}/explore/p/{permalink_key}/"
+            except (
+                ExplorePermalinkCreateFailedError,
+                SQLAlchemyError,
+            ) as permalink_e:
+                logger.debug(
+                    "Permalink generation failed, falling back to form_data_key: %s",
+                    permalink_e,
+                )
 
         # Fall back to ephemeral form_data_key (Redis-backed cache)
         cmd_params = CommandParameters(

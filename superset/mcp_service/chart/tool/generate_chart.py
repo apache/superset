@@ -527,7 +527,9 @@ async def generate_chart(  # noqa: C901
             # Generate explore link with cached form_data for preview-only mode
             from superset.mcp_service.chart.chart_utils import generate_explore_link
 
-            explore_url = generate_explore_link(request.dataset_id, form_data)
+            explore_url = generate_explore_link(
+                request.dataset_id, form_data, prefer_permalink=False
+            )
             await ctx.debug("Generated explore link: explore_url=%s" % (explore_url,))
 
             # Extract form_data_key from the explore URL
