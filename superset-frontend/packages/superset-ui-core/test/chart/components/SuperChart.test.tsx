@@ -19,7 +19,9 @@
 
 import '@testing-library/jest-dom';
 import { render, screen } from '@superset-ui/core/spec';
-import { triggerResizeObserver } from 'resize-observer-polyfill';
+import MockResizeObserver, {
+  triggerResizeObserver,
+} from 'resize-observer-polyfill';
 import { ErrorBoundary } from 'react-error-boundary';
 
 import { promiseTimeout, SuperChart } from '@superset-ui/core';
@@ -70,10 +72,18 @@ describe('SuperChart', () => {
     new BuggyChartPlugin().configure({ key: ChartKeys.BUGGY }),
   ];
 
+  const OriginalResizeObserver = window.ResizeObserver;
+
   beforeAll(() => {
+    window.ResizeObserver =
+      MockResizeObserver as unknown as typeof ResizeObserver;
     plugins.forEach(p => {
       p.unregister().register();
     });
+  });
+
+  afterAll(() => {
+    window.ResizeObserver = OriginalResizeObserver;
   });
 
   beforeEach(() => {
