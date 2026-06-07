@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ComponentType, useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import {
+  ComponentType,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  useEffect,
+} from 'react';
 import {
   QueryData,
   QueryFormData,
@@ -95,9 +102,7 @@ export function DrillDownHost({
     }
     return {
       formData: effectiveFormData as QueryFormData,
-      queriesResponse: (effectiveQueriesResponse ?? null) as
-        | QueryData[]
-        | null,
+      queriesResponse: (effectiveQueriesResponse ?? null) as QueryData[] | null,
       chartStatus: isLoading ? 'loading' : 'rendered',
       latestQueryFormData: effectiveFormData,
       chartIsStale: false,
@@ -119,15 +124,13 @@ export function DrillDownHost({
         } else {
           // Going to an intermediate level — rebuild accumulated filters
           // from all levels up to the target depth (mirroring effectiveFormData)
-          const accumulatedFilters = drillStack
-            .slice(0, depth)
-            .flatMap(level =>
-              level.filters.map(f => ({
-                col: f.col,
-                op: 'IN' as const,
-                val: [f.val] as (string | number | boolean)[],
-              })),
-            );
+          const accumulatedFilters = drillStack.slice(0, depth).flatMap(level =>
+            level.filters.map(f => ({
+              col: f.col,
+              op: 'IN' as const,
+              val: [f.val] as (string | number | boolean)[],
+            })),
+          );
           const labels = drillStack.slice(0, depth).map(l => l.label);
           rendererProps.actions.updateDataMask(rendererProps.chartId, {
             extraFormData: { filters: accumulatedFilters },

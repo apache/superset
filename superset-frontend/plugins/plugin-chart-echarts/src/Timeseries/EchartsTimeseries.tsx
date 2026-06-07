@@ -257,7 +257,10 @@ export default function EchartsTimeseries({
                 },
               });
             }
-          } else if (xAxis.type === AxisType.Category && props.data?.[0] != null) {
+          } else if (
+            xAxis.type === AxisType.Category &&
+            props.data?.[0] != null
+          ) {
             // Bar chart with x_axis only (no groupby dimensions)
             drillFilters.push({
               col: xAxis.label,
@@ -269,11 +272,13 @@ export default function EchartsTimeseries({
             if (emitCrossFilters) {
               setDataMask({
                 extraFormData: {
-                  filters: [{
-                    col: xAxis.label,
-                    op: 'IN' as const,
-                    val: [props.data[0]] as (string | number | boolean)[],
-                  }],
+                  filters: [
+                    {
+                      col: xAxis.label,
+                      op: 'IN' as const,
+                      val: [props.data[0]] as (string | number | boolean)[],
+                    },
+                  ],
                 },
                 filterState: {
                   value: [String(props.data[0])],

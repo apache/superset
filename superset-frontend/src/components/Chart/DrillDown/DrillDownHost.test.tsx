@@ -56,7 +56,9 @@ jest.mock('src/utils/simpleFilterToAdhoc', () => ({
 }));
 
 // A simple mock ChartRenderer component that renders its props for inspection
-function MockChartRenderer(props: ChartRendererProps & { onDrillDown?: unknown }) {
+function MockChartRenderer(
+  props: ChartRendererProps & { onDrillDown?: unknown },
+) {
   return (
     <div data-test="mock-chart-renderer">
       <span data-test="has-on-drill-down">

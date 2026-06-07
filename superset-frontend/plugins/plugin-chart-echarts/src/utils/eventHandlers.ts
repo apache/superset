@@ -206,15 +206,15 @@ export const allEventHandlers = (
       : undefined;
 
   const eventHandlers: EventHandlers = {
-    click: drillDownClickHandler
-      ? drillDownClickHandler
-      : groupby.length > 0
+    click:
+      drillDownClickHandler ??
+      (groupby.length > 0
         ? clickEventHandler(
             getCrossFilterDataMask(selectedValues, groupby, labelMap),
             setDataMask,
             emitCrossFilters,
           )
-        : () => {},
+        : () => {}),
     contextmenu: contextMenuEventHandler(
       groupby,
       onContextMenu,

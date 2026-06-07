@@ -113,10 +113,7 @@ test('drillDown() pushes a level onto the stack', async () => {
   );
 
   act(() => {
-    result.current.drillDown(
-      [{ col: 'country', op: '==', val: 'USA' }],
-      'USA',
-    );
+    result.current.drillDown([{ col: 'country', op: '==', val: 'USA' }], 'USA');
   });
 
   expect(result.current.drillStack).toHaveLength(1);
@@ -143,10 +140,7 @@ test('drillDown() at last level sets selectedLeaf instead of pushing', () => {
 
   // Drill to depth 1 (only one more level available: 'region')
   act(() => {
-    result.current.drillDown(
-      [{ col: 'country', op: '==', val: 'USA' }],
-      'USA',
-    );
+    result.current.drillDown([{ col: 'country', op: '==', val: 'USA' }], 'USA');
   });
 
   expect(result.current.drillStack).toHaveLength(1);
@@ -177,10 +171,7 @@ test('resetTo(0) clears the stack', () => {
   );
 
   act(() => {
-    result.current.drillDown(
-      [{ col: 'country', op: '==', val: 'USA' }],
-      'USA',
-    );
+    result.current.drillDown([{ col: 'country', op: '==', val: 'USA' }], 'USA');
   });
 
   expect(result.current.drillStack).toHaveLength(1);
@@ -209,10 +200,7 @@ test('effectiveFormData swaps x_axis when drilling', () => {
   );
 
   act(() => {
-    result.current.drillDown(
-      [{ col: 'country', op: '==', val: 'USA' }],
-      'USA',
-    );
+    result.current.drillDown([{ col: 'country', op: '==', val: 'USA' }], 'USA');
   });
 
   // After drilling one level, the effective x_axis should be 'region'
@@ -225,7 +213,15 @@ test('effectiveFormData adds adhoc_filters from drill stack', () => {
     ...baseFormData,
     x_axis: ['country', 'region', 'city'],
     groupby: [],
-    adhoc_filters: [{ expressionType: 'SIMPLE' as const, clause: 'WHERE' as const, subject: 'year', operator: '==' as const, comparator: '2023' }],
+    adhoc_filters: [
+      {
+        expressionType: 'SIMPLE' as const,
+        clause: 'WHERE' as const,
+        subject: 'year',
+        operator: '==' as const,
+        comparator: '2023',
+      },
+    ],
   };
 
   const { result } = renderHook(() =>
@@ -236,10 +232,7 @@ test('effectiveFormData adds adhoc_filters from drill stack', () => {
   );
 
   act(() => {
-    result.current.drillDown(
-      [{ col: 'country', op: '==', val: 'USA' }],
-      'USA',
-    );
+    result.current.drillDown([{ col: 'country', op: '==', val: 'USA' }], 'USA');
   });
 
   const effective = result.current.effectiveFormData as Record<string, unknown>;
@@ -248,12 +241,14 @@ test('effectiveFormData adds adhoc_filters from drill stack', () => {
   // Should contain the original filter plus the drill filter
   expect(adhocFilters).toHaveLength(2);
   // The first should be the original filter
-  expect(adhocFilters[0]).toEqual(
-    expect.objectContaining({ subject: 'year' }),
-  );
+  expect(adhocFilters[0]).toEqual(expect.objectContaining({ subject: 'year' }));
   // The second should be generated from the drill filter via simpleFilterToAdhoc
   expect(adhocFilters[1]).toEqual(
-    expect.objectContaining({ subject: 'country', operator: '==', comparator: 'USA' }),
+    expect.objectContaining({
+      subject: 'country',
+      operator: '==',
+      comparator: 'USA',
+    }),
   );
 });
 
@@ -274,10 +269,7 @@ test('effectiveFormData swaps groupby when chart uses groupby', () => {
   );
 
   act(() => {
-    result.current.drillDown(
-      [{ col: 'country', op: '==', val: 'USA' }],
-      'USA',
-    );
+    result.current.drillDown([{ col: 'country', op: '==', val: 'USA' }], 'USA');
   });
 
   const effective = result.current.effectiveFormData as Record<string, unknown>;
@@ -305,10 +297,7 @@ test('fetches data when drilling and returns it as effectiveQueriesResponse', as
   ]);
 
   act(() => {
-    result.current.drillDown(
-      [{ col: 'country', op: '==', val: 'USA' }],
-      'USA',
-    );
+    result.current.drillDown([{ col: 'country', op: '==', val: 'USA' }], 'USA');
   });
 
   await waitFor(() => {

@@ -92,7 +92,14 @@ export function DrillDownBreadcrumb({
         const isLast = index === drillStack.length - 1 && !selectedLeaf;
         return (
           <span key={index}>
-            <span css={css`color: ${theme.colorTextTertiary}; margin: 0 2px;`}>›</span>
+            <span
+              css={css`
+                color: ${theme.colorTextTertiary};
+                margin: 0 2px;
+              `}
+            >
+              ›
+            </span>
             {isLast ? (
               <span>{level.label}</span>
             ) : (
@@ -119,7 +126,14 @@ export function DrillDownBreadcrumb({
       })}
       {selectedLeaf && (
         <span>
-          <span css={css`color: ${theme.colorTextTertiary}; margin: 0 2px;`}>›</span>
+          <span
+            css={css`
+              color: ${theme.colorTextTertiary};
+              margin: 0 2px;
+            `}
+          >
+            ›
+          </span>
           <span>{selectedLeaf}</span>
         </span>
       )}

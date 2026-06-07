@@ -116,30 +116,29 @@ export function useDrillDownState({
     setError(undefined);
   }, [formData.slice_id, formData.viz_type]);
 
-  const hierarchy = useMemo<string[]>(
-    () => {
-      const fd = formData as Record<string, unknown>;
+  const hierarchy = useMemo<string[]>(() => {
+    const fd = formData as Record<string, unknown>;
 
-      // Option 1: x_axis is an array (multi-column, the new UX)
-      const xAxis = fd.x_axis ?? fd.xAxis;
-      if (Array.isArray(xAxis) && xAxis.length > 1) {
-        return xAxis as string[];
+    // Option 1: x_axis is an array (multi-column, the new UX)
+    const xAxis = fd.x_axis ?? fd.xAxis;
+    if (Array.isArray(xAxis) && xAxis.length > 1) {
+      return xAxis as string[];
+    }
+
+    // Option 2: explicit drilldown_hierarchy field (legacy/separate control)
+    const drillLevels = ensureIsArray(
+      fd[HIERARCHY_FIELD] ?? fd[HIERARCHY_FIELD_CAMEL],
+    ) as string[];
+    if (drillLevels.length > 0) {
+      const xAxisStr = typeof xAxis === 'string' ? xAxis : undefined;
+      if (xAxisStr && !drillLevels.includes(xAxisStr)) {
+        return [xAxisStr, ...drillLevels];
       }
+      return drillLevels;
+    }
 
-      // Option 2: explicit drilldown_hierarchy field (legacy/separate control)
-      const drillLevels = ensureIsArray(fd[HIERARCHY_FIELD] ?? fd[HIERARCHY_FIELD_CAMEL]) as string[];
-      if (drillLevels.length > 0) {
-        const xAxisStr = (typeof xAxis === 'string' ? xAxis : undefined);
-        if (xAxisStr && !drillLevels.includes(xAxisStr)) {
-          return [xAxisStr, ...drillLevels];
-        }
-        return drillLevels;
-      }
-
-      return [];
-    },
-    [formData],
-  );
+    return [];
+  }, [formData]);
 
   const hasHierarchy = hierarchy.length > 0;
   const currentDepth = drillStack.length;
