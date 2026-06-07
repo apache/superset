@@ -101,6 +101,11 @@ const renderContainer = (
     </ThemeProvider>,
   );
 
+afterEach(() => {
+  jest.useRealTimers();
+  jest.clearAllMocks();
+});
+
 test('DeckGLContainer converts OSM raster tile templates into MapLibre style objects', () => {
   renderContainer({ mapProvider: 'maplibre', mapStyle: OSM_TILE_STYLE_URL });
 
@@ -192,7 +197,6 @@ test('DeckGLContainer updates viewport controls after map movement is throttled'
     latitude: 2,
     zoom: 3,
   });
-  jest.useRealTimers();
 });
 
 test('DeckGLContainer suppresses the native context menu', () => {
