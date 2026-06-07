@@ -558,11 +558,10 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
             ),
         ]
 
-        since_and_until_partition = [_.strip() for _ in time_range.split(separator, 1)]
+        since_and_until_partition = time_range.split(separator, 1)
         since_and_until: list[str | None] = []
         for part in since_and_until_partition:
-            if not part:
-                # if since or until is "", set as None
+            if part is None:
                 since_and_until.append(None)
                 continue
 
@@ -586,7 +585,7 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
         _since = parse_human_datetime(since) if since else None
         _until = (
             parse_human_datetime(until)
-            if until
+            if until is not None
             else parse_human_datetime(_relative_end)
         )
 

@@ -101,7 +101,7 @@ class RisonFilterParser:
                 return []
             filter_string = request.args.get("f")
 
-        if not filter_string:
+        if filter_string is None:
             return []
 
         try:

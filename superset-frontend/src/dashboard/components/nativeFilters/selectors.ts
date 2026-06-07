@@ -67,7 +67,7 @@ export const extractLabel = (filter?: FilterState): string | null => {
   if (filter?.value) {
     const arr = ensureIsArray(filter.value);
     // To avoid returning an array with a simple comma ", " or similar
-    const nonEmpty = arr.filter(v => v != null && v !== '');
+    const nonEmpty = arr.filter(v => v != null && v !== '' && v);
     if (nonEmpty.length === 0) return null;
     return nonEmpty.join(', ');
   }
