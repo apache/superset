@@ -27,6 +27,7 @@ import {
   SequentialScheme,
 } from '@superset-ui/core';
 import {
+  getDefaultMapRenderer,
   getBootstrapDataFromDocument,
   getMapRendererOptions,
   OSM_TILE_STYLE_CHOICE,
@@ -458,11 +459,8 @@ export const mapProvider = {
     clearable: false,
     renderTrigger: true,
     options: getMapRendererOptions({ hasMapboxKey: hasMapboxApiKey() }),
-    default: 'maplibre',
-    description: t(
-      'Select the map tile provider. MapLibre is open-source and requires no API key. ' +
-        'Mapbox requires MAPBOX_API_KEY to be configured in Superset.',
-    ),
+    default: getDefaultMapRenderer(),
+    description: t('Select the map tile provider.'),
     mapStateToProps: (state: ControlPanelState) => {
       const hasKey = hasMapboxApiKey();
       return {
@@ -472,9 +470,6 @@ export const mapProvider = {
             | MapProvider
             | undefined,
         }),
-        warning: hasKey
-          ? undefined
-          : t('Mapbox requires MAPBOX_API_KEY to be configured on the server.'),
       };
     },
   },

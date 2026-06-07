@@ -26,6 +26,7 @@ import {
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
 import type { MapProvider } from '@superset-ui/core/utils/mapStyles';
+import { getDefaultMapRenderer } from '@superset-ui/core/utils/mapStyles';
 import {
   getPointClusterMapRendererProps,
   POINT_CLUSTER_MAPLIBRE_STYLE_CHOICES,
@@ -207,10 +208,8 @@ const config: ControlPanelConfig = {
               clearable: false,
               renderTrigger: true,
               options: getPointClusterMapRendererProps().options,
-              default: 'maplibre',
-              description: t(
-                'MapLibre is open-source and requires no API key. Mapbox requires MAPBOX_API_KEY to be configured on the server.',
-              ),
+              default: getDefaultMapRenderer(),
+              description: t('Select the map tile provider.'),
               mapStateToProps: (state: ControlPanelState) =>
                 getPointClusterMapRendererProps(
                   state.form_data?.map_renderer as MapProvider | undefined,

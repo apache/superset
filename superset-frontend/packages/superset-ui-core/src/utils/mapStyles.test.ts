@@ -18,6 +18,7 @@
  */
 
 import {
+  getDefaultMapRenderer,
   getMapboxApiKeyFromBootstrap,
   getMapRendererOptions,
   hasMapboxApiKey,
@@ -47,16 +48,11 @@ test('map renderer and OSM style labels are localizable', async () => {
     attribution: translatedOsmTileAttribution,
   });
   expect(getTranslatedMapRendererOptions({ hasMapboxKey: true })).toEqual([
-    { value: 'maplibre', label: 'translated:MapLibre (open-source)' },
-    { value: 'mapbox', label: 'translated:Mapbox (API key required)' },
+    { value: 'maplibre', label: 'translated:MapLibre' },
+    { value: 'mapbox', label: 'translated:Mapbox' },
   ]);
   expect(getTranslatedMapRendererOptions({ hasMapboxKey: false })).toEqual([
-    { value: 'maplibre', label: 'translated:MapLibre (open-source)' },
-    {
-      value: 'mapbox',
-      label: 'translated:Mapbox (MAPBOX_API_KEY required)',
-      disabled: true,
-    },
+    { value: 'maplibre', label: 'translated:MapLibre' },
   ]);
 
   jest.dontMock('@apache-superset/core/translation');
@@ -86,17 +82,49 @@ test('Mapbox key helpers report absence and presence from bootstrap data', () =>
 
 test('renderer options enable Mapbox only when a key is available', () => {
   expect(getMapRendererOptions({ hasMapboxKey: true })).toEqual([
-    { value: 'maplibre', label: 'MapLibre (open-source)' },
-    { value: 'mapbox', label: 'Mapbox (API key required)' },
+    { value: 'maplibre', label: 'MapLibre' },
+    { value: 'mapbox', label: 'Mapbox' },
   ]);
   expect(getMapRendererOptions({ hasMapboxKey: false })).toEqual([
-    { value: 'maplibre', label: 'MapLibre (open-source)' },
-    {
-      value: 'mapbox',
-      label: 'Mapbox (MAPBOX_API_KEY required)',
-      disabled: true,
-    },
+    { value: 'maplibre', label: 'MapLibre' },
   ]);
+});
+
+test('renderer options preserve saved Mapbox without API-key labels', () => {
+  expect(
+    getMapRendererOptions({ hasMapboxKey: false, currentValue: 'mapbox' }),
+  ).toEqual([
+    { value: 'maplibre', label: 'MapLibre' },
+    { value: 'mapbox', label: 'Mapbox', disabled: true },
+  ]);
+});
+
+test('default renderer uses configured Mapbox only when a key is available', () => {
+  expect(
+    getDefaultMapRenderer({
+      common: {
+        conf: {
+          DEFAULT_MAP_RENDERER: 'mapbox',
+          MAPBOX_API_KEY: 'pk.test',
+        },
+      },
+    }),
+  ).toBe('mapbox');
+  expect(
+    getDefaultMapRenderer({
+      common: { conf: { DEFAULT_MAP_RENDERER: 'mapbox' } },
+    }),
+  ).toBe('maplibre');
+  expect(
+    getDefaultMapRenderer({
+      common: {
+        conf: {
+          DEFAULT_MAP_RENDERER: 'invalid',
+          MAPBOX_API_KEY: 'pk.test',
+        },
+      },
+    }),
+  ).toBe('maplibre');
 });
 
 test('raster tile templates resolve to MapLibre raster style objects with attribution', () => {
@@ -151,9 +179,7 @@ test('custom raster tile templates do not receive OSM attribution', () => {
   expect(typeof style).toBe('object');
   if (typeof style !== 'string') {
     expect(style.sources['osm-raster-tiles'].tiles).toEqual([customTileUrl]);
-    expect(style.sources['osm-raster-tiles']).not.toHaveProperty(
-      'attribution',
-    );
+    expect(style.sources['osm-raster-tiles']).not.toHaveProperty('attribution');
   }
 });
 

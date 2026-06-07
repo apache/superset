@@ -67,15 +67,14 @@ export const OSM_TILE_STYLE_CHOICE: MapStyleChoice = {
 
 export const MAPLIBRE_RENDERER_OPTION: MapRendererOption = {
   value: 'maplibre',
-  label: t('MapLibre (open-source)'),
+  label: t('MapLibre'),
 };
 export const MAPBOX_RENDERER_OPTION: MapRendererOption = {
   value: 'mapbox',
-  label: t('Mapbox (API key required)'),
+  label: t('Mapbox'),
 };
 export const DISABLED_MAPBOX_RENDERER_OPTION: MapRendererOption = {
   ...MAPBOX_RENDERER_OPTION,
-  label: t('Mapbox (MAPBOX_API_KEY required)'),
   disabled: true,
 };
 
@@ -86,6 +85,7 @@ const RASTER_LAYER_ID = 'osm-raster-layer';
 type BootstrapData = {
   common?: {
     conf?: {
+      DEFAULT_MAP_RENDERER?: unknown;
       MAPBOX_API_KEY?: unknown;
     };
   };
@@ -119,12 +119,30 @@ export function hasMapboxApiKey(
   return getMapboxApiKeyFromBootstrap(bootstrapData).trim().length > 0;
 }
 
+export function getDefaultMapRenderer(
+  bootstrapData: unknown = getBootstrapDataFromDocument(),
+): MapProvider {
+  const conf = (bootstrapData as BootstrapData | undefined)?.common?.conf;
+  const defaultRenderer = conf?.DEFAULT_MAP_RENDERER;
+
+  if (defaultRenderer === 'mapbox' && hasMapboxApiKey(bootstrapData)) {
+    return 'mapbox';
+  }
+
+  return 'maplibre';
+}
+
 export function getMapRendererOptions({
   hasMapboxKey,
+  currentValue,
 }: {
   hasMapboxKey: boolean;
   currentValue?: MapProvider;
 }): MapRendererOption[] {
+  if (!hasMapboxKey && currentValue !== 'mapbox') {
+    return [MAPLIBRE_RENDERER_OPTION];
+  }
+
   return [
     MAPLIBRE_RENDERER_OPTION,
     hasMapboxKey ? MAPBOX_RENDERER_OPTION : DISABLED_MAPBOX_RENDERER_OPTION,

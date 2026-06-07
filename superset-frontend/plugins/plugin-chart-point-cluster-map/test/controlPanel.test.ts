@@ -108,22 +108,12 @@ test('MapLibre style choices expose Streets (OSM)', () => {
   ).toContainEqual([OSM_TILE_STYLE_URL, 'Streets (OSM)']);
 });
 
-test('map renderer disables Mapbox with an explanation when no key exists', () => {
+test('map renderer hides Mapbox when no key exists for new selections', () => {
   setBootstrap({});
 
   const props = getMapRendererProps('maplibre');
 
-  expect(props.options).toEqual([
-    { value: 'maplibre', label: 'MapLibre (open-source)' },
-    {
-      value: 'mapbox',
-      label: 'Mapbox (MAPBOX_API_KEY required)',
-      disabled: true,
-    },
-  ]);
-  expect(props.warning).toBe(
-    'Mapbox requires MAPBOX_API_KEY to be configured on the server.',
-  );
+  expect(props.options).toEqual([{ value: 'maplibre', label: 'MapLibre' }]);
 });
 
 test('map renderer keeps saved Mapbox visible while disabled without a key', () => {
@@ -133,7 +123,7 @@ test('map renderer keeps saved Mapbox visible while disabled without a key', () 
 
   expect(props.options).toContainEqual({
     value: 'mapbox',
-    label: 'Mapbox (MAPBOX_API_KEY required)',
+    label: 'Mapbox',
     disabled: true,
   });
 });
@@ -144,8 +134,34 @@ test('map renderer enables Mapbox when a key exists', () => {
   const props = getMapRendererProps('maplibre');
 
   expect(props.options).toEqual([
-    { value: 'maplibre', label: 'MapLibre (open-source)' },
-    { value: 'mapbox', label: 'Mapbox (API key required)' },
+    { value: 'maplibre', label: 'MapLibre' },
+    { value: 'mapbox', label: 'Mapbox' },
   ]);
-  expect(props.warning).toBeUndefined();
+});
+
+test('map renderer defaults to configured Mapbox when a key exists', async () => {
+  jest.resetModules();
+  setBootstrap({
+    DEFAULT_MAP_RENDERER: 'mapbox',
+    MAPBOX_API_KEY: 'pk.test',
+  });
+
+  const { default: controlPanelWithMapboxDefault } =
+    await import('../src/controlPanel');
+
+  expect(
+    getControl(controlPanelWithMapboxDefault, 'map_renderer').config.default,
+  ).toBe('mapbox');
+});
+
+test('map renderer falls back from configured Mapbox default without a key', async () => {
+  jest.resetModules();
+  setBootstrap({ DEFAULT_MAP_RENDERER: 'mapbox' });
+
+  const { default: controlPanelWithoutKey } =
+    await import('../src/controlPanel');
+
+  expect(
+    getControl(controlPanelWithoutKey, 'map_renderer').config.default,
+  ).toBe('maplibre');
 });

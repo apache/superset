@@ -49,8 +49,5 @@ export function getPointClusterMapRendererProps(currentValue?: MapProvider) {
       hasMapboxKey: hasKey,
       currentValue,
     }),
-    warning: hasKey
-      ? undefined
-      : t('Mapbox requires MAPBOX_API_KEY to be configured on the server.'),
   };
 }

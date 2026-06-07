@@ -55,22 +55,12 @@ test('deck.gl MapLibre style choices expose Streets (OSM)', () => {
   ]);
 });
 
-test('deck.gl map renderer disables Mapbox with an explanation when no key exists', () => {
+test('deck.gl map renderer hides Mapbox when no key exists for new selections', () => {
   setBootstrap({ conf: {} });
 
   const props = getMapProviderProps('maplibre');
 
-  expect(props.options).toEqual([
-    { value: 'maplibre', label: 'MapLibre (open-source)' },
-    {
-      value: 'mapbox',
-      label: 'Mapbox (MAPBOX_API_KEY required)',
-      disabled: true,
-    },
-  ]);
-  expect(props.warning).toBe(
-    'Mapbox requires MAPBOX_API_KEY to be configured on the server.',
-  );
+  expect(props.options).toEqual([{ value: 'maplibre', label: 'MapLibre' }]);
 });
 
 test('deck.gl map renderer keeps saved Mapbox visible while disabled without a key', () => {
@@ -80,7 +70,7 @@ test('deck.gl map renderer keeps saved Mapbox visible while disabled without a k
 
   expect(props.options).toContainEqual({
     value: 'mapbox',
-    label: 'Mapbox (MAPBOX_API_KEY required)',
+    label: 'Mapbox',
     disabled: true,
   });
 });
@@ -91,10 +81,31 @@ test('deck.gl map renderer enables Mapbox when a key exists', () => {
   const props = getMapProviderProps('maplibre');
 
   expect(props.options).toEqual([
-    { value: 'maplibre', label: 'MapLibre (open-source)' },
-    { value: 'mapbox', label: 'Mapbox (API key required)' },
+    { value: 'maplibre', label: 'MapLibre' },
+    { value: 'mapbox', label: 'Mapbox' },
   ]);
-  expect(props.warning).toBeUndefined();
+});
+
+test('deck.gl map renderer defaults to configured Mapbox when a key exists', async () => {
+  jest.resetModules();
+  setBootstrap({
+    conf: { DEFAULT_MAP_RENDERER: 'mapbox', MAPBOX_API_KEY: 'pk.test' },
+  });
+
+  const { mapProvider: mapProviderWithMapboxDefault } =
+    await import('./Shared_DeckGL');
+
+  expect(mapProviderWithMapboxDefault.config.default).toBe('mapbox');
+});
+
+test('deck.gl map renderer falls back from configured Mapbox default without a key', async () => {
+  jest.resetModules();
+  setBootstrap({ conf: { DEFAULT_MAP_RENDERER: 'mapbox' } });
+
+  const { mapProvider: mapProviderWithoutKey } =
+    await import('./Shared_DeckGL');
+
+  expect(mapProviderWithoutKey.config.default).toBe('maplibre');
 });
 
 test('deck.gl map style falls back to default tiles for empty overrides', async () => {

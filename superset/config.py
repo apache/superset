@@ -486,6 +486,10 @@ D3_FORMAT: D3Format = {}
 # Add also map url in connect-src of TALISMAN_CONFIG variable
 DECKGL_BASE_MAP: list[list[str, str]] = None
 
+# Default map renderer for map visualizations that support multiple providers.
+# Set to "mapbox" only in deployments that also configure MAPBOX_API_KEY.
+DEFAULT_MAP_RENDERER = os.environ.get("DEFAULT_MAP_RENDERER", "maplibre")
+
 
 # Override the default d3 locale for time format
 # Default values are equivalent to
