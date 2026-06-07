@@ -67,11 +67,11 @@ export const OSM_TILE_STYLE_CHOICE: MapStyleChoice = {
 
 export const MAPLIBRE_RENDERER_OPTION: MapRendererOption = {
   value: 'maplibre',
-  label: t('MapLibre'),
+  label: t('MapLibre (open-source)'),
 };
 export const MAPBOX_RENDERER_OPTION: MapRendererOption = {
   value: 'mapbox',
-  label: t('Mapbox'),
+  label: t('Mapbox (API key required)'),
 };
 export const DISABLED_MAPBOX_RENDERER_OPTION: MapRendererOption = {
   ...MAPBOX_RENDERER_OPTION,

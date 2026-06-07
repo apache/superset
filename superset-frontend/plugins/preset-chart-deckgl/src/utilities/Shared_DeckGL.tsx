@@ -491,7 +491,10 @@ export const mapProvider = {
     renderTrigger: true,
     options: getMapRendererOptions({ hasMapboxKey: hasMapboxApiKey() }),
     default: getDefaultMapRenderer(),
-    description: t('Select the map tile provider.'),
+    description: t(
+      'Select the map tile provider. MapLibre is open-source and requires no API key. ' +
+        'Mapbox requires MAPBOX_API_KEY to be configured in Superset.',
+    ),
     mapStateToProps: (state: ControlPanelState) => {
       const hasKey = hasMapboxApiKey();
       return {

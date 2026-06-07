@@ -113,7 +113,9 @@ test('map renderer hides Mapbox when no key exists for new selections', () => {
 
   const props = getMapRendererProps('maplibre');
 
-  expect(props.options).toEqual([{ value: 'maplibre', label: 'MapLibre' }]);
+  expect(props.options).toEqual([
+    { value: 'maplibre', label: 'MapLibre (open-source)' },
+  ]);
 });
 
 test('map renderer keeps saved Mapbox visible while disabled without a key', () => {
@@ -123,7 +125,7 @@ test('map renderer keeps saved Mapbox visible while disabled without a key', () 
 
   expect(props.options).toContainEqual({
     value: 'mapbox',
-    label: 'Mapbox',
+    label: 'Mapbox (API key required)',
     disabled: true,
   });
 });
@@ -134,9 +136,15 @@ test('map renderer enables Mapbox when a key exists', () => {
   const props = getMapRendererProps('maplibre');
 
   expect(props.options).toEqual([
-    { value: 'maplibre', label: 'MapLibre' },
-    { value: 'mapbox', label: 'Mapbox' },
+    { value: 'maplibre', label: 'MapLibre (open-source)' },
+    { value: 'mapbox', label: 'Mapbox (API key required)' },
   ]);
+});
+
+test('map renderer keeps the original explanatory description', () => {
+  expect(getControl(controlPanel, 'map_renderer').config.description).toBe(
+    'MapLibre is open-source and requires no API key. Mapbox requires MAPBOX_API_KEY to be configured on the server.',
+  );
 });
 
 test('map renderer defaults to configured Mapbox when a key exists', async () => {

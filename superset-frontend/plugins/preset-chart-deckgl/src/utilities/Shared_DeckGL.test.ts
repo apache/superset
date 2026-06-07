@@ -60,7 +60,9 @@ test('deck.gl map renderer hides Mapbox when no key exists for new selections', 
 
   const props = getMapProviderProps('maplibre');
 
-  expect(props.options).toEqual([{ value: 'maplibre', label: 'MapLibre' }]);
+  expect(props.options).toEqual([
+    { value: 'maplibre', label: 'MapLibre (open-source)' },
+  ]);
 });
 
 test('deck.gl map renderer keeps saved Mapbox visible while disabled without a key', () => {
@@ -70,7 +72,7 @@ test('deck.gl map renderer keeps saved Mapbox visible while disabled without a k
 
   expect(props.options).toContainEqual({
     value: 'mapbox',
-    label: 'Mapbox',
+    label: 'Mapbox (API key required)',
     disabled: true,
   });
 });
@@ -81,9 +83,15 @@ test('deck.gl map renderer enables Mapbox when a key exists', () => {
   const props = getMapProviderProps('maplibre');
 
   expect(props.options).toEqual([
-    { value: 'maplibre', label: 'MapLibre' },
-    { value: 'mapbox', label: 'Mapbox' },
+    { value: 'maplibre', label: 'MapLibre (open-source)' },
+    { value: 'mapbox', label: 'Mapbox (API key required)' },
   ]);
+});
+
+test('deck.gl map renderer keeps the original explanatory description', () => {
+  expect(mapProvider.config.description).toBe(
+    'Select the map tile provider. MapLibre is open-source and requires no API key. Mapbox requires MAPBOX_API_KEY to be configured in Superset.',
+  );
 });
 
 test('deck.gl map renderer defaults to configured Mapbox when a key exists', async () => {

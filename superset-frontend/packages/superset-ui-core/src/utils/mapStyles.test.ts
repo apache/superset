@@ -48,11 +48,11 @@ test('map renderer and OSM style labels are localizable', async () => {
     attribution: translatedOsmTileAttribution,
   });
   expect(getTranslatedMapRendererOptions({ hasMapboxKey: true })).toEqual([
-    { value: 'maplibre', label: 'translated:MapLibre' },
-    { value: 'mapbox', label: 'translated:Mapbox' },
+    { value: 'maplibre', label: 'translated:MapLibre (open-source)' },
+    { value: 'mapbox', label: 'translated:Mapbox (API key required)' },
   ]);
   expect(getTranslatedMapRendererOptions({ hasMapboxKey: false })).toEqual([
-    { value: 'maplibre', label: 'translated:MapLibre' },
+    { value: 'maplibre', label: 'translated:MapLibre (open-source)' },
   ]);
 
   jest.dontMock('@apache-superset/core/translation');
@@ -90,11 +90,11 @@ test('Mapbox key helpers report absence and presence from bootstrap data', () =>
 
 test('renderer options enable Mapbox only when a key is available', () => {
   expect(getMapRendererOptions({ hasMapboxKey: true })).toEqual([
-    { value: 'maplibre', label: 'MapLibre' },
-    { value: 'mapbox', label: 'Mapbox' },
+    { value: 'maplibre', label: 'MapLibre (open-source)' },
+    { value: 'mapbox', label: 'Mapbox (API key required)' },
   ]);
   expect(getMapRendererOptions({ hasMapboxKey: false })).toEqual([
-    { value: 'maplibre', label: 'MapLibre' },
+    { value: 'maplibre', label: 'MapLibre (open-source)' },
   ]);
 });
 
@@ -102,8 +102,8 @@ test('renderer options preserve saved Mapbox without API-key labels', () => {
   expect(
     getMapRendererOptions({ hasMapboxKey: false, currentValue: 'mapbox' }),
   ).toEqual([
-    { value: 'maplibre', label: 'MapLibre' },
-    { value: 'mapbox', label: 'Mapbox', disabled: true },
+    { value: 'maplibre', label: 'MapLibre (open-source)' },
+    { value: 'mapbox', label: 'Mapbox (API key required)', disabled: true },
   ]);
 });
 
