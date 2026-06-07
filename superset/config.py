@@ -1029,6 +1029,10 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
 # CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor("admin")]
+#
+# NOTE: The `cache-warmup` Celery task no longer consults CACHE_WARMUP_EXECUTORS.
+# It authenticates as the single user configured via SUPERSET_CACHE_WARMUP_USER
+# (defined below). This setting is retained for other executor-based code paths.
 CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER]
 
 # ---------------------------------------------------
@@ -1069,6 +1073,11 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_NO_NULL_WARNING": True,
 }
 THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
+
+# Cache warmup user — must be set explicitly before enabling the cache-warmup
+# Celery task. Intentionally defaults to None so operators pick a dedicated
+# least-privilege user rather than inadvertently running warmup as "admin".
+SUPERSET_CACHE_WARMUP_USER: str | None = None
 
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
@@ -1479,6 +1488,11 @@ SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = int(timedelta(seconds=10).total_seconds())
 # Timeout duration for SQL Lab fetching query results by the resultsKey.
 # 0 means no timeout.
 SQLLAB_QUERY_RESULT_TIMEOUT = 0
+
+# Connect/read timeout (in seconds) for the synchronous network call made when
+# detecting ODPS (MaxCompute) partition info during table preview. Prevents an
+# unreachable or slow ODPS endpoint from blocking the web worker indefinitely.
+ODPS_PARTITION_DETECT_TIMEOUT = int(timedelta(seconds=30).total_seconds())
 
 # The cost returned by the databases is a relative value; in order to map the cost to
 # a tangible value you need to define a custom formatter that takes into consideration
@@ -2535,6 +2549,17 @@ except ImportError:
 
 LOCAL_EXTENSIONS: list[str] = []
 EXTENSIONS_PATH: str | None = None
+# Extensions that must not be loaded, even if present in LOCAL_EXTENSIONS or
+# EXTENSIONS_PATH. Each entry is an extension id (denies every version) or
+# "<id>@<version>" (denies a specific version). Use this to disable an
+# extension found to be vulnerable or otherwise undesirable.
+EXTENSION_DENYLIST: list[str] = []
+
+# Minimum allowed version per extension id. An extension whose version is below
+# the configured minimum is refused, so a vulnerable release can be required to
+# be patched before it loads. Versions are compared with PEP 440 semantics, e.g.
+#   EXTENSION_VERSION_POLICY = {"acme.widget": "1.2.0"}
+EXTENSION_VERSION_POLICY: dict[str, str] = {}
 
 # Default polling interval for tasks (seconds)
 TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10

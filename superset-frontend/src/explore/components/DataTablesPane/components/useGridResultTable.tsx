@@ -17,12 +17,20 @@
  * under the License.
  */
 import { useMemo, useCallback, useRef, useState } from 'react';
-import { getTimeFormatter, safeHtmlSpan, TimeFormats } from '@superset-ui/core';
+import {
+  getTimeFormatter,
+  safeHtmlSpan,
+  TimeFormats,
+  getMetricLabel,
+  QueryFormMetric,
+} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { Constants } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
 import type { IRowNode } from 'ag-grid-community';
 
 const timeFormatter = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
+const CONTRIBUTION_SUFFIX = '__contribution';
 
 export function useGridColumns(
   colnames: string[] | undefined,
@@ -37,10 +45,33 @@ export function useGridColumns(
             .filter((column: string) => Object.keys(data[0]).includes(column))
             .map((key, index) => {
               const colType = coltypes?.[index];
-              const headerLabel = columnDisplayNames?.[key] ?? key;
+
+              const rawHeader = columnDisplayNames?.[key] ?? key;
+              let cleaned = rawHeader;
+              let suffix = '';
+
+              if (rawHeader.endsWith(CONTRIBUTION_SUFFIX)) {
+                cleaned = rawHeader.slice(
+                  0,
+                  rawHeader.length - CONTRIBUTION_SUFFIX.length,
+                );
+                suffix = ` (${t('contribution')})`;
+              }
+
+              try {
+                const parsed = JSON.parse(cleaned);
+                if (parsed && typeof parsed === 'object') {
+                  cleaned = getMetricLabel(parsed as QueryFormMetric);
+                }
+              } catch {
+                /* not a JSON-encoded metric – keep original display name */
+              }
+
+              const cleanHeader = `${cleaned}${suffix}`;
+
               return {
                 label: key,
-                headerName: headerLabel,
+                headerName: cleanHeader,
                 render: ({ value }: { value: unknown }) => {
                   if (value === true) {
                     return Constants.BOOL_TRUE_DISPLAY;
