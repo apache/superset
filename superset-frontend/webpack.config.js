@@ -482,7 +482,7 @@ const config = {
       vm: require.resolve('vm-browserify'),
       path: false,
       stream: require.resolve('stream-browserify'),
-      ...(isDevMode ? { buffer: require.resolve('buffer/') } : {}), // Fix legacy-plugin-chart-paired-t-test broken Story
+      buffer: false,
     },
   },
   context: APP_DIR, // to automatically find tsconfig.json
