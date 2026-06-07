@@ -886,7 +886,7 @@ msgid "A list of tags that have been applied to this chart."
 msgstr "Une liste de tags qui ont été appliquées à ce graphique."
 
 msgid "A list of tags that have been applied to this dashboard."
-msgstr "Une liste d'étiquettes qui ont été appliquées à ce tableau de bord."
+msgstr "Une liste de balises qui ont été appliquées à ce tableau de bord."
 
 msgid ""
 "A list of users who can alter the chart. Searchable by name or username."
@@ -1188,7 +1188,7 @@ msgid "Add display control"
 msgstr "Configuration d'affichage"
 
 msgid "Add divider"
-msgstr "ajouter un séparateur"
+msgstr "Ajouter un séparateur"
 
 msgid "Add extra connection information."
 msgstr "Ajoutez des informations complémentaires sur la connexion."
@@ -1736,11 +1736,11 @@ msgstr ""
 "Une erreur s'est produite lors de l'extraction des modèles de CSS disponibles"
 
 msgid "An error occurred while fetching available themes"
-msgstr "Une erreur s'est produite lors de l'extraction des Thèmes "
+msgstr "Une erreur s'est produite lors de la récupération des Thèmes "
 
 
 msgid "An error occurred while fetching available views"
-msgstr "Une erreur s'est produite lors de l'extraction des Thèmes "
+msgstr "Une erreur s'est produite lors de la récupération des vues"
 
 #, python-format
 msgid "An error occurred while fetching chart owners values: %s"
@@ -1933,17 +1933,17 @@ msgstr ""
 "Une erreur s'est produite durant la synchronisation des droits %ss : %s"
 
 msgid "An error occurred while updating the extension."
-msgstr "Une erreur s'est produite durant la mise à jour de la valeur."
+msgstr "Une erreur s'est produite durant la mise à jour de l'extension."
 
 
 msgid "An error occurred while updating the semantic layer"
-msgstr "Une erreur s'est produite durant la mise à jour de la valeur."
+msgstr "Une erreur s'est produite durant la mise à jour de la couche sémantique."
 
 msgid "An error occurred while updating the value."
 msgstr "Une erreur s'est produite durant la mise à jour de la valeur."
 
 msgid "An error occurred while upserting the extension."
-msgstr "Une erreur s'est produite lors de l'insertion de la valeur."
+msgstr "Une erreur s'est produite lors de l'insertion de l'extension."
 
 msgid "An error occurred while upserting the value."
 msgstr "Une erreur s'est produite lors de l'insertion de la valeur."
@@ -2295,7 +2295,7 @@ msgid "Arrow"
 msgstr "Flèche"
 
 msgid "Assign a set of parameters as"
-msgstr "Affecter un jeu de paramètres à."
+msgstr "Affecter un ensemble de paramètre en tant que"
 
 msgid "Assist"
 msgstr "Assiste"
@@ -2354,10 +2354,10 @@ msgid "Automatically adjust column width based on content"
 msgstr "Ajuster automatiquement la largeur des colonnes en fonction du contenu"
 
 msgid "Automatically sync columns"
-msgstr "Synchro automatique des colonnes"
+msgstr "Synchroniser automatiquement les colonnes"
 
 msgid "Autosize All Columns"
-msgstr "dimensionnement auto des colonnes"
+msgstr "Dimensionner automatiquement toutes les colonnes"
 
 msgid "Autosize Column"
 msgstr "Dimensionner automatiquement la colonne"
@@ -2366,7 +2366,7 @@ msgid "Autosize This Column"
 msgstr "Dimensionner automatiquement la colonne"
 
 msgid "Autosize all columns"
-msgstr "dimensionnement auto des colonnes"
+msgstr "Dimensionner automatiquement toutes les colonnes"
 
 msgid "Available sorting modes:"
 msgstr "Modes de tri disponibles :"
@@ -2493,10 +2493,10 @@ msgid "Basic"
 msgstr "Base"
 
 msgid "Basic conditional formatting"
-msgstr "formatage conditionnel basique"
+msgstr "Formatage conditionnel basique"
 
 msgid "Basic information about the chart"
-msgstr "Information de base"
+msgstr "Information du graphe"
 
 #, python-format
 msgid "Batch editing %d filters:"
@@ -2665,7 +2665,7 @@ msgid "Bulk select"
 msgstr "Sélectionner plusieurs"
 
 msgid "Bulk tag"
-msgstr "Étiquetage en lot"
+msgstr "Balises multiples"
 
 msgid "Bullet Chart"
 msgstr "Graphique à puces"
@@ -2871,7 +2871,7 @@ msgstr ""
 "ensembles de données"
 
 msgid "Cannot delete system themes"
-msgstr "Impossible de supprimer les thèmes système"
+msgstr "Impossible de supprimer les thèmes du système"
 
 msgid "Cannot delete theme that is set as system default or dark theme"
 msgstr ""
@@ -3152,7 +3152,7 @@ msgid "Chart name"
 msgstr "Nom du graphique"
 
 msgid "Chart name is required"
-msgstr "Le nom est obligatoire"
+msgstr "Le nom du graphique est obligatoire"
 
 msgid "Chart not found"
 msgstr "Graphique non trouvé"
@@ -3295,15 +3295,15 @@ msgstr ""
 "ce tableau de bord."
 
 msgid "Choose notification method and recipients."
-msgstr "Ajouter une méthode et des destinataires de notification"
+msgstr "Choisir une méthode et des destinataires de notification"
 
 #, python-format
 msgid "Choose numbers between %(min)s and %(max)s"
-msgstr "choisir une valeur comprise entre %(min)spx et %(max)spx"
+msgstr "Choisir une valeur comprise entre %(min)s et %(max)s"
 
 msgid "Choose one of the available databases from the panel on the left."
 msgstr ""
-"Choisissez l’une des bases de données disponibles dans le panneau de gauche."
+"Choisir l’une des bases de données disponibles dans le panneau de gauche."
 
 msgid "Choose one of the available databases on the left panel."
 msgstr ""
@@ -3446,15 +3446,14 @@ msgstr ""
 msgid "Click to add a contour"
 msgstr "Cliquer pour ajouter un contour"
 
-
 msgid "Click to add new breakpoint"
-msgstr "Cliquer pour éditer le l’étiquette"
+msgstr "Cliquer pour ajouter un point de rupture"
 
 msgid "Click to add new layer"
 msgstr "Cliquer pour ajouter un nouveau calque"
 
 msgid "Click to cancel sorting"
-msgstr "Cliquez pour annuler le tri"
+msgstr "Cliquer pour annuler le tri"
 
 msgid "Click to edit"
 msgstr "Cliquer pour modifier"
@@ -3515,7 +3514,6 @@ msgstr "Code"
 msgid "Code Copied!"
 msgstr "Code copié!"
 
-
 msgid "Collapse"
 msgstr "Réduire la ligne"
 
@@ -3540,14 +3538,11 @@ msgstr "Couleur"
 msgid "Color +/-"
 msgstr "Couleur +/-"
 
-
 msgid "Color By X-Axis"
 msgstr "Colorer par"
 
-
 msgid "Color By Y-Axis"
 msgstr "Colorer par"
-
 
 msgid "Color Metric"
 msgstr "Mesure de couleur"
@@ -3844,7 +3839,7 @@ msgid "Configure Time Range: Previous..."
 msgstr "Configurer intervalle de temps : Précédent…"
 
 msgid "Configure automatic dashboard refresh"
-msgstr "Configurer le rafraîchissement automatique du tableau de bord"
+msgstr "Configurer l'actualisation automatique du tableau de bord"
 
 msgid "Configure caching and performance settings"
 msgstr "Configurer la mise en cache et les paramètres de performance"
@@ -3967,7 +3962,6 @@ msgstr "Contrôles libellés "
 msgid "Copied to clipboard!"
 msgstr "Copié vers le presse-papier!"
 
-
 msgid "Copied!"
 msgstr "Code copié!"
 
@@ -3987,11 +3981,10 @@ msgid "Copy and Paste JSON credentials"
 msgstr "Copier et coller les informations de connexion JSON"
 
 msgid "Copy code to clipboard"
-msgstr "Copier vers le presse-papier"
-
+msgstr "Copier le code vers le presse-papier"
 
 msgid "Copy column name"
-msgstr "Nom de colonne"
+msgstr "Copier le nom de colonne"
 
 #, python-format
 msgid "Copy of %s"
@@ -4030,7 +4023,7 @@ msgid "Copy to clipboard"
 msgstr "Copier vers le presse-papier"
 
 msgid "Copy with Headers"
-msgstr "Copier les entêtes"
+msgstr "Copier les en-têtes"
 
 msgid "Corner Radius"
 msgstr "Rayon d'angle"
@@ -4200,7 +4193,6 @@ msgstr "Cumulatif"
 msgid "Currency"
 msgstr "Devise"
 
-
 msgid "Currency code column"
 msgstr "Symbole de la devise"
 
@@ -4214,30 +4206,29 @@ msgid "Currency symbol"
 msgstr "Symbole de la devise"
 
 msgid "Current"
-msgstr "période courante"
-
+msgstr "Période actuelle"
 
 msgid "Current Zoom"
-msgstr "période courante"
+msgstr "Zoom actuel"
 
 msgid "Current day"
 msgstr "Aujourd'hui"
 
 msgid "Current month"
-msgstr "Ce mois"
+msgstr "Mois actuel"
 
 msgid "Current quarter"
-msgstr "Ce trimestre"
+msgstr "Trimestre actuel"
 
 msgid "Current week"
-msgstr "Cette semaine"
+msgstr "Semaine actuelle"
 
 msgid "Current year"
-msgstr "Cette année"
+msgstr "Année actuelle"
 
 #, python-format
 msgid "Currently rendered: %s"
-msgstr "Actuellement rendu : %s"
+msgstr "Rendu actuellement: %s"
 
 msgid "Custom"
 msgstr "Personnalisé"
@@ -4257,17 +4248,17 @@ msgstr ""
 "ensemble de données"
 
 msgid "Custom SQL fields cannot be parsed as a single SQL statement."
-msgstr ""
+msgstr "Les champs SQL personnalisés ne peuvent pas être traités en tant que seule instruction SQL"
 
 #, fuzzy
 msgid "Custom SQL fields cannot contain set operations."
-msgstr "Les champs SQL personnalisés ne peuvent pas contenir de sous-requêtes."
+msgstr "Les champs SQL personnalisés ne peuvent pas contenir d'opérations."
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Les champs SQL personnalisés ne peuvent pas contenir de sous-requêtes."
 
 msgid "Custom color palettes"
-msgstr "Palette de couleur perosnalisée"
+msgstr "Palette de couleur personnalisée"
 
 msgid "Custom column name (leave blank for default)"
 msgstr "Nom de colonne personnalisé (laisser vide pour la valeur par défaut)"
@@ -4288,22 +4279,20 @@ msgid "Custom width of the screenshot in pixels"
 msgstr "Largeur personnalisée de la capture d'écran en pixels"
 
 msgid "Custom..."
-msgstr "Personnalisé"
-
+msgstr "Personnalisé..."
 
 msgid "Customization and styling"
-msgstr "Type de personnalisation"
+msgstr "Personnalisation et style"
 
 msgid "Customization type"
 msgstr "Type de personnalisation"
-
 
 msgid "Customization value is required"
 msgstr "La valeur du filtre est requise"
 
 #, python-format
 msgid "Customizations out of scope (%d)"
-msgstr "Filtres hors de portée (%d)"
+msgstr "Personnalisation hors de portée (%d)"
 
 msgid "Customize"
 msgstr "Personnaliser"
@@ -4355,7 +4344,7 @@ msgid "D3 format"
 msgstr "Format D3"
 
 msgid "D3 format syntax: https://github.com/d3/d3-format"
-msgstr "Syntaxe au format D3 : https://github.com/d3/d3-format"
+msgstr "Syntaxe du format D3 : https://github.com/d3/d3-format"
 
 msgid ""
 "D3 number format for numbers between -1.0 and 1.0, useful when you want to "
@@ -4396,9 +4385,8 @@ msgstr "Saisonnalité quotidienne"
 msgid "Dark"
 msgstr "Sombre"
 
-
 msgid "Dark (Carto)"
-msgstr "Graphique de radar"
+msgstr "Sombre (carte)"
 
 msgid "Dark Cyan"
 msgstr "Cyan foncé"
@@ -4427,18 +4415,14 @@ msgid "Dashboard cannot be copied due to invalid parameters."
 msgstr ""
 "Le tableau de bord ne peut pas être copié en raison de paramètres invalides."
 
-
 msgid "Dashboard cannot be favorited."
 msgstr "Le tableau de bord n'a pas pu être mis à jour."
-
 
 msgid "Dashboard cannot be unfavorited."
 msgstr "Le tableau de bord n'a pas pu être mis à jour."
 
-
 msgid "Dashboard chart customizations could not be updated."
 msgstr "Le tableau de bord n'a pas pu être mis à jour."
-
 
 msgid "Dashboard color configuration could not be updated."
 msgstr "Le tableau de bord n'a pas pu être mis à jour."
@@ -4452,28 +4436,23 @@ msgstr "Le tableau de bord n'a pas pu être mis à jour."
 msgid "Dashboard does not exist"
 msgstr "Le tableau de bord n'existe pas"
 
-
 msgid "Dashboard exported as example successfully"
-msgstr "Ce Tableau de Bord a été sauvegardé avec succès."
-
+msgstr "Tableau de Bord exporté comme exemple."
 
 msgid "Dashboard exported successfully"
-msgstr "Ce Tableau de Bord a été sauvegardé avec succès."
-
+msgstr "Tableau de bord exporté."
 
 msgid "Dashboard imported"
-msgstr "Propriétés du tableau de bord"
-
+msgstr "Tableau de bord importé"
 
 msgid "Dashboard name and URL configuration"
 msgstr "Configuration de filtre"
 
 msgid "Dashboard name is required"
-msgstr "Le nom est obligatoire"
-
+msgstr "Le nom du tableau de bord est obligatoire"
 
 msgid "Dashboard native filters could not be patched."
-msgstr "Le tableau de bord n'a pas pu être mis à jour."
+msgstr "[CHEK] Le tableau de bord n'a pas pu être mis à jour."
 
 msgid "Dashboard parameters are invalid."
 msgstr "Les paramètres du tableau de bord sont invalides."
@@ -4483,7 +4462,6 @@ msgstr "Propriétés du tableau de bord"
 
 msgid "Dashboard properties updated"
 msgstr "Propriétés du tableau de bord mises à jour"
-
 
 msgid "Dashboard scheme"
 msgstr "Schéma du tableau de bord"
@@ -4524,13 +4502,11 @@ msgstr "En pointillés"
 msgid "Data"
 msgstr "Données"
 
-
 msgid "Data Connections"
-msgstr "Connexions à la base de données"
-
+msgstr "Connexions aux bases de données"
 
 msgid "Data Export Options"
-msgstr "Options du graphique"
+msgstr "Options d'export des données"
 
 msgid "Data Table"
 msgstr "Tableau des données"
@@ -4541,10 +4517,8 @@ msgstr "L’URI des données n’est pas autorisé."
 msgid "Data Zoom"
 msgstr "Zoom des données"
 
-
 msgid "Data connection"
 msgstr "Connexions à la base de données"
-
 
 msgid "Data connections"
 msgstr "Connexions à la base de données"
