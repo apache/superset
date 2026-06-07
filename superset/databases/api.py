@@ -123,7 +123,7 @@ from superset.exceptions import (
 )
 from superset.extensions import security_manager
 from superset.models.core import Database
-from superset.sql.parse import Table
+from superset.sql.parse import Partition, Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import (
@@ -1079,15 +1079,25 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             parameters = QualifiedTableSchema().load(request.args)
         except ValidationError as ex:
             raise InvalidPayloadSchemaError(ex) from ex
-
-        table = Table(parameters["name"], parameters["schema"], parameters["catalog"])
+        table_name = str(parameters["name"])
+        table = Table(table_name, parameters["schema"], parameters["catalog"])
         try:
             security_manager.raise_for_access(database=database, table=table)
         except SupersetSecurityException as ex:
             # instead of raising 403, raise 404 to hide table existence
             raise TableNotFoundException("No such table") from ex
-
-        payload = database.db_engine_spec.get_table_metadata(database, table)
+        # `is_odps_partitioned_table` returns (False, []) for non-ODPS backends
+        # and handles its own optional-dependency / network / auth failures
+        # internally, so any exception escaping here is an unexpected programming
+        # error that should propagate rather than be silently swallowed.
+        is_partitioned_table, partition_fields = DatabaseDAO.is_odps_partitioned_table(
+            database, table_name
+        )
+        partition = Partition(is_partitioned_table, tuple(partition_fields))
+        # Partition info is engine-agnostic at this layer: the generic dispatch
+        # passes it to the engine spec, which decides whether to use it. Non-ODPS
+        # specs ignore the parameter.
+        payload = database.db_engine_spec.get_table_metadata(database, table, partition)
 
         return self.response(200, **payload)
 
@@ -1327,6 +1337,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "viz_type": chart.viz_type,
             }
             for chart in data["charts"]
+            if security_manager.can_access_chart(chart)
         ]
         dashboards = [
             {
@@ -1336,6 +1347,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "title": dashboard.dashboard_title,
             }
             for dashboard in data["dashboards"]
+            if security_manager.can_access_dashboard(dashboard)
         ]
         sqllab_tab_states = [
             {"id": tab_state.id, "label": tab_state.label, "active": tab_state.active}

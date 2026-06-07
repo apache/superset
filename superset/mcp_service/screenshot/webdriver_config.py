@@ -19,7 +19,10 @@
 WebDriver pool configuration defaults for Superset MCP service
 """
 
+import logging
 from typing import Any, Dict
+
+logger = logging.getLogger(__name__)
 
 # Default WebDriver pool configuration
 DEFAULT_WEBDRIVER_POOL_CONFIG = {
@@ -69,9 +72,9 @@ def get_pool_stats_endpoint() -> Any:
     """
 
     def pool_stats() -> Any:
-        try:
-            from flask import jsonify
+        from flask import jsonify
 
+        try:
             from superset.mcp_service.screenshot.webdriver_pool import (
                 get_webdriver_pool,
             )
@@ -80,10 +83,11 @@ def get_pool_stats_endpoint() -> Any:
             stats = pool.get_stats()
 
             return jsonify({"webdriver_pool": stats, "status": "healthy"})
-        except Exception as e:
-            from flask import jsonify
-
-            return jsonify({"error": str(e), "status": "error"}), 500
+        except Exception:
+            logger.exception("Failed to retrieve webdriver pool stats")
+            return jsonify(
+                {"error": "Failed to retrieve pool stats", "status": "error"}
+            ), 500
 
     return pool_stats
 

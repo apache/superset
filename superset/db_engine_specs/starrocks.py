@@ -413,6 +413,7 @@ class StarRocksEngineSpec(MySQLEngineSpec):
             username = database.get_effective_user(database.url_object)
 
             if username:
-                return [f'EXECUTE AS "{username}" WITH NO REVERT;']
+                escaped = username.replace('"', '""')
+                return [f'EXECUTE AS "{escaped}" WITH NO REVERT;']
 
         return []

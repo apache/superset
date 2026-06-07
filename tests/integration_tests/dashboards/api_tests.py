@@ -295,6 +295,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert actual_dataset_ids == expected_dataset_ids
         expected_values = [0, 1] if backend() == "presto" else [0, 1, 2]
         assert result[0]["column_types"] == expected_values
+        assert "sql" in result[0]
         logger_mock.warning.assert_not_called()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
@@ -314,6 +315,31 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         for dataset in result:
             for excluded_key in ["database", "owners"]:
                 assert excluded_key not in dataset
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.api.security_manager.can_access_datasource")
+    def test_get_dashboard_datasets_strips_definition_without_datasource_access(
+        self, can_access_datasource_mock
+    ):
+        can_access_datasource_mock.return_value = False
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/dashboard/world_health/datasets"
+        response = self.get_assert_metric(uri, "get_datasets")
+        assert response.status_code == 200
+        data = json.loads(response.data.decode("utf-8"))
+        for dataset in data["result"]:
+            for excluded_key in [
+                "sql",
+                "select_star",
+                "fetch_values_predicate",
+                "template_params",
+                "params",
+            ]:
+                assert excluded_key not in dataset
+            for column in dataset.get("columns") or []:
+                assert "expression" not in column
+            for metric in dataset.get("metrics") or []:
+                assert "expression" not in metric
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.utils.log.logger")
@@ -758,6 +784,54 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
             # rollback changes
             db.session.delete(dashboard)
+            db.session.commit()
+
+    def test_get_dashboards_admin_sees_existing_dashboards(self):
+        """Regression for #25890: GET /api/v1/dashboard/ as an Admin user should
+        return existing dashboards, not an empty list. The original report
+        showed an Admin getting {"count": 0, "ids": []} despite dashboards
+        existing in the database."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard(
+            "regression_25890_dashboard", "regression-25890", [admin.id]
+        )
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/dashboard/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] >= 1, (
+                f"Admin received empty dashboard list despite "
+                f"{dashboard.dashboard_title!r} existing; see issue #25890"
+            )
+            titles = [d["dashboard_title"] for d in data["result"]]
+            assert dashboard.dashboard_title in titles, (
+                f"Admin list missing the inserted dashboard. Got titles: {titles}"
+            )
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    def test_get_charts_admin_sees_existing_charts(self):
+        """Regression for #25890: GET /api/v1/chart/ as an Admin user should
+        return existing charts, not an empty list."""
+        admin = self.get_user("admin")
+        chart = self.insert_chart("regression_25890_chart", [admin.id], 1, params="{}")
+        try:
+            self.login(ADMIN_USERNAME)
+            rv = self.client.get("api/v1/chart/")
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            assert data["count"] >= 1, (
+                f"Admin received empty chart list despite "
+                f"{chart.slice_name!r} existing; see issue #25890"
+            )
+            names = [c["slice_name"] for c in data["result"]]
+            assert chart.slice_name in names, (
+                f"Admin list missing the inserted chart. Got slice_names: {names}"
+            )
+        finally:
+            db.session.delete(chart)
             db.session.commit()
 
     def test_get_dashboards_filter(self):

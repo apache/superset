@@ -68,3 +68,50 @@ def test_spa_template_includes_css_bundles():
         "spa.html must call css_bundle for the page entry to load "
         "entry-specific extracted CSS in production builds"
     )
+
+
+def test_spa_template_standalone_body_has_min_height():
+    """Standalone body must be measurable so screenshot waits don't time out."""
+    from jinja2 import DictLoader, Environment
+
+    template_path = join(SUPERSET_DIR, "templates", "superset", "spa.html")
+    with open(template_path) as f:
+        template_content = f.read()
+
+    env = Environment(  # noqa: S701
+        loader=DictLoader(
+            {
+                "spa.html": template_content,
+                # Stub out includes/imports that are not relevant for this test.
+                "appbuilder/general/lib.html": "",
+                "superset/partials/asset_bundle.html": (
+                    "{% macro css_bundle(prefix, entry) %}{% endmacro %}"
+                    "{% macro js_bundle(prefix, entry) %}{% endmacro %}"
+                ),
+                "superset/macros.html": ("{% macro get_nonce() %}{% endmacro %}"),
+                "tail_js_custom_extra.html": "",
+                "head_custom_extra.html": "",
+            }
+        )
+    )
+
+    appbuilder = Mock()
+    appbuilder.app.config = {"FAVICONS": []}
+
+    def render(standalone_mode: bool) -> str:
+        return env.get_template("spa.html").render(
+            appbuilder=appbuilder,
+            assets_prefix="",
+            bootstrap_data="{}",
+            entry="spa",
+            standalone_mode=standalone_mode,
+            theme_tokens={},
+            spinner_svg=None,
+        )
+
+    standalone_html = render(standalone_mode=True)
+    assert "body.standalone" in standalone_html
+    assert "min-height: 100vh" in standalone_html
+
+    non_standalone_html = render(standalone_mode=False)
+    assert "body.standalone" not in non_standalone_html

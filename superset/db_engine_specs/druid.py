@@ -37,6 +37,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger()
 
+_DRUID_FLOAT_SPECIAL = frozenset({"NaN", "Infinity", "-Infinity"})
+
 
 class DruidEngineSpec(BaseEngineSpec):
     """Engine spec for Druid.io"""
@@ -49,6 +51,7 @@ class DruidEngineSpec(BaseEngineSpec):
     # pydruid builds cursor.description from the first returned row, so a
     # WHERE FALSE query (zero rows) leaves description as None.
     type_probe_needs_row = True
+    requires_column_value_normalization = True
 
     metadata = {
         "description": (
@@ -215,3 +218,26 @@ class DruidEngineSpec(BaseEngineSpec):
         return {
             requests_exceptions.ConnectionError: SupersetDBAPIConnectionError,
         }
+
+    @classmethod
+    def normalize_column_values(cls, col_values: list[Any]) -> list[Any]:
+        # pydruid emits NaN, Infinity, and -Infinity as JSON strings because
+        # the JSON spec does not support those values.  Replace them with None
+        # so PyArrow can keep the column numeric after the initial conversion
+        # attempt fails.
+        return [
+            None if isinstance(v, str) and v in _DRUID_FLOAT_SPECIAL else v
+            for v in col_values
+        ]
+
+    @classmethod
+    def resolve_column_type(
+        cls, cursor_type: str | None, pa_mapped: str | None
+    ) -> str | None:
+        # pydruid infers column types from the first row value.  A None or
+        # special-float-string first value causes the column to be labelled
+        # STRING even when the actual data is numeric.  When PyArrow infers a
+        # more specific type, prefer it over the cursor-description STRING.
+        if cursor_type == "STRING" and pa_mapped is not None and pa_mapped != "STRING":
+            return pa_mapped
+        return cursor_type or pa_mapped
