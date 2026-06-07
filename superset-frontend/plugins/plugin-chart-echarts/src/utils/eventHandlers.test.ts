@@ -180,7 +180,9 @@ test('clickEventHandler does nothing when emitCrossFilters is false', () => {
 test('clickEventHandler calls setDataMask when emitCrossFilters is true', () => {
   const setDataMask = jest.fn();
   const mockDataMask = {
-    extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['USA'] }] },
+    extraFormData: {
+      filters: [{ col: 'country', op: 'IN' as const, val: ['USA'] }],
+    },
     filterState: { value: [['USA']], selectedValues: ['USA'] },
   };
   const getCrossFilterMask = jest.fn(() => ({
