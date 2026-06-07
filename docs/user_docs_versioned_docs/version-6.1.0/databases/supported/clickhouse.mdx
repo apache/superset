@@ -1,0 +1,31 @@
+---
+title: ClickHouse
+sidebar_label: ClickHouse
+description: "ClickHouse is an open-source column-oriented database for real-time analytics using SQL. It's known for extremely fast query performance on large datasets."
+hide_title: true
+---
+
+{/*
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+*/}
+
+import { DatabasePage } from '@site/src/components/databases';
+
+export const databaseInfo = {"engine":"clickhouse","engine_name":"ClickHouse","module":"clickhouse","documentation":{"description":"ClickHouse is an open-source column-oriented database for real-time analytics using SQL. It's known for extremely fast query performance on large datasets.","logo":"clickhouse.png","homepage_url":"https://clickhouse.com/","categories":["ANALYTICAL_DATABASES","OPEN_SOURCE"],"pypi_packages":["clickhouse-connect>=0.13.0"],"connection_string":"clickhousedb://{username}:{password}@{host}:{port}/{database}","default_port":8123,"drivers":[{"name":"clickhouse-connect (Recommended)","pypi_package":"clickhouse-connect>=0.13.0","connection_string":"clickhousedb://{username}:{password}@{host}:{port}/{database}","is_recommended":true,"notes":"Official ClickHouse Python driver with native protocol support."},{"name":"clickhouse-sqlalchemy (Legacy)","pypi_package":"clickhouse-sqlalchemy","connection_string":"clickhouse://{username}:{password}@{host}:{port}/{database}","is_recommended":false,"notes":"Older driver using HTTP interface. Use clickhouse-connect for new deployments."}],"connection_examples":[{"description":"Altinity Cloud","connection_string":"clickhousedb://demo:demo@github.demo.trial.altinity.cloud/default?secure=true"},{"description":"Local (no auth, no SSL)","connection_string":"clickhousedb://localhost/default"}],"install_instructions":"echo \"clickhouse-connect>=0.13.0\" >> ./docker/requirements-local.txt","compatible_databases":[{"name":"ClickHouse Cloud","description":"ClickHouse Cloud is the official fully-managed cloud service for ClickHouse. It provides automatic scaling, built-in backups, and enterprise security features.","logo":"clickhouse.png","homepage_url":"https://clickhouse.cloud/","categories":["ANALYTICAL_DATABASES","CLOUD_DATA_WAREHOUSES","HOSTED_OPEN_SOURCE"],"pypi_packages":["clickhouse-connect>=0.13.0"],"connection_string":"clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true","parameters":{"username":"ClickHouse Cloud username","password":"ClickHouse Cloud password","host":"Your ClickHouse Cloud hostname","database":"Database name (default)"},"docs_url":"https://clickhouse.com/docs/en/cloud"},{"name":"Altinity.Cloud","description":"Altinity.Cloud is a managed ClickHouse service providing Kubernetes-native deployments with enterprise support.","logo":"altinity.png","homepage_url":"https://altinity.cloud/","categories":["ANALYTICAL_DATABASES","CLOUD_DATA_WAREHOUSES","HOSTED_OPEN_SOURCE"],"pypi_packages":["clickhouse-connect>=0.13.0"],"connection_string":"clickhousedb://{username}:{password}@{host}/{database}?secure=true","docs_url":"https://docs.altinity.com/"}]},"time_grains":{"SECOND":false,"FIVE_SECONDS":false,"THIRTY_SECONDS":false,"MINUTE":true,"FIVE_MINUTES":true,"TEN_MINUTES":true,"FIFTEEN_MINUTES":true,"THIRTY_MINUTES":true,"HALF_HOUR":false,"HOUR":true,"SIX_HOURS":false,"DAY":true,"WEEK":true,"WEEK_STARTING_SUNDAY":false,"WEEK_STARTING_MONDAY":false,"WEEK_ENDING_SATURDAY":false,"WEEK_ENDING_SUNDAY":false,"MONTH":true,"QUARTER":true,"QUARTER_YEAR":false,"YEAR":true},"score":61,"max_score":201,"joins":true,"subqueries":true,"supports_dynamic_schema":true,"supports_catalog":false,"supports_dynamic_catalog":false,"ssh_tunneling":true,"supports_file_upload":false,"query_cancelation":false,"query_cost_estimation":false,"sql_validation":false,"user_impersonation":false};
+
+<DatabasePage name="ClickHouse" database={databaseInfo} />

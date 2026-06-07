@@ -83,6 +83,10 @@ class EmbeddedView(BaseSupersetView):
             "common": common_bootstrap_payload(),
             "embedded": {
                 "dashboard_id": embedded.dashboard_id,
+                # The list of domains allowed to embed this dashboard. An empty
+                # list means any domain is allowed (no restriction). The frontend
+                # uses this to validate the origin of incoming postMessage events.
+                "allowed_domains": embedded.allowed_domains,
             },
         }
 

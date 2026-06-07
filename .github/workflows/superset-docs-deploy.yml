@@ -2,6 +2,7 @@ name: Docs Deployment
 
 on:
   # Deploy after integration tests complete on master
+  # zizmor: ignore[dangerous-triggers] - runs in base-branch context after a trusted upstream workflow; scoped to master
   workflow_run:
     workflows: ["Python-Integration"]
     types: [completed]
@@ -16,6 +17,19 @@ on:
       - "master"
 
   workflow_dispatch: {}
+
+# Serialize deploys: the action pushes to apache/superset-site without
+# rebasing, so concurrent runs race on the final push and the loser fails
+# with `! [rejected] asf-site -> asf-site (fetch first)`. Cancel any
+# in-progress run as soon as a newer one starts — the destination repo
+# isn't touched until the final push step, so canceling mid-build is safe,
+# and the freshest content always wins.
+concurrency:
+  group: docs-deploy-asf-site
+  cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   config:
@@ -35,7 +49,13 @@ jobs:
           SUPERSET_SITE_BUILD: ${{ (secrets.SUPERSET_SITE_BUILD != '' && secrets.SUPERSET_SITE_BUILD != '') || '' }}
   build-deploy:
     needs: config
-    if: needs.config.outputs.has-secrets
+    # For workflow_run triggers, only deploy when the triggering run originated
+    # from this repository (not a fork), ensuring the checked-out code and any
+    # local actions executed with deploy credentials are trusted.
+    if: >-
+      needs.config.outputs.has-secrets &&
+      (github.event_name != 'workflow_run' ||
+       github.event.workflow_run.head_repository.full_name == github.repository)
     name: Build & Deploy
     runs-on: ubuntu-24.04
     steps:
@@ -70,7 +90,7 @@ jobs:
           yarn install --check-cache
       - name: Download database diagnostics (if triggered by integration tests)
         if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
-        uses: dawidd6/action-download-artifact@8305c0f1062bb0d184d09ef4493ecb9288447732 # v20
+        uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151 # v21
         continue-on-error: true
         with:
           workflow: superset-python-integrationtest.yml
@@ -79,7 +99,7 @@ jobs:
           path: docs/src/data/
       - name: Try to download latest diagnostics (for push/dispatch triggers)
         if: github.event_name != 'workflow_run'
-        uses: dawidd6/action-download-artifact@8305c0f1062bb0d184d09ef4493ecb9288447732 # v20
+        uses: dawidd6/action-download-artifact@b6e2e70617bc3265edd6dab6c906732b2f1ae151 # v21
         continue-on-error: true
         with:
           workflow: superset-python-integrationtest.yml

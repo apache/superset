@@ -16,7 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CategoricalColorScale, ChartProps } from '@superset-ui/core';
+import {
+  CategoricalColorScale,
+  ChartProps,
+  TimeGranularity,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import type { SeriesOption } from 'echarts';
@@ -235,6 +239,7 @@ function buildTimeseriesChartProps(
       colorScheme: 'bnbColors',
       datasource: '3__table',
       granularity_sqla: 'ds',
+      timeGrainSqla: TimeGranularity.MONTH,
       metric: 'sum__num',
       viz_type: 'my_viz',
       ...overrides,
@@ -263,6 +268,7 @@ test('should configure time axis labels to show max label for last month visibil
     colorScheme: 'bnbColors',
     datasource: '3__table',
     granularity_sqla: 'ds',
+    timeGrainSqla: TimeGranularity.MONTH,
     metric: 'sum__num',
     viz_type: 'my_viz',
   };

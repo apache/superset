@@ -21,12 +21,16 @@ import logging
 import re
 import time
 from collections import defaultdict
+from types import SimpleNamespace
 from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
 from flask_appbuilder.models.filters import BaseFilter
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
+from flask_appbuilder.security.sqla.apis.permission_view_menu.api import (
+    PermissionViewMenuApi,
+)
 from flask_appbuilder.security.sqla.manager import SecurityManager
 from flask_appbuilder.security.sqla.models import (
     assoc_group_role,
@@ -47,9 +51,10 @@ from flask_appbuilder.security.views import (
 from flask_babel import lazy_gettext as _
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
-from sqlalchemy import and_, inspect, or_
+from sqlalchemy import and_, func as sa_func, inspect, or_
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import eagerload
+from sqlalchemy.orm import eagerload, joinedload
+from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql import exists
@@ -93,6 +98,7 @@ if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
     from superset.viz import BaseViz
 
 logger = logging.getLogger(__name__)
@@ -269,6 +275,62 @@ class SupersetGroupApi(GroupApi):
         _log_audit_event("GroupDeleted", {"group_name": item.name, "group_id": item.id})
 
 
+class _FilterPermissionNameContains(BaseFilter):
+    """Filter PermissionView rows by the related Permission.name column."""
+
+    name = "Permission name contains"
+    arg_name = "ct"
+    column_name = "permission.name"
+
+    def apply(self, query: SqlaQuery, value: Any) -> SqlaQuery:
+        return (
+            query.join(Permission, PermissionView.permission_id == Permission.id)
+            .filter(Permission.name.ilike(f"%{value}%"))
+        )  # fmt: skip
+
+
+class _FilterViewMenuNameContains(BaseFilter):
+    """Filter PermissionView rows by the related ViewMenu.name column."""
+
+    name = "View menu name contains"
+    arg_name = "ct"
+    column_name = "view_menu.name"
+
+    def apply(self, query: SqlaQuery, value: Any) -> SqlaQuery:
+        return (
+            query.join(ViewMenu, PermissionView.view_menu_id == ViewMenu.id)
+            .filter(ViewMenu.name.ilike(f"%{value}%"))
+        )  # fmt: skip
+
+
+class SupersetPermissionViewMenuApi(PermissionViewMenuApi):
+    """
+    Override PermissionViewMenuApi to allow filtering by relationship columns.
+
+    FAB's default PermissionViewMenuApi does not define search_columns,
+    which causes 400 errors when the frontend filters by permission.name
+    or view_menu.name. FAB's Filters.__init__ cannot auto-detect filters
+    for dotted relationship columns, so we inject them manually after the
+    parent initialises the Filters object.
+    """
+
+    search_columns = ["id"]
+
+    _custom_pvm_filters: dict[str, list[type[BaseFilter]]] = {
+        "permission.name": [_FilterPermissionNameContains],
+        "view_menu.name": [_FilterViewMenuNameContains],
+    }
+
+    def _init_properties(self) -> None:
+        super()._init_properties()
+        for col, filter_classes in self._custom_pvm_filters.items():
+            self._filters._search_filters.setdefault(col, [])
+            for fc in filter_classes:
+                self._filters._search_filters[col].append(fc(col, self.datamodel))
+            if col not in self._filters.search_columns:
+                self._filters.search_columns.append(col)
+
+
 # Limiting routes on FAB model views
 PermissionViewModelView.include_route_methods = {RouteMethod.LIST}
 PermissionModelView.include_route_methods = {RouteMethod.LIST}
@@ -352,6 +414,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     role_api = SupersetRoleApi
     user_api = SupersetUserApi
     group_api = SupersetGroupApi
+    permission_view_menu_api = SupersetPermissionViewMenuApi
 
     USER_MODEL_VIEWS = {
         "RegisterUserModelView",
@@ -401,6 +464,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "PermissionViewMenu",
         "ViewMenu",
         "User",
+        # FAB registers ApiKeyApi when FAB_API_KEY_ENABLED=True
+        "ApiKey",
     } | USER_MODEL_VIEWS
 
     ALPHA_ONLY_VIEW_MENUS = {
@@ -1082,6 +1147,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .join(self.role_model)
         )
 
+        # Guest users (embedded dashboards) have is_anonymous=False but no
+        # database identity, so querying by user_id returns nothing. Instead,
+        # resolve permissions directly from the roles attached to the guest
+        # token (typically the Public role).
+        if self.is_guest_user():
+            role_ids = [
+                role.id for role in g.user.roles if role and role.id is not None
+            ]
+            if not role_ids:
+                return set()
+            view_menu_names = (
+                base_query.filter(self.role_model.id.in_(role_ids)).filter(
+                    self.permission_model.name == permission_name
+                )
+            ).all()
+            return {s.name for s in view_menu_names}
+
         if not g.user.is_anonymous:
             user_id = get_user_id()
 
@@ -1360,6 +1442,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self.add_permission_view_menu("can_drill", "Dashboard")
         self.add_permission_view_menu("can_tag", "Chart")
         self.add_permission_view_menu("can_tag", "Dashboard")
+        # FAB registers ApiKeyApi when FAB_API_KEY_ENABLED=True, using
+        # @permission_name("revoke") for the DELETE endpoint. Create it
+        # explicitly here so sync_role_definitions assigns it to Admin even
+        # when create_missing_perms (called later in the same transaction) fails
+        # due to unrelated schema gaps.
+        if current_app.config.get("FAB_API_KEY_ENABLED", False):
+            for perm in ("can_list", "can_create", "can_get", "can_revoke"):
+                self.add_permission_view_menu(perm, "ApiKey")
 
     def create_missing_perms(self) -> None:
         """
@@ -1371,10 +1461,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         from superset.models import core as models
 
         logger.info("Fetching a set of all perms to lookup which ones are missing")
-        all_pvs = set()
-        for pv in self._get_all_pvms():
-            if pv.permission and pv.view_menu:
-                all_pvs.add((pv.permission.name, pv.view_menu.name))
+        all_pvs = {
+            (pv.permission.name, pv.view_menu.name)
+            for pv in self._get_all_pvms()
+            if pv.permission and pv.view_menu
+        }
 
         def merge_pv(view_menu: str, perm: Optional[str]) -> None:
             """Create permission view menu only if it doesn't exist"""
@@ -1382,16 +1473,41 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 self.add_permission_view_menu(view_menu, perm)
 
         logger.info("Creating missing datasource permissions.")
-        datasources = SqlaTable.get_all_datasources()
-        for datasource in datasources:
+        for datasource in SqlaTable.get_all_datasources():
             merge_pv("datasource_access", datasource.get_perm())
             merge_pv("schema_access", datasource.get_schema_perm())
             merge_pv("catalog_access", datasource.get_catalog_perm())
 
         logger.info("Creating missing database permissions.")
-        databases = self.session.query(models.Database).all()
-        for database in databases:
+        for database in self.session.query(models.Database).all():
             merge_pv("database_access", database.perm)
+
+        logger.info("Creating missing semantic layer and view permissions.")
+        self._create_missing_semantic_perms(all_pvs)
+
+    def _create_missing_semantic_perms(
+        self,
+        existing_pvs: set[tuple[str, str]],
+    ) -> None:
+        """Backfill perm columns and create missing PVMs for semantic models."""
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticLayer,
+            SemanticView,
+        )
+
+        for layer in self.session.query(SemanticLayer).all():
+            perm = layer.get_perm()
+            if layer.perm != perm:
+                layer.perm = perm
+            if ("datasource_access", perm) not in existing_pvs:
+                self.add_permission_view_menu("datasource_access", perm)
+
+        for view in self.session.query(SemanticView).all():
+            perm = view.get_perm()
+            if view.perm != perm:
+                view.perm = perm
+            if ("datasource_access", perm) not in existing_pvs:
+                self.add_permission_view_menu("datasource_access", perm)
 
     def clean_perms(self) -> None:
         """
@@ -2281,6 +2397,221 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .values(perm=new_permission_name)
         )
 
+    def semantic_layer_after_insert(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        """
+        Handle permission creation when a semantic layer is inserted.
+
+        Creates the datasource_access PVM and stores the perm string on the row.
+        """
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticLayer,
+        )
+
+        perm = target.get_perm()
+        self._insert_pvm_on_sqla_event(mapper, connection, "datasource_access", perm)
+        if target.perm != perm:
+            target.perm = perm
+            sl_table = SemanticLayer.__table__  # pylint: disable=no-member
+            connection.execute(
+                sl_table.update()
+                .where(sl_table.c.uuid == target.uuid)
+                .values(perm=perm)
+            )
+
+    def semantic_layer_before_update(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        """
+        Handle permission update when a semantic layer name changes.
+
+        Renames the FAB ViewMenu so the PVM stays in sync with the layer name.
+        Also cascades the rename to all semantic view perms under this layer.
+        """
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticLayer,
+            SemanticView,
+        )
+
+        sl_table = SemanticLayer.__table__  # pylint: disable=no-member
+        current = connection.execute(
+            sl_table.select().where(sl_table.c.uuid == target.uuid)
+        ).one()
+
+        if current.name != target.name:
+            new_perm = target.get_perm()
+            old_perm = current.perm
+
+            view_menu_table = (
+                self.viewmenu_model.__table__  # pylint: disable=no-member
+            )
+            old_view_menu = self.find_view_menu(old_perm)
+            if old_view_menu:
+                connection.execute(
+                    view_menu_table.update()
+                    .where(view_menu_table.c.id == old_view_menu.id)
+                    .values(name=new_perm)
+                )
+                new_view_menu = self.find_view_menu(new_perm)
+                self.on_view_menu_after_update(mapper, connection, new_view_menu)
+            else:
+                self._insert_pvm_on_sqla_event(
+                    mapper, connection, "datasource_access", new_perm
+                )
+
+            target.perm = new_perm
+            connection.execute(
+                sl_table.update()
+                .where(sl_table.c.uuid == target.uuid)
+                .values(perm=new_perm)
+            )
+
+            # Cascade: update view perms that embed the layer name
+            sv_table = SemanticView.__table__  # pylint: disable=no-member
+            views = connection.execute(
+                sv_table.select().where(sv_table.c.semantic_layer_uuid == target.uuid)
+            ).fetchall()
+            for view_row in views:
+                new_view_perm = f"[{target.name}].[{view_row.name}](id:{view_row.id})"
+                old_view_perm = view_row.perm
+                if old_view_perm != new_view_perm:
+                    old_vm = self.find_view_menu(old_view_perm)
+                    if old_vm:
+                        connection.execute(
+                            view_menu_table.update()
+                            .where(view_menu_table.c.id == old_vm.id)
+                            .values(name=new_view_perm)
+                        )
+                    connection.execute(
+                        sv_table.update()
+                        .where(sv_table.c.id == view_row.id)
+                        .values(perm=new_view_perm)
+                    )
+
+    def semantic_layer_after_delete(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        """
+        Handle permission cleanup when a semantic layer is deleted.
+
+        Removes the datasource_access PVM.
+        """
+        self._delete_pvm_on_sqla_event(
+            mapper, connection, "datasource_access", target.perm
+        )
+
+    def semantic_view_after_insert(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticView",
+    ) -> None:
+        """
+        Handle permission creation when a semantic view is inserted.
+
+        Creates the datasource_access PVM and stores the perm string on the row.
+        Looks up the layer name via connection since the ORM relationship may
+        not be loaded during event handling.
+        """
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticLayer,
+            SemanticView,
+        )
+
+        sl_table = SemanticLayer.__table__  # pylint: disable=no-member
+        layer_row = connection.execute(
+            sl_table.select().where(sl_table.c.uuid == target.semantic_layer_uuid)
+        ).one()
+
+        perm = target.get_perm(layer_name=layer_row.name)
+        self._insert_pvm_on_sqla_event(mapper, connection, "datasource_access", perm)
+        if target.perm != perm:
+            target.perm = perm
+            sv_table = SemanticView.__table__  # pylint: disable=no-member
+            connection.execute(
+                sv_table.update().where(sv_table.c.id == target.id).values(perm=perm)
+            )
+
+    def semantic_view_before_update(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticView",
+    ) -> None:
+        """
+        Handle permission update when a semantic view name changes.
+
+        Renames the FAB ViewMenu so the PVM stays in sync with the view name.
+        Looks up the layer name via connection since the ORM relationship may
+        not be loaded during event handling.
+        """
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticLayer,
+            SemanticView,
+        )
+
+        sl_table = SemanticLayer.__table__  # pylint: disable=no-member
+        layer_row = connection.execute(
+            sl_table.select().where(sl_table.c.uuid == target.semantic_layer_uuid)
+        ).one()
+
+        sv_table = SemanticView.__table__  # pylint: disable=no-member
+        current = connection.execute(
+            sv_table.select().where(sv_table.c.id == target.id)
+        ).one()
+
+        new_perm = target.get_perm(layer_name=layer_row.name)
+
+        if (old_perm := current.perm) != new_perm:
+            view_menu_table = (
+                self.viewmenu_model.__table__  # pylint: disable=no-member
+            )
+            old_view_menu = self.find_view_menu(old_perm)
+            if old_view_menu:
+                connection.execute(
+                    view_menu_table.update()
+                    .where(view_menu_table.c.id == old_view_menu.id)
+                    .values(name=new_perm)
+                )
+                new_view_menu = self.find_view_menu(new_perm)
+                self.on_view_menu_after_update(mapper, connection, new_view_menu)
+            else:
+                self._insert_pvm_on_sqla_event(
+                    mapper, connection, "datasource_access", new_perm
+                )
+
+            target.perm = new_perm
+            connection.execute(
+                sv_table.update()
+                .where(sv_table.c.id == target.id)
+                .values(perm=new_perm)
+            )
+
+    def semantic_view_after_delete(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticView",
+    ) -> None:
+        """
+        Handle permission cleanup when a semantic view is deleted.
+
+        Removes the datasource_access PVM.
+        """
+        self._delete_pvm_on_sqla_event(
+            mapper, connection, "datasource_access", target.perm
+        )
+
     def _delete_pvm_on_sqla_event(  # pylint: disable=too-many-arguments
         self,
         mapper: Mapper,
@@ -2564,6 +2895,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         catalog: Optional[str] = None,
         schema: Optional[str] = None,
         template_params: Optional[dict[str, Any]] = None,
+        force_dataset_match: bool = False,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -2578,6 +2910,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param catalog: Optional catalog name
         :param schema: Optional schema name
         :param template_params: Optional template parameters for Jinja templating
+        :param force_dataset_match: When True, the historical
+            ``catalog_access`` / ``schema_access`` fallthroughs in the
+            database+table / query branch are bypassed and every referenced
+            table must resolve to a registered Superset dataset the user
+            has ``datasource_access`` on (or owns). Call sites that execute
+            or return raw row data (SQL Lab, MetaDB) set this to True.
+            The default (False) preserves the historical semantics for
+            chart-data, dataset CRUD, ``/table_metadata/``, and
+            ``/select_star/``.
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
@@ -2622,39 +2963,118 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # inspector to read it.
                 from superset.models.sql_lab import Query
 
-                default_schema = database.get_default_schema_for_query(
-                    cast(Query, query),
-                    template_params,
+                # Prefer the rendered ``executed_sql`` when it is set so
+                # re-validation (results fetch, CSV / streaming export)
+                # authorises against the SQL that actually ran, not a
+                # re-render of the Jinja source with the wrong (or
+                # missing) ``template_params``. At execute time
+                # ``executed_sql`` is unset and we fall back to
+                # ``query.sql`` + ``template_params``. The same rendered
+                # SQL must also flow into engine-spec schema resolution
+                # (e.g. Postgres ``search_path`` detection) so it does
+                # not choke on unrendered ``{{ ... }}`` Jinja.
+                typed_query = cast(Query, query)
+                executed_sql = getattr(typed_query, "executed_sql", None)
+                sql_for_parse = (
+                    executed_sql
+                    if isinstance(executed_sql, str) and executed_sql
+                    else typed_query.sql
                 )
+                use_executed_sql = sql_for_parse is executed_sql
+                parse_template_params = None if use_executed_sql else template_params
+                parse_query: Any = (
+                    SimpleNamespace(
+                        sql=sql_for_parse,
+                        schema=typed_query.schema,
+                        catalog=typed_query.catalog,
+                    )
+                    if use_executed_sql
+                    else typed_query
+                )
+
+                default_schema = database.get_default_schema_for_query(
+                    cast(Query, parse_query),
+                    parse_template_params,
+                )
+                parse_result = process_jinja_sql(
+                    sql_for_parse, database, parse_template_params
+                )
+                # Under strict scoping, refuse any statement the parser
+                # could not fully model: sqlglot ``exp.Command`` nodes
+                # (e.g. dynamic SQL inside a stored-procedure call) and
+                # non-sqlglot engines such as Kusto KQL whose statement
+                # classes do not produce a sqlglot AST. The per-table
+                # dataset-match check below would be blind to those
+                # references, so fail closed.
+                if (
+                    force_dataset_match
+                    and parse_result.script.has_unparseable_statement
+                ):
+                    raise SupersetSecurityException(
+                        SupersetError(
+                            error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                            message=_(
+                                "SQL Lab cannot authorise a statement that "
+                                "could not be fully parsed. Qualify tables "
+                                "explicitly and avoid dynamic SQL inside "
+                                "stored-procedure or vendor-specific calls."
+                            ),
+                            level=ErrorLevel.ERROR,
+                        )
+                    )
                 tables = {
                     table_.qualify(
                         catalog=query.catalog or default_catalog,
                         schema=default_schema,
                     )
-                    for table_ in process_jinja_sql(
-                        query.sql, database, template_params
-                    ).tables
+                    for table_ in parse_result.tables
                 }
             elif table:
-                # Make sure table has the default catalog, if not specified.
-                tables = {table.qualify(catalog=default_catalog)}
+                # Make sure table has the default catalog, and (when an
+                # under-qualified Table was passed) the database's default
+                # schema. Callers like MetaDB legitimately pass 2-part URIs
+                # ``db.table`` that mean "the database's default schema";
+                # resolving them against the engine spec lets those still
+                # match a registered dataset. If the engine cannot supply a
+                # default the strict-deny rule below fires and we fail closed.
+                table_catalog = table.catalog or default_catalog
+                schema_default = (
+                    None if table.schema else database.get_default_schema(table_catalog)
+                )
+                tables = {table.qualify(catalog=table_catalog, schema=schema_default)}
 
             denied = set()
 
+            # When the caller asks for strict scoping (SQL Lab raw queries,
+            # MetaDB) the historical catalog_access/schema_access fallthroughs
+            # are skipped and every referenced table must resolve to a
+            # registered Superset dataset the user can access. Other callers
+            # keep the existing semantics.
             for table_ in tables:
-                catalog_perm = self.get_catalog_perm(
-                    database.database_name,
-                    table_.catalog,
-                )
-                if catalog_perm and self.can_access("catalog_access", catalog_perm):
-                    continue
+                if not force_dataset_match:
+                    catalog_perm = self.get_catalog_perm(
+                        database.database_name,
+                        table_.catalog,
+                    )
+                    if catalog_perm and self.can_access("catalog_access", catalog_perm):
+                        continue
 
-                schema_perm = self.get_schema_perm(
-                    database.database_name,
-                    table_.catalog,
-                    table_.schema,
-                )
-                if schema_perm and self.can_access("schema_access", schema_perm):
+                    schema_perm = self.get_schema_perm(
+                        database.database_name,
+                        table_.catalog,
+                        table_.schema,
+                    )
+                    if schema_perm and self.can_access("schema_access", schema_perm):
+                        continue
+
+                # Under strict scoping, refuse tables whose schema we could
+                # not pin down. query_datasources_by_name drops the schema
+                # filter when schema is None and would otherwise return
+                # SqlaTables in any schema, which the database engine may
+                # then resolve to a different schema via search_path. The
+                # dataset-match check would be against the wrong row.
+                if force_dataset_match and not table_.schema:
+                    denied.add(table_)
                     continue
 
                 datasources = SqlaTable.query_datasources_by_name(
@@ -2799,6 +3219,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self.get_datasource_access_error_object(datasource)
                 )
 
+            # When the guest token carries a dataset allowlist, restrict access
+            # to only those dataset IDs even if the chart/dashboard check above
+            # would otherwise grant it.  Tokens without the ``datasets`` claim
+            # retain the existing behaviour (all dashboard datasets accessible).
+            if guest_user := self.get_current_guest_user_if_guest():
+                allowed_datasets: Optional[list[int]] = guest_user.guest_token.get(
+                    "datasets"
+                )
+                if allowed_datasets is not None and (
+                    not isinstance(allowed_datasets, list)
+                    or not all(isinstance(d, int) for d in allowed_datasets)
+                    or datasource.id not in allowed_datasets
+                ):
+                    raise SupersetSecurityException(
+                        self.get_datasource_access_error_object(datasource)
+                    )
+
         if dashboard:
             if self.is_guest_user():
                 # Guest user is currently used for embedded dashboards only. If the guest  # noqa: E501
@@ -2861,6 +3298,66 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             .filter(self.user_model.username == username)
             .one_or_none()
         )
+
+    def find_user_with_relationships(
+        self,
+        username: Optional[str] = None,
+        email: Optional[str] = None,
+    ) -> Optional[User]:
+        """Find a user with roles and group roles eagerly loaded.
+
+        Mirrors FAB's ``SecurityManager.find_user``
+        (including ``auth_username_ci`` case-insensitive handling and
+        ``MultipleResultsFound`` guard) and additionally eager-loads
+        ``User.roles`` and ``User.groups.roles`` to prevent detached-instance
+        errors when the SQLAlchemy session is closed or rolled back after the
+        lookup — as happens in MCP tool-execution contexts.
+
+        FAB does not expose an eager-loading option on ``find_user``, so the
+        query logic is mirrored here with joinedload options added. Review this
+        method when upgrading FAB to ensure it stays in sync with upstream.
+
+        Mirrors ``BaseSecurityManager.find_user`` as of flask-appbuilder==5.2.1
+        (``flask_appbuilder/security/sqla/manager.py``). Re-check upstream when
+        bumping the FAB pin in ``requirements/base.txt``.
+        """
+        eager = [
+            joinedload(self.user_model.roles),
+            joinedload(self.user_model.groups).joinedload(self.group_model.roles),
+        ]
+        if username:
+            try:
+                if self.auth_username_ci:
+                    return (
+                        self.session.query(self.user_model)
+                        .options(*eager)
+                        .filter(
+                            sa_func.lower(self.user_model.username)
+                            == sa_func.lower(username)
+                        )
+                        .one_or_none()
+                    )
+                return (
+                    self.session.query(self.user_model)
+                    .options(*eager)
+                    .filter(self.user_model.username == username)
+                    .one_or_none()
+                )
+            except MultipleResultsFound:
+                logger.error("Multiple results found for username lookup")
+                return None
+        if email:
+            try:
+                return (
+                    self.session.query(self.user_model)
+                    .options(*eager)
+                    .filter(self.user_model.email == email)
+                    .one_or_none()
+                )
+            except MultipleResultsFound:
+                logger.error("Multiple results found for email lookup")
+                return None
+        return None
 
     def get_anonymous_user(self) -> User:
         return AnonymousUserMixin()
@@ -3128,6 +3625,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         user: GuestTokenUser,
         resources: GuestTokenResources,
         rls: list[GuestTokenRlsRule],
+        datasets: Optional[list[int]] = None,
     ) -> bytes:
         secret = get_conf()["GUEST_TOKEN_JWT_SECRET"]
         algo = get_conf()["GUEST_TOKEN_JWT_ALGO"]
@@ -3136,7 +3634,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # calculate expiration time
         now = self._get_current_epoch_time()
         exp = now + exp_seconds
-        claims = {
+        claims: dict[str, Any] = {
             "user": user,
             "resources": resources,
             "rls_rules": rls,
@@ -3146,6 +3644,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             "aud": audience,
             "type": "guest",
         }
+        if datasets is not None:
+            claims["datasets"] = datasets
         return self.pyjwt_for_guest_token.encode(claims, secret, algorithm=algo)
 
     def get_guest_user_from_request(self, req: Request) -> Optional[GuestUser]:
@@ -3216,7 +3716,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return hasattr(user, "is_guest_user") and user.is_guest_user
 
     def get_current_guest_user_if_guest(self) -> Optional[GuestUser]:
-        return g.user if self.is_guest_user() else None
+        user = getattr(g, "user", None)
+        if isinstance(user, GuestUser):
+            return user
+        return None
 
     def has_guest_access(self, dashboard: "Dashboard") -> bool:
         user = self.get_current_guest_user_if_guest()
@@ -3227,13 +3730,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             r for r in user.resources if r["type"] == GuestTokenResourceType.DASHBOARD
         ]
 
+        if not dashboard.embedded:
+            return False
+
         # TODO (embedded): remove this check once uuids are rolled out
         for resource in dashboards:
             if str(resource["id"]) == str(dashboard.id):
                 return True
-
-        if not dashboard.embedded:
-            return False
 
         for resource in dashboards:
             if str(resource["id"]) == str(dashboard.embedded[0].uuid):
@@ -3246,13 +3749,55 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         Note admins are deemed owners of all resources.
 
+        The internal re-query opts out of the soft-delete visibility
+        listener via ``execution_options(_skip_visibility_filter_classes=
+        {resource.__class__})`` so callers passing a soft-deleted resource
+        (e.g., ``BaseRestoreCommand``) get the correct ownership
+        decision. The bypass is scoped to ``resource.__class__`` only —
+        any soft-deletable relationships read from ``orig_resource``
+        (none today; ``.owners`` is a User) remain filtered.
+
         :param resource: The dashboard, dataset, chart, etc. resource
         :raises SupersetSecurityException: If the current user is not an owner
         """
+        # Inline import: ``superset.models.helpers`` transitively imports
+        # ``superset.models.core``, which depends on lazily-initialised
+        # ``superset.feature_flag_manager``. A top-level import here would
+        # create a circular dependency (security ↔ models.core ↔ superset).
+        from superset.models.helpers import (  # pylint: disable=import-outside-toplevel  # noqa: E501
+            SKIP_VISIBILITY_FILTER_CLASSES,
+        )
 
         if self.is_admin():
             return
-        orig_resource = self.session.query(resource.__class__).get(resource.id)
+
+        # The internal re-query below is filtered by the global soft-delete
+        # listener for any ``SoftDeleteMixin`` model. Callers that have
+        # intentionally loaded a soft-deleted resource (e.g.,
+        # ``BaseRestoreCommand``) need the re-query to see the row so the
+        # owners list can be read. Attach the bypass scoped to this
+        # resource's class only — the per-query option is enough here
+        # because ``.get()`` resolves directly without going through any
+        # framework that strips options.
+        orig_resource = (
+            self.session.query(resource.__class__)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {resource.__class__}})
+            .get(resource.id)
+        )
+        # Explicit guard: ``orig_resource`` is ``None`` only if a parallel
+        # writer hard-deleted the row between the caller's load and this
+        # re-query. Falling through with ``owners=[]`` would surface as a
+        # misleading "ownership" error; raise the real cause instead.
+        if orig_resource is None:
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.MISSING_OWNERSHIP_ERROR,
+                    message=_(
+                        "Resource was removed before ownership could be verified",
+                    ),
+                    level=ErrorLevel.ERROR,
+                )
+            )
         owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
 
         if g.user.is_anonymous or g.user not in owners:

@@ -63,6 +63,17 @@ def test_escape_value():
     result = csv.escape_value(" =10+2")
     assert result == "' =10+2"
 
+    # A leading tab or carriage return followed by a dangerous char was already
+    # handled by \s{1,} in the pre-existing regex. The cases below test the
+    # new behavior: tab/CR alone (not followed by a dangerous char) are now
+    # also treated as dangerous prefixes because some spreadsheet software trims
+    # leading whitespace and then evaluates the remaining content as a formula.
+    result = csv.escape_value("\t10")
+    assert result == "'\t10"
+
+    result = csv.escape_value("\rfoo")
+    assert result == "'\rfoo"
+
 
 def fake_get_chart_csv_data_none(chart_url, auth_cookies=None):
     return None
@@ -180,6 +191,35 @@ def test_df_to_escaped_csv():
 
     df = pa.array([1, None]).to_pandas(integer_object_nulls=True).to_frame()
     assert df_to_escaped_csv(df, encoding="utf8", index=False) == '0\n1\n""\n'
+
+
+def test_df_to_escaped_csv_preserves_numeric_columns():
+    """
+    A string cell beginning with a dangerous prefix is escaped while genuinely
+    numeric columns are left untouched.
+    """
+    df = pd.DataFrame(
+        data={
+            "formula": ["=cmd()", "safe"],
+            "amount": [10, -20],
+        }
+    )
+
+    escaped_csv_str = df_to_escaped_csv(
+        df,
+        encoding="utf8",
+        index=False,
+    )
+
+    rows = [row.split(",") for row in escaped_csv_str.strip().split("\n")]
+
+    # Header + 2 data rows.
+    assert rows[0] == ["formula", "amount"]
+    # Dangerous string cell is escaped with a leading single quote.
+    assert rows[1] == ["'=cmd()", "10"]
+    # Safe string is untouched; numeric values (including negatives) are not
+    # escaped or quoted.
+    assert rows[2] == ["safe", "-20"]
 
 
 def test_get_chart_dataframe_returns_none_when_no_content(

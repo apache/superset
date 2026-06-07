@@ -49,7 +49,7 @@ def test_tool_search_config_defaults():
     assert "get_instance_info" in MCP_TOOL_SEARCH_CONFIG["always_visible"]
     assert MCP_TOOL_SEARCH_CONFIG["search_tool_name"] == "search_tools"
     assert MCP_TOOL_SEARCH_CONFIG["call_tool_name"] == "call_tool"
-    assert MCP_TOOL_SEARCH_CONFIG["include_schemas"] is False
+    assert MCP_TOOL_SEARCH_CONFIG["include_schemas"] is True
 
 
 def test_apply_bm25_transform():
@@ -869,7 +869,7 @@ def test_tool_search_permission_filter_hides_disallowed_tools():
     with app.app_context():
         g.user = SimpleNamespace(username="viewer")
         with patch(
-            "superset.security_manager", new_callable=MagicMock
+            "superset.mcp_service.auth.security_manager", new_callable=MagicMock
         ) as security_manager:
             security_manager.can_access.side_effect = [True, False]
 
@@ -901,6 +901,30 @@ def test_tool_search_permission_filter_hides_protected_tools_without_user() -> N
     assert result == [public]
 
 
+def test_tool_search_permission_filter_denies_all_on_invalid_credentials() -> None:
+    """Invalid credentials (PermissionError) deny all tools, including public ones."""
+    app = Flask(__name__)
+    app.config["MCP_RBAC_ENABLED"] = True
+
+    def protected_tool():
+        pass
+
+    setattr(protected_tool, CLASS_PERMISSION_ATTR, "Dataset")
+    setattr(protected_tool, METHOD_PERMISSION_ATTR, "read")
+
+    protected = SimpleNamespace(fn=protected_tool)
+    public = SimpleNamespace(fn=lambda: None)
+
+    with app.app_context():
+        with patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            side_effect=PermissionError("Invalid API key"),
+        ):
+            result = _filter_tools_by_current_user_permission([protected, public])
+
+    assert result == []
+
+
 def test_tool_search_filter_hides_metadata_tools_without_access() -> None:
     """Privacy-marked tools are hidden even if broad Dataset read exists."""
     app = Flask(__name__)
@@ -916,7 +940,7 @@ def test_tool_search_filter_hides_metadata_tools_without_access() -> None:
     with app.app_context():
         g.user = SimpleNamespace(username="viewer")
         with patch(
-            "superset.mcp_service.server.user_can_view_data_model_metadata",
+            "superset.mcp_service.privacy.user_can_view_data_model_metadata",
             return_value=False,
         ):
             result = _filter_tools_by_current_user_permission([metadata, public])
@@ -943,10 +967,12 @@ def test_tool_search_permission_filter_still_applies_rbac_to_metadata_tools() ->
         g.user = SimpleNamespace(username="viewer")
         with (
             patch(
-                "superset.mcp_service.server.user_can_view_data_model_metadata",
+                "superset.mcp_service.privacy.user_can_view_data_model_metadata",
                 return_value=True,
             ),
-            patch("superset.security_manager", new_callable=Mock) as security_manager,
+            patch(
+                "superset.mcp_service.auth.security_manager", new_callable=Mock
+            ) as security_manager,
         ):
             security_manager.can_access.return_value = False
             result = _filter_tools_by_current_user_permission([metadata, public])
@@ -973,7 +999,9 @@ def test_tool_search_permission_filter_resolves_user_from_request() -> None:
                 "superset.mcp_service.auth.get_user_from_request",
                 return_value=SimpleNamespace(username="viewer"),
             ),
-            patch("superset.security_manager", new_callable=Mock) as security_manager,
+            patch(
+                "superset.mcp_service.auth.security_manager", new_callable=Mock
+            ) as security_manager,
         ):
             security_manager.can_access.return_value = True
             result = _filter_tools_by_current_user_permission([protected])
@@ -996,10 +1024,12 @@ def test_tool_search_permission_filter_keeps_get_schema_visible_without_metadata
         g.user = SimpleNamespace(username="viewer")
         with (
             patch(
-                "superset.mcp_service.server.user_can_view_data_model_metadata",
+                "superset.mcp_service.privacy.user_can_view_data_model_metadata",
                 return_value=False,
             ),
-            patch("superset.security_manager", new_callable=Mock) as security_manager,
+            patch(
+                "superset.mcp_service.auth.security_manager", new_callable=Mock
+            ) as security_manager,
         ):
             security_manager.can_access.return_value = True
             result = _filter_tools_by_current_user_permission([schema_tool])

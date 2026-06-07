@@ -39,6 +39,7 @@ from superset.utils.core import (
     get_stacktrace,
     get_user_agent,
     is_test,
+    markdown,
     merge_extra_filters,
     merge_extra_form_data,
     merge_request_params,
@@ -1688,3 +1689,85 @@ def test_sanitize_url_blocks_dangerous():
     """Test that dangerous URL schemes are blocked."""
     assert sanitize_url("javascript:alert('xss')") == ""
     assert sanitize_url("data:text/html,<script>alert(1)</script>") == ""
+
+
+def test_markdown_basic() -> None:
+    result = markdown("**bold**")
+
+    assert "<strong>bold</strong>" in result
+
+
+def test_markdown_allows_target_blank_on_links() -> None:
+    raw = '<a href="https://example.com" target="_blank">Click here</a>'
+    result = markdown(raw)
+
+    assert 'href="https://example.com"' in result
+    assert 'target="_blank"' in result
+    assert 'rel="noopener noreferrer"' in result
+
+
+def test_markdown_replaces_custom_rel_with_safe_rel() -> None:
+    raw = '<a href="https://example.com" rel="external">Click</a>'
+    result = markdown(raw)
+
+    assert 'href="https://example.com"' in result
+    assert ">Click</a>" in result
+    assert 'rel="noopener noreferrer"' in result
+    assert 'rel="external"' not in result
+
+
+def test_markdown_sanitizes_dangerous_content() -> None:
+    raw = '<div><script>alert("xss")</script>Content</div>'
+    result = markdown(raw)
+
+    assert "<script>" not in result
+    assert "alert" not in result
+
+
+def test_markdown_with_markup_wrap() -> None:
+    result = markdown("**bold**", markup_wrap=True)
+    from markupsafe import Markup
+
+    assert isinstance(result, Markup)
+    assert "<strong>bold</strong>" in str(result)
+
+
+def test_send_email_smtp_strips_crlf_from_subject() -> None:
+    """
+    CR/LF characters are stripped from the email subject so the value cannot
+    be used to inject additional email headers (header folding/splitting).
+    """
+    from email.mime.multipart import MIMEMultipart
+
+    from superset.utils.core import send_email_smtp
+
+    captured: dict[str, MIMEMultipart] = {}
+
+    def capture_mutator(msg: MIMEMultipart, **kwargs: Any) -> MIMEMultipart:
+        captured["msg"] = msg
+        return msg
+
+    config = {
+        "SMTP_MAIL_FROM": "from@example.com",
+        "EMAIL_HEADER_MUTATOR": capture_mutator,
+        "SMTP_HOST": "localhost",
+        "SMTP_PORT": 25,
+        "SMTP_USER": "",
+        "SMTP_PASSWORD": "",
+        "SMTP_STARTTLS": False,
+        "SMTP_SSL": False,
+        "SMTP_SSL_SERVER_AUTH": False,
+    }
+
+    send_email_smtp(
+        to="to@example.com",
+        subject="Hello\r\nBcc: attacker@example.com",
+        html_content="<b>body</b>",
+        config=config,
+        dryrun=True,
+    )
+
+    subject = captured["msg"]["Subject"]
+    assert "\r" not in subject
+    assert "\n" not in subject
+    assert subject == "Hello Bcc: attacker@example.com"

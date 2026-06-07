@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
 import ExtensionsLoader from './ExtensionsLoader';
@@ -110,4 +111,34 @@ test('handles initialization errors gracefully', async () => {
 
   errorSpy.mockRestore();
   appendChildSpy.mockRestore();
+});
+
+test('logs success after initializeExtensions completes', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  const infoSpy = jest.spyOn(logging, 'info').mockImplementation();
+  jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: [] },
+  } as any);
+
+  await loader.initializeExtensions();
+
+  expect(infoSpy).toHaveBeenCalledWith('Extensions initialized successfully.');
+
+  infoSpy.mockRestore();
+});
+
+test('logs error when initializeExtensions fails', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
+  const fetchError = new Error('Network error');
+  jest.spyOn(SupersetClient, 'get').mockRejectedValue(fetchError);
+
+  await loader.initializeExtensions();
+
+  expect(errorSpy).toHaveBeenCalledWith(
+    'Error setting up extensions:',
+    fetchError,
+  );
+
+  errorSpy.mockRestore();
 });
