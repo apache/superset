@@ -1,8 +1,3 @@
-from superset.utils.core import split
-
-
-# ======================================
-# CAIXA PRETA (BLACK BOX)
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -19,6 +14,12 @@ from superset.utils.core import split
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+from superset.utils.core import split
+
+# ======================================
+#  (BLACK BOX)
+# ======================================
 
 def test_split_empty_string():
     assert list(split("")) == [""]
@@ -58,7 +59,7 @@ def test_split_nested_parentheses():
 
 
 # ======================================
-# CAIXA BRANCA (WHITE BOX)
+#  (WHITE BOX)
 # ======================================
 
 def test_branch_separator_found():
