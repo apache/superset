@@ -16,12 +16,12 @@
 # under the License.
 
 upstream superset_app {
-    server host.docker.internal:8088;
+    server superset:8088;
     keepalive 100;
 }
 
 upstream superset_websocket {
-    server host.docker.internal:8080;
+    server superset-websocket:8080;
     keepalive 100;
 }
 
@@ -38,7 +38,7 @@ server {
     }
 
     location ${SUPERSET_APP_ROOT}/static {
-        proxy_pass http://host.docker.internal:9000;  # Proxy to superset-node
+        proxy_pass http://superset-node:9000;
         proxy_http_version 1.1;
         proxy_set_header Host $host;
     }
