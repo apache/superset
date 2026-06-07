@@ -160,6 +160,9 @@ class ModelListCore(BaseCore, Generic[L]):
         self.search_columns = filter_user_directory_columns(search_columns)
         self.list_field_name = list_field_name
         self.output_list_schema = output_list_schema
+        # Track whether an explicit allowlist was provided so _get_columns_to_load
+        # can skip the allowlist check for tools that did not declare one.
+        self._has_explicit_all_columns = all_columns is not None
         self._all_columns = filter_user_directory_columns(
             all_columns if all_columns else default_columns
         )
@@ -187,6 +190,15 @@ class ModelListCore(BaseCore, Generic[L]):
 
         parsed_columns = parse_json_or_list(select_columns, param_name="select_columns")
         columns_to_load = filter_user_directory_columns(parsed_columns)
+
+        # Restrict to the declared allowlist so callers cannot probe for columns
+        # excluded from columns_available (e.g. password, sqlalchemy_uri) that
+        # still exist on the ORM model. Only enforced when all_columns was
+        # explicitly provided; tools without an allowlist are not restricted.
+        if self._has_explicit_all_columns and self._all_columns:
+            allowed = set(self._all_columns)
+            columns_to_load = [col for col in columns_to_load if col in allowed]
+
         if not columns_to_load:
             raise ValueError("select_columns contains no valid columns")
 

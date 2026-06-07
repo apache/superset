@@ -20,6 +20,7 @@ MCP tool: get_chart_info
 """
 
 import logging
+from typing import Any
 
 from fastmcp import Context
 from sqlalchemy.orm import subqueryload
@@ -213,7 +214,7 @@ def _apply_unsaved_state_override(result: ChartInfo, form_data_key: str) -> None
 )
 async def get_chart_info(
     request: GetChartInfoRequest, ctx: Context
-) -> ChartInfo | ChartError:
+) -> dict[str, Any] | ChartError:
     """Get chart metadata by ID or UUID.
 
     IMPORTANT FOR LLM CLIENTS:
@@ -277,9 +278,14 @@ async def get_chart_info(
                 "form_data_key=%s" % (request.form_data_key,)
             )
             result = _build_unsaved_chart_info(request.form_data_key)
+            if isinstance(result, ChartError):
+                return result
             if not can_view_data_model_metadata:
-                return redact_chart_data_model_fields(result)
-            return result
+                result = redact_chart_data_model_fields(result)
+            return result.model_dump(
+                mode="json",
+                context={"select_columns": request.select_columns},
+            )
 
     # At this point identifier must be set (validator ensures at least one
     # of identifier/form_data_key is provided, and the form_data_key-only
@@ -333,6 +339,11 @@ async def get_chart_info(
             error = await _attach_dashboard_filters(result, request.dashboard_id, ctx)
             if error is not None:
                 return error
+
+        return result.model_dump(
+            mode="json",
+            context={"select_columns": request.select_columns},
+        )
     else:
         await ctx.warning("Chart retrieval failed: error=%s" % (str(result),))
 
