@@ -73,6 +73,8 @@ def _copy_legacy_maplibre_style(data: dict[str, Any]) -> bool:
         and "maplibre_style" not in data
     ):
         data["maplibre_style"] = mapbox_style
+        if "map_renderer" not in data:
+            data["map_renderer"] = "maplibre"
         return True
     return False
 
