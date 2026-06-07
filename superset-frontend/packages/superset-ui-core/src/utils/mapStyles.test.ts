@@ -76,6 +76,14 @@ test('Mapbox key helpers report absence and presence from bootstrap data', () =>
     }),
   ).toBe('pk.test');
   expect(
+    getMapboxApiKeyFromBootstrap({
+      common: { conf: { MAPBOX_API_KEY: '  pk.test  ' } },
+    }),
+  ).toBe('pk.test');
+  expect(
+    hasMapboxApiKey({ common: { conf: { MAPBOX_API_KEY: '   ' } } }),
+  ).toBe(false);
+  expect(
     hasMapboxApiKey({ common: { conf: { MAPBOX_API_KEY: 'pk.test' } } }),
   ).toBe(true);
 });

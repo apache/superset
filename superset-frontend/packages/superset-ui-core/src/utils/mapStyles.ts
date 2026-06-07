@@ -110,7 +110,7 @@ export function getMapboxApiKeyFromBootstrap(
 ): string {
   const mapboxApiKey = (bootstrapData as BootstrapData | undefined)?.common
     ?.conf?.MAPBOX_API_KEY;
-  return typeof mapboxApiKey === 'string' ? mapboxApiKey : '';
+  return typeof mapboxApiKey === 'string' ? mapboxApiKey.trim() : '';
 }
 
 export function hasMapboxApiKey(

@@ -165,10 +165,25 @@ def _migrate_deckgl_slice(slc: Slice) -> bool:
 def _downgrade_deckgl_slice(slc: Slice) -> bool:
     """Reverse _migrate_deckgl_slice. Returns True if the slice was modified."""
     params = try_load_json(slc.params)
-    if not params or "map_renderer" not in params:
+    if not params:
         return False
 
-    params.pop("map_renderer", None)
+    modified = False
+    mapbox_style = params.get("mapbox_style")
+    if (
+        isinstance(mapbox_style, str)
+        and not _is_mapbox_style(mapbox_style)
+        and params.get("maplibre_style") == mapbox_style
+    ):
+        params.pop("maplibre_style", None)
+        modified = True
+
+    if "map_renderer" in params:
+        params.pop("map_renderer", None)
+        modified = True
+
+    if not modified:
+        return False
     slc.params = json.dumps(params)
     return True
 

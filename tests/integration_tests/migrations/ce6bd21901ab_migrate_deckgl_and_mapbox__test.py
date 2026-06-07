@@ -235,3 +235,49 @@ def test_downgrade_deckgl_slice():
     assert params["mapbox_style"] == "mapbox://styles/mapbox/dark-v9"
     assert "map_renderer" not in params
     assert params["other_param"] == "value"
+
+
+def test_downgrade_deckgl_slice_removes_copied_maplibre_style():
+    slc = Slice(
+        slice_name="Test Arc Open Style",
+        viz_type="deck_arc",
+        params=json.dumps(
+            {
+                "viz_type": "deck_arc",
+                "mapbox_style": "https://legacy.example.com/style.json",
+                "maplibre_style": "https://legacy.example.com/style.json",
+                "other_param": "value",
+            }
+        ),
+    )
+
+    modified = _downgrade_deckgl_slice(slc)
+
+    assert modified is True
+    params = json.loads(slc.params)
+    assert params["mapbox_style"] == "https://legacy.example.com/style.json"
+    assert "maplibre_style" not in params
+    assert params["other_param"] == "value"
+
+
+def test_downgrade_deckgl_slice_preserves_distinct_maplibre_style():
+    slc = Slice(
+        slice_name="Test Arc Existing MapLibre Style",
+        viz_type="deck_arc",
+        params=json.dumps(
+            {
+                "viz_type": "deck_arc",
+                "mapbox_style": "https://legacy.example.com/style.json",
+                "maplibre_style": "https://saved.example.com/style.json",
+                "other_param": "value",
+            }
+        ),
+    )
+
+    modified = _downgrade_deckgl_slice(slc)
+
+    assert modified is False
+    params = json.loads(slc.params)
+    assert params["mapbox_style"] == "https://legacy.example.com/style.json"
+    assert params["maplibre_style"] == "https://saved.example.com/style.json"
+    assert params["other_param"] == "value"
