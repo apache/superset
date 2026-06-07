@@ -66,7 +66,8 @@ def test_simple_metric_sum(dataset: MagicMock) -> None:
     assert metric.name == "total_amount"
     assert metric.definition == 'SUM("amount")'
     assert metric.aggregation == AggregationType.SUM
-    assert metric.type == pa.null()
+    # SUM(...) infers to float64.
+    assert metric.type == pa.float64()
 
 
 def test_simple_metric_count_distinct(dataset: MagicMock) -> None:
@@ -225,7 +226,8 @@ def test_adhoc_column_synthesises_dimension(dataset: MagicMock) -> None:
     assert result.id == "upper_country"
     assert result.name == "upper_country"
     assert result.definition == "UPPER(country)"
-    assert result.type == pa.null()
+    # UPPER(...) infers to utf8.
+    assert result.type == pa.utf8()
 
 
 def test_adhoc_column_missing_label_raises(dataset: MagicMock) -> None:

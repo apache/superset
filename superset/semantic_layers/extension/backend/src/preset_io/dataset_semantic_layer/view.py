@@ -114,13 +114,16 @@ class DatasetSemanticView(SemanticView):
         return dimensions
 
     def get_metrics(self) -> set[Metric]:
+        from superset.semantic_layers.arrow_inference import infer_arrow_type
+
+        engine = self.dataset.database.db_engine_spec.engine
         metrics: set[Metric] = set()
         for metric in self.dataset.metrics:
             metrics.add(
                 Metric(
                     id=metric.metric_name,
                     name=metric.verbose_name or metric.metric_name,
-                    type=pa.float64(),
+                    type=infer_arrow_type(metric.expression, engine),
                     definition=metric.expression,
                     description=metric.description or None,
                     aggregation=self._aggregation_from_expression(metric.expression),

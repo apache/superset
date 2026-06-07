@@ -45,6 +45,7 @@ from superset_core.semantic_layers.types import (
 )
 
 from superset.exceptions import QueryObjectValidationError
+from superset.semantic_layers.arrow_inference import infer_arrow_type
 from superset.utils.core import AdhocMetricExpressionType
 
 if TYPE_CHECKING:
@@ -154,7 +155,7 @@ def adhoc_metric_to_semantic_metric(
     return Metric(
         id=label,
         name=label,
-        type=pa.null(),
+        type=infer_arrow_type(definition, dataset.database.db_engine_spec.engine),
         definition=definition,
         aggregation=aggregation,
     )
@@ -191,6 +192,6 @@ def adhoc_column_to_semantic_dimension(
     return Dimension(
         id=label,
         name=label,
-        type=pa.null(),
+        type=infer_arrow_type(definition, dataset.database.db_engine_spec.engine),
         definition=definition,
     )
