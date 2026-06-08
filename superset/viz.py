@@ -656,7 +656,9 @@ class BaseViz:  # pylint: disable=too-many-public-methods
                 self.status = QueryStatus.FAILED
                 # Only expose the raw stacktrace when explicitly enabled, mirroring
                 # the gating used elsewhere (e.g. superset.views.base.get_error_msg).
-                if current_app.debug or current_app.config.get("SHOW_STACKTRACE"):
+                # ``get_stacktrace()`` itself returns ``None`` unless SHOW_STACKTRACE
+                # is set, so gating purely on that config keeps the two consistent.
+                if current_app.config.get("SHOW_STACKTRACE"):
                     stacktrace = utils.get_stacktrace()
 
             if is_loaded and cache_key and self.status != QueryStatus.FAILED:
@@ -1085,7 +1087,11 @@ class NVD3TimeSeriesViz(NVD3Viz):
         method = self.form_data.get("resample_method")
 
         if rule and method:
-            if method not in ALLOWED_RESAMPLE_METHODS:
+            # ``method`` comes straight from ``form_data`` and may be a
+            # non-string (e.g. a list) for malformed requests; guard the
+            # membership test so unsupported input returns a controlled
+            # validation error instead of an unhashable-type ``TypeError``.
+            if not isinstance(method, str) or method not in ALLOWED_RESAMPLE_METHODS:
                 raise QueryObjectValidationError(
                     _(
                         "Resample method '%(method)s' is not supported.",
