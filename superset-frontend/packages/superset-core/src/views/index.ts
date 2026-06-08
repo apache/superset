@@ -92,21 +92,6 @@ export declare function registerView(
 ): Disposable;
 
 /**
- * Narrowed descriptor for chatbot contributions (`superset.chatbot` location).
- *
- * Extension authors should use this type when calling `registerView` for the
- * chatbot area. It is identical to {@link View} but makes the registration
- * intent explicit and allows future narrowing (e.g. required `icon`).
- *
- * @example
- * ```typescript
- * const chatbot: ChatbotView = { id: 'my_ext.chatbot', name: 'My Chatbot', icon: 'Bubble' };
- * views.registerView(chatbot, 'superset.chatbot', () => <ChatbotApp />);
- * ```
- */
-export type ChatbotView = View;
-
-/**
  * Retrieves all views registered at a specific location.
  *
  * @param location The location to retrieve registered views for (e.g. "sqllab.panels").
