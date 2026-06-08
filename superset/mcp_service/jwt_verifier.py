@@ -454,7 +454,11 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 # letting the network error propagate as an unexpected exception.
                 reason = "JWKS verification key unavailable"
                 _jwt_failure_reason.set(reason)
-                logger.warning("Could not fetch JWKS verification key: %s", e)
+                # WARNING carries only the generic category (per the module's
+                # logging contract); the sanitized exception detail, which may
+                # include the JWKS endpoint host, is reserved for DEBUG.
+                logger.warning("Could not fetch JWKS verification key")
+                logger.debug("JWKS fetch error detail: %s", _sanitize_for_log(e))
                 return None
             except ValueError as e:
                 reason = "Failed to get verification key"
