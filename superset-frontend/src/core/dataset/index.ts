@@ -26,34 +26,35 @@
  */
 
 import type { dataset as datasetApi } from '@apache-superset/core';
-import { Disposable } from '../models';
+import { createEmitter } from '../utils';
 
 type DatasetContext = datasetApi.DatasetContext;
 
-let currentDataset: DatasetContext | undefined;
-const listeners = new Set<(ctx: DatasetContext) => void>();
+const emitter = createEmitter<DatasetContext | undefined>(undefined);
 
 /**
  * Host-internal: called by the Dataset page when its entity loads or changes.
  * Not part of the public `@apache-superset/core` API.
  */
 export const setCurrentDataset = (ctx: DatasetContext | undefined): void => {
-  currentDataset = ctx;
-  if (ctx) {
-    listeners.forEach(fn => fn(ctx));
-  }
+  emitter.fire(ctx);
 };
 
-const getCurrentDataset: typeof datasetApi.getCurrentDataset = () =>
-  currentDataset ? { ...currentDataset } : undefined;
+const getCurrentDataset: typeof datasetApi.getCurrentDataset = () => {
+  const current = emitter.getCurrent();
+  return current ? { ...current } : undefined;
+};
 
 const onDidChangeDataset: typeof datasetApi.onDidChangeDataset = (
   listener: (ctx: DatasetContext) => void,
-  thisArgs?: any,
-): Disposable => {
+  thisArgs?: unknown,
+) => {
   const bound = thisArgs ? listener.bind(thisArgs) : listener;
-  listeners.add(bound);
-  return new Disposable(() => listeners.delete(bound));
+  // The public contract only emits a concrete context; skip `undefined` clears
+  // so subscribers are never handed an empty value.
+  return emitter.event(ctx => {
+    if (ctx) bound(ctx);
+  });
 };
 
 export const dataset: typeof datasetApi = {

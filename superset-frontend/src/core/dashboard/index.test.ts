@@ -67,12 +67,16 @@ function makeState(
     dashboardInfo: unknown;
     nativeFilters: unknown;
     dataMask: unknown;
+    sliceEntities: unknown;
+    dashboardLayout: unknown;
   }> = {},
 ) {
   return {
     dashboardInfo: { id: 1, dashboard_title: 'Sales', slug: 'sales' },
     nativeFilters: { filters: { 'filter-1': { name: 'Region' } } },
     dataMask: { 'filter-1': { filterState: { value: ['West'] } } },
+    sliceEntities: { slices: {} },
+    dashboardLayout: { present: {} },
     ...overrides,
   };
 }
@@ -102,7 +106,52 @@ test('getCurrentDashboard returns dashboard context with active filters', () => 
     dashboardId: 1,
     title: 'Sales',
     filters: [{ filterId: 'filter-1', label: 'Region', value: ['West'] }],
+    // No charts on the (empty) layout fixture.
+    charts: [],
   });
+});
+
+test('getCurrentDashboard reports charts placed on the dashboard layout', () => {
+  mockState = makeState({
+    sliceEntities: {
+      slices: {
+        42: {
+          slice_name: 'Revenue by Region',
+          viz_type: 'echarts_timeseries_bar',
+          datasource_id: 7,
+          datasource_name: 'cleaned_sales',
+        },
+      },
+    },
+    dashboardLayout: {
+      present: {
+        'CHART-abc': { id: 'CHART-abc', type: 'CHART', meta: { chartId: 42 } },
+        // A chart id with no matching slice entity still appears, with blanks.
+        'CHART-def': { id: 'CHART-def', type: 'CHART', meta: { chartId: 99 } },
+        // Non-chart components are ignored.
+        'TAB-xyz': { id: 'TAB-xyz', type: 'TAB', meta: {} },
+      },
+    },
+  });
+
+  expect(dashboard.getCurrentDashboard()?.charts).toEqual([
+    {
+      chartId: 42,
+      chartName: 'Revenue by Region',
+      vizType: 'echarts_timeseries_bar',
+      datasourceId: 7,
+      datasourceName: 'cleaned_sales',
+      isVisible: true,
+    },
+    {
+      chartId: 99,
+      chartName: '',
+      vizType: '',
+      datasourceId: null,
+      datasourceName: null,
+      isVisible: true,
+    },
+  ]);
 });
 
 test('getCurrentDashboard excludes filters with null value', () => {

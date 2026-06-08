@@ -42,8 +42,10 @@ type ChartContext = exploreApi.ChartContext;
 
 function buildChartContext(): ChartContext | undefined {
   if (navigation.getPageType() !== 'explore') return undefined;
+  // `store.getState()` is already RootState; read the typed `explore` slice
+  // directly rather than casting it away.
   const state = store.getState();
-  const exploreState = (state as any).explore;
+  const exploreState = state.explore;
   if (!exploreState) return undefined;
 
   const { slice, datasource, controls } = exploreState;

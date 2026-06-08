@@ -26,6 +26,7 @@
  */
 
 import type { dashboard as dashboardApi } from '@apache-superset/core';
+import type { DataMaskStateWithId } from '@superset-ui/core';
 import { HYDRATE_DASHBOARD } from 'src/dashboard/actions/hydrate';
 import {
   UPDATE_DATA_MASK,
@@ -33,29 +34,55 @@ import {
 } from 'src/dataMask/actions';
 import { store, RootState } from 'src/views/store';
 import { AnyListenerPredicate } from '@reduxjs/toolkit';
+import getChartIdsFromLayout from 'src/dashboard/util/getChartIdsFromLayout';
 import { createActionListener } from '../utils';
 import { navigation } from '../navigation';
 
 type DashboardContext = dashboardApi.DashboardContext;
 type FilterValue = dashboardApi.FilterValue;
+type ChartSummary = NonNullable<DashboardContext['charts']>[number];
+
+function buildChartSummaries(state: RootState): ChartSummary[] {
+  const slices = state.sliceEntities?.slices ?? {};
+  const layout = state.dashboardLayout?.present ?? {};
+
+  // Only charts actually placed on the dashboard layout — `slices` can also
+  // hold entities that are not on the current dashboard.
+  return getChartIdsFromLayout(layout).map(chartId => {
+    const slice = slices[chartId];
+    return {
+      chartId,
+      chartName: slice?.slice_name ?? '',
+      vizType: slice?.viz_type ?? '',
+      datasourceId: slice?.datasource_id ?? null,
+      datasourceName: slice?.datasource_name ?? null,
+      // Tab-accurate visibility is a deferred phase (SIP §10/§11); every chart
+      // on the dashboard is reported visible for now.
+      isVisible: true,
+    };
+  });
+}
 
 function buildDashboardContext(): DashboardContext | undefined {
   if (navigation.getPageType() !== 'dashboard') return undefined;
+  // `store.getState()` is already typed as RootState, so the slices below are
+  // read with their real types — the host owns this normalization and must
+  // stay type-safe against slice reshapes.
   const state = store.getState();
-  const info = (state as any).dashboardInfo;
+  const info = state.dashboardInfo;
   if (!info?.id) return undefined;
 
-  const nativeFilters = (state as any).nativeFilters?.filters ?? {};
-  const dataMask = (state as any).dataMask ?? {};
+  const nativeFilters = state.nativeFilters?.filters ?? {};
+  const dataMask: DataMaskStateWithId = state.dataMask ?? {};
 
   const filters: FilterValue[] = Object.entries(dataMask)
-    .filter(([id, mask]: [string, any]) => {
+    .filter(([id, mask]) => {
       if (!(id in nativeFilters)) return false;
       const value = mask?.filterState?.value;
       return value !== null && value !== undefined;
     })
-    .map(([id, mask]: [string, any]) => {
-      const raw = mask.filterState.value;
+    .map(([id, mask]) => {
+      const raw = mask.filterState?.value;
       return {
         filterId: id,
         label: nativeFilters[id]?.name ?? id,
@@ -64,9 +91,10 @@ function buildDashboardContext(): DashboardContext | undefined {
     });
 
   return {
-    dashboardId: info.id as number,
+    dashboardId: info.id,
     title: info.dashboard_title ?? info.slug ?? String(info.id),
     filters,
+    charts: buildChartSummaries(state),
   };
 }
 

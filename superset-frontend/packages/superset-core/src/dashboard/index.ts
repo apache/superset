@@ -41,6 +41,28 @@ export interface FilterValue {
 }
 
 /**
+ * Summary of a single chart on the active dashboard.
+ *
+ * Exposes the identity, viz type, datasource, and current visibility of a
+ * chart so extensions can answer both "which charts are visible?" and
+ * "find the chart named X" without additional lookups.
+ */
+export interface ChartSummary {
+  /** Numeric chart (slice) id. */
+  chartId: number;
+  /** Display name of the chart. */
+  chartName: string;
+  /** Visualization type key (e.g. `'echarts_timeseries_bar'`). */
+  vizType: string;
+  /** Datasource id, or `null` when not resolvable. */
+  datasourceId: number | null;
+  /** Datasource name, or `null` when not resolvable. */
+  datasourceName: string | null;
+  /** Whether the chart is currently visible (e.g. on the active tab). */
+  isVisible: boolean;
+}
+
+/**
  * Normalized dashboard context exposed to extensions on the Dashboard page.
  */
 export interface DashboardContext {
@@ -53,6 +75,14 @@ export interface DashboardContext {
    * Only includes filters that have a value applied.
    */
   filters: FilterValue[];
+  /**
+   * Summaries of the dashboard's charts, including per-chart visibility.
+   *
+   * Optional: the contract is declared so extensions can compile against the
+   * stable shape, but population is delivered in a later phase (see
+   * CHATBOT_SIP.md §10/§11). The host returns an empty array until then.
+   */
+  charts?: ChartSummary[];
 }
 
 /**
