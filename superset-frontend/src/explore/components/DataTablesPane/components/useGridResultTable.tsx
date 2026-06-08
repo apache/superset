@@ -17,14 +17,7 @@
  * under the License.
  */
 import { useMemo, useCallback, useRef, useState } from 'react';
-import {
-  getTimeFormatter,
-  safeHtmlSpan,
-  TimeFormats,
-  getMetricLabel,
-  QueryFormMetric,
-} from '@superset-ui/core';
-import { t } from '@apache-superset/core/translation';
+import { getTimeFormatter, safeHtmlSpan, TimeFormats } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import { GenericDataType } from '@apache-superset/core/common';
 import type { IRowNode } from 'ag-grid-community';
