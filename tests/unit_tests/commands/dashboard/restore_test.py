@@ -166,3 +166,36 @@ def test_restore_dashboard_skips_conflict_check_when_no_slug(
     # Conflict check should not be consulted when the dashboard has no slug.
     mock_twin_check.assert_not_called()
     dashboard.restore.assert_called_once()
+
+
+def test_restore_dashboard_runs_conflict_check_for_empty_string_slug(
+    app_context: None,
+) -> None:
+    """An empty-string slug is still subject to the partial unique index, so
+    the conflict check must run — the guard is ``is not None``, not truthiness.
+    """
+    from superset.commands.dashboard.exceptions import DashboardSlugConflictError
+    from superset.commands.dashboard.restore import RestoreDashboardCommand
+
+    dashboard = MagicMock()
+    dashboard.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    dashboard.slug = ""
+    dashboard.id = 42
+
+    with (
+        patch(
+            "superset.daos.dashboard.DashboardDAO.find_by_id", return_value=dashboard
+        ),
+        patch("superset.commands.restore.security_manager") as mock_sec,
+        patch.object(
+            RestoreDashboardCommand, "_has_active_slug_twin", return_value=True
+        ) as mock_twin_check,
+    ):
+        mock_sec.raise_for_ownership.return_value = None
+
+        cmd = RestoreDashboardCommand("1")
+        with pytest.raises(DashboardSlugConflictError):
+            cmd.run()
+
+    # Empty string is a real value the unique index enforces — guard must run.
+    mock_twin_check.assert_called_once()
