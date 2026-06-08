@@ -33,7 +33,6 @@ import BulkTagModal from 'src/features/tags/BulkTagModal';
 import {
   Button,
   Tooltip,
-  Checkbox,
   Icons,
   EmptyState,
   Loading,
@@ -178,21 +177,6 @@ const BulkSelectWrapper = styled(Alert)`
     }
   `}
 `;
-
-const bulkSelectColumnConfig = {
-  Cell: ({ row }: any) => (
-    <Checkbox {...row.getToggleRowSelectedProps()} id={row.id} />
-  ),
-  Header: ({ getToggleAllRowsSelectedProps }: any) => (
-    <Checkbox
-      {...getToggleAllRowsSelectedProps()}
-      id="header-toggle-all"
-      data-test="header-toggle-all"
-    />
-  ),
-  id: 'selection',
-  size: 'sm',
-};
 
 const ViewModeContainer = styled.div`
   ${({ theme }) => `
@@ -378,8 +362,6 @@ export function ListView<T extends object = any>({
     state: { pageIndex, pageSize, internalFilters, sortBy, viewMode },
     query,
   } = useListViewState({
-    bulkSelectColumnConfig,
-    bulkSelectMode: bulkSelectEnabled && Boolean(bulkActions.length),
     columns,
     count,
     data,
@@ -530,6 +512,7 @@ export function ListView<T extends object = any>({
                       {bulkActions.map(action => (
                         <Button
                           data-test="bulk-select-action"
+                          data-test-action-key={action.key}
                           key={action.key}
                           buttonStyle={action.type}
                           cta
