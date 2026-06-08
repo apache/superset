@@ -56,7 +56,6 @@ def test_modify_url_query_adds_list_values_as_repeated_parameters() -> None:
     )
 
     assert (
-        test_url
-        == "http://localhost:9000/explore/?existing=ok"
+        test_url == "http://localhost:9000/explore/?existing=ok"
         "&tag=alpha%20value&tag=beta/value"
     )
