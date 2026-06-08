@@ -163,7 +163,5 @@ test('getActiveChatbot returns undefined when all candidates are disabled', () =
     ),
   );
 
-  expect(
-    getActiveChatbot(null, { 'superset.chatbot': false }),
-  ).toBeUndefined();
+  expect(getActiveChatbot(null, { 'superset.chatbot': false })).toBeUndefined();
 });

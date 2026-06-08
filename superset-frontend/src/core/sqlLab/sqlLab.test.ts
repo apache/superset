@@ -119,6 +119,13 @@ jest.mock('src/views/store', () => ({
   setupStore: jest.fn(),
 }));
 
+// The sqlLab namespace guards `getCurrentTab()` on the page type. These tests
+// exercise the editor surface, so report 'sqllab'. Per-test overrides (e.g. to
+// assert the off-surface guard) can change the return value.
+jest.mock('../navigation', () => ({
+  navigation: { getPageType: jest.fn(() => 'sqllab') },
+}));
+
 // Module under test — imported after mocks
 // eslint-disable-next-line import/first
 import { sqlLab } from '.';
@@ -388,6 +395,31 @@ test('onDidChangeActiveTab fires with Tab on SET_ACTIVE_QUERY_EDITOR', () => {
   disposable.dispose();
 });
 
+test('onDidChangeActiveTab carries the newly-activated tab when switching away', () => {
+  // Switching from the first editor to a second one must report the second tab,
+  // not the first. Regression guard: resolving the tab from the live active
+  // editor (via getCurrentTab) instead of the raw action payload.
+  mockStore.dispatch({
+    type: ADD_QUERY_EDITOR,
+    queryEditor: makeSecondEditor(),
+  });
+
+  const listener = jest.fn();
+  const disposable = sqlLab.onDidChangeActiveTab(listener);
+
+  mockStore.dispatch({
+    type: SET_ACTIVE_QUERY_EDITOR,
+    queryEditor: { id: 'editor-2' },
+  });
+
+  expect(listener).toHaveBeenCalledTimes(1);
+  const tab = listener.mock.calls[0][0];
+  expect(tab.id).toBe('editor-2');
+  expect(tab.databaseId).toBe(2);
+
+  disposable.dispose();
+});
+
 test('onDidCreateTab fires with Tab on ADD_QUERY_EDITOR', () => {
   const listener = jest.fn();
   const disposable = sqlLab.onDidCreateTab(listener);
@@ -533,6 +565,13 @@ test('getCurrentTab returns the active tab with correct properties', () => {
   expect(tab!.title).toBe('Untitled Query 1');
   expect(tab!.databaseId).toBe(1);
   expect(tab!.schema).toBe('public');
+});
+
+test('getCurrentTab returns undefined when not on the SQL Lab editor surface', () => {
+  const { navigation } = jest.requireMock('../navigation');
+  (navigation.getPageType as jest.Mock).mockReturnValueOnce('dashboard');
+
+  expect(sqlLab.getCurrentTab()).toBeUndefined();
 });
 
 test('getActivePanel returns the active south pane tab', () => {
