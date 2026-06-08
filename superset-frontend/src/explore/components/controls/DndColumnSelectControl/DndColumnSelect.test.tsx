@@ -61,7 +61,7 @@ const defaultProps: DndColumnSelectProps = {
 
 test('renders with default props', async () => {
   render(<DndColumnSelect {...defaultProps} />, {
-    useDnd: true,
+    useDndKit: true,
     useRedux: true,
   });
   expect(
@@ -71,7 +71,7 @@ test('renders with default props', async () => {
 
 test('renders with value', async () => {
   render(<DndColumnSelect {...defaultProps} value="Column A" />, {
-    useDnd: true,
+    useDndKit: true,
     useRedux: true,
   });
   expect(await screen.findByText('Column A')).toBeInTheDocument();
@@ -87,7 +87,7 @@ test('renders adhoc column', async () => {
         expressionType: 'SQL',
       }}
     />,
-    { useDnd: true, useRedux: true },
+    { useDndKit: true, useRedux: true },
   );
   expect(await screen.findByText('adhoc column')).toBeVisible();
   expect(screen.getByLabelText('calculator')).toBeVisible();
@@ -110,7 +110,7 @@ test('warn selected custom metric when metric gets removed from dataset', async 
       value={columnValues}
     />,
     {
-      useDnd: true,
+      useDndKit: true,
       useRedux: true,
     },
   );
@@ -167,7 +167,7 @@ test('should allow selecting columns via click interface', async () => {
   });
 
   render(<DndColumnSelect {...props} />, {
-    useDnd: true,
+    useDndKit: true,
     store,
   });
 
@@ -200,7 +200,7 @@ test('should display selected column values correctly', async () => {
   });
 
   render(<DndColumnSelect {...props} />, {
-    useDnd: true,
+    useDndKit: true,
     store,
   });
 
@@ -233,7 +233,7 @@ test('should handle multiple column selections for groupby', async () => {
   });
 
   render(<DndColumnSelect {...props} />, {
-    useDnd: true,
+    useDndKit: true,
     store,
   });
 
@@ -269,7 +269,7 @@ test('should support adhoc column creation workflow', async () => {
   });
 
   render(<DndColumnSelect {...props} />, {
-    useDnd: true,
+    useDndKit: true,
     store,
   });
 
@@ -299,7 +299,7 @@ test('should verify onChange callback integration (core regression protection)',
   };
 
   const { rerender } = render(<DndColumnSelect {...props} />, {
-    useDnd: true,
+    useDndKit: true,
     useRedux: true,
   });
 
@@ -334,7 +334,7 @@ test('should render column selection interface elements', async () => {
   };
 
   render(<DndColumnSelect {...props} />, {
-    useDnd: true,
+    useDndKit: true,
     useRedux: true,
   });
 
@@ -374,7 +374,7 @@ test('should complete full column selection workflow like original Cypress test'
   });
 
   const { rerender } = render(<DndColumnSelect {...props} />, {
-    useDnd: true,
+    useDndKit: true,
     store,
   });
 
@@ -450,7 +450,7 @@ test('should create adhoc column via Custom SQL tab workflow', async () => {
   });
 
   render(<DndColumnSelect {...props} />, {
-    useDnd: true,
+    useDndKit: true,
     store,
   });
 

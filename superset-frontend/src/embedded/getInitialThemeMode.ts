@@ -16,28 +16,20 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, ReactNode } from 'react';
-import { styled } from '@apache-superset/core/theme';
-import {
-  ExploreDndContextProvider,
-  DraggingContext,
-  DropzoneContext,
-} from './ExploreDndContext';
+import { ThemeMode } from '@apache-superset/core/theme';
 
-// Re-export contexts for backward compatibility
-export { DraggingContext, DropzoneContext };
-
-const StyledDiv = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  min-height: 0;
-`;
-
-const ExploreContainer: FC<{ children?: ReactNode }> = ({ children }) => (
-  <ExploreDndContextProvider>
-    <StyledDiv>{children}</StyledDiv>
-  </ExploreDndContextProvider>
-);
-
-export default ExploreContainer;
+/**
+ * Reads the `?themeMode=` URL parameter from the iframe URL and returns
+ * the corresponding ThemeMode. Falls back to ThemeMode.DEFAULT when the
+ * param is absent or unrecognised.
+ *
+ * Host apps set this via `dashboardUiConfig.urlParams.themeMode` in the
+ * embed SDK, which forwards it to the iframe URL automatically.
+ */
+export function getInitialThemeMode(): ThemeMode {
+  const params = new URLSearchParams(window.location.search);
+  const themeMode = params.get('themeMode');
+  if (themeMode === 'dark') return ThemeMode.DARK;
+  if (themeMode === 'system') return ThemeMode.SYSTEM;
+  return ThemeMode.DEFAULT;
+}
