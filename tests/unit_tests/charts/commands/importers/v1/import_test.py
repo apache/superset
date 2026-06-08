@@ -18,7 +18,7 @@
 
 import copy
 from collections.abc import Generator
-from datetime import datetime
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 import pytest
@@ -288,6 +288,22 @@ def test_import_existing_chart_with_permission(
     mock_can_access_chart.assert_called_once_with(slice)
 
 
+def _soft_delete_existing_chart(session: Session) -> int:
+    """Soft-delete the seeded chart (by fixture UUID) and return its original id.
+
+    Shared setup for the soft-delete import tests: locate the chart, stamp
+    ``deleted_at``, flush, and return the id so callers can assert the restore
+    happened in place (same id).
+    """
+    existing = (
+        session.query(Slice).filter(Slice.uuid == chart_config["uuid"]).one_or_none()
+    )
+    assert existing is not None
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    session.flush()
+    return existing.id
+
+
 def test_import_soft_deleted_chart_overwrite_restores_in_place(
     mocker: MockerFixture,
     session_with_data: Session,
@@ -300,15 +316,7 @@ def test_import_soft_deleted_chart_overwrite_restores_in_place(
     mocker.patch.object(security_manager, "can_access", return_value=True)
     mocker.patch.object(security_manager, "can_access_chart", return_value=True)
 
-    existing = (
-        session_with_data.query(Slice)
-        .filter(Slice.uuid == chart_config["uuid"])
-        .one_or_none()
-    )
-    assert existing is not None
-    original_id = existing.id
-    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
-    session_with_data.flush()
+    original_id = _soft_delete_existing_chart(session_with_data)
 
     admin = User(
         first_name="Alice",
@@ -339,15 +347,7 @@ def test_import_soft_deleted_chart_ignore_permissions_restores_in_place(
     fallthrough overwrite path so the example loader can re-import over
     a soft-deleted match without colliding on the UUID unique index.
     """
-    existing = (
-        session_with_data.query(Slice)
-        .filter(Slice.uuid == chart_config["uuid"])
-        .one_or_none()
-    )
-    assert existing is not None
-    original_id = existing.id
-    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
-    session_with_data.flush()
+    original_id = _soft_delete_existing_chart(session_with_data)
 
     config = copy.deepcopy(chart_config)
     config["datasource_id"] = 1
@@ -372,15 +372,7 @@ def test_import_soft_deleted_chart_non_overwrite_restores_for_owner(
     mocker.patch.object(security_manager, "can_access", return_value=True)
     mocker.patch.object(security_manager, "can_access_chart", return_value=True)
 
-    existing = (
-        session_with_data.query(Slice)
-        .filter(Slice.uuid == chart_config["uuid"])
-        .one_or_none()
-    )
-    assert existing is not None
-    original_id = existing.id
-    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
-    session_with_data.flush()
+    original_id = _soft_delete_existing_chart(session_with_data)
 
     admin = User(
         first_name="Alice",
@@ -413,14 +405,7 @@ def test_import_soft_deleted_chart_non_overwrite_raises_for_non_owner(
     mocker.patch.object(security_manager, "can_access", return_value=True)
     mocker.patch.object(security_manager, "can_access_chart", return_value=True)
 
-    existing = (
-        session_with_data.query(Slice)
-        .filter(Slice.uuid == chart_config["uuid"])
-        .one_or_none()
-    )
-    assert existing is not None
-    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
-    session_with_data.flush()
+    _soft_delete_existing_chart(session_with_data)
 
     non_owner = User(
         first_name="Bob",
@@ -452,14 +437,7 @@ def test_import_soft_deleted_chart_raises_when_caller_lacks_can_write(
     """
     mocker.patch.object(security_manager, "can_access", return_value=False)
 
-    existing = (
-        session_with_data.query(Slice)
-        .filter(Slice.uuid == chart_config["uuid"])
-        .one_or_none()
-    )
-    assert existing is not None
-    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
-    session_with_data.flush()
+    _soft_delete_existing_chart(session_with_data)
 
     with pytest.raises(ImportFailedError) as excinfo:
         import_chart(chart_config, overwrite=False)
