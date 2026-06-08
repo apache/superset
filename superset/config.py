@@ -168,6 +168,16 @@ NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
 
+# Upper bound on the number of time-shift comparisons a single chart may request.
+# Each comparison spawns an additional query, so this caps the work amplification
+# from a single chart request while still allowing generous normal use.
+VIZ_TIME_COMPARE_MAX = 50
+
+# Upper bound on the number of sub-slices a deck.gl multi-layer chart may
+# aggregate. Each sub-slice issues its own query, so this caps the work
+# amplification from a single multi-layer request.
+DECK_MULTI_MAX_SLICES = 50
+
 # SupersetClient HTTP retry configuration
 # Controls retry behavior for all HTTP requests made through SupersetClient
 # This helps handle transient server errors (like 502 Bad Gateway) automatically
