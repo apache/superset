@@ -26,12 +26,10 @@ afterEach(() => {
 });
 
 test('returns ThemeMode.DARK when ?themeMode=dark', () => {
-  locationSpy = jest
-    .spyOn(window, 'location', 'get')
-    .mockReturnValue({
-      ...window.location,
-      search: '?themeMode=dark',
-    } as Location);
+  locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '?themeMode=dark',
+  } as Location);
   expect(getInitialThemeMode()).toBe(ThemeMode.DARK);
 });
 
@@ -52,9 +50,10 @@ test('returns ThemeMode.DEFAULT when ?themeMode=light', () => {
 });
 
 test('returns ThemeMode.DEFAULT when no themeMode param', () => {
-  locationSpy = jest
-    .spyOn(window, 'location', 'get')
-    .mockReturnValue({ ...window.location, search: '' } as Location);
+  locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    search: '',
+  } as Location);
   expect(getInitialThemeMode()).toBe(ThemeMode.DEFAULT);
 });
 
