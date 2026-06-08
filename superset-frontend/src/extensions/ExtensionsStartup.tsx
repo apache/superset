@@ -16,47 +16,65 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
-// eslint-disable-next-line no-restricted-syntax
-import * as supersetCore from '@apache-superset/core';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { logging } from '@apache-superset/core/utils';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
   authentication,
   core,
   commands,
+  dashboard,
+  dataset,
   editors,
+  explore,
   extensions,
   menus,
+  navigation,
   sqlLab,
   views,
 } from 'src/core';
+import { notifyPageChange } from 'src/core/navigation';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/views/store';
 import ExtensionsLoader from './ExtensionsLoader';
-
-declare global {
-  interface Window {
-    superset: {
-      authentication: typeof authentication;
-      core: typeof core;
-      commands: typeof commands;
-      editors: typeof editors;
-      extensions: typeof extensions;
-      menus: typeof menus;
-      sqlLab: typeof sqlLab;
-      views: typeof views;
-    };
-  }
-}
+// Side-effect import: brings the `window.superset` global augmentation into scope.
+import 'src/extensions/supersetGlobal';
 
 const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
   children,
 }) => {
   const [initialized, setInitialized] = useState(false);
+  const location = useLocation();
+  const prevPathname = useRef<string | null>(null);
 
   const userId = useSelector<RootState, number | undefined>(
     ({ user }) => user.userId,
   );
+
+  // Notify the navigation namespace on every route change.
+  useEffect(() => {
+    if (prevPathname.current !== location.pathname) {
+      prevPathname.current = location.pathname;
+      notifyPageChange(location.pathname);
+    }
+  }, [location.pathname]);
+
+  // Log unhandled rejections that may originate from extension code.
+  // Registered once for the lifetime of the app; does not suppress the
+  // browser's default error surfacing so host error reporting is unaffected.
+  useEffect(() => {
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      logging.error('[extensions] Unhandled rejection:', event.reason);
+    };
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+    return () => {
+      window.removeEventListener(
+        'unhandledrejection',
+        handleUnhandledRejection,
+      );
+    };
+  }, []);
 
   useEffect(() => {
     if (initialized) return;
@@ -67,27 +85,33 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       return;
     }
 
-    // Provide the implementations for @apache-superset/core
+    // Provide the implementations for @apache-superset/core.
+    // Namespaces are listed explicitly — do not spread the core package here,
+    // as that would leak un-contracted symbols onto window.superset.
     window.superset = {
-      ...supersetCore,
       authentication,
       core,
       commands,
+      dashboard,
+      dataset,
       editors,
+      explore,
       extensions,
       menus,
+      navigation,
       sqlLab,
       views,
     };
 
-    const setup = async () => {
-      if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
-        await ExtensionsLoader.getInstance().initializeExtensions();
-      }
-      setInitialized(true);
-    };
+    // Render the host immediately; extension bundles load in the background.
+    // ChatbotMount re-resolves reactively once the chatbot extension registers
+    // (via subscribeToRegistry / getRegistryVersion), so the bubble appears
+    // without blocking the UI.
+    setInitialized(true);
 
-    setup();
+    if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+      ExtensionsLoader.getInstance().initializeExtensions();
+    }
   }, [initialized, userId]);
 
   if (!initialized) {
