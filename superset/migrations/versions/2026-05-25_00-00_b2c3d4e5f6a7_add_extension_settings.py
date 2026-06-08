@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Add extension_settings and extension_enabled tables.
+"""Add extension_settings table for chatbot admin selection and enable/disable.
 
 Revision ID: b2c3d4e5f6a7
 Revises: 33d7e0e21daa
@@ -38,7 +38,7 @@ def upgrade() -> None:
     op.create_table(
         "extension_enabled",
         sa.Column("extension_id", sa.String(250), primary_key=True),
-        sa.Column("enabled", sa.Boolean(), nullable=False, server_default=sa.true()),
+        sa.Column("enabled", sa.Boolean(), nullable=False, server_default="1"),
     )
 
 
