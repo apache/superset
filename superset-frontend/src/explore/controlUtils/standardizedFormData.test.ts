@@ -344,6 +344,47 @@ describe('should collect control values and create SFD', () => {
     ]);
   });
 
+  test('strips inherit/custom time shifts when target viz does not support them', () => {
+    // Table/Big Number period-over-period offer "inherit" and "custom" time
+    // shifts; the timeseries advanced-analytics target (target_viz) does not.
+    // Carrying them over leaves un-removable tags on the new chart (SC-99170).
+    const store = {
+      ...sourceMockStore,
+      form_data: {
+        ...sourceMockFormData,
+        time_compare: ['1 year ago', 'inherit', 'custom'],
+      },
+    };
+    const sfd = new StandardizedFormData(store.form_data);
+    const { formData } = sfd.transform('target_viz', store);
+    // the free-form delta survives, the special markers are dropped
+    expect(formData.time_compare).toEqual(['1 year ago']);
+  });
+
+  test('preserves inherit/custom time shifts when target viz supports them', () => {
+    getChartControlPanelRegistry().registerValue('target_viz_inherit', {
+      controlPanelSections: [
+        sections.timeComparisonControls({}),
+        {
+          label: 'transform controls',
+          controlSetRows: publicControls
+            .filter(c => c !== 'dashboardId' && c !== 'time_compare')
+            .map(control => [control]),
+        },
+      ],
+    });
+    const store = {
+      ...sourceMockStore,
+      form_data: {
+        ...sourceMockFormData,
+        time_compare: ['1 year ago', 'inherit'],
+      },
+    };
+    const sfd = new StandardizedFormData(store.form_data);
+    const { formData } = sfd.transform('target_viz_inherit', store);
+    expect(formData.time_compare).toEqual(['1 year ago', 'inherit']);
+  });
+
   test('should inherit standardizedFormData and memorizedFormData is LIFO', () => {
     // from source_viz to target_viz
     const sfd = new StandardizedFormData(sourceMockFormData);
