@@ -96,15 +96,15 @@ export const statsd = new StatsD({
 
 // enforce JWT secret length
 if (startServer && opts.jwtSecret.length < 32) {
-  console.error('ERROR: Please provide a JWT secret at least 32 bytes long');
+  logger.error('Please provide a JWT secret at least 32 bytes long');
   process.exit(1);
 }
 
 if (startServer && opts.jwtSecret.startsWith('CHANGE-ME')) {
-  console.warn(
-    'WARNING: it appears your secret in your config.json is insecure',
+  logger.warn(
+    'It appears your secret in your config.json is insecure. ' +
+      'DO NOT USE IN PRODUCTION',
   );
-  console.warn('DO NOT USE IN PRODUCTION');
 }
 
 export const buildRedisOpts = (baseConfig: RedisConfig) => {
@@ -140,6 +140,9 @@ export const buildRedisOpts = (baseConfig: RedisConfig) => {
 
 // initialize servers
 const redis = new Redis(buildRedisOpts(opts.redis));
+redis.on('error', (err: Error) => {
+  logger.error(`Redis connection error: ${err.message}`);
+});
 const httpServer = http.createServer();
 export const wss = new WebSocketServer({
   noServer: true,
@@ -267,7 +270,9 @@ export const subscribeToGlobalStream = async (
  * Callback function to process events received from a Redis Stream
  */
 export const processStreamResults = (results: StreamResult[]): void => {
-  logger.debug(`events received: ${results}`);
+  // Log only the batch size, not the raw payloads, which carry user and
+  // job identifiers.
+  logger.debug(`events received: count=${results.length}`);
   results.forEach(item => {
     try {
       const id = item[0];
@@ -437,8 +442,14 @@ export const httpUpgrade = (
   try {
     readChannelId(request);
   } catch (err) {
-    // JWT invalid, do not establish a WebSocket connection
-    logger.error(err);
+    // Token invalid/absent: do not establish a WebSocket connection. Record a
+    // structured warning (with the request's remote address) so rejected
+    // upgrade attempts are auditable, without logging the token itself.
+    statsd.increment('ws_upgrade_rejected');
+    logger.warn(
+      `Rejected WebSocket upgrade from ${request.socket.remoteAddress ?? 'unknown'}: ` +
+        `${(err as Error).message}`,
+    );
     socket.destroy();
     return;
   }
@@ -513,9 +524,21 @@ export const cleanChannel = (channel: string) => {
 // server startup
 
 if (startServer) {
+  // Last-resort handlers so an unhandled async error is recorded through the
+  // configured logger instead of printing a default trace (or, for an
+  // unhandled rejection, terminating the process on newer Node versions).
+  process.on('unhandledRejection', (reason: unknown) => {
+    logger.error(`Unhandled promise rejection: ${reason}`);
+  });
+  process.on('uncaughtException', (err: Error) => {
+    logger.error(`Uncaught exception: ${err.stack ?? err.message}`);
+  });
+
   // init server event listeners
   wss.on('connection', function (ws: WebSocket) {
-    ws.on('error', console.error);
+    ws.on('error', (err: Error) =>
+      logger.error(`socket error: ${err.message}`),
+    );
   });
   wss.on('connection', wsConnection);
   httpServer.on('request', httpRequest);
