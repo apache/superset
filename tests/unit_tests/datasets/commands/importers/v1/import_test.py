@@ -1267,6 +1267,86 @@ def test_import_soft_deleted_dataset_raises_when_caller_lacks_can_write(
     )
 
 
+def test_import_existing_active_dataset_overwrite_without_can_write_returns_existing(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    An *active* (not soft-deleted) dataset re-imported with overwrite=True by a
+    caller without can_write must fall through to returning the existing row,
+    not raise the restore error. Case B is keyed on ``is_soft_deleted``, so the
+    fused ``needs_mutation`` condition must not pull active rows into the
+    restore-without-permission branch (pre-soft-delete overwrite behaviour).
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    existing = SqlaTable(
+        table_name=config["table_name"],
+        schema=config.get("schema"),
+        catalog=config.get("catalog"),
+        database_id=database.id,
+        uuid=config["uuid"],
+    )
+    db.session.add(existing)
+    db.session.flush()
+    assert existing.deleted_at is None
+
+    result = import_dataset(config, overwrite=True)
+
+    assert result.id == existing.id
+    assert result.deleted_at is None
+
+
+def test_import_blocked_by_soft_deleted_logical_duplicate_with_new_uuid(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Importing a dataset with a fresh UUID but the same physical table as a
+    soft-deleted dataset must raise. ``import_from_dict`` can't see the hidden
+    row (the visibility filter hides soft-deleted rows), so creating would
+    produce an active twin of a soft-deleted dataset. This mirrors the REST
+    create path's ``validate_uniqueness`` block.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+
+    # A soft-deleted dataset with a DIFFERENT UUID but the same physical table.
+    twin = SqlaTable(
+        table_name=config["table_name"],
+        schema=config.get("schema"),
+        catalog=config.get("catalog"),
+        database_id=database.id,
+        uuid="ffffffff-ffff-ffff-ffff-ffffffffffff",
+        deleted_at=datetime(2026, 1, 1, 12, 0, 0),
+    )
+    db.session.add(twin)
+    db.session.flush()
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_dataset(config)
+    assert "same physical table" in str(excinfo.value)
+
+
 def test_import_soft_deleted_dataset_restore_removes_orphan_children(
     mocker: MockerFixture,
     session: Session,

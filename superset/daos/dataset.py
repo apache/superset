@@ -156,6 +156,31 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             return False
 
     @staticmethod
+    def _catalog_identity_filter(
+        catalog: str | None,
+        default_catalog: str | None,
+    ) -> Any:
+        """Null-aware catalog predicate for physical-identity matching.
+
+        A row stored with ``catalog = NULL`` is semantically the database's
+        default catalog (older datasets were created before the catalog column
+        existed, and multi-catalog-disabled databases never set it). So when the
+        normalized probe catalog resolves to the default, ``catalog = NULL`` rows
+        must also match — otherwise create/update/restore/import disagree on what
+        counts as the same physical table and let a default-catalog twin slip
+        through.
+
+        - probe is the default catalog  → match ``= default`` OR ``IS NULL``
+        - probe is ``None`` (no catalog support) → match ``IS NULL``
+        - probe is a non-default catalog → match ``= probe`` exactly
+        """
+        if catalog is not None and catalog == default_catalog:
+            return or_(SqlaTable.catalog == catalog, SqlaTable.catalog.is_(None))
+        if catalog is None:
+            return SqlaTable.catalog.is_(None)
+        return SqlaTable.catalog == catalog
+
+    @staticmethod
     def validate_uniqueness(
         database: Database,
         table: Table,
@@ -163,7 +188,8 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     ) -> bool:
         # The catalog might not be set even if the database supports catalogs, in case
         # multi-catalog is disabled.
-        catalog = table.catalog or database.get_default_catalog()
+        default_catalog = database.get_default_catalog()
+        catalog = table.catalog or default_catalog
 
         # Bypass the soft-delete visibility filter so a soft-deleted row with
         # the same physical identity still blocks the create. Otherwise a
@@ -192,7 +218,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             dataset_query = db.session.query(SqlaTable).filter(
                 SqlaTable.table_name == table.table,
                 SqlaTable.schema == table.schema,
-                SqlaTable.catalog == catalog,
+                DatasetDAO._catalog_identity_filter(catalog, default_catalog),
                 SqlaTable.database_id == database.id,
             )
 
@@ -210,7 +236,8 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     ) -> bool:
         # The catalog might not be set even if the database supports catalogs, in case
         # multi-catalog is disabled.
-        catalog = table.catalog or database.get_default_catalog()
+        default_catalog = database.get_default_catalog()
+        catalog = table.catalog or default_catalog
 
         # Same rationale as ``validate_uniqueness`` above: a soft-deleted
         # twin must block the update rather than being silently ignored.
@@ -230,7 +257,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 SqlaTable.table_name == table.table,
                 SqlaTable.database_id == database.id,
                 SqlaTable.schema == table.schema,
-                SqlaTable.catalog == catalog,
+                DatasetDAO._catalog_identity_filter(catalog, default_catalog),
                 SqlaTable.id != dataset_id,
             )
             return not db.session.query(dataset_query.exists()).scalar()
@@ -243,12 +270,11 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         ``model``'s catalog is normalized to the database default when unset —
         the same rule ``validate_uniqueness``/``validate_update_uniqueness``
         apply — so create, update, restore, and re-import agree on what counts
-        as the same physical table. The normalization is one-sided (the probe
-        is normalized; the stored ``catalog`` column is compared as-is), matching
-        the sibling uniqueness checks: a row stored with ``catalog = NULL`` is
-        caught against an active twin stored with the default catalog, but the
-        symmetric stored-NULL case is not. Closing that is a separate change to
-        all three methods.
+        as the same physical table. Catalog matching is null-aware via
+        ``_catalog_identity_filter``: when the normalized catalog is the database
+        default, both ``catalog = default`` and ``catalog IS NULL`` rows match,
+        so a default-catalog twin is caught whichever way either row stored its
+        catalog.
 
         Unlike ``validate_uniqueness``, this does NOT use
         ``skip_visibility_filter``: it relies on the ``SoftDeleteMixin`` listener
@@ -262,12 +288,13 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         """
         # The catalog might not be set even if the database supports catalogs,
         # in case multi-catalog is disabled.
-        catalog = model.catalog or model.database.get_default_catalog()
+        default_catalog = model.database.get_default_catalog()
+        catalog = model.catalog or default_catalog
         return (
             db.session.query(SqlaTable.id)
             .filter(
                 SqlaTable.database_id == model.database_id,
-                SqlaTable.catalog == catalog,
+                DatasetDAO._catalog_identity_filter(catalog, default_catalog),
                 SqlaTable.schema == model.schema,
                 SqlaTable.table_name == model.table_name,
                 SqlaTable.id != model.id,
@@ -275,6 +302,45 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             .first()
             is not None
         )
+
+    @staticmethod
+    def find_soft_deleted_logical_duplicate(
+        database: Database,
+        table: Table,
+    ) -> SqlaTable | None:
+        """Return a *soft-deleted* dataset sharing table's physical identity.
+
+        Used by the YAML importer's create path: ``import_from_dict`` can't see
+        soft-deleted rows (the visibility filter hides them), so importing a
+        dataset with a fresh UUID but the same physical table as a soft-deleted
+        dataset would create an active twin of a hidden row. This bypasses the
+        visibility filter (``skip_visibility_filter``) and restricts to
+        ``deleted_at IS NOT NULL`` so the caller can block the import and direct
+        the user to restore the existing dataset instead. Catalog matching is
+        null-aware via ``_catalog_identity_filter`` so a default-catalog twin is
+        caught however either row stored its catalog.
+        """
+        # avoid app-init regression: see ``validate_uniqueness`` — a module-top
+        # import of ``skip_visibility_filter`` eagerly loads model classes that
+        # raise "App not initialized yet" outside an app context (PR #40573).
+        from superset.models.helpers import (  # pylint: disable=import-outside-toplevel
+            skip_visibility_filter,
+        )
+
+        default_catalog = database.get_default_catalog()
+        catalog = table.catalog or default_catalog
+        with skip_visibility_filter(db.session, SqlaTable):
+            return (
+                db.session.query(SqlaTable)
+                .filter(
+                    SqlaTable.database_id == database.id,
+                    DatasetDAO._catalog_identity_filter(catalog, default_catalog),
+                    SqlaTable.schema == table.schema,
+                    SqlaTable.table_name == table.table,
+                    SqlaTable.deleted_at.is_not(None),
+                )
+                .first()
+            )
 
     @staticmethod
     def validate_columns_exist(dataset_id: int, columns_ids: list[int]) -> bool:

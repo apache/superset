@@ -61,6 +61,28 @@ class DeleteDatabaseCommand(BaseCommand):
                     report_names=",".join(report_names),
                 )
             )
-        # Check if there are datasets for this database
-        if self._model.tables:
+        # Check if there are datasets for this database. ``self._model.tables``
+        # would now hide soft-deleted datasets (``SqlaTable`` inherits
+        # ``SoftDeleteMixin``, so the relationship lazy-load applies the
+        # visibility filter), letting a database whose datasets are all
+        # soft-deleted look empty and be hard-deleted while ``tables.database_id``
+        # rows still reference it. Count with the visibility filter bypassed so
+        # soft-deleted datasets still block the delete.
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+        from superset.extensions import (  # pylint: disable=import-outside-toplevel
+            db,
+        )
+        from superset.models.helpers import (  # pylint: disable=import-outside-toplevel
+            skip_visibility_filter,
+        )
+
+        with skip_visibility_filter(db.session, SqlaTable):
+            has_datasets = db.session.query(
+                db.session.query(SqlaTable.id)
+                .filter(SqlaTable.database_id == self._model_id)
+                .exists()
+            ).scalar()
+        if has_datasets:
             raise DatabaseDeleteDatasetsExistFailedError()

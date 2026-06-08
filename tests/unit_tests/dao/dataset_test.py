@@ -87,6 +87,99 @@ def test_validate_update_uniqueness(session: Session) -> None:
     )
 
 
+def test_logical_duplicate_catalog_predicate_is_null_aware(session: Session) -> None:
+    """A row stored with ``catalog = NULL`` is the default catalog, so a probe
+    normalized to the database default must still match it.
+
+    Before the null-aware predicate the stored ``catalog`` was compared as-is,
+    so a ``catalog = NULL`` row and a ``catalog = <default>`` probe were treated
+    as different physical tables and a default-catalog twin slipped through.
+    """
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    database = Database(database_name="cat_db", sqlalchemy_uri="sqlite://")
+    stored_null = SqlaTable(
+        table_name="t", schema="main", catalog=None, database=database
+    )
+    db.session.add_all([database, stored_null])
+    db.session.flush()
+
+    # Pretend the database exposes a non-NULL default catalog so the probe
+    # normalizes to it; the NULL-stored row must still be recognized as a twin.
+    with patch.object(Database, "get_default_catalog", return_value="default_cat"):
+        probe = SqlaTable(
+            table_name="t", schema="main", catalog="default_cat", database=database
+        )
+        db.session.add(probe)
+        db.session.flush()
+        assert DatasetDAO.has_active_logical_duplicate(probe) is True
+
+        # A genuinely different (non-default) catalog is not a twin.
+        other = SqlaTable(
+            table_name="t", schema="main", catalog="other_cat", database=database
+        )
+        db.session.add(other)
+        db.session.flush()
+        assert DatasetDAO.has_active_logical_duplicate(other) is False
+
+
+def test_find_soft_deleted_logical_duplicate(session: Session) -> None:
+    """The importer create-path helper returns a soft-deleted twin (despite the
+    visibility filter) and ignores active rows."""
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    database = Database(database_name="sd_db", sqlalchemy_uri="sqlite://")
+    twin = SqlaTable(table_name="t", schema="main", database=database)
+    db.session.add_all([database, twin])
+    db.session.flush()
+
+    table = Table("t", "main")
+
+    # Active row: not a soft-deleted twin.
+    assert DatasetDAO.find_soft_deleted_logical_duplicate(database, table) is None
+
+    # Soft-delete it: now found despite the visibility filter.
+    twin.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+    db.session.flush()
+    found = DatasetDAO.find_soft_deleted_logical_duplicate(database, table)
+    assert found is not None
+    assert found.id == twin.id
+
+    # Catalog mismatch: a soft-deleted row in a *different* (non-default)
+    # catalog is not the same physical table, so the null-aware predicate must
+    # exclude it. (sqlite has no default catalog, so an explicit "other_cat"
+    # row must only match an "other_cat" probe.)
+    other_catalog_twin = SqlaTable(
+        table_name="t2",
+        schema="main",
+        catalog="other_cat",
+        database=database,
+        deleted_at=datetime(2026, 1, 1, 12, 0, 0),
+    )
+    db.session.add(other_catalog_twin)
+    db.session.flush()
+    assert (
+        DatasetDAO.find_soft_deleted_logical_duplicate(
+            database, Table("t2", "main", "my_cat")
+        )
+        is None
+    )
+    # Same explicit catalog: found.
+    same_catalog = DatasetDAO.find_soft_deleted_logical_duplicate(
+        database, Table("t2", "main", "other_cat")
+    )
+    assert same_catalog is not None
+    assert same_catalog.id == other_catalog_twin.id
+
+
 @freeze_time("2025-01-01 00:00:00")
 @patch.object(DatasetDAO, "update_columns")
 @patch.object(DatasetDAO, "update_metrics")
@@ -215,7 +308,10 @@ def test_has_active_logical_duplicate_normalizes_unset_catalog(
 def test_has_active_logical_duplicate_keeps_explicit_catalog(
     app_context: None,
 ) -> None:
-    """When the row carries an explicit catalog, the default is not consulted."""
+    """An explicit catalog is matched exactly, but the database default is still
+    consulted: the null-aware predicate needs it to decide whether the explicit
+    catalog *is* the default (and should therefore also match ``catalog IS
+    NULL`` rows)."""
     model = _mock_dataset(catalog="explicit_cat", default_catalog="default_cat")
 
     with patch("superset.daos.dataset.db") as mock_db:
@@ -223,7 +319,7 @@ def test_has_active_logical_duplicate_keeps_explicit_catalog(
 
         assert DatasetDAO.has_active_logical_duplicate(model) is False
 
-    model.database.get_default_catalog.assert_not_called()
+    model.database.get_default_catalog.assert_called_once()
 
 
 def test_has_active_logical_duplicate_true_when_twin_found(

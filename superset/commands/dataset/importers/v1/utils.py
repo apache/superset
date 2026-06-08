@@ -258,11 +258,17 @@ def import_dataset(  # noqa: C901
                     "permissions to "
                     f"{'restore' if is_soft_deleted else 'overwrite'} it"
                 )
-        if needs_mutation and not can_write:
+        if is_soft_deleted and not can_write:
             # Case B: would-be restore-via-import without write permission.
             # Raise rather than silently returning the soft-deleted row,
             # which would let callers reattach charts to a deleted dataset
             # and produce broken charts.
+            #
+            # Keyed on ``is_soft_deleted`` rather than ``needs_mutation``: an
+            # *active* row imported with overwrite=True but no can_write is not
+            # a restore, so it must fall through to ``return existing`` below
+            # (the pre-soft-delete overwrite-without-permission behaviour)
+            # instead of raising the restore error.
             raise ImportFailedError(
                 "Dataset was deleted and re-import requires can_write "
                 "permission to restore it"
@@ -319,6 +325,26 @@ def import_dataset(  # noqa: C901
         raise ImportFailedError(
             "Dataset doesn't exist and user doesn't have permission to create datasets"
         )
+    else:
+        # Creating a brand-new dataset (no UUID match). A soft-deleted dataset
+        # may still claim this physical table; ``import_from_dict`` cannot see it
+        # (the visibility filter hides soft-deleted rows), so without this guard
+        # the import would create an active twin of a hidden dataset. The REST
+        # create path blocks the same collision via ``validate_uniqueness`` —
+        # mirror it here and direct the user to restore the existing dataset
+        # instead of leaving two rows for one physical table.
+        database = (
+            db.session.query(Database).filter_by(id=config["database_id"]).first()
+        )
+        if database is not None and DatasetDAO.find_soft_deleted_logical_duplicate(
+            database,
+            Table(config["table_name"], config.get("schema"), config.get("catalog")),
+        ):
+            raise ImportFailedError(
+                "Dataset cannot be imported because a soft-deleted dataset "
+                "already references the same physical table; restore that "
+                "dataset instead of importing a duplicate"
+            )
 
     # Trusted imports (e.g. example loading) carry curated configs; only
     # untrusted user imports validate the catalog, like the access checks below.
