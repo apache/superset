@@ -18,6 +18,7 @@
  */
 import * as http from 'http';
 import * as net from 'net';
+import { inspect } from 'util';
 import WebSocket, { WebSocketServer } from 'ws';
 import { randomUUID } from 'crypto';
 import jwt, { Algorithm } from 'jsonwebtoken';
@@ -528,10 +529,17 @@ if (startServer) {
   // configured logger instead of printing a default trace (or, for an
   // unhandled rejection, terminating the process on newer Node versions).
   process.on('unhandledRejection', (reason: unknown) => {
-    logger.error(`Unhandled promise rejection: ${reason}`);
+    // Normalize the reason defensively: a raw template interpolation throws on
+    // a Symbol (or other exotic value), which would crash this last-resort
+    // handler. `inspect` safely stringifies any value.
+    logger.error(`Unhandled promise rejection: ${inspect(reason)}`);
   });
-  process.on('uncaughtException', (err: Error) => {
-    logger.error(`Uncaught exception: ${err.stack ?? err.message}`);
+  process.on('uncaughtException', (err: unknown) => {
+    // JavaScript can throw non-Error values (including null), so guard the
+    // shape before dereferencing instead of assuming an Error is present.
+    const detail =
+      err instanceof Error ? (err.stack ?? err.message) : inspect(err);
+    logger.error(`Uncaught exception: ${detail}`);
   });
 
   // init server event listeners
