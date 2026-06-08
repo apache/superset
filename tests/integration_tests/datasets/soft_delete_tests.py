@@ -77,7 +77,8 @@ class TestDatasetSoftDelete(SupersetTestCase):
         self.login(ADMIN_USERNAME)
 
         try:
-            self.client.delete(f"/api/v1/dataset/{dataset_id}")
+            rv = self.client.delete(f"/api/v1/dataset/{dataset_id}")
+            assert rv.status_code == 200
 
             rv = self.client.get("/api/v1/dataset/")
             data = json.loads(rv.data)
@@ -92,7 +93,8 @@ class TestDatasetSoftDelete(SupersetTestCase):
         self.login(ADMIN_USERNAME)
 
         try:
-            self.client.delete(f"/api/v1/dataset/{dataset_id}")
+            rv = self.client.delete(f"/api/v1/dataset/{dataset_id}")
+            assert rv.status_code == 200
 
             rison_query = (
                 "(filters:!((col:id,opr:dataset_deleted_state,value:include)))"
@@ -118,7 +120,8 @@ class TestDatasetSoftDelete(SupersetTestCase):
         self.login(ADMIN_USERNAME)
 
         try:
-            self.client.delete(f"/api/v1/dataset/{deleted_id}")
+            rv = self.client.delete(f"/api/v1/dataset/{deleted_id}")
+            assert rv.status_code == 200
 
             rison_query = "(filters:!((col:id,opr:dataset_deleted_state,value:only)))"
             rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
@@ -146,7 +149,8 @@ class TestDatasetSoftDelete(SupersetTestCase):
 
         try:
             # Soft-delete the dataset
-            self.client.delete(f"/api/v1/dataset/{dataset_id}")
+            rv = self.client.delete(f"/api/v1/dataset/{dataset_id}")
+            assert rv.status_code == 200
 
             # Dependent charts should still be active (no cascade). On this
             # branch ``Slice`` does not yet carry ``deleted_at`` (added by the
