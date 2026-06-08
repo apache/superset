@@ -632,6 +632,82 @@ describe('server', () => {
     });
   });
 
+  describe('connection limits', () => {
+    const getRequest = (token: string, url: string): http.IncomingMessage => {
+      const request = new http.IncomingMessage(new net.Socket());
+      request.method = 'GET';
+      request.headers = { cookie: `${config.jwtCookieName}=${token}` };
+      request.url = url;
+      return request;
+    };
+
+    afterEach(() => {
+      // restore opt-in limits to their disabled default
+      server.opts.maxTotalConnections = 0;
+      server.opts.maxConnectionsPerChannel = 0;
+    });
+
+    test('no limit when disabled (0)', () => {
+      server.opts.maxTotalConnections = 0;
+      server.opts.maxConnectionsPerChannel = 0;
+      const socketInstance = {
+        ws: new wsMock('localhost'),
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, socketInstance);
+      expect(server.connectionLimitReason(channelId)).toBeNull();
+    });
+
+    test('total connection limit reached', () => {
+      server.opts.maxTotalConnections = 1;
+      const socketInstance = {
+        ws: new wsMock('localhost'),
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, socketInstance);
+      expect(server.connectionLimitReason('some-other-channel')).toMatch(
+        /total connection limit/,
+      );
+    });
+
+    test('per-channel connection limit reached', () => {
+      server.opts.maxConnectionsPerChannel = 1;
+      const socketInstance = {
+        ws: new wsMock('localhost'),
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, socketInstance);
+      expect(server.connectionLimitReason(channelId)).toMatch(
+        /per-channel connection limit/,
+      );
+    });
+
+    test('wsConnection refuses over-limit connection without tracking', () => {
+      server.opts.maxConnectionsPerChannel = 1;
+      const existing = {
+        ws: new wsMock('localhost'),
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, existing);
+
+      const trackClientSpy = jest.spyOn(server, 'trackClient');
+      const ws = new wsMock('localhost');
+      const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+      server.wsConnection(ws, getRequest(validToken, 'http://localhost'));
+
+      expect(ws.close).toHaveBeenCalledWith(
+        1013,
+        expect.stringMatching(/limit/),
+      );
+      expect(trackClientSpy).not.toHaveBeenCalled();
+      trackClientSpy.mockRestore();
+    });
+  });
+
   describe('httpUpgrade', () => {
     let socket: net.Socket;
     let socketDestroySpy: jest.SpiedFunction<typeof socket.destroy>;

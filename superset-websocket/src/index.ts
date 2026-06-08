@@ -163,6 +163,37 @@ export const setLastFirehoseId = (id: string): void => {
   lastFirehoseId = id;
 };
 
+// WebSocket close code used when a connection is refused because a configured
+// connection limit has been reached (1013 = "Try Again Later").
+const CONNECTION_LIMIT_CLOSE_CODE = 1013;
+
+/**
+ * Determines whether accepting a new connection on the given channel would
+ * exceed a configured connection limit. Returns a human-readable reason when a
+ * limit is reached, or `null` when the connection is within limits.
+ *
+ * Both limits are opt-in: a value of `0` (the default) disables the check.
+ */
+export const connectionLimitReason = (channel: string): string | null => {
+  const { maxTotalConnections, maxConnectionsPerChannel } = opts;
+
+  if (
+    maxTotalConnections > 0 &&
+    Object.keys(sockets).length >= maxTotalConnections
+  ) {
+    return `total connection limit (${maxTotalConnections}) reached`;
+  }
+
+  if (maxConnectionsPerChannel > 0) {
+    const channelSize = channels[channel]?.sockets.length ?? 0;
+    if (channelSize >= maxConnectionsPerChannel) {
+      return `per-channel connection limit (${maxConnectionsPerChannel}) reached`;
+    }
+  }
+
+  return null;
+};
+
 /**
  * Adds the passed channel and socket instance to the internal registries.
  */
@@ -379,6 +410,17 @@ export const incrementId = (id: string): string => {
  */
 export const wsConnection = (ws: WebSocket, request: http.IncomingMessage) => {
   const channel: string = readChannelId(request);
+
+  // Refuse the connection if a configured connection limit has been reached,
+  // before tracking it against the internal registries.
+  const limitReason = connectionLimitReason(channel);
+  if (limitReason) {
+    statsd.increment('ws_connection_rejected');
+    logger.warn(`Refusing connection on channel ${channel}: ${limitReason}`);
+    ws.close(CONNECTION_LIMIT_CLOSE_CODE, limitReason);
+    return;
+  }
+
   const socketInstance: SocketInstance = { ws, channel, pongTs: Date.now() };
 
   // add this ws instance to the internal registry
