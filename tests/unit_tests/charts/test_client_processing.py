@@ -2152,6 +2152,52 @@ COUNT(is_software_dev)
     }
 
 
+def test_apply_client_processing_csv_format_escapes_formula_values():
+    """
+    A value starting with a formula trigger should be escaped in the CSV
+    output, consistent with the other CSV export paths.
+    """
+
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": "is_software_dev\n=SUM(1+1)\n",
+            }
+        ]
+    }
+    form_data = {
+        "datasource": "19__table",
+        "viz_type": "table",
+        "slice_id": 69,
+        "url_params": {},
+        "granularity_sqla": "time_start",
+        "time_grain_sqla": "P1D",
+        "time_range": "No filter",
+        "groupbyColumns": [],
+        "groupbyRows": [],
+        "metrics": [],
+        "metricsLayout": "COLUMNS",
+        "adhoc_filters": [],
+        "row_limit": 10000,
+        "order_desc": True,
+        "aggregateFunction": "Sum",
+        "valueFormat": "SMART_NUMBER",
+        "date_format": "smart_date",
+        "rowOrder": "key_a_to_z",
+        "colOrder": "key_a_to_z",
+        "extra_form_data": {},
+        "force": False,
+        "result_format": "csv",
+        "result_type": "results",
+    }
+
+    processed = apply_client_processing(result, form_data)
+    # the leading "=" is neutralized with a single-quote prefix
+    assert "'=SUM(1+1)" in processed["queries"][0]["data"]
+    assert "\n=SUM(1+1)" not in processed["queries"][0]["data"]
+
+
 def test_apply_client_processing_csv_format_empty_string():
     """
     It should be able to process csv results with no data
