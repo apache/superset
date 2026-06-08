@@ -25,8 +25,8 @@ import { ThemeMode } from '@apache-superset/core/theme';
  */
 export function getInitialThemeMode(): ThemeMode {
   const params = new URLSearchParams(window.location.search);
-  const theme = params.get('theme');
-  if (theme === 'dark') return ThemeMode.DARK;
-  if (theme === 'system') return ThemeMode.SYSTEM;
+  const themeMode = params.get('themeMode');
+  if (themeMode === 'dark') return ThemeMode.DARK;
+  if (themeMode === 'system') return ThemeMode.SYSTEM;
   return ThemeMode.DEFAULT;
 }

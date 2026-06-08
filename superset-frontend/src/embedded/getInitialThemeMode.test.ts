@@ -19,36 +19,39 @@
 import { ThemeMode } from '@apache-superset/core/theme';
 import { getInitialThemeMode } from './getInitialThemeMode';
 
-let locationSpy: jest.SpyInstance;
+let locationSpy: jest.SpyInstance | undefined;
 
 afterEach(() => {
-  locationSpy.mockRestore();
+  locationSpy?.mockRestore();
 });
 
-test('returns ThemeMode.DARK when ?theme=dark', () => {
+test('returns ThemeMode.DARK when ?themeMode=dark', () => {
   locationSpy = jest
     .spyOn(window, 'location', 'get')
-    .mockReturnValue({ ...window.location, search: '?theme=dark' } as Location);
+    .mockReturnValue({
+      ...window.location,
+      search: '?themeMode=dark',
+    } as Location);
   expect(getInitialThemeMode()).toBe(ThemeMode.DARK);
 });
 
-test('returns ThemeMode.SYSTEM when ?theme=system', () => {
+test('returns ThemeMode.SYSTEM when ?themeMode=system', () => {
   locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
     ...window.location,
-    search: '?theme=system',
+    search: '?themeMode=system',
   } as Location);
   expect(getInitialThemeMode()).toBe(ThemeMode.SYSTEM);
 });
 
-test('returns ThemeMode.DEFAULT when ?theme=light', () => {
+test('returns ThemeMode.DEFAULT when ?themeMode=light', () => {
   locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
     ...window.location,
-    search: '?theme=light',
+    search: '?themeMode=light',
   } as Location);
   expect(getInitialThemeMode()).toBe(ThemeMode.DEFAULT);
 });
 
-test('returns ThemeMode.DEFAULT when no theme param', () => {
+test('returns ThemeMode.DEFAULT when no themeMode param', () => {
   locationSpy = jest
     .spyOn(window, 'location', 'get')
     .mockReturnValue({ ...window.location, search: '' } as Location);
@@ -58,7 +61,7 @@ test('returns ThemeMode.DEFAULT when no theme param', () => {
 test('returns ThemeMode.DEFAULT for an unrecognised value', () => {
   locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
     ...window.location,
-    search: '?theme=invalid',
+    search: '?themeMode=invalid',
   } as Location);
   expect(getInitialThemeMode()).toBe(ThemeMode.DEFAULT);
 });
