@@ -84,6 +84,14 @@ test('the form validates required fields', async () => {
   expect(onSave).toHaveBeenCalledTimes(0);
 });
 
+async function openDropdownAndAddFilter(
+  getByTestId: (id: string) => HTMLElement,
+  findByRole: (role: string, opts: { name: RegExp }) => Promise<HTMLElement>,
+) {
+  fireEvent.mouseEnter(getByTestId('new-item-dropdown-button'));
+  fireEvent.click(await findByRole('menuitem', { name: /add filter/i }));
+}
+
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('createNewOnOpen', () => {
   test('does not show alert when there is no unsaved filters', async () => {
@@ -99,12 +107,7 @@ describe('createNewOnOpen', () => {
       onCancel,
       createNewOnOpen: false,
     });
-    const dropdownButton = getByTestId('new-item-dropdown-button');
-    fireEvent.mouseEnter(dropdownButton);
-    const addFilterMenuItem = await findByRole('menuitem', {
-      name: /add filter/i,
-    });
-    fireEvent.click(addFilterMenuItem);
+    await openDropdownAndAddFilter(getByTestId, findByRole);
     fireEvent.click(getByRole('button', { name: 'Cancel' }));
     expect(onCancel).toHaveBeenCalledTimes(0);
     expect(getByRole('alert')).toBeInTheDocument();
@@ -117,14 +120,9 @@ describe('createNewOnOpen', () => {
       onCancel,
       createNewOnOpen: false,
     });
-    const dropdownButton = getByTestId('new-item-dropdown-button');
-    fireEvent.mouseEnter(dropdownButton);
-    const addFilterMenuItem = await findByRole('menuitem', {
-      name: /add filter/i,
-    });
-    fireEvent.click(addFilterMenuItem);
+    await openDropdownAndAddFilter(getByTestId, findByRole);
     fireEvent.click(getByRole('button', { name: 'Cancel' }));
-    // Alert is shown; user clicks the confirm-cancel button to discard changes.
+    expect(getByRole('alert')).toBeInTheDocument();
     fireEvent.click(getByTestId('native-filter-modal-confirm-cancel-button'));
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
