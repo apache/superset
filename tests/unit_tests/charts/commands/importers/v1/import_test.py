@@ -444,6 +444,32 @@ def test_import_soft_deleted_chart_raises_when_caller_lacks_can_write(
     assert "can_write" in str(excinfo.value)
 
 
+def test_import_existing_active_chart_overwrite_without_can_write_returns_existing(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    An *active* (not soft-deleted) chart re-imported with overwrite=True by a
+    caller without can_write must fall through to returning the existing row,
+    not raise the restore error. Case B is keyed on ``is_soft_deleted``, so the
+    fused ``needs_mutation`` condition must not pull active rows into the
+    restore-without-permission branch (pre-soft-delete overwrite behaviour).
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    existing = (
+        session_with_data.query(Slice)
+        .filter(Slice.uuid == chart_config["uuid"])
+        .one()
+    )
+    assert existing.deleted_at is None
+
+    result = import_chart(chart_config, overwrite=True)
+
+    assert result.id == existing.id
+    assert result.deleted_at is None
+
+
 def test_import_tag_logic_for_charts(session_with_schema: Session):
     contents = {
         "tags.yaml": yaml.dump(
