@@ -560,11 +560,15 @@ class DetailedJWTVerifier(MCPJWTVerifier):
 
             # All validations passed. Log the successful authentication with
             # safe metadata only — never the token contents or any secret.
+            # Coerce scope entries to strings before sorting so a malformed
+            # (non-orderable) scope claim can never turn this audit log into a
+            # TypeError that would mask a successful auth as a failure.
+            scopes_for_log = sorted(str(scope) for scope in scopes)
             logger.info(
                 "JWT authentication succeeded: client_id='%s', scopes=%s, "
                 "auth_method='bearer_jwt'",
                 _sanitize_for_log(client_id),
-                _sanitize_for_log(" ".join(sorted(scopes)) or "(none)"),
+                _sanitize_for_log(" ".join(scopes_for_log) or "(none)"),
             )
             return AccessToken(
                 token=token,
