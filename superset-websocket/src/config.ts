@@ -52,6 +52,7 @@ type ConfigType = {
   pingSocketsIntervalMs: number;
   gcChannelsIntervalMs: number;
   maxSocketBufferBytes: number;
+  eventYieldBatchSize: number;
 };
 
 function defaultConfig(): ConfigType {
@@ -74,6 +75,9 @@ function defaultConfig(): ConfigType {
     // 0 disables the per-socket send-buffer cap; set a positive byte value to
     // opt in to terminating clients whose outbound buffer grows beyond it.
     maxSocketBufferBytes: 0,
+    // Number of stream events to process before yielding to the event loop.
+    // 0 disables yielding (process the whole batch synchronously).
+    eventYieldBatchSize: 100,
     statsd: {
       host: '127.0.0.1',
       port: 8125,
@@ -150,6 +154,11 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
       (config.maxSocketBufferBytes = toNonNegativeNumber(
         val,
         config.maxSocketBufferBytes,
+      )),
+    EVENT_YIELD_BATCH_SIZE: val =>
+      (config.eventYieldBatchSize = toNonNegativeNumber(
+        val,
+        config.eventYieldBatchSize,
       )),
     REDIS_HOST: val => (config.redis.host = val),
     REDIS_PORT: val => (config.redis.port = toNumber(val)),

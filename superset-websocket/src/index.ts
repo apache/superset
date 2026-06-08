@@ -45,7 +45,7 @@ export type SupersetError<ExtraType = Record<string, any> | null> = {
   message: string;
 };
 
-type ListenerFunction = (results: StreamResult[]) => void;
+type ListenerFunction = (results: StreamResult[]) => void | Promise<void>;
 interface EventValue {
   id: string;
   channel_id: string;
@@ -245,7 +245,7 @@ export const fetchRangeFromStream = async ({
   try {
     const reply = await redis.xrange(streamName, startId, endId);
     if (!reply || !reply.length) return;
-    listener(reply as StreamResult[]);
+    await listener(reply as StreamResult[]);
   } catch (e) {
     logger.error(e);
   }
@@ -280,7 +280,11 @@ export const subscribeToGlobalStream = async (
       if (!results.length) {
         continue;
       }
-      listener(results as StreamResult[]);
+      // Await the listener before advancing so that batches are processed
+      // sequentially. processStreamResults yields to the event loop mid-batch
+      // for large bursts; without awaiting here a subsequent xread could start
+      // a concurrent batch and interleave out-of-order sends to clients.
+      await listener(results as StreamResult[]);
       setLastFirehoseId(results[length - 1][0]);
     } catch (e) {
       logger.error(e);
@@ -290,21 +294,33 @@ export const subscribeToGlobalStream = async (
 };
 
 /**
- * Callback function to process events received from a Redis Stream
+ * Callback function to process events received from a Redis Stream.
+ *
+ * For large batches the loop periodically yields to the Node.js event loop
+ * (via setImmediate) so that connection management, health checks and
+ * ping/pong handling are not starved while a burst of events is processed.
+ * The yield cadence is controlled by `eventYieldBatchSize` (0 disables it).
  */
-export const processStreamResults = (results: StreamResult[]): void => {
+export const processStreamResults = async (
+  results: StreamResult[],
+): Promise<void> => {
   // Log only the batch size, not the raw payloads, which carry user and
   // job identifiers.
   logger.debug(`events received: count=${results.length}`);
-  results.forEach(item => {
+  const { eventYieldBatchSize } = opts;
+  for (let i = 0; i < results.length; i += 1) {
+    if (eventYieldBatchSize > 0 && i > 0 && i % eventYieldBatchSize === 0) {
+      await new Promise(resolve => setImmediate(resolve));
+    }
     try {
+      const item = results[i];
       const id = item[0];
       const data = JSON.parse(item[1][1]);
       sendToChannel(data.channel_id, { id, ...data });
     } catch (err) {
       logger.error(err);
     }
-  });
+  }
 };
 
 /**

@@ -304,6 +304,60 @@ describe('server', () => {
 
       cleanChannelMock.mockRestore();
     });
+
+    const makeItem = (i: number): server.StreamResult =>
+      [
+        `161542615${i}-0`,
+        [
+          'data',
+          JSON.stringify({
+            channel_id: channelId,
+            job_id: `job-${i}`,
+            status: 'done',
+          }),
+        ],
+      ] as server.StreamResult;
+
+    afterEach(() => {
+      server.opts.eventYieldBatchSize = 100;
+    });
+
+    test('yields to the event loop for large batches', async () => {
+      server.opts.eventYieldBatchSize = 2;
+      const ws = new wsMock('localhost');
+      server.trackClient(channelId, {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      const sendMock = jest.spyOn(ws, 'send');
+      const setImmediateSpy = jest.spyOn(global, 'setImmediate');
+
+      const results = [0, 1, 2, 3, 4].map(makeItem);
+      await server.processStreamResults(results);
+
+      // every event is still delivered
+      expect(sendMock).toHaveBeenCalledTimes(5);
+      // and the loop yielded at least at indexes 2 and 4
+      expect(setImmediateSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+      setImmediateSpy.mockRestore();
+    });
+
+    test('processes the whole batch when yielding is disabled', async () => {
+      server.opts.eventYieldBatchSize = 0;
+      const ws = new wsMock('localhost');
+      server.trackClient(channelId, {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      const sendMock = jest.spyOn(ws, 'send');
+
+      const results = [0, 1, 2, 3, 4].map(makeItem);
+      await server.processStreamResults(results);
+
+      expect(sendMock).toHaveBeenCalledTimes(5);
+    });
   });
 
   describe('backpressure', () => {
