@@ -279,6 +279,9 @@ describe('server', () => {
 
     afterEach(() => {
       server.opts.maxSocketBufferBytes = 0;
+      // Restore any spies (e.g. on server.cleanChannel) so they don't leak
+      // across tests and cause order-dependent failures.
+      jest.restoreAllMocks();
     });
 
     test('does not terminate when cap disabled (0)', () => {
@@ -321,7 +324,6 @@ describe('server', () => {
         'ws_client_backpressure_disconnect',
       );
       expect(cleanChannelMock).toHaveBeenCalledWith(channelId);
-      cleanChannelMock.mockRestore();
     });
 
     test('keeps sending to a client within the cap', () => {

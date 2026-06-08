@@ -102,6 +102,21 @@ function configFromFile(): Partial<ConfigType> {
 
 const isPresent = (s: string) => /\S+/.test(s);
 const toNumber = Number;
+
+// Parse a non-negative numeric env override, ignoring malformed input.
+// Returns the fallback (and logs a warning) when the value is not a finite
+// number >= 0, so a misconfiguration can't silently disable the feature.
+function toNonNegativeNumber(val: string, fallback: number): number {
+  const parsed = Number(val);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    console.warn(
+      `Invalid numeric config value "${val}"; expected a non-negative ` +
+        `number. Falling back to ${fallback}.`,
+    );
+    return fallback;
+  }
+  return parsed;
+}
 const toBoolean = (s: string) => s.toLowerCase() === 'true';
 const toStringArray = (s: string) => s.split(',');
 
@@ -125,7 +140,10 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
     GC_CHANNELS_INTERVAL_MS: val =>
       (config.gcChannelsIntervalMs = toNumber(val)),
     MAX_SOCKET_BUFFER_BYTES: val =>
-      (config.maxSocketBufferBytes = toNumber(val)),
+      (config.maxSocketBufferBytes = toNonNegativeNumber(
+        val,
+        config.maxSocketBufferBytes,
+      )),
     REDIS_HOST: val => (config.redis.host = val),
     REDIS_PORT: val => (config.redis.port = toNumber(val)),
     REDIS_PASSWORD: val => (config.redis.password = val),
