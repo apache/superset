@@ -261,25 +261,25 @@ class TestDatasourceApi(SupersetTestCase):
         assert values_for_column_mock.call_count == 2
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.datasource.api.get_user_id")
     @patch("superset.models.helpers.ExploreMixin.values_for_column")
-    def test_get_column_values_cache_isolated_per_user(self, values_for_column_mock):
-        """RLS safety: two users hitting the same column must each populate
-        their own cache entry. Without this isolation, user A's
-        RLS-restricted values could leak to user B."""
+    def test_get_column_values_cache_isolated_per_user(
+        self, values_for_column_mock, get_user_id_mock
+    ):
+        """Per-user cache isolation: two distinct users hitting the same
+        column must each populate their own cache entry. Patching
+        ``get_user_id`` directly avoids the login-flow side effects (which
+        would also trip the datasource-access check before the cache code
+        is reached)."""
         cache_manager.data_cache.clear()
         values_for_column_mock.return_value = ["v"]
+        self.login(ADMIN_USERNAME)
         table = self.get_virtual_dataset()
         url = f"api/v1/datasource/table/{table.id}/column/col2/values/"
 
-        self.login(ADMIN_USERNAME)
+        get_user_id_mock.return_value = 1
         self.client.get(url)
-        self.logout()
-        self.login(GAMMA_USERNAME)
-        # Grant gamma the permission so the request reaches the cache path.
-        perm = security_manager.find_permission_view_menu(
-            "can_get_column_values", "Datasource"
-        )
-        security_manager.add_permission_role(security_manager.find_role("Gamma"), perm)
+        get_user_id_mock.return_value = 2
         self.client.get(url)
 
         assert values_for_column_mock.call_count == 2
