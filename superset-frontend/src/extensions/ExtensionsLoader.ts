@@ -22,6 +22,8 @@ import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { store } from 'src/views/store';
+// Side-effect import: brings the `window.superset` global augmentation into scope.
+import 'src/extensions/supersetGlobal';
 
 type Extension = core.Extension;
 type ExtensionContext = core.ExtensionContext;
