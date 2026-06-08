@@ -495,21 +495,26 @@ def get_user_from_request() -> User:
     if hasattr(g, "user") and g.user:
         return g.user
 
-    # No auth source available — log diagnostics server-side, raise generic
-    # client-facing error so no config details leak toward the client.
+    # No auth source available. Keep the configuration diagnostics in the
+    # server logs only -- the message returned to the (unauthenticated) client
+    # must not reveal which auth mechanisms are configured.
     auth_enabled = current_app.config.get("MCP_AUTH_ENABLED", False)
     jwt_configured = bool(
         current_app.config.get("MCP_JWKS_URI")
         or current_app.config.get("MCP_JWT_PUBLIC_KEY")
         or current_app.config.get("MCP_JWT_SECRET")
     )
-    logger.debug(
-        "No auth source found. "
-        "MCP_AUTH_ENABLED=%s, JWT keys configured=%s, "
-        "MCP_DEV_USERNAME configured=%s",
-        auth_enabled,
-        jwt_configured,
-        bool(current_app.config.get("MCP_DEV_USERNAME")),
+    details = [
+        f"No JWT access token in MCP request context "
+        f"(MCP_AUTH_ENABLED={auth_enabled}, "
+        f"JWT keys configured={jwt_configured})",
+        "No API key in Authorization header",
+        "MCP_DEV_USERNAME is not configured",
+        "g.user was not set by external middleware",
+    ]
+    logger.warning(
+        "MCP request could not be authenticated. Tried: %s",
+        "; ".join(details),
     )
     raise MCPNoAuthSourceError(
         "Authentication required. No valid credentials provided."

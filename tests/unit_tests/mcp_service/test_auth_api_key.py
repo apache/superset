@@ -183,6 +183,32 @@ def test_api_key_disabled_skips_auth(app: SupersetApp) -> None:
     mock_sm.validate_api_key.assert_not_called()
 
 
+@pytest.mark.usefixtures("_disable_api_keys")
+def test_unauthenticated_error_does_not_leak_config(app: SupersetApp) -> None:
+    """The error returned to an unauthenticated client must not reveal which
+    auth mechanisms are configured."""
+    app.config["MCP_AUTH_ENABLED"] = True
+    app.config["MCP_JWT_SECRET"] = "super-secret-value"  # noqa: S105
+
+    with app.test_request_context():
+        g.user = None
+        with pytest.raises(
+            MCPNoAuthSourceError, match="Authentication required"
+        ) as exc_info:
+            get_user_from_request()
+
+    message = str(exc_info.value)
+    assert message == "Authentication required. No valid credentials provided."
+    for leaked in (
+        "MCP_AUTH_ENABLED",
+        "JWT keys configured",
+        "API key",
+        "MCP_DEV_USERNAME",
+        "super-secret-value",
+    ):
+        assert leaked not in message
+
+
 # -- No AccessToken -> API key auth skipped --
 
 
