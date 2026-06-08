@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 from flask_babel import lazy_gettext as _
-from marshmallow import ValidationError
 
 from superset.commands.exceptions import CommandInvalidError, UpdateFailedError
 
@@ -26,35 +25,3 @@ class ExtensionSettingsInvalidError(CommandInvalidError):
 
 class ExtensionSettingsUpdateFailedError(UpdateFailedError):
     message = _("Extension settings could not be updated.")
-
-
-class ActiveChatbotIdValidationError(ValidationError):
-    """Marshmallow validation error wrapping an invalid active_chatbot_id."""
-
-    def __init__(self, max_length: int) -> None:
-        super().__init__(
-            [
-                _(
-                    "active_chatbot_id must be null or a string of at most "
-                    "%(max)d characters.",
-                    max=max_length,
-                )
-            ],
-            field_name="active_chatbot_id",
-        )
-
-
-class EnabledKeyValidationError(ValidationError):
-    """Marshmallow validation error wrapping an invalid enabled-map key."""
-
-    def __init__(self, max_length: int) -> None:
-        super().__init__(
-            [
-                _(
-                    "enabled keys must be non-empty strings of at most "
-                    "%(max)d characters.",
-                    max=max_length,
-                )
-            ],
-            field_name="enabled",
-        )

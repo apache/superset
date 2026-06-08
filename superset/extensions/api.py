@@ -21,15 +21,14 @@ from typing import Any
 from flask import request, send_file
 from flask.wrappers import Response
 from flask_appbuilder.api import expose, protect, safe
+from marshmallow import ValidationError
 
-from superset.commands.extension.settings.exceptions import (
-    ExtensionSettingsInvalidError,
-)
 from superset.commands.extension.settings.get import GetExtensionSettingsCommand
 from superset.commands.extension.settings.update import (
     UpdateExtensionSettingsCommand,
 )
 from superset.extensions import security_manager
+from superset.extensions.schemas import ExtensionSettingsPutSchema
 from superset.extensions.utils import (
     build_extension_data,
     get_extensions,
@@ -213,17 +212,11 @@ class ExtensionsRestApi(BaseSupersetApi):
         """
         if not security_manager.is_admin():
             return self.response(403, message="Admin access required.")
-        body = request.get_json(silent=True)
-        if not isinstance(body, dict):
-            return self.response(400, message="Request body must be a JSON object.")
-        # Pre-validate so malformed input returns a 400 rather than the 500 that
-        # the FAB @safe wrapper would produce for an uncaught command exception.
         try:
-            command = UpdateExtensionSettingsCommand(body)
-            command.validate()
-        except ExtensionSettingsInvalidError as ex:
-            return self.response(400, message=str(ex.normalized_messages()))
-        return self.response(200, result=command.run())
+            body = ExtensionSettingsPutSchema().load(request.json or {})
+        except ValidationError as error:
+            return self.response(400, message=error.messages)
+        return self.response(200, result=UpdateExtensionSettingsCommand(body).run())
 
     @protect()
     @safe

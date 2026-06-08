@@ -87,7 +87,7 @@ class TestUpdateExtensionSettings:
         UpdateExtensionSettingsCommand({"active_chatbot_id": ""}).run()
         assert GetExtensionSettingsCommand().run()["active_chatbot_id"] is None
 
-    def test_non_bool_enabled_value_is_skipped(self, app_context: Any) -> None:
+    def test_enabled_flags_are_persisted(self, app_context: Any) -> None:
         from superset.commands.extension.settings.get import (
             GetExtensionSettingsCommand,
         )
@@ -95,12 +95,12 @@ class TestUpdateExtensionSettings:
             UpdateExtensionSettingsCommand,
         )
 
-        # Unique id so the absence assertion can't collide with rows written by
-        # other tests sharing the module-scoped database.
-        UpdateExtensionSettingsCommand({"enabled": {"acme.nonbool_skip": "yes"}}).run()
-        # "yes" is not a bool — the row should not have been written.
+        # The command trusts already-validated input (request-shape validation
+        # is the schema's job — see TestExtensionSettingsPutSchema), so a bool
+        # value is written through as-is.
+        UpdateExtensionSettingsCommand({"enabled": {"acme.persisted": False}}).run()
         result = GetExtensionSettingsCommand().run()
-        assert "acme.nonbool_skip" not in result["enabled"]
+        assert result["enabled"]["acme.persisted"] is False
 
     def test_upsert_overwrites_existing_chatbot(self, app_context: Any) -> None:
         from superset.commands.extension.settings.get import (
@@ -154,53 +154,52 @@ class TestUpdateExtensionSettings:
         assert result["active_chatbot_id"] == "acme.chatbot"
 
 
-class TestUpdateExtensionSettingsValidation:
-    def test_non_string_active_chatbot_id_raises(self, app_context: Any) -> None:
-        from superset.commands.extension.settings.exceptions import (
-            ExtensionSettingsInvalidError,
-        )
-        from superset.commands.extension.settings.update import (
-            UpdateExtensionSettingsCommand,
-        )
+class TestExtensionSettingsPutSchema:
+    """Request-shape validation now lives in ExtensionSettingsPutSchema."""
 
-        with pytest.raises(ExtensionSettingsInvalidError):
-            UpdateExtensionSettingsCommand({"active_chatbot_id": 123}).run()
+    def test_non_string_active_chatbot_id_raises(self, app_context: Any) -> None:
+        from marshmallow import ValidationError
+
+        from superset.extensions.schemas import ExtensionSettingsPutSchema
+
+        with pytest.raises(ValidationError):
+            ExtensionSettingsPutSchema().load({"active_chatbot_id": 123})
 
     def test_oversized_active_chatbot_id_raises(self, app_context: Any) -> None:
-        from superset.commands.extension.settings.exceptions import (
-            ExtensionSettingsInvalidError,
-        )
-        from superset.commands.extension.settings.update import (
-            UpdateExtensionSettingsCommand,
-        )
-        from superset.extensions.models import EXTENSION_ID_MAX_LENGTH
+        from marshmallow import ValidationError
 
-        with pytest.raises(ExtensionSettingsInvalidError):
-            UpdateExtensionSettingsCommand(
+        from superset.extensions.models import EXTENSION_ID_MAX_LENGTH
+        from superset.extensions.schemas import ExtensionSettingsPutSchema
+
+        with pytest.raises(ValidationError):
+            ExtensionSettingsPutSchema().load(
                 {"active_chatbot_id": "x" * (EXTENSION_ID_MAX_LENGTH + 1)}
-            ).run()
+            )
 
     def test_oversized_enabled_key_raises(self, app_context: Any) -> None:
-        from superset.commands.extension.settings.exceptions import (
-            ExtensionSettingsInvalidError,
-        )
-        from superset.commands.extension.settings.update import (
-            UpdateExtensionSettingsCommand,
-        )
-        from superset.extensions.models import EXTENSION_ID_MAX_LENGTH
+        from marshmallow import ValidationError
 
-        with pytest.raises(ExtensionSettingsInvalidError):
-            UpdateExtensionSettingsCommand(
+        from superset.extensions.models import EXTENSION_ID_MAX_LENGTH
+        from superset.extensions.schemas import ExtensionSettingsPutSchema
+
+        with pytest.raises(ValidationError):
+            ExtensionSettingsPutSchema().load(
                 {"enabled": {"x" * (EXTENSION_ID_MAX_LENGTH + 1): True}}
-            ).run()
+            )
+
+    def test_non_bool_enabled_value_raises(self, app_context: Any) -> None:
+        from marshmallow import ValidationError
+
+        from superset.extensions.schemas import ExtensionSettingsPutSchema
+
+        with pytest.raises(ValidationError):
+            ExtensionSettingsPutSchema().load({"enabled": {"acme.ext": "yes"}})
 
     def test_null_active_chatbot_id_is_valid(self, app_context: Any) -> None:
-        from superset.commands.extension.settings.update import (
-            UpdateExtensionSettingsCommand,
-        )
+        from superset.extensions.schemas import ExtensionSettingsPutSchema
 
-        # Should not raise.
-        UpdateExtensionSettingsCommand({"active_chatbot_id": None}).validate()
+        loaded = ExtensionSettingsPutSchema().load({"active_chatbot_id": None})
+        assert loaded["active_chatbot_id"] is None
 
 
 # ---------------------------------------------------------------------------
