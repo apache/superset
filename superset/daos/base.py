@@ -775,7 +775,16 @@ class BaseDAO(CoreBaseDAO[T], Generic[T]):
         page = page
         # Clamp the page size to a sane range: at least 1, and no larger than
         # the configured upper bound, to keep result sets bounded.
-        max_page_size = current_app.config.get("SQLALCHEMY_DAO_MAX_PAGE_SIZE", 1000)
+        # Normalize the configured maximum to a positive integer so that a
+        # misconfigured value (non-int or <= 0) cannot produce a non-positive
+        # page size, which would break pagination or yield unbounded queries.
+        try:
+            max_page_size = int(
+                current_app.config.get("SQLALCHEMY_DAO_MAX_PAGE_SIZE", 1000)
+            )
+        except (TypeError, ValueError):
+            max_page_size = 1000
+        max_page_size = max(max_page_size, 1)
         page_size = min(max(page_size, 1), max_page_size)
         query = query.offset(page * page_size).limit(page_size)
         items = query.all()
