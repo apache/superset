@@ -444,7 +444,7 @@ describe('server', () => {
     test('success with results', async () => {
       mockRedisXrange.mockResolvedValueOnce(streamReturnValue);
       const cb = jest.fn() as jest.MockedFunction<
-        (results: server.StreamResult[]) => void
+        (results: server.StreamResult[]) => void | Promise<void>
       >;
       await server.fetchRangeFromStream({
         sessionId: '123',
@@ -463,7 +463,7 @@ describe('server', () => {
 
     test('success no results', async () => {
       const cb = jest.fn() as jest.MockedFunction<
-        (results: server.StreamResult[]) => void
+        (results: server.StreamResult[]) => void | Promise<void>
       >;
       await server.fetchRangeFromStream({
         sessionId: '123',
@@ -482,7 +482,7 @@ describe('server', () => {
 
     test('error', async () => {
       const cb = jest.fn() as jest.MockedFunction<
-        (results: server.StreamResult[]) => void
+        (results: server.StreamResult[]) => void | Promise<void>
       >;
       mockRedisXrange.mockRejectedValueOnce(new Error());
       await server.fetchRangeFromStream({
