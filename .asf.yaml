@@ -77,11 +77,10 @@ github:
         # combination here.
         contexts:
           - lint-check
-          - cypress-matrix (0, chrome)
-          - cypress-matrix (1, chrome)
+          - cypress-matrix-required
           - dependency-review
           - frontend-build
-          - playwright-tests (chromium)
+          - playwright-tests-required
           - pre-commit (current)
           - test-mysql
           - test-postgres-required
