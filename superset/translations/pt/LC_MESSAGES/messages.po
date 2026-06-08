@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2018-03-12 16:24+0000\n"
 "Last-Translator: Nuno Heli Beires <nuno.beires@douroeci.com>\n"
 "Language: pt\n"
@@ -4627,6 +4627,9 @@ msgstr "Não foi possível gravar a sua query"
 #, fuzzy
 msgid "Database type does not support file uploads."
 msgstr "Origem de dados %(name)s já existe"
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 #, fuzzy
 msgid "Database upload file failed"
@@ -18174,10 +18177,6 @@ msgstr "Ordenar decrescente"
 #, fuzzy
 msgid "value descending"
 msgstr "Ordenar decrescente"
-
-#, fuzzy
-msgid "valuename"
-msgstr "Nome da Tabela"
 
 msgid "var"
 msgstr ""

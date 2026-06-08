@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -4632,6 +4632,9 @@ msgstr "Nastavení databáze aktualizováno"
 
 msgid "Database type does not support file uploads."
 msgstr "Typ databáze nepodporuje nahrávání souborů."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "Nahrání souboru do databáze selhalo"
@@ -18244,10 +18247,6 @@ msgstr "hodnota vzestupně"
 
 msgid "value descending"
 msgstr "hodnota sestupně"
-
-#, fuzzy
-msgid "valuename"
-msgstr "Název tabulky"
 
 msgid "var"
 msgstr "var"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2024-10-05 23:46+0200\n"
 "Last-Translator: dkrat7 <dkrat7 @github.com>\n"
 "Language: sl_SI\n"
@@ -4653,6 +4653,9 @@ msgstr "Nastavitve podatkovne baze posodobljene"
 
 msgid "Database type does not support file uploads."
 msgstr "Tip podatkovne baze ne podpira nalaganje datotek."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "Nalaganje datoteke v podatkovno bazo ni uspelo"
@@ -18286,10 +18289,6 @@ msgstr "0 - 9"
 
 msgid "value descending"
 msgstr "9 - 0"
-
-#, fuzzy
-msgid "valuename"
-msgstr "Ime tabele"
 
 msgid "var"
 msgstr "var"

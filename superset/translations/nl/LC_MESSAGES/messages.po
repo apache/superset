@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -4687,6 +4687,9 @@ msgstr "Database instellingen bijgewerkt"
 #, fuzzy
 msgid "Database type does not support file uploads."
 msgstr "Database ondersteunt geen subquery’s"
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 #, fuzzy
 msgid "Database upload file failed"
@@ -18510,10 +18513,6 @@ msgstr "waarde oplopend"
 
 msgid "value descending"
 msgstr "waarde aflopend"
-
-#, fuzzy
-msgid "valuename"
-msgstr "Tabel Naam"
 
 msgid "var"
 msgstr "var"

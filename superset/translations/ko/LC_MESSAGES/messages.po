@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -4540,6 +4540,9 @@ msgid "Database settings updated"
 msgstr "데이터베이스를 업데이트할 수 없습니다."
 
 msgid "Database type does not support file uploads."
+msgstr ""
+
+msgid "Database upload file exceeds the maximum allowed size."
 msgstr ""
 
 msgid "Database upload file failed"
@@ -17765,10 +17768,6 @@ msgstr ""
 
 msgid "value descending"
 msgstr ""
-
-#, fuzzy
-msgid "valuename"
-msgstr "테이블 명"
 
 msgid "var"
 msgstr ""
