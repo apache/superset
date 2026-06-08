@@ -271,6 +271,33 @@ async def test_valid_token(hs256_verifier):
 
 
 @pytest.mark.asyncio
+async def test_valid_token_logs_success(hs256_verifier, caplog):
+    """A successful authentication should leave an INFO-level audit entry."""
+    future_exp = int(time.time()) + 3600
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+    claims = {
+        "sub": "user1",
+        "iss": "test-issuer",
+        "aud": "test-audience",
+        "exp": future_exp,
+    }
+
+    with caplog.at_level(logging.INFO, logger="superset.mcp_service.jwt_verifier"):
+        with patch.object(hs256_verifier.jwt, "decode", return_value=claims):
+            result = await hs256_verifier.load_access_token(token)
+
+    assert result is not None
+    assert any(
+        "JWT authentication succeeded" in record.message
+        and record.levelno == logging.INFO
+        for record in caplog.records
+    )
+
+
+@pytest.mark.asyncio
 async def test_token_without_expiration_rejected(hs256_verifier):
     """Token without an exp claim must be rejected (exp is required)."""
     token = _make_token(
