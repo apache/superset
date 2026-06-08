@@ -25,6 +25,7 @@ import {
   useRef,
   useState,
   useMemo,
+  useSyncExternalStore,
 } from 'react';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { createErrorHandler } from 'src/views/CRUD/utils';
@@ -35,7 +36,9 @@ import { ConfirmStatusChange, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import {
   getExtensionSettingsSnapshot,
+  loadExtensionSettings,
   setExtensionSettings,
+  subscribeToExtensionSettings,
 } from 'src/core/extensions';
 import { getRegisteredViewIds, subscribeToRegistry } from 'src/core/views';
 
@@ -62,10 +65,18 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
-  const [activeChatbotId, setActiveChatbotId] = useState<string | null>(null);
   const [chatbotExtensionIds, setChatbotExtensionIds] = useState<Set<string>>(
     () => new Set(getRegisteredViewIds(CHATBOT_LOCATION)),
   );
+
+  // The active chatbot lives in the host-owned settings store shared with the
+  // live ChatbotMount, so a change here is reflected there without a second
+  // notification channel.
+  const settings = useSyncExternalStore(
+    subscribeToExtensionSettings,
+    getExtensionSettingsSnapshot,
+  );
+  const activeChatbotId = settings.active_chatbot_id;
 
   const {
     state: { loading, resourceCount, resourceCollection },
@@ -86,15 +97,10 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     [],
   );
 
-  // Load current active chatbot from settings on mount
+  // Load settings into the shared store on mount.
   useEffect(() => {
-    SupersetClient.get({ endpoint: '/api/v1/extensions/settings' })
-      .then(({ json }) => {
-        setActiveChatbotId(json?.result?.active_chatbot_id ?? null);
-      })
-      .catch(() => {
-        // non-fatal: leave activeChatbotId as null
-      });
+    // non-fatal: the store keeps its empty default on failure.
+    loadExtensionSettings().catch(() => {});
   }, []);
 
   const handleUploadClick = () => {
@@ -165,9 +171,8 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         jsonPayload: { active_chatbot_id: newId },
       }).then(
         () => {
-          setActiveChatbotId(newId);
-          // Reflect the change in the shared settings store so the live
-          // ChatbotMount re-resolves the active chatbot immediately.
+          // Reflect the change in the shared settings store; the component and
+          // the live ChatbotMount both re-resolve from it immediately.
           setExtensionSettings({
             ...getExtensionSettingsSnapshot(),
             active_chatbot_id: newId,

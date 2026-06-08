@@ -81,12 +81,15 @@ jest.mock('src/core/views', () => ({
   getRegistryVersion: jest.fn(() => 0),
 }));
 
+// Stable snapshot reference: useSyncExternalStore requires getSnapshot to
+// return the same object until it actually changes, otherwise it re-renders
+// infinitely.
+const mockSettings = { active_chatbot_id: null, enabled: {} };
 jest.mock('src/core/extensions', () => ({
-  getExtensionSettingsSnapshot: jest.fn(() => ({
-    active_chatbot_id: null,
-    enabled: {},
-  })),
+  getExtensionSettingsSnapshot: jest.fn(() => mockSettings),
   setExtensionSettings: jest.fn(),
+  loadExtensionSettings: jest.fn(() => Promise.resolve()),
+  subscribeToExtensionSettings: jest.fn(() => () => undefined),
 }));
 
 jest.mock('@superset-ui/core', () => {
