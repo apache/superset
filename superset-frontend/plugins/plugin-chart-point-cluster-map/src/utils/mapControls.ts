@@ -20,7 +20,8 @@
 import { t } from '@apache-superset/core/translation';
 import {
   getMapRendererOptions,
-  OSM_TILE_STYLE_CHOICE,
+  OSM_TILE_STYLE_URL,
+  type MapRendererOption,
   type MapProvider,
 } from '@superset-ui/core/utils/mapStyles';
 import { hasMapboxApiKey } from './mapbox';
@@ -39,7 +40,7 @@ export const POINT_CLUSTER_MAPLIBRE_STYLE_CHOICES = [
     'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
     t('Streets (Carto)'),
   ],
-  [OSM_TILE_STYLE_CHOICE.value, OSM_TILE_STYLE_CHOICE.label],
+  [OSM_TILE_STYLE_URL, 'Streets (OSM)'],
 ];
 
 export function getPointClusterMapRendererProps(currentValue?: MapProvider) {
@@ -48,6 +49,12 @@ export function getPointClusterMapRendererProps(currentValue?: MapProvider) {
     options: getMapRendererOptions({
       hasMapboxKey: hasKey,
       currentValue,
-    }),
+    }).map((option: MapRendererOption) => ({
+      ...option,
+      label:
+        option.value === 'maplibre'
+          ? t('MapLibre (open-source)')
+          : t('Mapbox (API key required)'),
+    })),
   };
 }

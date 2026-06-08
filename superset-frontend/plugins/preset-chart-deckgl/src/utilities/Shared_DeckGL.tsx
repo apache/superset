@@ -30,7 +30,8 @@ import {
   getDefaultMapRenderer,
   getBootstrapDataFromDocument,
   getMapRendererOptions,
-  OSM_TILE_STYLE_CHOICE,
+  OSM_TILE_STYLE_URL,
+  type MapRendererOption,
   type MapProvider,
 } from '@superset-ui/core/utils/mapStyles';
 import {
@@ -77,7 +78,7 @@ export const DEFAULT_DECKGL_TILES: DeckGLTileChoice[] = [
     'Streets (Carto)',
   ],
   ['https://tiles.openfreemap.org/styles/liberty', 'Liberty (OpenFreeMap)'],
-  [OSM_TILE_STYLE_CHOICE.value, OSM_TILE_STYLE_CHOICE.label],
+  [OSM_TILE_STYLE_URL, 'Streets (OSM)'],
 ];
 
 export const DEFAULT_MAPBOX_TILES: DeckGLTileChoice[] = [
@@ -116,6 +117,23 @@ const getDeckGLTiles = () => {
   }
   return deckglTiles;
 };
+
+const getLabeledMapRendererOptions = ({
+  hasMapboxKey,
+  currentValue,
+}: {
+  hasMapboxKey: boolean;
+  currentValue?: MapProvider;
+}) =>
+  getMapRendererOptions({ hasMapboxKey, currentValue }).map(
+    (option: MapRendererOption) => ({
+      ...option,
+      label:
+        option.value === 'maplibre'
+          ? t('MapLibre (open-source)')
+          : t('Mapbox (API key required)'),
+    }),
+  );
 
 const DEFAULT_VIEWPORT = {
   longitude: 6.85236157047845,
@@ -489,7 +507,9 @@ export const mapProvider = {
     label: t('Map Renderer'),
     clearable: false,
     renderTrigger: true,
-    options: getMapRendererOptions({ hasMapboxKey: hasMapboxApiKey() }),
+    options: getLabeledMapRendererOptions({
+      hasMapboxKey: hasMapboxApiKey(),
+    }),
     default: getDefaultMapRenderer(),
     description: t(
       'Select the map tile provider. MapLibre is open-source and requires no API key. ' +
@@ -498,7 +518,7 @@ export const mapProvider = {
     mapStateToProps: (state: ControlPanelState) => {
       const hasKey = hasMapboxApiKey();
       return {
-        options: getMapRendererOptions({
+        options: getLabeledMapRendererOptions({
           hasMapboxKey: hasKey,
           currentValue: state.form_data?.map_renderer as
             | MapProvider

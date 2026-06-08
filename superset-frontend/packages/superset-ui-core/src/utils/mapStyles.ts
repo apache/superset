@@ -17,19 +17,10 @@
  * under the License.
  */
 
-import { t } from '@apache-superset/core/translation';
-
 export type MapProvider = 'maplibre' | 'mapbox';
-
-export type MapStyleChoice = {
-  value: string;
-  label: string;
-  attribution?: string;
-};
 
 export type MapRendererOption = {
   value: MapProvider;
-  label: string;
   disabled?: boolean;
 };
 
@@ -59,19 +50,12 @@ export type ResolvedMapStyle = string | RasterTileMapStyle;
 export const OSM_TILE_STYLE_URL =
   'https://tile.openstreetmap.org/{z}/{x}/{y}.png';
 export const OSM_TILE_ATTRIBUTION = '© OpenStreetMap contributors';
-export const OSM_TILE_STYLE_CHOICE: MapStyleChoice = {
-  value: OSM_TILE_STYLE_URL,
-  label: t('Streets (OSM)'),
-  attribution: OSM_TILE_ATTRIBUTION,
-};
 
 export const MAPLIBRE_RENDERER_OPTION: MapRendererOption = {
   value: 'maplibre',
-  label: t('MapLibre (open-source)'),
 };
 export const MAPBOX_RENDERER_OPTION: MapRendererOption = {
   value: 'mapbox',
-  label: t('Mapbox (API key required)'),
 };
 export const DISABLED_MAPBOX_RENDERER_OPTION: MapRendererOption = {
   ...MAPBOX_RENDERER_OPTION,

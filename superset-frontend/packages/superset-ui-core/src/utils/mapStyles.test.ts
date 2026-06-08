@@ -24,47 +24,15 @@ import {
   hasMapboxApiKey,
   isRasterTileTemplate,
   OSM_TILE_ATTRIBUTION,
-  OSM_TILE_STYLE_CHOICE,
   OSM_TILE_STYLE_URL,
   resolveMapStyle,
 } from './mapStyles';
 
-test('map renderer and OSM style labels are localizable', async () => {
-  jest.resetModules();
-  jest.doMock('@apache-superset/core/translation', () => ({
-    t: (label: string) => `translated:${label}`,
-  }));
-
-  const {
-    getMapRendererOptions: getTranslatedMapRendererOptions,
-    OSM_TILE_STYLE_CHOICE: translatedOsmTileStyleChoice,
-    OSM_TILE_STYLE_URL: translatedOsmTileStyleUrl,
-    OSM_TILE_ATTRIBUTION: translatedOsmTileAttribution,
-  } = await import('./mapStyles');
-
-  expect(translatedOsmTileStyleChoice).toEqual({
-    value: translatedOsmTileStyleUrl,
-    label: 'translated:Streets (OSM)',
-    attribution: translatedOsmTileAttribution,
-  });
-  expect(getTranslatedMapRendererOptions({ hasMapboxKey: true })).toEqual([
-    { value: 'maplibre', label: 'translated:MapLibre (open-source)' },
-    { value: 'mapbox', label: 'translated:Mapbox (API key required)' },
-  ]);
-  expect(getTranslatedMapRendererOptions({ hasMapboxKey: false })).toEqual([
-    { value: 'maplibre', label: 'translated:MapLibre (open-source)' },
-  ]);
-
-  jest.dontMock('@apache-superset/core/translation');
-  jest.resetModules();
-});
-
-test('OSM style choice uses the approved label, URL, and attribution', () => {
-  expect(OSM_TILE_STYLE_CHOICE).toEqual({
-    value: OSM_TILE_STYLE_URL,
-    label: 'Streets (OSM)',
-    attribution: OSM_TILE_ATTRIBUTION,
-  });
+test('OSM style metadata uses the approved URL and attribution', () => {
+  expect(OSM_TILE_STYLE_URL).toBe(
+    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  );
+  expect(OSM_TILE_ATTRIBUTION).toBe('© OpenStreetMap contributors');
 });
 
 test('Mapbox key helpers report absence and presence from bootstrap data', () => {
@@ -80,9 +48,9 @@ test('Mapbox key helpers report absence and presence from bootstrap data', () =>
       common: { conf: { MAPBOX_API_KEY: '  pk.test  ' } },
     }),
   ).toBe('pk.test');
-  expect(
-    hasMapboxApiKey({ common: { conf: { MAPBOX_API_KEY: '   ' } } }),
-  ).toBe(false);
+  expect(hasMapboxApiKey({ common: { conf: { MAPBOX_API_KEY: '   ' } } })).toBe(
+    false,
+  );
   expect(
     hasMapboxApiKey({ common: { conf: { MAPBOX_API_KEY: 'pk.test' } } }),
   ).toBe(true);
@@ -90,21 +58,18 @@ test('Mapbox key helpers report absence and presence from bootstrap data', () =>
 
 test('renderer options enable Mapbox only when a key is available', () => {
   expect(getMapRendererOptions({ hasMapboxKey: true })).toEqual([
-    { value: 'maplibre', label: 'MapLibre (open-source)' },
-    { value: 'mapbox', label: 'Mapbox (API key required)' },
+    { value: 'maplibre' },
+    { value: 'mapbox' },
   ]);
   expect(getMapRendererOptions({ hasMapboxKey: false })).toEqual([
-    { value: 'maplibre', label: 'MapLibre (open-source)' },
+    { value: 'maplibre' },
   ]);
 });
 
 test('renderer options preserve saved Mapbox without API-key labels', () => {
   expect(
     getMapRendererOptions({ hasMapboxKey: false, currentValue: 'mapbox' }),
-  ).toEqual([
-    { value: 'maplibre', label: 'MapLibre (open-source)' },
-    { value: 'mapbox', label: 'Mapbox (API key required)', disabled: true },
-  ]);
+  ).toEqual([{ value: 'maplibre' }, { value: 'mapbox', disabled: true }]);
 });
 
 test('default renderer uses configured Mapbox only when a key is available', () => {
