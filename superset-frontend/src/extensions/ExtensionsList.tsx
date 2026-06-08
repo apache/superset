@@ -17,40 +17,41 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { css } from '@apache-superset/core/theme';
+import { SupersetClient } from '@superset-ui/core';
 import {
   FunctionComponent,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
+  useMemo,
   useSyncExternalStore,
 } from 'react';
-import { SupersetClient } from '@superset-ui/core';
-import { Select, Switch } from '@superset-ui/core/components';
 import { useListViewResource } from 'src/views/CRUD/hooks';
+import { createErrorHandler } from 'src/views/CRUD/utils';
 import { ListView } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { CHATBOT_LOCATION } from 'src/views/contributions';
+import { ConfirmStatusChange, Tooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import {
-  getRegisteredViewIds,
-  subscribeToRegistry,
-  getRegistryVersion,
-} from 'src/core/views';
+  getExtensionSettingsSnapshot,
+  loadExtensionSettings,
+  setExtensionSettings,
+  subscribeToExtensionSettings,
+} from 'src/core/extensions';
+import { getRegisteredViewIds, subscribeToRegistry } from 'src/core/views';
+
+const CHATBOT_LOCATION = 'superset.chatbot';
 
 const PAGE_SIZE = 25;
 
 type Extension = {
   id: string;
   name: string;
+  publisher: string;
   enabled: boolean;
-};
-
-type ExtensionSettings = {
-  active_chatbot_id: string | null;
-  enabled: Record<string, boolean>;
+  deletable: boolean;
 };
 
 interface ExtensionsListProps {
@@ -62,6 +63,21 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   addDangerToast,
   addSuccessToast,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [chatbotExtensionIds, setChatbotExtensionIds] = useState<Set<string>>(
+    () => new Set(getRegisteredViewIds(CHATBOT_LOCATION)),
+  );
+
+  // The active chatbot lives in the host-owned settings store shared with the
+  // live ChatbotMount, so a change here is reflected there without a second
+  // notification channel.
+  const settings = useSyncExternalStore(
+    subscribeToExtensionSettings,
+    getExtensionSettingsSnapshot,
+  );
+  const activeChatbotId = settings.active_chatbot_id;
+
   const {
     state: { loading, resourceCount, resourceCollection },
     fetchData,
@@ -72,64 +88,110 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     addDangerToast,
   );
 
-  const [settings, setSettings] = useState<ExtensionSettings>({
-    active_chatbot_id: null,
-    enabled: {},
-  });
-  // Always holds the latest settings value so saveSettings never closes over
-  // a stale snapshot when rapid toggles race against each other.
-  const settingsRef = useRef(settings);
-  settingsRef.current = settings;
-
-  // Re-evaluate the chatbot rows whenever a view registers or unregisters.
-  const chatbotRegistryVersion = useSyncExternalStore(
-    subscribeToRegistry,
-    getRegistryVersion,
+  // Keep chatbotExtensionIds in sync with runtime view registrations
+  useEffect(
+    () =>
+      subscribeToRegistry(() => {
+        setChatbotExtensionIds(new Set(getRegisteredViewIds(CHATBOT_LOCATION)));
+      }),
+    [],
   );
 
+  // Load settings into the shared store on mount.
   useEffect(() => {
-    SupersetClient.get({ endpoint: '/api/v1/extensions/settings' })
-      .then(({ json }) => setSettings(json.result))
-      .catch(() => addDangerToast(t('Failed to load extension settings.')));
-  }, [addDangerToast]);
+    // non-fatal: the store keeps its empty default on failure.
+    loadExtensionSettings().catch(() => {});
+  }, []);
 
-  const saveSettings = useCallback(
-    (patch: Partial<ExtensionSettings>) => {
-      const previous = settingsRef.current;
-      const next = { ...previous, ...patch };
-      setSettings(next);
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.supx')) {
+      addDangerToast(t('File must have a .supx extension.'));
+      e.target.value = '';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('bundle', file);
+
+    setUploading(true);
+    SupersetClient.post({
+      endpoint: '/api/v1/extensions/',
+      body: formData,
+      headers: { Accept: 'application/json' },
+    })
+      .then(() => {
+        addSuccessToast(t('Extension installed successfully.'));
+        refreshData();
+      })
+      .catch(
+        createErrorHandler(errMsg =>
+          addDangerToast(
+            t('There was an issue installing the extension: %s', errMsg),
+          ),
+        ),
+      )
+      .finally(() => {
+        setUploading(false);
+        e.target.value = '';
+      });
+  };
+
+  const handleDelete = useCallback(
+    (extension: Extension) => {
+      const { publisher, name } = extension;
+      SupersetClient.delete({
+        endpoint: `/api/v1/extensions/${publisher}/${name}`,
+      }).then(
+        () => {
+          addSuccessToast(t('Deleted: %s', extension.name));
+          refreshData();
+        },
+        createErrorHandler(errMsg =>
+          addDangerToast(
+            t('There was an issue deleting %s: %s', extension.name, errMsg),
+          ),
+        ),
+      );
+    },
+    [addDangerToast, addSuccessToast, refreshData],
+  );
+
+  const handleSetDefaultChatbot = useCallback(
+    (extension: Extension) => {
+      const newId = activeChatbotId === extension.id ? null : extension.id;
       SupersetClient.put({
         endpoint: '/api/v1/extensions/settings',
-        jsonPayload: next,
-      })
-        .then(() => {
-          addSuccessToast(t('Settings saved.'));
-        })
-        .catch(() => {
-          // Rollback optimistic update so UI stays consistent with server state.
-          setSettings(previous);
-          addDangerToast(t('Failed to save extension settings.'));
-        });
+        jsonPayload: { active_chatbot_id: newId },
+      }).then(
+        () => {
+          // Reflect the change in the shared settings store; the component and
+          // the live ChatbotMount both re-resolve from it immediately.
+          setExtensionSettings({
+            ...getExtensionSettingsSnapshot(),
+            active_chatbot_id: newId,
+          });
+          addSuccessToast(
+            newId
+              ? t('%s set as default chatbot.', extension.name)
+              : t('Default chatbot cleared.'),
+          );
+        },
+        createErrorHandler(errMsg =>
+          addDangerToast(
+            t('There was an issue updating chatbot settings: %s', errMsg),
+          ),
+        ),
+      );
     },
-    [addDangerToast, addSuccessToast],
+    [activeChatbotId, addDangerToast, addSuccessToast],
   );
-
-  const toggleEnabled = useCallback(
-    (extensionId: string, enabled: boolean) => {
-      saveSettings({
-        enabled: { ...settingsRef.current.enabled, [extensionId]: enabled },
-      });
-    },
-    [saveSettings],
-  );
-
-  const chatbotExtensions = useMemo(() => {
-    const chatbotIds = new Set(getRegisteredViewIds(CHATBOT_LOCATION));
-    return resourceCollection.filter(ext => chatbotIds.has(ext.id));
-    // chatbotRegistryVersion is intentionally in deps to re-evaluate when
-    // chatbot views register or deregister.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resourceCollection, chatbotRegistryVersion]);
 
   const columns = useMemo(
     () => [
@@ -145,60 +207,133 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
         }: any) => name,
       },
       {
-        Header: t('Enabled'),
-        accessor: 'enabled',
-        size: 'sm',
-        id: 'enabled',
+        Header: t('Publisher'),
+        accessor: 'publisher',
+        id: 'publisher',
         Cell: ({
           row: {
-            original: { id },
+            original: { publisher },
           },
-        }: any) => (
-          <Switch
-            data-test="toggle-enabled"
-            checked={settings.enabled[id] ?? true}
-            onChange={(checked: boolean) => toggleEnabled(id, checked)}
-            size="small"
-          />
-        ),
+        }: any) => publisher,
+      },
+      {
+        Header: t('Actions'),
+        id: 'actions',
+        disableSortBy: true,
+        Cell: ({ row: { original } }: any) => {
+          const isChatbot = chatbotExtensionIds.has(original.id);
+          const isDefault = activeChatbotId === original.id;
+          return (
+            <>
+              {isChatbot && (
+                <Tooltip
+                  id={`set-chatbot-tooltip-${original.id}`}
+                  title={
+                    isDefault
+                      ? t('Clear default chatbot')
+                      : t('Set as default chatbot')
+                  }
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    data-test="set-default-chatbot"
+                    className="action-button"
+                    onClick={() => handleSetDefaultChatbot(original)}
+                    onKeyDown={(e: React.KeyboardEvent) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        handleSetDefaultChatbot(original);
+                      }
+                    }}
+                  >
+                    {isDefault ? (
+                      <Icons.StarFilled iconSize="l" />
+                    ) : (
+                      <Icons.StarOutlined iconSize="l" />
+                    )}
+                  </span>
+                </Tooltip>
+              )}
+              {original.deletable && (
+                <ConfirmStatusChange
+                  title={t('Please confirm')}
+                  description={
+                    <>
+                      {t('Are you sure you want to delete')}{' '}
+                      <b>{original.name}</b>?
+                    </>
+                  }
+                  onConfirm={() => handleDelete(original)}
+                >
+                  {(confirmDelete: () => void) => (
+                    <Tooltip
+                      id={`delete-extension-tooltip-${original.id}`}
+                      title={t('Delete')}
+                      placement="bottom"
+                    >
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        data-test="delete-extension"
+                        className="action-button"
+                        onClick={confirmDelete}
+                        onKeyDown={(e: React.KeyboardEvent) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            confirmDelete();
+                          }
+                        }}
+                      >
+                        <Icons.DeleteOutlined iconSize="l" />
+                      </span>
+                    </Tooltip>
+                  )}
+                </ConfirmStatusChange>
+              )}
+            </>
+          );
+        },
       },
     ],
-    [settings, toggleEnabled],
+    [
+      activeChatbotId,
+      chatbotExtensionIds,
+      handleSetDefaultChatbot,
+      handleDelete,
+    ],
   );
-
-  const chatbotOptions = chatbotExtensions.map(ext => ({
-    label: ext.name,
-    value: ext.id,
-  }));
 
   const menuData: SubMenuProps = {
     activeChild: 'Extensions',
     name: t('Extensions'),
-    buttons: [],
+    buttons: [
+      {
+        name: (
+          <Tooltip
+            id="import-extension-tooltip"
+            title={t('Import extension (.supx)')}
+            placement="bottomRight"
+          >
+            <Icons.DownloadOutlined iconSize="l" />
+          </Tooltip>
+        ),
+        buttonStyle: 'link',
+        onClick: handleUploadClick,
+        loading: uploading,
+      },
+    ],
   };
 
   return (
     <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".supx"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
       <SubMenu {...menuData} />
-      {chatbotOptions.length > 1 && (
-        <div style={{ padding: '16px 24px' }}>
-          <label htmlFor="chatbot-select" style={{ marginRight: 8 }}>
-            {t('Default chatbot')}
-          </label>
-          <Select
-            allowClear
-            options={chatbotOptions}
-            value={settings.active_chatbot_id ?? undefined}
-            onChange={value =>
-              saveSettings({ active_chatbot_id: (value as string) ?? null })
-            }
-            placeholder={t('First registered (automatic)')}
-            css={css`
-              width: 280px;
-            `}
-          />
-        </div>
-      )}
       <ListView<Extension>
         columns={columns}
         count={resourceCount}
