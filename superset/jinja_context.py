@@ -354,6 +354,12 @@ class ExtraCache:
             - you want to have the ability for filter inside the main query for speed
             purposes
 
+        .. warning::
+            Do not hand-escape filter values into SQL strings (for example with
+            ``replace("'", "''")``). Such patterns are incomplete and easy to get
+            wrong. Render list values through the ``where_in`` filter, and prefer
+            the ``IN`` operator over building literals by hand.
+
         Usage example::
 
 
@@ -374,10 +380,6 @@ class ExtraCache:
                 {%- if filter.get('op') == 'IN' -%}
                     AND
                     full_name IN {{ filter.get('val')|where_in }}
-                {%- endif -%}
-                {%- if filter.get('op') == 'LIKE' -%}
-                    AND
-                    full_name LIKE '{{ filter.get('val') | replace("'", "''") }}'
                 {%- endif -%}
                 {%- endfor -%}
                 UNION ALL
