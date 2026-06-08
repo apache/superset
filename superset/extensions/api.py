@@ -20,7 +20,7 @@ from typing import Any
 
 from flask import request, send_file
 from flask.wrappers import Response
-from flask_appbuilder.api import BaseApi, expose, protect, safe
+from flask_appbuilder.api import expose, protect, safe
 
 from superset.commands.extension.settings.exceptions import (
     ExtensionSettingsInvalidError,
@@ -34,27 +34,16 @@ from superset.extensions.utils import (
     build_extension_data,
     get_extensions,
 )
+from superset.views.base_api import BaseSupersetApi
 
 
-class ExtensionsRestApi(BaseApi):
+class ExtensionsRestApi(BaseSupersetApi):
     allow_browser_login = True
     resource_name = "extensions"
-    # FAB's BaseApi defaults csrf_exempt to True; these endpoints use
-    # cookie/session auth (allow_browser_login) and include state-changing
-    # routes (settings PUT, upload POST, delete), so CSRF protection must apply.
+    # BaseSupersetApi already defaults csrf_exempt to False; kept explicit
+    # because these endpoints use cookie/session auth (allow_browser_login)
+    # and include state-changing routes (settings PUT, upload POST, delete).
     csrf_exempt = False
-
-    def response(self, status_code: int, **kwargs: Any) -> Response:
-        """Helper method to create JSON responses."""
-        from flask import jsonify
-
-        return jsonify(kwargs), status_code
-
-    def response_404(self) -> Response:
-        """Helper method to create 404 responses."""
-        from flask import jsonify
-
-        return jsonify({"message": "Not found"}), 404
 
     @expose("/_info", methods=("GET",))
     @protect()
