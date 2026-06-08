@@ -1082,6 +1082,15 @@ class NVD3TimeSeriesViz(NVD3Viz):
         if not isinstance(time_compare, list):
             time_compare = [time_compare]
 
+        max_time_compare = current_app.config["VIZ_TIME_COMPARE_MAX_LIST_SIZE"]
+        if max_time_compare and len(time_compare) > max_time_compare:
+            raise QueryObjectValidationError(
+                _(
+                    "Too many time comparisons requested; the maximum is %(limit)s.",
+                    limit=max_time_compare,
+                )
+            )
+
         for option in time_compare:
             query_object = self.query_obj()
             try:
@@ -1664,7 +1673,15 @@ class DeckGLMultiLayer(BaseViz):
         from superset import db
         from superset.models.slice import Slice
 
-        slice_ids = self.form_data.get("deck_slices")
+        slice_ids = self.form_data.get("deck_slices") or []
+        max_deck_slices = current_app.config["VIZ_DECK_SLICES_MAX_LIST_SIZE"]
+        if max_deck_slices and len(slice_ids) > max_deck_slices:
+            raise QueryObjectValidationError(
+                _(
+                    "Too many layers requested; the maximum is %(limit)s.",
+                    limit=max_deck_slices,
+                )
+            )
         slices = db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
 
         features: dict[str, list[Any]] = {}

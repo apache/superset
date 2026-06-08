@@ -168,6 +168,12 @@ NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
 
+# Upper bound on the number of entries in user-supplied list fields that each
+# fan out into one or more additional database queries within a single chart
+# request, to limit query amplification. Set to 0 to disable a bound.
+VIZ_TIME_COMPARE_MAX_LIST_SIZE = 10
+VIZ_DECK_SLICES_MAX_LIST_SIZE = 10
+
 # SupersetClient HTTP retry configuration
 # Controls retry behavior for all HTTP requests made through SupersetClient
 # This helps handle transient server errors (like 502 Bad Gateway) automatically

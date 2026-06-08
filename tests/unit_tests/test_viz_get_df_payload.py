@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime
 from typing import Any
 from unittest.mock import patch
 
@@ -89,6 +90,56 @@ def test_get_df_payload_captures_generic_exception_as_viz_get_df_error() -> None
     assert len(obj.errors) == 1
     assert obj.errors[0]["error_type"] == SupersetErrorType.VIZ_GET_DF_ERROR
     assert obj.errors[0]["message"] == "boom"
+
+
+def _datasource() -> SqlaTable:
+    database = Database(database_name="d", sqlalchemy_uri="sqlite://")
+    return SqlaTable(
+        table_name="t",
+        columns=[],
+        metrics=[],
+        main_dttm_col=None,
+        database=database,
+    )
+
+
+def test_run_extra_queries_rejects_too_many_time_compares() -> None:
+    obj = viz.NVD3TimeSeriesViz(
+        datasource=_datasource(),
+        form_data={
+            "viz_type": "line",
+            "time_compare": [f"{i} days ago" for i in range(11)],
+        },
+        force=True,
+    )
+    with pytest.raises(QueryObjectValidationError, match="Too many time comparisons"):
+        obj.run_extra_queries()
+
+
+def test_run_extra_queries_allows_time_compare_within_limit() -> None:
+    obj = viz.NVD3TimeSeriesViz(
+        datasource=_datasource(),
+        form_data={"viz_type": "line", "time_compare": ["1 day ago"]},
+        force=True,
+    )
+    query_obj = {"from_dttm": datetime(2021, 1, 2), "to_dttm": datetime(2021, 1, 3)}
+    with (
+        patch.object(viz.NVD3TimeSeriesViz, "query_obj", return_value=query_obj),
+        patch.object(
+            viz.NVD3TimeSeriesViz, "get_df_payload", return_value={"df": None}
+        ),
+    ):
+        obj.run_extra_queries()  # must not raise the limit error
+
+
+def test_deck_multi_rejects_too_many_slices() -> None:
+    obj = viz.DeckGLMultiLayer(
+        datasource=_datasource(),
+        form_data={"viz_type": "deck_multi", "deck_slices": list(range(11))},
+        force=True,
+    )
+    with pytest.raises(QueryObjectValidationError, match="Too many layers"):
+        obj.get_data(None)
 
 
 def test_get_df_payload_captures_query_object_validation_error() -> None:
