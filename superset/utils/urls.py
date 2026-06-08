@@ -60,12 +60,12 @@ def modify_url_query(url: str, **kwargs: Any) -> str:
             v = [v]
         params[k] = v
 
-    query_parts = []
-    for k, values in params.items():
-        query_parts.extend(
-            f"{k}={urllib.parse.quote(str(value))}" for value in values
-        )
-    parts[3] = "&".join(query_parts)
+    parts[3] = urllib.parse.urlencode(
+        params,
+        doseq=True,
+        quote_via=urllib.parse.quote,
+        safe="/",
+    )
     return urllib.parse.urlunsplit(parts)
 
 
