@@ -335,9 +335,15 @@ def import_dashboard(  # noqa: C901
                     "permissions to "
                     f"{'restore' if is_soft_deleted else 'overwrite'} it"
                 )
-        if needs_mutation and not can_write:
+        if is_soft_deleted and not can_write:
             # Case B: would-be restore-via-import without write permission.
             # Raise rather than silently returning the soft-deleted row.
+            #
+            # Keyed on ``is_soft_deleted`` rather than ``needs_mutation``: an
+            # *active* row imported with overwrite=True but no can_write is not
+            # a restore, so it must fall through to ``return existing`` below
+            # (the pre-soft-delete overwrite-without-permission behaviour)
+            # instead of raising the restore error.
             raise ImportFailedError(
                 "Dashboard was deleted and re-import requires can_write "
                 "permission to restore it"

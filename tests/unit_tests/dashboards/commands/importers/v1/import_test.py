@@ -492,6 +492,33 @@ def test_import_soft_deleted_dashboard_raises_when_caller_lacks_can_write(
     assert "can_write" in str(excinfo.value)
 
 
+def test_import_existing_active_dashboard_overwrite_without_can_write_returns_existing(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """
+    An *active* (not soft-deleted) dashboard re-imported with overwrite=True by
+    a caller without can_write must fall through to returning the existing row,
+    not raise the restore error. Case B is keyed on ``is_soft_deleted``, so the
+    fused ``needs_mutation`` condition must not pull active rows into the
+    restore-without-permission branch (pre-soft-delete overwrite behaviour).
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=False)
+
+    existing = (
+        session_with_data.query(Dashboard)
+        .filter(Dashboard.uuid == dashboard_config["uuid"])
+        .one_or_none()
+    )
+    assert existing is not None
+    assert existing.deleted_at is None
+
+    result = import_dashboard(dashboard_config, overwrite=True)
+
+    assert result.id == existing.id
+    assert result.deleted_at is None
+
+
 def test_import_soft_deleted_dashboard_ignore_permissions_restores_in_place(
     mocker: MockerFixture,
     session_with_data: Session,

@@ -271,7 +271,35 @@ class DashboardHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public
 class DashboardDeletedStateFilter(  # pylint: disable=too-few-public-methods
     BaseDeletedStateFilter
 ):
-    """Rison filter for the GET list that exposes soft-deleted dashboards."""
+    """Rison filter for the GET list that exposes soft-deleted dashboards.
+
+    Soft-deleted rows are additionally scoped to the **restore audience**:
+    only the dashboard's owners (or admins) may enumerate them. This mirrors
+    ``RestoreDashboardCommand``'s ``raise_for_ownership`` check, so a
+    read-access non-owner (who can see the dashboard via published-datasource
+    access or dashboard RBAC) cannot list soft-deleted dashboards they could
+    never restore. Live rows are unaffected — they keep their normal
+    ``DashboardAccessFilter`` visibility.
+    """
 
     arg_name = "dashboard_deleted_state"
     model = Dashboard
+
+    def apply(self, query: Query, value: Any) -> Query:
+        query = super().apply(query, value)
+        normalized = str(value).lower().strip() if value is not None else ""
+        if normalized not in {"include", "only"} or security_manager.is_admin():
+            return query
+
+        # Non-admins may only see soft-deleted dashboards they own. ``any()``
+        # emits an EXISTS subquery so it composes with the base access filter
+        # without producing duplicate rows from a join.
+        owned = Dashboard.owners.any(
+            security_manager.user_model.id == get_user_id()
+        )
+        if normalized == "only":
+            # ``super().apply`` already restricted to ``deleted_at IS NOT NULL``.
+            return query.filter(owned)
+        # ``include``: keep all live rows (normal access) and add only the
+        # soft-deleted rows this user owns.
+        return query.filter(or_(Dashboard.deleted_at.is_(None), owned))
