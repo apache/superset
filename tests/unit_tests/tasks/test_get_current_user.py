@@ -91,3 +91,46 @@ class TestGetCurrentUser:
         with app.app_context():
             with patch.object(_mod, "g", mock_g):
                 assert get_current_user() == "andre"
+
+    def test_retorna_none_quando_g_user_e_falsy_nao_none(self, app):
+        """CT05 | CI2 ampliada | D1=F (g.user = 0, falsy mas não None).
+
+        Verifica que qualquer valor falsy em g.user (não apenas None) encerra
+        o fluxo antes de avaliar is_anonymous, retornando None.
+        """
+        mock_g = MagicMock()
+        mock_g.user = 0
+        with app.app_context():
+            with patch.object(_mod, "g", mock_g):
+                assert get_current_user() is None
+
+    def test_retorna_string_vazia_quando_username_e_vazio(self, app):
+        """CT06 | CV1 borda | D1=V; D2=V; username = "".
+
+        Comportamento não especificado formalmente — a função retorna string
+        vazia em vez de None quando user.username == "".
+        """
+        usuario = MagicMock()
+        usuario.is_anonymous = False
+        usuario.username = ""
+        mock_g = MagicMock()
+        mock_g.user = usuario
+        with app.app_context():
+            with patch.object(_mod, "g", mock_g):
+                assert get_current_user() == ""
+
+    def test_retorna_none_quando_username_e_none(self, app):
+        """CT07 | CV1 borda | D1=V; D2=V; username = None.
+
+        username=None retorna None via user.username, não pelo fluxo principal
+        (ou seja, a guarda `not user.is_anonymous` é satisfeita, mas o valor
+        retornado é None porque user.username é None).
+        """
+        usuario = MagicMock()
+        usuario.is_anonymous = False
+        usuario.username = None
+        mock_g = MagicMock()
+        mock_g.user = usuario
+        with app.app_context():
+            with patch.object(_mod, "g", mock_g):
+                assert get_current_user() is None
