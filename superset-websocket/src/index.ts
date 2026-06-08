@@ -168,27 +168,57 @@ export const setLastFirehoseId = (id: string): void => {
 const CONNECTION_LIMIT_CLOSE_CODE = 1013;
 
 /**
+ * Returns whether the socket with the given id is currently active, i.e. it is
+ * still registered and its underlying connection is in an active readyState.
+ *
+ * Closed sockets are only removed from the registries asynchronously (via the
+ * `checkSockets`/`cleanChannel` GC routines), so connection-limit checks must
+ * filter on live socket state rather than trusting the raw registry sizes.
+ */
+const isSocketActive = (socketId: string): boolean => {
+  const socketInstance = sockets[socketId];
+  return (
+    !!socketInstance &&
+    SOCKET_ACTIVE_STATES.includes(socketInstance.ws.readyState)
+  );
+};
+
+/**
+ * Counts the sockets in the global registry that are still active.
+ */
+const activeSocketCount = (): number =>
+  Object.keys(sockets).filter(isSocketActive).length;
+
+/**
+ * Counts the active sockets currently registered on the given channel.
+ */
+const activeChannelSocketCount = (channel: string): number =>
+  channels[channel]?.sockets.filter(isSocketActive).length ?? 0;
+
+/**
  * Determines whether accepting a new connection on the given channel would
  * exceed a configured connection limit. Returns a human-readable reason when a
  * limit is reached, or `null` when the connection is within limits.
  *
  * Both limits are opt-in: a value of `0` (the default) disables the check.
+ *
+ * Counts are derived from active socket state rather than raw registry sizes:
+ * recently closed sockets linger in the registries until the next GC pass, so
+ * counting them would spuriously reject new connections even when no active
+ * connection is consuming capacity.
  */
 export const connectionLimitReason = (channel: string): string | null => {
   const { maxTotalConnections, maxConnectionsPerChannel } = opts;
 
-  if (
-    maxTotalConnections > 0 &&
-    Object.keys(sockets).length >= maxTotalConnections
-  ) {
+  if (maxTotalConnections > 0 && activeSocketCount() >= maxTotalConnections) {
     return `total connection limit (${maxTotalConnections}) reached`;
   }
 
-  if (maxConnectionsPerChannel > 0) {
-    const channelSize = channels[channel]?.sockets.length ?? 0;
-    if (channelSize >= maxConnectionsPerChannel) {
-      return `per-channel connection limit (${maxConnectionsPerChannel}) reached`;
-    }
+  if (
+    maxConnectionsPerChannel > 0 &&
+    activeChannelSocketCount(channel) >= maxConnectionsPerChannel
+  ) {
+    return `per-channel connection limit (${maxConnectionsPerChannel}) reached`;
   }
 
   return null;

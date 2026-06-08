@@ -661,8 +661,10 @@ describe('server', () => {
 
     test('total connection limit reached', () => {
       server.opts.maxTotalConnections = 1;
+      const ws = new wsMock('localhost');
+      setReadyState(ws, WebSocket.OPEN);
       const socketInstance = {
-        ws: new wsMock('localhost'),
+        ws,
         channel: channelId,
         pongTs: Date.now(),
       };
@@ -674,8 +676,10 @@ describe('server', () => {
 
     test('per-channel connection limit reached', () => {
       server.opts.maxConnectionsPerChannel = 1;
+      const ws = new wsMock('localhost');
+      setReadyState(ws, WebSocket.OPEN);
       const socketInstance = {
-        ws: new wsMock('localhost'),
+        ws,
         channel: channelId,
         pongTs: Date.now(),
       };
@@ -685,10 +689,40 @@ describe('server', () => {
       );
     });
 
+    test('stale closed socket does not count toward total limit', () => {
+      server.opts.maxTotalConnections = 1;
+      const ws = new wsMock('localhost');
+      const socketInstance = {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, socketInstance);
+      // simulate the socket having closed but not yet been GC'd
+      setReadyState(ws, WebSocket.CLOSED);
+      expect(server.connectionLimitReason('some-other-channel')).toBeNull();
+    });
+
+    test('stale closed socket does not count toward per-channel limit', () => {
+      server.opts.maxConnectionsPerChannel = 1;
+      const ws = new wsMock('localhost');
+      const socketInstance = {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, socketInstance);
+      // simulate the socket having closed but not yet been GC'd
+      setReadyState(ws, WebSocket.CLOSED);
+      expect(server.connectionLimitReason(channelId)).toBeNull();
+    });
+
     test('wsConnection refuses over-limit connection without tracking', () => {
       server.opts.maxConnectionsPerChannel = 1;
+      const existingWs = new wsMock('localhost');
+      setReadyState(existingWs, WebSocket.OPEN);
       const existing = {
-        ws: new wsMock('localhost'),
+        ws: existingWs,
         channel: channelId,
         pongTs: Date.now(),
       };
