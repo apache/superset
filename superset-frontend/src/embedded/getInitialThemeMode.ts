@@ -19,9 +19,12 @@
 import { ThemeMode } from '@apache-superset/core/theme';
 
 /**
- * Reads the `?theme=` URL parameter set by the embed SDK via
- * `dashboardUiConfig.urlParams` and returns the corresponding ThemeMode.
- * Falls back to ThemeMode.DEFAULT when the param is absent or unrecognised.
+ * Reads the `?themeMode=` URL parameter from the iframe URL and returns
+ * the corresponding ThemeMode. Falls back to ThemeMode.DEFAULT when the
+ * param is absent or unrecognised.
+ *
+ * Host apps set this via `dashboardUiConfig.urlParams.themeMode` in the
+ * embed SDK, which forwards it to the iframe URL automatically.
  */
 export function getInitialThemeMode(): ThemeMode {
   const params = new URLSearchParams(window.location.search);
