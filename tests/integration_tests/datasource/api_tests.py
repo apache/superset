@@ -306,6 +306,29 @@ class TestDatasourceApi(SupersetTestCase):
         assert values_for_column_mock.call_count == 2
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    @patch("superset.datasource.api.security_manager.get_rls_cache_key")
+    @patch("superset.models.helpers.ExploreMixin.values_for_column")
+    def test_get_column_values_cache_isolated_per_rls_context(
+        self, values_for_column_mock, get_rls_cache_key_mock
+    ):
+        """RLS safety for guest/embedded sessions. ``get_user_id()`` returns
+        ``None`` for guest users, so two embedded dashboards with different
+        guest-token RLS would otherwise collide on ``user=None``. Including
+        the RLS fingerprint in the cache key keeps them separate."""
+        cache_manager.data_cache.clear()
+        values_for_column_mock.return_value = ["v"]
+        self.login(ADMIN_USERNAME)
+        table = self.get_virtual_dataset()
+        url = f"api/v1/datasource/table/{table.id}/column/col2/values/"
+
+        get_rls_cache_key_mock.return_value = ["dept='A'"]
+        self.client.get(url)
+        get_rls_cache_key_mock.return_value = ["dept='B'"]
+        self.client.get(url)
+
+        assert values_for_column_mock.call_count == 2
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
     @patch("superset.models.helpers.ExploreMixin.values_for_column")
     def test_get_column_values_response_advertises_cache_status(
         self, values_for_column_mock

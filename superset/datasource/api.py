@@ -134,10 +134,20 @@ class DatasourceRestApi(BaseSupersetApi):
 
         # Cache distinct column-value results so a dashboard with many filters
         # backed by the same (often heavy) virtual dataset doesn't re-execute
-        # the wrapping query per filter (#39342). The cache key includes the
-        # user id so RLS-filtered datasources can't leak values across users,
-        # and the dataset's ``changed_on`` so an edit to the underlying SQL
-        # busts cached entries on the next request.
+        # the wrapping query per filter (#39342).
+        #
+        # Key fields:
+        # - ``user`` — baseline per-user isolation. ``get_user_id()`` returns
+        #   ``None`` for guest/anonymous sessions, so this field alone is not
+        #   sufficient for RLS safety.
+        # - ``rls`` — full RLS fingerprint via
+        #   ``security_manager.get_rls_cache_key`` (the canonical helper used
+        #   by viz.py and query_context_processor.py). Covers both regular
+        #   RLS policy changes and guest-token RLS, so embedded sessions
+        #   with different guest tokens never share cached values even when
+        #   ``get_user_id()`` is ``None`` for both.
+        # - ``changed_on`` — auto-busts cached entries when the dataset's
+        #   underlying SQL is edited.
         force = parse_boolean_string(request.args.get("force"))
         cache_key = (
             "col_values:"
@@ -149,6 +159,7 @@ class DatasourceRestApi(BaseSupersetApi):
                         "limit": row_limit,
                         "denorm": denormalize_column,
                         "user": get_user_id(),
+                        "rls": security_manager.get_rls_cache_key(datasource),
                         "changed_on": str(getattr(datasource, "changed_on", "")),
                     },
                     sort_keys=True,
