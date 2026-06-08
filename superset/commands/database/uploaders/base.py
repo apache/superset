@@ -20,6 +20,7 @@ from functools import partial
 from typing import Any, Optional, TypedDict
 
 import pandas as pd
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from werkzeug.datastructures import FileStorage
 
@@ -29,6 +30,7 @@ from superset.commands.database.exceptions import (
     DatabaseNotFoundError,
     DatabaseSchemaUploadNotAllowed,
     DatabaseUploadFailed,
+    DatabaseUploadFileTooLarge,
     DatabaseUploadNotSupported,
     DatabaseUploadSaveMetadataFailed,
 )
@@ -188,6 +190,16 @@ class UploadCommand(BaseCommand):
 
         sqla_table.fetch_metadata()
 
+    @staticmethod
+    def _file_size_bytes(file: Any) -> int:
+        """Return the size of an uploaded file without consuming its stream."""
+        stream = getattr(file, "stream", file)
+        position = stream.tell()
+        stream.seek(0, 2)  # seek to end
+        size = stream.tell()
+        stream.seek(position)  # restore the original position
+        return size
+
     def validate(self) -> None:
         self._model = DatabaseDAO.find_by_id(self._model_id)
         if not self._model:
@@ -196,3 +208,11 @@ class UploadCommand(BaseCommand):
             raise DatabaseSchemaUploadNotAllowed()
         if not self._model.db_engine_spec.supports_file_upload:
             raise DatabaseUploadNotSupported()
+
+        max_file_size = current_app.config.get("UPLOAD_MAX_FILE_SIZE_BYTES")
+        if (
+            max_file_size is not None
+            and self._file is not None
+            and self._file_size_bytes(self._file) > max_file_size
+        ):
+            raise DatabaseUploadFileTooLarge()
