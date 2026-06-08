@@ -73,15 +73,16 @@ export const getActiveChatbot = (
     return undefined;
   }
 
+  // Mirror SIP §4.3's resolution table directly: when the admin pin names an
+  // enabled candidate, use it; otherwise use the first enabled candidate in
+  // registration order. `getRegisteredViewIds` and `getViewProvider` read the
+  // same synchronous registry maps, so a candidate id always has a live
+  // provider; the final guard is cheap defensiveness, not a fallback path.
   const selectedId =
     adminSelectedId && candidates.includes(adminSelectedId)
       ? adminSelectedId
       : candidates[0];
 
   const provider = getViewProvider(CHATBOT_LOCATION, selectedId);
-  if (!provider) {
-    return undefined;
-  }
-
-  return { id: selectedId, provider };
+  return provider ? { id: selectedId, provider } : undefined;
 };

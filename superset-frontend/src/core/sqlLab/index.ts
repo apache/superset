@@ -56,6 +56,7 @@ import {
   QueryResultContext,
   QueryErrorResultContext,
 } from './models';
+import { navigation } from '../navigation';
 
 const { CTASMethod } = sqlLabApi;
 
@@ -301,8 +302,15 @@ function createQueryErrorContext(
   );
 }
 
-const getCurrentTab: typeof sqlLabApi.getCurrentTab = () =>
-  getTab(activeEditorId());
+const getCurrentTab: typeof sqlLabApi.getCurrentTab = () => {
+  // Guard on the page type so the tab does not leak onto non-editor surfaces.
+  // The SQL Lab Redux slice persists after navigating away, so without this
+  // guard `getCurrentTab()` would keep returning the last editor's tab on, e.g.,
+  // a dashboard or list page. Mirrors the page-type guards on
+  // `explore.getCurrentChart()` / `dashboard.getCurrentDashboard()`.
+  if (navigation.getPageType() !== 'sqllab') return undefined;
+  return getTab(activeEditorId());
+};
 
 const getActivePanel: typeof sqlLabApi.getActivePanel = () => {
   const { activeSouthPaneTab } = getSqlLabState();
@@ -452,8 +460,14 @@ const onDidChangeActiveTab: typeof sqlLabApi.onDidChangeActiveTab = (
   createActionListener(
     globalPredicate(SET_ACTIVE_QUERY_EDITOR),
     listener,
-    (action: { type: string; queryEditor: { id: string } }) =>
-      getTab(action.queryEditor.id),
+    // Resolve the now-active tab the same way `getCurrentTab()` does (via the
+    // active-editor / tabHistory state) rather than from the raw action payload.
+    // The action's `queryEditor` carries the base editor without `unsavedQueryEditor`
+    // merged, so its `dbId` can still be undefined at this point, which made
+    // `getTab(action.queryEditor.id)` return undefined and silently swallow the
+    // event. Reading the resolved active tab keeps this event consistent with the
+    // getter and fires on every tab switch.
+    () => getCurrentTab() ?? null,
     thisArgs,
   );
 

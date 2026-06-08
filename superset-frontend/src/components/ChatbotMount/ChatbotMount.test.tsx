@@ -19,10 +19,17 @@
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { views } from 'src/core';
+import { setExtensionSettings } from 'src/core/extensions';
 import { CHATBOT_LOCATION } from 'src/views/contributions';
 import ChatbotMount from '.';
 
 const disposables: Array<{ dispose: () => void }> = [];
+
+beforeEach(() => {
+  // The settings store is a module singleton; reset it so resolution starts
+  // from the empty default (no admin pin, all enabled) regardless of run order.
+  setExtensionSettings({ active_chatbot_id: null, enabled: {} });
+});
 
 afterEach(() => {
   disposables.forEach(d => d.dispose());
@@ -87,5 +94,21 @@ test('isolates a failing chatbot so it does not crash the host', () => {
   );
 
   // The host-owned error boundary catches the failure; render does not throw.
+  expect(() => render(<ChatbotMount />)).not.toThrow();
+});
+
+test('isolates a chatbot whose provider function itself throws', () => {
+  disposables.push(
+    views.registerView(
+      { id: 'superset.chatbot', name: 'Superset Chatbot' },
+      CHATBOT_LOCATION,
+      () => {
+        throw new Error('provider blew up');
+      },
+    ),
+  );
+
+  // ChatbotRenderer wraps provider() in a component so ErrorBoundary catches
+  // synchronous throws from the provider function, not just from its output.
   expect(() => render(<ChatbotMount />)).not.toThrow();
 });

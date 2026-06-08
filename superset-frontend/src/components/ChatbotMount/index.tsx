@@ -16,25 +16,65 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import {
+  type ReactElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+} from 'react';
+import { t } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { store } from 'src/views/store';
 import { getActiveChatbot } from 'src/core/chatbot';
-import { subscribeToLocation } from 'src/core/views';
-import { CHATBOT_LOCATION } from 'src/views/contributions';
+import { subscribeToRegistry, getRegistryVersion } from 'src/core/views';
+import {
+  getExtensionSettingsSnapshot,
+  loadExtensionSettings,
+  subscribeToExtensionSettings,
+} from 'src/core/extensions';
 
 const CHATBOT_EDGE_MARGIN = 24;
 
+/**
+ * Wraps the chatbot provider in a React component so that ErrorBoundary can
+ * catch synchronous throws from the provider function itself. Calling
+ * `provider()` inline (e.g. `{activeChatbot.provider()}`) would throw outside
+ * React's render boundary and crash the host.
+ */
+const ChatbotRenderer = ({ provider }: { provider: () => ReactElement }) =>
+  provider();
+
 const ChatbotMount = () => {
   const theme = useTheme();
-  const [activeChatbot, setActiveChatbot] = useState(() => getActiveChatbot());
+  // Notify once per mount; a crash can re-render and would otherwise re-toast.
+  const crashNotified = useRef(false);
 
-  useEffect(
-    () =>
-      subscribeToLocation(CHATBOT_LOCATION, () =>
-        setActiveChatbot(getActiveChatbot()),
-      ),
-    [],
+  // The active chatbot is a function of two host-owned stores: the admin
+  // settings (active id + enabled map) and the view registry (which chatbots
+  // are registered). Both are read via useSyncExternalStore so this re-resolves
+  // when either changes — no local copy of the settings state.
+  const settings = useSyncExternalStore(
+    subscribeToExtensionSettings,
+    getExtensionSettingsSnapshot,
+  );
+  const registryVersion = useSyncExternalStore(
+    subscribeToRegistry,
+    getRegistryVersion,
+  );
+
+  useEffect(() => {
+    // Settings fetch failure is non-fatal: the store keeps its empty default,
+    // which getActiveChatbot treats as "all enabled, no admin pin".
+    loadExtensionSettings().catch(() => {});
+  }, []);
+
+  const activeChatbot = useMemo(
+    () => getActiveChatbot(settings.active_chatbot_id, settings.enabled),
+    [settings, registryVersion],
   );
 
   if (!activeChatbot) {
@@ -52,7 +92,21 @@ const ChatbotMount = () => {
         z-index: ${theme.zIndexPopupBase + 2};
       `}
     >
-      <ErrorBoundary>{activeChatbot.provider()}</ErrorBoundary>
+      <ErrorBoundary
+        showMessage={false}
+        onError={(error: Error) => {
+          // Fault isolation (SIP §4.5): contain the crash, log it, surface a
+          // one-time notification, and leave the corner empty rather than
+          // parking a persistent error card.
+          logging.error('[chatbot] provider crashed', error);
+          if (!crashNotified.current) {
+            crashNotified.current = true;
+            store.dispatch(addDangerToast(t('The chatbot failed to load.')));
+          }
+        }}
+      >
+        <ChatbotRenderer provider={activeChatbot.provider} />
+      </ErrorBoundary>
     </div>
   );
 };
