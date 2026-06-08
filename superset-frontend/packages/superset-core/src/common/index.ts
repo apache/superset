@@ -214,6 +214,55 @@ export declare interface Event<T> {
 }
 
 /**
+ * Context handed to an extension's `activate` function.
+ *
+ * The extension binds the lifetime of everything it registers to this object by
+ * pushing the returned {@link Disposable}s onto `subscriptions`. Because the
+ * context is owned by the extension for as long as it is active, registrations
+ * performed asynchronously (after an `await`, in a timer, or in an event
+ * callback) are tracked just the same as synchronous ones — the host disposes
+ * the whole `subscriptions` array on deactivation.
+ *
+ * @example
+ * ```typescript
+ * export function activate(context: ExtensionContext) {
+ *   context.subscriptions.push(
+ *     commands.registerCommand('my_ext.hello', () => {}),
+ *   );
+ * }
+ * ```
+ */
+export interface ExtensionContext {
+  /**
+   * Disposables to be cleaned up when the extension is deactivated. Push every
+   * {@link Disposable} returned by a `register*` call here.
+   */
+  subscriptions: { dispose(): void }[];
+}
+
+/**
+ * Shape of an extension's entry module (its `./index`).
+ *
+ * Extensions are encouraged to export an `activate(context)` function so that
+ * their registrations are tracked via `context.subscriptions` regardless of
+ * whether they run synchronously or asynchronously. For backward compatibility,
+ * a module may instead register its contributions as top-level side effects when
+ * the module is evaluated; such registrations are only tracked when performed
+ * synchronously during module evaluation.
+ */
+export interface ExtensionModule {
+  /**
+   * Called by the host once the extension module has loaded. May be async; the
+   * host awaits it before considering the extension active.
+   */
+  activate?(context: ExtensionContext): void | Promise<void>;
+  /**
+   * Optional hook called before the host disposes `context.subscriptions`.
+   */
+  deactivate?(): void | Promise<void>;
+}
+
+/**
  * Represents a Superset extension with its metadata.
  * Extensions are modular components that can extend Superset's functionality
  * by registering commands, views, menus, and editors as module-level side effects.

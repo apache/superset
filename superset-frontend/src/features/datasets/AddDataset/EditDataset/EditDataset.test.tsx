@@ -21,12 +21,18 @@ import { render, screen } from 'spec/helpers/testing-library';
 import EditDataset from './index';
 
 const DATASET_ENDPOINT = 'glob:*api/v1/dataset/1/related_objects';
+// EditPage also fetches the dataset entity itself to publish the `dataset`
+// extension-namespace context (setCurrentDataset).
+const DATASET_RESOURCE_ENDPOINT = 'glob:*api/v1/dataset/1';
 
 const mockedProps = {
   id: '1',
 };
 
 fetchMock.get(DATASET_ENDPOINT, { charts: { results: [], count: 2 } });
+fetchMock.get(DATASET_RESOURCE_ENDPOINT, {
+  result: { id: 1, table_name: 'test_table', schema: 'public' },
+});
 
 test('should render edit dataset view with tabs', async () => {
   render(<EditDataset {...mockedProps} />);

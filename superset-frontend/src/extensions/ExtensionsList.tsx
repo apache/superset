@@ -17,18 +17,41 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { FunctionComponent, useMemo } from 'react';
+import { SupersetClient } from '@superset-ui/core';
+import {
+  FunctionComponent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useMemo,
+  useSyncExternalStore,
+} from 'react';
 import { useListViewResource } from 'src/views/CRUD/hooks';
+import { createErrorHandler } from 'src/views/CRUD/utils';
 import { ListView } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { ConfirmStatusChange, Tooltip } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
+import {
+  getExtensionSettingsSnapshot,
+  loadExtensionSettings,
+  setExtensionSettings,
+  subscribeToExtensionSettings,
+} from 'src/core/extensions';
+import { getRegisteredViewIds, subscribeToRegistry } from 'src/core/views';
+
+const CHATBOT_LOCATION = 'superset.chatbot';
 
 const PAGE_SIZE = 25;
 
 type Extension = {
-  id: number;
+  id: string;
   name: string;
+  publisher: string;
   enabled: boolean;
+  deletable: boolean;
 };
 
 interface ExtensionsListProps {
@@ -40,6 +63,21 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   addDangerToast,
   addSuccessToast,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [chatbotExtensionIds, setChatbotExtensionIds] = useState<Set<string>>(
+    () => new Set(getRegisteredViewIds(CHATBOT_LOCATION)),
+  );
+
+  // The active chatbot lives in the host-owned settings store shared with the
+  // live ChatbotMount, so a change here is reflected there without a second
+  // notification channel.
+  const settings = useSyncExternalStore(
+    subscribeToExtensionSettings,
+    getExtensionSettingsSnapshot,
+  );
+  const activeChatbotId = settings.active_chatbot_id;
+
   const {
     state: { loading, resourceCount, resourceCollection },
     fetchData,
@@ -48,6 +86,111 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     'extensions',
     t('Extensions'),
     addDangerToast,
+  );
+
+  // Keep chatbotExtensionIds in sync with runtime view registrations
+  useEffect(
+    () =>
+      subscribeToRegistry(() => {
+        setChatbotExtensionIds(new Set(getRegisteredViewIds(CHATBOT_LOCATION)));
+      }),
+    [],
+  );
+
+  // Load settings into the shared store on mount.
+  useEffect(() => {
+    // non-fatal: the store keeps its empty default on failure.
+    loadExtensionSettings().catch(() => {});
+  }, []);
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.supx')) {
+      addDangerToast(t('File must have a .supx extension.'));
+      e.target.value = '';
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('bundle', file);
+
+    setUploading(true);
+    SupersetClient.post({
+      endpoint: '/api/v1/extensions/',
+      body: formData,
+      headers: { Accept: 'application/json' },
+    })
+      .then(() => {
+        addSuccessToast(t('Extension installed successfully.'));
+        refreshData();
+      })
+      .catch(
+        createErrorHandler(errMsg =>
+          addDangerToast(
+            t('There was an issue installing the extension: %s', errMsg),
+          ),
+        ),
+      )
+      .finally(() => {
+        setUploading(false);
+        e.target.value = '';
+      });
+  };
+
+  const handleDelete = useCallback(
+    (extension: Extension) => {
+      const { publisher, name } = extension;
+      SupersetClient.delete({
+        endpoint: `/api/v1/extensions/${publisher}/${name}`,
+      }).then(
+        () => {
+          addSuccessToast(t('Deleted: %s', extension.name));
+          refreshData();
+        },
+        createErrorHandler(errMsg =>
+          addDangerToast(
+            t('There was an issue deleting %s: %s', extension.name, errMsg),
+          ),
+        ),
+      );
+    },
+    [addDangerToast, addSuccessToast, refreshData],
+  );
+
+  const handleSetDefaultChatbot = useCallback(
+    (extension: Extension) => {
+      const newId = activeChatbotId === extension.id ? null : extension.id;
+      SupersetClient.put({
+        endpoint: '/api/v1/extensions/settings',
+        jsonPayload: { active_chatbot_id: newId },
+      }).then(
+        () => {
+          // Reflect the change in the shared settings store; the component and
+          // the live ChatbotMount both re-resolve from it immediately.
+          setExtensionSettings({
+            ...getExtensionSettingsSnapshot(),
+            active_chatbot_id: newId,
+          });
+          addSuccessToast(
+            newId
+              ? t('%s set as default chatbot.', extension.name)
+              : t('Default chatbot cleared.'),
+          );
+        },
+        createErrorHandler(errMsg =>
+          addDangerToast(
+            t('There was an issue updating chatbot settings: %s', errMsg),
+          ),
+        ),
+      );
+    },
+    [activeChatbotId, addDangerToast, addSuccessToast],
   );
 
   const columns = useMemo(
@@ -63,18 +206,133 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
           },
         }: any) => name,
       },
+      {
+        Header: t('Publisher'),
+        accessor: 'publisher',
+        id: 'publisher',
+        Cell: ({
+          row: {
+            original: { publisher },
+          },
+        }: any) => publisher,
+      },
+      {
+        Header: t('Actions'),
+        id: 'actions',
+        disableSortBy: true,
+        Cell: ({ row: { original } }: any) => {
+          const isChatbot = chatbotExtensionIds.has(original.id);
+          const isDefault = activeChatbotId === original.id;
+          return (
+            <>
+              {isChatbot && (
+                <Tooltip
+                  id={`set-chatbot-tooltip-${original.id}`}
+                  title={
+                    isDefault
+                      ? t('Clear default chatbot')
+                      : t('Set as default chatbot')
+                  }
+                  placement="bottom"
+                >
+                  <span
+                    role="button"
+                    tabIndex={0}
+                    data-test="set-default-chatbot"
+                    className="action-button"
+                    onClick={() => handleSetDefaultChatbot(original)}
+                    onKeyDown={(e: React.KeyboardEvent) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        handleSetDefaultChatbot(original);
+                      }
+                    }}
+                  >
+                    {isDefault ? (
+                      <Icons.StarFilled iconSize="l" />
+                    ) : (
+                      <Icons.StarOutlined iconSize="l" />
+                    )}
+                  </span>
+                </Tooltip>
+              )}
+              {original.deletable && (
+                <ConfirmStatusChange
+                  title={t('Please confirm')}
+                  description={
+                    <>
+                      {t('Are you sure you want to delete')}{' '}
+                      <b>{original.name}</b>?
+                    </>
+                  }
+                  onConfirm={() => handleDelete(original)}
+                >
+                  {(confirmDelete: () => void) => (
+                    <Tooltip
+                      id={`delete-extension-tooltip-${original.id}`}
+                      title={t('Delete')}
+                      placement="bottom"
+                    >
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        data-test="delete-extension"
+                        className="action-button"
+                        onClick={confirmDelete}
+                        onKeyDown={(e: React.KeyboardEvent) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            confirmDelete();
+                          }
+                        }}
+                      >
+                        <Icons.DeleteOutlined iconSize="l" />
+                      </span>
+                    </Tooltip>
+                  )}
+                </ConfirmStatusChange>
+              )}
+            </>
+          );
+        },
+      },
     ],
-    [loading], // We need to monitor loading to avoid stale state in actions
+    [
+      activeChatbotId,
+      chatbotExtensionIds,
+      handleSetDefaultChatbot,
+      handleDelete,
+    ],
   );
 
   const menuData: SubMenuProps = {
     activeChild: 'Extensions',
     name: t('Extensions'),
-    buttons: [],
+    buttons: [
+      {
+        name: (
+          <Tooltip
+            id="import-extension-tooltip"
+            title={t('Import extension (.supx)')}
+            placement="bottomRight"
+          >
+            <Icons.DownloadOutlined iconSize="l" />
+          </Tooltip>
+        ),
+        buttonStyle: 'link',
+        onClick: handleUploadClick,
+        loading: uploading,
+      },
+    ],
   };
 
   return (
     <>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".supx"
+        style={{ display: 'none' }}
+        onChange={handleFileChange}
+      />
       <SubMenu {...menuData} />
       <ListView<Extension>
         columns={columns}

@@ -72,6 +72,7 @@ afterEach(() => {
 test('renders without crashing', () => {
   render(<ExtensionsStartup />, {
     useRedux: true,
+    useRouter: true,
     initialState: mockInitialState,
   });
 
@@ -88,6 +89,7 @@ test('sets up global superset object when user is logged in', async () => {
 
   render(<ExtensionsStartup />, {
     useRedux: true,
+    useRouter: true,
     initialState: mockInitialState,
   });
 
@@ -109,6 +111,7 @@ test('sets up global superset object when user is logged in', async () => {
 test('does not set up global superset object when user is not logged in', async () => {
   render(<ExtensionsStartup />, {
     useRedux: true,
+    useRouter: true,
     initialState: mockInitialStateNoUser,
   });
 
@@ -127,6 +130,7 @@ test('initializes ExtensionsLoader when user is logged in', async () => {
 
   render(<ExtensionsStartup />, {
     useRedux: true,
+    useRouter: true,
     initialState: mockInitialState,
   });
 
@@ -144,6 +148,7 @@ test('initializes ExtensionsLoader when user is logged in', async () => {
 test('does not initialize ExtensionsLoader when user is not logged in', async () => {
   render(<ExtensionsStartup />, {
     useRedux: true,
+    useRouter: true,
     initialState: mockInitialStateNoUser,
   });
 
@@ -169,6 +174,7 @@ test('only initializes once even with multiple renders', async () => {
 
   const { rerender } = render(<ExtensionsStartup />, {
     useRedux: true,
+    useRouter: true,
     initialState: mockInitialState,
   });
 
@@ -205,6 +211,7 @@ test('initializes ExtensionsLoader when EnableExtensions feature flag is enabled
 
   render(<ExtensionsStartup />, {
     useRedux: true,
+    useRouter: true,
     initialState: mockInitialState,
   });
 
@@ -234,6 +241,7 @@ test('does not initialize ExtensionsLoader when EnableExtensions feature flag is
 
   render(<ExtensionsStartup />, {
     useRedux: true,
+    useRouter: true,
     initialState: mockInitialState,
   });
 
@@ -268,6 +276,7 @@ test('continues rendering children even when ExtensionsLoader initialization fai
     </ExtensionsStartup>,
     {
       useRedux: true,
+      useRouter: true,
       initialState: mockInitialState,
     },
   );
