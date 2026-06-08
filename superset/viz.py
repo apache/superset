@@ -1674,6 +1674,8 @@ class DeckGLMultiLayer(BaseViz):
         from superset.models.slice import Slice
 
         slice_ids = self.form_data.get("deck_slices") or []
+        if not isinstance(slice_ids, list):
+            slice_ids = []
         max_deck_slices = current_app.config["VIZ_DECK_SLICES_MAX_LIST_SIZE"]
         if max_deck_slices and len(slice_ids) > max_deck_slices:
             raise QueryObjectValidationError(
