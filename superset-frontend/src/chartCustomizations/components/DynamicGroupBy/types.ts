@@ -76,7 +76,6 @@ export const DEFAULT_FORM_DATA: PluginFilterGroupByCustomizeProps = {
   dataset: null,
   column: null,
   sortFilter: false,
-  sortAscending: true,
   canSelectMultiple: true,
   defaultValue: null,
 };

@@ -31,6 +31,7 @@ import {
   useDashboardDatasets,
 } from 'src/hooks/apiResources';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
+import { clearDashboardHistory } from 'src/dashboard/actions/dashboardLayout';
 import { setDatasources } from 'src/dashboard/actions/datasources';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import {
@@ -42,6 +43,7 @@ import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
+import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import {
   getFilterValue,
   getPermalinkValue,
@@ -150,6 +152,23 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const error = dashboardApiError || chartsApiError;
   const readyToRender = Boolean(dashboard && charts);
   const { dashboard_title, id = 0 } = dashboard || {};
+
+  // The live title is edited in Redux and persisted via an in-SPA save with no
+  // full reload, so the useDashboard() API result can be stale. Track the live
+  // title so the browser tab stays in sync after a rename.
+  const liveDashboardTitle = useSelector<RootState, string | undefined>(
+    state => state.dashboardLayout?.present?.[DASHBOARD_HEADER_ID]?.meta?.text,
+  );
+  // Only trust the live layout title once the layout belongs to the dashboard
+  // being shown. During SPA dashboard-to-dashboard navigation the previous
+  // dashboard's layout lingers until the new one hydrates, so fall back to the
+  // freshly fetched API title until the hydrated dashboard matches.
+  const hydratedDashboardId = useSelector<RootState, number | undefined>(
+    state => state.dashboardInfo?.id,
+  );
+  const pageTitle =
+    (hydratedDashboardId === id ? liveDashboardTitle : undefined) ||
+    dashboard_title;
 
   // Get CSS from dashboardInfo (unified properties location)
   const css =
@@ -278,6 +297,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
             chartStates: chartStates ?? null,
           } as unknown as Parameters<typeof hydrateDashboard>[0]),
         );
+        dispatch(clearDashboardHistory());
 
         // Scroll to anchor element if specified in permalink state
         if (anchor) {
@@ -301,10 +321,10 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   // Update document title when dashboard title changes
   useEffect(() => {
-    if (dashboard_title) {
-      document.title = dashboard_title;
+    if (pageTitle) {
+      document.title = pageTitle;
     }
-  }, [dashboard_title]);
+  }, [pageTitle]);
 
   // Restore original title on unmount
   useEffect(

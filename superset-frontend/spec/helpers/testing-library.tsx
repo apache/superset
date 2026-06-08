@@ -37,7 +37,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
-import { TestBackend } from 'react-dnd-test-backend';
+import { DndContext } from '@dnd-kit/core';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
@@ -47,11 +47,8 @@ import userEvent from '@testing-library/user-event';
 
 type Options = Omit<RenderOptions, 'queries'> & {
   useRedux?: boolean;
-  // `true` -> HTML5Backend (default; matches browser).
-  // `'test'` -> TestBackend, drive drags programmatically via
-  // `react-dnd-test-backend` `getInstance()` — avoids the jsdom
-  // HTML5-drag-event / preventDefault / zero-rect gaps.
-  useDnd?: boolean | 'test';
+  useDnd?: boolean;
+  useDndKit?: boolean; // Use @dnd-kit instead of react-dnd
   useQueryParams?: boolean;
   useRouter?: boolean;
   useTheme?: boolean;
@@ -79,6 +76,7 @@ export const defaultStore = createStore();
 export function createWrapper(options?: Options) {
   const {
     useDnd,
+    useDndKit,
     useRedux,
     useQueryParams,
     useRouter,
@@ -101,10 +99,13 @@ export function createWrapper(options?: Options) {
       );
     }
 
+    if (useDndKit) {
+      result = <DndContext>{result}</DndContext>;
+    }
+
     if (useDnd) {
-      const backend = useDnd === 'test' ? TestBackend : HTML5Backend;
-      // @ts-expect-error react-dnd types not updated for React 18
-      result = <DndProvider backend={backend}>{result}</DndProvider>;
+      // @ts-ignore react-dnd's DndProviderProps omits `children` under React 18 types
+      result = <DndProvider backend={HTML5Backend}>{result}</DndProvider>;
     }
 
     if (useRedux || store) {
