@@ -14,6 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from superset.extensions import models as extensions_models  # noqa: F401
+from flask_babel import lazy_gettext as _
 
-from . import core, dynamic_plugins, sql_lab, user_attributes  # noqa: F401
+from superset.commands.exceptions import CommandInvalidError, UpdateFailedError
+
+
+class ExtensionSettingsInvalidError(CommandInvalidError):
+    message = _("Extension settings parameters are invalid.")
+
+
+class ExtensionSettingsUpdateFailedError(UpdateFailedError):
+    message = _("Extension settings could not be updated.")

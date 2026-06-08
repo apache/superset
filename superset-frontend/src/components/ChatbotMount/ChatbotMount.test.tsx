@@ -19,10 +19,17 @@
 import React from 'react';
 import { render, screen } from 'spec/helpers/testing-library';
 import { views } from 'src/core';
+import { setExtensionSettings } from 'src/core/extensions';
 import { CHATBOT_LOCATION } from 'src/views/contributions';
 import ChatbotMount from '.';
 
 const disposables: Array<{ dispose: () => void }> = [];
+
+beforeEach(() => {
+  // The settings store is a module singleton; reset it so resolution starts
+  // from the empty default (no admin pin, all enabled) regardless of run order.
+  setExtensionSettings({ active_chatbot_id: null, enabled: {} });
+});
 
 afterEach(() => {
   disposables.forEach(d => d.dispose());

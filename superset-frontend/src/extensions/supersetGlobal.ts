@@ -30,9 +30,13 @@ import type {
   authentication,
   commands,
   core,
+  dashboard,
+  dataset,
   editors,
+  explore,
   extensions,
   menus,
+  navigation,
   sqlLab,
   views,
 } from 'src/core';
@@ -42,9 +46,13 @@ export interface SupersetGlobal {
   authentication: typeof authentication;
   core: typeof core;
   commands: typeof commands;
+  dashboard: typeof dashboard;
+  dataset: typeof dataset;
   editors: typeof editors;
+  explore: typeof explore;
   extensions: typeof extensions;
   menus: typeof menus;
+  navigation: typeof navigation;
   sqlLab: typeof sqlLab;
   views: typeof views;
 }

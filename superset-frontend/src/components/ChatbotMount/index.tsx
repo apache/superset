@@ -16,11 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { type ReactElement, useSyncExternalStore } from 'react';
+import {
+  type ReactElement,
+  useEffect,
+  useMemo,
+  useRef,
+  useSyncExternalStore,
+} from 'react';
+import { t } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
+import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { store } from 'src/views/store';
 import { getActiveChatbot } from 'src/core/chatbot';
 import { subscribeToRegistry, getRegistryVersion } from 'src/core/views';
+import {
+  getExtensionSettingsSnapshot,
+  loadExtensionSettings,
+  subscribeToExtensionSettings,
+} from 'src/core/extensions';
 
 const CHATBOT_EDGE_MARGIN = 24;
 
@@ -35,15 +50,32 @@ const ChatbotRenderer = ({ provider }: { provider: () => ReactElement }) =>
 
 const ChatbotMount = () => {
   const theme = useTheme();
+  // Notify once per mount; a crash can re-render and would otherwise re-toast.
+  const crashNotified = useRef(false);
 
-  // Subscribing to the registry version re-renders this component whenever a
-  // chatbot view registers or unregisters, so `getActiveChatbot()` below is
-  // re-evaluated against the current registry. Admin-driven selection (default
-  // chatbot, enabled flags) is layered on by the admin settings work later in
-  // the stack; here the single registered chatbot wins.
-  useSyncExternalStore(subscribeToRegistry, getRegistryVersion);
+  // The active chatbot is a function of two host-owned stores: the admin
+  // settings (active id + enabled map) and the view registry (which chatbots
+  // are registered). Both are read via useSyncExternalStore so this re-resolves
+  // when either changes — no local copy of the settings state.
+  const settings = useSyncExternalStore(
+    subscribeToExtensionSettings,
+    getExtensionSettingsSnapshot,
+  );
+  const registryVersion = useSyncExternalStore(
+    subscribeToRegistry,
+    getRegistryVersion,
+  );
 
-  const activeChatbot = getActiveChatbot();
+  useEffect(() => {
+    // Settings fetch failure is non-fatal: the store keeps its empty default,
+    // which getActiveChatbot treats as "all enabled, no admin pin".
+    loadExtensionSettings().catch(() => {});
+  }, []);
+
+  const activeChatbot = useMemo(
+    () => getActiveChatbot(settings.active_chatbot_id, settings.enabled),
+    [settings, registryVersion],
+  );
 
   if (!activeChatbot) {
     return null;
@@ -60,7 +92,19 @@ const ChatbotMount = () => {
         z-index: ${theme.zIndexPopupBase + 2};
       `}
     >
-      <ErrorBoundary>
+      <ErrorBoundary
+        showMessage={false}
+        onError={(error: Error) => {
+          // Fault isolation (SIP §4.5): contain the crash, log it, surface a
+          // one-time notification, and leave the corner empty rather than
+          // parking a persistent error card.
+          logging.error('[chatbot] provider crashed', error);
+          if (!crashNotified.current) {
+            crashNotified.current = true;
+            store.dispatch(addDangerToast(t('The chatbot failed to load.')));
+          }
+        }}
+      >
         <ChatbotRenderer provider={activeChatbot.provider} />
       </ErrorBoundary>
     </div>
