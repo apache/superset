@@ -729,6 +729,52 @@ exclude = []
     assert not (dist_dir / "config").exists()
 
 
+@pytest.mark.unit
+def test_copy_backend_files_stages_symlink_at_matched_path(isolated_filesystem):
+    """Symlinked files inside backend are staged at the matched path, not the target."""
+    backend_dir = isolated_filesystem / "backend"
+    target_dir = backend_dir / "src" / "common"
+    target_dir.mkdir(parents=True)
+    (target_dir / "module.py").write_text("# shared module")
+
+    link_dir = backend_dir / "src" / "test_org" / "test_ext" / "common"
+    link_dir.mkdir(parents=True)
+    link = link_dir / "module.py"
+    link.symlink_to(target_dir / "module.py")
+
+    pyproject_content = """[project]
+name = "test_org-test_ext"
+version = "1.0.0"
+license = "Apache-2.0"
+
+[tool.apache_superset_extensions.build]
+include = [
+    "src/test_org/test_ext/**/*.py",
+]
+exclude = []
+"""
+    (backend_dir / "pyproject.toml").write_text(pyproject_content)
+
+    extension_data = {
+        "publisher": "test-org",
+        "name": "test-ext",
+        "displayName": "Test Extension",
+        "version": "1.0.0",
+        "permissions": [],
+    }
+    (isolated_filesystem / "extension.json").write_text(json.dumps(extension_data))
+
+    clean_dist(isolated_filesystem)
+    copy_backend_files(isolated_filesystem)
+
+    dist_dir = isolated_filesystem / "dist"
+    # Staged at the configured (symlink) path, not the resolved target path.
+    assert_file_exists(
+        dist_dir / "backend" / "src" / "test_org" / "test_ext" / "common" / "module.py"
+    )
+    assert not (dist_dir / "backend" / "src" / "common" / "module.py").exists()
+
+
 # Removed obsolete tests:
 # - test_copy_backend_files_handles_no_backend_config: This scenario can't happen since copy_backend_files is only called when backend exists
 # - test_copy_backend_files_exits_when_extension_json_missing: Validation catches this before copy_backend_files is called

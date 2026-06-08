@@ -261,8 +261,10 @@ def copy_backend_files(cwd: Path) -> None:
                     f"backend directory {backend_dir}."
                 )
 
-            # Check exclude patterns
-            relative_path = resolved.relative_to(backend_dir)
+            # Use the matched path (not the resolved target) for the bundle
+            # layout and exclude evaluation so symlinked files are staged at
+            # their configured path rather than their symlink target.
+            relative_path = f.relative_to(backend_dir)
             should_exclude = any(
                 relative_path.match(excl_pattern) for excl_pattern in exclude_patterns
             )
