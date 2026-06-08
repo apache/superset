@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import { waitFor } from 'spec/helpers/testing-library';
 import {
   filterId,
@@ -26,6 +26,13 @@ import { emptyFilters } from 'spec/fixtures/mockDashboardFilters';
 import mockDashboardData from 'spec/fixtures/mockDashboardData';
 import { saveDashboardRequest } from 'src/dashboard/actions/dashboardState';
 import { SAVE_TYPE_OVERWRITE } from 'src/dashboard/util/constants';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
 
 const mockState = {
   dashboardState: { sliceIds: [filterId], hasUnsavedChanges: true },
@@ -43,6 +50,11 @@ const mockState = {
 let putStub: jest.SpyInstance;
 
 beforeEach(() => {
+  // Disable ConfirmDashboardDiff so SAVE_TYPE_OVERWRITE always calls PUT
+  // directly (skipping the GET precheck) — without this the test outcome
+  // depends on the global feature-flag state and the assertions become
+  // non-deterministic, meaning a reverted fix may go undetected.
+  mockIsFeatureEnabled.mockReturnValue(false);
   jest.spyOn(SupersetClient, 'post').mockResolvedValue({} as any);
   jest.spyOn(SupersetClient, 'get').mockResolvedValue({} as any);
   putStub = jest.spyOn(SupersetClient, 'put').mockResolvedValue({
