@@ -228,6 +228,19 @@ test('uses the MapLibre style when maplibre renderer is selected', () => {
   expect(result.mapStyle).toBe('https://example.com/maplibre-style.json');
 });
 
+test('uses legacy non-Mapbox style for MapLibre when provider style is absent', () => {
+  const result = getTransformPropsResult({
+    map_renderer: 'maplibre',
+    maplibre_style: undefined,
+    mapbox_style: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  });
+
+  expect(result.mapProvider).toBe('maplibre');
+  expect(result.mapStyle).toBe(
+    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  );
+});
+
 test('uses the Mapbox style when mapbox renderer is selected', () => {
   const result = getTransformPropsResult({
     map_renderer: 'mapbox',

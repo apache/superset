@@ -18,7 +18,9 @@
  */
 
 import {
+  getBootstrapDataFromDocument,
   getDefaultMapRenderer,
+  getMapProviderMapStyle,
   getMapboxApiKeyFromBootstrap,
   getMapRendererOptions,
   hasMapboxApiKey,
@@ -56,6 +58,22 @@ test('Mapbox key helpers report absence and presence from bootstrap data', () =>
   ).toBe(true);
 });
 
+test('bootstrap data helper parses document data safely', () => {
+  document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify({
+    common: { conf: { MAPBOX_API_KEY: 'pk.document' } },
+  })}'></div>`;
+
+  expect(getBootstrapDataFromDocument()).toEqual({
+    common: { conf: { MAPBOX_API_KEY: 'pk.document' } },
+  });
+
+  document.body.innerHTML = `<div id="app" data-bootstrap='not-json'></div>`;
+  expect(getBootstrapDataFromDocument()).toBeUndefined();
+
+  document.body.innerHTML = '';
+  expect(getBootstrapDataFromDocument()).toBeUndefined();
+});
+
 test('renderer options enable Mapbox only when a key is available', () => {
   expect(getMapRendererOptions({ hasMapboxKey: true })).toEqual([
     { value: 'maplibre' },
@@ -70,6 +88,46 @@ test('renderer options preserve saved Mapbox without API-key labels', () => {
   expect(
     getMapRendererOptions({ hasMapboxKey: false, currentValue: 'mapbox' }),
   ).toEqual([{ value: 'maplibre' }, { value: 'mapbox', disabled: true }]);
+});
+
+test('map provider style helper preserves legacy non-Mapbox styles for MapLibre', () => {
+  expect(
+    getMapProviderMapStyle({
+      mapProvider: 'maplibre',
+      maplibreStyle: undefined,
+      mapboxStyle: OSM_TILE_STYLE_URL,
+      legacyMapStyle: 'https://example.com/fallback-style.json',
+    }),
+  ).toEqual({
+    mapProvider: 'maplibre',
+    mapStyle: OSM_TILE_STYLE_URL,
+  });
+});
+
+test('map provider style helper does not send Mapbox URLs to MapLibre', () => {
+  expect(
+    getMapProviderMapStyle({
+      mapProvider: 'maplibre',
+      mapboxStyle: 'mapbox://styles/mapbox/dark-v11',
+      legacyMapStyle: 'https://example.com/fallback-style.json',
+    }),
+  ).toEqual({
+    mapProvider: 'maplibre',
+    mapStyle: 'https://example.com/fallback-style.json',
+  });
+});
+
+test('map provider style helper uses Mapbox style when Mapbox is selected', () => {
+  expect(
+    getMapProviderMapStyle({
+      mapProvider: 'mapbox',
+      mapboxStyle: 'mapbox://styles/mapbox/dark-v11',
+      legacyMapStyle: 'https://example.com/fallback-style.json',
+    }),
+  ).toEqual({
+    mapProvider: 'mapbox',
+    mapStyle: 'mapbox://styles/mapbox/dark-v11',
+  });
 });
 
 test('default renderer uses configured Mapbox only when a key is available', () => {
@@ -159,6 +217,7 @@ test('custom raster tile templates do not receive OSM attribution', () => {
 test('style JSON URLs pass through without raster wrapping', () => {
   const styleUrl = 'https://example.com/styles/custom-style.json';
 
+  expect(isRasterTileTemplate(undefined)).toBe(false);
   expect(isRasterTileTemplate(styleUrl)).toBe(false);
   expect(resolveMapStyle(styleUrl, 'default-style.json')).toBe(styleUrl);
   expect(resolveMapStyle(undefined, 'default-style.json')).toBe(

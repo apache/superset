@@ -31,6 +31,7 @@ import {
   JsonValue,
   QueryFormData,
   SetDataMaskHook,
+  getMapProviderMapStyle,
 } from '@superset-ui/core';
 
 import { PolygonLayer } from '@deck.gl/layers';
@@ -340,12 +341,12 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
     colorSchemeType === COLOR_SCHEME_TYPES.color_breakpoints
       ? getColorBreakpointsBuckets(formData.color_breakpoints)
       : getBuckets(formData, payload.data.features, accessor);
-  const mapProvider =
-    formData.map_renderer === 'mapbox' ? 'mapbox' : 'maplibre';
-  const mapStyle =
-    mapProvider === 'mapbox'
-      ? formData.mapbox_style || formData.map_style
-      : formData.maplibre_style || formData.map_style;
+  const selectedMap = getMapProviderMapStyle({
+    mapProvider: formData.map_renderer,
+    maplibreStyle: formData.maplibre_style,
+    mapboxStyle: formData.mapbox_style,
+    legacyMapStyle: formData.map_style,
+  });
 
   return (
     <div style={{ position: 'relative' }}>
@@ -354,8 +355,8 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
         viewport={viewport}
         layers={getLayers()}
         setControlValue={setControlValue}
-        mapProvider={mapProvider}
-        mapStyle={mapStyle}
+        mapProvider={selectedMap.mapProvider}
+        mapStyle={selectedMap.mapStyle}
         mapboxApiKey={getMapboxApiKey()}
         width={props.width}
         height={props.height}

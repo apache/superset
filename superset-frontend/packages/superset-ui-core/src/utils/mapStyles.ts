@@ -24,6 +24,18 @@ export type MapRendererOption = {
   disabled?: boolean;
 };
 
+export type MapProviderMapStyle = {
+  mapProvider?: unknown;
+  maplibreStyle?: unknown;
+  mapboxStyle?: unknown;
+  legacyMapStyle?: unknown;
+};
+
+export type SelectedMapProviderMapStyle = {
+  mapProvider: MapProvider;
+  mapStyle?: string;
+};
+
 export type RasterTileMapStyle = {
   version: 8;
   sources: {
@@ -131,6 +143,44 @@ export function getMapRendererOptions({
     MAPLIBRE_RENDERER_OPTION,
     hasMapboxKey ? MAPBOX_RENDERER_OPTION : DISABLED_MAPBOX_RENDERER_OPTION,
   ];
+}
+
+function getNonEmptyString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0
+    ? value
+    : undefined;
+}
+
+function isMapboxStyle(value: unknown): boolean {
+  return getNonEmptyString(value)?.startsWith('mapbox://') ?? false;
+}
+
+export function getMapProviderMapStyle({
+  mapProvider,
+  maplibreStyle,
+  mapboxStyle,
+  legacyMapStyle,
+}: MapProviderMapStyle): SelectedMapProviderMapStyle {
+  const selectedMapProvider: MapProvider =
+    mapProvider === 'mapbox' ? 'mapbox' : 'maplibre';
+  const maplibreStyleValue = getNonEmptyString(maplibreStyle);
+  const mapboxStyleValue = getNonEmptyString(mapboxStyle);
+  const legacyMapStyleValue = getNonEmptyString(legacyMapStyle);
+
+  if (selectedMapProvider === 'mapbox') {
+    return {
+      mapProvider: selectedMapProvider,
+      mapStyle: mapboxStyleValue ?? legacyMapStyleValue,
+    };
+  }
+
+  return {
+    mapProvider: selectedMapProvider,
+    mapStyle:
+      maplibreStyleValue ??
+      (isMapboxStyle(mapboxStyleValue) ? undefined : mapboxStyleValue) ??
+      legacyMapStyleValue,
+  };
 }
 
 function unwrapTileProtocol(value: string): string {

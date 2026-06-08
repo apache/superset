@@ -30,6 +30,7 @@ import {
   QueryFormData,
   SetDataMaskHook,
   SqlaFormData,
+  getMapProviderMapStyle,
 } from '@superset-ui/core';
 
 import {
@@ -423,20 +424,20 @@ const DeckGLGeoJson = (props: DeckGLGeoJsonProps) => {
     emitCrossFilters: props.emitCrossFilters,
   });
 
-  const mapProvider =
-    formData.map_renderer === 'mapbox' ? 'mapbox' : 'maplibre';
-  const mapStyle =
-    mapProvider === 'mapbox'
-      ? formData.mapbox_style || formData.map_style
-      : formData.maplibre_style || formData.map_style;
+  const selectedMap = getMapProviderMapStyle({
+    mapProvider: formData.map_renderer,
+    maplibreStyle: formData.maplibre_style,
+    mapboxStyle: formData.mapbox_style,
+    legacyMapStyle: formData.map_style,
+  });
 
   return (
     <DeckGLContainerStyledWrapper
       ref={containerRef}
       viewport={viewport}
       layers={[layer]}
-      mapProvider={mapProvider}
-      mapStyle={mapStyle}
+      mapProvider={selectedMap.mapProvider}
+      mapStyle={selectedMap.mapStyle}
       mapboxApiKey={getMapboxApiKey()}
       setControlValue={setControlValue}
       height={height}
