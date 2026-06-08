@@ -50,6 +50,7 @@ type ConfigType = {
   socketResponseTimeoutMs: number;
   pingSocketsIntervalMs: number;
   gcChannelsIntervalMs: number;
+  maxSocketBufferBytes: number;
 };
 
 function defaultConfig(): ConfigType {
@@ -68,6 +69,9 @@ function defaultConfig(): ConfigType {
     socketResponseTimeoutMs: 60 * 1000,
     pingSocketsIntervalMs: 20 * 1000,
     gcChannelsIntervalMs: 120 * 1000,
+    // 0 disables the per-socket send-buffer cap; set a positive byte value to
+    // opt in to terminating clients whose outbound buffer grows beyond it.
+    maxSocketBufferBytes: 0,
     statsd: {
       host: '127.0.0.1',
       port: 8125,
@@ -120,6 +124,8 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
       (config.pingSocketsIntervalMs = toNumber(val)),
     GC_CHANNELS_INTERVAL_MS: val =>
       (config.gcChannelsIntervalMs = toNumber(val)),
+    MAX_SOCKET_BUFFER_BYTES: val =>
+      (config.maxSocketBufferBytes = toNumber(val)),
     REDIS_HOST: val => (config.redis.host = val),
     REDIS_PORT: val => (config.redis.port = toNumber(val)),
     REDIS_PASSWORD: val => (config.redis.password = val),

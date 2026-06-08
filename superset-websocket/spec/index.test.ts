@@ -269,6 +269,80 @@ describe('server', () => {
     });
   });
 
+  describe('backpressure', () => {
+    const fakeEvent = {
+      id: '1615426152415-0',
+      channel_id: channelId,
+      job_id: 'c9b99965-8f1e-4ce5-aa43-d6fc94d6a510',
+      status: 'done',
+    };
+
+    afterEach(() => {
+      server.opts.maxSocketBufferBytes = 0;
+    });
+
+    test('does not terminate when cap disabled (0)', () => {
+      server.opts.maxSocketBufferBytes = 0;
+      const ws = new wsMock('localhost');
+      // simulate a large outbound buffer
+      (ws as unknown as { bufferedAmount: number }).bufferedAmount = 10_000_000;
+      const terminateMock = jest.spyOn(ws, 'terminate');
+      const sendMock = jest.spyOn(ws, 'send');
+      server.trackClient(channelId, {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+
+      server.sendToChannel(channelId, fakeEvent);
+
+      expect(terminateMock).not.toHaveBeenCalled();
+      expect(sendMock).toHaveBeenCalled();
+    });
+
+    test('terminates a slow client whose buffer exceeds the cap', () => {
+      server.opts.maxSocketBufferBytes = 1024;
+      const ws = new wsMock('localhost');
+      (ws as unknown as { bufferedAmount: number }).bufferedAmount = 2048;
+      const terminateMock = jest.spyOn(ws, 'terminate');
+      const sendMock = jest.spyOn(ws, 'send');
+      const cleanChannelMock = jest.spyOn(server, 'cleanChannel');
+      server.trackClient(channelId, {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+
+      server.sendToChannel(channelId, fakeEvent);
+
+      expect(terminateMock).toHaveBeenCalled();
+      expect(sendMock).not.toHaveBeenCalled();
+      expect(statsdIncrementMock).toHaveBeenCalledWith(
+        'ws_client_backpressure_disconnect',
+      );
+      expect(cleanChannelMock).toHaveBeenCalledWith(channelId);
+      cleanChannelMock.mockRestore();
+    });
+
+    test('keeps sending to a client within the cap', () => {
+      server.opts.maxSocketBufferBytes = 1024;
+      const ws = new wsMock('localhost');
+      (ws as unknown as { bufferedAmount: number }).bufferedAmount = 16;
+      const terminateMock = jest.spyOn(ws, 'terminate');
+      const sendMock = jest.spyOn(ws, 'send');
+      server.trackClient(channelId, {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+
+      server.sendToChannel(channelId, fakeEvent);
+
+      expect(terminateMock).not.toHaveBeenCalled();
+      expect(sendMock).toHaveBeenCalled();
+    });
+  });
+
   describe('fetchRangeFromStream', () => {
     beforeEach(() => {
       mockRedisXrange.mockClear();
