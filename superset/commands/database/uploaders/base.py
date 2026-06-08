@@ -200,6 +200,25 @@ class UploadCommand(BaseCommand):
         stream.seek(position)  # restore the original position
         return size
 
+    @classmethod
+    def validate_file_size(cls, file: Any) -> None:
+        """
+        Reject a file whose size exceeds ``UPLOAD_MAX_FILE_SIZE_BYTES``.
+
+        Shared by the upload command and the metadata endpoint so oversized
+        files are rejected before their contents are read into memory,
+        regardless of which path is used.
+
+        :raises DatabaseUploadFileTooLarge: if the file is larger than the limit
+        """
+        max_file_size = current_app.config.get("UPLOAD_MAX_FILE_SIZE_BYTES")
+        if (
+            max_file_size is not None
+            and file is not None
+            and cls._file_size_bytes(file) > max_file_size
+        ):
+            raise DatabaseUploadFileTooLarge()
+
     def validate(self) -> None:
         self._model = DatabaseDAO.find_by_id(self._model_id)
         if not self._model:
@@ -209,10 +228,4 @@ class UploadCommand(BaseCommand):
         if not self._model.db_engine_spec.supports_file_upload:
             raise DatabaseUploadNotSupported()
 
-        max_file_size = current_app.config.get("UPLOAD_MAX_FILE_SIZE_BYTES")
-        if (
-            max_file_size is not None
-            and self._file is not None
-            and self._file_size_bytes(self._file) > max_file_size
-        ):
-            raise DatabaseUploadFileTooLarge()
+        self.validate_file_size(self._file)

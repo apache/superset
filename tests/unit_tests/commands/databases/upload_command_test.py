@@ -85,11 +85,35 @@ def test_validate_allows_file_within_limit(
     command.validate()  # should not raise
 
 
-def test_validate_no_limit_when_unset(app_context: None, mocker: MockerFixture) -> None:
+def test_validate_no_limit_when_disabled(
+    app_context: None, mocker: MockerFixture
+) -> None:
     _stub_passing_checks(mocker)
     mocker.patch.dict(
         "superset.commands.database.uploaders.base.current_app.config",
         {"UPLOAD_MAX_FILE_SIZE_BYTES": None},
     )
     command = _command(_file(b"x" * 10_000))
-    command.validate()  # no limit configured -> no rejection
+    command.validate()  # limit explicitly disabled (None) -> no rejection
+
+
+def test_validate_file_size_rejects_over_limit(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    # the shared helper is used by both the upload and metadata paths
+    mocker.patch.dict(
+        "superset.commands.database.uploaders.base.current_app.config",
+        {"UPLOAD_MAX_FILE_SIZE_BYTES": 4},
+    )
+    with pytest.raises(DatabaseUploadFileTooLarge):
+        UploadCommand.validate_file_size(_file(b"too many bytes"))
+
+
+def test_validate_file_size_allows_within_limit(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    mocker.patch.dict(
+        "superset.commands.database.uploaders.base.current_app.config",
+        {"UPLOAD_MAX_FILE_SIZE_BYTES": 1024},
+    )
+    UploadCommand.validate_file_size(_file(b"small"))  # should not raise

@@ -1727,6 +1727,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             parameters = UploadFileMetadataPostSchema().load(request_form)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+        UploadCommand.validate_file_size(parameters["file"])
         if parameters["type"] == UploadFileType.CSV.value:
             metadata = CSVReader(parameters).file_metadata(parameters["file"])
         elif parameters["type"] == UploadFileType.EXCEL.value:
