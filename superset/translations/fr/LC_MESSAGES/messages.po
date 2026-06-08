@@ -8425,9 +8425,8 @@ msgstr "Gérer"
 msgid "Manage dashboard owners and access permissions"
 msgstr "Gérer les propriétaires du tableau de bord et les permissions d'accès"
 
-
 msgid "Manage email report"
-msgstr "Supprimer le rapport par courriel"
+msgstr "Gérer les rapports par email"
 
 msgid ""
 "Manage filters and customizations to set scoping, descriptions, and "
@@ -8450,11 +8449,10 @@ msgid "Map"
 msgstr "Carte"
 
 msgid "Map Options"
-msgstr "Options de carte"
-
+msgstr "Options de la carte"
 
 msgid "Map Renderer"
-msgstr "Rendu en direct"
+msgstr "Rendu de la carte"
 
 msgid "Map Style"
 msgstr "Style de carte"
@@ -8473,7 +8471,7 @@ msgid "Mapbox"
 msgstr "Mapbox"
 
 msgid "Mapbox (API key required)"
-msgstr "le courriel est obligatoire"
+msgstr "Mapbox (clé API requise)"
 
 msgid "Mapbox requires a MAPBOX_API_KEY to be configured on the server."
 msgstr "Il est nécessaire de configurer la variable MAPBOX_API_KEY sur le serveur pour utiliser Mapbox."
@@ -8486,8 +8484,8 @@ msgstr "Marge"
 
 msgid "Mark a column as temporal in \"Edit datasource\" modal"
 msgstr ""
-"Marquer une colonne comme temporelle dans le modal « Modifier la source de "
-"données »"
+"Marquer une colonne comme temporelle dans le modal \"Modifier la source de "
+"données\""
 
 msgid "Marker"
 msgstr "Marqueur"
@@ -8519,9 +8517,8 @@ msgstr "Suivre le système"
 msgid "Match time shift color with original series"
 msgstr "Associer la couleur du décalage temporel à la série originale"
 
-
 msgid "Match type"
-msgstr "Type de données"
+msgstr "Correspondance du type"
 
 msgid "Matrixify"
 msgstr "Matrixify"
@@ -8532,9 +8529,8 @@ msgstr "Max"
 msgid "Max Bubble Size"
 msgstr "Taille maximale de la bulle"
 
-
 msgid "Max value"
-msgstr "Valeurs de somme"
+msgstr "Valeur max"
 
 msgid "Max. features"
 msgstr "Nb. maximal de caractéristiques"
@@ -8570,7 +8566,6 @@ msgstr "Valeur maximale"
 msgid "Maximum value on the gauge axis"
 msgstr "Valeur maximale sur l’axe de l’indicateur"
 
-
 msgid "Maximum width size of the path, in pixels or meters."
 msgstr "La taille de la cellule carrée, en pixels"
 
@@ -8599,7 +8594,6 @@ msgstr ""
 "Taille du nœud médiane, le plus grand nœud sera 4 fois plus grand que le "
 "plus petit"
 
-
 msgid "Median values"
 msgstr "Valeurs médianes"
 
@@ -8619,7 +8613,7 @@ msgid "Memory transfer rate in bytes - decimal (1024B => 1.024kB/s)"
 msgstr "Taux de transfert mémoire en bytes - décimal (1024B => 1,024kB/s)"
 
 msgid "Menu actions trigger"
-msgstr "Déclencheur des actions de menu"
+msgstr "Menu du déclencheur des actions"
 
 msgid "Message content"
 msgstr "Contenu du message"
@@ -8633,9 +8627,8 @@ msgstr "Paramètres de métadonnées"
 msgid "Metadata has been synced"
 msgstr "Les métadonnées ont été synchronisées"
 
-
 msgid "Meters"
-msgstr "Paramètres"
+msgstr "Mètres"
 
 msgid "Method"
 msgstr "Méthode"
