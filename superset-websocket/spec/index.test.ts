@@ -717,6 +717,59 @@ describe('server', () => {
       expect(server.connectionLimitReason(channelId)).toBeNull();
     });
 
+    test('isSocketActive reflects the socket readyState', () => {
+      const ws = new wsMock('localhost');
+      setReadyState(ws, WebSocket.OPEN);
+      const socketId = server.trackClient(channelId, {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      expect(server.isSocketActive(socketId)).toBe(true);
+      setReadyState(ws, WebSocket.CLOSED);
+      expect(server.isSocketActive(socketId)).toBe(false);
+      // unknown socket ids are never active
+      expect(server.isSocketActive('does-not-exist')).toBe(false);
+    });
+
+    test('activeSocketCount counts only active sockets', () => {
+      const openWs = new wsMock('localhost');
+      setReadyState(openWs, WebSocket.OPEN);
+      server.trackClient(channelId, {
+        ws: openWs,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      const closedWs = new wsMock('localhost');
+      setReadyState(closedWs, WebSocket.CLOSED);
+      server.trackClient(channelId, {
+        ws: closedWs,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      expect(server.activeSocketCount()).toBe(1);
+    });
+
+    test('activeChannelSocketCount counts only active sockets on the channel', () => {
+      const openWs = new wsMock('localhost');
+      setReadyState(openWs, WebSocket.OPEN);
+      server.trackClient(channelId, {
+        ws: openWs,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      const closedWs = new wsMock('localhost');
+      setReadyState(closedWs, WebSocket.CLOSED);
+      server.trackClient(channelId, {
+        ws: closedWs,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      expect(server.activeChannelSocketCount(channelId)).toBe(1);
+      // unknown channels report zero active sockets
+      expect(server.activeChannelSocketCount('no-such-channel')).toBe(0);
+    });
+
     test('wsConnection refuses over-limit connection without tracking', () => {
       server.opts.maxConnectionsPerChannel = 1;
       const existingWs = new wsMock('localhost');

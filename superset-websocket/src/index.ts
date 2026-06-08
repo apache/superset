@@ -175,7 +175,7 @@ const CONNECTION_LIMIT_CLOSE_CODE = 1013;
  * `checkSockets`/`cleanChannel` GC routines), so connection-limit checks must
  * filter on live socket state rather than trusting the raw registry sizes.
  */
-const isSocketActive = (socketId: string): boolean => {
+export const isSocketActive = (socketId: string): boolean => {
   const socketInstance = sockets[socketId];
   return (
     !!socketInstance &&
@@ -186,13 +186,13 @@ const isSocketActive = (socketId: string): boolean => {
 /**
  * Counts the sockets in the global registry that are still active.
  */
-const activeSocketCount = (): number =>
+export const activeSocketCount = (): number =>
   Object.keys(sockets).filter(isSocketActive).length;
 
 /**
  * Counts the active sockets currently registered on the given channel.
  */
-const activeChannelSocketCount = (channel: string): number =>
+export const activeChannelSocketCount = (channel: string): number =>
   channels[channel]?.sockets.filter(isSocketActive).length ?? 0;
 
 /**
