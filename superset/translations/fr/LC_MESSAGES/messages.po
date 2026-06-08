@@ -8651,9 +8651,8 @@ msgstr "Mesure"
 msgid "Metric '%(metric)s' does not exist"
 msgstr "La mesure \"%(metric)s\" n'existe pas"
 
-
 msgid "Metric Key"
-msgstr "métrique"
+msgstr "Métrique clé"
 
 #, python-format
 msgid "Metric ``%(metric_name)s`` not found in %(dataset_name)s."
@@ -8700,13 +8699,11 @@ msgstr ""
 msgid "Metric that defines the size of the bubble"
 msgstr "Mesure qui définit la taille de la bulle"
 
-
 msgid "Metric to display bottom title"
 msgstr "Mesure à afficher dans le titre du bas"
 
-
 msgid "Metric to use for ordering Top N values"
-msgstr "Mesure pour les valeurs de nœud"
+msgstr "Mesure pour trier les top N valeurs"
 
 msgid "Metric used as a weight for the grid's coloring"
 msgstr "Mesure utilisée comme poids pour la coloration de la grille"
@@ -8716,7 +8713,6 @@ msgstr "Mesure utilisée pour calculer la taille des bulles"
 
 msgid "Metric used to control height"
 msgstr "Mesure utilisée pour contrôler la hauteur"
-
 
 msgid ""
 "Metric used to define how the top series are sorted if a series or cell "
@@ -8752,17 +8748,16 @@ msgid "Metrics should be inside folders"
 msgstr "Les mesures doivent être à l'intérieur du dossier"
 
 msgid "Metrics to show in the tooltip."
-msgstr "Affichage ou non des valeurs numériques dans les cellules"
+msgstr "Mesures à afficher dans l'info-bulle"
 
 msgid "Middle"
-msgstr "Moyen"
+msgstr "Milieu"
 
 msgid "Midnight"
 msgstr "Minuit"
 
-
 msgid "Miles"
-msgstr "Milles"
+msgstr "Kilomètres"
 
 msgid "Min"
 msgstr "Min"
@@ -8776,17 +8771,14 @@ msgstr "Largeur minimale"
 msgid "Min periods"
 msgstr "Périodes minimales"
 
-
 msgid "Min value"
 msgstr "Valeur mini"
 
-
 msgid "Min value cannot be greater than max value"
-msgstr "La date de début ne peut être supérieure à la date de fin"
-
+msgstr "La valeur min ne peut être plus grande que la valeur max"
 
 msgid "Min value should be smaller or equal to max value"
-msgstr "Cette valeur devrait être plus petite que la valeur Max"
+msgstr "La valeur min doit être plus petite que la valeur Max"
 
 msgid "Min/max (no outliers)"
 msgstr "Min/max (sans valeurs aberrantes)"
@@ -8802,7 +8794,6 @@ msgstr "Taille minimale de la police"
 
 msgid "Minimum Radius"
 msgstr "Rayon minimum"
-
 
 msgid "Minimum Width"
 msgstr "Largeur minimale"
@@ -8829,7 +8820,6 @@ msgstr "Valeur minimale pour que l'étiquette soit affichée sur le graphique."
 msgid "Minimum value on the gauge axis"
 msgstr "Valeur minimale sur l’axe de la jauge"
 
-
 msgid "Minimum width size of the path, in pixels or meters."
 msgstr "La taille de la cellule carrée, en pixels"
 
@@ -8837,7 +8827,7 @@ msgid "Minor Split Line"
 msgstr "Ligne de séparation mineure"
 
 msgid "Minor ticks"
-msgstr "Graduations secondaires"
+msgstr "Séparation mineure"
 
 msgid "Minute"
 msgstr "Minute"
@@ -8851,15 +8841,13 @@ msgid "Missing %s"
 msgstr "%s manquant"
 
 msgid "Missing OAuth2 token"
-msgstr "Jeton OAuth2 manquant"
-
+msgstr "Token OAuth2 manquant"
 
 msgid "Missing URL parameter"
 msgstr "Paramètres URL manquants"
 
 msgid "Missing URL parameters"
 msgstr "Paramètres URL manquants"
-
 
 msgid "Mixed Chart"
 msgstr "Graphique composés"
@@ -8878,11 +8866,11 @@ msgstr[0] "1 colonne modifiée dans le jeu de données virtuel"
 msgstr[1] "%s colonnes modifiées dans le jeu de données virtuel"
 
 msgid "Modified by"
-msgstr "Modifié"
+msgstr "Modifié par"
 
 #, python-format
 msgid "Modified by: %s"
-msgstr "Modifié par %s"
+msgstr "Modifié par: %s"
 
 #, python-format
 msgid "Modified from \"%s\" template"
@@ -8901,19 +8889,17 @@ msgstr "Mois %s"
 msgid "More"
 msgstr "Plus"
 
-
 msgid "More Options"
-msgstr "Options de carte"
+msgstr "Plus d'options"
 
 msgid "More filters"
 msgstr "Plus de filtres"
 
 msgid "MotherDuck token"
-msgstr "Jeton MotherDuck"
-
+msgstr "Token MotherDuck"
 
 msgid "Move icon"
-msgstr "Déplacer seulement"
+msgstr "Déplacer l'icône"
 
 msgid "Move only"
 msgstr "Déplacer seulement"
@@ -8986,7 +8972,6 @@ msgstr "NON GROUPÉ PAR"
 msgid "NOV"
 msgstr "NOV"
 
-
 msgid "NUMERIC"
 msgstr "NUMÉRIQUE"
 
@@ -8999,20 +8984,17 @@ msgstr "Le nom est obligatoire"
 msgid "Name must be unique"
 msgstr "Le nom doit être unique"
 
-
 msgid "Name of table to be created"
-msgstr "Nom du tableau à créer à partir des données CSV."
+msgstr "Nom du tableau à créer"
 
 msgid "Name of the column containing the id of the parent node"
 msgstr "Nom de la colonne contenant l'ID du nœud parent"
 
-
 msgid "Name of the id column"
 msgstr "Nom de la colonne d'identification"
 
-
 msgid "Name of the semantic layer"
-msgstr "Nom de la colonne d'identification"
+msgstr "Nom de la la couche sémantique"
 
 msgid "Name of the source nodes"
 msgstr "Nom des nœuds sources"
@@ -9020,9 +9002,8 @@ msgstr "Nom des nœuds sources"
 msgid "Name of the target nodes"
 msgstr "Nom des nœuds cibles"
 
-
 msgid "Name of your tag"
-msgstr "Donner un nom à la base de données"
+msgstr "Nom de votre tag"
 
 msgid "Name your database"
 msgstr "Nom de votre base de données"
@@ -9031,11 +9012,10 @@ msgid "Name your folder and to edit it later, click on the folder name"
 msgstr "[CHECK] Nommer votre dossier et modifier le plus tard en cliquant sur le nom du dossier"
 
 msgid "Native filter column is required"
-msgstr "La valeur du filtre est requise"
-
+msgstr "Un filtre natif de la colonne est requis"
 
 msgid "Native filter values has no values"
-msgstr "Valeurs disponibles pour le préfiltre"
+msgstr "Le filtre natif n'a pas de valeurs"
 
 msgid "Need help? Learn how to connect your database"
 msgstr "Besoin d’aide? Apprenez comment connecter votre base de données"
@@ -9043,41 +9023,32 @@ msgstr "Besoin d’aide? Apprenez comment connecter votre base de données"
 msgid "Need help? Learn more about"
 msgstr "Besoin d’aide? En savoir plus sur"
 
-
 msgid "Network Error"
 msgstr "Erreur de réseau"
-
 
 msgid "Network error"
 msgstr "Erreur de réseau"
 
-
 msgid "Network error while attempting to fetch resource"
-msgstr "Une erreur s'est produite durant la création de la source de donnée"
-
+msgstr "Une erreur réseau s'est produite lors de la récupération de la ressource"
 
 msgid "Network error."
 msgstr "Erreur de réseau."
 
-
 msgid "New"
-msgstr "Maintenant"
-
+msgstr "Nouveau"
 
 msgid "New Semantic Layer"
-msgstr "Aucune couche d'annotations"
+msgstr "Nouvelle couche sémantique"
 
 msgid "New chart"
 msgstr "Nouveau graphique"
 
-
 msgid "New dataset"
 msgstr "Nouvel ensemble de données"
 
-
 msgid "New dataset name"
 msgstr "Nom de l’ensemble de données"
-
 
 msgid "New header"
 msgstr "Nouvel en-tête"
@@ -9094,10 +9065,8 @@ msgstr "Nouvel onglet (Ctrl + t)"
 msgid "Next"
 msgstr "Suivant"
 
-
 msgid "Nightingale"
-msgstr "Graphique en rose Nightingale"
-
+msgstr "Nightingale"
 
 msgid "Nightingale Rose Chart"
 msgstr "Graphique en rose Nightingale"
@@ -9112,9 +9081,8 @@ msgstr "Pas encore de %s"
 msgid "No Data"
 msgstr "Aucune donnée"
 
-
 msgid "No Logs yet"
-msgstr "Pas encore de %s"
+msgstr "Pas encore de jounaux"
 
 msgid "No Results"
 msgstr "Aucun résultat"
@@ -9122,18 +9090,14 @@ msgstr "Aucun résultat"
 msgid "No Rules yet"
 msgstr "Pas encore de règles"
 
-
 msgid "No SQL query found"
-msgstr "Requête SQL"
-
+msgstr "Aucune requête SQL trouvée"
 
 msgid "No Tags created"
-msgstr "a été créé"
-
+msgstr "Aucun tag créé"
 
 msgid "No actions"
-msgstr "Annuler l'action"
-
+msgstr "Aucune actions"
 
 msgid "No annotation layers"
 msgstr "Aucune couche d'annotations"
@@ -9147,10 +9111,8 @@ msgstr "Pas encore d'annotations"
 msgid "No applied filters"
 msgstr "Aucun filtre appliqué"
 
-
 msgid "No available filters."
 msgstr "Aucun filtre disponible."
-
 
 msgid "No columns found"
 msgstr "Aucune colonne trouvée"
@@ -9159,13 +9121,11 @@ msgstr "Aucune colonne trouvée"
 msgid "No compatible %s found"
 msgstr "Aucune %s compatible trouvé"
 
-
 msgid "No compatible catalog found"
-msgstr "Aucun ensemble de données compatible trouvé"
+msgstr "Aucun catalog compatible trouvé"
 
 msgid "No compatible columns found"
 msgstr "Aucune colonne compatible trouvée"
-
 
 msgid "No compatible schema found"
 msgstr "Aucun schéma compatible trouvé"
@@ -9181,9 +9141,8 @@ msgstr ""
 msgid "No data in file"
 msgstr "Pas de données dans le fichier"
 
-
 msgid "No databases available"
-msgstr "Aucune base de données n’est disponible"
+msgstr "Aucune base de données disponible"
 
 msgid "No databases match your search"
 msgstr "Aucune base de données ne correspond à votre recherche"
@@ -9204,7 +9163,7 @@ msgid "No filters"
 msgstr "Aucun filtre"
 
 msgid "No filters applied"
-msgstr "Aucun filtre"
+msgstr "Aucun filtre appliqué"
 
 msgid "No filters are currently added to this dashboard."
 msgstr "Aucun filtre n'est actuellement ajouté à ce tableau de bord."
@@ -9215,17 +9174,14 @@ msgstr "Aucun filtres ou personnalisations n'existent actuellement"
 msgid "No form settings were maintained"
 msgstr "Aucun paramètre de formulaire n'a été conservé"
 
-
 msgid "No global filters are currently added"
 msgstr "Aucun filtre global n'est actuellement ajouté"
 
 msgid "No groups"
 msgstr "Aucun groupe"
 
-
 msgid "No groups yet"
-msgstr "Pas encore de règles"
-
+msgstr "Pas encore de groupe"
 
 msgid "No items"
 msgstr "Aucun filtre"
@@ -9233,17 +9189,14 @@ msgstr "Aucun filtre"
 msgid "No matching records found"
 msgstr "Aucun enregistrement correspondant n'a été trouvé"
 
-
 msgid "No matching results found"
-msgstr "Aucun enregistrement correspondant n'a été trouvé"
-
+msgstr "Aucun résultat correspondant n'a été trouvé"
 
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
-msgstr "Aucun filtre n'est actuellement ajouté à ce tableau de bord."
+msgstr "Aucun graphique deck.gl multi-couche n'a été acutllement ajouté à ce tableau de bord."
 
 msgid "No records found"
 msgstr "Aucun enregistrement n'a été trouvé"
-
 
 msgid "No results"
 msgstr "Aucun résultat"
@@ -9267,13 +9220,11 @@ msgstr ""
 "configurés correctement et que la source de données contient des données "
 "pour la période sélectionnée."
 
-
 msgid "No roles"
-msgstr "Pas encore de règles"
-
+msgstr "Pas de rôles"
 
 msgid "No roles yet"
-msgstr "Pas encore de règles"
+msgstr "Pas encore de rôles"
 
 #, python-format
 msgid "No rows were returned for this %s"
@@ -9283,10 +9234,8 @@ msgstr "Aucun résultat obtenu pour %s"
 msgid "No samples were returned for this %s"
 msgstr "Aucun échantillon obtenu pour %s"
 
-
 msgid "No saved expressions found"
 msgstr "Aucune expression sauvegardée n'a été trouvée"
-
 
 msgid "No saved metrics found"
 msgstr "Aucune mesure sauvegardée n'a été trouvée"
@@ -9300,27 +9249,23 @@ msgstr ""
 "Aucune colonne de ce type n'a été trouvée. Pour filtrer sur une mesure, "
 "essayez l'onglet Custom SQL."
 
-
 msgid "No table columns"
 msgstr "Pas de colonnes de tableau"
 
-
 msgid "No tasks yet"
-msgstr "Pas encore de %s"
-
+msgstr "Pas encore de tâches"
 
 msgid "No temporal columns found"
 msgstr "Aucune colonne temporelle trouvée"
 
 msgid "No time columns"
-msgstr "Pas de colonnes horaires"
+msgstr "Pas de colonnes d'horodatage"
 
 msgid "No user registrations yet"
 msgstr "Aucune inscription d'utilisateur pour le moment"
 
-
 msgid "No users yet"
-msgstr "Pas encore de règles"
+msgstr "Pas encore d'utilisateurs"
 
 msgid "No validator found (configured for the engine)"
 msgstr "Aucun validateur trouvé (configuré pour le moteur)"
@@ -9353,22 +9298,19 @@ msgid "Normal"
 msgstr "Normal"
 
 msgid "Normalize"
-msgstr "Normalisé"
+msgstr "Normaliser"
 
 msgid "Normalize Across"
 msgstr "Normaliser à travers"
 
-
 msgid "Normalize column names"
-msgstr "Pas de colonne temporelle"
+msgstr "Normaliser le nom des colonnes"
 
 msgid "Normalized"
 msgstr "Normalisé"
 
-
 msgid "Not Contains"
-msgstr "Rapport envoyé"
-
+msgstr "Ne contient pas"
 
 msgid "Not Equal"
 msgstr "!= (N'est pas égal)"
@@ -9376,10 +9318,8 @@ msgstr "!= (N'est pas égal)"
 msgid "Not Time Series"
 msgstr "Pas de séries temporelles"
 
-
 msgid "Not a valid ZIP file"
-msgstr "Aucun filtre appliqué"
-
+msgstr "Fichier ZIP invalide"
 
 msgid "Not added to any dashboard"
 msgstr "Pas d'ajout à un tableau de bord"
@@ -9389,10 +9329,8 @@ msgstr ""
 "Tous les champs obligatoires ne sont pas remplis. Veuillez fournir les "
 "éléments suivants :"
 
-
 msgid "Not available"
-msgstr "Non disponible"
-
+msgstr "Indisponible"
 
 msgid "Not defined"
 msgstr "Indéfini"
@@ -9400,17 +9338,14 @@ msgstr "Indéfini"
 msgid "Not equal to (≠)"
 msgstr "Différent de (≠)"
 
-
 msgid "Not in"
 msgstr "Pas dans"
 
 msgid "Not null"
 msgstr "Non nul"
 
-
 msgid "Not set"
-msgstr "Pas encore de %s"
-
+msgstr "Non défini"
 
 msgid "Not triggered"
 msgstr "Non déclenché"
@@ -9418,13 +9353,11 @@ msgstr "Non déclenché"
 msgid "Not up to date"
 msgstr "Pas à jour"
 
-
 msgid "Nothing here yet"
-msgstr "Rien déclenché"
+msgstr "Il n'y a rien ici pour l'instant"
 
 msgid "Nothing triggered"
 msgstr "Rien déclenché"
-
 
 msgid "Notification Method"
 msgstr "Méthode de notification"
@@ -9438,10 +9371,8 @@ msgstr "Novembre"
 msgid "Now"
 msgstr "Maintenant"
 
-
 msgid "Null Values"
 msgstr "Valeurs nulles"
-
 
 msgid "Null imputation"
 msgstr "Imputation nulle"
@@ -9465,13 +9396,11 @@ msgstr ""
 msgid "Number format"
 msgstr "Format des nombres"
 
-
 msgid "Number format string"
 msgstr "Chaîne de format des nombres"
 
-
 msgid "Number formatting"
-msgstr "Format D3"
+msgstr "Formatage des nombres"
 
 msgid "Number of buckets to group data"
 msgstr "Nombre de groupes de données pour regrouper les données"
@@ -9485,10 +9414,10 @@ msgid "Number of charts to display per row"
 msgstr "Nombre de graphiques à afficher par ligne"
 
 msgid "Number of decimal digits to round numbers to"
-msgstr "Nombre de chiffres décimaux pour arrondir les nombres"
+msgstr "Nombre de chiffres décimaux pour l'arrondi"
 
 msgid "Number of decimal places with which to display lift values"
-msgstr "Nombre de décimales pour l'affichage des valeurs de l'ascenseur"
+msgstr "[CHECK] Nombre de décimales pour l'affichage des valeurs de l'ascenseur"
 
 msgid "Number of decimal places with which to display p-values"
 msgstr "Nombre de décimales pour l'affichage des valeurs p"
@@ -9503,9 +9432,8 @@ msgstr ""
 msgid "Number of periods to ratio against"
 msgstr "Nombre de périodes à rapporter"
 
-
 msgid "Number of rows of file to read. Leave empty (default) to read all rows"
-msgstr "Nombre de lignes du fichier à lire."
+msgstr "Nombre de lignes du fichier à lire. Laisser vide (par défaut) pour lire toutes les lignes"
 
 msgid "Number of rows to skip at start of file."
 msgstr "Nombre de lignes à sauter au début du fichier."
@@ -9522,9 +9450,8 @@ msgid "Number of steps to take between ticks when displaying the Y scale"
 msgstr ""
 "Nombre de pas entre les points de repère lors de l'affichage de l'échelle Y"
 
-
 msgid "Number of top values"
-msgstr "Valeurs de somme"
+msgstr "Nombre de top valeurs"
 
 #, python-format
 msgid "Numbers must be within %(min)s and %(max)s"
@@ -9532,16 +9459,14 @@ msgstr ""
 "La largeur de la capture d'écran doit être comprise entre %(min)spx et "
 "%(max)spx"
 
-
 msgid "Numeric column used to calculate the histogram."
-msgstr "Sélectionner les colonnes numériques pour dessiner l’histogramme"
+msgstr "Colonnes numériques utilisées pour calculer l’histogramme"
 
 msgid "Numerical range"
 msgstr "Interval numérique"
 
-
 msgid "OAuth2 client information"
-msgstr "Informations supplémentaires"
+msgstr "Informations du client OAuth2"
 
 msgid "OCT"
 msgstr "OCT"
@@ -9550,7 +9475,7 @@ msgid "OK"
 msgstr "OK"
 
 msgid "OR"
-msgstr "ou"
+msgstr "OU"
 
 msgid "OVERWRITE"
 msgstr "REMPLACER"
@@ -9588,7 +9513,6 @@ msgstr "Un ou plusieurs contrôles à pivoter en tant que colonnes"
 msgid "One or many metrics to display"
 msgstr "Une ou plusieurs mesures à afficher"
 
-
 msgid "One or more annotation layers failed loading."
 msgstr "Le chargement d'une ou plusieurs couches d'annotations a échoué."
 
@@ -9596,7 +9520,7 @@ msgid "One or more columns already exist"
 msgstr "Une ou plusieurs colonnes existent déjà"
 
 msgid "One or more columns are duplicated"
-msgstr "Une ou plusieurs colonnes sont en double"
+msgstr "Une ou plusieurs colonnes sont dupliquées"
 
 msgid "One or more columns do not exist"
 msgstr "Une ou plusieurs colonnes n'existent pas"
@@ -9615,9 +9539,8 @@ msgstr ""
 "Un ou plusieurs paramètres nécessaires à la configuration d'une base de "
 "données sont manquants."
 
-
 msgid "One or more parameters specified in the query are malformed."
-msgstr "Un ou plusieurs paramètres de la requête sont malformés."
+msgstr "Un ou plusieurs paramètres de la requête sont au mauvais format."
 
 msgid "One or more parameters specified in the query are missing."
 msgstr "Un ou plusieurs paramètres spécifiés dans la requête sont manquants."
@@ -9630,12 +9553,12 @@ msgstr "Seules les instructions \"SELECT\" sont autorisées"
 
 msgid "Only applies when \"Label Type\" is not set to a percentage."
 msgstr ""
-"S'applique uniquement lorsque le \"Type d'étiquette\" n'est pas réglé sur un "
+"S'applique uniquement lorsque le \"Type d'étiquette\" n'est pas défini sur un "
 "pourcentage."
 
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr ""
-"Ne s'applique que lorsque le \"Type d'étiquette\" est réglé sur l'affichage "
+"Ne s'applique que lorsque le \"Type d'étiquette\" est défini sur l'affichage "
 "des valeurs."
 
 msgid "Only exact match is available for non-string columns."
@@ -9683,13 +9606,11 @@ msgstr "Opacité, attend des valeurs entre 0 et 100"
 msgid "Open Datasource tab"
 msgstr "Ouvrir l'onglet Source de données"
 
-
 msgid "Open SQL Lab in a new tab"
 msgstr "Exécuter la requête dans une nouvelle fenêtre"
 
 msgid "Open in SQL Lab"
 msgstr "Ouvrir dans SQL Lab"
-
 
 msgid "Open in SQL lab"
 msgstr "Ouvrir dans SQL Lab"
@@ -9723,10 +9644,8 @@ msgstr ""
 "Contenu CA_BUNDLE optionnel pour valider les requêtes HTTPS. Disponible "
 "uniquement sur certains moteurs de base de données."
 
-
 msgid "Optional d3 date format string"
 msgstr "Chaîne de format de date d3 facultative"
-
 
 msgid "Optional d3 number format string"
 msgstr "Chaîne de format de nombre d3 facultative"
@@ -9770,10 +9689,8 @@ msgstr "Orientation du diagramme à barres"
 msgid "Orientation of filter bar"
 msgstr "Orientation de la barre de filtres"
 
-
 msgid "Orientation of tree"
 msgstr "Orientation de la hierarchie"
-
 
 msgid "Original"
 msgstr "Original"
@@ -9846,10 +9763,8 @@ msgstr ""
 "Superpose une grille hexagonale sur une carte et agrège les données à "
 "l'intérieur du périmètre de chaque cellule."
 
-
 msgid "Override time grain"
-msgstr "Remplacer le fragment de temps"
-
+msgstr "Remplacer la granularité temporelle"
 
 msgid "Override time range"
 msgstr "Remplacer l'intervalle de temps"
@@ -9858,12 +9773,11 @@ msgid "Overwrite"
 msgstr "Remplacer"
 
 msgid "Overwrite & Explore"
-msgstr "Modifier et explorer"
+msgstr "Ecraser et explorer"
 
 #, python-format
 msgid "Overwrite Dashboard [%s]"
 msgstr "Ecraser le tableau de bord [%s]"
-
 
 msgid "Overwrite existing"
 msgstr "Remplacer les données existantes"
@@ -9872,7 +9786,7 @@ msgid "Overwrite text in the editor with a query on this table"
 msgstr "Remplacer le texte de l'éditeur par une requête sur ce tableau"
 
 msgid "Owned Created or Favored"
-msgstr "Propriétaire créé ou privilégié"
+msgstr "Détenu, créé ou en favori"
 
 msgid "Owner"
 msgstr "Propriétaire"
@@ -9885,7 +9799,7 @@ msgstr "Les propriétaires ne sont pas valides"
 
 msgid "Owners is a list of users who can alter the dashboard."
 msgstr ""
-"Les propriétaires est une liste d'utilisateur·rice·s qui peuvent modifier le "
+"Les propriétaires sont une liste d'utilisateur·rice·s qui peuvent modifier le "
 "tableau de bord."
 
 msgid ""
@@ -9903,14 +9817,13 @@ msgid "Page"
 msgstr "Page"
 
 msgid "Page Size:"
-msgstr "Taille de page"
+msgstr "Taille de la page:"
 
 msgid "Page length"
 msgstr "Longueur de la page"
 
-
 msgid "Page navigation"
-msgstr "Aggregation"
+msgstr "Navigation de la page"
 
 msgid "Paired t-test Table"
 msgstr "Tableau test t par paires"
@@ -9931,7 +9844,7 @@ msgid "Parameters"
 msgstr "Paramètres"
 
 msgid "Parameters "
-msgstr "Paramètres"
+msgstr "Paramètres "
 
 msgid "Parameters related to the view and perspective on the map"
 msgstr "Paramètres relatifs à la vue et à la perspective sur la carte"
@@ -9945,7 +9858,6 @@ msgstr "Erreur : %(error)s"
 
 msgid "Part of a Whole"
 msgstr "Ensembles"
-
 
 msgid "Partition Chart"
 msgstr "Tableau de répartition"
@@ -9973,51 +9885,47 @@ msgid "Password is required"
 msgstr "Le mot de passe est requis"
 
 msgid "Password:"
-msgstr "Mot de passe"
+msgstr "Mot de passe: "
 
 msgid "Passwords do not match!"
-msgstr "Le mot de passe ne correspond pas"
+msgstr "Le mot de passe ne correspond pas !"
 
 msgid "Paste"
-msgstr "coller"
+msgstr "Coller"
 
 msgid "Paste Private Key here"
 msgstr "Coller la clé privée ici"
 
-
 msgid "Paste content of service credentials JSON file here"
 msgstr ""
-"Collez le contenu du fichier JSON des informations d'identification du "
-"service ici"
+"Collez le contenu du fichier JSON contenant les informations d'identification ici"
 
 msgid "Paste the shareable Google Sheet URL here"
 msgstr "Coller ici l'URL partageable de Google Sheet"
 
 msgid "Paste your access token here"
-msgstr "Mettez votre Jeton d'accès ici"
-
+msgstr "Coller votre Jeton d'accès ici"
 
 msgid "Path Color"
-msgstr "Couleur du point"
-
+msgstr "Couleur du chemin"
 
 msgid "Path Size"
-msgstr "Taille du point"
+msgstr "Taille du chemin"
 
 msgid "Pattern"
-msgstr "Modèle"
+msgstr "Motif"
 
 msgid "Pause auto refresh if tab is inactive"
 msgstr "Mettre en pause l'actualisation automatique si l'onglet est inactif"
 
 msgid "Pause auto-refresh"
-msgstr "Définir l'intervalle de rafraîchissement automatique"
+msgstr "Mettre en pause l'actualisation automatique"
 
 msgid "Pending"
-msgstr "en attente"
+msgstr "En attente"
 
 msgid "Per user caching"
-msgstr "Pourcentage de variation"
+msgstr "Cache par utilisateur"
 
 msgid "Percent Change"
 msgstr "Pourcentage de variation"
@@ -10035,10 +9943,10 @@ msgid "Percentage change"
 msgstr "Pourcentage de variation"
 
 msgid "Percentage difference between the time periods"
-msgstr "Différence en pourcentage entre les périodes"
+msgstr "Différence en pourcentage entre les périodes temporelles"
 
 msgid "Percentage metric calculation"
-msgstr "Mesures de pourcentage"
+msgstr "Calcul des mesures de pourcentage"
 
 msgid "Percentage metrics"
 msgstr "Mesures de pourcentage"
@@ -10057,7 +9965,6 @@ msgstr "Moyenne de la période"
 
 msgid "Periods"
 msgstr "Périodes"
-
 
 msgid "Periods must be a whole number"
 msgstr "Les périodes doivent être un nombre entier"
