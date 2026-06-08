@@ -438,6 +438,26 @@ def test_url_param_unescaped_default_form_data() -> None:
         assert cache.url_param("bar", "O'Malley", escape_result=False) == "O'Malley"
 
 
+def test_url_param_escaped_query() -> None:
+    """
+    Test that a ``url_param`` value read from the request query string is
+    handled the same way as one sourced from ``form_data`` -- i.e. it goes
+    through the dialect-specific quoting instead of being returned raw.
+    """
+    with current_app.test_request_context(query_string={"foo": "O'Brien"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo") == "O''Brien"
+
+
+def test_url_param_unescaped_query() -> None:
+    """
+    Test that ``escape_result=False`` returns the raw query-string value.
+    """
+    with current_app.test_request_context(query_string={"foo": "O'Brien"}):
+        cache = ExtraCache(dialect=dialect())
+        assert cache.url_param("foo", escape_result=False) == "O'Brien"
+
+
 def test_safe_proxy_primitive() -> None:
     """
     Test the ``safe_proxy`` helper with a function returning a ``str``.
