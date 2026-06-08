@@ -24,7 +24,10 @@ import {
 
 // We can swap this out for the actual switchboard package once it gets published
 import { Switchboard } from '@superset-ui/switchboard';
-import { getGuestTokenRefreshTiming } from './guestTokenRefresh';
+import {
+  getGuestTokenRefreshTiming,
+  DEFAULT_TOKEN_REFRESH_RETRY_MS,
+} from './guestTokenRefresh';
 import { withTimeout } from './withTimeout';
 
 /**
@@ -266,10 +269,21 @@ export async function embedDashboard({
     });
   }
 
-  const [guestToken, ourPort]: [string, Switchboard] = await Promise.all([
-    fetchGuestTokenWithTimeout(),
-    mountIframe(),
-  ]);
+  let guestToken: string;
+  let ourPort: Switchboard;
+  try {
+    [guestToken, ourPort] = await Promise.all([
+      fetchGuestTokenWithTimeout(),
+      mountIframe(),
+    ]);
+  } catch (err) {
+    // If the initial token fetch (or timeout) rejects after the iframe has
+    // already been mounted, tear down the partially initialized iframe so the
+    // host isn't left with an orphaned embedded dashboard before rethrowing.
+    //@ts-ignore
+    mountPoint.replaceChildren();
+    throw err;
+  }
 
   ourPort.emit('guestToken', { guestToken });
   log('sent guest token');
@@ -281,13 +295,25 @@ export async function embedDashboard({
 
   async function refreshGuestToken() {
     if (unmounted) return;
-    const newGuestToken = await fetchGuestTokenWithTimeout();
-    if (unmounted) return;
-    ourPort.emit('guestToken', { guestToken: newGuestToken });
-    refreshTimer = setTimeout(
-      refreshGuestToken,
-      getGuestTokenRefreshTiming(newGuestToken),
-    );
+    try {
+      const newGuestToken = await fetchGuestTokenWithTimeout();
+      if (unmounted) return;
+      ourPort.emit('guestToken', { guestToken: newGuestToken });
+      refreshTimer = setTimeout(
+        refreshGuestToken,
+        getGuestTokenRefreshTiming(newGuestToken),
+      );
+    } catch (err) {
+      // A transient fetch failure or timeout must not permanently stop the
+      // refresh cycle. Log it and retry so the session can recover once the
+      // host callback succeeds again.
+      log('failed to refresh guest token, will retry:', err);
+      if (unmounted) return;
+      refreshTimer = setTimeout(
+        refreshGuestToken,
+        DEFAULT_TOKEN_REFRESH_RETRY_MS,
+      );
+    }
   }
 
   refreshTimer = setTimeout(
