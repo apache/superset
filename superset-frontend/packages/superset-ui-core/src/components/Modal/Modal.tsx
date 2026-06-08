@@ -246,7 +246,7 @@ const CustomModal = ({
     [bodyStyle, stylesProp],
   );
   const draggableRef = useRef<HTMLDivElement>(null);
-  const [bounds, setBounds] = useState<DraggableBounds>();
+  const [bounds, setBounds] = useState<DraggableBounds>({});
   const [dragDisabled, setDragDisabled] = useState<boolean>(true);
   const theme = useTheme();
 
