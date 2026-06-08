@@ -16,14 +16,20 @@
 # under the License.
 """Integration tests for dashboard soft-delete and restore."""
 
+from datetime import datetime
 from typing import Any
 
+from superset import security_manager
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    ALPHA_USERNAME,
+    GAMMA_USERNAME,
+)
 
 
 def _hard_delete_dashboard(dashboard_id: int) -> None:
@@ -136,6 +142,124 @@ class TestDashboardSoftDelete(SupersetTestCase):
         # Cleanup
         _hard_delete_dashboard(live_id)
         _hard_delete_dashboard(deleted_id)
+
+    def test_deleted_state_list_shows_owner_their_own_deleted(self) -> None:
+        """A non-admin owner can still enumerate their own soft-deleted
+        dashboards. Deleted-state scoping mirrors the restore audience, so it
+        must not lock owners out of their own trash."""
+        alpha = self.get_user("alpha")
+        dashboard = Dashboard(
+            dashboard_title="sd_owner_dash",
+            slug="sd_owner_dash",
+            owners=[alpha],
+            published=True,
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+        dashboard_id = dashboard.id
+
+        self.login(ALPHA_USERNAME)
+        self.client.delete(f"/api/v1/dashboard/{dashboard_id}")
+
+        rison_query = (
+            "(filters:!((col:dashboard_title,opr:title_or_slug,value:sd_owner_dash),"
+            "(col:id,opr:dashboard_deleted_state,value:only)))"
+        )
+        rv = self.client.get(f"/api/v1/dashboard/?q={rison_query}")
+        assert rv.status_code == 200
+        ids = [row["id"] for row in json.loads(rv.data)["result"]]
+        assert dashboard_id in ids
+
+        # Cleanup
+        _hard_delete_dashboard(dashboard_id)
+
+    def test_deleted_state_list_hides_non_owned_from_read_access_user(self) -> None:
+        """A read-access non-owner must not be able to enumerate a dashboard
+        once it is soft-deleted.
+
+        Gamma is granted ``datasource_access`` to a published dashboard's
+        dataset, so ``DashboardAccessFilter`` makes the dashboard visible to
+        gamma while it is live. After soft-delete, the deleted-state list is
+        scoped to the restore audience (owners/admins), so gamma — who could
+        never restore it — must not see it via ``include`` or ``only``.
+        """
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.core import Database
+        from superset.models.slice import Slice
+
+        admin = self.get_user("admin")
+        database = Database(database_name="sd_acl_db", sqlalchemy_uri="sqlite://")
+        db.session.add(database)
+        db.session.flush()
+        table = SqlaTable(table_name="sd_acl_tbl", database=database)
+        db.session.add(table)
+        db.session.flush()
+        chart = Slice(
+            slice_name="sd_acl_slice",
+            datasource_id=table.id,
+            datasource_type="table",
+            viz_type="table",
+        )
+        db.session.add(chart)
+        dashboard = Dashboard(
+            dashboard_title="sd_acl_dash",
+            slug="sd_acl_dash",
+            owners=[admin],
+            slices=[chart],
+            published=True,
+        )
+        db.session.add(dashboard)
+        db.session.commit()
+        dashboard_id = dashboard.id
+
+        gamma_role = security_manager.find_role("Gamma")
+        pvm = security_manager.add_permission_view_menu(
+            "datasource_access", table.perm
+        )
+        gamma_role.permissions.append(pvm)
+        db.session.commit()
+
+        title_filter = "(col:dashboard_title,opr:title_or_slug,value:sd_acl_dash)"
+        try:
+            # Precondition: gamma can see the dashboard while it is live.
+            self.login(GAMMA_USERNAME)
+            rv = self.client.get(f"/api/v1/dashboard/?q=(filters:!({title_filter}))")
+            live_ids = [row["id"] for row in json.loads(rv.data)["result"]]
+            assert dashboard_id in live_ids, (
+                "precondition failed: gamma should see the live dashboard via "
+                "datasource access"
+            )
+
+            # Soft-delete directly (no admin re-login needed; the DELETE
+            # endpoint's auth is exercised elsewhere). This isolates the
+            # deleted-state visibility behaviour under test.
+            dashboard.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+            db.session.commit()
+
+            # Gamma (still logged in) must not see the soft-deleted dashboard.
+            for value in ("include", "only"):
+                rison_query = (
+                    f"(filters:!({title_filter},"
+                    f"(col:id,opr:dashboard_deleted_state,value:{value})))"
+                )
+                rv = self.client.get(f"/api/v1/dashboard/?q={rison_query}")
+                assert rv.status_code == 200
+                ids = [row["id"] for row in json.loads(rv.data)["result"]]
+                assert dashboard_id not in ids, (
+                    "read-access non-owner must not enumerate a soft-deleted "
+                    f"dashboard via deleted_state={value}"
+                )
+        finally:
+            pvm = security_manager.find_permission_view_menu(
+                "datasource_access", table.perm
+            )
+            if pvm:
+                security_manager.del_permission_role(gamma_role, pvm)
+            _hard_delete_dashboard(dashboard_id)
+            db.session.delete(chart)
+            db.session.delete(table)
+            db.session.delete(database)
+            db.session.commit()
 
     def test_embedded_dashboard_with_soft_deleted_parent(self) -> None:
         """Embedded URL keeps loading after the parent dashboard is soft-deleted.
