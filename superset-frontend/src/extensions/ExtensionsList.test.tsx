@@ -82,7 +82,11 @@ jest.mock('src/core/views', () => ({
 }));
 
 jest.mock('src/core/extensions', () => ({
-  notifyExtensionSettingsChanged: jest.fn(),
+  getExtensionSettingsSnapshot: jest.fn(() => ({
+    active_chatbot_id: null,
+    enabled: {},
+  })),
+  setExtensionSettings: jest.fn(),
 }));
 
 jest.mock('@superset-ui/core', () => {
