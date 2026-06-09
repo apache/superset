@@ -48,40 +48,31 @@ export interface ActiveChatbot {
  *
  * Selection policy:
  *  - If no chatbot is registered, returns `undefined` — the corner stays empty.
- *  - Disabled chatbots (per `enabledMap`) are excluded before selection.
- *  - If `adminSelectedId` matches an enabled registered chatbot, that one wins.
- *  - Otherwise the first enabled chatbot in registration order is used as a fallback.
+ *  - If `adminSelectedId` matches a registered chatbot, that one wins.
+ *  - Otherwise the first-registered chatbot is used as a fallback.
+ *    The active chatbot pin is set only via the backend DB; when no pin is set
+ *    (active_chatbot_id is null), the fallback is the first-registered chatbot.
  *
- * @param adminSelectedId The id stored in the admin "Default chatbot" setting, if any.
- * @param enabledMap Per-extension enabled flags from the admin settings API.
+ * @param adminSelectedId The id stored in the DB "Default chatbot" setting, if any.
  * @returns The active chatbot's id and provider, or `undefined` if none.
  */
 export const getActiveChatbot = (
   adminSelectedId?: string | null,
-  enabledMap?: Record<string, boolean>,
 ): ActiveChatbot | undefined => {
   const registeredIds = getRegisteredViewIds(CHATBOT_LOCATION);
   if (registeredIds.length === 0) {
     return undefined;
   }
 
-  const candidates = enabledMap
-    ? registeredIds.filter(id => enabledMap[id] !== false)
-    : registeredIds;
-
-  if (candidates.length === 0) {
-    return undefined;
-  }
-
-  // Mirror SIP §4.3's resolution table directly: when the admin pin names an
-  // enabled candidate, use it; otherwise use the first enabled candidate in
-  // registration order. `getRegisteredViewIds` and `getViewProvider` read the
-  // same synchronous registry maps, so a candidate id always has a live
-  // provider; the final guard is cheap defensiveness, not a fallback path.
+  // When the DB pin names a registered candidate, use it; otherwise fall back
+  // to the first registered chatbot in registration order.
+  // `getRegisteredViewIds` and `getViewProvider` read the same synchronous
+  // registry maps, so a candidate id always has a live provider; the final
+  // guard is cheap defensiveness, not a fallback path.
   const selectedId =
-    adminSelectedId && candidates.includes(adminSelectedId)
+    adminSelectedId && registeredIds.includes(adminSelectedId)
       ? adminSelectedId
-      : candidates[0];
+      : registeredIds[0];
 
   const provider = getViewProvider(CHATBOT_LOCATION, selectedId);
   return provider ? { id: selectedId, provider } : undefined;

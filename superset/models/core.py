@@ -118,22 +118,6 @@ class KeyValue(Model):  # pylint: disable=too-few-public-methods
     value = Column(utils.MediumText(), nullable=False)
 
 
-class ExtensionSettings(Model):  # pylint: disable=too-few-public-methods
-    """Global admin settings for extensions (singleton row, id=1)."""
-
-    __tablename__ = "extension_settings"
-    id = Column(Integer, primary_key=True)
-    active_chatbot_id = Column(String(250), nullable=True)
-
-
-class ExtensionEnabled(Model):  # pylint: disable=too-few-public-methods
-    """Per-extension enable/disable flag."""
-
-    __tablename__ = "extension_enabled"
-    extension_id = Column(String(250), primary_key=True)
-    enabled = Column(Boolean, nullable=False, default=True)
-
-
 class CssTemplate(AuditMixinNullable, UUIDMixin, Model):
     """CSS templates for dashboards"""
 

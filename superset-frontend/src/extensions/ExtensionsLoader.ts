@@ -43,9 +43,6 @@ class ExtensionsLoader {
 
   private initializationPromise: Promise<void> | null = null;
 
-  /** Disposables registered by each extension via its context, keyed by extension id. */
-  private extensionDisposables: Map<string, { dispose(): void }[]> = new Map();
-
   // eslint-disable-next-line no-useless-constructor
   private constructor() {
     // Private constructor for singleton pattern
@@ -99,8 +96,7 @@ class ExtensionsLoader {
   public async initializeExtension(extension: Extension) {
     try {
       if (extension.remoteEntry) {
-        const subscriptions = await this.loadModule(extension);
-        this.extensionDisposables.set(extension.id, subscriptions);
+        await this.loadModule(extension);
       }
       this.extensionIndex.set(extension.id, extension);
     } catch (error) {
@@ -115,34 +111,11 @@ class ExtensionsLoader {
   }
 
   /**
-   * Deactivates an extension by disposing all of its registered contributions
-   * and removing it from the index.
-   *
-   * Contributions are disposed from the extension's `context.subscriptions`,
-   * which it populates during `activate(context)`. This tracks registrations
-   * regardless of when they happen — synchronous or asynchronous — so long as
-   * the extension pushes each returned Disposable onto its context. Legacy
-   * extensions that register as top-level side effects are tracked only for the
-   * synchronous module-evaluation window (see `loadModule`).
-   */
-  public deactivateExtension(id: string): void {
-    const subscriptions = this.extensionDisposables.get(id);
-    if (subscriptions) {
-      subscriptions.forEach(subscription => subscription.dispose());
-      this.extensionDisposables.delete(id);
-    }
-    this.extensionIndex.delete(id);
-  }
-
-  /**
    * Loads a single extension module via webpack module federation and runs its
-   * `activate(context)` hook. Returns the Disposables the extension registered
-   * (its `context.subscriptions`) so the loader can dispose them on deactivation.
+   * `activate(context)` hook.
    * @param extension The extension to load.
    */
-  private async loadModule(
-    extension: Extension,
-  ): Promise<{ dispose(): void }[]> {
+  private async loadModule(extension: Extension): Promise<void> {
     const { remoteEntry, id } = extension;
 
     // Load the remote entry script
@@ -188,71 +161,20 @@ class ExtensionsLoader {
 
     const factory = await container.get('./index');
 
-    // The extension binds the lifetime of its registrations to this context by
-    // pushing the returned Disposables onto `subscriptions`. Because the context
-    // object outlives the synchronous module-evaluation window, registrations
-    // performed asynchronously inside `activate` (after an `await`, in a timer,
-    // or in an event callback) are tracked just like synchronous ones.
+    // `context.subscriptions` is provided for extensions to push their
+    // Disposables into. The host does not dispose them (lifecycle management is
+    // deferred); extensions own the array for as long as they are active.
     const context: ExtensionContext = { subscriptions: [] };
 
-    // Backward-compatibility path: extensions that register contributions as
-    // top-level side effects (rather than via `activate(context)`) do not push
-    // to `context.subscriptions` themselves. Wrapping the registrars captures
-    // those disposables — but ONLY while they fire synchronously during module
-    // evaluation, since the wrap is removed immediately afterwards. Extensions
-    // that register asynchronously must use `activate(context)` to be tracked.
-    const originalSuperset = window.superset;
-
-    const wrap =
-      <TArgs extends unknown[]>(
-        fn: (...args: TArgs) => { dispose(): void },
-      ): ((...args: TArgs) => { dispose(): void }) =>
-      (...args: TArgs) => {
-        const disposable = fn(...args);
-        context.subscriptions.push(disposable);
-        return disposable;
-      };
-
-    window.superset = {
-      ...originalSuperset,
-      commands: {
-        ...originalSuperset.commands,
-        registerCommand: wrap(originalSuperset.commands.registerCommand),
-      },
-      menus: {
-        ...originalSuperset.menus,
-        registerMenuItem: wrap(originalSuperset.menus.registerMenuItem),
-      },
-      editors: {
-        ...originalSuperset.editors,
-        registerEditor: wrap(originalSuperset.editors.registerEditor),
-      },
-      views: {
-        ...originalSuperset.views,
-        registerView: wrap(originalSuperset.views.registerView),
-      },
-    };
-
-    let module: ExtensionModule | undefined;
-    try {
-      // Evaluate the module factory. Legacy extensions fire their contribution
-      // registrations as a synchronous side effect here; modern extensions
-      // return a module exposing `activate`.
-      module = factory() as ExtensionModule | undefined;
-    } finally {
-      // Restore the real registrars before `activate` runs so that registrations
-      // are tracked via `context.subscriptions` (which the extension controls and
-      // which survives async boundaries) rather than via the synchronous wrap.
-      window.superset = originalSuperset;
-    }
+    // Evaluate the module factory. Extensions may register contributions as
+    // top-level side effects here, or return a module exposing `activate`.
+    const module = factory() as ExtensionModule | undefined;
 
     // Preferred path: hand the extension its context so it can track every
     // registration it makes, synchronous or asynchronous.
     if (typeof module?.activate === 'function') {
       await module.activate(context);
     }
-
-    return context.subscriptions;
   }
 
   /**

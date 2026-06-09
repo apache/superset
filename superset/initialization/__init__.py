@@ -177,7 +177,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.explore.api import ExploreRestApi
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
-        from superset.extensions.view import ExtensionsView
         from superset.importexport.api import ImportExportRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
@@ -416,17 +415,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Manage",
             category_label=_("Manage"),
             category_icon="",
-        )
-
-        appbuilder.add_view(
-            ExtensionsView,
-            "Extensions",
-            label=_("Extensions"),
-            category="Manage",
-            category_label=_("Manage"),
-            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
-                "ENABLE_EXTENSIONS"
-            ),
         )
 
         appbuilder.add_view(

@@ -21,6 +21,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useState,
   useSyncExternalStore,
 } from 'react';
 import { t } from '@apache-superset/core/translation';
@@ -52,10 +53,15 @@ const ChatbotMount = () => {
   const theme = useTheme();
   // Notify once per mount; a crash can re-render and would otherwise re-toast.
   const crashNotified = useRef(false);
+  // Defer chatbot resolution until the first settings load resolves. Otherwise
+  // the initial empty-default snapshot (no pin) would briefly resolve the
+  // first-registered chatbot even when the DB pins a different one, mounting
+  // the wrong provider until the async settings response arrives.
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
 
   // The active chatbot is a function of two host-owned stores: the admin
-  // settings (active id + enabled map) and the view registry (which chatbots
-  // are registered). Both are read via useSyncExternalStore so this re-resolves
+  // settings (active chatbot id) and the view registry (which chatbots are
+  // registered). Both are read via useSyncExternalStore so this re-resolves
   // when either changes — no local copy of the settings state.
   const settings = useSyncExternalStore(
     subscribeToExtensionSettings,
@@ -68,16 +74,20 @@ const ChatbotMount = () => {
 
   useEffect(() => {
     // Settings fetch failure is non-fatal: the store keeps its empty default,
-    // which getActiveChatbot treats as "all enabled, no admin pin".
-    loadExtensionSettings().catch(() => {});
+    // which getActiveChatbot treats as "no admin pin" (falls back to the
+    // first-registered chatbot). Either way, unblock rendering once the request
+    // settles so a failed fetch never permanently hides the chatbot.
+    loadExtensionSettings()
+      .catch(() => {})
+      .finally(() => setSettingsLoaded(true));
   }, []);
 
   const activeChatbot = useMemo(
-    () => getActiveChatbot(settings.active_chatbot_id, settings.enabled),
+    () => getActiveChatbot(settings.active_chatbot_id),
     [settings, registryVersion],
   );
 
-  if (!activeChatbot) {
+  if (!settingsLoaded || !activeChatbot) {
     return null;
   }
 

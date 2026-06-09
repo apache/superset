@@ -18,10 +18,10 @@ from typing import Any
 
 from superset import db
 from superset.daos.base import BaseDAO
-from superset.extensions.models import ExtensionEnabled, ExtensionSettings
+from superset.extensions.models import ExtensionSettings
 
 # The global extension settings live in a single row; id is fixed so the row
-# can be fetched and upserted without a secondary lookup.
+# can be fetched without a secondary lookup.
 SETTINGS_ROW_ID = 1
 
 
@@ -29,49 +29,16 @@ class ExtensionSettingsDAO(BaseDAO[ExtensionSettings]):
     """Persistence for the singleton global extension settings row.
 
     The row (id=1) holds global admin state such as the active chatbot id.
-    Writes go through a check-then-write upsert that is dialect-agnostic;
-    callers wrap the operation in ``@transaction`` so the read-then-write
-    window is serialised and committed atomically.
     """
 
     @staticmethod
     def get_settings_row() -> ExtensionSettings | None:
         return db.session.get(ExtensionSettings, SETTINGS_ROW_ID)
 
-    @classmethod
-    def upsert_active_chatbot_id(cls, active_chatbot_id: str | None) -> None:
-        if row := cls.get_settings_row():
-            row.active_chatbot_id = active_chatbot_id
-        else:
-            cls.create(
-                attributes={
-                    "id": SETTINGS_ROW_ID,
-                    "active_chatbot_id": active_chatbot_id,
-                }
-            )
-
-
-class ExtensionEnabledDAO(BaseDAO[ExtensionEnabled]):
-    """Persistence for per-extension enabled flags."""
-
-    id_column_name = "extension_id"
-
-    @classmethod
-    def get_enabled_map(cls) -> dict[str, bool]:
-        return {row.extension_id: row.enabled for row in cls.find_all()}
-
-    @classmethod
-    def upsert_enabled_flag(cls, extension_id: str, enabled: bool) -> None:
-        if row := cls.find_by_id(extension_id):
-            row.enabled = enabled
-        else:
-            cls.create(attributes={"extension_id": extension_id, "enabled": enabled})
-
 
 def get_extension_settings() -> dict[str, Any]:
-    """Read-only view of the combined extension settings."""
+    """Read-only view of the extension settings."""
     row = ExtensionSettingsDAO.get_settings_row()
     return {
         "active_chatbot_id": row.active_chatbot_id if row else None,
-        "enabled": ExtensionEnabledDAO.get_enabled_map(),
     }
