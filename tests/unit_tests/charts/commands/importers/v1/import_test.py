@@ -458,9 +458,7 @@ def test_import_existing_active_chart_overwrite_without_can_write_returns_existi
     mocker.patch.object(security_manager, "can_access", return_value=False)
 
     existing = (
-        session_with_data.query(Slice)
-        .filter(Slice.uuid == chart_config["uuid"])
-        .one()
+        session_with_data.query(Slice).filter(Slice.uuid == chart_config["uuid"]).one()
     )
     assert existing.deleted_at is None
 
