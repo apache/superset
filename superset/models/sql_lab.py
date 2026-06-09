@@ -601,9 +601,13 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
             if self.latest_query:
                 latest_query = self.latest_query.to_dict()
         except Exception:
+            query = self.__dict__.get("latest_query")
             logger.warning(
-                "Failed to load/serialize latest_query for tab state %s",
+                "Failed to load/serialize latest_query for tab state %s "
+                "(latest_query_id=%s, query_status=%s)",
                 self.id,
+                self.latest_query_id,
+                getattr(query, "status", "N/A"),
                 exc_info=True,
             )
 
