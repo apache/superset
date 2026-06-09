@@ -674,6 +674,13 @@ class ChartDataRestApi(ChartRestApi):
         """Extract filename and expected_rows from request for streaming exports."""
         filename = request.form.get("filename")
         if filename:
+            # Sanitize the user-supplied filename before it is used in the
+            # Content-Disposition header (consistent with the generated-name
+            # path). secure_filename may reduce a name consisting entirely of
+            # unsupported characters to an empty string, in which case fall back
+            # to the generated default downstream.
+            filename = secure_filename(filename) or None
+        if filename:
             logger.info("FRONTEND PROVIDED FILENAME: %s", filename)
 
         expected_rows = None

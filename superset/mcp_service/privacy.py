@@ -44,12 +44,22 @@ USER_DIRECTORY_FIELDS = frozenset(
     }
 )
 
+# User-directory columns that may be used as filter values (an integer user ID).
+# These remain stripped from select_columns, sort, search, and tool responses
+# (so the directory itself is never exposed), but list tools may filter rows by
+# them when the caller already has an ID — typically resolved via find_users.
+USER_FILTER_FIELDS = frozenset({"created_by_fk", "changed_by_fk"})
+
 # Internal DAO filter column names generated server-side when translating the
 # created_by_me / owned_by_me boolean flags (see mcp_core._prepend_self_lookup_filters).
 # These columns are never exposed to LLM callers; they are excluded from the
 # filters_applied response field to avoid leaking internal implementation details.
+# "owners.id" is the report-schedule variant of the owner filter column.
+# Note: ``created_by_fk`` is intentionally excluded — it is also a publicly
+# advertised filter column (see USER_FILTER_FIELDS) so callers can filter by a
+# user ID resolved via find_users.
 SELF_REFERENCING_FILTER_COLUMNS = frozenset(
-    {"created_by_fk", "owner", "created_by_fk_or_owner"}
+    {"owner", "owners.id", "created_by_fk_or_owner"}
 )
 
 DATA_MODEL_METADATA_ACCESS_ATTR = "_requires_data_model_metadata_access"
@@ -133,7 +143,7 @@ def user_can_view_data_model_metadata() -> bool:
 
 
 def filter_user_directory_fields(data: dict[str, Any]) -> dict[str, Any]:
-    """Remove fields that expose users, roles, owners, or access metadata."""
+    """Remove fields that expose users, owners, or access metadata."""
     return {
         key: value for key, value in data.items() if key not in USER_DIRECTORY_FIELDS
     }
