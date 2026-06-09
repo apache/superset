@@ -37,6 +37,7 @@ import {
 } from '@superset-ui/core/utils/mapStyles';
 import {
   ControlPanelState,
+  ControlStateMapping,
   ControlState,
   CustomControlItem,
   D3_FORMAT_OPTIONS,
@@ -59,9 +60,7 @@ export const DEFAULT_DECKGL_COLOR = { r: 158, g: 158, b: 158, a: 1 };
 
 type DeckGLTileChoice = [string, string];
 type MapStyleVisibilityProps = {
-  controls?: {
-    map_renderer?: { value?: unknown };
-  };
+  controls?: ControlStateMapping;
 };
 type MetricControlValue = {
   type?: unknown;
@@ -637,7 +636,8 @@ export const tooltipContents = {
 
       return {
         columns: datasource?.columns || [],
-        savedMetrics: datasource?.metrics || [],
+        savedMetrics:
+          datasource && 'metrics' in datasource ? datasource.metrics || [] : [],
         datasource,
         selectedMetrics,
         disabledTabs: new Set(['saved', 'sqlExpression']),
@@ -776,7 +776,12 @@ export const deckGLBreakpointMetric: CustomControlItem = {
     //   datasource: state.datasource,
     // }),
     visibility: ({ controls }: MapStyleVisibilityProps) =>
-      isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.color_breakpoints),
+      controls
+        ? isColorSchemeTypeVisible(
+            controls,
+            COLOR_SCHEME_TYPES.color_breakpoints,
+          )
+        : false,
   },
 };
 

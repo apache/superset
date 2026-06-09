@@ -200,6 +200,25 @@ test('tile protocol raster templates are unwrapped before style resolution', () 
   }
 });
 
+test('OpenStreetMap subdomain raster templates receive OSM attribution', () => {
+  const osmSubdomainTileUrl =
+    'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png';
+  const style = resolveMapStyle(
+    `tile://${osmSubdomainTileUrl}`,
+    'default-style.json',
+  );
+
+  expect(typeof style).toBe('object');
+  if (typeof style !== 'string') {
+    expect(style.sources['osm-raster-tiles'].tiles).toEqual([
+      osmSubdomainTileUrl,
+    ]);
+    expect(style.sources['osm-raster-tiles'].attribution).toBe(
+      OSM_TILE_ATTRIBUTION,
+    );
+  }
+});
+
 test('custom raster tile templates do not receive OSM attribution', () => {
   const customTileUrl = 'https://tiles.example.com/{z}/{x}/{y}.png';
   const style = resolveMapStyle(
@@ -210,6 +229,21 @@ test('custom raster tile templates do not receive OSM attribution', () => {
   expect(typeof style).toBe('object');
   if (typeof style !== 'string') {
     expect(style.sources['osm-raster-tiles'].tiles).toEqual([customTileUrl]);
+    expect(style.sources['osm-raster-tiles']).not.toHaveProperty('attribution');
+  }
+});
+
+test('lookalike OpenStreetMap hostnames do not receive OSM attribution', () => {
+  const lookalikeTileUrl =
+    'https://openstreetmap.org.example.com/{z}/{x}/{y}.png';
+  const style = resolveMapStyle(
+    `tile://${lookalikeTileUrl}`,
+    'default-style.json',
+  );
+
+  expect(typeof style).toBe('object');
+  if (typeof style !== 'string') {
+    expect(style.sources['osm-raster-tiles'].tiles).toEqual([lookalikeTileUrl]);
     expect(style.sources['osm-raster-tiles']).not.toHaveProperty('attribution');
   }
 });

@@ -199,10 +199,23 @@ export function isRasterTileTemplate(value: unknown): value is string {
   );
 }
 
+function isOpenStreetMapTileUrl(value: string): boolean {
+  try {
+    const hostname = new URL(value).hostname.toLowerCase();
+    return (
+      hostname === 'openstreetmap.org' ||
+      hostname.endsWith('.openstreetmap.org')
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function buildRasterTileMapStyle(value: string): RasterTileMapStyle {
   const tileUrl = unwrapTileProtocol(value);
-  const attribution =
-    tileUrl === OSM_TILE_STYLE_URL ? { attribution: OSM_TILE_ATTRIBUTION } : {};
+  const attribution = isOpenStreetMapTileUrl(tileUrl)
+    ? { attribution: OSM_TILE_ATTRIBUTION }
+    : {};
 
   return {
     version: 8,
