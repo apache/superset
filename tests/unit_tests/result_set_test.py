@@ -27,6 +27,7 @@ from pytest_mock import MockerFixture
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.result_set import stringify_values, SupersetResultSet
 from superset.superset_typing import DbapiResult
+from superset.utils import json as superset_json
 
 
 def test_column_names_as_bytes() -> None:
@@ -167,6 +168,26 @@ def test_timezone_series(mocker: MockerFixture) -> None:
     logger.exception.assert_not_called()
 
 
+def test_out_of_bounds_datetime_coerced_to_nat(mocker: MockerFixture) -> None:
+    """
+    Dates beyond ~2262-04-11 overflow pandas' int64 nanosecond representation.
+    SupersetResultSet must coerce them to NaT rather than raising OutOfBoundsDatetime
+    and logging an ERROR (which would surface as noise in observability tooling).
+    """
+    logger = mocker.patch("superset.result_set.logger")
+
+    data = [[datetime(3118, 1, 1, tzinfo=timezone.utc)]]
+    description = [(b"dt", "datetime", None, None, None, None, False)]
+    result_set = SupersetResultSet(
+        data,
+        description,  # type: ignore
+        BaseEngineSpec,
+    )
+    df = result_set.to_pandas_df()
+    assert pd.isna(df["dt"].iloc[0])
+    logger.exception.assert_not_called()
+
+
 def test_get_column_description_from_empty_data_using_cursor_description(
     mocker: MockerFixture,
 ) -> None:
@@ -244,3 +265,123 @@ def test_empty_column_names_do_not_rename_explicit_synthetic_names() -> None:
     df = result_set.to_pandas_df()
     assert list(df.columns) == ["_col_1", "_col_0"]
     assert df.iloc[0].tolist() == [10, 20]
+
+
+def test_json_data_type_preserved_as_objects() -> None:
+    """
+    Test that JSON/JSONB data is preserved as Python objects (dicts/lists)
+    instead of being converted to strings.
+
+    This is important for Handlebars templates and other features that need
+    to access JSON data as objects rather than strings.
+
+    See: https://github.com/apache/superset/issues/25125
+    """
+    # Simulate data from PostgreSQL JSONB column - psycopg2 returns dicts
+    data = [
+        (1, {"key": "value1", "nested": {"a": 1}}, "text1"),
+        (2, {"key": "value2", "items": [1, 2, 3]}, "text2"),
+        (3, None, "text3"),
+        (4, {"mixed": "string"}, "text4"),
+    ]
+    description = [
+        ("id", 23, None, None, None, None, None),  # INT
+        ("json_col", 3802, None, None, None, None, None),  # JSONB
+        ("text_col", 1043, None, None, None, None, None),  # VARCHAR
+    ]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+    df = result_set.to_pandas_df()
+
+    # JSON column should be preserved as Python objects, not strings
+    assert df["json_col"].iloc[0] == {"key": "value1", "nested": {"a": 1}}
+    assert isinstance(df["json_col"].iloc[0], dict)
+    assert df["json_col"].iloc[1] == {"key": "value2", "items": [1, 2, 3]}
+    assert df["json_col"].iloc[2] is None
+    assert df["json_col"].iloc[3] == {"mixed": "string"}
+
+    # Plain TEXT/VARCHAR columns must be left untouched as strings, even when
+    # adjacent to a JSON column.
+    assert df["text_col"].iloc[0] == "text1"
+    assert df["text_col"].iloc[3] == "text4"
+
+    # Verify the data can be serialized to JSON (as it would be for API response)
+    records = df.to_dict(orient="records")
+    json_output = superset_json.dumps(records)
+    parsed = superset_json.loads(json_output)
+    assert parsed[0]["json_col"]["key"] == "value1"
+    assert parsed[0]["json_col"]["nested"]["a"] == 1
+    assert parsed[1]["json_col"]["items"] == [1, 2, 3]
+
+
+def test_json_formatted_string_in_text_column_stays_string() -> None:
+    """
+    A plain TEXT/VARCHAR column whose values happen to be JSON-formatted strings
+    must be left unchanged as strings. There is no content-sniffing: only columns
+    that the driver returns as actual nested Python objects (dicts/lists) are
+    preserved as objects.
+
+    See: https://github.com/apache/superset/issues/25125
+    """
+    data = [
+        (1, '{"key": "val"}'),
+        (2, "[1, 2, 3]"),
+        (3, "not json at all"),
+    ]
+    description = [
+        ("id", 23, None, None, None, None, None),  # INT
+        ("text_col", 1043, None, None, None, None, None),  # VARCHAR
+    ]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+    df = result_set.to_pandas_df()
+
+    # Values stay as raw strings, never parsed into dict/list.
+    assert df["text_col"].iloc[0] == '{"key": "val"}'
+    assert isinstance(df["text_col"].iloc[0], str)
+    assert df["text_col"].iloc[1] == "[1, 2, 3]"
+    assert isinstance(df["text_col"].iloc[1], str)
+    assert df["text_col"].iloc[2] == "not json at all"
+
+
+def test_json_data_with_homogeneous_structure() -> None:
+    """
+    Test that JSON data with consistent structure is also preserved as objects.
+    """
+    # All rows have the same JSON structure
+    data = [
+        (1, {"name": "Alice", "age": 30}),
+        (2, {"name": "Bob", "age": 25}),
+        (3, {"name": "Charlie", "age": 35}),
+    ]
+    description = [
+        ("id", 23, None, None, None, None, None),
+        ("data", 3802, None, None, None, None, None),
+    ]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+    df = result_set.to_pandas_df()
+
+    # Should be preserved as dicts
+    assert isinstance(df["data"].iloc[0], dict)
+    assert df["data"].iloc[0]["name"] == "Alice"
+    assert df["data"].iloc[1]["age"] == 25
+
+
+def test_array_data_type_preserved() -> None:
+    """
+    Test that array data is also preserved as Python lists.
+    """
+    data = [
+        (1, [1, 2, 3]),
+        (2, [4, 5, 6]),
+        (3, None),
+    ]
+    description = [
+        ("id", 23, None, None, None, None, None),
+        ("arr", 1007, None, None, None, None, None),  # INT ARRAY
+    ]
+    result_set = SupersetResultSet(data, description, BaseEngineSpec)  # type: ignore
+    df = result_set.to_pandas_df()
+
+    # Arrays should be preserved as lists
+    assert df["arr"].iloc[0] == [1, 2, 3]
+    assert isinstance(df["arr"].iloc[0], list)
+    assert df["arr"].iloc[2] is None

@@ -18,6 +18,7 @@
  */
 import * as http from 'http';
 import * as net from 'net';
+import { inspect } from 'util';
 import WebSocket, { WebSocketServer } from 'ws';
 import { randomUUID } from 'crypto';
 import jwt, { Algorithm } from 'jsonwebtoken';
@@ -44,7 +45,7 @@ export type SupersetError<ExtraType = Record<string, any> | null> = {
   message: string;
 };
 
-type ListenerFunction = (results: StreamResult[]) => void;
+type ListenerFunction = (results: StreamResult[]) => void | Promise<void>;
 interface EventValue {
   id: string;
   channel_id: string;
@@ -96,15 +97,15 @@ export const statsd = new StatsD({
 
 // enforce JWT secret length
 if (startServer && opts.jwtSecret.length < 32) {
-  console.error('ERROR: Please provide a JWT secret at least 32 bytes long');
+  logger.error('Please provide a JWT secret at least 32 bytes long');
   process.exit(1);
 }
 
 if (startServer && opts.jwtSecret.startsWith('CHANGE-ME')) {
-  console.warn(
-    'WARNING: it appears your secret in your config.json is insecure',
+  logger.warn(
+    'It appears your secret in your config.json is insecure. ' +
+      'DO NOT USE IN PRODUCTION',
   );
-  console.warn('DO NOT USE IN PRODUCTION');
 }
 
 export const buildRedisOpts = (baseConfig: RedisConfig) => {
@@ -140,6 +141,9 @@ export const buildRedisOpts = (baseConfig: RedisConfig) => {
 
 // initialize servers
 const redis = new Redis(buildRedisOpts(opts.redis));
+redis.on('error', (err: Error) => {
+  logger.error(`Redis connection error: ${err.message}`);
+});
 const httpServer = http.createServer();
 export const wss = new WebSocketServer({
   noServer: true,
@@ -194,6 +198,28 @@ export const sendToChannel = (channel: string, value: EventValue): void => {
   channels[channel].sockets.forEach(socketId => {
     const socketInstance: SocketInstance = sockets[socketId];
     if (!socketInstance) return cleanChannel(channel);
+    // Backpressure: if a slow or stalled client has let its outbound buffer
+    // grow past the configured cap, terminate it rather than buffering
+    // unbounded data in server memory. Opt-in: a cap of 0 disables the check.
+    const { maxSocketBufferBytes } = opts;
+    if (
+      maxSocketBufferBytes > 0 &&
+      socketInstance.ws.bufferedAmount > maxSocketBufferBytes
+    ) {
+      statsd.increment('ws_client_backpressure_disconnect');
+      logger.warn(
+        `Terminating socket on channel ${channel}: send buffer ` +
+          `(${socketInstance.ws.bufferedAmount} bytes) exceeded the ` +
+          `configured limit (${maxSocketBufferBytes} bytes)`,
+      );
+      socketInstance.ws.terminate();
+      // Drop the terminated socket from the global registry immediately
+      // rather than waiting for the next checkSockets sweep, so a burst of
+      // slow clients doesn't leave dead entries resident between pings.
+      delete sockets[socketId];
+      cleanChannel(channel);
+      return;
+    }
     try {
       socketInstance.ws.send(strData);
     } catch (err) {
@@ -219,7 +245,7 @@ export const fetchRangeFromStream = async ({
   try {
     const reply = await redis.xrange(streamName, startId, endId);
     if (!reply || !reply.length) return;
-    listener(reply as StreamResult[]);
+    await listener(reply as StreamResult[]);
   } catch (e) {
     logger.error(e);
   }
@@ -254,7 +280,11 @@ export const subscribeToGlobalStream = async (
       if (!results.length) {
         continue;
       }
-      listener(results as StreamResult[]);
+      // Await the listener before advancing so that batches are processed
+      // sequentially. processStreamResults yields to the event loop mid-batch
+      // for large bursts; without awaiting here a subsequent xread could start
+      // a concurrent batch and interleave out-of-order sends to clients.
+      await listener(results as StreamResult[]);
       setLastFirehoseId(results[length - 1][0]);
     } catch (e) {
       logger.error(e);
@@ -264,19 +294,33 @@ export const subscribeToGlobalStream = async (
 };
 
 /**
- * Callback function to process events received from a Redis Stream
+ * Callback function to process events received from a Redis Stream.
+ *
+ * For large batches the loop periodically yields to the Node.js event loop
+ * (via setImmediate) so that connection management, health checks and
+ * ping/pong handling are not starved while a burst of events is processed.
+ * The yield cadence is controlled by `eventYieldBatchSize` (0 disables it).
  */
-export const processStreamResults = (results: StreamResult[]): void => {
-  logger.debug(`events received: ${results}`);
-  results.forEach(item => {
+export const processStreamResults = async (
+  results: StreamResult[],
+): Promise<void> => {
+  // Log only the batch size, not the raw payloads, which carry user and
+  // job identifiers.
+  logger.debug(`events received: count=${results.length}`);
+  const { eventYieldBatchSize } = opts;
+  for (let i = 0; i < results.length; i += 1) {
+    if (eventYieldBatchSize > 0 && i > 0 && i % eventYieldBatchSize === 0) {
+      await new Promise(resolve => setImmediate(resolve));
+    }
     try {
+      const item = results[i];
       const id = item[0];
       const data = JSON.parse(item[1][1]);
       sendToChannel(data.channel_id, { id, ...data });
     } catch (err) {
       logger.error(err);
     }
-  });
+  }
 };
 
 /**
@@ -300,13 +344,24 @@ const readChannelId = (request: http.IncomingMessage): string => {
   return channelId;
 };
 
+// Redis stream IDs have the form '<millisecondsTime>-<sequenceNumber>',
+// e.g. '1607477697866-0'.
+const REDIS_STREAM_ID_REGEX = /^\d{1,15}-\d{1,10}$/;
+
 /**
- * Extracts the `last_id` query param value from an HTTP request
+ * Extracts the `last_id` query param value from an HTTP request, returning it
+ * only when it is a well-formed Redis stream ID. Malformed values are ignored
+ * (returns null) rather than being passed through to incrementId / Redis.
  */
-const getLastId = (request: http.IncomingMessage): string | null => {
+export const getLastId = (request: http.IncomingMessage): string | null => {
   const url = new URL(String(request.url), 'http://0.0.0.0');
-  const queryParams = url.searchParams;
-  return queryParams.get('last_id');
+  const lastId = url.searchParams.get('last_id');
+  if (lastId === null) return null;
+  if (!REDIS_STREAM_ID_REGEX.test(lastId)) {
+    logger.warn(`Ignoring malformed last_id query param: ${lastId}`);
+    return null;
+  }
+  return lastId;
 };
 
 /**
@@ -379,6 +434,33 @@ export const httpRequest = (
 };
 
 /**
+ * Validates the `Origin` header of a WebSocket upgrade request against the
+ * configured `allowedOrigins` list, mitigating Cross-Site WebSocket Hijacking.
+ *
+ * When `allowedOrigins` is empty the check is skipped (preserving existing
+ * behavior); a single `'*'` entry explicitly allows any origin. Otherwise the
+ * request's `Origin` must exactly match one of the configured origins.
+ */
+export const isOriginAllowed = (request: http.IncomingMessage): boolean => {
+  const { allowedOrigins } = opts;
+
+  if (!allowedOrigins || allowedOrigins.length === 0) {
+    return true;
+  }
+  if (allowedOrigins.includes('*')) {
+    return true;
+  }
+
+  // `origin` is typed as `string | string[] | undefined`; only a single,
+  // unambiguous string header is acceptable for an exact-match comparison.
+  const origin = request.headers.origin;
+  if (typeof origin !== 'string') {
+    return false;
+  }
+  return allowedOrigins.includes(origin);
+};
+
+/**
  * HTTP `upgrade` event handler, called via httpServer
  */
 export const httpUpgrade = (
@@ -386,11 +468,27 @@ export const httpUpgrade = (
   socket: net.Socket,
   head: Buffer,
 ) => {
+  if (!isOriginAllowed(request)) {
+    logger.error(
+      `Rejecting WebSocket upgrade from disallowed origin: ${
+        request.headers.origin || '(none)'
+      }`,
+    );
+    socket.destroy();
+    return;
+  }
+
   try {
     readChannelId(request);
   } catch (err) {
-    // JWT invalid, do not establish a WebSocket connection
-    logger.error(err);
+    // Token invalid/absent: do not establish a WebSocket connection. Record a
+    // structured warning (with the request's remote address) so rejected
+    // upgrade attempts are auditable, without logging the token itself.
+    statsd.increment('ws_upgrade_rejected');
+    logger.warn(
+      `Rejected WebSocket upgrade from ${request.socket.remoteAddress ?? 'unknown'}: ` +
+        `${(err as Error).message}`,
+    );
     socket.destroy();
     return;
   }
@@ -465,9 +563,28 @@ export const cleanChannel = (channel: string) => {
 // server startup
 
 if (startServer) {
+  // Last-resort handlers so an unhandled async error is recorded through the
+  // configured logger instead of printing a default trace (or, for an
+  // unhandled rejection, terminating the process on newer Node versions).
+  process.on('unhandledRejection', (reason: unknown) => {
+    // Normalize the reason defensively: a raw template interpolation throws on
+    // a Symbol (or other exotic value), which would crash this last-resort
+    // handler. `inspect` safely stringifies any value.
+    logger.error(`Unhandled promise rejection: ${inspect(reason)}`);
+  });
+  process.on('uncaughtException', (err: unknown) => {
+    // JavaScript can throw non-Error values (including null), so guard the
+    // shape before dereferencing instead of assuming an Error is present.
+    const detail =
+      err instanceof Error ? (err.stack ?? err.message) : inspect(err);
+    logger.error(`Uncaught exception: ${detail}`);
+  });
+
   // init server event listeners
   wss.on('connection', function (ws: WebSocket) {
-    ws.on('error', console.error);
+    ws.on('error', (err: Error) =>
+      logger.error(`socket error: ${err.message}`),
+    );
   });
   wss.on('connection', wsConnection);
   httpServer.on('request', httpRequest);

@@ -1286,3 +1286,61 @@ class TestUpdateChartValidationGate:
             error = result.structured_content["error"]
             assert error["error_code"] == "CHART_VALIDATION_FAILED"
             mock_update_cmd_cls.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Custom SQL metrics (sql_expression) — Ticket #3, update_chart side.
+# ---------------------------------------------------------------------------
+
+
+class TestUpdateChartSqlMetric:
+    """update_chart accepts a sql_expression on y[*] metrics."""
+
+    def test_update_chart_request_via_dict_accepts_sql_metric(self) -> None:
+        sql_expr = (
+            "COUNT(CASE WHEN closed_won THEN 1 END)::numeric / NULLIF(COUNT(*),0)"
+        )
+        request = UpdateChartRequest.model_validate(
+            {
+                "identifier": 42,
+                "generate_preview": False,
+                "config": {
+                    "chart_type": "xy",
+                    "x": {"name": "ds"},
+                    "y": [{"sql_expression": sql_expr, "label": "Win Rate"}],
+                    "kind": "line",
+                },
+            }
+        )
+        assert request.config.y[0].sql_expression == sql_expr
+        assert request.config.y[0].label == "Win Rate"
+        assert request.config.y[0].name is None
+
+    def test_response_form_data_wraps_sql_metric_strings(self) -> None:
+        # Regression: previously update_chart's response top-level form_data
+        # shipped LLM-controlled sqlExpression/label completely unwrapped.
+        from superset.mcp_service.chart.tool.update_chart import (
+            _wrapped_form_data_for_response,
+        )
+
+        wrapped = _wrapped_form_data_for_response(
+            {
+                "viz_type": "echarts_timeseries_line",
+                "metrics": [
+                    {
+                        "expressionType": "SQL",
+                        "sqlExpression": "COUNT(*)",
+                        "label": "Win Rate",
+                        "aggregate": None,
+                        "column": None,
+                        "optionName": "metric_sql_abcd1234",
+                        "hasCustomLabel": True,
+                        "datasourceWarning": False,
+                    }
+                ],
+            }
+        )
+        m = wrapped["metrics"][0]
+        assert "<UNTRUSTED-CONTENT>" in m["sqlExpression"]
+        assert "<UNTRUSTED-CONTENT>" in m["label"]
+        assert "<UNTRUSTED-CONTENT>" not in m["optionName"]
