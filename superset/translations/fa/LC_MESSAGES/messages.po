@@ -206,9 +206,9 @@ msgstr "%(dialect)s به دلایل امنیتی نمی‌تواند به عنو
 msgid "%(label)s file"
 msgstr "فایل %(type)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%(name)s.%(extension)s"
-msgstr "ابعاد"
+msgstr ""
 
 #, python-format
 msgid "%(name)s.csv"
@@ -936,9 +936,8 @@ msgstr "در حین ساخت csv، یک تایم اوت رخ داد."
 msgid "A timeout occurred while generating a dataframe."
 msgstr "در حین تولید یک دیتافریم، یک تایم اوت رخ داد."
 
-#, fuzzy
 msgid "A timeout occurred while generating an xlsx."
-msgstr "در حین ساخت csv، یک تایم اوت رخ داد."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "در حین گرفتن یک اسکرین‌شات یک تایم اوت رخ داد."
@@ -6320,9 +6319,8 @@ msgstr "مثال"
 msgid "Examples"
 msgstr "نمونه‌ها"
 
-#, fuzzy
 msgid "Excel (XLSX) attached in email"
-msgstr "فرمت‌شده CSV در ایمیل پیوست شده است"
+msgstr ""
 
 #, fuzzy
 msgid "Excel Export"
@@ -10908,9 +10906,8 @@ msgstr "اجرای زمانبندی گزارش هنگام تولید یک فای
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr "اجرای زمانبندی گزارش هنگام تولید اسکرین شات با خطا مواجه شد."
 
-#, fuzzy
 msgid "Report Schedule execution failed when generating an xlsx."
-msgstr "اجرای زمانبندی گزارش هنگام تولید یک فایل csv با شکست مواجه شد."
+msgstr ""
 
 msgid "Report Schedule execution got an unexpected error."
 msgstr "اجرای زمانبندی گزارش با خطای غیرمنتظره‌ای مواجه شد."
@@ -12229,9 +12226,8 @@ msgstr ""
 msgid "Send as CSV"
 msgstr "به‌عنوان CSV ارسال کنید"
 
-#, fuzzy
 msgid "Send as Excel"
-msgstr "متن را ارسال کنید"
+msgstr ""
 
 msgid "Send as PDF"
 msgstr "به صورت PDF ارسال کنید"

@@ -235,9 +235,9 @@ msgstr ""
 msgid "%(label)s file"
 msgstr "archivo %(label)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%(name)s.%(extension)s"
-msgstr "Dimensiones"
+msgstr ""
 
 #, python-format
 msgid "%(name)s.csv"
@@ -973,9 +973,8 @@ msgstr "Se ha agotado el tiempo de espera al generar un CSV."
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Se ha agotado el tiempo de espera al generar un marco de datos."
 
-#, fuzzy
 msgid "A timeout occurred while generating an xlsx."
-msgstr "Se ha agotado el tiempo de espera al generar un CSV."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Se ha agotado el tiempo de espera al hacer una captura de pantalla."
@@ -6592,9 +6591,8 @@ msgstr "Ejemplo"
 msgid "Examples"
 msgstr "Ejemplos"
 
-#, fuzzy
 msgid "Excel (XLSX) attached in email"
-msgstr "CSV formateado adjunto en el correo electrónico"
+msgstr ""
 
 #, fuzzy
 msgid "Excel Export"
@@ -11340,11 +11338,8 @@ msgstr ""
 "Se ha producido un error en la ejecución de la programación de informes "
 "al generar una captura de pantalla."
 
-#, fuzzy
 msgid "Report Schedule execution failed when generating an xlsx."
 msgstr ""
-"Se ha producido un error en la ejecución de la programación de informes "
-"al generar un CSV."
 
 msgid "Report Schedule execution got an unexpected error."
 msgstr ""
@@ -12720,9 +12715,8 @@ msgstr ""
 msgid "Send as CSV"
 msgstr "Enviar como CSV"
 
-#, fuzzy
 msgid "Send as Excel"
-msgstr "Enviar como texto"
+msgstr ""
 
 msgid "Send as PDF"
 msgstr "Enviar como PDF"
