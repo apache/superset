@@ -165,6 +165,22 @@ describe('DashboardBuilder', () => {
     expect(header).toBeInTheDocument();
   });
 
+  test('should hide DashboardHeader when standalone mode hides nav and title (?standalone=2)', () => {
+    // React-level equivalent of the legacy `cy.get('#app-menu').should('not.exist')`
+    // Cypress assertion. The `#app-menu` node lives in Flask's spa.html template,
+    // gated by `{% if standalone_mode %}`, so RTL cannot reach it directly.
+    // `?standalone=2` maps to DashboardStandaloneMode.HideNavAndTitle, which the
+    // DashboardBuilder honours by suppressing the React-side DashboardHeader.
+    const originalSearch = window.location.search;
+    window.history.replaceState({}, '', '/?standalone=2');
+    try {
+      const { queryByTestId } = setup();
+      expect(queryByTestId('dashboard-header-container')).not.toBeInTheDocument();
+    } finally {
+      window.history.replaceState({}, '', `/${originalSearch}`);
+    }
+  });
+
   test('should render a Sticky top-level Tabs if the dashboard has tabs', async () => {
     const { findAllByTestId } = setup({
       dashboardLayout: undoableDashboardLayoutWithTabs,
