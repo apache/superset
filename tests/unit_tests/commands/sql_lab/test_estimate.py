@@ -191,3 +191,46 @@ def test_apply_sql_security_blocks_disallowed_table(mock_app: MagicMock) -> None
     command = _make_command_with_db("SELECT * FROM secrets", allow_dml=True)
     with pytest.raises(SupersetDisallowedSQLTableException):
         command._apply_sql_security("SELECT * FROM secrets")
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+def test_apply_sql_security_blocks_disallowed_function(mock_app: MagicMock) -> None:
+    """A disallowed function cannot be probed via cost estimation either."""
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": {"postgresql": {"PG_SLEEP"}},
+        "DISALLOWED_SQL_TABLES": {},
+    }
+    from superset.exceptions import SupersetDisallowedSQLFunctionException
+
+    command = _make_command_with_db("SELECT pg_sleep(1)", allow_dml=True)
+    with pytest.raises(SupersetDisallowedSQLFunctionException):
+        command._apply_sql_security("SELECT pg_sleep(1)")
+
+
+@patch("superset.commands.sql_lab.estimate.app")
+def test_apply_sql_security_allows_benign_select(mock_app: MagicMock) -> None:
+    """A benign statement passes through unchanged (no false positives)."""
+    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    command = _make_command_with_db("SELECT 1", allow_dml=False)
+    # No disallowed content, no mutation, RLS disabled -> returned unchanged.
+    assert command._apply_sql_security("SELECT 1") == "SELECT 1"
+
+
+@patch("superset.commands.sql_lab.estimate.apply_rls")
+@patch("superset.commands.sql_lab.estimate.is_feature_enabled", return_value=True)
+@patch("superset.commands.sql_lab.estimate.app")
+def test_apply_sql_security_injects_rls_when_enabled(
+    mock_app: MagicMock,
+    mock_is_feature_enabled: MagicMock,
+    mock_apply_rls: MagicMock,
+) -> None:
+    """With RLS_IN_SQLLAB enabled, RLS predicates are applied per statement so
+    the estimate reflects the constrained query the user could actually run."""
+    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    command = _make_command_with_db("SELECT * FROM t", allow_dml=False)
+
+    result = command._apply_sql_security("SELECT * FROM t")
+
+    mock_is_feature_enabled.assert_called_with("RLS_IN_SQLLAB")
+    mock_apply_rls.assert_called_once()
+    assert isinstance(result, str)
