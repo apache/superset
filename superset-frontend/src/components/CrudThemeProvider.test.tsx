@@ -338,9 +338,7 @@ test('skips the dashboard theme when an SDK theme config override is active', ()
     screen.queryByTestId('dashboard-theme-provider'),
   ).not.toBeInTheDocument();
   // The override fully owns theming, so dashboard fonts must not be injected.
-  expect(
-    document.querySelector('style[data-superset-fonts]'),
-  ).toBeNull();
+  expect(document.querySelector('style[data-superset-fonts]')).toBeNull();
 });
 
 test('applies the dashboard theme when no SDK theme config override is active', () => {
