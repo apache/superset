@@ -70,8 +70,9 @@ export type ReactifiedComponent<Props> = ForwardRefExoticComponent<
 >;
 
 // Return the widest public type that covers "use it as a React component" so
-// TypeScript consumers who previously relied on `ComponentClass<...>` still
-// compile. Callers that want the new ref-aware surface can narrow to
+// TypeScript JSX callers and `ComponentType<...>`-typed variables still compile;
+// callers with explicit `ComponentClass<...>` annotations must widen to
+// `ComponentType`. Those wanting the forwardRef surface can narrow to
 // `ReactifiedComponent<Props>` explicitly.
 export default function reactify<Props extends object>(
   renderFn: RenderFuncType<Props>,
