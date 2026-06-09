@@ -227,9 +227,9 @@ msgstr "%(dialect)s nelze z bezpečnostních důvodů použít jako zdroj dat."
 msgid "%(label)s file"
 msgstr "soubor %(label)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%(name)s.%(extension)s"
-msgstr "Rozšíření"
+msgstr "%(name)s.%(extension)s"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -969,9 +969,8 @@ msgstr "Při generování CSV došlo k vypršení časového limitu."
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Při generování datového rámce došlo k vypršení časového limitu."
 
-#, fuzzy
 msgid "A timeout occurred while generating an xlsx."
-msgstr "Při generování CSV došlo k vypršení časového limitu."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Při pořizování snímku obrazovky došlo k vypršení časového limitu."
@@ -6354,9 +6353,8 @@ msgstr "Příklad"
 msgid "Examples"
 msgstr "Příklady"
 
-#, fuzzy
 msgid "Excel (XLSX) attached in email"
-msgstr "Formátované CSV přiloženo v e-mailu"
+msgstr ""
 
 #, fuzzy
 msgid "Excel Export"
@@ -10917,9 +10915,8 @@ msgstr "Provedení plánu reportu selhalo při generování PDF."
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr "Provedení plánu reportu selhalo při generování snímku obrazovky."
 
-#, fuzzy
 msgid "Report Schedule execution failed when generating an xlsx."
-msgstr "Provedení plánu reportu selhalo při generování CSV."
+msgstr ""
 
 msgid "Report Schedule execution got an unexpected error."
 msgstr "Při provádění plánu reportu došlo k neočekávané chybě."
@@ -12241,9 +12238,8 @@ msgstr ""
 msgid "Send as CSV"
 msgstr "Odeslat jako CSV"
 
-#, fuzzy
 msgid "Send as Excel"
-msgstr "Odeslat jako text"
+msgstr ""
 
 msgid "Send as PDF"
 msgstr "Odeslat jako PDF"

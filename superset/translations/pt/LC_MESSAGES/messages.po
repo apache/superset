@@ -180,9 +180,9 @@ msgstr ""
 msgid "%(label)s file"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%(name)s.%(extension)s"
-msgstr "descrição"
+msgstr "%(name)s.%(extension)s"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -897,9 +897,8 @@ msgstr "Ocorreu um erro ao carregar os metadados da tabela"
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Ocorreu um erro ao criar a origem dos dados"
 
-#, fuzzy
 msgid "A timeout occurred while generating an xlsx."
-msgstr "Ocorreu um erro ao carregar os metadados da tabela"
+msgstr ""
 
 #, fuzzy
 msgid "A timeout occurred while taking a screenshot."

@@ -180,9 +180,9 @@ msgstr ""
 msgid "%(label)s file"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%(name)s.%(extension)s"
-msgstr "son kullanılanlar"
+msgstr "%(name)s.%(extension)s"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -849,9 +849,9 @@ msgstr ""
 msgid "A timeout occurred while generating a dataframe."
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "A timeout occurred while generating an xlsx."
-msgstr "Verisetini kaydederken bir hata oluştu"
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr ""

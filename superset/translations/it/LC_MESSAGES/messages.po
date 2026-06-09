@@ -182,9 +182,9 @@ msgstr ""
 msgid "%(label)s file"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%(name)s.%(extension)s"
-msgstr "descrizione"
+msgstr "%(name)s.%(extension)s"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -879,9 +879,8 @@ msgstr "Errore nel recupero dei metadati della tabella"
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Errore nel creare il datasource"
 
-#, fuzzy
 msgid "A timeout occurred while generating an xlsx."
-msgstr "Errore nel recupero dei metadati della tabella"
+msgstr ""
 
 #, fuzzy
 msgid "A timeout occurred while taking a screenshot."

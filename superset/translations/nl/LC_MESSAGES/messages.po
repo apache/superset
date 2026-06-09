@@ -198,9 +198,9 @@ msgstr ""
 msgid "%(label)s file"
 msgstr "%(prefix)s %(title)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%(name)s.%(extension)s"
-msgstr "Dimensies"
+msgstr "%(name)s.%(extension)s"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -923,9 +923,8 @@ msgstr "Er is een time-out opgetreden tijdens het genereren van een csv."
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Er is een time-out opgetreden tijdens het genereren van een dataframe."
 
-#, fuzzy
 msgid "A timeout occurred while generating an xlsx."
-msgstr "Er is een time-out opgetreden tijdens het genereren van een csv."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Er is een time-out opgetreden tijdens het maken van een screenshot."
@@ -6424,9 +6423,8 @@ msgstr "Voorbeeld"
 msgid "Examples"
 msgstr "Voorbeelden"
 
-#, fuzzy
 msgid "Excel (XLSX) attached in email"
-msgstr "Opgemaakte CSV gekoppeld aan e-mail"
+msgstr ""
 
 #, fuzzy
 msgid "Excel Export"
@@ -11060,9 +11058,8 @@ msgstr ""
 "Rapportage planning uitvoering mislukt bij het genereren van een "
 "screenshot."
 
-#, fuzzy
 msgid "Report Schedule execution failed when generating an xlsx."
-msgstr "Rapportage planning mislukt bij het genereren van een csv."
+msgstr ""
 
 msgid "Report Schedule execution got an unexpected error."
 msgstr "Rapportage planning uitvoering kreeg een onverwachte fout."
@@ -12408,9 +12405,8 @@ msgstr ""
 msgid "Send as CSV"
 msgstr "Verstuur als CSV"
 
-#, fuzzy
 msgid "Send as Excel"
-msgstr "Verstuur als tekst"
+msgstr ""
 
 #, fuzzy
 msgid "Send as PDF"

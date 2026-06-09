@@ -231,9 +231,9 @@ msgstr "%(dialect)s no es pot usar com a font de dades per raons de seguretat."
 msgid "%(label)s file"
 msgstr "fitxer %(label)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%(name)s.%(extension)s"
-msgstr "Dimensions"
+msgstr "%(name)s.%(extension)s"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -959,9 +959,8 @@ msgstr "S'ha produït un timeout mentre es generava un csv."
 msgid "A timeout occurred while generating a dataframe."
 msgstr "S'ha produït un timeout mentre es generava un dataframe."
 
-#, fuzzy
 msgid "A timeout occurred while generating an xlsx."
-msgstr "S'ha produït un timeout mentre es generava un csv."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "S'ha produït un timeout mentre es prenia una captura de pantalla."
@@ -6364,9 +6363,8 @@ msgstr "Exemple"
 msgid "Examples"
 msgstr "Exemples"
 
-#, fuzzy
 msgid "Excel (XLSX) attached in email"
-msgstr "CSV formatat adjunt al correu electrònic"
+msgstr ""
 
 #, fuzzy
 msgid "Excel Export"
@@ -10947,9 +10945,8 @@ msgstr ""
 "L'execució de la Programació d'Informe ha fallat en generar una captura "
 "de pantalla."
 
-#, fuzzy
 msgid "Report Schedule execution failed when generating an xlsx."
-msgstr "L'execució de la Programació d'Informe ha fallat en generar un csv."
+msgstr ""
 
 msgid "Report Schedule execution got an unexpected error."
 msgstr "L'execució de la Programació d'Informe ha obtingut un error inesperat."
@@ -12274,9 +12271,8 @@ msgstr ""
 msgid "Send as CSV"
 msgstr "Enviar com CSV"
 
-#, fuzzy
 msgid "Send as Excel"
-msgstr "Enviar com text"
+msgstr ""
 
 msgid "Send as PDF"
 msgstr "Enviar com PDF"

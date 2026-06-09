@@ -222,9 +222,9 @@ msgstr ""
 msgid "%(label)s file"
 msgstr "kōnae %(label)s"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%(name)s.%(extension)s"
-msgstr "Āhuahanga"
+msgstr "%(name)s.%(extension)s"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -931,9 +931,8 @@ msgstr "I puta he wā-pau i te hangarautanga o tētahi csv."
 msgid "A timeout occurred while generating a dataframe."
 msgstr "I puta he wā-pau i te hangarautanga o tētahi dataframe."
 
-#, fuzzy
 msgid "A timeout occurred while generating an xlsx."
-msgstr "I puta he wā-pau i te hangarautanga o tētahi csv."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "I puta he wā-pau i te tangohanga o tētahi hopuataata."
@@ -6291,9 +6290,8 @@ msgstr "Tauira"
 msgid "Examples"
 msgstr "Tauira"
 
-#, fuzzy
 msgid "Excel (XLSX) attached in email"
-msgstr "CSV kua hōputuhia kua tāpiritia ki te īmēra"
+msgstr ""
 
 #, fuzzy
 msgid "Excel Export"
@@ -10869,11 +10867,8 @@ msgstr ""
 "I rahua te whakatutukitanga o te Hōtaka Pūrongo i te hangarautanga o "
 "tētahi hopuataata."
 
-#, fuzzy
 msgid "Report Schedule execution failed when generating an xlsx."
 msgstr ""
-"I rahua te whakatutukitanga o te Hōtaka Pūrongo i te hangarautanga o "
-"tētahi csv."
 
 msgid "Report Schedule execution got an unexpected error."
 msgstr "I puta tētahi hapa ohorere i te whakatutukitanga o te Hōtaka Pūrongo."
@@ -12191,9 +12186,8 @@ msgstr ""
 msgid "Send as CSV"
 msgstr "Tuku hei CSV"
 
-#, fuzzy
 msgid "Send as Excel"
-msgstr "Tuku hei kupu"
+msgstr ""
 
 msgid "Send as PDF"
 msgstr "Tuku hei PDF"

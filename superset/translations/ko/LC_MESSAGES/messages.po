@@ -874,9 +874,8 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid "A timeout occurred while generating a dataframe."
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
 
-#, fuzzy
 msgid "A timeout occurred while generating an xlsx."
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr ""

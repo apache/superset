@@ -233,9 +233,9 @@ msgstr "%(dialect)s nevar izmantot kā datu avotu drošības apsvērumu dēļ."
 msgid "%(label)s file"
 msgstr "%(label)s fails"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%(name)s.%(extension)s"
-msgstr "Papildinājumi"
+msgstr "%(name)s.%(extension)s"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -969,9 +969,8 @@ msgstr "Ģenerējot CSV, iestājās noildze."
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Ģenerējot datu rāmi, iestājās noildze."
 
-#, fuzzy
 msgid "A timeout occurred while generating an xlsx."
-msgstr "Ģenerējot CSV, iestājās noildze."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Uzņemot ekrānuzņēmumu, iestājās noildze."
@@ -6227,9 +6226,8 @@ msgstr "Piemērs"
 msgid "Examples"
 msgstr "Piemēri"
 
-#, fuzzy
 msgid "Excel (XLSX) attached in email"
-msgstr "Formatēts CSV pievienots e-pastā"
+msgstr ""
 
 msgid "Excel Export"
 msgstr "Excel eksports"
@@ -10678,9 +10676,8 @@ msgstr "Atskaites grafika izpilde neizdevās, ģenerējot PDF."
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr "Atskaites grafika izpilde neizdevās, ģenerējot ekrānuzņēmumu."
 
-#, fuzzy
 msgid "Report Schedule execution failed when generating an xlsx."
-msgstr "Atskaites grafika izpilde neizdevās, ģenerējot CSV."
+msgstr ""
 
 msgid "Report Schedule execution got an unexpected error."
 msgstr "Atskaites grafika izpildē radās neparedzēta kļūda."
@@ -11974,9 +11971,8 @@ msgstr ""
 msgid "Send as CSV"
 msgstr "Sūtīt kā CSV"
 
-#, fuzzy
 msgid "Send as Excel"
-msgstr "Sūtīt kā tekstu"
+msgstr ""
 
 msgid "Send as PDF"
 msgstr "Sūtīt kā PDF"

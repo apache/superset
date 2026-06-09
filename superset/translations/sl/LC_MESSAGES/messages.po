@@ -220,9 +220,9 @@ msgstr ""
 msgid "%(label)s file"
 msgstr "%(type)s datoteka"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%(name)s.%(extension)s"
-msgstr "Dimenzije"
+msgstr "%(name)s.%(extension)s"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -980,9 +980,8 @@ msgstr "Pri ustvarjanju csv je potekel čas."
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Pri ustvarjanju podatkovnega okvira je potekel čas."
 
-#, fuzzy
 msgid "A timeout occurred while generating an xlsx."
-msgstr "Pri ustvarjanju csv je potekel čas."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Pri ustvarjanju zaslonske slike je potekel čas."
@@ -6386,9 +6385,8 @@ msgstr "Primer"
 msgid "Examples"
 msgstr "Vzorci"
 
-#, fuzzy
 msgid "Excel (XLSX) attached in email"
-msgstr "Oblikovan CSV pripet e-pošti"
+msgstr ""
 
 #, fuzzy
 msgid "Excel Export"
@@ -10979,9 +10977,8 @@ msgstr ""
 "Izvajanje urnika poročanja je bilo neuspešno pri ustvarjanju zaslonske "
 "slike."
 
-#, fuzzy
 msgid "Report Schedule execution failed when generating an xlsx."
-msgstr "Izvajanje urnika poročanja je bilo neuspešno pri ustvarjanju csv."
+msgstr ""
 
 msgid "Report Schedule execution got an unexpected error."
 msgstr "Pri izvajanju urnika poročanja je prišlo do nepričakovane napake."
@@ -12297,9 +12294,8 @@ msgstr ""
 msgid "Send as CSV"
 msgstr "Pošlji kot CSV"
 
-#, fuzzy
 msgid "Send as Excel"
-msgstr "Pošlji kot besedilo"
+msgstr ""
 
 msgid "Send as PDF"
 msgstr "Pošlji kot PDF"
