@@ -57,6 +57,9 @@ def test_execute_query(mocker: MockerFixture, app: None) -> None:
     cursor = mocker.MagicMock()
     SupersetResultSet = mocker.patch("superset.sql_lab.SupersetResultSet")  # noqa: N806
 
+    # Mock db.session.refresh to avoid AttributeError during session refresh
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+
     execute_query(query, cursor=cursor, log_params={})
 
     db_engine_spec.execute_with_cursor.assert_called_with(
