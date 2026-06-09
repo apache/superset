@@ -568,11 +568,24 @@ class BaseReportState:
         return csv_data
 
     def _get_xlsx_data(self) -> bytes:
+        start_time = datetime.utcnow()
         try:
             xlsx_data = self._get_chart_data(ChartDataResultFormat.XLSX)
         except SoftTimeLimitExceeded as ex:
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.warning(
+                "XLSX generation timeout after %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
             raise ReportScheduleXlsxTimeout() from ex
         except Exception as ex:
+            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+            logger.exception(
+                "XLSX generation failed after %.2fs - execution_id: %s",
+                elapsed_seconds,
+                self._execution_id,
+            )
             raise ReportScheduleXlsxFailedError(
                 f"Failed generating xlsx {str(ex)}"
             ) from ex
