@@ -37,7 +37,11 @@ from flask_compress import Compress
 from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET, CHANGE_ME_SECRET_KEY
+from superset.constants import (
+    CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
+    CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
+    CHANGE_ME_SECRET_KEY,
+)
 from superset.databases.utils import make_url_safe
 from superset.extensions import (
     _event_logger,
@@ -693,6 +697,32 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         sys.exit(1)
 
+    def check_async_query_secret(self) -> None:
+        """Refuse to start with the default async JWT secret when GAQ is enabled."""
+        if not feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            return
+        if (
+            self.config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET")
+            != CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
+        ):
+            return
+        self._log_config_warning(
+            "GLOBAL_ASYNC_QUERIES is enabled but GLOBAL_ASYNC_QUERIES_JWT_SECRET "
+            "has not been changed from its default value.\n"
+            "The default value is publicly known and must be replaced before "
+            "running in production.\n"
+            "Set a strong random value (at least 32 bytes) in superset_config.py:\n"
+            "  GLOBAL_ASYNC_QUERIES_JWT_SECRET = "
+            "'<output of: openssl rand -base64 42>'"
+        )
+        if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
+            return
+        logger.error(
+            "Refusing to start: insecure GLOBAL_ASYNC_QUERIES_JWT_SECRET "
+            "with GLOBAL_ASYNC_QUERIES enabled"
+        )
+        sys.exit(1)
+
     def configure_session(self) -> None:
         if self.config["SESSION_SERVER_SIDE"]:
             Session(self.superset_app)
@@ -778,6 +808,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # conditionally
         self.configure_feature_flags()
         self.check_guest_token_secret()
+        self.check_async_query_secret()
         self.configure_db_encrypt()
         self.setup_db()
 
@@ -1013,6 +1044,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_async_queries(self) -> None:
         if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            # In production, check_async_query_secret() already aborts startup when
+            # the default secret is present, so this branch is never reached with it.
+            # In debug/testing the check only warns, so skip async-query init here to
+            # avoid AsyncQueryManager.init_app() hard-failing on the too-short default
+            # secret and crashing startup despite the warn-only intent.
+            if (
+                self.config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET")
+                == CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
+            ):
+                return
             async_query_manager_factory.init_app(self.superset_app)
 
     def configure_task_manager(self) -> None:

@@ -17,7 +17,7 @@
  * under the License.
  */
 import { RefObject, useMemo } from 'react';
-import { useDrag } from 'react-dnd';
+import { useDraggable } from '@dnd-kit/core';
 import { useSelector } from 'react-redux';
 import { Metric } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
@@ -32,8 +32,8 @@ import { ExplorePageState } from 'src/explore/types';
 
 import { DatasourcePanelDndItem } from '../types';
 
-const DatasourceItemContainer = styled.div`
-  ${({ theme }) => css`
+const DatasourceItemContainer = styled.div<{ isDragging?: boolean }>`
+  ${({ theme, isDragging }) => css`
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -46,6 +46,8 @@ const DatasourceItemContainer = styled.div`
     color: ${theme.colorText};
     background-color: ${theme.colorBgLayout};
     border-radius: 4px;
+    cursor: ${isDragging ? 'grabbing' : 'grab'};
+    opacity: ${isDragging ? 0.5 : 1};
 
     &:hover {
       background-color: ${theme.colorPrimaryBgHover};
@@ -98,15 +100,26 @@ export default function DatasourcePanelDragOption(
     return true;
   }, [type, value, compatibleMetrics, compatibleDimensions]);
 
-  const [{ isDragging }, drag] = useDrag({
-    item: {
-      value: props.value,
-      type: props.type,
+  // Create a unique ID for this draggable item
+  const draggableId = useMemo(() => {
+    if (type === DndItemType.Column) {
+      const col = value as ColumnMeta;
+      return `datasource-${type}-${col.column_name || col.verbose_name}`;
+    }
+    const metric = value as MetricOption;
+    return `datasource-${type}-${metric.metric_name || metric.label}`;
+  }, [type, value]);
+
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: draggableId,
+    data: {
+      type,
+      value,
     },
-    canDrag: isCompatible,
-    collect: monitor => ({
-      isDragging: monitor.isDragging(),
-    }),
+    // @dnd-kit equivalent of react-dnd's `canDrag: isCompatible`. Disabling
+    // the draggable suppresses pointer activation entirely so incompatible
+    // items can't be picked up at all (matched in the visual style below).
+    disabled: !isCompatible,
   });
 
   const optionProps = {
@@ -118,10 +131,13 @@ export default function DatasourcePanelDragOption(
   return (
     <DatasourceItemContainer
       data-test="DatasourcePanelDragOption"
-      ref={drag}
+      ref={setNodeRef}
+      isDragging={isDragging}
+      {...attributes}
+      {...listeners}
       style={{
-        opacity: isCompatible ? 1 : 0.35,
-        cursor: isCompatible ? 'grab' : 'not-allowed',
+        opacity: isCompatible ? undefined : 0.35,
+        cursor: isCompatible ? undefined : 'not-allowed',
       }}
     >
       {type === DndItemType.Column ? (

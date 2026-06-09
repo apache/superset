@@ -471,6 +471,30 @@ def test_check_if_safe_zip_hidden_bomb(app_context: None) -> None:
         check_is_safe_zip(ZipFile)
 
 
+def test_check_if_safe_zip_total_size(app_context: None) -> None:
+    """Total decompressed size above the threshold is rejected even when each
+    individual entry is within the per-file limit and the ratio is low."""
+    hundred_mb = 100 * 1024 * 1024
+    ZipFile = MagicMock()  # noqa: N806
+    # 11 entries x 100MB = 1.1GB total (> 1GB cap); per-file == limit, ratio 1.
+    ZipFile.infolist.return_value = [
+        MockZipInfo(file_size=hundred_mb, compress_size=hundred_mb) for _ in range(11)
+    ]
+    with pytest.raises(SupersetException):
+        check_is_safe_zip(ZipFile)
+
+
+def test_check_if_safe_zip_zero_compress_size(app_context: None) -> None:
+    """A zero compressed size must not raise ZeroDivisionError."""
+    ZipFile = MagicMock()  # noqa: N806
+    ZipFile.infolist.return_value = [
+        MockZipInfo(file_size=0, compress_size=0),
+        MockZipInfo(file_size=1000, compress_size=0),
+    ]
+    # Must complete without raising (ZeroDivisionError previously).
+    check_is_safe_zip(ZipFile)
+
+
 def test_generic_constraint_name_exists():
     # Create a mock SQLAlchemy database object
     database_mock = MagicMock()
