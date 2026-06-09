@@ -167,6 +167,16 @@ def test_verify_host_key_match_ignores_comment_and_whitespace(
 
     manager._verify_host_key(tunnel)  # should not raise
 
+    # Whitespace/comment stripping must not short-circuit verification: the
+    # bounded TCP connect and Transport handshake still run as in the plain
+    # match case.
+    mock_create_connection.assert_called_once_with(
+        ("ssh.example.com", 22), timeout=321.0
+    )
+    mock_transport_cls.assert_called_once_with(mock_create_connection.return_value)
+    transport.start_client.assert_called_once()
+    transport.close.assert_called_once()
+
 
 def test_verify_host_key_invalid_expected_raises() -> None:
     # A malformed expected key is rejected before any network connection.
