@@ -25,6 +25,7 @@ import {
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
   SequentialScheme,
+  type QueryFormData,
 } from '@superset-ui/core';
 import {
   getDefaultMapRenderer,
@@ -36,6 +37,7 @@ import {
 } from '@superset-ui/core/utils/mapStyles';
 import {
   ControlPanelState,
+  ControlState,
   CustomControlItem,
   D3_FORMAT_OPTIONS,
   getColorControlsProps,
@@ -60,6 +62,10 @@ type MapStyleVisibilityProps = {
   controls?: {
     map_renderer?: { value?: unknown };
   };
+};
+type MetricControlValue = {
+  type?: unknown;
+  value?: unknown;
 };
 
 export const DEFAULT_DECKGL_TILES: DeckGLTileChoice[] = [
@@ -583,14 +589,14 @@ export const geojsonColumn = {
   },
 };
 
-const extractMetricsFromFormData = (formData: any) => {
-  const metrics = new Set<string>();
+const extractMetricsFromFormData = (formData: QueryFormData) => {
+  const metrics = new Set<unknown>();
 
   if (formData.metrics) {
     (Array.isArray(formData.metrics)
       ? formData.metrics
       : [formData.metrics]
-    ).forEach((metric: any) => metrics.add(metric));
+    ).forEach((metric: unknown) => metrics.add(metric));
   }
 
   if (formData.point_radius_fixed?.value) {
@@ -599,8 +605,9 @@ const extractMetricsFromFormData = (formData: any) => {
 
   Object.entries(formData).forEach(([, value]) => {
     if (!value || typeof value !== 'object') return;
-    if ((value as any).type === 'metric' && (value as any).value) {
-      metrics.add((value as any).value);
+    const controlValue = value as MetricControlValue;
+    if (controlValue.type === 'metric' && controlValue.value) {
+      metrics.add(controlValue.value);
     }
   });
 
@@ -621,7 +628,7 @@ export const tooltipContents = {
     ),
     ghostButtonText: t('Drop columns/metrics here or click'),
     disabledTabs: new Set(['saved', 'sqlExpression']),
-    mapStateToProps: (state: any) => {
+    mapStateToProps: (state: ControlPanelState) => {
       const { datasource, form_data: formData } = state;
 
       const selectedMetrics = formData
@@ -650,7 +657,7 @@ export const tooltipTemplate = {
     default: '',
     description: '',
     placeholder: '',
-    mapStateToProps: (_state: any, control: any) => ({
+    mapStateToProps: (_state: ControlPanelState, control: ControlState) => ({
       value: control.value,
     }),
   },
@@ -768,7 +775,7 @@ export const deckGLBreakpointMetric: CustomControlItem = {
     // mapStateToProps: (state: ControlPanelState) => ({
     //   datasource: state.datasource,
     // }),
-    visibility: ({ controls }: { controls: any }) =>
+    visibility: ({ controls }: MapStyleVisibilityProps) =>
       isColorSchemeTypeVisible(controls, COLOR_SCHEME_TYPES.color_breakpoints),
   },
 };

@@ -184,17 +184,11 @@ def _downgrade_deckgl_slice(slc: Slice) -> bool:
     if not isinstance(added_fields, list):
         return False
 
-    modified = False
     for field in added_fields:
         if field in {"map_renderer", "maplibre_style"} and field in params:
             params.pop(field, None)
-            modified = True
 
     params.pop(DECKGL_MIGRATION_ADDED_FIELDS, None)
-    modified = True
-
-    if not modified:
-        return False
     slc.params = json.dumps(params)
     return True
 

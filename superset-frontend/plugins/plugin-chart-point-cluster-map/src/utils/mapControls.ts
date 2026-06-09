@@ -40,7 +40,7 @@ export const POINT_CLUSTER_MAPLIBRE_STYLE_CHOICES = [
     'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
     t('Streets (Carto)'),
   ],
-  [OSM_TILE_STYLE_URL, 'Streets (OSM)'],
+  [OSM_TILE_STYLE_URL, t('Streets (OSM)')],
 ];
 
 export function getPointClusterMapRendererProps(currentValue?: MapProvider) {

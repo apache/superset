@@ -25,6 +25,7 @@ import {
   sharedControls,
   getStandardizedControls,
 } from '@superset-ui/chart-controls';
+import type { QueryFormData } from '@superset-ui/core';
 import type { MapProvider } from '@superset-ui/core/utils/mapStyles';
 import { getDefaultMapRenderer } from '@superset-ui/core/utils/mapStyles';
 import {
@@ -42,6 +43,11 @@ const colorChoices = [
   ['#dc143c', t('Crimson')],
   ['#228b22', t('Forest Green')],
 ];
+type MapStyleVisibilityProps = {
+  controls?: {
+    map_renderer?: { value?: unknown };
+  };
+};
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -116,7 +122,7 @@ const config: ControlPanelConfig = {
                   'Either a numerical column or `Auto`, which scales the point based ' +
                   'on the largest cluster',
               ),
-              mapStateToProps: (state: any) => {
+              mapStateToProps: (state: ControlPanelState) => {
                 const datasourceChoices = columnChoices(state.datasource);
                 const choices: [string, string][] = [['Auto', t('Auto')]];
                 return {
@@ -163,7 +169,7 @@ const config: ControlPanelConfig = {
                   'Non-numerical columns will be used to label points. ' +
                   'Leave empty to get a count of points in each cluster.',
               ),
-              mapStateToProps: (state: any) => ({
+              mapStateToProps: (state: ControlPanelState) => ({
                 choices: columnChoices(state.datasource),
               }),
             },
@@ -236,7 +242,7 @@ const config: ControlPanelConfig = {
                 'Base layer map style. See MapLibre documentation: %s',
                 'https://maplibre.org/maplibre-style-spec/',
               ),
-              visibility: ({ controls }: any) =>
+              visibility: ({ controls }: MapStyleVisibilityProps) =>
                 controls?.map_renderer?.value !== 'mapbox',
             },
           },
@@ -265,7 +271,7 @@ const config: ControlPanelConfig = {
               description: t(
                 'Base layer map style. Accepts a Mapbox style URL (mapbox://styles/...).',
               ),
-              visibility: ({ controls }: any) =>
+              visibility: ({ controls }: MapStyleVisibilityProps) =>
                 controls?.map_renderer?.value === 'mapbox',
             },
           },
@@ -380,7 +386,7 @@ const config: ControlPanelConfig = {
       ),
     },
   },
-  formDataOverrides: (formData: any) => ({
+  formDataOverrides: (formData: QueryFormData) => ({
     ...formData,
     groupby: getStandardizedControls().popAllColumns(),
   }),
