@@ -45,6 +45,14 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 
+def _build_dashboard_url(dashboard: Any) -> str:
+    """Build the user-facing dashboard URL, preferring slug over id."""
+    return (
+        f"{get_superset_base_url()}/superset/dashboard/"
+        f"{dashboard.slug or dashboard.id}/"
+    )
+
+
 def _find_and_authorize_dashboard(
     identifier: int | str,
 ) -> tuple[Any, UpdateDashboardResponse | DashboardError | None]:
@@ -201,10 +209,7 @@ def update_dashboard(
                 warnings.append("No fields provided; dashboard unchanged.")
                 return UpdateDashboardResponse(
                     dashboard=dashboard_serializer(dashboard),
-                    dashboard_url=(
-                        f"{get_superset_base_url()}/superset/dashboard/"
-                        f"{dashboard.slug or dashboard.id}/"
-                    ),
+                    dashboard_url=_build_dashboard_url(dashboard),
                     error=None,
                     changed_fields=[],
                     warnings=warnings,
@@ -245,10 +250,7 @@ def update_dashboard(
 
     return UpdateDashboardResponse(
         dashboard=dashboard_serializer(dashboard),
-        dashboard_url=(
-            f"{get_superset_base_url()}/superset/dashboard/"
-            f"{dashboard.slug or dashboard.id}/"
-        ),
+        dashboard_url=_build_dashboard_url(dashboard),
         error=None,
         changed_fields=changed_fields,
         warnings=warnings,
