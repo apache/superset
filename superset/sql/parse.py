@@ -325,6 +325,34 @@ class Table:
         )
 
 
+@dataclass(eq=True, frozen=True)
+class Partition:
+    """
+    Partition object, with two attribute keys:
+    is_partitioned_table and partition_column,
+    used to provide partition information
+    Here is an example of an object:
+    Partition(is_partitioned_table=True, partition_column=("month", "day"))
+    """
+
+    is_partitioned_table: bool
+    partition_column: tuple[str, ...] | None = None
+
+    def __str__(self) -> str:
+        """
+        Return a string representation of the Partition object.
+        """
+        partition_column_str = (
+            ", ".join(map(str, self.partition_column))
+            if self.partition_column
+            else "None"
+        )
+        return (
+            f"Partition(is_partitioned_table={self.is_partitioned_table}, "
+            f"partition_column=[{partition_column_str}])"
+        )
+
+
 # To avoid unnecessary parsing/formatting of queries, the statement has the concept of
 # an "internal representation", which is the AST of the SQL statement. For most of the
 # engines supported by Superset this is `sqlglot.exp.Expression`, but there is a special
@@ -923,9 +951,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :return: A new SQLStatement with the create table statement.
         """
         table_expr = exp.Table(
-            this=exp.Identifier(this=table.table),
-            db=exp.Identifier(this=table.schema) if table.schema else None,
-            catalog=exp.Identifier(this=table.catalog) if table.catalog else None,
+            this=exp.Identifier(this=table.table, quoted=True),
+            db=exp.Identifier(this=table.schema, quoted=True) if table.schema else None,
+            catalog=exp.Identifier(this=table.catalog, quoted=True)
+            if table.catalog
+            else None,
         )
         create_table = exp.Create(
             this=table_expr,
@@ -949,6 +979,12 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 if expression != self._parsed
             )
         )
+
+    def is_set_operation(self) -> bool:
+        """
+        Check if the statement is a top-level set operation (UNION/INTERSECT/EXCEPT).
+        """
+        return isinstance(self._parsed, exp.SetOperation)
 
     def parse_predicate(self, predicate: str) -> exp.Expression:
         """

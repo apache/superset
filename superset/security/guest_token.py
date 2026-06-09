@@ -45,12 +45,25 @@ class GuestTokenRlsRule(TypedDict):
     clause: str
 
 
-class GuestToken(TypedDict):
+class _GuestTokenRequired(TypedDict):
+    """Required JWT claims for a guest token payload."""
+
     iat: float
     exp: float
     user: GuestTokenUser
     resources: GuestTokenResources
     rls_rules: list[GuestTokenRlsRule]
+
+
+class GuestToken(_GuestTokenRequired, total=False):
+    """JWT claims for an embedded guest token.
+
+    ``datasets`` is an optional allowlist of dataset IDs the guest may access.
+    When absent the guest can access all datasets linked to the embedded dashboard,
+    preserving existing behaviour.  When present only the listed IDs are permitted.
+    """
+
+    datasets: list[int]
 
 
 class GuestUser(AnonymousUserMixin):

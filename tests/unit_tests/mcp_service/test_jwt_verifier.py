@@ -93,6 +93,27 @@ async def test_malformed_token_header(hs256_verifier):
 
 
 @pytest.mark.asyncio
+async def test_jwks_network_error_is_handled(hs256_verifier):
+    """A network error fetching the JWKS key is handled, not propagated."""
+    import httpx
+
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+
+    with patch.object(
+        hs256_verifier,
+        "_get_verification_key",
+        side_effect=httpx.ConnectError("connection refused"),
+    ):
+        result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "JWKS verification key unavailable"
+
+
+@pytest.mark.asyncio
 async def test_signature_verification_failed(hs256_verifier):
     """Token with bad signature should report signature failure."""
     token = _make_token(
@@ -268,6 +289,70 @@ async def test_valid_token(hs256_verifier):
     assert result.expires_at == future_exp
     # Contextvar should be None on success
     assert _jwt_failure_reason.get() is None
+
+
+@pytest.mark.asyncio
+async def test_valid_token_logs_success(hs256_verifier, caplog):
+    """A successful authentication should leave an INFO-level audit entry."""
+    future_exp = int(time.time()) + 3600
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+    claims = {
+        "sub": "user1",
+        "iss": "test-issuer",
+        "aud": "test-audience",
+        "exp": future_exp,
+    }
+
+    with caplog.at_level(logging.INFO, logger="superset.mcp_service.jwt_verifier"):
+        with patch.object(hs256_verifier.jwt, "decode", return_value=claims):
+            result = await hs256_verifier.load_access_token(token)
+
+    assert result is not None
+    assert any(
+        "JWT authentication succeeded" in record.message
+        and record.levelno == logging.INFO
+        for record in caplog.records
+    )
+
+
+@pytest.mark.asyncio
+async def test_success_log_tolerates_non_orderable_scopes(hs256_verifier, caplog):
+    """The success audit log must never raise on a non-orderable scope claim.
+
+    Scope entries are coerced to strings before sorting, so a malformed scopes
+    list like ``["read", 1]`` cannot raise ``TypeError`` inside the audit log and
+    mask an otherwise-valid token as a generic ``"Token validation failed"``.
+    """
+    future_exp = int(time.time()) + 3600
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+    claims = {
+        "sub": "user1",
+        "iss": "test-issuer",
+        "aud": "test-audience",
+        "exp": future_exp,
+    }
+
+    with caplog.at_level(logging.INFO, logger="superset.mcp_service.jwt_verifier"):
+        with (
+            patch.object(hs256_verifier.jwt, "decode", return_value=claims),
+            patch.object(hs256_verifier, "_extract_scopes", return_value=["read", 1]),
+        ):
+            await hs256_verifier.load_access_token(token)
+
+    # The success audit log is reached and emitted without raising. Before the
+    # str-coercion fix, ``sorted(["read", 1])`` would raise ``TypeError`` *before*
+    # this record was emitted, so its presence proves the logging path is safe.
+    assert any(
+        "JWT authentication succeeded" in record.message
+        and record.levelno == logging.INFO
+        for record in caplog.records
+    )
 
 
 @pytest.mark.asyncio
