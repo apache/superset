@@ -86,16 +86,29 @@ function ControlLabel({
   label,
   description,
 }: {
-  label?: ReactNode;
-  description?: ReactNode;
+  label?: ReactNode | (() => ReactNode);
+  description?: ReactNode | (() => ReactNode);
 }) {
+  const resolvedLabel =
+    typeof label === 'function' ? (label as () => ReactNode)() : label;
+  const resolvedDescription =
+    typeof description === 'function'
+      ? (description as () => ReactNode)()
+      : description;
+  const tooltipText =
+    resolvedDescription != null && typeof resolvedDescription === 'string'
+      ? resolvedDescription
+      : resolvedDescription != null
+        ? String(resolvedDescription)
+        : undefined;
+
   return (
     <StyledLabel>
-      {label}
-      {description && (
+      {resolvedLabel}
+      {tooltipText && (
         <>
           &nbsp;
-          <InfoTooltip placement="top" tooltip={String(description)} />
+          <InfoTooltip placement="top" tooltip={tooltipText} />
         </>
       )}
     </StyledLabel>
@@ -121,22 +134,35 @@ function DatasetColumnSelect({
 
   useEffect(() => {
     if (!datasetId) return;
+    let cancelled = false;
     cachedSupersetGet({
       endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
         columns: ['columns.column_name'],
       })}`,
-    }).then(({ json: { result } }) => {
-      setFetchState({
-        loadedForId: datasetId,
-        fetchedColumns: result.columns
-          .map((col: { column_name: string }) => col.column_name)
-          .filter(Boolean),
+    })
+      .then(({ json: { result } }) => {
+        if (!cancelled) {
+          setFetchState({
+            loadedForId: datasetId,
+            fetchedColumns: result.columns
+              .map((col: { column_name: string }) => col.column_name)
+              .filter(Boolean),
+          });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setFetchState({ loadedForId: datasetId, fetchedColumns: [] });
+        }
       });
-    });
+    return () => {
+      cancelled = true;
+    };
   }, [datasetId]);
 
   return (
     <Select
+      allowClear
       ariaLabel={t('Column')}
       loading={loading}
       value={value ?? undefined}
@@ -319,7 +345,7 @@ export default function getControlItemsMap({
       mapControlItems[controlItem.name] = { element, checked: initialValue };
     });
 
-    // Render plugin-declared column-picker controls using config hooks
+  // Render plugin-declared column-picker controls using config hooks
   controlItems
     .filter((item: CustomControlItem) => item?.config?.isColumnSelect === true)
     .forEach(controlItem => {

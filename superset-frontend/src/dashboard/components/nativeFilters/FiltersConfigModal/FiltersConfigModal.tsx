@@ -57,6 +57,7 @@ import {
   isFilterId,
   isChartCustomizationId,
   transformDividerId,
+  isDivider,
 } from './utils';
 import { ConfigModalContent } from './ConfigModalContent';
 import ConfigModalSidebar from './ConfigModalSidebar';
@@ -471,8 +472,16 @@ function FiltersConfigModal({
   );
 
   const handleValuesChange = useMemo(
-    () => debouncedHandleErroredItems,
-    [debouncedHandleErroredItems],
+    () => (changedValues: Partial<NativeFiltersForm>) => {
+      const changedId = changedValues.filters
+        ? Object.keys(changedValues.filters)[0]
+        : undefined;
+      if (changedId && isDivider(changedId)) {
+        handleModifyItem(changedId);
+      }
+      debouncedHandleErroredItems();
+    },
+    [debouncedHandleErroredItems, handleModifyItem],
   );
 
   const handleActiveFilterPanelChange = useCallback(
