@@ -196,6 +196,10 @@ class ReportScheduleCsvFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a csv.")
 
 
+class ReportScheduleXlsxFailedError(CommandException):
+    message = _("Report Schedule execution failed when generating an xlsx.")
+
+
 class ReportScheduleDataFrameFailedError(CommandException):
     message = _("Report Schedule execution failed when generating a dataframe.")
 
@@ -273,6 +277,11 @@ class ReportScheduleScreenshotTimeout(CommandException):
 class ReportScheduleCsvTimeout(CommandException):
     status = 408
     message = _("A timeout occurred while generating a csv.")
+
+
+class ReportScheduleXlsxTimeout(CommandException):
+    status = 408
+    message = _("A timeout occurred while generating an xlsx.")
 
 
 class ReportScheduleDataFrameTimeout(CommandException):

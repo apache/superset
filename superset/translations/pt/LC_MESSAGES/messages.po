@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-09 10:24+0300\n"
 "PO-Revision-Date: 2018-03-12 16:24+0000\n"
 "Last-Translator: Nuno Heli Beires <nuno.beires@douroeci.com>\n"
 "Language: pt\n"
@@ -179,6 +179,10 @@ msgstr ""
 #, python-format
 msgid "%(label)s file"
 msgstr ""
+
+#, python-format
+msgid "%(name)s.%(extension)s"
+msgstr "%(name)s.%(extension)s"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -892,6 +896,9 @@ msgstr "Ocorreu um erro ao carregar os metadados da tabela"
 #, fuzzy
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Ocorreu um erro ao criar a origem dos dados"
+
+msgid "A timeout occurred while generating an xlsx."
+msgstr ""
 
 #, fuzzy
 msgid "A timeout occurred while taking a screenshot."
@@ -6333,6 +6340,9 @@ msgstr ""
 msgid "Examples"
 msgstr ""
 
+msgid "Excel (XLSX) attached in email"
+msgstr ""
+
 #, fuzzy
 msgid "Excel Export"
 msgstr "Janela de exibição"
@@ -6765,6 +6775,12 @@ msgstr ""
 #, fuzzy
 msgid "File settings"
 msgstr "Lista de Métricas"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 msgid "File upload"
 msgstr ""
@@ -10988,6 +11004,9 @@ msgstr ""
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr ""
 
+msgid "Report Schedule execution failed when generating an xlsx."
+msgstr ""
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr ""
 
@@ -11085,6 +11104,10 @@ msgid "Required control values have been removed"
 msgstr ""
 
 msgid "Resample"
+msgstr ""
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
 msgstr ""
 
 #, fuzzy
@@ -12345,6 +12368,9 @@ msgid "Semantic views"
 msgstr ""
 
 msgid "Send as CSV"
+msgstr ""
+
+msgid "Send as Excel"
 msgstr ""
 
 msgid "Send as PDF"
@@ -15375,6 +15401,18 @@ msgid "To get a readable URL for your dashboard"
 msgstr "Obter um URL legível para o seu dashboard"
 
 msgid "Token Request URI"
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
 msgstr ""
 
 msgid "Tool Panel"

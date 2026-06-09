@@ -102,6 +102,13 @@ test('does not allow user to create a report without a name', () => {
   expect(addButton).toBeDisabled();
 });
 
+test('shows xlsx notification format option', () => {
+  render(<ReportModal {...defaultProps} />, { useRedux: true });
+  expect(
+    screen.getByText('Excel (XLSX) attached in email'),
+  ).toBeInTheDocument();
+});
+
 test('creates a new email report via modal Add button', async () => {
   // The modal now calls POST /api/v1/report/subscribe; creation_method, owners, and
   // recipients are derived server-side — the client payload intentionally omits them.
@@ -310,7 +317,7 @@ test('submit failure dispatches danger toast and keeps modal open', async () => 
     ).toBe(true);
   });
 
-  // Modal stays open — onHide should NOT have been called
+  // Modal stays open; onHide should NOT have been called.
   expect(onHide).not.toHaveBeenCalled();
   expect(screen.getByText('Schedule a new email report')).toBeInTheDocument();
 

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-09 10:24+0300\n"
 "PO-Revision-Date: 2024-10-05 23:46+0200\n"
 "Last-Translator: dkrat7 <dkrat7 @github.com>\n"
 "Language: sl_SI\n"
@@ -219,6 +219,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%(label)s file"
 msgstr "%(type)s datoteka"
+
+#, python-format
+msgid "%(name)s.%(extension)s"
+msgstr "%(name)s.%(extension)s"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -975,6 +979,9 @@ msgstr "Pri ustvarjanju csv je potekel čas."
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Pri ustvarjanju podatkovnega okvira je potekel čas."
+
+msgid "A timeout occurred while generating an xlsx."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Pri ustvarjanju zaslonske slike je potekel čas."
@@ -6378,6 +6385,9 @@ msgstr "Primer"
 msgid "Examples"
 msgstr "Vzorci"
 
+msgid "Excel (XLSX) attached in email"
+msgstr ""
+
 #, fuzzy
 msgid "Excel Export"
 msgstr "Tedensko poročilo"
@@ -6808,6 +6818,12 @@ msgstr ""
 #, fuzzy
 msgid "File settings"
 msgstr "Nastavitve datoteke"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 msgid "File upload"
 msgstr "Nalaganje datoteke"
@@ -10961,6 +10977,9 @@ msgstr ""
 "Izvajanje urnika poročanja je bilo neuspešno pri ustvarjanju zaslonske "
 "slike."
 
+msgid "Report Schedule execution failed when generating an xlsx."
+msgstr ""
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr "Pri izvajanju urnika poročanja je prišlo do nepričakovane napake."
 
@@ -11048,6 +11067,10 @@ msgstr "Zahtevane kontrolne vrednosti so bile odstranjene"
 
 msgid "Resample"
 msgstr "Prevzorči"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "Metoda za prevzorčenje v mora biti v "
@@ -12270,6 +12293,9 @@ msgstr ""
 
 msgid "Send as CSV"
 msgstr "Pošlji kot CSV"
+
+msgid "Send as Excel"
+msgstr ""
 
 msgid "Send as PDF"
 msgstr "Pošlji kot PDF"
@@ -15413,6 +15439,18 @@ msgid "To get a readable URL for your dashboard"
 msgstr "Za pridobitev berljivega URL-ja za nadzorno ploščo"
 
 msgid "Token Request URI"
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
 msgstr ""
 
 #, fuzzy

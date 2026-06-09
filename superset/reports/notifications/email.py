@@ -19,7 +19,9 @@ import textwrap
 from dataclasses import dataclass
 from datetime import datetime
 from email.utils import make_msgid, parseaddr
-from typing import Any, Optional
+from io import BytesIO
+from typing import Optional
+from zipfile import BadZipFile, ZipFile
 
 import nh3
 from flask import current_app
@@ -72,9 +74,24 @@ ALLOWED_ATTRIBUTES = {
 class EmailContent:
     body: str
     header_data: Optional[HeaderDataType] = None
-    data: Optional[dict[str, Any]] = None
+    data: Optional[dict[str, bytes | str]] = None
     pdf: Optional[dict[str, bytes]] = None
     images: Optional[dict[str, bytes]] = None
+
+
+def _get_xlsx_attachment_extension(content: bytes) -> str:
+    """
+    Return the attachment extension for bytes returned by the XLSX export endpoint.
+    """
+    try:
+        with ZipFile(BytesIO(content)) as zip_file:
+            names = set(zip_file.namelist())
+    except BadZipFile:
+        return "xlsx"
+
+    if "[Content_Types].xml" in names and "xl/workbook.xml" in names:
+        return "xlsx"
+    return "zip"
 
 
 class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-methods
@@ -205,9 +222,19 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             </html>
             """
         )
-        csv_data = None
+        data: dict[str, bytes | str] = {}
         if self._content.csv:
-            csv_data = {__("%(name)s.csv", name=self._name): self._content.csv}
+            data[__("%(name)s.csv", name=self._name)] = self._content.csv
+
+        if self._content.xlsx:
+            extension = _get_xlsx_attachment_extension(self._content.xlsx)
+            data[
+                __(
+                    "%(name)s.%(extension)s",
+                    name=self._name,
+                    extension=extension,
+                )
+            ] = self._content.xlsx
 
         pdf_data = None
         if self._content.pdf:
@@ -217,7 +244,7 @@ class EmailNotification(BaseNotification):  # pylint: disable=too-few-public-met
             body=body,
             images=images,
             pdf=pdf_data,
-            data=csv_data,
+            data=data or None,
             header_data=self._content.header_data,
         )
 

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-09 10:24+0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -226,6 +226,10 @@ msgstr "%(dialect)s nelze z bezpečnostních důvodů použít jako zdroj dat."
 #, python-format
 msgid "%(label)s file"
 msgstr "soubor %(label)s"
+
+#, python-format
+msgid "%(name)s.%(extension)s"
+msgstr "%(name)s.%(extension)s"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -964,6 +968,9 @@ msgstr "Při generování CSV došlo k vypršení časového limitu."
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Při generování datového rámce došlo k vypršení časového limitu."
+
+msgid "A timeout occurred while generating an xlsx."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Při pořizování snímku obrazovky došlo k vypršení časového limitu."
@@ -6346,6 +6353,9 @@ msgstr "Příklad"
 msgid "Examples"
 msgstr "Příklady"
 
+msgid "Excel (XLSX) attached in email"
+msgstr ""
+
 #, fuzzy
 msgid "Excel Export"
 msgstr "Export do Excelu"
@@ -6773,6 +6783,12 @@ msgstr ""
 
 msgid "File settings"
 msgstr "Nastavení souboru"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 msgid "File upload"
 msgstr "Nahrání souboru"
@@ -10899,6 +10915,9 @@ msgstr "Provedení plánu reportu selhalo při generování PDF."
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr "Provedení plánu reportu selhalo při generování snímku obrazovky."
 
+msgid "Report Schedule execution failed when generating an xlsx."
+msgstr ""
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr "Při provádění plánu reportu došlo k neočekávané chybě."
 
@@ -10986,6 +11005,10 @@ msgstr "Požadované hodnoty ovládacích prvků byly odstraněny"
 
 msgid "Resample"
 msgstr "Převzorkovat"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "Metoda převzorkování by měla být v "
@@ -12214,6 +12237,9 @@ msgstr ""
 
 msgid "Send as CSV"
 msgstr "Odeslat jako CSV"
+
+msgid "Send as Excel"
+msgstr ""
 
 msgid "Send as PDF"
 msgstr "Odeslat jako PDF"
@@ -15374,6 +15400,18 @@ msgstr "Pro získání čitelné URL pro vaši nástěnku"
 
 msgid "Token Request URI"
 msgstr "URI žádosti o token"
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-09 10:24+0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen \n"
 "Language: zh\n"
@@ -187,6 +187,10 @@ msgstr "出于安全原因，%(dialect)s SQLite数据库不能用作数据源。
 
 #, python-format
 msgid "%(label)s file"
+msgstr ""
+
+#, python-format
+msgid "%(name)s.%(extension)s"
 msgstr ""
 
 #, python-format
@@ -885,6 +889,9 @@ msgstr "生成CSV时超时。"
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "生成数据超时"
+
+msgid "A timeout occurred while generating an xlsx."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "截图超时"
@@ -6286,6 +6293,9 @@ msgstr "例子"
 msgid "Examples"
 msgstr "示例"
 
+msgid "Excel (XLSX) attached in email"
+msgstr ""
+
 #, fuzzy
 msgid "Excel Export"
 msgstr "周报"
@@ -6725,6 +6735,12 @@ msgstr ""
 #, fuzzy
 msgid "File settings"
 msgstr "过滤器设置"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 #, fuzzy
 msgid "File upload"
@@ -10939,6 +10955,9 @@ msgstr "在生成 CSV 文件时，报告计划执行失败。"
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr "在生成屏幕截图时，报告计划执行失败。"
 
+msgid "Report Schedule execution failed when generating an xlsx."
+msgstr ""
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr "报表计划执行遇到意外错误。"
 
@@ -11032,6 +11051,10 @@ msgstr "必需的控件值已被移除"
 
 msgid "Resample"
 msgstr "重新采样"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 #, fuzzy
 msgid "Resample method should be in "
@@ -12288,6 +12311,9 @@ msgstr ""
 
 msgid "Send as CSV"
 msgstr "发送为CSV"
+
+msgid "Send as Excel"
+msgstr ""
 
 #, fuzzy
 msgid "Send as PDF"
@@ -15291,6 +15317,18 @@ msgid "To get a readable URL for your dashboard"
 msgstr "为看板生成一个可读的 URL"
 
 msgid "Token Request URI"
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
 msgstr ""
 
 #, fuzzy
