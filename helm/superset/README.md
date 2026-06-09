@@ -251,7 +251,7 @@ On helm this can be set on `extraSecretEnv.SUPERSET_SECRET_KEY` or `configOverri
 | supersetNode.startupProbe.successThreshold | int | `1` |  |
 | supersetNode.startupProbe.timeoutSeconds | int | `1` |  |
 | supersetNode.strategy | object | `{}` |  |
-| supersetNode.topologySpreadConstraints | list | `[]` | TopologySpreadConstraints to be added to supersetNode deployments |
+| supersetNode.topologySpreadConstraints | list | `[]` | TopologySpreadConstrains to be added to supersetNode deployments |
 | supersetWebsockets.affinity | object | `{}` | Affinity to be added to supersetWebsockets deployment |
 | supersetWebsockets.command | list | `[]` |  |
 | supersetWebsockets.config | object | see `values.yaml` | The config.json to pass to the server, see https://github.com/apache/superset/tree/master/superset-websocket Note that the configuration can also read from environment variables (which will have priority), see https://github.com/apache/superset/blob/master/superset-websocket/src/config.ts for a list of supported variables |
