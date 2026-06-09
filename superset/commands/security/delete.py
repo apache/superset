@@ -20,13 +20,12 @@ from functools import partial
 
 from superset.commands.base import BaseCommand
 from superset.commands.security.exceptions import (
-    RLSDatasourceForbiddenError,
     RLSRuleNotFoundError,
     RuleDeleteFailedError,
 )
+from superset.commands.security.utils import raise_for_datasource_access
 from superset.connectors.sqla.models import RowLevelSecurityFilter
 from superset.daos.security import RLSDAO
-from superset.extensions import security_manager
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -50,6 +49,4 @@ class DeleteRLSRuleCommand(BaseCommand):
         # Apply the same datasource access check as create/update: a caller may
         # only delete a rule if they can access every datasource it references.
         for rule in self._models:
-            for table in rule.tables:
-                if not security_manager.can_access_datasource(datasource=table):
-                    raise RLSDatasourceForbiddenError()
+            raise_for_datasource_access(rule.tables)
