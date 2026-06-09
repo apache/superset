@@ -1226,3 +1226,84 @@ def test_create_serializer_include_schemas_true_with_compact():
     assert result[0]["inputSchema"]["properties"]["filters"]["items"] == {
         "type": "object"
     }
+
+
+# -- search_tools optional query tests --
+
+
+def test_search_tool_query_is_optional_in_schema():
+    """search_tools parameters schema marks query as optional (not required)."""
+    mock_mcp = MagicMock()
+    config = {
+        "strategy": "bm25",
+        "max_results": 5,
+        "always_visible": [],
+        "search_tool_name": "search_tools",
+        "call_tool_name": "call_tool",
+    }
+    _apply_tool_search_transform(mock_mcp, config)
+    transform = mock_mcp.add_transform.call_args[0][0]
+    search_tool = transform._make_search_tool()
+
+    params = search_tool.parameters
+    assert "query" not in params.get("required", [])
+
+
+def test_search_tool_with_no_query_returns_all_visible_tools():
+    """search_tools returns all visible tools when called with no arguments."""
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    mock_mcp = MagicMock()
+    config = {
+        "strategy": "bm25",
+        "max_results": 5,
+        "always_visible": [],
+        "search_tool_name": "search_tools",
+        "call_tool_name": "call_tool",
+    }
+    _apply_tool_search_transform(mock_mcp, config)
+    transform = mock_mcp.add_transform.call_args[0][0]
+
+    tool_a = MagicMock()
+    tool_b = MagicMock()
+    all_tools = [tool_a, tool_b]
+
+    async def run():
+        transform._get_visible_tools = AsyncMock(return_value=all_tools)
+        transform._render_results = AsyncMock(return_value=[{"name": "tool_a"}])
+        search_tool = transform._make_search_tool()
+        await search_tool.run({})  # must not raise ValidationError
+        return transform._render_results.call_args[0][0]
+
+    rendered_with = asyncio.run(run())
+    assert rendered_with == all_tools
+
+
+def test_search_tool_regex_with_no_query_returns_all_visible_tools():
+    """Regex strategy returns all visible tools when called with no arguments."""
+    import asyncio
+    from unittest.mock import AsyncMock
+
+    mock_mcp = MagicMock()
+    config = {
+        "strategy": "regex",
+        "max_results": 5,
+        "always_visible": [],
+        "search_tool_name": "search_tools",
+        "call_tool_name": "call_tool",
+    }
+    _apply_tool_search_transform(mock_mcp, config)
+    transform = mock_mcp.add_transform.call_args[0][0]
+
+    all_tools = [MagicMock(), MagicMock()]
+
+    async def run():
+        transform._get_visible_tools = AsyncMock(return_value=all_tools)
+        transform._render_results = AsyncMock(return_value=[])
+        search_tool = transform._make_search_tool()
+        await search_tool.run({})
+        return transform._render_results.call_args[0][0]
+
+    rendered_with = asyncio.run(run())
+    assert rendered_with == all_tools
