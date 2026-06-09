@@ -749,7 +749,7 @@ test('shows screenshot width when PDF is selected', async () => {
   expect(screen.getByRole('spinbutton')).toBeInTheDocument();
 });
 
-test('does not show screenshot width when xlsx is selected', async () => {
+test('does not show screenshot width when excel is selected', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
     useRedux: true,
   });
@@ -767,7 +767,7 @@ test('does not show screenshot width when xlsx is selected', async () => {
   await comboboxSelect(
     reportFormatSelector,
     'XLSX',
-    () => screen.getAllByText(/Send as XLSX/i)[0],
+    () => screen.getAllByText(/Send as Excel/i)[0],
   );
   expect(screen.queryByRole('spinbutton')).not.toBeInTheDocument();
 });
