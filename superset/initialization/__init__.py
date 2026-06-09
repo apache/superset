@@ -272,7 +272,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         # Setup regular views
         #
-        app_root = appbuilder.app.config["APPLICATION_ROOT"]
+        app_root = current_app.config["APPLICATION_ROOT"]
         if app_root.endswith("/"):
             app_root = app_root.rstrip("/")
 
@@ -324,7 +324,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+                current_app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
@@ -334,7 +334,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             label=_("User Registrations"),
             category="Security",
             category_label=_("Security"),
-            menu_cond=lambda: bool(appbuilder.app.config["AUTH_USER_REGISTRATION"]),
+            menu_cond=lambda: bool(current_app.config["AUTH_USER_REGISTRATION"]),
         )
 
         appbuilder.add_view(
@@ -344,7 +344,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+                current_app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
@@ -355,7 +355,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+                current_app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
