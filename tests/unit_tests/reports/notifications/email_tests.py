@@ -15,12 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 import pandas as pd
+import pytest
 from freezegun import freeze_time
 from pytz import timezone
 
 from tests.unit_tests.conftest import with_feature_flags
+
+if TYPE_CHECKING:
+    from superset.reports.notifications.email import EmailNotification
 
 
 def test_render_description_with_html() -> None:
@@ -144,3 +149,62 @@ def test_email_subject_with_datetime() -> None:
         subject = notification._get_subject()
     assert datetime_pattern not in subject
     assert frozen_now.strftime(datetime_pattern) in subject
+
+
+def _make_notification(xlsx: bytes) -> "EmailNotification":
+    """Build an email notification for attachment tests."""
+    from superset.reports.models import ReportRecipients, ReportRecipientType
+    from superset.reports.notifications.base import NotificationContent
+    from superset.reports.notifications.email import EmailNotification
+
+    recipient = ReportRecipients(type=ReportRecipientType.EMAIL)
+    content = NotificationContent(
+        name="test report",
+        text=None,
+        xlsx=xlsx,
+        header_data={
+            "notification_format": "XLSX",
+            "notification_type": "Report",
+            "owners": [1],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": "test-execution-id",
+        },
+    )
+    return EmailNotification(recipient=recipient, content=content)
+
+
+@pytest.mark.parametrize(
+    ("server_pagination", "expected_extension"),
+    [
+        (False, "xlsx"),
+        (True, "zip"),
+    ],
+)
+def test_xlsx_report_attachment_extension(
+    server_pagination: bool,
+    expected_extension: str,
+) -> None:
+    """Server-paginated XLSX reports should be attached as ZIP archives."""
+    from superset.utils import excel
+    from superset.utils.core import create_zip
+
+    xlsx = excel.df_to_excel(pd.DataFrame({"value": [1, 2]}), index=False)
+    attachment = (
+        create_zip(
+            {
+                "query_1.xlsx": xlsx,
+                "query_2.xlsx": xlsx,
+            }
+        ).getvalue()
+        if server_pagination
+        else xlsx
+    )
+
+    email_content = _make_notification(xlsx=attachment)._get_content()
+
+    assert email_content.data == {
+        f"test report.{expected_extension}": attachment,
+    }

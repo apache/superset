@@ -45,6 +45,8 @@ from superset.commands.report.exceptions import (
     ReportScheduleSystemErrorsException,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
+    ReportScheduleXlsxFailedError,
+    ReportScheduleXlsxTimeout,
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.daos.report import (
@@ -223,6 +225,7 @@ class BaseReportState:
             if result_format in {
                 ChartDataResultFormat.CSV,
                 ChartDataResultFormat.JSON,
+                ChartDataResultFormat.XLSX,
             }:
                 return get_url_path(
                     "ChartDataRestApi.get_data",
@@ -506,9 +509,14 @@ class BaseReportState:
 
         return pdf
 
-    def _get_csv_data(self) -> bytes:
+    def _get_chart_data(self, result_format: ChartDataResultFormat) -> Optional[bytes]:
+        if result_format not in ChartDataResultFormat.table_like():
+            raise ReportScheduleExecuteUnexpectedError(
+                f"Unsupported chart data result format: {result_format}"
+            )
+
         start_time = datetime.utcnow()
-        url = self._get_url(result_format=ChartDataResultFormat.CSV)
+        url = self._get_url(result_format=result_format)
         _, username = get_executor(
             executors=app.config["ALERT_REPORTS_EXECUTORS"],
             model=self._report_schedule,
@@ -520,16 +528,23 @@ class BaseReportState:
             logger.warning("No query context found, taking a screenshot to generate it")
             self._update_query_context()
 
+        logger.info("Getting chart from %s as user %s", url, user.username)
+        chart_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
+        elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
+        logger.info(
+            "%s data generation from %s as user %s took %.2fs - execution_id: %s",
+            result_format.value.upper(),
+            url,
+            username,
+            elapsed_seconds,
+            self._execution_id,
+        )
+        return chart_data
+
+    def _get_csv_data(self) -> bytes:
+        start_time = datetime.utcnow()
         try:
-            csv_data = get_chart_csv_data(chart_url=url, auth_cookies=auth_cookies)
-            elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
-            logger.info(
-                "CSV data generation from %s as user %s took %.2fs - execution_id: %s",
-                url,
-                username,
-                elapsed_seconds,
-                self._execution_id,
-            )
+            csv_data = self._get_chart_data(ChartDataResultFormat.CSV)
         except SoftTimeLimitExceeded as ex:
             elapsed_seconds = (datetime.utcnow() - start_time).total_seconds()
             logger.warning(
@@ -551,6 +566,19 @@ class BaseReportState:
         if not csv_data:
             raise ReportScheduleCsvFailedError()
         return csv_data
+
+    def _get_xlsx_data(self) -> bytes:
+        try:
+            xlsx_data = self._get_chart_data(ChartDataResultFormat.XLSX)
+        except SoftTimeLimitExceeded as ex:
+            raise ReportScheduleXlsxTimeout() from ex
+        except Exception as ex:
+            raise ReportScheduleXlsxFailedError(
+                f"Failed generating xlsx {str(ex)}"
+            ) from ex
+        if not xlsx_data:
+            raise ReportScheduleXlsxFailedError()
+        return xlsx_data
 
     def _get_embedded_data(self) -> pd.DataFrame:
         """
@@ -662,6 +690,7 @@ class BaseReportState:
         :raises: ReportScheduleScreenshotFailedError
         """
         csv_data = None
+        xlsx_data = None
         screenshot_data = []
         pdf_data = None
         embedded_data = None
@@ -688,6 +717,13 @@ class BaseReportState:
                 csv_data = self._get_csv_data()
                 if not csv_data:
                     error_text = "Unexpected missing csv file"
+            elif (
+                self._report_schedule.chart
+                and self._report_schedule.report_format == ReportDataFormat.XLSX
+            ):
+                xlsx_data = self._get_xlsx_data()
+                if not xlsx_data:
+                    error_text = "Unexpected missing xlsx file"
             if error_text:
                 return NotificationContent(
                     name=self._report_schedule.name,
@@ -723,6 +759,7 @@ class BaseReportState:
             pdf=pdf_data,
             description=self._report_schedule.description,
             csv=csv_data,
+            xlsx=xlsx_data,
             embedded_data=embedded_data,
             header_data=header_data,
         )

@@ -21,6 +21,7 @@ from unittest.mock import patch
 from uuid import UUID, uuid4
 
 import pytest
+from celery.exceptions import SoftTimeLimitExceeded
 from pytest_mock import MockerFixture
 
 from superset.app import SupersetApp
@@ -34,6 +35,8 @@ from superset.commands.report.exceptions import (
     ReportScheduleStateNotFoundError,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
+    ReportScheduleXlsxFailedError,
+    ReportScheduleXlsxTimeout,
 )
 from superset.commands.report.execute import (
     BaseReportState,
@@ -42,6 +45,7 @@ from superset.commands.report.execute import (
     ReportSuccessState,
     ReportWorkingState,
 )
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.daos.report import REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
 from superset.dashboards.permalink.types import DashboardPermalinkState
 from superset.reports.models import (
@@ -902,6 +906,117 @@ def create_report_schedule(
     schedule.custom_width = custom_width
     schedule.custom_height = custom_height
     return schedule
+
+
+def test_get_url_for_xlsx_report(mocker: MockerFixture) -> None:
+    """XLSX reports should request post-processed chart data."""
+    report_schedule = create_report_schedule(mocker)
+    report_schedule.chart_id = 1
+    report_schedule.force_screenshot = False
+    report_state = BaseReportState(
+        report_schedule, "January 1, 2021", "execution_id_example"
+    )
+    get_url_path = mocker.patch(
+        "superset.commands.report.execute.get_url_path",
+        return_value="/api/v1/chart/1/data/xlsx",
+    )
+
+    url = report_state._get_url(result_format=ChartDataResultFormat.XLSX)
+
+    assert url == "/api/v1/chart/1/data/xlsx"
+    get_url_path.assert_called_once_with(
+        "ChartDataRestApi.get_data",
+        pk=1,
+        format=ChartDataResultFormat.XLSX.value,
+        type=ChartDataResultType.POST_PROCESSED.value,
+        force="false",
+    )
+
+
+def test_get_xlsx_data(mocker: MockerFixture) -> None:
+    """XLSX report data should be returned without modification."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    get_chart_data = mocker.patch.object(
+        report_state,
+        "_get_chart_data",
+        return_value=b"xlsx-data",
+    )
+
+    assert report_state._get_xlsx_data() == b"xlsx-data"
+    get_chart_data.assert_called_once_with(ChartDataResultFormat.XLSX)
+
+
+@pytest.mark.parametrize(
+    ("side_effect", "expected_exception"),
+    [
+        (SoftTimeLimitExceeded(), ReportScheduleXlsxTimeout),
+        (RuntimeError("export failed"), ReportScheduleXlsxFailedError),
+    ],
+)
+def test_get_xlsx_data_maps_errors(
+    mocker: MockerFixture,
+    side_effect: Exception,
+    expected_exception: type[Exception],
+) -> None:
+    """XLSX generation errors should use XLSX-specific report exceptions."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    mocker.patch.object(
+        report_state,
+        "_get_chart_data",
+        side_effect=side_effect,
+    )
+
+    with pytest.raises(expected_exception):
+        report_state._get_xlsx_data()
+
+
+def test_get_xlsx_data_rejects_empty_result(mocker: MockerFixture) -> None:
+    """An empty XLSX response should fail report generation."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    mocker.patch.object(report_state, "_get_chart_data", return_value=None)
+
+    with pytest.raises(ReportScheduleXlsxFailedError):
+        report_state._get_xlsx_data()
+
+
+def test_notification_content_contains_xlsx(mocker: MockerFixture) -> None:
+    """XLSX chart reports should populate the XLSX notification field."""
+    report_schedule = create_report_schedule(mocker)
+    report_schedule.report_format = ReportDataFormat.XLSX
+    report_schedule.force_screenshot = False
+    report_schedule.email_subject = None
+    report_schedule.owners = []
+    report_schedule.recipients = []
+    report_state = BaseReportState(
+        report_schedule,
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    mocker.patch.object(report_state, "_get_url", return_value="/chart/1")
+    mocker.patch.object(report_state, "_get_log_data", return_value={})
+    get_xlsx_data = mocker.patch.object(
+        report_state,
+        "_get_xlsx_data",
+        return_value=b"xlsx-data",
+    )
+
+    content = report_state._get_notification_content()
+
+    assert content.xlsx == b"xlsx-data"
+    assert content.csv is None
+    get_xlsx_data.assert_called_once_with()
 
 
 @pytest.mark.parametrize(
