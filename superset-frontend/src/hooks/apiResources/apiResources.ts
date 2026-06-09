@@ -86,6 +86,7 @@ const initialState: LoadingState = {
  */
 export function useApiResourceFullBody<RESULT>(
   endpoint: string,
+  skip = false,
 ): Resource<RESULT> {
   const [resource, setResource] = useState<Resource<RESULT>>(initialState);
   const cancelRef = useRef<() => void>(() => {});
@@ -98,6 +99,12 @@ export function useApiResourceFullBody<RESULT>(
     // when this effect runs, the endpoint has changed.
     // cancel any current calls so that state doesn't get messed up.
     cancelRef.current();
+
+    // Allow callers to opt out of fetching (e.g. when the identifier isn't
+    // known yet) so we don't fire requests against invalid endpoints.
+    if (skip) {
+      return undefined;
+    }
     let cancelled = false;
     cancelRef.current = () => {
       cancelled = true;
@@ -132,7 +139,7 @@ export function useApiResourceFullBody<RESULT>(
     return () => {
       cancelled = true;
     };
-  }, [endpoint]);
+  }, [endpoint, skip]);
 
   return resource;
 }
@@ -181,9 +188,12 @@ const extractInnerResult = <T>(responseBody: { result: T }) =>
  *
  * @param endpoint The url where the resource is located.
  */
-export function useApiV1Resource<RESULT>(endpoint: string): Resource<RESULT> {
+export function useApiV1Resource<RESULT>(
+  endpoint: string,
+  skip = false,
+): Resource<RESULT> {
   return useTransformedResource(
-    useApiResourceFullBody<{ result: RESULT }>(endpoint),
+    useApiResourceFullBody<{ result: RESULT }>(endpoint, skip),
     extractInnerResult,
   );
 }

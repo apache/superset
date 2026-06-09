@@ -136,12 +136,20 @@ const DetailValue = styled.span`
   `}
 `;
 
+type NodeType = 'database' | 'dataset' | 'chart' | 'dashboard';
+
 type NodeDetails = {
   name: string;
-  type: 'database' | 'dataset' | 'chart' | 'dashboard';
+  type: NodeType;
   id?: number;
   additionalInfo?: Record<string, any>;
 };
+
+// Build a stable, unique graph identity for a node so that entities sharing the
+// same display name (e.g. two charts with identical titles) never collapse into
+// a single Sankey node. The human-readable name is kept separately as the label.
+const nodeKey = (type: NodeType, id?: number, name?: string): string =>
+  id != null ? `${type}:${id}` : `${type}:${name ?? ''}`;
 
 type LineageViewProps = {
   lineageResource:
@@ -171,7 +179,7 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
       const { dataset, upstream, downstream } = data as DatasetLineage;
 
       // Add current dataset
-      map.set(dataset.name, {
+      map.set(nodeKey('dataset', dataset.id, dataset.name), {
         name: dataset.name,
         type: 'dataset',
         id: dataset.id,
@@ -184,17 +192,24 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
 
       // Add upstream database
       if (upstream?.database) {
-        map.set(upstream.database.database_name, {
-          name: upstream.database.database_name,
-          type: 'database',
-          id: upstream.database.id,
-        });
+        map.set(
+          nodeKey(
+            'database',
+            upstream.database.id,
+            upstream.database.database_name,
+          ),
+          {
+            name: upstream.database.database_name,
+            type: 'database',
+            id: upstream.database.id,
+          },
+        );
       }
 
       // Add downstream charts
       if (downstream?.charts?.result) {
         downstream.charts.result.forEach((chart: ChartEntity) => {
-          map.set(chart.slice_name, {
+          map.set(nodeKey('chart', chart.id, chart.slice_name), {
             name: chart.slice_name,
             type: 'chart',
             id: chart.id,
@@ -208,7 +223,7 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
       // Add downstream dashboards
       if (downstream?.dashboards?.result) {
         downstream.dashboards.result.forEach((dashboard: DashboardEntity) => {
-          map.set(dashboard.title, {
+          map.set(nodeKey('dashboard', dashboard.id, dashboard.title), {
             name: dashboard.title,
             type: 'dashboard',
             id: dashboard.id,
@@ -222,7 +237,7 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
       const { chart, upstream, downstream } = data as ChartLineage;
 
       // Add current chart
-      map.set(chart.slice_name, {
+      map.set(nodeKey('chart', chart.id, chart.slice_name), {
         name: chart.slice_name,
         type: 'chart',
         id: chart.id,
@@ -233,30 +248,40 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
 
       // Add upstream dataset
       if (upstream?.dataset) {
-        map.set(upstream.dataset.name, {
-          name: upstream.dataset.name,
-          type: 'dataset',
-          id: upstream.dataset.id,
-          additionalInfo: {
-            schema: upstream.dataset.schema,
-            table_name: upstream.dataset.table_name,
+        map.set(
+          nodeKey('dataset', upstream.dataset.id, upstream.dataset.name),
+          {
+            name: upstream.dataset.name,
+            type: 'dataset',
+            id: upstream.dataset.id,
+            additionalInfo: {
+              schema: upstream.dataset.schema,
+              table_name: upstream.dataset.table_name,
+            },
           },
-        });
+        );
       }
 
       // Add upstream database
       if (upstream?.database) {
-        map.set(upstream.database.database_name, {
-          name: upstream.database.database_name,
-          type: 'database',
-          id: upstream.database.id,
-        });
+        map.set(
+          nodeKey(
+            'database',
+            upstream.database.id,
+            upstream.database.database_name,
+          ),
+          {
+            name: upstream.database.database_name,
+            type: 'database',
+            id: upstream.database.id,
+          },
+        );
       }
 
       // Add downstream dashboards
       if (downstream?.dashboards?.result) {
         downstream.dashboards.result.forEach((dashboard: DashboardEntity) => {
-          map.set(dashboard.title, {
+          map.set(nodeKey('dashboard', dashboard.id, dashboard.title), {
             name: dashboard.title,
             type: 'dashboard',
             id: dashboard.id,
@@ -270,7 +295,7 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
       const { dashboard, upstream } = data as DashboardLineage;
 
       // Add current dashboard
-      map.set(dashboard.title, {
+      map.set(nodeKey('dashboard', dashboard.id, dashboard.title), {
         name: dashboard.title,
         type: 'dashboard',
         id: dashboard.id,
@@ -279,24 +304,10 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
         },
       });
 
-      // First pass: detect duplicate chart names
-      const chartNameCounts = new Map<string, number>();
-      if (upstream?.charts?.result) {
-        upstream.charts.result.forEach((chart: ChartEntity) => {
-          const count = chartNameCounts.get(chart.slice_name) || 0;
-          chartNameCounts.set(chart.slice_name, count + 1);
-        });
-      }
-
       // Add upstream charts
       if (upstream?.charts?.result) {
         upstream.charts.result.forEach((chart: ChartEntity) => {
-          // Only append ID if there are duplicate names
-          const hasDuplicate = (chartNameCounts.get(chart.slice_name) || 0) > 1;
-          const chartNodeName = hasDuplicate
-            ? `${chart.slice_name} (#${chart.id})`
-            : chart.slice_name;
-          map.set(chartNodeName, {
+          map.set(nodeKey('chart', chart.id, chart.slice_name), {
             name: chart.slice_name,
             type: 'chart',
             id: chart.id,
@@ -310,7 +321,7 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
       // Add upstream datasets
       if (upstream?.datasets?.result) {
         upstream.datasets.result.forEach((dataset: DatasetEntity) => {
-          map.set(dataset.name, {
+          map.set(nodeKey('dataset', dataset.id, dataset.name), {
             name: dataset.name,
             type: 'dataset',
             id: dataset.id,
@@ -325,7 +336,7 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
       // Add upstream databases
       if (upstream?.databases?.result) {
         upstream.databases.result.forEach((database: DatabaseEntity) => {
-          map.set(database.database_name, {
+          map.set(nodeKey('database', database.id, database.database_name), {
             name: database.database_name,
             type: 'database',
             id: database.id,
@@ -366,31 +377,34 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
     const data = lineageResource.result;
     const nodes: {
       name: string;
+      label?: { position?: string; formatter?: string };
       itemStyle?: { color: string };
-      label?: { position?: string };
     }[] = [];
     const links: { source: string; target: string; value: number }[] = [];
     const nodeSet = new Set<string>();
 
-    // Helper to add a node with label position
+    // Helper to add a node. `key` is the stable unique identity used for graph
+    // links and detail lookups; `label` is the human-readable text shown.
     const addNode = (
-      name: string,
+      key: string,
+      label: string,
       color: string,
       labelPosition: 'left' | 'right' | 'inside',
     ) => {
-      if (!nodeSet.has(name)) {
-        nodeSet.add(name);
+      if (!nodeSet.has(key)) {
+        nodeSet.add(key);
         nodes.push({
-          name,
+          name: key,
           itemStyle: { color },
           label: {
             position: labelPosition,
+            formatter: label,
           },
         });
       }
     };
 
-    // Helper to add a link
+    // Helper to add a link between two node keys
     const addLink = (source: string, target: string) => {
       links.push({ source, target, value: 1 });
     };
@@ -399,36 +413,49 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
     if (entityType === 'dataset' && 'dataset' in data) {
       const { dataset, upstream, downstream } = data as DatasetLineage;
 
+      const datasetKey = nodeKey('dataset', dataset.id, dataset.name);
       // Add current dataset node (center) - label inside
-      addNode(dataset.name, theme.colorPrimary, 'inside');
+      addNode(datasetKey, dataset.name, theme.colorPrimary, 'inside');
 
       // Add upstream database - label on left
       if (upstream?.database) {
-        addNode(upstream.database.database_name, theme.colorInfo, 'left');
-        addLink(upstream.database.database_name, dataset.name);
+        const dbKey = nodeKey(
+          'database',
+          upstream.database.id,
+          upstream.database.database_name,
+        );
+        addNode(
+          dbKey,
+          upstream.database.database_name,
+          theme.colorInfo,
+          'left',
+        );
+        addLink(dbKey, datasetKey);
       }
 
       // Add downstream charts - label on right
-      const chartMap = new Map<number, ChartEntity>();
+      const chartKeys = new Map<number, string>();
       if (downstream?.charts?.result) {
         downstream.charts.result.forEach((chart: ChartEntity) => {
-          chartMap.set(chart.id, chart);
-          addNode(chart.slice_name, theme.colorSuccess, 'right');
-          addLink(dataset.name, chart.slice_name);
+          const chartKey = nodeKey('chart', chart.id, chart.slice_name);
+          chartKeys.set(chart.id, chartKey);
+          addNode(chartKey, chart.slice_name, theme.colorSuccess, 'right');
+          addLink(datasetKey, chartKey);
         });
       }
 
       // Add downstream dashboards - label on right
       if (downstream?.dashboards?.result) {
         downstream.dashboards.result.forEach((dashboard: DashboardEntity) => {
-          addNode(dashboard.title, theme.colorWarning, 'right');
+          const dashKey = nodeKey('dashboard', dashboard.id, dashboard.title);
+          addNode(dashKey, dashboard.title, theme.colorWarning, 'right');
 
           // Link from charts to dashboards using chart_ids
           if (dashboard.chart_ids && dashboard.chart_ids.length > 0) {
             dashboard.chart_ids.forEach(chartId => {
-              const chart = chartMap.get(chartId);
-              if (chart) {
-                addLink(chart.slice_name, dashboard.title);
+              const chartKey = chartKeys.get(chartId);
+              if (chartKey) {
+                addLink(chartKey, dashKey);
               }
             });
           }
@@ -437,68 +464,70 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
     } else if (entityType === 'chart' && 'chart' in data) {
       const { chart, upstream, downstream } = data as ChartLineage;
 
+      const chartKey = nodeKey('chart', chart.id, chart.slice_name);
       // Add current chart node (center) - label inside
-      addNode(chart.slice_name, theme.colorPrimary, 'inside');
+      addNode(chartKey, chart.slice_name, theme.colorPrimary, 'inside');
 
       // Add upstream dataset - label on left
       if (upstream?.dataset) {
-        addNode(upstream.dataset.name, theme.colorInfo, 'left');
-        addLink(upstream.dataset.name, chart.slice_name);
+        const datasetKey = nodeKey(
+          'dataset',
+          upstream.dataset.id,
+          upstream.dataset.name,
+        );
+        addNode(datasetKey, upstream.dataset.name, theme.colorInfo, 'left');
+        addLink(datasetKey, chartKey);
 
         // Add upstream database - label on left
         if (upstream.database) {
-          addNode(upstream.database.database_name, theme.colorWarning, 'left');
-          addLink(upstream.database.database_name, upstream.dataset.name);
+          const dbKey = nodeKey(
+            'database',
+            upstream.database.id,
+            upstream.database.database_name,
+          );
+          addNode(
+            dbKey,
+            upstream.database.database_name,
+            theme.colorWarning,
+            'left',
+          );
+          addLink(dbKey, datasetKey);
         }
       }
 
       // Add downstream dashboards - label on right
       if (downstream?.dashboards?.result) {
         downstream.dashboards.result.forEach((dashboard: DashboardEntity) => {
-          addNode(dashboard.title, theme.colorSuccess, 'right');
-          addLink(chart.slice_name, dashboard.title);
+          const dashKey = nodeKey('dashboard', dashboard.id, dashboard.title);
+          addNode(dashKey, dashboard.title, theme.colorSuccess, 'right');
+          addLink(chartKey, dashKey);
         });
       }
     } else if (entityType === 'dashboard' && 'dashboard' in data) {
       const { dashboard, upstream } = data as DashboardLineage;
 
+      const dashKey = nodeKey('dashboard', dashboard.id, dashboard.title);
       // Add current dashboard node (right) - label inside
-      addNode(dashboard.title, theme.colorPrimary, 'inside');
+      addNode(dashKey, dashboard.title, theme.colorPrimary, 'inside');
 
-      // First pass: detect duplicate chart names
-      const chartNameCounts = new Map<string, number>();
+      // Add upstream charts - label on left
+      const chartKeys = new Map<number, string>();
       if (upstream?.charts?.result) {
         upstream.charts.result.forEach((chart: ChartEntity) => {
-          const count = chartNameCounts.get(chart.slice_name) || 0;
-          chartNameCounts.set(chart.slice_name, count + 1);
+          const chartKey = nodeKey('chart', chart.id, chart.slice_name);
+          chartKeys.set(chart.id, chartKey);
+          addNode(chartKey, chart.slice_name, theme.colorInfo, 'left');
+          addLink(chartKey, dashKey);
         });
       }
 
-      // Create a map of chart id to chart for easy lookup
-      const chartMap = new Map<number, ChartEntity>();
-      const chartNodeNames = new Map<number, string>(); // Map chart ID to its node name
-      if (upstream?.charts?.result) {
-        upstream.charts.result.forEach((chart: ChartEntity) => {
-          chartMap.set(chart.id, chart);
-          // Only append ID if there are duplicate names
-          const hasDuplicate = (chartNameCounts.get(chart.slice_name) || 0) > 1;
-          const chartNodeName = hasDuplicate
-            ? `${chart.slice_name} (#${chart.id})`
-            : chart.slice_name;
-          chartNodeNames.set(chart.id, chartNodeName);
-          // Charts are upstream - label on left
-          addNode(chartNodeName, theme.colorInfo, 'left');
-          addLink(chartNodeName, dashboard.title);
-        });
-      }
-
-      // Create a map of dataset id to dataset for easy lookup
-      const datasetMap = new Map<number, any>();
+      // Add upstream datasets - label on left
+      const datasetKeys = new Map<number, string>();
       if (upstream?.datasets?.result) {
         upstream.datasets.result.forEach(dataset => {
-          datasetMap.set(dataset.id, dataset);
-          // Datasets are upstream - label on left
-          addNode(dataset.name, theme.colorSuccess, 'left');
+          const datasetKey = nodeKey('dataset', dataset.id, dataset.name);
+          datasetKeys.set(dataset.id, datasetKey);
+          addNode(datasetKey, dataset.name, theme.colorSuccess, 'left');
         });
       }
 
@@ -506,10 +535,10 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
       if (upstream?.charts?.result) {
         upstream.charts.result.forEach((chart: ChartEntity) => {
           if (chart.dataset_id) {
-            const dataset = datasetMap.get(chart.dataset_id);
-            const chartNodeName = chartNodeNames.get(chart.id);
-            if (dataset && chartNodeName) {
-              addLink(dataset.name, chartNodeName);
+            const datasetKey = datasetKeys.get(chart.dataset_id);
+            const chartKey = chartKeys.get(chart.id);
+            if (datasetKey && chartKey) {
+              addLink(datasetKey, chartKey);
             }
           }
         });
@@ -518,14 +547,21 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
       // Add upstream databases and link to their specific datasets
       if (upstream?.databases?.result) {
         upstream.databases.result.forEach(database => {
-          // Databases are upstream - label on left
-          addNode(database.database_name, theme.colorWarning, 'left');
+          const dbKey = nodeKey(
+            'database',
+            database.id,
+            database.database_name,
+          );
+          addNode(dbKey, database.database_name, theme.colorWarning, 'left');
 
           // Link databases to datasets that belong to them using database_id
           if (upstream.datasets?.result) {
             upstream.datasets.result.forEach(dataset => {
               if (dataset.database_id === database.id) {
-                addLink(database.database_name, dataset.name);
+                const datasetKey = datasetKeys.get(dataset.id);
+                if (datasetKey) {
+                  addLink(dbKey, datasetKey);
+                }
               }
             });
           }
@@ -628,9 +664,11 @@ const LineageView: FC<LineageViewProps> = ({ lineageResource, entityType }) => {
         <DetailsPanel>
           <DetailsPanelHeader>
             <DetailsPanelTitle>
-              {selectedNode.type.charAt(0).toUpperCase() +
-                selectedNode.type.slice(1)}{' '}
-              Details
+              {t(
+                '%s Details',
+                selectedNode.type.charAt(0).toUpperCase() +
+                  selectedNode.type.slice(1),
+              )}
             </DetailsPanelTitle>
             <DetailsPanelActions>
               {(selectedNode.type === 'dashboard' ||
