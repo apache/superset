@@ -294,9 +294,7 @@ class DashboardDeletedStateFilter(  # pylint: disable=too-few-public-methods
         # Non-admins may only see soft-deleted dashboards they own. ``any()``
         # emits an EXISTS subquery so it composes with the base access filter
         # without producing duplicate rows from a join.
-        owned = Dashboard.owners.any(
-            security_manager.user_model.id == get_user_id()
-        )
+        owned = Dashboard.owners.any(security_manager.user_model.id == get_user_id())
         if normalized == "only":
             # ``super().apply`` already restricted to ``deleted_at IS NOT NULL``.
             return query.filter(owned)
