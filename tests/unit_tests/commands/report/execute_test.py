@@ -17,7 +17,7 @@
 
 import json  # noqa: TID251
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from uuid import UUID, uuid4
 
 import pytest
@@ -29,6 +29,7 @@ from superset.commands.exceptions import UpdateFailedError
 from superset.commands.report.exceptions import (
     ReportScheduleAlertGracePeriodError,
     ReportScheduleCsvFailedError,
+    ReportScheduleExecuteUnexpectedError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
     ReportScheduleScreenshotTimeout,
@@ -933,34 +934,93 @@ def test_get_url_for_xlsx_report(mocker: MockerFixture) -> None:
     )
 
 
-def test_get_xlsx_data(mocker: MockerFixture) -> None:
-    """XLSX report data should be returned without modification."""
+def test_get_chart_data_rejects_non_table_format(mocker: MockerFixture) -> None:
+    """Chart data retrieval should reject formats it cannot download."""
     report_state = BaseReportState(
         create_report_schedule(mocker),
         "January 1, 2021",
         "execution_id_example",
     )
-    get_chart_data = mocker.patch.object(
+    get_url = mocker.patch.object(report_state, "_get_url")
+
+    with pytest.raises(
+        ReportScheduleExecuteUnexpectedError,
+        match="Unsupported chart data result format: json",
+    ):
+        report_state._get_chart_data(ChartDataResultFormat.JSON)
+
+    get_url.assert_not_called()
+
+
+def _mock_xlsx_chart_data_dependencies(
+    mocker: MockerFixture,
+    report_state: BaseReportState,
+) -> tuple[MagicMock, dict[str, str]]:
+    """Mock external services used by the chart data download path."""
+    report_state._report_schedule.chart.query_context = {}
+    get_url = mocker.patch.object(
         report_state,
-        "_get_chart_data",
+        "_get_url",
+        return_value="/api/v1/chart/1/data/xlsx",
+    )
+    mocker.patch(
+        "superset.commands.report.execute.get_executor",
+        return_value=(None, "report_executor"),
+    )
+    user = mocker.MagicMock(username="report_executor")
+    mocker.patch(
+        "superset.commands.report.execute.security_manager.find_user",
+        return_value=user,
+    )
+    auth_cookies = {"session": "cookie"}
+    auth_provider = mocker.patch(
+        "superset.commands.report.execute.machine_auth_provider_factory"
+    )
+    auth_provider.instance.get_auth_cookies.return_value = auth_cookies
+    return get_url, auth_cookies
+
+
+def test_get_xlsx_data_fetches_chart_data(mocker: MockerFixture) -> None:
+    """XLSX report data should be fetched through the chart data endpoint."""
+    report_state = BaseReportState(
+        create_report_schedule(mocker),
+        "January 1, 2021",
+        "execution_id_example",
+    )
+    get_url, auth_cookies = _mock_xlsx_chart_data_dependencies(mocker, report_state)
+    get_chart_csv_data = mocker.patch(
+        "superset.commands.report.execute.get_chart_csv_data",
         return_value=b"xlsx-data",
     )
 
     assert report_state._get_xlsx_data() == b"xlsx-data"
-    get_chart_data.assert_called_once_with(ChartDataResultFormat.XLSX)
+    get_url.assert_called_once_with(result_format=ChartDataResultFormat.XLSX)
+    get_chart_csv_data.assert_called_once_with(
+        chart_url="/api/v1/chart/1/data/xlsx",
+        auth_cookies=auth_cookies,
+    )
 
 
 @pytest.mark.parametrize(
-    ("side_effect", "expected_exception"),
+    ("side_effect", "expected_exception", "expected_message"),
     [
-        (SoftTimeLimitExceeded(), ReportScheduleXlsxTimeout),
-        (RuntimeError("export failed"), ReportScheduleXlsxFailedError),
+        (
+            SoftTimeLimitExceeded(),
+            ReportScheduleXlsxTimeout,
+            "timeout occurred while generating an xlsx",
+        ),
+        (
+            RuntimeError("export failed"),
+            ReportScheduleXlsxFailedError,
+            "Failed generating xlsx export failed",
+        ),
     ],
 )
 def test_get_xlsx_data_maps_errors(
     mocker: MockerFixture,
     side_effect: Exception,
     expected_exception: type[Exception],
+    expected_message: str,
 ) -> None:
     """XLSX generation errors should use XLSX-specific report exceptions."""
     report_state = BaseReportState(
@@ -968,27 +1028,40 @@ def test_get_xlsx_data_maps_errors(
         "January 1, 2021",
         "execution_id_example",
     )
-    mocker.patch.object(
-        report_state,
-        "_get_chart_data",
+    _mock_xlsx_chart_data_dependencies(mocker, report_state)
+    mocker.patch(
+        "superset.commands.report.execute.get_chart_csv_data",
         side_effect=side_effect,
     )
 
-    with pytest.raises(expected_exception):
+    with pytest.raises(expected_exception, match=expected_message) as exc_info:
         report_state._get_xlsx_data()
 
+    assert exc_info.value.__cause__ is side_effect
 
-def test_get_xlsx_data_rejects_empty_result(mocker: MockerFixture) -> None:
+
+def test_get_xlsx_data_rejects_empty_result(
+    mocker: MockerFixture,
+) -> None:
     """An empty XLSX response should fail report generation."""
     report_state = BaseReportState(
         create_report_schedule(mocker),
         "January 1, 2021",
         "execution_id_example",
     )
-    mocker.patch.object(report_state, "_get_chart_data", return_value=None)
+    _mock_xlsx_chart_data_dependencies(mocker, report_state)
+    mocker.patch(
+        "superset.commands.report.execute.get_chart_csv_data",
+        return_value=None,
+    )
 
-    with pytest.raises(ReportScheduleXlsxFailedError):
+    with pytest.raises(
+        ReportScheduleXlsxFailedError,
+        match="Report Schedule execution failed when generating an xlsx",
+    ) as exc_info:
         report_state._get_xlsx_data()
+
+    assert exc_info.value.__cause__ is None
 
 
 def test_notification_content_contains_xlsx(mocker: MockerFixture) -> None:

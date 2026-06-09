@@ -176,6 +176,39 @@ def _make_notification(xlsx: bytes) -> "EmailNotification":
     return EmailNotification(recipient=recipient, content=content)
 
 
+def test_get_xlsx_attachment_extension_for_non_zip_content() -> None:
+    """Non-ZIP responses retain the XLSX extension."""
+    from superset.reports.notifications.email import (
+        _get_xlsx_attachment_extension,
+    )
+
+    assert _get_xlsx_attachment_extension(b"xlsx-response") == "xlsx"
+
+
+def test_get_xlsx_attachment_extension_for_xlsx_content() -> None:
+    """An OOXML workbook is identified as XLSX."""
+    from superset.reports.notifications.email import (
+        _get_xlsx_attachment_extension,
+    )
+    from superset.utils import excel
+
+    xlsx = excel.df_to_excel(pd.DataFrame({"value": [1, 2]}), index=False)
+
+    assert _get_xlsx_attachment_extension(xlsx) == "xlsx"
+
+
+def test_get_xlsx_attachment_extension_for_zip_content() -> None:
+    """A ZIP without workbook metadata is identified as ZIP."""
+    from superset.reports.notifications.email import (
+        _get_xlsx_attachment_extension,
+    )
+    from superset.utils.core import create_zip
+
+    archive = create_zip({"query_1.xlsx": b"xlsx-response"}).getvalue()
+
+    assert _get_xlsx_attachment_extension(archive) == "zip"
+
+
 @pytest.mark.parametrize(
     ("server_pagination", "expected_extension"),
     [
