@@ -743,8 +743,13 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         if catalog:
             uri = uri.set(host=catalog, database="")
         if schema:
-            # Setting database to schema makes it the BigQuery default dataset,
-            # so unqualified table names in SQL resolve to schema.table_name.
+            if not uri.host and uri.database:
+                # Triple-slash form (e.g., bigquery:///project): move the project
+                # from database to host before setting the default dataset, otherwise
+                # setting database would overwrite the project.
+                uri = uri.set(host=uri.database, database="")
+            # Setting database to schema enables the BigQuery default dataset so
+            # unqualified table names resolve to schema.table_name.
             uri = uri.set(database=schema)
 
         return uri, connect_args

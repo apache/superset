@@ -486,6 +486,16 @@ def test_adjust_engine_params_schema_as_dataset() -> None:
     assert uri.host == "other-project"
     assert uri.database == "my_dataset"
 
+    # Triple-slash form (bigquery:///project): project must not be overwritten
+    triple_slash_url = make_url("bigquery:///my_project")
+    uri = BigQueryEngineSpec.adjust_engine_params(
+        triple_slash_url,
+        {},
+        schema="my_dataset",
+    )[0]
+    assert uri.host == "my_project"
+    assert uri.database == "my_dataset"
+
 
 def test_get_materialized_view_names() -> None:
     """
