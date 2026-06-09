@@ -50,7 +50,10 @@ export default function CrudThemeProvider({
   const hasThemeConfigOverride = themeContext?.hasThemeConfigOverride ?? false;
 
   const { dashboardTheme, fontUrls } = useMemo(() => {
-    if (!theme?.json_data) {
+    // When an SDK override is active it fully owns theming, so skip parsing the
+    // dashboard theme entirely. This also prevents the font-injection effect
+    // below from loading dashboard fonts the override does not use.
+    if (hasThemeConfigOverride || !theme?.json_data) {
       return { dashboardTheme: null, fontUrls: undefined };
     }
     try {
@@ -72,7 +75,7 @@ export default function CrudThemeProvider({
       logging.warn('Failed to load dashboard theme:', error);
       return { dashboardTheme: null, fontUrls: undefined };
     }
-  }, [theme?.json_data]);
+  }, [theme?.json_data, hasThemeConfigOverride]);
 
   useEffect(() => {
     if (!dashboardTheme || !fontUrls?.length) return undefined;

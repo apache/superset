@@ -310,7 +310,12 @@ test('ignores non-array fontUrls in theme config without throwing', () => {
 });
 
 test('skips the dashboard theme when an SDK theme config override is active', () => {
-  const themeConfig = { token: { colorPrimary: '#ff0000' } };
+  const themeConfig = {
+    token: {
+      colorPrimary: '#ff0000',
+      fontUrls: ['https://fonts.example.com/dashboard.css'],
+    },
+  };
   render(
     <ThemeContext.Provider
       value={{ hasThemeConfigOverride: true } as unknown as ThemeContextType}
@@ -332,6 +337,10 @@ test('skips the dashboard theme when an SDK theme config override is active', ()
   expect(
     screen.queryByTestId('dashboard-theme-provider'),
   ).not.toBeInTheDocument();
+  // The override fully owns theming, so dashboard fonts must not be injected.
+  expect(
+    document.querySelector('style[data-superset-fonts]'),
+  ).toBeNull();
 });
 
 test('applies the dashboard theme when no SDK theme config override is active', () => {
