@@ -140,11 +140,17 @@ def _replace_slug_constraint_with_partial_index(bind: Connection) -> None:
             f"ON {TABLE_NAME} (slug) WHERE deleted_at IS NULL"
         )
     elif dialect == "mysql" and _mysql_supports_functional_index(bind):
-        op.execute(f"ALTER TABLE {TABLE_NAME} DROP INDEX {LEGACY_SLUG_INDEX_NAME}")
+        # Create the functional replacement BEFORE dropping the legacy unique
+        # index. MySQL autocommits each DDL statement (unlike PostgreSQL's
+        # transactional DDL above, where a failed CREATE rolls back the DROP),
+        # so a drop-then-create ordering would leave the table with no slug
+        # uniqueness if the CREATE failed. Creating first keeps the stricter
+        # existing uniqueness in place until the replacement is confirmed.
         op.execute(
             f"CREATE UNIQUE INDEX {PARTIAL_SLUG_INDEX_NAME} "
             f"ON {TABLE_NAME} ((CASE WHEN deleted_at IS NULL THEN slug END))"
         )
+        op.execute(f"ALTER TABLE {TABLE_NAME} DROP INDEX {LEGACY_SLUG_INDEX_NAME}")
 
 
 def _restore_slug_constraint(bind: Connection) -> None:
@@ -169,7 +175,10 @@ def _restore_slug_constraint(bind: Connection) -> None:
             f"ADD CONSTRAINT {LEGACY_SLUG_INDEX_NAME} UNIQUE (slug)"
         )
     elif dialect == "mysql" and _mysql_supports_functional_index(bind):
-        op.execute(f"ALTER TABLE {TABLE_NAME} DROP INDEX {PARTIAL_SLUG_INDEX_NAME}")
+        # Symmetric to the upgrade: add the full unique index before dropping
+        # the partial one, so a failed ADD leaves the partial uniqueness intact
+        # rather than no uniqueness (MySQL autocommits each DDL statement).
         op.execute(
             f"ALTER TABLE {TABLE_NAME} ADD UNIQUE INDEX {LEGACY_SLUG_INDEX_NAME} (slug)"
         )
+        op.execute(f"ALTER TABLE {TABLE_NAME} DROP INDEX {PARTIAL_SLUG_INDEX_NAME}")
