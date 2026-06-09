@@ -21,7 +21,7 @@ from marshmallow import validate, ValidationError
 
 from superset.utils import json
 
-ALLOWED_URL_SCHEMES = {"http", "https"}
+ALLOWED_URL_SCHEMES = frozenset({"http", "https"})
 
 
 class OneOfCaseInsensitive(validate.OneOf):

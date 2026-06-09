@@ -145,6 +145,10 @@ def validate_css(value: Union[bytes, bytearray, str, None]) -> None:
     persisted and re-served into the dashboard page. Blocks ``expression(``,
     script-scheme URIs (e.g. ``javascript:``), ``@import``, and ``url(...)``
     referencing a script scheme, while leaving ordinary styling intact.
+
+    CSS escape sequences (e.g. ``\\6a avascript:``) are not expanded before
+    matching, so this validator is a first-line filter and not a complete XSS
+    sanitiser; it should not be treated as a substitute for other defences.
     """
     if not value:
         return
@@ -357,8 +361,8 @@ class DashboardDatasetSchema(Schema):
     @post_dump()
     def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if security_manager.is_guest_user():
-            del serialized["owners"]
-            del serialized["database"]
+            serialized.pop("owners", None)
+            serialized.pop("database", None)
             # Guest users should never receive fields that expose internal
             # connection or query details.
             for key in (

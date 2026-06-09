@@ -22,6 +22,7 @@ from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 
 from superset.dashboards.schemas import (
+    DashboardCopySchema,
     DashboardDatasetSchema,
     DashboardPostSchema,
     DashboardPutSchema,
@@ -147,4 +148,17 @@ def test_dashboard_put_css_rejects_dangerous_constructs() -> None:
     schema = DashboardPutSchema()
     with pytest.raises(ValidationError) as exc_info:
         schema.load({"css": "div { width: expression(alert(1)); }"})
+    assert "css" in exc_info.value.messages
+
+
+def test_dashboard_copy_css_rejects_dangerous_constructs() -> None:
+    """The Copy schema applies the same CSS hardening."""
+    schema = DashboardCopySchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(
+            {
+                "json_metadata": "{}",
+                "css": "div { width: expression(alert(1)); }",
+            }
+        )
     assert "css" in exc_info.value.messages

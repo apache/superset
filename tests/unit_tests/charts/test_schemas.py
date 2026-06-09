@@ -284,9 +284,9 @@ def test_chart_external_url_rejects_non_http(app_context: None, url: str) -> Non
     assert "external_url" in exc_info.value.messages
 
 
-@pytest.mark.parametrize("url", ["https:foo", "http:bar", "https://"])
+@pytest.mark.parametrize("url", ["https:foo", "http:bar", "https://", "//evil.com"])
 def test_chart_external_url_rejects_non_absolute(app_context: None, url: str) -> None:
-    """external_url rejects scheme-only / hostless values"""
+    """external_url rejects scheme-only / hostless / scheme-relative values"""
     schema = ChartPostSchema()
     with pytest.raises(ValidationError) as exc_info:
         schema.load(
