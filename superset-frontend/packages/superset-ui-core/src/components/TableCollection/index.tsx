@@ -27,7 +27,11 @@ import {
 } from 'react-table';
 import { styled } from '@apache-superset/core/theme';
 import { Table, TableSize } from '@superset-ui/core/components/Table';
-import { TableRowSelection, SorterResult } from 'antd/es/table/interface';
+import {
+  ExpandableConfig,
+  TableRowSelection,
+  SorterResult,
+} from 'antd/es/table/interface';
 import { mapColumns, mapRows } from './utils';
 
 interface TableCollectionProps<T extends object> {
@@ -53,6 +57,12 @@ interface TableCollectionProps<T extends object> {
   onPageChange?: (page: number, pageSize: number) => void;
   isPaginationSticky?: boolean;
   showRowCount?: boolean;
+  /**
+   * Opt-in antd expandable-row config (e.g. `expandedRowRender`,
+   * `rowExpandable`). The record passed to the callbacks is the flattened row
+   * (`{ rowId, ...row.original }`). Omit for the default non-expandable table.
+   */
+  expandable?: ExpandableConfig<Record<string, any>>;
 }
 
 const StyledTable = styled(Table)<{
@@ -177,6 +187,7 @@ function TableCollection<T extends object>({
   onPageChange,
   isPaginationSticky = false,
   showRowCount = true,
+  expandable,
 }: TableCollectionProps<T>) {
   const mappedColumns = useMemo(
     () => mapColumns<T>(columns, headerGroups, columnsForWrapText),
@@ -310,6 +321,7 @@ function TableCollection<T extends object>({
       tableLayout="auto"
       rowKey="rowId"
       rowSelection={rowSelection}
+      expandable={expandable}
       locale={{ emptyText: null }}
       sortDirections={['ascend', 'descend', 'ascend']}
       isPaginationSticky={isPaginationSticky}

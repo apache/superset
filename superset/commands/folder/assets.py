@@ -1,0 +1,78 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+import logging
+from functools import partial
+from typing import Any, Optional
+
+from marshmallow import ValidationError
+
+from superset.commands.base import BaseCommand
+from superset.commands.folder.exceptions import (
+    FolderAssetNotFoundValidationError,
+    FolderAssetTypeValidationError,
+    FolderInvalidError,
+    FolderNotFoundError,
+    FolderUpdateFailedError,
+)
+from superset.daos.folder import FolderDAO
+from superset.folders.constants import asset_types_for_folder_type
+from superset.folders.models import Folder
+from superset.utils.decorators import on_error, transaction
+
+logger = logging.getLogger(__name__)
+
+
+class UpdateFolderAssetsCommand(BaseCommand):
+    """Set a folder's asset membership.
+
+    ``assets`` is the full desired membership: listed assets are moved into the
+    folder (from wherever they were), and any of the folder's current assets not
+    in the list are moved back to the root. An empty list empties the folder.
+    """
+
+    def __init__(self, folder_id_or_uuid: str, assets: list[dict[str, Any]]):
+        self._id = folder_id_or_uuid
+        self._assets = assets
+        self._model: Optional[Folder] = None
+
+    @transaction(on_error=partial(on_error, reraise=FolderUpdateFailedError))
+    def run(self) -> Folder:
+        self.validate()
+        assert self._model
+        FolderDAO.set_assets(self._model, self._assets)
+        return self._model
+
+    def validate(self) -> None:
+        self._model = FolderDAO.find_by_id_or_uuid(self._id)
+        if not self._model:
+            raise FolderNotFoundError()
+
+        exceptions: list[ValidationError] = []
+        allowed = set(asset_types_for_folder_type(self._model.folder_type))
+        for asset in self._assets:
+            asset_type = asset["type"]
+            if asset_type not in allowed:
+                exceptions.append(
+                    FolderAssetTypeValidationError(asset_type, self._model.folder_type)
+                )
+            elif not FolderDAO.asset_exists(asset_type, asset["id"]):
+                exceptions.append(
+                    FolderAssetNotFoundValidationError(asset_type, asset["id"])
+                )
+
+        if exceptions:
+            raise FolderInvalidError(exceptions=exceptions)

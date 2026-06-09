@@ -35,6 +35,11 @@ const ChartCreation = lazy(
     import(/* webpackChunkName: "ChartCreation" */ 'src/pages/ChartCreation'),
 );
 
+const AnalyticsList = lazy(
+  () =>
+    import(/* webpackChunkName: "AnalyticsList" */ 'src/pages/AnalyticsList'),
+);
+
 const AnnotationLayerList = lazy(
   () =>
     import(
@@ -234,6 +239,10 @@ export const routes: Routes = [
   {
     path: '/chart/add',
     Component: ChartCreation,
+  },
+  {
+    path: '/analytics/',
+    Component: AnalyticsList,
   },
   {
     path: '/chart/list/',

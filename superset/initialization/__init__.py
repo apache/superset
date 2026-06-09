@@ -174,6 +174,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
         from superset.extensions.view import ExtensionsView
+        from superset.folders.api import FolderRestApi
         from superset.importexport.api import ImportExportRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
@@ -205,6 +206,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.views.dynamic_plugins import DynamicPluginsView
         from superset.views.error_handling import set_app_error_handlers
         from superset.views.explore import ExplorePermalinkView, ExploreView
+        from superset.views.folders import FolderView
         from superset.views.groups import GroupsListView
         from superset.views.log.api import LogRestApi
         from superset.views.logs import ActionLogView
@@ -263,6 +265,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ExploreRestApi)
         appbuilder.add_api(ExploreFormDataRestApi)
         appbuilder.add_api(ExplorePermalinkRestApi)
+        appbuilder.add_api(FolderRestApi)
         appbuilder.add_api(ImportExportRestApi)
         appbuilder.add_api(QueryRestApi)
         appbuilder.add_api(ReportScheduleRestApi)
@@ -306,6 +309,18 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             cond=lambda: bool(current_app.config["LOGO_TARGET_PATH"]),
         )
 
+        # Analytics replaces the standalone Dashboards and Charts menu items as
+        # the primary entry point. Their model views stay registered (below,
+        # without a menu entry) so their routes keep working.
+        appbuilder.add_link(
+            "Analytics",
+            label=_("Analytics"),
+            href="/analytics/",
+            icon="fa-folder-open",
+            category="",
+            category_icon="",
+        )
+
         appbuilder.add_view(
             DatabaseView,
             "Databases",
@@ -314,22 +329,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Data",
             category_label=_("Data"),
         )
-        appbuilder.add_view(
-            DashboardModelView,
-            "Dashboards",
-            label=_("Dashboards"),
-            icon="fa-dashboard",
-            category="",
-            category_icon="",
-        )
-        appbuilder.add_view(
-            SliceModelView,
-            "Charts",
-            label=_("Charts"),
-            icon="fa-bar-chart",
-            category="",
-            category_icon="",
-        )
+        appbuilder.add_view_no_menu(DashboardModelView)
+        appbuilder.add_view_no_menu(SliceModelView)
 
         appbuilder.add_link(
             "Datasets",
@@ -447,6 +448,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(EmbeddedView)
         appbuilder.add_view_no_menu(ExploreView)
         appbuilder.add_view_no_menu(ExplorePermalinkView)
+        appbuilder.add_view_no_menu(FolderView)
         appbuilder.add_view_no_menu(SavedQueryView)
         appbuilder.add_view_no_menu(SqllabView)
         appbuilder.add_view_no_menu(Superset)

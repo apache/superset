@@ -160,10 +160,15 @@ class GetExploreCommand(BaseCommand, ABC):
         metadata = None
 
         if slc:
+            from superset.daos.folder_permissions import FolderPermissionDAO
+
             metadata = {
                 "created_on_humanized": slc.created_on_humanized,
                 "changed_on_humanized": slc.changed_on_humanized,
                 "owners": [owner.get_full_name() for owner in slc.owners],
+                "extra_owners": FolderPermissionDAO.get_folder_editors_as_owners(
+                    chart_id=slc.id
+                ),
                 "dashboards": [
                     {"id": dashboard.id, "dashboard_title": dashboard.dashboard_title}
                     for dashboard in slc.dashboards

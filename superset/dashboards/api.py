@@ -519,6 +519,11 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
             schema = self.dashboard_get_response_schema
 
         result = schema.dump(dash)
+        from superset.daos.folder_permissions import FolderPermissionDAO
+
+        result["extra_owners"] = FolderPermissionDAO.get_folder_editors_as_owners(
+            dashboard_id=dash.id
+        )
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )

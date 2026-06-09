@@ -117,6 +117,20 @@ export {
 export * from './ModalTrigger';
 export { Flex, type FlexProps } from './Flex';
 export {
+  FolderBreadcrumb,
+  FolderList,
+  FolderIcon,
+  FolderOpenIcon,
+  assetTypeIcons,
+  type FolderBreadcrumbItem,
+  type FolderBreadcrumbProps,
+  type Folder,
+  type FolderAsset,
+  type FolderAssetType,
+  type FolderItemType,
+  type FolderListProps,
+} from './Folders';
+export {
   Form,
   FormItem,
   FormLabel,

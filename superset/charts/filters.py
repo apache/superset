@@ -24,6 +24,7 @@ from sqlalchemy.orm.query import Query
 from superset import db, security_manager
 from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
+from superset.folders.models import FolderObject, folder_editors, folder_viewers
 from superset.models.core import FavStar
 from superset.models.slice import Slice
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
@@ -105,11 +106,44 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             return query
 
         table_alias = aliased(SqlaTable)
-        query = query.join(table_alias, self.model.datasource_id == table_alias.id)
-        query = query.join(
-            models.Database, table_alias.database_id == models.Database.id
+        dataset_query = (
+            query.join(table_alias, self.model.datasource_id == table_alias.id)
+            .join(models.Database, table_alias.database_id == models.Database.id)
+            .filter(get_dataset_access_filters(self.model))
         )
-        return query.filter(get_dataset_access_filters(self.model))
+
+        # Folder access: charts accessible via folder viewer/editor membership
+        user_id = get_user_id()
+        folder_access_subquery = (
+            db.session.query(FolderObject.chart_id)
+            .join(
+                folder_viewers,
+                folder_viewers.c.folder_id == FolderObject.folder_id,
+                isouter=True,
+            )
+            .join(
+                folder_editors,
+                folder_editors.c.folder_id == FolderObject.folder_id,
+                isouter=True,
+            )
+            .filter(
+                FolderObject.chart_id.isnot(None),
+                or_(
+                    folder_viewers.c.user_id == user_id,
+                    folder_editors.c.user_id == user_id,
+                ),
+            )
+            .subquery()
+        )
+
+        return query.filter(
+            or_(
+                self.model.id.in_(
+                    dataset_query.with_entities(self.model.id).subquery()
+                ),
+                self.model.id.in_(folder_access_subquery),
+            )
+        )
 
 
 class ChartHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods

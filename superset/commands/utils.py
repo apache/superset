@@ -59,7 +59,12 @@ def populate_owner_list(
         return [g.user]
     if not (security_manager.is_admin() or get_user_id() in owner_ids):
         # make sure non-admins can't remove themselves as owner by mistake
-        owners.append(g.user)
+        # but don't auto-add folder editors who aren't actual owners
+        from superset.daos.folder_permissions import FolderPermissionDAO
+
+        user_id = get_user_id()
+        if not (user_id and FolderPermissionDAO.user_has_any_folder_editor_access(user_id)):
+            owners.append(g.user)
     for owner_id in owner_ids:
         owner = security_manager.get_user_by_id(owner_id)
         if not owner:

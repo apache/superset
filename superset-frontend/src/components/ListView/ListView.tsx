@@ -28,6 +28,7 @@ import {
   ReactNode,
 } from 'react';
 import cx from 'classnames';
+import type { ExpandableConfig } from 'antd/es/table/interface';
 import TableCollection from '@superset-ui/core/components/TableCollection';
 import BulkTagModal from 'src/features/tags/BulkTagModal';
 import {
@@ -308,6 +309,11 @@ export interface ListViewProps<T extends object = any> {
   columnsForWrapText?: string[];
   enableBulkTag?: boolean;
   bulkTagResourceName?: string;
+  /**
+   * Opt-in antd expandable-row config (e.g. `expandedRowRender`,
+   * `rowExpandable`). Callbacks receive the flattened row record.
+   */
+  expandable?: ExpandableConfig<Record<string, any>>;
   /** Optional ref exposed to callers for programmatic filter control. */
   filtersRef?: React.RefObject<{
     clearFilters: () => void;
@@ -339,6 +345,7 @@ export function ListView<T extends object = any>({
   columnsForWrapText,
   enableBulkTag = false,
   bulkTagResourceName,
+  expandable,
   filtersRef,
   addSuccessToast,
   addDangerToast,
@@ -590,6 +597,7 @@ export function ListView<T extends object = any>({
                   setSortBy={setSortBy}
                   rows={rows}
                   columns={columns}
+                  expandable={expandable}
                   loading={loading && rows.length > 0}
                   highlightRowId={highlightRowId}
                   columnsForWrapText={columnsForWrapText}

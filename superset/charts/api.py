@@ -309,6 +309,11 @@ class ChartRestApi(BaseSupersetModelRestApi):
         try:
             dash = ChartDAO.get_by_id_or_uuid(id_or_uuid)
             result = self.chart_get_response_schema.dump(dash)
+            from superset.daos.folder_permissions import FolderPermissionDAO
+
+            result["extra_owners"] = FolderPermissionDAO.get_folder_editors_as_owners(
+                chart_id=dash.id
+            )
             return self.response(200, result=result)
         except ChartNotFoundError:
             return self.response_404()
