@@ -838,7 +838,7 @@ python-dotenv==1.2.2
     #   apache-superset
     #   fastmcp
     #   pydantic-settings
-python-ldap==3.4.5
+python-ldap==3.4.7
     # via apache-superset
 python-multipart==0.0.29
     # via mcp
@@ -1140,7 +1140,7 @@ xlrd==2.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   pandas
-xlsxwriter==3.0.9
+xlsxwriter==3.2.9
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
