@@ -1749,6 +1749,82 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         db.session.delete(model)
         db.session.commit()
 
+    def test_create_dashboard_via_api_links_charts_from_positions(self):
+        """Regression for #32966: creating a dashboard through the REST API with a
+        ``position_json`` / ``json_metadata`` that references a chart should link
+        that chart to the dashboard (populate ``dashboard.slices``), exactly as
+        saving the dashboard through the UI does.
+
+        The create command stores ``position_json`` verbatim but never calls
+        ``DashboardDAO.set_dash_metadata`` (the update command does), so the
+        dashboard-to-slice relationship is left empty and the chart renders
+        "There is no chart definition associated with this component" until the
+        dashboard is edited and re-saved in the UI.
+
+        CI green => the create path now links the referenced charts and merging
+        closes #32966. CI red => the bug is still live; the fix belongs in
+        ``superset/commands/dashboard/create.py`` (mirror the
+        ``set_dash_metadata`` call from ``update.py``).
+        """
+        admin = self.get_user("admin")
+        self.login(ADMIN_USERNAME)
+        chart = self.insert_chart("issue_32966_chart", [admin.id], 1, params="{}")
+        chart_component_id = "CHART-issue32966"
+        positions = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"type": "ROOT", "id": "ROOT_ID", "children": ["GRID_ID"]},
+            "GRID_ID": {
+                "type": "GRID",
+                "id": "GRID_ID",
+                "children": ["ROW-issue32966"],
+                "parents": ["ROOT_ID"],
+            },
+            "ROW-issue32966": {
+                "type": "ROW",
+                "id": "ROW-issue32966",
+                "children": [chart_component_id],
+                "meta": {"background": "BACKGROUND_TRANSPARENT"},
+                "parents": ["ROOT_ID", "GRID_ID"],
+            },
+            chart_component_id: {
+                "type": "CHART",
+                "id": chart_component_id,
+                "children": [],
+                "meta": {
+                    "chartId": chart.id,
+                    "sliceName": chart.slice_name,
+                    "width": 4,
+                    "height": 50,
+                },
+                "parents": ["ROOT_ID", "GRID_ID", "ROW-issue32966"],
+            },
+        }
+        dashboard_data = {
+            "dashboard_title": "issue 32966 dashboard",
+            "slug": "issue-32966",
+            "owners": [admin.id],
+            "position_json": json.dumps(positions),
+            "json_metadata": json.dumps({"positions": positions}),
+            "published": True,
+        }
+        dashboard = None
+        try:
+            uri = "api/v1/dashboard/"
+            rv = self.post_assert_metric(uri, dashboard_data, "post")
+            assert rv.status_code == 201
+            data = json.loads(rv.data.decode("utf-8"))
+            dashboard = db.session.query(Dashboard).get(data.get("id"))
+            slice_ids = [slc.id for slc in dashboard.slices]
+            assert chart.id in slice_ids, (
+                "Chart referenced in position_json was not linked to the "
+                f"dashboard (dashboard.slices={slice_ids}); see issue #32966."
+            )
+        finally:
+            if dashboard is not None:
+                db.session.delete(dashboard)
+            db.session.delete(chart)
+            db.session.commit()
+
     def test_create_simple_dashboard(self):
         """
         Dashboard API: Test create simple dashboard
