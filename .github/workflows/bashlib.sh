@@ -20,10 +20,6 @@ set -e
 GITHUB_WORKSPACE=${GITHUB_WORKSPACE:-.}
 ASSETS_MANIFEST="$GITHUB_WORKSPACE/superset/static/assets/manifest.json"
 
-# Rounded job start time, used to create a unique Cypress build id for
-# parallelization so we can manually rerun a job after 20 minutes
-NONCE=$(echo "$(date "+%Y%m%d%H%M") - ($(date +%M)%20)" | bc)
-
 # Echo only when not in parallel mode
 say() {
   if [[ $(echo "$INPUT_PARALLEL" | tr '[:lower:]' '[:upper:]') != 'TRUE' ]]; then
@@ -55,6 +51,15 @@ build-assets() {
   cd "$GITHUB_WORKSPACE/superset-frontend"
 
   say "::group::Build static assets"
+  npm run build
+  say "::endgroup::"
+}
+
+build-embedded-sdk() {
+  cd "$GITHUB_WORKSPACE/superset-embedded-sdk"
+
+  say "::group::Build embedded SDK bundle for E2E tests"
+  npm ci
   npm run build
   say "::endgroup::"
 }
@@ -276,7 +281,12 @@ playwright-run() {
   cd "$GITHUB_WORKSPACE"
   local serverlog="${HOME}/superset-playwright.log"
   local port=8081
-  PLAYWRIGHT_BASE_URL="http://localhost:${port}"
+  # Use 127.0.0.1 explicitly: `flask run` binds IPv4 only, and Node's DNS
+  # resolution for `localhost` can return `::1` first (IPv6), which then
+  # refuses against the IPv4 listener and surfaces as
+  # `connect ECONNREFUSED ::1:<port>` in API helpers driven from Node
+  # (e.g., the embedded test app's exposed token fetcher).
+  PLAYWRIGHT_BASE_URL="http://127.0.0.1:${port}"
   if [ -n "$APP_ROOT" ]; then
     export SUPERSET_APP_ROOT=$APP_ROOT
     PLAYWRIGHT_BASE_URL=${PLAYWRIGHT_BASE_URL}${APP_ROOT}/
