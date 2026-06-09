@@ -207,9 +207,9 @@ msgstr ""
 msgid "%(label)s file"
 msgstr "%(type)s Plik"
 
-#, fuzzy, python-format
+#, python-format
 msgid "%(name)s.%(extension)s"
-msgstr "Wymiary"
+msgstr ""
 
 #, python-format
 msgid "%(name)s.csv"
@@ -964,9 +964,8 @@ msgstr "Wystąpiło przekroczenie czasu podczas generowania pliku CSV."
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Wystąpiło przekroczenie czasu podczas generowania ramki danych."
 
-#, fuzzy
 msgid "A timeout occurred while generating an xlsx."
-msgstr "Wystąpiło przekroczenie czasu podczas generowania pliku CSV."
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Wystąpiło przekroczenie czasu podczas wykonywania zrzutu ekranu."
@@ -6603,9 +6602,8 @@ msgstr "Przykład"
 msgid "Examples"
 msgstr "Przykłady"
 
-#, fuzzy
 msgid "Excel (XLSX) attached in email"
-msgstr "Sformatowany CSV załączony w e-mailu"
+msgstr ""
 
 #, fuzzy
 msgid "Excel Export"
@@ -11385,11 +11383,8 @@ msgstr ""
 "Wykonanie harmonogramu raportu nie powiodło się podczas generowania "
 "zrzutu ekranu."
 
-#, fuzzy
 msgid "Report Schedule execution failed when generating an xlsx."
 msgstr ""
-"Wykonanie harmonogramu raportu nie powiodło się podczas generowania pliku"
-" CSV."
 
 msgid "Report Schedule execution got an unexpected error."
 msgstr "Wykonanie harmonogramu raportu napotkało nieoczekiwany błąd."
@@ -12801,9 +12796,8 @@ msgstr ""
 msgid "Send as CSV"
 msgstr "Wyślij jako CSV"
 
-#, fuzzy
 msgid "Send as Excel"
-msgstr "Wyślij jako tekst"
+msgstr ""
 
 #, fuzzy
 msgid "Send as PDF"

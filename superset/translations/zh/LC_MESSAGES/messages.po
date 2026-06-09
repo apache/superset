@@ -189,9 +189,9 @@ msgstr "出于安全原因，%(dialect)s SQLite数据库不能用作数据源。
 msgid "%(label)s file"
 msgstr ""
 
-#, fuzzy, python-format
+#, python-format
 msgid "%(name)s.%(extension)s"
-msgstr "维度"
+msgstr ""
 
 #, python-format
 msgid "%(name)s.csv"
@@ -890,9 +890,8 @@ msgstr "生成CSV时超时。"
 msgid "A timeout occurred while generating a dataframe."
 msgstr "生成数据超时"
 
-#, fuzzy
 msgid "A timeout occurred while generating an xlsx."
-msgstr "生成CSV时超时。"
+msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "截图超时"
@@ -6294,9 +6293,8 @@ msgstr "例子"
 msgid "Examples"
 msgstr "示例"
 
-#, fuzzy
 msgid "Excel (XLSX) attached in email"
-msgstr "邮件中附上格式化好的CSV"
+msgstr ""
 
 #, fuzzy
 msgid "Excel Export"
@@ -10957,9 +10955,8 @@ msgstr "在生成 CSV 文件时，报告计划执行失败。"
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr "在生成屏幕截图时，报告计划执行失败。"
 
-#, fuzzy
 msgid "Report Schedule execution failed when generating an xlsx."
-msgstr "在生成 CSV 文件时，报告计划执行失败。"
+msgstr ""
 
 msgid "Report Schedule execution got an unexpected error."
 msgstr "报表计划执行遇到意外错误。"
@@ -12315,9 +12312,8 @@ msgstr ""
 msgid "Send as CSV"
 msgstr "发送为CSV"
 
-#, fuzzy
 msgid "Send as Excel"
-msgstr "发送文本"
+msgstr ""
 
 #, fuzzy
 msgid "Send as PDF"
