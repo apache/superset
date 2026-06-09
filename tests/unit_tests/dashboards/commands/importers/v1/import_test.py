@@ -585,3 +585,44 @@ def test_import_tag_logic_for_dashboards(session_with_schema: Session):
             .all()
         )
         assert len(associated_tags) == 0
+
+
+def test_dashboard_unique_constraints_includes_slug() -> None:
+    """``slug`` must remain an import identity key even though its column-level
+    ``unique=True`` was dropped for soft-delete (DB keeps a partial active-only
+    index). Otherwise a same-slug/different-UUID import inserts and collides on
+    the partial index instead of updating the existing dashboard."""
+    constraints = Dashboard._unique_constraints()
+    assert {"slug"} in constraints
+
+
+def test_dashboard_import_matches_existing_active_by_slug(
+    session_with_schema: Session,
+) -> None:
+    """A re-import whose UUID differs but whose slug matches an existing active
+    dashboard updates that row (matched by slug) rather than inserting a new one
+    and colliding on the active-slug partial index at flush."""
+    from superset import db
+
+    existing = Dashboard(
+        dashboard_title="Original",
+        slug="shared-slug",
+        uuid="11111111-1111-1111-1111-111111111111",
+    )
+    db.session.add(existing)
+    db.session.flush()
+    original_id = existing.id
+
+    obj = Dashboard.import_from_dict(
+        {
+            "uuid": "22222222-2222-2222-2222-222222222222",
+            "slug": "shared-slug",
+            "dashboard_title": "Updated via import",
+        },
+        recursive=False,
+    )
+    db.session.flush()
+
+    assert obj.id == original_id  # matched & updated the existing row by slug
+    assert obj.dashboard_title == "Updated via import"
+    assert db.session.query(Dashboard).filter_by(slug="shared-slug").count() == 1

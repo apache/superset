@@ -217,6 +217,27 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
     ]
     extra_import_fields = ["is_managed_externally", "external_url", "theme_id"]
 
+    @classmethod
+    def _unique_constraints(cls) -> list[set[str]]:
+        """Import identity keys for ``import_from_dict``.
+
+        ``slug`` lost its column-level ``unique=True`` when the full unique
+        constraint was replaced by a partial (active-rows-only) index for
+        soft-delete. ``ImportExportMixin._unique_constraints`` derives import
+        lookup keys from unique columns/constraints, so without this override a
+        re-import whose UUID differs but whose ``slug`` matches an existing
+        active dashboard would no longer be matched-and-updated by slug — it
+        would fall through to an insert and collide on the partial active-slug
+        index at flush. Re-add ``{"slug"}`` here so import keeps matching by
+        slug (the pre-soft-delete behaviour) while DB-level uniqueness stays
+        partial. A ``NULL`` slug is skipped by the importer's filter builder,
+        so this only adds a real lookup when the imported config carries a slug.
+        """
+        constraints = super()._unique_constraints()
+        if {"slug"} not in constraints:
+            constraints.append({"slug"})
+        return constraints
+
     def __repr__(self) -> str:
         return f"Dashboard<{self.id or self.slug}>"
 
