@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import useGetDatasetRelatedCounts from 'src/features/datasets/hooks/useGetDatasetRelatedCounts';
@@ -65,7 +66,13 @@ const TABS_KEYS = {
 
 const EditPage = ({ id }: EditPageProps) => {
   const { usageCount } = useGetDatasetRelatedCounts(id);
-  const lineageResource = useDatasetLineage(id);
+  const [activeKey, setActiveKey] = useState(TABS_KEYS.COLUMNS);
+  // Only fetch lineage once the user opens the Lineage tab to avoid
+  // unnecessary requests/backend load on page load.
+  const lineageResource = useDatasetLineage(
+    id,
+    activeKey !== TABS_KEYS.LINEAGE,
+  );
 
   const usageTab = (
     <TabStyles>
@@ -99,7 +106,14 @@ const EditPage = ({ id }: EditPageProps) => {
     },
   ];
 
-  return <StyledTabs moreIcon={null} items={items} />;
+  return (
+    <StyledTabs
+      moreIcon={null}
+      items={items}
+      activeKey={activeKey}
+      onChange={setActiveKey}
+    />
+  );
 };
 
 export default EditPage;
