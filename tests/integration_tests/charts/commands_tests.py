@@ -462,8 +462,10 @@ class TestChartsUpdateCommand(SupersetTestCase):
     ):
         """
         A query_context-only update relaxes the ownership requirement but must
-        still require access to the chart: a non-owner without access to the
-        chart's datasource is rejected with ChartForbiddenError.
+        still require access to the chart. A non-owner with no access to the
+        chart (nor its datasource) is rejected -- either by the DAO access
+        filter (ChartNotFoundError) or by the explicit access check
+        (ChartForbiddenError), depending on which layer denies first.
         """
         chart = db.session.query(Slice).all()[0]
         pk = chart.id
@@ -478,7 +480,7 @@ class TestChartsUpdateCommand(SupersetTestCase):
             "query_context_generation": True,
             "query_context": json.dumps({"foo": "bar"}),
         }
-        with pytest.raises(ChartForbiddenError):
+        with pytest.raises((ChartForbiddenError, ChartNotFoundError)):
             UpdateChartCommand(pk, json_obj).run()
 
     @patch("superset.commands.chart.update.g")
