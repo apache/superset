@@ -171,13 +171,13 @@ describe('DashboardBuilder', () => {
     // gated by `{% if standalone_mode %}`, so RTL cannot reach it directly.
     // `?standalone=2` maps to DashboardStandaloneMode.HideNavAndTitle, which the
     // DashboardBuilder honours by suppressing the React-side DashboardHeader.
-    const originalSearch = window.location.search;
+    const originalHref = window.location.href;
     window.history.replaceState({}, '', '/?standalone=2');
     try {
       const { queryByTestId } = setup();
       expect(queryByTestId('dashboard-header-container')).not.toBeInTheDocument();
     } finally {
-      window.history.replaceState({}, '', `/${originalSearch}`);
+      window.history.replaceState({}, '', originalHref);
     }
   });
 
