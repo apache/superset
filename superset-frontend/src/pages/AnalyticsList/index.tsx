@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
@@ -160,6 +161,9 @@ function AnalyticsList({
 }) {
   const history = useHistory();
   const theme = useTheme();
+  const currentUserId: number = useSelector<any, number>(
+    state => state.user?.userId,
+  );
   const [loading, setLoading] = useState(true);
   const [items, setItems] = useState<ContentItem[]>([]);
   const [count, setCount] = useState(0);
@@ -902,6 +906,7 @@ function AnalyticsList({
         <FolderPermissionsModal
           folderUuid={folderToManagePerms.uuid ?? ''}
           folderName={folderToManagePerms.name}
+          currentUserId={currentUserId}
           show
           onHide={() => setFolderToManagePerms(null)}
           addDangerToast={addDangerToast}

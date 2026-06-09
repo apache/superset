@@ -636,6 +636,53 @@ class FolderRestApi(BaseSupersetApi):
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
+        # Moving a folder into another folder = update parent_id
+        if asset_type == "folder":
+            from superset.folders.models import Folder
+
+            child_folder = db.session.query(Folder).filter(Folder.id == asset_id).first()
+            if not child_folder:
+                return self.response_404()
+            if child_folder.id == folder.id:
+                return self.response(400, message="Cannot move a folder into itself")
+            child_folder.parent_id = folder.id
+            # Copy parent's permissions to the moved folder
+            from superset.folders.models import folder_editors, folder_viewers
+
+            # Clear existing permissions on the child
+            db.session.execute(
+                folder_editors.delete().where(
+                    folder_editors.c.folder_id == child_folder.id
+                )
+            )
+            db.session.execute(
+                folder_viewers.delete().where(
+                    folder_viewers.c.folder_id == child_folder.id
+                )
+            )
+            # Copy from new parent
+            for row in db.session.execute(
+                folder_editors.select().where(
+                    folder_editors.c.folder_id == folder.id
+                )
+            ).fetchall():
+                db.session.execute(
+                    folder_editors.insert().values(
+                        folder_id=child_folder.id, user_id=row.user_id
+                    )
+                )
+            for row in db.session.execute(
+                folder_viewers.select().where(
+                    folder_viewers.c.folder_id == folder.id
+                )
+            ).fetchall():
+                db.session.execute(
+                    folder_viewers.insert().values(
+                        folder_id=child_folder.id, user_id=row.user_id
+                    )
+                )
+            db.session.commit()
+            return self.response(200, message="OK")
         if not FolderDAO.asset_exists(asset_type, asset_id):
             return self.response_404()
         FolderDAO.assign_assets(folder, [{"type": asset_type, "id": asset_id}])

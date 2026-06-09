@@ -16,11 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
+import rison from 'rison';
 import { SupersetClient } from '@superset-ui/core';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
-import { Button, Input } from '@superset-ui/core/components';
+import {
+  AsyncSelect,
+  Select,
+  Tag,
+  type SelectOptionsTypePage,
+} from '@superset-ui/core/components';
 import { StandardModal } from 'src/components/Modal';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -31,16 +37,14 @@ interface Subject {
   permission: Permission;
 }
 
-interface UserOption {
-  id: number;
-  first_name: string;
-  last_name: string;
-  username: string;
+interface LocalSubject extends Subject {
+  label: string;
 }
 
 interface FolderPermissionsModalProps {
   folderUuid: string;
   folderName: string;
+  currentUserId: number;
   show: boolean;
   onHide: () => void;
   addDangerToast: (msg: string) => void;
@@ -50,112 +54,147 @@ interface FolderPermissionsModalProps {
 const ModalContent = styled.div`
   ${({ theme }) => css`
     padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px;
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.sizeUnit * 3}px;
   `}
 `;
 
-const SubjectRow = styled.div`
-  ${({ theme }) => css`
+const SubjectRow = styled.div<{ isCurrentUser?: boolean }>`
+  ${({ theme, isCurrentUser }) => css`
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    padding: ${theme.sizeUnit * 2}px 0;
-    border-bottom: 1px solid ${theme.colorBorderSecondary};
+    gap: ${theme.sizeUnit * 2}px;
+    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
+    border-radius: ${theme.borderRadius}px;
+    ${isCurrentUser ? `opacity: 0.6;` : ''}
 
-    .subject-info {
-      display: flex;
-      align-items: center;
-      gap: ${theme.sizeUnit * 2}px;
+    &:hover {
+      background: ${isCurrentUser ? 'transparent' : theme.colorBgTextHover};
     }
 
-    .permission-badge {
-      padding: ${theme.sizeUnit / 2}px ${theme.sizeUnit * 2}px;
-      border-radius: ${theme.borderRadius}px;
-      font-size: ${theme.fontSizeSM}px;
-      font-weight: ${theme.fontWeightStrong};
-      cursor: pointer;
-    }
-
-    .permission-editor {
-      background: ${theme.colorInfoBg};
-      color: ${theme.colorInfo};
-    }
-
-    .permission-viewer {
-      background: ${theme.colorSuccessBg};
-      color: ${theme.colorSuccess};
-    }
-
-    .remove-button {
-      cursor: pointer;
-      color: ${theme.colorIcon};
-      &:hover {
-        color: ${theme.colorError};
-      }
+    .subject-name {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   `}
 `;
 
-const UserList = styled.div`
+const SubjectList = styled.div`
   ${({ theme }) => css`
-    max-height: 200px;
+    max-height: 320px;
     overflow-y: auto;
-    margin-top: ${theme.sizeUnit * 2}px;
     border: 1px solid ${theme.colorBorderSecondary};
     border-radius: ${theme.borderRadius}px;
-
-    .user-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
-
-      &:hover {
-        background: ${theme.colorBgTextHover};
-      }
-
-      .user-info {
-        display: flex;
-        align-items: center;
-        gap: ${theme.sizeUnit * 2}px;
-      }
-
-      .add-actions {
-        display: flex;
-        gap: ${theme.sizeUnit}px;
-      }
-    }
   `}
 `;
 
 const SectionLabel = styled.div`
   ${({ theme }) => css`
     font-weight: ${theme.fontWeightStrong};
-    margin-top: ${theme.sizeUnit * 4}px;
-    margin-bottom: ${theme.sizeUnit * 2}px;
+    color: ${theme.colorTextLabel};
+    font-size: ${theme.fontSizeSM}px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
   `}
 `;
+
+const AddRow = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    gap: ${theme.sizeUnit * 2}px;
+    align-items: center;
+  `}
+`;
+
+const PERMISSION_OPTIONS = [
+  { value: 'viewer', label: t('Viewer') },
+  { value: 'editor', label: t('Editor') },
+];
+
+async function fetchUserOptions(
+  filterValue: string,
+  page: number,
+  pageSize: number,
+): Promise<SelectOptionsTypePage> {
+  const query = rison.encode({
+    filter: filterValue,
+    page,
+    page_size: pageSize,
+    order_column: 'username',
+    order_direction: 'asc',
+  });
+  const { json } = await SupersetClient.get({
+    endpoint: `/api/v1/security/users/?q=${query}`,
+  });
+  const results = json?.result || [];
+  return {
+    data: results.map(
+      (u: {
+        id: number;
+        first_name: string;
+        last_name: string;
+        username: string;
+      }) => ({
+        value: u.id,
+        label: `${u.first_name} ${u.last_name} (${u.username})`,
+      }),
+    ),
+    totalCount: json?.count ?? 0,
+  };
+}
 
 export default function FolderPermissionsModal({
   folderUuid,
   folderName,
+  currentUserId,
   show,
   onHide,
   addDangerToast,
   addSuccessToast,
 }: FolderPermissionsModalProps) {
   const theme = useTheme();
-  const [subjects, setSubjects] = useState<Subject[]>([]);
-  const [allUsers, setAllUsers] = useState<UserOption[]>([]);
+  const [serverSubjects, setServerSubjects] = useState<LocalSubject[]>([]);
+  const [localSubjects, setLocalSubjects] = useState<LocalSubject[]>([]);
   const [loading, setLoading] = useState(false);
-  const [search, setSearch] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [addPermission, setAddPermission] = useState<Permission>('viewer');
 
   const fetchSubjects = useCallback(async () => {
     setLoading(true);
     try {
-      const { json } = await SupersetClient.get({
-        endpoint: `/api/v1/folders/${folderUuid}/subjects`,
-      });
-      setSubjects((json.result as Subject[]) || []);
+      const [subjectsRes, usersRes] = await Promise.all([
+        SupersetClient.get({
+          endpoint: `/api/v1/folders/${folderUuid}/subjects`,
+        }),
+        SupersetClient.get({
+          endpoint: '/api/v1/security/users/?q=(page_size:1000,page:0)',
+        }),
+      ]);
+      const subjects = (subjectsRes.json.result as Subject[]) || [];
+      const users =
+        (usersRes.json.result as {
+          id: number;
+          first_name: string;
+          last_name: string;
+          username: string;
+        }[]) || [];
+      const userMap = new Map(
+        users.map(u => [
+          u.id,
+          `${u.first_name} ${u.last_name} (${u.username})`,
+        ]),
+      );
+
+      const enriched: LocalSubject[] = subjects.map(s => ({
+        ...s,
+        label: userMap.get(s.user_id) || t('User %s', s.user_id),
+      }));
+      setServerSubjects(enriched);
+      setLocalSubjects(enriched);
     } catch {
       addDangerToast(t('Error loading permissions'));
     } finally {
@@ -163,193 +202,273 @@ export default function FolderPermissionsModal({
     }
   }, [folderUuid, addDangerToast]);
 
-  const fetchUsers = useCallback(async () => {
-    try {
-      const { json } = await SupersetClient.get({
-        endpoint: '/api/v1/security/users/?q=(page_size:100,page:0)',
-      });
-      setAllUsers((json.result as UserOption[]) || []);
-    } catch {
-      addDangerToast(t('Error loading users'));
-    }
-  }, [addDangerToast]);
-
   useEffect(() => {
     if (show) {
       fetchSubjects();
-      fetchUsers();
-      setSearch('');
+      setAddPermission('viewer');
     }
-  }, [show, fetchSubjects, fetchUsers]);
+  }, [show, fetchSubjects]);
 
-  const handleAddSubject = useCallback(
-    async (userId: number, permission: Permission) => {
-      try {
-        await SupersetClient.post({
-          endpoint: `/api/v1/folders/${folderUuid}/subjects`,
-          jsonPayload: { user_id: userId, permission },
-        });
-        addSuccessToast(t('Permission added'));
-        fetchSubjects();
-      } catch {
-        addDangerToast(t('Error adding permission'));
-      }
+  const handleAddUser = useCallback(
+    (value: number, option: { label: string }) => {
+      if (!value) return;
+      setLocalSubjects(prev => {
+        if (prev.some(s => s.user_id === value)) return prev;
+        return [
+          ...prev,
+          { user_id: value, permission: addPermission, label: option.label },
+        ];
+      });
     },
-    [folderUuid, addSuccessToast, addDangerToast, fetchSubjects],
+    [addPermission],
   );
 
-  const handleTogglePermission = useCallback(
-    async (userId: number, currentPermission: Permission) => {
-      const newPerm: Permission =
-        currentPermission === 'viewer' ? 'editor' : 'viewer';
-      try {
-        await SupersetClient.put({
-          endpoint: `/api/v1/folders/${folderUuid}/subjects/${userId}`,
-          jsonPayload: { permission: newPerm },
-        });
-        addSuccessToast(t('Permission updated'));
-        fetchSubjects();
-      } catch {
-        addDangerToast(t('Error updating permission'));
-      }
+  const handleChangePermission = useCallback(
+    (userId: number, permission: Permission) => {
+      if (userId === currentUserId) return;
+      setLocalSubjects(prev =>
+        prev.map(s => (s.user_id === userId ? { ...s, permission } : s)),
+      );
     },
-    [folderUuid, addSuccessToast, addDangerToast, fetchSubjects],
+    [currentUserId],
   );
 
   const handleRemoveSubject = useCallback(
-    async (userId: number) => {
-      try {
-        await SupersetClient.delete({
-          endpoint: `/api/v1/folders/${folderUuid}/subjects/${userId}`,
-        });
-        addSuccessToast(t('Permission removed'));
-        fetchSubjects();
-      } catch {
-        addDangerToast(t('Error removing permission'));
-      }
+    (userId: number) => {
+      if (userId === currentUserId) return;
+      setLocalSubjects(prev => prev.filter(s => s.user_id !== userId));
     },
-    [folderUuid, addSuccessToast, addDangerToast, fetchSubjects],
+    [currentUserId],
   );
 
-  const subjectUserIds = new Set(subjects.map(s => s.user_id));
+  const handleSave = useCallback(async () => {
+    setSaving(true);
+    try {
+      const serverMap = new Map(
+        serverSubjects.map(s => [s.user_id, s.permission]),
+      );
+      const localMap = new Map(
+        localSubjects.map(s => [s.user_id, s.permission]),
+      );
 
-  const availableUsers = allUsers.filter(u => {
-    if (subjectUserIds.has(u.id)) return false;
-    if (!search) return true;
-    const name = `${u.first_name} ${u.last_name} ${u.username}`.toLowerCase();
-    return name.includes(search.toLowerCase());
-  });
+      const calls: Promise<unknown>[] = [];
 
-  const getUserName = (userId: number) => {
-    const user = allUsers.find(u => u.id === userId);
-    if (user) return `${user.first_name} ${user.last_name}`;
-    return t('User %s', userId);
-  };
+      for (const [userId, permission] of localMap) {
+        if (!serverMap.has(userId)) {
+          calls.push(
+            SupersetClient.post({
+              endpoint: `/api/v1/folders/${folderUuid}/subjects`,
+              jsonPayload: { user_id: userId, permission },
+            }),
+          );
+        }
+      }
+
+      for (const [userId] of serverMap) {
+        if (!localMap.has(userId)) {
+          calls.push(
+            SupersetClient.delete({
+              endpoint: `/api/v1/folders/${folderUuid}/subjects/${userId}`,
+            }),
+          );
+        }
+      }
+
+      for (const [userId, permission] of localMap) {
+        const serverPerm = serverMap.get(userId);
+        if (serverPerm && serverPerm !== permission) {
+          calls.push(
+            SupersetClient.put({
+              endpoint: `/api/v1/folders/${folderUuid}/subjects/${userId}`,
+              jsonPayload: { permission },
+            }),
+          );
+        }
+      }
+
+      await Promise.all(calls);
+      addSuccessToast(t('Permissions updated'));
+      onHide();
+    } catch {
+      addDangerToast(t('Error updating permissions'));
+    } finally {
+      setSaving(false);
+    }
+  }, [
+    folderUuid,
+    serverSubjects,
+    localSubjects,
+    addSuccessToast,
+    addDangerToast,
+    onHide,
+  ]);
+
+  const hasChanges = useMemo(() => {
+    if (serverSubjects.length !== localSubjects.length) return true;
+    const serverMap = new Map(
+      serverSubjects.map(s => [s.user_id, s.permission]),
+    );
+    return localSubjects.some(s => serverMap.get(s.user_id) !== s.permission);
+  }, [serverSubjects, localSubjects]);
+
+  const existingUserIdsRef = useRef(new Set<number>());
+  existingUserIdsRef.current = new Set(localSubjects.map(s => s.user_id));
+
+  const filteredUserOptions = useCallback(
+    async (search: string, page: number, pageSize: number) => {
+      const result = await fetchUserOptions(search, page, pageSize);
+      return {
+        ...result,
+        data: result.data.filter(
+          (opt: { value: number }) =>
+            !existingUserIdsRef.current.has(opt.value),
+        ),
+      };
+    },
+    [],
+  );
 
   return (
     <StandardModal
       title={t('Manage permissions — %s', folderName)}
       show={show}
       onHide={onHide}
-      onSave={onHide}
-      saveText={t('Done')}
+      onSave={handleSave}
+      saveText={t('Save')}
+      saveLoading={saving}
+      saveDisabled={!hasChanges}
     >
       <ModalContent>
-        <SectionLabel>
-          {t('Current permissions')} ({subjects.length})
-        </SectionLabel>
-        {loading ? (
-          <p>{t('Loading...')}</p>
-        ) : subjects.length === 0 ? (
-          <p css={{ color: theme.colorTextSecondary }}>
-            {t('No permissions set on this folder.')}
-          </p>
-        ) : (
-          subjects.map(subject => (
-            <SubjectRow key={subject.user_id}>
-              <div className="subject-info">
-                <Icons.UserOutlined iconSize="m" />
-                <span>{getUserName(subject.user_id)}</span>
-                <span
-                  className={`permission-badge permission-${subject.permission}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() =>
-                    handleTogglePermission(subject.user_id, subject.permission)
-                  }
-                  onKeyDown={e => {
-                    if (e.key === 'Enter')
-                      handleTogglePermission(
-                        subject.user_id,
-                        subject.permission,
-                      );
-                  }}
-                  title={t('Click to toggle')}
-                >
-                  {subject.permission}
-                </span>
-              </div>
-              <div className="subject-actions">
-                <span
-                  className="remove-button"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => handleRemoveSubject(subject.user_id)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') handleRemoveSubject(subject.user_id);
-                  }}
-                >
-                  <Icons.DeleteOutlined iconSize="m" />
-                </span>
-              </div>
-            </SubjectRow>
-          ))
-        )}
+        <div>
+          <SectionLabel>{t('Add user')}</SectionLabel>
+          <AddRow css={{ marginTop: theme.sizeUnit }}>
+            <div css={{ flex: 1 }}>
+              <AsyncSelect
+                ariaLabel={t('Search users')}
+                placeholder={t('Search for a user…')}
+                options={filteredUserOptions}
+                onSelect={(value: number, option: { label: string }) =>
+                  handleAddUser(value, option)
+                }
+                value={null}
+                getPopupContainer={trigger =>
+                  trigger.closest('.ant-modal-content') || document.body
+                }
+              />
+            </div>
+            <Select
+              ariaLabel={t('Permission level')}
+              options={PERMISSION_OPTIONS}
+              value={addPermission}
+              onChange={(val: Permission) => setAddPermission(val)}
+              css={{ width: 120 }}
+              getPopupContainer={trigger =>
+                trigger.closest('.ant-modal-content') || document.body
+              }
+            />
+          </AddRow>
+        </div>
 
-        <SectionLabel>{t('Add users')}</SectionLabel>
-        <Input
-          placeholder={t('Search users...')}
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          allowClear
-        />
-        <UserList>
-          {availableUsers.length === 0 ? (
-            <p css={{ padding: 12, color: theme.colorTextSecondary }}>
-              {search ? t('No users found') : t('All users already added')}
+        <div>
+          <SectionLabel>
+            {t('Members')} ({localSubjects.length})
+          </SectionLabel>
+          {loading ? (
+            <p
+              css={{
+                color: theme.colorTextSecondary,
+                padding: theme.sizeUnit * 2,
+              }}
+            >
+              {t('Loading…')}
+            </p>
+          ) : localSubjects.length === 0 ? (
+            <p
+              css={{
+                color: theme.colorTextSecondary,
+                padding: theme.sizeUnit * 2,
+              }}
+            >
+              {t('No permissions set. Add users above.')}
             </p>
           ) : (
-            availableUsers.map(user => (
-              <div className="user-row" key={user.id}>
-                <div className="user-info">
-                  <Icons.UserOutlined iconSize="m" />
-                  <span>
-                    {user.first_name} {user.last_name}
-                  </span>
-                  <span css={{ color: theme.colorTextSecondary, fontSize: 12 }}>
-                    @{user.username}
-                  </span>
-                </div>
-                <div className="add-actions">
-                  <Button
-                    buttonStyle="secondary"
-                    buttonSize="xsmall"
-                    onClick={() => handleAddSubject(user.id, 'viewer')}
+            <SubjectList>
+              {localSubjects.map(subject => {
+                const isCurrentUser = subject.user_id === currentUserId;
+                return (
+                  <SubjectRow
+                    key={subject.user_id}
+                    isCurrentUser={isCurrentUser}
                   >
-                    + {t('Viewer')}
-                  </Button>
-                  <Button
-                    buttonStyle="secondary"
-                    buttonSize="xsmall"
-                    onClick={() => handleAddSubject(user.id, 'editor')}
-                  >
-                    + {t('Editor')}
-                  </Button>
-                </div>
-              </div>
-            ))
+                    <Icons.UserOutlined
+                      iconSize="m"
+                      css={{ color: theme.colorIcon, flexShrink: 0 }}
+                    />
+                    <span className="subject-name">
+                      {subject.label}
+                      {isCurrentUser && (
+                        <span
+                          css={{
+                            color: theme.colorTextSecondary,
+                            fontSize: theme.fontSizeSM,
+                            marginLeft: 4,
+                          }}
+                        >
+                          ({t('you')})
+                        </span>
+                      )}
+                    </span>
+                    {isCurrentUser ? (
+                      <Tag
+                        color={
+                          subject.permission === 'editor' ? 'blue' : 'green'
+                        }
+                      >
+                        {subject.permission === 'editor'
+                          ? t('Editor')
+                          : t('Viewer')}
+                      </Tag>
+                    ) : (
+                      <>
+                        <Select
+                          ariaLabel={t('Permission')}
+                          options={PERMISSION_OPTIONS}
+                          value={subject.permission}
+                          onChange={(val: Permission) =>
+                            handleChangePermission(subject.user_id, val)
+                          }
+                          css={{ width: 110 }}
+                          getPopupContainer={trigger =>
+                            trigger.closest('.ant-modal-content') ||
+                            document.body
+                          }
+                        />
+                        <Icons.DeleteOutlined
+                          iconSize="m"
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => handleRemoveSubject(subject.user_id)}
+                          onKeyDown={(e: React.KeyboardEvent) => {
+                            if (e.key === 'Enter')
+                              handleRemoveSubject(subject.user_id);
+                          }}
+                          css={css`
+                            cursor: pointer;
+                            color: ${theme.colorIcon};
+                            flex-shrink: 0;
+                            &:hover {
+                              color: ${theme.colorError};
+                            }
+                          `}
+                        />
+                      </>
+                    )}
+                  </SubjectRow>
+                );
+              })}
+            </SubjectList>
           )}
-        </UserList>
+        </div>
       </ModalContent>
     </StandardModal>
   );

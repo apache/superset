@@ -275,14 +275,35 @@ export default function FolderAssetsModal({
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      const payloadAssets = Array.from(selected).map(key => {
+      const all = Array.from(selected).map(key => {
         const [type, id] = key.split('-');
         return { type, id: parseInt(id, 10) };
       });
-      await SupersetClient.put({
-        endpoint: `/api/v1/folders/${folderUuid}/assets`,
-        jsonPayload: { assets: payloadAssets },
-      });
+      // Separate folders from assets — folders use parent_id update,
+      // assets use the bulk PUT endpoint
+      const assetPayload = all.filter(a => a.type !== 'folder');
+      const folderPayload = all.filter(a => a.type === 'folder');
+
+      const calls: Promise<unknown>[] = [];
+
+      // Update assets via bulk PUT
+      calls.push(
+        SupersetClient.put({
+          endpoint: `/api/v1/folders/${folderUuid}/assets`,
+          jsonPayload: { assets: assetPayload },
+        }),
+      );
+
+      // Move each selected folder into this folder via single-asset PUT
+      for (const f of folderPayload) {
+        calls.push(
+          SupersetClient.put({
+            endpoint: `/api/v1/folders/${folderUuid}/assets/folder/${f.id}`,
+          }),
+        );
+      }
+
+      await Promise.all(calls);
       addSuccessToast(t('Updated assets in %s', folderName));
       onSuccess();
       onHide();
