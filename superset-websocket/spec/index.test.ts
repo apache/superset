@@ -43,7 +43,7 @@ const mockRedisXrange = jest.fn() as jest.MockedFunction<MockedRedisXrange>;
 jest.mock('ws');
 jest.mock('ioredis', () => {
   return jest.fn().mockImplementation(() => {
-    return { xrange: mockRedisXrange };
+    return { xrange: mockRedisXrange, on: jest.fn() };
   });
 });
 
@@ -526,6 +526,8 @@ describe('server', () => {
       server.httpUpgrade(request, socket, Buffer.alloc(5));
       expect(socketDestroySpy).toHaveBeenCalled();
       expect(wssUpgradeSpy).not.toHaveBeenCalled();
+      // rejected upgrades are counted for auditability
+      expect(statsdIncrementMock).toHaveBeenCalledWith('ws_upgrade_rejected');
     });
 
     test('valid JWT, no channel', async () => {
