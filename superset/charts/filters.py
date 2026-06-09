@@ -199,8 +199,36 @@ class ChartOwnedCreatedFavoredByMeFilter(BaseFilter):  # pylint: disable=too-few
         )
 
 
-class ChartDeletedStateFilter(BaseDeletedStateFilter):  # pylint: disable=too-few-public-methods
-    """Rison filter for the GET list that exposes soft-deleted charts."""
+class ChartDeletedStateFilter(  # pylint: disable=too-few-public-methods
+    BaseDeletedStateFilter
+):
+    """Rison filter for the GET list that exposes soft-deleted charts.
+
+    Soft-deleted rows are additionally scoped to the **restore audience**: only
+    the chart's owners (or admins) may enumerate them. This mirrors
+    ``RestoreChartCommand``'s ``raise_for_ownership`` check, so a read-access
+    non-owner (who can see the chart via datasource access) cannot list
+    soft-deleted charts they could never restore. Live rows are unaffected —
+    they keep their normal ``ChartFilter`` visibility. Kept consistent with
+    ``DashboardDeletedStateFilter``.
+    """
 
     arg_name = "chart_deleted_state"
     model = Slice
+
+    def apply(self, query: Query, value: Any) -> Query:
+        query = super().apply(query, value)
+        normalized = str(value).lower().strip() if value is not None else ""
+        if normalized not in {"include", "only"} or security_manager.is_admin():
+            return query
+
+        # Non-admins may only see soft-deleted charts they own. ``any()`` emits
+        # an EXISTS subquery so it composes with the base access filter without
+        # producing duplicate rows from a join.
+        owned = Slice.owners.any(security_manager.user_model.id == get_user_id())
+        if normalized == "only":
+            # ``super().apply`` already restricted to ``deleted_at IS NOT NULL``.
+            return query.filter(owned)
+        # ``include``: keep all live rows (normal access) and add only the
+        # soft-deleted rows this user owns.
+        return query.filter(or_(Slice.deleted_at.is_(None), owned))

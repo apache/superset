@@ -16,6 +16,10 @@
 # under the License.
 """Integration tests for chart soft-delete and restore."""
 
+from datetime import datetime
+
+from superset import security_manager
+from superset.connectors.sqla.models import SqlaTable
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.extensions import db
 from superset.models.dashboard import Dashboard, dashboard_slices
@@ -27,7 +31,11 @@ from superset.reports.models import (
 )
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    ALPHA_USERNAME,
+    GAMMA_USERNAME,
+)
 from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
 
@@ -160,6 +168,89 @@ class TestChartSoftDelete(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(live_id)
         _hard_delete_chart(deleted_id)
+
+    def test_deleted_state_list_shows_owner_their_own_deleted(self) -> None:
+        """A non-admin owner can still enumerate their own soft-deleted charts.
+        Deleted-state scoping mirrors the restore audience, so it must not lock
+        owners out of their own trash."""
+        alpha_id = self.get_user(ALPHA_USERNAME).id
+        chart = self.insert_chart("sd_owner_chart", [alpha_id], 1)
+        chart_id = chart.id
+
+        chart.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(ALPHA_USERNAME)
+        rison_query = (
+            "(filters:!((col:id,opr:chart_deleted_state,value:only)),page_size:200)"
+        )
+        rv = self.client.get(f"/api/v1/chart/?q={rison_query}")
+        assert rv.status_code == 200
+        ids = [c["id"] for c in json.loads(rv.data)["result"]]
+        assert chart_id in ids
+
+        # Cleanup
+        _hard_delete_chart(chart_id)
+
+    def test_deleted_state_list_hides_non_owned_from_read_access_user(self) -> None:
+        """A read-access non-owner must not enumerate a chart once it is
+        soft-deleted.
+
+        Gamma is granted ``datasource_access`` to the chart's dataset, so
+        ``ChartFilter`` makes the chart visible to gamma while it is live. After
+        soft-delete, the deleted-state list is scoped to the restore audience
+        (owners/admins), so gamma — who could never restore it — must not see it
+        via ``include`` or ``only``.
+        """
+        admin_id = self.get_user(ADMIN_USERNAME).id
+        chart = self.insert_chart("sd_acl_chart", [admin_id], 1)
+        chart_id = chart.id
+
+        table = db.session.query(SqlaTable).get(1)
+        gamma_role = security_manager.find_role("Gamma")
+        pvm = security_manager.add_permission_view_menu("datasource_access", table.perm)
+        gamma_role.permissions.append(pvm)
+        db.session.commit()
+
+        try:
+            # Precondition: gamma can see the chart while it is live.
+            self.login(GAMMA_USERNAME)
+            rv = self.client.get("/api/v1/chart/?q=(page_size:200)")
+            assert chart_id in [c["id"] for c in json.loads(rv.data)["result"]], (
+                "precondition: gamma should see the live chart via datasource access"
+            )
+
+            # Soft-delete directly (avoids a mid-test re-login to admin).
+            reloaded = (
+                db.session.query(Slice)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Slice}})
+                .filter(Slice.id == chart_id)
+                .one()
+            )
+            reloaded.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+            db.session.commit()
+
+            # Gamma must not see the soft-deleted chart in either mode.
+            for value in ("include", "only"):
+                rison_query = (
+                    f"(filters:!((col:id,opr:chart_deleted_state,value:{value})),"
+                    "page_size:200)"
+                )
+                rv = self.client.get(f"/api/v1/chart/?q={rison_query}")
+                assert rv.status_code == 200
+                ids = [c["id"] for c in json.loads(rv.data)["result"]]
+                assert chart_id not in ids, (
+                    "read-access non-owner must not enumerate a soft-deleted "
+                    f"chart via chart_deleted_state={value}"
+                )
+        finally:
+            pvm = security_manager.find_permission_view_menu(
+                "datasource_access", table.perm
+            )
+            if pvm:
+                security_manager.del_permission_role(gamma_role, pvm)
+            db.session.commit()
+            _hard_delete_chart(chart_id)
 
     def test_delete_already_soft_deleted_chart_returns_404(self) -> None:
         """DELETE on an already soft-deleted chart returns 404 (FR-008)."""
