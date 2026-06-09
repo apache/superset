@@ -40,6 +40,7 @@ type MapProviderControlConfig = typeof mapProvider.config & {
   mapStateToProps: (state: ControlPanelState) => {
     options?: unknown;
     warning?: string;
+    default?: unknown;
   };
 };
 
@@ -47,6 +48,16 @@ const getMapProviderProps = (value?: string) =>
   (mapProvider.config as MapProviderControlConfig).mapStateToProps({
     form_data: { map_renderer: value },
   } as unknown as ControlPanelState);
+
+type MapLibreStyleControlConfig = typeof maplibreStyle.config & {
+  mapStateToProps: () => {
+    choices: unknown;
+    default: unknown;
+  };
+};
+
+const getMapLibreStyleProps = () =>
+  (maplibreStyle.config as MapLibreStyleControlConfig).mapStateToProps();
 
 test('deck.gl MapLibre style choices expose Streets (OSM)', () => {
   expect(maplibreStyle.config.choices).toContainEqual([
@@ -94,46 +105,32 @@ test('deck.gl map renderer keeps the original explanatory description', () => {
   );
 });
 
-test('deck.gl map renderer defaults to configured Mapbox when a key exists', async () => {
-  jest.resetModules();
+test('deck.gl map renderer defaults to configured Mapbox when a key exists', () => {
   setBootstrap({
     conf: { DEFAULT_MAP_RENDERER: 'mapbox', MAPBOX_API_KEY: 'pk.test' },
   });
 
-  const { mapProvider: mapProviderWithMapboxDefault } =
-    await import('./Shared_DeckGL');
-
-  expect(mapProviderWithMapboxDefault.config.default).toBe('mapbox');
+  expect(getMapProviderProps('maplibre').default).toBe('mapbox');
 });
 
-test('deck.gl map renderer falls back from configured Mapbox default without a key', async () => {
-  jest.resetModules();
+test('deck.gl map renderer falls back from configured Mapbox default without a key', () => {
   setBootstrap({ conf: { DEFAULT_MAP_RENDERER: 'mapbox' } });
 
-  const { mapProvider: mapProviderWithoutKey } =
-    await import('./Shared_DeckGL');
-
-  expect(mapProviderWithoutKey.config.default).toBe('maplibre');
+  expect(getMapProviderProps('maplibre').default).toBe('maplibre');
 });
 
-test('deck.gl map style falls back to default tiles for empty overrides', async () => {
-  jest.resetModules();
+test('deck.gl map style falls back to default tiles for empty overrides', () => {
   setBootstrap({ deckglTiles: [] });
 
-  const { maplibreStyle: maplibreStyleWithEmptyOverride } =
-    await import('./Shared_DeckGL');
+  const props = getMapLibreStyleProps();
 
-  expect(maplibreStyleWithEmptyOverride.config.choices).toContainEqual([
-    OSM_TILE_STYLE_URL,
-    'Streets (OSM)',
-  ]);
-  expect(maplibreStyleWithEmptyOverride.config.default).toBe(
+  expect(props.choices).toContainEqual([OSM_TILE_STYLE_URL, 'Streets (OSM)']);
+  expect(props.default).toBe(
     'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
   );
 });
 
-test('deck.gl map style falls back to default tiles for malformed overrides', async () => {
-  jest.resetModules();
+test('deck.gl map style falls back to default tiles for malformed overrides', () => {
   setBootstrap({
     deckglTiles: [
       ['https://tiles.example.com/{z}/{x}/{y}.png'],
@@ -142,31 +139,23 @@ test('deck.gl map style falls back to default tiles for malformed overrides', as
     ],
   });
 
-  const { maplibreStyle: maplibreStyleWithMalformedOverride } =
-    await import('./Shared_DeckGL');
+  const props = getMapLibreStyleProps();
 
-  expect(maplibreStyleWithMalformedOverride.config.choices).toContainEqual([
-    OSM_TILE_STYLE_URL,
-    'Streets (OSM)',
-  ]);
-  expect(maplibreStyleWithMalformedOverride.config.default).toBe(
+  expect(props.choices).toContainEqual([OSM_TILE_STYLE_URL, 'Streets (OSM)']);
+  expect(props.default).toBe(
     'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
   );
 });
 
-test('deck.gl map style accepts well-formed tile overrides', async () => {
-  jest.resetModules();
+test('deck.gl map style accepts well-formed tile overrides', () => {
   setBootstrap({
     deckglTiles: [['https://tiles.example.com/style.json', 'Custom']],
   });
 
-  const { maplibreStyle: maplibreStyleWithCustomOverride } =
-    await import('./Shared_DeckGL');
+  const props = getMapLibreStyleProps();
 
-  expect(maplibreStyleWithCustomOverride.config.choices).toEqual([
+  expect(props.choices).toEqual([
     ['https://tiles.example.com/style.json', 'Custom'],
   ]);
-  expect(maplibreStyleWithCustomOverride.config.default).toBe(
-    'https://tiles.example.com/style.json',
-  );
+  expect(props.default).toBe('https://tiles.example.com/style.json');
 });

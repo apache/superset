@@ -17,7 +17,7 @@
 """migrate mapbox and deckgl charts to point_cluster_map
 
 Revision ID: ce6bd21901ab
-Revises: 4b2a8c9d3e1f
+Revises: a1b2c3d4e5f6
 Create Date: 2026-03-02 00:00:00.000000
 
 

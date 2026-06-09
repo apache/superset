@@ -62,8 +62,6 @@ type MapStyleVisibilityProps = {
   };
 };
 
-let deckglTiles: DeckGLTileChoice[];
-
 export const DEFAULT_DECKGL_TILES: DeckGLTileChoice[] = [
   [
     'https://basemaps.cartocdn.com/gl/positron-gl-style/style.json',
@@ -104,18 +102,23 @@ const isDeckGLTileChoices = (value: unknown): value is DeckGLTileChoice[] =>
   );
 
 const getDeckGLTiles = () => {
-  if (!deckglTiles) {
-    const bootstrapData = getBootstrapDataFromDocument();
-    const deckglTilesOverride = (
-      bootstrapData as {
-        common?: { deckgl_tiles?: unknown };
-      } | null
-    )?.common?.deckgl_tiles;
-    deckglTiles = isDeckGLTileChoices(deckglTilesOverride)
-      ? deckglTilesOverride
-      : DEFAULT_DECKGL_TILES;
-  }
-  return deckglTiles;
+  const bootstrapData = getBootstrapDataFromDocument();
+  const deckglTilesOverride = (
+    bootstrapData as {
+      common?: { deckgl_tiles?: unknown };
+    } | null
+  )?.common?.deckgl_tiles;
+  return isDeckGLTileChoices(deckglTilesOverride)
+    ? deckglTilesOverride
+    : DEFAULT_DECKGL_TILES;
+};
+
+const getMapLibreStyleProps = () => {
+  const choices = getDeckGLTiles();
+  return {
+    choices,
+    default: choices[0][0],
+  };
 };
 
 const getLabeledMapRendererOptions = ({
@@ -510,7 +513,7 @@ export const mapProvider = {
     options: getLabeledMapRendererOptions({
       hasMapboxKey: hasMapboxApiKey(),
     }),
-    default: getDefaultMapRenderer(),
+    default: 'maplibre',
     description: t(
       'Select the map tile provider. MapLibre is open-source and requires no API key. ' +
         'Mapbox requires MAPBOX_API_KEY to be configured in Superset.',
@@ -524,6 +527,7 @@ export const mapProvider = {
             | MapProvider
             | undefined,
         }),
+        default: getDefaultMapRenderer(),
       };
     },
   },
@@ -537,13 +541,14 @@ export const maplibreStyle = {
     clearable: false,
     renderTrigger: true,
     freeForm: true,
-    choices: getDeckGLTiles(),
-    default: getDeckGLTiles()[0][0],
+    choices: DEFAULT_DECKGL_TILES,
+    default: DEFAULT_DECKGL_TILES[0][0],
     description: t(
       'Base layer map style. Accepts a MapLibre-compatible style URL.',
     ),
     visibility: ({ controls }: MapStyleVisibilityProps) =>
       controls?.map_renderer?.value !== 'mapbox',
+    mapStateToProps: getMapLibreStyleProps,
   },
 };
 

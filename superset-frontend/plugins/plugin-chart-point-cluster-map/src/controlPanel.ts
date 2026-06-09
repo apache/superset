@@ -208,14 +208,16 @@ const config: ControlPanelConfig = {
               clearable: false,
               renderTrigger: true,
               options: getPointClusterMapRendererProps().options,
-              default: getDefaultMapRenderer(),
+              default: 'maplibre',
               description: t(
                 'MapLibre is open-source and requires no API key. Mapbox requires MAPBOX_API_KEY to be configured on the server.',
               ),
-              mapStateToProps: (state: ControlPanelState) =>
-                getPointClusterMapRendererProps(
+              mapStateToProps: (state: ControlPanelState) => ({
+                ...getPointClusterMapRendererProps(
                   state.form_data?.map_renderer as MapProvider | undefined,
                 ),
+                default: getDefaultMapRenderer(),
+              }),
             },
           },
         ],

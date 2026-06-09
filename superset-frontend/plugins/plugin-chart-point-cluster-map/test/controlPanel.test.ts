@@ -60,6 +60,7 @@ type RendererControlConfig = ControlConfig & {
   mapStateToProps: (state: ControlPanelState) => {
     options?: unknown;
     warning?: string;
+    default?: unknown;
   };
 };
 
@@ -147,29 +148,17 @@ test('map renderer keeps the original explanatory description', () => {
   );
 });
 
-test('map renderer defaults to configured Mapbox when a key exists', async () => {
-  jest.resetModules();
+test('map renderer defaults to configured Mapbox when a key exists', () => {
   setBootstrap({
     DEFAULT_MAP_RENDERER: 'mapbox',
     MAPBOX_API_KEY: 'pk.test',
   });
 
-  const { default: controlPanelWithMapboxDefault } =
-    await import('../src/controlPanel');
-
-  expect(
-    getControl(controlPanelWithMapboxDefault, 'map_renderer').config.default,
-  ).toBe('mapbox');
+  expect(getMapRendererProps('maplibre').default).toBe('mapbox');
 });
 
-test('map renderer falls back from configured Mapbox default without a key', async () => {
-  jest.resetModules();
+test('map renderer falls back from configured Mapbox default without a key', () => {
   setBootstrap({ DEFAULT_MAP_RENDERER: 'mapbox' });
 
-  const { default: controlPanelWithoutKey } =
-    await import('../src/controlPanel');
-
-  expect(
-    getControl(controlPanelWithoutKey, 'map_renderer').config.default,
-  ).toBe('maplibre');
+  expect(getMapRendererProps('maplibre').default).toBe('maplibre');
 });
