@@ -274,6 +274,125 @@ def merge_extra_form_data_filters_into_query(
     merge_form_data_filters_into_query(query, extra_query_form_data)
 
 
+def _deck_gl_spatial_cols(spatial: dict[str, Any] | None) -> list[str]:
+    """Return the column names referenced by a single Deck.gl spatial control."""
+    if not isinstance(spatial, dict):
+        return []
+    spatial_type = spatial.get("type")
+    if spatial_type == "latlong":
+        return [c for c in [spatial.get("lonCol"), spatial.get("latCol")] if c]
+    if spatial_type == "delimited":
+        return [c for c in [spatial.get("lonlatCol")] if c]
+    if spatial_type == "geohash":
+        return [c for c in [spatial.get("geohashCol")] if c]
+    return []
+
+
+def _is_metric_ref(value: Any) -> bool:
+    """Return True if value is a metric reference (dict or non-numeric string).
+
+    Deck.gl size/metric fields hold either a dict metric definition or a
+    simple saved-metric string key (e.g. "count"). Scalar numeric strings
+    like "100" are fixed display settings and must not be treated as metrics.
+    Note: float() accepts "inf", "-inf", and "nan", so those strings would be
+    excluded here too — they are not valid metric names in practice.
+    """
+    if isinstance(value, dict):
+        return True
+    if isinstance(value, str) and value:
+        try:
+            float(value)
+            return False
+        except ValueError:
+            return True
+    return False
+
+
+def _deck_gl_null_filters(form_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Build IS NOT NULL simple filters for Deck.gl spatial and data columns.
+
+    Mirrors BaseDeckGLViz.add_null_filters() behavior: spatial control columns,
+    line_column, and the geojson column are filtered for non-null values by
+    default.
+    """
+    seen: set[str] = set()
+    result: list[dict[str, Any]] = []
+    for key in ("spatial", "start_spatial", "end_spatial"):
+        for col in _deck_gl_spatial_cols(form_data.get(key)):
+            if col not in seen:
+                seen.add(col)
+                result.append({"col": col, "op": "IS NOT NULL", "val": ""})
+    for field in ("line_column", "geojson"):
+        data_col = form_data.get(field)
+        if isinstance(data_col, str) and data_col and data_col not in seen:
+            seen.add(data_col)
+            result.append({"col": data_col, "op": "IS NOT NULL", "val": ""})
+    return result
+
+
+def _resolve_deck_gl_metrics(
+    form_data: dict[str, Any], viz_type: str = ""
+) -> list[Any]:
+    """Extract metrics for Deck.gl chart types.
+
+    deck_geojson.query_obj() forces metrics=[] regardless of form_data.
+    For other types, size/metric values are included when they are metric
+    references (dicts or non-numeric strings); numeric scalars like "100"
+    are fixed display settings and are excluded.
+    deck_scatter and deck_polygon can additionally store metric-backed
+    values in point_radius_fixed (radius for scatter, elevation for polygon).
+    """
+    if viz_type == "deck_geojson":
+        return []
+    metrics: list[Any] = []
+    for field in ("size", "metric"):
+        m = form_data.get(field)
+        if _is_metric_ref(m):
+            metrics.append(m)
+    prf = form_data.get("point_radius_fixed")
+    if isinstance(prf, dict) and prf.get("type") == "metric":
+        value = prf.get("value")
+        if value:
+            metrics.append(value)
+    elif isinstance(prf, str) and _is_metric_ref(prf):
+        # Legacy deck_scatter: point_radius_fixed as a bare non-numeric metric key
+        logger.debug("Legacy point_radius_fixed string metric encountered: %s", prf)
+        metrics.append(prf)
+    return metrics
+
+
+def resolve_deck_gl_columns(form_data: dict[str, Any]) -> list[str]:
+    """Extract SQL column names for Deck.gl chart types from form_data.
+
+    Deck.gl charts use spatial controls (lat/lon pairs, geohash, etc.)
+    rather than the standard metrics/groupby structure. This function
+    maps those spatial control configs to the actual column names
+    needed by the SQL query.
+    """
+    seen: set[str] = set()
+    columns: list[str] = []
+
+    def _add(col: str | None) -> None:
+        if col and isinstance(col, str) and col not in seen:
+            seen.add(col)
+            columns.append(col)
+
+    # Most Deck.gl types use "spatial"; arc charts use start/end spatial
+    for key in ("spatial", "start_spatial", "end_spatial"):
+        for col in _deck_gl_spatial_cols(form_data.get(key)):
+            _add(col)
+
+    # deck_path / deck_polygon use a line column; deck_geojson uses geojson
+    for field in ("line_column", "geojson", "dimension"):
+        _add(form_data.get(field))
+
+    for col in form_data.get("js_columns") or []:
+        if isinstance(col, str):
+            _add(col)
+
+    return columns
+
+
 def resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
     """Extract metrics from form_data, handling chart-type-specific fields."""
     if viz_type == "bubble":
@@ -412,6 +531,12 @@ def _build_mixed_timeseries_secondary(
     return qd
 
 
+# Deck.gl viz types that conditionally set is_timeseries from time_grain_sqla
+_DECK_TIMESERIES_VIZ_TYPES: frozenset[str] = frozenset(
+    {"deck_arc", "deck_path", "deck_polygon", "deck_scatter", "deck_screengrid"}
+)
+
+
 def build_query_dicts_from_form_data(
     form_data: dict[str, Any],
     datasource_id: Any,
@@ -437,6 +562,34 @@ def build_query_dicts_from_form_data(
         or (getattr(chart, "viz_type", "") if chart else "")
         or ""
     )
+
+    # Deck.gl charts use spatial column configs rather than the standard
+    # metrics / groupby fields. Extract columns from the spatial controls.
+    if viz_type.startswith("deck_"):
+        deck_columns = resolve_deck_gl_columns(form_data)
+        deck_metrics = _resolve_deck_gl_metrics(form_data, viz_type)
+        qd = _build_single_query_dict(
+            form_data,
+            deck_columns,
+            deck_metrics,
+            row_limit=row_limit,
+            order_desc=order_desc,
+        )
+        if deck_metrics:
+            # Mirror BaseDeckGLViz.query_obj(): order by first metric descending
+            qd["orderby"] = [(deck_metrics[0], not form_data.get("order_desc", True))]
+        if viz_type in _DECK_TIMESERIES_VIZ_TYPES and (
+            time_grain := form_data.get("time_grain_sqla")
+        ):
+            qd["is_timeseries"] = True
+            qd["granularity"] = form_data.get("granularity_sqla")
+            qd.setdefault("extras", {})["time_grain_sqla"] = time_grain
+        if form_data.get("filter_nulls", True):
+            null_filters = _deck_gl_null_filters(form_data)
+            if null_filters:
+                qd["filters"] = [*(qd.get("filters") or []), *null_filters]
+        return [qd]
+
     is_timeseries = (
         viz_type.startswith("echarts_timeseries") or viz_type == "mixed_timeseries"
     )

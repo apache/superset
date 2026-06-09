@@ -32,11 +32,14 @@ negative_number_re = re.compile(r"^-[0-9.]+$")
 
 # This regex will match if the string starts with:
 #
-#     1. one of -, @, +, |, =, %
+#     1. one of -, @, +, |, =, %, a tab, or a carriage return
 #     2. two double quotes immediately followed by one of -, @, +, |, =, %
 #     3. one or more spaces immediately followed by one of -, @, +, |, =, %
 #
-problematic_chars_re = re.compile(r'^(?:"{2}|\s{1,})(?=[\-@+|=%])|^[\-@+|=%]')
+# A leading tab or carriage return is treated as dangerous on its own because
+# some spreadsheet software trims that leading whitespace and then evaluates
+# the remaining cell content as a formula.
+problematic_chars_re = re.compile(r'^(?:"{2}|\s{1,})(?=[\-@+|=%])|^[\-@+|=%\t\r]')
 
 
 def escape_value(value: str) -> str:

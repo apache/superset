@@ -204,6 +204,9 @@ function DndColumnSelect(props: DndColumnSelectProps) {
     [ghostButtonText, multi],
   );
 
+  // Generate sortable type that matches OptionWrapper's type
+  const sortableType = `${DndItemType.ColumnOption}_${name}_${label}`;
+
   return (
     <div>
       <DndSelectLabel
@@ -214,6 +217,8 @@ function DndColumnSelect(props: DndColumnSelectProps) {
         displayGhostButton={multi || optionSelector.values.length === 0}
         ghostButtonText={labelGhostButtonText}
         onClickGhostButton={openPopover}
+        sortableType={sortableType}
+        itemCount={optionSelector.values.length}
         {...props}
       />
       <ColumnSelectPopoverTrigger

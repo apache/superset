@@ -16,13 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef } from 'react';
-import {
-  useDrag,
-  useDrop,
-  DropTargetMonitor,
-  DragSourceMonitor,
-} from 'react-dnd';
+import { useRef, useMemo } from 'react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { DragContainer } from 'src/explore/components/controls/OptionControls';
 import {
   OptionProps,
@@ -64,62 +60,32 @@ export default function OptionWrapper(
     multiValueWarningMessage,
     ...rest
   } = props;
-  const ref = useRef<HTMLDivElement>(null);
   const labelRef = useRef<HTMLDivElement>(null);
 
-  const [{ isDragging }, drag] = useDrag({
-    item: {
+  // Create a unique sortable ID for this item
+  const sortableId = useMemo(() => `sortable-${type}-${index}`, [type, index]);
+
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({
+    id: sortableId,
+    data: {
       type,
       dragIndex: index,
-    },
-    collect: (monitor: DragSourceMonitor) => ({
-      isDragging: monitor.isDragging(),
-    }),
+      onShiftOptions,
+    } as OptionItemInterface & { onShiftOptions: typeof onShiftOptions },
   });
 
-  const [, drop] = useDrop({
-    accept: type,
-
-    hover: (item: OptionItemInterface, monitor: DropTargetMonitor) => {
-      if (!ref.current) {
-        return;
-      }
-      const { dragIndex } = item;
-      const hoverIndex = index;
-
-      // Don't replace items with themselves
-      if (dragIndex === hoverIndex) {
-        return;
-      }
-      // Determine rectangle on screen
-      const hoverBoundingRect = ref.current?.getBoundingClientRect();
-      // Get vertical middle
-      const hoverMiddleY =
-        (hoverBoundingRect.bottom - hoverBoundingRect.top) / 2;
-      // Determine mouse position
-      const clientOffset = monitor.getClientOffset();
-      // Get pixels to the top
-      const hoverClientY = clientOffset
-        ? clientOffset.y - hoverBoundingRect.top
-        : 0;
-      // Only perform the move when the mouse has crossed half of the items height
-      // When dragging downwards, only move when the cursor is below 50%
-      // When dragging upwards, only move when the cursor is above 50%
-      // Dragging downwards
-      if (dragIndex < hoverIndex && hoverClientY < hoverMiddleY) {
-        return;
-      }
-      // Dragging upwards
-      if (dragIndex > hoverIndex && hoverClientY > hoverMiddleY) {
-        return;
-      }
-
-      // Time to actually perform the action
-      onShiftOptions(dragIndex, hoverIndex);
-      // eslint-disable-next-line no-param-reassign
-      item.dragIndex = hoverIndex;
-    },
-  });
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
 
   const shouldShowTooltip =
     (!isDragging && tooltipTitle && label && tooltipTitle !== label) ||
@@ -179,10 +145,14 @@ export default function OptionWrapper(
     return null;
   };
 
-  drag(drop(ref));
-
   return (
-    <DragContainer ref={ref} {...rest}>
+    <DragContainer
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      {...rest}
+    >
       <Option
         index={index}
         clickClose={clickClose}
