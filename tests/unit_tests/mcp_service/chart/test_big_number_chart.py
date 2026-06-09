@@ -177,6 +177,16 @@ class TestBigNumberChartConfig:
                 compare_lag=1,
             )
 
+    def test_aggregation_requires_trendline(self) -> None:
+        with pytest.raises(
+            ValidationError, match="aggregation requires show_trendline"
+        ):
+            BigNumberChartConfig(
+                chart_type="big_number",
+                metric=ColumnRef(name="revenue", aggregate="SUM"),
+                aggregation="sum",
+            )
+
     def test_with_filters(self) -> None:
         config = BigNumberChartConfig(
             chart_type="big_number",

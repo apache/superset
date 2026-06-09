@@ -1463,6 +1463,13 @@ class BigNumberChartConfig(UnknownFieldCheckMixin):
                 "Period comparison is only available for "
                 "trendline charts."
             )
+        if self.aggregation and not self.show_trendline:
+            raise ValueError(
+                "aggregation requires show_trendline=True. "
+                "The aggregation field only applies to Big Number with "
+                "Trendline charts. Set show_trendline=True and provide "
+                "a temporal_column, or omit aggregation."
+            )
         return self
 
     @model_validator(mode="after")
