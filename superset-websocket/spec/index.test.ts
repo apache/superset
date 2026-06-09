@@ -726,6 +726,9 @@ describe('server', () => {
         pongTs: Date.now(),
       });
       expect(server.isSocketActive(socketId)).toBe(true);
+      // CONNECTING is also considered active (see SOCKET_ACTIVE_STATES)
+      setReadyState(ws, WebSocket.CONNECTING);
+      expect(server.isSocketActive(socketId)).toBe(true);
       setReadyState(ws, WebSocket.CLOSED);
       expect(server.isSocketActive(socketId)).toBe(false);
       // unknown socket ids are never active
