@@ -1,4 +1,4 @@
-﻿# Licensed to the Apache Software Foundation (ASF) under one
+# Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
 # regarding copyright ownership.  The ASF licenses this file
@@ -21,6 +21,7 @@ Técnicas aplicadas:
   - Caixa-branca: cobertura de branch + MC/DC (D1, D2)
   - Isolamento  : substituição de g via Flask app_context + patch direto
 """
+
 import importlib.util
 import pathlib
 import sys
@@ -44,37 +45,49 @@ _stub("celery.utils.log", get_task_logger=lambda n: MagicMock())
 _stub("superset_core")
 _stub("superset_core.tasks")
 _stub("superset_core.tasks.types", TaskProperties=dict, TaskScope=MagicMock())
-_stub("superset.tasks.exceptions",
-      ExecutorNotFoundError=Exception, InvalidExecutorError=Exception)
-_stub("superset.tasks.types",
-      ChosenExecutor=MagicMock(), Executor=MagicMock(),
-      ExecutorType=MagicMock(), FixedExecutor=MagicMock())
+_stub(
+    "superset.tasks.exceptions",
+    ExecutorNotFoundError=Exception,
+    InvalidExecutorError=Exception,
+)
+_stub(
+    "superset.tasks.types",
+    ChosenExecutor=MagicMock(),
+    Executor=MagicMock(),
+    ExecutorType=MagicMock(),
+    FixedExecutor=MagicMock(),
+)
 _stub("superset.utils")
-_stub("superset.utils.json",
-      loads=MagicMock(), dumps=MagicMock(), JSONDecodeError=ValueError)
-_stub("superset.utils.hashing",
-      hash_from_str=MagicMock(return_value="abc" * 30))
+_stub(
+    "superset.utils.json",
+    loads=MagicMock(),
+    dumps=MagicMock(),
+    JSONDecodeError=ValueError,
+)
+_stub("superset.utils.hashing", hash_from_str=MagicMock(return_value="abc" * 30))
 _stub("superset.utils.urls", get_url_path=MagicMock())
 
 _path = pathlib.Path(__file__).parents[3] / "superset" / "tasks" / "utils.py"
 _spec = importlib.util.spec_from_file_location("superset.tasks.utils", _path)
+assert _spec is not None
+assert _spec.loader is not None
 _mod = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_mod)
+_spec.loader.exec_module(_mod)  # type: ignore[union-attr]
 
 get_current_user = _mod.get_current_user
 
 
-@pytest.fixture()
+@pytest.fixture
 def app():
-    app = Flask(__name__)
-    app.config["TESTING"] = True
-    return app
+    application = Flask(__name__)
+    application.config["TESTING"] = True
+    return application
 
 
 class TestGetCurrentUser:
     def test_retorna_none_quando_g_nao_possui_user(self, app):
         """CT01 | CI1 | D1=F (hasattr=False, curto-circuito)."""
-        mock_g = MagicMock(spec=[])          # spec=[] → hasattr(g, "user") == False
+        mock_g = MagicMock(spec=[])  # spec=[] → hasattr(g, "user") == False
         with app.app_context():
             with patch.object(_mod, "g", mock_g):
                 assert get_current_user() is None
@@ -150,4 +163,3 @@ class TestGetCurrentUser:
         with app.app_context():
             with patch.object(_mod, "g", mock_g):
                 assert get_current_user() is None
-
