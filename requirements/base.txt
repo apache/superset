@@ -223,7 +223,7 @@ markupsafe==3.0.2
     #   mako
     #   werkzeug
     #   wtforms
-marshmallow==3.26.2
+marshmallow==4.3.0
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
