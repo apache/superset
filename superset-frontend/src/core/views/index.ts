@@ -24,7 +24,7 @@
  * Extensions register views as side effects at import time.
  */
 
-import React, { ReactElement } from 'react';
+import React, { ReactElement, useSyncExternalStore } from 'react';
 import type { views as viewsApi } from '@apache-superset/core';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
@@ -39,6 +39,18 @@ const viewRegistry: Map<
 
 const locationIndex: Map<string, Set<string>> = new Map();
 
+const listeners = new Set<() => void>();
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+
+const viewsCache = new Map<string, View[] | undefined>();
+const notify = () => {
+  viewsCache.clear();
+  listeners.forEach(l => l());
+};
+
 const registerView: typeof viewsApi.registerView = (
   view: View,
   location: string,
@@ -51,10 +63,12 @@ const registerView: typeof viewsApi.registerView = (
   const ids = locationIndex.get(location) ?? new Set();
   ids.add(id);
   locationIndex.set(location, ids);
+  notify();
 
   return new Disposable(() => {
     viewRegistry.delete(id);
     locationIndex.get(location)?.delete(id);
+    notify();
   });
 };
 
@@ -76,6 +90,14 @@ const getViews: typeof viewsApi.getViews = (
     .map(id => viewRegistry.get(id)?.view)
     .filter((c): c is View => !!c);
 };
+
+export const useViews = (location: string): View[] | undefined =>
+  useSyncExternalStore(subscribe, () => {
+    if (!viewsCache.has(location)) {
+      viewsCache.set(location, getViews(location));
+    }
+    return viewsCache.get(location);
+  });
 
 export const views: typeof viewsApi = {
   registerView,

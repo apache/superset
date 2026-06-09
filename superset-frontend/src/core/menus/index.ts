@@ -24,6 +24,7 @@
  * Extensions register menu items as side effects at import time.
  */
 
+import { useSyncExternalStore } from 'react';
 import type { menus as menusApi } from '@apache-superset/core';
 import { Disposable } from '../models';
 
@@ -38,6 +39,18 @@ type StoredMenuItem = {
 
 const menuItems: StoredMenuItem[] = [];
 
+const listeners = new Set<() => void>();
+const subscribe = (listener: () => void) => {
+  listeners.add(listener);
+  return () => listeners.delete(listener);
+};
+
+const menuCache = new Map<string, Menu | undefined>();
+const notify = () => {
+  menuCache.clear();
+  listeners.forEach(l => l());
+};
+
 const registerMenuItem: typeof menusApi.registerMenuItem = (
   item: MenuItem,
   location: string,
@@ -45,11 +58,13 @@ const registerMenuItem: typeof menusApi.registerMenuItem = (
 ): Disposable => {
   const stored: StoredMenuItem = { item, location, group };
   menuItems.push(stored);
+  notify();
   return new Disposable(() => {
     const index = menuItems.indexOf(stored);
     if (index >= 0) {
       menuItems.splice(index, 1);
     }
+    notify();
   });
 };
 
@@ -76,6 +91,14 @@ const getMenu: typeof menusApi.getMenu = (
 
   return result;
 };
+
+export const useMenu = (location: string): Menu | undefined =>
+  useSyncExternalStore(subscribe, () => {
+    if (!menuCache.has(location)) {
+      menuCache.set(location, getMenu(location));
+    }
+    return menuCache.get(location);
+  });
 
 export const menus: typeof menusApi = {
   registerMenuItem,
