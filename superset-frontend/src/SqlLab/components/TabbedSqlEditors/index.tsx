@@ -31,6 +31,7 @@ import {
 } from '@superset-ui/core';
 import { Logger } from 'src/logger/LogUtils';
 import { EmptyState, Tooltip } from '@superset-ui/core/components';
+import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import getBootstrapData from 'src/utils/getBootstrapData';
@@ -228,14 +229,16 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
       key: qe.id,
       label: <SqlEditorTabHeader queryEditor={qe} />,
       children: (
-        <SqlEditor
-          queryEditor={qe}
-          defaultQueryLimit={this.props.defaultQueryLimit}
-          maxRow={this.props.maxRow}
-          displayLimit={this.props.displayLimit}
-          saveQueryWarning={this.props.saveQueryWarning}
-          scheduleQueryWarning={this.props.scheduleQueryWarning}
-        />
+        <ErrorBoundary>
+          <SqlEditor
+            queryEditor={qe}
+            defaultQueryLimit={this.props.defaultQueryLimit}
+            maxRow={this.props.maxRow}
+            displayLimit={this.props.displayLimit}
+            saveQueryWarning={this.props.saveQueryWarning}
+            scheduleQueryWarning={this.props.scheduleQueryWarning}
+          />
+        </ErrorBoundary>
       ),
     }));
 
