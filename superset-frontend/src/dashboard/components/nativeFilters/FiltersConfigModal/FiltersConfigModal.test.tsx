@@ -844,9 +844,7 @@ test('enables save button and includes updated title when editing an existing di
   jest.useRealTimers();
 
   await waitFor(() =>
-    expect(
-      screen.getByRole('button', { name: SAVE_REGEX }),
-    ).not.toBeDisabled(),
+    expect(screen.getByRole('button', { name: SAVE_REGEX })).not.toBeDisabled(),
   );
 
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
@@ -910,9 +908,7 @@ test('enables save button and includes updated title when editing an existing ch
   jest.useRealTimers();
 
   await waitFor(() =>
-    expect(
-      screen.getByRole('button', { name: SAVE_REGEX }),
-    ).not.toBeDisabled(),
+    expect(screen.getByRole('button', { name: SAVE_REGEX })).not.toBeDisabled(),
   );
 
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
@@ -978,8 +974,7 @@ test('restores a deleted filter via the "Restore filter" button', async () => {
 
   const filterContainer = screen.getByTestId('filter-title-container');
   const firstTab = within(filterContainer).getAllByRole('tab')[0];
-  const deleteIcon = firstTab.querySelector('[data-icon="delete"]');
-  fireEvent.click(deleteIcon!);
+  fireEvent.click(within(firstTab).getByRole('button', { name: /delete/i }));
 
   expect(
     await screen.findByText(/you have removed this filter/i),
@@ -1014,7 +1009,7 @@ test('undoes a filter deletion via the sidebar "Undo?" link', async () => {
 
   const filterContainer = screen.getByTestId('filter-title-container');
   const firstTab = within(filterContainer).getAllByRole('tab')[0];
-  fireEvent.click(firstTab.querySelector('[data-icon="delete"]')!);
+  fireEvent.click(within(firstTab).getByRole('button', { name: /delete/i }));
 
   const undoButton = await screen.findByTestId('undo-button');
   expect(undoButton).toHaveTextContent(/undo\?/i);
