@@ -117,12 +117,21 @@ def test_chart_put_schema_query_context_json_validation(
 def test_chart_data_prophet_options_schema_periods_range(
     app_context: None,
 ) -> None:
-    """`periods` must be a bounded non-negative integer."""
+    """`periods` must be a bounded positive integer."""
     schema = ChartDataProphetOptionsSchema()
     base = {"time_grain": "P1D", "confidence_interval": 0.8}
 
     # Valid value passes
     assert schema.load({**base, "periods": 7})["periods"] == 7
+
+    # Inclusive boundaries are accepted
+    assert schema.load({**base, "periods": 1})["periods"] == 1
+    assert schema.load({**base, "periods": 10000})["periods"] == 10000
+
+    # Zero rejected (at least one period must be forecast)
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({**base, "periods": 0})
+    assert "periods" in exc_info.value.messages
 
     # Negative value rejected
     with pytest.raises(ValidationError) as exc_info:
@@ -144,6 +153,10 @@ def test_chart_data_rolling_options_schema_window_range(
 
     # Valid value passes
     assert schema.load({**base, "window": 7})["window"] == 7
+
+    # Inclusive boundaries are accepted
+    assert schema.load({**base, "window": 1})["window"] == 1
+    assert schema.load({**base, "window": 10000})["window"] == 10000
 
     # Zero window rejected (rolling requires window > 0)
     with pytest.raises(ValidationError) as exc_info:
