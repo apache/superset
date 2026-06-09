@@ -216,12 +216,9 @@ export declare interface Event<T> {
 /**
  * Context handed to an extension's `activate` function.
  *
- * The extension binds the lifetime of everything it registers to this object by
- * pushing the returned {@link Disposable}s onto `subscriptions`. Because the
- * context is owned by the extension for as long as it is active, registrations
- * performed asynchronously (after an `await`, in a timer, or in an event
- * callback) are tracked just the same as synchronous ones — the host disposes
- * the whole `subscriptions` array on deactivation.
+ * `context.subscriptions` is provided for extensions to push their
+ * {@link Disposable}s into. The host provides the array but does not dispose
+ * it (lifecycle management is deferred).
  *
  * @example
  * ```typescript
@@ -234,8 +231,8 @@ export declare interface Event<T> {
  */
 export interface ExtensionContext {
   /**
-   * Disposables to be cleaned up when the extension is deactivated. Push every
-   * {@link Disposable} returned by a `register*` call here.
+   * Disposables pushed by the extension. Provided for extensions to track
+   * their own registrations; the host does not dispose them.
    */
   subscriptions: { dispose(): void }[];
 }
@@ -247,8 +244,7 @@ export interface ExtensionContext {
  * their registrations are tracked via `context.subscriptions` regardless of
  * whether they run synchronously or asynchronously. For backward compatibility,
  * a module may instead register its contributions as top-level side effects when
- * the module is evaluated; such registrations are only tracked when performed
- * synchronously during module evaluation.
+ * the module is evaluated.
  */
 export interface ExtensionModule {
   /**
@@ -256,10 +252,6 @@ export interface ExtensionModule {
    * host awaits it before considering the extension active.
    */
   activate?(context: ExtensionContext): void | Promise<void>;
-  /**
-   * Optional hook called before the host disposes `context.subscriptions`.
-   */
-  deactivate?(): void | Promise<void>;
 }
 
 /**
@@ -268,12 +260,8 @@ export interface ExtensionModule {
  * by registering commands, views, menus, and editors as module-level side effects.
  */
 export interface Extension {
-  /** List of other extensions that this extension depends on */
-  dependencies: string[];
   /** Human-readable description of the extension */
   description: string;
-  /** List of other extensions that this extension depends on */
-  extensionDependencies: string[];
   /** Unique identifier for the extension */
   id: string;
   /** Human-readable name of the extension */

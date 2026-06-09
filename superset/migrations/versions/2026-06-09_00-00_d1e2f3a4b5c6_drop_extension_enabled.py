@@ -14,21 +14,30 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask_appbuilder import expose
-from flask_appbuilder.security.decorators import has_access, permission_name
+"""Drop extension_enabled table (ExtensionEnabled model removed in chatbot SIP).
 
-from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP
-from superset.superset_typing import FlaskResponse
-from superset.views.base import BaseSupersetView
+Revision ID: d1e2f3a4b5c6
+Revises: b2c3d4e5f6a7
+Create Date: 2026-06-09 00:00:00.000000
+
+"""
+
+import sqlalchemy as sa
+
+from superset.migrations.shared.utils import create_table, drop_table
+
+# revision identifiers, used by Alembic.
+revision = "d1e2f3a4b5c6"
+down_revision = "b2c3d4e5f6a7"
 
 
-class ExtensionsView(BaseSupersetView):
-    route_base = "/extensions"
-    class_permission_name = "Extensions"
-    method_permission_name = MODEL_VIEW_RW_METHOD_PERMISSION_MAP
+def upgrade() -> None:
+    drop_table("extension_enabled")
 
-    @expose("/list/")
-    @has_access
-    @permission_name("read")
-    def list(self) -> FlaskResponse:
-        return super().render_app_template()
+
+def downgrade() -> None:
+    create_table(
+        "extension_enabled",
+        sa.Column("extension_id", sa.String(250), primary_key=True),
+        sa.Column("enabled", sa.Boolean(), nullable=False, server_default=sa.true()),
+    )

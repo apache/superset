@@ -179,7 +179,6 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
         displayName=extension.displayName,
         version=extension.version,
         permissions=extension.permissions,
-        dependencies=extension.dependencies,
         frontend=frontend,
         backend=backend,
     )

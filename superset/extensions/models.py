@@ -18,10 +18,9 @@
 """SQLAlchemy models for extension settings persistence."""
 
 from flask_appbuilder import Model
-from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy import Column, Integer, String
 
-# Shared column length for extension/chatbot identifiers; reused by request
-# validation so oversized keys are rejected with a 400 before hitting the DB.
+# Column length for extension/chatbot identifiers.
 EXTENSION_ID_MAX_LENGTH = 250
 
 
@@ -31,11 +30,3 @@ class ExtensionSettings(Model):  # pylint: disable=too-few-public-methods
     __tablename__ = "extension_settings"
     id = Column(Integer, primary_key=True)
     active_chatbot_id = Column(String(EXTENSION_ID_MAX_LENGTH), nullable=True)
-
-
-class ExtensionEnabled(Model):  # pylint: disable=too-few-public-methods
-    """Per-extension enable/disable flag."""
-
-    __tablename__ = "extension_enabled"
-    extension_id = Column(String(EXTENSION_ID_MAX_LENGTH), primary_key=True)
-    enabled = Column(Boolean, nullable=False, default=True)

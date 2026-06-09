@@ -29,9 +29,7 @@ function createMockExtension(overrides: Partial<Extension> = {}): Extension {
     name: 'Test Extension',
     description: 'A test extension',
     version: '1.0.0',
-    dependencies: [],
     remoteEntry: '',
-    extensionDependencies: [],
     ...overrides,
   };
 }
@@ -189,60 +187,19 @@ const remoteExtension = (overrides: Partial<Extension> = {}) =>
     ...overrides,
   });
 
-test('disposes synchronous activation-time registrations on deactivation', async () => {
+test('runs activate(context) hook for modern-style extensions', async () => {
   const loader = ExtensionsLoader.getInstance();
-  const dispose = jest.fn();
-  // Legacy side-effect style: register synchronously during module evaluation.
-  const factory = () => {
-    window.superset.views.registerView(
-      { id: 'remote-ext.view', name: 'View' },
-      'sqllab.panels',
-      (() => null) as any,
-    );
-    return undefined;
-  };
-  const registerView = jest
-    .spyOn(window.superset.views, 'registerView')
-    .mockReturnValue({ dispose } as any);
+  const activate = jest.fn().mockResolvedValue(undefined);
+  const factory = () => ({ activate });
   const cleanup = mockRemoteModule('remote-ext', factory);
 
   await loader.initializeExtension(remoteExtension());
-  loader.deactivateExtension('remote-ext');
 
-  expect(dispose).toHaveBeenCalledTimes(1);
+  expect(activate).toHaveBeenCalledTimes(1);
+  // The context object passed to activate must have a subscriptions array.
+  expect(activate).toHaveBeenCalledWith(
+    expect.objectContaining({ subscriptions: expect.any(Array) }),
+  );
 
-  registerView.mockRestore();
-  cleanup();
-});
-
-test('tracks registrations made asynchronously inside activate(context)', async () => {
-  const loader = ExtensionsLoader.getInstance();
-  const dispose = jest.fn();
-  const registerView = jest
-    .spyOn(window.superset.views, 'registerView')
-    .mockReturnValue({ dispose } as any);
-
-  // Modern style: register AFTER an await — the window.superset wrap is already
-  // gone by then, so this is only tracked because activate pushes to context.
-  const factory = () => ({
-    activate: async (context: core.ExtensionContext) => {
-      await Promise.resolve();
-      const disposable = window.superset.views.registerView(
-        { id: 'remote-ext.async-view', name: 'Async View' },
-        'sqllab.panels',
-        (() => null) as any,
-      );
-      context.subscriptions.push(disposable);
-    },
-  });
-  const cleanup = mockRemoteModule('remote-ext', factory);
-
-  await loader.initializeExtension(remoteExtension());
-  loader.deactivateExtension('remote-ext');
-
-  expect(registerView).toHaveBeenCalledTimes(1);
-  expect(dispose).toHaveBeenCalledTimes(1);
-
-  registerView.mockRestore();
   cleanup();
 });
