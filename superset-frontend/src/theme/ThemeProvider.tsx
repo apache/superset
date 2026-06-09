@@ -32,7 +32,7 @@ import {
 } from '@superset-ui/core';
 import { ThemeController } from './ThemeController';
 
-const ThemeContext = createContext<ThemeContextType | null>(null);
+export const ThemeContext = createContext<ThemeContextType | null>(null);
 
 interface ThemeProviderProps {
   children: React.ReactNode;
@@ -51,10 +51,15 @@ export function SupersetThemeProvider({
     themeController.getCurrentMode(),
   );
 
+  const [hasThemeConfigOverride, setHasThemeConfigOverride] = useState<boolean>(
+    themeController.hasThemeConfigOverride(),
+  );
+
   useEffect(() => {
     const unsubscribe = themeController.onChange(theme => {
       setCurrentTheme(theme);
       setCurrentThemeMode(themeController.getCurrentMode());
+      setHasThemeConfigOverride(themeController.hasThemeConfigOverride());
     });
 
     return unsubscribe;
@@ -134,6 +139,7 @@ export function SupersetThemeProvider({
       clearLocalOverrides,
       getCurrentCrudThemeId,
       hasDevOverride,
+      hasThemeConfigOverride,
       canSetMode,
       canSetTheme,
       canDetectOSPreference,
@@ -150,6 +156,7 @@ export function SupersetThemeProvider({
       clearLocalOverrides,
       getCurrentCrudThemeId,
       hasDevOverride,
+      hasThemeConfigOverride,
       canSetMode,
       canSetTheme,
       canDetectOSPreference,
