@@ -24,8 +24,9 @@
  * (superset-frontend/plugins/plugin-chart-handlebars).
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import { apiPost } from '../../helpers/api/requests';
+import { apiPostChart } from '../../helpers/api/chart';
 import { getDatasetByName } from '../../helpers/api/dataset';
+import { ExplorePage } from '../../pages/ExplorePage';
 import { TIMEOUT } from '../../utils/constants';
 
 const DATASET_NAME = 'birth_names';
@@ -56,7 +57,7 @@ testWithAssets(
       styleTemplate: '',
     };
 
-    const chartResp = await apiPost(page, 'api/v1/chart/', {
+    const chartResp = await apiPostChart(page, {
       slice_name: `handlebars_format_date_${Date.now()}`,
       viz_type: 'handlebars',
       datasource_id: datasetId,
@@ -64,27 +65,29 @@ testWithAssets(
       params: JSON.stringify(params),
     });
     expect(chartResp.ok()).toBe(true);
-    const chartId: number = (await chartResp.json()).id;
+    // The chart API may return either a top-level `{ id }` or a wrapped
+    // `{ result: { id } }` shape; handle both and fail explicitly otherwise.
+    const chartBody = await chartResp.json();
+    const chartId: number = chartBody.result?.id ?? chartBody.id;
+    expect(chartId, 'chart creation should return an id').toBeTruthy();
     testAssets.trackChart(chartId);
 
-    await page.goto(`explore/?slice_id=${chartId}`);
-    await page.waitForSelector('[data-test="datasource-control"]', {
-      timeout: 30_000,
-    });
+    const explorePage = new ExplorePage(page);
+    await explorePage.goto(chartId);
 
-    const panel = page.locator('[data-test="chart-container"]');
-    await panel.waitFor({ state: 'visible', timeout: 30_000 });
+    const panel = explorePage.getChartContainer();
+    await panel.waitFor({ state: 'visible', timeout: TIMEOUT.PAGE_LOAD });
 
     // The helper error surfaces as a "... is not a function" message rendered
     // in place of the chart content.
     await expect(panel).not.toContainText('is not a function', {
-      timeout: 20_000,
+      timeout: TIMEOUT.API_RESPONSE,
     });
 
     // At least one list item should contain a DD.MM.YYYY formatted date.
     await expect(panel.locator('li.hb-item').first()).toHaveText(
       /\d{2}\.\d{2}\.\d{4}/,
-      { timeout: 20_000 },
+      { timeout: TIMEOUT.API_RESPONSE },
     );
   },
 );
