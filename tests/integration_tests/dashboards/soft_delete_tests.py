@@ -213,9 +213,7 @@ class TestDashboardSoftDelete(SupersetTestCase):
         dashboard_id = dashboard.id
 
         gamma_role = security_manager.find_role("Gamma")
-        pvm = security_manager.add_permission_view_menu(
-            "datasource_access", table.perm
-        )
+        pvm = security_manager.add_permission_view_menu("datasource_access", table.perm)
         gamma_role.permissions.append(pvm)
         db.session.commit()
 
