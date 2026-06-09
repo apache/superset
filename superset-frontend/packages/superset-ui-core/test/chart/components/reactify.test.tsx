@@ -69,6 +69,11 @@ describe('reactify(renderFn)', () => {
     return <TheChartWithWillUnmountHook id="another_test" />;
   }
 
+  beforeEach(() => {
+    (renderFn as jest.Mock).mockClear();
+    willUnmountCb.mockClear();
+  });
+
   test('returns a React component and re-renders on prop changes', async () => {
     render(<TestComponent />);
 

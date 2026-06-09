@@ -17,7 +17,13 @@
  * under the License.
  */
 
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
+import {
+  forwardRef,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+} from 'react';
 import type {
   ComponentType,
   WeakValidationMap,
@@ -78,8 +84,13 @@ export default function reactify<Props extends object>(
     const containerRef = useRef<HTMLDivElement>(null);
     // Keep the latest props available to the unmount callback — legacy
     // consumers read values off `this.props` (e.g. ReactNVD3 uses id).
+    // Update the ref in a layout effect rather than during render so the
+    // assignment only happens for committed renders (safe under Concurrent
+    // Mode) and is in place before the passive unmount effect reads it.
     const propsRef = useRef(props);
-    propsRef.current = props;
+    useLayoutEffect(() => {
+      propsRef.current = props;
+    });
 
     // Expose container via ref for external access
     useImperativeHandle(
