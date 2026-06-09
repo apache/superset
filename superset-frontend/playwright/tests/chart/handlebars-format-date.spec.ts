@@ -18,42 +18,28 @@
  */
 
 /**
- * Regression for #32960: the `formatDate` Handlebars helper (provided by
- * just-handlebars-helpers) stopped working after 4.1.2, rendering
- * "i is not a function" (minified) / "moment is not a function" (dev) instead
- * of the formatted date. The helper resolves `moment` lazily via
- * `global.moment` / `require('moment/min/moment-with-locales')`, which the
- * bundled HandlebarsViewer no longer satisfies (it switched to dayjs).
- *
- * This is a TDD validation test. It creates a Handlebars chart whose template
- * uses `{{formatDate 'DD.MM.YYYY' ds}}` and asserts the chart renders a real
- * formatted date rather than the helper error.
- *
- * CI green => formatDate works again; merging closes #32960.
- * CI red   => the bug is still live; the fix belongs in the Handlebars plugin
- *             (superset-frontend/plugins/plugin-chart-handlebars), e.g. by
- *             providing a moment-free formatDate or making moment resolvable.
+ * Regression for #32960: the `formatDate` Handlebars helper renders a real
+ * formatted date instead of a "... is not a function" helper error. CI green
+ * closes #32960; CI red means the fix is still needed in the Handlebars plugin
+ * (superset-frontend/plugins/plugin-chart-handlebars).
  */
-import type { Page } from '@playwright/test';
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPost } from '../../helpers/api/requests';
+import { getDatasetByName } from '../../helpers/api/dataset';
+import { TIMEOUT } from '../../utils/constants';
 
 const DATASET_NAME = 'birth_names';
-
-async function findDatasetIdByName(page: Page, name: string): Promise<number> {
-  const query = `(filters:!((col:table_name,opr:eq,value:'${name}')))`;
-  const resp = await page.request.get(`api/v1/dataset/?q=${query}`);
-  const body = await resp.json();
-  if (!body.result?.length) {
-    throw new Error(`Dataset ${name} not found`);
-  }
-  return body.result[0].id;
-}
 
 testWithAssets(
   'Handlebars formatDate helper renders a formatted date (#32960)',
   async ({ page, testAssets }) => {
-    const datasetId = await findDatasetIdByName(page, DATASET_NAME);
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+
+    const dataset = await getDatasetByName(page, DATASET_NAME);
+    if (!dataset) {
+      throw new Error(`Dataset ${DATASET_NAME} not found`);
+    }
+    const datasetId = dataset.id;
 
     const params = {
       datasource: `${datasetId}__table`,
