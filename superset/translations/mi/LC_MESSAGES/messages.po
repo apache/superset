@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-09 10:24+0300\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -221,6 +221,10 @@ msgstr ""
 #, python-format
 msgid "%(label)s file"
 msgstr "kōnae %(label)s"
+
+#, fuzzy, python-format
+msgid "%(name)s.%(extension)s"
+msgstr "Āhuahanga"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -926,6 +930,10 @@ msgstr "I puta he wā-pau i te hangarautanga o tētahi csv."
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "I puta he wā-pau i te hangarautanga o tētahi dataframe."
+
+#, fuzzy
+msgid "A timeout occurred while generating an xlsx."
+msgstr "I puta he wā-pau i te hangarautanga o tētahi csv."
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "I puta he wā-pau i te tangohanga o tētahi hopuataata."
@@ -6284,6 +6292,10 @@ msgid "Examples"
 msgstr "Tauira"
 
 #, fuzzy
+msgid "Excel (XLSX) attached in email"
+msgstr "CSV kua hōputuhia kua tāpiritia ki te īmēra"
+
+#, fuzzy
 msgid "Excel Export"
 msgstr "Pūrongo Ia Wiki"
 
@@ -6704,6 +6716,12 @@ msgstr ""
 
 msgid "File settings"
 msgstr "Tautuhinga kōnae"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 msgid "File upload"
 msgstr "Tukuake kōnae"
@@ -10851,6 +10869,12 @@ msgstr ""
 "I rahua te whakatutukitanga o te Hōtaka Pūrongo i te hangarautanga o "
 "tētahi hopuataata."
 
+#, fuzzy
+msgid "Report Schedule execution failed when generating an xlsx."
+msgstr ""
+"I rahua te whakatutukitanga o te Hōtaka Pūrongo i te hangarautanga o "
+"tētahi csv."
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr "I puta tētahi hapa ohorere i te whakatutukitanga o te Hōtaka Pūrongo."
 
@@ -10938,6 +10962,10 @@ msgstr "Kua tangohia ngā uara whakahaere e hiahiatia ana"
 
 msgid "Resample"
 msgstr "Tauira-anō"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "Me noho te tikanga tauira-anō i"
@@ -12162,6 +12190,10 @@ msgstr ""
 
 msgid "Send as CSV"
 msgstr "Tuku hei CSV"
+
+#, fuzzy
+msgid "Send as Excel"
+msgstr "Tuku hei kupu"
 
 msgid "Send as PDF"
 msgstr "Tuku hei PDF"
@@ -15325,6 +15357,18 @@ msgid "To get a readable URL for your dashboard"
 msgstr "Hei whiwhi i tētahi URL ka taea te pānui mō tō papatohu"
 
 msgid "Token Request URI"
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
 msgstr ""
 
 #, fuzzy

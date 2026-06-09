@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-09 10:24+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -180,6 +180,10 @@ msgstr ""
 
 #, python-format
 msgid "%(label)s file"
+msgstr ""
+
+#, python-format
+msgid "%(name)s.%(extension)s"
 msgstr ""
 
 #, python-format
@@ -853,6 +857,9 @@ msgid "A timeout occurred while generating a csv."
 msgstr ""
 
 msgid "A timeout occurred while generating a dataframe."
+msgstr ""
+
+msgid "A timeout occurred while generating an xlsx."
 msgstr ""
 
 msgid "A timeout occurred while taking a screenshot."
@@ -5737,6 +5744,9 @@ msgstr ""
 msgid "Examples"
 msgstr ""
 
+msgid "Excel (XLSX) attached in email"
+msgstr ""
+
 msgid "Excel Export"
 msgstr ""
 
@@ -6122,6 +6132,12 @@ msgid ""
 msgstr ""
 
 msgid "File settings"
+msgstr ""
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
 msgstr ""
 
 msgid "File upload"
@@ -9912,6 +9928,9 @@ msgstr ""
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr ""
 
+msgid "Report Schedule execution failed when generating an xlsx."
+msgstr ""
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr ""
 
@@ -9998,6 +10017,10 @@ msgid "Required control values have been removed"
 msgstr ""
 
 msgid "Resample"
+msgstr ""
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
 msgstr ""
 
 msgid "Resample method should be in "
@@ -11090,6 +11113,9 @@ msgid "Semantic views"
 msgstr ""
 
 msgid "Send as CSV"
+msgstr ""
+
+msgid "Send as Excel"
 msgstr ""
 
 msgid "Send as PDF"
@@ -13850,6 +13876,18 @@ msgid "To get a readable URL for your dashboard"
 msgstr ""
 
 msgid "Token Request URI"
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
 msgstr ""
 
 msgid "Tool Panel"

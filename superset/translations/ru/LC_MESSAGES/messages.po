@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-09 10:24+0300\n"
 "PO-Revision-Date: 2025-11-05 14:37+0300\n"
 "Last-Translator: innovark\n"
 "Language: ru\n"
@@ -6621,6 +6621,12 @@ msgstr ""
 msgid "File settings"
 msgstr "Настройки файла"
 
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
+
 msgid "File upload"
 msgstr "Загрузка из файла"
 
@@ -10749,6 +10755,10 @@ msgstr "Обязательные значения были удалены"
 
 msgid "Resample"
 msgstr "Ресемплирование (изменение частоты данных)"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "Метод ресемплирования должен быть одним из: "
@@ -15038,6 +15048,18 @@ msgstr "Для получения читаемого URL-адреса дашбо
 
 msgid "Token Request URI"
 msgstr "URI запроса токена"
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
 
 msgid "Tool Panel"
 msgstr "Панель инструментов"

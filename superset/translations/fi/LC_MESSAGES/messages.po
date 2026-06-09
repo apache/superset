@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-09 10:24+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -303,6 +303,12 @@ msgstr "%(dialect)s ei sovellu tietolähteeksi turvallisuussyistä."
 #, fuzzy, python-format
 msgid "%(label)s file"
 msgstr "%(label)s-tiedosto"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
+# uk]
+#, fuzzy, python-format
+msgid "%(name)s.%(extension)s"
+msgstr "Laajennukset"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -1502,6 +1508,12 @@ msgstr "Aikakatkaisu tapahtui CSV-tiedoston luomisen aikana."
 #, fuzzy
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Aikakatkaisu tapahtui tietokehyksen luomisen aikana."
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
+msgid "A timeout occurred while generating an xlsx."
+msgstr "Aikakatkaisu tapahtui CSV-tiedoston luomisen aikana."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -11103,6 +11115,12 @@ msgstr "Esimerkki"
 msgid "Examples"
 msgstr "Esimerkit"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
+msgid "Excel (XLSX) attached in email"
+msgstr "Muotoiltu CSV liitetty sähköpostiin"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -11852,6 +11870,12 @@ msgstr ""
 #, fuzzy
 msgid "File settings"
 msgstr "Tiedostoasetukset"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -19375,6 +19399,12 @@ msgstr "Raporttiaikataulun suoritus epäonnistui kuvakaappausta luotaessa."
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
+msgid "Report Schedule execution failed when generating an xlsx."
+msgstr "Raporttiaikataulun suoritus epäonnistui CSV-tiedostoa luotaessa."
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid "Report Schedule execution got an unexpected error."
 msgstr "Raporttiaikataulun suoritus kohtasi odottamattoman virheen."
 
@@ -19548,6 +19578,10 @@ msgstr "Pakolliset ohjausarvot on poistettu"
 #, fuzzy
 msgid "Resample"
 msgstr "Uudelleennäytteistys"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -21717,6 +21751,12 @@ msgstr ""
 #, fuzzy
 msgid "Send as CSV"
 msgstr "Lähetä CSV-tiedostona"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
+msgid "Send as Excel"
+msgstr "Lähetä tekstinä"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -27045,6 +27085,18 @@ msgstr "Saadaksesi luettavan URL-osoitteen koontinäytöllesi"
 #, fuzzy
 msgid "Token Request URI"
 msgstr "Tunnuspyyntö-URI"
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]

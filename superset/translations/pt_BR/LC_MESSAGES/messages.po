@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-09 10:24+0300\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -233,6 +233,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "%(label)s file"
 msgstr "%(type)s do Arquivo"
+
+#, fuzzy, python-format
+msgid "%(name)s.%(extension)s"
+msgstr "Dimensões"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -966,6 +970,10 @@ msgstr "Ocorreu um tempo limite ao gerar um arquivo csv."
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Ocorreu um timeout durante a geração de um dataframe."
+
+#, fuzzy
+msgid "A timeout occurred while generating an xlsx."
+msgstr "Ocorreu um tempo limite ao gerar um arquivo csv."
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Ocorreu um tempo limite ao fazer uma captura de tela."
@@ -6541,6 +6549,10 @@ msgid "Examples"
 msgstr "Exemplos"
 
 #, fuzzy
+msgid "Excel (XLSX) attached in email"
+msgstr "CSV formatado anexado no e-mail"
+
+#, fuzzy
 msgid "Excel Export"
 msgstr "Relatório semanal"
 
@@ -6983,6 +6995,12 @@ msgstr ""
 #, fuzzy
 msgid "File settings"
 msgstr "Configurações de filtro"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 #, fuzzy
 msgid "File upload"
@@ -11217,6 +11235,10 @@ msgstr ""
 "A execução do agendamento do relatório falhou ao gerar uma captura de "
 "tela."
 
+#, fuzzy
+msgid "Report Schedule execution failed when generating an xlsx."
+msgstr "A execução do Report Schedule falhou ao gerar um arquivo csv."
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr "A execução do agendamento de relatório obteve um erro inesperado."
 
@@ -11308,6 +11330,10 @@ msgstr "Os valores de controle necessários foram eliminados"
 
 msgid "Resample"
 msgstr "Reamostragem"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 #, fuzzy
 msgid "Resample method should be in "
@@ -12572,6 +12598,10 @@ msgstr ""
 
 msgid "Send as CSV"
 msgstr "Enviar como CSV"
+
+#, fuzzy
+msgid "Send as Excel"
+msgstr "Enviar como texto"
 
 #, fuzzy
 msgid "Send as PDF"
@@ -15793,6 +15823,18 @@ msgid "To get a readable URL for your dashboard"
 msgstr "Para obter um URL legível para seu painel"
 
 msgid "Token Request URI"
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
 msgstr ""
 
 #, fuzzy

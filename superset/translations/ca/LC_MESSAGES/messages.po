@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-09 10:24+0300\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -230,6 +230,10 @@ msgstr "%(dialect)s no es pot usar com a font de dades per raons de seguretat."
 #, python-format
 msgid "%(label)s file"
 msgstr "fitxer %(label)s"
+
+#, fuzzy, python-format
+msgid "%(name)s.%(extension)s"
+msgstr "Dimensions"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -954,6 +958,10 @@ msgstr "S'ha produït un timeout mentre es generava un csv."
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "S'ha produït un timeout mentre es generava un dataframe."
+
+#, fuzzy
+msgid "A timeout occurred while generating an xlsx."
+msgstr "S'ha produït un timeout mentre es generava un csv."
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "S'ha produït un timeout mentre es prenia una captura de pantalla."
@@ -6357,6 +6365,10 @@ msgid "Examples"
 msgstr "Exemples"
 
 #, fuzzy
+msgid "Excel (XLSX) attached in email"
+msgstr "CSV formatat adjunt al correu electrònic"
+
+#, fuzzy
 msgid "Excel Export"
 msgstr "Informe Setmanal"
 
@@ -6781,6 +6793,12 @@ msgstr ""
 
 msgid "File settings"
 msgstr "Configuració del fitxer"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 msgid "File upload"
 msgstr "Pujada de fitxer"
@@ -10929,6 +10947,10 @@ msgstr ""
 "L'execució de la Programació d'Informe ha fallat en generar una captura "
 "de pantalla."
 
+#, fuzzy
+msgid "Report Schedule execution failed when generating an xlsx."
+msgstr "L'execució de la Programació d'Informe ha fallat en generar un csv."
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr "L'execució de la Programació d'Informe ha obtingut un error inesperat."
 
@@ -11016,6 +11038,10 @@ msgstr "Els valors de control obligatoris han estat eliminats"
 
 msgid "Resample"
 msgstr "Remostreig"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "El mètode de remostreig hauria de ser a "
@@ -12247,6 +12273,10 @@ msgstr ""
 
 msgid "Send as CSV"
 msgstr "Enviar com CSV"
+
+#, fuzzy
+msgid "Send as Excel"
+msgstr "Enviar com text"
 
 msgid "Send as PDF"
 msgstr "Enviar com PDF"
@@ -15442,6 +15472,18 @@ msgid "To get a readable URL for your dashboard"
 msgstr "Per obtenir una URL llegible per al teu dashboard"
 
 msgid "Token Request URI"
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
 msgstr ""
 
 #, fuzzy

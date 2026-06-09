@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-09 10:24+0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -234,6 +234,10 @@ msgstr ""
 #, python-format
 msgid "%(label)s file"
 msgstr "archivo %(label)s"
+
+#, fuzzy, python-format
+msgid "%(name)s.%(extension)s"
+msgstr "Dimensiones"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -968,6 +972,10 @@ msgstr "Se ha agotado el tiempo de espera al generar un CSV."
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Se ha agotado el tiempo de espera al generar un marco de datos."
+
+#, fuzzy
+msgid "A timeout occurred while generating an xlsx."
+msgstr "Se ha agotado el tiempo de espera al generar un CSV."
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Se ha agotado el tiempo de espera al hacer una captura de pantalla."
@@ -6585,6 +6593,10 @@ msgid "Examples"
 msgstr "Ejemplos"
 
 #, fuzzy
+msgid "Excel (XLSX) attached in email"
+msgstr "CSV formateado adjunto en el correo electrónico"
+
+#, fuzzy
 msgid "Excel Export"
 msgstr "Informe semanal"
 
@@ -7035,6 +7047,12 @@ msgstr ""
 
 msgid "File settings"
 msgstr "Ajustes de archivo"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 msgid "File upload"
 msgstr "Subir archivo"
@@ -11322,6 +11340,12 @@ msgstr ""
 "Se ha producido un error en la ejecución de la programación de informes "
 "al generar una captura de pantalla."
 
+#, fuzzy
+msgid "Report Schedule execution failed when generating an xlsx."
+msgstr ""
+"Se ha producido un error en la ejecución de la programación de informes "
+"al generar un CSV."
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr ""
 "Se ha producido un error inesperado en la ejecución de la programación de"
@@ -11413,6 +11437,10 @@ msgstr "Se han eliminado los valores de control obligatorios"
 
 msgid "Resample"
 msgstr "Remuestreo"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "El método de remuestreo debe estar en "
@@ -12691,6 +12719,10 @@ msgstr ""
 
 msgid "Send as CSV"
 msgstr "Enviar como CSV"
+
+#, fuzzy
+msgid "Send as Excel"
+msgstr "Enviar como texto"
 
 msgid "Send as PDF"
 msgstr "Enviar como PDF"
@@ -16063,6 +16095,18 @@ msgstr "Para obtener una URL legible para tu panel de control"
 #, fuzzy
 msgid "Token Request URI"
 msgstr "URI de solicitud de token"
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"

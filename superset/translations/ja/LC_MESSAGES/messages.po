@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-09 10:24+0300\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -201,6 +201,10 @@ msgstr "%(dialect)s は、セキュリティ上の理由からデータソース
 #, python-format
 msgid "%(label)s file"
 msgstr "%(label)s ファイル"
+
+#, fuzzy, python-format
+msgid "%(name)s.%(extension)s"
+msgstr "拡張機能"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -881,6 +885,10 @@ msgstr "CSVの生成中にタイムアウトが発生しました。"
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "データフレームの生成中にタイムアウトが発生しました。"
+
+#, fuzzy
+msgid "A timeout occurred while generating an xlsx."
+msgstr "CSVの生成中にタイムアウトが発生しました。"
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "スクリーンショットの撮影中にタイムアウトが発生しました。"
@@ -5837,6 +5845,10 @@ msgstr "例"
 msgid "Examples"
 msgstr "サンプル"
 
+#, fuzzy
+msgid "Excel (XLSX) attached in email"
+msgstr "整形済みCSVをメールに添付"
+
 msgid "Excel Export"
 msgstr "Excelエクスポート"
 
@@ -6241,6 +6253,12 @@ msgstr "このブラウザではファイル操作がサポートされていま
 
 msgid "File settings"
 msgstr "ファイル設定"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 msgid "File upload"
 msgstr "ファイルアップロード"
@@ -10096,6 +10114,10 @@ msgstr "PDF生成時にレポートスケジュールの実行が失敗しまし
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr "スクリーンショット生成時にレポートスケジュールの実行が失敗しました。"
 
+#, fuzzy
+msgid "Report Schedule execution failed when generating an xlsx."
+msgstr "CSV生成時にレポートスケジュールの実行が失敗しました。"
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr "レポートスケジュールの実行中に予期しないエラーが発生しました。"
 
@@ -10183,6 +10205,10 @@ msgstr "必須の制御値が削除されました"
 
 msgid "Resample"
 msgstr "リサンプリング"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "リサンプリング方法は以下の通りです "
@@ -11326,6 +11352,10 @@ msgstr ""
 
 msgid "Send as CSV"
 msgstr "CSVとして送信"
+
+#, fuzzy
+msgid "Send as Excel"
+msgstr "テキストとして送信"
 
 msgid "Send as PDF"
 msgstr "PDFとして送信"
@@ -14170,6 +14200,18 @@ msgstr "ダッシュボードのわかりやすい URL を取得するには"
 
 msgid "Token Request URI"
 msgstr "トークンリクエスト URI"
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
 
 msgid "Tool Panel"
 msgstr "ツールパネル"

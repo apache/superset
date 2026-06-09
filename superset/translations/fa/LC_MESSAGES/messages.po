@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-09 10:24+0300\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -205,6 +205,10 @@ msgstr "%(dialect)s به دلایل امنیتی نمی‌تواند به عنو
 #, fuzzy, python-format
 msgid "%(label)s file"
 msgstr "فایل %(type)s"
+
+#, fuzzy, python-format
+msgid "%(name)s.%(extension)s"
+msgstr "ابعاد"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -931,6 +935,10 @@ msgstr "در حین ساخت csv، یک تایم اوت رخ داد."
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "در حین تولید یک دیتافریم، یک تایم اوت رخ داد."
+
+#, fuzzy
+msgid "A timeout occurred while generating an xlsx."
+msgstr "در حین ساخت csv، یک تایم اوت رخ داد."
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "در حین گرفتن یک اسکرین‌شات یک تایم اوت رخ داد."
@@ -6313,6 +6321,10 @@ msgid "Examples"
 msgstr "نمونه‌ها"
 
 #, fuzzy
+msgid "Excel (XLSX) attached in email"
+msgstr "فرمت‌شده CSV در ایمیل پیوست شده است"
+
+#, fuzzy
 msgid "Excel Export"
 msgstr "گزارش هفتگی"
 
@@ -6742,6 +6754,12 @@ msgstr ""
 #, fuzzy
 msgid "File settings"
 msgstr "تنظیمات فایل"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 msgid "File upload"
 msgstr "آپلود فایل"
@@ -10890,6 +10908,10 @@ msgstr "اجرای زمانبندی گزارش هنگام تولید یک فای
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr "اجرای زمانبندی گزارش هنگام تولید اسکرین شات با خطا مواجه شد."
 
+#, fuzzy
+msgid "Report Schedule execution failed when generating an xlsx."
+msgstr "اجرای زمانبندی گزارش هنگام تولید یک فایل csv با شکست مواجه شد."
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr "اجرای زمانبندی گزارش با خطای غیرمنتظره‌ای مواجه شد."
 
@@ -10977,6 +10999,10 @@ msgstr "مقادیر کنترل مورد نیاز حذف شده‌اند"
 
 msgid "Resample"
 msgstr "نمونه‌برداری مجدد"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "روش نمونه‌برداری باید در"
@@ -12202,6 +12228,10 @@ msgstr ""
 
 msgid "Send as CSV"
 msgstr "به‌عنوان CSV ارسال کنید"
+
+#, fuzzy
+msgid "Send as Excel"
+msgstr "متن را ارسال کنید"
 
 msgid "Send as PDF"
 msgstr "به صورت PDF ارسال کنید"
@@ -15358,6 +15388,18 @@ msgid "To get a readable URL for your dashboard"
 msgstr "برای دریافت یک URL قابل خواندن برای داشبورد شما"
 
 msgid "Token Request URI"
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
 msgstr ""
 
 #, fuzzy

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-09 10:24+0300\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -224,6 +224,10 @@ msgstr ""
 #, python-format
 msgid "%(label)s file"
 msgstr "%(label)s fichier"
+
+#, fuzzy, python-format
+msgid "%(name)s.%(extension)s"
+msgstr "Dimensions"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -949,6 +953,10 @@ msgstr "Dépassement de délai lors de la génération d'un CSV."
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Dépassement de délai lors de la génération d'une trame de données."
+
+#, fuzzy
+msgid "A timeout occurred while generating an xlsx."
+msgstr "Dépassement de délai lors de la génération d'un CSV."
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Dépassement de délai lors d'une capture d'écran."
@@ -6387,6 +6395,10 @@ msgstr "Exemple"
 msgid "Examples"
 msgstr "Exemples"
 
+#, fuzzy
+msgid "Excel (XLSX) attached in email"
+msgstr "CSV formatté attaché dans le courriel"
+
 msgid "Excel Export"
 msgstr "Export Excel"
 
@@ -6817,6 +6829,12 @@ msgstr ""
 #, fuzzy
 msgid "File settings"
 msgstr "Paramètres du filtre"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 msgid "File upload"
 msgstr "Téléversement"
@@ -11124,6 +11142,12 @@ msgstr ""
 "L'exécution de la planification de rapport a échoué à la génération d'une"
 " capture d’écran."
 
+#, fuzzy
+msgid "Report Schedule execution failed when generating an xlsx."
+msgstr ""
+"L'exécution de la planification de rapport a échoué à la génération d'un "
+"csv."
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr ""
 "L'exécution de la planification de rapport a rencontré une erreur "
@@ -11221,6 +11245,10 @@ msgstr "Les valeurs de contrôle requises ont été supprimées"
 
 msgid "Resample"
 msgstr "Rééchantillonner"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "La méthode de rééchantillonnage devrait être"
@@ -12505,6 +12533,10 @@ msgstr ""
 
 msgid "Send as CSV"
 msgstr "Envoyer comme CSV"
+
+#, fuzzy
+msgid "Send as Excel"
+msgstr "Envoyer comme fichier texte"
 
 msgid "Send as PDF"
 msgstr "Envoyer comme PDF"
@@ -15846,6 +15878,18 @@ msgid "To get a readable URL for your dashboard"
 msgstr "Pour obtenir une URL lisible pour votre tableau de bord"
 
 msgid "Token Request URI"
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
 msgstr ""
 
 #, fuzzy

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-09 10:24+0300\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -232,6 +232,10 @@ msgstr "%(dialect)s nevar izmantot kā datu avotu drošības apsvērumu dēļ."
 #, python-format
 msgid "%(label)s file"
 msgstr "%(label)s fails"
+
+#, fuzzy, python-format
+msgid "%(name)s.%(extension)s"
+msgstr "Papildinājumi"
 
 #, python-format
 msgid "%(name)s.csv"
@@ -964,6 +968,10 @@ msgstr "Ģenerējot CSV, iestājās noildze."
 
 msgid "A timeout occurred while generating a dataframe."
 msgstr "Ģenerējot datu rāmi, iestājās noildze."
+
+#, fuzzy
+msgid "A timeout occurred while generating an xlsx."
+msgstr "Ģenerējot CSV, iestājās noildze."
 
 msgid "A timeout occurred while taking a screenshot."
 msgstr "Uzņemot ekrānuzņēmumu, iestājās noildze."
@@ -6219,6 +6227,10 @@ msgstr "Piemērs"
 msgid "Examples"
 msgstr "Piemēri"
 
+#, fuzzy
+msgid "Excel (XLSX) attached in email"
+msgstr "Formatēts CSV pievienots e-pastā"
+
 msgid "Excel Export"
 msgstr "Excel eksports"
 
@@ -6629,6 +6641,12 @@ msgstr ""
 
 msgid "File settings"
 msgstr "Faila iestatījumi"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 msgid "File upload"
 msgstr "Faila augšupielāde"
@@ -10660,6 +10678,10 @@ msgstr "Atskaites grafika izpilde neizdevās, ģenerējot PDF."
 msgid "Report Schedule execution failed when generating a screenshot."
 msgstr "Atskaites grafika izpilde neizdevās, ģenerējot ekrānuzņēmumu."
 
+#, fuzzy
+msgid "Report Schedule execution failed when generating an xlsx."
+msgstr "Atskaites grafika izpilde neizdevās, ģenerējot CSV."
+
 msgid "Report Schedule execution got an unexpected error."
 msgstr "Atskaites grafika izpildē radās neparedzēta kļūda."
 
@@ -10747,6 +10769,10 @@ msgstr "Obligātās vadīklas vērtības ir noņemtas"
 
 msgid "Resample"
 msgstr "Atkārtota izlase"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "Atkārtotās izlases metodei jābūt "
@@ -11947,6 +11973,10 @@ msgstr ""
 
 msgid "Send as CSV"
 msgstr "Sūtīt kā CSV"
+
+#, fuzzy
+msgid "Send as Excel"
+msgstr "Sūtīt kā tekstu"
 
 msgid "Send as PDF"
 msgstr "Sūtīt kā PDF"
@@ -15043,6 +15073,18 @@ msgstr "Lai iegūtu lasāmu URL jūsu panelim"
 
 msgid "Token Request URI"
 msgstr "Talona pieprasījuma URI"
+
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
 
 msgid "Tool Panel"
 msgstr "Rīku panelis"
