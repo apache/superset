@@ -33,6 +33,7 @@ from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any, cast
 
+import httpx
 from authlib.jose.errors import (
     BadSignatureError,
     DecodeError,
@@ -447,6 +448,18 @@ class DetailedJWTVerifier(MCPJWTVerifier):
             # Step 2: Get verification key (static or JWKS)
             try:
                 verification_key = await self._get_verification_key(token)
+            except (httpx.HTTPError, OSError, TimeoutError) as e:
+                # Transient failure reaching or reading the JWKS endpoint.
+                # Treat it as an authentication failure (return None) instead of
+                # letting the network error propagate as an unexpected exception.
+                reason = "JWKS verification key unavailable"
+                _jwt_failure_reason.set(reason)
+                # WARNING carries only the generic category (per the module's
+                # logging contract); the sanitized exception detail, which may
+                # include the JWKS endpoint host, is reserved for DEBUG.
+                logger.warning("Could not fetch JWKS verification key")
+                logger.debug("JWKS fetch error detail: %s", _sanitize_for_log(e))
+                return None
             except ValueError as e:
                 reason = "Failed to get verification key"
                 _jwt_failure_reason.set(reason)
@@ -560,11 +573,15 @@ class DetailedJWTVerifier(MCPJWTVerifier):
 
             # All validations passed. Log the successful authentication with
             # safe metadata only — never the token contents or any secret.
+            # Coerce scope entries to strings before sorting so a malformed
+            # (non-orderable) scope claim can never turn this audit log into a
+            # TypeError that would mask a successful auth as a failure.
+            scopes_for_log = sorted(str(scope) for scope in scopes)
             logger.info(
                 "JWT authentication succeeded: client_id='%s', scopes=%s, "
                 "auth_method='bearer_jwt'",
                 _sanitize_for_log(client_id),
-                _sanitize_for_log(" ".join(sorted(scopes)) or "(none)"),
+                _sanitize_for_log(" ".join(scopes_for_log) or "(none)"),
             )
             return AccessToken(
                 token=token,
