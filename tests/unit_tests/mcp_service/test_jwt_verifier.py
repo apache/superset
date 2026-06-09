@@ -171,6 +171,29 @@ async def test_expired_token(hs256_verifier):
 
 
 @pytest.mark.asyncio
+async def test_token_with_future_nbf_rejected(hs256_verifier):
+    """Token whose nbf is in the future should report not-yet-valid."""
+    future_nbf = int(time.time()) + 3600
+    claims = {
+        "sub": "user1",
+        "iss": "test-issuer",
+        "aud": "test-audience",
+        "exp": int(time.time()) + 7200,
+        "nbf": future_nbf,
+    }
+    token = _make_token({"alg": "HS256", "typ": "JWT"}, claims)
+
+    with patch.object(hs256_verifier.jwt, "decode", return_value=claims):
+        result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    reason = _jwt_failure_reason.get()
+    assert reason == "Token not yet valid"
+    # Claim values must not leak into the contextvar reason
+    assert "user1" not in reason
+
+
+@pytest.mark.asyncio
 async def test_issuer_mismatch(hs256_verifier):
     """Token with wrong issuer should report issuer mismatch."""
     token = _make_token(
@@ -966,6 +989,37 @@ async def test_algorithm_none_rejected_when_no_algorithm_pinned():
     assert _jwt_failure_reason.get() == "Algorithm not allowed"
 
 
+@pytest.mark.asyncio
+async def test_algorithm_null_rejected(hs256_verifier):
+    """A header with ``"alg": null`` (JSON null -> Python ``None``) bypasses the
+    forbidden-set check (which is ``str``-typed), but the algorithm-mismatch
+    guard still rejects it because the verifier pins a concrete algorithm."""
+    claims = {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"}
+    token = _make_token({"alg": None, "typ": "JWT"}, claims)
+
+    result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "Algorithm mismatch"
+
+
+def test_algorithm_invariant_is_pinned_after_construction():
+    """The mismatch defense (and thus the ``alg: null`` rejection above) relies
+    on ``self.algorithm`` always being truthy post-construction. Pin that
+    invariant: the factory defaults the algorithm to ``RS256`` when
+    ``MCP_JWT_ALGORITHM`` is unset, so a constructed verifier never has a falsy
+    algorithm."""
+    verifier = DetailedJWTVerifier(
+        public_key="test-secret-key-for-hs256-tokens",
+        issuer="test-issuer",
+        audience="test-audience",
+        algorithm="HS256",
+        required_scopes=[],
+    )
+    assert verifier.algorithm is not None
+    assert verifier.algorithm
+
+
 def test_warns_when_audience_not_configured(caplog):
     """Constructing a verifier without an audience logs a clear WARNING that
     audience validation is disabled (config-gated, not a hard failure)."""
@@ -990,6 +1044,24 @@ def test_warns_when_algorithm_not_configured(caplog):
 
     with caplog.at_level(logging.WARNING):
         _warn_on_weak_jwt_config(audience="test-audience", algorithm=None)
+
+    warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+    assert any("without a pinned signing algorithm" in m for m in warnings)
+
+
+def test_warns_when_algorithm_not_configured_via_constructor(caplog):
+    """Constructing a verifier with no pinned algorithm (no app context, so the
+    constructor falls back to the explicit ``algorithm`` kwarg) must still emit
+    the weak-config WARNING. This exercises the ``config_algorithm or
+    explicit_algorithm`` fallback path in ``__init__``, not just the helper."""
+    with caplog.at_level(logging.WARNING):
+        DetailedJWTVerifier(
+            public_key="test-secret-key-for-hs256-tokens",
+            issuer="test-issuer",
+            audience="test-audience",
+            algorithm=None,
+            required_scopes=[],
+        )
 
     warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
     assert any("without a pinned signing algorithm" in m for m in warnings)

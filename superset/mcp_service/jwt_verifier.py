@@ -607,6 +607,21 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 )
                 return None
 
+            # Step 4b: Check not-before (RFC 7519 Section 4.1.5). ``decode``
+            # alone does not validate temporal claims here (claims are read
+            # individually rather than via ``JWTClaims.validate``), so a token
+            # whose ``nbf`` is in the future must be rejected explicitly, just
+            # like ``exp`` above.
+            nbf = claims.get("nbf")
+            if nbf is not None and nbf > time.time():
+                reason = "Token not yet valid"
+                _jwt_failure_reason.set(reason)
+                logger.debug(
+                    "Token not yet valid for client '%s': nbf is in the future",
+                    _sanitize_for_log(client_id),
+                )
+                return None
+
             # Step 5: Validate issuer
             if self.issuer:
                 iss = claims.get("iss")
