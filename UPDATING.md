@@ -44,6 +44,20 @@ The embedded dashboard page now validates the origin of incoming `postMessage` e
 
 Enforcement only applies when the Allowed Domains list is non-empty. If the list is empty (the default), any origin is accepted, so there is no behavior change for embeds that did not configure Allowed Domains.
 
+### Default guest/async JWT secrets are rejected at startup
+
+Superset already refuses to start in production (non-debug, non-testing) when `SECRET_KEY` is left at its built-in default, and when `GUEST_TOKEN_JWT_SECRET` is left at its default while `EMBEDDED_SUPERSET` is enabled. This behavior is extended to `GLOBAL_ASYNC_QUERIES_JWT_SECRET`: if the `GLOBAL_ASYNC_QUERIES` feature flag is enabled and the secret is still the publicly known default (`test-secret-change-me`), Superset logs a clear error and refuses to start.
+
+As with the existing `SECRET_KEY` check, this only fails in production. In debug mode, testing mode, or under the test runner, a warning is logged instead of exiting, so local development is unaffected.
+
+To resolve the error, set a strong random value in `superset_config.py`:
+
+```python
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = "<output of: openssl rand -base64 42>"
+```
+
+The check is only active when the relevant feature is enabled, so deployments that do not use global async queries (or embedding) are not affected.
+
 ### Dataset import validates catalog against the target connection
 
 Importing a dataset now validates the `catalog` field against the target database connection. When the connection has multi-catalog disabled (`allow_multi_catalog` off) and the dataset's catalog is not the connection's default catalog, the import fails instead of silently persisting the non-default catalog. This matches the validation already enforced on the dataset update path and prevents imported datasets from querying an unintended database.

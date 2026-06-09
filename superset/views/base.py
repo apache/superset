@@ -141,7 +141,9 @@ def get_error_msg() -> str:
 
 
 def json_success(json_msg: str, status: int = 200) -> FlaskResponse:
-    return Response(json_msg, status=status, mimetype="application/json")
+    return Response(
+        json_msg, status=status, content_type="application/json; charset=utf-8"
+    )
 
 
 def data_payload_response(payload_json: str, has_error: bool = False) -> FlaskResponse:
@@ -214,7 +216,7 @@ class BaseSupersetView(BaseView):
         return Response(
             json.dumps(obj, default=json.json_int_dttm_ser, ignore_nan=True),
             status=status,
-            mimetype="application/json",
+            content_type="application/json; charset=utf-8",
         )
 
     def render_app_template(
