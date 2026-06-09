@@ -19,6 +19,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.commands.security.create import CreateRLSRuleCommand
+from superset.commands.security.delete import DeleteRLSRuleCommand
 from superset.commands.security.exceptions import RLSDatasourceForbiddenError
 from superset.commands.security.update import UpdateRLSRuleCommand
 
@@ -149,3 +150,47 @@ def test_update_rls_rule_allowed_when_datasource_access() -> None:
 
     can_access.assert_called_once_with(datasource=tables[0])
     assert command._properties["tables"] == tables
+
+
+def test_delete_rls_rule_forbidden_when_no_datasource_access() -> None:
+    tables = _mock_tables(1)
+    rule = MagicMock()
+    rule.tables = tables
+
+    with (
+        patch(
+            "superset.commands.security.delete.RLSDAO.find_by_ids",
+            return_value=[rule],
+        ),
+        patch(
+            "superset.commands.security.delete.security_manager.can_access_datasource",
+            return_value=False,
+        ) as can_access,
+    ):
+        command = DeleteRLSRuleCommand([1])
+        with pytest.raises(RLSDatasourceForbiddenError):
+            command.validate()
+
+    can_access.assert_called_once_with(datasource=tables[0])
+
+
+def test_delete_rls_rule_allowed_when_datasource_access() -> None:
+    tables = _mock_tables(1, 2)
+    rule = MagicMock()
+    rule.tables = tables
+
+    with (
+        patch(
+            "superset.commands.security.delete.RLSDAO.find_by_ids",
+            return_value=[rule],
+        ),
+        patch(
+            "superset.commands.security.delete.security_manager.can_access_datasource",
+            return_value=True,
+        ) as can_access,
+    ):
+        command = DeleteRLSRuleCommand([1])
+        command.validate()
+
+    # Access is checked for every datasource referenced by the rule.
+    assert can_access.call_count == 2
