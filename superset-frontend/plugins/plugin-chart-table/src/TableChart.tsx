@@ -1305,6 +1305,18 @@ export default function TableChart<D extends DataRecord = DataRecord>(
               }
             }}
             role="columnheader button"
+            // Expose sort state to assistive technology. Only
+            // sortable headers advertise aria-sort; the value tracks the
+            // ascending/descending/none cycle rendered by <SortIcon>.
+            aria-sort={
+              col.canSort
+                ? col.isSorted
+                  ? col.isSortedDesc
+                    ? 'descending'
+                    : 'ascending'
+                  : 'none'
+                : undefined
+            }
             onClick={onClick}
             data-column-name={col.id}
             {...(allowRearrangeColumns && {
@@ -1524,10 +1536,13 @@ export default function TableChart<D extends DataRecord = DataRecord>(
       const modifiedOwnState = {
         ...serverPaginationData,
         sortBy,
+        // Changing the sort re-queries the full dataset, so the
+        // previous page offset is meaningless — return to the first page.
+        currentPage: 0,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     },
-    [serverPagination, serverPaginationData, setDataMask],
+    [serverPaginationData, setDataMask],
   );
 
   const handleSearch = (searchText: string) => {

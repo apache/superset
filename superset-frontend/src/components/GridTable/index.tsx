@@ -32,9 +32,6 @@ const gridComponents = {
   agColumnHeader: Header,
 };
 
-const onSortChanged: AgGridReactProps['onSortChanged'] = ({ api }) =>
-  api.refreshCells();
-
 export function GridTable<RecordType extends object>({
   data,
   columns,
@@ -46,8 +43,28 @@ export function GridTable<RecordType extends object>({
   enableActions,
   size = GridSize.Middle,
   striped,
+  onServerSort,
 }: TableProps<RecordType>) {
   const theme = useTheme();
+  const onSortChanged = useCallback<
+    NonNullable<AgGridReactProps['onSortChanged']>
+  >(
+    ({ api }) => {
+      api.refreshCells();
+      if (!onServerSort) {
+        return;
+      }
+      const orderby = api
+        .getColumnState()
+        .filter(state => state.sort)
+        // Order the columns by the sequence in which the user applied each
+        // sort so multi-column sort reaches the server in the right priority.
+        .sort((a, b) => (a.sortIndex ?? 0) - (b.sortIndex ?? 0))
+        .map(state => [state.colId, state.sort === 'asc'] as [string, boolean]);
+      onServerSort(orderby);
+    },
+    [onServerSort],
+  );
   const isExternalFilterPresent = useCallback(
     () => Boolean(externalFilter),
     [externalFilter],

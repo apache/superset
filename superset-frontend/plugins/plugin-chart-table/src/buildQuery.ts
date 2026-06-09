@@ -128,13 +128,18 @@ const buildQuery: BuildQuery<TableChartFormData> = (
 
     if (queryMode === QueryMode.Aggregate) {
       metrics = metrics || [];
-      // override orderby with timeseries metric when in aggregation mode
-      if (sortByMetric) {
-        orderby = [[sortByMetric, !orderDesc]];
-      } else if (metrics?.length > 0) {
-        // default to ordering by first metric in descending order
-        // when no "sort by" metric is set (regardless if "SORT DESC" is set to true)
-        orderby = [[metrics[0], false]];
+      // Fall back to a metric-based default sort only when no explicit orderby
+      // was supplied (e.g. a column sort from the "View as table" results pane).
+      // An explicit orderby from form data takes precedence.
+      if (orderby.length === 0) {
+        // override orderby with timeseries metric when in aggregation mode
+        if (sortByMetric) {
+          orderby = [[sortByMetric, !orderDesc]];
+        } else if (metrics?.length > 0) {
+          // default to ordering by first metric in descending order
+          // when no "sort by" metric is set (regardless if "SORT DESC" is set to true)
+          orderby = [[metrics[0], false]];
+        }
       }
       // add postprocessing for percent metrics only when in aggregation mode
       type PercentMetricCalculationMode = 'row_limit' | 'all_records';

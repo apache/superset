@@ -102,4 +102,10 @@ export interface SingleQueryResultPaneProp
   rowLimit?: number;
   rowLimitOptions?: { value: number; label: string }[];
   onRowLimitChange?: (limit: number) => void;
+  // Re-request data sorted server-side; omitted when the result fits within the
+  // row limit and client-side sorting is already exact.
+  onServerSort?: (orderby: [string, boolean][]) => void;
+  // True while a re-sort/refetch is in flight; surfaced in-place so the grid
+  // stays mounted (and keeps its sort state) instead of being replaced.
+  isLoading?: boolean;
 }

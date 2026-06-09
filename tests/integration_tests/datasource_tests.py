@@ -647,6 +647,37 @@ def test_get_samples(test_client, login_as_admin, virtual_dataset):
     assert eager_samples == rv2.json["result"]["data"]
 
 
+def test_get_samples_with_orderby(test_client, login_as_admin, virtual_dataset):
+    """
+    /datasource/samples should honor a caller-supplied ``orderby``, sorting the
+    returned rows server-side (drill-detail header-click sort). ``col1`` holds
+    the distinct values 0..9.
+    """
+    uri = (
+        f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
+    )
+
+    # Descending by col1 -> 9..0. This also proves the caller's orderby
+    # overrides the default first-column-ascending ordering.
+    rv_desc = test_client.post(uri, json={"orderby": [["col1", False]]})
+    assert rv_desc.status_code == 200
+    col1_desc = [row["col1"] for row in rv_desc.json["result"]["data"]]
+    assert col1_desc == sorted(col1_desc, reverse=True)
+    assert col1_desc[0] == 9
+
+    # Ascending by col1 -> 0..9.
+    rv_asc = test_client.post(uri, json={"orderby": [["col1", True]]})
+    assert rv_asc.status_code == 200
+    col1_asc = [row["col1"] for row in rv_asc.json["result"]["data"]]
+    assert col1_asc == sorted(col1_asc)
+    assert col1_asc[0] == 0
+
+    # The two orderings differ and produce distinct cache keys, confirming
+    # `orderby` is part of the query rather than ignored.
+    assert col1_desc != col1_asc
+    assert rv_desc.json["result"]["cache_key"] != rv_asc.json["result"]["cache_key"]
+
+
 def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_dataset):
     if get_example_database().backend == "sqlite":
         return

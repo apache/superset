@@ -2703,3 +2703,161 @@ def test_format_time_humanized_skips_activation_for_english(
     instance._format_time_humanized(datetime.now() - timedelta(hours=2))
 
     mock_activate.assert_not_called()
+
+
+def _orderby_sql(database: Database, orderby: list) -> str:
+    """Build a SqlaTable query with the given orderby and return compiled SQL.
+
+    Shared by the tests below. The column is resolved through
+    the dataset's ``columns`` ORM relationship (no raw SQL interpolation).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+    )
+    sqla_query = table.get_sqla_query(
+        columns=["a", "b"],
+        filter=[],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+        orderby=orderby,
+    )
+    with database.get_sqla_engine() as engine:
+        return str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        ).upper()
+
+
+def test_orderby_ascending_applies_order_by_clause(database: Database) -> None:
+    """
+    A validated single-column ``orderby`` is applied as ``ORDER BY ... ASC`` by
+    the existing ORM query builder. The column comes from the ``dataset.columns``
+    relationship, confirming the backend already supports server-side sort once
+    ``orderby`` is populated (ORM-resolved, no raw SQL).
+    """
+    sql = _orderby_sql(database, [("a", True)])
+    assert "ORDER BY" in sql
+    assert "ASC" in sql
+
+
+def test_orderby_descending_applies_order_by_clause(database: Database) -> None:
+    """Descending direction yields ``ORDER BY ... DESC``."""
+    sql = _orderby_sql(database, [("a", False)])
+    assert "ORDER BY" in sql
+    assert "DESC" in sql
+
+
+def test_orderby_absent_no_order_by_clause(database: Database) -> None:
+    """With empty orderby, no ORDER BY clause is added,
+    so existing (unsorted) query behaviour is unchanged."""
+    sql = _orderby_sql(database, [])
+    assert "ORDER BY" not in sql
+
+
+def test_orderby_compiles_across_dialects(database: Database) -> None:
+    """The ORDER BY clause is emitted by SQLAlchemy per
+    dialect rather than hardcoded. Compile the same sorted query against the
+    PostgreSQL and MySQL dialects and confirm each produces ORDER BY ... DESC.
+    """
+    from sqlalchemy.dialects import mysql, postgresql
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+    )
+    sqla_query = table.get_sqla_query(
+        columns=["a", "b"],
+        filter=[],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+        orderby=[("a", False)],
+    )
+    for dialect in (postgresql.dialect(), mysql.dialect()):
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        ).upper()
+        assert "ORDER BY" in sql, f"missing ORDER BY for {dialect.name}"
+        assert "DESC" in sql, f"missing DESC for {dialect.name}"
+
+
+def test_orderby_applied_after_where_filter(database: Database) -> None:
+    """The ORDER BY clause is appended after the WHERE
+    filters, so filtering (incl. RLS, which uses the same WHERE stage) is not
+    affected by the sort. Asserts both clauses are present and ordered.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+        ],
+    )
+    sqla_query = table.get_sqla_query(
+        columns=["a", "b"],
+        filter=[{"col": "a", "op": "==", "val": 1}],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+        orderby=[("a", True)],
+    )
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        ).upper()
+    assert "WHERE" in sql
+    assert "ORDER BY" in sql
+    assert sql.index("WHERE") < sql.index("ORDER BY")
+
+
+def test_orderby_unknown_column_raises(database: Database) -> None:
+    """If the orderby column cannot be resolved on the
+    datasource the builder raises QueryObjectValidationError rather than
+    silently dropping the sort or falling back to unsafe SQL.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+    with pytest.raises(QueryObjectValidationError):
+        table.get_sqla_query(
+            columns=["a"],
+            filter=[],
+            extras={},
+            is_timeseries=False,
+            metrics=[],
+            orderby=[("does_not_exist", True)],
+        )

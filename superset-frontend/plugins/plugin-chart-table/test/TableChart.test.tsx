@@ -2457,3 +2457,26 @@ describe('Drill-to-Detail Temporal Range Logic', () => {
     expect(filter.val).toBeNull();
   });
 });
+
+// Server-side full sort: accessibility of sortable headers.
+// Every sortable column header must expose its sort state via
+// aria-sort, and the value must track the asc/desc/none cycle.
+const VALID_ARIA_SORT = ['none', 'ascending', 'descending'];
+
+test('sortable column headers expose and update aria-sort (F3-T1, NFR-ACC-01)', () => {
+  render(<TableChart {...transformProps(testData.advanced)} sticky={false} />);
+
+  const headerCell = screen.getByText('Sum of Num').closest('th') as HTMLElement;
+  expect(headerCell).toBeInTheDocument();
+
+  // A sortable header must advertise a valid aria-sort token (the exact
+  // initial value depends on any default sort in formData, so accept any).
+  const initial = headerCell.getAttribute('aria-sort');
+  expect(VALID_ARIA_SORT).toContain(initial);
+
+  // Clicking the header changes the sort, and aria-sort tracks that change.
+  fireEvent.click(headerCell);
+  const afterClick = headerCell.getAttribute('aria-sort');
+  expect(VALID_ARIA_SORT).toContain(afterClick);
+  expect(afterClick).not.toEqual(initial);
+});
