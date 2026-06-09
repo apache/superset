@@ -16,13 +16,21 @@
 # under the License.
 """Integration tests for dataset soft-delete and restore."""
 
+from datetime import datetime
+
+from superset import security_manager
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.extensions import db
+from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils import json
 from tests.integration_tests.base_tests import SupersetTestCase
-from tests.integration_tests.constants import ADMIN_USERNAME, ALPHA_USERNAME
+from tests.integration_tests.constants import (
+    ADMIN_USERNAME,
+    ALPHA_USERNAME,
+    GAMMA_USERNAME,
+)
 
 
 class TestDatasetSoftDelete(SupersetTestCase):
@@ -133,6 +141,112 @@ class TestDatasetSoftDelete(SupersetTestCase):
             assert live_id not in returned_ids
         finally:
             self._restore_dataset(deleted_id)
+
+    def _hard_delete_created(self, dataset_id: int, database: Database) -> None:
+        """Remove a test-created dataset + its database (visibility bypassed)."""
+        row = (
+            db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+            .filter(SqlaTable.id == dataset_id)
+            .one_or_none()
+        )
+        if row:
+            db.session.delete(row)
+        db.session.delete(database)
+        db.session.commit()
+
+    def test_deleted_state_list_shows_owner_their_own_deleted(self) -> None:
+        """A non-admin owner can still enumerate their own soft-deleted datasets.
+        Deleted-state scoping mirrors the restore audience, so it must not lock
+        owners out of their own trash."""
+        alpha = self.get_user(ALPHA_USERNAME)
+        database = Database(database_name="sd_owner_db", sqlalchemy_uri="sqlite://")
+        db.session.add(database)
+        db.session.flush()
+        dataset = SqlaTable(
+            table_name="sd_owner_tbl", database=database, owners=[alpha]
+        )
+        db.session.add(dataset)
+        db.session.commit()
+        dataset_id = dataset.id
+
+        dataset.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+        db.session.commit()
+
+        self.login(ALPHA_USERNAME)
+        rison_query = (
+            "(filters:!((col:id,opr:dataset_deleted_state,value:only)),page_size:200)"
+        )
+        rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
+        assert rv.status_code == 200
+        ids = [r["id"] for r in json.loads(rv.data)["result"]]
+        assert dataset_id in ids
+
+        self._hard_delete_created(dataset_id, database)
+
+    def test_deleted_state_list_hides_non_owned_from_read_access_user(self) -> None:
+        """A read-access non-owner must not enumerate a dataset once it is
+        soft-deleted.
+
+        Gamma is granted ``datasource_access`` to the dataset, so
+        ``DatasourceFilter`` makes it visible to gamma while live. After
+        soft-delete, the deleted-state list is scoped to the restore audience
+        (owners/admins), so gamma — who could never restore it — must not see it
+        via ``include`` or ``only``.
+        """
+        admin = self.get_user(ADMIN_USERNAME)
+        database = Database(database_name="sd_acl_db", sqlalchemy_uri="sqlite://")
+        db.session.add(database)
+        db.session.flush()
+        dataset = SqlaTable(table_name="sd_acl_tbl", database=database, owners=[admin])
+        db.session.add(dataset)
+        db.session.commit()
+        dataset_id = dataset.id
+
+        gamma_role = security_manager.find_role("Gamma")
+        pvm = security_manager.add_permission_view_menu(
+            "datasource_access", dataset.perm
+        )
+        gamma_role.permissions.append(pvm)
+        db.session.commit()
+
+        try:
+            # Precondition: gamma can see the dataset while it is live.
+            self.login(GAMMA_USERNAME)
+            rv = self.client.get("/api/v1/dataset/?q=(page_size:200)")
+            assert dataset_id in [r["id"] for r in json.loads(rv.data)["result"]], (
+                "precondition: gamma should see the live dataset via datasource access"
+            )
+
+            reloaded = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter(SqlaTable.id == dataset_id)
+                .one()
+            )
+            reloaded.deleted_at = datetime(2026, 1, 1, 12, 0, 0)
+            db.session.commit()
+
+            for value in ("include", "only"):
+                rison_query = (
+                    f"(filters:!((col:id,opr:dataset_deleted_state,value:{value})),"
+                    "page_size:200)"
+                )
+                rv = self.client.get(f"/api/v1/dataset/?q={rison_query}")
+                assert rv.status_code == 200
+                ids = [r["id"] for r in json.loads(rv.data)["result"]]
+                assert dataset_id not in ids, (
+                    "read-access non-owner must not enumerate a soft-deleted "
+                    f"dataset via dataset_deleted_state={value}"
+                )
+        finally:
+            pvm = security_manager.find_permission_view_menu(
+                "datasource_access", dataset.perm
+            )
+            if pvm:
+                security_manager.del_permission_role(gamma_role, pvm)
+            db.session.commit()
+            self._hard_delete_created(dataset_id, database)
 
     def test_no_cascade_to_dependent_charts(self) -> None:
         """Soft-deleting a dataset should NOT cascade to its charts (FR-009, T018)."""
