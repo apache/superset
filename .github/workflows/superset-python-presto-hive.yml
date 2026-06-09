@@ -50,11 +50,6 @@ jobs:
     services:
       postgres:
         image: postgres:17-alpine
-        # Authenticated pulls use our higher Docker Hub rate limit. Empty on
-        # fork PRs (secrets unavailable) -> runner falls back to anonymous.
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -64,9 +59,6 @@ jobs:
           - 15432:5432
       presto:
         image: starburstdata/presto:350-e.6
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -76,9 +68,6 @@ jobs:
           - 15433:8080
       redis:
         image: redis:7-alpine
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         ports:
           - 16379:6379
     steps:
@@ -125,11 +114,6 @@ jobs:
     services:
       postgres:
         image: postgres:17-alpine
-        # Authenticated pulls use our higher Docker Hub rate limit. Empty on
-        # fork PRs (secrets unavailable) -> runner falls back to anonymous.
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         env:
           POSTGRES_USER: superset
           POSTGRES_PASSWORD: superset
@@ -139,9 +123,6 @@ jobs:
           - 15432:5432
       redis:
         image: redis:7-alpine
-        credentials:
-          username: ${{ secrets.DOCKERHUB_USER }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
         ports:
           - 16379:6379
     steps:
