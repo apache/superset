@@ -1,4 +1,4 @@
-# Licensed to the Apache Software Foundation (ASF) under one
+﻿# Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
 # regarding copyright ownership.  The ASF licenses this file
@@ -14,12 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Testes unitários para get_current_user (superset/tasks/utils.py).
+"""Testes unitÃ¡rios para get_current_user (superset/tasks/utils.py).
 
-Técnicas aplicadas:
-  - Caixa-preta : particionamento de equivalência (CV1, CI1-CI3)
+TÃ©cnicas aplicadas:
+  - Caixa-preta : particionamento de equivalÃªncia (CV1, CI1-CI3)
   - Caixa-branca: cobertura de branch + MC/DC (D1, D2)
-  - Isolamento  : substituição de g via Flask app_context + patch direto
+  - Isolamento  : substituiÃ§Ã£o de g via Flask app_context + patch direto
 """
 
 import importlib.util
@@ -72,7 +72,7 @@ _spec = importlib.util.spec_from_file_location("superset.tasks.utils", _path)
 assert _spec is not None
 assert _spec.loader is not None
 _mod = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(_mod)  # type: ignore[union-attr]
+_spec.loader.exec_module(_mod)
 
 get_current_user = _mod.get_current_user
 
@@ -87,7 +87,7 @@ def app():
 class TestGetCurrentUser:
     def test_retorna_none_quando_g_nao_possui_user(self, app):
         """CT01 | CI1 | D1=F (hasattr=False, curto-circuito)."""
-        mock_g = MagicMock(spec=[])  # spec=[] → hasattr(g, "user") == False
+        mock_g = MagicMock(spec=[])  # spec=[] â†’ hasattr(g, "user") == False
         with app.app_context():
             with patch.object(_mod, "g", mock_g):
                 assert get_current_user() is None
@@ -122,9 +122,9 @@ class TestGetCurrentUser:
                 assert get_current_user() == "andre"
 
     def test_retorna_none_quando_g_user_e_falsy_nao_none(self, app):
-        """CT05 | CI2 ampliada | D1=F (g.user = 0, falsy mas não None).
+        """CT05 | CI2 ampliada | D1=F (g.user = 0, falsy mas nÃ£o None).
 
-        Verifica que qualquer valor falsy em g.user (não apenas None) encerra
+        Verifica que qualquer valor falsy em g.user (nÃ£o apenas None) encerra
         o fluxo antes de avaliar is_anonymous, retornando None.
         """
         mock_g = MagicMock()
@@ -136,7 +136,7 @@ class TestGetCurrentUser:
     def test_retorna_string_vazia_quando_username_e_vazio(self, app):
         """CT06 | CV1 borda | D1=V; D2=V; username = "".
 
-        Comportamento não especificado formalmente — a função retorna string
+        Comportamento nÃ£o especificado formalmente â€” a funÃ§Ã£o retorna string
         vazia em vez de None quando user.username == "".
         """
         usuario = MagicMock()
@@ -151,9 +151,9 @@ class TestGetCurrentUser:
     def test_retorna_none_quando_username_e_none(self, app):
         """CT07 | CV1 borda | D1=V; D2=V; username = None.
 
-        username=None retorna None via user.username, não pelo fluxo principal
-        (ou seja, a guarda `not user.is_anonymous` é satisfeita, mas o valor
-        retornado é None porque user.username é None).
+        username=None retorna None via user.username, nÃ£o pelo fluxo principal
+        (ou seja, a guarda `not user.is_anonymous` Ã© satisfeita, mas o valor
+        retornado Ã© None porque user.username Ã© None).
         """
         usuario = MagicMock()
         usuario.is_anonymous = False
