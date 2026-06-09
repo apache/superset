@@ -82,7 +82,6 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
     ) -> None:
         exceptions: list[ValidationError] = []
         owner_ids: Optional[list[int]] = self._properties.get("owners")
-        role_ids: Optional[list[int]] = self._properties.get("roles")
 
         # Validate/populate model exists
         self._model = DatasetDAO.find_by_id(self._model_id)
@@ -132,11 +131,14 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             exceptions.append(ex)
 
         # Validate roles
-        try:
-            roles = populate_roles(role_ids)
-            self._properties["roles"] = roles
-        except ValidationError as ex:
-            exceptions.append(ex)
+        if "roles" in self._properties:
+            try:
+                role_ids = self._properties.get("roles")
+                roles = populate_roles(role_ids)
+                self._properties["roles"] = roles
+            except ValidationError as ex:
+                exceptions.append(ex)
+
         if exceptions:
             raise DatasetInvalidError(exceptions=exceptions)
 
