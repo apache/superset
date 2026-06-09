@@ -64,6 +64,7 @@ from superset.extensions import (
     talisman,
 )
 from superset.extensions.context import extension_context
+from superset.openapi import SupersetOpenApi, SupersetSwaggerView
 from superset.security import SupersetSecurityManager
 from superset.semantic_layers.labels import database_connections_menu_label
 from superset.sql.parse import SQLGLOT_DIALECTS
@@ -463,6 +464,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(RedirectView)
         appbuilder.add_view_no_menu(RoleRestAPI)
         appbuilder.add_view_no_menu(UserInfoView)
+        if self.config.get("FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT", False):
+            appbuilder.add_api(SupersetOpenApi)
+            appbuilder.add_view_no_menu(SupersetSwaggerView)
 
         #
         # Add links

@@ -393,6 +393,13 @@ LOGO_RIGHT_TEXT: Callable[[], str] | str = ""
 # ex: http://localhost:8080/swagger/v1
 FAB_API_SWAGGER_UI = True
 
+# Enables an APPLICATION_ROOT-aware Swagger UI and OpenAPI spec, for Superset
+# deployments served behind a URL prefix (reverse proxy). When True, the spec
+# is exposed at ``/api/<version>/_openapi`` and the Swagger UI resolves it
+# through APPLICATION_ROOT. Defaults to False (standard FAB Swagger UI).
+# ex: http://localhost:8080/<prefix>/swagger/v1
+FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT = False
+
 # ----------------------------------------------------
 # AUTHENTICATION CONFIG
 # ----------------------------------------------------
