@@ -389,9 +389,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
             upstream["dataset"] = None
             upstream["database"] = None
 
-        # Get downstream (dashboards) information
+        # Get downstream (dashboards) information, filtered by the current
+        # user's permissions so lineage never exposes dashboards the user
+        # cannot access.
         dashboards = []
         for dashboard in chart.dashboards:
+            if not security_manager.can_access_dashboard(dashboard):
+                continue
             dashboards.append(
                 {
                     "id": dashboard.id,

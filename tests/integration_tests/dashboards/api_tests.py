@@ -4138,8 +4138,8 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
 
         data = json.loads(rv.data.decode("utf-8"))
 
-        # Assert the entire response matches expected structure
-        assert data == expected
+        # The lineage payload is wrapped under "result"
+        assert data["result"] == expected
 
     def test_get_dashboard_lineage_not_found(self):
         """

@@ -104,6 +104,7 @@ from superset.dashboards.schemas import (
     DashboardCopySchema,
     DashboardDatasetSchema,
     DashboardGetResponseSchema,
+    DashboardLineageResponseSchema,
     DashboardNativeFiltersConfigUpdateSchema,
     DashboardPostSchema,
     DashboardPutSchema,
@@ -432,6 +433,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         DashboardCacheScreenshotResponseSchema,
         DashboardCopySchema,
         DashboardGetResponseSchema,
+        DashboardLineageResponseSchema,
         DashboardDatasetSchema,
         TabsPayloadSchema,
         GetFavStarIdsSchema,
@@ -589,26 +591,38 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                 }
             )
 
-            # Collect dataset information
+            # Collect dataset information. Schema/table/database details are
+            # only exposed to users who can access the underlying datasource;
+            # otherwise they are redacted so lineage never leaks datasource
+            # internals (the dataset id/name are kept so the graph still
+            # renders).
             dataset = chart.datasource
             if dataset and dataset.id not in dataset_map:
+                can_access = security_manager.can_access_datasource(dataset)
                 dataset_map[dataset.id] = {
                     "id": dataset.id,
                     "name": dataset.name,
-                    "database_id": dataset.database_id,
-                    "database_name": dataset.database.database_name
-                    if dataset.database
-                    else None,
-                    "schema": dataset.schema,
-                    "table_name": dataset.table_name,
+                    "database_id": dataset.database_id if can_access else None,
+                    "database_name": (
+                        dataset.database.database_name
+                        if can_access and dataset.database
+                        else None
+                    ),
+                    "schema": dataset.schema if can_access else None,
+                    "table_name": dataset.table_name if can_access else None,
                     "chart_ids": [],
                 }
 
             if dataset and dataset.id in dataset_map:
                 dataset_map[dataset.id]["chart_ids"].append(chart.id)
 
-            # Collect database information
-            if dataset and dataset.database and dataset.database.id not in database_map:
+            # Collect database information, only for accessible datasources
+            if (
+                dataset
+                and security_manager.can_access_datasource(dataset)
+                and dataset.database
+                and dataset.database.id not in database_map
+            ):
                 database_map[dataset.database.id] = {
                     "id": dataset.database.id,
                     "database_name": dataset.database.database_name,

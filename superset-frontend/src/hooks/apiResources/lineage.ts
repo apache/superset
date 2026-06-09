@@ -112,23 +112,40 @@ export type DashboardLineage = {
   downstream: null;
 };
 
+// A missing/empty identifier means we have nothing to fetch yet; skip the
+// request so we never hit invalid endpoints like `/api/v1/chart//lineage`.
+const isEmptyId = (idOrUuid: string | number): boolean =>
+  idOrUuid === '' || idOrUuid == null;
+
 /**
  * Hook to fetch lineage data for a dataset
  * @param idOrUuid Dataset ID or UUID
+ * @param skip When true, defers the request (e.g. until the tab is active)
  */
-export const useDatasetLineage = (idOrUuid: string | number) =>
-  useApiV1Resource<DatasetLineage>(`/api/v1/dataset/${idOrUuid}/lineage`);
+export const useDatasetLineage = (idOrUuid: string | number, skip = false) =>
+  useApiV1Resource<DatasetLineage>(
+    `/api/v1/dataset/${idOrUuid}/lineage`,
+    skip || isEmptyId(idOrUuid),
+  );
 
 /**
  * Hook to fetch lineage data for a chart
  * @param idOrUuid Chart ID or UUID
+ * @param skip When true, defers the request (e.g. until the tab is active)
  */
-export const useChartLineage = (idOrUuid: string | number) =>
-  useApiV1Resource<ChartLineage>(`/api/v1/chart/${idOrUuid}/lineage`);
+export const useChartLineage = (idOrUuid: string | number, skip = false) =>
+  useApiV1Resource<ChartLineage>(
+    `/api/v1/chart/${idOrUuid}/lineage`,
+    skip || isEmptyId(idOrUuid),
+  );
 
 /**
  * Hook to fetch lineage data for a dashboard
  * @param idOrSlug Dashboard ID or slug
+ * @param skip When true, defers the request (e.g. until the tab is active)
  */
-export const useDashboardLineage = (idOrSlug: string | number) =>
-  useApiV1Resource<DashboardLineage>(`/api/v1/dashboard/${idOrSlug}/lineage`);
+export const useDashboardLineage = (idOrSlug: string | number, skip = false) =>
+  useApiV1Resource<DashboardLineage>(
+    `/api/v1/dashboard/${idOrSlug}/lineage`,
+    skip || isEmptyId(idOrSlug),
+  );

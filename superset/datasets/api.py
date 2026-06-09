@@ -923,10 +923,18 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         # Get downstream (charts and dashboards) information
         related_data = DatasetDAO.get_related_objects(dataset.id)
 
-        # Build chart information with dashboard IDs
+        # Build chart information with dashboard IDs, filtering both the charts
+        # and their linked dashboards by the current user's permissions so
+        # lineage never exposes assets the user cannot access.
         charts = []
         for chart in related_data["charts"]:
-            dashboard_ids = [d.id for d in chart.dashboards]
+            if not security_manager.can_access_chart(chart):
+                continue
+            dashboard_ids = [
+                d.id
+                for d in chart.dashboards
+                if security_manager.can_access_dashboard(d)
+            ]
             charts.append(
                 {
                     "id": chart.id,
@@ -939,6 +947,8 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         # Build dashboard information with chart IDs
         dashboards = []
         for dashboard in related_data["dashboards"]:
+            if not security_manager.can_access_dashboard(dashboard):
+                continue
             chart_ids = [
                 chart.id
                 for chart in dashboard.slices

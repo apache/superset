@@ -235,30 +235,29 @@ export const useHeaderActionsMenu = ({
       });
     }
 
+    // View lineage (available in both view and edit mode; lineage is
+    // read-only information about the dashboard's upstream assets)
+    if (dashboardId) {
+      menuItems.push(
+        createModalMenuItem(
+          MenuKeys.ViewLineage,
+          <LineageModal
+            entityType="dashboard"
+            entityId={dashboardId}
+            triggerNode={
+              <div data-test="view-lineage-menu-item">{t('View lineage')}</div>
+            }
+          />,
+        ),
+      );
+    }
+
     // Edit properties
     if (editMode) {
       menuItems.push({
         key: MenuKeys.EditProperties,
         label: t('Edit properties'),
       });
-
-      // View lineage
-      if (dashboardId) {
-        menuItems.push(
-          createModalMenuItem(
-            MenuKeys.ViewLineage,
-            <LineageModal
-              entityType="dashboard"
-              entityId={dashboardId}
-              triggerNode={
-                <div data-test="view-lineage-menu-item">
-                  {t('View lineage')}
-                </div>
-              }
-            />,
-          ),
-        );
-      }
     }
 
     // Divider
