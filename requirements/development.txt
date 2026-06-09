@@ -331,7 +331,7 @@ geopy==2.4.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-gevent==24.2.1
+gevent==26.4.0
     # via apache-superset
 google-api-core==2.23.0
     # via
@@ -373,7 +373,7 @@ googleapis-common-protos==1.66.0
     # via
     #   google-api-core
     #   grpcio-status
-greenlet==3.1.1
+greenlet==3.5.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -838,7 +838,7 @@ python-dotenv==1.2.2
     #   apache-superset
     #   fastmcp
     #   pydantic-settings
-python-ldap==3.4.5
+python-ldap==3.4.7
     # via apache-superset
 python-multipart==0.0.29
     # via mcp
@@ -1140,7 +1140,7 @@ xlrd==2.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   pandas
-xlsxwriter==3.0.9
+xlsxwriter==3.2.9
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

@@ -24,6 +24,16 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Duration formatter precision
+
+The `DURATION` number formatter now uses `Intl.DurationFormat` for locale-aware output. By default, sub-second fields are omitted, so values that previously displayed fractional seconds with `pretty-ms`, such as `10500` milliseconds rendering as `10.5s`, now render as `10s`.
+
+To preserve sub-second precision in custom duration formatters, enable `formatSubMilliseconds`.
+
+### Cache warmup authenticates via SUPERSET_CACHE_WARMUP_USER
+
+The `cache-warmup` Celery task now drives a real WebDriver session for reliable authentication and reads the user to authenticate as from the new `SUPERSET_CACHE_WARMUP_USER` config option. It no longer consults `CACHE_WARMUP_EXECUTORS` for the warmup path. `SUPERSET_CACHE_WARMUP_USER` defaults to `None`, so the task fails fast with a clear message until you set it. Operators who previously relied on `CACHE_WARMUP_EXECUTORS` for cache warmup must set `SUPERSET_CACHE_WARMUP_USER` to a dedicated least-privilege user with access to the dashboards they want warmed up before the next warmup run.
+
 ### YDB now uses a native sqlglot dialect
 
 YDB SQL parsing now relies on the dedicated [`ydb-sqlglot-plugin`](https://pypi.org/project/ydb-sqlglot-plugin/) dialect, which registers itself with sqlglot automatically. YDB users must install this plugin (e.g., via `pip install "apache-superset[ydb]"`) to avoid a `ValueError` when Superset parses YDB queries.
@@ -34,11 +44,38 @@ The embedded dashboard page now validates the origin of incoming `postMessage` e
 
 Enforcement only applies when the Allowed Domains list is non-empty. If the list is empty (the default), any origin is accepted, so there is no behavior change for embeds that did not configure Allowed Domains.
 
+### Default guest/async JWT secrets are rejected at startup
+
+Superset already refuses to start in production (non-debug, non-testing) when `SECRET_KEY` is left at its built-in default, and when `GUEST_TOKEN_JWT_SECRET` is left at its default while `EMBEDDED_SUPERSET` is enabled. This behavior is extended to `GLOBAL_ASYNC_QUERIES_JWT_SECRET`: if the `GLOBAL_ASYNC_QUERIES` feature flag is enabled and the secret is still the publicly known default (`test-secret-change-me`), Superset logs a clear error and refuses to start.
+
+As with the existing `SECRET_KEY` check, this only fails in production. In debug mode, testing mode, or under the test runner, a warning is logged instead of exiting, so local development is unaffected.
+
+To resolve the error, set a strong random value in `superset_config.py`:
+
+```python
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = "<output of: openssl rand -base64 42>"
+```
+
+The check is only active when the relevant feature is enabled, so deployments that do not use global async queries (or embedding) are not affected.
+
 ### Dataset import validates catalog against the target connection
 
 Importing a dataset now validates the `catalog` field against the target database connection. When the connection has multi-catalog disabled (`allow_multi_catalog` off) and the dataset's catalog is not the connection's default catalog, the import fails instead of silently persisting the non-default catalog. This matches the validation already enforced on the dataset update path and prevents imported datasets from querying an unintended database.
 
 If you relied on importing datasets with a non-default catalog, enable "Allow changing catalogs" on the target connection, or set the dataset's catalog to the connection's default before importing.
+
+### Extension supply-chain controls (denylist + version policy)
+
+Two opt-in static gates control which extensions are allowed to load:
+
+- `EXTENSION_DENYLIST` refuses extensions matching an id (every version) or `id@version` (a single version), e.g. `["compromised-extension", "other-ext@1.2.3"]`.
+- `EXTENSION_VERSION_POLICY` enforces a minimum version per extension id, e.g. `{"acme.widget": "1.2.0"}` (PEP 440 comparison); a release below the minimum is refused.
+
+Both default to empty (no behavior change). They apply to both the `LOCAL_EXTENSIONS` and `EXTENSIONS_PATH` load paths.
+
+### Dynamic Group By respects the sort toggle for display values
+
+The Dynamic Group By chart customization now orders its display values according to the "Sort display control values" toggle: ascending (A–Z), descending (Z–A), or the dataset's source order when the toggle is unset. Previously the dropdown always sorted alphabetically. Existing dashboards where the toggle was never set will show options in source order instead of A–Z; open the customization and enable the toggle to restore alphabetical ordering.
 
 ### Granular Export Controls
 

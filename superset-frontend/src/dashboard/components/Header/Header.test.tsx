@@ -597,6 +597,35 @@ test('should fave', async () => {
   expect(saveFaveStar).toHaveBeenCalledTimes(1);
 });
 
+// FaveStar.onClick passes the *prior* isStarred value to saveFaveStar — the
+// reducer flips it. So favoriting (unstarred → starred) sends `false`, and
+// unfavoriting (starred → unstarred) sends `true`.
+test('should call saveFaveStar with false when favoriting from the header', () => {
+  setup();
+  const header = screen.getByTestId('dashboard-header-container');
+
+  userEvent.click(within(header).getByRole('img', { name: 'unstarred' }));
+  expect(saveFaveStar).toHaveBeenCalledTimes(1);
+  expect(saveFaveStar).toHaveBeenCalledWith(
+    initialState.dashboardInfo.id,
+    false,
+  );
+});
+
+test('should call saveFaveStar with true when unfavoriting from the header', () => {
+  setup({
+    dashboardState: { ...initialState.dashboardState, isStarred: true },
+  });
+  const header = screen.getByTestId('dashboard-header-container');
+
+  userEvent.click(within(header).getByRole('img', { name: 'starred' }));
+  expect(saveFaveStar).toHaveBeenCalledTimes(1);
+  expect(saveFaveStar).toHaveBeenCalledWith(
+    initialState.dashboardInfo.id,
+    true,
+  );
+});
+
 test('should toggle the edit mode', () => {
   const canEditState = {
     dashboardInfo: {
