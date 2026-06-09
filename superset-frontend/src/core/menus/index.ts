@@ -24,6 +24,7 @@
  * Extensions register menu items as side effects at import time.
  */
 
+import { useEffect, useState } from 'react';
 import type { menus as menusApi } from '@apache-superset/core';
 import { Disposable } from '../models';
 
@@ -38,6 +39,9 @@ type StoredMenuItem = {
 
 const menuItems: StoredMenuItem[] = [];
 
+const listeners = new Set<() => void>();
+const notify = () => listeners.forEach(l => l());
+
 const registerMenuItem: typeof menusApi.registerMenuItem = (
   item: MenuItem,
   location: string,
@@ -45,11 +49,13 @@ const registerMenuItem: typeof menusApi.registerMenuItem = (
 ): Disposable => {
   const stored: StoredMenuItem = { item, location, group };
   menuItems.push(stored);
+  notify();
   return new Disposable(() => {
     const index = menuItems.indexOf(stored);
     if (index >= 0) {
       menuItems.splice(index, 1);
     }
+    notify();
   });
 };
 
@@ -75,6 +81,18 @@ const getMenu: typeof menusApi.getMenu = (
   }
 
   return result;
+};
+
+export const useMenu = (location: string): Menu | undefined => {
+  const [value, setValue] = useState(() => getMenu(location));
+  useEffect(() => {
+    const listener = () => setValue(getMenu(location));
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  }, [location]);
+  return value;
 };
 
 export const menus: typeof menusApi = {

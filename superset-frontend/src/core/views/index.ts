@@ -24,7 +24,7 @@
  * Extensions register views as side effects at import time.
  */
 
-import React, { ReactElement } from 'react';
+import React, { ReactElement, useEffect, useState } from 'react';
 import type { views as viewsApi } from '@apache-superset/core';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
@@ -39,6 +39,9 @@ const viewRegistry: Map<
 
 const locationIndex: Map<string, Set<string>> = new Map();
 
+const listeners = new Set<() => void>();
+const notify = () => listeners.forEach(l => l());
+
 const registerView: typeof viewsApi.registerView = (
   view: View,
   location: string,
@@ -51,10 +54,12 @@ const registerView: typeof viewsApi.registerView = (
   const ids = locationIndex.get(location) ?? new Set();
   ids.add(id);
   locationIndex.set(location, ids);
+  notify();
 
   return new Disposable(() => {
     viewRegistry.delete(id);
     locationIndex.get(location)?.delete(id);
+    notify();
   });
 };
 
@@ -75,6 +80,18 @@ const getViews: typeof viewsApi.getViews = (
   return Array.from(ids)
     .map(id => viewRegistry.get(id)?.view)
     .filter((c): c is View => !!c);
+};
+
+export const useViews = (location: string): View[] | undefined => {
+  const [value, setValue] = useState(() => getViews(location));
+  useEffect(() => {
+    const listener = () => setValue(getViews(location));
+    listeners.add(listener);
+    return () => {
+      listeners.delete(listener);
+    };
+  }, [location]);
+  return value;
 };
 
 export const views: typeof viewsApi = {

@@ -24,6 +24,7 @@ jest.mock('src/core/views', () => ({
     getViews: jest.fn().mockReturnValue([{ id: 'test-status-bar' }]),
     registerView: jest.fn(),
   },
+  useViews: jest.fn().mockReturnValue([{ id: 'test-status-bar' }]),
 }));
 
 jest.mock('src/components/ViewListExtension', () => ({
