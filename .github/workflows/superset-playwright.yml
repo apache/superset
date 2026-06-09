@@ -34,7 +34,7 @@ jobs:
       frontend: ${{ steps.check.outputs.frontend }}
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           persist-credentials: false
       - name: Check for file changes
@@ -83,21 +83,21 @@ jobs:
       # Conditional checkout based on context (same as Cypress workflow)
       - name: Checkout for push or pull_request event
         if: github.event_name == 'push' || github.event_name == 'pull_request'
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           persist-credentials: false
           submodules: recursive
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
       - name: Checkout using ref (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.ref != ''
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           persist-credentials: false
           ref: ${{ github.event.inputs.ref }}
           submodules: recursive
       - name: Checkout using PR ID (workflow_dispatch)
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.pr_id != ''
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
         with:
           persist-credentials: false
           ref: refs/pull/${{ github.event.inputs.pr_id }}/merge
