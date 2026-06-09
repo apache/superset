@@ -161,6 +161,35 @@ def test_engine_migration_reads_cbc_after_config_already_flipped() -> None:
     assert gcm_column.process_result_value(new_value, DIALECT) == "hunter2"
 
 
+def test_engine_migration_gcm_to_cbc_rolls_back() -> None:
+    """GCM source value is rolled back to CBC under the same SECRET_KEY.
+
+    The reverse of the forward migration (``--engine aes``). The idempotency
+    fast-path decrypts in the *target* form first; since the target here is
+    unauthenticated AES-CBC, this guards against it mis-reading the AES-GCM
+    ciphertext and wrongly skipping the value instead of re-encrypting it.
+    """
+    gcm_value = _encrypted_type(AesGcmEngine).process_bind_param("hunter2", DIALECT)
+    gcm_column = _encrypted_type(AesGcmEngine)
+
+    migrator = _engine_migrator(AesEngine)
+    conn = MagicMock()
+    row = {"id": 1, "password": gcm_value}
+    stats = ReEncryptStats()
+
+    migrator._re_encrypt_row(  # noqa: SLF001
+        conn, row, "dbs", {"password": gcm_column}, ["id"], stats
+    )
+
+    assert stats == ReEncryptStats(re_encrypted=1)
+    new_value = conn.execute.call_args.kwargs["password"]
+    assert new_value != gcm_value
+    # The rolled-back value now decrypts as AES-CBC back to the plaintext.
+    assert _encrypted_type(AesEngine).process_result_value(new_value, DIALECT) == (
+        "hunter2"
+    )
+
+
 def _key_rotation_migrator(previous_secret_key: str) -> SecretsMigrator:
     """Build a SecretsMigrator in key-rotation mode without an app context.
 
