@@ -93,12 +93,16 @@ const getMenu: typeof menusApi.getMenu = (
 };
 
 export const useMenu = (location: string): Menu | undefined =>
-  useSyncExternalStore(subscribe, () => {
-    if (!menuCache.has(location)) {
-      menuCache.set(location, getMenu(location));
-    }
-    return menuCache.get(location);
-  });
+  useSyncExternalStore(
+    subscribe,
+    () => {
+      if (!menuCache.has(location)) {
+        menuCache.set(location, getMenu(location));
+      }
+      return menuCache.get(location);
+    },
+    () => undefined,
+  );
 
 export const menus: typeof menusApi = {
   registerMenuItem,

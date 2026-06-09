@@ -92,12 +92,16 @@ const getViews: typeof viewsApi.getViews = (
 };
 
 export const useViews = (location: string): View[] | undefined =>
-  useSyncExternalStore(subscribe, () => {
-    if (!viewsCache.has(location)) {
-      viewsCache.set(location, getViews(location));
-    }
-    return viewsCache.get(location);
-  });
+  useSyncExternalStore(
+    subscribe,
+    () => {
+      if (!viewsCache.has(location)) {
+        viewsCache.set(location, getViews(location));
+      }
+      return viewsCache.get(location);
+    },
+    () => undefined,
+  );
 
 export const views: typeof viewsApi = {
   registerView,
