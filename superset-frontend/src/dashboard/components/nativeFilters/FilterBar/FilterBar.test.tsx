@@ -992,6 +992,51 @@ test('FilterBar with orientation=Horizontal routes to Horizontal layout instead 
   expect(screen.getByRole('img', { name: 'setting' })).toBeInTheDocument();
 });
 
+test('FilterBar with orientation=Horizontal and no filters shows empty state alongside default actions', async () => {
+  // Covers the second half of sc-107387 task #107390 ("show all default
+  // actions in horizontal mode"). The original Cypress spec asserted four
+  // affordances render when the bar is horizontal with no filters: the
+  // empty-state copy, the settings gear, the action-buttons block, and the
+  // create-filter entry inside the gear menu. The dropdown contents are
+  // already covered by FilterBarSettings.test.tsx; here we keep scope to
+  // the layout-level affordances that are exclusive to Horizontal.tsx.
+  // Reload-persistence (the rest of #107390) is out of RTL scope and stays
+  // queued for Playwright.
+  const state = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      metadata: {
+        native_filter_configuration: [],
+        filterBarOrientation: FilterBarOrientation.Horizontal,
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    nativeFilters: { filters: {}, filtersState: {} },
+  };
+
+  render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
+    initialState: state,
+    useDnd: true,
+    useRedux: true,
+    useRouter: true,
+  });
+
+  await act(async () => {
+    jest.runAllTimers();
+  });
+
+  expect(screen.getByTestId('horizontal-filterbar-empty')).toHaveTextContent(
+    'No filters are currently added to this dashboard.',
+  );
+  expect(screen.getByRole('img', { name: 'setting' })).toBeInTheDocument();
+  expect(screen.getByTestId('filterbar-action-buttons')).toBeInTheDocument();
+});
+
 test('FilterBar with orientation=Vertical renders Vertical layout (sanity counterpart to the horizontal routing test)', () => {
   // Paired control for the routing test above: with Vertical orientation,
   // the settings gear must NOT be present (Vertical.tsx does not render
