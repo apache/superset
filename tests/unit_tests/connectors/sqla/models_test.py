@@ -31,6 +31,8 @@ from superset.daos.dataset import DatasetDAO
 from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import (
     OAuth2RedirectError,
+    SupersetDisallowedSQLFunctionException,
+    SupersetDisallowedSQLTableException,
     SupersetSecurityException,
 )
 from superset.models.core import Database
@@ -79,6 +81,116 @@ def test_query_bubbles_errors(mocker: MockerFixture) -> None:
     }
     with pytest.raises(OAuth2RedirectError):
         sqla_table.query(query_obj)
+
+
+def _query_obj() -> QueryObjectDict:
+    return {
+        "granularity": None,
+        "from_dttm": None,
+        "to_dttm": None,
+        "groupby": ["id"],
+        "metrics": [],
+        "is_timeseries": False,
+        "filter": [],
+    }
+
+
+def _build_sqla_table_for_query(
+    mocker: MockerFixture, sql: str, engine: str = "postgresql"
+) -> SqlaTable:
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.engine = engine
+    database = mocker.MagicMock()
+    database.db_engine_spec = db_engine_spec
+    sqla_table = SqlaTable(
+        table_name="my_sqla_table",
+        columns=[],
+        metrics=[],
+        database=database,
+    )
+    mocker.patch.object(
+        SqlaTable,
+        "db_engine_spec",
+        new=property(lambda self: db_engine_spec),
+    )
+    mocker.patch.object(
+        sqla_table,
+        "get_query_str_extended",
+        return_value=mocker.MagicMock(sql=sql, labels_expected=[]),
+    )
+    return sqla_table
+
+
+def test_query_blocks_disallowed_function_on_chart_data_path(
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": {"postgresql": {"version"}},
+            "DISALLOWED_SQL_TABLES": {},
+        },
+        clear=False,
+    )
+    sqla_table = _build_sqla_table_for_query(mocker, "SELECT version()")
+    with pytest.raises(SupersetDisallowedSQLFunctionException):
+        sqla_table.query(_query_obj())
+    sqla_table.database.get_df.assert_not_called()  # type: ignore[attr-defined]
+
+
+def test_query_blocks_disallowed_table_on_chart_data_path(
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": {},
+            "DISALLOWED_SQL_TABLES": {"postgresql": {"pg_authid"}},
+        },
+        clear=False,
+    )
+    sqla_table = _build_sqla_table_for_query(mocker, "SELECT rolname FROM pg_authid")
+    with pytest.raises(SupersetDisallowedSQLTableException):
+        sqla_table.query(_query_obj())
+    sqla_table.database.get_df.assert_not_called()  # type: ignore[attr-defined]
+
+
+def test_query_disallowed_table_error_reports_only_matched_tables(
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": {},
+            "DISALLOWED_SQL_TABLES": {
+                "postgresql": {"pg_authid", "pg_shadow", "pg_stat_activity"}
+            },
+        },
+        clear=False,
+    )
+    sqla_table = _build_sqla_table_for_query(mocker, "SELECT rolname FROM pg_authid")
+    with pytest.raises(SupersetDisallowedSQLTableException) as excinfo:
+        sqla_table.query(_query_obj())
+    message = str(excinfo.value)
+    assert "pg_authid" in message
+    assert "pg_shadow" not in message
+    assert "pg_stat_activity" not in message
+
+
+def test_query_allows_benign_sql_on_chart_data_path(mocker: MockerFixture) -> None:
+    mocker.patch.dict(
+        "flask.current_app.config",
+        {
+            "DISALLOWED_SQL_FUNCTIONS": {"postgresql": {"version"}},
+            "DISALLOWED_SQL_TABLES": {"postgresql": {"pg_authid"}},
+        },
+        clear=False,
+    )
+    sqla_table = _build_sqla_table_for_query(mocker, "SELECT id FROM my_sqla_table")
+    sqla_table.database.get_df.return_value = pd.DataFrame()  # type: ignore[attr-defined]
+    result = sqla_table.query(_query_obj())
+    sqla_table.database.get_df.assert_called_once()  # type: ignore[attr-defined]
+    assert result is not None
 
 
 def test_permissions_without_catalog() -> None:
@@ -276,7 +388,7 @@ def test_dataset_uniqueness(session: Session) -> None:
 
 def test_normalize_prequery_result_type_custom_sql() -> None:
     """
-    Test that the `_normalize_prequery_result_type` can hanndle custom SQL.
+    Test that the `_normalize_prequery_result_type` can handle custom SQL.
     """
     sqla_table = SqlaTable(
         table_name="my_sqla_table",
