@@ -168,3 +168,75 @@ def test_get_version_defaults_when_missing(mocker: MockerFixture) -> None:
         "superset.key_value.shared_entries.get_shared_value", return_value=None
     )
     assert gt.get_current_guest_token_revocation_version() == 0
+
+
+def test_get_version_falls_back_on_store_error(mocker: MockerFixture) -> None:
+    """A metadata-store read failure falls back to the default version (0).
+
+    This exercises the broad-except branch that keeps a transient store outage
+    from hard-failing every guest-token validation (fail-open to the
+    pre-feature behaviour).
+    """
+    # pylint: disable=import-outside-toplevel
+    import superset.security.guest_token as gt
+
+    mocker.patch(
+        "superset.key_value.shared_entries.get_shared_value",
+        side_effect=RuntimeError("metadata store unavailable"),
+    )
+    assert gt.get_current_guest_token_revocation_version() == 0
+
+
+def test_get_version_falls_back_on_malformed_stored_value(
+    mocker: MockerFixture,
+) -> None:
+    """A non-integer stored value falls back to the default version (0)."""
+    # pylint: disable=import-outside-toplevel
+    import superset.security.guest_token as gt
+
+    mocker.patch(
+        "superset.key_value.shared_entries.get_shared_value",
+        return_value="not-an-int",
+    )
+    assert gt.get_current_guest_token_revocation_version() == 0
+
+
+def test_revoked_token_rejected_through_request_flow(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """The full request->parse->revocation flow rejects a revoked token.
+
+    ``get_guest_user_from_request`` must return ``None`` (so the login manager
+    issues a 401) when a parsed, otherwise-valid token has been revoked by a
+    version bump. A current-version token still resolves to a guest user.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    current_app.config["GUEST_TOKEN_REVOCATION_ENABLED"] = True
+
+    # Mint a token stamped with version 1.
+    mocker.patch(
+        "superset.security.manager.get_current_guest_token_revocation_version",
+        return_value=1,
+    )
+    raw_token = sm.create_guest_access_token(USER, RESOURCES, RLS)
+
+    header_name = current_app.config["GUEST_TOKEN_HEADER_NAME"]
+    request = mocker.MagicMock()
+    request.headers = {header_name: raw_token}
+    request.form = {}
+
+    # Expected version has been bumped above the token's version => revoked.
+    mocker.patch(
+        "superset.security.manager.get_current_guest_token_revocation_version",
+        return_value=2,
+    )
+    assert sm.get_guest_user_from_request(request) is None
+
+    # When the expected version matches, the same token resolves to a user.
+    mocker.patch(
+        "superset.security.manager.get_current_guest_token_revocation_version",
+        return_value=1,
+    )
+    guest_user = sm.get_guest_user_from_request(request)
+    assert guest_user is not None
+    assert guest_user.is_guest_user is True
