@@ -198,6 +198,28 @@ export const sendToChannel = (channel: string, value: EventValue): void => {
   channels[channel].sockets.forEach(socketId => {
     const socketInstance: SocketInstance = sockets[socketId];
     if (!socketInstance) return cleanChannel(channel);
+    // Backpressure: if a slow or stalled client has let its outbound buffer
+    // grow past the configured cap, terminate it rather than buffering
+    // unbounded data in server memory. Opt-in: a cap of 0 disables the check.
+    const { maxSocketBufferBytes } = opts;
+    if (
+      maxSocketBufferBytes > 0 &&
+      socketInstance.ws.bufferedAmount > maxSocketBufferBytes
+    ) {
+      statsd.increment('ws_client_backpressure_disconnect');
+      logger.warn(
+        `Terminating socket on channel ${channel}: send buffer ` +
+          `(${socketInstance.ws.bufferedAmount} bytes) exceeded the ` +
+          `configured limit (${maxSocketBufferBytes} bytes)`,
+      );
+      socketInstance.ws.terminate();
+      // Drop the terminated socket from the global registry immediately
+      // rather than waiting for the next checkSockets sweep, so a burst of
+      // slow clients doesn't leave dead entries resident between pings.
+      delete sockets[socketId];
+      cleanChannel(channel);
+      return;
+    }
     try {
       socketInstance.ws.send(strData);
     } catch (err) {
