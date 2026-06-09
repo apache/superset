@@ -21,6 +21,7 @@ import type { Filter } from '@superset-ui/core';
 import { SelectFilterPlugin } from 'src/filters/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { createSelectNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import HorizontalBar from './Horizontal';
 import type { HorizontalBarProps } from './types';
 
@@ -114,27 +115,8 @@ test('should render the loading icon', async () => {
 // --- Tests migrated from disabled Cypress spec
 //     `_skip.horizontalFilterBar.test.ts` (sc-107387). ---
 
-const createSelectFilter = (
-  id: string,
-  name: string,
-  column: string,
-): Filter => ({
-  id,
-  name,
-  type: NativeFilterType.NativeFilter,
-  filterType: 'filter_select',
-  targets: [{ datasetId: 2, column: { name: column } }],
-  defaultDataMask: { filterState: { value: null }, extraFormData: {} },
-  controlValues: {},
-  cascadeParentIds: [],
-  scope: { rootPath: ['ROOT_ID'], excluded: [] },
-  description: '',
-  chartsInScope: [],
-  tabsInScope: [],
-});
-
 const buildStateWithFilters = (
-  filters: ReturnType<typeof createSelectFilter>[],
+  filters: ReturnType<typeof createSelectNativeFilter>[],
 ) => ({
   dashboardState: {
     sliceIds: [],
@@ -159,7 +141,7 @@ const buildStateWithFilters = (
   nativeFilters: {
     filters: filters.reduce(
       (acc, f) => ({ ...acc, [f.id]: f }),
-      {} as Record<string, ReturnType<typeof createSelectFilter>>,
+      {} as Record<string, ReturnType<typeof createSelectNativeFilter>>,
     ),
     filtersState: {},
   },
@@ -175,7 +157,7 @@ const buildStateWithFilters = (
 });
 
 const renderWithFilters = (
-  filters: ReturnType<typeof createSelectFilter>[],
+  filters: ReturnType<typeof createSelectNativeFilter>[],
   overrideProps?: Partial<HorizontalBarProps>,
 ) =>
   render(<HorizontalBar {...defaultProps} {...overrideProps} />, {
@@ -223,9 +205,9 @@ test('renders default actions slot, settings gear, and empty message together in
 
 test('renders all native filters supplied via filterValues in horizontal mode', async () => {
   const filters = [
-    createSelectFilter('NATIVE_FILTER-1', 'test_1', 'country_name'),
-    createSelectFilter('NATIVE_FILTER-2', 'test_2', 'country_code'),
-    createSelectFilter('NATIVE_FILTER-3', 'test_3', 'region'),
+    createSelectNativeFilter('NATIVE_FILTER-1', 'test_1', 'country_name'),
+    createSelectNativeFilter('NATIVE_FILTER-2', 'test_2', 'country_code'),
+    createSelectNativeFilter('NATIVE_FILTER-3', 'test_3', 'region'),
   ];
 
   renderWithFilters(filters, { filterValues: filters });
@@ -247,7 +229,7 @@ test('omits the empty message when at least one filter value is supplied', async
   // upstream user flow (open edit modal, add filter, save) is integration
   // territory and not covered here.
   const filters = [
-    createSelectFilter('NATIVE_FILTER-1', 'just_added', 'country_name'),
+    createSelectNativeFilter('NATIVE_FILTER-1', 'just_added', 'country_name'),
   ];
 
   renderWithFilters(filters, { filterValues: filters });
