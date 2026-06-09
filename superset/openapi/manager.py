@@ -34,6 +34,20 @@ from flask_appbuilder.security.decorators import has_access
 from superset.superset_typing import FlaskResponse
 
 
+def normalize_app_root(app_root: str | None) -> str:
+    """Normalize ``APPLICATION_ROOT`` into a prefix safe for URL concatenation.
+
+    Flask defaults ``APPLICATION_ROOT`` to ``"/"``. Concatenating that (or any
+    value with a trailing slash) directly with a leading-slash path produces an
+    invalid protocol-relative URL such as ``//api/v1/_openapi``. Treat ``"/"`` as
+    an empty prefix and strip any trailing slash so the result is either empty or
+    a clean ``/prefix``.
+    """
+    if not app_root:
+        return ""
+    return app_root.rstrip("/")
+
+
 def resolver(schema: Any) -> str:
     schema_cls = resolve_schema_cls(schema)
     name = schema_cls.__name__
@@ -86,8 +100,8 @@ class SupersetOpenApi(BaseApi):
 
     @staticmethod
     def _create_api_spec(version: str) -> APISpec:
-        app_root = current_app.config.get("APPLICATION_ROOT", "/")
-        default_server = {"url": request.host_url.rstrip("/") + app_root}
+        app_root = normalize_app_root(current_app.config.get("APPLICATION_ROOT", "/"))
+        default_server = {"url": request.host_url.rstrip("/") + (app_root or "/")}
         servers = current_app.config.get("FAB_OPENAPI_SERVERS", [default_server])
         return APISpec(
             title=current_app.appbuilder.app_name,
@@ -107,10 +121,11 @@ class SupersetSwaggerView(BaseView):
     @expose("/<version>")
     @has_access
     def show(self, version: str) -> FlaskResponse:
-        app_root = current_app.config.get("APPLICATION_ROOT", "") + self.openapi_uri
+        app_root = normalize_app_root(current_app.config.get("APPLICATION_ROOT"))
+        openapi_uri = (app_root + self.openapi_uri).format(version)
         return self.render_template(
             current_app.config.get(
                 "FAB_API_SWAGGER_TEMPLATE", "appbuilder/swagger/swagger.html"
             ),
-            openapi_uri=app_root.format(version),
+            openapi_uri=openapi_uri,
         )

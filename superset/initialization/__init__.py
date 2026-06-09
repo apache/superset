@@ -464,7 +464,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_view_no_menu(RedirectView)
         appbuilder.add_view_no_menu(RoleRestAPI)
         appbuilder.add_view_no_menu(UserInfoView)
-        if self.config.get("FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT", False):
+        # Only register the APPLICATION_ROOT-aware Swagger UI / OpenAPI spec when
+        # Swagger is enabled globally (``FAB_API_SWAGGER_UI``). This preserves the
+        # global disable contract so operators who turn Swagger off don't get the
+        # API documentation re-exposed by the prefix-aware variant.
+        if self.config.get("FAB_API_SWAGGER_UI") and self.config.get(
+            "FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT", False
+        ):
             appbuilder.add_api(SupersetOpenApi)
             appbuilder.add_view_no_menu(SupersetSwaggerView)
 
@@ -915,6 +921,17 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         appbuilder.indexview = SupersetIndexView
         appbuilder.security_manager_class = custom_sm
+
+        # The APPLICATION_ROOT-aware Swagger UI and OpenAPI spec replace FAB's
+        # default views at the same routes (``/api/<version>/_openapi`` and
+        # ``/swagger/<version>``). Suppress FAB's default registration so the two
+        # implementations don't create duplicate URL rules for the same path,
+        # which would otherwise leave FAB's (non-prefix-aware) handler in charge.
+        if self.config.get("FAB_API_SWAGGER_UI") and self.config.get(
+            "FAB_API_SWAGGER_UI_SUPERSET_APP_ROOT", False
+        ):
+            self.superset_app.config["FAB_ADD_OPENAPI_VIEWS"] = False
+
         appbuilder.init_app(self.superset_app, db.session)
 
     def configure_url_map_converters(self) -> None:

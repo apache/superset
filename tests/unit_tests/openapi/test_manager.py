@@ -14,9 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import pytest
 from marshmallow import Schema
 
-from superset.openapi.manager import resolver
+from superset.openapi.manager import normalize_app_root, resolver
+
+
+@pytest.mark.parametrize(
+    "app_root,expected",
+    [
+        ("/", ""),
+        ("", ""),
+        (None, ""),
+        ("/prefix", "/prefix"),
+        ("/prefix/", "/prefix"),
+        ("/nested/prefix/", "/nested/prefix"),
+    ],
+)
+def test_normalize_app_root(app_root: str | None, expected: str) -> None:
+    assert normalize_app_root(app_root) == expected
 
 
 def test_resolver_strips_schema_suffix() -> None:
