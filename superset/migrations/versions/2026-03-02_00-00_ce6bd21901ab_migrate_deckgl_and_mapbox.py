@@ -59,13 +59,16 @@ DECKGL_VIZ_TYPES = [
     "deck_scatter",
     "deck_screengrid",
 ]
+DECKGL_MIGRATION_ADDED_FIELDS = "__deckgl_maplibre_migration_added_fields"
 
 
 def _is_mapbox_style(style: Any) -> bool:
     return isinstance(style, str) and style.startswith("mapbox://")
 
 
-def _copy_legacy_maplibre_style(data: dict[str, Any]) -> bool:
+def _copy_legacy_maplibre_style(
+    data: dict[str, Any], added_fields: list[str] | None = None
+) -> bool:
     mapbox_style = data.get("mapbox_style")
     if (
         isinstance(mapbox_style, str)
@@ -73,8 +76,12 @@ def _copy_legacy_maplibre_style(data: dict[str, Any]) -> bool:
         and "maplibre_style" not in data
     ):
         data["maplibre_style"] = mapbox_style
+        if added_fields is not None:
+            added_fields.append("maplibre_style")
         if "map_renderer" not in data:
             data["map_renderer"] = "maplibre"
+            if added_fields is not None:
+                added_fields.append("map_renderer")
         return True
     return False
 
@@ -145,21 +152,24 @@ def _migrate_deckgl_slice(slc: Slice) -> bool:
     Returns True if the slice was modified.
     """
     params = try_load_json(slc.params)
-    if not params:
+    if not isinstance(params, dict) or not params:
         return False
 
     modified = False
+    added_fields: list[str] = []
 
     mapbox_style = params.get("mapbox_style", "")
     if _is_mapbox_style(mapbox_style):
         if "map_renderer" not in params:
             params["map_renderer"] = "mapbox"
+            added_fields.append("map_renderer")
             modified = True
     else:
-        modified = _copy_legacy_maplibre_style(params)
+        modified = _copy_legacy_maplibre_style(params, added_fields)
 
     if not modified:
         return False
+    params[DECKGL_MIGRATION_ADDED_FIELDS] = added_fields
     slc.params = json.dumps(params)
     return True
 
@@ -167,22 +177,21 @@ def _migrate_deckgl_slice(slc: Slice) -> bool:
 def _downgrade_deckgl_slice(slc: Slice) -> bool:
     """Reverse _migrate_deckgl_slice. Returns True if the slice was modified."""
     params = try_load_json(slc.params)
-    if not params:
+    if not isinstance(params, dict) or not params:
+        return False
+
+    added_fields = params.get(DECKGL_MIGRATION_ADDED_FIELDS)
+    if not isinstance(added_fields, list):
         return False
 
     modified = False
-    mapbox_style = params.get("mapbox_style")
-    if (
-        isinstance(mapbox_style, str)
-        and not _is_mapbox_style(mapbox_style)
-        and params.get("maplibre_style") == mapbox_style
-    ):
-        params.pop("maplibre_style", None)
-        modified = True
+    for field in added_fields:
+        if field in {"map_renderer", "maplibre_style"} and field in params:
+            params.pop(field, None)
+            modified = True
 
-    if "map_renderer" in params:
-        params.pop("map_renderer", None)
-        modified = True
+    params.pop(DECKGL_MIGRATION_ADDED_FIELDS, None)
+    modified = True
 
     if not modified:
         return False

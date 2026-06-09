@@ -27,6 +27,7 @@ migrate_deckgl_and_mapbox = import_module(
 
 Slice = migrate_deckgl_and_mapbox.Slice
 MigrateMapBox = migrate_deckgl_and_mapbox.MigrateMapBox
+DECKGL_MIGRATION_ADDED_FIELDS = migrate_deckgl_and_mapbox.DECKGL_MIGRATION_ADDED_FIELDS
 _migrate_deckgl_slice = migrate_deckgl_and_mapbox._migrate_deckgl_slice
 _downgrade_deckgl_slice = migrate_deckgl_and_mapbox._downgrade_deckgl_slice
 
@@ -164,6 +165,10 @@ def test_migrate_deckgl_slice_map_renderer_classification(
         assert "maplibre_style" not in migrated_params
     else:
         assert migrated_params["maplibre_style"] == expected_maplibre_style
+    if expected_modified:
+        assert DECKGL_MIGRATION_ADDED_FIELDS in migrated_params
+    else:
+        assert DECKGL_MIGRATION_ADDED_FIELDS not in migrated_params
     assert migrated_params["viz_type"] == "deck_arc"  # viz_type unchanged
     assert migrated_params["other_param"] == "value"
 
@@ -235,7 +240,22 @@ def test_migrate_deckgl_slice_copies_style_without_overwriting_renderer():
     assert params["map_renderer"] == "mapbox"
     assert params["mapbox_style"] == "https://legacy.example.com/style.json"
     assert params["maplibre_style"] == "https://legacy.example.com/style.json"
+    assert params[DECKGL_MIGRATION_ADDED_FIELDS] == ["maplibre_style"]
     assert params["other_param"] == "value"
+
+
+@pytest.mark.parametrize("params", [[], "legacy", 1])
+def test_migrate_deckgl_slice_ignores_non_object_params(params):
+    slc = Slice(
+        slice_name="Test Arc Non-object Params",
+        viz_type="deck_arc",
+        params=json.dumps(params),
+    )
+
+    modified = _migrate_deckgl_slice(slc)
+
+    assert modified is False
+    assert json.loads(slc.params) == params
 
 
 def test_downgrade_deckgl_slice():
@@ -247,6 +267,7 @@ def test_downgrade_deckgl_slice():
                 "viz_type": "deck_arc",
                 "mapbox_style": "mapbox://styles/mapbox/dark-v9",
                 "map_renderer": "mapbox",
+                DECKGL_MIGRATION_ADDED_FIELDS: ["map_renderer"],
                 "other_param": "value",
             }
         ),
@@ -258,6 +279,7 @@ def test_downgrade_deckgl_slice():
     params = json.loads(slc.params)
     assert params["mapbox_style"] == "mapbox://styles/mapbox/dark-v9"
     assert "map_renderer" not in params
+    assert DECKGL_MIGRATION_ADDED_FIELDS not in params
     assert params["other_param"] == "value"
 
 
@@ -271,6 +293,7 @@ def test_downgrade_deckgl_slice_removes_copied_maplibre_style():
                 "mapbox_style": "https://legacy.example.com/style.json",
                 "maplibre_style": "https://legacy.example.com/style.json",
                 "map_renderer": "maplibre",
+                DECKGL_MIGRATION_ADDED_FIELDS: ["maplibre_style", "map_renderer"],
                 "other_param": "value",
             }
         ),
@@ -283,6 +306,7 @@ def test_downgrade_deckgl_slice_removes_copied_maplibre_style():
     assert params["mapbox_style"] == "https://legacy.example.com/style.json"
     assert "maplibre_style" not in params
     assert "map_renderer" not in params
+    assert DECKGL_MIGRATION_ADDED_FIELDS not in params
     assert params["other_param"] == "value"
 
 
@@ -307,3 +331,42 @@ def test_downgrade_deckgl_slice_preserves_distinct_maplibre_style():
     assert params["mapbox_style"] == "https://legacy.example.com/style.json"
     assert params["maplibre_style"] == "https://saved.example.com/style.json"
     assert params["other_param"] == "value"
+
+
+def test_downgrade_deckgl_slice_preserves_unmarked_renderer_and_maplibre_style():
+    slc = Slice(
+        slice_name="Test Arc Existing Fields",
+        viz_type="deck_arc",
+        params=json.dumps(
+            {
+                "viz_type": "deck_arc",
+                "mapbox_style": "https://legacy.example.com/style.json",
+                "maplibre_style": "https://legacy.example.com/style.json",
+                "map_renderer": "maplibre",
+                "other_param": "value",
+            }
+        ),
+    )
+
+    modified = _downgrade_deckgl_slice(slc)
+
+    assert modified is False
+    params = json.loads(slc.params)
+    assert params["mapbox_style"] == "https://legacy.example.com/style.json"
+    assert params["maplibre_style"] == "https://legacy.example.com/style.json"
+    assert params["map_renderer"] == "maplibre"
+    assert params["other_param"] == "value"
+
+
+@pytest.mark.parametrize("params", [[], "legacy", 1])
+def test_downgrade_deckgl_slice_ignores_non_object_params(params):
+    slc = Slice(
+        slice_name="Test Arc Non-object Params",
+        viz_type="deck_arc",
+        params=json.dumps(params),
+    )
+
+    modified = _downgrade_deckgl_slice(slc)
+
+    assert modified is False
+    assert json.loads(slc.params) == params
