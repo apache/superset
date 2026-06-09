@@ -118,6 +118,7 @@ from superset.dashboards.schemas import (
     DashboardExportXlsxPostSchema,
     DashboardExportXlsxResponseSchema,
     DashboardGetResponseSchema,
+    DashboardLineageResponseSchema,
     DashboardNativeFiltersConfigUpdateSchema,
     DashboardPostSchema,
     DashboardPutSchema,
@@ -334,6 +335,7 @@ class DashboardRestApi(
         "get_version",
         "activity",
         "restore_version",
+        "lineage",
     }
     resource_name = "dashboard"
     allow_browser_login = True
@@ -579,6 +581,7 @@ class DashboardRestApi(
         DashboardDatasetSchema,
         DashboardExportXlsxPostSchema,
         DashboardExportXlsxResponseSchema,
+        DashboardLineageResponseSchema,
         TabsPayloadSchema,
         GetFavStarIdsSchema,
         EmbeddedDashboardResponseSchema,
@@ -696,6 +699,114 @@ class DashboardRestApi(
             self.response(200, result=result),
             current_entity_etag_uuid(Dashboard, dash.id, dash.uuid),
         )
+
+    @expose("/<id_or_slug>/lineage", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @with_dashboard
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.lineage",
+        log_to_statsd=False,
+    )
+    # pylint: disable=arguments-differ,arguments-renamed
+    def lineage(self, dash: Dashboard) -> Response:
+        """Get lineage information for a dashboard.
+        ---
+        get:
+          summary: Get lineage information for a dashboard
+          description: >-
+            Returns upstream (charts, datasets, databases) lineage information
+            for a dashboard
+          parameters:
+          - in: path
+            name: id_or_slug
+            schema:
+              type: string
+            description: Either the id of the dashboard, or its slug
+          responses:
+            200:
+              description: Lineage information
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/DashboardLineageResponseSchema"
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        dashboard_info = {
+            "id": dash.id,
+            "title": dash.dashboard_title,
+            "slug": dash.slug,
+            "published": dash.published,
+        }
+
+        # Get upstream (charts, datasets, databases) information
+        charts = []
+        dataset_map = {}
+        database_map = {}
+
+        for chart in dash.slices:
+            charts.append(
+                {
+                    "id": chart.id,
+                    "slice_name": chart.slice_name,
+                    "viz_type": chart.viz_type,
+                    "dataset_id": chart.datasource_id,
+                }
+            )
+
+            # Collect dataset information
+            dataset = chart.datasource
+            if dataset and dataset.id not in dataset_map:
+                dataset_map[dataset.id] = {
+                    "id": dataset.id,
+                    "name": dataset.name,
+                    "database_id": dataset.database_id,
+                    "database_name": dataset.database.database_name
+                    if dataset.database
+                    else None,
+                    "schema": dataset.schema,
+                    "table_name": dataset.table_name,
+                    "chart_ids": [],
+                }
+
+            if dataset and dataset.id in dataset_map:
+                dataset_map[dataset.id]["chart_ids"].append(chart.id)
+
+            # Collect database information
+            if dataset and dataset.database and dataset.database.id not in database_map:
+                database_map[dataset.database.id] = {
+                    "id": dataset.database.id,
+                    "database_name": dataset.database.database_name,
+                    "backend": dataset.database.backend,
+                }
+
+        upstream = {
+            "charts": {
+                "count": len(charts),
+                "result": charts,
+            },
+            "datasets": {
+                "count": len(dataset_map),
+                "result": list(dataset_map.values()),
+            },
+            "databases": {
+                "count": len(database_map),
+                "result": list(database_map.values()),
+            },
+        }
+
+        result = {
+            "dashboard": dashboard_info,
+            "upstream": upstream,
+            "downstream": None,
+        }
+        return self.response(200, result=result)
 
     @expose("/<id_or_slug>/datasets", methods=("GET",))
     @protect()

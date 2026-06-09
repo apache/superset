@@ -63,6 +63,7 @@ from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
     load_birth_names_data,  # noqa: F401
 )
+from tests.integration_tests.fixtures.client import client  # noqa: F401
 from tests.integration_tests.fixtures.energy_dashboard import (
     load_energy_table_data,  # noqa: F401
     load_energy_table_with_slice,  # noqa: F401
@@ -71,6 +72,10 @@ from tests.integration_tests.fixtures.importexport import (
     database_config,
     dataset_config,
     dataset_ui_export,
+)
+from tests.integration_tests.fixtures.lineage import (
+    inject_expected_dataset_lineage,  # noqa: F401
+    lineage_test_data,  # noqa: F401
 )
 
 # Fields the dataset ``show`` payload exposes but the ``PUT`` schema doesn't
@@ -3728,3 +3733,215 @@ class TestDatasetApi(SupersetTestCase):
             assert rv.status_code == 403
 
         self.items_to_delete = [dash, chart, dataset, dashboard_dataset]
+
+    @with_feature_flags(DASHBOARD_RBAC=True)
+    def test_get_drill_info_dashboard_rbac_access_granted(self):
+        """
+        Dataset API: Test drill_info with dashboard parameter when user has access
+        via the DASHBOARD_RBAC FF.
+        """
+        with self.temporary_user(
+            clone_user=security_manager.find_user(username=GAMMA_USERNAME)
+        ) as test_user:
+            user_role_ids = [role.id for role in test_user.roles]
+            # Login as admin to avoid FK issues during temp account deletion
+            self.login(ADMIN_USERNAME)
+            dataset = self.insert_dataset(
+                table_name="test_rbac_dataset",
+                owners=[],
+                columns=[
+                    TableColumn(
+                        column_name="restricted_column",
+                        type="VARCHAR(255)",
+                        verbose_name="Restricted Column",
+                        groupby=True,
+                    ),
+                ],
+                fetch_metadata=False,
+            )
+            chart = self.insert_chart("Test RBAC Chart", dataset.id)
+            dash = self.insert_dashboard(
+                "RBAC Test Dashboard",
+                "rbac-test-dashboard",
+                [],
+                roles=user_role_ids,
+                slices=[chart],
+                published=True,
+            )
+
+            self.logout()
+            self.login(test_user.username)
+
+            uri = f"api/v1/dataset/{dataset.id}/drill_info/?q=(dashboard_id:{dash.id})"
+            rv = self.client.get(uri)
+
+            assert rv.status_code == 200
+            data = json.loads(rv.data.decode("utf-8"))
+            result = data["result"]
+
+            assert "created_by" in result
+            assert "created_on_humanized" in result
+            assert "changed_by" in result
+            assert "changed_on_humanized" in result
+            assert result["id"] == dataset.id
+            assert result["table_name"] == "test_rbac_dataset"
+            assert len(result["columns"]) == 1
+            assert result["columns"][0]["column_name"] == "restricted_column"
+
+        self.items_to_delete = [dash, chart, dataset]
+
+    @with_feature_flags(DASHBOARD_RBAC=True)
+    def test_get_drill_info_dashboard_rbac_no_perm_to_drill(self):
+        """
+        Dataset API: Test drill_info with dashboard parameter when user has
+        no permission to access the API.
+        """
+        with self.temporary_user(
+            clone_user=security_manager.find_user(username=GAMMA_USERNAME),
+            pvms_to_remove=[("can_get_drill_info", "Dataset")],
+        ) as test_user:
+            user_role_ids = [role.id for role in test_user.roles]
+            self.login(ADMIN_USERNAME)
+
+            dataset = self.insert_dataset(
+                table_name="test_rbac_dataset_denied",
+                owners=[],
+                columns=[
+                    TableColumn(
+                        column_name="restricted_column",
+                        type="VARCHAR(255)",
+                        groupby=True,
+                    ),
+                ],
+                fetch_metadata=False,
+            )
+            chart = self.insert_chart("Test RBAC Chart second", dataset.id)
+            dash = self.insert_dashboard(
+                "RBAC Test Dashboard 2",
+                "rbac-test-dashboard-2",
+                [],
+                slices=[chart],
+                roles=user_role_ids,
+                published=True,
+            )
+
+            self.logout()
+            self.login(test_user.username)
+
+            uri = f"api/v1/dataset/{dataset.id}/drill_info/?q=(dashboard_id:{dash.id})"
+            rv = self.client.get(uri)
+
+            assert rv.status_code == 403
+
+        self.items_to_delete = [dash, chart, dataset]
+
+    @with_feature_flags(DASHBOARD_RBAC=True)
+    def test_get_drill_info_dashboard_rbac_no_access_on_dashboard(self):
+        """
+        Dataset API: Test drill_info with dashboard parameter when user has
+        no access to the dashboard.
+        """
+        dataset = self.insert_dataset(
+            table_name="test_rbac_dataset_denied",
+            owners=[],
+            columns=[
+                TableColumn(
+                    column_name="restricted_column",
+                    type="VARCHAR(255)",
+                    groupby=True,
+                ),
+            ],
+            fetch_metadata=False,
+        )
+        chart = self.insert_chart("Test RBAC Chart second", dataset.id)
+        dash = self.insert_dashboard(
+            "RBAC Test Dashboard 2",
+            "rbac-test-dashboard-2",
+            [],
+            slices=[chart],
+            roles=[],
+            published=True,
+        )
+
+        with self.temporary_user(
+            clone_user=security_manager.find_user(username=GAMMA_USERNAME),
+            login=True,
+            username="test_new_account",
+        ):
+            uri = f"api/v1/dataset/{dataset.id}/drill_info/?q=(dashboard_id:{dash.id})"
+            rv = self.client.get(uri)
+
+            assert rv.status_code == 403
+
+        self.items_to_delete = [dash, chart, dataset]
+
+    @with_feature_flags(DASHBOARD_RBAC=True)
+    def test_get_drill_info_dashboard_rbac_no_dashboard_id(self):
+        """
+        Dataset API: Test drill_info without dashboard ID parameter falls back
+        to regular access control.
+        """
+        with self.temporary_user(
+            clone_user=security_manager.find_user(username=GAMMA_USERNAME),
+        ) as test_user:
+            self.login(ADMIN_USERNAME)
+            user_role_ids = [role.id for role in test_user.roles]
+
+            dataset = self.insert_dataset(
+                table_name="test_no_dashboard_id",
+                owners=[],
+                columns=[
+                    TableColumn(
+                        column_name="restricted_column",
+                        type="VARCHAR(255)",
+                        groupby=True,
+                    ),
+                ],
+                fetch_metadata=False,
+            )
+            chart = self.insert_chart("Test RBAC Chart second", dataset.id)
+            dashboard = self.insert_dashboard(
+                "RBAC Test Dashboard 2",
+                "rbac-test-dashboard-2",
+                [],
+                slices=[chart],
+                roles=user_role_ids,
+                published=True,
+            )
+
+            self.logout()
+            self.login(test_user.username)
+
+            uri = f"api/v1/dataset/{dataset.id}/drill_info/"
+            rv = self.client.get(uri)
+
+            assert rv.status_code == 404
+
+        self.items_to_delete = [dashboard, chart, dataset]
+
+    @pytest.mark.usefixtures("inject_expected_dataset_lineage")
+    def test_get_dataset_lineage(self):
+        """
+        Dataset API: Test get dataset lineage
+        """
+        self.login(ADMIN_USERNAME)
+        dataset_id = self.dataset_lineage["dataset_id"]
+        expected = self.dataset_lineage["expected"]
+
+        uri = f"api/v1/dataset/{dataset_id}/lineage"
+        rv = self.get_assert_metric(uri, "lineage")
+        assert rv.status_code == 200
+
+        data = json.loads(rv.data.decode("utf-8"))
+
+        # Assert the entire response matches expected structure
+        assert data == expected
+
+    def test_get_dataset_lineage_not_found(self):
+        """
+        Dataset API: Test get dataset lineage with non-existent dataset
+        """
+        self.login(ADMIN_USERNAME)
+        uri = "api/v1/dataset/99999/lineage"
+        rv = self.client.get(uri)
+        assert rv.status_code == 404
