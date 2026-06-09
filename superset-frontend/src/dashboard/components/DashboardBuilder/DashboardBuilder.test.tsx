@@ -181,6 +181,26 @@ describe('DashboardBuilder', () => {
     }
   });
 
+  test('should apply editing class and hide header when both edit and standalone params are set', () => {
+    // Combined-params analogue of the legacy `?edit=true&standalone=true` Cypress
+    // mount. The two URL params are orthogonal on the React side: standalone=2
+    // suppresses DashboardHeader regardless of editMode, while editMode still
+    // drives the `dashboard--editing` class on the wrapper.
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?edit=true&standalone=2');
+    try {
+      const { getByTestId, queryByTestId } = setup({
+        dashboardState: { ...mockState.dashboardState, editMode: true },
+      });
+      expect(getByTestId('dashboard-content-wrapper')).toHaveClass(
+        'dashboard dashboard--editing',
+      );
+      expect(queryByTestId('dashboard-header-container')).not.toBeInTheDocument();
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
+
   test('should render a Sticky top-level Tabs if the dashboard has tabs', async () => {
     const { findAllByTestId } = setup({
       dashboardLayout: undoableDashboardLayoutWithTabs,
