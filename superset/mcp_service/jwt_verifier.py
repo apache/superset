@@ -33,6 +33,7 @@ from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any, cast
 
+import httpx
 from authlib.jose.errors import (
     BadSignatureError,
     DecodeError,
@@ -447,6 +448,18 @@ class DetailedJWTVerifier(MCPJWTVerifier):
             # Step 2: Get verification key (static or JWKS)
             try:
                 verification_key = await self._get_verification_key(token)
+            except (httpx.HTTPError, OSError, TimeoutError) as e:
+                # Transient failure reaching or reading the JWKS endpoint.
+                # Treat it as an authentication failure (return None) instead of
+                # letting the network error propagate as an unexpected exception.
+                reason = "JWKS verification key unavailable"
+                _jwt_failure_reason.set(reason)
+                # WARNING carries only the generic category (per the module's
+                # logging contract); the sanitized exception detail, which may
+                # include the JWKS endpoint host, is reserved for DEBUG.
+                logger.warning("Could not fetch JWKS verification key")
+                logger.debug("JWKS fetch error detail: %s", _sanitize_for_log(e))
+                return None
             except ValueError as e:
                 reason = "Failed to get verification key"
                 _jwt_failure_reason.set(reason)

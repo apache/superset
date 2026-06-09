@@ -93,6 +93,27 @@ async def test_malformed_token_header(hs256_verifier):
 
 
 @pytest.mark.asyncio
+async def test_jwks_network_error_is_handled(hs256_verifier):
+    """A network error fetching the JWKS key is handled, not propagated."""
+    import httpx
+
+    token = _make_token(
+        {"alg": "HS256", "typ": "JWT"},
+        {"sub": "user1", "iss": "test-issuer", "aud": "test-audience"},
+    )
+
+    with patch.object(
+        hs256_verifier,
+        "_get_verification_key",
+        side_effect=httpx.ConnectError("connection refused"),
+    ):
+        result = await hs256_verifier.load_access_token(token)
+
+    assert result is None
+    assert _jwt_failure_reason.get() == "JWKS verification key unavailable"
+
+
+@pytest.mark.asyncio
 async def test_signature_verification_failed(hs256_verifier):
     """Token with bad signature should report signature failure."""
     token = _make_token(
