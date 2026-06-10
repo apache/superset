@@ -310,7 +310,7 @@ pydantic-core==2.33.2
     # via pydantic
 pygments==2.20.0
     # via rich
-pyjwt==2.12.0
+pyjwt==2.13.0
     # via
     #   apache-superset (pyproject.toml)
     #   flask-appbuilder
