@@ -28,6 +28,7 @@ export { resampleOperator } from './resampleOperator';
 export { renameOperator } from './renameOperator';
 export { contributionOperator } from './contributionOperator';
 export { prophetOperator } from './prophetOperator';
+export { anomalyDetectionOperator } from './anomalyDetectionOperator';
 export { boxplotOperator } from './boxplotOperator';
 export { flattenOperator } from './flattenOperator';
 export { rankOperator } from './rankOperator';

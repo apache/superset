@@ -99,3 +99,11 @@ test('x_axis_number_format should be hidden for string columns', () => {
     false,
   );
 });
+
+test('should include anomaly detection controls section', () => {
+  const anomalySection = config.controlPanelSections.find(
+    section =>
+      section && 'label' in section && section.label === 'Anomaly Detection',
+  );
+  expect(anomalySection).toBeDefined();
+});

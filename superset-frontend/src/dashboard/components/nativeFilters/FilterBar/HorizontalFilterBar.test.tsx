@@ -36,7 +36,6 @@ const renderWrapper = (overrideProps?: Record<string, any>) =>
   waitFor(() =>
     render(<HorizontalBar {...defaultProps} {...overrideProps} />, {
       useRedux: true,
-      useRouter: true,
       initialState: {
         dashboardState: {
           sliceIds: [],
