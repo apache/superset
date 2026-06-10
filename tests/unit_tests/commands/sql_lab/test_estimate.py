@@ -218,11 +218,15 @@ def test_apply_sql_security_allows_benign_select(mock_app: MagicMock) -> None:
 
 
 @patch("superset.commands.sql_lab.estimate.apply_rls")
+@patch("superset.commands.sql_lab.estimate.Query")
+@patch("superset.commands.sql_lab.estimate.db")
 @patch("superset.commands.sql_lab.estimate.is_feature_enabled", return_value=True)
 @patch("superset.commands.sql_lab.estimate.app")
 def test_apply_sql_security_injects_rls_when_enabled(
     mock_app: MagicMock,
     mock_is_feature_enabled: MagicMock,
+    mock_db: MagicMock,
+    mock_query: MagicMock,
     mock_apply_rls: MagicMock,
 ) -> None:
     """With RLS_IN_SQLLAB enabled, RLS predicates are applied per statement so
@@ -234,9 +238,14 @@ def test_apply_sql_security_injects_rls_when_enabled(
 
     mock_is_feature_enabled.assert_called_with("RLS_IN_SQLLAB")
     mock_apply_rls.assert_called_once()
+    # The transient probe Query is expunged so its (deliberately incomplete)
+    # row can't autoflush into the session when apply_rls queries below.
+    mock_db.session.expunge.assert_called_once_with(mock_query.return_value)
     assert isinstance(result, str)
 
 
+@patch("superset.commands.sql_lab.estimate.Query")
+@patch("superset.commands.sql_lab.estimate.db")
 @patch("superset.commands.sql_lab.estimate.apply_rls")
 @patch("superset.commands.sql_lab.estimate.is_feature_enabled", return_value=True)
 @patch("superset.commands.sql_lab.estimate.app")
@@ -244,6 +253,8 @@ def test_apply_sql_security_resolves_default_schema_for_rls(
     mock_app: MagicMock,
     mock_is_feature_enabled: MagicMock,
     mock_apply_rls: MagicMock,
+    mock_db: MagicMock,
+    mock_query: MagicMock,
 ) -> None:
     """When no catalog/schema is supplied, RLS must be applied against the
     database's *resolved* default catalog/schema — mirroring the execution path
@@ -276,6 +287,8 @@ def test_apply_sql_security_resolves_default_schema_for_rls(
     assert call_args[2] == "public"
 
 
+@patch("superset.commands.sql_lab.estimate.Query")
+@patch("superset.commands.sql_lab.estimate.db")
 @patch("superset.commands.sql_lab.estimate.apply_rls")
 @patch("superset.commands.sql_lab.estimate.is_feature_enabled", return_value=True)
 @patch("superset.commands.sql_lab.estimate.app")
@@ -283,9 +296,14 @@ def test_apply_sql_security_respects_explicit_catalog_schema(
     mock_app: MagicMock,
     mock_is_feature_enabled: MagicMock,
     mock_apply_rls: MagicMock,
+    mock_db: MagicMock,
+    mock_query: MagicMock,
 ) -> None:
-    """An explicitly supplied catalog/schema is used as-is and short-circuits
-    default resolution (``opts.catalog or ...`` / ``opts.schema or ...``)."""
+    """An explicitly supplied catalog short-circuits default-catalog resolution,
+    and the explicit schema wins as the RLS target — but the schema resolver
+    ``get_default_schema_for_query`` is still invoked so the engine's per-query
+    security gate runs even when a schema is pinned (parity with the executor,
+    which calls it unconditionally)."""
     mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
     command = _make_command_with_db("SELECT * FROM t", allow_dml=False)
     database = cast(MagicMock, command._database)
@@ -294,13 +312,19 @@ def test_apply_sql_security_respects_explicit_catalog_schema(
 
     command._apply_sql_security("SELECT * FROM t")
 
+    # Explicit catalog wins, so the default-catalog lookup is skipped...
     database.get_default_catalog.assert_not_called()
-    database.get_default_schema_for_query.assert_not_called()
+    # ...but the schema gate must run even when a schema is pinned, otherwise an
+    # explicit-schema estimate could smuggle a ``SET search_path`` past the gate
+    # the executor enforces.
+    database.get_default_schema_for_query.assert_called_once()
     call_args = mock_apply_rls.call_args.args
     assert call_args[1] == "my_catalog"
     assert call_args[2] == "my_schema"
 
 
+@patch("superset.commands.sql_lab.estimate.Query")
+@patch("superset.commands.sql_lab.estimate.db")
 @patch("superset.commands.sql_lab.estimate.apply_rls")
 @patch("superset.commands.sql_lab.estimate.is_feature_enabled", return_value=True)
 @patch("superset.commands.sql_lab.estimate.app")
@@ -308,6 +332,8 @@ def test_apply_sql_security_propagates_engine_schema_gate(
     mock_app: MagicMock,
     mock_is_feature_enabled: MagicMock,
     mock_apply_rls: MagicMock,
+    mock_db: MagicMock,
+    mock_query: MagicMock,
 ) -> None:
     """Default-schema resolution goes through ``get_default_schema_for_query``,
     so an engine-specific per-query security gate (e.g. the Postgres

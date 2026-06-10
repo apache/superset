@@ -126,20 +126,31 @@ class QueryEstimationCommand(BaseCommand):
             # security parity this command exists to provide.
             catalog = self._catalog or self._database.get_default_catalog()
             # Build a transient (unsaved) Query so the engine spec can resolve the
-            # effective per-query schema exactly as the executor does.
+            # effective per-query schema exactly as the executor does. Mirror the
+            # probe built in ``SupersetSecurityManager.raise_for_access``: set a
+            # ``client_id`` (the column is ``nullable=False``) and expunge it, so
+            # the ``database`` backref's ``cascade="all, delete-orphan"`` cannot
+            # autoflush this incomplete row into the session when ``apply_rls``
+            # issues its own ``db.session`` query below.
             probe_query = Query(
                 database=self._database,
                 sql=self._sql,
                 schema=self._schema or None,
                 catalog=catalog,
+                client_id=utils.shortid()[:10],
+                user_id=utils.get_user_id(),
             )
-            schema = (
-                self._schema
-                or self._database.get_default_schema_for_query(
-                    probe_query, self._template_params
-                )
-                or ""
+            db.session.expunge(probe_query)
+            # Always resolve through ``get_default_schema_for_query`` — even when
+            # the caller pinned a schema — so the engine's per-query security gate
+            # runs (e.g. ``PostgresEngineSpec`` rejects a query that sets
+            # ``search_path``), exactly as the executor does unconditionally. Only
+            # the resulting value falls back to the resolved default; an explicit
+            # schema still wins for the RLS predicate target.
+            resolved_schema = self._database.get_default_schema_for_query(
+                probe_query, self._template_params
             )
+            schema = self._schema or resolved_schema or ""
             for statement in parsed_script.statements:
                 apply_rls(self._database, catalog, schema, statement)
             return parsed_script.format()
