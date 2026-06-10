@@ -21,7 +21,9 @@ typically created by an administrator — that must set a new password before
 they can use the rest of the application. When ``ENABLE_FORCE_PASSWORD_CHANGE``
 is enabled, a ``before_request`` hook redirects such users to the password-reset
 page until they change it; the flag is cleared automatically on a successful
-password reset (see ``SupersetSecurityManager.reset_password``).
+*self-service* password reset (see ``SupersetSecurityManager.reset_password``).
+An admin-initiated reset deliberately preserves the flag so the target user is
+still forced to change the temporary password at next login.
 """
 
 from __future__ import annotations
@@ -67,10 +69,15 @@ def _get_user_attribute(user_id: int) -> Optional[Any]:
     from superset.extensions import db
     from superset.models.user_attributes import UserAttribute
 
+    # The ``user_attribute`` table does not enforce uniqueness on ``user_id``,
+    # so a user could have more than one row. ``.one_or_none()`` would raise
+    # ``MultipleResultsFound`` (a 500) in that case; fetch deterministically by
+    # ordering on the primary key and taking the first row instead.
     return (
         db.session.query(UserAttribute)
         .filter(UserAttribute.user_id == user_id)
-        .one_or_none()
+        .order_by(UserAttribute.id)
+        .first()
     )
 
 
@@ -146,8 +153,21 @@ def register_password_change_enforcement(app: Any) -> None:
             return None
 
         flash(__("You must change your password before continuing."), "warning")
-        try:
-            target = url_for("ResetMyPasswordView.this_form_get")
-        except Exception:  # noqa: BLE001  # pylint: disable=broad-except
-            target = "/"
-        return redirect(target)
+        # Resolve the password-reset page. If that endpoint can't be resolved
+        # (e.g. a custom security manager without ``ResetMyPasswordView``), fall
+        # back to logout, which is always exempt from this enforcement. We must
+        # NOT fall back to "/" or any other non-exempt route: the index re-runs
+        # this same hook and would trap the user in an infinite 302 loop. If no
+        # exempt target can be resolved at all, return an error response rather
+        # than redirect, so a flagged user can never get stuck looping.
+        for endpoint in ("ResetMyPasswordView.this_form_get", "AuthDBView.logout"):
+            try:
+                return redirect(url_for(endpoint))
+            except Exception:  # noqa: BLE001, S112  # pylint: disable=broad-except
+                # Try the next exempt fallback; a failed url_for resolution here
+                # is expected/benign and not worth logging per attempt.
+                continue
+        return (
+            __("You must change your password before continuing."),
+            503,
+        )
