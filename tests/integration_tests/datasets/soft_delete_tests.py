@@ -331,15 +331,7 @@ class TestDatasetRestore(SupersetTestCase):
         assert rv.status_code == 422
 
         # Cleanup: the mocked restore left the example dataset soft-deleted.
-        row = (
-            db.session.query(SqlaTable)
-            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
-            .filter(SqlaTable.id == dataset_id)
-            .one()
-        )
-        if row.deleted_at is not None:
-            row.restore()
-        db.session.commit()
+        self._restore_dataset(dataset_id)
 
     def test_restore_uses_can_write_permission(self) -> None:
         """Non-admin owner with ``can_write_Dataset`` can hit the restore
