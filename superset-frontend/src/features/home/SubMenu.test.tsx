@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { BrowserRouter } from 'react-router-dom';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import SubMenu, { ButtonProps } from './SubMenu';
 
@@ -63,9 +63,9 @@ const setup = (overrides: Record<string, any> = {}) => {
     ...overrides,
   };
   return render(
-    <BrowserRouter>
+    <StandaloneRouter>
       <SubMenu {...props} />
-    </BrowserRouter>,
+    </StandaloneRouter>,
   );
 };
 

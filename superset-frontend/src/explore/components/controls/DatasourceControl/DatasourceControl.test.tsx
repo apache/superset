@@ -18,7 +18,7 @@
  */
 
 import type React from 'react';
-import { Route } from 'react-router-dom';
+import { useLocation } from '@tanstack/react-router';
 import fetchMock from 'fetch-mock';
 import { DatasourceType, JsonObject, SupersetClient } from '@superset-ui/core';
 import {
@@ -315,16 +315,19 @@ test('Edit dataset should be disabled when user is not admin', async () => {
 test('Click on View in SQL Lab', async () => {
   const props = createProps();
 
-  const { queryByTestId, getByTestId } = render(
+  // Renders the current location state once the router navigates to /sqllab,
+  // mimicking the former react-router <Route path="/sqllab" render={...} />.
+  const MockSqlLabRoute = () => {
+    const location = useLocation();
+    if (location.pathname !== '/sqllab') return null;
+    return (
+      <div data-test="mock-sqllab-route">{JSON.stringify(location.state)}</div>
+    );
+  };
+
+  const { queryByTestId, findByTestId, getByTestId } = render(
     <>
-      <Route
-        path="/sqllab"
-        render={({ location }) => (
-          <div data-test="mock-sqllab-route">
-            {JSON.stringify(location.state)}
-          </div>
-        )}
-      />
+      <MockSqlLabRoute />
       <DatasourceControl {...props} />
     </>,
     {
@@ -338,14 +341,14 @@ test('Click on View in SQL Lab', async () => {
 
   await userEvent.click(screen.getByText('View in SQL Lab'));
 
-  expect(getByTestId('mock-sqllab-route')).toBeInTheDocument();
+  expect(await findByTestId('mock-sqllab-route')).toBeInTheDocument();
   expect(JSON.parse(`${getByTestId('mock-sqllab-route').textContent}`)).toEqual(
-    {
+    expect.objectContaining({
       requestedQuery: {
         datasourceKey: `${mockDatasource.id}__${mockDatasource.type}`,
         sql: mockDatasource.sql,
       },
-    },
+    }),
   );
 });
 

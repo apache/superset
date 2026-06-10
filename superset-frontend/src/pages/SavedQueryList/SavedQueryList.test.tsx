@@ -25,17 +25,22 @@ import {
   fireEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { useLocation } from '@tanstack/react-router';
 import { QueryParamProvider } from 'use-query-params';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
+import { TanstackRouterAdapter } from 'src/router/queryParamAdapter';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
 import SavedQueryList from '.';
 
 // Renders the current router pathname+search so tests can assert navigation.
 function LocationDisplay() {
   const location = useLocation();
+  // searchStr already includes the leading '?' (it is the stringifySearch
+  // output), matching react-router's location.search semantics.
   return (
-    <div data-test="location-display">{`${location.pathname}${location.search}`}</div>
+    <div data-test="location-display">
+      {`${location.pathname}${location.searchStr}`}
+    </div>
   );
 }
 
@@ -94,12 +99,12 @@ fetchMock.delete(queryEndpoint, {}, { name: queryEndpoint });
 
 const renderList = (props = {}, storeOverrides = {}) =>
   render(
-    <MemoryRouter>
-      <QueryParamProvider adapter={ReactRouter5Adapter}>
+    <StandaloneRouter initialEntries={['/']}>
+      <QueryParamProvider adapter={TanstackRouterAdapter}>
         <SavedQueryList user={mockUser} {...props} />
         <LocationDisplay />
       </QueryParamProvider>
-    </MemoryRouter>,
+    </StandaloneRouter>,
     {
       useRedux: true,
       store: configureStore([thunk])({
@@ -256,11 +261,11 @@ describe('SavedQueryList', () => {
   test('"+ Query" button pushes a router-relative path (subdirectory deployment)', async () => {
     // Simulate SUPERSET_APP_ROOT=/superset. ensureAppRoot/makeUrl read
     // applicationRoot() dynamically, so mocking it here makes the buggy code
-    // path (makeUrl() around history.push) produce '/superset/sqllab?new=true'
-    // instead of being a no-op. React Router's <Router basename> prefixes the
-    // app root on its own, so history.push MUST receive a path without the
-    // app-root prefix — otherwise navigation lands at /superset/superset/sqllab
-    // and shows a blank page (sc-103661).
+    // path (makeUrl() around the history push) produce
+    // '/superset/sqllab?new=true' instead of being a no-op. The router's
+    // basepath prefixes the app root on its own, so the push MUST receive a
+    // path without the app-root prefix — otherwise navigation lands at
+    // /superset/superset/sqllab and shows a blank page (sc-103661).
     const applicationRootSpy = jest
       .spyOn(getBootstrapData, 'applicationRoot')
       .mockReturnValue('/superset');
@@ -276,10 +281,11 @@ describe('SavedQueryList', () => {
       fireEvent.click(queryButton);
 
       await waitFor(() => {
-        // The MemoryRouter in renderList uses the default ('/') basename, so
-        // useLocation reflects exactly what history.push received. A correct
-        // router-relative push produces '/sqllab?new=true'; a buggy push that
-        // re-applied the app root would produce '/superset/sqllab?new=true'.
+        // The StandaloneRouter in renderList uses the default ('/') basepath,
+        // so useLocation reflects exactly what the history push received. A
+        // correct router-relative push produces '/sqllab?new=true'; a buggy
+        // push that re-applied the app root would produce
+        // '/superset/sqllab?new=true'.
         const location = screen.getByTestId('location-display').textContent;
         expect(location).toBe('/sqllab?new=true');
       });

@@ -47,8 +47,8 @@ fetchMock.get(reportEndpoint, {
   result: { name: 'Test 0' },
 });
 
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'), // use actual for all non-hook parts
+jest.mock('@tanstack/react-router', () => ({
+  ...jest.requireActual('@tanstack/react-router'), // use actual for all non-hook parts
   useParams: () => ({ alertId: '1' }),
 }));
 

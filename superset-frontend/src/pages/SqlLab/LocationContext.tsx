@@ -19,7 +19,7 @@
 
 import { createContext, useContext, FC, ReactNode } from 'react';
 
-import { useLocation } from 'react-router-dom';
+import { useLocation } from '@tanstack/react-router';
 
 export type LocationState = {
   requestedQuery?: Record<string, any>;
@@ -34,11 +34,14 @@ const EMPTY_STATE: LocationState = {};
 export const LocationProvider: FC<{ children?: ReactNode }> = ({
   children,
 }) => {
-  const location = useLocation<LocationState>();
-  if (location.state) {
-    return <Provider value={location.state}>{children}</Provider>;
+  const location = useLocation();
+  // TanStack's location.state is always an object (it carries internal
+  // router keys), so check for the keys this context actually consumes.
+  const state = location.state as LocationState;
+  if ('requestedQuery' in state || 'isDataset' in state) {
+    return <Provider value={state}>{children}</Provider>;
   }
-  const queryParams = new URLSearchParams(location.search);
+  const queryParams = new URLSearchParams(location.searchStr);
   const permalink = location.pathname.match(/\/p\/\w+/)?.[0].slice(3);
   if (queryParams.size > 0 || permalink) {
     const autorun = queryParams.get('autorun') === 'true';

@@ -24,11 +24,16 @@ import {
 } from 'spec/helpers/testing-library';
 import Footer from 'src/features/datasets/AddDataset/Footer';
 
+const mockNavigate = jest.fn();
 const mockHistoryPush = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useHistory: () => ({
-    push: mockHistoryPush,
+jest.mock('@tanstack/react-router', () => ({
+  ...jest.requireActual('@tanstack/react-router'),
+  useNavigate: () => mockNavigate,
+  useRouter: () => ({
+    history: {
+      push: mockHistoryPush,
+      back: jest.fn(),
+    },
   }),
 }));
 
@@ -173,7 +178,9 @@ describe('Footer', () => {
         schema: 'public',
         table_name: 'real_info',
       });
-      expect(mockHistoryPush).toHaveBeenCalledWith('/tablemodelview/list/');
+      expect(mockNavigate).toHaveBeenCalledWith({
+        to: '/tablemodelview/list/',
+      });
     });
   });
 
@@ -192,6 +199,7 @@ describe('Footer', () => {
       expect(mockCreateResource).toHaveBeenCalled();
       // Should not navigate if creation failed
       expect(mockHistoryPush).not.toHaveBeenCalled();
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
 

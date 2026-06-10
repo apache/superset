@@ -18,10 +18,16 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject } from '@superset-ui/core';
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import {
+  useEffect,
+  useRef,
+  useCallback,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from 'react';
+import { useBlocker } from '@tanstack/react-router';
 import { useBeforeUnload } from 'src/hooks/useBeforeUnload';
-import type { Location, Action } from 'history';
 
 type UseUnsavedChangesPromptProps = {
   hasUnsavedChanges: boolean;
@@ -36,16 +42,53 @@ export const useUnsavedChangesPrompt = ({
   isSaveModalVisible = false,
   manualSaveOnUnsavedChanges = false,
 }: UseUnsavedChangesPromptProps) => {
-  const history = useHistory();
-  const [showModal, setShowModal] = useState(false);
+  const [showModal, setShowModalState] = useState(false);
+  const showModalRef = useRef(showModal);
+  showModalRef.current = showModal;
 
-  const confirmNavigationRef = useRef<(() => void) | null>(null);
-  const unblockRef = useRef<() => void>(() => {});
   const manualSaveRef = useRef(false); // Track if save was user-initiated (not via navigation)
 
+  const blocker = useBlocker({
+    shouldBlockFn: ({ action }) => {
+      // REPLACE actions are URL sync (e.g. updating form_data_key), not navigation
+      if (action === 'REPLACE') {
+        return false;
+      }
+
+      if (manualSaveRef.current) {
+        manualSaveRef.current = false;
+        return false;
+      }
+
+      return true;
+    },
+    withResolver: true,
+    disabled: !hasUnsavedChanges,
+    // the manual useBeforeUnload listener below handles the unload prompt
+    enableBeforeUnload: false,
+  });
+  const blockerRef = useRef(blocker);
+  blockerRef.current = blocker;
+
+  useEffect(() => {
+    if (blocker.status === 'blocked') {
+      setShowModalState(true);
+    }
+  }, [blocker.status]);
+
+  // Closing the modal without navigating discards the blocked navigation
+  const setShowModal: Dispatch<SetStateAction<boolean>> = useCallback(value => {
+    const next =
+      typeof value === 'function' ? value(showModalRef.current) : value;
+    if (!next) {
+      blockerRef.current.reset?.();
+    }
+    setShowModalState(next);
+  }, []);
+
   const handleConfirmNavigation = useCallback(() => {
-    setShowModal(false);
-    confirmNavigationRef.current?.();
+    setShowModalState(false);
+    blockerRef.current.proceed?.();
   }, []);
 
   const handleSaveAndCloseModal = useCallback(async () => {
@@ -63,66 +106,19 @@ export const useUnsavedChangesPrompt = ({
         { cause: err },
       );
     }
-  }, [manualSaveOnUnsavedChanges, onSave]);
+  }, [manualSaveOnUnsavedChanges, onSave, setShowModal]);
 
   const triggerManualSave = useCallback(() => {
     manualSaveRef.current = true;
     onSave();
   }, [onSave]);
 
-  const blockCallback = useCallback(
-    (
-      {
-        pathname,
-        search,
-        state,
-      }: {
-        pathname: Location['pathname'];
-        search: Location['search'];
-        state: Location['state'];
-      },
-      action: Action,
-    ) => {
-      // REPLACE actions are URL sync (e.g. updating form_data_key), not navigation
-      if (action === 'REPLACE') {
-        return undefined;
-      }
-
-      if (manualSaveRef.current) {
-        manualSaveRef.current = false;
-        return undefined;
-      }
-
-      confirmNavigationRef.current = () => {
-        unblockRef.current?.();
-        if (action === 'POP') {
-          history.go(-1);
-        } else {
-          history.push({ pathname, search }, state);
-        }
-      };
-
-      setShowModal(true);
-      return false;
-    },
-    [history],
-  );
-
-  useEffect(() => {
-    if (!hasUnsavedChanges) return undefined;
-
-    const unblock = history.block(blockCallback);
-    unblockRef.current = unblock;
-
-    return () => unblock();
-  }, [blockCallback, hasUnsavedChanges, history]);
-
   useEffect(() => {
     if (!isSaveModalVisible && manualSaveRef.current) {
       setShowModal(false);
       manualSaveRef.current = false;
     }
-  }, [isSaveModalVisible]);
+  }, [isSaveModalVisible, setShowModal]);
 
   useBeforeUnload(hasUnsavedChanges);
 

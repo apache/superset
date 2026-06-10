@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useMemo, useState, useCallback, ReactElement, useEffect } from 'react';
-import { Link, useHistory } from 'react-router-dom';
+import { Link, useRouter } from '@tanstack/react-router';
+import { pushAppHref } from 'src/router/navigation';
 import { t } from '@apache-superset/core/translation';
 import { QueryState, SupersetClient } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
@@ -116,7 +117,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
     useState<QueryObject>();
 
   const theme = useTheme();
-  const history = useHistory();
+  const router = useRouter();
 
   // Preload SQL language since this component will definitely display SQL
   useEffect(() => {
@@ -400,7 +401,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
           },
         }: any) => (
           <Tooltip title={t('Open query in SQL Lab')} placement="bottom">
-            <Link to={`/sqllab?queryId=${id}`}>
+            <Link to="/sqllab" search={{ queryId: String(id) }}>
               <Icons.Full iconSize="l" />
             </Link>
           </Tooltip>
@@ -493,7 +494,9 @@ function QueryList({ addDangerToast }: QueryListProps) {
           query={queryCurrentlyPreviewing}
           queries={queries}
           fetchData={handleQueryPreview}
-          openInSqlLab={(id: number) => history.push(`/sqllab?queryId=${id}`)}
+          openInSqlLab={(id: number) =>
+            pushAppHref(router, `/sqllab?queryId=${id}`)
+          }
           show
         />
       )}

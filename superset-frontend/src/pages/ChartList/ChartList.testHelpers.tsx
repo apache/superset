@@ -20,10 +20,10 @@
 import fetchMock from 'fetch-mock';
 import { render } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
-import { BrowserRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import { QueryParamProvider } from 'use-query-params';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
+import { TanstackRouterAdapter } from 'src/router/queryParamAdapter';
 import ChartList from 'src/pages/ChartList';
 import handleResourceExport from 'src/utils/export';
 
@@ -267,13 +267,15 @@ export const renderChartList = (user: any, props = {}, storeState = {}) => {
 
   const store = createMockStore(storeStateWithUser);
 
+  // Browser (jsdom) history, not memory history: tests assert on
+  // window.location after navigation, matching the old BrowserRouter.
   return render(
     <Provider store={store}>
-      <BrowserRouter>
-        <QueryParamProvider adapter={ReactRouter5Adapter}>
+      <StandaloneRouter>
+        <QueryParamProvider adapter={TanstackRouterAdapter}>
           <ChartList user={user} {...props} />
         </QueryParamProvider>
-      </BrowserRouter>
+      </StandaloneRouter>
     </Provider>,
   );
 };

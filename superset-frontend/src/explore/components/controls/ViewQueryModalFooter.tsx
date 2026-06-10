@@ -21,7 +21,8 @@ import { isObject } from 'lodash';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { Button } from '@superset-ui/core/components';
-import { useHistory } from 'react-router-dom';
+import { useRouter } from '@tanstack/react-router';
+import { pushAppHref } from 'src/router/navigation';
 
 interface SimpleDataSource {
   id: string;
@@ -44,7 +45,7 @@ const ViewQueryModalFooter: FC<ViewQueryModalFooterProps> = (props: {
   changeDatasource: () => void;
   datasource: SimpleDataSource;
 }) => {
-  const history = useHistory();
+  const router = useRouter();
   const viewInSQLLab = (
     openInNewWindow: boolean,
     id: string,
@@ -58,11 +59,8 @@ const ViewQueryModalFooter: FC<ViewQueryModalFooterProps> = (props: {
     if (openInNewWindow) {
       SupersetClient.postForm('/sqllab/', payload);
     } else {
-      history.push({
-        pathname: '/sqllab',
-        state: {
-          requestedQuery: payload,
-        },
+      pushAppHref(router, '/sqllab', {
+        requestedQuery: payload,
       });
     }
   };

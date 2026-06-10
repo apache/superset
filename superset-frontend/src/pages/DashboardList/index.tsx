@@ -25,7 +25,8 @@ import {
 import { styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
 import { useState, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
+import { parseSearch } from 'src/router/searchParams';
 import rison from 'rison';
 import {
   createFetchRelated,
@@ -343,19 +344,28 @@ function DashboardList(props: DashboardListProps) {
               certification_details: certificationDetails,
             },
           },
-        }: any) => (
-          <Link to={url} title={dashboardTitle}>
-            {certifiedBy && (
-              <>
-                <CertifiedBadge
-                  certifiedBy={certifiedBy}
-                  details={certificationDetails}
-                />{' '}
-              </>
-            )}
-            {dashboardTitle}
-          </Link>
-        ),
+        }: any) => {
+          // url comes from the backend and may contain a query string
+          // (cast: search prop types collapse to never for dynamic 'to' strings)
+          const [pathname, queryString] = url.split('?');
+          return (
+            <Link
+              to={pathname}
+              search={parseSearch(queryString ?? '') as never}
+              title={dashboardTitle}
+            >
+              {certifiedBy && (
+                <>
+                  <CertifiedBadge
+                    certifiedBy={certifiedBy}
+                    details={certificationDetails}
+                  />{' '}
+                </>
+              )}
+              {dashboardTitle}
+            </Link>
+          );
+        },
         Header: t('Name'),
         accessor: 'dashboard_title',
         id: 'dashboard_title',

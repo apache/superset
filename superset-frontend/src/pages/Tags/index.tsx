@@ -42,7 +42,7 @@ import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 import { deleteTags } from 'src/features/tags/tags';
 import { QueryObjectColumns, Tag } from 'src/views/CRUD/types';
 import TagModal from 'src/features/tags/TagModal';
@@ -168,7 +168,9 @@ function TagList(props: TagListProps) {
           },
         }: any) => (
           <AntdTag>
-            <Link to={`/superset/all_entities/?id=${id}`}>{tagName}</Link>
+            <Link to="/superset/all_entities/" search={{ id: String(id) }}>
+              {tagName}
+            </Link>
           </AntdTag>
         ),
         Header: t('Name'),

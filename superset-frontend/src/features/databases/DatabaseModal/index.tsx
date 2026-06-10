@@ -33,7 +33,8 @@ import {
 } from 'react';
 import { CheckboxChangeEvent } from '@superset-ui/core/components/Checkbox/types';
 
-import { useHistory } from 'react-router-dom';
+import { useRouter } from '@tanstack/react-router';
+import { pushAppHref } from 'src/router/navigation';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -751,7 +752,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
       (DB: DatabaseObject) => DB.backend === engine || DB.engine === engine,
     )?.parameters !== undefined;
   const showDBError = validationErrors || dbErrors;
-  const history = useHistory();
+  const router = useRouter();
 
   const dbModel: DatabaseForm =
     // TODO: we need a centralized engine in one place
@@ -887,7 +888,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   };
 
   const redirectURL = (url: string) => {
-    history.push(url);
+    pushAppHref(router, url);
   };
 
   // Database import logic
@@ -1875,8 +1876,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         onClick={() => {
           setLoading(true);
           fetchAndSetDB();
-          // redirectURL() delegates to history.push; React Router's basename
-          // already prefixes the application root, so pass a relative path.
+          // redirectURL() prefixes the application root via pushAppHref,
+          // so pass a root-relative path.
           redirectURL('/sqllab?db=true');
         }}
       >

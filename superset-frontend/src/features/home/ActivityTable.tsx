@@ -21,7 +21,8 @@ import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { setItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
+import { parseSearch } from 'src/router/searchParams';
 import { ListViewCard } from '@superset-ui/core/components';
 import { Dashboard, SavedQueryObject, TableTab } from 'src/views/CRUD/types';
 import { ActivityData, LoadingCards } from 'src/pages/Home';
@@ -186,9 +187,14 @@ export default function ActivityTable({
     return activities.map((entity: ActivityObject) => {
       const url = getEntityUrl(entity);
       const lastActionOn = getEntityLastActionOn(entity);
+      // Entity URLs come from backend data and may carry a query string.
+      const [pathname, queryString] = (url || '').split('?');
       return (
         <CardStyles key={url}>
-          <Link to={url}>
+          <Link
+            to={pathname}
+            search={queryString ? parseSearch(queryString) : undefined}
+          >
             <ListViewCard
               cover={<></>}
               url={url}

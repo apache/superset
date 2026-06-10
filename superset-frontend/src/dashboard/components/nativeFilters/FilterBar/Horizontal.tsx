@@ -30,7 +30,7 @@ import { FilterBarOrientation, RootState } from 'src/dashboard/types';
 import { useChartLayoutItems } from 'src/dashboard/util/useChartLayoutItems';
 import { useChartIds } from 'src/dashboard/util/charts/useChartIds';
 import { useDispatch, useSelector } from 'react-redux';
-import { useHistory, useLocation } from 'react-router-dom';
+import { useLocation, useRouter } from '@tanstack/react-router';
 import { removeDataMask, updateDataMask } from 'src/dataMask/actions';
 import {
   getRisonFilterParam,
@@ -121,8 +121,8 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
     state => state.dataMask,
   );
   const dispatch = useDispatch();
-  const history = useHistory();
-  const location = useLocation();
+  const router = useRouter();
+  const searchStr = useLocation({ select: location => location.searchStr });
   const chartIds = useChartIds();
   const chartLayoutItems = useChartLayoutItems();
   const verboseMaps = useChartsVerboseMaps();
@@ -146,7 +146,7 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
   // programmatic history.replace).
   useEffect(() => {
     setActiveUrlFilters(getUrlFilterIndicators());
-  }, [location.search]);
+  }, [searchStr]);
 
   const handleRemoveUrlFilter = useCallback(
     (filterToRemove: UrlFilterIndicator) => {
@@ -158,7 +158,7 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
       const remaining = currentFilters.filter(
         f => getUrlFilterIdentity(f) !== removeId,
       );
-      updateUrlWithUnmatchedFilters(remaining, history);
+      updateUrlWithUnmatchedFilters(remaining, router.history);
       setActiveUrlFilters(prev =>
         prev.filter(f => getUrlFilterIdentity(f.filter) !== removeId),
       );
@@ -175,7 +175,7 @@ const HorizontalFilterBar: FC<HorizontalBarProps> = ({
         );
       }
     },
-    [dispatch, history],
+    [dispatch, router],
   );
 
   const urlFiltersComponent = useMemo(() => {

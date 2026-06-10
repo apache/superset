@@ -68,7 +68,8 @@ import {
   type ListViewFilter,
 } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { Link, useHistory } from 'react-router-dom';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { parseSearch } from 'src/router/searchParams';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
@@ -175,7 +176,7 @@ function ChartList(props: ChartListProps) {
     user: { userId },
   } = props;
 
-  const history = useHistory();
+  const navigate = useNavigate();
 
   const {
     state: {
@@ -365,22 +366,31 @@ function ChartList(props: ChartListProps) {
               description,
             },
           },
-        }: any) => (
-          <FlexRowContainer>
-            <Link to={url} data-test={`${sliceName}-list-chart-title`}>
-              {certifiedBy && (
-                <>
-                  <CertifiedBadge
-                    certifiedBy={certifiedBy}
-                    details={certificationDetails}
-                  />{' '}
-                </>
-              )}
-              {sliceName}
-            </Link>
-            {description && <InfoTooltip tooltip={description} />}
-          </FlexRowContainer>
-        ),
+        }: any) => {
+          // url comes from the backend and may contain a query string
+          // (cast: search prop types collapse to never for dynamic 'to' strings)
+          const [pathname, queryString] = url.split('?');
+          return (
+            <FlexRowContainer>
+              <Link
+                to={pathname}
+                search={parseSearch(queryString ?? '') as never}
+                data-test={`${sliceName}-list-chart-title`}
+              >
+                {certifiedBy && (
+                  <>
+                    <CertifiedBadge
+                      certifiedBy={certifiedBy}
+                      details={certificationDetails}
+                    />{' '}
+                  </>
+                )}
+                {sliceName}
+              </Link>
+              {description && <InfoTooltip tooltip={description} />}
+            </FlexRowContainer>
+          );
+        },
         Header: t('Name'),
         accessor: 'slice_name',
         id: 'slice_name',
@@ -857,7 +867,7 @@ function ChartList(props: ChartListProps) {
       name: t('Chart'),
       buttonStyle: 'primary',
       onClick: () => {
-        history.push('/chart/add');
+        navigate({ to: '/chart/add' });
       },
     });
   }

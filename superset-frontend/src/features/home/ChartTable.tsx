@@ -29,7 +29,8 @@ import {
   setItem,
 } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
-import { useHistory } from 'react-router-dom';
+import { useRouter } from '@tanstack/react-router';
+import { pushAppHref } from 'src/router/navigation';
 import { Filter, TableTab } from 'src/views/CRUD/types';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { User } from 'src/types/bootstrapTypes';
@@ -71,7 +72,7 @@ function ChartTable({
   otherTabFilters,
   otherTabTitle,
 }: ChartTableProps) {
-  const history = useHistory();
+  const router = useRouter();
   const initialTab = getItem(
     LocalStorageKeys.HomepageChartFilter,
     TableTab.Other,
@@ -215,7 +216,7 @@ function ChartTable({
                       'Yes',
                     )},value:!t))`
                   : '/chart/list/';
-              history.push(target);
+              pushAppHref(router, target);
             },
           },
         ]}

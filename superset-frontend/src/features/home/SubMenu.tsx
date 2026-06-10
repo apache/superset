@@ -18,7 +18,8 @@
  */
 import { ReactNode, useState, useEffect, FunctionComponent } from 'react';
 
-import { Link, useHistory } from 'react-router-dom';
+import { Link, useRouter } from '@tanstack/react-router';
+import { parseSearch } from 'src/router/searchParams';
 import { t } from '@apache-superset/core/translation';
 import {
   styled,
@@ -172,14 +173,9 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
   const [navRightStyle, setNavRightStyle] = useState('nav-right');
   const theme = useTheme();
 
-  let hasHistory = true;
-  // If no parent <Router> component exists, useHistory throws an error
-  try {
-    useHistory();
-  } catch (err) {
-    // If error is thrown, we know not to use <Link> in render
-    hasHistory = false;
-  }
+  // If no parent <RouterProvider> exists, useRouter returns undefined and
+  // we know not to use <Link> in render
+  const hasHistory = !!useRouter({ warn: false });
 
   useEffect(() => {
     let isMounted = true;
@@ -223,11 +219,14 @@ const SubMenuComponent: FunctionComponent<SubMenuProps> = props => {
           role="tablist"
           items={props.tabs?.map(tab => {
             if ((props.usesRouter || hasHistory) && !!tab.usesRouter) {
+              // Tab URLs may carry a query string.
+              const [pathname, queryString] = (tab.url || '').split('?');
               return {
                 key: tab.label,
                 label: (
                   <Link
-                    to={tab.url || ''}
+                    to={pathname}
+                    search={queryString ? parseSearch(queryString) : undefined}
                     role="tab"
                     id={tab.id || tab.name}
                     data-test={tab['data-test']}

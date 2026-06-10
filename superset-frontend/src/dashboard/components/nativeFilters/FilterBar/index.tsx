@@ -43,7 +43,7 @@ import {
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { Constants } from '@superset-ui/core/components';
-import { useHistory } from 'react-router-dom';
+import { useRouter, type RouterHistory } from '@tanstack/react-router';
 import { updateDataMask, removeDataMask } from 'src/dataMask/actions';
 import {
   saveChartCustomization,
@@ -55,7 +55,6 @@ import { useImmer } from 'use-immer';
 import { isEmpty, isEqual, debounce } from 'lodash';
 import { getInitialDataMask } from 'src/dataMask/reducer';
 import { URL_PARAMS } from 'src/constants';
-import { applicationRoot } from 'src/utils/getBootstrapData';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { useTabId } from 'src/hooks/useTabId';
 import { logEvent } from 'src/logger/actions';
@@ -96,7 +95,7 @@ const EMPTY_DATA_MASK_RECORD: Record<string, DataMask> = {};
 
 const publishDataMask = debounce(
   async (
-    history,
+    history: RouterHistory,
     dashboardId,
     updateKey,
     dataMaskSelected: DataMaskStateWithId,
@@ -145,15 +144,10 @@ const publishDataMask = debounce(
     // replace params only when current page is /superset/dashboard
     // this prevents a race condition between updating filters and navigating to Explore
     if (window.location.pathname.includes('/superset/dashboard')) {
-      // The history API is part of React router and understands that a basename may exist.
-      // Internally it treats all paths as if they are relative to the root and appends
-      // it when necessary. We strip any prefix so that history.replace adds it back and doesn't
-      // double it up.
-      const appRoot = applicationRoot();
-      let replacementPathname = window.location.pathname;
-      if (appRoot !== '/' && replacementPathname.startsWith(appRoot)) {
-        replacementPathname = replacementPathname.substring(appRoot.length);
-      }
+      // The router's history is the raw browser history (no basepath
+      // handling), so the full window pathname — application root
+      // included — is replaced verbatim.
+      const replacementPathname = window.location.pathname;
       // Manually reconstruct the search string to preserve Rison filter encoding
       let searchString = newParams.toString();
       if (rawRisonFilterValue) {
@@ -161,10 +155,9 @@ const publishDataMask = debounce(
         searchString = `${searchString}${separator}f=${rawRisonFilterValue}`;
       }
 
-      history.replace({
-        pathname: replacementPathname,
-        search: searchString,
-      });
+      history.replace(
+        `${replacementPathname}${searchString ? `?${searchString}` : ''}`,
+      );
     }
   },
   Constants.SLOW_DEBOUNCE,
@@ -175,7 +168,7 @@ const FilterBar: FC<FiltersBarProps> = ({
   verticalConfig,
   hidden = false,
 }) => {
-  const history = useHistory();
+  const router = useRouter();
   const dataMaskApplied: DataMaskStateWithId = useAllAppliedDataMask();
 
   const [dataMaskSelected, setDataMaskSelected] =
@@ -406,10 +399,16 @@ const FilterBar: FC<FiltersBarProps> = ({
   useEffect(() => {
     // embedded users can't persist filter combinations
     if (user?.userId) {
-      publishDataMask(history, dashboardId, updateKey, dataMaskApplied, tabId);
+      publishDataMask(
+        router.history,
+        dashboardId,
+        updateKey,
+        dataMaskApplied,
+        tabId,
+      );
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dashboardId, dataMaskAppliedText, history, updateKey, tabId]);
+  }, [dashboardId, dataMaskAppliedText, router, updateKey, tabId]);
 
   const pendingChartCustomizations = useSelector<
     RootState,

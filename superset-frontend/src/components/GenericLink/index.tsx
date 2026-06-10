@@ -17,32 +17,49 @@
  * under the License.
  */
 import { sanitizeUrl } from '@braintree/sanitize-url';
-import { PropsWithoutRef, RefAttributes } from 'react';
-import { Link, LinkProps } from 'react-router-dom';
+import { AnchorHTMLAttributes } from 'react';
+import { Link } from '@tanstack/react-router';
+import { parseSearch } from 'src/router/searchParams';
 import { isUrlExternal, parseUrl } from 'src/utils/urlUtils';
 
-export const GenericLink = <S,>({
-  to,
-  component,
+export type GenericLinkProps = Omit<
+  AnchorHTMLAttributes<HTMLAnchorElement>,
+  'href'
+> & {
+  to: string;
+  replace?: boolean;
+};
+
+export const GenericLink = ({
+  to: rawTo,
   replace,
-  innerRef,
   children,
   ...rest
-}: PropsWithoutRef<LinkProps<S>> & RefAttributes<HTMLAnchorElement>) => {
-  if (typeof to === 'string' && isUrlExternal(to)) {
+}: GenericLinkProps) => {
+  // Callers may pass undefined at runtime (e.g. backend rows without a URL).
+  const to = typeof rawTo === 'string' ? rawTo : '';
+  if (to && isUrlExternal(to)) {
     return (
       <a data-test="external-link" href={sanitizeUrl(parseUrl(to))} {...rest}>
         {children}
       </a>
     );
   }
+  const hashIndex = to.indexOf('#');
+  const hash = hashIndex === -1 ? undefined : to.slice(hashIndex + 1);
+  const withoutHash = hashIndex === -1 ? to : to.slice(0, hashIndex);
+  const searchIndex = withoutHash.indexOf('?');
+  const pathname =
+    searchIndex === -1 ? withoutHash : withoutHash.slice(0, searchIndex);
+  const searchStr =
+    searchIndex === -1 ? '' : withoutHash.slice(searchIndex + 1);
   return (
     <Link
       data-test="internal-link"
-      to={to}
-      component={component}
+      to={pathname}
+      search={searchStr ? parseSearch(searchStr) : undefined}
+      hash={hash}
       replace={replace}
-      innerRef={innerRef}
       {...rest}
     >
       {children}

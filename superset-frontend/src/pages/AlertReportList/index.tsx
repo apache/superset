@@ -18,7 +18,7 @@
  */
 
 import { useState, useMemo, useEffect, useCallback } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useNavigate } from '@tanstack/react-router';
 import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
@@ -376,11 +376,13 @@ function AlertList({
       },
       {
         Cell: ({ row: { original } }: any) => {
-          const history = useHistory();
+          const navigate = useNavigate();
           const handleEdit = () => handleAlertEdit(original);
           const handleDelete = () => setCurrentAlertDeleting(original);
           const handleGotoExecutionLog = () =>
-            history.push(`/${original.type.toLowerCase()}/${original.id}/log`);
+            navigate({
+              to: `/${original.type.toLowerCase()}/${original.id}/log`,
+            });
 
           const allowEdit =
             original.owners.map((o: Owner) => o.id).includes(user.userId) ||

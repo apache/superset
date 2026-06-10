@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { MemoryRouter } from 'react-router-dom';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
 import {
   JsonResponse,
   SupersetClient,
@@ -68,7 +68,7 @@ afterAll(() => {
 
 beforeEach(() => {
   render(
-    <MemoryRouter>
+    <StandaloneRouter>
       <DashboardCard
         dashboard={mockDashboard}
         hasPerm={mockHasPerm}
@@ -80,7 +80,7 @@ beforeEach(() => {
         handleBulkDashboardExport={mockHandleBulkDashboardExport}
         onDelete={mockOnDelete}
       />
-    </MemoryRouter>,
+    </StandaloneRouter>,
   );
 });
 
@@ -129,6 +129,7 @@ test('should fetch thumbnail when dashboard has no thumbnail URL and feature fla
       handleBulkDashboardExport={() => {}}
       onDelete={() => {}}
     />,
+    { useRouter: true },
   );
   await waitFor(() => {
     expect(mockGet).toHaveBeenCalledWith({

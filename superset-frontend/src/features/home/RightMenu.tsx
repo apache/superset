@@ -16,10 +16,18 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, FC, PureComponent, useMemo } from 'react';
+import {
+  useState,
+  useEffect,
+  FC,
+  PureComponent,
+  ReactNode,
+  useMemo,
+} from 'react';
 import rison from 'rison';
 import { useSelector } from 'react-redux';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
+import { parseSearch } from 'src/router/searchParams';
 import { useQueryParams, BooleanParam } from 'use-query-params';
 import { isEmpty } from 'lodash';
 import { t } from '@apache-superset/core/translation';
@@ -101,6 +109,26 @@ const StyledMenuItem = styled.div<{ disabled?: boolean }>`
     `}
   `}
 `;
+
+// Menu URLs may carry a query string (e.g. /sqllab?new=true); the TanStack
+// <Link> needs the search params passed separately from the pathname.
+const RouterLink = ({
+  url,
+  children,
+}: {
+  url: string;
+  children?: ReactNode;
+}) => {
+  const [pathname, queryString] = url.split('?');
+  return (
+    <Link
+      to={pathname}
+      search={queryString ? parseSearch(queryString) : undefined}
+    >
+      {children}
+    </Link>
+  );
+};
 
 const RightMenu = ({
   align,
@@ -409,7 +437,7 @@ const RightMenu = ({
               items.push({
                 key: menu.label,
                 label: isFrontendRoute(menu.url) ? (
-                  <Link to={menu.url || ''}>{menu.label}</Link>
+                  <RouterLink url={menu.url || ''}>{menu.label}</RouterLink>
                 ) : (
                   <Typography.Link href={ensureAppRoot(menu.url || '')}>
                     {menu.label}
@@ -425,7 +453,7 @@ const RightMenu = ({
           items.push({
             key: menu.label,
             label: isFrontendRoute(menu.url) ? (
-              <Link to={menu.url || ''}>{menu.label}</Link>
+              <RouterLink url={menu.url || ''}>{menu.label}</RouterLink>
             ) : (
               <Typography.Link href={ensureAppRoot(menu.url || '')}>
                 {menu.label}
@@ -460,7 +488,7 @@ const RightMenu = ({
             sectionItems.push({
               key: child.label,
               label: isFrontendRoute(child.url) ? (
-                <Link to={child.url || ''}>{menuItemDisplay}</Link>
+                <RouterLink url={child.url || ''}>{menuItemDisplay}</RouterLink>
               ) : (
                 <Typography.Link
                   href={child.url || ''}

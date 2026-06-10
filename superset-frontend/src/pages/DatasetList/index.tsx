@@ -33,7 +33,8 @@ import {
   Key,
 } from 'react';
 import type { CellProps } from 'react-table';
-import { Link, useHistory } from 'react-router-dom';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { parseSearch } from 'src/router/searchParams';
 import rison from 'rison';
 import {
   createFetchRelated,
@@ -200,7 +201,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   addSuccessToast,
   user,
 }) => {
-  const history = useHistory();
+  const navigate = useNavigate();
   const theme = useTheme();
   const {
     state: { bulkSelectEnabled },
@@ -674,8 +675,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         }: CellProps<Dataset>) => {
           let titleLink: JSX.Element;
           if (PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET) {
+            // explore_url comes from the backend and may contain a query string
+            const [explorePath, exploreQuery] = exploreURL.split('?');
             titleLink = (
-              <Link data-test="internal-link" to={exploreURL}>
+              <Link
+                data-test="internal-link"
+                to={explorePath}
+                search={parseSearch(exploreQuery ?? '')}
+              >
                 {datasetTitle}
               </Link>
             );
@@ -1181,7 +1188,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 {
                   key: 'dataset',
                   label: t('Dataset'),
-                  onClick: () => history.push('/dataset/add/'),
+                  onClick: () => navigate({ to: '/dataset/add/' }),
                 },
                 {
                   key: 'semantic-view',
@@ -1214,7 +1221,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         icon: <Icons.PlusOutlined iconSize="m" />,
         name: datasetLabel(),
         onClick: () => {
-          history.push('/dataset/add/');
+          navigate({ to: '/dataset/add/' });
         },
         buttonStyle: 'primary',
       });

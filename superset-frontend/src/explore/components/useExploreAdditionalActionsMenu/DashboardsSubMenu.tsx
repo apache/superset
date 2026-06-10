@@ -21,7 +21,7 @@ import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 
 export interface DashboardsMenuProps {
   chartId?: number;
@@ -45,7 +45,10 @@ export const useDashboardsMenuItems = ({
     );
   }, [dashboards, searchTerm]);
 
-  const urlQueryString = chartId ? `?focused_chart=${chartId}` : '';
+  const urlSearch = useMemo(
+    () => (chartId ? { focused_chart: String(chartId) } : undefined),
+    [chartId],
+  );
   const noResults = dashboards.length === 0;
   const noResultsFound = searchTerm && filteredDashboards.length === 0;
 
@@ -72,7 +75,8 @@ export const useDashboardsMenuItems = ({
             <Link
               target="_blank"
               rel="noreferer noopener"
-              to={`/superset/dashboard/${dashboard.id}${urlQueryString}`}
+              to={`/superset/dashboard/${dashboard.id}`}
+              search={urlSearch}
               css={css`
                 display: flex;
                 flex-direction: row;
@@ -102,7 +106,7 @@ export const useDashboardsMenuItems = ({
     return items;
   }, [
     filteredDashboards,
-    urlQueryString,
+    urlSearch,
     noResults,
     noResultsFound,
     theme.sizeUnit,

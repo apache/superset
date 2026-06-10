@@ -17,11 +17,11 @@
  * under the License.
  */
 import { FC } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from '@tanstack/react-router';
 import { DashboardPage } from 'src/dashboard/containers/DashboardPage';
 
 const DashboardRoute: FC = () => {
-  const { idOrSlug } = useParams<{ idOrSlug: string }>();
+  const { idOrSlug } = useParams({ strict: false }) as { idOrSlug: string };
   return <DashboardPage idOrSlug={idOrSlug} />;
 };
 

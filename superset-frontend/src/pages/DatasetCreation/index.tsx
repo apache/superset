@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useReducer, Reducer, useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams } from '@tanstack/react-router';
 import useDatasetsList from 'src/features/datasets/hooks/useDatasetLists';
 import Header from 'src/features/datasets/AddDataset/Header';
 import EditPage from 'src/features/datasets/AddDataset/EditDataset';
@@ -95,7 +95,9 @@ export default function AddDataset() {
     dataset?.schema,
   );
 
-  const { datasetId: id } = useParams<{ datasetId: string }>();
+  const { datasetId: id } = useParams({ strict: false }) as {
+    datasetId: string;
+  };
   useEffect(() => {
     if (!Number.isNaN(parseInt(id, 10))) {
       setEditPageIsVisible(true);

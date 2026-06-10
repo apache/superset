@@ -16,10 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { ReactNode } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { css } from '@apache-superset/core/theme';
-import { Link, useHistory } from 'react-router-dom';
+import { Link, useRouter } from '@tanstack/react-router';
+import { pushAppHref } from 'src/router/navigation';
+import { parseSearch } from 'src/router/searchParams';
 import {
   ConfirmStatusChange,
   Button,
@@ -55,6 +58,20 @@ interface ChartCardProps {
   getData?: (tab: TableTab) => void;
 }
 
+// Backend-provided chart URLs may carry a query string; split it out so
+// the router preserves it via the raw search codec.
+function CardLink({ to, children }: { to: string; children?: ReactNode }) {
+  const [pathname, queryString] = to.split('?');
+  return (
+    <Link
+      to={pathname}
+      {...(queryString ? { search: parseSearch(queryString) } : {})}
+    >
+      {children}
+    </Link>
+  );
+}
+
 export default function ChartCard({
   chart,
   hasPerm,
@@ -72,7 +89,7 @@ export default function ChartCard({
   handleBulkChartExport,
   getData,
 }: ChartCardProps) {
-  const history = useHistory();
+  const router = useRouter();
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
@@ -170,7 +187,7 @@ export default function ChartCard({
     <CardStyles
       onClick={() => {
         if (!bulkSelectEnabled && chart.url) {
-          history.push(chart.url);
+          pushAppHref(router, chart.url);
         }
       }}
     >
@@ -192,7 +209,7 @@ export default function ChartCard({
         description={t('Modified %s', chart.changed_on_delta_humanized)}
         coverLeft={<FacePile users={chart.owners || []} />}
         coverRight={<Label>{chart.datasource_name_text}</Label>}
-        linkComponent={Link}
+        linkComponent={CardLink}
         actions={
           <ListViewCard.Actions
             onClick={e => {

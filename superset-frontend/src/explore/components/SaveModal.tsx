@@ -17,12 +17,12 @@
  * under the License.
  */
 /* eslint camelcase: 0 */
-import { ChangeEvent, FormEvent, Component } from 'react';
+import { ChangeEvent, ComponentProps, FormEvent, Component } from 'react';
 import { Dispatch } from 'redux';
 import { nanoid } from 'nanoid';
 import rison from 'rison';
 import { connect } from 'react-redux';
-import { withRouter, RouteComponentProps } from 'react-router-dom';
+import { useRouter, type RouterHistory } from '@tanstack/react-router';
 import {
   InfoTooltip,
   Button,
@@ -64,7 +64,8 @@ import { CHART_WIDTH, CHART_HEIGHT } from 'src/dashboard/constants';
 // Session storage key for recent dashboard
 const SK_DASHBOARD_ID = 'save_chart_recent_dashboard';
 
-interface SaveModalProps extends RouteComponentProps {
+interface SaveModalProps {
+  history: RouterHistory;
   addDangerToast: (msg: string) => void;
   actions: Record<string, any>;
   form_data?: Record<string, any>;
@@ -836,7 +837,18 @@ function mapStateToProps({
   };
 }
 
-export default withRouter(connect(mapStateToProps)(withTheme(SaveModal)));
+const ConnectedSaveModal = connect(mapStateToProps)(withTheme(SaveModal));
+
+// Function wrapper replacing react-router's withRouter HOC: injects the
+// router history into the class component as an explicit prop.
+function SaveModalWithRouter(
+  props: Omit<ComponentProps<typeof ConnectedSaveModal>, 'history'>,
+) {
+  const router = useRouter();
+  return <ConnectedSaveModal {...props} history={router.history} />;
+}
+
+export default SaveModalWithRouter;
 
 // User for testing purposes need to revisit once we convert this to functional component
 export { SaveModal as PureSaveModal };

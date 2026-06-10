@@ -32,14 +32,16 @@ import { UPDATE_COMPONENTS } from '../../actions/dashboardLayout';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 
 const mockHistoryReplace = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useHistory: () => ({
-    replace: mockHistoryReplace,
+jest.mock('@tanstack/react-router', () => ({
+  ...jest.requireActual('@tanstack/react-router'),
+  useRouter: () => ({
+    history: {
+      replace: mockHistoryReplace,
+    },
   }),
   useLocation: jest.fn(() => ({
     pathname: '/dashboard',
-    search: '?standalone=1',
+    searchStr: 'standalone=1',
     hash: '',
     state: undefined,
   })),
@@ -237,10 +239,10 @@ beforeAll(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
-  const { useLocation } = jest.requireMock('react-router-dom');
+  const { useLocation } = jest.requireMock('@tanstack/react-router');
   useLocation.mockReturnValue({
     pathname: '/dashboard',
-    search: '?standalone=1',
+    searchStr: 'standalone=1',
     hash: '',
     state: undefined,
   });
@@ -1051,11 +1053,11 @@ test('should sync theme ref when navigating between dashboards', async () => {
 });
 
 test('should not duplicate subdirectory prefix when toggling fullscreen', async () => {
-  const { useLocation } = jest.requireMock('react-router-dom');
+  const { useLocation } = jest.requireMock('@tanstack/react-router');
   // Simulate React Router with basename=/pcs: useLocation returns path relative to basename
   useLocation.mockReturnValue({
     pathname: '/dashboard',
-    search: '?standalone=1',
+    searchStr: 'standalone=1',
     hash: '',
     state: undefined,
   });
@@ -1078,10 +1080,10 @@ test('should not duplicate subdirectory prefix when toggling fullscreen', async 
 });
 
 test('should not duplicate subdirectory prefix when entering fullscreen', async () => {
-  const { useLocation } = jest.requireMock('react-router-dom');
+  const { useLocation } = jest.requireMock('@tanstack/react-router');
   useLocation.mockReturnValue({
     pathname: '/dashboard',
-    search: '',
+    searchStr: '',
     hash: '',
     state: undefined,
   });
@@ -1100,11 +1102,11 @@ test('should not duplicate subdirectory prefix when entering fullscreen', async 
 });
 
 test('share URL should use browser-absolute pathname to preserve subdirectory prefix', () => {
-  const { useLocation } = jest.requireMock('react-router-dom');
+  const { useLocation } = jest.requireMock('@tanstack/react-router');
   // Router returns path without the subdirectory prefix
   useLocation.mockReturnValue({
     pathname: '/dashboard',
-    search: '',
+    searchStr: '',
     hash: '',
     state: undefined,
   });

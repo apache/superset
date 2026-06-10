@@ -24,7 +24,7 @@ import { styled } from '@apache-superset/core/theme';
 import { withTheme, Theme } from '@emotion/react';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { FilterPlugins, URL_PARAMS } from 'src/constants';
-import { Link, withRouter, RouteComponentProps } from 'react-router-dom';
+import { Link, useRouter } from '@tanstack/react-router';
 import {
   AsyncSelect,
   Button,
@@ -49,10 +49,11 @@ import {
   datasetLabelLower,
 } from 'src/features/semanticLayers/label';
 
-export interface ChartCreationProps extends RouteComponentProps {
+export interface ChartCreationProps {
   user: UserWithPermissionsAndRoles;
   addSuccessToast: (arg: string) => void;
   theme: Theme;
+  history: { push: (path: string) => void };
 }
 
 export type ChartCreationState = {
@@ -397,4 +398,11 @@ export class ChartCreation extends PureComponent<
   }
 }
 
-export default withRouter(withToasts(withTheme(ChartCreation)));
+const ChartCreationWithToastsAndTheme = withToasts(withTheme(ChartCreation));
+
+export default function ChartCreationPage(props: {
+  user: UserWithPermissionsAndRoles;
+}) {
+  const { history } = useRouter();
+  return <ChartCreationWithToastsAndTheme {...props} history={history} />;
+}

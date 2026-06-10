@@ -26,9 +26,9 @@ import {
   createStore,
 } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
-import { MemoryRouter } from 'react-router-dom';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
 import { QueryParamProvider } from 'use-query-params';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import { TanstackRouterAdapter } from 'src/router/queryParamAdapter';
 import AlertListComponent from 'src/pages/AlertReportList';
 
 jest.setTimeout(30000);
@@ -153,11 +153,11 @@ const renderAlertList = (props: Record<string, any> = {}) => {
   const store = createStore();
   return render(
     <Provider store={store}>
-      <MemoryRouter>
-        <QueryParamProvider adapter={ReactRouter5Adapter}>
+      <StandaloneRouter>
+        <QueryParamProvider adapter={TanstackRouterAdapter}>
           <AlertList user={mockUser} {...props} />
         </QueryParamProvider>
-      </MemoryRouter>
+      </StandaloneRouter>
     </Provider>,
   );
 };
@@ -451,11 +451,11 @@ test('read-only users do not see delete and bulk select controls', async () => {
 
   render(
     <Provider store={store}>
-      <MemoryRouter>
-        <QueryParamProvider adapter={ReactRouter5Adapter}>
+      <StandaloneRouter>
+        <QueryParamProvider adapter={TanstackRouterAdapter}>
           <AlertList user={readOnlyUser} />
         </QueryParamProvider>
-      </MemoryRouter>
+      </StandaloneRouter>
     </Provider>,
   );
 

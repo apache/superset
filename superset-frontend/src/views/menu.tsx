@@ -22,10 +22,10 @@ import 'src/public-path';
 // eg, backend rendered views
 import { Provider } from 'react-redux';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
 import { CacheProvider } from '@emotion/react';
 import { QueryParamProvider } from 'use-query-params';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
+import { TanstackRouterAdapter } from 'src/router/queryParamAdapter';
 import createCache from '@emotion/cache';
 import { ThemeProvider } from '@apache-superset/core/theme';
 import { theme } from '@apache-superset/core/theme';
@@ -48,9 +48,9 @@ const app = (
   <CacheProvider value={emotionCache}>
     <ThemeProvider theme={theme}>
       <Provider store={store}>
-        <BrowserRouter>
+        <StandaloneRouter>
           <QueryParamProvider
-            adapter={ReactRouter5Adapter}
+            adapter={TanstackRouterAdapter}
             options={{
               searchStringToObject: querystring.parse,
               objectToSearchString: (object: Record<string, any>) =>
@@ -59,7 +59,7 @@ const app = (
           >
             <Menu data={menu} />
           </QueryParamProvider>
-        </BrowserRouter>
+        </StandaloneRouter>
       </Provider>
     </ThemeProvider>
   </CacheProvider>

@@ -19,7 +19,7 @@
 import { ReactNode } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 import { Tooltip } from '@superset-ui/core/components';
 
 export type CrossLinksTooltipProps = {

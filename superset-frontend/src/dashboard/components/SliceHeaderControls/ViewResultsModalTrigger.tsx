@@ -17,7 +17,8 @@
  * under the License.
  */
 import { ReactChild, RefObject, useCallback } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useRouter } from '@tanstack/react-router';
+import { pushAppHref } from 'src/router/navigation';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Button, ModalTrigger } from '@superset-ui/core/components';
@@ -37,8 +38,9 @@ export const ViewResultsModalTrigger = ({
   modalBody: ReactChild;
   modalRef?: RefObject<any>;
 }) => {
-  const history = useHistory();
-  const exploreChart = () => history.push(exploreUrl);
+  const router = useRouter();
+  // exploreUrl carries a query string; raw history push preserves it.
+  const exploreChart = () => pushAppHref(router, exploreUrl);
   const theme = useTheme();
   const handleCloseModal = useCallback(() => {
     modalRef?.current?.close();

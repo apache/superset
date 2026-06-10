@@ -19,12 +19,10 @@
 import { render, screen } from 'spec/helpers/testing-library';
 import AddDataset from 'src/pages/DatasetCreation';
 
-const mockHistoryPush = jest.fn();
-jest.mock('react-router-dom', () => ({
-  ...jest.requireActual('react-router-dom'),
-  useHistory: () => ({
-    push: mockHistoryPush,
-  }),
+const mockNavigate = jest.fn();
+jest.mock('@tanstack/react-router', () => ({
+  ...jest.requireActual('@tanstack/react-router'),
+  useNavigate: () => mockNavigate,
   useParams: () => ({ datasetId: undefined }),
 }));
 

@@ -318,15 +318,15 @@ export function risonFiltersToString(filters: RisonFilter[]): string {
 }
 
 interface ReplaceHistory {
-  replace(location: { pathname: string; search: string }): void;
+  replace(href: string): void;
 }
 
 /**
  * Update the URL to remove successfully matched filters, keeping only unmatched ones.
- * When a react-router history is supplied, the update goes through it so that
- * components reading from `history.location` (e.g. `publishDataMask` in the
- * filter bar) see the new search string. Otherwise falls back to a raw
- * `window.history.replaceState`.
+ * When a router history is supplied (e.g. `useRouter().history`), the update
+ * goes through it so that components reading the router location (e.g.
+ * `publishDataMask` in the filter bar) see the new search string. Otherwise
+ * falls back to a raw `window.history.replaceState`.
  */
 export function updateUrlWithUnmatchedFilters(
   unmatchedFilters: RisonFilter[],
@@ -358,10 +358,7 @@ export function updateUrlWithUnmatchedFilters(
       currentUrl.toString(),
     );
     if (history) {
-      history.replace({
-        pathname: currentUrl.pathname,
-        search: currentUrl.search,
-      });
+      history.replace(`${currentUrl.pathname}${currentUrl.search}`);
     }
   } catch (error) {
     console.warn('Failed to update URL with unmatched filters:', error);

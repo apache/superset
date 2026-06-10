@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
@@ -206,7 +206,11 @@ export const SavedQueries = ({
     if (canEdit) {
       menuItems.push({
         key: 'edit',
-        label: <Link to={`/sqllab?savedQueryId=${query.id}`}>{t('Edit')}</Link>,
+        label: (
+          <Link to="/sqllab" search={{ savedQueryId: String(query.id) }}>
+            {t('Edit')}
+          </Link>
+        ),
       });
     }
     menuItems.push({
@@ -278,7 +282,8 @@ export const SavedQueries = ({
             icon: <Icons.PlusOutlined iconSize="m" />,
             name: (
               <Link
-                to="/sqllab?new=true"
+                to="/sqllab"
+                search={{ new: 'true' }}
                 css={css`
                   &:hover {
                     color: currentColor;

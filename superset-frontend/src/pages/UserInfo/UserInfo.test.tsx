@@ -26,9 +26,6 @@ import {
 } from 'spec/helpers/testing-library';
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
-import { MemoryRouter } from 'react-router-dom';
-import { QueryParamProvider } from 'use-query-params';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import UserInfo from 'src/pages/UserInfo';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
@@ -64,14 +61,11 @@ const mockUser: UserWithPermissionsAndRoles = {
 describe('UserInfo', () => {
   const renderPage = async (user: UserWithPermissionsAndRoles = mockUser) =>
     act(async () => {
-      render(
-        <MemoryRouter>
-          <QueryParamProvider adapter={ReactRouter5Adapter}>
-            <UserInfo user={user} />
-          </QueryParamProvider>
-        </MemoryRouter>,
-        { useRedux: true, store },
-      );
+      render(<UserInfo user={user} />, {
+        useRedux: true,
+        store,
+        useQueryParams: true,
+      });
     });
 
   beforeEach(() => {

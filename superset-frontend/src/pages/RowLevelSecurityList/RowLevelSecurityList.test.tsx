@@ -18,9 +18,9 @@
  */
 import fetchMock from 'fetch-mock';
 import { act, render, screen, within } from 'spec/helpers/testing-library';
-import { MemoryRouter } from 'react-router-dom';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
 import { QueryParamProvider } from 'use-query-params';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import { TanstackRouterAdapter } from 'src/router/queryParamAdapter';
 import userEvent from '@testing-library/user-event';
 import RowLevelSecurityList from '.';
 
@@ -109,11 +109,11 @@ describe('RuleList RTL', () => {
     const mounted = act(async () => {
       const mockedProps = {};
       render(
-        <MemoryRouter>
-          <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <StandaloneRouter>
+          <QueryParamProvider adapter={TanstackRouterAdapter}>
             <RowLevelSecurityList {...mockedProps} user={mockUser} />
           </QueryParamProvider>
-        </MemoryRouter>,
+        </StandaloneRouter>,
         { useRedux: true },
       );
     });

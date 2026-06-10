@@ -33,14 +33,14 @@ import {
 } from '@apache-superset/core/theme';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
-import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { DndContext } from '@dnd-kit/core';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { QueryParamProvider } from 'use-query-params';
-import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import { StandaloneRouter } from 'src/router/StandaloneRouter';
+import { TanstackRouterAdapter } from 'src/router/queryParamAdapter';
 import { configureStore, Store } from '@reduxjs/toolkit';
 import { api } from 'src/hooks/apiResources/queryApi';
 import userEvent from '@testing-library/user-event';
@@ -55,6 +55,8 @@ type Options = Omit<RenderOptions, 'queries'> & {
   initialState?: {};
   reducers?: {};
   store?: Store;
+  /** Starting history entries for the test router (memory history). */
+  initialEntries?: string[];
 };
 
 const themeController = new ThemeController({ themeObject });
@@ -84,6 +86,7 @@ export function createWrapper(options?: Options) {
     initialState,
     reducers,
     store,
+    initialEntries,
   } = options || {};
 
   return ({ children }: { children?: ReactNode }) => {
@@ -116,14 +119,18 @@ export function createWrapper(options?: Options) {
 
     if (useQueryParams) {
       result = (
-        <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <QueryParamProvider adapter={TanstackRouterAdapter}>
           {result}
         </QueryParamProvider>
       );
     }
 
-    if (useRouter) {
-      result = <BrowserRouter>{result}</BrowserRouter>;
+    if (useRouter || useQueryParams || initialEntries) {
+      result = (
+        <StandaloneRouter initialEntries={initialEntries}>
+          {result}
+        </StandaloneRouter>
+      );
     }
 
     return result;

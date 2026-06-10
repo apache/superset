@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { Link } from 'react-router-dom';
+import { Link } from '@tanstack/react-router';
 import {
   render,
   waitFor,
@@ -261,11 +261,9 @@ describe('ChartPage', () => {
       const { getByTestId } = render(
         <>
           <Link
-            to={{
-              pathname: '/',
-              search: `?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
-              state: { saveAction: 'overwrite' },
-            }}
+            to="/"
+            search={{ [URL_PARAMS.dashboardPageId.name]: dashboardPageId }}
+            state={{ saveAction: 'overwrite' }}
           >
             Change route
           </Link>
@@ -319,7 +317,9 @@ describe('ChartPage', () => {
       });
       render(
         <>
-          <Link to="/?slice_id=99">Navigate away</Link>
+          <Link to="/" search={{ slice_id: '99' }}>
+            Navigate away
+          </Link>
           <ChartPage />
         </>,
         {
@@ -410,7 +410,9 @@ describe('ChartPage', () => {
 
     render(
       <>
-        <Link to="/?slice_id=99">Navigate</Link>
+        <Link to="/" search={{ slice_id: '99' }}>
+          Navigate
+        </Link>
         <ChartPage />
       </>,
       {
