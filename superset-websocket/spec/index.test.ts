@@ -632,6 +632,172 @@ describe('server', () => {
     });
   });
 
+  describe('connection limits', () => {
+    const getRequest = (token: string, url: string): http.IncomingMessage => {
+      const request = new http.IncomingMessage(new net.Socket());
+      request.method = 'GET';
+      request.headers = { cookie: `${config.jwtCookieName}=${token}` };
+      request.url = url;
+      return request;
+    };
+
+    afterEach(() => {
+      // restore opt-in limits to their disabled default
+      server.opts.maxTotalConnections = 0;
+      server.opts.maxConnectionsPerChannel = 0;
+    });
+
+    test('no limit when disabled (0)', () => {
+      server.opts.maxTotalConnections = 0;
+      server.opts.maxConnectionsPerChannel = 0;
+      const socketInstance = {
+        ws: new wsMock('localhost'),
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, socketInstance);
+      expect(server.connectionLimitReason(channelId)).toBeNull();
+    });
+
+    test('total connection limit reached', () => {
+      server.opts.maxTotalConnections = 1;
+      const ws = new wsMock('localhost');
+      setReadyState(ws, WebSocket.OPEN);
+      const socketInstance = {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, socketInstance);
+      expect(server.connectionLimitReason('some-other-channel')).toMatch(
+        /total connection limit/,
+      );
+    });
+
+    test('per-channel connection limit reached', () => {
+      server.opts.maxConnectionsPerChannel = 1;
+      const ws = new wsMock('localhost');
+      setReadyState(ws, WebSocket.OPEN);
+      const socketInstance = {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, socketInstance);
+      expect(server.connectionLimitReason(channelId)).toMatch(
+        /per-channel connection limit/,
+      );
+    });
+
+    test('stale closed socket does not count toward total limit', () => {
+      server.opts.maxTotalConnections = 1;
+      const ws = new wsMock('localhost');
+      const socketInstance = {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, socketInstance);
+      // simulate the socket having closed but not yet been GC'd
+      setReadyState(ws, WebSocket.CLOSED);
+      expect(server.connectionLimitReason('some-other-channel')).toBeNull();
+    });
+
+    test('stale closed socket does not count toward per-channel limit', () => {
+      server.opts.maxConnectionsPerChannel = 1;
+      const ws = new wsMock('localhost');
+      const socketInstance = {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, socketInstance);
+      // simulate the socket having closed but not yet been GC'd
+      setReadyState(ws, WebSocket.CLOSED);
+      expect(server.connectionLimitReason(channelId)).toBeNull();
+    });
+
+    test('isSocketActive reflects the socket readyState', () => {
+      const ws = new wsMock('localhost');
+      setReadyState(ws, WebSocket.OPEN);
+      const socketId = server.trackClient(channelId, {
+        ws,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      expect(server.isSocketActive(socketId)).toBe(true);
+      // CONNECTING is also considered active (see SOCKET_ACTIVE_STATES)
+      setReadyState(ws, WebSocket.CONNECTING);
+      expect(server.isSocketActive(socketId)).toBe(true);
+      setReadyState(ws, WebSocket.CLOSED);
+      expect(server.isSocketActive(socketId)).toBe(false);
+      // unknown socket ids are never active
+      expect(server.isSocketActive('does-not-exist')).toBe(false);
+    });
+
+    test('activeSocketCount counts only active sockets', () => {
+      const openWs = new wsMock('localhost');
+      setReadyState(openWs, WebSocket.OPEN);
+      server.trackClient(channelId, {
+        ws: openWs,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      const closedWs = new wsMock('localhost');
+      setReadyState(closedWs, WebSocket.CLOSED);
+      server.trackClient(channelId, {
+        ws: closedWs,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      expect(server.activeSocketCount()).toBe(1);
+    });
+
+    test('activeChannelSocketCount counts only active sockets on the channel', () => {
+      const openWs = new wsMock('localhost');
+      setReadyState(openWs, WebSocket.OPEN);
+      server.trackClient(channelId, {
+        ws: openWs,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      const closedWs = new wsMock('localhost');
+      setReadyState(closedWs, WebSocket.CLOSED);
+      server.trackClient(channelId, {
+        ws: closedWs,
+        channel: channelId,
+        pongTs: Date.now(),
+      });
+      expect(server.activeChannelSocketCount(channelId)).toBe(1);
+      // unknown channels report zero active sockets
+      expect(server.activeChannelSocketCount('no-such-channel')).toBe(0);
+    });
+
+    test('wsConnection refuses over-limit connection without tracking', () => {
+      server.opts.maxConnectionsPerChannel = 1;
+      const existingWs = new wsMock('localhost');
+      setReadyState(existingWs, WebSocket.OPEN);
+      const existing = {
+        ws: existingWs,
+        channel: channelId,
+        pongTs: Date.now(),
+      };
+      server.trackClient(channelId, existing);
+
+      const trackClientSpy = jest.spyOn(server, 'trackClient');
+      const ws = new wsMock('localhost');
+      const validToken = jwt.sign({ channel: channelId }, config.jwtSecret);
+      server.wsConnection(ws, getRequest(validToken, 'http://localhost'));
+
+      expect(ws.close).toHaveBeenCalledWith(
+        1013,
+        expect.stringMatching(/limit/),
+      );
+      expect(trackClientSpy).not.toHaveBeenCalled();
+      trackClientSpy.mockRestore();
+    });
+  });
+
   describe('httpUpgrade', () => {
     let socket: net.Socket;
     let socketDestroySpy: jest.SpiedFunction<typeof socket.destroy>;

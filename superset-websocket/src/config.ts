@@ -53,6 +53,8 @@ type ConfigType = {
   gcChannelsIntervalMs: number;
   maxSocketBufferBytes: number;
   eventYieldBatchSize: number;
+  maxConnectionsPerChannel: number;
+  maxTotalConnections: number;
 };
 
 function defaultConfig(): ConfigType {
@@ -78,6 +80,9 @@ function defaultConfig(): ConfigType {
     // Number of stream events to process before yielding to the event loop.
     // 0 disables yielding (process the whole batch synchronously).
     eventYieldBatchSize: 100,
+    // 0 disables the limit (unlimited); set a positive value to opt in.
+    maxConnectionsPerChannel: 0,
+    maxTotalConnections: 0,
     statsd: {
       host: '127.0.0.1',
       port: 8125,
@@ -160,6 +165,9 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
         val,
         config.eventYieldBatchSize,
       )),
+    MAX_CONNECTIONS_PER_CHANNEL: val =>
+      (config.maxConnectionsPerChannel = toNumber(val)),
+    MAX_TOTAL_CONNECTIONS: val => (config.maxTotalConnections = toNumber(val)),
     REDIS_HOST: val => (config.redis.host = val),
     REDIS_PORT: val => (config.redis.port = toNumber(val)),
     REDIS_PASSWORD: val => (config.redis.password = val),
