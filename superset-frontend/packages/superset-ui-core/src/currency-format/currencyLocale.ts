@@ -17,18 +17,24 @@
  * under the License.
  */
 
-export { default as CurrencyFormatter } from './CurrencyFormatter';
-export {
-  getCurrencySymbol,
-  normalizeCurrency,
-  hasMixedCurrencies,
-} from './CurrencyFormatter';
-export { AUTO_CURRENCY_SYMBOL, ISO_4217_REGEX } from './CurrencyFormats';
-export { getCurrencyLocale, setCurrencyLocale } from './currencyLocale';
-export {
-  resolveSymbolPosition,
-  formatWithSymbolPosition,
-  type SymbolPosition,
-} from './symbolPosition';
-export * from './types';
-export * from './utils';
+const DEFAULT_CURRENCY_LOCALE = 'en-US';
+
+let currencyLocale: string = DEFAULT_CURRENCY_LOCALE;
+
+/**
+ * Set the locale used to resolve the default currency symbol position.
+ *
+ * Called once at application bootstrap with the deployment locale so that
+ * currency formatting follows the conventions of that locale (e.g. EUR is a
+ * suffix in `fr-FR`/`de-DE` but a prefix in `en-US`).
+ */
+export function setCurrencyLocale(locale?: string): void {
+  if (locale) {
+    currencyLocale = locale;
+  }
+}
+
+/** Get the locale used to resolve the default currency symbol position. */
+export function getCurrencyLocale(): string {
+  return currencyLocale;
+}

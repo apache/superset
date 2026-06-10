@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -17,18 +17,31 @@
  * under the License.
  */
 
-export { default as CurrencyFormatter } from './CurrencyFormatter';
-export {
-  getCurrencySymbol,
-  normalizeCurrency,
-  hasMixedCurrencies,
-} from './CurrencyFormatter';
-export { AUTO_CURRENCY_SYMBOL, ISO_4217_REGEX } from './CurrencyFormats';
-export { getCurrencyLocale, setCurrencyLocale } from './currencyLocale';
-export {
+import {
+  getCurrencyLocale,
+  setCurrencyLocale,
   resolveSymbolPosition,
-  formatWithSymbolPosition,
-  type SymbolPosition,
-} from './symbolPosition';
-export * from './types';
-export * from './utils';
+} from '@superset-ui/core';
+
+afterEach(() => {
+  // Restore the default so other tests are not affected by the global locale.
+  setCurrencyLocale('en-US');
+});
+
+test('currency locale defaults to en-US', () => {
+  expect(getCurrencyLocale()).toEqual('en-US');
+});
+
+test('setCurrencyLocale updates the locale used to resolve unset positions', () => {
+  setCurrencyLocale('fr-FR');
+  expect(getCurrencyLocale()).toEqual('fr-FR');
+  // EUR is a suffix in fr-FR.
+  expect(resolveSymbolPosition('EUR')).toEqual('suffix');
+});
+
+test('setCurrencyLocale ignores empty values', () => {
+  setCurrencyLocale('de-DE');
+  setCurrencyLocale(undefined);
+  setCurrencyLocale('');
+  expect(getCurrencyLocale()).toEqual('de-DE');
+});
