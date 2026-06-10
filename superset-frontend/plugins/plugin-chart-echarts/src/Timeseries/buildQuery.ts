@@ -32,6 +32,7 @@ import {
   isTimeComparison,
   pivotOperator,
   prophetOperator,
+  anomalyDetectionOperator,
   renameOperator,
   resampleOperator,
   rollingWindowOperator,
@@ -115,6 +116,7 @@ export default function buildQuery(formData: QueryFormData) {
           flattenOperator(formData, baseQueryObject),
           // todo: move prophet before flatten
           prophetOperator(formData, baseQueryObject),
+          anomalyDetectionOperator(formData, baseQueryObject),
         ],
       },
     ];
