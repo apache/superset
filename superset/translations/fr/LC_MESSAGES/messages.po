@@ -15863,7 +15863,7 @@ msgstr "Utilisateurs·rices"
 
 msgid "Users are not allowed to set a search path for security reasons."
 msgstr "Les utilisateur·rices ne sont pas autorisés à définir une recherche de chemin "
-"pour des raions de sécurité.
+"pour des raions de sécurité."
 
 msgid ""
 "Uses Gaussian Kernel Density Estimation to visualize spatial distribution of "
