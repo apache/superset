@@ -18,10 +18,19 @@
  */
 
 /**
- * Regression for #32960: the `formatDate` Handlebars helper renders a real
- * formatted date instead of a "... is not a function" helper error. CI green
- * closes #32960; CI red means the fix is still needed in the Handlebars plugin
- * (superset-frontend/plugins/plugin-chart-handlebars).
+ * Regression for #32960: the `formatDate` Handlebars helper (provided by
+ * just-handlebars-helpers) stopped working after 4.1.2, rendering
+ * "i is not a function" (minified) / "moment is not a function" (dev) instead
+ * of the formatted date. The library helper resolves `moment` lazily via
+ * `global.moment` / `require('moment/min/moment-with-locales')`, which the
+ * bundled HandlebarsViewer no longer satisfies (it switched to dayjs).
+ *
+ * The fix registers a dayjs-backed `formatDate` override in HandlebarsViewer
+ * (superset-frontend/plugins/plugin-chart-handlebars). This spec guards it: it
+ * creates a Handlebars chart whose template uses `{{formatDate 'DD.MM.YYYY' ds}}`
+ * and asserts the chart renders a real formatted date rather than the helper
+ * error. Because the failure was a bundling/minification artifact (moment
+ * resolves fine under Jest's Node `require`), an E2E test is required to cover it.
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
 import { apiPostChart } from '../../helpers/api/chart';

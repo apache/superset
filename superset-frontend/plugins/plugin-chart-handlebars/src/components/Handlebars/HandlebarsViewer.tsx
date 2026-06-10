@@ -116,3 +116,19 @@ Handlebars.registerHelper('parseJson', (jsonString: string) => {
 
 Helpers.registerHelpers(Handlebars);
 HandlebarsGroupBy.register(Handlebars);
+
+// `just-handlebars-helpers` registers a `formatDate` helper that lazily
+// resolves `moment` via `global.moment` / `require('moment/min/moment-with-locales')`.
+// The bundled viewer switched to dayjs and never satisfies that lookup, so the
+// original helper throws "... is not a function" (see #32960). Re-register a
+// dayjs-backed `formatDate` with the same `{{formatDate formatString date [locale]}}`
+// signature so existing templates keep rendering.
+Handlebars.registerHelper('formatDate', (formatString, date, localeString) => {
+  const format = typeof formatString === 'string' ? formatString : '';
+  const instance = dayjs(date || new Date());
+  // Handlebars always passes its options object as the final argument, so a
+  // locale is only present when the caller supplied an explicit string.
+  return typeof localeString === 'string'
+    ? instance.locale(localeString).format(format)
+    : instance.format(format);
+});
