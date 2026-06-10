@@ -113,3 +113,45 @@ def test_guest_token_not_revoked_when_resource_unresolvable() -> None:
         ),
     ):
         assert SupersetSecurityManager._is_guest_token_revoked(_token(1000)) is False
+
+
+def _manager() -> SupersetSecurityManager:
+    # Build an instance without running the (heavy) FAB __init__: we only
+    # exercise revoke_guest_token_access, which depends on nothing but
+    # _get_current_epoch_time and the EmbeddedDashboardDAO lookup.
+    return SupersetSecurityManager.__new__(SupersetSecurityManager)
+
+
+def test_revoke_guest_token_access_uses_explicit_before() -> None:
+    embedded = _embedded(None)
+    with patch(
+        "superset.daos.dashboard.EmbeddedDashboardDAO.find_by_id",
+        return_value=embedded,
+    ):
+        _manager().revoke_guest_token_access("abc-uuid", before=1234)
+    assert embedded.guest_token_revoked_before == 1234
+
+
+def test_revoke_guest_token_access_defaults_to_ceil_of_now() -> None:
+    embedded = _embedded(None)
+    manager = _manager()
+    with (
+        patch(
+            "superset.daos.dashboard.EmbeddedDashboardDAO.find_by_id",
+            return_value=embedded,
+        ),
+        patch.object(manager, "_get_current_epoch_time", return_value=1000.25),
+    ):
+        manager.revoke_guest_token_access("abc-uuid")
+    # Cutoff is rounded up so fractional-``iat`` tokens issued in the same
+    # second are reliably revoked (fails closed).
+    assert embedded.guest_token_revoked_before == 1001
+
+
+def test_revoke_guest_token_access_noop_when_embedded_missing() -> None:
+    with patch(
+        "superset.daos.dashboard.EmbeddedDashboardDAO.find_by_id",
+        return_value=None,
+    ):
+        # Should simply return without raising when the UUID does not resolve.
+        _manager().revoke_guest_token_access("missing-uuid")
