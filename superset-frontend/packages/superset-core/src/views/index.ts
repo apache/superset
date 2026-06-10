@@ -76,11 +76,11 @@ export interface View {
  * );
  * ```
  *
- * @example Chatbot bubble (`superset.chatbot` — singleton, host renders one)
+ * @example Chatbot bubble (`core.chatbot` — singleton, host renders one)
  * ```typescript
  * views.registerView(
  *   { id: 'my_ext.chatbot', name: 'My Chatbot', icon: 'Bubble' },
- *   'superset.chatbot',
+ *   'core.chatbot',
  *   () => <ChatbotApp />,
  * );
  * ```

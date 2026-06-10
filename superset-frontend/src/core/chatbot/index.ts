@@ -17,10 +17,10 @@
  * under the License.
  */
 /**
- * @fileoverview Host-internal resolver for the exclusive `superset.chatbot`
+ * @fileoverview Host-internal resolver for the exclusive `core.chatbot`
  * contribution area.
  *
- * `superset.chatbot` is a singleton contribution area: multiple chatbot
+ * `core.chatbot` is a singleton contribution area: multiple chatbot
  * extensions may register a view there, but the host renders exactly one.
  * This module owns the host-side selection policy.
  *

@@ -36,14 +36,14 @@ test('getActiveChatbot resolves the single registered chatbot', () => {
   const provider = () => React.createElement('div', null, 'Chatbot');
   disposables.push(
     views.registerView(
-      { id: 'superset.chatbot', name: 'Superset Chatbot' },
+      { id: 'core.chatbot', name: 'Superset Chatbot' },
       CHATBOT_LOCATION,
       provider,
     ),
   );
 
   const active = getActiveChatbot();
-  expect(active).toEqual({ id: 'superset.chatbot', provider });
+  expect(active).toEqual({ id: 'core.chatbot', provider });
 });
 
 test('getActiveChatbot picks the first-to-register when multiple are installed', () => {
@@ -83,12 +83,12 @@ test('getActiveChatbot ignores views registered at other locations', () => {
 test('getActiveChatbot stops resolving a chatbot once it is disposed', () => {
   const provider = () => React.createElement('div', null, 'Chatbot');
   const disposable = views.registerView(
-    { id: 'superset.chatbot', name: 'Superset Chatbot' },
+    { id: 'core.chatbot', name: 'Superset Chatbot' },
     CHATBOT_LOCATION,
     provider,
   );
 
-  expect(getActiveChatbot()?.id).toBe('superset.chatbot');
+  expect(getActiveChatbot()?.id).toBe('core.chatbot');
 
   disposable.dispose();
 

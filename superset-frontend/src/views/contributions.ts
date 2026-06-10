@@ -24,7 +24,7 @@
  */
 export const AppViewLocations = {
   app: {
-    chatbot: 'superset.chatbot',
+    chatbot: 'core.chatbot',
   },
 } as const;
 

@@ -53,7 +53,7 @@ test('renders the registered chatbot inside the fixed mount slot', async () => {
   const provider = () => <div>My Chatbot Bubble</div>;
   disposables.push(
     views.registerView(
-      { id: 'superset.chatbot', name: 'Superset Chatbot' },
+      { id: 'core.chatbot', name: 'Superset Chatbot' },
       CHATBOT_LOCATION,
       provider,
     ),
@@ -94,7 +94,7 @@ test('isolates a failing chatbot so it does not crash the host', async () => {
   };
   disposables.push(
     views.registerView(
-      { id: 'superset.chatbot', name: 'Superset Chatbot' },
+      { id: 'core.chatbot', name: 'Superset Chatbot' },
       CHATBOT_LOCATION,
       () => <FailingChatbot />,
     ),
@@ -110,7 +110,7 @@ test('isolates a failing chatbot so it does not crash the host', async () => {
 test('isolates a chatbot whose provider function itself throws', async () => {
   disposables.push(
     views.registerView(
-      { id: 'superset.chatbot', name: 'Superset Chatbot' },
+      { id: 'core.chatbot', name: 'Superset Chatbot' },
       CHATBOT_LOCATION,
       () => {
         throw new Error('provider blew up');

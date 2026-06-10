@@ -121,12 +121,12 @@ test('getViewProvider returns the registered provider for a matching location', 
   disposables.push(
     views.registerView(
       { id: 'test.provider', name: 'Test Provider' },
-      'superset.chatbot',
+      'core.chatbot',
       provider,
     ),
   );
 
-  expect(getViewProvider('superset.chatbot', 'test.provider')).toBe(provider);
+  expect(getViewProvider('core.chatbot', 'test.provider')).toBe(provider);
 });
 
 test('getViewProvider returns undefined when the location does not match', () => {
@@ -140,11 +140,11 @@ test('getViewProvider returns undefined when the location does not match', () =>
   );
 
   // Registered, but at a different location.
-  expect(getViewProvider('superset.chatbot', 'test.provider')).toBeUndefined();
+  expect(getViewProvider('core.chatbot', 'test.provider')).toBeUndefined();
 });
 
 test('getViewProvider returns undefined for an unknown id', () => {
-  expect(getViewProvider('superset.chatbot', 'nonexistent')).toBeUndefined();
+  expect(getViewProvider('core.chatbot', 'nonexistent')).toBeUndefined();
 });
 
 test('getRegisteredViewIds returns ids in registration order', () => {
@@ -152,22 +152,22 @@ test('getRegisteredViewIds returns ids in registration order', () => {
   disposables.push(
     views.registerView(
       { id: 'first.chatbot', name: 'First' },
-      'superset.chatbot',
+      'core.chatbot',
       provider,
     ),
     views.registerView(
       { id: 'second.chatbot', name: 'Second' },
-      'superset.chatbot',
+      'core.chatbot',
       provider,
     ),
   );
 
-  expect(getRegisteredViewIds('superset.chatbot')).toEqual([
+  expect(getRegisteredViewIds('core.chatbot')).toEqual([
     'first.chatbot',
     'second.chatbot',
   ]);
 });
 
 test('getRegisteredViewIds returns an empty array for an unused location', () => {
-  expect(getRegisteredViewIds('superset.chatbot')).toEqual([]);
+  expect(getRegisteredViewIds('core.chatbot')).toEqual([]);
 });
