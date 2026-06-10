@@ -14369,80 +14369,62 @@ msgstr "Une erreur s'est produite lors de la récupération des objets lié à c
 
 #, python-format
 msgid "There was an error fetching the favorite status: %s"
-msgstr "Erreur à la récupération les status favoris : %s"
+msgstr "Une erreur s'est produite lors de la récupération des statuts favoris : %s"
 
 msgid "There was an error fetching the filtered charts and dashboards:"
-msgstr "Erreur à la récupération du statut favori de ce tableau de bord : %s"
+msgstr "Une erreur s'est produite lors de la récupération des graphiques et tableau de bord filtrés : %s"
 
 msgid "There was an error loading groups."
-msgstr "Une erreur s'est produite lors de la récupération des tableaux"
-
+msgstr "Une erreur s'est produite lors du chargement des groupes"
 
 msgid "There was an error loading permissions."
-msgstr "Une erreur s'est produite lors de la récupération des tableaux"
-
+msgstr "Une erreur s'est produite lors du chargement des permissions"
 
 msgid "There was an error loading the catalogs"
-msgstr "Une erreur s'est produite lors de la récupération des tableaux"
-
+msgstr "Une erreur s'est produite lors chargementdes catalogues"
 
 msgid "There was an error loading the chart data"
-msgstr ""
-"Une erreur s'est produite lors de la récupération des données de graphique"
+msgstr "Une erreur s'est produite lors du chargement des données du graphique"
 
 msgid "There was an error loading the schemas"
-msgstr "Une erreur s'est produite lors de la récupération des schémas"
+msgstr "Une erreur s'est produite lors du chargement des schémas"
 
 msgid "There was an error loading the tables"
-msgstr "Une erreur s'est produite lors de la récupération des tableaux"
-
+msgstr "Une erreur s'est produite lors du chargement des tables"
 
 msgid "There was an error loading users."
-msgstr "Une erreur s'est produite lors de la récupération des tableaux"
-
+msgstr "Une erreur s'est produite lors du chargement des utilisateurs"
 
 msgid "There was an error retrieving dashboard tabs."
 msgstr ""
-"Désolé, une erreur s'est produite lors de la récupération des graphiques "
-"sauvegardés : %s"
+msgstr "Une erreur s'est produite lors de la récupération des onglets du tableau de bord"
 
 #, python-format
 msgid "There was an error saving the favorite status: %s"
 msgstr ""
 "Une erreur s'est produite lors de l'enregistrement du statut de favori : %s"
 
-
 msgid "There was an error updating the group. Please, try again."
-msgstr "Une erreur s'est produite lors de la récupération des schémas"
+msgstr "Une erreur s'est produite lors de la mise à jour du groupe. Merci de réessayer"
 
 
 msgid "There was an error updating the role. Please, try again."
-msgstr "Une erreur s'est produite lors de la récupération des schémas"
-
+msgstr "Une erreur s'est produite lors de la mise à jour du rôle. Merci de réessayer"
 
 msgid "There was an error updating the user. Please, try again."
-msgstr "Une erreur s'est produite lors de la récupération des schémas"
-
+msgstr "Une erreur s'est produite lors de la mise à jour de l'utilisateur. Merci de réessayer"
 
 msgid "There was an error while fetching groups"
-msgstr ""
-"Désolé, une erreur s'est produite lors de la récupération des informations "
-"de cet ensemble de données"
-
+msgstr "Une erreur s'est produite lors de la récupération des groupes"
 
 msgid "There was an error while fetching permissions"
-msgstr ""
-"Désolé, une erreur s'est produite lors de la récupération des informations "
-"de cet ensemble de données"
-
+msgstr "Une erreur s'est produite lors de la récupération des permissions"
 
 msgid "There was an error while fetching users"
-msgstr ""
-"Désolé, une erreur s'est produite lors de la récupération des informations "
-"de cet ensemble de données"
+msgstr "Une erreur s'est produite lors de la récupération des utilisateurs"
 
 msgid "There was an error with your request"
-msgstr "Il y avait une erreur avec vore requête"
+msgstr "Il y a eu une erreur avec vore requête"
 
 #, python-format
 msgid "There was an issue cancelling the task: %s"
@@ -14450,7 +14432,7 @@ msgstr "Il y a eu un problème lors de la suppression de la tâche : %s"
 
 #, python-format
 msgid "There was an issue deleting %s"
-msgstr "Il y a eu un problème lors de la suppression de : %s"
+msgstr "Il y a eu un problème lors de la suppression de %s"
 
 #, python-format
 msgid "There was an issue deleting %s: %s"
@@ -14458,63 +14440,54 @@ msgstr "Il y a eu un problème lors de la suppression de %s : %s"
 
 #, python-format
 msgid "There was an issue deleting registration for user: %s"
-msgstr "Un problème s'est posé lors de la suppression des règles : %s"
+msgstr "Il y a eu un problème lors de la suppression de l'inscription de l'utilisateur : %s"
 
 #, python-format
 msgid "There was an issue deleting rules: %s"
-msgstr "Un problème s'est posé lors de la suppression des règles : %s"
+msgstr "Il y a eu un problème lors de la suppression des règles : %s"
 
 #, python-format
 msgid "There was an issue deleting the selected %s"
-msgstr "Il y a eu un problème lors de la suppression des ressources %s sélectionnées"
+msgstr "Il y a eu un problème lors de la suppression de la ressource %s sélectionnée"
 
 #, python-format
 msgid "There was an issue deleting the selected %s: %s"
-msgstr ""
-"Il y a eu un problème lors de la suppression des %s sélectionné(e)s :%s"
+msgstr "Il y a eu un problème lors de la suppression de la ressource %s sélectionnée: %s"
 
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
-msgstr ""
-"Il y a eu un problème lors de la suppression des annotations sélectionnées : "
-"%s"
+msgstr "Il y a eu un problème lors de la suppression de l'annotation sélectionnée: %s"
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
-msgstr ""
-"Il y a eu un problème lors de la suppression des graphiques sélectionnés : %s"
+msgstr "Il y a eu un problème lors de la suppression du graphique sélectionné: %s"
 
 msgid "There was an issue deleting the selected dashboards: "
-msgstr ""
-"Il y a eu un problème lors de la suppression des graphiques sélectionnés: "
+msgstr "Il y a eu un problème lors de la suppression du tableau de bord sélectionné: %s"
 
 #, python-format
 msgid "There was an issue deleting the selected layers: %s"
-msgstr ""
-"Il y a eu un problème lors de la suppression des couches sélectionnées : %s"
+msgstr "Il y a eu un problème lors de la suppression de la couche sélectionnée: %s"
 
 #, python-format
 msgid "There was an issue deleting the selected templates: %s"
-msgstr ""
-"Il y a eu un problème lors de la suppression des modèles sélectionnées : %s"
+msgstr "Il y a eu un problème lors de la suppression du modèle sélectionnée: %s"
 
 #, python-format
 msgid "There was an issue deleting the selected themes: %s"
-msgstr ""
-"Il y a eu un problème lors de la suppression des modèles sélectionnées : %s"
+msgstr "Il y a eu un problème lors de la suppression du thème sélectionnée: %s"
 
 #, python-format
 msgid "There was an issue deleting: %s"
-msgstr "Il y a eu un problème lors de la suppression de : %s"
+msgstr "Il y a eu un problème lors de la suppression : %s"
 
 #, python-format
 msgid "There was an issue duplicating the %s."
-msgstr "Il y a eu un problème de duplication de la ressource %s."
+msgstr "Il y a eu un problème lors de la duplication : %s"
 
 #, python-format
 msgid "There was an issue duplicating the selected %s: %s"
-msgstr ""
-"Il y a eu un problème lors de la suppression des %s sélectionné(e)s :%s"
+msgstr "Il y a eu un problème lors de la duplication de la ressource %s sélectionnée : %s"
 
 #, python-format
 msgid "There was an issue exporting the %s"
@@ -14522,74 +14495,53 @@ msgstr "Il y a eu une erreur lors de l'export de la ressource %s"
 
 #, python-format
 msgid "There was an issue exporting the selected %s"
-msgstr ""
-"Il y a eu un problème lors de la suppression des modèles sélectionnées : %s"
-
+msgstr "Il y a eu une erreur lors de l'export de la ressource %s sélectionnée"
 
 msgid "There was an issue exporting the selected charts"
-msgstr ""
-"Il y a eu un problème lors de la suppression des graphiques sélectionnés : %s"
-
+msgstr "Il y a eu une erreur lors de l'export du graphique sélectionné"
 
 msgid "There was an issue exporting the selected dashboards"
-msgstr ""
-"Il y a eu un problème lors de la suppression des graphiques sélectionnés: "
-
+msgstr "Il y a eu une erreur lors de l'export du tableau de bord sélectionné"
 
 msgid "There was an issue exporting the selected themes"
-msgstr ""
-"Il y a eu un problème lors de la suppression des modèles sélectionnées : %s"
+msgstr "Il y a eu une erreur lors de l'export des thèmes sélectionnés"
 
 msgid "There was an issue favoriting this dashboard."
-msgstr "Il y a eu un problème pour mettre ce tableau de bord en favori."
-
+msgstr "Il y a eu une erreur lors de l'ajout en favori de ce tableau de bord"
 
 msgid "There was an issue fetching reports."
-msgstr ""
-"Une erreur s'est produite lors de la récupération de votre graphique : %s"
+msgstr "Il y a eu une erreur lors de la récupération des rapports"
 
 msgid "There was an issue fetching the favorite status of this dashboard."
-msgstr ""
-"Il y a eu un problème pour récupérer le statut de favori de ce tableau de "
+msgstr "Il y a eu une erreur lors de la récupération du statut de favori de ce tableau de"
 "bord."
 
 #, python-format
 msgid "There was an issue fetching your chart: %s"
-msgstr ""
-"Une erreur s'est produite lors de la récupération de votre graphique : %s"
+msgstr "Il y a eu une erreur lors de la récupération vos graphiques : %s"
 
 #, python-format
 msgid "There was an issue fetching your dashboards: %s"
-msgstr ""
-"Une erreur s'est produite lors de la récupération de vos tableaux de bord  : "
-"%s"
+msgstr "Il y a eu une erreur lors de la récupération vos tableaux de bord : %s"
 
 #, python-format
 msgid "There was an issue fetching your recent activity: %s"
-msgstr ""
-"Une erreur s'est produite lors de lors de la récupération de votre activité "
-"récente : %s"
+msgstr "Il y a eu une erreur lors de la récupération vos activités récentes : %s"
 
 #, python-format
 msgid "There was an issue fetching your saved queries: %s"
-msgstr ""
-"Une erreur s'est produite lors de la récupération de vos requêtes "
-"sauvegardées : %s"
+msgstr "Il y a eu une erreur lors de la récupération vos requêtes sauvegardées : %s"
 
 #, python-format
 msgid "There was an issue previewing the selected query %s"
-msgstr ""
-"Il y a eu un problème lors de la prévisualisation de la requête sélectionnée "
-"%s"
+msgstr "Il y a eu un problème lors de la prévisualisation de la requête sélectionnée : %s"
 
 #, python-format
 msgid "There was an issue previewing the selected query. %s"
-msgstr ""
-"Il y a eu un problème de prévisualisation de la requête sélectionnée. %s"
+msgstr "Il y a eu un problème lors de la prévisualisation de la requête sélectionnée : %s"
 
 msgid "These are the datasets this filter will be applied to."
-msgstr ""
-"Ce sont les jeux de données sur lesquelles vont s'appliquer les filtres."
+msgstr "Les jeux de données sur lesquelles vont s'appliquer les filtres."
 
 msgid ""
 "This JSON object is generated dynamically when clicking the save or "
@@ -14605,16 +14557,14 @@ msgstr ""
 msgid "This action will permanently delete %s."
 msgstr "Cette action supprimera définitivement %s."
 
-
 msgid "This action will permanently delete the group."
-msgstr "Cette action supprimera définitivement la couche ."
+msgstr "Cette action supprimera définitivement le groupe."
 
 msgid "This action will permanently delete the layer."
-msgstr "Cette action supprimera définitivement la couche ."
-
+msgstr "Cette action supprimera définitivement la couche."
 
 msgid "This action will permanently delete the role."
-msgstr "Cette action supprimera définitivement la couche ."
+msgstr "Cette action supprimera définitivement le rôle."
 
 msgid "This action will permanently delete the saved query."
 msgstr "Cette action supprimera définitivement la requête sauvegardée."
@@ -14623,13 +14573,13 @@ msgid "This action will permanently delete the template."
 msgstr "Cette acion supprimera définitivement le modèle."
 
 msgid "This action will permanently delete the theme."
-msgstr "Cette acion supprimera définitivement le modèle."
+msgstr "Cette acion supprimera définitivement le thème."
 
 msgid "This action will permanently delete the user registration."
-msgstr "Cette action supprimera définitivement la couche ."
+msgstr "Cette action supprimera définitivement l'enregistrement de l'utilisateur."
 
 msgid "This action will permanently delete the user."
-msgstr "Cette action supprimera définitivement la couche ."
+msgstr "Cette action supprimera définitivement l'utilisateur."
 
 msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
@@ -14646,15 +14596,13 @@ msgstr ""
 "de données contiennent des colonnes du même nom."
 
 msgid "This chart has been moved to a different filter scope."
-msgstr "Ce graphique a été déplacé vers un autre champ de filtrage."
+msgstr "Ce graphique a été déplacé vers un autre périmètre de filtrage."
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
-msgstr ""
-"Ce graphique est géré à l’externe et ne peut pas être modifié dans Superset"
+msgstr "Ce graphique est géré en externe et ne peut être modifié dans Superset"
 
 msgid "This chart is managed externally, and can't be edited in Superset"
-msgstr ""
-"Ce graphique est géré à l’externe et ne peut pas être modifié dans Superset"
+msgstr "Ce graphique est géré en externe et ne peut pas être modifié dans Superset"
 
 msgid "This chart might be incompatible with the filter (datasets don't match)"
 msgstr ""
@@ -14734,7 +14682,7 @@ msgid "This dashboard is now published"
 msgstr "Ce tableau de bord est maintenant publié"
 
 msgid "This dashboard is published. Click to make it a draft."
-msgstr "Ce tableau de bord est publié. Cliquez pour en faire un brouillon."
+msgstr "Ce tableau de bord est publié. Cliquer pour en faire un brouillon."
 
 msgid ""
 "This dashboard is ready to embed. In your application, pass the following id "
@@ -14750,13 +14698,12 @@ msgid ""
 "This database does not allow for DDL/DML, but the query mutates data. Please "
 "contact your administrator for more assistance."
 msgstr ""
-"Impossible de trouver la base de données référencée dans cette requête. "
-"Veuillez contacter un administrateur pour obtenir davantage d'aide ou "
-"essayez à nouveau."
+"La requête modifie les données et cette base de données n'autorise pas les DDL/DML. "
+"Veuillez contacter un administrateur pour obtenir davantage d'aide."
 
 msgid "This database is managed externally, and can't be edited in Superset"
 msgstr ""
-"Cette base de données est gérée à l’externe et ne peut pas être modifiée "
+"Cette base de données est gérée en l’externe et ne peut pas être modifiée "
 "dans Superset"
 
 msgid ""
@@ -14764,7 +14711,7 @@ msgid ""
 "table."
 msgstr ""
 "Cette table de base de données ne contient aucune donnée. Veuillez "
-"sélectionner un autre tableau."
+"sélectionner une autre table."
 
 msgid ""
 "This database uses OAuth2 for authentication. Please click the link above to "
@@ -14775,30 +14722,26 @@ msgstr ""
 "ci-dessus pour donner les permissions à Apache Superset d'accéder aux données. Votre clé personnelle "
 "sera conserversée, chiffrée et utilisée uniquement pour vos propres requêtes." 
 
-
 msgid "This dataset is managed externally, and can't be edited in Superset"
 msgstr ""
-"Cet ensemble de données est géré à l'externe et ne peut pas être modifié "
+"Cet ensemble de données est gérée à l'externe et ne peut pas être modifié "
 "dans Superset"
 
 msgid "This defines the element to be plotted on the chart"
 msgstr "Ceci définit l'élément à tracer sur le graphique"
 
-msgid ""
-"This email is already associated with an account. Please choose another one."
-msgstr "Cet e-mail est déjà associé à un compte. Veuillez en choisir un autre."
+msgid "This email is already associated with an account. Please choose another one."
+msgstr "Cet e-mail est déjà associé à un compte. Veuiller en choisir un autre."
 
 msgid "This feature is experimental and may change or have limitations"
-msgstr ""
-"Cette fonctionnalité est expérimentale et peut évoluer ou présenter des "
-"limitations"
+msgstr "Cette fonctionnalité est expérimentale et peut évoluer ou présenter des limitations"
 
 msgid ""
 "This field is used as a unique identifier to attach the calculated dimension "
 "to charts. It is also used as the alias in the SQL query."
 msgstr ""
-"La saisonnalité quotidienne doit-elle être appliquée? Une valeur entière "
-"spécifiera l'ordre Fourier de la saisonnalité."
+"Ce champ est utilisé comme identifiant unique pour associer la dimension calculée aux "
+"graphiques. Il est également utilisé comme alias dans la requête SQL."
 
 msgid ""
 "This field is used as a unique identifier to attach the metric to charts. It "
@@ -14808,7 +14751,7 @@ msgstr ""
 "graphiques. Il est également utilisé comme alias dans la requête SQL."
 
 msgid "This filter already exist on the report"
-msgstr "La liste de valeurs du filtre ne peut pas être vide"
+msgstr "Ce filtre existe déjà dans le rapport"
 
 #, python-format
 msgid "This filter might be incompatible with current %s"
@@ -14818,7 +14761,7 @@ msgid "This folder is currently empty"
 msgstr "Ce dossier est vide"
 
 msgid "This folder only supports columns"
-msgstr "Ce dossier support uniquement les colonnes"
+msgstr "Ce dossier supporte uniquement les colonnes"
 
 msgid "This folder only supports metrics"
 msgstr "Ce dossier supporte uniquement les mesures"
@@ -14891,7 +14834,6 @@ msgstr ""
 "Ce lien vous conduira vers un site web externe. Nous ne pouvons pas "
 "en garantir la sécurité."
 
-
 msgid "This markdown component has an error."
 msgstr "Ce composant markdown comporte une erreur."
 
@@ -14929,7 +14871,6 @@ msgstr ""
 "Cette page est destinée à être intégrée dans une iframe, mais il semble que "
 "ce ne soit pas le cas."
 
-
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
@@ -14957,15 +14898,14 @@ msgstr ""
 "application, veuillez vérifier que le jeton d'invité est généré correctement."
 
 msgid "This table already has a dataset"
-msgstr "Ce tableau contient déjà un ensemble de données"
+msgstr "Cette table contient déjà un ensemble de données"
 
 msgid ""
 "This table already has a dataset associated with it. You can only associate "
 "one dataset with a table.\n"
 msgstr ""
 "Ce tableau est déjà associé à un ensemble de données. Vous ne pouvez "
-"associer qu'un seul ensemble de données à un tableau.\n"
-
+"associer qu'un seul ensemble de données à une table.\n"
 
 msgid "This theme is set locally"
 msgstr "Ce thème est défini localement pour votre session"
@@ -15011,7 +14951,7 @@ msgid "This will cancel the task."
 msgstr "Cette action arrêtera la tâche"
 
 msgid "This will remove your current embed configuration."
-msgstr "Cela supprimera votre configuration d’intégration actuelle."
+msgstr "Cette action supprimera votre configuration d’intégration actuelle."
 
 msgid ""
 "This will reorganize all metrics and columns into default folders. Any "
@@ -15029,7 +14969,6 @@ msgstr "Seuil alpha pour déterminer l’importance"
 msgid "Threshold for Other"
 msgstr "Seuil pour les autres"
 
-
 msgid "Threshold: "
 msgstr "Seuil :"
 
@@ -15043,39 +14982,32 @@ msgid "Time"
 msgstr "Heure"
 
 msgid "Time Column"
-msgstr "Colonne de temps"
+msgstr "Colonne temporelle"
 
 msgid "Time Comparison"
-msgstr "Comparaison de temps"
+msgstr "Comparaison temporelle"
 
 msgid "Time Format"
-msgstr "Format de temps"
-
+msgstr "Format du temps"
 
 msgid "Time Grain"
-msgstr "Fragment de temps"
-
+msgstr "Granularité temporelle"
 
 msgid "Time Grain must be specified when using Time Shift."
 msgstr ""
-"Une période délimitée (à la fois début et fin) doit être spécifiée quand on "
-"utilise une Comparaison de temps."
-
+"Un filtre temporel doit être utilisé lors de l'utilisation des comparaison temporelles."
 
 msgid "Time Granularity"
-msgstr "Fragmentation de Temps"
-
+msgstr "Granulartié temporelle"
 
 msgid "Time Lag"
-msgstr "Décalage de temps"
-
+msgstr "Décalage temporel"
 
 msgid "Time Range"
-msgstr "Intervalle de temps"
-
+msgstr "Intervalle temporel"
 
 msgid "Time Ratio"
-msgstr "Ratio de temps"
+msgstr "Ratio temporel"
 
 msgid "Time Series"
 msgstr "Séries temporelles"
@@ -15102,16 +15034,15 @@ msgid "Time Shift"
 msgstr "Décalage temporel"
 
 msgid "Time Table View"
-msgstr "Vue du tableau chronologique"
+msgstr "Vue chronologique de la table"
 
 msgid "Time column"
-msgstr "Colonne de temps"
+msgstr "Colonne temporelle"
 
 #, python-format
 msgid "Time column \"%(col)s\" does not exist in dataset"
 msgstr ""
 "La colonne temporelle \"%(col)s\" n'existe pas dans l’ensemble de données"
-
 
 msgid "Time column chart customization plugin"
 msgstr "Plugiciel de filtrage des colonnes chronologiques"
@@ -15120,13 +15051,13 @@ msgid "Time column filter plugin"
 msgstr "Plugiciel de filtrage des colonnes chronologiques"
 
 msgid "Time column to apply dependent temporal filter to"
-msgstr "Colonne chronologique pour appliquer le filtre temporel dépendant à"
+msgstr "Colonne temporelle pour appliquer le filtre temporel dépendant à"
 
 msgid "Time column to apply time range to"
-msgstr "Colonne chronologique à laquelle appliquer la plage de temps"
+msgstr "Colonne temporelle à laquelle appliquer la plage de temps"
 
 msgid "Time comparison"
-msgstr "Comparaison chronologique"
+msgstr "Comparaison temporelle"
 
 msgid ""
 "Time delta in natural language\n"
@@ -15144,28 +15075,25 @@ msgstr ""
 "[%(human_readable)s later]."
 
 msgid "Time filter"
-msgstr "Filtre de temps"
+msgstr "Filtre temporel"
 
 msgid "Time format"
-msgstr "Format de temps"
+msgstr "Format du temps"
 
 msgid "Time grain"
-msgstr "Fragment de temps"
-
+msgstr "Granularité temporelle"
 
 msgid "Time grain chart customization plugin"
-msgstr "Fragment de temps manquant"
-
+msgstr "Plugiciel de filtrage des colonnes chronologiques"
 
 msgid "Time grain filter plugin"
-msgstr "Fragment de temps manquant"
+msgstr "Plugiciel du filtre temporel"
 
 msgid "Time grain missing"
-msgstr "Fragment de temps manquant"
-
+msgstr "Filtre temporel manquant"
 
 msgid "Time grain options"
-msgstr "Options des séries temporelles"
+msgstr "Options de la granularité temporelle"
 
 msgid "Time granularity"
 msgstr "Granularité temporelle"
@@ -15177,11 +15105,10 @@ msgid "Time lag"
 msgstr "Décalage temporel"
 
 msgid "Time range"
-msgstr "Période de temps"
-
+msgstr "Période temporelle"
 
 msgid "Time ratio"
-msgstr "Ratio de temps"
+msgstr "Ratio temporel"
 
 msgid "Time related form attributes"
 msgstr "Attributs du formulaire liés au temps"
@@ -15203,23 +15130,20 @@ msgstr ""
 "La chaîne temporelle est ambigue. Veuillez spécifier [%(human_readable)s "
 "ago] ou [%(human_readable)s later]."
 
-
 msgid "Time-series Percent Change"
-msgstr "Pourcentage de changement de séries temporelles"
-
+msgstr "Evolution en pourcentage des séries temporelles"
 
 msgid "Time-series Period Pivot"
 msgstr "Période Pivot de séries temporelles"
 
 msgid "Time-series Table"
-msgstr "Tableau des séries temporelles"
-
+msgstr "Table des séries temporelles"
 
 msgid "Timed Out"
-msgstr "Format de temps"
+msgstr "Délai terminé"
 
 msgid "Timeline"
-msgstr "Fuseau horaire"
+msgstr "Echéance"
 
 #, python-format
 msgid ""
@@ -15248,7 +15172,7 @@ msgid "Title"
 msgstr "Titre"
 
 msgid "Title Column"
-msgstr "Colonne de titre"
+msgstr "Titre de la colonne"
 
 msgid "Title is required"
 msgstr "Le titre est obligatoire"
@@ -15266,7 +15190,6 @@ msgstr ""
 "Les bases de données sont utilisées comme moyen d'identification de vos données pour "
 "qu'elles puissent être requêtées et visualisées. Cette databases contiendra toutes vos "
 "Google Sheets individuelles que vous choisirez de connecter."
-
 
 msgid ""
 "To enable multiple column sorting, hold down the ⇧ Shift key while clicking "
@@ -15290,22 +15213,20 @@ msgstr "Tous les panneaux"
 msgid "Tooltip"
 msgstr "Infobulle"
 
-
 msgid "Tooltip (columns)"
-msgstr "Pas de colonnes horaires"
-
+msgstr "Infobulle (columns)"
 
 msgid "Tooltip (metrics)"
-msgstr "Info-bulle tri par mesure"
+msgstr "Infobulle (mesures)"
 
 msgid "Tooltip Contents"
-msgstr "Contenu d'info-bulles"
+msgstr "Contenu d'infobulles"
 
 msgid "Tooltip contents"
-msgstr "Contenu d'info-bulles"
+msgstr "Contenu d'infobulles"
 
 msgid "Tooltip sort by metric"
-msgstr "Info-bulle triée par mesure"
+msgstr "Infobulle triée par mesure"
 
 msgid "Tooltip time format"
 msgstr "Format de l'heure de l'info-bulle"
@@ -15314,15 +15235,13 @@ msgid "Top"
 msgstr "Haut"
 
 msgid "Top left"
-msgstr "Haut à gauche"
-
+msgstr "Haut gauche"
 
 msgid "Top n"
-msgstr "haut"
-
+msgstr "Top"
 
 msgid "Top right"
-msgstr "Haut à droite"
+msgstr "Haut droite"
 
 msgid "Top to Bottom"
 msgstr "De haut en bas"
@@ -15338,14 +15257,11 @@ msgstr "Total (%(aggfunc)s)"
 msgid "Total (%(aggregatorName)s)"
 msgstr "Total (%(aggregatorName)s)"
 
-
 msgid "Total color"
-msgstr "Couleur du point"
-
+msgstr "Couleur total"
 
 msgid "Total label"
-msgstr "Valeur totale"
-
+msgstr "Etiquette totale"
 
 msgid "Total value"
 msgstr "Valeur totale"
@@ -15355,7 +15271,7 @@ msgid "Total: %s"
 msgstr "Total : (%s)"
 
 msgid "Track job"
-msgstr "Suivre le travail"
+msgstr "Suivre l'exécution"
 
 msgid "Transformable"
 msgstr "Transformable"
@@ -15388,7 +15304,7 @@ msgid "Triangle"
 msgstr "Triangle"
 
 msgid "Trigger Alert If..."
-msgstr "Déclencher une alerte si…"
+msgstr "Déclencher une alerte si..."
 
 msgid "True"
 msgstr "Est vrai"
@@ -15410,12 +15326,11 @@ msgstr ""
 "Seulement applicable sur les axes X numériques."
 
 msgid "Truncate Y Axis"
-msgstr "Tronquer l’axe des absisses"
+msgstr "Tronquer l’axe Y"
 
 msgid "Truncate Y Axis. Can be overridden by specifying a min or max bound."
 msgstr ""
-"Tronquer l’axe des ordonnées. Peut être modifié en spécifiant une limite "
-"minimale ou maximale."
+"Tronquer l’axe Y. Peut être modifié en spécifiant une limite minimale ou maximale."
 
 msgid "Truncate long cells to the \"min width\" set above"
 msgstr ""
@@ -15434,13 +15349,11 @@ msgstr ""
 "Essayez d’appliquer différents filtres ou de vous assurer que votre source "
 "de données contient des données"
 
-
 msgid "Try different criteria to display results."
-msgstr "Lancer une requête pour afficher les résultats."
+msgstr "Essayer différents critères pour afficher les résultats."
 
 msgid "Tuesday"
 msgstr "Mardi"
-
 
 msgid "Tukey"
 msgstr "Turquie"
@@ -15450,57 +15363,52 @@ msgstr "Type"
 
 #, python-format
 msgid "Type \"%s\" to confirm"
-msgstr "Saisissez \"%s\" pour confirmer"
+msgstr "Saisir \"%s\" pour confirmer"
 
 msgid "Type a value"
-msgstr "Saisissez une valeur"
+msgstr "Saisir une valeur"
 
 msgid "Type a value here"
 msgstr "Saisir une valeur ici"
 
-
 msgid "Type a value..."
-msgstr "Saisissez une valeur"
+msgstr "Saisir une valeur..."
 
 msgid "Type is required"
 msgstr "Le type est requis"
 
-
 msgid "Type of chart to display in sparkline"
-msgstr "Nombre de graphiques à afficher par ligne"
+msgstr "Type de graphique à afficher dans Sparkline"
 
 msgid "Type of comparison, value difference or percentage"
 msgstr "Type de comparaison, différence de valeur ou pourcentage"
 
 msgid "Type to search (contains)..."
-msgstr "Recherche de colonnes"
+msgstr "Saisir pour rechercher (contient)..."
 
 msgid "Type to search (ends with)..."
-msgstr "Type de recherche (termine par)..."
+msgstr "Saisir pour rechercher (termine par)..."
 
 msgid "Type to search (starts with)..."
-msgstr "Type de recherche (commence par)..."
+msgstr "Saisir pour rechercher (commence par)..."
 
 msgid "UI Configuration"
 msgstr "Configuration UI"
 
 msgid "UI theme administration is not enabled."
-msgstr ""
-"L'administration des thèmes de l'interface utilisateur n'est pas activée."
+msgstr "L'administration des thèmes de l'interface n'est pas activée."
 
 msgid "URL"
 msgstr "URL"
 
-
 msgid "URL Filters"
-msgstr "Tous les filtres"
+msgstr "URl des filtres"
 
 msgid "URL Parameters"
 msgstr "Paramètres URL"
 
-
 msgid "URL Slug"
-msgstr "Logotype URL"
+msgstr "URL Slug"
 
 msgid "URL parameters"
 msgstr "Paramètres URL"
@@ -15552,7 +15460,7 @@ msgid "Unable to decode value"
 msgstr "Impossible de décoder la valeur"
 
 msgid "Unable to encode value"
-msgstr "Impossible de coder la valeur"
+msgstr "Impossible d'encoder la valeur"
 
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Impossible de récupérer la vue sémantique. Vérifier la configuration des couches."
@@ -15562,7 +15470,7 @@ msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Impossible de trouver un tel congé : [%(holiday)s]"
 
 msgid "Unable to generate download payload"
-msgstr "Ajouté à 1 tableau de bord"
+msgstr "Impossible de générer le contenu à télécharger"
 
 msgid ""
 "Unable to identify temporal column for date range time comparison.Please "
@@ -15579,9 +15487,8 @@ msgstr ""
 "Impossible de charger les colonnes pour le tableau sélectionné. Veuillez "
 "sélectionner un autre tableau."
 
-
 msgid "Unable to load dashboard"
-msgstr "Ajouté à 1 tableau de bord"
+msgstr "Impossible de charger un tableau de bord"
 
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry later. "
@@ -15608,8 +15515,7 @@ msgstr ""
 "problème persiste."
 
 msgid "Unable to parse SQL"
-msgstr "Impossible d’analyser le SQL"
-
+msgstr "Impossible d'interpréter le SQL"
 
 msgid "Unable to read the file, please refresh and try again."
 msgstr "Échec du téléchargement de l’image, veuillez actualiser et réessayer."
@@ -18067,28 +17973,26 @@ msgstr ""
 "percentiles doit être une liste ou un tuple avec deux valeurs numériques, "
 "dont la première est inférieure à la deuxième valeur"
 
-
 msgid "permalink state not found"
-msgstr "état du programme de rapport introuvable"
-
+msgstr "Etat du lien du rapport introuvable"
 
 msgid "pivoted_xlsx"
-msgstr "Pivoté"
+msgstr "xlsx pivoté"
 
 msgid "pixels"
 msgstr "pixels"
 
 msgid "previous calendar month"
-msgstr "mois calendaire précédent"
+msgstr "Mois calendaire précédent"
 
 msgid "previous calendar quarter"
-msgstr "trimestre calendaire précédent"
+msgstr "Trimestre calendaire précédent"
 
 msgid "previous calendar week"
-msgstr "semaine calendaire précédente"
+msgstr "Semaine calendaire précédente"
 
 msgid "previous calendar year"
-msgstr "année calendaire précédente"
+msgstr "Année calendaire précédente"
 
 msgid "provide authorization"
 msgstr "Autorisation requise"
@@ -18120,7 +18024,6 @@ msgstr "rapports"
 msgid "restore zoom"
 msgstr "restaurer le zoom"
 
-
 msgid "right"
 msgstr "droit"
 
@@ -18139,7 +18042,6 @@ msgstr "schema1,schema2"
 msgid "seconds"
 msgstr "secondes"
 
-
 msgid "series"
 msgstr "série"
 
@@ -18154,14 +18056,11 @@ msgstr ""
 msgid "sql"
 msgstr "sql"
 
-
 msgid "square"
 msgstr "carré"
 
-
 msgid "stack"
 msgstr "pile"
-
 
 msgid "staggered"
 msgstr "décalé"
@@ -18169,21 +18068,17 @@ msgstr "décalé"
 msgid "std"
 msgstr "std"
 
-
 msgid "step-after"
-msgstr "step-after"
+msgstr "étape-après"
 
 msgid "step-before"
-msgstr "step-before"
-
+msgstr "étape-avant"
 
 msgid "stopped"
 msgstr "arrêté"
 
-
 msgid "stream"
 msgstr "flux"
-
 
 msgid "string"
 msgstr "CHAÎNE"
@@ -18200,23 +18095,20 @@ msgstr "somme"
 msgid "superset.example.com"
 msgstr "superset.example.com"
 
-
 msgid "syntax."
 msgstr "syntaxe."
 
 msgid "tag"
 msgstr "balise"
 
-
 msgid "task"
-msgstr "tags"
+msgstr "tâche"
 
 msgid "temporal type icon"
 msgstr "icône de type temporel"
 
-
 msgid "text color"
-msgstr "Couleur cible"
+msgstr "Couleur textuelle"
 
 msgid "textarea"
 msgstr "textarea"
@@ -18227,12 +18119,11 @@ msgstr "la documentation du chart Handlebars"
 msgid "theme"
 msgstr "thème"
 
-
 msgid "timestamp"
-msgstr "Afficher l'horodatage"
+msgstr "horodatage"
 
 msgid "to"
-msgstr "haut"
+msgstr "à"
 
 msgid "top"
 msgstr "haut"
@@ -18268,7 +18159,6 @@ msgstr "valeurs croissantes"
 msgid "value descending"
 msgstr "valeurs décroissantes"
 
-#, fuzzy
 msgid "valuename"
 msgstr "Nom du tableau"
 
@@ -18358,4 +18248,4 @@ msgid "© Layer attribution"
 msgstr "© Attribution de la couche"
 
 msgid "№"
-msgstr ""
+msgstr "N°"
