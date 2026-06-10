@@ -17382,6 +17382,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "Kāore i tautuhia te āhuatanga `operation` o te ahanoa tukatuka-iho"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "Kāore i tāutahia te kete `prophet`"
 

@@ -16005,6 +16005,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "後処理オブジェクトの `operation` プロパティが未定義です"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "`prophet` パッケージがインストールされていません"
 

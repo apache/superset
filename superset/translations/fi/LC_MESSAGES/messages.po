@@ -30526,6 +30526,10 @@ msgstr "Jälkikäsittelyobjektin `operation`-ominaisuus on määrittelemätön"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 #, fuzzy
 msgid "`prophet` package not installed"
 msgstr "`prophet`-pakettia ei ole asennettu"

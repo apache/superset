@@ -51,7 +51,11 @@ from sqlalchemy.orm.query import Query
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
-from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET, CHANGE_ME_SECRET_KEY
+from superset.constants import (
+    CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
+    CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
+    CHANGE_ME_SECRET_KEY,
+)
 from superset.jinja_context import BaseTemplateProcessor
 from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
@@ -167,6 +171,21 @@ SAMPLES_ROW_LIMIT = 1000
 NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
+
+# Upper bound on the number of time-shift comparisons a single chart may request.
+# Each comparison spawns an additional query, so this caps the work amplification
+# from a single chart request while still allowing generous normal use.
+VIZ_TIME_COMPARE_MAX = 50
+
+# Upper bound on the number of sub-slices a deck.gl multi-layer chart may
+# aggregate. Each sub-slice issues its own query, so this caps the work
+# amplification from a single multi-layer request.
+DECK_MULTI_MAX_SLICES = 50
+
+# Upper bound on the page size accepted by the generic DAO list/pagination layer.
+# Caps how many rows a single paginated query can request, regardless of the
+# requested page size, to keep query result sets bounded.
+SQLALCHEMY_DAO_MAX_PAGE_SIZE = 1000
 
 # SupersetClient HTTP retry configuration
 # Controls retry behavior for all HTTP requests made through SupersetClient
@@ -1029,6 +1048,10 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
 # CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor("admin")]
+#
+# NOTE: The `cache-warmup` Celery task no longer consults CACHE_WARMUP_EXECUTORS.
+# It authenticates as the single user configured via SUPERSET_CACHE_WARMUP_USER
+# (defined below). This setting is retained for other executor-based code paths.
 CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER]
 
 # ---------------------------------------------------
@@ -1069,6 +1092,11 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_NO_NULL_WARNING": True,
 }
 THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
+
+# Cache warmup user — must be set explicitly before enabling the cache-warmup
+# Celery task. Intentionally defaults to None so operators pick a dedicated
+# least-privilege user rather than inadvertently running warmup as "admin".
+SUPERSET_CACHE_WARMUP_USER: str | None = None
 
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
@@ -1111,6 +1139,12 @@ SCREENSHOT_TILED_VIEWPORT_HEIGHT = 2000  # Height of each tile in pixels
 # The file upload folder, when using models with files
 UPLOAD_FOLDER = BASE_DIR + "/static/uploads/"
 UPLOAD_CHUNK_SIZE = 4096
+
+# Upper bound, in bytes, on the size of a single uploaded data file (e.g. CSV,
+# Excel, columnar). Files larger than this are rejected before their contents
+# are buffered into memory, keeping the resources consumed by a single upload
+# bounded. Set to ``None`` to disable the check. Defaults to 100 MB.
+UPLOAD_MAX_FILE_SIZE_BYTES: int | None = 100 * 1024 * 1024
 
 # ---------------------------------------------------
 # Cache configuration
@@ -1317,6 +1351,10 @@ MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 # Maximum number of rows returned for any analytical database query
 SQL_MAX_ROW = 100000
 
+# Maximum number of forecast periods accepted by the Prophet post-processing
+# operation. Bounds resource usage when predicting into the future.
+MAX_PROPHET_PERIODS = 10000
+
 # Maximum number of rows for any query with Server Pagination in Table Viz type
 TABLE_VIZ_MAX_ROW_SERVER = 500000
 
@@ -1479,6 +1517,11 @@ SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = int(timedelta(seconds=10).total_seconds())
 # Timeout duration for SQL Lab fetching query results by the resultsKey.
 # 0 means no timeout.
 SQLLAB_QUERY_RESULT_TIMEOUT = 0
+
+# Connect/read timeout (in seconds) for the synchronous network call made when
+# detecting ODPS (MaxCompute) partition info during table preview. Prevents an
+# unreachable or slow ODPS endpoint from blocking the web worker indefinitely.
+ODPS_PARTITION_DETECT_TIMEOUT = int(timedelta(seconds=30).total_seconds())
 
 # The cost returned by the databases is a relative value; in order to map the cost to
 # a tangible value you need to define a custom formatter that takes into consideration
@@ -2341,7 +2384,10 @@ GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE: None | (Literal["None", "Lax", "Strict
     None
 )
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
-GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"  # noqa: S105
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
+# Lifetime of the async-query JWT, in seconds. After this period the token
+# expires and a fresh one is issued on the next request.
+GLOBAL_ASYNC_QUERIES_JWT_EXPIRATION_SECONDS = int(timedelta(hours=1).total_seconds())
 GLOBAL_ASYNC_QUERIES_TRANSPORT: Literal["polling", "ws"] = "polling"
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
@@ -2442,6 +2488,8 @@ WELCOME_PAGE_LAST_TAB: Literal["examples", "all"] | tuple[str, list[dict[str, An
 ZIPPED_FILE_MAX_SIZE = 100 * 1024 * 1024  # 100MB
 # Max allowed compression ratio for a zipped file
 ZIP_FILE_MAX_COMPRESS_RATIO = 200.0
+# Max allowed total decompressed size across all entries in a zipped file
+ZIP_FILE_MAX_TOTAL_SIZE = 1024 * 1024 * 1024  # 1GB
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.  # noqa: E501
 # 'color' support only Ant Design semantic colors (e.g., 'error', 'warning', 'success', 'processing', 'default)  # noqa: E501

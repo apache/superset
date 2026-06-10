@@ -17438,6 +17438,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "Lastnost  `operation` poprocesirnega objekta ni definirana"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "Knjižnica `prophet` ni nameščena"
 

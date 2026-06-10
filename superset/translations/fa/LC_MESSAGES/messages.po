@@ -17393,6 +17393,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "خصوصیت `operation` از شیء پس از پردازش تعریف نشده است"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "بسته `prophet` نصب نشده است"
 

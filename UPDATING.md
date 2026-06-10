@@ -46,6 +46,10 @@ The `DURATION` number formatter now uses `Intl.DurationFormat` for locale-aware 
 
 To preserve sub-second precision in custom duration formatters, enable `formatSubMilliseconds`.
 
+### Cache warmup authenticates via SUPERSET_CACHE_WARMUP_USER
+
+The `cache-warmup` Celery task now drives a real WebDriver session for reliable authentication and reads the user to authenticate as from the new `SUPERSET_CACHE_WARMUP_USER` config option. It no longer consults `CACHE_WARMUP_EXECUTORS` for the warmup path. `SUPERSET_CACHE_WARMUP_USER` defaults to `None`, so the task fails fast with a clear message until you set it. Operators who previously relied on `CACHE_WARMUP_EXECUTORS` for cache warmup must set `SUPERSET_CACHE_WARMUP_USER` to a dedicated least-privilege user with access to the dashboards they want warmed up before the next warmup run.
+
 ### YDB now uses a native sqlglot dialect
 
 YDB SQL parsing now relies on the dedicated [`ydb-sqlglot-plugin`](https://pypi.org/project/ydb-sqlglot-plugin/) dialect, which registers itself with sqlglot automatically. YDB users must install this plugin (e.g., via `pip install "apache-superset[ydb]"`) to avoid a `ValueError` when Superset parses YDB queries.
@@ -55,6 +59,20 @@ YDB SQL parsing now relies on the dedicated [`ydb-sqlglot-plugin`](https://pypi.
 The embedded dashboard page now validates the origin of incoming `postMessage` events against the dashboard's configured **Allowed Domains**. The server-rendered embedded page exposes the configured domains in its bootstrap payload, and the frontend rejects message events whose origin is not in that list.
 
 Enforcement only applies when the Allowed Domains list is non-empty. If the list is empty (the default), any origin is accepted, so there is no behavior change for embeds that did not configure Allowed Domains.
+
+### Default guest/async JWT secrets are rejected at startup
+
+Superset already refuses to start in production (non-debug, non-testing) when `SECRET_KEY` is left at its built-in default, and when `GUEST_TOKEN_JWT_SECRET` is left at its default while `EMBEDDED_SUPERSET` is enabled. This behavior is extended to `GLOBAL_ASYNC_QUERIES_JWT_SECRET`: if the `GLOBAL_ASYNC_QUERIES` feature flag is enabled and the secret is still the publicly known default (`test-secret-change-me`), Superset logs a clear error and refuses to start.
+
+As with the existing `SECRET_KEY` check, this only fails in production. In debug mode, testing mode, or under the test runner, a warning is logged instead of exiting, so local development is unaffected.
+
+To resolve the error, set a strong random value in `superset_config.py`:
+
+```python
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = "<output of: openssl rand -base64 42>"
+```
+
+The check is only active when the relevant feature is enabled, so deployments that do not use global async queries (or embedding) are not affected.
 
 ### Dataset import validates catalog against the target connection
 

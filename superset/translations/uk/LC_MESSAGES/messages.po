@@ -16998,6 +16998,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "Властивість `operation` обробленого об’єкта не визначено"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "Пакунок `prophet` не встановлено"
 
