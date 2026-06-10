@@ -34,6 +34,7 @@ from superset.exceptions import (
 )
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database
+from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
 from superset.utils import core as utils
 from superset.utils.rls import apply_rls
@@ -115,14 +116,30 @@ class QueryEstimationCommand(BaseCommand):
 
         if is_feature_enabled("RLS_IN_SQLLAB"):
             # Resolve the default catalog/schema the same way the execution path
-            # does (``SQLExecutor._prepare_scripts`` /
-            # ``sql_lab.execute_sql_statements``) before injecting RLS. Without
-            # this, unqualified table references can't be matched against
-            # datasets registered under the database's default schema, so the
-            # estimate would skip predicates the real query enforces — breaking
-            # the security parity this command exists to provide.
+            # does (``sql_lab.execute_sql_statements``) before injecting RLS.
+            # Crucially this goes through ``get_default_schema_for_query`` rather
+            # than the plain ``get_default_schema``, so engine-specific per-query
+            # security gates run too — e.g. ``PostgresEngineSpec`` rejects a query
+            # that sets ``search_path``. Resolving against the static default
+            # schema instead would both skip that gate and let unqualified tables
+            # dodge the RLS predicates the real query enforces, defeating the
+            # security parity this command exists to provide.
             catalog = self._catalog or self._database.get_default_catalog()
-            schema = self._schema or self._database.get_default_schema(catalog) or ""
+            # Build a transient (unsaved) Query so the engine spec can resolve the
+            # effective per-query schema exactly as the executor does.
+            probe_query = Query(
+                database=self._database,
+                sql=self._sql,
+                schema=self._schema or None,
+                catalog=catalog,
+            )
+            schema = (
+                self._schema
+                or self._database.get_default_schema_for_query(
+                    probe_query, self._template_params
+                )
+                or ""
+            )
             for statement in parsed_script.statements:
                 apply_rls(self._database, catalog, schema, statement)
             return parsed_script.format()
