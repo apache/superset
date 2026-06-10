@@ -17,9 +17,6 @@
 
 from superset.utils.core import split
 
-# ======================================
-#  (BLACK BOX)
-# ======================================
 
 def test_split_empty_string():
     assert list(split("")) == [""]
@@ -58,9 +55,6 @@ def test_split_nested_parentheses():
     ]
 
 
-# ======================================
-#  (WHITE BOX)
-# ======================================
 
 def test_branch_separator_found():
     assert list(split("a b")) == [
