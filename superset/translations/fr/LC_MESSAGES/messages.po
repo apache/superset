@@ -204,15 +204,15 @@ msgid "\"%s\" is now the system default theme"
 msgstr "\"%s\" est maintenant le thème par défaut du système"
 
 #, fuzzy, python-format
-msgid "% calculation"
+msgid "%% calculation"
 msgstr "%% calcul"
 
 #, fuzzy, python-format
-msgid "% of parent"
+msgid "%% of parent"
 msgstr "%% de parent"
 
 #, fuzzy, python-format
-msgid "% of total"
+msgid "%% of total"
 msgstr "%% du total"
 
 #, python-format
