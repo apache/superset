@@ -238,10 +238,9 @@ def import_dataset(  # noqa: C901
     )
     # `user` is None for background / example-loader paths (no Flask request
     # user). Combined with ``can_write=True`` (typically from
-    # ``ignore_permissions=True``), the ownership check below is intentionally
-    # skipped because the caller has already established trust at the command
-    # level. This matches pre-existing overwrite behaviour but now also applies
-    # to soft-deleted matches via ``needs_mutation``.
+    # ``ignore_permissions=True``), the ownership checks in the restore /
+    # overwrite branches below are intentionally skipped because the caller has
+    # already established trust at the command level.
     user = get_user()
     # Tracks whether we entered the soft-deleted mutation path so the
     # downstream `sync` decision (below) can reflect that an
@@ -249,54 +248,30 @@ def import_dataset(  # noqa: C901
     is_soft_deleted_match = False
 
     if existing := find_existing_for_import(SqlaTable, config["uuid"]):
-        is_soft_deleted = existing.deleted_at is not None
-        needs_mutation = overwrite or is_soft_deleted
-        if needs_mutation and can_write and user:
-            if user not in existing.owners and not security_manager.is_admin():
+        if existing.deleted_at is not None:
+            # RESTORE path — re-importing a soft-deleted UUID is an implicit
+            # restore-with-update, a distinct operation from overwriting an
+            # alive row, so it is handled in its own branch.
+            if not can_write:
+                # Case B: don't silently return a soft-deleted row to a caller
+                # without write permission — that would let the importer
+                # reattach charts/dashboards to a deleted dataset and produce
+                # broken charts.
+                raise ImportFailedError(
+                    "Dataset was deleted and re-import requires can_write "
+                    "permission to restore it"
+                )
+            # ``user`` is None on background / example-loader paths; combined
+            # with ``can_write`` (typically from ``ignore_permissions=True``)
+            # the ownership check is intentionally skipped because the caller
+            # already established trust.
+            if user and (
+                user not in existing.owners and not security_manager.is_admin()
+            ):
                 raise ImportFailedError(
                     "A dataset already exists and user doesn't have "
-                    "permissions to "
-                    f"{'restore' if is_soft_deleted else 'overwrite'} it"
+                    "permissions to restore it"
                 )
-        if is_soft_deleted and not can_write:
-            # Case B: would-be restore-via-import without write permission.
-            # Raise rather than silently returning the soft-deleted row,
-            # which would let callers reattach charts to a deleted dataset
-            # and produce broken charts.
-            #
-            # Keyed on ``is_soft_deleted`` rather than ``needs_mutation``: an
-            # *active* row imported with overwrite=True but no can_write is not
-            # a restore, so it must fall through to ``return existing`` below
-            # (the pre-soft-delete overwrite-without-permission behaviour)
-            # instead of raising the restore error.
-            raise ImportFailedError(
-                "Dataset was deleted and re-import requires can_write "
-                "permission to restore it"
-            )
-        if not needs_mutation or not can_write:
-            return existing
-        # Mutation path. Restore a soft-deleted match in place rather
-        # than hard-delete-and-replace: a hard delete would cascade
-        # through the chart back-reference and the delete-orphan
-        # child relationships (table_columns, sql_metrics), which the
-        # import would then need to reconstruct.
-        #
-        # How the restore lands as an UPDATE: clearing
-        # existing.deleted_at marks the in-session row dirty and the
-        # explicit flush emits the deleted_at = NULL UPDATE before
-        # SqlaTable.import_from_dict (below) does its own query-by-
-        # uuid lookup. Without the flush we would be relying on
-        # autoflush ahead of that internal query — correct under
-        # default session config but a hidden contract; the explicit
-        # flush makes it robust. The lookup then finds the now-live
-        # row (the listener filters deleted_at IS NULL) and
-        # import_from_dict applies the config as field updates on the
-        # existing object, preserving the PK. Note: config["id"] is
-        # set defensively, but ImportExportMixin.import_from_dict
-        # strips it today because SqlaTable.export_fields does not
-        # contain "id"; what actually binds to the existing row is
-        # the uuid uniqueness constraint used inside import_from_dict.
-        if is_soft_deleted:
             # Before clearing ``deleted_at``, refuse if another active dataset
             # already references the same physical table. Otherwise the
             # restore would produce two live ``SqlaTable`` rows for one
@@ -310,7 +285,29 @@ def import_dataset(  # noqa: C901
                     "Dataset cannot be restored via re-import because another "
                     "active dataset already references the same physical table"
                 )
-            # Snapshot ``deleted_at`` so we can roll back the clear if the
+            # Restore in place (clear ``deleted_at``) rather than
+            # hard-delete-and-replace: a hard delete would cascade through the
+            # chart back-reference and the delete-orphan child relationships
+            # (table_columns, sql_metrics), which the import would then need to
+            # reconstruct.
+            #
+            # How the restore lands as an UPDATE: clearing
+            # ``existing.deleted_at`` marks the in-session row dirty and the
+            # explicit flush emits the ``deleted_at = NULL`` UPDATE before
+            # ``SqlaTable.import_from_dict`` (below) does its own query-by-uuid
+            # lookup. Without the flush we would be relying on autoflush ahead
+            # of that internal query — correct under default session config but
+            # a hidden contract; the explicit flush makes it robust. The lookup
+            # then finds the now-live row (the listener filters ``deleted_at IS
+            # NULL``) and ``import_from_dict`` applies the config as field
+            # updates on the existing object, preserving the PK. Note:
+            # ``config["id"]`` is set defensively, but
+            # ``ImportExportMixin.import_from_dict`` strips it because
+            # ``SqlaTable.export_fields`` does not contain "id"; what actually
+            # binds to the existing row is the uuid uniqueness constraint used
+            # inside ``import_from_dict``.
+            #
+            # Snapshot ``deleted_at`` first so we can roll back the clear if the
             # downstream ``import_from_dict`` hits the legacy
             # ``MultipleResultsFound`` fallback. Without the rollback, an
             # ambiguous import would leave the dataset half-restored
@@ -319,7 +316,21 @@ def import_dataset(  # noqa: C901
             existing.deleted_at = None
             db.session.flush()
             is_soft_deleted_match = True
-        config["id"] = existing.id
+            config["id"] = existing.id
+        else:
+            # OVERWRITE path — existing alive row. Without ``overwrite`` or
+            # write permission, return it unchanged (the pre-soft-delete
+            # overwrite-without-permission behaviour).
+            if not overwrite or not can_write:
+                return existing
+            if user and (
+                user not in existing.owners and not security_manager.is_admin()
+            ):
+                raise ImportFailedError(
+                    "A dataset already exists and user doesn't have "
+                    "permissions to overwrite it"
+                )
+            config["id"] = existing.id
 
     elif not can_write:
         raise ImportFailedError(
