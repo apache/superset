@@ -24,6 +24,7 @@ from unittest.mock import patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.common.schema_discovery import (
@@ -460,6 +461,58 @@ class TestGetSchemaToolViaClient:
         for field in ("owner", "created_by_fk_or_owner"):
             assert field not in info["filter_columns"]
 
+    @patch(
+        "superset.daos.report.ReportScheduleDAO.get_filterable_columns_and_operators"
+    )
+    @pytest.mark.asyncio
+    async def test_get_schema_report_omits_self_referencing_filter_columns(
+        self, mock_filters, mcp_server
+    ):
+        """Test that report schema does not advertise self-referencing filter columns.
+
+        Even if the DAO returns owners.id or created_by_fk_or_owner, they must be
+        excluded — these synthetic columns are generated server-side from the
+        owned_by_me flag and are not directly usable by LLM callers.
+        """
+        mock_filters.return_value = {
+            "name": ["eq", "ilike"],
+            "type": ["eq"],
+            "active": ["eq"],
+            "last_state": ["eq"],
+            "creation_method": ["eq"],
+            "owners.id": ["eq", "in"],
+            "created_by_fk_or_owner": ["eq"],
+        }
+
+        with patch("superset.is_feature_enabled", return_value=True):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "get_schema", {"request": {"model_type": "report"}}
+                )
+
+        data = json.loads(result.content[0].text)
+        info = data["schema_info"]
+
+        assert "name" in info["filter_columns"]
+        assert "type" in info["filter_columns"]
+        assert "active" in info["filter_columns"]
+        assert "last_state" in info["filter_columns"]
+        assert "creation_method" in info["filter_columns"]
+        for field in ("owners.id", "created_by_fk_or_owner"):
+            assert field not in info["filter_columns"]
+
+    @pytest.mark.asyncio
+    async def test_get_schema_report_requires_alert_reports_feature_flag(
+        self, mcp_server
+    ):
+        """Report schema discovery is gated by the ALERT_REPORTS feature flag."""
+        with patch("superset.is_feature_enabled", return_value=False):
+            async with Client(mcp_server) as client:
+                with pytest.raises(ToolError, match="Alerts & Reports"):
+                    await client.call_tool(
+                        "get_schema", {"request": {"model_type": "report"}}
+                    )
+
 
 class TestGetSchemaEdgeCases:
     """Test edge cases for get_schema tool."""
@@ -545,3 +598,13 @@ class TestSchemaDiscoveryConstants:
         assert "slice_name" in CHART_SEARCH_COLUMNS
         assert "table_name" in DATASET_SEARCH_COLUMNS
         assert "dashboard_title" in DASHBOARD_SEARCH_COLUMNS
+
+
+class TestGetSchemaPermissionMap:
+    """Verify _MODEL_TYPE_CLASS_PERMISSION and _SCHEMA_CORE_FACTORIES are in sync."""
+
+    def test_all_schema_factory_types_covered(self):
+        """Every key in _SCHEMA_CORE_FACTORIES must have a permission entry."""
+        factories = set(get_schema_module._SCHEMA_CORE_FACTORIES.keys())
+        perms = set(get_schema_module._MODEL_TYPE_CLASS_PERMISSION.keys())
+        assert factories == perms

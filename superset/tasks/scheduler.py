@@ -38,6 +38,7 @@ from superset.commands.tasks.prune import TaskPruneCommand
 from superset.daos.report import ReportScheduleDAO
 from superset.daos.tasks import TaskDAO
 from superset.extensions import celery_app
+from superset.key_value.commands.prune import KeyValuePruneCommand
 from superset.stats_logger import BaseStatsLogger
 from superset.tasks.ambient_context import use_context
 from superset.tasks.constants import ABORT_STATES, TERMINAL_STATES
@@ -234,6 +235,21 @@ def prune_tasks(
         TaskPruneCommand(retention_period_days, max_rows_per_run).run()
     except CommandException as ex:
         logger.exception("An error occurred while pruning async tasks: %s", ex)
+
+
+@celery_app.task(name="prune_key_value", bind=True)
+def prune_key_value(
+    self: Task,
+    max_rows_per_run: int | None = None,
+    **kwargs: Any,
+) -> None:
+    stats_logger: BaseStatsLogger = current_app.config["STATS_LOGGER"]
+    stats_logger.incr("prune_key_value")
+
+    try:
+        KeyValuePruneCommand(max_rows_per_run).run()
+    except CommandException as ex:
+        logger.exception("An error occurred while pruning the key-value store: %s", ex)
 
 
 @celery_app.task(name="tasks.execute", bind=True)
