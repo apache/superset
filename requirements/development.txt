@@ -1125,7 +1125,7 @@ wsproto==1.2.0
     # via
     #   -c requirements/base-constraint.txt
     #   trio-websocket
-wtforms==3.2.1
+wtforms==3.2.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
