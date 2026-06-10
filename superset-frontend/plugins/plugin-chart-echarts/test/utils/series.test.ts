@@ -667,7 +667,7 @@ describe('extractSeries', () => {
     ]);
   });
 
-  test('should convert NULL x-values to NULL_STRING for categorical axis', () => {
+  test('should convert NULL x-values to NULL_STRING() for categorical axis', () => {
     const data = [
       {
         browser: 'Firefox',
@@ -694,7 +694,7 @@ describe('extractSeries', () => {
           name: 'count',
           data: [
             ['Firefox', 5],
-            [NULL_STRING, 10],
+            [NULL_STRING(), 10],
             ['Chrome', 8],
           ],
         },
@@ -1624,7 +1624,7 @@ describe('dedupSeries', () => {
 
 describe('sanitizeHtml', () => {
   test('should remove html tags from series name', () => {
-    expect(sanitizeHtml(NULL_STRING)).toEqual('&lt;NULL&gt;');
+    expect(sanitizeHtml('<NULL>')).toEqual('&lt;NULL&gt;');
   });
 });
 

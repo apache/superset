@@ -150,7 +150,7 @@ export default function transformProps(chartProps: EchartsBubbleChartProps) {
 
   data.forEach(datum => {
     const dataName = seriesLabel ? datum[seriesLabel] : datum[entityLabel];
-    const name = dataName ? String(dataName) : NULL_STRING;
+    const name = dataName ? String(dataName) : NULL_STRING();
     const bubbleSeriesValue = seriesLabel ? datum[seriesLabel] : null;
 
     series.push({
