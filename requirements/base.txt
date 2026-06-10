@@ -50,7 +50,7 @@ cattrs==25.1.1
     # via requests-cache
 celery==5.5.2
     # via apache-superset (pyproject.toml)
-certifi==2025.6.15
+certifi==2026.5.20
     # via
     #   requests
     #   selenium
@@ -380,7 +380,7 @@ rpds-py==0.25.0
     #   referencing
 rsa==4.9.1
     # via google-auth
-selenium==4.32.0
+selenium==4.44.0
     # via apache-superset (pyproject.toml)
 setuptools==80.9.0
     # via -r requirements/base.in
@@ -423,7 +423,7 @@ sshtunnel==0.4.0
     # via apache-superset (pyproject.toml)
 tabulate==0.10.0
     # via apache-superset (pyproject.toml)
-trio==0.30.0
+trio==0.33.0
     # via
     #   selenium
     #   trio-websocket
