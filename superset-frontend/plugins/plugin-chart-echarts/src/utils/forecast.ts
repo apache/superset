@@ -32,14 +32,25 @@ import {
 } from '../types';
 import { sanitizeHtml } from './series';
 
-const seriesTypeRegex = new RegExp(
+const forecastSuffixRegex = new RegExp(
   `(.+)(${ForecastSeriesEnum.ForecastLower}|${ForecastSeriesEnum.ForecastTrend}|${ForecastSeriesEnum.ForecastUpper})$`,
 );
 export const extractForecastSeriesContext = (
   seriesName: OptionName,
 ): ForecastSeriesContext => {
   const name = seriesName as string;
-  const regexMatch = seriesTypeRegex.exec(name);
+
+  // Check for anomaly suffix first, then resolve nested forecast suffix
+  if (name.endsWith(ForecastSeriesEnum.Anomaly)) {
+    const stripped = name.slice(0, -ForecastSeriesEnum.Anomaly.length);
+    const forecastMatch = forecastSuffixRegex.exec(stripped);
+    return {
+      name: forecastMatch ? forecastMatch[1] : stripped,
+      type: ForecastSeriesEnum.Anomaly,
+    };
+  }
+
+  const regexMatch = forecastSuffixRegex.exec(name);
   if (!regexMatch) return { name, type: ForecastSeriesEnum.Observation };
   return {
     name: regexMatch[1],
@@ -84,6 +95,8 @@ export const extractForecastValuesFromTooltipParams = (
         forecastValues.forecastLower = numericValue;
       if (context.type === ForecastSeriesEnum.ForecastUpper)
         forecastValues.forecastUpper = numericValue;
+      if (context.type === ForecastSeriesEnum.Anomaly)
+        forecastValues.anomaly = numericValue;
     }
   });
   return values;
@@ -95,6 +108,7 @@ export const formatForecastTooltipSeries = ({
   forecastTrend,
   forecastLower,
   forecastUpper,
+  anomaly,
   marker,
   formatter,
   truncation = 'end',
@@ -132,6 +146,10 @@ export const formatForecastTooltipSeries = ({
         forecastLower + forecastUpper,
       )})`;
     }
+  }
+  if (typeof anomaly === 'number') {
+    if (value) value += ' ';
+    value += `⚠ anomaly`;
   }
   return [name, value];
 };
@@ -177,6 +195,7 @@ export function reorderForecastSeries(row: SeriesOption[]): SeriesOption[] {
     [ForecastSeriesEnum.ForecastUpper]: 2,
     [ForecastSeriesEnum.ForecastTrend]: 3,
     [ForecastSeriesEnum.Observation]: 4,
+    [ForecastSeriesEnum.Anomaly]: 5,
   };
 
   // Check if any item needs reordering

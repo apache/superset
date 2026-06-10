@@ -298,6 +298,7 @@ export function transformSeries(
   const isConfidenceBand =
     forecastSeries.type === ForecastSeriesEnum.ForecastLower ||
     forecastSeries.type === ForecastSeriesEnum.ForecastUpper;
+  const isAnomaly = forecastSeries.type === ForecastSeriesEnum.Anomaly;
   // When cross-filtering by X-axis (no dimensions), selectedValues contains
   // X-axis values rather than series names, so skip series-level dimming.
   const isFiltered =
@@ -333,6 +334,8 @@ export function transformSeries(
     (seriesType === 'scatter' || (hasForecast && isObservation))
   ) {
     plotType = 'scatter';
+  } else if (isAnomaly) {
+    plotType = 'scatter';
   } else if (isConfidenceBand) {
     plotType = 'line';
   } else {
@@ -346,9 +349,12 @@ export function transformSeries(
    * same as the original series, otherwise uses separate colors
    * */
   const itemStyle: ItemStyleOption = {
-    color: timeShiftColor
-      ? colorScale(colorScaleKey, sliceId)
-      : colorScale(seriesKey || forecastSeries.name, sliceId),
+    color: isAnomaly
+      ? (theme?.colorError ??
+        colorScale(seriesKey || forecastSeries.name, sliceId))
+      : timeShiftColor
+        ? colorScale(colorScaleKey, sliceId)
+        : colorScale(seriesKey || forecastSeries.name, sliceId),
     opacity,
     borderWidth: 0,
   };
@@ -359,7 +365,9 @@ export function transformSeries(
   }
   let emphasis = {};
   let showSymbol = false;
-  if (!isConfidenceBand) {
+  if (isAnomaly) {
+    showSymbol = true;
+  } else if (!isConfidenceBand) {
     if (plotType === 'scatter') {
       showSymbol = true;
     } else if (hasForecast && isObservation) {
@@ -452,6 +460,7 @@ export function transformSeries(
           [
             ForecastSeriesEnum.ForecastUpper,
             ForecastSeriesEnum.ForecastLower,
+            ForecastSeriesEnum.Anomaly,
           ].includes(forecastSeries.type)
         ) {
           return '';
