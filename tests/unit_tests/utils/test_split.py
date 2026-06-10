@@ -55,7 +55,6 @@ def test_split_nested_parentheses():
     ]
 
 
-
 def test_branch_separator_found():
     assert list(split("a b")) == [
         "a",
