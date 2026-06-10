@@ -95,20 +95,13 @@ function ControlLabel({
     typeof description === 'function'
       ? (description as () => ReactNode)()
       : description;
-  const tooltipText =
-    resolvedDescription != null && typeof resolvedDescription === 'string'
-      ? resolvedDescription
-      : resolvedDescription != null
-        ? String(resolvedDescription)
-        : undefined;
-
   return (
     <StyledLabel>
       {resolvedLabel}
-      {tooltipText && (
+      {resolvedDescription != null && (
         <>
           &nbsp;
-          <InfoTooltip placement="top" tooltip={tooltipText} />
+          <InfoTooltip placement="top" tooltip={resolvedDescription} />
         </>
       )}
     </StyledLabel>

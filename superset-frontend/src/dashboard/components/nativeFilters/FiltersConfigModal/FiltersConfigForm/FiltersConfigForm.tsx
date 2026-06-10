@@ -620,7 +620,7 @@ const FiltersConfigForm = (
       !mainControlItems.groupby;
 
   const onSortChanged = (value: boolean | undefined) => {
-    const previous = form.getFieldValue('filters')?.[filterId].controlValues;
+    const previous = form.getFieldValue('filters')?.[filterId]?.controlValues;
     setNativeFilterFieldValues(form, filterId, {
       controlValues: {
         ...previous,
@@ -631,7 +631,7 @@ const FiltersConfigForm = (
   };
 
   const onEnableSingleValueChanged = (value: SingleValueType | undefined) => {
-    const previous = form.getFieldValue('filters')?.[filterId].controlValues;
+    const previous = form.getFieldValue('filters')?.[filterId]?.controlValues;
     setNativeFilterFieldValues(form, filterId, {
       controlValues: {
         ...previous,
@@ -657,7 +657,7 @@ const FiltersConfigForm = (
   }, [formFilter?.column, datasetDetails?.columns]);
 
   const onOperatorTypeChanged = (value: SelectFilterOperatorType) => {
-    const previous = form.getFieldValue('filters')?.[filterId].controlValues;
+    const previous = form.getFieldValue('filters')?.[filterId]?.controlValues;
     setNativeFilterFieldValues(form, filterId, {
       controlValues: {
         ...previous,
@@ -1439,7 +1439,7 @@ const FiltersConfigForm = (
                                               const previous =
                                                 form.getFieldValue(
                                                   'filters',
-                                                )?.[filterId].controlValues ||
+                                                )?.[filterId]?.controlValues ||
                                                 {};
                                               setNativeFilterFieldValues(
                                                 form,
