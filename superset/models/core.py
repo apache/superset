@@ -527,9 +527,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                                     finally:
                                         cursor.close()
 
-                                sqla.event.listen(
-                                    engine, "connect", run_prequeries
-                                )
+                                sqla.event.listen(engine, "connect", run_prequeries)
                                 _PREQUERIES_REGISTERED_ENGINES.add(engine)
                         yield engine
                     else:
