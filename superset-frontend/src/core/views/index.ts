@@ -31,6 +31,8 @@ import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import { Disposable } from '../models';
 
 type View = viewsApi.View;
+type ViewRegisteredEvent = viewsApi.ViewRegisteredEvent;
+type ViewUnregisteredEvent = viewsApi.ViewUnregisteredEvent;
 
 const viewRegistry: Map<
   string,
@@ -39,16 +41,25 @@ const viewRegistry: Map<
 
 const locationIndex: Map<string, Set<string>> = new Map();
 
-const listeners = new Set<() => void>();
+const syncListeners = new Set<() => void>();
 const subscribe = (listener: () => void) => {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+  syncListeners.add(listener);
+  return () => syncListeners.delete(listener);
 };
 
+const registerListeners = new Set<(e: ViewRegisteredEvent) => void>();
+const unregisterListeners = new Set<(e: ViewUnregisteredEvent) => void>();
+
 const viewsCache = new Map<string, View[] | undefined>();
-const notify = () => {
+const notifyRegister = (event: ViewRegisteredEvent) => {
   viewsCache.clear();
-  listeners.forEach(l => l());
+  syncListeners.forEach(l => l());
+  registerListeners.forEach(l => l(event));
+};
+const notifyUnregister = (event: ViewUnregisteredEvent) => {
+  viewsCache.clear();
+  syncListeners.forEach(l => l());
+  unregisterListeners.forEach(l => l(event));
 };
 
 const registerView: typeof viewsApi.registerView = (
@@ -63,12 +74,12 @@ const registerView: typeof viewsApi.registerView = (
   const ids = locationIndex.get(location) ?? new Set();
   ids.add(id);
   locationIndex.set(location, ids);
-  notify();
+  notifyRegister({ view, location });
 
   return new Disposable(() => {
     viewRegistry.delete(id);
     locationIndex.get(location)?.delete(id);
-    notify();
+    notifyUnregister({ view, location });
   });
 };
 
@@ -103,7 +114,23 @@ export const useViews = (location: string): View[] | undefined =>
     () => undefined,
   );
 
+export const onDidRegisterView: typeof viewsApi.onDidRegisterView = (
+  listener: (e: ViewRegisteredEvent) => void,
+): Disposable => {
+  registerListeners.add(listener);
+  return new Disposable(() => registerListeners.delete(listener));
+};
+
+export const onDidUnregisterView: typeof viewsApi.onDidUnregisterView = (
+  listener: (e: ViewUnregisteredEvent) => void,
+): Disposable => {
+  unregisterListeners.add(listener);
+  return new Disposable(() => unregisterListeners.delete(listener));
+};
+
 export const views: typeof viewsApi = {
   registerView,
   getViews,
+  onDidRegisterView,
+  onDidUnregisterView,
 };

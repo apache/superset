@@ -30,6 +30,8 @@ import { Disposable } from '../models';
 
 type MenuItem = menusApi.MenuItem;
 type Menu = menusApi.Menu;
+type MenuItemRegisteredEvent = menusApi.MenuItemRegisteredEvent;
+type MenuItemUnregisteredEvent = menusApi.MenuItemUnregisteredEvent;
 
 type StoredMenuItem = {
   item: MenuItem;
@@ -39,16 +41,25 @@ type StoredMenuItem = {
 
 const menuItems: StoredMenuItem[] = [];
 
-const listeners = new Set<() => void>();
+const syncListeners = new Set<() => void>();
 const subscribe = (listener: () => void) => {
-  listeners.add(listener);
-  return () => listeners.delete(listener);
+  syncListeners.add(listener);
+  return () => syncListeners.delete(listener);
 };
 
+const registerListeners = new Set<(e: MenuItemRegisteredEvent) => void>();
+const unregisterListeners = new Set<(e: MenuItemUnregisteredEvent) => void>();
+
 const menuCache = new Map<string, Menu | undefined>();
-const notify = () => {
+const notifyRegister = (event: MenuItemRegisteredEvent) => {
   menuCache.clear();
-  listeners.forEach(l => l());
+  syncListeners.forEach(l => l());
+  registerListeners.forEach(l => l(event));
+};
+const notifyUnregister = (event: MenuItemUnregisteredEvent) => {
+  menuCache.clear();
+  syncListeners.forEach(l => l());
+  unregisterListeners.forEach(l => l(event));
 };
 
 const registerMenuItem: typeof menusApi.registerMenuItem = (
@@ -58,13 +69,13 @@ const registerMenuItem: typeof menusApi.registerMenuItem = (
 ): Disposable => {
   const stored: StoredMenuItem = { item, location, group };
   menuItems.push(stored);
-  notify();
+  notifyRegister({ item, location, group });
   return new Disposable(() => {
     const index = menuItems.indexOf(stored);
     if (index >= 0) {
       menuItems.splice(index, 1);
     }
-    notify();
+    notifyUnregister({ item, location, group });
   });
 };
 
@@ -104,7 +115,22 @@ export const useMenu = (location: string): Menu | undefined =>
     () => undefined,
   );
 
+export const onDidRegisterMenuItem: typeof menusApi.onDidRegisterMenuItem = (
+  listener: (e: MenuItemRegisteredEvent) => void,
+): Disposable => {
+  registerListeners.add(listener);
+  return new Disposable(() => registerListeners.delete(listener));
+};
+
+export const onDidUnregisterMenuItem: typeof menusApi.onDidUnregisterMenuItem =
+  (listener: (e: MenuItemUnregisteredEvent) => void): Disposable => {
+    unregisterListeners.add(listener);
+    return new Disposable(() => unregisterListeners.delete(listener));
+  };
+
 export const menus: typeof menusApi = {
   registerMenuItem,
   getMenu,
+  onDidRegisterMenuItem,
+  onDidUnregisterMenuItem,
 };
