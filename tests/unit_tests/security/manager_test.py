@@ -1433,3 +1433,189 @@ def test_prefetch_rls_filters_works_for_guest_user(
     # Cache should be populated with (username, table_id) keys and empty lists
     assert mock_g._rls_filter_cache[("guest_user", 10)] == []
     assert mock_g._rls_filter_cache[("guest_user", 20)] == []
+
+
+def test_validate_child_in_parent_multilayer_valid(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """Test validation succeeds for valid multi-layer child"""
+    sm = SupersetSecurityManager(appbuilder)
+
+    parent_slice = mocker.MagicMock(spec=Slice)
+    parent_slice.params = json.dumps(
+        {"viz_type": "deck_multi", "deck_slices": [1, 2, 3]}
+    )
+
+    # Child 2 is in parent's deck_slices
+    assert sm._validate_child_in_parent_multilayer(
+        child_slice_id=2, parent_slice=parent_slice
+    )
+
+
+def test_validate_child_in_parent_multilayer_invalid_child(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """Test validation fails for child not in parent config"""
+    sm = SupersetSecurityManager(appbuilder)
+
+    parent_slice = mocker.MagicMock(spec=Slice)
+    parent_slice.params = json.dumps(
+        {"viz_type": "deck_multi", "deck_slices": [1, 2, 3]}
+    )
+
+    # Child 5 is NOT in parent's deck_slices
+    assert not sm._validate_child_in_parent_multilayer(
+        child_slice_id=5, parent_slice=parent_slice
+    )
+
+
+def test_validate_child_in_parent_multilayer_wrong_viz_type(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """Test validation fails for non-multilayer charts"""
+    sm = SupersetSecurityManager(appbuilder)
+
+    parent_slice = mocker.MagicMock(spec=Slice)
+    parent_slice.params = json.dumps(
+        {
+            "viz_type": "line",  # Not deck_multi
+            "deck_slices": [1, 2, 3],
+        }
+    )
+
+    assert not sm._validate_child_in_parent_multilayer(
+        child_slice_id=2, parent_slice=parent_slice
+    )
+
+
+def test_validate_child_in_parent_multilayer_empty_deck_slices(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """Test validation fails when deck_slices is empty"""
+    sm = SupersetSecurityManager(appbuilder)
+
+    parent_slice = mocker.MagicMock(spec=Slice)
+    parent_slice.params = json.dumps({"viz_type": "deck_multi", "deck_slices": []})
+
+    assert not sm._validate_child_in_parent_multilayer(
+        child_slice_id=1, parent_slice=parent_slice
+    )
+
+
+def test_validate_child_in_parent_multilayer_no_deck_slices(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """Test validation fails when deck_slices is missing"""
+    sm = SupersetSecurityManager(appbuilder)
+
+    parent_slice = mocker.MagicMock(spec=Slice)
+    parent_slice.params = json.dumps(
+        {
+            "viz_type": "deck_multi"
+            # No deck_slices key
+        }
+    )
+
+    assert not sm._validate_child_in_parent_multilayer(
+        child_slice_id=1, parent_slice=parent_slice
+    )
+
+
+def test_validate_child_in_parent_multilayer_malformed_json(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """Test validation fails gracefully with malformed JSON"""
+    sm = SupersetSecurityManager(appbuilder)
+
+    parent_slice = mocker.MagicMock(spec=Slice)
+    parent_slice.params = "not valid json {{"
+
+    assert not sm._validate_child_in_parent_multilayer(
+        child_slice_id=1, parent_slice=parent_slice
+    )
+
+
+def test_validate_child_in_parent_multilayer_null_params(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """Test validation fails gracefully with null params"""
+    sm = SupersetSecurityManager(appbuilder)
+
+    parent_slice = mocker.MagicMock(spec=Slice)
+    parent_slice.params = None
+
+    assert not sm._validate_child_in_parent_multilayer(
+        child_slice_id=1, parent_slice=parent_slice
+    )
+
+
+def test_user_view_menu_names_for_guest_user(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that user_view_menu_names resolves permissions from the guest
+    user's roles instead of querying by user_id (which is None for guests).
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    mock_role = mocker.MagicMock(spec=Role)
+    mock_role.id = 99
+
+    mock_guest = mocker.MagicMock()
+    mock_guest.is_anonymous = False
+    mock_guest.roles = [mock_role]
+
+    mock_g = SimpleNamespace(user=mock_guest)
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    # The regression: guest path must NEVER fall through to get_user_id().
+    # Patching it as an error means an accidental fall-through fails loudly.
+    mock_get_user_id = mocker.patch(
+        "superset.security.manager.get_user_id",
+        side_effect=AssertionError("get_user_id must not be called for guest users"),
+    )
+
+    mock_result = [SimpleNamespace(name="[PostgreSQL].[my_table](id:1)")]
+    mock_query = mocker.MagicMock()
+    mock_query.join.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.all.return_value = mock_result
+    mocker.patch.object(sm.session, "query", return_value=mock_query)
+
+    result = sm.user_view_menu_names("datasource_access")
+
+    assert result == {"[PostgreSQL].[my_table](id:1)"}
+    mock_get_user_id.assert_not_called()
+    mock_query.filter.assert_called()
+
+
+def test_user_view_menu_names_for_guest_user_no_roles(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that user_view_menu_names returns empty set when guest user has
+    no roles with valid IDs.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    mock_role = mocker.MagicMock(spec=Role)
+    mock_role.id = None
+
+    mock_guest = mocker.MagicMock()
+    mock_guest.is_anonymous = False
+    mock_guest.roles = [mock_role]
+
+    mock_g = SimpleNamespace(user=mock_guest)
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mock_get_user_id = mocker.patch(
+        "superset.security.manager.get_user_id",
+        side_effect=AssertionError("get_user_id must not be called for guest users"),
+    )
+
+    result = sm.user_view_menu_names("datasource_access")
+
+    assert result == set()
+    mock_get_user_id.assert_not_called()

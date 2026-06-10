@@ -51,7 +51,11 @@ from sqlalchemy.orm.query import Query
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
-from superset.constants import CHANGE_ME_SECRET_KEY
+from superset.constants import (
+    CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
+    CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
+    CHANGE_ME_SECRET_KEY,
+)
 from superset.jinja_context import BaseTemplateProcessor
 from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
@@ -167,6 +171,21 @@ SAMPLES_ROW_LIMIT = 1000
 NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
+
+# Upper bound on the number of time-shift comparisons a single chart may request.
+# Each comparison spawns an additional query, so this caps the work amplification
+# from a single chart request while still allowing generous normal use.
+VIZ_TIME_COMPARE_MAX = 50
+
+# Upper bound on the number of sub-slices a deck.gl multi-layer chart may
+# aggregate. Each sub-slice issues its own query, so this caps the work
+# amplification from a single multi-layer request.
+DECK_MULTI_MAX_SLICES = 50
+
+# Upper bound on the page size accepted by the generic DAO list/pagination layer.
+# Caps how many rows a single paginated query can request, regardless of the
+# requested page size, to keep query result sets bounded.
+SQLALCHEMY_DAO_MAX_PAGE_SIZE = 1000
 
 # SupersetClient HTTP retry configuration
 # Controls retry behavior for all HTTP requests made through SupersetClient
@@ -311,6 +330,7 @@ WTF_CSRF_EXEMPT_LIST = [
     "superset.views.core.explore_json",
     "superset.views.core.log",
     "superset.views.datasource.views.samples",
+    "flask_appbuilder.security.views.acs",
 ]
 
 # Whether to run the web server in debug mode or not
@@ -432,10 +452,12 @@ LANGUAGES = {
     "pt_BR": {"flag": "br", "name": "Brazilian Portuguese"},
     "ru": {"flag": "ru", "name": "Russian"},
     "ko": {"flag": "kr", "name": "Korean"},
+    "cs": {"flag": "cz", "name": "Czech"},
     "sk": {"flag": "sk", "name": "Slovak"},
     "sl": {"flag": "si", "name": "Slovenian"},
+    "lv": {"flag": "lv", "name": "Latvian"},
     "nl": {"flag": "nl", "name": "Dutch"},
-    "uk": {"flag": "uk", "name": "Ukranian"},
+    "uk": {"flag": "ua", "name": "Ukrainian"},
     "mi": {"flag": "nz", "name": "Māori"},
 }
 # Turning off i18n by default as translation in most languages are
@@ -562,10 +584,17 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # in addition to relative timeshifts (e.g., "1 day ago")
     # @lifecycle: development
     "DATE_RANGE_TIMESHIFTS_ENABLED": False,
+    # Enable API key authentication via FAB SecurityManager
+    # When enabled, users can create/manage API keys in the User Info page
+    # @lifecycle: development
+    "FAB_API_KEY_ENABLED": False,
     # Enable granular export controls (can_export_data, can_export_image,
     # can_copy_clipboard) instead of the single can_csv permission
     # @lifecycle: development
     "GRANULAR_EXPORT_CONTROLS": False,
+    # Enable semantic layers and show semantic views alongside datasets
+    # @lifecycle: development
+    "SEMANTIC_LAYERS": False,
     # Enables advanced data type support
     # @lifecycle: development
     "ENABLE_ADVANCED_DATA_TYPES": False,
@@ -633,7 +662,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Experimental with potential security/performance risks.
     # See SUPERSET_META_DB_LIMIT.
     # @lifecycle: testing
-    # @docs: https://superset.apache.org/docs/configuration/databases/#querying-across-databases
+    # @docs: https://superset.apache.org/user-docs/databases/supported/superset-meta-database
     "ENABLE_SUPERSET_META_DB": False,
     # Enable query cost estimation. Supported in Presto, Postgres, and BigQuery.
     # Requires `cost_estimate_enabled: true` in database `extra` attribute.
@@ -1019,6 +1048,10 @@ EXTRA_SEQUENTIAL_COLOR_SCHEMES: list[dict[str, Any]] = []
 # from superset.tasks.types import ExecutorType, FixedExecutor
 #
 # CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER, FixedExecutor("admin")]
+#
+# NOTE: The `cache-warmup` Celery task no longer consults CACHE_WARMUP_EXECUTORS.
+# It authenticates as the single user configured via SUPERSET_CACHE_WARMUP_USER
+# (defined below). This setting is retained for other executor-based code paths.
 CACHE_WARMUP_EXECUTORS = [ExecutorType.OWNER]
 
 # ---------------------------------------------------
@@ -1059,6 +1092,11 @@ THUMBNAIL_CACHE_CONFIG: CacheConfig = {
     "CACHE_NO_NULL_WARNING": True,
 }
 THUMBNAIL_ERROR_CACHE_TTL = int(timedelta(days=1).total_seconds())
+
+# Cache warmup user — must be set explicitly before enabling the cache-warmup
+# Celery task. Intentionally defaults to None so operators pick a dedicated
+# least-privilege user rather than inadvertently running warmup as "admin".
+SUPERSET_CACHE_WARMUP_USER: str | None = None
 
 # Time before selenium times out after trying to locate an element on the page and wait
 # for that element to load for a screenshot.
@@ -1101,6 +1139,12 @@ SCREENSHOT_TILED_VIEWPORT_HEIGHT = 2000  # Height of each tile in pixels
 # The file upload folder, when using models with files
 UPLOAD_FOLDER = BASE_DIR + "/static/uploads/"
 UPLOAD_CHUNK_SIZE = 4096
+
+# Upper bound, in bytes, on the size of a single uploaded data file (e.g. CSV,
+# Excel, columnar). Files larger than this are rejected before their contents
+# are buffered into memory, keeping the resources consumed by a single upload
+# bounded. Set to ``None`` to disable the check. Defaults to 100 MB.
+UPLOAD_MAX_FILE_SIZE_BYTES: int | None = 100 * 1024 * 1024
 
 # ---------------------------------------------------
 # Cache configuration
@@ -1183,7 +1227,7 @@ HTML_SANITIZATION_SCHEMA_EXTENSIONS: dict[str, Any] = {}
 # than 6 slices in dashboard, a lot of time fetch requests are queued up and wait for
 # next available socket. PR #5039 added domain sharding for Superset,
 # and this feature can be enabled by configuration only (by default Superset
-# doesn't allow cross-domain request). This feature is deprecated, annd will be removed
+# doesn't allow cross-domain request). This feature is deprecated, and will be removed
 # in the next major version of Superset, as enabling HTTP2 will serve the same goals.
 SUPERSET_WEBSERVER_DOMAINS = None  # deprecated
 
@@ -1307,6 +1351,10 @@ MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 # Maximum number of rows returned for any analytical database query
 SQL_MAX_ROW = 100000
 
+# Maximum number of forecast periods accepted by the Prophet post-processing
+# operation. Bounds resource usage when predicting into the future.
+MAX_PROPHET_PERIODS = 10000
+
 # Maximum number of rows for any query with Server Pagination in Table Viz type
 TABLE_VIZ_MAX_ROW_SERVER = 500000
 
@@ -1412,6 +1460,13 @@ class CeleryConfig:  # pylint: disable=too-few-public-methods
         #     "schedule": crontab(minute=0, hour=0),
         #     "kwargs": {"retention_period_days": 90, "max_rows_per_run": 10000},
         # },
+        # Uncomment to enable pruning of expired entries from the key-value store
+        # (for example, rows left behind by the metastore cache backend)
+        # "prune_key_value": {
+        #     "task": "prune_key_value",
+        #     "schedule": crontab(minute=0, hour=0),
+        #     "kwargs": {"max_rows_per_run": 10000},
+        # },
         # Uncomment to enable Slack channel cache warm-up
         # "slack.cache_channels": {
         #     "task": "slack.cache_channels",
@@ -1442,6 +1497,9 @@ DEFAULT_DB_ID = None
 # Timeout duration for SQL Lab synchronous queries
 SQLLAB_TIMEOUT = int(timedelta(seconds=30).total_seconds())
 
+# BigQuery max fetch size in MB (limits memory usage when fetching large results)
+BQ_FETCH_MAX_MB = 200
+
 # Timeout duration for SQL Lab query validation
 SQLLAB_VALIDATION_TIMEOUT = int(timedelta(seconds=10).total_seconds())
 
@@ -1459,6 +1517,11 @@ SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT = int(timedelta(seconds=10).total_seconds())
 # Timeout duration for SQL Lab fetching query results by the resultsKey.
 # 0 means no timeout.
 SQLLAB_QUERY_RESULT_TIMEOUT = 0
+
+# Connect/read timeout (in seconds) for the synchronous network call made when
+# detecting ODPS (MaxCompute) partition info during table preview. Prevents an
+# unreachable or slow ODPS endpoint from blocking the web worker indefinitely.
+ODPS_PARTITION_DETECT_TIMEOUT = int(timedelta(seconds=30).total_seconds())
 
 # The cost returned by the databases is a relative value; in order to map the cost to
 # a tangible value you need to define a custom formatter that takes into consideration
@@ -1636,6 +1699,13 @@ FAB_ADD_SECURITY_API = True
 FAB_ADD_SECURITY_PERMISSION_VIEW = False
 FAB_ADD_SECURITY_VIEW_MENU_VIEW = False
 FAB_ADD_SECURITY_PERMISSION_VIEWS_VIEW = False
+
+# API Key Authentication via FAB SecurityManager
+# FAB reads this config directly to register the ApiKeyApi blueprint.
+# The FAB_API_KEY_ENABLED feature flag (in DEFAULT_FEATURE_FLAGS) controls
+# the frontend UI visibility independently.
+FAB_API_KEY_ENABLED = False
+FAB_API_KEY_PREFIXES = ["sst_"]
 
 # The link to a page containing common errors and their resolutions
 # It will be appended at the bottom of sql_lab errors.
@@ -1994,7 +2064,10 @@ SLACK_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 # For workspaces with 10k+ channels, consider increasing to 10
 SLACK_API_RATE_LIMIT_RETRY_COUNT = 2
 
-# The webdriver to use for generating reports. Use one of the following
+# The webdriver to use for generating reports when using Selenium (not Playwright).
+# This setting is ignored when PLAYWRIGHT_REPORTS_AND_THUMBNAILS is enabled, as
+# Playwright always uses Chromium regardless of this value.
+# Use one of the following:
 # firefox
 #   Requires: geckodriver and firefox installations
 #   Limitations: can be buggy at times
@@ -2056,6 +2129,15 @@ DEFAULT_RELATIVE_END_TIME = "today"
 SQL_VALIDATORS_BY_ENGINE = {
     "presto": "PrestoDBSQLValidator",
     "postgresql": "PostgreSQLValidator",
+    # SQLite-based engines (SQLite, GSheets, Shillelagh) can use the
+    # SQLiteSQLValidator, but it requires the optional syntaqlite package:
+    #
+    #   pip install "apache-superset[sqlite]"
+    #
+    # Once installed, enable validation by uncommenting the lines below:
+    # "sqlite": "SQLiteSQLValidator",
+    # "gsheets": "SQLiteSQLValidator",
+    # "shillelagh": "SQLiteSQLValidator",
 }
 
 # A list of preferred databases, in order. These databases will be
@@ -2141,7 +2223,14 @@ TALISMAN_CONFIG = {
             "https://events.mapbox.com",
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
-            "https://a.basemaps.cartocdn.com",
+            "https://basemaps.cartocdn.com",
+            "https://*.basemaps.cartocdn.com",
+            "https://tiles.openfreemap.org",
+            "https://*.maptiler.com",
+            "https://tiles.stadiamaps.com",
+            "https://tiles.versatiles.org",
+            "https://*.protomaps.com",
+            "https://*.maplibre.org",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -2181,7 +2270,14 @@ TALISMAN_DEV_CONFIG = {
             "https://events.mapbox.com",
             "https://tile.openstreetmap.org",
             "https://tile.osm.ch",
-            "https://a.basemaps.cartocdn.com",
+            "https://basemaps.cartocdn.com",
+            "https://*.basemaps.cartocdn.com",
+            "https://tiles.openfreemap.org",
+            "https://*.maptiler.com",
+            "https://tiles.stadiamaps.com",
+            "https://tiles.versatiles.org",
+            "https://*.protomaps.com",
+            "https://*.maplibre.org",
         ],
         "object-src": "'none'",
         "style-src": [
@@ -2278,7 +2374,10 @@ GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE: None | (Literal["None", "Lax", "Strict
     None
 )
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
-GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"  # noqa: S105
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
+# Lifetime of the async-query JWT, in seconds. After this period the token
+# expires and a fresh one is issued on the next request.
+GLOBAL_ASYNC_QUERIES_JWT_EXPIRATION_SECONDS = int(timedelta(hours=1).total_seconds())
 GLOBAL_ASYNC_QUERIES_TRANSPORT: Literal["polling", "ws"] = "polling"
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
@@ -2308,7 +2407,7 @@ GLOBAL_ASYNC_QUERIES_CACHE_BACKEND = {
 
 # Embedded config options
 GUEST_ROLE_NAME = "Public"
-GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105
+GUEST_TOKEN_JWT_SECRET = CHANGE_ME_GUEST_TOKEN_JWT_SECRET
 GUEST_TOKEN_JWT_ALGO = "HS256"  # noqa: S105
 GUEST_TOKEN_HEADER_NAME = "X-GuestToken"  # noqa: S105
 GUEST_TOKEN_JWT_EXP_SECONDS = 300  # 5 minutes
@@ -2379,6 +2478,8 @@ WELCOME_PAGE_LAST_TAB: Literal["examples", "all"] | tuple[str, list[dict[str, An
 ZIPPED_FILE_MAX_SIZE = 100 * 1024 * 1024  # 100MB
 # Max allowed compression ratio for a zipped file
 ZIP_FILE_MAX_COMPRESS_RATIO = 200.0
+# Max allowed total decompressed size across all entries in a zipped file
+ZIP_FILE_MAX_TOTAL_SIZE = 1024 * 1024 * 1024  # 1GB
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.  # noqa: E501
 # 'color' support only Ant Design semantic colors (e.g., 'error', 'warning', 'success', 'processing', 'default)  # noqa: E501
@@ -2482,6 +2583,17 @@ except ImportError:
 
 LOCAL_EXTENSIONS: list[str] = []
 EXTENSIONS_PATH: str | None = None
+# Extensions that must not be loaded, even if present in LOCAL_EXTENSIONS or
+# EXTENSIONS_PATH. Each entry is an extension id (denies every version) or
+# "<id>@<version>" (denies a specific version). Use this to disable an
+# extension found to be vulnerable or otherwise undesirable.
+EXTENSION_DENYLIST: list[str] = []
+
+# Minimum allowed version per extension id. An extension whose version is below
+# the configured minimum is refused, so a vulnerable release can be required to
+# be patched before it loads. Versions are compared with PEP 440 semantics, e.g.
+#   EXTENSION_VERSION_POLICY = {"acme.widget": "1.2.0"}
+EXTENSION_VERSION_POLICY: dict[str, str] = {}
 
 # Default polling interval for tasks (seconds)
 TASK_ABORT_POLLING_DEFAULT_INTERVAL = 10

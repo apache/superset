@@ -52,7 +52,7 @@ const ControlPopover: FC<PopoverProps> = ({
   getPopupContainer,
   getVisibilityRatio = getElementVisibilityRatio,
   open: visibleProp,
-  destroyTooltipOnHide = false,
+  destroyOnHidden = false,
   placement: initialPlacement = 'right',
   ...props
 }) => {
@@ -200,8 +200,9 @@ const ControlPopover: FC<PopoverProps> = ({
       placement={placement}
       onOpenChange={handleOnVisibleChange}
       getPopupContainer={handleGetPopupContainer}
-      destroyTooltipOnHide={destroyTooltipOnHide}
+      destroyOnHidden={destroyOnHidden}
       afterOpenChange={handleAfterOpenChange}
+      rootClassName="superset-explore-popover"
     />
   );
 };

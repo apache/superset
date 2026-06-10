@@ -88,7 +88,6 @@ using our `docker compose` constructs to support production-type use-cases. For 
 environments, we recommend using [minikube](https://minikube.sigs.k8s.io/docs/start/) along
 our [installing on k8s](https://superset.apache.org/docs/installation/running-on-kubernetes)
 documentation.
-configured to be secure.
 :::
 
 ### Supported environment variables
@@ -103,6 +102,8 @@ Affecting the Docker build process:
   save some precious time on startup by `SUPERSET_LOAD_EXAMPLES=no docker compose up`
 - **SUPERSET_LOG_LEVEL (default=info)**: Can be set to debug, info, warning, error, critical
   for more verbose logging
+- **SUPERSET_DEBUG_ENABLED (default=false)**: Enable Werkzeug debugger with interactive console.
+  Set to `true` for debugging: `SUPERSET_DEBUG_ENABLED=true docker compose up`
 
 For more env vars that affect your configuration, see this
 [superset_config.py](https://github.com/apache/superset/blob/master/docker/pythonpath_dev/superset_config.py)
@@ -485,7 +486,7 @@ Frontend assets (TypeScript, JavaScript, CSS, and images) must be compiled in or
 
 First, be sure you are using the following versions of Node.js and npm:
 
-- `Node.js`: Version 20
+- `Node.js`: Version 22 (LTS)
 - `npm`: Version 10
 
 We recommend using [nvm](https://github.com/nvm-sh/nvm) to manage your node environment:
@@ -668,7 +669,7 @@ A series of checks will now run when you make a git commit.
 
 ## Linting
 
-See [how tos](./howtos#linting)
+See [how tos](./howtos.md#linting)
 
 ## GitHub Actions and `act`
 

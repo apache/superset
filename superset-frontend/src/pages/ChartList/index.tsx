@@ -83,6 +83,7 @@ import { findPermission } from 'src/utils/findPermission';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { Tag } from 'src/components/Tag';
+import { datasetLabel } from 'src/features/semanticLayers/label';
 
 const FlexRowContainer = styled.div`
   align-items: center;
@@ -430,7 +431,7 @@ function ChartList(props: ChartListProps) {
             </Tooltip>
           );
         },
-        Header: t('Dataset'),
+        Header: datasetLabel(),
         accessor: 'datasource_id',
         disableSortBy: true,
         size: 'xl',
@@ -493,9 +494,9 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
-        accessor: 'last_saved_at',
+        accessor: 'changed_on_delta_humanized',
         size: 'xl',
-        id: 'last_saved_at',
+        id: 'changed_on_delta_humanized',
       },
       {
         Cell: ({ row: { original } }: any) => {
@@ -521,6 +522,7 @@ function ChartList(props: ChartListProps) {
                   placement="bottom"
                 >
                   <span
+                    data-test="chart-row-edit"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -537,6 +539,7 @@ function ChartList(props: ChartListProps) {
                   placement="bottom"
                 >
                   <span
+                    data-test="chart-row-export"
                     role="button"
                     tabIndex={0}
                     className="action-button"
@@ -564,6 +567,7 @@ function ChartList(props: ChartListProps) {
                       placement="bottom"
                     >
                       <span
+                        data-test="chart-row-delete"
                         role="button"
                         tabIndex={0}
                         className="action-button"
@@ -658,7 +662,7 @@ function ChartList(props: ChartListProps) {
           }),
       },
       {
-        Header: t('Dataset'),
+        Header: datasetLabel(),
         key: 'dataset',
         id: 'datasource_id',
         input: 'select',
@@ -666,7 +670,7 @@ function ChartList(props: ChartListProps) {
         unfilteredLabel: t('All'),
         fetchSelects: createFetchDatasets,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       ...(isFeatureEnabled(FeatureFlag.TaggingSystem) && canReadTag
         ? [
@@ -702,7 +706,7 @@ function ChartList(props: ChartListProps) {
         ),
         optionFilterProps: OWNER_OPTION_FILTER_PROPS,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       {
         Header: t('Dashboard'),
@@ -713,7 +717,7 @@ function ChartList(props: ChartListProps) {
         unfilteredLabel: t('All'),
         fetchSelects: fetchDashboards,
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
       ...(userId ? [favoritesFilter] : []),
       {
@@ -748,7 +752,7 @@ function ChartList(props: ChartListProps) {
           props.user,
         ),
         paginate: true,
-        dropdownStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
+        popupStyle: { minWidth: WIDER_DROPDOWN_WIDTH },
       },
     ] as ListViewFilters;
     return filtersList;

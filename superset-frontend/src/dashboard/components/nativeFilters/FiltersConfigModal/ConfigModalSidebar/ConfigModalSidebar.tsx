@@ -20,7 +20,7 @@ import { FC, ReactNode, useCallback, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { NativeFilterType, ChartCustomizationType } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
-import { Collapse, Flex } from '@superset-ui/core/components';
+import { Collapse, EmptyState, Flex } from '@superset-ui/core/components';
 import type { DragEndEvent } from '@dnd-kit/core';
 import {
   DndContext,
@@ -36,18 +36,32 @@ import { FilterRemoval } from '../types';
 import { FILTER_TYPE, CUSTOMIZATION_TYPE } from '../DraggableFilter';
 import { isFilterId, isChartCustomizationId, isDivider } from '../utils';
 
+// max-height constrains the sidebar so its inner Collapse can scroll when
+// there are many filters (sc-101839). The parent height chain through the
+// antd Form is unreliable, so a viewport-relative max-height is used instead
+// of height: 100%.
 const StyledSidebarFlex = styled(Flex)`
   min-width: 290px;
   max-width: 290px;
+  max-height: 70vh;
   border-right: 1px solid ${({ theme }) => theme.colorBorderSecondary};
 `;
 
 const StyledHeaderFlex = styled(Flex)`
   padding: ${({ theme }) => theme.sizeUnit * 3}px;
+
+  & button {
+    width: 100%;
+  }
 `;
 
+// min-height: 0 lets the flex item shrink below its content size so that
+// overflow: auto produces a scrollbar when the filter list is taller than
+// the sidebar. Without it, flex items default to min-height: auto and
+// refuse to shrink.
 const BaseStyledCollapse = styled(Collapse)<{ isDragging: boolean }>`
   flex: 1;
+  min-height: 0; /* required for flex item to shrink */
   overflow: auto;
   .ant-collapse-content-box {
     padding: 0;
@@ -254,6 +268,9 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
     </div>
   );
 
+  const hasNoItems =
+    filterOrderedIds.length === 0 && customizationOrderedIds.length === 0;
+
   return (
     <DndContext
       sensors={sensors}
@@ -269,54 +286,65 @@ const ConfigModalSidebar: FC<ConfigModalSidebarProps> = ({
             onAddCustomization={onAddCustomization}
           />
         </StyledHeaderFlex>
-        <StyledCollapse
-          key={formValuesVersion}
-          activeKey={activeCollapseKeys}
-          onChange={keys => onCollapseChange(keys as string[])}
-          ghost
-          isDragging={isDragging}
-        >
-          <StyledCollapse.Panel key="filters" header={filtersHeader}>
-            <ItemSectionContent
-              currentItemId={currentItemId}
-              items={filterOrderedIds}
-              removedItems={filterRemovedItems}
-              erroredItems={filterErroredItems}
-              getItemTitle={getTitle}
-              onChange={onChange}
-              onRearrange={onRearrange}
-              onRemove={onRemove}
-              restoreItem={restoreItem}
-              dataTestId="filter-title-container"
-              deleteAltText={t('Remove filter')}
-              dragType={FILTER_TYPE}
-              isCurrentSection={isFilterId(currentItemId)}
-              onCrossListDrop={handleFilterCrossListDrop}
+        {hasNoItems ? (
+          <Flex>
+            <EmptyState
+              size="small"
+              title=""
+              image="empty.svg"
+              description={t('No filters or customizations created yet')}
             />
-          </StyledCollapse.Panel>
-
-          <StyledCollapse.Panel
-            key="chartCustomizations"
-            header={customizationsHeader}
+          </Flex>
+        ) : (
+          <StyledCollapse
+            key={formValuesVersion}
+            activeKey={activeCollapseKeys}
+            onChange={keys => onCollapseChange(keys as string[])}
+            ghost
+            isDragging={isDragging}
           >
-            <ItemSectionContent
-              currentItemId={currentItemId}
-              items={customizationOrderedIds}
-              removedItems={customizationRemovedItems}
-              erroredItems={customizationErroredItems}
-              getItemTitle={getTitle}
-              onChange={onChange}
-              onRearrange={onRearrange}
-              onRemove={onRemove}
-              restoreItem={restoreItem}
-              dataTestId="customization-title-container"
-              deleteAltText={t('Remove customization')}
-              dragType={CUSTOMIZATION_TYPE}
-              isCurrentSection={isChartCustomizationId(currentItemId)}
-              onCrossListDrop={handleCustomizationCrossListDrop}
-            />
-          </StyledCollapse.Panel>
-        </StyledCollapse>
+            <StyledCollapse.Panel key="filters" header={filtersHeader}>
+              <ItemSectionContent
+                currentItemId={currentItemId}
+                items={filterOrderedIds}
+                removedItems={filterRemovedItems}
+                erroredItems={filterErroredItems}
+                getItemTitle={getTitle}
+                onChange={onChange}
+                onRearrange={onRearrange}
+                onRemove={onRemove}
+                restoreItem={restoreItem}
+                dataTestId="filter-title-container"
+                deleteAltText={t('Remove filter')}
+                dragType={FILTER_TYPE}
+                isCurrentSection={isFilterId(currentItemId)}
+                onCrossListDrop={handleFilterCrossListDrop}
+              />
+            </StyledCollapse.Panel>
+
+            <StyledCollapse.Panel
+              key="chartCustomizations"
+              header={customizationsHeader}
+            >
+              <ItemSectionContent
+                currentItemId={currentItemId}
+                items={customizationOrderedIds}
+                removedItems={customizationRemovedItems}
+                erroredItems={customizationErroredItems}
+                getItemTitle={getTitle}
+                onChange={onChange}
+                onRearrange={onRearrange}
+                onRemove={onRemove}
+                restoreItem={restoreItem}
+                dataTestId="customization-title-container"
+                deleteAltText={t('Remove customization')}
+                dragType={CUSTOMIZATION_TYPE}
+                isCurrentSection={isChartCustomizationId(currentItemId)}
+                onCrossListDrop={handleCustomizationCrossListDrop}
+              />
+            </StyledCollapse.Panel>
+          </StyledCollapse>
+        )}
       </StyledSidebarFlex>
     </DndContext>
   );

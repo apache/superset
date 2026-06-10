@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       comment_body:
-        description: 'Comment Body'
+        description: "Comment Body"
         required: true
         type: string
 
@@ -26,7 +26,7 @@ jobs:
     steps:
       - name: Quickly add thumbs up!
         if: github.event_name == 'issue_comment' && contains(github.event.comment.body, '@supersetbot')
-        uses: actions/github-script@v8
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         with:
           script: |
             const [owner, repo] = process.env.GITHUB_REPOSITORY.split('/')
@@ -38,7 +38,7 @@ jobs:
             });
 
       - name: "Checkout ( ${{ github.sha }} )"
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
 

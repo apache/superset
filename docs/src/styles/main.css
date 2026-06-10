@@ -105,6 +105,45 @@ a > span > svg {
   opacity: 1;
 }
 
+/* Homepage split "Get started": gradient button + chevron column */
+.default-button-theme.get-started-split {
+  display: flex;
+  padding: 0;
+}
+
+.get-started-split-dropdown-menu.ant-dropdown-menu {
+  background: linear-gradient(180deg, #20a7c9 0%, #0c8fae 100%) !important;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2) !important;
+}
+
+.get-started-split-dropdown-menu--hero.ant-dropdown-menu {
+  min-width: 208px;
+}
+
+@media (max-width: 768px) {
+  .get-started-split-dropdown-menu--hero.ant-dropdown-menu {
+    min-width: 214px;
+  }
+}
+
+.get-started-split-dropdown-menu--navbar.ant-dropdown-menu {
+  min-width: 176px;
+}
+
+.get-started-split-dropdown-menu .ant-dropdown-menu-item {
+  color: #ffffff !important;
+}
+
+.get-started-split-dropdown-menu .ant-dropdown-menu-item:hover,
+.get-started-split-dropdown-menu .ant-dropdown-menu-item-active {
+  background: rgba(255, 255, 255, 0.15) !important;
+}
+
+.get-started-split-dropdown-menu .ant-dropdown-menu-item a {
+  color: inherit !important;
+}
+
 /* Navbar */
 
 .navbar {
@@ -117,9 +156,12 @@ a > span > svg {
   border-radius: 10px;
   font-size: 18px;
   font-weight: bold;
-  width: 142px;
-  padding: 7px 0;
   margin-right: 20px;
+}
+
+.navbar .get-started-button.get-started-split {
+  width: 176px;
+  padding: 0;
 }
 
 .navbar .github-button {
@@ -218,8 +260,43 @@ a > span > svg {
 
 .footer {
   position: relative;
-  padding-top: 90px;
+  padding-top: 130px;
   font-size: 15px;
+}
+
+.footer__social-links {
+  background-color: #173036;
+  position: absolute;
+  top: 52px;
+  left: 0;
+  width: 100%;
+  padding: 10px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+.footer__social-links a {
+  display: inline-flex;
+  align-items: center;
+  transition: opacity 0.2s, transform 0.2s;
+}
+
+.footer__social-links a:hover {
+  opacity: 0.8;
+  transform: scale(1.1);
+}
+
+.footer__social-links img {
+  height: 24px;
+  width: 24px;
+  /* The brand SVGs ship in their native colors (e.g. Slack's dark aubergine,
+     X's near-black), which disappear on the dark footer. Render them all as
+     uniform white silhouettes. The icons are single-path glyphs whose
+     counters (the LinkedIn "in", Slack gaps, Reddit face) are transparent
+     cut-outs, so they stay legible against the footer background. */
+  filter: brightness(0) invert(1);
 }
 
 .footer__ci-services {
@@ -267,6 +344,21 @@ a > span > svg {
 }
 
 @media only screen and (max-width: 996px) {
+  .footer {
+    padding-top: 120px;
+  }
+
+  .footer__social-links {
+    top: 44px;
+    gap: 20px;
+    padding: 8px 16px;
+  }
+
+  .footer__social-links img {
+    height: 20px;
+    width: 20px;
+  }
+
   .footer__ci-services {
     gap: 12px;
     padding: 10px 16px;
