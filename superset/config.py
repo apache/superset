@@ -2436,6 +2436,19 @@ GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 
 GUEST_TOKEN_VALIDATOR_HOOK = None
 
+# Enables coarse-grained, runtime revocation of outstanding guest tokens.
+#
+# When True, every minted guest token carries a revocation version, and tokens
+# whose version is below the current expected version (stored in the metadata
+# database) are rejected at validation time. Bump the expected version with the
+# `superset revoke-guest-tokens` CLI command to invalidate all outstanding guest
+# tokens (e.g. after a token leak, or when a user's access or RLS rules change).
+#
+# This is opt-in and backward compatible: the default expected version is 0 and
+# tokens minted before this feature (which carry no version claim) are treated as
+# version 0, so nothing is revoked until an admin explicitly bumps the version.
+GUEST_TOKEN_REVOCATION_ENABLED = False
+
 # A SQL dataset health check. Note if enabled it is strongly advised that the callable
 # be memoized to aid with performance, i.e.,
 #

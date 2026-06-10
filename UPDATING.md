@@ -74,6 +74,18 @@ GLOBAL_ASYNC_QUERIES_JWT_SECRET = "<output of: openssl rand -base64 42>"
 
 The check is only active when the relevant feature is enabled, so deployments that do not use global async queries (or embedding) are not affected.
 
+### Guest token revocation (opt-in)
+
+Embedded guest tokens can be coarsely revoked at runtime via a new opt-in mechanism. A new config flag `GUEST_TOKEN_REVOCATION_ENABLED` (default `False`) gates the feature. When enabled, every minted guest token carries a revocation version, and tokens whose version is below the current expected version (stored in the metadata database) are rejected at validation time.
+
+Bump the expected version with the new CLI command to invalidate all outstanding guest tokens:
+
+```bash
+superset revoke-guest-tokens
+```
+
+This change is backward compatible. The feature is off by default, and even when enabled nothing is revoked until an admin explicitly bumps the version: the expected version starts at `0`, and tokens minted before this change (which carry no version claim) are treated as version `0`. No database migration is required.
+
 ### Dataset import validates catalog against the target connection
 
 Importing a dataset now validates the `catalog` field against the target database connection. When the connection has multi-catalog disabled (`allow_multi_catalog` off) and the dataset's catalog is not the connection's default catalog, the import fails instead of silently persisting the non-default catalog. This matches the validation already enforced on the dataset update path and prevents imported datasets from querying an unintended database.
