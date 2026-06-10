@@ -228,7 +228,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
       }
       if (isOldRison) {
-        // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
+          // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
         // per-filter selections under `currentState`; modern dataMask uses
         // `filterState`. Without this copy the filter panel shows no active
         // selections even though extraFormData still applies the query filter.
