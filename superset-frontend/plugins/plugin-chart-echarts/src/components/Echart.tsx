@@ -284,8 +284,11 @@ function Echart(
       // setOption(notMerge:true) replaces the dataZoom config, dropping any
       // range the user has engaged. Preserve it across the call.
       const previousZoom = notMerge
-        ? (chartRef.current?.getOption() as { dataZoom?: DataZoomComponentOption[] })
-            ?.dataZoom
+        ? (
+            chartRef.current?.getOption() as {
+              dataZoom?: DataZoomComponentOption[];
+            }
+          )?.dataZoom
         : undefined;
       chartRef.current?.setOption(themedEchartOptions, {
         notMerge,

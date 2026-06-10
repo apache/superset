@@ -24,6 +24,7 @@ about a specific dataset.
 
 import logging
 from datetime import datetime, timezone
+from typing import Any
 
 from fastmcp import Context
 from sqlalchemy.orm import joinedload, subqueryload
@@ -58,7 +59,7 @@ logger = logging.getLogger(__name__)
 @requires_data_model_metadata_access
 async def get_dataset_info(
     request: GetDatasetInfoRequest, ctx: Context
-) -> DatasetInfo | DatasetError:
+) -> dict[str, Any] | DatasetError:
     """Get dataset metadata by ID or UUID.
 
     Returns columns, metrics, and schema details.
@@ -144,6 +145,19 @@ async def get_dataset_info(
                     len(result.metrics) if result.metrics else 0,
                 )
             )
+            await ctx.debug(
+                "Filtering response: select_columns=%s, column_fields=%s"
+                % (request.select_columns, request.column_fields)
+            )
+            with event_logger.log_context(action="mcp.get_dataset_info.serialization"):
+                return result.model_dump(
+                    mode="json",
+                    by_alias=True,
+                    context={
+                        "select_columns": request.select_columns,
+                        "column_fields": request.column_fields,
+                    },
+                )
         else:
             await ctx.warning(
                 "Dataset retrieval failed: error_type=%s, error=%s"
