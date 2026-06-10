@@ -83,18 +83,15 @@ class UpdateFolderCommand(BaseCommand):
 
         return folder
 
-    def _validate_parent(
-        self, exceptions: list[ValidationError]
-    ) -> int | None:
+    def _validate_parent(self, exceptions: list[ValidationError]) -> int | None:
         """Validate and resolve parent_uuid, returning the new parent_id."""
         new_parent_id = self._model.parent_id  # type: ignore[union-attr]
         if "parent_uuid" not in self._properties:
             return new_parent_id
 
         self._parent_changed = True
-        parent_uuid = self._properties["parent_uuid"]
         parent: Optional[Folder] = None
-        if parent_uuid:
+        if parent_uuid := self._properties["parent_uuid"]:
             parent = FolderDAO.find_by_id_or_uuid(parent_uuid)
             if parent is None:
                 exceptions.append(FolderParentNotFoundValidationError())
