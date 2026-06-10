@@ -52,6 +52,10 @@ import type {
   DatabaseObject,
 } from './types';
 import { StyledFormLabel } from './styles';
+import {
+  databaseLabel,
+  databasesLabelLower,
+} from 'src/features/semanticLayers/label';
 
 const DatabaseSelectorWrapper = styled.div<{ horizontal?: boolean }>`
   ${({ theme, horizontal }) =>
@@ -187,6 +191,8 @@ export function DatabaseSelector({
 }: DatabaseSelectorProps) {
   const showCatalogSelector = !!db?.allow_multi_catalog;
   const [currentDb, setCurrentDb] = useState<DatabaseValue | undefined>();
+  const showSchemaSelector =
+    (db?.supports_schemas ?? currentDb?.supports_schemas) !== false;
   const [errorPayload, setErrorPayload] = useState<SupersetError | null>();
   const [currentCatalog, setCurrentCatalog] = useState<
     CatalogOption | null | undefined
@@ -256,6 +262,12 @@ export function DatabaseSelector({
             database_name: row.database_name,
             backend: row.backend,
             allow_multi_catalog: row.allow_multi_catalog,
+            supports_schemas:
+              (
+                row as DatabaseObject & {
+                  engine_information?: { supports_schemas?: boolean };
+                }
+              ).engine_information?.supports_schemas !== false,
             order,
           }));
 
@@ -433,7 +445,11 @@ export function DatabaseSelector({
   function renderDatabaseSelect() {
     if (sqlLabMode) {
       return renderSelectRow(
-        t('Select database or type to search databases'),
+        t(
+          'Select %s or type to search %s',
+          databaseLabel().toLowerCase(),
+          databasesLabelLower(),
+        ),
         null,
         null,
         {
@@ -450,16 +466,24 @@ export function DatabaseSelector({
     return (
       <div>
         {renderSelectRow(
-          t('Database'),
+          databaseLabel(),
           <AsyncSelect
-            ariaLabel={t('Select database or type to search databases')}
+            ariaLabel={t(
+              'Select %s or type to search %s',
+              databaseLabel().toLowerCase(),
+              databasesLabelLower(),
+            )}
             optionFilterProps={['database_name', 'value']}
             data-test="select-database"
             lazyLoading={false}
             notFoundContent={emptyState}
             onChange={changeDatabase}
             value={currentDb}
-            placeholder={t('Select database or type to search databases')}
+            placeholder={t(
+              'Select %s or type to search %s',
+              databaseLabel().toLowerCase(),
+              databasesLabelLower(),
+            )}
             disabled={!isDatabaseSelectEnabled || readOnly}
             options={loadDatabases}
             sortComparator={sortComparator}
@@ -581,7 +605,7 @@ export function DatabaseSelector({
       {renderDatabaseSelect()}
       {renderError()}
       {showCatalogSelector && renderCatalogSelect()}
-      {renderSchemaSelect()}
+      {showSchemaSelector && renderSchemaSelect()}
     </DatabaseSelectorWrapper>
   );
 }

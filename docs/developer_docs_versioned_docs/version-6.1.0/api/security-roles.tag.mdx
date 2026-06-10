@@ -1,0 +1,22 @@
+---
+id: security-roles
+title: "Security Roles"
+description: "Security Roles"
+custom_edit_url: null
+---
+
+Manage security roles and their permissions.
+
+| Method | Endpoint | Path |
+|--------|----------|------|
+| `GET` | [Get security roles](./get-security-roles) | `/api/v1/security/roles/` |
+| `POST` | [Create security roles](./create-security-roles) | `/api/v1/security/roles/` |
+| `GET` | [Get security roles  info](./get-security-roles-info) | `/api/v1/security/roles/_info` |
+| `DELETE` | [Delete security roles by pk](./delete-security-roles-by-pk) | `/api/v1/security/roles/{pk}` |
+| `GET` | [Get security roles by pk](./get-security-roles-by-pk) | `/api/v1/security/roles/{pk}` |
+| `PUT` | [Update security roles by pk](./update-security-roles-by-pk) | `/api/v1/security/roles/{pk}` |
+| `PUT` | [Update security roles by role_id groups](./update-security-roles-by-role-id-groups) | `/api/v1/security/roles/{role_id}/groups` |
+| `POST` | [Create security roles by role_id permissions](./create-security-roles-by-role-id-permissions) | `/api/v1/security/roles/{role_id}/permissions` |
+| `GET` | [Get security roles by role_id permissions](./get-security-roles-by-role-id-permissions) | `/api/v1/security/roles/{role_id}/permissions/` |
+| `PUT` | [Update security roles by role_id users](./update-security-roles-by-role-id-users) | `/api/v1/security/roles/{role_id}/users` |
+| `GET` | [List roles](./list-roles) | `/api/v1/security/roles/search/` |

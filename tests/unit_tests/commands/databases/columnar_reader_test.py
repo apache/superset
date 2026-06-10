@@ -17,10 +17,12 @@
 import io
 import tempfile
 from typing import Any
-from zipfile import ZipFile
+from unittest.mock import patch
+from zipfile import ZIP_DEFLATED, ZipFile
 
 import numpy as np
 import pytest
+from flask import current_app
 from werkzeug.datastructures import FileStorage
 
 from superset.commands.database.exceptions import DatabaseUploadFailed
@@ -228,6 +230,87 @@ def test_columnar_reader_bad_zip():
     with pytest.raises(DatabaseUploadFailed) as ex:
         reader.file_to_dataframe(FileStorage(io.BytesIO(b"bad zip file"), "test.zip"))
     assert str(ex.value) == "Not a valid ZIP file"
+
+
+def _make_high_ratio_zip() -> io.BytesIO:
+    """
+    Build a ZIP whose single entry has a very high decompression ratio,
+    well above the default ``ZIP_FILE_MAX_COMPRESS_RATIO`` threshold.
+    """
+    buffer = io.BytesIO()
+    with ZipFile(buffer, "w", ZIP_DEFLATED) as zip_file:
+        # A megabyte of zeros compresses to roughly a kilobyte, far exceeding
+        # the default 200:1 ratio guard.
+        zip_file.writestr("test.parquet", b"\x00" * (1024 * 1024))
+    buffer.seek(0)
+    return buffer
+
+
+def test_columnar_reader_unsafe_zip_rejected():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    unsafe_zip = _make_high_ratio_zip()
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        reader.file_to_dataframe(FileStorage(unsafe_zip, "test.zip"))
+    assert "compress ratio above allowed threshold" in str(ex.value)
+
+
+def test_columnar_reader_unsafe_zip_rejected_in_metadata():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    unsafe_zip = _make_high_ratio_zip()
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        reader.file_metadata(FileStorage(unsafe_zip, "test.zip"))
+    assert "compress ratio above allowed threshold" in str(ex.value)
+
+
+def test_columnar_reader_oversize_file_rejected():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    file = create_columnar_file(COLUMNAR_DATA)
+    file.stream.seek(0, 2)
+    file_size = file.stream.tell()
+    file.stream.seek(0)
+    with patch.dict(
+        current_app.config,
+        {"UPLOAD_MAX_FILE_SIZE_BYTES": file_size - 1},
+    ):
+        with pytest.raises(DatabaseUploadFailed) as ex:
+            reader.file_to_dataframe(file)
+    assert "exceeds the maximum allowed upload size" in str(ex.value)
+
+
+def test_columnar_reader_oversize_file_rejected_in_metadata():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    file = create_columnar_file(COLUMNAR_DATA)
+    file.stream.seek(0, 2)
+    file_size = file.stream.tell()
+    file.stream.seek(0)
+    with patch.dict(
+        current_app.config,
+        {"UPLOAD_MAX_FILE_SIZE_BYTES": file_size - 1},
+    ):
+        with pytest.raises(DatabaseUploadFailed) as ex:
+            reader.file_metadata(file)
+    assert "exceeds the maximum allowed upload size" in str(ex.value)
+
+
+def test_columnar_reader_under_limit_accepted():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    file = create_columnar_file(COLUMNAR_DATA)
+    with patch.dict(
+        current_app.config,
+        {"UPLOAD_MAX_FILE_SIZE_BYTES": 100 * 1024 * 1024},
+    ):
+        df = reader.file_to_dataframe(file)
+    assert len(df) == 3
 
 
 def test_columnar_reader_metadata():

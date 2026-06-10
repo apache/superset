@@ -6,6 +6,9 @@ on:
     paths:
       - "helm/**"
 
+permissions:
+  contents: read
+
 # cancel previous workflow jobs for PRs
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
@@ -16,7 +19,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           submodules: recursive
@@ -30,7 +33,7 @@ jobs:
       - name: Setup Python
         uses: ./.github/actions/setup-backend/
         with:
-          install-superset: 'false'
+          install-superset: "false"
 
       - name: Set up chart-testing
         uses: ./.github/actions/chart-testing-action

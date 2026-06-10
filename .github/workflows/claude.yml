@@ -6,6 +6,9 @@ on:
   pull_request_review_comment:
     types: [created]
 
+permissions:
+  contents: read
+
 jobs:
   check-permissions:
     if: |
@@ -17,12 +20,11 @@ jobs:
     steps:
       - name: Check if user is allowed
         id: check
+        env:
+          COMMENTER: ${{ github.event.comment.user.login }}
         run: |
           # List of allowed users
           ALLOWED_USERS="mistercrunch,rusackas"
-
-          # Get the commenter's username
-          COMMENTER="${{ github.event.comment.user.login }}"
 
           echo "Checking permissions for user: $COMMENTER"
 
@@ -45,9 +47,12 @@ jobs:
     steps:
       - name: Comment access denied
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
+        env:
+          COMMENTER_LOGIN: ${{ github.event.comment.user.login || github.event.review.user.login || github.event.issue.user.login }}
         with:
           script: |
-            const message = `👋 Hi @${{ github.event.comment.user.login || github.event.review.user.login || github.event.issue.user.login }}!
+            const commenter = process.env.COMMENTER_LOGIN;
+            const message = `👋 Hi @${commenter}!
 
             Thanks for trying to use Claude Code, but currently only certain team members have access to this feature.
 
@@ -70,13 +75,14 @@ jobs:
       issues: write
       id-token: write
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-      with:
-        fetch-depth: 1
+      - name: Checkout repository
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+          fetch-depth: 1
 
-    - name: Run Claude PR Action
-      uses: anthropics/claude-code-action@5fb899572b81d2bb648d4d187173a2f423a9677c # beta
-      with:
-        anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-        timeout_minutes: "60"
+      - name: Run Claude PR Action
+        uses: anthropics/claude-code-action@5fb899572b81d2bb648d4d187173a2f423a9677c # beta
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          timeout_minutes: "60"

@@ -227,4 +227,44 @@ describe('DataTablesPane', () => {
       screen.queryByLabelText('Collapse data panel'),
     ).not.toBeInTheDocument();
   });
+
+  test('Should handle column label rendering and clean up headers properly via hook', async () => {
+    fetchMock.post(
+      'glob:*/api/v1/chart/data?form_data=%7B%22slice_id%22%3A111%7D',
+      {
+        result: [
+          {
+            data: [
+              {
+                plain_column: 'val1',
+                revenue__contribution: 'val2',
+                '{"label": "Custom Metric"}': 'val3',
+                '{"label": "Custom Metric"}__contribution': 'val4',
+              },
+            ],
+            colnames: [
+              'plain_column',
+              'revenue__contribution',
+              '{"label": "Custom Metric"}',
+              '{"label": "Custom Metric"}__contribution',
+            ],
+            coltypes: [1, 1, 1, 1],
+            rowcount: 1,
+            sql_rowcount: 1,
+          },
+        ],
+      },
+    );
+
+    const props = createDataTablesPaneProps(111);
+    render(<DataTablesPane {...props} />, { useRedux: true });
+    userEvent.click(screen.getByText('Results'));
+
+    expect(await screen.findByText('plain_column')).toBeVisible();
+    expect(screen.getByText('revenue (contribution)')).toBeVisible();
+    expect(screen.getByText('Custom Metric')).toBeVisible();
+    expect(screen.getByText('Custom Metric (contribution)')).toBeVisible();
+
+    fetchMock.clearHistory().removeRoutes();
+  });
 });

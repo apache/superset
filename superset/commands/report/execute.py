@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from collections.abc import Sequence
 from datetime import datetime, timedelta
 from typing import Any, Optional, Union
 from uuid import UUID
@@ -196,7 +197,7 @@ class BaseReportState:
             db.session.commit()  # pylint: disable=consider-using-transaction
         except StaleDataError as ex:
             # Report schedule was modified or deleted by another process
-            db.session.rollback()
+            db.session.rollback()  # pylint: disable=consider-using-transaction
             logger.warning(
                 "Report schedule (execution %s) was modified or deleted "
                 "during execution. This can occur when a report is deleted "
@@ -280,6 +281,7 @@ class BaseReportState:
                         )
                     urls = self._get_tabs_urls(
                         anchor_list,
+                        dashboard_state=dashboard_state,
                         native_filter_params=native_filter_params,
                         user_friendly=user_friendly,
                     )
@@ -287,22 +289,27 @@ class BaseReportState:
                 except json.JSONDecodeError:
                     logger.debug("Anchor value is not a list, Fall back to single tab")
 
-            # Merge native_filters into existing urlParams instead of
-            # overwriting — dashboard_state may already have urlParams
-            # (e.g. standalone=true) that must be preserved.
-            state: DashboardPermalinkState = {**dashboard_state}
-            existing_params: list[tuple[str, str]] = state.get("urlParams") or []
-            merged_params: list[list[str]] = [
-                list(p) for p in existing_params if p[0] != "native_filters"
-            ]
-            merged_params.append(["native_filters", native_filter_params or ""])
-            state["urlParams"] = merged_params  # type: ignore[typeddict-item]
-            return [
-                self._get_tab_url(
-                    state,
-                    user_friendly=user_friendly,
+            # Skip the permalink when there is nothing meaningful to encode —
+            # an empty dashboard_state falls through to the plain URL below.
+            # A non-empty anchor means a single tab was selected (it failed
+            # JSON list parsing above) and still needs a permalink. Non-filter
+            # state such as urlParams (e.g. standalone=true) must also be
+            # preserved via a permalink.
+            if (
+                anchor
+                or dashboard_state.get("urlParams")
+                or (native_filter_params and native_filter_params != "()")
+            ):
+                state: DashboardPermalinkState = {**dashboard_state}
+                state["urlParams"] = self._merge_native_filters_into_url_params(
+                    state.get("urlParams"), native_filter_params
                 )
-            ]
+                return [
+                    self._get_tab_url(
+                        state,
+                        user_friendly=user_friendly,
+                    )
+                ]
 
         native_filter_params, filter_warnings = (
             self._report_schedule.get_native_filters_params()
@@ -310,12 +317,17 @@ class BaseReportState:
         if filter_warnings:
             self._filter_warnings.extend(filter_warnings)
         if native_filter_params and native_filter_params != "()":
+            # Preserve any urlParams from extra.dashboard (e.g. standalone=true)
+            # set via API even when ALERT_REPORT_TABS is off — same merge
+            # semantics as the protected branch above.
+            fallback_state = self._report_schedule.extra.get("dashboard") or {}
             return [
                 self._get_tab_url(
                     {
-                        "urlParams": [
-                            ["native_filters", native_filter_params]  # type: ignore
-                        ],
+                        "urlParams": self._merge_native_filters_into_url_params(
+                            fallback_state.get("urlParams"),
+                            native_filter_params,
+                        )
                     },
                     user_friendly=user_friendly,
                 )
@@ -353,24 +365,51 @@ class BaseReportState:
             user_friendly=user_friendly,
         )
 
+    @staticmethod
+    def _merge_native_filters_into_url_params(
+        existing: Optional[Sequence[Sequence[str]]],
+        native_filter_params: Optional[str],
+    ) -> list[Sequence[str]]:
+        """
+        Merge the report's ``native_filters`` into a permalink's existing
+        ``urlParams``, deduping any prior ``native_filters`` entry so the
+        report's value wins. All other params (e.g. ``standalone=true``)
+        survive in their original order.
+        """
+        merged: list[Sequence[str]] = [
+            list(p) for p in (existing or []) if p[0] != "native_filters"
+        ]
+        merged.append(["native_filters", native_filter_params or ""])
+        return merged
+
     def _get_tabs_urls(
         self,
         tab_anchors: list[str],
+        dashboard_state: Optional[DashboardPermalinkState] = None,
         native_filter_params: Optional[str] = None,
         user_friendly: bool = False,
     ) -> list[str]:
         """
-        Get multple tabs urls
+        Get multiple tabs urls.
+
+        Each per-tab permalink merges the report's ``native_filters`` into
+        the original ``dashboard_state.urlParams`` (deduping any prior
+        ``native_filters`` entry), so params like ``standalone=true`` are
+        preserved — matching the precedence rules of the single-tab branch
+        in :meth:`get_dashboard_urls`.
         """
+        base_state: DashboardPermalinkState = dashboard_state or {}
+        merged_params = self._merge_native_filters_into_url_params(
+            base_state.get("urlParams"), native_filter_params
+        )
+
         return [
             self._get_tab_url(
                 {
                     "anchor": tab_anchor,
                     "dataMask": None,
                     "activeTabs": None,
-                    "urlParams": [
-                        ["native_filters", native_filter_params]  # type: ignore
-                    ],
+                    "urlParams": merged_params,
                 },
                 user_friendly=user_friendly,
             )
@@ -1000,16 +1039,49 @@ class ReportSuccessState(BaseReportState):
                     )
                     return
             except Exception as ex:
-                self.send_error(
-                    f"Error occurred for {self._report_schedule.type}:"
-                    f" {self._report_schedule.name}",
-                    str(ex),
-                )
-                self.update_report_schedule_and_log(
-                    ReportState.ERROR,
-                    error_message=REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER,
-                )
+                # Ensure the schedule always transitions out of WORKING to
+                # ERROR, even if sending the error notification itself fails —
+                # otherwise the schedule is stuck in WORKING until the working
+                # timeout. Mirrors ReportNotTriggeredErrorState.next().
+                # Only record the marker when the notification was actually
+                # delivered; otherwise record the send failure so the grace-
+                # period check doesn't incorrectly suppress future notifications.
+                error_message = REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER
+                try:
+                    self.send_error(
+                        f"Error occurred for {self._report_schedule.type}:"
+                        f" {self._report_schedule.name}",
+                        str(ex),
+                    )
+                except Exception as send_ex:  # noqa: BLE001  # pylint: disable=broad-except
+                    error_message = str(send_ex) or str(ex)
+                    logger.warning(
+                        "Failed to send error notification for report schedule "
+                        "(execution %s)",
+                        self._execution_id,
+                        exc_info=True,
+                    )
+                finally:
+                    try:
+                        self.update_report_schedule_and_log(
+                            ReportState.ERROR,
+                            error_message=error_message,
+                        )
+                    except ReportScheduleUnexpectedError:
+                        logger.warning(
+                            "Failed to log ERROR state for report schedule "
+                            "(execution %s) due to database issue",
+                            self._execution_id,
+                            exc_info=True,
+                        )
                 raise
+
+        # For REPORT types the ALERT branch above is skipped, so WORKING has not
+        # been set yet. Set it before the (potentially slow) send() so a
+        # concurrent scheduler tick is blocked by ReportWorkingState, preventing
+        # duplicate notifications. ALERT types already set WORKING above.
+        if self._report_schedule.type != ReportScheduleType.ALERT:
+            self.update_report_schedule_and_log(ReportState.WORKING)
 
         try:
             self.send()

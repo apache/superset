@@ -70,7 +70,10 @@ class TestBigNumberChartConfig:
             )
 
     def test_metric_without_aggregate_fails(self) -> None:
-        with pytest.raises(ValidationError, match="saved dataset metric"):
+        # Matches "include an aggregate function" — the error message lists
+        # all three valid metric forms (aggregate, saved_metric, sql_expression)
+        # since Ticket #3 added SQL-expression support.
+        with pytest.raises(ValidationError, match="aggregate function"):
             BigNumberChartConfig(
                 chart_type="big_number",
                 metric=ColumnRef(name="revenue"),
@@ -93,6 +96,42 @@ class TestBigNumberChartConfig:
         is_valid, error = SchemaValidator._pre_validate_big_number_config(data)
         assert is_valid is True
         assert error is None
+
+    def test_sql_expression_with_label_passes_pre_validation(self) -> None:
+        """A custom SQL metric is a valid third option alongside aggregate and
+        saved_metric in Tier-1 validation."""
+        data = {
+            "chart_type": "big_number",
+            "metric": {"sql_expression": "SUM(a)/SUM(b)", "label": "Ratio"},
+        }
+        is_valid, error = SchemaValidator._pre_validate_big_number_config(data)
+        assert is_valid is True
+        assert error is None
+
+    def test_sql_expression_without_label_fails_pre_validation(self) -> None:
+        """Tier-1 surfaces the label-required error with an LLM-actionable
+        suggestion before the request reaches Pydantic's stricter error."""
+        data = {
+            "chart_type": "big_number",
+            "metric": {"sql_expression": "SUM(a)/SUM(b)"},
+        }
+        is_valid, error = SchemaValidator._pre_validate_big_number_config(data)
+        assert is_valid is False
+        assert error is not None
+        assert error.error_code == "MISSING_SQL_METRIC_LABEL"
+
+    def test_sql_expression_with_non_string_label_fails_cleanly(self) -> None:
+        """Pre-validation runs on raw dict input before Pydantic coercion, so
+        a non-string ``label`` (e.g. an int from a buggy client) must surface
+        as a validation error, not an AttributeError from ``.strip()``."""
+        data = {
+            "chart_type": "big_number",
+            "metric": {"sql_expression": "SUM(a)/SUM(b)", "label": 123},
+        }
+        is_valid, error = SchemaValidator._pre_validate_big_number_config(data)
+        assert is_valid is False
+        assert error is not None
+        assert error.error_code == "MISSING_SQL_METRIC_LABEL"
 
     def test_with_subheader(self) -> None:
         config = BigNumberChartConfig(
