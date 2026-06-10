@@ -303,6 +303,44 @@ class TestDatasetRestore(SupersetTestCase):
         rv = self.client.get(f"/api/v1/dataset/{dataset_id}")
         assert rv.status_code == 200
 
+    def test_restore_failure_returns_422(self) -> None:
+        """A failure during restore surfaces as a clean 422 via the
+        ``DatasetRestoreFailedError`` handler rather than an unhandled 500.
+
+        ``RestoreDatasetCommand.run`` wraps the restore in ``@transaction``
+        and rethrows ``DatasetRestoreFailedError`` on any underlying
+        SQLAlchemy error; this pins that the endpoint maps it to 422.
+        """
+        from unittest.mock import patch
+
+        from superset.commands.dataset.exceptions import (
+            DatasetRestoreFailedError,
+        )
+
+        dataset = self._get_example_dataset()
+        dataset_id = dataset.id
+        dataset_uuid = str(dataset.uuid)
+        self.login(ADMIN_USERNAME)
+        self.client.delete(f"/api/v1/dataset/{dataset_id}")
+
+        with patch(
+            "superset.commands.dataset.restore.RestoreDatasetCommand.run",
+            side_effect=DatasetRestoreFailedError(),
+        ):
+            rv = self.client.post(f"/api/v1/dataset/{dataset_uuid}/restore")
+        assert rv.status_code == 422
+
+        # Cleanup: the mocked restore left the example dataset soft-deleted.
+        row = (
+            db.session.query(SqlaTable)
+            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+            .filter(SqlaTable.id == dataset_id)
+            .one()
+        )
+        if row.deleted_at is not None:
+            row.restore()
+        db.session.commit()
+
     def test_restore_uses_can_write_permission(self) -> None:
         """Non-admin owner with ``can_write_Dataset`` can hit the restore
         endpoint.
