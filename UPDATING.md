@@ -24,6 +24,14 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Feature Flag Changes
+
+#### `TAGGING_SYSTEM`
+The default value of **TAGGING_SYSTEM** was flipped from `False` to `True`.
+
+#### `GRANULAR_EXPORT_CONTROLS`
+This new feature flag was introduced, see below.
+
 ### Duration formatter precision
 
 The `DURATION` number formatter now uses `Intl.DurationFormat` for locale-aware output. By default, sub-second fields are omitted, so values that previously displayed fractional seconds with `pretty-ms`, such as `10500` milliseconds rendering as `10.5s`, now render as `10s`.

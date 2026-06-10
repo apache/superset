@@ -16,22 +16,35 @@
 # under the License.
 
 import pytest
+import sqlalchemy as sqla
 
 from superset import db
+from superset.models.slice import Slice
 from superset.tags.core import clear_sqla_event_listeners, register_sqla_event_listeners
-from superset.tags.models import Tag
+from superset.tags.models import ChartUpdater, Tag
 from tests.integration_tests.test_app import app
 
 
 @pytest.fixture
 def with_tagging_system_feature():
     is_enabled = app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"]
+    listeners_registered = sqla.event.contains(
+        Slice, "after_insert", ChartUpdater.after_insert
+    )
+
     if not is_enabled:
         app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = True
+
+    if not listeners_registered:
         register_sqla_event_listeners()
-        yield
-        app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = False
+
+    yield
+
+    if not listeners_registered:
         clear_sqla_event_listeners()
+
+    if not is_enabled:
+        app.config["DEFAULT_FEATURE_FLAGS"]["TAGGING_SYSTEM"] = False
 
 
 @pytest.fixture
