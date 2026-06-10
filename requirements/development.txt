@@ -674,10 +674,6 @@ platformdirs==4.3.8
     #   virtualenv
 pluggy==1.5.0
     # via pytest
-ply==3.11
-    # via
-    #   -c requirements/base-constraint.txt
-    #   jsonpath-ng
 polib==1.2.0
     # via apache-superset
 polyline==2.0.2

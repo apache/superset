@@ -286,8 +286,6 @@ pillow==12.2.0
     # via apache-superset (pyproject.toml)
 platformdirs==4.3.8
     # via requests-cache
-ply==3.11
-    # via jsonpath-ng
 polyline==2.0.2
     # via apache-superset (pyproject.toml)
 prison==0.2.1
