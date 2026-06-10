@@ -639,6 +639,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return lm
 
     def on_user_login(self, user: Any) -> None:
+        # pylint: disable=import-outside-toplevel
+        from superset.security.session_invalidation import stamp_login_time
+
+        # Record the authentication time so outstanding sessions can be
+        # invalidated when the account is later disabled.
+        stamp_login_time()
         _log_audit_event(
             "UserLoggedIn",
             {"username": user.username, "user_id": user.id},
