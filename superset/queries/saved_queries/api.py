@@ -54,6 +54,7 @@ from superset.queries.saved_queries.schemas import (
     openapi_spec_methods_override,
 )
 from superset.utils import json
+from superset.utils.core import sanitize_cookie_token
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -305,7 +306,7 @@ class SavedQueryRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 

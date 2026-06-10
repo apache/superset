@@ -17387,6 +17387,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "vlastnosť `operation` objektu následného spracovanie nie je definována"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "balíček `prophet` nie je nainstalován"
 

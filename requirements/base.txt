@@ -294,7 +294,7 @@ prison==0.2.1
     # via flask-appbuilder
 prompt-toolkit==3.0.51
     # via click-repl
-pyarrow==20.0.0
+pyarrow==24.0.0
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)

@@ -60,6 +60,9 @@ from superset.mcp_service.mcp_config import (
     default_user_resolver,
     get_mcp_api_key_enabled,
 )
+from superset.mcp_service.utils.error_sanitization import (
+    sanitize_for_log as _sanitize_for_log,
+)
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -90,6 +93,81 @@ class MCPNoAuthSourceError(ValueError):
     """
 
 
+# Maps a tool's method permission to the OAuth-style token scope it requires.
+# Used by ``check_tool_permission`` for scope-aware authorization: enforcement
+# is the INTERSECTION of token scopes and DB RBAC. Only applied when the token
+# actually carries scopes — see ``_token_scope_allows``.
+#
+# SECURITY: this map must cover EVERY method permission used by an MCP tool.
+# A scoped token presented for a method that is NOT in this map is denied
+# (fail closed) rather than allowed, so adding a tool with a new custom
+# permission cannot silently bypass scope enforcement. ``execute_sql_query``
+# is a privileged, write-class operation and therefore requires the write
+# scope. When introducing a new method permission, add it here.
+_METHOD_TO_REQUIRED_SCOPE = {
+    "read": "superset:read",
+    "write": "superset:write",
+    "delete": "superset:write",
+    # SQL execution (execute_sql, get_chart_sql) runs arbitrary queries and is
+    # treated as a write-class privileged operation for scope purposes.
+    "execute_sql_query": "superset:write",
+}
+
+
+def _get_token_scopes() -> set[str] | None:
+    """Return the set of scopes on the current JWT access token, or None.
+
+    Returns None when there is no JWT context or the token carries no scopes,
+    so callers can fall back to RBAC-only behavior (back-compat for API-key and
+    scope-less JWT deployments). Returns a (possibly populated) set only when
+    the token explicitly advertises scopes.
+    """
+    try:
+        from fastmcp.server.dependencies import get_access_token
+    except ImportError:
+        return None
+
+    try:
+        access_token = get_access_token()
+    except Exception:  # noqa: BLE001 - no JWT context for this request
+        return None
+
+    if access_token is None:
+        return None
+
+    scopes = getattr(access_token, "scopes", None)
+    if not scopes:
+        # Token present but no scopes advertised: do NOT enforce scope checks.
+        return None
+    return {str(s) for s in scopes}
+
+
+def _token_scope_allows(method_permission_name: str) -> bool:
+    """Return whether the current token's scopes permit the given method.
+
+    Back-compat: returns True (allow) when the token carries no scopes or there
+    is no JWT context, so deployments not using scopes keep RBAC-only behavior.
+    Only when the token advertises scopes is the mapped required scope enforced.
+    """
+    token_scopes = _get_token_scopes()
+    if token_scopes is None:
+        return True
+    required_scope = _METHOD_TO_REQUIRED_SCOPE.get(method_permission_name)
+    if required_scope is None:
+        # Fail closed: a scoped token was presented for a method permission that
+        # is not in the scope map. Rather than silently bypassing scope
+        # enforcement, deny it so an unmapped (e.g. newly added custom) method
+        # permission cannot be reached by a scoped token. Map the permission in
+        # ``_METHOD_TO_REQUIRED_SCOPE`` to grant access.
+        logger.warning(
+            "Denying scoped token for unmapped method permission '%s'; "
+            "add it to _METHOD_TO_REQUIRED_SCOPE to grant scoped access.",
+            method_permission_name,
+        )
+        return False
+    return required_scope in token_scopes
+
+
 class MCPPermissionDeniedError(PermissionError):
     """Raised when user lacks required RBAC permission for an MCP tool.
 
@@ -115,6 +193,39 @@ class MCPPermissionDeniedError(PermissionError):
             + (f" (tool: {tool_name})" if tool_name else "")
         )
         super().__init__(message)
+
+
+def _log_scope_denial(
+    func: Callable[..., Any],
+    method_permission_name: str,
+    permission_str: str,
+    class_permission_name: str,
+    *,
+    log_denial: bool,
+) -> None:
+    """Log a scope-based denial for a tool the user has RBAC access to.
+
+    Extracted from ``check_tool_permission`` to keep that function's
+    cyclomatic complexity in check.
+    """
+    required_scope = _METHOD_TO_REQUIRED_SCOPE.get(method_permission_name)
+    if log_denial:
+        logger.warning(
+            "Scope denied for user %s: token lacks required scope "
+            "'%s' for %s on %s (tool: %s)",
+            _sanitize_for_log(g.user.username),
+            required_scope,
+            permission_str,
+            class_permission_name,
+            func.__name__,
+        )
+    else:
+        logger.debug(
+            "Tool hidden for user %s: token lacks required scope '%s' (tool: %s)",
+            _sanitize_for_log(g.user.username),
+            required_scope,
+            func.__name__,
+        )
 
 
 def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) -> bool:
@@ -172,6 +283,24 @@ def check_tool_permission(func: Callable[..., Any], *, log_denial: bool = True) 
         has_permission = security_manager.can_access(
             permission_str, class_permission_name
         )
+
+        # Scope-aware authorization: enforce the INTERSECTION of token scopes
+        # and DB RBAC. A tool is allowed only if the user has the RBAC
+        # permission AND the token carries the required scope.
+        #
+        # Back-compat: scope enforcement applies ONLY when the token actually
+        # advertises scopes. Tokens/deployments that don't use scopes (API keys,
+        # scope-less JWTs, dev-mode) fall through to RBAC-only behavior — see
+        # ``_token_scope_allows``.
+        if has_permission and not _token_scope_allows(method_permission_name):
+            _log_scope_denial(
+                func,
+                method_permission_name,
+                permission_str,
+                class_permission_name,
+                log_denial=log_denial,
+            )
+            return False
 
         if not has_permission:
             if log_denial:
@@ -312,7 +441,33 @@ def _resolve_user_from_jwt_context(app: Any) -> User | None:
             " processing as JWT"
         )
 
+    # Multi-issuer safety: when more than one issuer is trusted, a bare
+    # username/email lookup is NOT issuer-scoped, so two issuers that mint the
+    # same username/email claim would resolve to the same Superset user.
+    #
+    # Single-issuer deployments (the common case) are safe — the issuer is
+    # already pinned by the verifier, so the username space is unambiguous and
+    # we keep the existing lookup key to avoid breaking them. For multi-issuer
+    # configs we warn: operators should provide an issuer-aware MCP_USER_RESOLVER
+    # that derives a compound (iss + sub) identity. This is the least-breaking
+    # correct option (warn, don't change the key out from under existing
+    # single-issuer deployments).
+    configured_issuer = app.config.get("MCP_JWT_ISSUER")
+    if isinstance(configured_issuer, (list, tuple, set)) and len(configured_issuer) > 1:
+        if not app.config.get("MCP_USER_RESOLVER"):
+            token_iss = claims.get("iss") if isinstance(claims, dict) else None
+            logger.warning(
+                "Multiple JWT issuers are trusted (MCP_JWT_ISSUER is a list) but "
+                "the default user resolver maps token claims to Superset users by "
+                "username/email without binding the issuer (iss=%s). Distinct "
+                "issuers minting the same username/email will collide. Configure an "
+                "issuer-aware MCP_USER_RESOLVER to derive a compound (iss+sub) "
+                "identity.",
+                _sanitize_for_log(token_iss),
+            )
+
     # Use configurable resolver or default
+
     resolver = app.config.get("MCP_USER_RESOLVER", default_user_resolver)
     username = resolver(app, access_token)
 
@@ -495,21 +650,26 @@ def get_user_from_request() -> User:
     if hasattr(g, "user") and g.user:
         return g.user
 
-    # No auth source available — log diagnostics server-side, raise generic
-    # client-facing error so no config details leak toward the client.
+    # No auth source available. Keep the configuration diagnostics in the
+    # server logs only -- the message returned to the (unauthenticated) client
+    # must not reveal which auth mechanisms are configured.
     auth_enabled = current_app.config.get("MCP_AUTH_ENABLED", False)
     jwt_configured = bool(
         current_app.config.get("MCP_JWKS_URI")
         or current_app.config.get("MCP_JWT_PUBLIC_KEY")
         or current_app.config.get("MCP_JWT_SECRET")
     )
-    logger.debug(
-        "No auth source found. "
-        "MCP_AUTH_ENABLED=%s, JWT keys configured=%s, "
-        "MCP_DEV_USERNAME configured=%s",
-        auth_enabled,
-        jwt_configured,
-        bool(current_app.config.get("MCP_DEV_USERNAME")),
+    details = [
+        f"No JWT access token in MCP request context "
+        f"(MCP_AUTH_ENABLED={auth_enabled}, "
+        f"JWT keys configured={jwt_configured})",
+        "No API key in Authorization header",
+        "MCP_DEV_USERNAME is not configured",
+        "g.user was not set by external middleware",
+    ]
+    logger.warning(
+        "MCP request could not be authenticated. Tried: %s",
+        "; ".join(details),
     )
     raise MCPNoAuthSourceError(
         "Authentication required. No valid credentials provided."
