@@ -34,7 +34,6 @@ from superset.utils import json
 from superset.utils.core import (
     apply_max_row_limit,
     DatasourceType,
-    get_user_id,
     parse_boolean_string,
     SqlExpressionType,
 )
@@ -137,17 +136,22 @@ class DatasourceRestApi(BaseSupersetApi):
         # the wrapping query per filter (#39342).
         #
         # Key fields:
-        # - ``user`` — baseline per-user isolation. ``get_user_id()`` returns
-        #   ``None`` for guest/anonymous sessions, so this field alone is not
-        #   sufficient for RLS safety.
         # - ``rls`` — full RLS fingerprint via
         #   ``security_manager.get_rls_cache_key`` (the canonical helper used
-        #   by viz.py and query_context_processor.py). Covers both regular
-        #   RLS policy changes and guest-token RLS, so embedded sessions
-        #   with different guest tokens never share cached values even when
-        #   ``get_user_id()`` is ``None`` for both.
+        #   by viz.py and query_context_processor.py). This is the sole
+        #   security-isolation field — two users with identical effective
+        #   RLS share a cache entry (intentional: they would see identical
+        #   filtered values anyway), while users with different RLS, guest
+        #   sessions with different guest-token RLS, and anonymous sessions
+        #   with no RLS each get their own partition. We deliberately do
+        #   NOT include the raw user id; doing so would defeat the
+        #   intended cross-user cache sharing without adding any real
+        #   security boundary beyond what the RLS fingerprint already
+        #   provides.
         # - ``changed_on`` — auto-busts cached entries when the dataset's
         #   underlying SQL is edited.
+        # - ``uid`` / ``col`` / ``limit`` / ``denorm`` — basic query-shape
+        #   isolation so different inputs never collide.
         force = parse_boolean_string(request.args.get("force"))
         cache_key = (
             "col_values:"
@@ -158,7 +162,6 @@ class DatasourceRestApi(BaseSupersetApi):
                         "col": column_name,
                         "limit": row_limit,
                         "denorm": denormalize_column,
-                        "user": get_user_id(),
                         "rls": security_manager.get_rls_cache_key(datasource),
                         "changed_on": str(getattr(datasource, "changed_on", "")),
                     },

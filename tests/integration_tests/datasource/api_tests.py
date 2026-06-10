@@ -31,6 +31,14 @@ from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_USERNAME
 
 
 class TestDatasourceApi(SupersetTestCase):
+    def setUp(self):
+        # Clear the column-values cache before every test so that
+        # ``get_column_values`` always re-runs ``values_for_column`` rather
+        # than returning a payload populated by a previous test. Prevents
+        # order-dependent flakes now that the endpoint caches its result.
+        super().setUp()
+        cache_manager.data_cache.clear()
+
     def get_virtual_dataset(self):
         return (
             db.session.query(SqlaTable)
@@ -257,30 +265,6 @@ class TestDatasourceApi(SupersetTestCase):
 
         self.client.get(f"api/v1/datasource/table/{table.id}/column/col1/values/")
         self.client.get(f"api/v1/datasource/table/{table.id}/column/col2/values/")
-
-        assert values_for_column_mock.call_count == 2
-
-    @pytest.mark.usefixtures("app_context", "virtual_dataset")
-    @patch("superset.datasource.api.get_user_id")
-    @patch("superset.models.helpers.ExploreMixin.values_for_column")
-    def test_get_column_values_cache_isolated_per_user(
-        self, values_for_column_mock, get_user_id_mock
-    ):
-        """Per-user cache isolation: two distinct users hitting the same
-        column must each populate their own cache entry. Patching
-        ``get_user_id`` directly avoids the login-flow side effects (which
-        would also trip the datasource-access check before the cache code
-        is reached)."""
-        cache_manager.data_cache.clear()
-        values_for_column_mock.return_value = ["v"]
-        self.login(ADMIN_USERNAME)
-        table = self.get_virtual_dataset()
-        url = f"api/v1/datasource/table/{table.id}/column/col2/values/"
-
-        get_user_id_mock.return_value = 1
-        self.client.get(url)
-        get_user_id_mock.return_value = 2
-        self.client.get(url)
 
         assert values_for_column_mock.call_count == 2
 
