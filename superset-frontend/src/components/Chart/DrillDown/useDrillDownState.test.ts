@@ -18,7 +18,7 @@
  */
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryFormData } from '@superset-ui/core';
-import { useDrillDownState } from './useDrillDownState';
+import { useDrillDownState, clearDrillDownState } from './useDrillDownState';
 
 jest.mock('src/components/Chart/chartAction', () => ({
   getChartDataRequest: jest.fn(() =>
@@ -51,6 +51,12 @@ const baseFormData: QueryFormData = {
   groupby: [],
   adhoc_filters: [],
 };
+
+beforeEach(() => {
+  // Drill state persists in a module-level store keyed by chart id; clear it
+  // so each test starts from a clean slate (tests reuse slice_id 42).
+  clearDrillDownState();
+});
 
 test('hierarchy is empty when x_axis is a single string with no drilldown_hierarchy', () => {
   const { result } = renderHook(() =>
@@ -307,4 +313,66 @@ test('fetches data when drilling and returns it as effectiveQueriesResponse', as
   expect(result.current.effectiveQueriesResponse).toEqual([
     { data: [{ col1: 'val1' }] },
   ]);
+});
+
+test('drill state survives a remount (persisted per chart id)', async () => {
+  const formData = {
+    ...baseFormData,
+    x_axis: ['country', 'region', 'city'],
+  };
+
+  const first = renderHook(() =>
+    useDrillDownState({ formData, baseQueriesResponse: [{ data: [] }] }),
+  );
+
+  act(() => {
+    first.result.current.drillDown(
+      [{ col: 'country', op: '==', val: 'USA' }],
+      'USA',
+    );
+  });
+
+  await waitFor(() => {
+    expect(first.result.current.isLoading).toBe(false);
+  });
+  expect(first.result.current.drillStack).toHaveLength(1);
+
+  // Simulate the dashboard grid remounting the chart (e.g. an unrelated
+  // filter change). The drill navigation must be restored, not lost.
+  first.unmount();
+
+  const second = renderHook(() =>
+    useDrillDownState({ formData, baseQueriesResponse: [{ data: [] }] }),
+  );
+
+  expect(second.result.current.drillStack).toHaveLength(1);
+  expect(second.result.current.drillStack[0].label).toEqual('USA');
+  expect(second.result.current.isDrilling).toBe(true);
+});
+
+test('reconfiguring the chart (viz type change) clears persisted drill state', async () => {
+  const formData = {
+    ...baseFormData,
+    x_axis: ['country', 'region', 'city'],
+  };
+
+  const { result, rerender } = renderHook(
+    ({ fd }) =>
+      useDrillDownState({ formData: fd, baseQueriesResponse: [{ data: [] }] }),
+    { initialProps: { fd: formData } },
+  );
+
+  act(() => {
+    result.current.drillDown([{ col: 'country', op: '==', val: 'USA' }], 'USA');
+  });
+  await waitFor(() => {
+    expect(result.current.isLoading).toBe(false);
+  });
+  expect(result.current.drillStack).toHaveLength(1);
+
+  // A genuine reconfiguration (different viz type) resets the drill.
+  rerender({ fd: { ...formData, viz_type: 'echarts_timeseries_line' } });
+
+  expect(result.current.drillStack).toHaveLength(0);
+  expect(result.current.isDrilling).toBe(false);
 });

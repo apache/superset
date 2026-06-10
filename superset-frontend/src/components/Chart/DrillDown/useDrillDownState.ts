@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
@@ -47,6 +47,33 @@ const HIERARCHY_FIELD_CAMEL = 'drilldownHierarchy';
  */
 const DEFAULT_GROUPBY_FIELD = 'groupby';
 const DEFAULT_ADHOC_FILTERS_FIELD = 'adhoc_filters';
+
+/**
+ * Drill navigation is kept in a module-level store keyed by chart id so it
+ * survives incidental remounts of the chart component. On a dashboard, an
+ * unrelated filter change (e.g. removing another chart's cross-filter) can
+ * cause the grid to re-render and remount the chart, which would otherwise
+ * reset the local React state and make the breadcrumb vanish mid-drill,
+ * stranding the user with no way to navigate back up. The store is process
+ * memory only — a full page reload still starts fresh.
+ */
+interface StoredDrillState {
+  drillStack: DrillDownLevel[];
+  selectedLeaf?: string;
+}
+const drillStateStore = new Map<string | number, StoredDrillState>();
+
+/**
+ * Clear persisted drill state. Without arguments clears everything (used by
+ * tests to isolate cases); with a chart id clears just that chart.
+ */
+export function clearDrillDownState(chartKey?: string | number): void {
+  if (chartKey === undefined) {
+    drillStateStore.clear();
+  } else {
+    drillStateStore.delete(chartKey);
+  }
+}
 
 interface UseDrillDownStateArgs {
   formData: QueryFormData;
@@ -102,20 +129,52 @@ export function useDrillDownState({
   formData,
   baseQueriesResponse,
 }: UseDrillDownStateArgs): UseDrillDownStateResult {
-  const [drillStack, setDrillStack] = useState<DrillDownLevel[]>([]);
-  const [selectedLeaf, setSelectedLeaf] = useState<string | undefined>();
+  const chartKey = formData.slice_id;
+
+  const [drillStack, setDrillStack] = useState<DrillDownLevel[]>(
+    () =>
+      (chartKey != null
+        ? drillStateStore.get(chartKey)?.drillStack
+        : undefined) ?? [],
+  );
+  const [selectedLeaf, setSelectedLeaf] = useState<string | undefined>(() =>
+    chartKey != null ? drillStateStore.get(chartKey)?.selectedLeaf : undefined,
+  );
   const [drillData, setDrillData] = useState<QueryData[] | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
-  // Reset whenever the underlying form_data (chart configuration) changes —
-  // e.g. the dashboard owner edited the chart and saved.
+  // Persist drill navigation so it survives remounts (see drillStateStore).
   useEffect(() => {
+    if (chartKey == null) {
+      return;
+    }
+    if (drillStack.length === 0 && !selectedLeaf) {
+      drillStateStore.delete(chartKey);
+    } else {
+      drillStateStore.set(chartKey, { drillStack, selectedLeaf });
+    }
+  }, [chartKey, drillStack, selectedLeaf]);
+
+  // Reset only when the chart is actually reconfigured (chart id or viz type
+  // changes) — e.g. the dashboard owner edited the chart and saved. A ref
+  // guard ensures the initial mount (which restores persisted state) does not
+  // wipe it, and that incidental re-renders from filter changes don't either.
+  const configKey = `${formData.slice_id}__${formData.viz_type}`;
+  const prevConfigKeyRef = useRef(configKey);
+  useEffect(() => {
+    if (prevConfigKeyRef.current === configKey) {
+      return;
+    }
+    prevConfigKeyRef.current = configKey;
+    if (chartKey != null) {
+      drillStateStore.delete(chartKey);
+    }
     setDrillStack([]);
     setSelectedLeaf(undefined);
     setDrillData(null);
     setError(undefined);
-  }, [formData.slice_id, formData.viz_type]);
+  }, [configKey, chartKey]);
 
   const hierarchy = useMemo<string[]>(() => {
     const fd = formData as Record<string, unknown>;
