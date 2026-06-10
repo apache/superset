@@ -88,13 +88,13 @@ async def create_virtual_dataset(
 
             if request.metrics or request.calculated_columns:
                 from superset.commands.dataset.update import UpdateDatasetCommand
-                
+
                 update_props: dict[str, Any] = {}
                 if request.metrics:
                     update_props["metrics"] = request.metrics
                 if request.calculated_columns:
                     update_props["columns"] = request.calculated_columns
-                
+
                 with event_logger.log_context(action="mcp.create_virtual_dataset.update"):
                     dataset = UpdateDatasetCommand(dataset.id, update_props).run()
 

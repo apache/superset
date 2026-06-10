@@ -11,6 +11,7 @@ on:
 
 permissions:
   contents: read
+  security-events: write
 
 # cancel previous workflow jobs for PRs
 concurrency:
