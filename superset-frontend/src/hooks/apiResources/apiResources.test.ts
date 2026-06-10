@@ -97,6 +97,48 @@ describe('apiResource hooks', () => {
         error: fakeError,
       });
     });
+
+    test('skips the fetch and stays loading when skip is true', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(fakeApiResult);
+      (makeApi as any).mockReturnValue(fetchMock);
+      const { result } = renderHook(() =>
+        useApiResourceFullBody('/test/endpoint', true),
+      );
+      await act(async () => {
+        jest.runAllTimers();
+      });
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(result.current).toEqual({
+        status: ResourceStatus.Loading,
+        result: null,
+        error: null,
+      });
+    });
+
+    test('re-enables the fetch when skip toggles from true to false', async () => {
+      const fetchMock = jest.fn().mockResolvedValue(fakeApiResult);
+      (makeApi as any).mockReturnValue(fetchMock);
+      const { result, rerender } = renderHook(
+        ({ skip }) => useApiResourceFullBody('/test/endpoint', skip),
+        { initialProps: { skip: true } },
+      );
+      await act(async () => {
+        jest.runAllTimers();
+      });
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(result.current.status).toEqual(ResourceStatus.Loading);
+
+      rerender({ skip: false });
+      await act(async () => {
+        jest.runAllTimers();
+      });
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      expect(result.current).toEqual({
+        status: ResourceStatus.Complete,
+        result: fakeApiResult,
+        error: null,
+      });
+    });
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
