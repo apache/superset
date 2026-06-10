@@ -459,6 +459,7 @@ LANGUAGES = {
     "nl": {"flag": "nl", "name": "Dutch"},
     "uk": {"flag": "ua", "name": "Ukrainian"},
     "mi": {"flag": "nz", "name": "Māori"},
+    "ro": {"flag": "ro", "name": "Romanian"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -1350,6 +1351,10 @@ MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 
 # Maximum number of rows returned for any analytical database query
 SQL_MAX_ROW = 100000
+
+# Maximum number of forecast periods accepted by the Prophet post-processing
+# operation. Bounds resource usage when predicting into the future.
+MAX_PROPHET_PERIODS = 10000
 
 # Maximum number of rows for any query with Server Pagination in Table Viz type
 TABLE_VIZ_MAX_ROW_SERVER = 500000
@@ -2421,6 +2426,19 @@ GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 # Return False from the callable to return a HTTP 400 to the user.
 
 GUEST_TOKEN_VALIDATOR_HOOK = None
+
+# Enables coarse-grained, runtime revocation of outstanding guest tokens.
+#
+# When True, every minted guest token carries a revocation version, and tokens
+# whose version is below the current expected version (stored in the metadata
+# database) are rejected at validation time. Bump the expected version with the
+# `superset revoke-guest-tokens` CLI command to invalidate all outstanding guest
+# tokens (e.g. after a token leak, or when a user's access or RLS rules change).
+#
+# This is opt-in and backward compatible: the default expected version is 0 and
+# tokens minted before this feature (which carry no version claim) are treated as
+# version 0, so nothing is revoked until an admin explicitly bumps the version.
+GUEST_TOKEN_REVOCATION_ENABLED = False
 
 # A SQL dataset health check. Note if enabled it is strongly advised that the callable
 # be memoized to aid with performance, i.e.,

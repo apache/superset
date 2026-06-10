@@ -66,6 +66,9 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.security.guest_token import (
+    DEFAULT_GUEST_TOKEN_REVOCATION_VERSION,
+    get_current_guest_token_revocation_version,
+    GUEST_TOKEN_REVOCATION_CLAIM,
     GuestToken,
     GuestTokenResources,
     GuestTokenResourceType,
@@ -3638,6 +3641,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             "user": user,
             "resources": resources,
             "rls_rules": rls,
+            # revocation version: bumping the expected version (see
+            # GUEST_TOKEN_REVOCATION_ENABLED) invalidates tokens minted with a
+            # lower version.
+            GUEST_TOKEN_REVOCATION_CLAIM: self._get_guest_token_revocation_version(),
             # standard jwt claims:
             "iat": now,  # issued at
             "exp": exp,  # expiration time
@@ -3647,6 +3654,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if datasets is not None:
             claims["datasets"] = datasets
         return self.pyjwt_for_guest_token.encode(claims, secret, algorithm=algo)
+
+    @staticmethod
+    def _get_guest_token_revocation_version() -> int:
+        """
+        Return the revocation version to stamp into newly minted guest tokens.
+
+        Reading the version is gated on ``GUEST_TOKEN_REVOCATION_ENABLED`` so that
+        deployments which have not opted in never touch the metadata store.
+        """
+        if not get_conf()["GUEST_TOKEN_REVOCATION_ENABLED"]:
+            return DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
+        return get_current_guest_token_revocation_version()
 
     def get_guest_user_from_request(self, req: Request) -> Optional[GuestUser]:
         """
@@ -3673,6 +3692,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise ValueError("Guest token does not contain an rls_rules claim")
             if token.get("type") != "guest":
                 raise ValueError("This is not a guest token.")
+            if self._is_guest_token_revoked(token):
+                raise ValueError("This guest token has been revoked.")
         except Exception:  # pylint: disable=broad-except
             # The login manager will handle sending 401s.
             # We don't need to send a special error message.
@@ -3680,6 +3701,29 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return None
 
         return self.get_guest_user_from_token(cast(GuestToken, token))
+
+    @staticmethod
+    def _is_guest_token_revoked(token: dict[str, Any]) -> bool:
+        """
+        Determine whether a guest token has been revoked via a version bump.
+
+        Revocation is opt-in (``GUEST_TOKEN_REVOCATION_ENABLED``). When disabled,
+        no token is ever considered revoked. When enabled, a token is revoked if
+        the version it was minted with is below the expected version. Tokens
+        minted before this feature existed carry no version claim and are treated
+        as :data:`DEFAULT_GUEST_TOKEN_REVOCATION_VERSION` (0), so they only become
+        revoked once an admin has explicitly bumped the expected version above 0.
+        """
+        if not get_conf()["GUEST_TOKEN_REVOCATION_ENABLED"]:
+            return False
+        token_version = token.get(
+            GUEST_TOKEN_REVOCATION_CLAIM, DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
+        )
+        try:
+            token_version = int(token_version)
+        except (TypeError, ValueError):
+            token_version = DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
+        return token_version < get_current_guest_token_revocation_version()
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(

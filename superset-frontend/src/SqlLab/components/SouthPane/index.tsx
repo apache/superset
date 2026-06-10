@@ -31,7 +31,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import PanelToolbar from 'src/components/PanelToolbar';
-import { views } from 'src/core';
+import { useViews } from 'src/core';
 import { resolveView } from 'src/core/views';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import useLogAction from 'src/logger/useLogAction';
@@ -107,7 +107,7 @@ const SouthPane = ({
   const editorId = tabViewId ?? id;
   const theme = useTheme();
   const dispatch = useAppDispatch();
-  const viewItems = views.getViews(ViewLocations.sqllab.panels) || [];
+  const viewItems = useViews(ViewLocations.sqllab.panels) || [];
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
       offline,
