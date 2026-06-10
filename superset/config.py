@@ -459,6 +459,7 @@ LANGUAGES = {
     "nl": {"flag": "nl", "name": "Dutch"},
     "uk": {"flag": "ua", "name": "Ukrainian"},
     "mi": {"flag": "nz", "name": "Māori"},
+    "ro": {"flag": "ro", "name": "Romanian"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
