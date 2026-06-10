@@ -107,7 +107,7 @@ dependencies = [
     "typing-extensions>=4, <5",
     "waitress; sys_platform == 'win32'",
     "watchdog>=6.0.0",
-    "wtforms>=2.3.3, <4",
+    "wtforms>=3.2.2, <4",
     "wtforms-json",
     "xlsxwriter>=3.2.9, <3.3",
 ]
