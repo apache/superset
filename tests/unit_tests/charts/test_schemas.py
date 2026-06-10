@@ -22,6 +22,9 @@ from marshmallow import ValidationError
 from superset.charts.schemas import (
     ChartDataProphetOptionsSchema,
     ChartDataQueryObjectSchema,
+    ChartPostSchema,
+    DEFAULT_MAX_PROPHET_PERIODS,
+    get_max_prophet_periods,
     get_time_grain_choices,
 )
 
@@ -152,3 +155,146 @@ def test_time_grain_validation_with_config_addons(app_context: None) -> None:
     }
     result = schema.load(custom_data)
     assert result["time_grain"] == "PT10M"
+
+
+def test_prophet_periods_within_bound(app_context: None) -> None:
+    """Prophet periods within the configured bound are accepted"""
+    schema = ChartDataProphetOptionsSchema()
+    result = schema.load(
+        {
+            "time_grain": "P1D",
+            "periods": 7,
+            "confidence_interval": 0.8,
+        }
+    )
+    assert result["periods"] == 7
+
+
+def test_prophet_periods_over_max_rejected(app_context: None) -> None:
+    """Prophet periods over the configured maximum raise a ValidationError"""
+    schema = ChartDataProphetOptionsSchema()
+    over_max = current_app.config.get("MAX_PROPHET_PERIODS", 10000) + 1
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(
+            {
+                "time_grain": "P1D",
+                "periods": over_max,
+                "confidence_interval": 0.8,
+            }
+        )
+    assert "periods" in exc_info.value.messages
+
+
+def test_prophet_periods_below_min_rejected(app_context: None) -> None:
+    """Prophet periods below 1 raise a ValidationError"""
+    schema = ChartDataProphetOptionsSchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(
+            {
+                "time_grain": "P1D",
+                "periods": 0,
+                "confidence_interval": 0.8,
+            }
+        )
+    assert "periods" in exc_info.value.messages
+
+
+def test_get_max_prophet_periods_coerces_string(app_context: None) -> None:
+    """A string override (e.g. from an env var) is coerced to int, not crashed on"""
+    original = current_app.config.get("MAX_PROPHET_PERIODS")
+    try:
+        current_app.config["MAX_PROPHET_PERIODS"] = "500"
+        assert get_max_prophet_periods() == 500
+    finally:
+        if original is None:
+            current_app.config.pop("MAX_PROPHET_PERIODS", None)
+        else:
+            current_app.config["MAX_PROPHET_PERIODS"] = original
+
+
+def test_get_max_prophet_periods_invalid_falls_back(app_context: None) -> None:
+    """Invalid or non-positive overrides fall back to the default bound"""
+    original = current_app.config.get("MAX_PROPHET_PERIODS")
+    try:
+        for bad in ("not-a-number", -1, 0):
+            current_app.config["MAX_PROPHET_PERIODS"] = bad
+            assert get_max_prophet_periods() == DEFAULT_MAX_PROPHET_PERIODS
+    finally:
+        if original is None:
+            current_app.config.pop("MAX_PROPHET_PERIODS", None)
+        else:
+            current_app.config["MAX_PROPHET_PERIODS"] = original
+
+
+def test_prophet_periods_with_string_config_validates(app_context: None) -> None:
+    """Validation works (no TypeError) when the config bound is a string"""
+    original = current_app.config.get("MAX_PROPHET_PERIODS")
+    try:
+        current_app.config["MAX_PROPHET_PERIODS"] = "10"
+        schema = ChartDataProphetOptionsSchema()
+        result = schema.load(
+            {"time_grain": "P1D", "periods": 7, "confidence_interval": 0.8}
+        )
+        assert result["periods"] == 7
+        with pytest.raises(ValidationError):
+            schema.load(
+                {"time_grain": "P1D", "periods": 11, "confidence_interval": 0.8}
+            )
+    finally:
+        if original is None:
+            current_app.config.pop("MAX_PROPHET_PERIODS", None)
+        else:
+            current_app.config["MAX_PROPHET_PERIODS"] = original
+
+
+def test_chart_external_url_accepts_https(app_context: None) -> None:
+    """A valid https external_url is accepted"""
+    schema = ChartPostSchema()
+    result = schema.load(
+        {
+            "slice_name": "test",
+            "datasource_id": 1,
+            "datasource_type": "table",
+            "external_url": "https://example.com/managed",
+        }
+    )
+    assert result["external_url"] == "https://example.com/managed"
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "javascript:alert(1)",
+        "data:text/html,<script>alert(1)</script>",
+        "vbscript:msgbox(1)",
+    ],
+)
+def test_chart_external_url_rejects_non_http(app_context: None, url: str) -> None:
+    """external_url rejects non-http(s) schemes"""
+    schema = ChartPostSchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(
+            {
+                "slice_name": "test",
+                "datasource_id": 1,
+                "datasource_type": "table",
+                "external_url": url,
+            }
+        )
+    assert "external_url" in exc_info.value.messages
+
+
+@pytest.mark.parametrize("url", ["https:foo", "http:bar", "https://", "//evil.com"])
+def test_chart_external_url_rejects_non_absolute(app_context: None, url: str) -> None:
+    """external_url rejects scheme-only / hostless / scheme-relative values"""
+    schema = ChartPostSchema()
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load(
+            {
+                "slice_name": "test",
+                "datasource_id": 1,
+                "datasource_type": "table",
+                "external_url": url,
+            }
+        )
+    assert "external_url" in exc_info.value.messages

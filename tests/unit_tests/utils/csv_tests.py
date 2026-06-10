@@ -222,6 +222,29 @@ def test_df_to_escaped_csv_preserves_numeric_columns():
     assert rows[2] == ["safe", "-20"]
 
 
+def test_df_to_escaped_csv_non_default_index():
+    """
+    String cells are escaped against the correct rows even when the DataFrame
+    has a non-default index, such as the flattened MultiIndex produced by
+    pivot_table_v2 post-processing. A positional/label mismatch would otherwise
+    create phantom rows and corrupt the output.
+    """
+    df = pd.DataFrame(
+        data={"metric": ["=SUM(1+1)", "safe"]},
+        index=["boy Edward", "girl Mary"],
+    )
+
+    escaped_csv_str = df_to_escaped_csv(df, encoding="utf8", index=True)
+
+    rows = [row.split(",") for row in escaped_csv_str.strip().split("\n")]
+
+    # Header + exactly two data rows (no duplicated/phantom rows).
+    assert len(rows) == 3
+    # The index labels are preserved and the dangerous cell is escaped in place.
+    assert rows[1] == ["boy Edward", "'=SUM(1+1)"]
+    assert rows[2] == ["girl Mary", "safe"]
+
+
 def test_get_chart_dataframe_returns_none_when_no_content(
     monkeypatch: pytest.MonkeyPatch,
 ):
