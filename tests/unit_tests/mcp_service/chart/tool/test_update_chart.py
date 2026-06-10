@@ -1362,7 +1362,7 @@ class TestBuildUpdatePayloadDatasetId:
         assert result == {"datasource_id": 42, "datasource_type": "table"}
 
     def test_dataset_and_name_update(self):
-        """dataset_id + chart_name: payload includes datasource fields."""
+        """dataset_id + chart_name: payload includes datasource fields and slice_name."""
         request = UpdateChartRequest(identifier=1, dataset_id=42, chart_name="Renamed")
         chart = Mock()
         chart.datasource_id = 10
@@ -1370,7 +1370,11 @@ class TestBuildUpdatePayloadDatasetId:
         result = _build_update_payload(request, chart)
 
         assert isinstance(result, dict)
-        assert result == {"datasource_id": 42, "datasource_type": "table"}
+        assert result == {
+            "datasource_id": 42,
+            "datasource_type": "table",
+            "slice_name": "Renamed",
+        }
 
     def test_dataset_and_config_update_includes_datasource(self):
         """dataset_id + config: payload includes datasource_id and datasource_type."""
@@ -1474,6 +1478,7 @@ class TestUpdateChartDatasetIdIntegration:
         "superset.commands.chart.update.UpdateChartCommand",
         new_callable=Mock,
     )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id", new_callable=Mock)
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
     @patch("superset.db.session")
     @pytest.mark.asyncio
@@ -1481,6 +1486,7 @@ class TestUpdateChartDatasetIdIntegration:
         self,
         mock_db_session,
         mock_find_by_id,
+        mock_dataset_find,
         mock_update_cmd_cls,
         mock_check_access,
         mcp_server,
@@ -1493,6 +1499,10 @@ class TestUpdateChartDatasetIdIntegration:
         mock_chart.viz_type = "table"
         mock_chart.uuid = "uuid-55"
         mock_find_by_id.return_value = mock_chart
+
+        mock_dataset = Mock()
+        mock_dataset.id = 1041
+        mock_dataset_find.return_value = mock_dataset
 
         mock_check_access.return_value = DatasetValidationResult(
             is_valid=True,
@@ -1540,7 +1550,8 @@ class TestUpdateChartDatasetIdIntegration:
         mock_check_access,
         mcp_server,
     ):
-        """dataset_id pointing to a non-existent dataset returns DatasetNotAccessible."""
+        """dataset_id pointing to a non-existent dataset returns
+        DatasetNotAccessible."""
         mock_chart = Mock()
         mock_chart.id = 55
         mock_chart.datasource_id = 10
@@ -1588,7 +1599,8 @@ class TestUpdateChartDatasetIdIntegration:
         mock_check_access,
         mcp_server,
     ):
-        """dataset_id pointing to a non-existent dataset returns error in preview path."""
+        """dataset_id pointing to a non-existent dataset returns error in
+        preview path."""
         mock_chart = Mock()
         mock_chart.id = 55
         mock_chart.datasource_id = 10

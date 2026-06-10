@@ -138,10 +138,13 @@ def _build_update_payload(
 
     # Dataset-only update: rebind chart to a different dataset without changing viz
     if request.dataset_id is not None:
-        return {
+        payload: dict[str, Any] = {
             "datasource_id": request.dataset_id,
             "datasource_type": "table",
         }
+        if request.chart_name:
+            payload["slice_name"] = request.chart_name
+        return payload
 
     # Name-only update: keep existing visualization, just rename
     if not request.chart_name:
