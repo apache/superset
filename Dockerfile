@@ -55,6 +55,13 @@ WORKDIR /app/superset-frontend
 RUN mkdir -p /app/superset/static/assets \
              /app/superset/translations
 
+# Harden `npm ci` against transient npm-registry network blips (e.g. ECONNRESET),
+# which otherwise fail the entire multi-platform image build with no retry.
+ENV npm_config_fetch_retries=5 \
+    npm_config_fetch_retry_mintimeout=20000 \
+    npm_config_fetch_retry_maxtimeout=120000 \
+    npm_config_fetch_timeout=600000
+
 # Mount package files and install dependencies if not in dev mode
 # NOTE: we mount packages and plugins as they are referenced in package.json as workspaces
 # ideally we'd COPY only their package.json. Here npm ci will be cached as long

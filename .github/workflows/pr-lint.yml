@@ -21,7 +21,7 @@ jobs:
       pull-requests: write
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           submodules: recursive
@@ -31,6 +31,5 @@ jobs:
           on-failed-regex-fail-action: true
           on-failed-regex-request-changes: false
           on-failed-regex-create-review: false
-          on-failed-regex-comment:
-            "Please format your PR title to match: `%regex%`!"
+          on-failed-regex-comment: "Please format your PR title to match: `%regex%`!"
           repo-token: "${{ github.token }}"

@@ -89,7 +89,7 @@ dependencies = [
     "python-dateutil",
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
     "pygeohash",
-    "pyarrow>=16.1.0, <21", # before upgrading pyarrow, check that all db dependencies support this, see e.g. https://github.com/apache/superset/pull/34693
+    "pyarrow>=24.0.0, <25", # before upgrading pyarrow, check that all db dependencies support this, see e.g. https://github.com/apache/superset/pull/34693
     "pyyaml>=6.0.0, <7.0.0",
     "PyJWT>=2.4.0, <3.0",
     "redis>=5.0.0, <6.0",
@@ -109,7 +109,7 @@ dependencies = [
     "watchdog>=6.0.0",
     "wtforms>=2.3.3, <4",
     "wtforms-json",
-    "xlsxwriter>=3.0.7, <3.3",
+    "xlsxwriter>=3.2.9, <3.3",
 ]
 
 [project.optional-dependencies]
@@ -165,7 +165,7 @@ hive = [
     "thrift_sasl>=0.4.3, < 1.0.0",
 ]
 impala = ["impyla>0.16.2, <0.23"]
-kusto = ["sqlalchemy-kusto>=3.0.0, <4"]
+kusto = ["sqlalchemy-kusto>=3.1.2, <4"]
 kylin = ["kylinpy>=2.8.1, <2.9"]
 mssql = ["pymssql>=2.2.8, <3"]
 # motherduck is an alias for duckdb - MotherDuck works via the duckdb driver
@@ -203,7 +203,7 @@ tdengine = [
 ]
 teradata = ["teradatasql>=16.20.0.23"]
 thumbnails = [] # deprecated, will be removed in 7.0
-vertica = ["sqlalchemy-vertica-python>= 0.5.9, < 0.7"]
+vertica = ["sqlalchemy-vertica-python>= 0.6.3, < 0.7"]
 netezza = ["nzalchemy>=11.0.2"]
 starrocks = ["starrocks>=1.0.0"]
 doris = ["pydoris>=1.0.0, <2.0.0"]
@@ -447,6 +447,7 @@ requirement_txt_file = "requirements/base.txt"
 authorized_licenses = [
     "academic free license (afl)",
     "any-osi",
+    "apache-2.0",
     "apache license 2.0",
     "apache software",
     "apache software, bsd",
