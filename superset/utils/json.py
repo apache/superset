@@ -26,6 +26,7 @@ import pandas as pd
 import simplejson
 from flask_babel.speaklater import LazyString
 from jsonpath_ng import parse
+from jsonpath_ng.jsonpath import Child, Fields, Root
 from simplejson import JSONDecodeError
 
 from superset.constants import PASSWORD_MASK
@@ -304,6 +305,30 @@ def reveal_sensitive(
     return revealed_payload
 
 
+def _render_jsonpath(node: Any) -> str:
+    """
+    Render a JSONPath node as a stable dotted string (e.g. ``foo.bar``).
+
+    ``str()`` of a jsonpath-ng path is not stable across releases: as of
+    jsonpath-ng 1.8.0 a ``Child`` node renders with surrounding parentheses
+    (e.g. ``(foo.bar)``). This helper produces the historic dotted notation so
+    that the strings returned by :func:`get_masked_fields` remain consistent and
+    can be round-tripped back through ``parse``.
+
+    Falls back to ``str()`` for node kinds that aren't plain field access (e.g.
+    array indices, slices), preserving their existing representation.
+    """
+    if isinstance(node, Child):
+        left = _render_jsonpath(node.left)
+        right = _render_jsonpath(node.right)
+        return f"{left}.{right}" if left else right
+    if isinstance(node, Fields):
+        return ".".join(node.fields)
+    if isinstance(node, Root):
+        return ""
+    return str(node)
+
+
 def get_masked_fields(
     payload: dict[str, Any],
     sensitive_fields: set[str],
@@ -321,8 +346,10 @@ def get_masked_fields(
         for match in jsonpath_expr.find(payload):
             if match.value == PASSWORD_MASK:
                 # Using `match.full_path` instead of json_path to account
-                # for wildcards
-                masked.append(f"$.{match.full_path}")
+                # for wildcards. Render the path explicitly so the output is
+                # stable across jsonpath-ng versions (newer releases wrap
+                # `Child` paths in parentheses when stringified).
+                masked.append(f"$.{_render_jsonpath(match.full_path)}")
     return masked
 
 
