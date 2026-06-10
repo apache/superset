@@ -27,12 +27,19 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import func, literal, select, union_all
+from sqlalchemy import func, literal, or_, select, union_all
+from sqlalchemy.orm import joinedload
 
 from superset.daos.base import BaseDAO
 from superset.extensions import db
 from superset.folders.constants import ASSET_TYPE_CONFIGS, asset_types_for_folder_type
-from superset.folders.models import Folder, FolderObject, FolderPin
+from superset.folders.models import (
+    Folder,
+    folder_editors,
+    folder_viewers,
+    FolderObject,
+    FolderPin,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -129,13 +136,17 @@ class FolderDAO(BaseDAO[Folder]):
         ``UNION ALL`` over the included sources ordered by (folders first, then most
         recently changed), so callers get exactly one page plus the total count.
         """
-        from superset.connectors.sqla.models import SqlaTable  # noqa: F401
+        from superset import security_manager
+        from superset.connectors.sqla.models import SqlaTable
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
+        from superset.utils.core import get_user_id
 
         folder_id = folder.id if folder else None
         requested = set(types) if types else None
         asset_only_filter = bool(viz_types or datasets or owners)
+        is_admin = security_manager.is_admin()
+        user_id = get_user_id()
 
         def included(kind: str) -> bool:
             return requested is None or kind in requested
@@ -161,6 +172,18 @@ class FolderDAO(BaseDAO[Folder]):
                 fq = fq.where(Folder.changed_on >= modified_start)
             if modified_end:
                 fq = fq.where(Folder.changed_on <= modified_end)
+            # Access filter: non-admins only see folders they are a member of
+            if not is_admin and user_id:
+                accessible_folder_ids = (
+                    select(folder_viewers.c.folder_id)
+                    .where(folder_viewers.c.user_id == user_id)
+                    .union(
+                        select(folder_editors.c.folder_id).where(
+                            folder_editors.c.user_id == user_id
+                        )
+                    )
+                )
+                fq = fq.where(Folder.id.in_(accessible_folder_ids))
             selects.append(fq)
 
         # --- Assets (charts / dashboards for this folder type) ---
@@ -203,6 +226,82 @@ class FolderDAO(BaseDAO[Folder]):
                     aq = aq.where(Slice.viz_type.in_(viz_types))
                 if datasets:
                     aq = aq.where(Slice.datasource_id.in_(datasets))
+
+            # Access filter: non-admins only see assets they can access
+            if not is_admin and user_id:
+                from superset.connectors.sqla.models import (
+                    Database as ConnDatabase,
+                )
+                from superset.utils.filters import get_dataset_access_filters
+
+                access_conditions = []
+
+                # 1. User owns the asset
+                access_conditions.append(
+                    model.owners.any(cls._user_model().id == user_id)
+                )
+
+                # 2. User has folder membership for the asset
+                user_folder_ids = (
+                    select(folder_viewers.c.folder_id)
+                    .where(folder_viewers.c.user_id == user_id)
+                    .union(
+                        select(folder_editors.c.folder_id).where(
+                            folder_editors.c.user_id == user_id
+                        )
+                    )
+                )
+                folder_accessible = (
+                    select(fk_col)
+                    .select_from(FolderObject)
+                    .where(
+                        fk_col.isnot(None),
+                        FolderObject.folder_id.in_(user_folder_ids),
+                    )
+                )
+                access_conditions.append(model.id.in_(folder_accessible))
+
+                # 3. Chart: user has datasource access
+                can_access_all = security_manager.can_access_all_datasources()
+                if name == "chart" and not can_access_all:
+                    ds_accessible = (
+                        select(Slice.id)
+                        .join(
+                            SqlaTable,
+                            Slice.datasource_id == SqlaTable.id,
+                        )
+                        .join(
+                            ConnDatabase,
+                            SqlaTable.database_id == ConnDatabase.id,
+                        )
+                        .where(get_dataset_access_filters(Slice))
+                    )
+                    access_conditions.append(model.id.in_(ds_accessible))
+
+                # 4. Dashboard: published + user has datasource access
+                if name == "dashboard":
+                    if can_access_all:
+                        access_conditions.append(Dashboard.published.is_(True))
+                    else:
+                        published_accessible = (
+                            select(Dashboard.id)
+                            .join(Dashboard.slices, isouter=True)
+                            .join(
+                                SqlaTable,
+                                Slice.datasource_id == SqlaTable.id,
+                            )
+                            .join(
+                                ConnDatabase,
+                                SqlaTable.database_id == ConnDatabase.id,
+                            )
+                            .where(
+                                Dashboard.published.is_(True),
+                                get_dataset_access_filters(Slice, can_access_all),
+                            )
+                        )
+                        access_conditions.append(model.id.in_(published_accessible))
+
+                aq = aq.where(or_(*access_conditions))
             selects.append(aq)
 
         if not selects:
@@ -227,6 +326,11 @@ class FolderDAO(BaseDAO[Folder]):
         if ids_by_type.get("folder"):
             for obj in (
                 db.session.query(Folder)
+                .options(
+                    joinedload(Folder.parent),
+                    joinedload(Folder.created_by),
+                    joinedload(Folder.changed_by),
+                )
                 .filter(Folder.id.in_(ids_by_type["folder"]))
                 .all()
             ):
@@ -268,16 +372,26 @@ class FolderDAO(BaseDAO[Folder]):
     # Persistence
     # ------------------------------------------------------------------ #
     @classmethod
-    def delete_folder(cls, folder: Folder) -> None:
+    def delete_folder(cls, folder: Folder, archive_items: bool = False) -> None:
         """Delete a folder, re-parenting children to its parent.
 
-        Assets linked to the folder become unfoldered: the ``folder_objects``
-        rows are removed (ORM delete-orphan / DB ``ON DELETE CASCADE``) while the
-        assets themselves are untouched.
+        When ``archive_items`` is False (default), assets linked to the folder
+        become unfoldered. When True, the assets themselves are also deleted.
         """
         for child in list(folder.children):
             child.parent_id = folder.parent_id
         db.session.flush()
+
+        if archive_items:
+            for link in list(folder.objects):
+                for _name, config in ASSET_TYPE_CONFIGS.items():
+                    asset_id = getattr(link, config.fk_column)
+                    if asset_id is not None:
+                        asset = db.session.get(config.model, asset_id)
+                        if asset:
+                            db.session.delete(asset)
+                        break
+
         db.session.delete(folder)
 
     @classmethod
@@ -301,6 +415,12 @@ class FolderDAO(BaseDAO[Folder]):
                 link = FolderObject(folder_id=folder.id, created_on=datetime.now())
                 setattr(link, config.fk_column, asset["id"])
                 db.session.add(link)
+
+            # Remove any pins for this asset since it's no longer at root
+            db.session.query(FolderPin).filter(
+                FolderPin.object_id == asset["id"],
+                FolderPin.object_type == asset["type"],
+            ).delete()
 
     @classmethod
     def set_assets(cls, folder: Folder, assets: list[dict[str, Any]]) -> None:
@@ -431,7 +551,6 @@ class FolderDAO(BaseDAO[Folder]):
 
     @classmethod
     def add_subject(cls, folder_id: int, user_id: int, permission: str) -> None:
-
         from superset.folders.models import folder_editors, folder_viewers
 
         if permission == "editor":

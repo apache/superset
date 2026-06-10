@@ -16,6 +16,7 @@
 # under the License.
 from typing import Any
 
+from flask import current_app
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import aliased
@@ -24,7 +25,6 @@ from sqlalchemy.orm.query import Query
 from superset import db, security_manager
 from superset.connectors.sqla import models
 from superset.connectors.sqla.models import SqlaTable
-from superset.folders.models import FolderObject, folder_editors, folder_viewers
 from superset.models.core import FavStar
 from superset.models.slice import Slice
 from superset.tags.filters import BaseTagIdFilter, BaseTagNameFilter
@@ -112,38 +112,15 @@ class ChartFilter(BaseFilter):  # pylint: disable=too-few-public-methods
             .filter(get_dataset_access_filters(self.model))
         )
 
-        # Folder access: charts accessible via folder viewer/editor membership
-        user_id = get_user_id()
-        folder_access_subquery = (
-            db.session.query(FolderObject.chart_id)
-            .join(
-                folder_viewers,
-                folder_viewers.c.folder_id == FolderObject.folder_id,
-                isouter=True,
-            )
-            .join(
-                folder_editors,
-                folder_editors.c.folder_id == FolderObject.folder_id,
-                isouter=True,
-            )
-            .filter(
-                FolderObject.chart_id.isnot(None),
-                or_(
-                    folder_viewers.c.user_id == user_id,
-                    folder_editors.c.user_id == user_id,
-                ),
-            )
-            .subquery()
-        )
+        conditions = [
+            self.model.id.in_(dataset_query.with_entities(self.model.id).subquery()),
+        ]
 
-        return query.filter(
-            or_(
-                self.model.id.in_(
-                    dataset_query.with_entities(self.model.id).subquery()
-                ),
-                self.model.id.in_(folder_access_subquery),
-            )
-        )
+        extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
+        if chart_filter := extra_filters.get("chart"):
+            conditions.append(chart_filter(query, self.model))
+
+        return query.filter(or_(*conditions))
 
 
 class ChartHasCreatedByFilter(BaseFilter):  # pylint: disable=too-few-public-methods

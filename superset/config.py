@@ -2544,6 +2544,31 @@ class ExtraDynamicQueryFilters(TypedDict, total=False):
 
 EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 
+# ---------------------------------------------------------------------------
+# Extension hooks
+# ---------------------------------------------------------------------------
+# Additional filters applied to chart/dashboard list queries. Each callable
+# receives (query, model) and returns a modified query.
+# Example: {"chart": my_chart_filter, "dashboard": my_dashboard_filter}
+EXTRA_ACCESS_QUERY_FILTERS: dict[str, Callable[..., Any]] = {}
+
+# Callable that can bypass ``raise_for_access`` for specific assets. Receives
+# the keyword arguments passed to ``raise_for_access`` and returns ``True`` to
+# skip the default access check.
+EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
+
+# Resolve additional owners for an asset beyond the ``owners`` relationship.
+# Receives a model instance and returns a list of user objects. Used both for
+# API serialization (extra_owners) and ownership checks (is_owner). When
+# configured, the auto-add of the current user to ``owners`` on create is
+# skipped — the resolver is expected to handle access independently.
+EXTRA_OWNERS_RESOLVER: Callable[..., list[Any]] | None = None
+
+# Called after a chart or dashboard is created. Receives the model instance
+# and the asset type string ("chart" or "dashboard"). Runs inside the same
+# transaction — if it raises, the create is rolled back.
+AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
+
 
 # The migrations that add catalog permissions might take a considerably long time
 # to execute as it has to create permissions to all schemas and catalogs from all

@@ -16,7 +16,7 @@
 # under the License.
 from typing import Any, Optional
 
-from flask import g
+from flask import current_app, g
 from flask_appbuilder.security.sqla.models import Role
 from flask_babel import lazy_gettext as _
 from sqlalchemy import and_, or_
@@ -24,7 +24,6 @@ from sqlalchemy.orm.query import Query
 
 from superset import db, is_feature_enabled, security_manager
 from superset.connectors.sqla.models import SqlaTable
-from superset.folders.models import FolderObject, folder_editors, folder_viewers
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard, is_uuid
 from superset.models.embedded_dashboard import EmbeddedDashboard
@@ -183,34 +182,17 @@ class DashboardAccessFilter(BaseFilter):  # pylint: disable=too-few-public-metho
 
             feature_flagged_filters.append(condition)
 
-        # Folder access: dashboards accessible via folder viewer/editor membership
-        folder_access_subquery = (
-            db.session.query(FolderObject.dashboard_id)
-            .join(
-                folder_viewers,
-                folder_viewers.c.folder_id == FolderObject.folder_id,
-                isouter=True,
-            )
-            .join(
-                folder_editors,
-                folder_editors.c.folder_id == FolderObject.folder_id,
-                isouter=True,
-            )
-            .filter(
-                FolderObject.dashboard_id.isnot(None),
-                or_(
-                    folder_viewers.c.user_id == get_user_id(),
-                    folder_editors.c.user_id == get_user_id(),
-                ),
-            )
-        )
+        extra_conditions = []
+        extra_filters = current_app.config.get("EXTRA_ACCESS_QUERY_FILTERS", {})
+        if dashboard_filter := extra_filters.get("dashboard"):
+            extra_conditions.append(dashboard_filter(query, Dashboard))
 
         query = query.filter(
             or_(
                 Dashboard.id.in_(owner_ids_query),
                 Dashboard.id.in_(datasource_perm_query),
-                Dashboard.id.in_(folder_access_subquery),
                 *feature_flagged_filters,
+                *extra_conditions,
             )
         )
 

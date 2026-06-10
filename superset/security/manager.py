@@ -2924,19 +2924,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # pylint: disable=import-outside-toplevel
         from superset import is_feature_enabled
         from superset.connectors.sqla.models import SqlaTable
-        from superset.daos.folder_permissions import FolderPermissionDAO
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
         from superset.models.sql_lab import Query
         from superset.utils.core import shortid
 
-        # Folder access bypass: if the user has folder access to the asset,
-        # skip all permission checks (including datasource).
-        user_id = get_user_id()
-        if user_id and FolderPermissionDAO.user_has_folder_access_for_asset(
-            user_id=user_id,
-            dashboard_id=dashboard.id if dashboard else None,
-            chart_id=chart.id if chart else None,
+        # Extension hook: allow deployments to bypass access checks for
+        # specific assets (e.g. based on external permission systems).
+        bypass_fn = current_app.config.get("EXTRA_RAISE_FOR_ACCESS_BYPASS")
+        if bypass_fn and bypass_fn(
+            dashboard=dashboard,
+            chart=chart,
+            database=database,
+            datasource=datasource,
+            query=query,
+            query_context=query_context,
+            viz=viz,
         ):
             return
 
@@ -3135,14 +3138,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 form_data = viz.form_data
 
             assert datasource
-
-            # Folder access bypass for datasource checks
-            if user_id and FolderPermissionDAO.user_has_folder_access_for_asset(
-                user_id=user_id,
-                datasource_id=datasource.id if datasource else None,
-                form_data=form_data,
-            ):
-                return
 
             if not (
                 self.can_access_schema(datasource)
@@ -3820,24 +3815,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         owners = orig_resource.owners if hasattr(orig_resource, "owners") else []
 
         if g.user.is_anonymous or g.user not in owners:
-            # Folder editor bypass
-            from superset.daos.folder_permissions import FolderPermissionDAO
-
-            user_id = g.user.id if not g.user.is_anonymous else None
-            if user_id:
-                dashboard_id = (
-                    resource.id if resource.__tablename__ == "dashboards" else None
-                )
-                chart_id = (
-                    resource.id if resource.__tablename__ == "slices" else None
-                )
-                if (dashboard_id or chart_id) and (
-                    FolderPermissionDAO.user_is_folder_editor_for_asset(
-                        user_id,
-                        dashboard_id=dashboard_id,
-                        chart_id=chart_id,
-                    )
-                ):
+            # Extension hook: check if the user is an extra owner
+            resolver = current_app.config.get("EXTRA_OWNERS_RESOLVER")
+            if resolver and not g.user.is_anonymous:
+                extra_owners = resolver(orig_resource)
+                if g.user in extra_owners:
                     return
 
             raise SupersetSecurityException(

@@ -24,8 +24,8 @@ import { styled, css, useTheme } from '@apache-superset/core/theme';
 import {
   AsyncSelect,
   Select,
-  Tag,
   type SelectOptionsTypePage,
+  type SelectValue,
 } from '@superset-ui/core/components';
 import { StandardModal } from 'src/components/Modal';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -210,13 +210,20 @@ export default function FolderPermissionsModal({
   }, [show, fetchSubjects]);
 
   const handleAddUser = useCallback(
-    (value: number, option: { label: string }) => {
-      if (!value) return;
+    (selected: SelectValue) => {
+      if (!selected || typeof selected !== 'object') return;
+      const item = selected as { value: number; label: string };
+      const userId = Number(item.value);
+      if (!userId || Number.isNaN(userId)) return;
       setLocalSubjects(prev => {
-        if (prev.some(s => s.user_id === value)) return prev;
+        if (prev.some(s => s.user_id === userId)) return prev;
         return [
           ...prev,
-          { user_id: value, permission: addPermission, label: option.label },
+          {
+            user_id: userId,
+            permission: addPermission,
+            label: String(item.label),
+          },
         ];
       });
     },
@@ -286,8 +293,15 @@ export default function FolderPermissionsModal({
         }
       }
 
-      await Promise.all(calls);
-      addSuccessToast(t('Permissions updated'));
+      const results = await Promise.allSettled(calls);
+      const failures = results.filter(r => r.status === 'rejected');
+      if (failures.length > 0) {
+        addDangerToast(
+          t('%s permission update(s) failed', failures.length),
+        );
+      } else {
+        addSuccessToast(t('Permissions updated'));
+      }
       onHide();
     } catch {
       addDangerToast(t('Error updating permissions'));
@@ -347,10 +361,8 @@ export default function FolderPermissionsModal({
                 ariaLabel={t('Search users')}
                 placeholder={t('Search for a user…')}
                 options={filteredUserOptions}
-                onSelect={(value: number, option: { label: string }) =>
-                  handleAddUser(value, option)
-                }
-                value={null}
+                onChange={handleAddUser}
+                value={undefined}
                 getPopupContainer={trigger =>
                   trigger.closest('.ant-modal-content') || document.body
                 }
@@ -418,50 +430,39 @@ export default function FolderPermissionsModal({
                         </span>
                       )}
                     </span>
-                    {isCurrentUser ? (
-                      <Tag
-                        color={
-                          subject.permission === 'editor' ? 'blue' : 'green'
-                        }
-                      >
-                        {subject.permission === 'editor'
-                          ? t('Editor')
-                          : t('Viewer')}
-                      </Tag>
-                    ) : (
-                      <>
-                        <Select
-                          ariaLabel={t('Permission')}
-                          options={PERMISSION_OPTIONS}
-                          value={subject.permission}
-                          onChange={(val: Permission) =>
-                            handleChangePermission(subject.user_id, val)
+                    <Select
+                      ariaLabel={t('Permission')}
+                      options={PERMISSION_OPTIONS}
+                      value={subject.permission}
+                      disabled={isCurrentUser}
+                      onChange={(val: Permission) =>
+                        handleChangePermission(subject.user_id, val)
+                      }
+                      css={{ width: 110 }}
+                      getPopupContainer={trigger =>
+                        trigger.closest('.ant-modal-content') ||
+                        document.body
+                      }
+                    />
+                    {!isCurrentUser && (
+                      <Icons.DeleteOutlined
+                        iconSize="m"
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleRemoveSubject(subject.user_id)}
+                        onKeyDown={(e: React.KeyboardEvent) => {
+                          if (e.key === 'Enter')
+                            handleRemoveSubject(subject.user_id);
+                        }}
+                        css={css`
+                          cursor: pointer;
+                          color: ${theme.colorIcon};
+                          flex-shrink: 0;
+                          &:hover {
+                            color: ${theme.colorError};
                           }
-                          css={{ width: 110 }}
-                          getPopupContainer={trigger =>
-                            trigger.closest('.ant-modal-content') ||
-                            document.body
-                          }
-                        />
-                        <Icons.DeleteOutlined
-                          iconSize="m"
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => handleRemoveSubject(subject.user_id)}
-                          onKeyDown={(e: React.KeyboardEvent) => {
-                            if (e.key === 'Enter')
-                              handleRemoveSubject(subject.user_id);
-                          }}
-                          css={css`
-                            cursor: pointer;
-                            color: ${theme.colorIcon};
-                            flex-shrink: 0;
-                            &:hover {
-                              color: ${theme.colorError};
-                            }
-                          `}
-                        />
-                      </>
+                        `}
+                      />
                     )}
                   </SubjectRow>
                 );

@@ -61,7 +61,7 @@ const StyledModal = styled(Modal)`
       ${({ theme }) => theme.sizeUnit * 4}px
       ${({ theme }) => theme.sizeUnit * 3}px;
     margin-bottom: 0;
-    border-bottom: 1px solid ${({ theme }) => theme.colorBorder};
+    border-bottom: none;
   }
 
   .ant-modal-footer {

@@ -18,30 +18,42 @@ import logging
 from functools import partial
 from typing import Optional
 
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.folder.exceptions import (
     FolderDeleteFailedError,
+    FolderForbiddenError,
     FolderNotFoundError,
 )
 from superset.daos.folder import FolderDAO
+from superset.daos.folder_permissions import FolderPermissionDAO
 from superset.folders.models import Folder
+from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 
 
 class DeleteFolderCommand(BaseCommand):
-    def __init__(self, folder_id_or_uuid: str):
+    def __init__(self, folder_id_or_uuid: str, archive_items: bool = False):
         self._id = folder_id_or_uuid
+        self._archive_items = archive_items
         self._model: Optional[Folder] = None
 
     @transaction(on_error=partial(on_error, reraise=FolderDeleteFailedError))
     def run(self) -> None:
         self.validate()
         assert self._model
-        FolderDAO.delete_folder(self._model)
+        FolderDAO.delete_folder(self._model, self._archive_items)
 
     def validate(self) -> None:
         self._model = FolderDAO.find_by_id_or_uuid(self._id)
         if not self._model:
             raise FolderNotFoundError()
+
+        if not security_manager.is_admin():
+            user_id = get_user_id()
+            if not user_id or not FolderPermissionDAO.user_is_folder_editor(
+                user_id, self._model.id
+            ):
+                raise FolderForbiddenError()

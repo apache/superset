@@ -57,6 +57,7 @@ import { type Slice } from 'src/types/Chart';
 import CreateFolderModal from './CreateFolderModal';
 import FolderAssetsModal from './FolderAssetsModal';
 import FolderPermissionsModal from './FolderPermissionsModal';
+import DeleteFolderModal from './DeleteFolderModal';
 import MoveToModal from './MoveToModal';
 import DashboardCharts from './DashboardCharts';
 
@@ -80,6 +81,8 @@ interface ContentItem {
   owners?: Owner[];
   changed_on?: string;
   changed_by?: Owner | null;
+  asset_count?: number;
+  children_count?: number;
 }
 
 /** A location in the drill path; the root has a null uuid. */
@@ -184,6 +187,9 @@ function AnalyticsList({
   } | null>(null);
   const [bulkSelectEnabled, setBulkSelectEnabled] = useState(false);
   const [moveTarget, setMoveTarget] = useState<ContentItem | null>(null);
+  const [folderToArchive, setFolderToArchive] = useState<ContentItem | null>(
+    null,
+  );
 
   // --- Pinning state ---
   const [pins, setPins] = useState<
@@ -345,21 +351,6 @@ function AnalyticsList({
         : [...prev, rowId],
     );
   }, []);
-
-  const deleteFolder = useCallback(
-    async (item: ContentItem) => {
-      try {
-        await SupersetClient.delete({
-          endpoint: `/api/v1/folders/${item.uuid}`,
-        });
-        addSuccessToast(t('Deleted: %s', item.name));
-        refreshData();
-      } catch {
-        addDangerToast(t('Error deleting %s', item.name));
-      }
-    },
-    [addSuccessToast, addDangerToast, refreshData],
-  );
 
   // Mirror ChartList: PropertiesModal fetches the chart itself by `slice_id`,
   // so it only needs a minimal slice built from the row (no pre-fetch).
@@ -660,7 +651,7 @@ function AnalyticsList({
                     role="button"
                     tabIndex={0}
                     className="action-button"
-                    onClick={() => deleteFolder(original)}
+                    onClick={() => setFolderToArchive(original)}
                   >
                     <Icons.DeleteOutlined iconSize="l" />
                   </span>
@@ -726,7 +717,6 @@ function AnalyticsList({
     ],
     [
       drillInto,
-      deleteFolder,
       expandedKeys,
       toggleExpand,
       openChartEdit,
@@ -850,16 +840,19 @@ function AnalyticsList({
               items: [
                 {
                   key: 'chart',
+                  icon: <Icons.AreaChartOutlined />,
                   label: t('Chart'),
                   onClick: () => history.push('/chart/add'),
                 },
                 {
                   key: 'dashboard',
+                  icon: <Icons.AppstoreOutlined />,
                   label: t('Dashboard'),
                   onClick: () => window.location.assign('/dashboard/new'),
                 },
                 {
                   key: 'folder',
+                  icon: <Icons.FolderOutlined />,
                   label: t('Folder'),
                   onClick: () => setShowCreateFolder(true),
                 },
@@ -931,6 +924,21 @@ function AnalyticsList({
             setEditChart(null);
             refreshData();
           }}
+        />
+      )}
+      {folderToArchive && (
+        <DeleteFolderModal
+          folder={{
+            uuid: folderToArchive.uuid ?? '',
+            name: folderToArchive.name,
+            asset_count: folderToArchive.asset_count ?? 0,
+            children_count: folderToArchive.children_count ?? 0,
+          }}
+          show
+          onHide={() => setFolderToArchive(null)}
+          onSuccess={refreshData}
+          addDangerToast={addDangerToast}
+          addSuccessToast={addSuccessToast}
         />
       )}
       {editDashboard && (

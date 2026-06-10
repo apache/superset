@@ -26,19 +26,24 @@ from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
 from marshmallow import ValidationError
 
-from superset.commands.folder.assets import UpdateFolderAssetsCommand
+from superset.commands.folder.assets import (
+    AddFolderAssetsCommand,
+    UpdateFolderAssetsCommand,
+)
 from superset.commands.folder.create import CreateFolderCommand
 from superset.commands.folder.delete import DeleteFolderCommand
 from superset.commands.folder.exceptions import (
     FolderCreateFailedError,
     FolderDeleteFailedError,
+    FolderForbiddenError,
     FolderInvalidError,
     FolderNotFoundError,
     FolderUpdateFailedError,
 )
 from superset.commands.folder.update import UpdateFolderCommand
 from superset.daos.folder import FolderDAO, ResolvedAsset
-from superset.extensions import db, event_logger
+from superset.daos.folder_permissions import FolderPermissionDAO
+from superset.extensions import event_logger
 from superset.folders.constants import ASSET_TYPE_CONFIGS, DEFAULT_FOLDER_TYPE
 from superset.folders.models import Folder
 from superset.folders.schemas import (
@@ -53,6 +58,7 @@ from superset.folders.schemas import (
     FolderRootResponseSchema,
     FolderSchema,
 )
+from superset.utils.decorators import transaction
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -68,10 +74,18 @@ def _serialize_user(user: Any) -> dict[str, Any] | None:
     }
 
 
-def serialize_folder(folder: Folder) -> dict[str, Any]:
-    """Serialize a folder's metadata for API responses."""
+def serialize_folder(
+    folder: Folder,
+    children_count: int | None = None,
+    asset_count: int | None = None,
+) -> dict[str, Any]:
+    """Serialize a folder's metadata for API responses.
+
+    Accepts optional pre-computed counts to avoid N+1 queries. When not
+    provided, falls back to relationship access (acceptable for single-folder
+    responses but expensive in list views).
+    """
     return {
-        # Discriminates folder rows from asset rows in the unified contents list.
         "type": "folder",
         "id": folder.id,
         "uuid": str(folder.uuid),
@@ -80,13 +94,16 @@ def serialize_folder(folder: Folder) -> dict[str, Any]:
         "parent_uuid": str(folder.parent.uuid) if folder.parent else None,
         "folder_type": folder.folder_type,
         "is_private": folder.is_private,
-        "children_count": len(folder.children),
-        "asset_count": len(folder.objects),
+        "children_count": (
+            children_count if children_count is not None else len(folder.children)
+        ),
+        "asset_count": (
+            asset_count if asset_count is not None else len(folder.objects)
+        ),
         "created_on": folder.created_on,
         "changed_on": folder.changed_on,
         "created_by": _serialize_user(folder.created_by),
         "changed_by": _serialize_user(folder.changed_by),
-        # Folders have no owners; present for a uniform contents row shape.
         "owners": [],
     }
 
@@ -158,10 +175,10 @@ def _parse_contents_filters() -> dict[str, Any]:
         except ValueError:
             return None
 
-    def positive_int(key: str, default: int) -> int:
+    def positive_int(key: str, default: int, maximum: int = 100) -> int:
         raw = args.get(key)
         if raw is not None and raw.isdigit():
-            return int(raw)
+            return min(int(raw), maximum)
         return default
 
     return {
@@ -200,6 +217,36 @@ class FolderRestApi(BaseSupersetApi):
     add_model_schema = FolderPostSchema()
     edit_model_schema = FolderPutSchema()
     assets_model_schema = FolderAssetsPutSchema()
+
+    @staticmethod
+    def _raise_for_folder_access(folder: Folder) -> None:
+        """Raise FolderForbiddenError if user cannot view the folder."""
+        from superset import security_manager
+        from superset.daos.folder_permissions import FolderPermissionDAO
+        from superset.utils.core import get_user_id
+
+        if security_manager.is_admin():
+            return
+        user_id = get_user_id()
+        if not user_id or not FolderPermissionDAO.user_has_folder_access(
+            user_id, folder.id
+        ):
+            raise FolderForbiddenError()
+
+    @staticmethod
+    def _raise_for_folder_edit(folder: Folder) -> None:
+        """Raise FolderForbiddenError if user cannot edit the folder."""
+        from superset import security_manager
+        from superset.daos.folder_permissions import FolderPermissionDAO
+        from superset.utils.core import get_user_id
+
+        if security_manager.is_admin():
+            return
+        user_id = get_user_id()
+        if not user_id or not FolderPermissionDAO.user_is_folder_editor(
+            user_id, folder.id
+        ):
+            raise FolderForbiddenError()
 
     @expose("/", methods=("GET",))
     @protect()
@@ -319,6 +366,10 @@ class FolderRestApi(BaseSupersetApi):
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
+        try:
+            self._raise_for_folder_access(folder)
+        except FolderForbiddenError:
+            return self.response_403()
         return self.response(200, result=serialize_folder(folder))
 
     @expose("/<string:folder_uuid>/assets", methods=("GET",))
@@ -358,6 +409,10 @@ class FolderRestApi(BaseSupersetApi):
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
+        try:
+            self._raise_for_folder_access(folder)
+        except FolderForbiddenError:
+            return self.response_403()
         filters = _parse_contents_filters()
         rows, count = FolderDAO.get_contents(folder, folder.folder_type, **filters)
         return self.response(
@@ -477,6 +532,8 @@ class FolderRestApi(BaseSupersetApi):
             return self.response(200, result=serialize_folder(folder))
         except FolderNotFoundError:
             return self.response_404()
+        except FolderForbiddenError:
+            return self.response_403()
         except FolderInvalidError as ex:
             return self.response(422, message=ex.normalized_messages())
         except FolderUpdateFailedError as ex:
@@ -522,11 +579,14 @@ class FolderRestApi(BaseSupersetApi):
             500:
               $ref: '#/components/responses/500'
         """
+        archive_items = request.args.get("archive_items", "").lower() == "true"
         try:
-            DeleteFolderCommand(folder_uuid).run()
+            DeleteFolderCommand(folder_uuid, archive_items).run()
             return self.response(200, message="OK")
         except FolderNotFoundError:
             return self.response_404()
+        except FolderForbiddenError:
+            return self.response_403()
         except FolderDeleteFailedError as ex:
             return self.response_422(message=str(ex))
 
@@ -590,104 +650,71 @@ class FolderRestApi(BaseSupersetApi):
             )
         except FolderNotFoundError:
             return self.response_404()
+        except FolderForbiddenError:
+            return self.response_403()
         except FolderInvalidError as ex:
             return self.response(422, message=ex.normalized_messages())
         except FolderUpdateFailedError as ex:
             return self.response_422(message=str(ex))
 
-    @expose(
-        "/<string:folder_uuid>/assets/<string:asset_type>/<int:asset_id>",
-        methods=("PUT",),
-    )
+    @expose("/<string:folder_uuid>/assets", methods=("POST",))
     @protect()
     @safe
     @permission_name("write")
     @statsd_metrics
-    def put_single_asset(
-        self, folder_uuid: str, asset_type: str, asset_id: int
-    ) -> Response:
-        """Move a single asset into a folder (upsert).
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.post_assets",
+        log_to_statsd=False,
+    )
+    @requires_json
+    def post_assets(self, folder_uuid: str) -> Response:
+        """Add assets to a folder (upsert).
+
+        Assets already in another folder are moved. Existing assets in this
+        folder that are not listed are left untouched (unlike PUT which
+        replaces the full membership).
         ---
-        put:
-          summary: Move one asset into a folder
+        post:
+          summary: Add assets to a folder
           parameters:
           - in: path
             name: folder_uuid
             required: true
             schema:
               type: string
-          - in: path
-            name: asset_type
+          requestBody:
             required: true
-            schema:
-              type: string
-              enum: [chart, dashboard, dataset]
-          - in: path
-            name: asset_id
-            required: true
-            schema:
-              type: integer
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/FolderAssetsPutSchema'
           responses:
             200:
-              description: Asset moved
+              description: Assets added
+            400:
+              $ref: '#/components/responses/400'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
         """
-        folder = FolderDAO.get_by_uuid(folder_uuid)
-        if not folder:
-            return self.response_404()
-        # Moving a folder into another folder = update parent_id
-        if asset_type == "folder":
-            from superset.folders.models import Folder
-
-            child_folder = db.session.query(Folder).filter(Folder.id == asset_id).first()
-            if not child_folder:
-                return self.response_404()
-            if child_folder.id == folder.id:
-                return self.response(400, message="Cannot move a folder into itself")
-            child_folder.parent_id = folder.id
-            # Copy parent's permissions to the moved folder
-            from superset.folders.models import folder_editors, folder_viewers
-
-            # Clear existing permissions on the child
-            db.session.execute(
-                folder_editors.delete().where(
-                    folder_editors.c.folder_id == child_folder.id
-                )
-            )
-            db.session.execute(
-                folder_viewers.delete().where(
-                    folder_viewers.c.folder_id == child_folder.id
-                )
-            )
-            # Copy from new parent
-            for row in db.session.execute(
-                folder_editors.select().where(
-                    folder_editors.c.folder_id == folder.id
-                )
-            ).fetchall():
-                db.session.execute(
-                    folder_editors.insert().values(
-                        folder_id=child_folder.id, user_id=row.user_id
-                    )
-                )
-            for row in db.session.execute(
-                folder_viewers.select().where(
-                    folder_viewers.c.folder_id == folder.id
-                )
-            ).fetchall():
-                db.session.execute(
-                    folder_viewers.insert().values(
-                        folder_id=child_folder.id, user_id=row.user_id
-                    )
-                )
-            db.session.commit()
+        try:
+            data = self.assets_model_schema.load(request.json)
+        except ValidationError as ex:
+            return self.response(400, message=ex.messages)
+        try:
+            AddFolderAssetsCommand(folder_uuid, data["assets"]).run()
             return self.response(200, message="OK")
-        if not FolderDAO.asset_exists(asset_type, asset_id):
+        except FolderNotFoundError:
             return self.response_404()
-        FolderDAO.assign_assets(folder, [{"type": asset_type, "id": asset_id}])
-        db.session.commit()
-        return self.response(200, message="OK")
+        except FolderForbiddenError:
+            return self.response_403()
+        except FolderInvalidError as ex:
+            return self.response(422, message=ex.normalized_messages())
+        except FolderUpdateFailedError as ex:
+            return self.response_422(message=str(ex))
 
     # ------------------------------------------------------------------ #
     # Pins
@@ -727,6 +754,7 @@ class FolderRestApi(BaseSupersetApi):
     @permission_name("write")
     @statsd_metrics
     @requires_json
+    @transaction()
     def post_pin(self) -> Response:
         """Pin an item.
         ---
@@ -752,32 +780,28 @@ class FolderRestApi(BaseSupersetApi):
             data = FolderPinPostSchema().load(request.json)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
-        try:
-            pin = FolderDAO.create_pin(
-                user_id=g.user.id,
-                object_id=data["object_id"],
-                object_type=data["object_type"],
-                position=data["position"],
-            )
-            db.session.commit()
-            return self.response(
-                201,
-                result={
-                    "id": pin.id,
-                    "object_id": pin.object_id,
-                    "object_type": pin.object_type,
-                    "position": pin.position,
-                },
-            )
-        except Exception as ex:
-            db.session.rollback()
-            return self.response(400, message=str(ex))
+        pin = FolderDAO.create_pin(
+            user_id=g.user.id,
+            object_id=data["object_id"],
+            object_type=data["object_type"],
+            position=data["position"],
+        )
+        return self.response(
+            201,
+            result={
+                "id": pin.id,
+                "object_id": pin.object_id,
+                "object_type": pin.object_type,
+                "position": pin.position,
+            },
+        )
 
     @expose("/pins/<int:pin_id>", methods=("DELETE",))
     @protect()
     @safe
     @permission_name("write")
     @statsd_metrics
+    @transaction()
     def delete_pin(self, pin_id: int) -> Response:
         """Unpin an item.
         ---
@@ -798,7 +822,6 @@ class FolderRestApi(BaseSupersetApi):
         from flask import g
 
         if FolderDAO.delete_pin(pin_id, g.user.id):
-            db.session.commit()
             return self.response(200, message="OK")
         return self.response_404()
 
@@ -830,6 +853,10 @@ class FolderRestApi(BaseSupersetApi):
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
+        try:
+            self._raise_for_folder_access(folder)
+        except FolderForbiddenError:
+            return self.response_403()
         subjects = FolderDAO.get_subjects(folder.id)
         return self.response(200, result=subjects)
 
@@ -839,6 +866,7 @@ class FolderRestApi(BaseSupersetApi):
     @permission_name("write")
     @statsd_metrics
     @requires_json
+    @transaction()
     def post_subject(self, folder_uuid: str) -> Response:
         """Add a subject to a folder.
         ---
@@ -870,16 +898,16 @@ class FolderRestApi(BaseSupersetApi):
         if not folder:
             return self.response_404()
         try:
+            self._raise_for_folder_edit(folder)
+        except FolderForbiddenError:
+            return self.response_403()
+        try:
             data = FolderSubjectPostSchema().load(request.json)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
-        try:
-            FolderDAO.add_subject(folder.id, data["user_id"], data["permission"])
-            db.session.commit()
-            return self.response(201, message="OK")
-        except Exception as ex:
-            db.session.rollback()
-            return self.response(400, message=str(ex))
+        FolderDAO.add_subject(folder.id, data["user_id"], data["permission"])
+        FolderPermissionDAO.push_down_permissions(folder.id)
+        return self.response(201, message="OK")
 
     @expose("/<folder_uuid>/subjects/<int:user_id>", methods=("PUT",))
     @protect()
@@ -887,6 +915,7 @@ class FolderRestApi(BaseSupersetApi):
     @permission_name("write")
     @statsd_metrics
     @requires_json
+    @transaction()
     def put_subject(self, folder_uuid: str, user_id: int) -> Response:
         """Update a subject's permission level.
         ---
@@ -923,11 +952,15 @@ class FolderRestApi(BaseSupersetApi):
         if not folder:
             return self.response_404()
         try:
+            self._raise_for_folder_edit(folder)
+        except FolderForbiddenError:
+            return self.response_403()
+        try:
             data = FolderSubjectPutSchema().load(request.json)
         except ValidationError as ex:
             return self.response(400, message=ex.messages)
         FolderDAO.update_subject(folder.id, user_id, data["permission"])
-        db.session.commit()
+        FolderPermissionDAO.push_down_permissions(folder.id)
         return self.response(200, message="OK")
 
     @expose("/<folder_uuid>/subjects/<int:user_id>", methods=("DELETE",))
@@ -935,6 +968,7 @@ class FolderRestApi(BaseSupersetApi):
     @safe
     @permission_name("write")
     @statsd_metrics
+    @transaction()
     def delete_subject(self, folder_uuid: str, user_id: int) -> Response:
         """Remove a subject from a folder.
         ---
@@ -960,6 +994,10 @@ class FolderRestApi(BaseSupersetApi):
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
+        try:
+            self._raise_for_folder_edit(folder)
+        except FolderForbiddenError:
+            return self.response_403()
         FolderDAO.remove_subject(folder.id, user_id)
-        db.session.commit()
+        FolderPermissionDAO.push_down_permissions(folder.id)
         return self.response(200, message="OK")

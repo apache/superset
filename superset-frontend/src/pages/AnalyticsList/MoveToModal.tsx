@@ -192,24 +192,21 @@ export default function MoveToModal({
   const handleMove = useCallback(async () => {
     setSaving(true);
     try {
-      if (selectedUuid === 'root') {
-        // Move to root: if folder, set parent_id to null; if asset, remove from folder
-        if (item.type === 'folder') {
-          await SupersetClient.put({
-            endpoint: `/api/v1/folders/${item.uuid}`,
-            jsonPayload: { parent_uuid: null },
-          });
-        } else {
-          // Remove asset from its current folder by moving to root
-          // This requires a separate endpoint or convention
-          // For now, use the folder update to set parent to null
-          await SupersetClient.delete({
-            endpoint: `/api/v1/folders/${currentFolderUuid}/assets/${item.type}/${item.id}`,
-          });
-        }
-      } else if (selectedUuid) {
+      if (item.type === 'folder') {
+        // Folder move: update parent_uuid (null = root)
         await SupersetClient.put({
-          endpoint: `/api/v1/folders/${selectedUuid}/assets/${item.type}/${item.id}`,
+          endpoint: `/api/v1/folders/${item.uuid}`,
+          jsonPayload: {
+            parent_uuid: selectedUuid === 'root' ? null : selectedUuid,
+          },
+        });
+      } else if (selectedUuid && selectedUuid !== 'root') {
+        // Asset move: add to target folder (upsert)
+        await SupersetClient.post({
+          endpoint: `/api/v1/folders/${selectedUuid}/assets`,
+          jsonPayload: {
+            assets: [{ type: item.type, id: item.id }],
+          },
         });
       }
       addSuccessToast(t('Moved "%s" successfully', item.name));
@@ -234,12 +231,14 @@ export default function MoveToModal({
     return nodes.map(node => {
       const isExpanded = expandedUuids.has(node.uuid);
       const hasChildren = node.children.length > 0;
+      const isCurrent = node.uuid === currentFolderUuid;
       return (
         <div key={node.uuid}>
           <FolderRow
             selected={selectedUuid === node.uuid}
             depth={depth}
-            onClick={() => setSelectedUuid(node.uuid)}
+            onClick={isCurrent ? undefined : () => setSelectedUuid(node.uuid)}
+            css={isCurrent ? { opacity: 0.4, cursor: 'default' } : undefined}
           >
             {hasChildren ? (
               <button
@@ -285,7 +284,16 @@ export default function MoveToModal({
           <FolderTree>
             <FolderRow
               selected={selectedUuid === 'root'}
-              onClick={() => setSelectedUuid('root')}
+              onClick={
+                currentFolderUuid === null
+                  ? undefined
+                  : () => setSelectedUuid('root')
+              }
+              css={
+                currentFolderUuid === null
+                  ? { opacity: 0.4, cursor: 'default' }
+                  : undefined
+              }
             >
               <Icons.FolderOpenOutlined iconSize="m" />
               <span className="folder-name">{t('Root (Analytics)')}</span>

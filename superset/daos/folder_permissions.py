@@ -15,19 +15,21 @@
 # specific language governing permissions and limitations
 # under the License.
 """Data access for folder permission operations."""
+
 from __future__ import annotations
 
 from typing import Any
 
-from sqlalchemy import and_, or_
+from sqlalchemy import and_
 
 from superset import db
 from superset.folders.models import (
     Folder,
-    FolderObject,
     folder_editors,
     folder_viewers,
+    FolderObject,
 )
+from superset.utils import json as json_utils
 
 
 class FolderPermissionDAO:
@@ -102,7 +104,9 @@ class FolderPermissionDAO:
     ) -> None:
         """Move a user between editors and viewers."""
         if permission not in ("editor", "viewer"):
-            raise ValueError(f"Invalid permission: {permission!r}. Must be 'editor' or 'viewer'.")
+            raise ValueError(
+                f"Invalid permission: {permission!r}. Must be 'editor' or 'viewer'."
+            )
         if permission == "editor":
             FolderPermissionDAO.remove_viewer(folder_id, user_id)
             FolderPermissionDAO.add_editor(folder_id, user_id)
@@ -120,13 +124,14 @@ class FolderPermissionDAO:
     # Permission inheritance
     # ------------------------------------------------------------------ #
     @staticmethod
-    def copy_permissions_to_subfolder(parent_folder_id: int, child_folder_id: int) -> None:
+    def copy_permissions_to_subfolder(
+        parent_folder_id: int, child_folder_id: int
+    ) -> None:
         """Copy all editors/viewers from parent to child folder.
 
         Called when a subfolder is created. Sets extra.inherits_permissions = true
         on the child.
         """
-        import json as json_lib
 
         parent_editors = db.session.execute(
             folder_editors.select().where(
@@ -153,10 +158,10 @@ class FolderPermissionDAO:
             )
 
         # Set inherits flag on child
-        if (child := db.session.query(Folder).get(child_folder_id)):
-            extra = json_lib.loads(child.extra) if child.extra else {}
+        if child := db.session.query(Folder).get(child_folder_id):
+            extra = json_utils.loads(child.extra) if child.extra else {}
             extra["inherits_permissions"] = True
-            child.extra = json_lib.dumps(extra)
+            child.extra = json_utils.dumps(extra)
 
         db.session.flush()
 
@@ -167,7 +172,6 @@ class FolderPermissionDAO:
         Called when a folder's permissions change. Only affects descendants
         where extra.inherits_permissions = true.
         """
-        import json as json_lib
 
         folder = db.session.query(Folder).get(folder_id)
         if not folder:
@@ -179,13 +183,11 @@ class FolderPermissionDAO:
         # Find all descendants that still inherit
         def _get_inheriting_descendants(parent_id: int) -> list[int]:
             children = (
-                db.session.query(Folder)
-                .filter(Folder.parent_id == parent_id)
-                .all()
+                db.session.query(Folder).filter(Folder.parent_id == parent_id).all()
             )
             result = []
             for child in children:
-                extra = json_lib.loads(child.extra) if child.extra else {}
+                extra = json_utils.loads(child.extra) if child.extra else {}
                 if extra.get("inherits_permissions", True):
                     result.append(child.id)
                     result.extend(_get_inheriting_descendants(child.id))
@@ -196,14 +198,10 @@ class FolderPermissionDAO:
         for desc_id in descendant_ids:
             # Clear existing permissions
             db.session.execute(
-                folder_editors.delete().where(
-                    folder_editors.c.folder_id == desc_id
-                )
+                folder_editors.delete().where(folder_editors.c.folder_id == desc_id)
             )
             db.session.execute(
-                folder_viewers.delete().where(
-                    folder_viewers.c.folder_id == desc_id
-                )
+                folder_viewers.delete().where(folder_viewers.c.folder_id == desc_id)
             )
             # Copy from parent
             for subject in current_subjects:
@@ -225,12 +223,11 @@ class FolderPermissionDAO:
     @staticmethod
     def mark_permissions_explicit(folder_id: int) -> None:
         """Mark a folder as having explicitly set permissions (no longer inheriting)."""
-        import json as json_lib
 
-        if (folder := db.session.query(Folder).get(folder_id)):
-            extra = json_lib.loads(folder.extra) if folder.extra else {}
+        if folder := db.session.query(Folder).get(folder_id):
+            extra = json_utils.loads(folder.extra) if folder.extra else {}
             extra["inherits_permissions"] = False
-            folder.extra = json_lib.dumps(extra)
+            folder.extra = json_utils.dumps(extra)
             db.session.flush()
 
     # ------------------------------------------------------------------ #
@@ -299,68 +296,37 @@ class FolderPermissionDAO:
         ) is not None
 
     @staticmethod
+    def _check_folder_object_access(user_id: int, filter_condition: Any) -> bool:
+        """Check if a matching FolderObject is in an accessible folder."""
+        fo = db.session.query(FolderObject).filter(filter_condition).first()
+        return bool(
+            fo and FolderPermissionDAO.user_has_folder_access(user_id, fo.folder_id)
+        )
+
+    @staticmethod
     def user_has_folder_access_for_asset(
         user_id: int,
         dashboard_id: int | None = None,
         chart_id: int | None = None,
         datasource_id: int | None = None,
-        form_data: dict | None = None,
     ) -> bool:
         """Check if user has folder access that covers this asset.
 
         Checks multiple paths:
         1. Dashboard/chart is directly in a folder the user has access to
-        2. form_data contains dashboardId or slice_id pointing to a foldered asset
-        3. Datasource is used by a chart in a folder the user has access to
+        2. Datasource is used by a chart in a folder the user has access to
         """
-        from superset.models.slice import Slice as SliceModel
+        check = FolderPermissionDAO._check_folder_object_access
 
-        if dashboard_id:
-            fo = (
-                db.session.query(FolderObject)
-                .filter(FolderObject.dashboard_id == dashboard_id)
-                .first()
-            )
-            if fo and FolderPermissionDAO.user_has_folder_access(
-                user_id, fo.folder_id
-            ):
-                return True
+        if dashboard_id and check(user_id, FolderObject.dashboard_id == dashboard_id):
+            return True
 
-        if chart_id:
-            fo = (
-                db.session.query(FolderObject)
-                .filter(FolderObject.chart_id == chart_id)
-                .first()
-            )
-            if fo and FolderPermissionDAO.user_has_folder_access(
-                user_id, fo.folder_id
-            ):
-                return True
-
-        if form_data:
-            if sid := form_data.get("slice_id"):
-                fo = (
-                    db.session.query(FolderObject)
-                    .filter(FolderObject.chart_id == sid)
-                    .first()
-                )
-                if fo and FolderPermissionDAO.user_has_folder_access(
-                    user_id, fo.folder_id
-                ):
-                    return True
-
-            if did := form_data.get("dashboardId"):
-                fo = (
-                    db.session.query(FolderObject)
-                    .filter(FolderObject.dashboard_id == did)
-                    .first()
-                )
-                if fo and FolderPermissionDAO.user_has_folder_access(
-                    user_id, fo.folder_id
-                ):
-                    return True
+        if chart_id and check(user_id, FolderObject.chart_id == chart_id):
+            return True
 
         if datasource_id:
+            from superset.models.slice import Slice as SliceModel
+
             folder_objects = (
                 db.session.query(FolderObject)
                 .join(SliceModel, SliceModel.id == FolderObject.chart_id)
@@ -368,9 +334,7 @@ class FolderPermissionDAO:
                 .all()
             )
             for fo in folder_objects:
-                if FolderPermissionDAO.user_has_folder_access(
-                    user_id, fo.folder_id
-                ):
+                if FolderPermissionDAO.user_has_folder_access(user_id, fo.folder_id):
                     return True
 
         return False
@@ -389,9 +353,7 @@ class FolderPermissionDAO:
                 .first()
             )
             if fo:
-                return FolderPermissionDAO.user_is_folder_editor(
-                    user_id, fo.folder_id
-                )
+                return FolderPermissionDAO.user_is_folder_editor(user_id, fo.folder_id)
 
         if chart_id:
             fo = (
@@ -400,9 +362,7 @@ class FolderPermissionDAO:
                 .first()
             )
             if fo:
-                return FolderPermissionDAO.user_is_folder_editor(
-                    user_id, fo.folder_id
-                )
+                return FolderPermissionDAO.user_is_folder_editor(user_id, fo.folder_id)
 
         return False
 

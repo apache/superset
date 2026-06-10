@@ -21,9 +21,14 @@ from superset.commands.exceptions import (
     CommandInvalidError,
     CreateFailedError,
     DeleteFailedError,
+    ForbiddenError,
     UpdateFailedError,
     ValidationError,
 )
+
+
+class FolderForbiddenError(ForbiddenError):
+    message = _("You don't have permission to access this folder.")
 
 
 class FolderInvalidError(CommandInvalidError):

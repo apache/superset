@@ -23,6 +23,7 @@ from sqlalchemy import (
     Column,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
     String,
     Table,
@@ -54,6 +55,7 @@ folder_editors = Table(
         nullable=False,
     ),
     UniqueConstraint("folder_id", "user_id"),
+    Index("ix_folder_editors_user_id", "user_id"),
 )
 
 # Junction table: folder viewers (users who can see folder and its assets)
@@ -74,6 +76,7 @@ folder_viewers = Table(
         nullable=False,
     ),
     UniqueConstraint("folder_id", "user_id"),
+    Index("ix_folder_viewers_user_id", "user_id"),
 )
 
 
@@ -133,6 +136,9 @@ class FolderObject(Model):
             " + CASE WHEN dataset_id IS NOT NULL THEN 1 ELSE 0 END) = 1",
             name="ck_folder_objects_exactly_one_fk",
         ),
+        Index("ix_folder_objects_folder_id", "folder_id"),
+        Index("ix_folder_objects_chart_id", "chart_id"),
+        Index("ix_folder_objects_dashboard_id", "dashboard_id"),
     )
 
     id = Column(Integer, primary_key=True)

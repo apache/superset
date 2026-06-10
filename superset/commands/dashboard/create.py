@@ -18,6 +18,7 @@ import logging
 from functools import partial
 from typing import Any, Optional
 
+from flask import current_app
 from flask_appbuilder.models.sqla import Model
 from marshmallow import ValidationError
 
@@ -52,6 +53,8 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
                 dashboard,
                 data=json.loads(json_metadata),
             )
+        if after_create := current_app.config.get("AFTER_ASSET_CREATE"):
+            after_create(dashboard, "dashboard")
         return dashboard
 
     def validate(self) -> None:

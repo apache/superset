@@ -20,9 +20,11 @@ from typing import Any, Optional
 
 from marshmallow import ValidationError
 
+from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.folder.exceptions import (
     FolderCycleValidationError,
+    FolderForbiddenError,
     FolderInvalidError,
     FolderNameUniquenessValidationError,
     FolderNotFoundError,
@@ -31,7 +33,9 @@ from superset.commands.folder.exceptions import (
     FolderUpdateFailedError,
 )
 from superset.daos.folder import FolderDAO
+from superset.daos.folder_permissions import FolderPermissionDAO
 from superset.folders.models import Folder
+from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -60,30 +64,62 @@ class UpdateFolderCommand(BaseCommand):
         if self._parent_changed:
             attributes["parent_id"] = self._new_parent_id
 
-        return FolderDAO.update(self._model, attributes)
+        folder = FolderDAO.update(self._model, attributes)
+
+        # Copy permissions from new parent when moving a folder
+        if self._parent_changed and self._new_parent_id is not None:
+            FolderPermissionDAO.copy_permissions_to_subfolder(
+                self._new_parent_id, folder.id
+            )
+
+        # Remove pins when a folder moves away from root
+        if self._parent_changed and self._new_parent_id is not None:
+            from superset.folders.models import FolderPin
+
+            db.session.query(FolderPin).filter(
+                FolderPin.object_id == folder.id,
+                FolderPin.object_type == "folder",
+            ).delete()
+
+        return folder
+
+    def _validate_parent(
+        self, exceptions: list[ValidationError]
+    ) -> int | None:
+        """Validate and resolve parent_uuid, returning the new parent_id."""
+        new_parent_id = self._model.parent_id  # type: ignore[union-attr]
+        if "parent_uuid" not in self._properties:
+            return new_parent_id
+
+        self._parent_changed = True
+        parent_uuid = self._properties["parent_uuid"]
+        parent: Optional[Folder] = None
+        if parent_uuid:
+            parent = FolderDAO.find_by_id_or_uuid(parent_uuid)
+            if parent is None:
+                exceptions.append(FolderParentNotFoundValidationError())
+            elif parent.folder_type != self._model.folder_type:  # type: ignore[union-attr]
+                exceptions.append(FolderParentTypeMismatchValidationError())
+            elif FolderDAO.is_descendant(parent, self._model):  # type: ignore[arg-type]
+                exceptions.append(FolderCycleValidationError())
+        new_parent_id = parent.id if parent else None
+        self._new_parent_id = new_parent_id
+        return new_parent_id
 
     def validate(self) -> None:
         self._model = FolderDAO.find_by_id_or_uuid(self._id)
         if not self._model:
             raise FolderNotFoundError()
 
-        exceptions: list[ValidationError] = []
-        new_parent_id = self._model.parent_id
+        if not security_manager.is_admin():
+            user_id = get_user_id()
+            if not user_id or not FolderPermissionDAO.user_is_folder_editor(
+                user_id, self._model.id
+            ):
+                raise FolderForbiddenError()
 
-        if "parent_uuid" in self._properties:
-            self._parent_changed = True
-            parent_uuid = self._properties["parent_uuid"]
-            parent: Optional[Folder] = None
-            if parent_uuid:
-                parent = FolderDAO.find_by_id_or_uuid(parent_uuid)
-                if parent is None:
-                    exceptions.append(FolderParentNotFoundValidationError())
-                elif parent.folder_type != self._model.folder_type:
-                    exceptions.append(FolderParentTypeMismatchValidationError())
-                elif FolderDAO.is_descendant(parent, self._model):
-                    exceptions.append(FolderCycleValidationError())
-            new_parent_id = parent.id if parent else None
-            self._new_parent_id = new_parent_id
+        exceptions: list[ValidationError] = []
+        new_parent_id = self._validate_parent(exceptions)
 
         new_name = self._properties.get("name", self._model.name)
         if new_name != self._model.name or new_parent_id != self._model.parent_id:

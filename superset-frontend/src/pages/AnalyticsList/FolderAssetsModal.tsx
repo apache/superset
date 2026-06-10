@@ -176,39 +176,33 @@ export default function FolderAssetsModal({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
 
-  const fetchCharts = useCallback(
-    async (page: number, append = false) => {
-      const { json } = await SupersetClient.get({
-        endpoint: `/api/v1/chart/?q=(page_size:${PAGE_SIZE},page:${page})`,
-      });
-      const mapped = ((json.result as ChartResult[]) || []).map(c => ({
-        id: c.id,
-        name: c.slice_name,
-        type: 'chart' as AssetType,
-      }));
-      setCharts(prev => (append ? [...prev, ...mapped] : mapped));
-      setChartsTotal(json.count || 0);
-      setChartsPage(page);
-    },
-    [],
-  );
+  const fetchCharts = useCallback(async (page: number, append = false) => {
+    const { json } = await SupersetClient.get({
+      endpoint: `/api/v1/chart/?q=(page_size:${PAGE_SIZE},page:${page})`,
+    });
+    const mapped = ((json.result as ChartResult[]) || []).map(c => ({
+      id: c.id,
+      name: c.slice_name,
+      type: 'chart' as AssetType,
+    }));
+    setCharts(prev => (append ? [...prev, ...mapped] : mapped));
+    setChartsTotal(json.count || 0);
+    setChartsPage(page);
+  }, []);
 
-  const fetchDashboards = useCallback(
-    async (page: number, append = false) => {
-      const { json } = await SupersetClient.get({
-        endpoint: `/api/v1/dashboard/?q=(page_size:${PAGE_SIZE},page:${page})`,
-      });
-      const mapped = ((json.result as DashboardResult[]) || []).map(d => ({
-        id: d.id,
-        name: d.dashboard_title,
-        type: 'dashboard' as AssetType,
-      }));
-      setDashboards(prev => (append ? [...prev, ...mapped] : mapped));
-      setDashboardsTotal(json.count || 0);
-      setDashboardsPage(page);
-    },
-    [],
-  );
+  const fetchDashboards = useCallback(async (page: number, append = false) => {
+    const { json } = await SupersetClient.get({
+      endpoint: `/api/v1/dashboard/?q=(page_size:${PAGE_SIZE},page:${page})`,
+    });
+    const mapped = ((json.result as DashboardResult[]) || []).map(d => ({
+      id: d.id,
+      name: d.dashboard_title,
+      type: 'dashboard' as AssetType,
+    }));
+    setDashboards(prev => (append ? [...prev, ...mapped] : mapped));
+    setDashboardsTotal(json.count || 0);
+    setDashboardsPage(page);
+  }, []);
 
   const fetchFolders = useCallback(
     async (page: number, append = false) => {
@@ -235,8 +229,7 @@ export default function FolderAssetsModal({
     const { json } = await SupersetClient.get({
       endpoint: `/api/v1/folders/${folderUuid}/assets?types=chart,dashboard&page_size=1000`,
     });
-    const members =
-      (json.result as { type: string; id: number }[]) || [];
+    const members = (json.result as { type: string; id: number }[]) || [];
     setSelected(
       new Set(
         members
@@ -258,7 +251,14 @@ export default function FolderAssetsModal({
     ])
       .catch(() => addDangerToast(t('Error loading assets')))
       .finally(() => setLoading(false));
-  }, [show, fetchCharts, fetchDashboards, fetchFolders, fetchMembers, addDangerToast]);
+  }, [
+    show,
+    fetchCharts,
+    fetchDashboards,
+    fetchFolders,
+    fetchMembers,
+    addDangerToast,
+  ]);
 
   const toggleSelect = useCallback((key: string) => {
     setSelected(prev => {
@@ -286,7 +286,7 @@ export default function FolderAssetsModal({
 
       const calls: Promise<unknown>[] = [];
 
-      // Update assets via bulk PUT
+      // Update assets via bulk PUT (set_assets — replaces full membership)
       calls.push(
         SupersetClient.put({
           endpoint: `/api/v1/folders/${folderUuid}/assets`,
@@ -294,13 +294,18 @@ export default function FolderAssetsModal({
         }),
       );
 
-      // Move each selected folder into this folder via single-asset PUT
+      // Move each selected folder by updating its parent_uuid
+      const folderById = new Map(folders.map(f => [f.id, f]));
       for (const f of folderPayload) {
-        calls.push(
-          SupersetClient.put({
-            endpoint: `/api/v1/folders/${folderUuid}/assets/folder/${f.id}`,
-          }),
-        );
+        const folderItem = folderById.get(f.id);
+        if (folderItem?.uuid) {
+          calls.push(
+            SupersetClient.put({
+              endpoint: `/api/v1/folders/${folderItem.uuid}`,
+              jsonPayload: { parent_uuid: folderUuid },
+            }),
+          );
+        }
       }
 
       await Promise.all(calls);
@@ -318,6 +323,7 @@ export default function FolderAssetsModal({
     selected,
     addSuccessToast,
     addDangerToast,
+    folders,
     onSuccess,
     onHide,
   ]);
