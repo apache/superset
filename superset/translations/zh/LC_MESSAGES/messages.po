@@ -17196,6 +17196,10 @@ msgstr "如果分组被使用 `count` 表示 COUNT(*)。数值列将与聚合器
 msgid "`operation` property of post processing object undefined"
 msgstr "后处理必须指定操作类型（`operation`）"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "未安装程序包 `prophet`"
 
