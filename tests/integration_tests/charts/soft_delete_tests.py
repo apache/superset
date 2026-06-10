@@ -345,6 +345,37 @@ class TestChartRestore(InsertChartMixin, SupersetTestCase):
         # Cleanup
         _hard_delete_chart(chart_id)
 
+    def test_restore_failure_returns_422(self) -> None:
+        """A failure during restore surfaces as a clean 422 via the
+        ``ChartRestoreFailedError`` handler rather than an unhandled 500.
+
+        ``RestoreChartCommand.run`` wraps the restore in ``@transaction``
+        and rethrows ``ChartRestoreFailedError`` on any underlying
+        SQLAlchemy error; this pins that the endpoint maps it to 422.
+        """
+        from unittest.mock import patch
+
+        from superset.commands.chart.exceptions import (
+            ChartRestoreFailedError,
+        )
+
+        admin_id = self.get_user("admin").id
+        chart = self.insert_chart("restore_fail_test", [admin_id], 1)
+        chart_id = chart.id
+        chart_uuid = str(chart.uuid)
+        self.login(ADMIN_USERNAME)
+        self.client.delete(f"/api/v1/chart/{chart_id}")
+
+        with patch(
+            "superset.commands.chart.restore.RestoreChartCommand.run",
+            side_effect=ChartRestoreFailedError(),
+        ):
+            rv = self.client.post(f"/api/v1/chart/{chart_uuid}/restore")
+        assert rv.status_code == 422
+
+        # Cleanup
+        _hard_delete_chart(chart_id)
+
     def test_restore_nonexistent_chart_returns_404(self) -> None:
         """POST /api/v1/chart/<uuid>/restore returns 404 for unknown UUID."""
         self.login(ADMIN_USERNAME)
