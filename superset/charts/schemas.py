@@ -709,7 +709,7 @@ class ChartDataProphetOptionsSchema(ChartDataPostProcessingOperationOptionsSchem
             "the future",
             "example": 7,
             "min": 1,
-            "max": 10000,
+            "max": DEFAULT_MAX_PROPHET_PERIODS,
         },
         validate=validate_prophet_periods,
         required=True,
