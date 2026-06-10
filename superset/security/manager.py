@@ -21,6 +21,7 @@ import logging
 import re
 import time
 from collections import defaultdict
+from math import ceil
 from types import SimpleNamespace
 from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
 
@@ -3742,10 +3743,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     @staticmethod
     def _is_guest_token_revoked_by_embedded(token: dict[str, Any]) -> bool:
         """Return True if the token predates a revocation on any of its
-        embedded-dashboard resources (``guest_token_revoked_before``)."""
+        embedded-dashboard resources (``guest_token_revoked_before``).
+
+        A token missing ``iat`` cannot prove it was issued after a revocation
+        cutoff, so it is treated as revoked whenever any of its dashboard
+        resources has an active cutoff; otherwise it is not revoked.
+        """
         issued_at = token.get("iat")
-        if not issued_at:
-            return False
 
         # pylint: disable=import-outside-toplevel
         from superset.daos.dashboard import EmbeddedDashboardDAO
@@ -3768,7 +3772,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 revoked_before = getattr(
                     embedded_config, "guest_token_revoked_before", None
                 )
-                if revoked_before is not None and issued_at < revoked_before:
+                if revoked_before is None:
+                    continue
+                # Without an issued-at claim the token cannot be shown to
+                # postdate the cutoff, so fail closed and treat it as revoked.
+                if not issued_at or issued_at < revoked_before:
                     return True
         return False
 
@@ -3785,8 +3793,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         embedded = EmbeddedDashboardDAO.find_by_id(str(embedded_uuid))
         if embedded is None:
             return
+        # Round the cutoff up to the next whole second so that tokens whose
+        # fractional ``iat`` falls within the current second are reliably
+        # revoked (the column stores integer seconds). Rounding up fails
+        # closed: at worst it revokes a token issued slightly after the call.
         embedded.guest_token_revoked_before = (
-            before if before is not None else int(self._get_current_epoch_time())
+            before if before is not None else ceil(self._get_current_epoch_time())
         )
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:

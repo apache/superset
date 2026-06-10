@@ -59,9 +59,24 @@ def test_guest_token_valid_when_issued_after_revocation() -> None:
         assert SupersetSecurityManager._is_guest_token_revoked(_token(3000)) is False
 
 
-def test_guest_token_without_iat_is_not_revoked() -> None:
+def test_guest_token_without_iat_is_revoked_when_cutoff_set() -> None:
+    # A token lacking ``iat`` cannot prove it predates the cutoff, so it
+    # fails closed and is treated as revoked when a cutoff is configured.
     token = {"type": "guest", "resources": [_DASHBOARD_RESOURCE]}
-    assert SupersetSecurityManager._is_guest_token_revoked(token) is False
+    with patch(
+        "superset.daos.dashboard.EmbeddedDashboardDAO.find_by_id",
+        return_value=_embedded(2000),
+    ):
+        assert SupersetSecurityManager._is_guest_token_revoked(token) is True
+
+
+def test_guest_token_without_iat_is_not_revoked_when_no_cutoff() -> None:
+    token = {"type": "guest", "resources": [_DASHBOARD_RESOURCE]}
+    with patch(
+        "superset.daos.dashboard.EmbeddedDashboardDAO.find_by_id",
+        return_value=_embedded(None),
+    ):
+        assert SupersetSecurityManager._is_guest_token_revoked(token) is False
 
 
 def test_guest_token_revoked_via_legacy_dashboard_id_resource() -> None:
