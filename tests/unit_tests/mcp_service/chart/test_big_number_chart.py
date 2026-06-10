@@ -386,6 +386,7 @@ class TestMapBigNumberConfig:
                 aggregation="sum",
             )
 
+
 class TestMapConfigToFormDataBigNumber:
     """Test map_config_to_form_data dispatch for big number."""
 
