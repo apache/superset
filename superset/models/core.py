@@ -519,10 +519,13 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                                 def run_prequeries(
                                     dbapi_connection: Any,
                                     connection_record: Any,  # pylint: disable=unused-argument
+                                    # Capture prequeries by value at definition
+                                    # time to avoid Python's closure late-binding.
+                                    _prequeries: list[str] = prequeries,
                                 ) -> None:
                                     cursor = dbapi_connection.cursor()
                                     try:
-                                        for prequery in prequeries:
+                                        for prequery in _prequeries:
                                             cursor.execute(prequery)
                                     finally:
                                         cursor.close()

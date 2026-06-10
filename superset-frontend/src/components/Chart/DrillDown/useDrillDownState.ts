@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
@@ -170,9 +177,11 @@ export function useDrillDownState({
   // changes) — e.g. the dashboard owner edited the chart and saved. A ref
   // guard ensures the initial mount (which restores persisted state) does not
   // wipe it, and that incidental re-renders from filter changes don't either.
+  // useLayoutEffect runs synchronously before paint so the stale drill state
+  // is cleared without a visible flash when the chart is reconfigured.
   const configKey = `${formData.slice_id}__${formData.viz_type}`;
   const prevConfigKeyRef = useRef(configKey);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (prevConfigKeyRef.current === configKey) {
       return;
     }
