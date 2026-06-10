@@ -94,6 +94,32 @@ def test_update_chart_query_context_requires_chart_access(
         ).validate()
 
 
+def test_update_chart_query_context_non_owner_with_access_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """A non-owner who *does* have access to the chart (e.g. an alpha user with
+    datasource access, or a report worker) can perform a query-context-only
+    backfill: ownership is relaxed and ``raise_for_access`` does not deny."""
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(id=1, tags=[], dashboards=[])
+    raise_for_ownership = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_ownership",
+        side_effect=_ownership_exc(),
+    )
+    # access check passes (no exception) -> the non-owner is permitted
+    raise_for_access = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access",
+    )
+
+    # Should not raise: the update is allowed despite the user not being an owner
+    UpdateChartCommand(
+        1, {"query_context": "{}", "query_context_generation": True}
+    ).validate()
+
+    raise_for_ownership.assert_not_called()
+    raise_for_access.assert_called_once()
+
+
 def test_update_chart_owner_can_perform_regular_update(
     mocker: MockerFixture,
 ) -> None:
