@@ -98,6 +98,29 @@ def test_register_warns_on_duplicate(caplog):
     assert "Overwriting" in caplog.text
 
 
+def test_register_warns_on_viz_type_collision(caplog):
+    register(_FakePlugin())
+
+    class _CollidingPlugin(BaseChartPlugin):
+        chart_type = "colliding"
+        display_name = "Colliding Chart"
+        native_viz_types = {"fake_viz": "Shadowed Viz", "own_viz": "Own Viz"}
+
+    with caplog.at_level("WARNING"):
+        register(_CollidingPlugin())
+    assert "already claimed by" in caplog.text
+    assert "fake_viz" in caplog.text
+    # Earlier registration wins in display-name lookups
+    assert display_name_for_viz_type("fake_viz") == "Fake Viz"
+
+
+def test_register_same_plugin_no_collision_warning(caplog):
+    register(_FakePlugin())
+    with caplog.at_level("WARNING"):
+        register(_FakePlugin())
+    assert "already claimed by" not in caplog.text
+
+
 def test_register_raises_for_empty_chart_type():
     class _BadPlugin(BaseChartPlugin):
         chart_type = ""

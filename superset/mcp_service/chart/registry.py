@@ -160,6 +160,21 @@ def register(plugin: "ChartTypePlugin") -> None:
             logger.warning(
                 "Overwriting existing plugin for chart_type=%r", plugin.chart_type
             )
+        for existing in _REGISTRY.values():
+            if existing.chart_type == plugin.chart_type:
+                continue
+            colliding = plugin.native_viz_types.keys() & existing.native_viz_types
+            if colliding:
+                # display_name_for_viz_type() resolves to the first plugin in
+                # iteration order, making the later registration unreachable.
+                logger.warning(
+                    "Plugin %r declares native_viz_types %s already claimed by "
+                    "plugin %r; viz_type display-name lookups will resolve to "
+                    "the earlier registration",
+                    plugin.chart_type,
+                    sorted(colliding),
+                    existing.chart_type,
+                )
         _REGISTRY[plugin.chart_type] = plugin
     logger.debug("Registered chart plugin: %r", plugin.chart_type)
 
