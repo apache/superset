@@ -25,6 +25,7 @@ Provides step-by-step JWT validation with tiered server-side logging:
 HTTP responses always return generic errors per RFC 6750 Section 3.1.
 """
 
+import asyncio
 import base64
 import html as html_module
 import logging
@@ -33,6 +34,7 @@ from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any, cast
 
+import httpx
 from authlib.jose.errors import (
     BadSignatureError,
     DecodeError,
@@ -50,9 +52,48 @@ from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import HTTPConnection, Request
 from starlette.responses import HTMLResponse, JSONResponse, Response
 
+from superset.mcp_service.utils.error_sanitization import (
+    sanitize_for_log as _sanitize_for_log,
+)
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
+
+# Algorithms that are never acceptable for bearer-token verification.
+# "none" (unsigned tokens) must never be honored — accepting it would let any
+# caller forge claims. Comparison is case-insensitive to catch "None"/"NONE".
+_FORBIDDEN_ALGORITHMS = frozenset({"none"})
+
+
+def _warn_on_weak_jwt_config(
+    audience: Any,
+    algorithm: Any,
+) -> None:
+    """Emit startup warnings when a JWT verifier is configured permissively.
+
+    These are config-gated soft warnings, not hard failures: a verifier is only
+    ever constructed when ``MCP_AUTH_ENABLED`` is True and JWT keys are present
+    (see ``create_default_mcp_auth_factory``). We warn — rather than refuse to
+    start — so existing single-service deployments that intentionally omit an
+    audience or rely on JWKS-advertised algorithms keep working. Operators who
+    want strict enforcement should set ``MCP_JWT_AUDIENCE`` and
+    ``MCP_JWT_ALGORITHM``.
+    """
+    if not audience:
+        logger.warning(
+            "MCP JWT verifier configured without an audience "
+            "(MCP_JWT_AUDIENCE unset): audience validation is DISABLED. "
+            "Tokens minted for other services may be accepted. Set "
+            "MCP_JWT_AUDIENCE to bind tokens to this service."
+        )
+    if not algorithm:
+        logger.warning(
+            "MCP JWT verifier configured without a pinned signing algorithm "
+            "(MCP_JWT_ALGORITHM unset): the algorithm header is not pinned. "
+            "Set MCP_JWT_ALGORITHM to the algorithm your IdP uses. Unsigned "
+            "('none') tokens are always rejected regardless of this setting."
+        )
+
 
 # Thread-safe storage for the specific JWT failure reason.
 # Set by DetailedJWTVerifier.load_access_token() on failure,
@@ -305,8 +346,27 @@ def _auth_error_handler(conn: HTTPConnection, exc: AuthenticationError) -> Respo
     if _prefers_browser_html(conn):
         return HTMLResponse(status_code=200, content=_MCP_BROWSER_HELLO_HTML)
 
-    # Log detailed reason server-side only
-    logger.warning("JWT authentication failed: %s", exc)
+    # Log detailed reason server-side only, with request context for
+    # auditing/troubleshooting. Guard each lookup since the connection
+    # object may be partially populated.
+    client_host = "unknown"
+    request_path = "unknown"
+    user_agent = "unknown"
+    try:
+        if getattr(conn, "client", None):
+            client_host = _sanitize_for_log(conn.client.host)
+        request_path = _sanitize_for_log(conn.scope.get("path", "unknown"))
+        user_agent = _sanitize_for_log(conn.headers.get("user-agent", "unknown"))
+    except (AttributeError, KeyError, TypeError):
+        logger.debug("Could not extract full request context for auth failure")
+
+    logger.warning(
+        "JWT authentication failed: %s (source_ip=%s, path=%s, user_agent=%s)",
+        _sanitize_for_log(exc),
+        client_host,
+        request_path,
+        user_agent,
+    )
 
     return JSONResponse(
         status_code=401,
@@ -330,6 +390,33 @@ class MCPJWTVerifier(JWTVerifier):
     Use this as the base for all Superset JWT verifiers so the browser hello
     page is active regardless of which verifier variant is configured.
     """
+
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        # Capture the explicit algorithm kwarg before super().__init__() can
+        # coerce it (the factory defaults it to "RS256" when MCP_JWT_ALGORITHM
+        # is unset, so self.algorithm is always truthy post-construction).
+        explicit_algorithm = kwargs.get("algorithm")
+        super().__init__(*args, **kwargs)
+        # Surface permissive auth configuration at startup. Config-gated:
+        # a verifier is only built when auth is enabled (see mcp_config).
+        # Prefer the raw MCP_JWT_ALGORITHM config value over the constructor
+        # kwarg because the factory always supplies a non-None algorithm
+        # default; falling back to the kwarg lets unit tests that construct
+        # verifiers directly (without an app context) also get the warning
+        # when no algorithm is pinned.
+        from flask import current_app
+
+        try:
+            config_algorithm = current_app.config.get("MCP_JWT_ALGORITHM")
+        except RuntimeError:
+            # No Flask application context (e.g. unit tests constructing the
+            # verifier directly). Fall back to the explicit constructor arg.
+            config_algorithm = None
+
+        _warn_on_weak_jwt_config(
+            audience=getattr(self, "audience", None),
+            algorithm=config_algorithm or explicit_algorithm,
+        )
 
     def get_middleware(self) -> list[Any]:
         return [
@@ -411,23 +498,69 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 return None
 
             token_alg = header.get("alg")
+            # Always reject unsigned ("none") tokens, even when no algorithm
+            # is pinned. An unsigned token has no integrity guarantee, so its
+            # claims (sub, scopes, ...) are fully attacker-controlled.
+            if isinstance(token_alg, str) and token_alg.lower() in (
+                _FORBIDDEN_ALGORITHMS
+            ):
+                reason = "Algorithm not allowed"
+                _jwt_failure_reason.set(reason)
+                logger.debug(
+                    "Rejected forbidden algorithm: token uses '%s'",
+                    _sanitize_for_log(token_alg),
+                )
+                return None
             if self.algorithm and token_alg != self.algorithm:
                 reason = "Algorithm mismatch"
                 _jwt_failure_reason.set(reason)
                 logger.debug(
                     "Algorithm mismatch: token uses '%s', expected '%s'",
-                    token_alg,
+                    _sanitize_for_log(token_alg),
                     self.algorithm,
                 )
                 return None
 
-            # Step 2: Get verification key (static or JWKS)
+            # Step 2: Get verification key (static or JWKS).
+            #
+            # For remote JWKS the upstream verifier performs a network fetch and
+            # is expected to normalize transport failures (timeouts, connection
+            # errors, non-200 responses, SSRF blocks) into ValueError. We do not
+            # rely on that normalization alone: any retrieval failure — including
+            # a raw httpx error, an asyncio timeout, or an OS-level connection
+            # error that escapes the upstream conversion — must fail CLOSED and
+            # reject the token, never fall through to "skip verification" or a
+            # 500. Catching these here guarantees a fetch failure can never be
+            # treated as a successful (or skipped) signature check.
             try:
                 verification_key = await self._get_verification_key(token)
+            except (
+                httpx.HTTPError,
+                asyncio.TimeoutError,
+                ConnectionError,
+                OSError,
+            ) as e:
+                # Transient failure reaching or reading the JWKS endpoint
+                # (timeouts, connection errors, non-200 responses, SSRF blocks).
+                # Treat it as an authentication failure (return None) instead of
+                # letting the network error propagate as an unexpected exception.
+                # ConnectionError is a subclass of OSError and asyncio.TimeoutError
+                # aliases TimeoutError; they are listed explicitly to make the
+                # fail-closed contract for raw transport errors unambiguous.
+                reason = "JWKS verification key unavailable"
+                _jwt_failure_reason.set(reason)
+                # WARNING carries only the generic category (per the module's
+                # logging contract); the sanitized exception detail, which may
+                # include the JWKS endpoint host, is reserved for DEBUG.
+                logger.warning("Could not fetch JWKS verification key")
+                logger.debug("JWKS fetch error detail: %s", _sanitize_for_log(e))
+                return None
             except ValueError as e:
                 reason = "Failed to get verification key"
                 _jwt_failure_reason.set(reason)
-                logger.debug("Failed to get verification key: %s", e)
+                logger.debug(
+                    "Failed to get verification key (%s): %s", type(e).__name__, e
+                )
                 return None
 
             # Step 3: Decode and verify signature
@@ -455,12 +588,38 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                 or "unknown"
             )
 
-            # Step 4: Check expiration
+            # Step 4: Check expiration. An ``exp`` claim is required — tokens
+            # without one would never expire and are rejected.
             exp = claims.get("exp")
-            if exp and exp < time.time():
+            if exp is None:
+                reason = "Token missing expiration"
+                _jwt_failure_reason.set(reason)
+                logger.debug(
+                    "Token missing required exp claim for client '%s'",
+                    _sanitize_for_log(client_id),
+                )
+                return None
+            if exp < time.time():
                 reason = "Token expired"
                 _jwt_failure_reason.set(reason)
-                logger.debug("Token expired for client '%s'", client_id)
+                logger.debug(
+                    "Token expired for client '%s'", _sanitize_for_log(client_id)
+                )
+                return None
+
+            # Step 4b: Check not-before (RFC 7519 Section 4.1.5). ``decode``
+            # alone does not validate temporal claims here (claims are read
+            # individually rather than via ``JWTClaims.validate``), so a token
+            # whose ``nbf`` is in the future must be rejected explicitly, just
+            # like ``exp`` above.
+            nbf = claims.get("nbf")
+            if nbf is not None and nbf > time.time():
+                reason = "Token not yet valid"
+                _jwt_failure_reason.set(reason)
+                logger.debug(
+                    "Token not yet valid for client '%s': nbf is in the future",
+                    _sanitize_for_log(client_id),
+                )
                 return None
 
             # Step 5: Validate issuer
@@ -476,7 +635,7 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                     _jwt_failure_reason.set(reason)
                     logger.debug(
                         "Issuer mismatch: token has '%s', expected '%s'",
-                        iss,
+                        _sanitize_for_log(iss),
                         self.issuer,
                     )
                     return None
@@ -503,7 +662,7 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                     _jwt_failure_reason.set(reason)
                     logger.debug(
                         "Audience mismatch: token has '%s', expected '%s'",
-                        aud,
+                        _sanitize_for_log(aud),
                         self.audience,
                     )
                     return None
@@ -524,12 +683,23 @@ class DetailedJWTVerifier(MCPJWTVerifier):
                     )
                     return None
 
-            # All validations passed
+            # All validations passed. Log the successful authentication with
+            # safe metadata only — never the token contents or any secret.
+            # Coerce scope entries to strings before sorting so a malformed
+            # (non-orderable) scope claim can never turn this audit log into a
+            # TypeError that would mask a successful auth as a failure.
+            scopes_for_log = sorted(str(scope) for scope in scopes)
+            logger.info(
+                "JWT authentication succeeded: client_id='%s', scopes=%s, "
+                "auth_method='bearer_jwt'",
+                _sanitize_for_log(client_id),
+                _sanitize_for_log(" ".join(scopes_for_log) or "(none)"),
+            )
             return AccessToken(
                 token=token,
                 client_id=str(client_id),
                 scopes=scopes,
-                expires_at=int(exp) if exp else None,
+                expires_at=int(exp),
                 claims=dict(claims),
             )
 

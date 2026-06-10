@@ -43,6 +43,7 @@ from superset.mcp_service.auth import (
     _get_app_context_manager,
     get_user_from_request,
     is_tool_visible_to_current_user,
+    MCPNoAuthSourceError,
     MCPPermissionDeniedError,
 )
 from superset.mcp_service.constants import (
@@ -511,7 +512,7 @@ class RBACToolVisibilityMiddleware(Middleware):
                 try:
                     user = get_user_from_request()
                 except ValueError as exc:
-                    if "No authenticated user found" in str(exc):
+                    if isinstance(exc, MCPNoAuthSourceError):
                         # No auth source configured at all → fail open.
                         # No log: this is expected in dev/internal deployments.
                         return tools
@@ -632,6 +633,11 @@ class GlobalErrorHandlerMiddleware(Middleware):
         elif isinstance(error, HTTPException):
             # HTTP errors from screenshot endpoints or API calls
             raise ToolError(f"Service error in {tool_name}: {error.detail}") from error
+        elif isinstance(error, MCPPermissionDeniedError):
+            # MCP RBAC permission denied — convert to structured ToolError.
+            # Must come before the generic PermissionError branch because
+            # MCPPermissionDeniedError inherits from PermissionError.
+            raise ToolError(str(error)) from error
         elif isinstance(error, PermissionError):
             # Permission/authorization errors
             raise ToolError(
@@ -648,9 +654,6 @@ class GlobalErrorHandlerMiddleware(Middleware):
             raise ToolError(
                 f"Invalid request for {tool_name}: {_sanitize_error_for_logging(error)}"
             ) from error
-        elif isinstance(error, MCPPermissionDeniedError):
-            # MCP RBAC permission denied — convert to structured ToolError
-            raise ToolError(str(error)) from error
         elif isinstance(error, (ForbiddenError, SupersetSecurityException)):
             # Superset access denied — agent tried a tool it can't use
             raise ToolError(

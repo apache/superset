@@ -76,7 +76,7 @@ from superset.datasets.schemas import (
 from superset.exceptions import SupersetSyntaxErrorException, SupersetTemplateException
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.utils import json
-from superset.utils.core import parse_boolean_string
+from superset.utils.core import parse_boolean_string, sanitize_cookie_token
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -570,7 +570,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 
@@ -828,6 +828,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 "viz_type": chart.viz_type,
             }
             for chart in data["charts"]
+            if security_manager.can_access_chart(chart)
         ]
         dashboards = [
             {
@@ -837,6 +838,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 "title": dashboard.dashboard_title,
             }
             for dashboard in data["dashboards"]
+            if security_manager.can_access_dashboard(dashboard)
         ]
         return self.response(
             200,

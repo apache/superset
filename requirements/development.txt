@@ -331,7 +331,7 @@ geopy==2.4.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-gevent==24.2.1
+gevent==26.4.0
     # via apache-superset
 google-api-core==2.23.0
     # via
@@ -373,7 +373,7 @@ googleapis-common-protos==1.66.0
     # via
     #   google-api-core
     #   grpcio-status
-greenlet==3.1.1
+greenlet==3.5.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -715,7 +715,7 @@ psycopg2-binary==2.9.12
     # via apache-superset
 py-key-value-aio==0.4.4
     # via fastmcp
-pyarrow==20.0.0
+pyarrow==24.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -768,7 +768,7 @@ pygments==2.20.0
     #   rich
 pyhive==0.7.0
     # via apache-superset
-pyinstrument==4.4.0
+pyinstrument==5.1.2
     # via apache-superset
 pyjwt==2.12.0
     # via
@@ -838,7 +838,7 @@ python-dotenv==1.2.2
     #   apache-superset
     #   fastmcp
     #   pydantic-settings
-python-ldap==3.4.5
+python-ldap==3.4.7
     # via apache-superset
 python-multipart==0.0.29
     # via mcp
@@ -1140,7 +1140,7 @@ xlrd==2.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   pandas
-xlsxwriter==3.0.9
+xlsxwriter==3.2.9
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

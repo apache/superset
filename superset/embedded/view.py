@@ -66,6 +66,20 @@ class EmbeddedView(BaseSupersetView):
         if not is_referrer_allowed:
             abort(403)
 
+        # Defense in depth: when the browser sends a Sec-Fetch-Dest header,
+        # require an embeddable destination (iframe/frame) or a direct
+        # document/fetch load, rather than e.g. an <img>/<script>/<object> tag.
+        # The header is unforgeable by page script; an absent header (older
+        # browsers / non-browser clients) is allowed for compatibility.
+        sec_fetch_dest = request.headers.get("Sec-Fetch-Dest")
+        if sec_fetch_dest and sec_fetch_dest not in {
+            "iframe",
+            "frame",
+            "document",
+            "empty",
+        }:
+            abort(403)
+
         # Log in as an anonymous user, just for this view.
         # This view needs to be visible to all users,
         # and building the page fails if g.user and/or ctx.user aren't present.
@@ -83,6 +97,10 @@ class EmbeddedView(BaseSupersetView):
             "common": common_bootstrap_payload(),
             "embedded": {
                 "dashboard_id": embedded.dashboard_id,
+                # The list of domains allowed to embed this dashboard. An empty
+                # list means any domain is allowed (no restriction). The frontend
+                # uses this to validate the origin of incoming postMessage events.
+                "allowed_domains": embedded.allowed_domains,
             },
         }
 

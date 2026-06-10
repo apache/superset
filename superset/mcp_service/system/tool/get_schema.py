@@ -35,10 +35,6 @@ from superset.mcp_service.common.schema_discovery import (
     CHART_DEFAULT_COLUMNS,
     CHART_SEARCH_COLUMNS,
     CHART_SORTABLE_COLUMNS,
-    CSS_TEMPLATE_DEFAULT_COLUMNS,
-    CSS_TEMPLATE_FILTER_COLUMNS,
-    CSS_TEMPLATE_SEARCH_COLUMNS,
-    CSS_TEMPLATE_SORTABLE_COLUMNS,
     DASHBOARD_DEFAULT_COLUMNS,
     DASHBOARD_SEARCH_COLUMNS,
     DASHBOARD_SORTABLE_COLUMNS,
@@ -49,18 +45,17 @@ from superset.mcp_service.common.schema_discovery import (
     DATASET_SEARCH_COLUMNS,
     DATASET_SORTABLE_COLUMNS,
     get_chart_columns,
-    get_css_template_columns,
     get_dashboard_columns,
     get_database_columns,
     get_dataset_columns,
-    get_theme_columns,
+    get_report_info_columns,
     GetSchemaRequest,
     GetSchemaResponse,
     ModelSchemaInfo,
-    THEME_DEFAULT_COLUMNS,
-    THEME_FILTER_COLUMNS,
-    THEME_SEARCH_COLUMNS,
-    THEME_SORTABLE_COLUMNS,
+    REPORT_DEFAULT_COLUMNS,
+    REPORT_FILTER_COLUMNS,
+    REPORT_SEARCH_COLUMNS,
+    REPORT_SORTABLE_COLUMNS,
 )
 from superset.mcp_service.constants import ModelType
 from superset.mcp_service.mcp_core import ModelGetSchemaCore
@@ -155,40 +150,23 @@ def _get_database_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
     )
 
 
-def _get_css_template_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
-    """Create CSS template schema core with dynamically extracted columns."""
-    from superset.daos.css import CssTemplateDAO
+def _get_report_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
+    """Create report schema core with ReportInfo-derived columns."""
+    # Lazy import to avoid circular dependency at module load time
+    from superset.daos.report import ReportScheduleDAO
 
     return ModelGetSchemaCore(
-        model_type="css_template",
-        dao_class=CssTemplateDAO,
+        model_type="report",
+        dao_class=ReportScheduleDAO,
         output_schema=ModelSchemaInfo,
-        select_columns=get_css_template_columns(),
-        sortable_columns=CSS_TEMPLATE_SORTABLE_COLUMNS,
-        default_columns=CSS_TEMPLATE_DEFAULT_COLUMNS,
-        search_columns=CSS_TEMPLATE_SEARCH_COLUMNS,
+        select_columns=get_report_info_columns(),
+        sortable_columns=REPORT_SORTABLE_COLUMNS,
+        default_columns=REPORT_DEFAULT_COLUMNS,
+        search_columns=REPORT_SEARCH_COLUMNS,
         default_sort="changed_on",
         default_sort_direction="desc",
-        filter_columns_override=CSS_TEMPLATE_FILTER_COLUMNS,
-        logger=logger,
-    )
-
-
-def _get_theme_schema_core() -> ModelGetSchemaCore[ModelSchemaInfo]:
-    """Create theme schema core with dynamically extracted columns."""
-    from superset.daos.theme import ThemeDAO
-
-    return ModelGetSchemaCore(
-        model_type="theme",
-        dao_class=ThemeDAO,
-        output_schema=ModelSchemaInfo,
-        select_columns=get_theme_columns(),
-        sortable_columns=THEME_SORTABLE_COLUMNS,
-        default_columns=THEME_DEFAULT_COLUMNS,
-        search_columns=THEME_SEARCH_COLUMNS,
-        default_sort="changed_on",
-        default_sort_direction="desc",
-        filter_columns_override=THEME_FILTER_COLUMNS,
+        exclude_filter_columns=set(SELF_REFERENCING_FILTER_COLUMNS),
+        include_filter_columns=REPORT_FILTER_COLUMNS,
         logger=logger,
     )
 
@@ -202,8 +180,7 @@ _SCHEMA_CORE_FACTORIES: dict[
     "dataset": _get_dataset_schema_core,
     "dashboard": _get_dashboard_schema_core,
     "database": _get_database_schema_core,
-    "css_template": _get_css_template_schema_core,
-    "theme": _get_theme_schema_core,
+    "report": _get_report_schema_core,
 }
 
 # Maps each model type to the FAB class permission name used by its tools.
@@ -214,8 +191,7 @@ _MODEL_TYPE_CLASS_PERMISSION: dict[ModelType, str] = {
     "dataset": "Dataset",
     "dashboard": "Dashboard",
     "database": "Database",
-    "css_template": "CssTemplate",
-    "theme": "Theme",
+    "report": "ReportSchedule",
 }
 
 
@@ -244,8 +220,7 @@ async def get_schema(
     Column metadata is extracted dynamically from SQLAlchemy models.
 
     Args:
-        model_type: One of "chart", "dataset", "dashboard", "database",
-            "css_template", or "theme"
+        model_type: One of "chart", "dataset", "dashboard", "database", or "report"
 
     Returns:
         Comprehensive schema information for the requested model type
@@ -275,6 +250,14 @@ async def get_schema(
                 view_name=class_permission,
                 user=user_str,
                 tool_name="get_schema",
+            )
+
+    if request.model_type == "report":
+        from superset import is_feature_enabled
+
+        if not is_feature_enabled("ALERT_REPORTS"):
+            raise ValueError(
+                "The Alerts & Reports feature is disabled on this instance."
             )
 
     can_view_data_model_metadata = user_can_view_data_model_metadata()
