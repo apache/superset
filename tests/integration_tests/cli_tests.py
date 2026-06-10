@@ -25,6 +25,7 @@ import pytest
 import yaml  # noqa: F401
 from flask import current_app
 from freezegun import freeze_time
+from sqlalchemy_utils.types.encrypted.encrypted_type import AesGcmEngine
 
 import superset.cli.importexport
 import superset.cli.thumbnails
@@ -372,8 +373,6 @@ def test_re_encrypt_secrets_engine_option_invokes_migrator(app_context):
     When --engine is provided, the CLI must resolve the engine name to the
     correct engine class and pass it to SecretsMigrator as target_engine.
     """
-    from sqlalchemy_utils.types.encrypted.encrypted_type import AesGcmEngine
-
     current_app.config.pop("PREVIOUS_SECRET_KEY", None)
     runner = current_app.test_cli_runner()
     with mock.patch.object(
@@ -399,8 +398,6 @@ def test_re_encrypt_secrets_engine_option_case_insensitive(app_context):
     The --engine option must be case-insensitive per
     click.Choice(..., case_sensitive=False).
     """
-    from sqlalchemy_utils.types.encrypted.encrypted_type import AesGcmEngine
-
     current_app.config.pop("PREVIOUS_SECRET_KEY", None)
     runner = current_app.test_cli_runner()
     with mock.patch.object(
@@ -417,6 +414,33 @@ def test_re_encrypt_secrets_engine_option_case_insensitive(app_context):
 
     assert response.exit_code == 0
     assert migrator_mock.call_args.kwargs.get("target_engine") is AesGcmEngine
+
+
+def test_re_encrypt_secrets_combined_key_rotation_and_engine(app_context):
+    """
+    --previous_secret_key and --engine combine in a single run: the migrator
+    must receive both the previous key (for decryption) and the target engine
+    (for re-encryption). This is the mode most likely to regress, since the
+    single-option tests each pin only the other's variable.
+    """
+    current_app.config.pop("PREVIOUS_SECRET_KEY", None)
+    runner = current_app.test_cli_runner()
+    with mock.patch.object(
+        superset.cli.update,
+        "SecretsMigrator",
+    ) as migrator_mock:
+        migrator_mock.return_value.run.return_value = (
+            superset.utils.encrypt.ReEncryptStats()
+        )
+        response = runner.invoke(
+            superset.cli.update.re_encrypt_secrets,
+            ["--previous_secret_key", "old-key", "--engine", "aes-gcm"],
+        )
+
+    assert response.exit_code == 0
+    call_kwargs = migrator_mock.call_args.kwargs
+    assert call_kwargs.get("target_engine") is AesGcmEngine
+    assert call_kwargs.get("previous_secret_key") == "old-key"
 
 
 def test_re_encrypt_secrets_engine_option_invalid_raises_usage(app_context):

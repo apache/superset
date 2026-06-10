@@ -24,7 +24,11 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy import Table, text, TypeDecorator
 from sqlalchemy.engine import Connection, Dialect, Row
 from sqlalchemy_utils import EncryptedType as SqlaEncryptedType
-from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine, AesGcmEngine
+from sqlalchemy_utils.types.encrypted.encrypted_type import (
+    AesEngine,
+    AesGcmEngine,
+    EncryptionDecryptionBaseEngine,
+)
 
 
 class EncryptedType(SqlaEncryptedType):
@@ -37,10 +41,52 @@ class EncryptedType(SqlaEncryptedType):
 # deployment from "aes" to "aes-gcm" requires re-encrypting all stored secrets
 # first — see the SIP referenced in the docs. Changing this on a populated
 # database without that migration will make existing secrets undecryptable.
-ENCRYPTION_ENGINES = {
+ENCRYPTION_ENGINES: dict[str, type[EncryptionDecryptionBaseEngine]] = {
     "aes": AesEngine,
     "aes-gcm": AesGcmEngine,
 }
+
+# The historical fallback engine when the config does not name one.
+DEFAULT_ENCRYPTION_ENGINE_NAME = "aes"
+
+# Engines whose ciphertext is authenticated: a successful decrypt is
+# cryptographic proof the value is genuinely in that form. AES-GCM carries an
+# authentication tag; AES-CBC does not, so a CBC "success" can be coincidental.
+# Classification logic (the migrator's idempotency fast path) must let an
+# authenticated decrypt win over an unauthenticated one, never the reverse.
+AUTHENTICATED_ENGINES: frozenset[type[EncryptionDecryptionBaseEngine]] = frozenset(
+    {AesGcmEngine}
+)
+
+
+def _is_authenticated_engine(engine: type[EncryptionDecryptionBaseEngine]) -> bool:
+    return engine in AUTHENTICATED_ENGINES
+
+
+def resolve_encryption_engine(engine_name: str) -> type[EncryptionDecryptionBaseEngine]:
+    """Resolve a configured engine name to its engine class, fail-closed.
+
+    The value is normalized (trimmed, lower-cased, underscores → hyphens) so it
+    matches the case-insensitive CLI ``click.Choice``. An unrecognized name
+    raises so a misconfiguration fails at field-construction (startup) rather
+    than silently degrading to unauthenticated AES-CBC — which would let an
+    operator who typo'd ``"aes_gcm"`` believe they had authenticated encryption,
+    and, after a GCM migration, write new secrets as CBC into a GCM database.
+
+    The offending value is deliberately kept out of the error message: it comes
+    from the app config (which also holds ``SECRET_KEY``), and static analysis
+    flags interpolating config-sourced values into logs/errors as potential
+    clear-text secret exposure. The set of valid engine names is enough to
+    diagnose a typo.
+    """
+    normalized = engine_name.strip().lower().replace("_", "-")
+    try:
+        return ENCRYPTION_ENGINES[normalized]
+    except KeyError:
+        raise ValueError(
+            "Unrecognized SQLALCHEMY_ENCRYPTED_FIELD_ENGINE. Valid engines: "
+            + ", ".join(sorted(ENCRYPTION_ENGINES))
+        ) from None
 
 
 ENC_ADAPTER_TAG_ATTR_NAME = "__created_by_enc_field_adapter__"
@@ -79,22 +125,20 @@ class SQLAlchemyUtilsAdapter(  # pylint: disable=too-few-public-methods
     ) -> TypeDecorator:
         if app_config:
             # Select the encryption engine from config, defaulting to the
-            # historical AES-CBC engine for backward compatibility. An explicit
-            # ``engine`` kwarg (e.g. from the migrator) always takes precedence.
+            # historical AES-CBC engine for backward compatibility when the key
+            # is absent. A *present but unrecognized* value fails closed (see
+            # ``resolve_encryption_engine``) rather than silently degrading to
+            # AES-CBC. An explicit ``engine`` kwarg (e.g. from the migrator)
+            # always takes precedence.
             if "engine" not in kwargs:
-                engine_name = app_config.get("SQLALCHEMY_ENCRYPTED_FIELD_ENGINE", "aes")
-                if engine_name not in ENCRYPTION_ENGINES:
-                    # Do not log the configured value itself: it originates from
-                    # the app config (which also holds the SECRET_KEY), and
-                    # static analysis flags interpolating any config-sourced
-                    # value into a log as potential clear-text secret logging.
-                    # The set of valid engines is enough to diagnose the typo.
-                    logger.warning(
-                        "Unrecognized SQLALCHEMY_ENCRYPTED_FIELD_ENGINE;"
-                        " falling back to AES-CBC. Valid engines: %s",
-                        ", ".join(sorted(ENCRYPTION_ENGINES)),
-                    )
-                kwargs["engine"] = ENCRYPTION_ENGINES.get(engine_name, AesEngine)
+                engine_name = (
+                    app_config.get("SQLALCHEMY_ENCRYPTED_FIELD_ENGINE")
+                    or DEFAULT_ENCRYPTION_ENGINE_NAME
+                )
+                # ``**kwargs`` is loosely annotated as ``Optional[dict]`` here, so
+                # route the resolved engine class through an ``Any`` local.
+                engine_cls: Any = resolve_encryption_engine(engine_name)
+                kwargs["engine"] = engine_cls
             return EncryptedType(*args, lambda: app_config["SECRET_KEY"], **kwargs)
 
         raise Exception(  # pylint: disable=broad-exception-raised
@@ -271,10 +315,17 @@ class SecretsMigrator:
             # Try the column's own engine first, then any remaining supported
             # engines (notably the historical AES-CBC), de-duplicated so we
             # never build the same decryptor twice.
-            engines: list[type[Any]] = [type(encrypted_type.engine)]
+            engines: list[type[EncryptionDecryptionBaseEngine]] = [
+                type(encrypted_type.engine)
+            ]
             for engine in ENCRYPTION_ENGINES.values():
                 if engine not in engines:
                     engines.append(engine)
+            # When the previous key equals the current key (engine-migration
+            # mode, or a no-op rotation) the column's own engine under that key
+            # is already ``decryptors[0]``; don't append it again as a fallback.
+            if self._previous_secret_key == self._secret_key:
+                engines = engines[1:]
             decryptors.extend(
                 EncryptedType(
                     type_in=encrypted_type.underlying_type,
@@ -284,6 +335,34 @@ class SecretsMigrator:
                 for engine in engines
             )
         return decryptors
+
+    def _decrypts_under_authenticated_engine(
+        self, encrypted_type: EncryptedType, raw_value: bytes
+    ) -> bool:
+        """Whether ``raw_value`` decrypts under any authenticated engine.
+
+        A successful authenticated (AES-GCM) decrypt is cryptographic proof the
+        value is genuinely in that engine's form — the authentication tag makes
+        a coincidental success negligibly unlikely. Tried under both the current
+        and previous keys so it holds during a combined key-rotation + engine
+        migration. Used to stop an *unauthenticated* target decrypt from
+        coincidentally classifying an authenticated value as "already migrated".
+        """
+        keys = {self._secret_key}
+        if self._previous_secret_key:
+            keys.add(self._previous_secret_key)
+        for engine in AUTHENTICATED_ENGINES:
+            for key in keys:
+                try:
+                    EncryptedType(
+                        type_in=encrypted_type.underlying_type,
+                        key=key,
+                        engine=engine,
+                    ).process_result_value(raw_value, self._dialect)
+                except Exception:  # noqa: BLE001, S112  # pylint: disable=broad-except
+                    continue
+                return True
+        return False
 
     def _re_encrypt_row(
         self,
@@ -340,13 +419,32 @@ class SecretsMigrator:
             # Fast path: if the value can already be read in the target form,
             # leave it untouched. A failure here simply means we need to try the
             # source decryptors below — not a condition worth logging.
-            try:
-                target_type.process_result_value(raw_value, self._dialect)
-            except Exception:  # noqa: BLE001, S110  # pylint: disable=broad-except
-                pass
-            else:
-                stats.skipped += 1
-                continue
+            #
+            # Caveat for an *unauthenticated* target (AES-CBC, e.g. an
+            # ``--engine aes`` rollback): CBC decryption has no authentication
+            # tag, so an authenticated (AES-GCM) ciphertext can coincidentally
+            # "decrypt" under CBC and be wrongly classified as already migrated —
+            # leaving it as GCM, which then bricks once the config is flipped to
+            # CBC, with the run still reporting success. So when the target is
+            # unauthenticated, first rule out that the value is provably in an
+            # authenticated form; an authenticated decrypt must win over an
+            # unauthenticated one. (A forward migration to AES-GCM is unaffected:
+            # an authenticated target read is itself proof.)
+            target_is_authenticated = _is_authenticated_engine(type(target_type.engine))
+            provably_authenticated = (
+                not target_is_authenticated
+                and self._decrypts_under_authenticated_engine(encrypted_type, raw_value)
+            )
+            if not provably_authenticated:
+                try:
+                    target_type.process_result_value(raw_value, self._dialect)
+                except (  # noqa: S110  # pylint: disable=broad-except
+                    Exception  # noqa: BLE001
+                ):
+                    pass
+                else:
+                    stats.skipped += 1
+                    continue
 
             # Recover the plaintext from the first source decryptor that can
             # read the value (current engine/key, then previous key).

@@ -15,8 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from unittest import mock
 from unittest.mock import MagicMock
 
+import pytest
 from sqlalchemy import String
 from sqlalchemy.engine import make_url
 from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine, AesGcmEngine
@@ -69,13 +71,36 @@ def test_aes_gcm_engine_selected_by_config() -> None:
     assert isinstance(field.engine, AesGcmEngine)
 
 
-def test_unknown_engine_falls_back_to_aes_cbc() -> None:
-    """An unrecognized engine name falls back to the safe historical default."""
-    field = SQLAlchemyUtilsAdapter().create(
-        {**SECRET, "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE": "bogus"},
-        String(128),
-    )
-    assert isinstance(field.engine, AesEngine)
+def test_unknown_engine_raises_fail_closed() -> None:
+    """An unrecognized engine name fails closed at field construction.
+
+    Silently falling back to unauthenticated AES-CBC would let an operator who
+    typo'd the engine believe they had authenticated encryption — and, after a
+    GCM migration, write new secrets as CBC into a GCM database. The error must
+    not leak the configured value (it shares the config namespace as SECRET_KEY)
+    but must list the valid engines so a typo is diagnosable.
+    """
+    with pytest.raises(
+        ValueError, match="Unrecognized SQLALCHEMY_ENCRYPTED_FIELD_ENGINE"
+    ) as exc_info:
+        SQLAlchemyUtilsAdapter().create(
+            {**SECRET, "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE": "bogus"},
+            String(128),
+        )
+    message = str(exc_info.value)
+    assert "bogus" not in message
+    assert "aes" in message
+    assert "aes-gcm" in message
+
+
+def test_engine_name_is_normalized() -> None:
+    """Engine names are case/separator-normalized to match the CLI's Choice."""
+    for name in ("AES-GCM", "aes_gcm", " Aes-Gcm "):
+        field = SQLAlchemyUtilsAdapter().create(
+            {**SECRET, "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE": name},
+            String(128),
+        )
+        assert isinstance(field.engine, AesGcmEngine)
 
 
 def test_explicit_engine_kwarg_takes_precedence() -> None:
@@ -186,6 +211,76 @@ def test_engine_migration_gcm_to_cbc_rolls_back() -> None:
     assert new_value != gcm_value
     # The rolled-back value now decrypts as AES-CBC back to the plaintext.
     assert _encrypted_type(AesEngine).process_result_value(new_value, DIALECT) == (
+        "hunter2"
+    )
+
+
+def test_rollback_authenticated_probe_wins_over_spurious_cbc_skip() -> None:
+    """Rolling back to unauthenticated CBC must re-encrypt a provably-GCM value,
+    never skip it — even if the unauthenticated target decrypt coincidentally
+    succeeds. The authenticated (GCM) interpretation must win.
+
+    The coincidental CBC-decrypt-of-a-GCM-blob can't be crafted deterministically
+    (it's a ~2^-128 event), so this pins the *ordering invariant* instead: force
+    the target (CBC) read to "succeed", and assert the value is still re-encrypted
+    because the authenticated probe is consulted first and wins. Without the
+    guard this row would be wrongly counted as ``skipped``.
+    """
+    gcm_value = _encrypted_type(AesGcmEngine).process_bind_param("hunter2", DIALECT)
+    cbc_column = _encrypted_type(AesEngine)
+
+    migrator = _engine_migrator(AesEngine)  # target = unauthenticated CBC (rollback)
+
+    # Simulate the spurious case: the unauthenticated CBC target read "succeeds"
+    # even though the value is really GCM.
+    spurious_target = MagicMock()
+    spurious_target.engine = AesEngine()
+    spurious_target.underlying_type = cbc_column.underlying_type
+    spurious_target.process_result_value.return_value = "garbage"
+    spurious_target.process_bind_param.return_value = b"new-cbc-ciphertext"
+
+    conn = MagicMock()
+    row = {"id": 1, "password": gcm_value}
+    stats = ReEncryptStats()
+
+    with mock.patch.object(migrator, "_target_type", return_value=spurious_target):
+        migrator._re_encrypt_row(  # noqa: SLF001
+            conn, row, "dbs", {"password": cbc_column}, ["id"], stats
+        )
+
+    # Re-encrypted, NOT skipped: the GCM authenticator beat the spurious CBC read.
+    assert stats == ReEncryptStats(re_encrypted=1)
+    assert spurious_target.process_bind_param.call_count == 1
+
+
+def test_combined_key_rotation_and_engine_migration() -> None:
+    """Old-key AES-CBC value → current-key AES-GCM in a single run.
+
+    Exercises the combined mode (``--previous_secret_key`` + ``--engine``): the
+    source ciphertext is CBC under the *previous* key, and must be recovered and
+    re-encrypted as GCM under the *current* key. This is the mode most likely to
+    regress, since each single-mode test pins only the other's variable.
+    """
+    old_key = "o" * 32
+    cbc_old = EncryptedType(String(1024), key=lambda: old_key, engine=AesEngine)
+    old_value = cbc_old.process_bind_param("hunter2", DIALECT)
+    cbc_column = _encrypted_type(AesEngine)
+
+    migrator = _engine_migrator(AesGcmEngine)
+    migrator._previous_secret_key = old_key  # noqa: SLF001  # rotate key too
+
+    conn = MagicMock()
+    row = {"id": 1, "password": old_value}
+    stats = ReEncryptStats()
+
+    migrator._re_encrypt_row(  # noqa: SLF001
+        conn, row, "dbs", {"password": cbc_column}, ["id"], stats
+    )
+
+    assert stats == ReEncryptStats(re_encrypted=1)
+    new_value = conn.execute.call_args.kwargs["password"]
+    # The migrated value decrypts as GCM under the *current* key.
+    assert _encrypted_type(AesGcmEngine).process_result_value(new_value, DIALECT) == (
         "hunter2"
     )
 
