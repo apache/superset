@@ -194,7 +194,7 @@ jinja2==3.1.6
     # via
     #   flask
     #   flask-babel
-jsonpath-ng==1.7.0
+jsonpath-ng==1.8.0
     # via apache-superset (pyproject.toml)
 jsonschema==4.23.0
     # via

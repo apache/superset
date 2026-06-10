@@ -471,7 +471,7 @@ jmespath==1.1.0
     # via
     #   boto3
     #   botocore
-jsonpath-ng==1.7.0
+jsonpath-ng==1.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
