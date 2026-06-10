@@ -18,14 +18,14 @@
  */
 
 import { renderHook } from '@testing-library/react';
-import { useCellContentParser } from './useCellContentParser';
+import { NULL_STRING, useCellContentParser } from './useCellContentParser';
 
-test('should return NULL for null cell data', () => {
+test('should return NULL_STRING() for null cell data', () => {
   const { result } = renderHook(() =>
     useCellContentParser({ columnKeys: [], expandedColumns: [] }),
   );
   const parser = result.current;
-  expect(parser({ cellData: null, columnKey: '' })).toBe('NULL');
+  expect(parser({ cellData: null, columnKey: '' })).toBe(NULL_STRING());
 });
 
 test('should return truncated string for complex columns', () => {

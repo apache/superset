@@ -24,15 +24,16 @@ import {
   JsonObject,
 } from '@superset-ui/core';
 
-// ATTENTION: If you change any constants, make sure to also change constants.py
+import {
+  EMPTY_STRING,
+  NULL_STRING,
+  TRUE_STRING,
+  FALSE_STRING,
+} from '../../plugins/plugin-chart-echarts/src/constants';
 
-export const EMPTY_STRING = '<empty string>';
-// Keep in sync with EMPTY_FILTER_SQL_EXPRESSION in superset/constants.py.
+export { EMPTY_STRING, NULL_STRING, TRUE_STRING, FALSE_STRING };
+
 export const EMPTY_FILTER_SQL_EXPRESSION = '1 = 0';
-
-export const NULL_STRING = '<NULL>';
-export const TRUE_STRING = 'TRUE';
-export const FALSE_STRING = 'FALSE';
 
 // dayjs time format strings
 export const SHORT_DATE = 'MMM D, YYYY';
@@ -43,7 +44,7 @@ const DATETIME_FORMATTER = getTimeFormatter(TimeFormats.DATABASE_DATETIME);
 export type OptionValue = string | number | boolean | null;
 
 export interface OptionItem {
-  value: OptionValue | typeof NULL_STRING;
+  value: OptionValue | ReturnType<typeof NULL_STRING>;
   label: string;
 }
 
@@ -68,16 +69,16 @@ export function storeQuery(query: JsonObject): Promise<string> {
 
 export function optionLabel(opt: OptionValue): string {
   if (opt === null) {
-    return NULL_STRING;
+    return NULL_STRING();
   }
   if (opt === '') {
-    return EMPTY_STRING;
+    return EMPTY_STRING();
   }
   if (opt === true) {
-    return TRUE_STRING;
+    return TRUE_STRING();
   }
   if (opt === false) {
-    return FALSE_STRING;
+    return FALSE_STRING();
   }
   if (typeof opt !== 'string' && typeof opt === 'number') {
     return opt.toString();
@@ -87,9 +88,9 @@ export function optionLabel(opt: OptionValue): string {
 
 export function optionValue(
   opt: OptionValue,
-): OptionValue | typeof NULL_STRING {
+): OptionValue | ReturnType<typeof NULL_STRING> {
   if (opt === null) {
-    return NULL_STRING;
+    return NULL_STRING();
   }
   return opt;
 }
