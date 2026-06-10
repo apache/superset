@@ -276,6 +276,18 @@ describe('should collect control values and create SFD', () => {
         metrics: formData.standardizedFormData.controls.metrics,
       }),
     });
+    // a target viz whose "Time shift" control offers inherit/custom choices
+    getChartControlPanelRegistry().registerValue('target_viz_inherit', {
+      controlPanelSections: [
+        sections.timeComparisonControls({}),
+        {
+          label: 'transform controls',
+          controlSetRows: publicControlFields
+            .filter(c => c !== 'time_compare')
+            .map(control => [control]),
+        },
+      ],
+    });
   });
 
   test('should avoid to overlap', () => {
@@ -362,17 +374,6 @@ describe('should collect control values and create SFD', () => {
   });
 
   test('preserves inherit/custom time shifts when target viz supports them', () => {
-    getChartControlPanelRegistry().registerValue('target_viz_inherit', {
-      controlPanelSections: [
-        sections.timeComparisonControls({}),
-        {
-          label: 'transform controls',
-          controlSetRows: publicControls
-            .filter(c => c !== 'dashboardId' && c !== 'time_compare')
-            .map(control => [control]),
-        },
-      ],
-    });
     const store = {
       ...sourceMockStore,
       form_data: {
@@ -383,6 +384,22 @@ describe('should collect control values and create SFD', () => {
     const sfd = new StandardizedFormData(store.form_data);
     const { formData } = sfd.transform('target_viz_inherit', store);
     expect(formData.time_compare).toEqual(['1 year ago', 'inherit']);
+  });
+
+  test('clears time_compare to null when every shift is unsupported', () => {
+    // When only special markers carry over and none survive, the control value
+    // must serialize to null (not an empty array) so the target chart shows an
+    // empty "Time shift" rather than a stray tag (SC-99170).
+    const store = {
+      ...sourceMockStore,
+      form_data: {
+        ...sourceMockFormData,
+        time_compare: ['inherit', 'custom'],
+      },
+    };
+    const sfd = new StandardizedFormData(store.form_data);
+    const { formData } = sfd.transform('target_viz', store);
+    expect(formData.time_compare).toBeNull();
   });
 
   test('should inherit standardizedFormData and memorizedFormData is LIFO', () => {

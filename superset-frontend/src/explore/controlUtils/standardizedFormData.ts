@@ -164,20 +164,25 @@ export class StandardizedFormData {
   // Drop `time_compare` markers the target viz can't honor so they don't carry
   // over as un-removable tags when switching chart types.
   static dropUnsupportedTimeShifts(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    controlsState: Record<string, any>,
+    controlsState: Record<string, unknown>,
   ): void {
-    const control = controlsState?.time_compare;
+    const control = controlsState?.time_compare as
+      | { value?: unknown; choices?: unknown }
+      | undefined;
     if (!control || !Array.isArray(control.value)) {
       return;
     }
     const supportedChoices = new Set(
-      ensureIsArray(control.choices).map(
-        (choice: [string, string]) => choice[0],
-      ),
+      ensureIsArray(control.choices)
+        .filter(
+          (choice): choice is [string, string] =>
+            Array.isArray(choice) && typeof choice[0] === 'string',
+        )
+        .map(choice => choice[0]),
     );
     const filtered = control.value.filter(
-      (shift: string) =>
+      (shift: unknown) =>
+        typeof shift !== 'string' ||
         !StandardizedFormData.specialTimeShifts.includes(shift) ||
         supportedChoices.has(shift),
     );
