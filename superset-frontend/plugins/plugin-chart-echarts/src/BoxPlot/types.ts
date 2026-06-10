@@ -30,6 +30,7 @@ export type BoxPlotQueryFormData = QueryFormData & {
   numberFormat?: string;
   whiskerOptions?: BoxPlotFormDataWhiskerOptions;
   xTickLayout?: BoxPlotFormXTickLayout;
+  yAxisSlider?: boolean;
 } & TitleFormData;
 
 export type BoxPlotFormDataWhiskerOptions =
