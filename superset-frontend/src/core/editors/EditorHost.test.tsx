@@ -39,8 +39,7 @@ jest.mock('./EditorProviders', () => ({
     getInstance: () => ({
       getProvider: jest.fn().mockReturnValue(undefined),
       hasProvider: jest.fn().mockReturnValue(false),
-      onDidRegister: jest.fn().mockReturnValue({ dispose: jest.fn() }),
-      onDidUnregister: jest.fn().mockReturnValue({ dispose: jest.fn() }),
+      subscribe: jest.fn().mockReturnValue(() => {}),
     }),
   },
 }));
