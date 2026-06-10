@@ -205,6 +205,7 @@ def _validate_update_against_dataset(
     form_data: dict[str, Any],
     chart: Any,
     dataset_id: int | None = None,
+    run_compile_check: bool = True,
 ) -> GenerateChartResponse | None:
     """Run Tier 1 (schema) + Tier 2 (compile) validation against the chart's
     dataset. Returns ``None`` on success, or a :class:`GenerateChartResponse`
@@ -212,6 +213,8 @@ def _validate_update_against_dataset(
 
     When ``dataset_id`` is provided, validates against that dataset instead of
     the chart's existing datasource (used when rebinding to a new dataset).
+    Pass ``run_compile_check=False`` to skip the Tier 2 live-query check (used
+    for dataset-only rebinds where no new chart config is provided).
     """
     from superset.daos.dataset import DatasetDAO
 
@@ -222,15 +225,17 @@ def _validate_update_against_dataset(
         if dataset is None and getattr(chart, "datasource_id", None) is not None:
             dataset = DatasetDAO.find_by_id(chart.datasource_id)
     if dataset is None:
+        missing_id = (
+            dataset_id if dataset_id is not None else getattr(chart, "datasource_id", None)
+        )
         return GenerateChartResponse.model_validate(
             {
                 "chart": None,
                 "error": {
                     "error_type": "DatasetNotAccessible",
-                    "message": "Chart's dataset is not accessible",
+                    "message": "Dataset is not accessible",
                     "details": (
-                        f"Dataset {getattr(chart, 'datasource_id', None)} "
-                        "is missing or inaccessible."
+                        f"Dataset {missing_id} is missing or inaccessible."
                     ),
                 },
                 "success": False,
@@ -240,7 +245,7 @@ def _validate_update_against_dataset(
         )
 
     compile_result = validate_and_compile(
-        parsed_config, form_data, dataset, run_compile_check=True
+        parsed_config, form_data, dataset, run_compile_check=run_compile_check
     )
     if compile_result.success:
         return None
@@ -476,8 +481,8 @@ async def update_chart(  # noqa: C901
 
             # Validate before persisting — catches bad column refs and runtime
             # SQL errors so we don't commit a chart that can't be queried.
-            # Renames (no parsed_config) skip validation since form_data is
-            # untouched.
+            # Renames (no parsed_config and no dataset_id) skip validation since
+            # form_data is untouched and no rebind is requested.
             if parsed_config is not None and new_form_data is not None:
                 with event_logger.log_context(action="mcp.update_chart.validation"):
                     validation_error = _validate_update_against_dataset(
@@ -485,6 +490,20 @@ async def update_chart(  # noqa: C901
                         new_form_data,
                         chart,
                         dataset_id=request.dataset_id,
+                    )
+                if validation_error is not None:
+                    return validation_error
+            elif request.dataset_id is not None:
+                # Dataset-only rebind: verify the target dataset exists before
+                # writing. Skip compile check — there is no new chart config to
+                # execute against the new dataset.
+                with event_logger.log_context(action="mcp.update_chart.validation"):
+                    validation_error = _validate_update_against_dataset(
+                        None,
+                        {},
+                        chart,
+                        dataset_id=request.dataset_id,
+                        run_compile_check=False,
                     )
                 if validation_error is not None:
                     return validation_error
@@ -509,6 +528,19 @@ async def update_chart(  # noqa: C901
                         preview_or_error,
                         chart,
                         dataset_id=request.dataset_id,
+                    )
+                if validation_error is not None:
+                    return validation_error
+            elif request.dataset_id is not None:
+                # Dataset-only rebind: verify the target dataset exists before
+                # caching. Skip compile check — no new config to execute.
+                with event_logger.log_context(action="mcp.update_chart.validation"):
+                    validation_error = _validate_update_against_dataset(
+                        None,
+                        {},
+                        chart,
+                        dataset_id=request.dataset_id,
+                        run_compile_check=False,
                     )
                 if validation_error is not None:
                     return validation_error

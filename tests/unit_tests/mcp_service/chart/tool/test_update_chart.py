@@ -1523,3 +1523,100 @@ class TestUpdateChartDatasetIdIntegration:
             payload = call_args[0][1]
             assert payload.get("datasource_id") == 1041
             assert payload.get("datasource_type") == "table"
+
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id", new_callable=Mock)
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_dataset_only_rebind_invalid_dataset_returns_error(
+        self,
+        mock_db_session,
+        mock_chart_find,
+        mock_dataset_find,
+        mock_check_access,
+        mcp_server,
+    ):
+        """dataset_id pointing to a non-existent dataset returns DatasetNotAccessible."""
+        mock_chart = Mock()
+        mock_chart.id = 55
+        mock_chart.datasource_id = 10
+        mock_chart.slice_name = "Old Chart"
+        mock_chart.viz_type = "table"
+        mock_chart.uuid = "uuid-55"
+        mock_chart_find.return_value = mock_chart
+
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="old_dataset",
+            warnings=[],
+        )
+
+        # Target dataset does not exist
+        mock_dataset_find.return_value = None
+
+        request = {
+            "identifier": 55,
+            "dataset_id": 9999,
+            "generate_preview": False,
+        }
+
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+            assert result.structured_content["success"] is False
+            assert result.structured_content["error"]["error_type"] == "DatasetNotAccessible"
+            assert "9999" in result.structured_content["error"]["details"]
+
+    @patch(
+        "superset.mcp_service.auth.check_chart_data_access",
+        new_callable=Mock,
+    )
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id", new_callable=Mock)
+    @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_dataset_only_rebind_invalid_dataset_preview_returns_error(
+        self,
+        mock_db_session,
+        mock_chart_find,
+        mock_dataset_find,
+        mock_check_access,
+        mcp_server,
+    ):
+        """dataset_id pointing to a non-existent dataset returns error in preview path."""
+        mock_chart = Mock()
+        mock_chart.id = 55
+        mock_chart.datasource_id = 10
+        mock_chart.slice_name = "Old Chart"
+        mock_chart.viz_type = "table"
+        mock_chart.uuid = "uuid-55"
+        mock_chart.params = None
+        mock_chart_find.return_value = mock_chart
+
+        mock_check_access.return_value = DatasetValidationResult(
+            is_valid=True,
+            dataset_id=10,
+            dataset_name="old_dataset",
+            warnings=[],
+        )
+
+        # Target dataset does not exist
+        mock_dataset_find.return_value = None
+
+        request = {
+            "identifier": 55,
+            "dataset_id": 9999,
+            "generate_preview": True,
+        }
+
+        async with Client(mcp) as client:
+            result = await client.call_tool("update_chart", {"request": request})
+
+            assert result.structured_content["success"] is False
+            assert result.structured_content["error"]["error_type"] == "DatasetNotAccessible"
+            assert "9999" in result.structured_content["error"]["details"]
