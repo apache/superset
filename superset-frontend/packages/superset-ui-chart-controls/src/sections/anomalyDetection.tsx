@@ -18,6 +18,9 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { legacyValidateInteger, legacyValidateNumber } from '@superset-ui/core';
+import { ControlPanelSectionConfig } from '../types';
+import { displayTimeRelatedControls } from '../utils';
+
 const validateRange =
   (
     check: (n: number) => boolean,
@@ -40,9 +43,6 @@ const validateConfidenceInterval = validateRange(
   n => n <= 0 || n >= 1,
   'Confidence interval must be between 0 and 1 (exclusive)',
 );
-import { ControlPanelSectionConfig } from '../types';
-import { displayTimeRelatedControls } from '../utils';
-
 export const ANOMALY_DEFAULT_DATA = {
   anomalyDetectionEnabled: false,
   anomalyDetectionMethod: 'zscore',
