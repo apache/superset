@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useState } from 'react';
-import type { IHeaderParams, SortDirection } from 'ag-grid-community';
+import type { IHeaderParams, Column, SortDirection } from 'ag-grid-community';
 
 import { t } from '@apache-superset/core/translation';
 import { styled, useTheme } from '@apache-superset/core/theme';
