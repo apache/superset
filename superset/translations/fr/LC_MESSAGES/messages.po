@@ -11862,7 +11862,7 @@ msgid "Select tab"
 msgstr "Sélectionner l'onglet"
 
 msgid "Select table or type to search tables"
-msgstr ""Sélectionner une table ou écrire pour effectuer une recherche"
+msgstr "Sélectionner une table ou écrire pour effectuer une recherche"
 
 msgid "Select the Annotation Layer you would like to use."
 msgstr "Sélectionner la couche d'annotation que vous souhaitez utiliser."
@@ -14396,7 +14396,6 @@ msgid "There was an error loading users."
 msgstr "Une erreur s'est produite lors du chargement des utilisateurs"
 
 msgid "There was an error retrieving dashboard tabs."
-msgstr ""
 msgstr "Une erreur s'est produite lors de la récupération des onglets du tableau de bord"
 
 #, python-format
