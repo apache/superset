@@ -29,6 +29,7 @@ from superset.commands.chart.exceptions import (
     ChartForbiddenError,
     ChartInvalidError,
     ChartNotFoundError,
+    ChartQueryContextDatasourceMismatchValidationError,
     ChartUpdateFailedError,
     DashboardsForbiddenError,
     DashboardsNotFoundValidationError,
@@ -46,6 +47,7 @@ from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.tags.models import ObjectType
+from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -106,6 +108,51 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 if not security_manager.is_editor(dash):
                     raise DashboardsForbiddenError()
 
+    def _validate_query_context_datasource(
+        self, exceptions: list[ValidationError]
+    ) -> None:
+        """
+        Ensure a query-context-only update keeps the chart's own datasource.
+
+        The submitted query context is only verified when it carries a parseable
+        ``datasource`` object; a payload that references a different datasource than
+        the chart's persisted one is rejected. Payloads without a datasource fall
+        back to the chart's datasource at execution time and need no check.
+        """
+        if not self._model:
+            return
+
+        raw_query_context = self._properties.get("query_context")
+        if not raw_query_context:
+            return
+
+        try:
+            query_context = json.loads(raw_query_context)
+        except (TypeError, ValueError):
+            # An unparseable payload cannot be verified or replayed; leave it for
+            # downstream handling rather than guessing at its intent.
+            return
+
+        datasource = (
+            query_context.get("datasource") if isinstance(query_context, dict) else None
+        )
+        if not isinstance(datasource, dict):
+            return
+
+        try:
+            ids_match = int(datasource["id"]) == self._model.datasource_id
+        except (KeyError, TypeError, ValueError):
+            ids_match = False
+
+        datasource_type = datasource.get("type")
+        types_match = (
+            datasource_type is None
+            or str(datasource_type) == self._model.datasource_type
+        )
+
+        if not ids_match or not types_match:
+            exceptions.append(ChartQueryContextDatasourceMismatchValidationError())
+
     def validate(self) -> None:  # noqa: C901
         exceptions: list[ValidationError] = []
         dashboard_ids = self._properties.get("dashboards")
@@ -140,6 +187,9 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 security_manager.raise_for_access(chart=self._model)
             except SupersetSecurityException as ex:
                 raise ChartForbiddenError() from ex
+            # Keep the refreshed payload bound to the chart's own datasource so it
+            # cannot be repointed at an unrelated one.
+            self._validate_query_context_datasource(exceptions)
 
         # validate tags
         try:
