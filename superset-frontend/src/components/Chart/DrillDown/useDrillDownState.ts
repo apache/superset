@@ -21,6 +21,7 @@ import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
   ensureIsArray,
+  getClientErrorObject,
   QueryData,
   QueryFormData,
 } from '@superset-ui/core';
@@ -207,25 +208,81 @@ export function useDrillDownState({
     setError(undefined);
 
     const [useLegacyApi] = getQuerySettings(effectiveFormData);
-    getChartDataRequest({ formData: effectiveFormData })
-      .then(({ response, json }) =>
-        handleChartDataResponse(response, json, useLegacyApi),
-      )
-      .then(queriesResponse => {
-        if (!cancelled) {
-          setDrillData(queriesResponse as QueryData[]);
+
+    const extractMessage = async (err: unknown): Promise<string> => {
+      let message = (err as { message?: string })?.message;
+      try {
+        const clientError = await getClientErrorObject(
+          err as Parameters<typeof getClientErrorObject>[0],
+        );
+        message =
+          clientError?.message ||
+          clientError?.error ||
+          (clientError?.errors && clientError.errors[0]?.message) ||
+          message;
+      } catch {
+        // fall back to err.message
+      }
+      return message || t('Failed to load chart data');
+    };
+
+    // The backend can intermittently fail under the burst of concurrent chart
+    // queries a drill click triggers (it also emits a cross-filter, which
+    // re-queries every dashboard chart at once). These failures are transient,
+    // so retry a few times with a short backoff before surfacing the error.
+    const MAX_ATTEMPTS = 3;
+    const RETRY_DELAY_MS = 400;
+
+    const runWithRetry = async () => {
+      for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt += 1) {
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          const { response, json } = await getChartDataRequest({
+            formData: effectiveFormData,
+          });
+          // eslint-disable-next-line no-await-in-loop
+          const queriesResponse = await handleChartDataResponse(
+            response,
+            json,
+            useLegacyApi,
+          );
+          if (!cancelled) {
+            setDrillData(queriesResponse as QueryData[]);
+          }
+          return;
+        } catch (err) {
+          if (cancelled) {
+            return;
+          }
+          if (attempt < MAX_ATTEMPTS) {
+            // eslint-disable-next-line no-await-in-loop
+            await new Promise(resolve => {
+              setTimeout(resolve, RETRY_DELAY_MS * attempt);
+            });
+            if (cancelled) {
+              return;
+            }
+          } else {
+            // eslint-disable-next-line no-await-in-loop
+            const message = await extractMessage(err);
+            // eslint-disable-next-line no-console
+            console.error('[DrillDown] query failed', {
+              message,
+              effectiveFormData,
+            });
+            if (!cancelled) {
+              setError(message);
+            }
+          }
         }
-      })
-      .catch(err => {
-        if (!cancelled) {
-          setError(err?.message || t('Failed to load chart data'));
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setIsLoading(false);
-        }
-      });
+      }
+    };
+
+    runWithRetry().finally(() => {
+      if (!cancelled) {
+        setIsLoading(false);
+      }
+    });
 
     return () => {
       cancelled = true;

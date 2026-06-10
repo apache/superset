@@ -67,6 +67,24 @@ describe('chart reducers', () => {
     );
   });
 
+  test('ignores a keyed action when the chart is missing from state', () => {
+    // A stale abort (CHART_UPDATE_STOPPED) can arrive after its chart was
+    // removed from state (e.g. during drill-down cross-filtering). The reducer
+    // must not throw when reading properties of the now-undefined chart.
+    expect(() =>
+      chartReducer(charts, actions.chartUpdateStopped(999)),
+    ).not.toThrow();
+    expect(chartReducer(charts, actions.chartUpdateStopped(999))).toBe(charts);
+  });
+
+  test('still applies a keyed action when the chart exists in state', () => {
+    const newState = chartReducer(
+      charts,
+      actions.chartUpdateSucceeded([], chartKey),
+    );
+    expect(newState[chartKey].chartStatus).toEqual('success');
+  });
+
   test('should update endtime on timeout', () => {
     const newState = chartReducer(
       charts,
