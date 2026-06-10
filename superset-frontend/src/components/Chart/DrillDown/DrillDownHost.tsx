@@ -121,6 +121,18 @@ export function DrillDownHost({
             extraFormData: { filters: [] },
             filterState: { value: null, selectedValues: null },
           });
+          // While drilled, the dashboard may have skipped re-querying this
+          // chart's base when other charts' cross-filters changed (e.g. one
+          // was cleared), leaving the Redux base query result stale/filtered.
+          // Trigger a fresh base query so returning to the top level shows the
+          // full chart. Unlike refreshChart (which reuses latestQueryFormData),
+          // triggerQuery makes the chart re-run with its current dashboard
+          // form_data, which reflects the now-cleared filters.
+          (
+            rendererProps.actions as {
+              triggerQuery?: (value: boolean, key: number) => void;
+            }
+          )?.triggerQuery?.(true, rendererProps.chartId);
         } else {
           // Going to an intermediate level — rebuild accumulated filters
           // from all levels up to the target depth (mirroring effectiveFormData)

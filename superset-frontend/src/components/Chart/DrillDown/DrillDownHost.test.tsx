@@ -17,11 +17,17 @@
  * under the License.
  */
 import { ReactElement } from 'react';
-import { render as rtlRender, screen } from '@testing-library/react';
+import {
+  render as rtlRender,
+  screen,
+  act,
+  fireEvent,
+} from '@testing-library/react';
 import '@testing-library/jest-dom';
 import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
 import { QueryFormData } from '@superset-ui/core';
 import { DrillDownHost } from './DrillDownHost';
+import { clearDrillDownState } from './useDrillDownState';
 import type { ChartRendererProps } from '../ChartRenderer';
 
 function render(ui: ReactElement) {
@@ -31,6 +37,10 @@ function render(ui: ReactElement) {
     ),
   });
 }
+
+beforeEach(() => {
+  clearDrillDownState();
+});
 
 jest.mock('src/components/Chart/chartAction', () => ({
   getChartDataRequest: jest.fn(() =>
@@ -160,4 +170,52 @@ test('DrillDownHost renders with drilldown_hierarchy field', () => {
 
   expect(screen.getByTestId('drill-down-host')).toBeInTheDocument();
   expect(screen.getByTestId('has-on-drill-down')).toHaveTextContent('yes');
+});
+
+test('returning to the top level clears the cross-filter and re-queries the base', async () => {
+  const updateDataMask = jest.fn();
+  const triggerQuery = jest.fn();
+  const formDataWithHierarchy: QueryFormData = {
+    ...baseFormData,
+    x_axis: ['country', 'region', 'city'],
+  };
+
+  let capturedOnDrillDown:
+    | ((filters: unknown, label: string) => void)
+    | undefined;
+  function CaptureRenderer(
+    props: ChartRendererProps & {
+      onDrillDown?: (filters: unknown, label: string) => void;
+    },
+  ) {
+    capturedOnDrillDown = props.onDrillDown;
+    return <div data-test="mock-chart-renderer" />;
+  }
+
+  render(
+    <DrillDownHost
+      ChartRendererComponent={CaptureRenderer as any}
+      {...baseRendererProps}
+      formData={formDataWithHierarchy}
+      actions={{ updateDataMask, triggerQuery } as any}
+    />,
+  );
+
+  // Drill down one level so the breadcrumb appears.
+  act(() => {
+    capturedOnDrillDown?.([{ col: 'country', op: '==', val: 'USA' }], 'USA');
+  });
+
+  // Click the breadcrumb root (hierarchy[0]) to jump back to the top.
+  const root = await screen.findByText('country');
+  fireEvent.click(root);
+
+  // The chart's own cross-filter is cleared...
+  expect(updateDataMask).toHaveBeenCalledWith(
+    1,
+    expect.objectContaining({ extraFormData: { filters: [] } }),
+  );
+  // ...and a fresh base query is triggered so stale (filtered) base data from
+  // cross-filter activity while drilled is replaced by the full chart.
+  expect(triggerQuery).toHaveBeenCalledWith(true, 1);
 });

@@ -144,17 +144,27 @@ export function useDrillDownState({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | undefined>();
 
-  // Persist drill navigation so it survives remounts (see drillStateStore).
-  useEffect(() => {
-    if (chartKey == null) {
-      return;
-    }
-    if (drillStack.length === 0 && !selectedLeaf) {
-      drillStateStore.delete(chartKey);
-    } else {
-      drillStateStore.set(chartKey, { drillStack, selectedLeaf });
-    }
-  }, [chartKey, drillStack, selectedLeaf]);
+  // Persist drill navigation synchronously so it survives remounts (see
+  // drillStateStore) without racing. Writing on a deferred effect would let a
+  // remount triggered by the same interaction (e.g. clearing a cross-filter)
+  // restore stale state before the effect runs, so the mutators below write
+  // through this helper immediately instead.
+  const persist = useCallback(
+    (stack: DrillDownLevel[], leaf: string | undefined) => {
+      if (chartKey == null) {
+        return;
+      }
+      if (stack.length === 0 && !leaf) {
+        drillStateStore.delete(chartKey);
+      } else {
+        drillStateStore.set(chartKey, {
+          drillStack: stack,
+          selectedLeaf: leaf,
+        });
+      }
+    },
+    [chartKey],
+  );
 
   // Reset only when the chart is actually reconfigured (chart id or viz type
   // changes) — e.g. the dashboard owner edited the chart and saved. A ref
@@ -350,30 +360,42 @@ export function useDrillDownState({
 
   const drillDown = useCallback<UseDrillDownStateResult['drillDown']>(
     (filters, label) => {
-      setDrillStack(prev => {
-        // If we're at the last level, can't drill deeper — just record the selection
-        if (prev.length >= hierarchy.length - 1) {
-          setSelectedLeaf(label);
-          return prev;
-        }
+      let nextStack: DrillDownLevel[];
+      let nextLeaf: string | undefined;
+      // If we're at the last level, can't drill deeper — just record the selection
+      if (drillStack.length >= hierarchy.length - 1) {
+        nextStack = drillStack;
+        nextLeaf = label;
+      } else {
         // Clear any previous leaf selection when drilling deeper
-        setSelectedLeaf(undefined);
-        const nextColumn = hierarchy[prev.length];
-        return [...prev, { column: nextColumn, filters, label }];
-      });
+        nextStack = [
+          ...drillStack,
+          { column: hierarchy[drillStack.length], filters, label },
+        ];
+        nextLeaf = undefined;
+      }
+      setDrillStack(nextStack);
+      setSelectedLeaf(nextLeaf);
+      persist(nextStack, nextLeaf);
     },
-    [hierarchy],
+    [drillStack, hierarchy, persist],
   );
 
-  const resetTo = useCallback((depth: number) => {
-    setDrillStack(prev => prev.slice(0, depth));
-    setSelectedLeaf(undefined);
-  }, []);
+  const resetTo = useCallback(
+    (depth: number) => {
+      const nextStack = drillStack.slice(0, depth);
+      setDrillStack(nextStack);
+      setSelectedLeaf(undefined);
+      persist(nextStack, undefined);
+    },
+    [drillStack, persist],
+  );
 
   const reset = useCallback(() => {
     setDrillStack([]);
     setSelectedLeaf(undefined);
-  }, []);
+    persist([], undefined);
+  }, [persist]);
 
   return {
     isDrilling: currentDepth > 0,
