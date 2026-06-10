@@ -36,21 +36,30 @@ from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
-# Endpoint substrings that must remain reachable while a password change is
-# pending, otherwise the redirect would loop (login/logout, the password-reset
-# and user-info views, static assets, and the health check).
-_EXEMPT_ENDPOINT_TOKENS = (
-    "static",
-    "appbuilder",
-    "login",
-    "logout",
-    "resetmypassword",
-    "resetpassword",
-    "userinfoedit",
-    "userinfo",
-    "auth",
-    "health",
+# Flask endpoints take the form ``<ViewClass>.<method>`` (or a bare name for
+# function views). The following must remain reachable while a password change
+# is pending, otherwise the redirect would loop: the auth views (login/logout
+# for every auth backend), the password-reset and user-info-edit views, static
+# assets, and the health check. We match the *view-class* component (the part
+# before the dot) exactly against the allow-list below rather than doing a
+# substring search, so unrelated endpoints that merely share a substring (e.g.
+# an "Author"-named view, or any name containing "health"/"static") are not
+# accidentally exempted from enforcement.
+_EXEMPT_VIEW_CLASSES = frozenset(
+    {
+        "AuthDBView",
+        "AuthLDAPView",
+        "AuthOAuthView",
+        "AuthOIDView",
+        "AuthRemoteUserView",
+        "ResetMyPasswordView",
+        "ResetPasswordView",
+        "UserInfoEditView",
+    }
 )
+
+# Exact endpoint names (function views / Flask built-ins) that are always exempt.
+_EXEMPT_ENDPOINTS = frozenset({"static", "appbuilder.static", "health", "healthcheck"})
 
 
 def _get_user_attribute(user_id: int) -> Optional[Any]:
@@ -100,10 +109,18 @@ def clear_password_must_change(user_id: int) -> None:
 
 
 def _is_exempt_endpoint(endpoint: Optional[str]) -> bool:
+    # A missing endpoint (e.g. an unmatched URL) is left to normal 404 handling.
     if not endpoint:
         return True
-    lowered = endpoint.lower()
-    return any(token in lowered for token in _EXEMPT_ENDPOINT_TOKENS)
+    if endpoint in _EXEMPT_ENDPOINTS:
+        return True
+    # Any blueprint's static route, e.g. "<blueprint>.static".
+    if endpoint.endswith(".static"):
+        return True
+    # Match the view-class component exactly, so e.g. "AuthDBView.login" is
+    # exempt but an unrelated "AuthorView.list" is not.
+    view_class = endpoint.split(".", 1)[0]
+    return view_class in _EXEMPT_VIEW_CLASSES
 
 
 def register_password_change_enforcement(app: Any) -> None:

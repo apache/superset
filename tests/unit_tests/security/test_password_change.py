@@ -34,8 +34,17 @@ from superset.security.password_change import (
         ("AuthDBView.logout", True),
         ("appbuilder.static", True),
         ("UserInfoEditView.this_form_post", True),
+        ("AuthOAuthView.login", True),
+        ("SomeBlueprint.static", True),
+        ("health", True),
         ("SupersetIndexView.index", False),
         ("Superset.dashboard", False),
+        # Substring over-matching must NOT exempt these (they merely share a
+        # substring with an exempt token).
+        ("AuthorView.list", False),
+        ("HealthDashboardView.show", False),
+        ("StaticAssetReportView.list", False),
+        ("UserInfoFancyView.show", False),
     ],
 )
 def test_is_exempt_endpoint(endpoint, expected) -> None:
