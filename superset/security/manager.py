@@ -3749,14 +3749,27 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         # pylint: disable=import-outside-toplevel
         from superset.daos.dashboard import EmbeddedDashboardDAO
+        from superset.models.dashboard import Dashboard
 
         for resource in token.get("resources") or []:
             if resource.get("type") != GuestTokenResourceType.DASHBOARD.value:
                 continue
-            embedded = EmbeddedDashboardDAO.find_by_id(str(resource.get("id")))
-            revoked_before = getattr(embedded, "guest_token_revoked_before", None)
-            if revoked_before is not None and issued_at < revoked_before:
-                return True
+            resource_id = str(resource.get("id"))
+            # A dashboard resource id may be an embedded UUID or, during the
+            # UUID migration, a legacy dashboard id. Resolve the embedded
+            # config(s) for either form (mirrors validate_guest_token_resources).
+            embedded = EmbeddedDashboardDAO.find_by_id(resource_id)
+            if embedded:
+                embedded_configs = [embedded]
+            else:
+                dashboard = Dashboard.get(resource_id)
+                embedded_configs = dashboard.embedded if dashboard else []
+            for embedded_config in embedded_configs:
+                revoked_before = getattr(
+                    embedded_config, "guest_token_revoked_before", None
+                )
+                if revoked_before is not None and issued_at < revoked_before:
+                    return True
         return False
 
     @transaction()

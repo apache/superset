@@ -17,7 +17,7 @@
 """add guest_token_revoked_before to embedded_dashboards
 
 Revision ID: c8d2e3f4a5b6
-Revises: 33d7e0e21daa
+Revises: 31dae2559c05
 Create Date: 2026-06-01 00:10:00.000000
 
 """

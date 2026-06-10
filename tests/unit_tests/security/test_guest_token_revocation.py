@@ -62,3 +62,39 @@ def test_guest_token_valid_when_issued_after_revocation() -> None:
 def test_guest_token_without_iat_is_not_revoked() -> None:
     token = {"type": "guest", "resources": [_DASHBOARD_RESOURCE]}
     assert SupersetSecurityManager._is_guest_token_revoked(token) is False
+
+
+def test_guest_token_revoked_via_legacy_dashboard_id_resource() -> None:
+    # During the UUID migration a dashboard resource id may be a legacy
+    # dashboard id rather than an embedded UUID. In that case the embedded
+    # config is resolved via Dashboard.get(...).embedded, and its revocation
+    # cutoff must still be honored.
+    dashboard = MagicMock()
+    dashboard.embedded = [_embedded(2000)]
+    with (
+        patch(
+            "superset.daos.dashboard.EmbeddedDashboardDAO.find_by_id",
+            return_value=None,
+        ),
+        patch(
+            "superset.models.dashboard.Dashboard.get",
+            return_value=dashboard,
+        ),
+    ):
+        assert SupersetSecurityManager._is_guest_token_revoked(_token(1000)) is True
+
+
+def test_guest_token_not_revoked_when_resource_unresolvable() -> None:
+    # If neither an embedded config nor a dashboard resolves, there is no
+    # cutoff to enforce and the token is treated as not revoked.
+    with (
+        patch(
+            "superset.daos.dashboard.EmbeddedDashboardDAO.find_by_id",
+            return_value=None,
+        ),
+        patch(
+            "superset.models.dashboard.Dashboard.get",
+            return_value=None,
+        ),
+    ):
+        assert SupersetSecurityManager._is_guest_token_revoked(_token(1000)) is False
