@@ -33,6 +33,16 @@ def _ownership_exc() -> SupersetSecurityException:
     )
 
 
+def _access_exc() -> SupersetSecurityException:
+    return SupersetSecurityException(
+        SupersetError(
+            error_type=SupersetErrorType.CHART_SECURITY_ACCESS_ERROR,
+            message="User does not have access to this chart",
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+
 def test_update_chart_ownership_enforced_for_regular_update(
     mocker: MockerFixture,
 ) -> None:
@@ -73,7 +83,7 @@ def test_update_chart_query_context_skips_ownership_check(
     find_by_id.assert_called_once_with(1)
     # ownership is relaxed, but chart access is still enforced
     raise_for_ownership.assert_not_called()
-    raise_for_access.assert_called_once()
+    raise_for_access.assert_called_once_with(chart=find_by_id.return_value)
 
 
 def test_update_chart_query_context_requires_chart_access(
@@ -85,7 +95,7 @@ def test_update_chart_query_context_requires_chart_access(
     find_by_id.return_value = mocker.MagicMock(id=1, tags=[], dashboards=[])
     mocker.patch(
         "superset.commands.chart.update.security_manager.raise_for_access",
-        side_effect=_ownership_exc(),
+        side_effect=_access_exc(),
     )
 
     with pytest.raises(ChartForbiddenError):
@@ -117,7 +127,7 @@ def test_update_chart_query_context_non_owner_with_access_allowed(
     ).validate()
 
     raise_for_ownership.assert_not_called()
-    raise_for_access.assert_called_once()
+    raise_for_access.assert_called_once_with(chart=find_by_id.return_value)
 
 
 def test_update_chart_owner_can_perform_regular_update(
