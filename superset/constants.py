@@ -15,17 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 
-# ATTENTION: If you change any constants, make sure to also change utils/common.js
+# ATTENTION: If you change any constants, make sure to also change
+# plugins/plugin-chart-echarts/src/constants.ts
 
 # string to use when None values *need* to be converted to/from strings
 from enum import Enum
+
+from flask_babel import gettext as __
 
 from superset.utils.backports import StrEnum
 
 DEFAULT_USER_AGENT = "Apache Superset"
 
-NULL_STRING = "<NULL>"
-EMPTY_STRING = "<empty string>"
+NULL_STRING = __("<NULL>")
+EMPTY_STRING = __("<empty string>")
 
 CHANGE_ME_SECRET_KEY = "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET"  # noqa: S105
 CHANGE_ME_GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105

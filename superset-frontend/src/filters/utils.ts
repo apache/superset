@@ -130,18 +130,18 @@ export function getDataRecordFormatter({
 } = {}): DataRecordValueFormatter {
   return (value, dtype) => {
     if (value === null || value === undefined) {
-      return NULL_STRING;
+      return NULL_STRING();
     }
     if (typeof value === 'boolean') {
-      return value ? TRUE_STRING : FALSE_STRING;
+      return value ? TRUE_STRING() : FALSE_STRING();
     }
     if (dtype === GenericDataType.Boolean) {
       try {
         return JSON.parse(String(value).toLowerCase())
-          ? TRUE_STRING
-          : FALSE_STRING;
+          ? TRUE_STRING()
+          : FALSE_STRING();
       } catch {
-        return FALSE_STRING;
+        return FALSE_STRING();
       }
     }
     if (typeof value === 'string') {

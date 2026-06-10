@@ -17,7 +17,12 @@
  * under the License.
  */
 import { cleanup } from 'spec/helpers/testing-library';
-import { EMPTY_STRING, NULL_STRING } from 'src/utils/common';
+import {
+  EMPTY_STRING,
+  NULL_STRING,
+  TRUE_STRING,
+  FALSE_STRING,
+} from 'src/utils/common';
 import { getSimpleSQLExpression } from '.';
 import { Operators } from '../constants';
 
@@ -45,7 +50,7 @@ test('Should return "" if subject is falsy', () => {
 
 test('Should return null string and empty string', () => {
   expect(getSimpleSQLExpression(params.subject, Operators.In, [null, ''])).toBe(
-    `subject ${Operators.In} (${NULL_STRING}, ${EMPTY_STRING})`,
+    `subject ${Operators.In} (${NULL_STRING()}, ${EMPTY_STRING()})`,
   );
 });
 
@@ -73,12 +78,12 @@ test('Should return correct string when subject and operator are valid values', 
 
 test('Should handle boolean false comparator as a string value', () => {
   expect(getSimpleSQLExpression(params.subject, params.operator, false)).toBe(
-    "subject operator 'FALSE'",
+    `subject operator '${FALSE_STRING()}'`,
   );
 });
 
 test('Should handle boolean true comparator as a string value', () => {
   expect(getSimpleSQLExpression(params.subject, params.operator, true)).toBe(
-    "subject operator 'TRUE'",
+    `subject operator '${TRUE_STRING()}'`,
   );
 });

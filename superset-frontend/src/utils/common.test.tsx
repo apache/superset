@@ -34,15 +34,15 @@ describe('utils/common', () => {
     test('converts values as expected', () => {
       expect(optionFromValue(false)).toEqual({
         value: false,
-        label: FALSE_STRING,
+        label: FALSE_STRING(),
       });
       expect(optionFromValue(true)).toEqual({
         value: true,
-        label: TRUE_STRING,
+        label: TRUE_STRING(),
       });
       expect(optionFromValue(null)).toEqual({
-        value: NULL_STRING,
-        label: NULL_STRING,
+        value: NULL_STRING(),
+        label: NULL_STRING(),
       });
       expect(optionFromValue('')).toEqual({
         value: '',

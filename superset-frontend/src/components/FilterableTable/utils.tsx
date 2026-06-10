@@ -41,7 +41,7 @@ export const renderResultCell = ({
   const cellNode =
     getCellContent?.({ cellData, columnKey }) ?? String(cellData);
   if (cellData === null) {
-    return <i className="text-muted">{NULL_STRING}</i>;
+    return <i className="text-muted">{NULL_STRING()}</i>;
   }
   const jsonObject = safeJsonObjectParse(cellData);
   if (jsonObject) {

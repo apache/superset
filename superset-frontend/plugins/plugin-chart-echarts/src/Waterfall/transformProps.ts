@@ -70,7 +70,7 @@ function formatTooltip({
 
   const isTotal = series?.seriesName === totalMark;
   if (!series) {
-    return NULL_STRING;
+    return NULL_STRING();
   }
 
   const title =
@@ -329,7 +329,7 @@ export default function transformProps(
       value = row[breakdownName];
     }
     if (!value) {
-      value = NULL_STRING;
+      value = NULL_STRING();
     }
     if (typeof value !== 'string' && typeof value !== 'number') {
       value = String(value);

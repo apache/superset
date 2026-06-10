@@ -130,7 +130,7 @@ export function formatTooltip({
   const parentNode =
     treePathInfo.length > 2 ? treePathInfo[treePathInfo.length - 2] : undefined;
 
-  const title = (node.name || NULL_STRING)
+  const title = (node.name || NULL_STRING())
     .toString()
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;');
@@ -144,8 +144,8 @@ export function formatTooltip({
   rows.push([metricLabel, formattedValue]);
   if (!colorByCategory) {
     rows.push([
-      secondaryMetricLabel || NULL_STRING,
-      formattedSecondaryValue || NULL_STRING,
+      secondaryMetricLabel || NULL_STRING(),
+      formattedSecondaryValue || NULL_STRING(),
     ]);
     rows.push([
       `${metricLabel}/${secondaryMetricLabel}`,

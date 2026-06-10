@@ -652,7 +652,7 @@ export function extractSeries(
     ...datum,
     [xAxis]:
       datum[xAxis] === null && xAxisType === AxisType.Category
-        ? NULL_STRING
+        ? NULL_STRING()
         : datum[xAxis],
   }));
   const sortedSeries = sortAndFilterSeries(
@@ -730,7 +730,7 @@ export function formatSeriesName(
   } = {},
 ): string {
   if (name === undefined || name === null) {
-    return NULL_STRING;
+    return NULL_STRING();
   }
   if (typeof name === 'boolean' || typeof name === 'bigint') {
     return name.toString();

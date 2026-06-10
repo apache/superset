@@ -124,7 +124,7 @@ export default function EchartsTreemap({
           const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
           const drillByFilters: BinaryQueryObjectFilterClause[] = [];
           treePath.forEach((path, i) => {
-            const val = path === 'null' ? NULL_STRING : path;
+            const val = path === 'null' ? NULL_STRING() : path;
             drillToDetailFilters.push({
               col: groupby[i],
               op: '==',
