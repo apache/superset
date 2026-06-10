@@ -16,6 +16,7 @@
 # under the License.
 """Unit tests for resource-level authorization in QueryEstimationCommand."""
 
+from typing import cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -234,3 +235,65 @@ def test_apply_sql_security_injects_rls_when_enabled(
     mock_is_feature_enabled.assert_called_with("RLS_IN_SQLLAB")
     mock_apply_rls.assert_called_once()
     assert isinstance(result, str)
+
+
+@patch("superset.commands.sql_lab.estimate.apply_rls")
+@patch("superset.commands.sql_lab.estimate.is_feature_enabled", return_value=True)
+@patch("superset.commands.sql_lab.estimate.app")
+def test_apply_sql_security_resolves_default_schema_for_rls(
+    mock_app: MagicMock,
+    mock_is_feature_enabled: MagicMock,
+    mock_apply_rls: MagicMock,
+) -> None:
+    """When no catalog/schema is supplied, RLS must be applied against the
+    database's *resolved* default catalog/schema — mirroring the execution path
+    (``SQLExecutor`` / ``sql_lab.execute_sql_statements``). Passing the raw
+    ``""``/``None`` would let unqualified tables dodge RLS predicates that the
+    real query enforces, defeating the security parity goal of this command.
+    """
+    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    command = _make_command_with_db("SELECT * FROM t", allow_dml=False)
+    database = cast(MagicMock, command._database)
+    # Caller passed nothing: schema is "" and catalog is None.
+    command._schema = ""
+    command._catalog = None
+    database.get_default_catalog.return_value = "default_catalog"
+    database.get_default_schema.return_value = "public"
+
+    command._apply_sql_security("SELECT * FROM t")
+
+    # Default catalog/schema are resolved before injection, in the same order
+    # as the executor (catalog first, then schema derived from that catalog).
+    database.get_default_catalog.assert_called_once_with()
+    database.get_default_schema.assert_called_once_with("default_catalog")
+
+    # RLS is applied with the *resolved* values, never the raw ""/None.
+    # apply_rls(database, catalog, schema, statement)
+    call_args = mock_apply_rls.call_args.args
+    assert call_args[1] == "default_catalog"
+    assert call_args[2] == "public"
+
+
+@patch("superset.commands.sql_lab.estimate.apply_rls")
+@patch("superset.commands.sql_lab.estimate.is_feature_enabled", return_value=True)
+@patch("superset.commands.sql_lab.estimate.app")
+def test_apply_sql_security_respects_explicit_catalog_schema(
+    mock_app: MagicMock,
+    mock_is_feature_enabled: MagicMock,
+    mock_apply_rls: MagicMock,
+) -> None:
+    """An explicitly supplied catalog/schema is used as-is and short-circuits
+    default resolution (``opts.catalog or ...`` / ``opts.schema or ...``)."""
+    mock_app.config = {"DISALLOWED_SQL_FUNCTIONS": {}, "DISALLOWED_SQL_TABLES": {}}
+    command = _make_command_with_db("SELECT * FROM t", allow_dml=False)
+    database = cast(MagicMock, command._database)
+    command._catalog = "my_catalog"
+    command._schema = "my_schema"
+
+    command._apply_sql_security("SELECT * FROM t")
+
+    database.get_default_catalog.assert_not_called()
+    database.get_default_schema.assert_not_called()
+    call_args = mock_apply_rls.call_args.args
+    assert call_args[1] == "my_catalog"
+    assert call_args[2] == "my_schema"

@@ -114,8 +114,17 @@ class QueryEstimationCommand(BaseCommand):
             raise SupersetDMLNotAllowedException()
 
         if is_feature_enabled("RLS_IN_SQLLAB"):
+            # Resolve the default catalog/schema the same way the execution path
+            # does (``SQLExecutor._prepare_scripts`` /
+            # ``sql_lab.execute_sql_statements``) before injecting RLS. Without
+            # this, unqualified table references can't be matched against
+            # datasets registered under the database's default schema, so the
+            # estimate would skip predicates the real query enforces — breaking
+            # the security parity this command exists to provide.
+            catalog = self._catalog or self._database.get_default_catalog()
+            schema = self._schema or self._database.get_default_schema(catalog) or ""
             for statement in parsed_script.statements:
-                apply_rls(self._database, self._catalog, self._schema, statement)
+                apply_rls(self._database, catalog, schema, statement)
             return parsed_script.format()
 
         return sql
