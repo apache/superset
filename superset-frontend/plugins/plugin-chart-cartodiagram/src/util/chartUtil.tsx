@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetTheme } from '@apache-superset/core/ui';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import { ChartConfig, ChartConfigFeature } from '../types';
 import ChartWrapper from '../components/ChartWrapper';
 

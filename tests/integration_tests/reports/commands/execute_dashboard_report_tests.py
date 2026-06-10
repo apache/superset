@@ -52,6 +52,7 @@ def test_report_for_dashboard_with_tabs(
     with create_dashboard_report(
         dashboard=tabbed_dashboard,
         extra={
+            "anchor": "TAB-L1B",
             "activeTabs": ["TAB-L1B", "TAB-L2BB"],
             "urlParams": [["native_filters", "()"]],
         },
@@ -95,7 +96,8 @@ def test_report_with_header_data(
     with create_dashboard_report(
         dashboard=tabbed_dashboard,
         extra={
-            "active_tabs": ["TAB-L1B", "TAB-L2BB"],
+            "anchor": "TAB-L1B",
+            "activeTabs": ["TAB-L1B", "TAB-L2BB"],
             "urlParams": [["native_filters", "()"]],
         },
         name="test report tabbed dashboard",

@@ -25,7 +25,10 @@ from superset.commands.chart.data.streaming_export_command import (
 
 
 def _setup_chart_mocks(
-    mocker: MockerFixture, sql: str = "SELECT * FROM test"
+    mocker: MockerFixture,
+    sql: str = "SELECT * FROM test",
+    catalog: str | None = None,
+    schema: str | None = None,
 ) -> tuple[MockerFixture, MockerFixture, MockerFixture]:
     """Set up common mocks for chart streaming export tests."""
     mock_db = mocker.patch("superset.commands.streaming_export.base.db")
@@ -36,6 +39,8 @@ def _setup_chart_mocks(
     datasource = mocker.MagicMock()
     datasource.get_query_str.return_value = sql
     datasource.database = mocker.MagicMock()
+    datasource.catalog = catalog
+    datasource.schema = schema
     query_context.datasource = datasource
     query_context.queries = [mocker.MagicMock()]
     mock_session.merge.return_value = datasource.database
@@ -256,3 +261,38 @@ def test_empty_result_set(mocker: MockerFixture) -> None:
     lines = [line.strip() for line in csv_data.strip().split("\n")]
     assert len(lines) == 1
     assert lines[0] == "col1,col2"
+
+
+def test_catalog_and_schema_passed_to_engine(mocker: MockerFixture) -> None:
+    """Test that catalog and schema are forwarded to get_sqla_engine.
+
+    Prequeries (e.g. SET search_path for PostgreSQL) are now run automatically
+    via a connect event listener registered inside get_sqla_engine, not by the
+    streaming command itself.
+    """
+    mock_db, query_context, datasource = _setup_chart_mocks(
+        mocker, catalog="my_catalog", schema="my_schema"
+    )
+
+    mock_result = mocker.MagicMock()
+    mock_result.keys.return_value = ["col1"]
+    mock_result.fetchmany.side_effect = [[("val",)], []]
+
+    mock_connection = mocker.MagicMock()
+    mock_connection.execution_options.return_value.execute.return_value = mock_result
+    mock_connection.__enter__.return_value = mock_connection
+    mock_connection.__exit__.return_value = None
+
+    mock_engine = mocker.MagicMock()
+    mock_engine.connect.return_value = mock_connection
+    datasource.database.get_sqla_engine.return_value.__enter__.return_value = (
+        mock_engine
+    )
+
+    command = StreamingCSVExportCommand(query_context)
+    list(command.run()())
+
+    datasource.database.get_sqla_engine.assert_called_once_with(
+        catalog="my_catalog",
+        schema="my_schema",
+    )

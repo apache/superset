@@ -25,7 +25,6 @@ from flask import g  # noqa: F401
 from superset import db, security_manager
 from superset.commands.chart.create import CreateChartCommand
 from superset.commands.chart.exceptions import (
-    ChartForbiddenError,
     ChartNotFoundError,
     WarmUpCacheChartNotFoundError,
 )
@@ -668,8 +667,8 @@ class TestFavoriteChartCommand(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @patch("superset.daos.base.BaseDAO.find_by_id")
-    def test_fave_unfave_chart_command_forbidden(self, mock_find_by_id):
-        """Test that faving / unfaving raises an exception for a chart the user doesn't own"""  # noqa: E501
+    def test_fave_unfave_chart_command_non_owner(self, mock_find_by_id):
+        """Test that faving / unfaving a chart the user doesn't own works properly"""  # noqa: E501
         with self.client.application.test_request_context():
             example_chart = db.session.query(Slice).all()[0]
             mock_find_by_id.return_value = example_chart
@@ -677,9 +676,22 @@ class TestFavoriteChartCommand(SupersetTestCase):
             # Assert that the chart exists
             assert example_chart is not None
 
-            with override_user(security_manager.find_user("gamma")):
-                with self.assertRaises(ChartForbiddenError):  # noqa: PT027
-                    AddFavoriteChartCommand(example_chart.id).run()
+            # Grant gamma read access to the datasource so the access check passes.
+            # Faving requires datasource access but not ownership.
+            if example_chart.datasource:
+                self.grant_role_access_to_table(example_chart.datasource, "Gamma")
 
-                with self.assertRaises(ChartForbiddenError):  # noqa: PT027
+            try:
+                with override_user(security_manager.find_user("gamma")):
+                    AddFavoriteChartCommand(example_chart.id).run()
+                    ids = ChartDAO.favorited_ids([example_chart])
+
+                    assert example_chart.id in ids
+
                     DelFavoriteChartCommand(example_chart.id).run()
+                    ids = ChartDAO.favorited_ids([example_chart])
+
+                    assert example_chart.id not in ids
+            finally:
+                if example_chart.datasource:
+                    self.revoke_role_access_to_table("Gamma", example_chart.datasource)

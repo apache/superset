@@ -17,7 +17,7 @@
  * under the License.
  */
 import { JsonObject, LatestQueryFormData } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import type { ChartStatus, Datasource } from 'src/explore/types';
 
 export enum ResultTypes {
@@ -49,20 +49,27 @@ export interface ResultsPaneProps {
   // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
   canDownload: boolean;
+  // Optional map of column/metric name -> verbose label
+  columnDisplayNames?: Record<string, string>;
 }
 
 export interface SamplesPaneProps {
   isRequest: boolean;
   datasource: Datasource;
+  queryFormData: LatestQueryFormData;
   queryForce: boolean;
   setForceQuery?: SetForceQueryAction;
-  dataSize?: number;
-  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
   canDownload: boolean;
 }
 
-export interface TableControlsProps {
+export interface DrillControlsProps {
+  onDownloadCSV?: () => void;
+  onDownloadXLSX?: () => void;
+  onReload?: () => void;
+}
+
+export interface TableControlsProps extends DrillControlsProps {
   data: Record<string, any>[];
   // {datasource.id}__{datasource.type}, eg: 1__table
   datasourceId?: string;
@@ -72,6 +79,9 @@ export interface TableControlsProps {
   isLoading: boolean;
   rowcount: number;
   canDownload: boolean;
+  rowLimit?: number;
+  rowLimitOptions?: { value: number; label: string }[];
+  onRowLimitChange?: (limit: number) => void;
 }
 
 export interface QueryResultInterface {
@@ -81,11 +91,15 @@ export interface QueryResultInterface {
   data: Record<string, any>[][];
 }
 
-export interface SingleQueryResultPaneProp extends QueryResultInterface {
+export interface SingleQueryResultPaneProp
+  extends QueryResultInterface, DrillControlsProps {
   // {datasource.id}__{datasource.type}, eg: 1__table
   datasourceId?: string;
-  dataSize?: number;
-  // reload OriginalFormattedTimeColumns from localStorage when isVisible is true
   isVisible: boolean;
   canDownload: boolean;
+  // Optional map of column/metric name -> verbose label
+  columnDisplayNames?: Record<string, string>;
+  rowLimit?: number;
+  rowLimitOptions?: { value: number; label: string }[];
+  onRowLimitChange?: (limit: number) => void;
 }

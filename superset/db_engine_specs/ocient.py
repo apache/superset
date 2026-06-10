@@ -35,7 +35,7 @@ with contextlib.suppress(ImportError, RuntimeError):  # pyocient may not be inst
     pyocient.logger.setLevel(superset_log_level)
 
 from superset.constants import TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
@@ -235,6 +235,17 @@ class OcientEngineSpec(BaseEngineSpec):
     # They are then removed, either upon cancellation or query completion
     query_id_mapping: dict[str, str] = {}
     query_id_mapping_lock = threading.Lock()
+
+    metadata = {
+        "description": "Ocient is a hyperscale data analytics database.",
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.PROPRIETARY,
+        ],
+        "pypi_packages": ["sqlalchemy-ocient"],
+        "connection_string": "ocient://{username}:{password}@{host}:{port}/{database}",
+        "install_instructions": "pip install sqlalchemy-ocient",
+    }
 
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         CONNECTION_INVALID_USERNAME_REGEX: (

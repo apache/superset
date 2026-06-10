@@ -98,6 +98,18 @@ class QueryContextProcessor:
             force_cached=force_cached,
         )
 
+        # If cache is loaded but missing applied_filter_columns and query has filters,
+        # treat as cache miss to ensure fresh query with proper applied_filter_columns
+        if (
+            query_obj
+            and cache_key
+            and cache.is_loaded
+            and not cache.applied_filter_columns
+            and query_obj.filter
+            and len(query_obj.filter) > 0
+        ):
+            cache.is_loaded = False
+
         if query_obj and cache_key and not cache.is_loaded:
             try:
                 if invalid_columns := [
@@ -178,9 +190,22 @@ class QueryContextProcessor:
         )
         cache.df.columns = [unescape_separator(col) for col in cache.df.columns.values]
 
+        warning: str | None = None
+        if cache.bq_memory_limited:
+            row_count = cache.bq_memory_limited_row_count
+            chart_id = (self._query_context.form_data or {}).get("slice_id", "")
+            prefix = f"Chart {chart_id}: " if chart_id else ""
+            warning = _(
+                "%(prefix)sResults truncated to %(row_count)s rows"
+                " due to memory constraints.",
+                prefix=prefix,
+                row_count=f"{row_count:,}",
+            )
+
         return {
             "cache_key": cache_key,
             "cached_dttm": cache.cache_dttm,
+            "queried_dttm": cache.queried_dttm,
             "cache_timeout": self.get_cache_timeout(),
             "df": cache.df,
             "applied_template_filters": cache.applied_template_filters,
@@ -197,6 +222,7 @@ class QueryContextProcessor:
             "from_dttm": query_obj.from_dttm,
             "to_dttm": query_obj.to_dttm,
             "label_map": label_map,
+            "warning": warning,
         }
 
     def query_cache_key(self, query_obj: QueryObject, **kwargs: Any) -> str | None:
@@ -246,7 +272,9 @@ class QueryContextProcessor:
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
                 excel.apply_column_types(df, coltypes)
-                result = excel.df_to_excel(df, **current_app.config["EXCEL_EXPORT"])
+                result = excel.df_to_excel(
+                    df, index=include_index, **current_app.config["EXCEL_EXPORT"]
+                )
             return result or ""
 
         return df.to_dict(orient="records")
