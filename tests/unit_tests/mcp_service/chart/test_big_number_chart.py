@@ -376,16 +376,15 @@ class TestMapBigNumberConfig:
         form_data = map_big_number_config(config)
         assert "aggregation" not in form_data
 
-    def test_aggregation_not_set_for_big_number_total(self) -> None:
-        config = BigNumberChartConfig(
-            chart_type="big_number",
-            metric=ColumnRef(name="revenue", aggregate="SUM"),
-            aggregation="sum",
-        )
-        form_data = map_big_number_config(config)
-        assert form_data["viz_type"] == "big_number_total"
-        assert "aggregation" not in form_data
-
+    def test_aggregation_not_allowed_for_big_number_total(self) -> None:
+        with pytest.raises(
+            ValidationError, match="aggregation requires show_trendline"
+        ):
+            BigNumberChartConfig(
+                chart_type="big_number",
+                metric=ColumnRef(name="revenue", aggregate="SUM"),
+                aggregation="sum",
+            )
 
 class TestMapConfigToFormDataBigNumber:
     """Test map_config_to_form_data dispatch for big number."""
