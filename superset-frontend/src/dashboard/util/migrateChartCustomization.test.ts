@@ -99,9 +99,9 @@ test('migrateChartCustomization handles basic legacy format', () => {
   expect(result.cascadeParentIds).toEqual([]);
   expect(result.controlValues).toEqual({
     sortAscending: true,
-    sortMetric: 'count',
     canSelectMultiple: true,
   });
+  expect(result.controlValues).not.toHaveProperty('sortMetric');
 });
 
 test('migrateChartCustomization handles dataset as string', () => {
@@ -301,11 +301,31 @@ test('migrateChartCustomization merges controlValues', () => {
 
   expect(result.controlValues).toEqual({
     sortAscending: false,
-    sortMetric: undefined,
     canSelectMultiple: undefined,
     enableEmptyFilter: true,
     customSetting: 'value',
   });
+  expect(result.controlValues).not.toHaveProperty('sortMetric');
+});
+
+test('migrateChartCustomization drops sortMetric nested in controlValues', () => {
+  const legacy = {
+    id: 'CUSTOMIZATION-1',
+    customization: {
+      name: 'Test',
+      dataset: 1,
+      column: 'country',
+      controlValues: {
+        sortMetric: 'count',
+        enableEmptyFilter: true,
+      },
+    },
+  };
+
+  const result = migrateChartCustomization(legacy);
+
+  expect(result.controlValues).not.toHaveProperty('sortMetric');
+  expect(result.controlValues.enableEmptyFilter).toBe(true);
 });
 
 test('migrateChartCustomization preserves removed flag', () => {

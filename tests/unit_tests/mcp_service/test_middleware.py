@@ -34,7 +34,7 @@ from superset.commands.exceptions import (
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetException, SupersetSecurityException
-from superset.mcp_service.auth import MCPPermissionDeniedError
+from superset.mcp_service.auth import MCPNoAuthSourceError, MCPPermissionDeniedError
 from superset.mcp_service.mcp_config import MCP_RESPONSE_SIZE_CONFIG
 from superset.mcp_service.middleware import (
     _is_user_error,
@@ -1237,7 +1237,9 @@ class TestRBACToolVisibilityMiddleware:
             ),
             patch(
                 "superset.mcp_service.middleware.get_user_from_request",
-                side_effect=ValueError("No authenticated user found"),
+                side_effect=MCPNoAuthSourceError(
+                    "Authentication required. No valid credentials provided."
+                ),
             ),
         ):
             result = await middleware.on_list_tools(MagicMock(), call_next)
