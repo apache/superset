@@ -372,7 +372,6 @@ MCP_TOOL_SEARCH_CONFIG: dict[str, Any] = {
 }
 
 
-<<<<<<< HEAD
 def get_mcp_api_key_enabled(app: Flask, *, startup_warning: bool = False) -> bool:
     """Return whether API key auth is enabled for the MCP transport.
 
@@ -411,11 +410,6 @@ def create_default_mcp_auth_factory(app: Flask) -> Optional[Any]:
     api_key_enabled = get_mcp_api_key_enabled(app, startup_warning=True)
 
     if not (auth_enabled or api_key_enabled):
-=======
-def create_default_mcp_auth_factory(app: Flask) -> Any | None:
-    """Default MCP auth factory using app.config values."""
-    if not app.config.get("MCP_AUTH_ENABLED", False):
->>>>>>> 9411002af9 (fix(mcp): address self-review findings — comments, dedup, modern types)
         return None
 
     # When JWT auth is enabled, an audience must be configured so issued tokens
