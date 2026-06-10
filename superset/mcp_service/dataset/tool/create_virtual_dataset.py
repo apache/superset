@@ -65,6 +65,7 @@ async def create_virtual_dataset(
         from superset.commands.dataset.exceptions import (
             DatasetCreateFailedError,
             DatasetInvalidError,
+            DatasetUpdateFailedError,
         )
         from superset.mcp_service.utils.url_utils import get_superset_base_url
 
@@ -84,6 +85,18 @@ async def create_virtual_dataset(
                 properties["description"] = request.description
 
             dataset = CreateDatasetCommand(properties).run()
+
+            if request.metrics or request.calculated_columns:
+                from superset.commands.dataset.update import UpdateDatasetCommand
+                
+                update_props: dict[str, Any] = {}
+                if request.metrics:
+                    update_props["metrics"] = request.metrics
+                if request.calculated_columns:
+                    update_props["columns"] = request.calculated_columns
+                
+                with event_logger.log_context(action="mcp.create_virtual_dataset.update"):
+                    dataset = UpdateDatasetCommand(dataset.id, update_props).run()
 
         # Build response
         columns = [col.column_name for col in dataset.columns]
@@ -118,8 +131,8 @@ async def create_virtual_dataset(
             url=None,
             error=str(messages),
         )
-    except DatasetCreateFailedError as exc:
-        await ctx.error("Virtual dataset creation failed: %s" % (str(exc),))
+    except (DatasetCreateFailedError, DatasetUpdateFailedError) as exc:
+        await ctx.error("Virtual dataset creation/update failed: %s" % (str(exc),))
         return CreateVirtualDatasetResponse(
             id=None,
             dataset_name=request.dataset_name,

@@ -2077,6 +2077,62 @@ async def test_create_virtual_dataset_optional_fields_forwarded(
     assert props["description"] == "A test dataset"
 
 
+@pytest.mark.asyncio
+async def test_create_virtual_dataset_with_metrics_and_columns(
+    mcp_server: object,
+) -> None:
+    """metrics and calculated_columns are forwarded to UpdateDatasetCommand."""
+    mock_dataset = _make_mock_virtual_dataset(column_names=["col1"])
+    mock_create_instance = MagicMock()
+    mock_create_instance.run.return_value = mock_dataset
+    mock_create_cls = MagicMock(return_value=mock_create_instance)
+
+    mock_update_instance = MagicMock()
+    mock_update_instance.run.return_value = mock_dataset
+    mock_update_cls = MagicMock(return_value=mock_update_instance)
+
+    with (
+        patch(
+            "superset.commands.dataset.create.CreateDatasetCommand",
+            mock_create_cls,
+        ),
+        patch(
+            "superset.commands.dataset.update.UpdateDatasetCommand",
+            mock_update_cls,
+        ),
+        patch(
+            "superset.mcp_service.utils.url_utils.get_superset_base_url",
+            return_value="http://localhost:8088",
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            request = CreateVirtualDatasetRequest(
+                database_id=1,
+                sql="SELECT col1 FROM t",
+                dataset_name="My Dataset",
+                metrics=[{"metric_name": "m1", "expression": "SUM(col1)"}],
+                calculated_columns=[{"column_name": "c1", "expression": "col1 + 1"}],
+            )
+            await client.call_tool(
+                "create_virtual_dataset", {"request": request.model_dump()}
+            )
+
+    # Verify create was called normally
+    props = mock_create_cls.call_args[0][0]
+    assert props["sql"] == "SELECT col1 FROM t"
+
+    # Verify update was called with the nested objects
+    mock_update_cls.assert_called_once()
+    update_id, update_props = mock_update_cls.call_args[0]
+    assert update_id == mock_dataset.id
+    assert "metrics" in update_props
+    assert len(update_props["metrics"]) == 1
+    assert update_props["metrics"][0]["metric_name"] == "m1"
+    assert "columns" in update_props
+    assert len(update_props["columns"]) == 1
+    assert update_props["columns"][0]["column_name"] == "c1"
+
+
 class TestListDatasetsCreatedByMe:
     """Tests for the created_by_me flag on ListDatasetsRequest."""
 

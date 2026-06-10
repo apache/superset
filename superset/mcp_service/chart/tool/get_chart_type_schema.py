@@ -75,6 +75,7 @@ _CHART_EXAMPLES: Dict[str, list[Dict[str, Any]]] = {
             "columns": [
                 {"name": "customer_name"},
                 {"name": "revenue", "aggregate": "SUM"},
+                {"sql_expression": "SUM(revenue) / COUNT(*)", "label": "Avg per Order"},
             ],
         },
     ],

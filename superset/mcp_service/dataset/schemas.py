@@ -444,6 +444,16 @@ class CreateVirtualDatasetRequest(BaseModel):
         None,
         description="Human-readable description of the dataset (optional).",
     )
+    metrics: List[Dict[str, Any]] | None = Field(
+        None,
+        description="Optional list of saved metrics to create. Each dictionary "
+        "must have 'metric_name' and 'expression'.",
+    )
+    calculated_columns: List[Dict[str, Any]] | None = Field(
+        None,
+        description="Optional list of calculated columns to create. Each dictionary "
+        "must have 'column_name' and 'expression'.",
+    )
 
     @field_validator("sql")
     @classmethod
