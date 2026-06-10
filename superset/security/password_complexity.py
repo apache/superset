@@ -88,7 +88,18 @@ def validate_password_complexity(password: str) -> None:
     :raises PasswordComplexityValidationError: if the password is too short or
         appears in the common-password blocklist.
     """
-    min_length = current_app.config.get("AUTH_PASSWORD_MIN_LENGTH", DEFAULT_MIN_LENGTH)
+    raw_min_length = current_app.config.get(
+        "AUTH_PASSWORD_MIN_LENGTH", DEFAULT_MIN_LENGTH
+    )
+    # Operators commonly wire config via env vars, so AUTH_PASSWORD_MIN_LENGTH can
+    # arrive as a string (or be left unset/None). Coerce defensively and fall back
+    # to the default rather than blowing up every password-setting flow with a
+    # TypeError on the length comparison.
+    try:
+        min_length = int(raw_min_length)
+    except (TypeError, ValueError):
+        min_length = DEFAULT_MIN_LENGTH
+
     if len(password) < min_length:
         raise PasswordComplexityValidationError(
             __(
@@ -98,8 +109,13 @@ def validate_password_complexity(password: str) -> None:
         )
 
     extra = current_app.config.get("AUTH_PASSWORD_COMMON_BLOCKLIST") or []
-    blocklist = COMMON_PASSWORDS | {str(item).lower() for item in extra}
-    if password.lower() in blocklist:
+    # A bare string is iterable but would be split into characters, so treat a
+    # misconfigured string as a single entry. casefold() gives correct
+    # case-insensitive matching for non-ASCII passwords too.
+    if isinstance(extra, str):
+        extra = [extra]
+    blocklist = COMMON_PASSWORDS | {str(item).casefold() for item in extra}
+    if password.casefold() in blocklist:
         raise PasswordComplexityValidationError(
             __("This password is too common; please choose a less guessable one.")
         )

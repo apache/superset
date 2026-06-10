@@ -45,6 +45,19 @@ service requires visible `© OpenStreetMap contributors` attribution and should
 be used through normal browser map tile requests and caching; it is not intended
 for bulk prefetch or offline tile downloads.
 
+### Password complexity policy enabled by default
+
+Superset now ships a default password-complexity policy, enforced (via Flask-AppBuilder) across self-registration, the user create/edit/reset forms, and the User REST API. The policy requires a minimum password length of 8 characters and rejects a built-in blocklist of common/guessable passwords.
+
+This is enabled by default (`FAB_PASSWORD_COMPLEXITY_ENABLED = True`), so new or reset passwords that are too short or appear in the blocklist will be rejected where they were previously accepted. Existing stored passwords are unaffected until they are next changed.
+
+Operators can tune or disable the policy via config:
+
+- `AUTH_PASSWORD_MIN_LENGTH` — minimum length (default `8`).
+- `AUTH_PASSWORD_COMMON_BLOCKLIST` — extra passwords to reject, in addition to the built-in list.
+- `FAB_PASSWORD_COMPLEXITY_VALIDATOR` — replace with your own callable for custom rules.
+- `FAB_PASSWORD_COMPLEXITY_ENABLED = False` — disable enforcement entirely.
+
 ### Duration formatter precision
 
 The `DURATION` number formatter now uses `Intl.DurationFormat` for locale-aware output. By default, sub-second fields are omitted, so values that previously displayed fractional seconds with `pretty-ms`, such as `10500` milliseconds rendering as `10.5s`, now render as `10s`.

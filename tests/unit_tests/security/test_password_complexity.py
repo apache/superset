@@ -59,3 +59,39 @@ def test_validate_password_complexity_honors_extra_blocklist() -> None:
             validate_password_complexity("acmecorp2024")
     finally:
         current_app.config["AUTH_PASSWORD_COMMON_BLOCKLIST"] = original
+
+
+def test_validate_password_complexity_coerces_string_min_length() -> None:
+    # Operators wiring config via env vars may pass min length as a string.
+    original = current_app.config.get("AUTH_PASSWORD_MIN_LENGTH")
+    current_app.config["AUTH_PASSWORD_MIN_LENGTH"] = "16"  # noqa: S105
+    try:
+        with pytest.raises(PasswordComplexityValidationError):
+            validate_password_complexity("only12chars!")  # 12 < 16
+    finally:
+        current_app.config["AUTH_PASSWORD_MIN_LENGTH"] = original
+
+
+def test_validate_password_complexity_tolerates_invalid_min_length() -> None:
+    # A non-numeric/None min length must not blow up; fall back to the default.
+    original = current_app.config.get("AUTH_PASSWORD_MIN_LENGTH")
+    current_app.config["AUTH_PASSWORD_MIN_LENGTH"] = "not-a-number"  # noqa: S105
+    try:
+        validate_password_complexity("a-Good-Long-Passphrase-42")
+        with pytest.raises(PasswordComplexityValidationError):
+            validate_password_complexity("short1")  # < default 8
+    finally:
+        current_app.config["AUTH_PASSWORD_MIN_LENGTH"] = original
+
+
+def test_validate_password_complexity_blocklist_string_not_split() -> None:
+    # A misconfigured string blocklist must be treated as one entry, not chars.
+    original = current_app.config.get("AUTH_PASSWORD_COMMON_BLOCKLIST")
+    current_app.config["AUTH_PASSWORD_COMMON_BLOCKLIST"] = "AcmeCorp2024"  # noqa: S105
+    try:
+        with pytest.raises(PasswordComplexityValidationError):
+            validate_password_complexity("acmecorp2024")
+        # A single character from the string must NOT become blocked.
+        validate_password_complexity("a-Good-Long-Passphrase-42")
+    finally:
+        current_app.config["AUTH_PASSWORD_COMMON_BLOCKLIST"] = original
