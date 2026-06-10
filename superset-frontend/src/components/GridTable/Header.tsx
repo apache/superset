@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useEffect, useState } from 'react';
-import type { Column, GridApi, SortDirection } from 'ag-grid-community';
+import type { IHeaderParams, SortDirection } from 'ag-grid-community';
 
 import { t } from '@apache-superset/core/translation';
 import { styled, useTheme } from '@apache-superset/core/theme';
@@ -25,15 +25,6 @@ import { Icons } from '@superset-ui/core/components/Icons';
 
 import { PIVOT_COL_ID } from './constants';
 import { HeaderMenu } from './HeaderMenu';
-
-interface Params {
-  enableFilterButton?: boolean;
-  enableSorting?: boolean;
-  displayName: string;
-  column: Column;
-  api: GridApi;
-  progressSort: (multiSort?: boolean) => void;
-}
 
 const HeaderCell = styled.div`
   display: flex;
@@ -80,14 +71,14 @@ const IconPlaceholder = styled.div`
   top: 0;
 `;
 
-export const Header: React.FC<Params> = ({
+export const Header: React.FC<IHeaderParams> = ({
   enableFilterButton,
   enableSorting,
   displayName,
   progressSort,
   column,
   api,
-}: Params) => {
+}: IHeaderParams) => {
   const theme = useTheme();
   const colId = column.getColId();
   const pinnedLeft = column.isPinnedLeft();
