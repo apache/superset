@@ -371,6 +371,36 @@ class TestDashboardRestore(SupersetTestCase):
         # Cleanup
         _hard_delete_dashboard(dashboard_id)
 
+    def test_restore_failure_returns_422(self) -> None:
+        """A failure during restore surfaces as a clean 422 via the
+        ``DashboardRestoreFailedError`` handler rather than an unhandled 500.
+
+        ``RestoreDashboardCommand.run`` wraps the restore in ``@transaction``
+        and rethrows ``DashboardRestoreFailedError`` on any underlying
+        SQLAlchemy error; this pins that the endpoint maps it to 422.
+        """
+        from unittest.mock import patch
+
+        from superset.commands.dashboard.exceptions import (
+            DashboardRestoreFailedError,
+        )
+
+        dashboard = self._create_dashboard("restore_fail_test")
+        dashboard_id = dashboard.id
+        dashboard_uuid = str(dashboard.uuid)
+        self.login(ADMIN_USERNAME)
+        self.client.delete(f"/api/v1/dashboard/{dashboard_id}")
+
+        with patch(
+            "superset.commands.dashboard.restore.RestoreDashboardCommand.run",
+            side_effect=DashboardRestoreFailedError(),
+        ):
+            rv = self.client.post(f"/api/v1/dashboard/{dashboard_uuid}/restore")
+        assert rv.status_code == 422
+
+        # Cleanup
+        _hard_delete_dashboard(dashboard_id)
+
     def test_restore_uses_can_write_permission(self) -> None:
         """Non-admin owner with ``can_write_Dashboard`` can hit the restore
         endpoint.
