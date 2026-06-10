@@ -196,3 +196,31 @@ test('hide display name for PIVOT_COL_ID', () => {
   );
   expect(queryByText(mockedProps.displayName)).not.toBeInTheDocument();
 });
+
+test('does not attach click handler when enableSorting is false', () => {
+  const { getByText } = render(
+    <Header {...mockedProps} enableSorting={false} />,
+  );
+  const cell = getByText(mockedProps.displayName).closest(
+    '.ag-header-cell-label',
+  );
+  expect(cell).not.toHaveAttribute('role', 'button');
+});
+
+test('does not call progressSort on click when enableSorting is false', () => {
+  const progressSort = jest.fn();
+  const { getByText } = render(
+    <Header {...mockedProps} enableSorting={false} progressSort={progressSort} />,
+  );
+  fireEvent.click(getByText(mockedProps.displayName));
+  expect(progressSort).not.toHaveBeenCalled();
+});
+
+test('does not render sort icons when enableSorting is false', () => {
+  const { queryByTestId } = render(
+    <Header {...mockedProps} enableSorting={false} />,
+  );
+  expect(queryByTestId('mock-sort')).not.toBeInTheDocument();
+  expect(queryByTestId('mock-sort-asc')).not.toBeInTheDocument();
+  expect(queryByTestId('mock-sort-desc')).not.toBeInTheDocument();
+});
