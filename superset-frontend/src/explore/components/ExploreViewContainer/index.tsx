@@ -99,6 +99,8 @@ import {
 import { Slice } from 'src/types/Chart';
 import { User } from 'src/types/bootstrapTypes';
 import ExploreVersionHistory from 'src/features/versionHistory/ExploreVersionHistory';
+import ChartVersionPreview from 'src/features/versionHistory/ChartVersionPreview';
+import { selectIsChartVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
@@ -417,6 +419,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   );
   const tabId = useTabId();
   const history = useHistory();
+  const isChartVersionPreviewActive = useSelector(
+    selectIsChartVersionPreviewActive,
+  );
 
   const theme = useTheme();
 
@@ -1151,7 +1156,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
             isCollapsed ? 'col-sm-9' : 'col-sm-7',
           )}
         >
-          {renderChartContainer()}
+          {isChartVersionPreviewActive ? (
+            <ChartVersionPreview />
+          ) : (
+            renderChartContainer()
+          )}
         </div>
         {isFeatureEnabled(FeatureFlag.VersionHistory) && (
           <ExploreVersionHistory />

@@ -175,5 +175,19 @@ export const selectVersionPreview = (state: VersionHistoryRootState) =>
 export const selectIsVersionPreviewActive = (state: VersionHistoryRootState) =>
   selectVersionHistory(state).preview !== null;
 
+export const selectIsChartVersionPreviewActive = (
+  state: VersionHistoryRootState,
+) => {
+  const { entityType, preview } = selectVersionHistory(state);
+  return entityType === 'chart' && preview !== null;
+};
+
+export const selectIsDashboardVersionPreviewActive = (
+  state: VersionHistoryRootState,
+) => {
+  const { entityType, preview } = selectVersionHistory(state);
+  return entityType === 'dashboard' && preview !== null;
+};
+
 export const selectVersionSessionLog = (state: VersionHistoryRootState) =>
   selectVersionHistory(state).sessionLog;

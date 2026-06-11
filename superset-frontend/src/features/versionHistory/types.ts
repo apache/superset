@@ -133,6 +133,7 @@ export type DashboardGroupCategory = 'filters' | 'edit';
 
 /** State describing the version currently being previewed, if any. */
 export interface VersionPreviewState {
+  entityUuid: string;
   versionUuid: string;
   transactionId: number;
   headline: string;

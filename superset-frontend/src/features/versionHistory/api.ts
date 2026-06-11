@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { SupersetClient } from '@superset-ui/core';
+import { JsonObject, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
+import { DASHBOARD_GET_COLUMNS } from 'src/hooks/apiResources/dashboards';
 import type {
   ActivityEntityKind,
   ActivityInclude,
@@ -115,6 +116,40 @@ export async function resolveEntityId(
   });
   const { result } = json as { result: Array<{ id: number }> };
   return result.length > 0 ? result[0].id : null;
+}
+
+export interface DashboardHydrationData {
+  dashboard: JsonObject;
+  charts: JsonObject[];
+}
+
+/**
+ * Fetches the same dashboard + charts payload the dashboard page uses to
+ * hydrate, so a version preview can re-hydrate (and later un-hydrate)
+ * without unmounting the page.
+ */
+export async function fetchDashboardHydrationData(
+  id: number,
+): Promise<DashboardHydrationData> {
+  const q = rison.encode({ columns: DASHBOARD_GET_COLUMNS });
+  const [dashboardResponse, chartsResponse] = await Promise.all([
+    SupersetClient.get({ endpoint: `/api/v1/dashboard/${id}?q=${q}` }),
+    SupersetClient.get({ endpoint: `/api/v1/dashboard/${id}/charts` }),
+  ]);
+  const dashboard = (dashboardResponse.json as { result: JsonObject }).result;
+  return {
+    dashboard: {
+      ...dashboard,
+      metadata: dashboard.json_metadata
+        ? JSON.parse(dashboard.json_metadata as string)
+        : {},
+      position_data: dashboard.position_json
+        ? JSON.parse(dashboard.position_json as string)
+        : null,
+      owners: dashboard.owners || [],
+    },
+    charts: (chartsResponse.json as { result: JsonObject[] }).result,
+  };
 }
 
 /**
