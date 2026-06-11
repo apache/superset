@@ -489,10 +489,15 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
-        """Delete a chart.
+        """Soft-delete a chart.
+
+        Marks the chart as deleted (sets ``deleted_at``) and hides it from
+        list/detail endpoints and relationship loads; the row is preserved
+        and recoverable via ``POST /api/v1/chart/<uuid>/restore`` by an
+        owner or admin.
         ---
         delete:
-          summary: Delete a chart
+          summary: Delete a chart (soft delete; recoverable via restore)
           parameters:
           - in: path
             schema:
@@ -545,10 +550,15 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Bulk delete charts.
+        """Bulk soft-delete charts.
+
+        Marks each chart as deleted (sets ``deleted_at``) and hides it from
+        list/detail endpoints and relationship loads; rows are preserved
+        and recoverable via ``POST /api/v1/chart/<uuid>/restore`` by an
+        owner or admin.
         ---
         delete:
-          summary: Bulk delete charts
+          summary: Bulk delete charts (soft delete; recoverable via restore)
           parameters:
           - in: query
             name: q
