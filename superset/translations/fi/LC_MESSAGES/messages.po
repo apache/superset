@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-01 06:52-0700\n"
+"POT-Creation-Date: 2026-06-11 11:56-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -2032,6 +2032,12 @@ msgstr "Lisää uusi värimuotoilija"
 msgid "Add new formatter"
 msgstr "Lisää uusi muotoilija"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
+#, fuzzy
+msgid "Add numbered column"
+msgstr " lisätäksesi laskettuja sarakkeita"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, sk, uk]
 #, fuzzy
@@ -3129,6 +3135,11 @@ msgstr "SQL:n muotoilussa tapahtui virhe"
 #, fuzzy, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Kohteen %s tuomisessa tapahtui virhe: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -7045,6 +7056,9 @@ msgstr "Kaikkia tallennettuja kaavioita ei voitu hakea"
 msgid "Could not find viz object"
 msgstr "Visualisointiobjektia ei löydy"
 
+msgid "Could not load SQL Lab"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -7428,6 +7442,15 @@ msgstr "Mukautettu SQL"
 #, fuzzy
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Mukautetut SQL-ad-hoc-mittarit eivät ole käytössä tässä tietojoukossa"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Mukautetut SQL-kentät eivät voi sisältää alikyselyjä."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -9982,8 +10005,8 @@ msgstr "Kesto ms (100.40008 => 100ms 400µs 80ns)"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Kesto ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Kesto ms (10500 => 0:00:10.5)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -11898,6 +11921,12 @@ msgstr ""
 #, fuzzy
 msgid "File settings"
 msgstr "Tiedostoasetukset"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -16789,6 +16818,12 @@ msgid "Not equal to (≠)"
 msgstr "Ei yhtä suuri kuin (≠)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, tr, uk]
+#, fuzzy
+msgid "Not found"
+msgstr "Kaaviota ei löydy"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
 msgid "Not in"
@@ -18660,6 +18695,12 @@ msgstr "Projektin tunnus"
 msgid "Proportional"
 msgstr "Suhteellinen"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -19152,12 +19193,6 @@ msgstr "Rekisteröidy"
 msgid "Registration date"
 msgstr "Rekisteröintipäivä"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
-# lv, ru, sk, uk]
-#, fuzzy
-msgid "Registration hash"
-msgstr "Rekisteröinti-hash"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, ru,
 # sk, uk]
 #, fuzzy
@@ -19220,6 +19255,9 @@ msgstr "Suhteellinen määrä"
 #, fuzzy
 msgid "Reload"
 msgstr "Lataa uudelleen"
+
+msgid "Reload SQL Lab"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -19550,6 +19588,10 @@ msgstr "Pakolliset ohjausarvot on poistettu"
 #, fuzzy
 msgid "Resample"
 msgstr "Uudelleennäytteistys"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
@@ -20069,6 +20111,12 @@ msgstr "SQL"
 #, fuzzy
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
@@ -23266,6 +23314,9 @@ msgstr "Kadut"
 #, fuzzy
 msgid "Streets (Carto)"
 msgstr "Puukaavio"
+
+msgid "Streets (OSM)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -27042,6 +27093,18 @@ msgstr "Saadaksesi luettavan URL-osoitteen koontinäytöllesi"
 msgid "Token Request URI"
 msgstr "Tunnuspyyntö-URI"
 
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
 #, fuzzy
@@ -27357,6 +27420,9 @@ msgstr "Kirjoita arvo"
 msgid "Type is required"
 msgstr "Tyyppi vaaditaan"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
 #, fuzzy
@@ -27619,6 +27685,12 @@ msgstr "Kumoa toiminto"
 #, fuzzy
 msgid "Undo?"
 msgstr "Kumotaanko?"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr "Tapahtui odottamaton virhe. Tarkista lokit lisätietojen saamiseksi"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -29251,6 +29323,12 @@ msgstr "Näytetäänkö Y-akselin minimi- ja maksimiarvot"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Näytetäänkö trendiviiva"
+
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid "Whether to display the numerical values within the cells"
 msgstr "Näytetäänkö numeeriset arvot solujen sisällä"
 
@@ -30021,6 +30099,9 @@ msgstr "Sinulla ei ole oikeuksia muokata tätä koontinäyttöä."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Sinulla ei ole riittäviä oikeuksia muokata kaaviota"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -30459,6 +30540,10 @@ msgstr "Jälkikäsittelyobjektin `operation`-ominaisuus on määrittelemätön"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 #, fuzzy
 msgid "`prophet` package not installed"
 msgstr "`prophet`-pakettia ei ole asennettu"
@@ -30490,6 +30575,9 @@ msgstr "`row_offset` täytyy olla suurempi tai yhtä suuri kuin 0"
 #, fuzzy
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` täytyy olla suurempi tai yhtä suuri kuin 0"
+
+msgid "`window` must be between 1 and 10000"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -32186,3 +32274,6 @@ msgstr ""
 #, fuzzy
 msgid "© Layer attribution"
 msgstr "© Kerroksen attribuutio"
+
+msgid "№"
+msgstr ""

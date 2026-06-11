@@ -451,8 +451,7 @@ class TestChartSerializationEagerLoading:
         assert result.id == 42
         assert result.slice_name == sanitize_for_llm_context("Test Chart")
         assert result.tags == []
-        assert result.editors == []
-        assert "owners" not in result.model_dump()
+        assert "editors" not in result.model_dump()
 
     def test_serialize_chart_object_with_certification_fields(self):
         """serialize_chart_object correctly serializes non-None certification values."""
@@ -639,7 +638,7 @@ class TestChartSerializationEagerLoading:
         # No tags/editors keys — those would require relationship access
         assert "tags" not in chart_data
         assert "editors" not in chart_data
-        assert "owners" not in chart_data
+        assert "editors" not in chart_data
 
 
 # ---------------------------------------------------------------------------

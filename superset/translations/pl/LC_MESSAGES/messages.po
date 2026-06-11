@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-01 06:52-0700\n"
+"POT-Creation-Date: 2026-06-11 11:56-0700\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1274,6 +1274,10 @@ msgid "Add new formatter"
 msgstr "Dodaj nowy formater"
 
 #, fuzzy
+msgid "Add numbered column"
+msgstr " aby dodać obliczane kolumny"
+
+#, fuzzy
 msgid "Add or edit display controls"
 msgstr "Dodaj i edytuj filtry"
 
@@ -1925,6 +1929,11 @@ msgstr "Wystąpił błąd podczas ładowania SQL."
 #, fuzzy, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Wystąpił błąd podczas czyszczenia dzienników."
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 #, fuzzy
 msgid "An error occurred while loading dashboard information."
@@ -4159,6 +4168,9 @@ msgstr "Nie udało się pobrać wszystkich zapisanych wykresów"
 msgid "Could not find viz object"
 msgstr "Nie udało się znaleźć obiektu wizualizacji"
 
+msgid "Could not load SQL Lab"
+msgstr ""
+
 msgid "Could not load database driver"
 msgstr "Nie udało się załadować sterownika bazy danych"
 
@@ -4382,6 +4394,13 @@ msgstr "Niestandardowy SQL"
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Niestandardowe metryki SQL ad-hoc nie są włączone dla tego zestawu danych"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Pola niestandardowego SQL nie mogą zawierać podzapytań."
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Pola niestandardowego SQL nie mogą zawierać podzapytań."
@@ -5929,7 +5948,7 @@ msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Czas trwania w ms (100.40008 => 100ms 400µs 80ns)"
 
 #, fuzzy
-msgid "Duration in ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Czas trwania w ms (66000 => 1m 6s)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
@@ -7074,6 +7093,12 @@ msgstr ""
 #, fuzzy
 msgid "File settings"
 msgstr "Ustawienia filtru"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 #, fuzzy
 msgid "File upload"
@@ -9869,6 +9894,10 @@ msgstr "Nie zdefiniowano"
 msgid "Not equal to (≠)"
 msgstr "Nie równe (≠)"
 
+#, fuzzy
+msgid "Not found"
+msgstr "Nie znaleziono wykresu"
+
 msgid "Not in"
 msgstr "Nie w"
 
@@ -10955,6 +10984,12 @@ msgstr "Przestarzałe"
 msgid "Proportional"
 msgstr "Proporcjonalny"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Opublikowany"
 
@@ -11239,9 +11274,6 @@ msgstr "Filtr wstępny"
 msgid "Registration date"
 msgstr "Data rozpoczęcia"
 
-msgid "Registration hash"
-msgstr ""
-
 msgid "Registration successful"
 msgstr ""
 
@@ -11280,6 +11312,9 @@ msgstr "Ilość relatywna"
 #, fuzzy
 msgid "Reload"
 msgstr "Przeładuj"
+
+msgid "Reload SQL Lab"
+msgstr ""
 
 msgid "Remove"
 msgstr "Usuń"
@@ -11468,6 +11503,10 @@ msgstr "Wymagane wartości kontrolne zostały usunięte"
 #, fuzzy
 msgid "Resample"
 msgstr "Próbkowanie na nowo"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 #, fuzzy
 msgid "Resample method should be in "
@@ -11768,6 +11807,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 #, fuzzy
 msgid "SQL Lab queries"
@@ -13701,6 +13746,9 @@ msgstr "Ulice"
 #, fuzzy
 msgid "Streets (Carto)"
 msgstr "Wykres drzewny"
+
+msgid "Streets (OSM)"
+msgstr ""
 
 msgid "Strength to pull the graph toward center"
 msgstr "Siła przyciągania wykresu do środka"
@@ -16107,6 +16155,18 @@ msgstr "Aby uzyskać czytelny URL dla swojego pulpitu nawigacyjnego"
 msgid "Token Request URI"
 msgstr ""
 
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
 #, fuzzy
 msgid "Tool Panel"
 msgstr "Wszystkie panele"
@@ -16297,6 +16357,9 @@ msgstr "Wpisz wartość"
 msgid "Type is required"
 msgstr "Typ jest wymagany"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr ""
 
@@ -16459,6 +16522,10 @@ msgstr "Cofnij akcję"
 
 msgid "Undo?"
 msgstr "Cofnąć?"
+
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr "Wystąpił nieoczekiwany błąd. Sprawdź dzienniki, aby uzyskać szczegóły."
 
 msgid "Unexpected error"
 msgstr "Nieoczekiwany błąd"
@@ -17475,6 +17542,10 @@ msgstr "Czy wyświetlać minimalne i maksymalne wartości osi X"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Czy wyświetlać minimalne i maksymalne wartości osi Y"
 
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Czy wyświetlać linię trendu"
+
 msgid "Whether to display the numerical values within the cells"
 msgstr "Czy wyświetlać wartości liczbowe w komórkach"
 
@@ -17919,6 +17990,9 @@ msgstr "Nie masz uprawnień do edycji tego pulpitu nawigacyjnego."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Nie masz wystarczających uprawnień do edycji wykresu"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 #, fuzzy
 msgid "You don't have access to this chart."
 msgstr "Nie masz dostępu do tego wykresu."
@@ -18187,6 +18261,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "Właściwość `operation` obiektu przetwarzania po jest niezdefiniowana"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "Pakiet `prophet` nie jest zainstalowany"
 
@@ -18206,6 +18284,9 @@ msgstr "`row_offset` musi być większe lub równe 0"
 
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` musi być większe lub równe 0"
+
+msgid "`window` must be between 1 and 10000"
+msgstr ""
 
 #, fuzzy
 msgid "a few seconds"
@@ -19233,4 +19314,7 @@ msgid ""
 msgstr ""
 
 msgid "© Layer attribution"
+msgstr ""
+
+msgid "№"
 msgstr ""

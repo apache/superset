@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-06-01 06:52-0700\n"
+"POT-Creation-Date: 2026-06-11 11:56-0700\n"
 "PO-Revision-Date: 2024-10-05 23:46+0200\n"
 "Last-Translator: dkrat7 <dkrat7 @github.com>\n"
 "Language: sl_SI\n"
@@ -905,7 +905,9 @@ msgstr ""
 "prazno, je vgrajevanje dovoljeno iz vseh domen."
 
 msgid "A list of subjects who can alter the chart. Searchable by name."
-msgstr "Seznam subjektov, ki lahko spreminjajo grafikon. Iskanje po imenu je omogočeno."
+msgstr ""
+"Seznam subjektov, ki lahko spreminjajo grafikon. Iskanje po imenu je "
+"omogočeno."
 
 msgid "A list of subjects who can view the chart. Searchable by name."
 msgstr "Seznam subjektov, ki lahko vidijo grafikon. Iskanje po imenu je omogočeno."
@@ -1265,6 +1267,10 @@ msgstr "Dodaj novo pravilo za barvo"
 
 msgid "Add new formatter"
 msgstr "Dodaj novo pravilo"
+
+#, fuzzy
+msgid "Add numbered column"
+msgstr " za dodajanje izračunanih stolpcev"
 
 #, fuzzy
 msgid "Add or edit display controls"
@@ -1788,11 +1794,15 @@ msgstr "Pri pridobivanju vrednosti shem je prišlo do napake: %s"
 
 #, python-format
 msgid "An error occurred while fetching dashboard editor values: %s"
-msgstr "Pri pridobivanju vrednosti urednikov nadzorne plošče je prišlo do napake: %s"
+msgstr ""
+"Pri pridobivanju vrednosti urednikov nadzorne plošče je prišlo do napake:"
+" %s"
 
 #, python-format
 msgid "An error occurred while fetching dashboard viewer values: %s"
-msgstr "Pri pridobivanju vrednosti gledalcev nadzorne plošče je prišlo do napake: %s"
+msgstr ""
+"Pri pridobivanju vrednosti gledalcev nadzorne plošče je prišlo do napake:"
+" %s"
 
 msgid "An error occurred while fetching dashboards"
 msgstr "Prišlo je do napake pri pridobivanju nadzornih plošč"
@@ -1817,7 +1827,9 @@ msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching dataset editor values: %s"
-msgstr "Pri pridobivanju vrednosti urednikov nabora podatkov je prišlo do napake: %s"
+msgstr ""
+"Pri pridobivanju vrednosti urednikov nabora podatkov je prišlo do napake:"
+" %s"
 
 #, python-format
 msgid "An error occurred while fetching dataset related data: %s"
@@ -1896,6 +1908,11 @@ msgstr "Pri nalaganju SQL je prišlo do napake"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Napaka pri uvažanju %s: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr "Prišlo je do napake pri pridobivanju informacij o nadzorni plošči."
@@ -4057,6 +4074,9 @@ msgstr "Vseh shranjenih grafikonov ni bilo mogoče pridobiti"
 msgid "Could not find viz object"
 msgstr "Ni mogoče najti vizualizacijskega objekta"
 
+msgid "Could not load SQL Lab"
+msgstr ""
+
 msgid "Could not load database driver"
 msgstr "Ni mogoče naložiti gonilnika podatkovne baze"
 
@@ -4257,6 +4277,13 @@ msgstr "Prilagojen SQL"
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Prilagodljive ad-hoc SQL-mere za ta podatkovni set niso omogočene"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Prilagojena SQL-polja ne smejo vsebovati podpoizvedb."
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Prilagojena SQL-polja ne smejo vsebovati podpoizvedb."
@@ -5743,7 +5770,7 @@ msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Trajanje v ms (100.40008 => 100ms 400µs 80ns)"
 
 #, fuzzy
-msgid "Duration in ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Trajanje v ms (66000 => 1m 6s)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
@@ -5936,7 +5963,9 @@ msgstr "Uredniki so seznam subjektov, ki lahko spreminjajo nadzorno ploščo."
 msgid ""
 "Editors is a list of subjects who can alter the dashboard. Searchable by "
 "name."
-msgstr "Uredniki so seznam subjektov, ki lahko spreminjajo nadzorno ploščo. Iskanje po imenu je omogočeno."
+msgstr ""
+"Uredniki so seznam subjektov, ki lahko spreminjajo nadzorno ploščo. "
+"Iskanje po imenu je omogočeno."
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "Ime podatkovne baze je zapisano napačno ali pa ne obstaja."
@@ -6822,6 +6851,12 @@ msgstr ""
 #, fuzzy
 msgid "File settings"
 msgstr "Nastavitve datoteke"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 msgid "File upload"
 msgstr "Nalaganje datoteke"
@@ -9526,6 +9561,10 @@ msgstr "Ni definirano"
 msgid "Not equal to (≠)"
 msgstr "Ni enako (≠)"
 
+#, fuzzy
+msgid "Not found"
+msgstr "Grafikon ni najden"
+
 msgid "Not in"
 msgstr "Ne vsebuje (NOT IN)"
 
@@ -10566,6 +10605,12 @@ msgstr "Zastarelo"
 msgid "Proportional"
 msgstr "Proporcionalno"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Objavljeno"
 
@@ -10825,9 +10870,6 @@ msgstr "Predfilter"
 msgid "Registration date"
 msgstr "Začetni datum"
 
-msgid "Registration hash"
-msgstr ""
-
 msgid "Registration successful"
 msgstr ""
 
@@ -10863,6 +10905,9 @@ msgstr "Relativne vrednosti"
 
 msgid "Reload"
 msgstr "Ponovno naloži"
+
+msgid "Reload SQL Lab"
+msgstr ""
 
 msgid "Remove"
 msgstr "Odstrani"
@@ -11038,6 +11083,10 @@ msgstr "Zahtevane kontrolne vrednosti so bile odstranjene"
 msgid "Resample"
 msgstr "Prevzorči"
 
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
+
 msgid "Resample method should be in "
 msgstr "Metoda za prevzorčenje v mora biti v "
 
@@ -11084,7 +11133,9 @@ msgid "Resource was not found."
 msgstr "Vir ni bil najden."
 
 msgid "Resource was removed before editorship could be verified"
-msgstr "Vir je bil odstranjen, preden je bilo mogoče preveriti dovoljenje za urejanje"
+msgstr ""
+"Vir je bil odstranjen, preden je bilo mogoče preveriti dovoljenje za "
+"urejanje"
 
 msgid "Restore filter"
 msgstr "Povrni filter"
@@ -11317,6 +11368,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL laboratorij"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 #, fuzzy
 msgid "SQL Lab queries"
@@ -13101,6 +13158,9 @@ msgstr "Ulice"
 #, fuzzy
 msgid "Streets (Carto)"
 msgstr "Drevesni grafikon"
+
+msgid "Streets (OSM)"
+msgstr ""
 
 msgid "Strength to pull the graph toward center"
 msgstr "Sila privlačnosti med grafikonom in središčem"
@@ -15387,6 +15447,18 @@ msgstr "Za pridobitev berljivega URL-ja za nadzorno ploščo"
 msgid "Token Request URI"
 msgstr ""
 
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
 #, fuzzy
 msgid "Tool Panel"
 msgstr "Vsi paneli"
@@ -15564,6 +15636,9 @@ msgstr "Vnesite vrednost"
 msgid "Type is required"
 msgstr "Tip je obvezen"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr ""
 
@@ -15720,6 +15795,10 @@ msgstr "Razveljavi dejanje"
 
 msgid "Undo?"
 msgstr "Povrni?"
+
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr "Zgodila se je nepričakovana napaka. Podrobnosti preverite v dnevnikih"
 
 msgid "Unexpected error"
 msgstr "Nepričakovana napaka"
@@ -16224,7 +16303,10 @@ msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
 "datasource permissions."
-msgstr "Gledalci so seznam subjektov, ki lahko vidijo nadzorno ploščo. Če gledalci niso določeni, je nadzorna plošča dostopna vsem uporabnikom z ustreznimi dovoljenji za vir podatkov."
+msgstr ""
+"Gledalci so seznam subjektov, ki lahko vidijo nadzorno ploščo. Če "
+"gledalci niso določeni, je nadzorna plošča dostopna vsem uporabnikom z "
+"ustreznimi dovoljenji za vir podatkov."
 
 msgid "Viewport"
 msgstr "Pogled"
@@ -16695,6 +16777,10 @@ msgstr "Če želite prikaz min. in max. vrednosti X-osi"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Če želite prikaz min. in max. vrednosti Y-osi"
 
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Če želite prikazati trendno črto"
+
 msgid "Whether to display the numerical values within the cells"
 msgstr "Če želite v celicah prikazati numerične vrednosti"
 
@@ -17117,6 +17203,9 @@ msgstr "Nimate dovoljenj za urejanje te nadzorne plošče."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Nimate zadostnih dovoljenj za urejanje grafikona"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 msgid "You don't have access to this chart."
 msgstr "Nimate dostopa do tega grafikona."
 
@@ -17370,6 +17459,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "Lastnost  `operation` poprocesirnega objekta ni definirana"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "Knjižnica `prophet` ni nameščena"
 
@@ -17388,6 +17481,9 @@ msgstr "`row_offset` mora biti večja ali enaka 0"
 
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` mora biti večja ali enaka 0"
+
+msgid "`window` must be between 1 and 10000"
+msgstr ""
 
 #, fuzzy
 msgid "a few seconds"
@@ -18325,4 +18421,7 @@ msgid ""
 msgstr ""
 
 msgid "© Layer attribution"
+msgstr ""
+
+msgid "№"
 msgstr ""

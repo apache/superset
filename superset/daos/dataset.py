@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 # Custom filterable fields for datasets (not direct model columns)
 DATASET_CUSTOM_FIELDS: dict[str, list[str]] = {
     "database_name": ["eq", "like", "ilike"],
-    "owner": ["eq", "in"],
+    "editor": ["eq", "in"],
 }
 
 
@@ -53,7 +53,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
     DAO for datasets. Supports filtering on model fields, hybrid properties, and custom
     fields:
     - tags: list of tags (eq, in_, like)
-    - owner: user id (eq, in_)
+    - editor: user id (eq, in_)
     """
 
     base_filter = DatasourceFilter
@@ -82,7 +82,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                     operator_enum.apply(Database.database_name, c.value)
                 )
                 query = query.filter(SqlaTable.database_id.in_(subq))
-            elif c.col == "owner":
+            elif c.col == "editor":
                 from superset.subjects.models import sqlatable_editors, Subject
 
                 operator_enum = ColumnOperatorEnum(c.opr)
@@ -100,14 +100,14 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 query = query.filter(
                     SqlaTable.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
                 )
-            elif c.col == "created_by_fk_or_owner":
+            elif c.col == "created_by_fk_or_editor":
                 if c.opr != "eq":
                     raise ValueError(
-                        f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
+                        f"created_by_fk_or_editor only supports 'eq'; got '{c.opr}'"
                     )
                 from superset.subjects.models import sqlatable_editors, Subject
 
-                owner_subq = (
+                editor_subq = (
                     select(sqlatable_editors.c.table_id)
                     .join(
                         Subject.__table__,
@@ -121,7 +121,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 query = query.filter(
                     or_(
                         SqlaTable.created_by_fk == c.value,  # type: ignore[attr-defined,unused-ignore]
-                        SqlaTable.id.in_(owner_subq),  # type: ignore[attr-defined,unused-ignore]
+                        SqlaTable.id.in_(editor_subq),  # type: ignore[attr-defined,unused-ignore]
                     )
                 )
             else:

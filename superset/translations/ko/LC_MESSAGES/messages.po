@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-01 06:52-0700\n"
+"POT-Creation-Date: 2026-06-11 11:56-0700\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -1159,6 +1159,10 @@ msgid "Add new formatter"
 msgstr ""
 
 #, fuzzy
+msgid "Add numbered column"
+msgstr "컬럼 목록"
+
+#, fuzzy
 msgid "Add or edit display controls"
 msgstr "테이블 추가"
 
@@ -1766,6 +1770,11 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 #, fuzzy, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 #, fuzzy
 msgid "An error occurred while loading dashboard information."
@@ -3925,6 +3934,9 @@ msgstr ""
 msgid "Could not find viz object"
 msgstr ""
 
+msgid "Could not load SQL Lab"
+msgstr ""
+
 msgid "Could not load database driver"
 msgstr "데이터베이스 드라이버를 로드할 수 없습니다"
 
@@ -4139,6 +4151,12 @@ msgid "Custom SQL"
 msgstr ""
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
+msgstr ""
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+msgid "Custom SQL fields cannot contain set operations."
 msgstr ""
 
 msgid "Custom SQL fields cannot contain sub-queries."
@@ -5548,7 +5566,7 @@ msgstr ""
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr ""
 
-msgid "Duration in ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr ""
 
 msgid "Duration in ms (66000 => 1m 6s)"
@@ -5736,7 +5754,6 @@ msgstr ""
 msgid "Editor"
 msgstr "편집자"
 
-#, python-format
 msgid "Editors"
 msgstr "편집자"
 
@@ -6633,6 +6650,12 @@ msgstr ""
 #, fuzzy
 msgid "File settings"
 msgstr "Query 공유"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 #, fuzzy
 msgid "File upload"
@@ -9338,6 +9361,10 @@ msgid "Not equal to (≠)"
 msgstr ""
 
 #, fuzzy
+msgid "Not found"
+msgstr "데이터베이스를 찾을 수 없습니다."
+
+#, fuzzy
 msgid "Not in"
 msgstr "주석"
 
@@ -10343,6 +10370,12 @@ msgstr "생성자"
 msgid "Proportional"
 msgstr ""
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr ""
 
@@ -10621,9 +10654,6 @@ msgstr "필터"
 msgid "Registration date"
 msgstr "시작 시간"
 
-msgid "Registration hash"
-msgstr ""
-
 msgid "Registration successful"
 msgstr ""
 
@@ -10656,6 +10686,9 @@ msgstr ""
 #, fuzzy
 msgid "Reload"
 msgstr "생성자"
+
+msgid "Reload SQL Lab"
+msgstr ""
 
 msgid "Remove"
 msgstr ""
@@ -10829,6 +10862,10 @@ msgid "Required control values have been removed"
 msgstr ""
 
 msgid "Resample"
+msgstr ""
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
 msgstr ""
 
 msgid "Resample method should be in "
@@ -11112,6 +11149,12 @@ msgstr ""
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 #, fuzzy
 msgid "SQL Lab queries"
@@ -12920,6 +12963,9 @@ msgstr ""
 #, fuzzy
 msgid "Streets (Carto)"
 msgstr "차트 이동"
+
+msgid "Streets (OSM)"
+msgstr ""
 
 msgid "Strength to pull the graph toward center"
 msgstr ""
@@ -15008,6 +15054,18 @@ msgstr ""
 msgid "Token Request URI"
 msgstr ""
 
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
 msgid "Tool Panel"
 msgstr ""
 
@@ -15187,6 +15245,9 @@ msgstr "원본 값"
 msgid "Type is required"
 msgstr ""
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr ""
 
@@ -15326,6 +15387,9 @@ msgid "Undo the action"
 msgstr "주석"
 
 msgid "Undo?"
+msgstr ""
+
+msgid "Unexpected HTTP 401 response. Check your credentials."
 msgstr ""
 
 msgid "Unexpected error"
@@ -15825,7 +15889,6 @@ msgstr "삭제"
 msgid "Viewer"
 msgstr "조회자"
 
-#, python-format
 msgid "Viewers"
 msgstr "조회자"
 
@@ -15833,7 +15896,9 @@ msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
 "datasource permissions."
-msgstr "조회자는 대시보드를 볼 수 있는 주체 목록입니다. 조회자가 정의되지 않은 경우 적절한 데이터 소스 권한이 있는 모든 사용자가 대시보드에 액세스할 수 있습니다."
+msgstr ""
+"조회자는 대시보드를 볼 수 있는 주체 목록입니다. 조회자가 정의되지 않은 경우 적절한 데이터 소스 권한이 있는 모든 사용자가 "
+"대시보드에 액세스할 수 있습니다."
 
 msgid "Viewport"
 msgstr ""
@@ -16217,6 +16282,9 @@ msgid "Whether to display the min and max values of the X-axis"
 msgstr ""
 
 msgid "Whether to display the min and max values of the Y-axis"
+msgstr ""
+
+msgid "Whether to display the numbered column"
 msgstr ""
 
 msgid "Whether to display the numerical values within the cells"
@@ -16614,6 +16682,9 @@ msgstr ""
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr ""
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 msgid "You don't have access to this chart."
 msgstr ""
 
@@ -16841,6 +16912,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr ""
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr ""
 
@@ -16856,6 +16931,9 @@ msgid "`row_offset` must be greater than or equal to 0"
 msgstr ""
 
 msgid "`width` must be greater or equal to 0"
+msgstr ""
+
+msgid "`window` must be between 1 and 10000"
 msgstr ""
 
 #, fuzzy
@@ -17201,7 +17279,6 @@ msgstr ""
 msgid "edit mode"
 msgstr "Query 검색"
 
-#, python-format
 msgid "editors"
 msgstr "편집자"
 
@@ -17821,4 +17898,7 @@ msgid ""
 msgstr ""
 
 msgid "© Layer attribution"
+msgstr ""
+
+msgid "№"
 msgstr ""

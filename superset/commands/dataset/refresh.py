@@ -70,7 +70,7 @@ class RefreshDatasetCommand(BaseCommand):
         self._model = DatasetDAO.find_by_id(self._model_id)
         if not self._model:
             raise DatasetNotFoundError()
-        # Check ownership
+        # Check editorship
         try:
             security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:

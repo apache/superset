@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-01 06:52-0700\n"
+"POT-Creation-Date: 2026-06-11 11:56-0700\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -856,10 +856,14 @@ msgstr ""
 "kau tēnei āpure ka whakāetia te tāmau mai i tētahi rohe."
 
 msgid "A list of subjects who can alter the chart. Searchable by name."
-msgstr "He rārangi kaupapa ka taea te whakatika i te kauwhata. Ka taea te rapu mā te ingoa."
+msgstr ""
+"He rārangi kaupapa ka taea te whakatika i te kauwhata. Ka taea te rapu mā"
+" te ingoa."
 
 msgid "A list of subjects who can view the chart. Searchable by name."
-msgstr "He rārangi kaupapa ka taea te tiro i te kauwhata. Ka taea te rapu mā te ingoa."
+msgstr ""
+"He rārangi kaupapa ka taea te tiro i te kauwhata. Ka taea te rapu mā te "
+"ingoa."
 
 msgid "A list of tags that have been applied to this chart."
 msgstr "He rārangi tohu kua whakahaeretia ki tēnei kauwhata."
@@ -1218,6 +1222,10 @@ msgstr "Tāpiri kaihōputu tae hou"
 
 msgid "Add new formatter"
 msgstr "Tāpiri kaihōputu hou"
+
+#, fuzzy
+msgid "Add numbered column"
+msgstr " hei tāpiri i ngā tīwae tatau"
 
 #, fuzzy
 msgid "Add or edit display controls"
@@ -1848,6 +1856,11 @@ msgstr "I puta he hapa i te utanga o te SQL"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "I puta he hapa i te kawemaitanga o %s: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr "I puta he hapa i te utanga o ngā mōhiohio papatohu."
@@ -3994,6 +4007,9 @@ msgstr "Kāore i taea te tiki i ngā kauwhata katoa kua tiakina"
 msgid "Could not find viz object"
 msgstr "Kāore i kitea te ahanoa viz"
 
+msgid "Could not load SQL Lab"
+msgstr ""
+
 msgid "Could not load database driver"
 msgstr "Kāore i taea te uta i te taraiwa pātengi raraunga"
 
@@ -4193,6 +4209,13 @@ msgstr "SQL Ritenga"
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Kāore i whakahohengia ngā ine ad-hoc SQL Ritenga mō tēnei rārangi raraunga"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Kāore e taea e ngā āpure SQL Ritenga te whai i ngā pātai-iti."
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Kāore e taea e ngā āpure SQL Ritenga te whai i ngā pātai-iti."
@@ -5657,8 +5680,8 @@ msgstr "Roa i ngā ms (1.40008 => 1ms 400µs 80ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Roa i ngā ms (100.40008 => 100ms 400µs 80ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Roa i ngā ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Roa i ngā ms (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Roa i ngā ms (66000 => 1m 6s)"
@@ -5846,7 +5869,9 @@ msgstr "Ko ngā kaiwhakatika he rārangi kaupapa ka taea te whakatika i te papat
 msgid ""
 "Editors is a list of subjects who can alter the dashboard. Searchable by "
 "name."
-msgstr "Ko ngā kaiwhakatika he rārangi kaupapa ka taea te whakatika i te papatohu. Ka taea te rapu mā te ingoa."
+msgstr ""
+"Ko ngā kaiwhakatika he rārangi kaupapa ka taea te whakatika i te "
+"papatohu. Ka taea te rapu mā te ingoa."
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "Kua hē te pūwaea o te pātengi raraunga, karekau pea rānei."
@@ -6718,6 +6743,12 @@ msgstr ""
 
 msgid "File settings"
 msgstr "Tautuhinga kōnae"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 msgid "File upload"
 msgstr "Tukuake kōnae"
@@ -9411,6 +9442,10 @@ msgstr "Kāore i tautuhia"
 msgid "Not equal to (≠)"
 msgstr "Kāore e ōrite ki (≠)"
 
+#, fuzzy
+msgid "Not found"
+msgstr "Kāore i kitea te kauwhata"
+
 msgid "Not in"
 msgstr "Kāore i roto i"
 
@@ -10446,6 +10481,12 @@ msgstr "ID Kaupapa"
 msgid "Proportional"
 msgstr "Tauōrite"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Kua Whakaputaina"
 
@@ -10708,9 +10749,6 @@ msgstr "Tātari-i-mua"
 msgid "Registration date"
 msgstr "Rā tīmata"
 
-msgid "Registration hash"
-msgstr ""
-
 msgid "Registration successful"
 msgstr ""
 
@@ -10747,6 +10785,9 @@ msgstr "Rahinga tata"
 
 msgid "Reload"
 msgstr "Uta-anō"
+
+msgid "Reload SQL Lab"
+msgstr ""
 
 msgid "Remove"
 msgstr "Tango"
@@ -10925,6 +10966,10 @@ msgstr "Kua tangohia ngā uara whakahaere e hiahiatia ana"
 
 msgid "Resample"
 msgstr "Tauira-anō"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "Me noho te tikanga tauira-anō i"
@@ -11204,6 +11249,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 msgid "SQL Lab queries"
 msgstr "Pātai SQL Lab"
@@ -12997,6 +13048,9 @@ msgstr "Tiriti"
 #, fuzzy
 msgid "Streets (Carto)"
 msgstr "Kauwhata Rākau"
+
+msgid "Streets (OSM)"
+msgstr ""
 
 msgid "Strength to pull the graph toward center"
 msgstr "Kaha hei tō i te kauwhata ki te pokapū"
@@ -15297,6 +15351,18 @@ msgstr "Hei whiwhi i tētahi URL ka taea te pānui mō tō papatohu"
 msgid "Token Request URI"
 msgstr ""
 
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
 #, fuzzy
 msgid "Tool Panel"
 msgstr "Papa katoa"
@@ -15474,6 +15540,9 @@ msgstr "Pato tētahi uara"
 msgid "Type is required"
 msgstr "E hiahiatia ana te momo"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr ""
 
@@ -15634,6 +15703,10 @@ msgstr "Wetekina te mahi"
 
 msgid "Undo?"
 msgstr "Wete?"
+
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr "I puta he hapa ohorere, tēnā tirohia ō rārangi mō ngā taipitopito"
 
 msgid "Unexpected error"
 msgstr "Hapa ohorere"
@@ -16148,7 +16221,10 @@ msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
 "datasource permissions."
-msgstr "Ko ngā kaitiro he rārangi kaupapa ka taea te tiro i te papatohu. Ki te kore he kaitiro kua tautuhia, ka wātea te papatohu ki ngā kaiwhakamahi katoa whai whakaaetanga puna raraunga tika."
+msgstr ""
+"Ko ngā kaitiro he rārangi kaupapa ka taea te tiro i te papatohu. Ki te "
+"kore he kaitiro kua tautuhia, ka wātea te papatohu ki ngā kaiwhakamahi "
+"katoa whai whakaaetanga puna raraunga tika."
 
 msgid "Viewport"
 msgstr "Tirohanga"
@@ -16626,6 +16702,10 @@ msgstr "Mēnā ka whakaatu i ngā uara iti me ngā uara rahi o te tukutuku-X"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Mēnā ka whakaatu i ngā uara iti me ngā uara rahi o te tukutuku-Y"
 
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Mēnā ka whakaatu i te rārangi ia"
+
 msgid "Whether to display the numerical values within the cells"
 msgstr "Mēnā ka whakaatu i ngā uara tau i roto i ngā pūtau"
 
@@ -17059,6 +17139,9 @@ msgstr "Karekau ō mōtika ki te whakatika i tēnei papatohu."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Karekau ō mōtika nui rawa ki te whakatika i te kauwhata"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 msgid "You don't have access to this chart."
 msgstr "Karekau ō urunga ki tēnei kauwhata."
 
@@ -17312,6 +17395,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "Kāore i tautuhia te āhuatanga `operation` o te ahanoa tukatuka-iho"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "Kāore i tāutahia te kete `prophet`"
 
@@ -17328,6 +17415,9 @@ msgstr "Me rahi ake, ōrite rānei te `row_offset` ki te 0"
 
 msgid "`width` must be greater or equal to 0"
 msgstr "Me rahi ake, ōrite rānei te `width` ki te 0"
+
+msgid "`window` must be between 1 and 10000"
+msgstr ""
 
 #, fuzzy
 msgid "a few seconds"
@@ -18261,3 +18351,6 @@ msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© Whakatuakī Papa"
+
+msgid "№"
+msgstr ""

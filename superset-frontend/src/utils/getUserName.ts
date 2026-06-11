@@ -22,5 +22,8 @@ export default function getUserName(user?: User): string {
   if (!user) {
     return '';
   }
-  return user.full_name || `${user.first_name} ${user.last_name}`;
+  return (
+    user.full_name ||
+    [user.first_name, user.last_name].filter(Boolean).join(' ')
+  );
 }

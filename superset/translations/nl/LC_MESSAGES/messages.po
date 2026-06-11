@@ -13,7 +13,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-01 06:52-0700\n"
+"POT-Creation-Date: 2026-06-11 11:56-0700\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -1217,6 +1217,10 @@ msgid "Add new formatter"
 msgstr "Nieuwe formatter toevoegen"
 
 #, fuzzy
+msgid "Add numbered column"
+msgstr " berekende kolommen toevoegen"
+
+#, fuzzy
 msgid "Add or edit display controls"
 msgstr "Filters toevoegen en bewerken"
 
@@ -1731,11 +1735,15 @@ msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching chart editor values: %s"
-msgstr "Er is een fout opgetreden bij het ophalen van waarden voor grafiekbewerkers: %s"
+msgstr ""
+"Er is een fout opgetreden bij het ophalen van waarden voor "
+"grafiekbewerkers: %s"
 
 #, python-format
 msgid "An error occurred while fetching chart viewer values: %s"
-msgstr "Er is een fout opgetreden bij het ophalen van waarden voor grafiekkijkers: %s"
+msgstr ""
+"Er is een fout opgetreden bij het ophalen van waarden voor "
+"grafiekkijkers: %s"
 
 #, fuzzy
 msgid "An error occurred while fetching connections"
@@ -1747,11 +1755,15 @@ msgstr "Er is een fout opgetreden tijdens het ophalen van schemawaarden: %s"
 
 #, python-format
 msgid "An error occurred while fetching dashboard editor values: %s"
-msgstr "Er is een fout opgetreden bij het ophalen van waarden voor dashboardbewerkers: %s"
+msgstr ""
+"Er is een fout opgetreden bij het ophalen van waarden voor "
+"dashboardbewerkers: %s"
 
 #, python-format
 msgid "An error occurred while fetching dashboard viewer values: %s"
-msgstr "Er is een fout opgetreden bij het ophalen van waarden voor dashboardkijkers: %s"
+msgstr ""
+"Er is een fout opgetreden bij het ophalen van waarden voor "
+"dashboardkijkers: %s"
 
 msgid "An error occurred while fetching dashboards"
 msgstr "Er is een fout opgetreden bij het ophalen van dashboards"
@@ -1778,7 +1790,9 @@ msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching dataset editor values: %s"
-msgstr "Er is een fout opgetreden bij het ophalen van waarden voor datasetbewerkers: %s"
+msgstr ""
+"Er is een fout opgetreden bij het ophalen van waarden voor "
+"datasetbewerkers: %s"
 
 #, python-format
 msgid "An error occurred while fetching dataset related data: %s"
@@ -1867,6 +1881,11 @@ msgstr "Er is een fout opgetreden bij het laden van de SQL"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Er is een fout opgetreden tijdens het importeren van %s: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr "Er is een fout opgetreden bij het laden van dashboard informatie."
@@ -4073,6 +4092,9 @@ msgstr "Kon niet alle opgeslagen grafieken ophalen"
 msgid "Could not find viz object"
 msgstr "Kon het viz object niet vinden"
 
+msgid "Could not load SQL Lab"
+msgstr ""
+
 msgid "Could not load database driver"
 msgstr "Kon het database driver niet laden"
 
@@ -4276,6 +4298,13 @@ msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr ""
 "Aangepaste SQL ad hoc statistieken zijn niet ingeschakeld voor deze "
 "dataset"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Aangepaste SQL velden mogen geen sub-query's bevatten."
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Aangepaste SQL velden mogen geen sub-query's bevatten."
@@ -5768,7 +5797,7 @@ msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Duur in ms (100.40008 => 100ms 400μs 80ns)"
 
 #, fuzzy
-msgid "Duration in ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
 msgstr "Duur in ms (66000 => 1m 6s)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
@@ -5961,7 +5990,9 @@ msgstr "Bewerkers zijn een lijst met subjects die het dashboard kunnen aanpassen
 msgid ""
 "Editors is a list of subjects who can alter the dashboard. Searchable by "
 "name."
-msgstr "Bewerkers zijn een lijst met subjects die het dashboard kunnen aanpassen. Zoekbaar op naam."
+msgstr ""
+"Bewerkers zijn een lijst met subjects die het dashboard kunnen aanpassen."
+" Zoekbaar op naam."
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "Of de database is onjuist gespeld of bestaat niet."
@@ -6862,6 +6893,12 @@ msgstr ""
 #, fuzzy
 msgid "File settings"
 msgstr "Filter Instellingen"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 #, fuzzy
 msgid "File upload"
@@ -9589,6 +9626,10 @@ msgstr "Niet gedefinieerd"
 msgid "Not equal to (≠)"
 msgstr "Niet gelijk aan (≠)"
 
+#, fuzzy
+msgid "Not found"
+msgstr "Grafiek niet gevonden"
+
 msgid "Not in"
 msgstr "Niet in"
 
@@ -10639,6 +10680,12 @@ msgstr "Verouderd"
 msgid "Proportional"
 msgstr "Proportioneel"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Gepubliceerd"
 
@@ -10903,9 +10950,6 @@ msgstr "Vooraf-filter"
 msgid "Registration date"
 msgstr "Start datum"
 
-msgid "Registration hash"
-msgstr ""
-
 msgid "Registration successful"
 msgstr ""
 
@@ -10942,6 +10986,9 @@ msgstr "Relatieve hoeveelheid"
 
 msgid "Reload"
 msgstr "Herlaad"
+
+msgid "Reload SQL Lab"
+msgstr ""
 
 msgid "Remove"
 msgstr "Verwijder"
@@ -11116,6 +11163,10 @@ msgstr "Vereiste controlewaarden zijn verwijderd"
 msgid "Resample"
 msgstr "Opnieuw bemonsteren"
 
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
+
 #, fuzzy
 msgid "Resample method should be in "
 msgstr "Hermonsteren methode moet in "
@@ -11163,7 +11214,9 @@ msgid "Resource was not found."
 msgstr "Bron is niet gevonden."
 
 msgid "Resource was removed before editorship could be verified"
-msgstr "Resource is verwijderd voordat bewerkingsrechten konden worden gecontroleerd"
+msgstr ""
+"Resource is verwijderd voordat bewerkingsrechten konden worden "
+"gecontroleerd"
 
 msgid "Restore filter"
 msgstr "Herstel Filter"
@@ -11402,6 +11455,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL-lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 #, fuzzy
 msgid "SQL Lab queries"
@@ -13220,6 +13279,9 @@ msgstr "Straten"
 #, fuzzy
 msgid "Streets (Carto)"
 msgstr "Boomdiagram"
+
+msgid "Streets (OSM)"
+msgstr ""
 
 msgid "Strength to pull the graph toward center"
 msgstr "Sterkte om de grafiek naar het midden te trekken"
@@ -15542,6 +15604,18 @@ msgstr "Om een leesbare URL voor uw dashboard te krijgen"
 msgid "Token Request URI"
 msgstr ""
 
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
 #, fuzzy
 msgid "Tool Panel"
 msgstr "Alle panelen"
@@ -15721,6 +15795,9 @@ msgstr "Voer een waarde in"
 msgid "Type is required"
 msgstr "Type is vereist"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr ""
 
@@ -15886,6 +15963,10 @@ msgstr "Actie ongedaan maken"
 
 msgid "Undo?"
 msgstr "Ongedaan maken?"
+
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr "Er is een onverwachte fout opgetreden, controleer uw logs voor details"
 
 msgid "Unexpected error"
 msgstr "Onverwachte fout"
@@ -16405,7 +16486,10 @@ msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
 "datasource permissions."
-msgstr "Kijkers zijn een lijst met subjects die het dashboard kunnen bekijken. Als er geen kijkers zijn gedefinieerd, is het dashboard toegankelijk voor alle gebruikers met passende databronrechten."
+msgstr ""
+"Kijkers zijn een lijst met subjects die het dashboard kunnen bekijken. "
+"Als er geen kijkers zijn gedefinieerd, is het dashboard toegankelijk voor"
+" alle gebruikers met passende databronrechten."
 
 msgid "Viewport"
 msgstr "Weergavevenster"
@@ -16883,6 +16967,10 @@ msgstr "Of de min en max waarden van de X-as getoond moeten worden"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Of de min en max waarden van de Y-as getoond moeten worden"
 
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Of de trendlijn moet worden weergegeven"
+
 msgid "Whether to display the numerical values within the cells"
 msgstr "Of de numerieke waarden binnen de cellen moeten worden weergegeven"
 
@@ -17324,6 +17412,9 @@ msgstr "U hebt geen rechten om dit dashboard te bewerken."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "U heeft niet voldoende rechten om de grafiek te bewerken"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 msgid "You don't have access to this chart."
 msgstr "U heeft geen toegang tot deze grafiek."
 
@@ -17581,6 +17672,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "`operation` eigenschap van post processing object ongedefinieerd"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "`prophet` package niet geïnstalleerd"
 
@@ -17598,6 +17693,9 @@ msgstr "`rij_offset` moet groter zijn dan of gelijk aan 0"
 
 msgid "`width` must be greater or equal to 0"
 msgstr "`breedte` moet groter of gelijk zijn aan 0"
+
+msgid "`window` must be between 1 and 10000"
+msgstr ""
 
 #, fuzzy
 msgid "a few seconds"
@@ -18544,4 +18642,7 @@ msgid ""
 msgstr ""
 
 msgid "© Layer attribution"
+msgstr ""
+
+msgid "№"
 msgstr ""

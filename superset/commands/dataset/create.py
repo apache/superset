@@ -102,6 +102,16 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
                         field_name="sql",
                     )
                 )
+        elif database:
+            try:
+                security_manager.raise_for_access(
+                    database=database,
+                    table=table,
+                )
+            except SupersetSecurityException as ex:
+                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+
         populate_subjects(self._properties, exceptions)
+
         if exceptions:
             raise DatasetInvalidError(exceptions=exceptions)

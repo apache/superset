@@ -1641,6 +1641,65 @@ class TestDatasetDefaultColumnFiltering:
                 )
 
 
+class TestGetDatasetInfoRequestValidators:
+    """Unit tests for GetDatasetInfoRequest field validators."""
+
+    def test_column_fields_json_string_parses_to_list(self):
+        """JSON string input for column_fields is decoded into a list."""
+        from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
+
+        request = GetDatasetInfoRequest(
+            identifier=1,
+            column_fields='["column_name","type"]',
+        )
+        assert request.column_fields == ["column_name", "type"]
+
+    def test_column_fields_empty_list_stays_empty(self):
+        """An explicit empty list for column_fields is preserved as-is."""
+        from superset.mcp_service.dataset.schemas import GetDatasetInfoRequest
+
+        request = GetDatasetInfoRequest(identifier=1, column_fields=[])
+        assert request.column_fields == []
+
+    def test_column_fields_empty_list_serializes_column_name_only(self):
+        """An explicit empty list still includes the required column_name field."""
+        from superset.mcp_service.dataset.schemas import TableColumnInfo
+
+        column = TableColumnInfo(
+            column_name="region",
+            verbose_name="Region",
+            type="VARCHAR",
+            is_dttm=False,
+            groupby=True,
+            filterable=True,
+            description="Region dimension",
+        )
+
+        assert column.model_dump(context={"column_fields": []}) == {
+            "column_name": "region"
+        }
+
+    def test_column_fields_none_falls_back_to_default(self):
+        """When column_fields is None (not provided), the default columns are used."""
+        from superset.mcp_service.dataset.schemas import (
+            DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS,
+            GetDatasetInfoRequest,
+        )
+
+        request = GetDatasetInfoRequest(identifier=1, column_fields=None)
+        assert request.column_fields == list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
+
+    def test_column_fields_default_when_omitted(self):
+        """When column_fields is omitted entirely, the default columns are used."""
+        from superset.mcp_service.dataset.schemas import (
+            DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS,
+            GetDatasetInfoRequest,
+        )
+
+        request = GetDatasetInfoRequest(identifier=1)
+        assert request.column_fields == list(DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS)
+
+
 class TestDatasetSortableColumns:
     """Test sortable columns configuration for dataset tools."""
 
@@ -2049,35 +2108,35 @@ class TestListDatasetsCreatedByMe:
         assert f.col == "created_by_fk"
 
 
-class TestListDatasetsOwnedByMe:
-    """Tests for the owned_by_me flag on ListDatasetsRequest."""
+class TestListDatasetsEditedByMe:
+    """Tests for the edited_by_me flag on ListDatasetsRequest."""
 
-    def test_owned_by_me_default_is_false(self):
+    def test_edited_by_me_default_is_false(self):
         request = ListDatasetsRequest()
-        assert request.owned_by_me is False
+        assert request.edited_by_me is False
 
-    def test_owned_by_me_true_accepted(self):
-        request = ListDatasetsRequest(owned_by_me=True)
-        assert request.owned_by_me is True
+    def test_edited_by_me_true_accepted(self):
+        request = ListDatasetsRequest(edited_by_me=True)
+        assert request.edited_by_me is True
 
-    def test_owned_by_me_combined_with_filters(self):
+    def test_edited_by_me_combined_with_filters(self):
         request = ListDatasetsRequest(
-            owned_by_me=True,
+            edited_by_me=True,
             filters=[DatasetFilter(col="table_name", opr="sw", value="My")],
         )
-        assert request.owned_by_me is True
+        assert request.edited_by_me is True
         assert len(request.filters) == 1
 
-    def test_owned_by_me_with_search_raises(self):
+    def test_edited_by_me_with_search_raises(self):
         from pydantic import ValidationError
 
-        with pytest.raises(ValidationError, match="owned_by_me"):
-            ListDatasetsRequest(owned_by_me=True, search="My datasets")
+        with pytest.raises(ValidationError, match="edited_by_me"):
+            ListDatasetsRequest(edited_by_me=True, search="My datasets")
 
-    def test_owned_by_me_and_created_by_me_allowed(self):
-        """Both flags together are valid (OR logic — creator or owner)."""
-        request = ListDatasetsRequest(owned_by_me=True, created_by_me=True)
-        assert request.owned_by_me is True
+    def test_edited_by_me_and_created_by_me_allowed(self):
+        """Both flags together are valid (OR logic — creator or editor)."""
+        request = ListDatasetsRequest(edited_by_me=True, created_by_me=True)
+        assert request.edited_by_me is True
         assert request.created_by_me is True
 
 
@@ -2116,7 +2175,7 @@ class TestListDatasetsRequestWrapper:
         """Column names not in the Literal are rejected with a validation error."""
         from pydantic import ValidationError
 
-        for bad_col in ("id", "database_id", "owner"):
+        for bad_col in ("id", "database_id", "roles"):
             with pytest.raises(ValidationError):
                 DatasetFilter(col=bad_col, opr="eq", value="1")
 

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-01 06:52-0700\n"
+"POT-Creation-Date: 2026-06-11 11:56-0700\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -880,10 +880,14 @@ msgstr ""
 "domaine."
 
 msgid "A list of subjects who can alter the chart. Searchable by name."
-msgstr "Une liste de sujets qui peuvent modifier le graphique. Recherche possible par nom."
+msgstr ""
+"Une liste de sujets qui peuvent modifier le graphique. Recherche possible"
+" par nom."
 
 msgid "A list of subjects who can view the chart. Searchable by name."
-msgstr "Une liste de sujets qui peuvent afficher le graphique. Recherche possible par nom."
+msgstr ""
+"Une liste de sujets qui peuvent afficher le graphique. Recherche possible"
+" par nom."
 
 msgid "A list of tags that have been applied to this chart."
 msgstr "Une liste de tags qui ont été appliquées à ce graphique."
@@ -1240,6 +1244,10 @@ msgstr "Ajouter un nouveau formateur de couleur"
 
 msgid "Add new formatter"
 msgstr "Ajouter un nouveau formateur"
+
+#, fuzzy
+msgid "Add numbered column"
+msgstr " pour ajouter des colonnes calculées"
 
 msgid "Add or edit display controls"
 msgstr "Ajouter ou modifier les contrôles d'affichage"
@@ -1737,11 +1745,15 @@ msgstr "Une erreur s'est produite lors de l'extraction des Thèmes "
 
 #, python-format
 msgid "An error occurred while fetching chart editor values: %s"
-msgstr "Une erreur s'est produite lors de l'extraction des valeurs des éditeurs du graphique : %s"
+msgstr ""
+"Une erreur s'est produite lors de l'extraction des valeurs des éditeurs "
+"du graphique : %s"
 
 #, python-format
 msgid "An error occurred while fetching chart viewer values: %s"
-msgstr "Une erreur s'est produite lors de l'extraction des valeurs des lecteurs du graphique : %s"
+msgstr ""
+"Une erreur s'est produite lors de l'extraction des valeurs des lecteurs "
+"du graphique : %s"
 
 #, fuzzy
 msgid "An error occurred while fetching connections"
@@ -1753,11 +1765,15 @@ msgstr "Une erreur s'est produite lors de l'extraction des valeurs du schéma :
 
 #, python-format
 msgid "An error occurred while fetching dashboard editor values: %s"
-msgstr "Une erreur s'est produite lors de l'extraction des valeurs des éditeurs du tableau de bord : %s"
+msgstr ""
+"Une erreur s'est produite lors de l'extraction des valeurs des éditeurs "
+"du tableau de bord : %s"
 
 #, python-format
 msgid "An error occurred while fetching dashboard viewer values: %s"
-msgstr "Une erreur s'est produite lors de l'extraction des valeurs des lecteurs du tableau de bord : %s"
+msgstr ""
+"Une erreur s'est produite lors de l'extraction des valeurs des lecteurs "
+"du tableau de bord : %s"
 
 #, fuzzy
 msgid "An error occurred while fetching dashboards"
@@ -1787,7 +1803,9 @@ msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching dataset editor values: %s"
-msgstr "Une erreur s'est produite lors de l'extraction des valeurs des éditeurs du jeu de données : %s"
+msgstr ""
+"Une erreur s'est produite lors de l'extraction des valeurs des éditeurs "
+"du jeu de données : %s"
 
 #, python-format
 msgid "An error occurred while fetching dataset related data: %s"
@@ -1797,7 +1815,9 @@ msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching editor values: %s"
-msgstr "Une erreur s'est produite lors de l'extraction des valeurs des éditeurs : %s"
+msgstr ""
+"Une erreur s'est produite lors de l'extraction des valeurs des éditeurs :"
+" %s"
 
 msgid "An error occurred while fetching function names."
 msgstr "Une erreur s'est produite lors de la recherche des noms de fonctions."
@@ -1868,6 +1888,11 @@ msgstr "Une erreur s'est produite lors du formatage du SQL"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Une erreur s'est produite lors de l'importation de %s : %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr ""
@@ -4045,6 +4070,9 @@ msgstr "Impossible de récupérer tous les graphiques sauvegardés"
 msgid "Could not find viz object"
 msgstr "Impossible de trouver l'objet viz"
 
+msgid "Could not load SQL Lab"
+msgstr ""
+
 msgid "Could not load database driver"
 msgstr "Impossible de charger le pilote de la base de données"
 
@@ -4245,6 +4273,13 @@ msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr ""
 "Les mesures SQL ponctuelles personnalisées ne sont pas activées pour cet "
 "ensemble de données"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Les champs SQL personnalisés ne peuvent pas contenir de sous-requêtes."
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Les champs SQL personnalisés ne peuvent pas contenir de sous-requêtes."
@@ -5737,8 +5772,8 @@ msgstr "Durée en ms (1.40008 => 1ms 400µs 80ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Durée en ms (100.40008 => 100ms 400µs 80ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Durée en ms (66000 => 1m 6s)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Durée en ms (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Durée en ms (66000 => 1m 6s)"
@@ -5921,12 +5956,16 @@ msgid "Editors"
 msgstr "Éditeurs"
 
 msgid "Editors is a list of subjects who can alter the dashboard."
-msgstr "Les éditeurs sont une liste de sujets qui peuvent modifier le tableau de bord."
+msgstr ""
+"Les éditeurs sont une liste de sujets qui peuvent modifier le tableau de "
+"bord."
 
 msgid ""
 "Editors is a list of subjects who can alter the dashboard. Searchable by "
 "name."
-msgstr "Les éditeurs sont une liste de sujets qui peuvent modifier le tableau de bord. Recherche possible par nom."
+msgstr ""
+"Les éditeurs sont une liste de sujets qui peuvent modifier le tableau de "
+"bord. Recherche possible par nom."
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "La base de données est mal orthographiée ou elle n'existe pas."
@@ -6824,6 +6863,12 @@ msgstr ""
 #, fuzzy
 msgid "File settings"
 msgstr "Paramètres du filtre"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 msgid "File upload"
 msgstr "Téléversement"
@@ -9619,6 +9664,10 @@ msgid "Not equal to (≠)"
 msgstr "Différent de (≠)"
 
 #, fuzzy
+msgid "Not found"
+msgstr "Graphique non trouvé"
+
+#, fuzzy
 msgid "Not in"
 msgstr "Pas dans"
 
@@ -10704,6 +10753,12 @@ msgstr "Déclassé"
 msgid "Proportional"
 msgstr "Proportionnel"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Publié"
 
@@ -10968,9 +11023,6 @@ msgstr "S'enregister"
 msgid "Registration date"
 msgstr "Source de l'annotation"
 
-msgid "Registration hash"
-msgstr "Hachage d'enregistrement"
-
 #, fuzzy
 msgid "Registration successful"
 msgstr "Hachage d'enregistrement"
@@ -11010,6 +11062,9 @@ msgstr "Quantité relative"
 
 msgid "Reload"
 msgstr "Recharger"
+
+msgid "Reload SQL Lab"
+msgstr ""
 
 msgid "Remove"
 msgstr "Supprimer"
@@ -11200,6 +11255,10 @@ msgstr "Les valeurs de contrôle requises ont été supprimées"
 msgid "Resample"
 msgstr "Rééchantillonner"
 
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
+
 msgid "Resample method should be in "
 msgstr "La méthode de rééchantillonnage devrait être"
 
@@ -11245,7 +11304,9 @@ msgid "Resource was not found."
 msgstr "Base de données non trouvée."
 
 msgid "Resource was removed before editorship could be verified"
-msgstr "La ressource a été supprimée avant que le droit de modification puisse être vérifié"
+msgstr ""
+"La ressource a été supprimée avant que le droit de modification puisse "
+"être vérifié"
 
 msgid "Restore filter"
 msgstr "Restaurer le filtre"
@@ -11490,6 +11551,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 #, fuzzy
 msgid "SQL Lab queries"
@@ -13344,6 +13411,9 @@ msgstr "Rues"
 #, fuzzy
 msgid "Streets (Carto)"
 msgstr "Graphique en arbre"
+
+msgid "Streets (OSM)"
+msgstr ""
 
 msgid "Strength to pull the graph toward center"
 msgstr "Force pour tirer le graphique vers le centre"
@@ -15807,6 +15877,18 @@ msgstr "Pour obtenir une URL lisible pour votre tableau de bord"
 msgid "Token Request URI"
 msgstr ""
 
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
 #, fuzzy
 msgid "Tool Panel"
 msgstr "Tous les panneaux"
@@ -15986,6 +16068,9 @@ msgstr "Saisissez une valeur"
 msgid "Type is required"
 msgstr "Le type est requis"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 #, fuzzy
 msgid "Type of chart to display in sparkline"
 msgstr "Nombre de graphiques à afficher par ligne"
@@ -16155,6 +16240,12 @@ msgstr "Annuler l'action"
 
 msgid "Undo?"
 msgstr "Annuler?"
+
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+"Une erreur inattendue s'est produite, veuillez consulter vos journaux "
+"pour plus de détails"
 
 msgid "Unexpected error"
 msgstr "Erreur inattendue"
@@ -16685,7 +16776,11 @@ msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
 "datasource permissions."
-msgstr "Les lecteurs sont une liste de sujets qui peuvent afficher le tableau de bord. Si aucun lecteur n’est défini, le tableau de bord est accessible à tous les utilisateurs disposant des autorisations de source de données appropriées."
+msgstr ""
+"Les lecteurs sont une liste de sujets qui peuvent afficher le tableau de "
+"bord. Si aucun lecteur n’est défini, le tableau de bord est accessible à "
+"tous les utilisateurs disposant des autorisations de source de données "
+"appropriées."
 
 msgid "Viewport"
 msgstr "Viewport"
@@ -17180,6 +17275,10 @@ msgstr "Affichage ou non des valeurs min et max de l’axe des absisses"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Affichage ou non des valeurs min et max de l’axe des ordonnées"
 
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Affichage ou non de la ligne de tendance"
+
 msgid "Whether to display the numerical values within the cells"
 msgstr "Affichage ou non des valeurs numériques dans les cellules"
 
@@ -17636,6 +17735,9 @@ msgstr "Vous n'avez pas les permission pour modifier ce tableau de bord."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Vous n'avez pas les permission pour modifier ce graphique"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 #, fuzzy
 msgid "You don't have access to this chart."
 msgstr "Vous n'avez pas accès à ce graphique."
@@ -17901,6 +18003,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "La propriété « operation » de l'objet de post-traitement est indéfinie"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "Paquet « prophet » non installée"
 
@@ -17919,6 +18025,9 @@ msgstr "« row_offset » doit être plus grand ou égal à 0"
 
 msgid "`width` must be greater or equal to 0"
 msgstr "« width » doit être plus grand ou égal à 0"
+
+msgid "`window` must be between 1 and 10000"
+msgstr ""
 
 #, fuzzy
 msgid "a few seconds"
@@ -18886,3 +18995,6 @@ msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© Attribution de la couche"
+
+msgid "№"
+msgstr ""

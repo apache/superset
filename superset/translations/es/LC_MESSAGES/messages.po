@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-01 06:52-0700\n"
+"POT-Creation-Date: 2026-06-11 11:56-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -1277,6 +1277,10 @@ msgid "Add new formatter"
 msgstr "Añadir nuevo formateador"
 
 #, fuzzy
+msgid "Add numbered column"
+msgstr " para añadir columnas calculadas"
+
+#, fuzzy
 msgid "Add or edit display controls"
 msgstr "Añadir o editar filtros"
 
@@ -1929,6 +1933,11 @@ msgstr "Se ha producido un error al cargar el SQL"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Se produjo un error importando %s: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr "Se ha producido un error al cargar la información del panel de control."
@@ -4201,6 +4210,9 @@ msgstr "No se han podido recuperar todos los gráficos guardados"
 msgid "Could not find viz object"
 msgstr "No se ha podido encontrar el objeto de visualización"
 
+msgid "Could not load SQL Lab"
+msgstr ""
+
 msgid "Could not load database driver"
 msgstr "No se ha podido cargar el controlador de la base de datos"
 
@@ -4404,6 +4416,13 @@ msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr ""
 "Las métricas «ad hoc» SQL personalizadas no están habilitadas para este "
 "conjunto de datos"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Los campos SQL personalizados no pueden contener subconsultas."
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Los campos SQL personalizados no pueden contener subconsultas."
@@ -5941,8 +5960,8 @@ msgstr "Duración en ms (1,40008 => 1 ms 400 µs 80 ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Duración en ms (100.40008 => 100 ms 400 µs 80 ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Duración en ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Duración en ms (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Duración en ms (66 000 => 1 m 6 s)"
@@ -7073,6 +7092,12 @@ msgstr ""
 
 msgid "File settings"
 msgstr "Ajustes de archivo"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 msgid "File upload"
 msgstr "Subir archivo"
@@ -9869,6 +9894,10 @@ msgstr "Sin definir"
 msgid "Not equal to (≠)"
 msgstr "No es igual a (≠)"
 
+#, fuzzy
+msgid "Not found"
+msgstr "No se ha encontrado ningún gráfico"
+
 msgid "Not in"
 msgstr "No está en"
 
@@ -10937,6 +10966,12 @@ msgstr "ID del proyecto"
 msgid "Proportional"
 msgstr "Proporcional"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Publicado"
 
@@ -11202,11 +11237,6 @@ msgstr "Fecha de inicio"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
-msgid "Registration hash"
-msgstr "Hash de registro"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
-#, fuzzy
 msgid "Registration successful"
 msgstr "Registro exitoso"
 
@@ -11243,6 +11273,9 @@ msgstr "Cantidad relativa"
 
 msgid "Reload"
 msgstr "Volver a cargar"
+
+msgid "Reload SQL Lab"
+msgstr ""
 
 msgid "Remove"
 msgstr "Eliminar"
@@ -11427,6 +11460,10 @@ msgstr "Se han eliminado los valores de control obligatorios"
 
 msgid "Resample"
 msgstr "Remuestreo"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "El método de remuestreo debe estar en "
@@ -11715,6 +11752,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 msgid "SQL Lab queries"
 msgstr "Consultas de SQL Lab"
@@ -13599,6 +13642,9 @@ msgstr "Calles"
 #, fuzzy
 msgid "Streets (Carto)"
 msgstr "Gráfico de árbol"
+
+msgid "Streets (OSM)"
+msgstr ""
 
 msgid "Strength to pull the graph toward center"
 msgstr "Fuerza para tirar del gráfico hacia el centro"
@@ -16069,6 +16115,18 @@ msgstr "Para obtener una URL legible para tu panel de control"
 msgid "Token Request URI"
 msgstr "URI de solicitud de token"
 
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
 #, fuzzy
 msgid "Tool Panel"
 msgstr "Todos los paneles"
@@ -16245,6 +16303,9 @@ msgstr "Introduce un valor"
 
 msgid "Type is required"
 msgstr "El tipo es obligatorio"
+
+msgid "Type of Google Sheets allowed"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ru]
 #, fuzzy
@@ -16425,6 +16486,12 @@ msgstr "Deshacer la acción"
 
 msgid "Undo?"
 msgstr "¿Deshacer?"
+
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+"Se ha producido un error inesperado; comprueba tus registros para obtener"
+" más información"
 
 msgid "Unexpected error"
 msgstr "Error inesperado"
@@ -17434,6 +17501,10 @@ msgstr "Si se deben mostrar los valores mínimo y máximo del eje X"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Si se deben mostrar los valores mínimo y máximo del eje Y"
 
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Si se debe mostrar la línea de tendencia"
+
 msgid "Whether to display the numerical values within the cells"
 msgstr "Si se deben mostrar los valores numéricos dentro de las celdas"
 
@@ -17875,6 +17946,9 @@ msgstr "No tienes permisos para editar este panel de control."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "No tienes permisos suficientes para editar el gráfico"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 msgid "You don't have access to this chart."
 msgstr "No tienes acceso a este gráfico."
 
@@ -18137,6 +18211,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "Propiedad «operation» del objeto de posprocesamiento no definida"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "El paquete «prophet» no está instalado"
 
@@ -18155,6 +18233,9 @@ msgstr "«row_offset» debe ser mayor o igual a 0"
 
 msgid "`width` must be greater or equal to 0"
 msgstr "«width» debe ser mayor o igual a 0"
+
+msgid "`window` must be between 1 and 10000"
+msgstr ""
 
 #, fuzzy
 msgid "a few seconds"
@@ -19100,3 +19181,6 @@ msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© Atribución de la capa"
+
+msgid "№"
+msgstr ""

@@ -326,11 +326,15 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def icons(self) -> str:
+        # Escape the data-controlled datasource name and edit URL before they
+        # are interpolated into HTML attributes.
+        url = escape(self.datasource_edit_url)
+        datasource = escape(self.datasource)
         return f"""
         <a
-                href="{self.datasource_edit_url}"
+                href="{url}"
                 data-toggle="tooltip"
-                title="{self.datasource}">
+                title="{datasource}">
             <i class="fa fa-database"></i>
         </a>
         """

@@ -55,6 +55,7 @@ from superset.themes.schemas import (
     ThemePostSchema,
     ThemePutSchema,
 )
+from superset.utils.core import sanitize_cookie_token
 from superset.utils.decorators import transaction
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -489,7 +490,7 @@ class ThemeRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 

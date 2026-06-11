@@ -472,7 +472,7 @@ class TestGetInstanceInfoCurrentUserViaMCP:
 
 def test_chart_filter_rejects_user_directory_columns_other_than_fk() -> None:
     """ChartFilter still rejects user-directory columns that expose names."""
-    for col in ("created_by_name", "owners", "changed_by"):
+    for col in ("created_by_name", "editors", "changed_by"):
         with pytest.raises(ValidationError):
             ChartFilter.model_validate({"col": col, "opr": "eq", "value": "anything"})
 
@@ -494,7 +494,7 @@ def test_chart_filter_rejects_invalid_column():
 
 def test_dashboard_filter_rejects_user_directory_columns_other_than_fk() -> None:
     """DashboardFilter still rejects user-directory columns that expose names."""
-    for col in ("created_by_name", "owners", "changed_by"):
+    for col in ("created_by_name", "editors", "changed_by"):
         with pytest.raises(ValidationError):
             DashboardFilter.model_validate(
                 {"col": col, "opr": "eq", "value": "anything"}

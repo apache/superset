@@ -166,7 +166,7 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
                 self._properties["validator_config_json"]
             )
 
-        # Check ownership
+        # Check editorship
         try:
             security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:

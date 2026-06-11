@@ -51,7 +51,7 @@ logger = logging.getLogger(__name__)
 DASHBOARD_CUSTOM_FIELDS = {
     "tags": ["eq", "in", "like"],
     "published": ["eq"],
-    "owner": ["eq", "in"],
+    "editor": ["eq", "in"],
     "favorite": ["eq"],
 }
 
@@ -69,9 +69,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
         query: Query,
         column_operators: list[ColumnOperator] | None = None,
     ) -> Query:
-        """Override to handle owner and favorite filters via subqueries.
+        """Override to handle editor and favorite filters via subqueries.
 
-        - owner: filters dashboards by owner user ID via dashboard_editors M2M table
+        - editor: filters dashboards by editor user ID via dashboard_editors M2M table
         - favorite: filters dashboards by whether the current user has favorited them
         """
         if not column_operators:
@@ -81,7 +81,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
         for c in column_operators:
             if not isinstance(c, ColumnOperator):
                 c = ColumnOperator.model_validate(c)
-            if c.col == "owner":
+            if c.col == "editor":
                 from superset.subjects.models import dashboard_editors, Subject
 
                 operator_enum = ColumnOperatorEnum(c.opr)
@@ -99,14 +99,14 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 query = query.filter(
                     Dashboard.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
                 )
-            elif c.col == "created_by_fk_or_owner":
+            elif c.col == "created_by_fk_or_editor":
                 if c.opr != "eq":
                     raise ValueError(
-                        f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
+                        f"created_by_fk_or_editor only supports 'eq'; got '{c.opr}'"
                     )
                 from superset.subjects.models import dashboard_editors, Subject
 
-                owner_subq = (
+                editor_subq = (
                     select(dashboard_editors.c.dashboard_id)
                     .join(
                         Subject.__table__,
@@ -120,7 +120,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 query = query.filter(
                     or_(
                         Dashboard.created_by_fk == c.value,  # type: ignore[attr-defined,unused-ignore]
-                        Dashboard.id.in_(owner_subq),  # type: ignore[attr-defined,unused-ignore]
+                        Dashboard.id.in_(editor_subq),  # type: ignore[attr-defined,unused-ignore]
                     )
                 )
             elif c.col == "favorite":
@@ -179,7 +179,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return dashboard
 
     @staticmethod
-    def get_datasets_for_dashboard(id_or_slug: str) -> list[Any]:
+    def get_datasets_for_dashboard(id_or_slug: str) -> list[tuple[Any, dict[str, Any]]]:
         dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
         return dashboard.datasets_trimmed_for_slices()
 

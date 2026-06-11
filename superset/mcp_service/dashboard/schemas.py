@@ -87,12 +87,13 @@ if TYPE_CHECKING:
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
+    EditedByMeMixin,
     MetadataCacheControl,
-    OwnedByMeMixin,
 )
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from superset.mcp_service.privacy import (
     filter_user_directory_fields,
+    strip_user_directory_fields_from_schema,
     user_can_view_data_model_metadata,
 )
 from superset.mcp_service.system.schemas import (
@@ -199,7 +200,7 @@ class DashboardFilter(ColumnOperator):
     )
 
 
-class ListDashboardsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
+class ListDashboardsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_dashboards with clear, unambiguous types."""
 
     filters: Annotated[
@@ -292,6 +293,32 @@ class ListDashboardsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheContr
         return self
 
 
+DEFAULT_GET_DASHBOARD_INFO_COLUMNS: List[str] = [
+    "id",
+    "dashboard_title",
+    "slug",
+    "description",
+    "certified_by",
+    "certification_details",
+    "published",
+    "is_managed_externally",
+    "external_url",
+    "created_on",
+    "changed_on",
+    "uuid",
+    "url",
+    "created_on_humanized",
+    "changed_on_humanized",
+    "chart_count",
+    "tags",
+    "charts",
+    "native_filters",
+    "cross_filters_enabled",
+    "is_permalink_state",
+    "permalink_key",
+]
+
+
 class GetDashboardInfoRequest(MetadataCacheControl):
     """Request schema for get_dashboard_info with support for ID, UUID, or slug.
 
@@ -316,6 +343,29 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             "from that permalink."
         ),
     )
+    select_columns: Annotated[
+        List[str],
+        Field(
+            default_factory=lambda: list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS),
+            description=(
+                "Top-level fields to include in the response. Defaults to a lean "
+                "set that excludes 'css' (raw CSS, can be many KB) and 'filter_state' "
+                "(only relevant when permalink_key is provided). Pass an explicit list "
+                "to override, e.g. ['id','dashboard_title','charts'] for minimal "
+                "output, or add 'css' to include raw dashboard CSS."
+            ),
+        ),
+    ]
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def _parse_select_columns(cls, value: Any) -> Any:
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+        if value is None:
+            return list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS)
+        parsed = parse_json_or_list(value, "select_columns")
+        return parsed if parsed else list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS)
 
 
 class GetDashboardLayoutRequest(BaseModel):
@@ -439,7 +489,11 @@ class DashboardInfo(BaseModel):
         ),
     )
 
-    model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
+    model_config = ConfigDict(
+        from_attributes=True,
+        ser_json_timedelta="iso8601",
+        json_schema_extra=strip_user_directory_fields_from_schema,
+    )
 
     @model_serializer(mode="wrap")
     def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:

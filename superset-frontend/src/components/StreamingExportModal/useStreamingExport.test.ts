@@ -30,6 +30,7 @@ jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   SupersetClient: {
     getCSRFToken: jest.fn(() => Promise.resolve('mock-csrf-token')),
+    getGuestToken: jest.fn(() => undefined),
   },
 }));
 
@@ -47,9 +48,12 @@ global.URL.revokeObjectURL = jest.fn();
 
 global.fetch = jest.fn();
 
+const { SupersetClient } = jest.requireMock('@superset-ui/core');
+
 beforeEach(() => {
   jest.clearAllMocks();
   global.fetch = jest.fn();
+  SupersetClient.getGuestToken.mockReturnValue(undefined);
 });
 
 test('useStreamingExport initializes with default progress state', () => {
@@ -237,6 +241,32 @@ const createPrefixTestMockFetch = () =>
       }),
     },
   });
+
+test('chart streaming export includes guest token in form body when configured', async () => {
+  SupersetClient.getGuestToken.mockReturnValue('guest-token');
+  const mockFetch = createPrefixTestMockFetch();
+  global.fetch = mockFetch;
+
+  const { result } = renderHook(() => useStreamingExport());
+
+  act(() => {
+    result.current.startExport({
+      url: '/api/v1/chart/data',
+      payload: { datasource: '1__table', viz_type: 'table' },
+      exportType: 'csv',
+    });
+  });
+
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  const request = mockFetch.mock.calls[0][1];
+  expect(request.body.get('guest_token')).toBe('guest-token');
+  expect(request.body.get('form_data')).toBe(
+    JSON.stringify({ datasource: '1__table', viz_type: 'table' }),
+  );
+});
 
 test('URL prefix guard applies prefix to unprefixed relative URL when app root is configured', async () => {
   const appRoot = '/superset';
@@ -652,6 +682,8 @@ test('completes XLSX export successfully with correct filename', async () => {
     expect(result.current.progress.status).toBe(ExportStatus.COMPLETED);
   });
 
+  const request = mockFetch.mock.calls[0][1];
+  expect(request.body.get('guest_token')).toBeNull();
   expect(result.current.progress.filename).toBe('report.xlsx');
   expect(onComplete).toHaveBeenCalledWith('blob:mock-url', 'report.xlsx');
 });

@@ -422,11 +422,11 @@ def test_deactivation_from_non_working_does_not_reset(mocker: MockerFixture) -> 
     assert "last_state" not in cmd._properties
 
 
-# --- Ownership check ---
+# --- Editorship check ---
 
 
-def test_ownership_check_raises_forbidden(mocker: MockerFixture) -> None:
-    """Non-owner should get ReportScheduleForbiddenError."""
+def test_editorship_check_raises_forbidden(mocker: MockerFixture) -> None:
+    """Non-editor should get ReportScheduleForbiddenError."""
     model = _make_model(mocker, model_type=ReportScheduleType.REPORT, database_id=None)
     _setup_mocks(mocker, model)
     mocker.patch(

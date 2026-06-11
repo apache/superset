@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-01 06:52-0700\n"
+"POT-Creation-Date: 2026-06-11 11:56-0700\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -1256,6 +1256,10 @@ msgid "Add new formatter"
 msgstr "Přidat nový formátovač"
 
 #, fuzzy
+msgid "Add numbered column"
+msgstr " pro přidání počítaných sloupců"
+
+#, fuzzy
 msgid "Add or edit display controls"
 msgstr "Přidat nebo upravit ovládací prvky zobrazení"
 
@@ -1879,6 +1883,11 @@ msgstr "Při formátování SQL došlo k chybě"
 #, python-format
 msgid "An error occurred while importing %s: %s"
 msgstr "Při importu %s došlo k chybě: %s"
+
+msgid ""
+"An error occurred while loading SQL Lab. This may be caused by a "
+"corrupted query state."
+msgstr ""
 
 msgid "An error occurred while loading dashboard information."
 msgstr "Při načítání informací o nástěnce došlo k chybě."
@@ -4034,6 +4043,9 @@ msgstr "Nepodařilo se načíst všechny uložené grafy"
 msgid "Could not find viz object"
 msgstr "Nelze najít objekt vizualizace"
 
+msgid "Could not load SQL Lab"
+msgstr ""
+
 msgid "Could not load database driver"
 msgstr "Nepodařilo se načíst ovladač databáze"
 
@@ -4235,6 +4247,13 @@ msgstr "Vlastní SQL"
 
 msgid "Custom SQL ad-hoc metrics are not enabled for this dataset"
 msgstr "Vlastní SQL ad-hoc metriky nejsou pro tuto sadu dat povoleny"
+
+msgid "Custom SQL fields cannot be parsed as a single SQL statement."
+msgstr ""
+
+#, fuzzy
+msgid "Custom SQL fields cannot contain set operations."
+msgstr "Vlastní pole SQL nemohou obsahovat poddotazy."
 
 msgid "Custom SQL fields cannot contain sub-queries."
 msgstr "Vlastní pole SQL nemohou obsahovat poddotazy."
@@ -5723,8 +5742,8 @@ msgstr "Trvání v ms (1.40008 => 1ms 400µs 80ns)"
 msgid "Duration in ms (100.40008 => 100ms 400µs 80ns)"
 msgstr "Trvání v ms (100.40008 => 100ms 400µs 80ns)"
 
-msgid "Duration in ms (10500 => 0:10.5)"
-msgstr "Trvání v ms (10500 => 0:10.5)"
+msgid "Duration in ms (10500 => 0:00:10.5)"
+msgstr "Trvání v ms (10500 => 0:00:10.5)"
 
 msgid "Duration in ms (66000 => 1m 6s)"
 msgstr "Trvání v ms (66000 => 1m 6s)"
@@ -5913,7 +5932,9 @@ msgstr "Editoři jsou seznam subjektů, které mohou upravovat dashboard."
 msgid ""
 "Editors is a list of subjects who can alter the dashboard. Searchable by "
 "name."
-msgstr "Editoři jsou seznam subjektů, které mohou upravovat dashboard. Vyhledatelné podle jména."
+msgstr ""
+"Editoři jsou seznam subjektů, které mohou upravovat dashboard. "
+"Vyhledatelné podle jména."
 
 msgid "Either the database is spelled incorrectly or does not exist."
 msgstr "Buď je název databáze napsán nesprávně, nebo databáze neexistuje."
@@ -6788,6 +6809,12 @@ msgstr ""
 
 msgid "File settings"
 msgstr "Nastavení souboru"
+
+#, python-format
+msgid ""
+"File size %(size)s bytes exceeds the maximum allowed upload size of "
+"%(max_size)s bytes"
+msgstr ""
 
 msgid "File upload"
 msgstr "Nahrání souboru"
@@ -9473,6 +9500,10 @@ msgstr "Nedefinováno"
 msgid "Not equal to (≠)"
 msgstr "Nerovná se (≠)"
 
+#, fuzzy
+msgid "Not found"
+msgstr "Graf nenalezen"
+
 msgid "Not in"
 msgstr "Není v"
 
@@ -10507,6 +10538,12 @@ msgstr "ID projektu"
 msgid "Proportional"
 msgstr "Proporcionální"
 
+msgid "Public and privately shared sheets"
+msgstr ""
+
+msgid "Publicly shared sheets only"
+msgstr ""
+
 msgid "Published"
 msgstr "Zveřejněno"
 
@@ -10767,9 +10804,6 @@ msgstr "Registrovat"
 msgid "Registration date"
 msgstr "Datum registrace"
 
-msgid "Registration hash"
-msgstr "Hash registrace"
-
 msgid "Registration successful"
 msgstr "Registrace úspěšná"
 
@@ -10805,6 +10839,9 @@ msgstr "Relativní množství"
 
 msgid "Reload"
 msgstr "Znovu načíst"
+
+msgid "Reload SQL Lab"
+msgstr ""
 
 msgid "Remove"
 msgstr "Odstranit"
@@ -10975,6 +11012,10 @@ msgstr "Požadované hodnoty ovládacích prvků byly odstraněny"
 
 msgid "Resample"
 msgstr "Převzorkovat"
+
+#, python-format
+msgid "Resample method '%(method)s' is not supported."
+msgstr ""
 
 msgid "Resample method should be in "
 msgstr "Metoda převzorkování by měla být v "
@@ -11257,6 +11298,12 @@ msgstr "SQL"
 
 msgid "SQL Lab"
 msgstr "SQL Lab"
+
+msgid ""
+"SQL Lab cannot authorise a statement that could not be fully parsed. "
+"Qualify tables explicitly and avoid dynamic SQL inside stored-procedure "
+"or vendor-specific calls."
+msgstr ""
 
 msgid "SQL Lab queries"
 msgstr "Dotazy SQL Labu"
@@ -13049,6 +13096,9 @@ msgstr "Ulice"
 #, fuzzy
 msgid "Streets (Carto)"
 msgstr "Stromový graf"
+
+msgid "Streets (OSM)"
+msgstr ""
 
 msgid "Strength to pull the graph toward center"
 msgstr "Síla pro přitahování grafu ke středu"
@@ -15349,6 +15399,18 @@ msgstr "Pro získání čitelné URL pro vaši nástěnku"
 msgid "Token Request URI"
 msgstr "URI žádosti o token"
 
+#, python-format
+msgid ""
+"Too many sub-slices requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many time comparisons requested. The maximum allowed is %(max)s, but "
+"%(count)s were requested."
+msgstr ""
+
 #, fuzzy
 msgid "Tool Panel"
 msgstr "Všechny panely"
@@ -15522,6 +15584,9 @@ msgstr "Napište hodnotu"
 msgid "Type is required"
 msgstr "Typ je povinný"
 
+msgid "Type of Google Sheets allowed"
+msgstr ""
+
 msgid "Type of chart to display in sparkline"
 msgstr "Typ grafu pro zobrazení ve sparkline"
 
@@ -15684,6 +15749,12 @@ msgstr "Vrátit akci zpět"
 
 msgid "Undo?"
 msgstr "Zpět?"
+
+#, fuzzy
+msgid "Unexpected HTTP 401 response. Check your credentials."
+msgstr ""
+"Došlo k neočekávané chybě, zkontrolujte prosím své protokoly pro "
+"podrobnosti"
 
 msgid "Unexpected error"
 msgstr "Neočekávaná chyba"
@@ -16192,7 +16263,10 @@ msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
 "datasource permissions."
-msgstr "Prohlížející jsou seznam subjektů, které mohou zobrazovat dashboard. Pokud nejsou definováni žádní prohlížející, dashboard je přístupný všem uživatelům s odpovídajícími oprávněními ke zdroji dat."
+msgstr ""
+"Prohlížející jsou seznam subjektů, které mohou zobrazovat dashboard. "
+"Pokud nejsou definováni žádní prohlížející, dashboard je přístupný všem "
+"uživatelům s odpovídajícími oprávněními ke zdroji dat."
 
 msgid "Viewport"
 msgstr "Zobrazovací oblast"
@@ -16655,6 +16729,10 @@ msgstr "Zda zobrazit minimální a maximální hodnoty osy X"
 msgid "Whether to display the min and max values of the Y-axis"
 msgstr "Zda zobrazit minimální a maximální hodnoty osy Y"
 
+#, fuzzy
+msgid "Whether to display the numbered column"
+msgstr "Zda zobrazit trendovou čáru"
+
 msgid "Whether to display the numerical values within the cells"
 msgstr "Zda zobrazit číselné hodnoty v buňkách"
 
@@ -17084,6 +17162,9 @@ msgstr "Nemáte oprávnění k úpravě této nástěnky."
 msgid "You do not have sufficient permissions to edit the chart"
 msgstr "Nemáte dostatečná oprávnění k úpravě grafu"
 
+msgid "You don't have access to one or more of the referenced datasources."
+msgstr ""
+
 msgid "You don't have access to this chart."
 msgstr "K tomuto grafu nemáte přístup."
 
@@ -17338,6 +17419,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "vlastnost `operation` objektu následného zpracování není definována"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "balíček `prophet` není nainstalován"
 
@@ -17356,6 +17441,9 @@ msgstr "`row_offset` musí být větší nebo roven 0"
 
 msgid "`width` must be greater or equal to 0"
 msgstr "`width` musí být větší nebo roven 0"
+
+msgid "`window` must be between 1 and 10000"
+msgstr ""
 
 #, fuzzy
 msgid "a few seconds"
@@ -18284,3 +18372,6 @@ msgstr ""
 
 msgid "© Layer attribution"
 msgstr "© Atribuce vrstvy"
+
+msgid "№"
+msgstr ""

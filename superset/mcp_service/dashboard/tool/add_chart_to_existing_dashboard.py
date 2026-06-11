@@ -381,7 +381,7 @@ def _find_and_authorize_dashboard(
 ) -> tuple[Any, AddChartToDashboardResponse | None]:
     """Return (dashboard, None) on success or (None, error_response) on failure.
 
-    Handles both the not-found case and the ownership check so the main tool
+    Handles both the not-found case and the editorship check so the main tool
     function doesn't need two separate branches for these pre-conditions.
     """
     from superset import security_manager

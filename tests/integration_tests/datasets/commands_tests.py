@@ -572,8 +572,8 @@ class TestCreateDatasetCommand(SupersetTestCase):
     @patch("superset.models.core.Database.get_table")
     def test_get_table_from_database_error(self, get_table_mock):
         get_table_mock.side_effect = SQLAlchemyError
-        with self.assertRaises(DatasetInvalidError):  # noqa: PT027
-            with override_user(security_manager.find_user("admin")):
+        with override_user(security_manager.find_user("admin")):
+            with self.assertRaises(DatasetInvalidError):  # noqa: PT027
                 CreateDatasetCommand(
                     {"table_name": "table", "database": get_example_database().id}
                 ).run()
@@ -635,9 +635,10 @@ class TestDatasetWarmUpCacheCommand(SupersetTestCase):
             )
             .all()
         )
-        results = DatasetWarmUpCacheCommand(
-            get_example_database().database_name, "birth_names", None, None
-        ).run()
+        with override_user(security_manager.find_user("admin")):
+            results = DatasetWarmUpCacheCommand(
+                get_example_database().database_name, "birth_names", None, None
+            ).run()
         assert len(results) == len(birth_charts)
         for chart_result in results:
             assert "chart_id" in chart_result

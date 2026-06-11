@@ -31,7 +31,10 @@ from superset.commands.exceptions import (
 )
 from superset.commands.security.create import CreateRLSRuleCommand
 from superset.commands.security.delete import DeleteRLSRuleCommand
-from superset.commands.security.exceptions import RLSRuleNotFoundError
+from superset.commands.security.exceptions import (
+    RLSDatasourceForbiddenError,
+    RLSRuleNotFoundError,
+)
 from superset.commands.security.update import UpdateRLSRuleCommand
 from superset.connectors.sqla.models import RowLevelSecurityFilter
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -204,6 +207,8 @@ class RLSRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -235,6 +240,13 @@ class RLSRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except RLSDatasourceForbiddenError as ex:
+            logger.warning(
+                "Forbidden datasource while creating RLS rule %s: %s",
+                self.__class__.__name__,
+                str(ex),
+            )
+            return self.response_403()
         except SQLAlchemyError as ex:
             logger.error(
                 "Error creating RLS rule %s: %s",
@@ -321,6 +333,13 @@ class RLSRestApi(BaseSupersetModelRestApi):
                 exc_info=True,
             )
             return self.response_422(message=str(ex))
+        except RLSDatasourceForbiddenError as ex:
+            logger.warning(
+                "Forbidden datasource while updating RLS rule %s: %s",
+                self.__class__.__name__,
+                str(ex),
+            )
+            return self.response_403()
         except SQLAlchemyError as ex:
             logger.error(
                 "Error updating RLS rule %s: %s",

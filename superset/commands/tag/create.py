@@ -60,8 +60,43 @@ class CreateCustomTagCommand(CreateMixin, BaseCommand):
             exceptions.append(
                 TagCreateFailedError(f"invalid object type {self._object_type}")
             )
+
+        # Validate user has access to the target object
+        if object_type:
+            self._validate_object_access(object_type, self._object_id, exceptions)
+
         if exceptions:
             raise TagInvalidError(exceptions=exceptions)
+
+    def _validate_object_access(
+        self, object_type: ObjectType, object_id: int, exceptions: list[Any]
+    ) -> None:
+        """Validate that the current user has access to the target object."""
+        # Skip base filter so we can distinguish "not found" from "no access"
+        target_object = to_object_model(object_type, object_id, skip_base_filter=True)
+        if not target_object:
+            # Allow operation on stale references; no object to authorize against
+            return
+
+        try:
+            if object_type == ObjectType.dashboard:
+                security_manager.raise_for_access(dashboard=target_object)
+            elif object_type == ObjectType.chart:
+                security_manager.raise_for_access(chart=target_object)
+            elif object_type == ObjectType.query:
+                security_manager.raise_for_access(query=target_object)
+            elif object_type == ObjectType.dataset:
+                security_manager.raise_for_access(datasource=target_object)
+            else:
+                exceptions.append(
+                    TagCreateFailedError(
+                        f"Access validation not supported for {object_type}"
+                    )
+                )
+        except SupersetSecurityException:
+            exceptions.append(
+                TagCreateFailedError(f"Access denied for {object_type} {object_id}")
+            )
 
 
 class CreateCustomTagWithRelationshipsCommand(CreateMixin, BaseCommand):

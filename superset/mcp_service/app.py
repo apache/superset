@@ -145,14 +145,6 @@ Database Connections:
 - list_databases: List database connections with advanced filters (1-based pagination)
 - get_database_info: Get detailed database connection info by ID (backend, capabilities)
 
-CSS Templates:
-- list_css_templates: List CSS templates with advanced filters (1-based pagination)
-- get_css_template_info: Get CSS template details by ID (includes full css content)
-
-Themes:
-- list_themes: List themes with advanced filters (1-based pagination)
-- get_theme_info: Get theme details by ID or UUID (includes json_data configuration)
-
 User and Role Management:
 - list_users: List users with filtering (1-based pagination, admin only)
 - get_user_info: Get user details by ID (admin only)
@@ -163,9 +155,9 @@ Row Level Security (Admin only):
 - list_rls_filters: List RLS filters with filtering and search (1-based pagination)
 - get_rls_filter_info: Get detailed RLS filter info by ID (tables, roles, clause)
 
-Plugins (Admin only):
-- list_plugins: List dynamic plugins with filtering and search (1-based pagination)
-- get_plugin_info: Get detailed plugin info by ID (name, key, bundle URL)
+Alerts & Reports:
+- list_reports: List alerts and reports with filtering and search (1-based pagination)
+- get_report_info: Get detailed alert/report schedule info by ID
 
 Dataset Management:
 - list_datasets: List datasets with advanced filters (1-based pagination)
@@ -194,11 +186,7 @@ SQL Lab Integration:
 - get_query_info: Get SQL query history details by ID
 
 Schema Discovery:
-- get_schema: Get schema metadata for chart/dataset/dashboard/database/css_template/theme (columns, filters)
-
-Action Logs (requires SUPERSET_LOG_VIEW and FAB_ADD_SECURITY_VIEWS):
-- list_action_logs: List user action logs with filtering and pagination (defaults to last 7 days)
-- get_action_log_info: Get a single action log entry by integer ID
+- get_schema: Get schema metadata for chart/dataset/dashboard/database/report (columns, filters)
 
 Task Management (requires GLOBAL_TASK_FRAMEWORK feature flag):
 - list_tasks: List background tasks with status filtering and pagination
@@ -283,18 +271,18 @@ To find your own charts/dashboards/datasets/databases:
 - list_datasets(request={{"created_by_me": true}})    — items you created
 - list_databases(request={{"created_by_me": true}})   — items you created
 
-To find items where you are listed as an owner (edit access):
-- list_charts(request={{"owned_by_me": true}})
-- list_dashboards(request={{"owned_by_me": true}})
-- list_datasets(request={{"owned_by_me": true}})
+To find items where you are listed as an editor:
+- list_charts(request={{"edited_by_me": true}})
+- list_dashboards(request={{"edited_by_me": true}})
+- list_datasets(request={{"edited_by_me": true}})
 
-To find all items you have any connection to (created OR own):
-- list_charts(request={{"created_by_me": true, "owned_by_me": true}})
-- list_dashboards(request={{"created_by_me": true, "owned_by_me": true}})
-- list_datasets(request={{"created_by_me": true, "owned_by_me": true}})
+To find all items you have any connection to (created OR edit):
+- list_charts(request={{"created_by_me": true, "edited_by_me": true}})
+- list_dashboards(request={{"created_by_me": true, "edited_by_me": true}})
+- list_datasets(request={{"created_by_me": true, "edited_by_me": true}})
 
-Use created_by_me for authorship, owned_by_me for edit ownership, or both
-together for the union. All flags can be combined with 'filters' but not
+Use created_by_me for authorship, edited_by_me for edit access, or both
+together for the union. These flags can be combined with 'filters' but not
 with 'search'.
 
 To query a dataset's semantic layer (metrics, dimensions):
@@ -409,10 +397,10 @@ IMPORTANT - Tool-Only Interaction:
 
 General usage tips:
 - All listing tools use 1-based pagination (first page is 1)
-- Use get_schema (chart/dataset/dashboard/database) to discover filterable columns,
+- Use get_schema (chart/dataset/dashboard/database/report) to discover filterable columns,
   sortable columns, and default columns for those resource types
-- For action_log, task, list_rls_filters, and list_plugins tools, filterable/sortable
-  columns are listed inline in each tool's docstring — get_schema does not cover these
+- For task and list_rls_filters tools, filterable/sortable columns are listed inline in
+  each tool's docstring — get_schema does not cover these
 - Use 'filters' parameter for advanced queries with filter columns from get_schema
 - IDs can be integer or UUID format where supported
 - All tools return structured, Pydantic-typed responses
@@ -432,17 +420,17 @@ Input format:
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate
   from write access. A user may have SQL Lab access without having write access to charts
   or dashboards, and vice versa.
-- Do NOT disclose dashboard access lists, dashboard owners, chart owners, dataset
-  owners, workspace admins, or other users' names, usernames, email addresses,
-  contact details, roles, admin status, ownership, or access-list information.
+- Do NOT disclose dashboard access lists, dashboard editors, chart editors, dataset
+  editors, workspace admins, or other users' names, usernames, email addresses,
+  contact details, roles, admin status, editorship, or access-list information.
 - Do NOT infer access-list answers from dashboard metadata such as published status,
-  role restrictions, empty owner lists, or schema fields.
+  role restrictions, empty editor lists, or schema fields.
 - find_users is sanctioned ONLY for resolving a name the user supplied into a
   user ID for filtering (e.g., "what is <name> working on" -> filter
   list_dashboards by created_by_fk). Do NOT use find_users to answer "who owns
   X", "who can access X", "is <name> an admin", or to enumerate the directory.
   Never return find_users output to the user verbatim.
-- Do NOT use execute_sql to query user, role, owner, or access-list tables for this
+- Do NOT use execute_sql to query user, role, editor, or access-list tables for this
   information.
 - You may reference the current user's own identity details when appropriate, such
   as confirming their own username.
@@ -668,10 +656,6 @@ warnings.filterwarnings(
 # NOTE: Always add new prompt/resource imports here when creating new prompts/resources.
 # Prompts use @mcp.prompt decorators and resources use @mcp.resource decorators.
 # They register automatically on import, similar to tools.
-from superset.mcp_service.action_log.tool import (  # noqa: F401, E402
-    get_action_log_info,
-    list_action_logs,
-)
 from superset.mcp_service.annotation_layer.tool import (  # noqa: F401, E402
     get_annotation_layer_info,
     get_layer_annotation_info,
@@ -693,10 +677,6 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
     update_chart,
     update_chart_preview,
 )
-from superset.mcp_service.css_template.tool import (  # noqa: F401, E402
-    get_css_template_info,
-    list_css_templates,
-)
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
     generate_dashboard,
@@ -717,13 +697,13 @@ from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
     generate_explore_link,
 )
-from superset.mcp_service.plugin.tool import (  # noqa: F401, E402
-    get_plugin_info,
-    list_plugins,
-)
 from superset.mcp_service.query.tool import (  # noqa: F401, E402
     get_query_info,
     list_queries,
+)
+from superset.mcp_service.report.tool import (  # noqa: F401, E402
+    get_report_info,
+    list_reports,
 )
 from superset.mcp_service.rls.tool import (  # noqa: F401, E402
     get_rls_filter_info,
@@ -760,10 +740,6 @@ from superset.mcp_service.tag.tool import (  # noqa: F401, E402
 from superset.mcp_service.task.tool import (  # noqa: F401, E402
     get_task_info,
     list_tasks,
-)
-from superset.mcp_service.theme.tool import (  # noqa: F401, E402
-    get_theme_info,
-    list_themes,
 )
 from superset.mcp_service.user.tool import (  # noqa: F401, E402
     get_user_info,
@@ -805,22 +781,12 @@ def _apply_config_guards(flask_app: Any) -> set[str]:
     Returns the set of tool names that were removed so that callers can exclude
     them from generated instructions.
 
-    - Action-log tools: mirrors LogRestApi.is_enabled() which checks
-      FAB_ADD_SECURITY_VIEWS and SUPERSET_LOG_VIEW.
     - Task tools: mirrors TaskRestApi conditional registration which checks
       the GLOBAL_TASK_FRAMEWORK feature flag via feature_flag_manager so that
       all Superset enablement paths (DEFAULT_FEATURE_FLAGS, GET_FEATURE_FLAGS_FUNC,
       IS_FEATURE_ENABLED_FUNC, etc.) are respected.
     """
     removed: set[str] = set()
-
-    if not (
-        flask_app.config["FAB_ADD_SECURITY_VIEWS"]
-        and flask_app.config["SUPERSET_LOG_VIEW"]
-    ):
-        for tool_name in ("list_action_logs", "get_action_log_info"):
-            _remove_tool_quietly(tool_name, "logging disabled by config flags")
-            removed.add(tool_name)
 
     from superset.extensions import feature_flag_manager  # noqa: PLC0415
 

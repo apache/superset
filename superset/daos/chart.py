@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 CHART_CUSTOM_FIELDS = {
     "viz_type": ["eq", "in", "like"],
     "datasource_name": ["eq", "in", "like"],
-    "owner": ["eq", "in"],
+    "editor": ["eq", "in"],
 }
 
 
@@ -51,7 +51,7 @@ class ChartDAO(BaseDAO[Slice]):
         query: Query,
         column_operators: list[ColumnOperator] | None = None,
     ) -> Query:
-        """Override to handle owner filter via the chart_editors M2M table."""
+        """Override to handle editor filters via the chart_editors M2M table."""
         if not column_operators:
             return query
 
@@ -59,7 +59,7 @@ class ChartDAO(BaseDAO[Slice]):
         for c in column_operators:
             if not isinstance(c, ColumnOperator):
                 c = ColumnOperator.model_validate(c)
-            if c.col == "owner":
+            if c.col == "editor":
                 from superset.subjects.models import chart_editors, Subject
 
                 operator_enum = ColumnOperatorEnum(c.opr)
@@ -77,14 +77,14 @@ class ChartDAO(BaseDAO[Slice]):
                 query = query.filter(
                     Slice.id.in_(subq)  # type: ignore[attr-defined,unused-ignore]
                 )
-            elif c.col == "created_by_fk_or_owner":
+            elif c.col == "created_by_fk_or_editor":
                 if c.opr != "eq":
                     raise ValueError(
-                        f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
+                        f"created_by_fk_or_editor only supports 'eq'; got '{c.opr}'"
                     )
                 from superset.subjects.models import chart_editors, Subject
 
-                owner_subq = (
+                editor_subq = (
                     select(chart_editors.c.chart_id)
                     .join(
                         Subject.__table__,
@@ -98,7 +98,7 @@ class ChartDAO(BaseDAO[Slice]):
                 query = query.filter(
                     or_(
                         Slice.created_by_fk == c.value,  # type: ignore[attr-defined,unused-ignore]
-                        Slice.id.in_(owner_subq),  # type: ignore[attr-defined,unused-ignore]
+                        Slice.id.in_(editor_subq),  # type: ignore[attr-defined,unused-ignore]
                     )
                 )
             else:

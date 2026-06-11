@@ -47,9 +47,14 @@ type ConfigType = {
   jwtSecret: string;
   jwtCookieName: string;
   jwtChannelIdKey: string;
+  allowedOrigins: string[];
   socketResponseTimeoutMs: number;
   pingSocketsIntervalMs: number;
   gcChannelsIntervalMs: number;
+  maxSocketBufferBytes: number;
+  eventYieldBatchSize: number;
+  maxConnectionsPerChannel: number;
+  maxTotalConnections: number;
 };
 
 function defaultConfig(): ConfigType {
@@ -65,9 +70,19 @@ function defaultConfig(): ConfigType {
     jwtSecret: '',
     jwtCookieName: 'async-token',
     jwtChannelIdKey: 'channel',
+    allowedOrigins: [],
     socketResponseTimeoutMs: 60 * 1000,
     pingSocketsIntervalMs: 20 * 1000,
     gcChannelsIntervalMs: 120 * 1000,
+    // 0 disables the per-socket send-buffer cap; set a positive byte value to
+    // opt in to terminating clients whose outbound buffer grows beyond it.
+    maxSocketBufferBytes: 0,
+    // Number of stream events to process before yielding to the event loop.
+    // 0 disables yielding (process the whole batch synchronously).
+    eventYieldBatchSize: 100,
+    // 0 disables the limit (unlimited); set a positive value to opt in.
+    maxConnectionsPerChannel: 0,
+    maxTotalConnections: 0,
     statsd: {
       host: '127.0.0.1',
       port: 8125,
@@ -98,8 +113,27 @@ function configFromFile(): Partial<ConfigType> {
 
 const isPresent = (s: string) => /\S+/.test(s);
 const toNumber = Number;
+
+// Parse a non-negative numeric env override, ignoring malformed input.
+// Returns the fallback (and logs a warning) when the value is not a finite
+// number >= 0, so a misconfiguration can't silently disable the feature.
+function toNonNegativeNumber(val: string, fallback: number): number {
+  const parsed = Number(val);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    console.warn(
+      `Invalid numeric config value "${val}"; expected a non-negative ` +
+        `number. Falling back to ${fallback}.`,
+    );
+    return fallback;
+  }
+  return parsed;
+}
 const toBoolean = (s: string) => s.toLowerCase() === 'true';
-const toStringArray = (s: string) => s.split(',');
+const toStringArray = (s: string) =>
+  s
+    .split(',')
+    .map(entry => entry.trim())
+    .filter(entry => entry.length > 0);
 
 function applyEnvOverrides(config: ConfigType): ConfigType {
   const envVarConfigSetter: { [envVar: string]: (val: string) => void } = {
@@ -114,12 +148,26 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
       (config.redisStreamReadBlockMs = toNumber(val)),
     JWT_SECRET: val => (config.jwtSecret = val),
     JWT_COOKIE_NAME: val => (config.jwtCookieName = val),
+    ALLOWED_ORIGINS: val => (config.allowedOrigins = toStringArray(val)),
     SOCKET_RESPONSE_TIMEOUT_MS: val =>
       (config.socketResponseTimeoutMs = toNumber(val)),
     PING_SOCKETS_INTERVAL_MS: val =>
       (config.pingSocketsIntervalMs = toNumber(val)),
     GC_CHANNELS_INTERVAL_MS: val =>
       (config.gcChannelsIntervalMs = toNumber(val)),
+    MAX_SOCKET_BUFFER_BYTES: val =>
+      (config.maxSocketBufferBytes = toNonNegativeNumber(
+        val,
+        config.maxSocketBufferBytes,
+      )),
+    EVENT_YIELD_BATCH_SIZE: val =>
+      (config.eventYieldBatchSize = toNonNegativeNumber(
+        val,
+        config.eventYieldBatchSize,
+      )),
+    MAX_CONNECTIONS_PER_CHANNEL: val =>
+      (config.maxConnectionsPerChannel = toNumber(val)),
+    MAX_TOTAL_CONNECTIONS: val => (config.maxTotalConnections = toNumber(val)),
     REDIS_HOST: val => (config.redis.host = val),
     REDIS_PORT: val => (config.redis.port = toNumber(val)),
     REDIS_PASSWORD: val => (config.redis.password = val),

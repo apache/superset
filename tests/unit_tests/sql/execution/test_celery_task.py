@@ -178,6 +178,66 @@ def test_handle_query_error_with_troubleshooting_link(
     assert payload["link"] == "https://help.example.com"
 
 
+def test_handle_query_error_no_stacktrace_when_format_exc_empty(
+    mocker: MockerFixture, app_context: None, mock_query: MagicMock
+) -> None:
+    """Test that stacktrace key is omitted when traceback.format_exc returns empty."""
+    from superset.sql.execution.celery_task import _handle_query_error
+
+    mocker.patch("superset.sql.execution.celery_task.db.session")
+    mocker.patch(
+        "superset.sql.execution.celery_task.traceback.format_exc", return_value=""
+    )
+
+    ex = Exception("Error")
+    payload = _handle_query_error(ex, mock_query)
+
+    assert "stacktrace" not in payload
+
+
+def test_handle_query_error_includes_stacktrace_when_show_stacktrace_enabled(
+    mocker: MockerFixture, app_context: None, mock_query: MagicMock
+) -> None:
+    """Test stacktrace key is included when SHOW_STACKTRACE=True.
+
+    Covers lines 107-108 in celery_task._handle_query_error.
+    """
+    from superset.sql.execution.celery_task import _handle_query_error
+
+    mocker.patch("superset.sql.execution.celery_task.db.session")
+    mocker.patch.dict(current_app.config, {"SHOW_STACKTRACE": True})
+
+    try:
+        raise RuntimeError("boom")
+    except RuntimeError as ex:
+        payload = _handle_query_error(ex, mock_query)
+
+    assert "stacktrace" in payload
+    assert payload["stacktrace"]
+
+
+def test_handle_query_error_omits_stacktrace_when_show_stacktrace_enabled_but_empty(
+    mocker: MockerFixture, app_context: None, mock_query: MagicMock
+) -> None:
+    """Test stacktrace key is omitted when SHOW_STACKTRACE=True but format_exc is empty.
+
+    Covers the branch at line 107 where SHOW_STACKTRACE is True but
+    traceback.format_exc() returns an empty string (no active exception context).
+    """
+    from superset.sql.execution.celery_task import _handle_query_error
+
+    mocker.patch("superset.sql.execution.celery_task.db.session")
+    mocker.patch.dict(current_app.config, {"SHOW_STACKTRACE": True})
+    mocker.patch(
+        "superset.sql.execution.celery_task.traceback.format_exc", return_value=""
+    )
+
+    ex = Exception("Error")
+    payload = _handle_query_error(ex, mock_query)
+
+    assert "stacktrace" not in payload
+
+
 # =============================================================================
 # Serialization Tests
 # =============================================================================

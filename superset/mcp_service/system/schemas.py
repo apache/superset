@@ -258,7 +258,7 @@ class TagInfo(BaseModel):
 
 
 class SubjectInfo(BaseModel):
-    """A subject (user, role, or group) that can be an editor or viewer."""
+    """A subject (user, role, or group) used in access assignments."""
 
     id: int | None = None
     label: str | None = None

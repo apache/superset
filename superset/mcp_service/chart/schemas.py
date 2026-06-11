@@ -44,14 +44,17 @@ from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.cache_schemas import (
     CacheStatus,
     CreatedByMeMixin,
+    EditedByMeMixin,
     FormDataCacheControl,
     MetadataCacheControl,
-    OwnedByMeMixin,
     QueryCacheControl,
 )
 from superset.mcp_service.common.error_schemas import ChartGenerationError, MCPBaseError
 from superset.mcp_service.constants import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
-from superset.mcp_service.privacy import filter_user_directory_fields
+from superset.mcp_service.privacy import (
+    filter_user_directory_fields,
+    strip_user_directory_fields_from_schema,
+)
 from superset.mcp_service.system.schemas import (
     PaginationInfo,
     serialize_subject_object,
@@ -167,7 +170,11 @@ class ChartInfo(BaseModel):
         ),
     )
 
-    model_config = ConfigDict(from_attributes=True, ser_json_timedelta="iso8601")
+    model_config = ConfigDict(
+        from_attributes=True,
+        ser_json_timedelta="iso8601",
+        json_schema_extra=strip_user_directory_fields_from_schema,
+    )
 
     @model_serializer(mode="wrap")
     def _filter_fields_by_context(self, serializer: Any, info: Any) -> Dict[str, Any]:
@@ -254,6 +261,29 @@ class VersionedResponse(BaseModel):
     api_version: str = Field("v1", description="MCP API version")
 
 
+DEFAULT_GET_CHART_INFO_COLUMNS: List[str] = [
+    "id",
+    "slice_name",
+    "viz_type",
+    "datasource_name",
+    "datasource_type",
+    "url",
+    "description",
+    "cache_timeout",
+    "changed_on",
+    "changed_on_humanized",
+    "created_on",
+    "created_on_humanized",
+    "certified_by",
+    "certification_details",
+    "uuid",
+    "tags",
+    "filters",
+    "form_data_key",
+    "is_unsaved_state",
+]
+
+
 class GetChartInfoRequest(BaseModel):
     """Request schema for get_chart_info with support for ID, UUID, or form_data_key.
 
@@ -294,6 +324,17 @@ class GetChartInfoRequest(BaseModel):
             "and the caller to have dashboard access."
         ),
     )
+    select_columns: Annotated[
+        List[str],
+        Field(
+            default_factory=lambda: list(DEFAULT_GET_CHART_INFO_COLUMNS),
+            description=(
+                "Top-level fields to include in the response. Defaults to a lean "
+                "set that excludes 'form_data' (the full chart config, can be 50KB+). "
+                "Add 'form_data' explicitly when you need the raw chart configuration."
+            ),
+        ),
+    ]
 
     @model_validator(mode="after")
     def validate_identifier_or_form_data_key(self) -> "GetChartInfoRequest":
@@ -302,6 +343,16 @@ class GetChartInfoRequest(BaseModel):
                 "At least one of 'identifier' or 'form_data_key' must be provided."
             )
         return self
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def _parse_select_columns(cls, value: Any) -> Any:
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+        if value is None:
+            return list(DEFAULT_GET_CHART_INFO_COLUMNS)
+        parsed = parse_json_or_list(value, "select_columns")
+        return parsed if parsed else list(DEFAULT_GET_CHART_INFO_COLUMNS)
 
 
 def extract_filters_from_form_data(
@@ -572,6 +623,7 @@ class ChartFilter(ColumnOperator):
         "slice_name",
         "viz_type",
         "datasource_name",
+        "editor",
         "created_by_fk",
         "changed_by_fk",
     ] = Field(
@@ -1704,7 +1756,7 @@ ChartConfig = Annotated[
 # giving LLMs enough context to construct valid configs.
 
 
-class ListChartsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
+class ListChartsRequest(EditedByMeMixin, CreatedByMeMixin, MetadataCacheControl):
     """Request schema for list_charts with clear, unambiguous types."""
 
     filters: Annotated[

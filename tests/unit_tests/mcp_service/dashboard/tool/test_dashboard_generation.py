@@ -1740,8 +1740,8 @@ class TestDashboardSerializationEagerLoading:
             assert dash["id"] == 10
             assert dash["dashboard_title"] == "Rollback Test"
             assert "/superset/dashboard/10/" in data["dashboard_url"]
-            # Relationship fields should be empty (defaults)
-            assert dash["editors"] == []
+            # Access-list fields should not be returned.
+            assert "editors" not in dash
             assert dash["tags"] == []
             assert dash["charts"] == []
 
@@ -1860,7 +1860,7 @@ class TestDashboardSerializationEagerLoading:
             # Position info should still be returned
             assert data["position"] is not None
             assert "chart_key" in data["position"]
-            # Relationship fields should be empty (defaults)
-            assert dash["editors"] == []
+            # Access-list fields should not be returned.
+            assert "editors" not in dash
             assert dash["tags"] == []
             assert dash["charts"] == []
