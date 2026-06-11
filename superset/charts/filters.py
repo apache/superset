@@ -209,8 +209,10 @@ class ChartDeletedStateFilter(  # pylint: disable=too-few-public-methods
     ``RestoreChartCommand``'s ``raise_for_ownership`` check, so a read-access
     non-owner (who can see the chart via datasource access) cannot list
     soft-deleted charts they could never restore. Live rows are unaffected —
-    they keep their normal ``ChartFilter`` visibility. Kept consistent with
-    ``DashboardDeletedStateFilter``.
+    they keep their normal ``ChartFilter`` visibility. The ownership scoping is
+    part of the cross-entity deleted-state contract: only the restore audience
+    may enumerate soft-deleted rows (kept consistent with the deleted-state
+    filters in the dashboard and dataset soft-delete rollouts).
     """
 
     arg_name = "chart_deleted_state"

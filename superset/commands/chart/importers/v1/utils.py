@@ -127,7 +127,7 @@ def import_chart(
             # finds the now-live row (the listener filters ``deleted_at IS
             # NULL``) and ``import_from_dict`` applies the config as field
             # updates on the existing object, preserving the PK.
-            existing.deleted_at = None
+            existing.restore()
             db.session.flush()
             config["id"] = existing.id
         else:
