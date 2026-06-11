@@ -75,6 +75,7 @@ import {
   EMPTY_CONTAINER_Z_INDEX,
 } from 'src/dashboard/constants';
 import DashboardVersionHistory from 'src/features/versionHistory/DashboardVersionHistory';
+import PreviewBanner from 'src/features/versionHistory/PreviewBanner';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
@@ -674,6 +675,9 @@ const DashboardBuilder = () => {
         </Droppable>
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
+        {isFeatureEnabled(FeatureFlag.VersionHistory) && (
+          <PreviewBanner entityType="dashboard" />
+        )}
         {!editMode &&
           !topLevelTabs &&
           dashboardLayout[DASHBOARD_GRID_ID]?.children?.length === 0 && (

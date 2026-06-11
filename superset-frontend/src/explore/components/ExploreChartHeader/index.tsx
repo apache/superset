@@ -18,7 +18,7 @@
  */
 import { FC, memo, useCallback, useEffect, useMemo, useState } from 'react';
 import { useHistory } from 'react-router-dom';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { QueryFormData, JsonObject } from '@superset-ui/core';
 import {
   Tooltip,
@@ -51,6 +51,7 @@ import { ChartState, ExplorePageInitialData } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 import { ReportObject } from 'src/features/reports/types';
 import { User } from 'src/types/bootstrapTypes';
+import { selectIsChartVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import { useExploreAdditionalActionsMenu } from '../useExploreAdditionalActionsMenu';
 import { useExploreMetadataBar } from './useExploreMetadataBar';
 
@@ -118,6 +119,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
   isSaveModalVisible,
 }) => {
   const dispatch = useDispatch();
+  const isVersionPreviewActive = useSelector(selectIsChartVersionPreviewActive);
   const { latestQueryFormData, sliceFormData } = chart;
   const [isPropertiesModalOpen, setIsPropertiesModalOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -274,15 +276,23 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
     () => ({
       title: sliceName ?? '',
       canEdit:
-        !slice ||
-        canOverwrite ||
-        (user?.userId !== undefined &&
-          (slice?.owners || []).includes(user.userId)),
+        !isVersionPreviewActive &&
+        (!slice ||
+          canOverwrite ||
+          (user?.userId !== undefined &&
+            (slice?.owners || []).includes(user.userId))),
       onSave: actions.updateChartTitle,
       placeholder: t('Add the name of the chart'),
       label: t('Chart title'),
     }),
-    [actions.updateChartTitle, canOverwrite, slice, sliceName, user?.userId],
+    [
+      actions.updateChartTitle,
+      canOverwrite,
+      isVersionPreviewActive,
+      slice,
+      sliceName,
+      user?.userId,
+    ],
   );
 
   const certificatiedBadgeProps = useMemo(
@@ -343,7 +353,7 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
           <Button
             buttonStyle="secondary"
             onClick={showModal}
-            disabled={saveDisabled}
+            disabled={saveDisabled || isVersionPreviewActive}
             data-test="query-save-button"
             css={saveButtonStyles}
             icon={<Icons.SaveOutlined />}
@@ -353,15 +363,16 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
         </div>
       </Tooltip>
     ),
-    [saveDisabled, showModal],
+    [isVersionPreviewActive, saveDisabled, showModal],
   );
 
   const menuDropdownProps = useMemo(
     () => ({
       open: isDropdownVisible,
       onOpenChange: setIsDropdownVisible,
+      disabled: isVersionPreviewActive,
     }),
-    [isDropdownVisible, setIsDropdownVisible],
+    [isDropdownVisible, isVersionPreviewActive, setIsDropdownVisible],
   );
 
   return (
