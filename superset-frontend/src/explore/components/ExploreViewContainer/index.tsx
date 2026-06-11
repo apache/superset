@@ -32,6 +32,8 @@ import {
   useComponentDidMount,
   usePrevious,
   isMatrixifyEnabled,
+  isFeatureEnabled,
+  FeatureFlag,
   QueryFormData,
   JsonObject,
   MatrixifyFormData,
@@ -87,6 +89,7 @@ import {
 } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 import { User } from 'src/types/bootstrapTypes';
+import ExploreVersionHistory from 'src/features/versionHistory/ExploreVersionHistory';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
@@ -1075,6 +1078,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         >
           {renderChartContainer()}
         </div>
+        {isFeatureEnabled(FeatureFlag.VersionHistory) && (
+          <ExploreVersionHistory />
+        )}
       </ExplorePanelContainer>
       {props.isSaveModalVisible && (
         <SaveModal

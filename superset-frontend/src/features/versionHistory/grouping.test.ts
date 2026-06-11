@@ -99,9 +99,9 @@ test('buildTimeline orders newest first even with shuffled input', () => {
     record({ transaction_id: 12, issued_at: '2025-12-06T10:00:00' }),
   ]);
 
-  expect(
-    entries.map(entry => (entry as SaveGroup).transactionId),
-  ).toEqual([14, 12, 10]);
+  expect(entries.map(entry => (entry as SaveGroup).transactionId)).toEqual([
+    14, 12, 10,
+  ]);
 });
 
 test('buildTimeline propagates restore action_kind to the group', () => {

@@ -1,0 +1,123 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { useCallback, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { getUrlParam } from 'src/utils/urlUtils';
+import { URL_PARAMS } from 'src/constants';
+import type { RootState } from 'src/dashboard/types';
+import type { ActivityInclude, ActivityRecord, SaveGroup } from './types';
+import {
+  closeVersionHistoryPanel,
+  openVersionHistoryPanel,
+  selectIsVersionHistoryPanelOpen,
+  selectVersionHistoryInclude,
+  selectVersionPreview,
+  selectVersionSessionLog,
+  setVersionHistoryInclude,
+  setVersionPreview,
+} from './reducer';
+import { openRelatedEntity } from './openRelated';
+import { useVersionActivity } from './useVersionActivity';
+import { groupHeadline } from './display';
+import VersionHistoryPanel from './VersionHistoryPanel';
+
+export default function DashboardVersionHistory() {
+  const dispatch = useDispatch();
+  const { addDangerToast } = useToasts();
+  const uuid = useSelector<RootState, string | undefined>(
+    state => state.dashboardInfo?.uuid,
+  );
+  const isPanelOpen = useSelector(selectIsVersionHistoryPanelOpen);
+  const include = useSelector(selectVersionHistoryInclude);
+  const preview = useSelector(selectVersionPreview);
+  const sessionLog = useSelector(selectVersionSessionLog);
+
+  useEffect(() => {
+    if (getUrlParam(URL_PARAMS.versionHistory)) {
+      dispatch(openVersionHistoryPanel('dashboard'));
+    }
+  }, [dispatch]);
+
+  const activity = useVersionActivity(
+    'dashboard',
+    isPanelOpen ? uuid : undefined,
+    include,
+  );
+
+  const handleClose = useCallback(() => {
+    dispatch(closeVersionHistoryPanel());
+  }, [dispatch]);
+
+  const handleIncludeChange = useCallback(
+    (value: ActivityInclude) => {
+      dispatch(setVersionHistoryInclude(value));
+    },
+    [dispatch],
+  );
+
+  const handlePreview = useCallback(
+    (group: SaveGroup) => {
+      if (!group.versionUuid) {
+        return;
+      }
+      dispatch(
+        setVersionPreview({
+          versionUuid: group.versionUuid,
+          transactionId: group.transactionId,
+          headline: groupHeadline('dashboard', group),
+          issuedAt: group.issuedAt,
+        }),
+      );
+    },
+    [dispatch],
+  );
+
+  const handleOpenRelated = useCallback(
+    (record: ActivityRecord) => {
+      openRelatedEntity(record, addDangerToast);
+    },
+    [addDangerToast],
+  );
+
+  // Restore and open-as-new flows are dispatched from here once the
+  // confirmation modal and fork actions land.
+  const handleRestore = useCallback(() => undefined, []);
+  const handleOpenAsNew = useCallback(() => undefined, []);
+
+  if (!isPanelOpen) {
+    return null;
+  }
+
+  return (
+    <VersionHistoryPanel
+      entityType="dashboard"
+      activity={activity}
+      include={include}
+      onIncludeChange={handleIncludeChange}
+      previewedTransactionId={preview?.transactionId ?? null}
+      onClose={handleClose}
+      onPreview={handlePreview}
+      onRestore={handleRestore}
+      onOpenAsNew={handleOpenAsNew}
+      onOpenRelated={handleOpenRelated}
+      sessionEntries={sessionLog}
+    />
+  );
+}

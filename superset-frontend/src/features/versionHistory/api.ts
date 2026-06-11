@@ -19,6 +19,7 @@
 import { SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import type {
+  ActivityEntityKind,
   ActivityInclude,
   ActivityResponse,
   ChartVersionSnapshot,
@@ -89,6 +90,31 @@ export async function restoreVersion(
     endpoint: `/api/v1/${API_RESOURCE[entityType]}/${uuid}/versions/${versionUuid}/restore`,
   });
   return json as { message: string };
+}
+
+/**
+ * Activity records identify related entities by uuid only; resolve the
+ * numeric id (needed for page urls) at click time via the list API.
+ */
+export async function resolveEntityId(
+  kind: ActivityEntityKind,
+  uuid: string,
+): Promise<number | null> {
+  const resource: Record<ActivityEntityKind, string> = {
+    chart: 'chart',
+    dashboard: 'dashboard',
+    dataset: 'dataset',
+  };
+  const q = rison.encode({
+    columns: ['id'],
+    filters: [{ col: 'uuid', opr: 'eq', value: uuid }],
+    page_size: 1,
+  });
+  const { json } = await SupersetClient.get({
+    endpoint: `/api/v1/${resource[kind]}/?q=${q}`,
+  });
+  const { result } = json as { result: Array<{ id: number }> };
+  return result.length > 0 ? result[0].id : null;
 }
 
 /**
