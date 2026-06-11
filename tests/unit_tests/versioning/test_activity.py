@@ -30,6 +30,7 @@ by the integration suite in
 
 from __future__ import annotations
 
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -430,6 +431,23 @@ def test_parser_accepts_iso_datetime_with_z_suffix() -> None:
     """Python <3.11 fromisoformat rejects 'Z'; the parser tolerates it."""
     params = parse_activity_query_params({"since": "2026-01-01T00:00:00Z"})
     assert params["since"].year == 2026
+
+
+def test_parser_normalises_z_suffix_to_naive_utc() -> None:
+    """The 'Z' result must be tz-NAIVE: ``issued_at`` is a naive column, so a
+    tz-aware bind shifts the comparison by the session offset (or raises) on
+    PostgreSQL. The 'Z' instant is already UTC, so the value is unchanged."""
+    since = parse_activity_query_params({"since": "2026-01-01T00:00:00Z"})["since"]
+    assert since.tzinfo is None
+    assert since == datetime(2026, 1, 1, 0, 0, 0)
+
+
+def test_parser_normalises_offset_to_naive_utc() -> None:
+    """A non-UTC offset is converted to UTC and stripped to naive, so the
+    comparison against the naive ``issued_at`` column is in the same frame."""
+    since = parse_activity_query_params({"since": "2026-01-01T05:00:00+02:00"})["since"]
+    assert since.tzinfo is None
+    assert since == datetime(2026, 1, 1, 3, 0, 0)  # 05:00 +02:00 -> 03:00 UTC
 
 
 def test_parser_rejects_invalid_include() -> None:

@@ -44,7 +44,7 @@ from __future__ import annotations
 
 import contextlib
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 from uuid import UUID
 
@@ -144,12 +144,24 @@ def _parse_page_size(raw: str | None) -> int:
 
 def _parse_iso_datetime(value: str) -> datetime | None:
     """Parse an ISO-8601 datetime string. Tolerates the trailing ``Z``
-    suffix that Python <3.11 ``fromisoformat`` rejects."""
+    suffix that Python <3.11 ``fromisoformat`` rejects, and normalises any
+    timezone-aware result to naive UTC.
+
+    The ``since`` / ``until`` filters bind directly against
+    ``version_transaction.issued_at``, which is ``sa.DateTime()`` — a
+    timezone-*naive* column (UTC by convention). Binding a tz-aware value
+    against it shifts the comparison by the session offset on PostgreSQL
+    (and raises on some drivers), so collapse aware inputs to naive UTC
+    here. Naive inputs pass through unchanged (already treated as UTC).
+    """
     candidate = value[:-1] + "+00:00" if value.endswith("Z") else value
     try:
-        return datetime.fromisoformat(candidate)
+        parsed = datetime.fromisoformat(candidate)
     except ValueError:
         return None
+    if parsed.tzinfo is not None:
+        parsed = parsed.astimezone(timezone.utc).replace(tzinfo=None)
+    return parsed
 
 
 def get_activity(
