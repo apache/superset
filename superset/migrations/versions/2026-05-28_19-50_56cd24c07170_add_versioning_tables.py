@@ -140,8 +140,6 @@ def upgrade() -> None:
     op.create_table(
         "dashboards_version",
         sa.Column("uuid", UUIDType(binary=True), nullable=True),
-        sa.Column("created_on", sa.DateTime(), nullable=True),
-        sa.Column("changed_on", sa.DateTime(), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("dashboard_title", sa.String(500), nullable=True),
         # ``MediumText()`` mirrors the live column type — on MySQL plain
@@ -161,8 +159,6 @@ def upgrade() -> None:
         sa.Column("published", sa.Boolean(), nullable=True),
         sa.Column("is_managed_externally", sa.Boolean(), nullable=True),
         sa.Column("external_url", sa.Text(), nullable=True),
-        sa.Column("created_by_fk", sa.Integer(), nullable=True),
-        sa.Column("changed_by_fk", sa.Integer(), nullable=True),
         sa.Column("transaction_id", sa.BigInteger(), nullable=False),
         sa.Column("end_transaction_id", sa.BigInteger(), nullable=True),
         sa.Column("operation_type", sa.SmallInteger(), nullable=False),
@@ -200,8 +196,6 @@ def upgrade() -> None:
     op.create_table(
         "slices_version",
         sa.Column("uuid", UUIDType(binary=True), nullable=True),
-        sa.Column("created_on", sa.DateTime(), nullable=True),
-        sa.Column("changed_on", sa.DateTime(), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("slice_name", sa.String(250), nullable=True),
         sa.Column("datasource_id", sa.Integer(), nullable=True),
@@ -214,14 +208,10 @@ def upgrade() -> None:
         sa.Column("perm", sa.String(1000), nullable=True),
         sa.Column("schema_perm", sa.String(1000), nullable=True),
         sa.Column("catalog_perm", sa.String(1000), nullable=True),
-        sa.Column("last_saved_at", sa.DateTime(), nullable=True),
-        sa.Column("last_saved_by_fk", sa.Integer(), nullable=True),
         sa.Column("certified_by", sa.Text(), nullable=True),
         sa.Column("certification_details", sa.Text(), nullable=True),
         sa.Column("is_managed_externally", sa.Boolean(), nullable=True),
         sa.Column("external_url", sa.Text(), nullable=True),
-        sa.Column("created_by_fk", sa.Integer(), nullable=True),
-        sa.Column("changed_by_fk", sa.Integer(), nullable=True),
         sa.Column("transaction_id", sa.BigInteger(), nullable=False),
         sa.Column("end_transaction_id", sa.BigInteger(), nullable=True),
         sa.Column("operation_type", sa.SmallInteger(), nullable=False),
@@ -259,8 +249,6 @@ def upgrade() -> None:
     op.create_table(
         "tables_version",
         sa.Column("uuid", UUIDType(binary=True), nullable=True),
-        sa.Column("created_on", sa.DateTime(), nullable=True),
-        sa.Column("changed_on", sa.DateTime(), nullable=True),
         sa.Column("id", sa.Integer(), nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("default_endpoint", sa.Text(), nullable=True),
@@ -288,8 +276,6 @@ def upgrade() -> None:
         sa.Column("normalize_columns", sa.Boolean(), nullable=True),
         sa.Column("always_filter_main_dttm", sa.Boolean(), nullable=True),
         sa.Column("folders", sa.JSON(), nullable=True),
-        sa.Column("created_by_fk", sa.Integer(), nullable=True),
-        sa.Column("changed_by_fk", sa.Integer(), nullable=True),
         sa.Column("transaction_id", sa.BigInteger(), nullable=False),
         sa.Column("end_transaction_id", sa.BigInteger(), nullable=True),
         sa.Column("operation_type", sa.SmallInteger(), nullable=False),
@@ -368,8 +354,12 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.Column(
+            # Integer, not SmallInteger: per-entity sequence within one
+            # transaction is assigned by unbounded enumerate(); a
+            # pathological diff (e.g. a giant position_json rewrite) could
+            # overflow SmallInteger's 32767 on Postgres/MySQL.
             "sequence",
-            sa.SmallInteger(),
+            sa.Integer(),
             nullable=False,
         ),
         sa.Column(
@@ -402,11 +392,6 @@ def upgrade() -> None:
         "ix_version_changes_kind",
         "version_changes",
         ["kind"],
-    )
-    op.create_index(
-        "ix_version_changes_transaction_id",
-        "version_changes",
-        ["transaction_id"],
     )
     op.create_index(
         "ix_version_changes_entity",

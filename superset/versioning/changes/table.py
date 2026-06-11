@@ -52,7 +52,9 @@ version_changes_table = sa.Table(
     sa.Column("transaction_id", sa.BigInteger, nullable=False),
     sa.Column("entity_kind", sa.String(32), nullable=False),
     sa.Column("entity_id", sa.Integer, nullable=False),
-    sa.Column("sequence", sa.SmallInteger, nullable=False),
+    # Integer, not SmallInteger: matches the migration — per-entity
+    # sequence within a transaction is assigned by unbounded enumerate().
+    sa.Column("sequence", sa.Integer, nullable=False),
     sa.Column("kind", sa.String(32), nullable=False),
     sa.Column("operation", sa.String(16), nullable=False),
     sa.Column("path", sa.JSON, nullable=False),
@@ -66,7 +68,9 @@ version_changes_table = sa.Table(
         name="uq_version_changes_tx_entity_sequence",
     ),
     sa.Index("ix_version_changes_kind", "kind"),
-    sa.Index("ix_version_changes_transaction_id", "transaction_id"),
+    # No standalone transaction_id index: the UNIQUE constraint above
+    # leads with transaction_id, so its backing index already serves
+    # transaction_id-prefix lookups on every dialect.
     sa.Index("ix_version_changes_entity", "entity_kind", "entity_id"),
     extend_existing=True,
 )
