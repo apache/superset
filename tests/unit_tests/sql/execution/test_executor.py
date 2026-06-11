@@ -393,6 +393,8 @@ def test_execute_disallowed_mysql_kill_function(
         {
             "SQL_QUERY_MUTATOR": None,
             "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "QUERY_LOGGER": None,
             "DISALLOWED_SQL_FUNCTIONS": {"mysql": {"kill"}},
         },
     )
@@ -400,8 +402,7 @@ def test_execute_disallowed_mysql_kill_function(
     result = database.execute("SELECT KILL(123)")
 
     assert result.status == QueryStatus.FAILED
-    assert result.error_message is not None
-    assert "kill" in result.error_message.lower()
+    assert result.error_message == "Disallowed SQL functions: kill"
 
 
 def test_execute_disallowed_tables(
