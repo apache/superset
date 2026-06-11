@@ -501,6 +501,15 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def get_disallowed_tables(self, tables: set[str]) -> set[str]:
+        """
+        Return the subset of ``tables`` referenced by this statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: The matched entries, in their original denylist form
+        """
+        raise NotImplementedError()
+
     def get_limit_value(self) -> int | None:
         """
         Get the limit value of the statement.
@@ -604,6 +613,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             "LO_PUT",
             "LO_CREATE",
             "LOWRITE",
+            "LO_UNLINK",
             # PostgreSQL sequence mutators. `SELECT setval('seq', N)` looks
             # like a read but changes sequence state for every subsequent
             # `nextval` caller.
@@ -975,6 +985,21 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param tables: Set of table names to check for (case-insensitive)
         :return: True if any of the given tables is referenced
         """
+        return bool(self.get_disallowed_tables(tables))
+
+    def get_disallowed_tables(self, tables: set[str]) -> set[str]:
+        """
+        Return the subset of ``tables`` referenced by this statement.
+
+        Matching mirrors :meth:`check_tables_present`: bare entries match by
+        table name regardless of schema, while schema-qualified entries
+        require the schema to match too. Entries are returned in their
+        original denylist form so callers can report exactly which
+        denylisted tables were hit.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: The matched entries, in their original denylist form
+        """
         present_bare: set[str] = set()
         present_qualified: set[str] = set()
         for t in self.tables:
@@ -982,15 +1007,15 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             present_bare.add(bare)
             if t.schema:
                 present_qualified.add(f"{t.schema.lower()}.{bare}")
+        found: set[str] = set()
         for entry in tables:
             needle = entry.lower()
             if "." in needle:
                 if needle in present_qualified:
-                    return True
-            else:
-                if needle in present_bare:
-                    return True
-        return False
+                    found.add(entry)
+            elif needle in present_bare:
+                found.add(entry)
+        return found
 
     def get_limit_value(self) -> int | None:
         """
@@ -1428,6 +1453,16 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         logger.warning("Kusto KQL doesn't support checking for tables present.")
         return False
 
+    def get_disallowed_tables(self, tables: set[str]) -> set[str]:
+        """
+        Return the subset of ``tables`` referenced by this statement.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: The matched entries, in their original denylist form
+        """
+        logger.warning("Kusto KQL doesn't support checking for tables present.")
+        return set()
+
     def get_limit_value(self) -> int | None:
         """
         Get the limit value of the statement.
@@ -1606,9 +1641,19 @@ class SQLScript:
         :param tables: Set of table names to check for (case-insensitive)
         :return: True if any of the tables are present
         """
-        return any(
-            statement.check_tables_present(tables) for statement in self.statements
-        )
+        return bool(self.get_disallowed_tables(tables))
+
+    def get_disallowed_tables(self, tables: set[str]) -> set[str]:
+        """
+        Return the subset of ``tables`` referenced anywhere in the script.
+
+        :param tables: Set of table names to check for (case-insensitive)
+        :return: The matched entries, in their original denylist form
+        """
+        found: set[str] = set()
+        for statement in self.statements:
+            found |= statement.get_disallowed_tables(tables)
+        return found
 
     def is_valid_ctas(self) -> bool:
         """

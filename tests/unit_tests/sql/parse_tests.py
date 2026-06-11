@@ -1458,6 +1458,8 @@ def test_is_mutating_anonymous_block(sql: str, expected: bool) -> None:
         ("SELECT lo_put(12345, 0, decode('00', 'hex'))", True),
         ("SELECT lo_create(0)", True),
         ("SELECT lowrite(12345, decode('00', 'hex'))", True),
+        # lo_unlink deletes a large object outright.
+        ("SELECT lo_unlink(12345)", True),
         # PostgreSQL sequence mutator. setval() looks like a read but
         # advances sequence state for every subsequent nextval caller.
         ("SELECT setval('public.my_seq', 1000)", True),
@@ -3511,6 +3513,51 @@ def test_check_tables_present_schema_qualified(
     DISALLOWED_SQL_TABLES entries for each remain effective.
     """
     assert SQLScript(sql, engine).check_tables_present(denylist) == expected
+
+
+@pytest.mark.parametrize(
+    "engine, sql, denylist, expected",
+    [
+        # A schema-qualified match is reported in its original denylist form,
+        # not collapsed to the bare leaf name and not the whole denylist.
+        (
+            "postgresql",
+            "SELECT * FROM information_schema.tables",
+            {"information_schema.tables", "information_schema.columns", "pg_roles"},
+            {"information_schema.tables"},
+        ),
+        # Bare-name match is reported as-is.
+        (
+            "postgresql",
+            "SELECT * FROM pg_catalog.pg_stat_activity",
+            {"pg_stat_activity", "pg_roles"},
+            {"pg_stat_activity"},
+        ),
+        # Multiple references across statements union their matches.
+        (
+            "postgresql",
+            "SELECT * FROM information_schema.tables; SELECT * FROM pg_roles",
+            {"information_schema.tables", "pg_roles", "pg_settings"},
+            {"information_schema.tables", "pg_roles"},
+        ),
+        # No match returns an empty set.
+        (
+            "postgresql",
+            "SELECT * FROM my_table",
+            {"information_schema.tables", "pg_roles"},
+            set(),
+        ),
+    ],
+)
+def test_get_disallowed_tables(
+    engine: str, sql: str, denylist: set[str], expected: set[str]
+) -> None:
+    """
+    `get_disallowed_tables` returns exactly the denylist entries referenced,
+    in their original (possibly schema-qualified) form, so callers can report
+    precisely which tables were hit instead of echoing the whole denylist.
+    """
+    assert SQLScript(sql, engine).get_disallowed_tables(denylist) == expected
 
 
 @pytest.mark.parametrize(

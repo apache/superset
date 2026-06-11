@@ -717,15 +717,9 @@ class SQLExecutor:
         if not engine_disallowed:
             return None
 
-        # Single-pass AST-based table detection
-        found: set[str] = set()
-        for statement in script.statements:
-            present = {table.table.lower() for table in statement.tables}
-            for table in engine_disallowed:
-                if table.lower() in present:
-                    found.add(table)
-
-        return found or None
+        # Honors schema-qualified denylist entries (e.g.
+        # ``information_schema.tables``) as well as bare names.
+        return script.get_disallowed_tables(engine_disallowed) or None
 
     def _apply_rls_to_script(
         self, script: SQLScript, catalog: str | None, schema: str | None
