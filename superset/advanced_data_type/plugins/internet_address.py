@@ -66,9 +66,9 @@ def cidr_func(req: AdvancedDataTypeRequest) -> AdvancedDataTypeResponse:
         else:
             resp["display_value"] = ", ".join(
                 map(  # noqa: C417
-                    lambda x: (
-                        f"{x['start']} - {x['end']}" if isinstance(x, dict) else str(x)
-                    ),
+                    lambda x: f"{x['start']} - {x['end']}"
+                    if isinstance(x, dict)
+                    else str(x),
                     resp["values"],
                 )
             )
