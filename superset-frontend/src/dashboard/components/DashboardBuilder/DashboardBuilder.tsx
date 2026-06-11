@@ -20,7 +20,13 @@
 import cx from 'classnames';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { addAlpha, JsonObject, useElementOnScreen } from '@superset-ui/core';
+import {
+  addAlpha,
+  isFeatureEnabled,
+  FeatureFlag,
+  JsonObject,
+  useElementOnScreen,
+} from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { EmptyState, Loading } from '@superset-ui/core/components';
@@ -68,6 +74,7 @@ import {
   OPEN_FILTER_BAR_WIDTH,
   EMPTY_CONTAINER_Z_INDEX,
 } from 'src/dashboard/constants';
+import DashboardVersionHistory from 'src/features/versionHistory/DashboardVersionHistory';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
@@ -126,6 +133,17 @@ const StyledContent = styled.div<{
   grid-row: 2;
   /* @z-index-above-dashboard-header (100) + 1 = 101 */
   ${({ fullSizeChartId }) => fullSizeChartId && `z-index: 101;`}
+`;
+
+// Sticks alongside the page scroll so the panel stays fully visible.
+const VersionHistoryColumn = styled.div`
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: 100vh;
+  z-index: 99;
 `;
 
 const DashboardContentWrapper = styled.div`
@@ -725,6 +743,11 @@ const DashboardBuilder = () => {
           </StyledDashboardContent>
         </DashboardContentWrapper>
       </StyledContent>
+      {isFeatureEnabled(FeatureFlag.VersionHistory) && (
+        <VersionHistoryColumn>
+          <DashboardVersionHistory />
+        </VersionHistoryColumn>
+      )}
       {dashboardIsSaving && (
         <Loading
           css={css`
