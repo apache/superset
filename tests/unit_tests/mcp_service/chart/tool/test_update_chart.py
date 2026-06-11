@@ -20,6 +20,7 @@ Unit tests for update_chart MCP tool
 """
 
 import importlib
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -1350,7 +1351,7 @@ class TestUpdateChartSqlMetric:
 class TestBuildUpdatePayloadDatasetId:
     """Tests for dataset_id support in _build_update_payload."""
 
-    def test_dataset_only_update_returns_datasource_fields(self):
+    def test_dataset_only_update_returns_datasource_fields(self) -> None:
         """dataset_id alone produces a payload with datasource_id + datasource_type."""
         request = UpdateChartRequest(identifier=1, dataset_id=42)
         chart = Mock()
@@ -1361,7 +1362,7 @@ class TestBuildUpdatePayloadDatasetId:
         assert isinstance(result, dict)
         assert result == {"datasource_id": 42, "datasource_type": "table"}
 
-    def test_dataset_and_name_update(self):
+    def test_dataset_and_name_update(self) -> None:
         """dataset_id + chart_name: payload includes datasource fields
         and slice_name."""
         request = UpdateChartRequest(identifier=1, dataset_id=42, chart_name="Renamed")
@@ -1488,13 +1489,13 @@ class TestUpdateChartDatasetIdIntegration:
     @pytest.mark.asyncio
     async def test_dataset_id_passed_to_update_command(
         self,
-        mock_db_session,
-        mock_find_by_id,
-        mock_validate,
-        mock_update_cmd_cls,
-        mock_check_access,
-        mcp_server,
-    ):
+        mock_db_session: Any,
+        mock_find_by_id: Mock,
+        mock_validate: Mock,
+        mock_update_cmd_cls: Mock,
+        mock_check_access: Mock,
+        mcp_server: Any,
+    ) -> None:
         """dataset_id in request is forwarded to UpdateChartCommand payload."""
         mock_chart = Mock()
         mock_chart.id = 55
@@ -1544,12 +1545,12 @@ class TestUpdateChartDatasetIdIntegration:
     @pytest.mark.asyncio
     async def test_dataset_only_rebind_invalid_dataset_returns_error(
         self,
-        mock_db_session,
-        mock_chart_find,
-        mock_dataset_find,
-        mock_check_access,
-        mcp_server,
-    ):
+        mock_db_session: Any,
+        mock_chart_find: Mock,
+        mock_dataset_find: Mock,
+        mock_check_access: Mock,
+        mcp_server: Any,
+    ) -> None:
         """dataset_id pointing to a non-existent dataset returns
         DatasetNotAccessible."""
         mock_chart = Mock()
@@ -1594,12 +1595,12 @@ class TestUpdateChartDatasetIdIntegration:
     @pytest.mark.asyncio
     async def test_dataset_only_rebind_invalid_dataset_preview_returns_error(
         self,
-        mock_db_session,
-        mock_chart_find,
-        mock_dataset_find,
-        mock_check_access,
-        mcp_server,
-    ):
+        mock_db_session: Any,
+        mock_chart_find: Mock,
+        mock_dataset_find: Mock,
+        mock_check_access: Mock,
+        mcp_server: Any,
+    ) -> None:
         """dataset_id pointing to a non-existent dataset returns error in
         preview path."""
         mock_chart = Mock()
