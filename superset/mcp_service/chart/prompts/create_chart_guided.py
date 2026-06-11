@@ -140,7 +140,8 @@ Example table config:
 SUM, COUNT, AVG, MIN, MAX, COUNT_DISTINCT, STDDEV, VAR, MEDIAN
 
 ## Custom SQL Metrics
-For ratio metrics, weighted averages, and conditional aggregates, use `sql_expression` with a `label`:
+For ratio metrics, weighted averages, and conditional aggregates,
+use `sql_expression` with a `label`:
 `{{"sql_expression": "SUM(revenue) / COUNT(*)", "label": "Avg Revenue"}}`
 Do NOT combine `sql_expression` with `name` or `aggregate`.
 
