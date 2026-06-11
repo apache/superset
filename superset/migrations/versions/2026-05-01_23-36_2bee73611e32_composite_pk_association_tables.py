@@ -226,7 +226,9 @@ def _assert_no_duplicates(conn: Connection, t: AssociationTable) -> None:
 
 
 def _build_pre_upgrade_table(
-    insp: sa.engine.reflection.Inspector, t: AssociationTable
+    insp: sa.engine.reflection.Inspector,
+    t: AssociationTable,
+    fks: list[dict] | None = None,
 ) -> sa.Table:
     """Build a ``Table`` object representing the pre-upgrade schema of ``t``,
     explicitly *without* any redundant ``UniqueConstraint(t.fk1, t.fk2)``.
@@ -237,10 +239,19 @@ def _build_pre_upgrade_table(
 
     Reflects column types and FK targets (with original FK constraint names
     preserved) from the live database; only the redundant UNIQUE is omitted.
+
+    *fks* lets a caller pass a pre-captured ``get_foreign_keys`` result.
+    The MySQL upgrade path drops the live FK constraints before building
+    this table, so re-reflecting here would only see them via the
+    Inspector's per-instance ``info_cache`` — an implementation detail,
+    not a contract. Passing the pre-drop list makes the dependency
+    explicit instead of relying on reflection caching.
     """
     md = sa.MetaData()
+    if fks is None:
+        fks = insp.get_foreign_keys(t.name)
     fks_for_col: dict[str, list[dict]] = {}
-    for fk in insp.get_foreign_keys(t.name):
+    for fk in fks:
         for col_name in fk["constrained_columns"]:
             fks_for_col.setdefault(col_name, []).append(fk)
 
@@ -378,14 +389,19 @@ def upgrade() -> None:
                     batch_op.create_primary_key(f"pk_{t.name}", [t.fk1, t.fk2])
                     _enforce_not_null_for_sqlite(batch_op, t, conn)
             else:
+                # Capture the FK list BEFORE dropping: the copy_from table
+                # below must embed these constraints, and re-reflecting
+                # after the drop only works via the Inspector's
+                # per-instance info_cache (see _build_pre_upgrade_table).
+                pre_drop_fks = insp.get_foreign_keys(t.name)
                 if conn.dialect.name == "mysql":
-                    for fk in insp.get_foreign_keys(t.name):
+                    for fk in pre_drop_fks:
                         if fk_name := fk.get("name"):
                             op.drop_constraint(fk_name, t.name, type_="foreignkey")
                 with op.batch_alter_table(
                     t.name,
                     recreate="always",
-                    copy_from=_build_pre_upgrade_table(insp, t),
+                    copy_from=_build_pre_upgrade_table(insp, t, fks=pre_drop_fks),
                 ) as batch_op:
                     batch_op.drop_column("id")
                     batch_op.create_primary_key(f"pk_{t.name}", [t.fk1, t.fk2])
