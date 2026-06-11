@@ -75,6 +75,11 @@ const registerView: typeof viewsApi.registerView = (
   viewRegistry.set(id, { view, location, provider });
 
   const ids = locationIndex.get(location) ?? new Set();
+  // Re-registering an existing id must reflect its new recency. A Set preserves
+  // first-insertion order and `add` is a no-op for an existing member, so delete
+  // first to move the id to the end. Consumers that select the most-recently
+  // registered view (e.g. the chatbot resolver) depend on this ordering.
+  ids.delete(id);
   ids.add(id);
   locationIndex.set(location, ids);
 

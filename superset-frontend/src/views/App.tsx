@@ -118,7 +118,7 @@ const App = () => (
           The singleton chatbot bubble. Rendered as a sibling of the route
           Switch — inside ExtensionsStartup so chatbot extensions have been
           loaded and registered, but outside the Switch so the bubble persists
-          across route changes (SIP §3.2).
+          across route changes.
         */}
         {isFeatureEnabled(FeatureFlag.EnableExtensions) && <ChatbotMount />}
       </ExtensionsStartup>
