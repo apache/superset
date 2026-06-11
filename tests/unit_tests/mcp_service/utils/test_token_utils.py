@@ -20,9 +20,11 @@ Unit tests for MCP service token utilities.
 """
 
 from typing import Any, List
+from unittest.mock import patch
 
 from pydantic import BaseModel
 
+from superset.mcp_service.utils import token_utils
 from superset.mcp_service.utils.token_utils import (
     _replace_collections_with_summaries,
     _summarize_large_dicts,
@@ -45,29 +47,65 @@ class TestEstimateTokenCount:
     """Test estimate_token_count function."""
 
     def test_estimate_string(self) -> None:
-        """Should estimate tokens for a string."""
+        """Should produce a positive non-zero estimate for a normal string.
+
+        We don't assert on a specific number because the result depends on
+        which tokenizer is loaded (tiktoken when available, char heuristic
+        otherwise).
+        """
         text = "Hello world"
         result = estimate_token_count(text)
-        expected = int(len(text) / CHARS_PER_TOKEN)
-        assert result == expected
+        assert result > 0
 
     def test_estimate_bytes(self) -> None:
-        """Should estimate tokens for bytes."""
-        text = b"Hello world"
-        result = estimate_token_count(text)
-        expected = int(len(text) / CHARS_PER_TOKEN)
-        assert result == expected
+        """Bytes input should be decoded and produce the same count as the
+        equivalent string."""
+        text = "Hello world"
+        assert estimate_token_count(text.encode("utf-8")) == estimate_token_count(text)
 
     def test_empty_string(self) -> None:
-        """Should return 0 for empty string."""
+        """Should return 0 for empty string and empty bytes."""
         assert estimate_token_count("") == 0
+        assert estimate_token_count(b"") == 0
 
     def test_json_like_content(self) -> None:
-        """Should estimate tokens for JSON-like content."""
+        """JSON content should produce a positive estimate."""
         json_str = '{"name": "test", "value": 123, "items": [1, 2, 3]}'
-        result = estimate_token_count(json_str)
-        assert result > 0
-        assert result == int(len(json_str) / CHARS_PER_TOKEN)
+        assert estimate_token_count(json_str) > 0
+
+    def test_long_text_roughly_scales_with_length(self) -> None:
+        """A doubled string should produce roughly double the token count
+        (within ±10%)."""
+        small = "the quick brown fox jumps over the lazy dog. " * 20
+        large = small * 2
+        small_n = estimate_token_count(small)
+        large_n = estimate_token_count(large)
+        # Within 10% of 2x — both tokenizers (tiktoken and the char
+        # fallback) preserve length monotonicity.
+        assert 1.8 * small_n <= large_n <= 2.2 * small_n
+
+    def test_fallback_uses_chars_per_token_when_tiktoken_unavailable(
+        self,
+    ) -> None:
+        """When the tiktoken encoding is None (not installed), the
+        function falls back to len/CHARS_PER_TOKEN math."""
+        text = "x" * 100
+        with patch.object(token_utils, "_ENCODING", None):
+            result = estimate_token_count(text)
+        assert result == int(100 / CHARS_PER_TOKEN)
+
+    def test_fallback_when_tiktoken_encode_raises(self) -> None:
+        """A misbehaving encoding should fall back to the char heuristic
+        rather than raise — the size guard must never fail-open."""
+
+        class BoomEncoding:
+            def encode(self, text: str) -> list[int]:
+                raise ValueError("simulated tiktoken failure")
+
+        text = "abc" * 50
+        with patch.object(token_utils, "_ENCODING", BoomEncoding()):
+            result = estimate_token_count(text)
+        assert result == int(len(text) / CHARS_PER_TOKEN)
 
 
 class TestEstimateResponseTokens:
