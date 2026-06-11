@@ -229,7 +229,7 @@ Schedule the cutover in a quiet window. Runtime reads use only the single config
 The migration is transactional (all-or-nothing) and idempotent — it can be safely re-run or resumed. Note that AES-GCM, unlike AES-CBC, does not support querying directly over encrypted columns; audit any code that filters on an encrypted column before switching. See the SIP at `docs/sip/authenticated-encryption-at-rest.md` for details.
 ### Soft delete and restore for datasets
 
-`DELETE /api/v1/dataset/<id>` no longer hard-deletes the dataset. The row is marked with a `deleted_at` timestamp and hidden from all list, detail, and lookup endpoints. Datasets in this state are excluded from default queries and from relationship loads (e.g. `database.tables`).
+`DELETE /api/v1/dataset/<id>` no longer hard-deletes the dataset (the bulk-delete endpoint behaves the same way). The row is marked with a `deleted_at` timestamp and hidden from all list, detail, and lookup endpoints. Datasets in this state are excluded from default queries and from relationship loads (e.g. `database.tables`).
 
 **No cascade in v1.** Soft-delete does not propagate to dependent charts or dashboards: they remain visible. Loading a chart whose dataset is soft-deleted surfaces a "datasource not found" error at chart-load time. Restore the dataset to recover.
 
@@ -237,7 +237,7 @@ The migration is transactional (all-or-nothing) and idempotent — it can be saf
 
 **Side-effect change for operators.** Because the row is no longer physically deleted, FAB `ab_view_menu` / permission-view rows tied to the dataset are also preserved. Downstream automation that relied on `DELETE /api/v1/dataset/<id>` cleaning up those rows must now react to the new `POST /api/v1/dataset/<uuid>/restore` lifecycle, or call the eventual hard-delete endpoint.
 
-**New endpoint** — `POST /api/v1/dataset/<uuid>/restore` clears `deleted_at` and returns the dataset to active state. Requires `can_write on Dataset` and ownership of the row (or admin). Soft-deleted datasets can also be surfaced in the list endpoint via the new `dataset_deleted_state` rison filter: `include` returns both live and soft-deleted rows, `only` returns just the soft-deleted ones. Any other value is ignored.
+**New endpoint** — `POST /api/v1/dataset/<uuid>/restore` clears `deleted_at` and returns the dataset to active state. Requires `can_write on Dataset` and ownership of the row (or admin). Soft-deleted datasets can also be surfaced in the list endpoint via the new `dataset_deleted_state` rison filter: `include` returns both live and soft-deleted rows, `only` returns just the soft-deleted ones. Any other value is ignored. For non-admin users, soft-deleted rows are limited to datasets they own — the same audience that can restore them.
 
 **Permissions migration:** existing role grants of `can_write on Dataset` cover the new restore endpoint automatically; no role migration is required.
 

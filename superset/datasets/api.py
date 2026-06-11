@@ -492,10 +492,15 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
-        """Delete a Dataset.
+        """Soft-delete a Dataset.
+
+        Marks the dataset as deleted (sets ``deleted_at``) and hides it from
+        list/detail endpoints and relationship loads; the row is preserved
+        and recoverable via ``POST /api/v1/dataset/<uuid>/restore`` by an
+        owner or admin.
         ---
         delete:
-          summary: Delete a dataset
+          summary: Delete a dataset (soft delete; recoverable via restore)
           parameters:
           - in: path
             schema:
@@ -885,10 +890,15 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Bulk delete datasets.
+        """Bulk soft-delete datasets.
+
+        Marks each dataset as deleted (sets ``deleted_at``) and hides it from
+        list/detail endpoints and relationship loads; rows are preserved and
+        recoverable via ``POST /api/v1/dataset/<uuid>/restore`` by an owner
+        or admin.
         ---
         delete:
-          summary: Bulk delete datasets
+          summary: Bulk delete datasets (soft delete; recoverable via restore)
           parameters:
           - in: query
             name: q
