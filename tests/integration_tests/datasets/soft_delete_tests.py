@@ -391,20 +391,26 @@ class TestDatasetRestore(SupersetTestCase):
             db.session.commit()
 
     # Note: a ``test_restore_blocked_by_active_logical_duplicate`` integration
-    # test was attempted here but is unreachable. The ``tables`` table carries
-    # two DB-level unique constraints on the logical identity (the newer
-    # ``UniqueConstraint("database_id", "catalog", "schema", "table_name")``
-    # in the model plus the legacy ``_customer_location_uc`` from the 2016
-    # ``b4456560d4f3`` migration), so the "delete -> seed twin -> restore"
-    # setup cannot satisfy step 2 — the DB rejects the twin insert before the
-    # application-level restore check can be exercised. The restore-side check
+    # test is deliberately absent: the "delete -> seed twin -> restore" setup
+    # is blocked at step 2 by a DB-level constraint, though *which* constraint
+    # depends on how the schema was built. ``metadata.create_all`` (unit-test
+    # schemas) materializes the model's otherwise metadata-only 4-column
+    # ``UniqueConstraint``; migration-built databases instead still carry the
+    # legacy 3-column ``_customer_location_uc`` from the 2016 ``b4456560d4f3``
+    # migration — the 2024 ``df3d7e2eb9a4`` migration that intends to drop it
+    # is a silent no-op (it passes a list to
+    # ``generic_find_uq_constraint_name``, which compares it to a set; the
+    # comparison never matches). Seeding a NULL-schema twin would dodge the
+    # constraint, but a NULL-schema row would not match the application
+    # check's identity predicate either. The restore-side check
     # ``DatasetDAO.has_active_logical_duplicate`` (called from
-    # ``RestoreDatasetCommand.validate`` and the v1 importer) is kept as
-    # defensive code (cleaner 422 if the DB constraint is ever relaxed) and is
-    # covered by ``tests/unit_tests/commands/dataset/restore_test.py::
+    # ``RestoreDatasetCommand.validate`` and the v1 importer) yields a clean
+    # 422 instead of an opaque IntegrityError and guards any schema where the
+    # legacy constraint is eventually dropped for real; it is covered by
+    # ``tests/unit_tests/commands/dataset/restore_test.py::
     # test_restore_dataset_logical_duplicate_raises`` plus the catalog-
-    # normalization tests in ``tests/unit_tests/dao/dataset_test.py`` at
-    # the mocked level. The create-side defense is covered end-to-end by
+    # normalization tests in ``tests/unit_tests/dao/dataset_test.py``. The
+    # create-side defense is covered end-to-end by
     # ``test_create_blocked_by_soft_deleted_logical_duplicate`` below.
 
     def test_create_blocked_by_soft_deleted_logical_duplicate(self) -> None:
@@ -414,8 +420,10 @@ class TestDatasetRestore(SupersetTestCase):
         Pins the contract that ``DatasetDAO.validate_uniqueness`` bypasses
         the soft-delete visibility filter, so a soft-deleted row blocks
         creation of a new dataset at the same logical identity at the
-        application layer (clean 422 instead of an opaque 500
-        IntegrityError from the DB-level unique constraint).
+        application layer — a clean 422 instead of an opaque
+        IntegrityError from whichever DB-level constraint applies (or a
+        silent active twin where none does; DB-level enforcement is
+        inconsistent across schema builds).
         """
         dataset = self._get_example_dataset()
         original_id = dataset.id

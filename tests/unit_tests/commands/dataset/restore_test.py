@@ -110,10 +110,13 @@ def test_restore_dataset_logical_duplicate_raises(app_context: None) -> None:
     """Restore raises DatasetLogicalDuplicateError when another active dataset
     already references the same physical table.
 
-    SqlaTable uniqueness is enforced in application code (no DB constraint),
+    DB-level enforcement of SqlaTable logical uniqueness is inconsistent
+    across schema builds (the model-level UniqueConstraint is metadata-only;
+    the legacy _customer_location_uc has no catalog leg and is NULL-leaky),
     so a soft-deleted dataset can have its logical slot claimed by a new
     active row before restore. The command refuses the restore so the
-    operator (not the database) sees a clean error.
+    operator sees a clean error instead of an IntegrityError or a silent
+    twin.
     """
     from superset.commands.dataset.exceptions import DatasetLogicalDuplicateError
     from superset.commands.dataset.restore import RestoreDatasetCommand

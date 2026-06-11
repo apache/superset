@@ -31,12 +31,16 @@ class RestoreDatasetCommand(BaseRestoreCommand[SqlaTable]):
     """Restore a soft-deleted dataset by clearing its ``deleted_at`` field.
 
     Most behaviour is inherited from ``BaseRestoreCommand``. The override
-    here adds a logical-duplicate check: ``SqlaTable`` uniqueness is
-    enforced in application code (no DB constraint), so it is possible
-    for another active dataset to have claimed the same ``(database_id,
-    catalog, schema, table_name)`` while this one was soft-deleted.
-    Restore should not silently produce two active datasets pointing at
-    the same physical table.
+    here adds a logical-duplicate check: DB-level enforcement of
+    ``SqlaTable`` logical uniqueness is inconsistent (the model-level
+    4-column ``UniqueConstraint`` is metadata-only — no migration creates
+    it — and the legacy 3-column ``_customer_location_uc`` has no catalog
+    leg and is NULL-leaky), so another active dataset may have claimed the
+    same physical identity while this one was soft-deleted. The
+    application-level check refuses the restore with a clean 422 rather
+    than relying on the DB, which would either reject with an opaque
+    IntegrityError or — where no constraint applies — silently allow two
+    active datasets pointing at the same physical table.
     """
 
     dao = DatasetDAO
@@ -46,9 +50,11 @@ class RestoreDatasetCommand(BaseRestoreCommand[SqlaTable]):
 
     def validate(self) -> SqlaTable:  # type: ignore[override]
         model = super().validate()
-        # ``SqlaTable`` uniqueness is enforced in application code (no DB
-        # constraint), so restoring must refuse if another active dataset
-        # claimed the same physical table while this one was soft-deleted.
+        # DB-level uniqueness enforcement is inconsistent across schema
+        # builds (see class docstring), so restoring must refuse here if
+        # another active dataset claimed the same physical table while this
+        # one was soft-deleted — a clean 422 instead of an IntegrityError
+        # or a silent twin.
         if DatasetDAO.has_active_logical_duplicate(model):
             raise DatasetLogicalDuplicateError()
         return model

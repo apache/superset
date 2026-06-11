@@ -313,7 +313,7 @@ def import_dataset(  # noqa: C901
             # ambiguous import would leave the dataset half-restored
             # (``deleted_at = None`` but upload contents unapplied).
             original_deleted_at = existing.deleted_at
-            existing.deleted_at = None
+            existing.restore()
             db.session.flush()
             is_soft_deleted_match = True
             config["id"] = existing.id
@@ -395,7 +395,7 @@ def import_dataset(  # noqa: C901
     # import recursively to include columns and metrics
     try:
         dataset = SqlaTable.import_from_dict(config, recursive=True, sync=sync)
-    except MultipleResultsFound:
+    except MultipleResultsFound as ex:
         # Finding multiple results when importing a dataset only happens because initially  # noqa: E501
         # datasets were imported without schemas (eg, `examples.NULL.users`), and later
         # they were fixed to have the default schema (eg, `examples.public.users`). If a
@@ -423,7 +423,7 @@ def import_dataset(  # noqa: C901
                 "(likely from the NULL-schema migration). Cannot restore-"
                 "and-update via re-import; resolve the duplicate manually "
                 "before retrying."
-            ) from None
+            ) from ex
         # On the non-soft-deleted overwrite path the legacy contract
         # holds: return the existing row unmodified. Bypasses the
         # visibility filter so a soft-deleted duplicate can be located
