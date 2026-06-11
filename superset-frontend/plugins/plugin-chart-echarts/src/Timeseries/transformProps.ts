@@ -25,6 +25,7 @@ import {
   buildCustomFormatters,
   CategoricalColorNamespace,
   CurrencyFormatter,
+  DataRecordValue,
   ensureIsArray,
   tooltipHtml,
   getCustomFormatter,
@@ -78,6 +79,7 @@ import {
   extractSeries,
   extractShowValueIndexes,
   extractTooltipKeys,
+  getAreaScaledSymbolSize,
   getAxisType,
   getColtypesMapping,
   getHorizontalLegendAvailableWidth,
@@ -228,6 +230,8 @@ export default function transformProps(
     logAxis,
     markerEnabled,
     markerSize,
+    maxMarkerSize = 30,
+    minMarkerSize = 5,
     metrics,
     minorSplitLine,
     minorTicks,
@@ -239,6 +243,7 @@ export default function transformProps(
     seriesType,
     showLegend,
     showValue,
+    size,
     colorByPrimaryAxis,
     sliceId,
     sortSeriesType,
@@ -321,7 +326,7 @@ export default function transformProps(
     seriesType,
   );
 
-  const [rawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
+  const [allRawSeries, sortedTotalValues, minPositiveValue] = extractSeries(
     rebasedData,
     {
       fillNeighborValue: stack && !forecastEnabled ? 0 : undefined,
@@ -337,6 +342,89 @@ export default function transformProps(
       xAxisType,
     },
   );
+
+  // Dot size by metric (scatter): the size metric's series are excluded from
+  // rendering and instead provide per-point values that scale each marker's
+  // area between minMarkerSize and maxMarkerSize.
+  const sizeMetricLabel =
+    seriesType === EchartsTimeseriesSeriesType.Scatter && size
+      ? getMetricLabel(size)
+      : undefined;
+  const sizeSeriesLabel = isDefined(sizeMetricLabel)
+    ? (verboseMap[sizeMetricLabel!] ?? sizeMetricLabel)
+    : undefined;
+  const valueMetricLabels = ensureIsArray(metrics)
+    .map(getMetricLabel)
+    .map(label => verboseMap[label] ?? label);
+  // When the size metric is also a value metric, the query dedupes them into a
+  // single column, so each point's own value doubles as its size value.
+  const sizeIsValueMetric = isDefined(sizeSeriesLabel)
+    ? valueMetricLabels.includes(sizeSeriesLabel!)
+    : false;
+  const isSizeSeries = (name: string) =>
+    isDefined(sizeSeriesLabel) &&
+    !sizeIsValueMetric &&
+    (name === sizeSeriesLabel || name.startsWith(`${sizeSeriesLabel}, `));
+  const rawSeries = sizeSeriesLabel
+    ? allRawSeries.filter(entry => !isSizeSeries(String(entry.name ?? '')))
+    : allRawSeries;
+  // Maps each value series' dimension key to a lookup from primary-axis value
+  // to size value.
+  let sizeLookups: Map<string, Map<DataRecordValue, number>> | undefined;
+  let sizeExtent: [number, number] | undefined;
+  if (sizeSeriesLabel) {
+    let sizeMin = Infinity;
+    let sizeMax = -Infinity;
+    if (sizeIsValueMetric) {
+      rawSeries.forEach(entry => {
+        (entry.data as DataRecordValue[][]).forEach(datum => {
+          const sizeValue = isHorizontal ? datum[0] : datum[1];
+          if (typeof sizeValue === 'number' && Number.isFinite(sizeValue)) {
+            sizeMin = Math.min(sizeMin, sizeValue);
+            sizeMax = Math.max(sizeMax, sizeValue);
+          }
+        });
+      });
+    } else {
+      sizeLookups = new Map();
+      allRawSeries
+        .filter(entry => isSizeSeries(String(entry.name ?? '')))
+        .forEach(entry => {
+          const name = String(entry.name ?? '');
+          const dimsKey =
+            name === sizeSeriesLabel
+              ? ''
+              : name.slice(sizeSeriesLabel.length + 2);
+          const lookup = new Map<DataRecordValue, number>();
+          (entry.data as DataRecordValue[][]).forEach(datum => {
+            const axisValue = isHorizontal ? datum[1] : datum[0];
+            const sizeValue = isHorizontal ? datum[0] : datum[1];
+            if (typeof sizeValue === 'number' && Number.isFinite(sizeValue)) {
+              lookup.set(axisValue, sizeValue);
+              sizeMin = Math.min(sizeMin, sizeValue);
+              sizeMax = Math.max(sizeMax, sizeValue);
+            }
+          });
+          sizeLookups!.set(dimsKey, lookup);
+        });
+    }
+    if (sizeMin <= sizeMax) {
+      sizeExtent = [sizeMin, sizeMax];
+    }
+  }
+  // Strips the metric label off a series name, leaving the dimension key used
+  // to match a value series with its size series.
+  const getSeriesDimsKey = (name: string): string => {
+    const matchedLabel = valueMetricLabels.find(
+      label => name === label || name.startsWith(`${label}, `),
+    );
+    if (matchedLabel === undefined) {
+      return name;
+    }
+    return name === matchedLabel ? '' : name.slice(matchedLabel.length + 2);
+  };
+  const markerSizeRange: [number, number] = [minMarkerSize, maxMarkerSize];
+
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
     stack,
     onlyTotal,
@@ -472,6 +560,24 @@ export default function transformProps(
       }
     }
 
+    let symbolSizeFn:
+      | ((value: (number | string | null)[]) => number)
+      | undefined;
+    if (sizeExtent) {
+      const extent = sizeExtent;
+      const sizeLookup = sizeLookups?.get(getSeriesDimsKey(entryName));
+      if (sizeIsValueMetric || sizeLookup) {
+        symbolSizeFn = value => {
+          const sizeValue = sizeIsValueMetric
+            ? value[isHorizontal ? 0 : 1]
+            : sizeLookup!.get(value[isHorizontal ? 1 : 0]);
+          return typeof sizeValue === 'number'
+            ? getAreaScaledSymbolSize(sizeValue, extent, markerSizeRange)
+            : markerSize;
+        };
+      }
+    }
+
     const transformedSeries = transformSeries(
       entry,
       colorScale,
@@ -483,6 +589,7 @@ export default function transformProps(
         seriesContexts,
         markerEnabled,
         markerSize,
+        symbolSizeFn,
         areaOpacity: opacity,
         seriesType,
         legendState,

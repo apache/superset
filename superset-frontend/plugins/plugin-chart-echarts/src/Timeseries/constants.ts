@@ -64,6 +64,8 @@ export const DEFAULT_FORM_DATA: EchartsTimeseriesFormData = {
   logAxis: false,
   markerEnabled: false,
   markerSize: 6,
+  maxMarkerSize: 30,
+  minMarkerSize: 5,
   minorSplitLine: false,
   opacity: 0.2,
   orderDesc: true,

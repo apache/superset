@@ -24,7 +24,7 @@ const config = controlPanel;
 
 const getControl = (controlName: string) => {
   for (const section of config.controlPanelSections) {
-    if (section && section.controlSetRows) {
+    if (section?.controlSetRows) {
       for (const row of section.controlSetRows) {
         for (const control of row) {
           if (
@@ -147,4 +147,60 @@ test('x_axis_number_format control should be hidden for non-numeric data types',
   expect(isNumberVisible('string_column', GenericDataType.String)).toBe(false);
   expect(isNumberVisible(null, null)).toBe(false);
   expect(isNumberVisible('time_column', GenericDataType.Temporal)).toBe(false);
+});
+
+// tests for orientation and dot size controls
+const orientationControl: any = getControl('orientation');
+const sizeControl: any = getControl('size');
+const minMarkerSizeControl: any = getControl('minMarkerSize');
+const maxMarkerSizeControl: any = getControl('maxMarkerSize');
+
+test('scatter chart control panel should include an orientation control defaulting to vertical', () => {
+  expect(orientationControl).toBeDefined();
+  expect(orientationControl.config.default).toBe('vertical');
+  expect(orientationControl.config.options).toEqual([
+    ['vertical', expect.anything()],
+    ['horizontal', expect.anything()],
+  ]);
+});
+
+test('scatter chart control panel should include an optional dot size metric control', () => {
+  expect(sizeControl).toBeDefined();
+  expect(sizeControl.config.validators).toEqual([]);
+  expect(sizeControl.config.default).toBeNull();
+});
+
+const mockSizeControls = (
+  sizeValue: string | null,
+): ControlPanelsContainerProps =>
+  ({
+    controls: {
+      size: { value: sizeValue },
+      markerEnabled: { value: true },
+    },
+  }) as unknown as ControlPanelsContainerProps;
+
+test('dot size range controls should only be visible when a size metric is set', () => {
+  expect(minMarkerSizeControl.config.visibility(mockSizeControls(null))).toBe(
+    false,
+  );
+  expect(maxMarkerSizeControl.config.visibility(mockSizeControls(null))).toBe(
+    false,
+  );
+  expect(
+    minMarkerSizeControl.config.visibility(mockSizeControls('size_metric')),
+  ).toBe(true);
+  expect(
+    maxMarkerSizeControl.config.visibility(mockSizeControls('size_metric')),
+  ).toBe(true);
+});
+
+test('fixed marker size control should hide when a size metric is set', () => {
+  const markerSizeControl: any = getControl('markerSize');
+  expect(markerSizeControl.config.visibility(mockSizeControls(null))).toBe(
+    true,
+  );
+  expect(
+    markerSizeControl.config.visibility(mockSizeControls('size_metric')),
+  ).toBe(false);
 });
