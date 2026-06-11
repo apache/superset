@@ -114,11 +114,16 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # ``if_exists=True`` makes the downgrade robust against a
-    # partial-application failure on upgrade (e.g. the first ``op.create_index``
-    # succeeded under Postgres' transactional DDL but a later one failed
-    # and rolled back the rest — repeated downgrade should not raise on
-    # the missing indexes). Postgres + SQLite + MySQL all accept the
-    # IF EXISTS clause.
+    # Probe the inspector instead of emitting ``DROP INDEX IF EXISTS``:
+    # stock MySQL (5.7/8.x) has no IF EXISTS grammar for DROP INDEX
+    # (it's a MariaDB extension), so the clause is not dialect-portable.
+    # The existence check keeps the downgrade robust against a
+    # partial-application failure on upgrade (e.g. the first
+    # ``op.create_index`` succeeded under Postgres' transactional DDL but
+    # a later one failed and rolled back the rest — repeated downgrade
+    # must not raise on the missing indexes).
+    inspector = sa.inspect(op.get_bind())
     for table in SHADOW_TABLES:
-        op.drop_index(_index_name(table), table_name=table, if_exists=True)
+        index_name = _index_name(table)
+        if any(ix["name"] == index_name for ix in inspector.get_indexes(table)):
+            op.drop_index(index_name, table_name=table)
