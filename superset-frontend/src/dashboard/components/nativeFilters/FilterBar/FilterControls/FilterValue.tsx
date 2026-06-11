@@ -44,7 +44,7 @@ import {
 } from '@superset-ui/core';
 import { styled, SupersetTheme } from '@apache-superset/core/theme';
 import { useTheme } from '@emotion/react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, shallowEqual } from 'react-redux';
 import { isEqual, isEqualWith } from 'lodash-es';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
@@ -125,6 +125,11 @@ const FilterValue: FC<FilterValueProps> = ({
   const transitiveParentIds = useTransitiveParentIds(id);
   const shouldRefresh = useShouldFilterRefresh();
 
+  const allFiltersConfig = useSelector(
+    (state: RootState) => state.nativeFilters?.filters,
+    shallowEqual,
+  );
+
   const behaviors = useMemo(
     () => [
       isCustomization ? Behavior.ChartCustomization : Behavior.NativeFilter,
@@ -202,6 +207,22 @@ const FilterValue: FC<FilterValueProps> = ({
       // selections first. We walk the full transitive ancestor chain (not just
       // direct parents) so the counts line up with `dependencies`, which is
       // itself built from the transitive chain by `useFilterDependencies`.
+
+      // Block if any parent with defaultToFirstItem hasn't auto-selected yet.
+      // Without this, the child fetches unfiltered options before the parent
+      // auto-selects, leading to a stale first-value dispatch that never
+      // gets corrected because subsequent re-selections are not first-initialization.
+      const hasDefaultFirstParentPending = transitiveParentIds.some(pId => {
+        const parentFilter = allFiltersConfig?.[pId];
+        const parentMask = dataMaskSelected?.[pId];
+        return (
+          parentFilter?.controlValues?.defaultToFirstItem &&
+          parentMask?.filterState?.value === undefined
+        );
+      });
+      if (hasDefaultFirstParentPending) {
+        return;
+      }
 
       let selectedParentFilterValueCounts = 0;
       let isTimeRangeSelected = false;
@@ -307,6 +328,7 @@ const FilterValue: FC<FilterValueProps> = ({
     dataMaskSelected,
     setHasDepsFilterValue,
     transitiveParentIds,
+    allFiltersConfig,
   ]);
 
   useEffect(() => {
