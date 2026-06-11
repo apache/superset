@@ -56,8 +56,7 @@ async def create_virtual_dataset(
     3. Use the returned ``columns`` list to pick columns for the chart config
     """
     await ctx.info(
-        "Creating virtual dataset: database_id=%s, dataset_name=%r"
-        % (request.database_id, request.dataset_name)
+        f"Creating virtual dataset: database_id={request.database_id}, dataset_name={request.dataset_name!r}"
     )
 
     try:
@@ -91,9 +90,13 @@ async def create_virtual_dataset(
 
                 update_props: dict[str, Any] = {}
                 if request.metrics:
-                    update_props["metrics"] = request.metrics
+                    # Merge existing metrics with new ones
+                    existing_metrics = [m.to_dict() for m in dataset.metrics] if hasattr(dataset, "metrics") and dataset.metrics else []
+                    update_props["metrics"] = existing_metrics + [m.model_dump(exclude_none=True) for m in request.metrics]
                 if request.calculated_columns:
-                    update_props["columns"] = request.calculated_columns
+                    # Merge existing columns with new ones
+                    existing_cols = [c.to_dict() for c in dataset.columns] if hasattr(dataset, "columns") and dataset.columns else []
+                    update_props["columns"] = existing_cols + [c.model_dump(exclude_none=True) for c in request.calculated_columns]
 
                 with event_logger.log_context(action="mcp.create_virtual_dataset.update"):
                     dataset = UpdateDatasetCommand(dataset.id, update_props).run()
@@ -106,8 +109,7 @@ async def create_virtual_dataset(
         )
 
         await ctx.info(
-            "Virtual dataset created: id=%s, dataset_name=%r, columns=%s"
-            % (dataset.id, dataset.table_name, columns)
+            f"Virtual dataset created: id={dataset.id}, dataset_name={dataset.table_name!r}, columns={columns}"
         )
 
         return CreateVirtualDatasetResponse(
@@ -121,7 +123,7 @@ async def create_virtual_dataset(
 
     except DatasetInvalidError as exc:
         messages = exc.normalized_messages()
-        await ctx.warning("Virtual dataset validation failed: %s" % (messages,))
+        await ctx.warning(f"Virtual dataset validation failed: {messages}")
         return CreateVirtualDatasetResponse(
             id=None,
             dataset_name=request.dataset_name,
@@ -132,7 +134,7 @@ async def create_virtual_dataset(
             error=str(messages),
         )
     except (DatasetCreateFailedError, DatasetUpdateFailedError) as exc:
-        await ctx.error("Virtual dataset creation/update failed: %s" % (str(exc),))
+        await ctx.error(f"Virtual dataset creation/update failed: {exc}")
         return CreateVirtualDatasetResponse(
             id=None,
             dataset_name=request.dataset_name,
@@ -144,7 +146,6 @@ async def create_virtual_dataset(
         )
     except Exception as exc:
         await ctx.error(
-            "Unexpected error creating virtual dataset: %s: %s"
-            % (type(exc).__name__, str(exc))
+            f"Unexpected error creating virtual dataset: {type(exc).__name__}: {exc}"
         )
         raise

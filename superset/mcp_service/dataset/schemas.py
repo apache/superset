@@ -410,6 +410,24 @@ class GetDatasetInfoRequest(MetadataCacheControl):
         return parsed
 
 
+class CreateDatasetMetric(BaseModel):
+    metric_name: str = Field(..., description="Name of the metric")
+    expression: str = Field(..., description="SQL expression for the metric")
+    verbose_name: str | None = None
+    description: str | None = None
+    metric_type: str | None = None
+    d3format: str | None = None
+    warning_text: str | None = None
+
+class CreateDatasetCalculatedColumn(BaseModel):
+    column_name: str = Field(..., description="Name of the calculated column")
+    expression: str = Field(..., description="SQL expression for the column")
+    verbose_name: str | None = None
+    description: str | None = None
+    type: str | None = None
+    advanced_data_type: str | None = None
+    is_dttm: bool | None = None
+
 class CreateVirtualDatasetRequest(BaseModel):
     """Request schema for create_virtual_dataset."""
 
@@ -444,14 +462,14 @@ class CreateVirtualDatasetRequest(BaseModel):
         None,
         description="Human-readable description of the dataset (optional).",
     )
-    metrics: List[Dict[str, Any]] | None = Field(
+    metrics: List[CreateDatasetMetric] | None = Field(
         None,
-        description="Optional list of saved metrics to create. Each dictionary "
+        description="Optional list of saved metrics to create. Each metric "
         "must have 'metric_name' and 'expression'.",
     )
-    calculated_columns: List[Dict[str, Any]] | None = Field(
+    calculated_columns: List[CreateDatasetCalculatedColumn] | None = Field(
         None,
-        description="Optional list of calculated columns to create. Each dictionary "
+        description="Optional list of calculated columns to create. Each column "
         "must have 'column_name' and 'expression'.",
     )
 
