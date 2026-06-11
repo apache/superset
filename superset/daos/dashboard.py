@@ -33,6 +33,7 @@ from superset.commands.dashboard.exceptions import (
     DashboardNotFoundError,
     DashboardUpdateFailedError,
 )
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.dashboards.filters import DashboardAccessFilter, is_uuid
 from superset.exceptions import SupersetSecurityException
@@ -276,8 +277,19 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 if isinstance(value, dict)
             ]
 
+            # Bypass the soft-delete visibility filter when resolving the
+            # incoming chart ids: a dashboard's ``position_json`` may still
+            # reference a chart that is currently soft-deleted, and this
+            # assignment REBUILDS ``dashboard.slices`` wholesale. With the
+            # filter active, the hidden member would be silently dropped —
+            # deleting its ``dashboard_slices`` junction row (breaking the
+            # documented restore-reattach contract) and writing
+            # ``uuid: None`` into its position slot via ``uuid_map`` below.
             current_slices = (
-                db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+                db.session.query(Slice)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {Slice}})
+                .filter(Slice.id.in_(slice_ids))
+                .all()
             )
 
             dashboard.slices = current_slices
