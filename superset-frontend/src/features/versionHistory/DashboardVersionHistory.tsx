@@ -35,6 +35,7 @@ import {
 } from './reducer';
 import { openRelatedEntity } from './openRelated';
 import { useVersionActivity } from './useVersionActivity';
+import { useDashboardVersionPreview } from './useDashboardVersionPreview';
 import { groupHeadline } from './display';
 import VersionHistoryPanel from './VersionHistoryPanel';
 
@@ -55,11 +56,21 @@ export default function DashboardVersionHistory() {
     }
   }, [dispatch]);
 
+  // Leaving the page should not carry panel/preview state to other pages.
+  useEffect(
+    () => () => {
+      dispatch(closeVersionHistoryPanel());
+    },
+    [dispatch],
+  );
+
   const activity = useVersionActivity(
     'dashboard',
     isPanelOpen ? uuid : undefined,
     include,
   );
+
+  useDashboardVersionPreview(uuid);
 
   const handleClose = useCallback(() => {
     dispatch(closeVersionHistoryPanel());
@@ -74,11 +85,12 @@ export default function DashboardVersionHistory() {
 
   const handlePreview = useCallback(
     (group: SaveGroup) => {
-      if (!group.versionUuid) {
+      if (!group.versionUuid || !uuid) {
         return;
       }
       dispatch(
         setVersionPreview({
+          entityUuid: uuid,
           versionUuid: group.versionUuid,
           transactionId: group.transactionId,
           headline: groupHeadline('dashboard', group),
@@ -86,7 +98,7 @@ export default function DashboardVersionHistory() {
         }),
       );
     },
-    [dispatch],
+    [dispatch, uuid],
   );
 
   const handleOpenRelated = useCallback(

@@ -59,6 +59,14 @@ export default function ExploreVersionHistory() {
     }
   }, [dispatch]);
 
+  // Leaving the page should not carry panel/preview state to other pages.
+  useEffect(
+    () => () => {
+      dispatch(closeVersionHistoryPanel());
+    },
+    [dispatch],
+  );
+
   useEffect(() => {
     if (uuid || !isPanelOpen || !slice?.slice_id) {
       return undefined;
@@ -103,11 +111,12 @@ export default function ExploreVersionHistory() {
 
   const handlePreview = useCallback(
     (group: SaveGroup) => {
-      if (!group.versionUuid) {
+      if (!group.versionUuid || !uuid) {
         return;
       }
       dispatch(
         setVersionPreview({
+          entityUuid: uuid,
           versionUuid: group.versionUuid,
           transactionId: group.transactionId,
           headline: groupHeadline('chart', group),
@@ -115,7 +124,7 @@ export default function ExploreVersionHistory() {
         }),
       );
     },
-    [dispatch],
+    [dispatch, uuid],
   );
 
   const handleOpenRelated = useCallback(
