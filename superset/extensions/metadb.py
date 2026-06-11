@@ -305,9 +305,16 @@ class SupersetShillelaghAdapter(Adapter):
             raise ProgrammingError(f"Database not found: {self.database}")
         self._allow_dml = database.allow_dml
 
-        # verify permissions
+        # verify permissions. MetaDB returns row data through a regular
+        # query path, so the strict scoping used by SQL Lab applies here
+        # too: the referenced table must resolve to a Superset dataset the
+        # user has datasource_access on (or owns).
         table = Table(self.table, self.schema, self.catalog)
-        security_manager.raise_for_access(database=database, table=table)
+        security_manager.raise_for_access(
+            database=database,
+            table=table,
+            force_dataset_match=True,
+        )
 
         # store this callable for later whenever we need an engine
         self.engine_context = partial(

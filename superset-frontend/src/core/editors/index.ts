@@ -24,6 +24,7 @@
  * and resolution functions declared in the API types.
  */
 
+import { useSyncExternalStore } from 'react';
 import { editors as editorsApi } from '@apache-superset/core';
 import { Disposable } from '../models';
 import EditorProviders from './EditorProviders';
@@ -107,6 +108,23 @@ export const onDidUnregisterEditor = (
 ): Disposable => {
   const manager = EditorProviders.getInstance();
   return manager.onDidUnregister(listener);
+};
+
+/**
+ * Hook that returns the editor provider for a specific language and re-renders when it changes.
+ *
+ * @param language The language to get an editor for
+ * @returns The editor provider or undefined if no extension provides one
+ */
+export const useEditor = (
+  language: EditorLanguage,
+): EditorProvider | undefined => {
+  const manager = EditorProviders.getInstance();
+  return useSyncExternalStore(
+    manager.subscribe,
+    () => manager.getProvider(language),
+    () => undefined,
+  );
 };
 
 /**
