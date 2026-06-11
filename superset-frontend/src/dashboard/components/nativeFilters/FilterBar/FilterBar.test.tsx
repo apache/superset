@@ -902,3 +902,150 @@ test('Clear All on a required filter disables Apply via validateStatus', async (
   expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
   updateDataMaskSpy.mockRestore();
 });
+
+test('FilterBar renders the configured filter name in the bar', async () => {
+  const filterId = 'NATIVE_FILTER-name-render';
+  const filter = createFilter({
+    id: filterId,
+    name: 'Region',
+    filterType: 'filter_select',
+    targets: [{ datasetId: 7, column: { name: 'region' } }],
+    chartsInScope: [18],
+  });
+  const state = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      filterBarOrientation: FilterBarOrientation.Vertical,
+      metadata: {
+        native_filter_configuration: [filter],
+        chart_configuration: {},
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    dataMask: { [filterId]: createDataMask(filterId, undefined, {}) },
+    nativeFilters: {
+      filters: { [filterId]: filter },
+      filtersState: {},
+    },
+  };
+
+  const props = createOpenedBarProps();
+  renderFilterBar(props, state);
+  await act(async () => {
+    jest.advanceTimersByTime(300);
+  });
+
+  expect(await screen.findByText('Region')).toBeInTheDocument();
+});
+
+test('Clicking the gear "Add or edit filters and controls" item opens the FiltersConfigModal', async () => {
+  const props = createOpenedBarProps();
+  renderFilterBar(props, stateWithoutNativeFilters);
+  await act(async () => {
+    jest.advanceTimersByTime(100);
+  });
+
+  const gear = await screen.findByTestId('filterbar-orientation-icon');
+  userEvent.click(gear);
+
+  const addEditItem = await screen.findByText(
+    'Add or edit filters and controls',
+  );
+  userEvent.click(addEditItem);
+
+  expect(await screen.findByTestId('filter-modal')).toBeInTheDocument();
+});
+
+test('FilterBar with orientation=Horizontal routes to Horizontal layout instead of Vertical', async () => {
+  // Migrated from the disabled Cypress spec _skip.horizontalFilterBar.test.ts:
+  // proves the orientation prop selects the Horizontal subtree. The settings
+  // gear (FilterBarSettings) is rendered only by Horizontal.tsx — Vertical.tsx
+  // does not mount it — so its presence is a horizontal-exclusive positive
+  // signal that won't false-pass if vertical heading copy is tuned. We flush
+  // all pending fake timers to clear useInitialization's setTimeout
+  // regardless of the production timeout literal.
+  const filter = createFilter({
+    id: 'NATIVE_FILTER-h1',
+    name: 'Horizontal filter',
+  });
+  const dataMask = createDataMask(filter.id);
+  const state = createStateWithFilter(filter, dataMask, {
+    filterBarOrientation: FilterBarOrientation.Horizontal,
+  });
+
+  render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
+    initialState: state,
+    useDnd: true,
+    useRedux: true,
+    useRouter: true,
+  });
+
+  await act(async () => {
+    jest.runAllTimers();
+  });
+
+  expect(screen.getByRole('img', { name: 'setting' })).toBeInTheDocument();
+});
+
+test('FilterBar with orientation=Horizontal and no filters shows empty state alongside default actions', async () => {
+  // Covers the second half of sc-107387 task #107390 ("show all default
+  // actions in horizontal mode"). The original Cypress spec asserted four
+  // affordances render when the bar is horizontal with no filters: the
+  // empty-state copy, the settings gear, the action-buttons block, and the
+  // create-filter entry inside the gear menu. The dropdown contents are
+  // already covered by FilterBarSettings.test.tsx; here we keep scope to
+  // the layout-level affordances that are exclusive to Horizontal.tsx.
+  // Reload-persistence (the rest of #107390) is out of RTL scope and stays
+  // queued for Playwright.
+  const state = {
+    ...stateWithoutNativeFilters,
+    dashboardInfo: {
+      id: 1,
+      dash_edit_perm: true,
+      metadata: {
+        native_filter_configuration: [],
+        filterBarOrientation: FilterBarOrientation.Horizontal,
+      },
+    },
+    dashboardState: {
+      ...stateWithoutNativeFilters.dashboardState,
+      activeTabs: ['ROOT_ID'],
+    },
+    nativeFilters: { filters: {}, filtersState: {} },
+  };
+
+  render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
+    initialState: state,
+    useDnd: true,
+    useRedux: true,
+    useRouter: true,
+  });
+
+  await act(async () => {
+    jest.runAllTimers();
+  });
+
+  expect(screen.getByTestId('horizontal-filterbar-empty')).toHaveTextContent(
+    'No filters are currently added to this dashboard.',
+  );
+  expect(screen.getByRole('img', { name: 'setting' })).toBeInTheDocument();
+  expect(screen.getByTestId('filterbar-action-buttons')).toBeInTheDocument();
+});
+
+test('FilterBar with orientation=Vertical renders Vertical layout (sanity counterpart to the horizontal routing test)', () => {
+  // Paired control for the routing test above: with Vertical orientation,
+  // the settings gear must NOT be present (Vertical.tsx does not render
+  // FilterBarSettings). Confirms the routing signal is horizontal-exclusive,
+  // not a coincidence of when timers fire.
+  const props = createClosedBarProps();
+  renderFilterBar(props);
+  expect(screen.getByText('Filters and controls')).toBeInTheDocument();
+  expect(
+    screen.queryByRole('img', { name: 'setting' }),
+  ).not.toBeInTheDocument();
+});

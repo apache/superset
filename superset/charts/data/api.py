@@ -734,6 +734,10 @@ class ChartDataRestApi(ChartRestApi):
 
             # Sanitize chart name for filename
             filename = secure_filename(f"superset_{chart_name}_{timestamp}.csv")
+        else:
+            # Sanitize the client-provided filename before placing it in the
+            # Content-Disposition header to avoid header/path injection.
+            filename = secure_filename(filename) or "export.csv"
 
         logger.info("Creating streaming CSV response: %s", filename)
         if expected_rows:
@@ -754,7 +758,10 @@ class ChartDataRestApi(ChartRestApi):
         # Create response with streaming headers
         response = Response(
             csv_generator_callable(),  # Call the callable to get generator
-            mimetype=f"text/csv; charset={encoding}",
+            # Use content_type (not mimetype) so the charset is set verbatim;
+            # passing a charset via mimetype makes Werkzeug append a second
+            # charset, producing a malformed doubled Content-Type header.
+            content_type=f"text/csv; charset={encoding}",
             headers={
                 "Content-Disposition": f'attachment; filename="{filename}"',
                 "Cache-Control": "no-cache",

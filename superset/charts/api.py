@@ -87,6 +87,7 @@ from superset.models.slice import Slice
 from superset.tasks.thumbnails import cache_chart_thumbnail
 from superset.tasks.utils import get_current_user
 from superset.utils import json
+from superset.utils.core import sanitize_cookie_token
 from superset.utils.screenshots import (
     ChartScreenshot,
     DEFAULT_CHART_WINDOW_SIZE,
@@ -882,7 +883,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 
@@ -1025,6 +1026,15 @@ class ChartRestApi(BaseSupersetModelRestApi):
             return self.response_403()
 
         return self.response(200, result="OK")
+
+    def _pre_related_check(self, column_name: str) -> Optional[Response]:
+        """Restrict the owners related field to users with write access."""
+        if (
+            column_name == "owners"
+            and not security_manager.can_access_all_datasources()
+        ):
+            return self.response_403()
+        return None
 
     @expose("/warm_up_cache", methods=("PUT",))
     @protect()
