@@ -2172,7 +2172,10 @@ def to_int(v: Any, value_if_invalid: int = 0) -> int:
 def get_query_source_from_request() -> QuerySource | None:
     if not request or not request.referrer:
         return None
-    if "/superset/dashboard/" in request.referrer:
+    # Match the SPA dashboard route (/dashboard/<id>/). The bare segment also
+    # covers legacy /superset/dashboard/ referrers and any application-root
+    # prefix (e.g. /myapp/dashboard/1/).
+    if "/dashboard/" in request.referrer:
         return QuerySource.DASHBOARD
     if "/explore/" in request.referrer:
         return QuerySource.CHART

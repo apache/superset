@@ -245,7 +245,9 @@ class Slice(  # pylint: disable=too-many-public-methods
         if the dashboard has changed
         """
         if digest := self.digest:
-            return f"/api/v1/chart/{self.id}/thumbnail/{digest}/"
+            # url_for respects SCRIPT_NAME, so the URL carries the application
+            # root prefix under subdirectory deployments.
+            return url_for("ChartRestApi.thumbnail", pk=self.id, digest=digest)
 
         return None
 

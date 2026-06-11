@@ -153,6 +153,47 @@ def test_legacy_get_redirects_308_under_subdir(legacy: str, canonical: str) -> N
     assert resp.headers["Location"] == f"/myapp{canonical}"
 
 
+@pytest.mark.parametrize(("legacy", "canonical"), _GET_REDIRECT_ROWS)
+def test_app_root_prefixed_legacy_get_redirects_308_under_subdir(
+    legacy: str, canonical: str
+) -> None:
+    """Under subdir deployment, legacy bookmarks saved from a pre-upgrade
+    deployment under the same subdirectory carry the app root too:
+    `/myapp/superset/<canonical>`. The shim strips the captured app root
+    before the legacy-prefix check, so both the bare and the app-root-
+    prefixed legacy forms 308 to the same `/myapp<canonical>` target."""
+    client = _build_client(app_root="/myapp")
+    resp = client.get(f"/myapp{legacy}")
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == f"/myapp{canonical}"
+
+
+def test_app_root_prefixed_legacy_preserves_query_string() -> None:
+    """Query strings survive the app-root-prefixed legacy redirect."""
+    client = _build_client(app_root="/myapp")
+    resp = client.get("/myapp/superset/explore/?form_data_key=abc")
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == "/myapp/explore/?form_data_key=abc"
+
+
+def test_app_root_strip_respects_segment_boundary() -> None:
+    """A path that merely shares a string prefix with the app root (e.g.
+    `/myapparoo/...` under `app_root=/myapp`) is NOT treated as app-root-
+    prefixed — the strip only fires on `{app_root}/`."""
+    client = _build_client(app_root="/myapp")
+    resp = client.get("/myapparoo/superset/welcome/")
+    assert resp.status_code == 200
+    assert resp.data == _SENTINEL_BODY
+
+
+def test_app_root_prefixed_unenumerated_path_passes_through() -> None:
+    """Closed-set discipline holds for the app-root-prefixed form too."""
+    client = _build_client(app_root="/myapp")
+    resp = client.get("/myapp/superset/not-a-real-route/")
+    assert resp.status_code == 200
+    assert resp.data == _SENTINEL_BODY
+
+
 @pytest.mark.parametrize(("legacy", "canonical"), _POST_BODY_PRESERVED_ROWS)
 def test_legacy_post_body_preserved_308(legacy: str, canonical: str) -> None:
     """POST against a POST-capable canonical → 308 (308 is body-

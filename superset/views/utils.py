@@ -214,6 +214,14 @@ def loads_request_json(request_json_data: str) -> dict[Any, Any]:
     return parsed if isinstance(parsed, dict) else {}
 
 
+#: Parameter names `url_for` interprets itself rather than appending to the
+#: query string. Request-supplied query keys matching these must never be
+#: forwarded as `url_for` kwargs.
+_RESERVED_URL_FOR_KWARGS = frozenset(
+    {"endpoint", "_external", "_scheme", "_anchor", "_method"}
+)
+
+
 def get_explore_redirect_url() -> str | None:  # noqa: C901
     """Construct the `/explore/?form_data_key=...` redirect URL, or None.
 
@@ -320,7 +328,15 @@ def get_explore_redirect_url() -> str | None:  # noqa: C901
     if form_data_key:
         query_multi.pop("form_data", None)
         query_multi["form_data_key"] = [form_data_key]
-    query: dict[str, str] = {k: vals[0] for k, vals in query_multi.items() if vals}
+    # Drop keys that collide with `url_for`'s own parameters: a query string
+    # like `?_external=1&_scheme=ftp` would otherwise steer URL building
+    # (absolute URLs, scheme injection, fragment injection), and `?endpoint=x`
+    # would raise TypeError on the duplicated positional argument.
+    query: dict[str, str] = {
+        k: vals[0]
+        for k, vals in query_multi.items()
+        if vals and k not in _RESERVED_URL_FOR_KWARGS
+    }
     target_url = url_for("ExploreView.root", **query)
 
     # Loop guard: if the current request is already at the redirect target

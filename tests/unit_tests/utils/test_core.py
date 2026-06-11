@@ -637,8 +637,12 @@ def test_get_datasource_full_name():
         (None, None),
         ("https://mysuperset.com/abc", None),
         ("https://mysuperset.com/superset/dashboard/", QuerySource.DASHBOARD),
+        ("https://mysuperset.com/dashboard/1/", QuerySource.DASHBOARD),
+        ("https://mysuperset.com/myapp/dashboard/1/", QuerySource.DASHBOARD),
         ("https://mysuperset.com/explore/", QuerySource.CHART),
+        ("https://mysuperset.com/myapp/explore/", QuerySource.CHART),
         ("https://mysuperset.com/sqllab/", QuerySource.SQL_LAB),
+        ("https://mysuperset.com/myapp/sqllab/", QuerySource.SQL_LAB),
     ],
 )
 def test_get_query_source_from_request(

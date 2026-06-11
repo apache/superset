@@ -103,6 +103,18 @@ const FORBIDDEN_CONTROL_CHARS_RE = new RegExp(
     '\\u2028\\u2029\\uFEFF]',
 );
 
+// `encodeURI` (kept at the sinks below as CodeQL's recognised
+// `js/html-injection` sanitiser) escapes `%` itself, so an already-
+// percent-encoded path — and `parsed.pathname`/`.search`/`.hash` from the
+// URL constructor always are — would be double-encoded (`%20` → `%2520`)
+// and the navigation would land on the wrong URL. Mapping `%25XX`
+// (XX = hex) back to `%XX` after the encodeURI pass restores the
+// constructor's escape sequences, while anything encodeURI legitimately
+// escaped (no such character survives the URL constructor, but defence-
+// in-depth) stays encoded: `%` is the only character encodeURI escapes
+// that the WHATWG URL serialiser emits raw.
+const DOUBLE_ENCODED_ESCAPE_RE = /%25([0-9A-Fa-f]{2})/g;
+
 function assertSafeNavigationUrl(url: string): string {
   if (FORBIDDEN_CONTROL_CHARS_RE.test(url)) {
     throw new Error(
@@ -164,9 +176,10 @@ function assertSafeNavigationUrl(url: string): string {
  *      (`encodeURI`, `encodeURIComponent`, `DOMPurify.sanitize`, …) and
  *      does NOT propagate startsWith/equality barriers from `target` or
  *      `parsed.*` through the URL-property derivation into the assigned
- *      string. `encodeURI` is idempotent on already-URL-normalised paths
- *      (`parsed.pathname` is produced by the URL constructor), so it is
- *      a no-op at runtime for legitimate paths.
+ *      string. Because `encodeURI` escapes `%` itself (it is NOT
+ *      idempotent on percent-encoded input), each sink restores the
+ *      `%XX` escape sequences afterwards via DOUBLE_ENCODED_ESCAPE_RE,
+ *      making the pair a runtime no-op for legitimate paths.
  *
  * External-URL paths get their own block with `URL.protocol` literal-
  * equality + userinfo guards on the URL-constructor's normalised `href`.
@@ -221,10 +234,15 @@ export function navigateTo(
         // satisfy `js/url-redirection` and `js/xss-through-dom`, but
         // `js/html-injection`'s default model only recognises specific
         // through-function sanitisers (`encodeURI`, `encodeURIComponent`,
-        // `DOMPurify.sanitize`, …). `encodeURI` is idempotent on already-
-        // URL-normalised paths (`parsed.pathname` is produced by the URL
-        // constructor), so this is a no-op at runtime for legitimate paths.
-        const sinkValue = encodeURI(safePath);
+        // `DOMPurify.sanitize`, …). `encodeURI` escapes `%` itself, which
+        // would double-encode the constructor-normalised path, so the
+        // follow-up replace restores the `%XX` escape sequences (see
+        // DOUBLE_ENCODED_ESCAPE_RE) — net effect: a runtime no-op for
+        // legitimate paths with the sanitiser still visible at the sink.
+        const sinkValue = encodeURI(safePath).replace(
+          DOUBLE_ENCODED_ESCAPE_RE,
+          '%$1',
+        );
         if (options?.newWindow) {
           window.open(sinkValue, '_blank', NEW_TAB_FEATURES);
         } else if (options?.assign) {
@@ -293,7 +311,10 @@ export function navigateTo(
         !safeHome.includes('\\')
       ) {
         // See router-relative branch above for `encodeURI` rationale.
-        window.location.href = encodeURI(safeHome);
+        window.location.href = encodeURI(safeHome).replace(
+          DOUBLE_ENCODED_ESCAPE_RE,
+          '%$1',
+        );
       }
     }
   }
@@ -344,7 +365,10 @@ export function navigateWithState(
         !safePath.includes('\\')
       ) {
         // See `navigateTo` for `encodeURI` rationale.
-        const sinkValue = encodeURI(safePath);
+        const sinkValue = encodeURI(safePath).replace(
+          DOUBLE_ENCODED_ESCAPE_RE,
+          '%$1',
+        );
         if (options?.replace) {
           window.history.replaceState(state, '', sinkValue);
         } else {

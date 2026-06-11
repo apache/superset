@@ -245,6 +245,26 @@ class TestExploreRedirect(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @mock.patch("superset.commands.explore.form_data.create.CreateFormDataCommand.run")
+    def test_explore_reserved_url_for_kwargs_stripped(self, mock_run: mock.Mock):
+        """Query keys colliding with ``url_for``'s own parameters must not
+        steer URL building: ``_external``/``_scheme`` would mint an absolute
+        URL with an attacker-chosen scheme, ``_anchor`` injects a fragment,
+        and ``endpoint`` raises TypeError on the duplicated positional
+        argument (500). All five reserved names are dropped from the
+        redirect target.
+        """
+        mock_run.return_value = "random_key"
+        self.login(ADMIN_USERNAME)
+        form_data = {"datasource": "1__table"}
+        rv = self.client.get(
+            f"/explore/?form_data={quote(json.dumps(form_data))}"
+            "&_external=1&_scheme=ftp&_anchor=evil&_method=POST&endpoint=x"
+        )
+        assert rv.status_code == 302
+        assert rv.headers["Location"] == "/explore/?form_data_key=random_key"
+
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    @mock.patch("superset.commands.explore.form_data.create.CreateFormDataCommand.run")
     def test_superset_explore_typed_entry_redirect_when_form_data_present(
         self, mock_run: mock.Mock
     ):

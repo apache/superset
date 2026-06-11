@@ -19,6 +19,7 @@
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
+import { makeUrl } from 'src/utils/navigationUtils';
 
 type Extension = core.Extension;
 
@@ -107,10 +108,12 @@ class ExtensionsLoader {
   private async loadModule(extension: Extension): Promise<void> {
     const { remoteEntry, id } = extension;
 
-    // Load the remote entry script
+    // Load the remote entry script. The backend emits a router-relative
+    // remoteEntry URL; `makeUrl` applies the application root for
+    // subdirectory deployments (idempotent, and absolute URLs pass through).
     await new Promise<void>((resolve, reject) => {
       const element = document.createElement('script');
-      element.src = remoteEntry;
+      element.src = makeUrl(remoteEntry);
       element.type = 'text/javascript';
       element.async = true;
       element.onload = () => resolve();

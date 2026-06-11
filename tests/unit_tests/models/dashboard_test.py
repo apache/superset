@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from unittest.mock import patch, PropertyMock
+
 from flask import current_app
 
 from superset.models.dashboard import Dashboard
@@ -66,3 +68,47 @@ def test_dashboard_link_renders_plain_slug(app_context: None) -> None:
 
     assert "/superset/dashboard/sales/" in link
     assert "Sales" in link
+
+
+def test_thumbnail_url_is_router_relative_at_root(app_context: None) -> None:
+    """thumbnail_url uses url_for, so at root it keeps the legacy shape."""
+    dash = Dashboard()
+    dash.id = 7
+
+    with patch.object(
+        Dashboard, "digest", new_callable=PropertyMock, return_value="abc123"
+    ):
+        with current_app.test_request_context("/"):
+            url = dash.thumbnail_url
+
+    assert url == "/api/v1/dashboard/7/thumbnail/abc123/"
+
+
+def test_thumbnail_url_carries_app_root_prefix(app_context: None) -> None:
+    """Under a subdirectory deployment the serialized thumbnail URL must carry
+    the application root, because the frontend treats thumbnail_url as an
+    already-prefixed raw fetch target (it is excluded from
+    normalizeBackendUrls and never passed through ensureAppRoot)."""
+    dash = Dashboard()
+    dash.id = 7
+
+    with patch.object(
+        Dashboard, "digest", new_callable=PropertyMock, return_value="abc123"
+    ):
+        with current_app.test_request_context(
+            "/", base_url="http://example.com/superset/"
+        ):
+            url = dash.thumbnail_url
+
+    assert url == "/superset/api/v1/dashboard/7/thumbnail/abc123/"
+
+
+def test_thumbnail_url_is_none_without_digest(app_context: None) -> None:
+    dash = Dashboard()
+    dash.id = 7
+
+    with patch.object(
+        Dashboard, "digest", new_callable=PropertyMock, return_value=None
+    ):
+        with current_app.test_request_context("/"):
+            assert dash.thumbnail_url is None

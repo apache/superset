@@ -221,6 +221,18 @@ describe('redirect', () => {
     });
   });
 
+  // encodeURI-at-the-sink regression (gap review 2026-06-10): see the
+  // matching navigateWithState tests — `%27`/`%20` must survive un-doubled.
+  test('does not double-encode percent-encoded query strings', async () => {
+    await withApplicationRoot('/superset/', async () => {
+      const { redirect } = await import('src/utils/navigationUtils');
+      redirect('/dashboard/list/?filters=(label:%27a%20b%27)');
+      expect(window.location.href).toBe(
+        '/superset/dashboard/list/?filters=(label:%27a%20b%27)',
+      );
+    });
+  });
+
   // AF-1 (2026-05-19, dual-lane adversarial review): backslash-laden URLs
   // were accepted by `SAFE_NAVIGATION_URL_RE` and the sibling guards in
   // `ensureAppRoot` / `isAllowedScheme`. Browsers normalise `/\` → `//` in
@@ -402,6 +414,34 @@ describe('navigateWithState (AF-1 + nit-1)', () => {
         { from: 'test' },
         '',
         '/superset/dashboard/42/',
+      );
+    });
+  });
+
+  // encodeURI-at-the-sink regression (gap review 2026-06-10): the CodeQL
+  // `js/html-injection` sanitiser escapes `%` itself, so already-percent-
+  // encoded paths (the URL constructor's output always is) were double-
+  // encoded — `%20` → `%2520` — corrupting the pushed URL.
+  test('does not double-encode percent-encoded rison paths (pushState)', async () => {
+    await withApplicationRoot('', async () => {
+      const { navigateWithState } = await import('src/utils/navigationUtils');
+      navigateWithState('/dashboard/list/?filters=(label:%27a%20b%27)', {});
+      expect(pushSpy).toHaveBeenCalledWith(
+        {},
+        '',
+        '/dashboard/list/?filters=(label:%27a%20b%27)',
+      );
+    });
+  });
+
+  test('single-encodes raw spaces and unicode path segments (pushState)', async () => {
+    await withApplicationRoot('/superset/', async () => {
+      const { navigateWithState } = await import('src/utils/navigationUtils');
+      navigateWithState('/dashboard/百分比 slug/', {});
+      expect(pushSpy).toHaveBeenCalledWith(
+        {},
+        '',
+        '/superset/dashboard/%E7%99%BE%E5%88%86%E6%AF%94%20slug/',
       );
     });
   });

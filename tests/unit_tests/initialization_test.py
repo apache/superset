@@ -19,6 +19,8 @@ import os
 from unittest.mock import MagicMock, patch
 
 from sqlalchemy.exc import OperationalError
+from werkzeug.test import Client
+from werkzeug.wrappers import Response
 
 from superset.app import AppRootMiddleware, create_app, SupersetApp
 from superset.initialization import SupersetAppInitializer
@@ -275,3 +277,60 @@ class TestCreateAppRoot:
         inner = _unwrap_to_app_root(app)
         assert isinstance(inner, AppRootMiddleware)
         assert inner.app_root == "/from-param"
+
+
+class TestAppRootMiddlewareBoundary:
+    """Direct PATH_INFO handling tests for AppRootMiddleware."""
+
+    @staticmethod
+    def _make(app_root: str):
+        captured: dict[str, str | None] = {}
+
+        def inner_app(environ, start_response):
+            captured["PATH_INFO"] = environ.get("PATH_INFO")
+            captured["SCRIPT_NAME"] = environ.get("SCRIPT_NAME")
+            start_response("200 OK", [("Content-Type", "text/plain")])
+            return [b"OK"]
+
+        return AppRootMiddleware(inner_app, app_root), captured
+
+    @staticmethod
+    def _call(middleware, path: str) -> str:
+        client = Client(middleware, response_wrapper=Response)
+        return str(client.get(path).status_code)
+
+    def test_strips_prefix_and_sets_script_name(self):
+        middleware, captured = self._make("/myapp")
+        status = self._call(middleware, "/myapp/dashboard/1/")
+        assert status.startswith("200")
+        assert captured["PATH_INFO"] == "/dashboard/1/"
+        assert captured["SCRIPT_NAME"] == "/myapp"
+
+    def test_exact_app_root_path_is_accepted(self):
+        middleware, captured = self._make("/myapp")
+        status = self._call(middleware, "/myapp")
+        assert status.startswith("200")
+        assert captured["PATH_INFO"] == ""
+        assert captured["SCRIPT_NAME"] == "/myapp"
+
+    def test_shared_string_prefix_is_404_not_stripped(self):
+        """Segment-boundary pin: "/myapparoo/..." merely shares a string
+        prefix with app_root "/myapp" and must 404, not be mangled into
+        PATH_INFO "aroo/..."."""
+        middleware, captured = self._make("/myapp")
+        status = self._call(middleware, "/myapparoo/dashboard/1/")
+        assert status.startswith("404")
+        assert "PATH_INFO" not in captured
+
+    def test_path_outside_app_root_is_404(self):
+        middleware, captured = self._make("/myapp")
+        status = self._call(middleware, "/other/welcome/")
+        assert status.startswith("404")
+        assert "PATH_INFO" not in captured
+
+    def test_trailing_slash_app_root_is_normalized(self):
+        middleware, captured = self._make("/myapp/")
+        status = self._call(middleware, "/myapp/welcome/")
+        assert status.startswith("200")
+        assert captured["PATH_INFO"] == "/welcome/"
+        assert captured["SCRIPT_NAME"] == "/myapp"

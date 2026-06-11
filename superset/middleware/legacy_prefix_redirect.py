@@ -190,13 +190,24 @@ class LegacyPrefixRedirectMiddleware:
         path_info: str = environ.get("PATH_INFO", "")
         method: str = environ.get("REQUEST_METHOD", "GET").upper()
 
+        # Under a subdirectory deployment, legacy bookmarks carry the app
+        # root too (`/myapp/superset/dashboard/1/`) — this shim sits outside
+        # AppRootMiddleware, so the raw PATH_INFO still has the app-root
+        # prefix. Strip it (segment-boundary aware) before the legacy-prefix
+        # check so both `/superset/...` and `{app_root}/superset/...` forms
+        # are recognised. The Location below is built from the captured
+        # app_root either way, so both forms 308 to the same canonical URL.
+        candidate = path_info
+        if self.app_root_prefix and candidate.startswith(self.app_root_prefix + "/"):
+            candidate = candidate[len(self.app_root_prefix) :]
+
         # Cheap exit: not a /superset path at all.
         if not (
-            path_info == _LEGACY_PREFIX or path_info.startswith(_LEGACY_PREFIX + "/")
+            candidate == _LEGACY_PREFIX or candidate.startswith(_LEGACY_PREFIX + "/")
         ):
             return self.wsgi_app(environ, start_response)
 
-        canonical_after_strip = path_info[len(_LEGACY_PREFIX) :] or "/"
+        canonical_after_strip = candidate[len(_LEGACY_PREFIX) :] or "/"
         match = _match(canonical_after_strip)
         if match is None:
             # Unenumerated /superset path — closed-set discipline: pass

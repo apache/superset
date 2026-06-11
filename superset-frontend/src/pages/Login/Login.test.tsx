@@ -31,15 +31,25 @@ const defaultBootstrapData = {
   },
 };
 
-jest.mock('src/utils/getBootstrapData', () => ({
-  __esModule: true,
-  default: jest.fn(() => defaultBootstrapData),
-}));
+const mockApplicationRoot = jest.fn<string, []>(() => '');
+
+jest.mock('src/utils/getBootstrapData', () => {
+  const actual = jest.requireActual<
+    typeof import('src/utils/getBootstrapData')
+  >('src/utils/getBootstrapData');
+  return {
+    __esModule: true,
+    ...actual,
+    default: jest.fn(() => defaultBootstrapData),
+    applicationRoot: () => mockApplicationRoot(),
+  };
+});
 
 const mockGetBootstrapData = getBootstrapData as jest.Mock;
 
 beforeEach(() => {
   mockGetBootstrapData.mockReturnValue(defaultBootstrapData);
+  mockApplicationRoot.mockReturnValue('');
 });
 
 test('should render login form elements', () => {
@@ -80,4 +90,53 @@ test('should render SAML provider buttons', () => {
   render(<Login />, { useRedux: true });
   expect(screen.getByText('Sign in with Okta')).toBeInTheDocument();
   expect(screen.getByText('Sign in with Onelogin')).toBeInTheDocument();
+});
+
+const samlBootstrapData = {
+  common: {
+    conf: {
+      AUTH_TYPE: 5,
+      AUTH_PROVIDERS: [{ name: 'okta', icon: 'okta' }],
+      AUTH_USER_REGISTRATION: false,
+    },
+  },
+};
+
+test('provider login links are root-relative on root deployments', () => {
+  mockGetBootstrapData.mockReturnValue(samlBootstrapData);
+  render(<Login />, { useRedux: true });
+  expect(
+    screen.getByRole('link', { name: /sign in with okta/i }),
+  ).toHaveAttribute('href', '/login/okta');
+});
+
+test('provider login links carry the application root on subdirectory deployments', () => {
+  mockApplicationRoot.mockReturnValue('/superset');
+  mockGetBootstrapData.mockReturnValue(samlBootstrapData);
+  render(<Login />, { useRedux: true });
+  expect(
+    screen.getByRole('link', { name: /sign in with okta/i }),
+  ).toHaveAttribute('href', '/superset/login/okta');
+});
+
+test('provider login links preserve the next param under a subdirectory', () => {
+  mockApplicationRoot.mockReturnValue('/superset');
+  mockGetBootstrapData.mockReturnValue(samlBootstrapData);
+  const next = '/superset/dashboard/1/';
+  window.history.replaceState(
+    {},
+    '',
+    `/superset/login/?next=${encodeURIComponent(next)}`,
+  );
+  try {
+    render(<Login />, { useRedux: true });
+    expect(
+      screen.getByRole('link', { name: /sign in with okta/i }),
+    ).toHaveAttribute(
+      'href',
+      `/superset/login/okta?next=${encodeURIComponent(next)}`,
+    );
+  } finally {
+    window.history.replaceState({}, '', '/');
+  }
 });

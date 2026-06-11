@@ -218,15 +218,20 @@ class AppRootMiddleware:
         app_root: str,
     ):
         self.wsgi_app = wsgi_app
-        self.app_root = app_root
+        # Normalize a trailing slash so "/myapp" and "/myapp/" configure the
+        # same prefix and the segment-boundary check below stays uniform.
+        self.app_root = app_root.rstrip("/")
 
     def __call__(
         self, environ: WSGIEnvironment, start_response: StartResponse
     ) -> Iterable[bytes]:
         original_path_info = environ.get("PATH_INFO", "")
-        if original_path_info.startswith(self.app_root):
-            environ["PATH_INFO"] = original_path_info.removeprefix(self.app_root)
+        # Segment-boundary match: accept "/myapp" and "/myapp/..." but never
+        # a path that merely shares a string prefix (e.g. "/myapparoo/...").
+        if original_path_info == self.app_root or original_path_info.startswith(
+            self.app_root + "/"
+        ):
+            environ["PATH_INFO"] = original_path_info[len(self.app_root) :]
             environ["SCRIPT_NAME"] = self.app_root
             return self.wsgi_app(environ, start_response)
-        else:
-            return NotFound()(environ, start_response)
+        return NotFound()(environ, start_response)
