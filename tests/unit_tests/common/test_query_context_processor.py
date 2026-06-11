@@ -1821,3 +1821,37 @@ def test_get_df_payload_no_warning_when_not_memory_limited() -> None:
                     result = processor.get_df_payload(query_obj, force_cached=False)
 
     assert result["warning"] is None
+
+
+def test_raise_for_access_evaluates_access_before_validate():
+    """
+    Access must be evaluated before the queries are validated, because query
+    validation renders the request's filter expressions. When access is denied,
+    no query is validated (so caller-supplied input is never rendered).
+    """
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+    from superset.utils.core import DatasourceType
+
+    query = MagicMock()
+    query_context = MagicMock()
+    query_context.queries = [query]
+    query_context.datasource.type = DatasourceType.TABLE
+
+    processor = QueryContextProcessor(query_context)
+
+    denied = SupersetSecurityException(
+        SupersetError(
+            message="denied",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    with patch(
+        "superset.common.query_context_processor.security_manager.raise_for_access",
+        side_effect=denied,
+    ):
+        with pytest.raises(SupersetSecurityException):
+            processor.raise_for_access()
+
+    query.validate.assert_not_called()
