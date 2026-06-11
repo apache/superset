@@ -59,11 +59,10 @@ export const getActiveChatbot = (): ActiveChatbot | undefined => {
     return undefined;
   }
 
-  // `getRegisteredViewIds` returns ids in recency order — the registry moves an
-  // id to the end when it re-registers — so the last entry is the
-  // most-recently-loaded chatbot. `getViewProvider` reads the same synchronous
-  // registry maps, so the id always has a live provider; the final guard is
-  // cheap defensiveness, not a fallback path.
+  // `getRegisteredViewIds` returns ids in registration order, so the last entry
+  // is the most-recently-loaded chatbot. `getViewProvider` reads the same
+  // synchronous registry maps, so the id always has a live provider; the final
+  // guard is cheap defensiveness, not a fallback path.
   const selectedId = registeredIds[registeredIds.length - 1];
 
   const provider = getViewProvider(CHATBOT_LOCATION, selectedId);

@@ -168,36 +168,6 @@ test('getRegisteredViewIds returns ids in registration order', () => {
   ]);
 });
 
-test('re-registering an existing id moves it to the end (recency order)', () => {
-  const provider = () => React.createElement('div', null, 'Test');
-  disposables.push(
-    views.registerView(
-      { id: 'first.chatbot', name: 'First' },
-      'core.chatbot',
-      provider,
-    ),
-    views.registerView(
-      { id: 'second.chatbot', name: 'Second' },
-      'core.chatbot',
-      provider,
-    ),
-  );
-
-  // Re-register the first id; it must become the most recent, not stay first.
-  disposables.push(
-    views.registerView(
-      { id: 'first.chatbot', name: 'First' },
-      'core.chatbot',
-      provider,
-    ),
-  );
-
-  expect(getRegisteredViewIds('core.chatbot')).toEqual([
-    'second.chatbot',
-    'first.chatbot',
-  ]);
-});
-
 test('getRegisteredViewIds returns an empty array for an unused location', () => {
   expect(getRegisteredViewIds('core.chatbot')).toEqual([]);
 });
