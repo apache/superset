@@ -600,6 +600,58 @@ class AddChartToDashboardResponse(BaseModel):
         return sanitize_for_llm_context(value, field_path=("error",))
 
 
+class RemoveChartFromDashboardRequest(BaseModel):
+    """Request schema for removing a chart from an existing dashboard."""
+
+    dashboard_id: int = Field(
+        ..., description="ID of the dashboard to remove the chart from"
+    )
+    chart_id: int = Field(
+        ..., description="ID of the chart to remove from the dashboard"
+    )
+
+
+class RemoveChartFromDashboardResponse(BaseModel):
+    """Response schema for removing a chart from a dashboard."""
+
+    dashboard: DashboardInfo | None = Field(
+        None, description="The updated dashboard info, if successful"
+    )
+    dashboard_url: str | None = Field(
+        None, description="URL to view the updated dashboard"
+    )
+    removed_layout_keys: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Layout component IDs that were removed from position_json "
+            "(the CHART components plus any ROW/COLUMN containers that "
+            "became empty as a result)."
+        ),
+    )
+    error: str | None = Field(None, description="Error message, if operation failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=(
+            "True when the operation failed because the current user does not "
+            "have edit rights on the target dashboard. When True, inform the "
+            "user — do NOT attempt a workaround without confirming first."
+        ),
+    )
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap error text before it is exposed to LLM context.
+
+        The error may echo dashboard-controlled text (e.g. the dashboard
+        title), which must be wrapped so the LLM treats it as data, not
+        instructions.
+        """
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
+
+
 class GenerateDashboardRequest(BaseModel):
     """Request schema for generating a dashboard."""
 
