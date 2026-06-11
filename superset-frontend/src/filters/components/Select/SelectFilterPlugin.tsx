@@ -315,23 +315,33 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
 
   const uniqueOptions = useMemo(() => {
     const allOptions = new Set(data.map(el => el[col]));
-    return [...allOptions].map((value: string) => ({
+    const baseOptions = [...allOptions].map((value: string) => ({
       label: labelFormatter(value, datatype),
       value,
       isNewOption: false,
     }));
-  }, [data, datatype, col, labelFormatter]);
+    if (creatable !== false && filterState.value) {
+      const existing = new Set(allOptions);
+      ensureIsArray(filterState.value)
+        .filter(v => v !== null && v !== undefined && !existing.has(v))
+        .forEach(v => {
+          baseOptions.push({
+            label: String(v),
+            value: String(v),
+            isNewOption: true,
+          });
+          existing.add(v);
+        });
+    }
+    return baseOptions;
+  }, [data, datatype, col, labelFormatter, creatable, filterState.value]);
 
   const options = useMemo(() => {
-    if (search && !multiSelect && !hasOption(search, uniqueOptions, true)) {
-      uniqueOptions.unshift({
-        label: search,
-        value: search,
-        isNewOption: true,
-      });
+    if (search && !hasOption(search, uniqueOptions, true)) {
+      return [{ label: search, value: search, isNewOption: true }, ...uniqueOptions];
     }
     return uniqueOptions;
-  }, [multiSelect, search, uniqueOptions]);
+  }, [search, uniqueOptions]);
 
   const sortComparator = useCallback(
     (a: LabeledValue, b: LabeledValue) => {
