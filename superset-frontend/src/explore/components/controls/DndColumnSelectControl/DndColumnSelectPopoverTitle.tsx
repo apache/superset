@@ -63,7 +63,7 @@ export const DndColumnSelectPopoverTitle = ({
   }, []);
 
   const onInputBlur = useCallback(
-    e => {
+    (e: React.FocusEvent<HTMLInputElement>) => {
       if (e.target.value === '') {
         onChange(e);
       }

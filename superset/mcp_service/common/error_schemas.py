@@ -19,9 +19,53 @@
 Enhanced error schemas for MCP chart generation with contextual information
 """
 
+from __future__ import annotations
+
+from datetime import datetime, timezone
 from typing import Any, Dict, List
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, computed_field, ConfigDict, Field, model_validator
+
+
+class MCPBaseError(BaseModel):
+    """Base error shape for all MCP tool responses.
+
+    Provides a consistent set of fields that every error response includes,
+    allowing LLM clients to handle errors uniformly regardless of which tool
+    produced them.
+    """
+
+    error_type: str = Field(
+        ..., description="Type of error (validation, execution, etc.)"
+    )
+    message: str = Field(..., description="Human-readable error message")
+    timestamp: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        description="Error timestamp",
+    )
+    details: str | None = Field(None, description="Detailed error explanation")
+    suggestions: list[str] = Field(
+        default_factory=list, description="Actionable suggestions to fix the error"
+    )
+    error_code: str | None = Field(
+        None, description="Unique error code for support reference"
+    )
+
+    model_config = ConfigDict(ser_json_timedelta="iso8601")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _compat_error_to_message(cls, data: Any) -> Any:
+        """Allow construction with error= kwarg for backward compatibility."""
+        if isinstance(data, dict) and "error" in data and "message" not in data:
+            data["message"] = data.pop("error")
+        return data
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def error(self) -> str:
+        """Backward-compatible field: mirrors 'message' in serialized output."""
+        return self.message
 
 
 class ColumnSuggestion(BaseModel):
@@ -67,13 +111,9 @@ class DatasetContext(BaseModel):
     )
 
 
-class ChartGenerationError(BaseModel):
+class ChartGenerationError(MCPBaseError):
     """Enhanced error response for chart generation failures"""
 
-    error_type: str = Field(
-        ..., description="Type of error (validation, execution, etc.)"
-    )
-    message: str = Field(..., description="High-level error message")
     details: str = Field(..., description="Detailed error explanation")
     validation_errors: List[ValidationError] = Field(
         default_factory=list, description="Specific field validation errors"
@@ -84,14 +124,8 @@ class ChartGenerationError(BaseModel):
     query_info: Dict[str, Any] | None = Field(
         None, description="Query execution details"
     )
-    suggestions: List[str] = Field(
-        default_factory=list, description="Actionable suggestions to fix the error"
-    )
     help_url: str | None = Field(
         None, description="URL to documentation for this error type"
-    )
-    error_code: str | None = Field(
-        None, description="Unique error code for support reference"
     )
 
 

@@ -20,8 +20,11 @@ import React from 'react';
 import { render, userEvent, waitFor } from 'spec/helpers/testing-library';
 import { initialState } from 'src/SqlLab/fixtures';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
-import { views } from 'src/core';
 import { ViewLocations } from 'src/SqlLab/contributions';
+import {
+  registerTestView,
+  cleanupExtensions,
+} from 'spec/helpers/extensionTestHelpers';
 import AppLayout from './index';
 
 jest.mock('src/components/ResizableSidebar/useStoredSidebarWidth');
@@ -63,6 +66,8 @@ beforeEach(() => {
   (useStoredSidebarWidth as jest.Mock).mockReturnValue([250, jest.fn()]);
 });
 
+afterEach(cleanupExtensions);
+
 test('renders two panels', () => {
   const { getAllByTestId } = render(<AppLayout {...defaultProps} />, {
     useRedux: true,
@@ -94,10 +99,20 @@ test('calls setWidth on sidebar resize when not hidden', async () => {
   await waitFor(() => expect(setWidth).toHaveBeenCalled());
 });
 
+test('right sidebar is hidden when no extensions registered', () => {
+  const { queryByText } = render(<AppLayout {...defaultProps} />, {
+    useRedux: true,
+    initialState,
+  });
+  // No right sidebar content — the third Splitter.Panel is conditionally omitted
+  expect(queryByText('Right Sidebar Content')).not.toBeInTheDocument();
+});
+
 test('renders right sidebar when view is contributed at rightSidebar location', () => {
-  views.registerView(
-    { id: 'test-right-sidebar-view', name: 'Test Right Sidebar View' },
+  registerTestView(
     ViewLocations.sqllab.rightSidebar,
+    'test-right-sidebar-view',
+    'Test Right Sidebar View',
     () => React.createElement('div', null, 'Right Sidebar Content'),
   );
 
@@ -110,5 +125,6 @@ test('renders right sidebar when view is contributed at rightSidebar location', 
   );
 
   expect(getByText('Child')).toBeInTheDocument();
+  expect(getByText('Right Sidebar Content')).toBeInTheDocument();
   expect(getAllByTestId('mock-panel')).toHaveLength(3);
 });

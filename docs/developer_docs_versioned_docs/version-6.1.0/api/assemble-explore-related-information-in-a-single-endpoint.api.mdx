@@ -1,0 +1,68 @@
+---
+id: assemble-explore-related-information-in-a-single-endpoint
+title: "Assemble Explore related information in a single endpoint"
+description: "Assembles Explore related information (form_data, slice, dataset) in a single endpoint.<br/><br/> The information can be assembled from:<br/> - The cache using a form_data_key<br/> - The metadata database using a permalink_key<br/> - Build from scratch using dataset or slice identifiers."
+sidebar_label: "Assemble Explore related information in a single endpoint"
+hide_title: true
+hide_table_of_contents: true
+api: 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
+sidebar_class_name: "get api-method"
+info_path: developer-docs/api/superset
+custom_edit_url: null
+hide_send_button: true
+show_extensions: true
+---
+
+import MethodEndpoint from "@theme/ApiExplorer/MethodEndpoint";
+import ParamsDetails from "@theme/ParamsDetails";
+import RequestSchema from "@theme/RequestSchema";
+import StatusCodes from "@theme/StatusCodes";
+import OperationTabs from "@theme/OperationTabs";
+import TabItem from "@theme/TabItem";
+import Heading from "@theme/Heading";
+import Translate from "@docusaurus/Translate";
+
+<Heading
+  as={"h1"}
+  className={"openapi__heading"}
+  children={"Assemble Explore related information in a single endpoint"}
+>
+</Heading>
+
+<MethodEndpoint
+  method={"get"}
+  path={"/api/v1/explore/"}
+  context={"endpoint"}
+>
+
+</MethodEndpoint>
+
+
+
+Assembles Explore related information (form_data, slice, dataset) in a single endpoint.<br/><br/> The information can be assembled from:<br/> - The cache using a form_data_key<br/> - The metadata database using a permalink_key<br/> - Build from scratch using dataset or slice identifiers.
+
+<Heading
+  id={"request"}
+  as={"h2"}
+  className={"openapi-tabs__heading"}
+>
+  <Translate id="theme.openapi.request.title">Request</Translate>
+</Heading>
+
+<ParamsDetails
+  {...require("./assemble-explore-related-information-in-a-single-endpoint.ParamsDetails.json")}
+>
+
+</ParamsDetails>
+
+<RequestSchema
+  {...require("./assemble-explore-related-information-in-a-single-endpoint.RequestSchema.json")}
+>
+
+</RequestSchema>
+
+<StatusCodes
+  {...require("./assemble-explore-related-information-in-a-single-endpoint.StatusCodes.json")}
+>
+
+</StatusCodes>

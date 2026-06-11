@@ -700,13 +700,22 @@ class TestFavoriteChartCommand(SupersetTestCase):
             # Assert that the chart exists
             assert example_chart is not None
 
-            with override_user(security_manager.find_user("gamma")):
-                AddFavoriteChartCommand(example_chart.id).run()
-                ids = ChartDAO.favorited_ids([example_chart])
+            # Grant gamma read access to the datasource so the access check passes.
+            # Faving requires datasource access but not ownership.
+            if example_chart.datasource:
+                self.grant_role_access_to_table(example_chart.datasource, "Gamma")
 
-                assert example_chart.id in ids
+            try:
+                with override_user(security_manager.find_user("gamma")):
+                    AddFavoriteChartCommand(example_chart.id).run()
+                    ids = ChartDAO.favorited_ids([example_chart])
 
-                DelFavoriteChartCommand(example_chart.id).run()
-                ids = ChartDAO.favorited_ids([example_chart])
+                    assert example_chart.id in ids
 
-                assert example_chart.id not in ids
+                    DelFavoriteChartCommand(example_chart.id).run()
+                    ids = ChartDAO.favorited_ids([example_chart])
+
+                    assert example_chart.id not in ids
+            finally:
+                if example_chart.datasource:
+                    self.revoke_role_access_to_table("Gamma", example_chart.datasource)

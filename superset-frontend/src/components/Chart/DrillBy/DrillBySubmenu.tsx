@@ -57,7 +57,7 @@ export interface DrillBySubmenuProps {
   drillByConfig?: ContextMenuFilters['drillBy'];
   formData: BaseFormData & { [key: string]: any };
   onSelection?: (...args: any) => void;
-  onClick?: (event: MouseEvent) => void;
+  onClick?: (event: React.MouseEvent) => void;
   onCloseMenu?: () => void;
   openNewModal?: boolean;
   excludedColumns?: Column[];
@@ -93,8 +93,8 @@ export const DrillBySubmenu = ({
   const showSearch = columns.length > SHOW_COLUMNS_SEARCH_THRESHOLD;
 
   const handleSelection = useCallback(
-    (event, column) => {
-      onClick(event as MouseEvent);
+    (event: React.MouseEvent, column: Column) => {
+      onClick(event);
       onSelection(column, drillByConfig);
       if (openNewModal && onDrillBy && dataset) {
         onDrillBy(column, dataset);
@@ -179,8 +179,11 @@ export const DrillBySubmenu = ({
   }
 
   if (
-    formData.matrixify_enable_vertical_layout === true ||
-    formData.matrixify_enable_horizontal_layout === true
+    formData.matrixify_enable === true &&
+    ((formData.matrixify_mode_rows !== undefined &&
+      formData.matrixify_mode_rows !== 'disabled') ||
+      (formData.matrixify_mode_columns !== undefined &&
+        formData.matrixify_mode_columns !== 'disabled'))
   ) {
     return null;
   }

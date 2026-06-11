@@ -21,6 +21,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import tomli_w
+
 from superset_core.extensions.constants import (
     DISPLAY_NAME_PATTERN,
     PUBLISHER_PATTERN,
@@ -107,6 +109,14 @@ def read_json(path: Path) -> dict[str, Any] | None:
         return None
 
     return json.loads(path.read_text())
+
+
+def write_json(path: Path, data: dict[str, Any]) -> None:
+    path.write_text(json.dumps(data, indent=2) + "\n")
+
+
+def write_toml(path: Path, data: dict[str, Any]) -> None:
+    path.write_text(tomli_w.dumps(data))
 
 
 def _normalize_for_identifiers(name: str) -> str:

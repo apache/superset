@@ -107,7 +107,7 @@ type DashboardPropertiesUpdate = {
   owners?: Owner[];
   roles?: Role[];
   tags?: TagType[];
-  themeId?: number | null;
+  theme?: { id: number; theme_name: string; json_data: string } | null;
   css?: string;
   title?: string;
 };
@@ -561,7 +561,10 @@ const Header = (): JSX.Element => {
         owners: updates.owners,
         roles: updates.roles,
         tags: updates.tags,
-        theme_id: updates.themeId,
+        // Conditional spread: omit `theme` key entirely when undefined
+        // to prevent the reducer from overwriting the existing theme.
+        // `undefined` means "not changed" (e.g., theme not in fetched list).
+        ...(updates.theme !== undefined && { theme: updates.theme }),
         css: updates.css,
       });
       boundActionCreators.setUnsavedChanges(true);
@@ -746,7 +749,7 @@ const Header = (): JSX.Element => {
         ) : (
           <div css={actionButtonsStyle}>
             {NavExtension && <NavExtension />}
-            {userCanEdit && (
+            {userCanEdit && !isEmbedded && (
               <Button
                 buttonStyle="secondary"
                 onClick={handleEnterEditMode}
@@ -773,6 +776,7 @@ const Header = (): JSX.Element => {
       handleCtrlZ,
       handleEnterEditMode,
       hasUnsavedChanges,
+      isEmbedded,
       overwriteDashboard,
       redoLength,
       undoLength,

@@ -93,6 +93,7 @@ describe('CountryMap (legacy d3)', () => {
         linearColorScheme="bnbColors"
         colorScheme=""
         numberFormat=".2f"
+        formatter={jest.fn().mockReturnValue('100')}
       />,
     );
 
@@ -115,6 +116,7 @@ describe('CountryMap (legacy d3)', () => {
         country="canada"
         linearColorScheme="bnbColors"
         colorScheme=""
+        formatter={jest.fn().mockReturnValue('100')}
       />,
     );
 
@@ -144,6 +146,7 @@ describe('CountryMap (legacy d3)', () => {
         country="canada"
         linearColorScheme="bnbColors"
         colorScheme=""
+        formatter={jest.fn().mockReturnValue('100')}
       />,
     );
 
