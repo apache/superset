@@ -680,7 +680,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         for model_cls in (Dashboard, Slice, SqlaTable):
             try:
                 version_class(model_cls)  # ensure Continuum wired this model
-                VERSIONED_MODELS.append(model_cls)
+                # Dedup guard: VERSIONED_MODELS is module-level state, and
+                # test fixtures initialize multiple Superset apps per
+                # process — without the check each re-init appends
+                # duplicate entries.
+                if model_cls not in VERSIONED_MODELS:
+                    VERSIONED_MODELS.append(model_cls)
             except Exception:  # pylint: disable=broad-except
                 # Continuum failed to wire versioning for this model. We
                 # boot in degraded mode rather than failing startup, but a
