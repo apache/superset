@@ -104,7 +104,9 @@ test('chart groups expand to show granular action rows', async () => {
     name: 'Dec 5, 2025, 12:18 PM',
   });
   expect(header).toHaveAttribute('aria-expanded', 'false');
-  expect(screen.queryByText("Applied 'Revenue' metric")).not.toBeInTheDocument();
+  expect(
+    screen.queryByText("Applied 'Revenue' metric"),
+  ).not.toBeInTheDocument();
 
   await userEvent.click(header);
   expect(header).toHaveAttribute('aria-expanded', 'true');
@@ -178,7 +180,9 @@ test('an empty timeline shows the no-history empty state', () => {
   const props = defaultProps([]);
   render(<VersionHistoryPanel {...props} />);
   expect(screen.getByText('No history yet')).toBeInTheDocument();
-  expect(screen.getByText('Saved changes will appear here')).toBeInTheDocument();
+  expect(
+    screen.getByText('Saved changes will appear here'),
+  ).toBeInTheDocument();
 });
 
 test('related rows link to the entity unless it was deleted', () => {
@@ -238,7 +242,9 @@ test('a restore at the head of the timeline surfaces a notice', async () => {
   ]);
   render(<VersionHistoryPanel {...props} />);
 
-  await userEvent.click(screen.getByRole('button', { name: 'Current version' }));
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Current version' }),
+  );
   expect(
     screen.getByText('Restored version · Dec 8, 2025, 12:18 PM'),
   ).toBeInTheDocument();
