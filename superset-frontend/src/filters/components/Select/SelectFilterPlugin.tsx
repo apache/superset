@@ -337,11 +337,11 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [data, datatype, col, labelFormatter, creatable, filterState.value]);
 
   const options = useMemo(() => {
-    if (search && !hasOption(search, uniqueOptions, true)) {
+    if (search && creatable !== false && !hasOption(search, uniqueOptions, true)) {
       return [{ label: search, value: search, isNewOption: true }, ...uniqueOptions];
     }
     return uniqueOptions;
-  }, [search, uniqueOptions]);
+  }, [search, uniqueOptions, creatable]);
 
   const sortComparator = useCallback(
     (a: LabeledValue, b: LabeledValue) => {
