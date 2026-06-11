@@ -22,8 +22,9 @@ import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import { Button } from '@superset-ui/core/components';
-import type { VersionedEntityType, VersionPreviewState } from './types';
+import type { VersionedEntityType } from './types';
 import { clearVersionPreview, selectVersionHistory } from './reducer';
+import { useVersionActions } from './useVersionActions';
 import { formatVersionDateTime } from './display';
 
 const Actions = styled.div`
@@ -36,18 +37,16 @@ const Actions = styled.div`
 
 export interface PreviewBannerProps {
   entityType: VersionedEntityType;
-  onRestore?: (preview: VersionPreviewState) => void;
-  onOpenAsNew?: (preview: VersionPreviewState) => void;
 }
 
-export default function PreviewBanner({
-  entityType,
-  onRestore,
-  onOpenAsNew,
-}: PreviewBannerProps) {
+export default function PreviewBanner({ entityType }: PreviewBannerProps) {
   const dispatch = useDispatch();
   const { entityType: activeEntityType, preview } =
     useSelector(selectVersionHistory);
+  const { requestRestore, openAsNew, restoreModal } = useVersionActions(
+    entityType,
+    preview?.entityUuid,
+  );
 
   const handleClose = useCallback(() => {
     dispatch(clearVersionPreview());
@@ -57,39 +56,48 @@ export default function PreviewBanner({
     return null;
   }
 
+  const target = {
+    versionUuid: preview.versionUuid,
+    headline: preview.headline,
+    issuedAt: preview.issuedAt,
+  };
+
   return (
-    <Alert
-      type="info"
-      closable={false}
-      data-test="version-preview-banner"
-      message={t(
-        'Previewing historical version · %s · %s',
-        preview.headline,
-        formatVersionDateTime(preview.issuedAt),
-      )}
-      action={
-        <Actions>
-          <Button
-            buttonSize="small"
-            buttonStyle="primary"
-            onClick={() => onRestore?.(preview)}
-          >
-            {t('Restore this version')}
-          </Button>
-          <Button
-            buttonSize="small"
-            buttonStyle="secondary"
-            onClick={() => onOpenAsNew?.(preview)}
-          >
-            {entityType === 'chart'
-              ? t('Open as new chart')
-              : t('Open as new dashboard')}
-          </Button>
-          <Button buttonSize="small" buttonStyle="link" onClick={handleClose}>
-            {t('Close preview')}
-          </Button>
-        </Actions>
-      }
-    />
+    <>
+      <Alert
+        type="info"
+        closable={false}
+        data-test="version-preview-banner"
+        message={t(
+          'Previewing historical version · %s · %s',
+          preview.headline,
+          formatVersionDateTime(preview.issuedAt),
+        )}
+        action={
+          <Actions>
+            <Button
+              buttonSize="small"
+              buttonStyle="primary"
+              onClick={() => requestRestore(target)}
+            >
+              {t('Restore this version')}
+            </Button>
+            <Button
+              buttonSize="small"
+              buttonStyle="secondary"
+              onClick={() => openAsNew(target)}
+            >
+              {entityType === 'chart'
+                ? t('Open as new chart')
+                : t('Open as new dashboard')}
+            </Button>
+            <Button buttonSize="small" buttonStyle="link" onClick={handleClose}>
+              {t('Close preview')}
+            </Button>
+          </Actions>
+        }
+      />
+      {restoreModal}
+    </>
   );
 }

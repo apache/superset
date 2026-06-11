@@ -28,7 +28,11 @@ import {
   fetchVersionSnapshot,
   DashboardHydrationData,
 } from './api';
-import { clearVersionPreview, selectVersionPreview } from './reducer';
+import {
+  clearVersionPreview,
+  selectVersionPreview,
+  selectVersionRestoreCount,
+} from './reducer';
 
 type HydrateParams = Parameters<typeof hydrateDashboard>[0];
 
@@ -49,6 +53,8 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
   const liveDataRef = useRef<DashboardHydrationData | null>(null);
   const appliedVersionRef = useRef<string | null>(null);
   const fetchIdRef = useRef(0);
+  const restoreCount = useSelector(selectVersionRestoreCount);
+  const lastRestoreCountRef = useRef(restoreCount);
 
   const versionUuid = preview?.versionUuid;
 
@@ -65,6 +71,33 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
         } as unknown as HydrateParams),
       );
     };
+
+    if (restoreCount !== lastRestoreCountRef.current) {
+      // The dashboard changed on the server (a version was restored);
+      // drop the cached live data and rehydrate with a fresh copy.
+      lastRestoreCountRef.current = restoreCount;
+      appliedVersionRef.current = null;
+      liveDataRef.current = null;
+      if (!dashboardId) {
+        return;
+      }
+      fetchIdRef.current += 1;
+      const fetchId = fetchIdRef.current;
+      fetchDashboardHydrationData(dashboardId)
+        .then(data => {
+          if (fetchId !== fetchIdRef.current) {
+            return;
+          }
+          liveDataRef.current = data;
+          hydrateWith(data.dashboard, data.charts);
+        })
+        .catch(() => {
+          if (fetchId === fetchIdRef.current) {
+            addDangerToast(t('Failed to reload the restored version'));
+          }
+        });
+      return;
+    }
 
     if (versionUuid && uuid && dashboardId) {
       if (appliedVersionRef.current === versionUuid) {
@@ -121,6 +154,7 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
     dashboardId,
     dispatch,
     history,
+    restoreCount,
     store,
     uuid,
     versionUuid,

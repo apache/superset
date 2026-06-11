@@ -16,12 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
+import { hydrateExplore } from 'src/explore/actions/hydrateExplore';
 import type { Slice } from 'src/types/Chart';
 import type { ExplorePageState } from 'src/explore/types';
 import type { ActivityInclude, ActivityRecord, SaveGroup } from './types';
@@ -31,13 +32,15 @@ import {
   selectIsVersionHistoryPanelOpen,
   selectVersionHistoryInclude,
   selectVersionPreview,
+  selectVersionRestoreCount,
   selectVersionSessionLog,
   setVersionHistoryInclude,
   setVersionPreview,
 } from './reducer';
-import { fetchChartUuid } from './api';
+import { fetchChartUuid, fetchExploreRehydrationData } from './api';
 import { openRelatedEntity } from './openRelated';
 import { useVersionActivity } from './useVersionActivity';
+import { useVersionActions } from './useVersionActions';
 import { groupHeadline } from './display';
 import VersionHistoryPanel from './VersionHistoryPanel';
 
@@ -98,6 +101,37 @@ export default function ExploreVersionHistory() {
     include,
   );
 
+  const { requestRestore, openAsNew, restoreModal } = useVersionActions(
+    'chart',
+    uuid,
+  );
+
+  // After a restore the server-side chart changed; reload the explore
+  // page state in place (same payload the page hydrates from) and
+  // refresh the activity timeline so the new "Restored version" entry
+  // shows up.
+  const restoreCount = useSelector(selectVersionRestoreCount);
+  const lastRestoreCountRef = useRef(restoreCount);
+  const refreshActivity = activity.refresh;
+  const sliceId = slice?.slice_id;
+  useEffect(() => {
+    if (restoreCount === lastRestoreCountRef.current) {
+      return;
+    }
+    lastRestoreCountRef.current = restoreCount;
+    refreshActivity();
+    if (!sliceId) {
+      return;
+    }
+    fetchExploreRehydrationData(sliceId)
+      .then(result => {
+        dispatch(hydrateExplore({ ...result, saveAction: 'overwrite' }));
+      })
+      .catch(() => {
+        addDangerToast(t('Failed to reload the restored version'));
+      });
+  }, [addDangerToast, dispatch, refreshActivity, restoreCount, sliceId]);
+
   const handleClose = useCallback(() => {
     dispatch(closeVersionHistoryPanel());
   }, [dispatch]);
@@ -134,28 +168,52 @@ export default function ExploreVersionHistory() {
     [addDangerToast],
   );
 
-  // Restore and open-as-new flows are dispatched from here once the
-  // confirmation modal and fork actions land.
-  const handleRestore = useCallback(() => undefined, []);
-  const handleOpenAsNew = useCallback(() => undefined, []);
+  const handleRestore = useCallback(
+    (group: SaveGroup) => {
+      if (group.versionUuid) {
+        requestRestore({
+          versionUuid: group.versionUuid,
+          headline: groupHeadline('chart', group),
+          issuedAt: group.issuedAt,
+        });
+      }
+    },
+    [requestRestore],
+  );
+
+  const handleOpenAsNew = useCallback(
+    (group: SaveGroup) => {
+      if (group.versionUuid) {
+        openAsNew({
+          versionUuid: group.versionUuid,
+          headline: groupHeadline('chart', group),
+          issuedAt: group.issuedAt,
+        });
+      }
+    },
+    [openAsNew],
+  );
 
   if (!isPanelOpen) {
-    return null;
+    return restoreModal;
   }
 
   return (
-    <VersionHistoryPanel
-      entityType="chart"
-      activity={activity}
-      include={include}
-      onIncludeChange={handleIncludeChange}
-      previewedTransactionId={preview?.transactionId ?? null}
-      onClose={handleClose}
-      onPreview={handlePreview}
-      onRestore={handleRestore}
-      onOpenAsNew={handleOpenAsNew}
-      onOpenRelated={handleOpenRelated}
-      sessionEntries={sessionLog}
-    />
+    <>
+      <VersionHistoryPanel
+        entityType="chart"
+        activity={activity}
+        include={include}
+        onIncludeChange={handleIncludeChange}
+        previewedTransactionId={preview?.transactionId ?? null}
+        onClose={handleClose}
+        onPreview={handlePreview}
+        onRestore={handleRestore}
+        onOpenAsNew={handleOpenAsNew}
+        onOpenRelated={handleOpenRelated}
+        sessionEntries={sessionLog}
+      />
+      {restoreModal}
+    </>
   );
 }
