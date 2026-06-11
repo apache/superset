@@ -526,8 +526,10 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
         try:
             changed_model = UpdateDatasetCommand(pk, item, override_columns).run()
-            if override_columns:
-                RefreshDatasetCommand(pk).run()
+            # Capture the post-update identifiers BEFORE the refresh:
+            # RefreshDatasetCommand commits its own transaction, so reading
+            # afterwards would attribute the refresh's version to the
+            # user's update (and old→new would span two transactions).
             new_version = VersionDAO.current_version_number(SqlaTable, changed_model.id)
             new_transaction_id = VersionDAO.current_live_transaction_id(
                 SqlaTable, changed_model.id
@@ -535,6 +537,15 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             new_version_uuid = VersionDAO.current_live_version_uuid(
                 SqlaTable, changed_model.id, changed_model.uuid
             )
+            etag_version_uuid = new_version_uuid
+            if override_columns:
+                RefreshDatasetCommand(pk).run()
+                # The ETag must reflect the entity's *current live* version,
+                # which after the refresh is the refresh's transaction —
+                # re-read it rather than reusing the pre-refresh uuid.
+                etag_version_uuid = VersionDAO.current_live_version_uuid(
+                    SqlaTable, changed_model.id, changed_model.uuid
+                )
             response = self.response(
                 200,
                 id=changed_model.id,
@@ -546,7 +557,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 old_version_uuid=str(old_version_uuid) if old_version_uuid else None,
                 new_version_uuid=str(new_version_uuid) if new_version_uuid else None,
             )
-            set_version_etag(response, new_version_uuid)
+            set_version_etag(response, etag_version_uuid)
         except DatasetNotFoundError:
             response = self.response_404()
         except DatasetForbiddenError:
