@@ -35,3 +35,10 @@ class FolderView(BaseSupersetView):
     @event_logger.log_this
     def root(self) -> FlaskResponse:
         return super().render_app_template()
+
+    @expose("/<folder_uuid>/")
+    @has_access
+    @permission_name("read")
+    @event_logger.log_this
+    def folder(self, folder_uuid: str) -> FlaskResponse:
+        return super().render_app_template()

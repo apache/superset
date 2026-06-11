@@ -16,11 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
-import { styled, css, useTheme } from '@apache-superset/core/theme';
-import { Input } from '@superset-ui/core/components';
+import { styled, css } from '@apache-superset/core/theme';
+import {
+  Input,
+  Table,
+  SelectionType,
+  TableSize,
+  type ColumnsType,
+} from '@superset-ui/core/components';
 import { StandardModal } from 'src/components/Modal';
 import { Icons } from '@superset-ui/core/components/Icons';
 
@@ -28,6 +34,7 @@ type AssetType = 'chart' | 'dashboard' | 'folder';
 
 interface Asset {
   id: number;
+  key: string;
   name: string;
   type: AssetType;
   uuid?: string;
@@ -86,66 +93,21 @@ const Tab = styled.button<{ active: boolean }>`
   `}
 `;
 
-const AssetList = styled.div`
-  ${({ theme }) => css`
-    max-height: 400px;
-    overflow-y: auto;
-    margin-top: ${theme.sizeUnit * 2}px;
-
-    .asset-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 2}px;
-      border-bottom: 1px solid ${theme.colorBorderSecondary};
-      cursor: pointer;
-
-      &:hover {
-        background: ${theme.colorBgTextHover};
-      }
-
-      &.selected {
-        background: ${theme.colorInfoBg};
-      }
-
-      .asset-info {
-        display: flex;
-        align-items: center;
-        gap: ${theme.sizeUnit * 2}px;
-      }
-
-      .check-icon {
-        color: ${theme.colorSuccess};
-      }
-    }
-  `}
-`;
-
-const SelectedCount = styled.div`
-  ${({ theme }) => css`
-    margin-top: ${theme.sizeUnit * 3}px;
-    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
-    background: ${theme.colorInfoBg};
-    border-radius: ${theme.borderRadius}px;
-    font-weight: ${theme.fontWeightStrong};
-  `}
-`;
-
-const LoadMoreButton = styled.button`
-  ${({ theme }) => css`
-    width: 100%;
-    padding: ${theme.sizeUnit * 2}px;
-    margin-top: ${theme.sizeUnit}px;
-    border: 1px solid ${theme.colorBorder};
-    border-radius: ${theme.borderRadius}px;
-    background: none;
-    cursor: pointer;
-    color: ${theme.colorPrimary};
-    &:hover {
-      background: ${theme.colorBgTextHover};
-    }
-  `}
-`;
+const ASSET_COLUMNS: ColumnsType<Asset> = [
+  {
+    title: t('Name'),
+    dataIndex: 'name',
+    key: 'name',
+    render: (name: string, record: Asset) => (
+      <span css={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        {record.type === 'chart' && <Icons.AreaChartOutlined iconSize="m" />}
+        {record.type === 'dashboard' && <Icons.AppstoreOutlined iconSize="m" />}
+        {record.type === 'folder' && <Icons.FolderOutlined iconSize="m" />}
+        {name}
+      </span>
+    ),
+  },
+];
 
 export default function FolderAssetsModal({
   folderUuid,
@@ -156,87 +118,78 @@ export default function FolderAssetsModal({
   addDangerToast,
   addSuccessToast,
 }: FolderAssetsModalProps) {
-  const theme = useTheme();
   const [activeTab, setActiveTab] = useState<AssetType>('chart');
   const [search, setSearch] = useState('');
 
   const [charts, setCharts] = useState<Asset[]>([]);
   const [chartsTotal, setChartsTotal] = useState(0);
-  const [chartsPage, setChartsPage] = useState(0);
 
   const [dashboards, setDashboards] = useState<Asset[]>([]);
   const [dashboardsTotal, setDashboardsTotal] = useState(0);
-  const [dashboardsPage, setDashboardsPage] = useState(0);
 
   const [folders, setFolders] = useState<Asset[]>([]);
   const [foldersTotal, setFoldersTotal] = useState(0);
-  const [foldersPage, setFoldersPage] = useState(0);
 
   const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
+  const [initialMemberKeys, setInitialMemberKeys] = useState<Set<string>>(
+    new Set(),
+  );
   const [saving, setSaving] = useState(false);
 
-  const fetchCharts = useCallback(async (page: number, append = false) => {
+  const fetchCharts = useCallback(async () => {
     const { json } = await SupersetClient.get({
-      endpoint: `/api/v1/chart/?q=(page_size:${PAGE_SIZE},page:${page})`,
+      endpoint: `/api/v1/chart/?q=(page_size:1000,page:0)`,
     });
     const mapped = ((json.result as ChartResult[]) || []).map(c => ({
       id: c.id,
+      key: `chart-${c.id}`,
       name: c.slice_name,
       type: 'chart' as AssetType,
     }));
-    setCharts(prev => (append ? [...prev, ...mapped] : mapped));
+    setCharts(mapped);
     setChartsTotal(json.count || 0);
-    setChartsPage(page);
   }, []);
 
-  const fetchDashboards = useCallback(async (page: number, append = false) => {
+  const fetchDashboards = useCallback(async () => {
     const { json } = await SupersetClient.get({
-      endpoint: `/api/v1/dashboard/?q=(page_size:${PAGE_SIZE},page:${page})`,
+      endpoint: `/api/v1/dashboard/?q=(page_size:1000,page:0)`,
     });
     const mapped = ((json.result as DashboardResult[]) || []).map(d => ({
       id: d.id,
+      key: `dashboard-${d.id}`,
       name: d.dashboard_title,
       type: 'dashboard' as AssetType,
     }));
-    setDashboards(prev => (append ? [...prev, ...mapped] : mapped));
+    setDashboards(mapped);
     setDashboardsTotal(json.count || 0);
-    setDashboardsPage(page);
   }, []);
 
-  const fetchFolders = useCallback(
-    async (page: number, append = false) => {
-      const { json } = await SupersetClient.get({
-        endpoint: `/api/v1/folders/?folder_type=analytics`,
-      });
-      // Filter out the current folder (can't add a folder to itself)
-      const mapped = ((json.result as FolderResult[]) || [])
-        .filter(f => f.uuid !== folderUuid)
-        .map(f => ({
-          id: f.id,
-          name: f.name,
-          type: 'folder' as AssetType,
-          uuid: f.uuid,
-        }));
-      setFolders(prev => (append ? [...prev, ...mapped] : mapped));
-      setFoldersTotal(mapped.length);
-      setFoldersPage(page);
-    },
-    [folderUuid],
-  );
+  const fetchFolders = useCallback(async () => {
+    const { json } = await SupersetClient.get({
+      endpoint: `/api/v1/folders/?folder_type=analytics`,
+    });
+    const mapped = ((json.result as FolderResult[]) || [])
+      .filter(f => f.uuid !== folderUuid)
+      .map(f => ({
+        id: f.id,
+        key: `folder-${f.id}`,
+        name: f.name,
+        type: 'folder' as AssetType,
+        uuid: f.uuid,
+      }));
+    setFolders(mapped);
+    setFoldersTotal(mapped.length);
+  }, [folderUuid]);
 
   const fetchMembers = useCallback(async () => {
     const { json } = await SupersetClient.get({
-      endpoint: `/api/v1/folders/${folderUuid}/assets?types=chart,dashboard&page_size=1000`,
+      endpoint: `/api/v1/folders/${folderUuid}/assets?page_size=1000`,
     });
     const members = (json.result as { type: string; id: number }[]) || [];
-    setSelected(
-      new Set(
-        members
-          .filter(m => m.type === 'chart' || m.type === 'dashboard')
-          .map(m => `${m.type}-${m.id}`),
-      ),
-    );
+    const keys = members.map(m => `${m.type}-${m.id}`);
+    setSelectedKeys(keys);
+    setInitialMemberKeys(new Set(keys));
   }, [folderUuid]);
 
   useEffect(() => {
@@ -244,9 +197,9 @@ export default function FolderAssetsModal({
     setSearch('');
     setLoading(true);
     Promise.all([
-      fetchCharts(0),
-      fetchDashboards(0),
-      fetchFolders(0),
+      fetchCharts(),
+      fetchDashboards(),
+      fetchFolders(),
       fetchMembers(),
     ])
       .catch(() => addDangerToast(t('Error loading assets')))
@@ -260,33 +213,18 @@ export default function FolderAssetsModal({
     addDangerToast,
   ]);
 
-  const toggleSelect = useCallback((key: string) => {
-    setSelected(prev => {
-      const next = new Set(prev);
-      if (next.has(key)) {
-        next.delete(key);
-      } else {
-        next.add(key);
-      }
-      return next;
-    });
-  }, []);
-
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
-      const all = Array.from(selected).map(key => {
+      const all = selectedKeys.map(key => {
         const [type, id] = key.split('-');
         return { type, id: parseInt(id, 10) };
       });
-      // Separate folders from assets — folders use parent_id update,
-      // assets use the bulk PUT endpoint
       const assetPayload = all.filter(a => a.type !== 'folder');
       const folderPayload = all.filter(a => a.type === 'folder');
 
       const calls: Promise<unknown>[] = [];
 
-      // Update assets via bulk PUT (set_assets — replaces full membership)
       calls.push(
         SupersetClient.put({
           endpoint: `/api/v1/folders/${folderUuid}/assets`,
@@ -294,7 +232,6 @@ export default function FolderAssetsModal({
         }),
       );
 
-      // Move each selected folder by updating its parent_uuid
       const folderById = new Map(folders.map(f => [f.id, f]));
       for (const f of folderPayload) {
         const folderItem = folderById.get(f.id);
@@ -320,7 +257,7 @@ export default function FolderAssetsModal({
   }, [
     folderUuid,
     folderName,
-    selected,
+    selectedKeys,
     addSuccessToast,
     addDangerToast,
     folders,
@@ -334,33 +271,27 @@ export default function FolderAssetsModal({
     return folders;
   };
 
-  const getTotal = () => {
-    if (activeTab === 'chart') return chartsTotal;
-    if (activeTab === 'dashboard') return dashboardsTotal;
-    return foldersTotal;
-  };
-
-  const hasMore = () => {
-    const items = getItems();
-    return items.length < getTotal();
-  };
-
-  const loadMore = () => {
-    if (activeTab === 'chart') fetchCharts(chartsPage + 1, true);
-    else if (activeTab === 'dashboard')
-      fetchDashboards(dashboardsPage + 1, true);
-    else fetchFolders(foldersPage + 1, true);
-  };
-
   const items = getItems();
-  const filtered = search
-    ? items.filter(a => a.name.toLowerCase().includes(search.toLowerCase()))
-    : items;
-  const sorted = [...filtered].sort((a, b) => {
-    const aSelected = selected.has(`${a.type}-${a.id}`) ? 0 : 1;
-    const bSelected = selected.has(`${b.type}-${b.id}`) ? 0 : 1;
-    return aSelected - bSelected;
-  });
+  const filtered = useMemo(() => {
+    const list = search
+      ? items.filter(a => a.name.toLowerCase().includes(search.toLowerCase()))
+      : items;
+    // Sort initial members to the top (stable — no jumping on select)
+    return [...list].sort((a, b) => {
+      const aInitial = initialMemberKeys.has(a.key) ? 0 : 1;
+      const bInitial = initialMemberKeys.has(b.key) ? 0 : 1;
+      return aInitial - bInitial;
+    });
+  }, [items, search, initialMemberKeys]);
+
+  const hasChanges = useMemo(() => {
+    if (selectedKeys.length !== initialMemberKeys.size) return true;
+    const current = new Set(selectedKeys);
+    for (const key of initialMemberKeys) {
+      if (!current.has(key)) return true;
+    }
+    return false;
+  }, [selectedKeys, initialMemberKeys]);
 
   return (
     <StandardModal
@@ -370,6 +301,7 @@ export default function FolderAssetsModal({
       onSave={handleSave}
       saveText={t('Save')}
       saveLoading={saving}
+      saveDisabled={!hasChanges}
     >
       <ModalContent>
         <TabBar>
@@ -378,10 +310,7 @@ export default function FolderAssetsModal({
             active={activeTab === 'chart'}
             onClick={() => setActiveTab('chart')}
           >
-            <Icons.AreaChartOutlined
-              iconSize="m"
-              css={{ marginRight: 4, color: '#722ED1' }}
-            />
+            <Icons.AreaChartOutlined iconSize="m" css={{ marginRight: 4 }} />
             {t('Charts')} ({chartsTotal})
           </Tab>
           <Tab
@@ -389,10 +318,7 @@ export default function FolderAssetsModal({
             active={activeTab === 'dashboard'}
             onClick={() => setActiveTab('dashboard')}
           >
-            <Icons.AppstoreOutlined
-              iconSize="m"
-              css={{ marginRight: 4, color: '#EB2F96' }}
-            />
+            <Icons.AppstoreOutlined iconSize="m" css={{ marginRight: 4 }} />
             {t('Dashboards')} ({dashboardsTotal})
           </Tab>
           <Tab
@@ -413,64 +339,18 @@ export default function FolderAssetsModal({
         {loading ? (
           <p>{t('Loading...')}</p>
         ) : (
-          <AssetList>
-            {sorted.length === 0 ? (
-              <p css={{ padding: 12, color: theme.colorTextSecondary }}>
-                {t('No items found')}
-              </p>
-            ) : (
-              sorted.map(asset => {
-                const key = `${asset.type}-${asset.id}`;
-                const isSelected = selected.has(key);
-                return (
-                  <div
-                    key={key}
-                    className={`asset-row ${isSelected ? 'selected' : ''}`}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => toggleSelect(key)}
-                    onKeyDown={e => {
-                      if (e.key === 'Enter') toggleSelect(key);
-                    }}
-                  >
-                    <div className="asset-info">
-                      {asset.type === 'chart' && (
-                        <Icons.AreaChartOutlined
-                          iconSize="m"
-                          css={{ color: '#722ED1' }} // eslint-disable-line theme-colors/no-literal-colors
-                        />
-                      )}
-                      {asset.type === 'dashboard' && (
-                        <Icons.AppstoreOutlined
-                          iconSize="m"
-                          css={{ color: '#EB2F96' }} // eslint-disable-line theme-colors/no-literal-colors
-                        />
-                      )}
-                      {asset.type === 'folder' && (
-                        <Icons.FolderOutlined iconSize="m" />
-                      )}
-                      <span>{asset.name}</span>
-                    </div>
-                    {isSelected && (
-                      <Icons.CheckOutlined
-                        iconSize="m"
-                        className="check-icon"
-                      />
-                    )}
-                  </div>
-                );
-              })
-            )}
-            {!search && hasMore() && (
-              <LoadMoreButton type="button" onClick={loadMore}>
-                {t('Load more…')}
-              </LoadMoreButton>
-            )}
-          </AssetList>
+          <Table<Asset>
+            data={filtered}
+            columns={ASSET_COLUMNS}
+            selectionType={SelectionType.Multi}
+            selectedRows={selectedKeys}
+            handleRowSelection={keys => setSelectedKeys(keys as string[])}
+            usePagination
+            defaultPageSize={PAGE_SIZE}
+            size={TableSize.Small}
+            height={400}
+          />
         )}
-        <SelectedCount>
-          {t('%s item(s) in this folder', selected.size)}
-        </SelectedCount>
       </ModalContent>
     </StandardModal>
   );

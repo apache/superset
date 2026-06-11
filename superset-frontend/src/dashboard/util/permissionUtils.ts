@@ -42,7 +42,9 @@ const isUserDashboardOwner = (
   user: UserWithPermissionsAndRoles | UndefinedUser,
 ) =>
   isUserWithPermissionsAndRoles(user) &&
-  dashboard.owners.some(owner => owner.id === user.userId);
+  [...dashboard.owners, ...(dashboard.extra_owners ?? [])].some(
+    owner => owner.id === user.userId,
+  );
 
 export const canUserEditDashboard = (
   dashboard: Dashboard,

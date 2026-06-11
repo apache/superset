@@ -22,10 +22,12 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from flask import request, Response
+from flask import g, request, Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
+from flask_appbuilder.security.sqla.models import Role, User
 from marshmallow import ValidationError
 
+from superset import security_manager
 from superset.commands.folder.assets import (
     AddFolderAssetsCommand,
     UpdateFolderAssetsCommand,
@@ -43,7 +45,7 @@ from superset.commands.folder.exceptions import (
 from superset.commands.folder.update import UpdateFolderCommand
 from superset.daos.folder import FolderDAO, ResolvedAsset
 from superset.daos.folder_permissions import FolderPermissionDAO
-from superset.extensions import event_logger
+from superset.extensions import db, event_logger
 from superset.folders.constants import ASSET_TYPE_CONFIGS, DEFAULT_FOLDER_TYPE
 from superset.folders.models import Folder
 from superset.folders.schemas import (
@@ -52,12 +54,16 @@ from superset.folders.schemas import (
     FolderContentItemSchema,
     FolderContentsResponseSchema,
     FolderListResponseSchema,
+    FolderPinPostSchema,
     FolderPostSchema,
     FolderPutSchema,
     FolderResponseSchema,
     FolderRootResponseSchema,
     FolderSchema,
+    FolderSubjectPostSchema,
+    FolderSubjectPutSchema,
 )
+from superset.utils.core import get_user_id
 from superset.utils.decorators import transaction
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
@@ -72,6 +78,20 @@ def _serialize_user(user: Any) -> dict[str, Any] | None:
         "first_name": user.first_name,
         "last_name": user.last_name,
     }
+
+
+def _get_user_permission(folder: Folder) -> str | None:
+    """Return the current user's permission level for this folder."""
+    if security_manager.is_admin():
+        return "editor"
+    user_id = get_user_id()
+    if not user_id:
+        return None
+    if FolderPermissionDAO.user_is_folder_editor(user_id, folder.id):
+        return "editor"
+    if FolderPermissionDAO.user_has_folder_access(user_id, folder.id):
+        return "viewer"
+    return None
 
 
 def serialize_folder(
@@ -104,6 +124,7 @@ def serialize_folder(
         "changed_on": folder.changed_on,
         "created_by": _serialize_user(folder.created_by),
         "changed_by": _serialize_user(folder.changed_by),
+        "user_permission": _get_user_permission(folder),
         "owners": [],
     }
 
@@ -221,9 +242,6 @@ class FolderRestApi(BaseSupersetApi):
     @staticmethod
     def _raise_for_folder_access(folder: Folder) -> None:
         """Raise FolderForbiddenError if user cannot view the folder."""
-        from superset import security_manager
-        from superset.daos.folder_permissions import FolderPermissionDAO
-        from superset.utils.core import get_user_id
 
         if security_manager.is_admin():
             return
@@ -236,9 +254,6 @@ class FolderRestApi(BaseSupersetApi):
     @staticmethod
     def _raise_for_folder_edit(folder: Folder) -> None:
         """Raise FolderForbiddenError if user cannot edit the folder."""
-        from superset import security_manager
-        from superset.daos.folder_permissions import FolderPermissionDAO
-        from superset.utils.core import get_user_id
 
         if security_manager.is_admin():
             return
@@ -733,7 +748,6 @@ class FolderRestApi(BaseSupersetApi):
             200:
               description: Pinned items ordered by position
         """
-        from flask import g
 
         pins = FolderDAO.get_pins(g.user.id)
         result = [
@@ -772,9 +786,6 @@ class FolderRestApi(BaseSupersetApi):
             400:
               $ref: '#/components/responses/400'
         """
-        from flask import g
-
-        from superset.folders.schemas import FolderPinPostSchema
 
         try:
             data = FolderPinPostSchema().load(request.json)
@@ -819,7 +830,6 @@ class FolderRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
-        from flask import g
 
         if FolderDAO.delete_pin(pin_id, g.user.id):
             return self.response(200, message="OK")
@@ -892,7 +902,6 @@ class FolderRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
-        from superset.folders.schemas import FolderSubjectPostSchema
 
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
@@ -946,8 +955,6 @@ class FolderRestApi(BaseSupersetApi):
             404:
               $ref: '#/components/responses/404'
         """
-        from superset.folders.schemas import FolderSubjectPutSchema
-
         folder = FolderDAO.get_by_uuid(folder_uuid)
         if not folder:
             return self.response_404()
@@ -1001,3 +1008,99 @@ class FolderRestApi(BaseSupersetApi):
         FolderDAO.remove_subject(folder.id, user_id)
         FolderPermissionDAO.push_down_permissions(folder.id)
         return self.response(200, message="OK")
+
+    @expose("/<folder_uuid>/available-users", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    def available_users(self, folder_uuid: str) -> Response:
+        """Search for users that can be added to a folder.
+
+        Returns non-admin users not already assigned to the folder.
+        Only folder editors can call this endpoint.
+        ---
+        get:
+          summary: Search available users for a folder
+          parameters:
+          - in: path
+            name: folder_uuid
+            required: true
+            schema:
+              type: string
+          - in: query
+            name: q
+            schema:
+              type: string
+            description: Search by name or username
+          - in: query
+            name: page
+            schema:
+              type: integer
+              default: 0
+          - in: query
+            name: page_size
+            schema:
+              type: integer
+              default: 25
+          responses:
+            200:
+              description: List of available users
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        folder = FolderDAO.get_by_uuid(folder_uuid)
+        if not folder:
+            return self.response_404()
+        try:
+            self._raise_for_folder_edit(folder)
+        except FolderForbiddenError:
+            return self.response_403()
+
+        search = request.args.get("q", "").strip()
+        page = int(request.args.get("page", 0))
+        page_size = min(int(request.args.get("page_size", 25)), 100)
+
+        assigned_ids = {s["user_id"] for s in FolderDAO.get_subjects(folder.id)}
+
+        query = db.session.query(User).filter(User.active.is_(True))
+
+        if admin_role := security_manager.find_role("Admin"):
+            query = query.filter(~User.roles.any(Role.id == admin_role.id))
+
+        if assigned_ids:
+            query = query.filter(~User.id.in_(assigned_ids))
+
+        if search:
+            like = f"%{search}%"
+            query = query.filter(
+                db.or_(
+                    User.username.ilike(like),
+                    User.first_name.ilike(like),
+                    User.last_name.ilike(like),
+                )
+            )
+
+        total = query.count()
+        users = (
+            query.order_by(User.username)
+            .offset(page * page_size)
+            .limit(page_size)
+            .all()
+        )
+
+        return self.response(
+            200,
+            result=[
+                {
+                    "id": u.id,
+                    "username": u.username,
+                    "first_name": u.first_name,
+                    "last_name": u.last_name,
+                }
+                for u in users
+            ],
+            count=total,
+        )

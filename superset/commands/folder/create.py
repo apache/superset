@@ -18,8 +18,10 @@ import logging
 from functools import partial
 from typing import Any
 
+from flask import g
 from marshmallow import ValidationError
 
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.folder.exceptions import (
     FolderCreateFailedError,
@@ -29,6 +31,7 @@ from superset.commands.folder.exceptions import (
     FolderParentTypeMismatchValidationError,
 )
 from superset.daos.folder import FolderDAO
+from superset.extensions import db
 from superset.folders.models import Folder
 from superset.utils.decorators import on_error, transaction
 
@@ -43,7 +46,7 @@ class CreateFolderCommand(BaseCommand):
     @transaction(on_error=partial(on_error, reraise=FolderCreateFailedError))
     def run(self) -> Folder:
         self.validate()
-        return FolderDAO.create(
+        folder = FolderDAO.create(
             attributes={
                 "name": self._properties["name"],
                 "description": self._properties.get("description"),
@@ -52,6 +55,14 @@ class CreateFolderCommand(BaseCommand):
                 "is_private": self._properties.get("is_private", False),
             }
         )
+        db.session.flush()
+        if (
+            hasattr(g, "user")
+            and not g.user.is_anonymous
+            and not security_manager.is_admin()
+        ):
+            FolderDAO.add_subject(folder.id, g.user.id, "editor")
+        return folder
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []

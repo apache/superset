@@ -24,6 +24,7 @@ import {
   ComponentProps,
   LazyExoticComponent,
 } from 'react';
+import { matchPath } from 'react-router-dom';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 
@@ -241,7 +242,7 @@ export const routes: Routes = [
     Component: ChartCreation,
   },
   {
-    path: '/analytics/',
+    path: '/analytics/:folderUuid?/',
     Component: AnalyticsList,
   },
   {
@@ -388,20 +389,15 @@ if (authRegistrationEnabled) {
   });
 }
 
-const frontEndRoutes: Record<string, boolean> = routes
-  .map(r => r.path)
-  .reduce(
-    (acc, curr) => ({
-      ...acc,
-      [curr]: true,
-    }),
-    {},
-  );
+const frontEndRoutePaths = routes.map(r => r.path);
 
 export const isFrontendRoute = (path?: string): boolean => {
   if (path) {
-    const basePath = path.split(/[?#]/)[0]; // strip out query params and link bookmarks
-    return !!frontEndRoutes[basePath];
+    const basePath = path.split(/[?#]/)[0];
+    return frontEndRoutePaths.some(
+      routePath =>
+        matchPath(basePath, { path: routePath, exact: true }) !== null,
+    );
   }
   return false;
 };

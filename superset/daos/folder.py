@@ -27,6 +27,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any
 
+from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import func, literal, or_, select, union_all
 from sqlalchemy.orm import joinedload
 
@@ -532,20 +533,48 @@ class FolderDAO(BaseDAO[Folder]):
     # ------------------------------------------------------------------ #
     @classmethod
     def get_subjects(cls, folder_id: int) -> list[dict[str, Any]]:
-        from superset.folders.models import folder_editors, folder_viewers
-
         subjects: list[dict[str, Any]] = []
+
         editors = db.session.execute(
             folder_editors.select().where(folder_editors.c.folder_id == folder_id)
         ).fetchall()
-        for row in editors:
-            subjects.append({"user_id": row.user_id, "permission": "editor"})
-
         viewers = db.session.execute(
             folder_viewers.select().where(folder_viewers.c.folder_id == folder_id)
         ).fetchall()
+
+        all_user_ids = [r.user_id for r in editors] + [r.user_id for r in viewers]
+        users_by_id = (
+            {
+                u.id: u
+                for u in db.session.query(User).filter(User.id.in_(all_user_ids)).all()
+            }
+            if all_user_ids
+            else {}
+        )
+
+        for row in editors:
+            user = users_by_id.get(row.user_id)
+            subjects.append(
+                {
+                    "user_id": row.user_id,
+                    "permission": "editor",
+                    "username": user.username if user else None,
+                    "first_name": user.first_name if user else None,
+                    "last_name": user.last_name if user else None,
+                }
+            )
+
         for row in viewers:
-            subjects.append({"user_id": row.user_id, "permission": "viewer"})
+            user = users_by_id.get(row.user_id)
+            subjects.append(
+                {
+                    "user_id": row.user_id,
+                    "permission": "viewer",
+                    "username": user.username if user else None,
+                    "first_name": user.first_name if user else None,
+                    "last_name": user.last_name if user else None,
+                }
+            )
 
         return subjects
 

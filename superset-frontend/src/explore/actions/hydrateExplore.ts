@@ -177,9 +177,11 @@ export const hydrateExplore =
       can_copy_clipboard: granularExport
         ? findPermission('can_copy_clipboard', 'Superset', user?.roles)
         : findPermission('can_csv', 'Superset', user?.roles),
-      can_overwrite: ensureIsArray(slice?.owners).includes(
-        user?.userId as number,
-      ),
+      can_overwrite:
+        ensureIsArray(slice?.owners).includes(user?.userId as number) ||
+        ensureIsArray(metadata?.extra_owners).some(
+          (o: { id: number }) => o.id === user?.userId,
+        ),
       isDatasourceMetaLoading: false,
       isStarred: false,
       triggerRender: false,

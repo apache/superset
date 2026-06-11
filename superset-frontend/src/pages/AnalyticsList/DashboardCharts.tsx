@@ -44,6 +44,8 @@ const ChartList = styled.ul`
     list-style: none;
     margin: 0;
     padding: 0;
+    max-height: 240px;
+    overflow-y: auto;
 
     li {
       display: flex;

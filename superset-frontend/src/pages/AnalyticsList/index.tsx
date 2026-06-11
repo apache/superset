@@ -22,7 +22,7 @@ import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import rison from 'rison';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useParams } from 'react-router-dom';
 import type { CellProps } from 'react-table';
 import {
   FacePile,
@@ -83,6 +83,7 @@ interface ContentItem {
   changed_by?: Owner | null;
   asset_count?: number;
   children_count?: number;
+  user_permission?: 'editor' | 'viewer' | null;
 }
 
 /** A location in the drill path; the root has a null uuid. */
@@ -163,6 +164,7 @@ function AnalyticsList({
   addSuccessToast: (msg: string) => void;
 }) {
   const history = useHistory();
+  const { folderUuid } = useParams<{ folderUuid?: string }>();
   const theme = useTheme();
   const currentUserId: number = useSelector<any, number>(
     state => state.user?.userId,
@@ -334,15 +336,70 @@ function AnalyticsList({
 
   const refreshData = useCallback(() => setRefreshKey(key => key + 1), []);
 
-  const drillInto = useCallback((item: ContentItem) => {
-    setExpandedKeys([]);
-    setBreadcrumb(prev => [...prev, { uuid: item.uuid, name: item.name }]);
-  }, []);
+  // Sync URL → breadcrumb on mount, back/forward, or direct link
+  useEffect(() => {
+    const currentUuid = breadcrumb[breadcrumb.length - 1]?.uuid ?? undefined;
+    if ((folderUuid ?? undefined) === (currentUuid ?? undefined)) return;
 
-  const navigateToCrumb = useCallback((index: number) => {
-    setExpandedKeys([]);
-    setBreadcrumb(prev => prev.slice(0, index + 1));
-  }, []);
+    if (!folderUuid) {
+      setBreadcrumb([{ uuid: null, name: t('Analytics') }]);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const crumbs: Crumb[] = [];
+      let uuid: string | null = folderUuid;
+      try {
+        while (uuid) {
+          const response = await SupersetClient.get({
+            endpoint: `/api/v1/folders/${uuid}`,
+          });
+          const folder = response.json.result as {
+            uuid: string;
+            name: string;
+            parent_uuid: string | null;
+          };
+          crumbs.unshift({ uuid: folder.uuid, name: folder.name });
+          uuid = folder.parent_uuid;
+        }
+        crumbs.unshift({ uuid: null, name: t('Analytics') });
+        if (!cancelled) setBreadcrumb(crumbs);
+      } catch {
+        if (!cancelled) {
+          addDangerToast(t('Folder not found'));
+          history.replace('/analytics/');
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [folderUuid]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const drillInto = useCallback(
+    (item: ContentItem) => {
+      setExpandedKeys([]);
+      setBreadcrumb(prev => [...prev, { uuid: item.uuid, name: item.name }]);
+      history.push(`/analytics/${item.uuid}/`);
+    },
+    [history],
+  );
+
+  const navigateToCrumb = useCallback(
+    (index: number) => {
+      setExpandedKeys([]);
+      setBreadcrumb(prev => {
+        const sliced = prev.slice(0, index + 1);
+        const target = sliced[sliced.length - 1];
+        history.push(
+          target.uuid ? `/analytics/${target.uuid}/` : '/analytics/',
+        );
+        return sliced;
+      });
+    },
+    [history],
+  );
 
   const toggleExpand = useCallback((rowId: string) => {
     setExpandedKeys(prev =>
@@ -511,7 +568,7 @@ function AnalyticsList({
                 <NameRow>
                   <Icons.AppstoreOutlined
                     iconSize="m"
-                    css={{ color: '#EB2F96' }} // eslint-disable-line theme-colors/no-literal-colors
+                    css={{ color: theme.colorPrimary }}
                   />
                   {original.url ? (
                     <NameLink href={original.url}>{original.name}</NameLink>
@@ -537,7 +594,7 @@ function AnalyticsList({
               <NameLink href={original.url}>
                 <Icons.AreaChartOutlined
                   iconSize="m"
-                  css={{ color: '#722ED1' }} // eslint-disable-line theme-colors/no-literal-colors
+                  css={{ color: theme.colorPrimary }}
                 />
                 {original.name}
                 {pinIcon}
@@ -546,7 +603,7 @@ function AnalyticsList({
               <NameRow>
                 <Icons.AreaChartOutlined
                   iconSize="m"
-                  css={{ color: '#722ED1' }} // eslint-disable-line theme-colors/no-literal-colors
+                  css={{ color: theme.colorPrimary }}
                 />
                 {original.name}
                 {pinIcon}
@@ -624,38 +681,45 @@ function AnalyticsList({
             return null;
           }
           if (original.type === 'folder') {
+            const canEdit = original.user_permission === 'editor';
             return (
               <Actions className="actions">
-                <Tooltip title={t('Manage assets')} placement="bottom">
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={() => setFolderToAddAssets(original)}
-                  >
-                    <Icons.PlusSquareOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
-                <Tooltip title={t('Manage permissions')} placement="bottom">
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={() => setFolderToManagePerms(original)}
-                  >
-                    <Icons.ShareAltOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
-                <Tooltip title={t('Delete folder')} placement="bottom">
-                  <span
-                    role="button"
-                    tabIndex={0}
-                    className="action-button"
-                    onClick={() => setFolderToArchive(original)}
-                  >
-                    <Icons.DeleteOutlined iconSize="l" />
-                  </span>
-                </Tooltip>
+                {canEdit && (
+                  <Tooltip title={t('Manage assets')} placement="bottom">
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="action-button"
+                      onClick={() => setFolderToAddAssets(original)}
+                    >
+                      <Icons.PlusSquareOutlined iconSize="l" />
+                    </span>
+                  </Tooltip>
+                )}
+                {canEdit && (
+                  <Tooltip title={t('Manage permissions')} placement="bottom">
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="action-button"
+                      onClick={() => setFolderToManagePerms(original)}
+                    >
+                      <Icons.ShareAltOutlined iconSize="l" />
+                    </span>
+                  </Tooltip>
+                )}
+                {canEdit && (
+                  <Tooltip title={t('Delete folder')} placement="bottom">
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      className="action-button"
+                      onClick={() => setFolderToArchive(original)}
+                    >
+                      <Icons.DeleteOutlined iconSize="l" />
+                    </span>
+                  </Tooltip>
+                )}
               </Actions>
             );
           }
@@ -987,9 +1051,23 @@ function AnalyticsList({
               },
               {
                 key: 'export',
-                name: t('Export'),
+                name: (
+                  <Tooltip
+                    title={t(
+                      'Export is only available for dashboards and charts',
+                    )}
+                  >
+                    <Icons.WarningOutlined
+                      iconSize="s"
+                      css={{ marginRight: 4 }}
+                    />
+                    {t('Export')}
+                  </Tooltip>
+                ),
                 type: 'primary',
                 onSelect: handleBulkExport,
+                hidden: (rows: ContentItem[]) =>
+                  rows.every(r => r.type === 'folder'),
               },
             ]}
             addSuccessToast={addSuccessToast}
