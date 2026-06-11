@@ -34,6 +34,7 @@ from superset.commands.dashboard.export_example import (
     ExportExampleCommand,
     sanitize_filename,
 )
+from superset.common.db_query_status import QueryStatus
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 
@@ -339,6 +340,7 @@ def _make_data_export_dataset(rows: list[dict[str, Any]]) -> MagicMock:
     col_data = MagicMock(column_name="data", expression=None)
     dataset.columns = [col_uid, col_data]
     result = MagicMock()
+    result.status = QueryStatus.SUCCESS
     result.df = pd.DataFrame(rows)
     dataset.query.return_value = result
     return dataset
@@ -373,7 +375,7 @@ def test_export_dataset_data_fetches_through_query_path():
     """
     import pandas as pd
 
-    own_rows = [{"uid": 6, "data": "attacker-own-row"}]
+    own_rows = [{"uid": 6, "data": "row-for-user-6"}]
     dataset = _make_data_export_dataset(own_rows)
 
     with patch("superset.db") as mock_db:
@@ -405,3 +407,16 @@ def test_export_dataset_data_applies_row_limit_at_query_level():
 
     query_obj = dataset.query.call_args.args[0]
     assert query_obj["row_limit"] == 5
+
+
+def test_export_dataset_data_skips_on_failed_query():
+    """
+    The query path signals failure via status rather than raising, so a failed
+    query must yield no data file instead of an empty/partial Parquet.
+    """
+    dataset = _make_data_export_dataset([{"uid": 1, "data": "a"}])
+    dataset.query.return_value.status = QueryStatus.FAILED
+
+    with patch("superset.db") as mock_db:
+        mock_db.session.merge.side_effect = lambda d: d
+        assert export_dataset_data(dataset) is None

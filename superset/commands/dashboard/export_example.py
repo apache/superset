@@ -31,6 +31,7 @@ import yaml
 
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
+from superset.common.db_query_status import QueryStatus
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
 
@@ -286,7 +287,15 @@ def export_dataset_data(
             "extras": {},
             "row_limit": sample_rows,
         }
-        df = dataset.query(query_obj).df
+        result = dataset.query(query_obj)
+        if result.status == QueryStatus.FAILED:
+            # The query path reports failures via status rather than raising;
+            # omit the data file instead of writing an empty/partial Parquet.
+            logger.warning(
+                "Query failed while exporting data for %s", dataset.table_name
+            )
+            return None
+        df = result.df
 
         # Write to bytes buffer
         buf = BytesIO()

@@ -2975,7 +2975,9 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         table = self.get_table(name="birth_names")
         gamma = security_manager.find_role("Gamma")
         # birth_names access so the row-level filter (not the access check) is
-        # what scopes the result, and permission to call the endpoint.
+        # what scopes the result, and permission to call the endpoint. Track
+        # what we grant so the shared test role is restored afterwards.
+        granted = []
         for perm, view in (
             ("datasource_access", table.perm),
             ("can_export_as_example", "Dashboard"),
@@ -2984,6 +2986,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             pvm = security_manager.find_permission_view_menu(perm, view)
             if pvm and pvm not in gamma.permissions:
                 gamma.permissions.append(pvm)
+                granted.append(pvm)
         rls = RowLevelSecurityFilter(
             name="export_example_girls_only",
             filter_type="Regular",
@@ -3010,13 +3013,16 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
                 for name in parquet_files:
                     df = pd.read_parquet(BytesIO(zf.read(name)))
                     if "gender" in df.columns:
-                        leaked = set(df["gender"].unique()) - {"girl"}
-                        assert not leaked, (
-                            f"row-level filter not applied to export; "
-                            f"leaked genders: {leaked}"
+                        unexpected = set(df["gender"].unique()) - {"girl"}
+                        assert not unexpected, (
+                            f"export returned rows outside the configured "
+                            f"row-level filter: {unexpected}"
                         )
         finally:
             db.session.delete(rls)
+            for pvm in granted:
+                if pvm in gamma.permissions:
+                    gamma.permissions.remove(pvm)
             db.session.commit()
 
     @patch("superset.commands.database.importers.v1.utils.add_permissions")
