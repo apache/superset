@@ -74,6 +74,30 @@ test('bootstrap data helper parses document data safely', () => {
   expect(getBootstrapDataFromDocument()).toBeUndefined();
 });
 
+test('bootstrap data helper returns undefined without a document', () => {
+  // jsdom defines `document` as a non-configurable global, so the SSR guard
+  // cannot be exercised by deleting it. Instead, re-evaluate the function's
+  // own source in a scope where `document` is shadowed with undefined. When
+  // running under coverage, the source is istanbul-instrumented and references
+  // its module-scoped counter, so the counter is injected to keep the guard's
+  // execution attributed to mapStyles.ts.
+  const source = getBootstrapDataFromDocument.toString();
+  const counterName = source.match(/cov_\w+/)?.[0] ?? 'unusedCoverageCounter';
+  const coverage = (globalThis as { __coverage__?: Record<string, unknown> })
+    .__coverage__;
+  const coverageEntry =
+    coverage?.[
+      Object.keys(coverage).find(file => file.endsWith('mapStyles.ts')) ?? ''
+    ];
+  // eslint-disable-next-line no-new-func
+  const callWithoutDocument = new Function(
+    counterName,
+    'document',
+    `return (${source})();`,
+  );
+  expect(callWithoutDocument(() => coverageEntry, undefined)).toBeUndefined();
+});
+
 test('renderer options enable Mapbox only when a key is available', () => {
   expect(getMapRendererOptions({ hasMapboxKey: true })).toEqual([
     { value: 'maplibre' },
@@ -229,6 +253,17 @@ test('custom raster tile templates do not receive OSM attribution', () => {
   expect(typeof style).toBe('object');
   if (typeof style !== 'string') {
     expect(style.sources['osm-raster-tiles'].tiles).toEqual([customTileUrl]);
+    expect(style.sources['osm-raster-tiles']).not.toHaveProperty('attribution');
+  }
+});
+
+test('relative raster tile templates do not receive OSM attribution', () => {
+  const relativeTileUrl = '/tiles/{z}/{x}/{y}.png';
+  const style = resolveMapStyle(relativeTileUrl, 'default-style.json');
+
+  expect(typeof style).toBe('object');
+  if (typeof style !== 'string') {
+    expect(style.sources['osm-raster-tiles'].tiles).toEqual([relativeTileUrl]);
     expect(style.sources['osm-raster-tiles']).not.toHaveProperty('attribution');
   }
 });
