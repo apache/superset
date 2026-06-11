@@ -274,14 +274,19 @@ class TestExportDatasetsCommand(SupersetTestCase):
         ]
 
     @patch("superset.security.manager.g")
-    def test_export_dataset_command_unicode_chars(self, mock_g):
+    def test_export_dataset_command_unicode_chars(self, mock_g) -> None:
         mock_g.user = security_manager.find_user("admin")
         examples_db = get_example_database()
         with examples_db.get_sqla_engine() as engine:
             engine.execute("DROP TABLE IF EXISTS 中文")
             engine.execute("CREATE TABLE 中文 AS SELECT 2 as col")
-        if db.session.query(SqlaTable).filter_by(table_name="中文").count():
-            db.session.query(SqlaTable).filter_by(table_name="中文").delete()
+        # scope cleanup to the example database so datasets with the same name
+        # on other databases are left untouched
+        stale = db.session.query(SqlaTable).filter_by(
+            table_name="中文", database_id=examples_db.id
+        )
+        if stale.count():
+            stale.delete()
         with override_user(security_manager.find_user("admin")):
             example_dataset = CreateDatasetCommand(
                 {

@@ -516,19 +516,26 @@ class TestExportDashboardsCommand(SupersetTestCase):
         db.session.query(Dashboard).filter_by(slug="world_health").update(
             {"dashboard_title": "中文"},
         )
-        example_dashboard = (
-            db.session.query(Dashboard).filter_by(dashboard_title="中文").one()
-        )
+        try:
+            example_dashboard = (
+                db.session.query(Dashboard).filter_by(dashboard_title="中文").one()
+            )
 
-        command = ExportDashboardsCommand([example_dashboard.id])
-        contents = dict(command.run())
+            command = ExportDashboardsCommand([example_dashboard.id])
+            contents = dict(command.run())
 
-        path = f"dashboards/{example_dashboard.id}.yaml"
-        assert path in set(contents.keys())
-        yaml_content = contents[path]()
-        metadata = yaml.safe_load(yaml_content)
-        assert metadata["dashboard_title"] == "中文"
-        assert "dashboard_title: 中文" in yaml_content
+            path = f"dashboards/{example_dashboard.id}.yaml"
+            assert path in set(contents.keys())
+            yaml_content = contents[path]()
+            metadata = yaml.safe_load(yaml_content)
+            assert metadata["dashboard_title"] == "中文"
+            assert "dashboard_title: 中文" in yaml_content
+        finally:
+            # restore the shared fixture title so later tests that rely on it
+            # (e.g. test_export_dashboard_command_no_related) are not affected
+            db.session.query(Dashboard).filter_by(slug="world_health").update(
+                {"dashboard_title": "World Bank's Data"},
+            )
 
 
 class TestImportDashboardsCommand(SupersetTestCase):
