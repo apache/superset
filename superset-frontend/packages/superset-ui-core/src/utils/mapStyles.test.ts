@@ -233,6 +233,17 @@ test('custom raster tile templates do not receive OSM attribution', () => {
   }
 });
 
+test('relative raster tile templates do not receive OSM attribution', () => {
+  const relativeTileUrl = '/tiles/{z}/{x}/{y}.png';
+  const style = resolveMapStyle(relativeTileUrl, 'default-style.json');
+
+  expect(typeof style).toBe('object');
+  if (typeof style !== 'string') {
+    expect(style.sources['osm-raster-tiles'].tiles).toEqual([relativeTileUrl]);
+    expect(style.sources['osm-raster-tiles']).not.toHaveProperty('attribution');
+  }
+});
+
 test('lookalike OpenStreetMap hostnames do not receive OSM attribution', () => {
   const lookalikeTileUrl =
     'https://openstreetmap.org.example.com/{z}/{x}/{y}.png';
