@@ -350,6 +350,60 @@ def test_execute_allowed_functions(
     assert result.status == QueryStatus.SUCCESS
 
 
+def test_execute_disallowed_function_not_matched_in_identifiers(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Identifiers containing disallowed function names should not be blocked."""
+    mock_query_execution(
+        mocker,
+        database,
+        return_data=[(1, "Alice", "Alice Full", 5)],
+        column_names=["id", "name", "fullname", "skilllevel"],
+    )
+    mocker.patch.object(database.db_engine_spec, "engine", "mysql")
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "DISALLOWED_SQL_FUNCTIONS": {"mysql": {"kill"}},
+            "QUERY_LOGGER": None,
+        },
+    )
+
+    sql = (
+        "SELECT r.id, r.name, r.fullname, s.skilllevel "
+        "FROM ppb_db.PPB_OMD_SKILLS s "
+        "JOIN ppb_db.PPB_OMD_RESOURCES r ON s.resource_id = r.id "
+        "WHERE s.SkillName = 'ELIS'"
+    )
+    result = database.execute(sql)
+
+    assert result.status == QueryStatus.SUCCESS
+
+
+def test_execute_disallowed_mysql_kill_function(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """Actual disallowed function calls should still be blocked."""
+    mocker.patch.object(database.db_engine_spec, "engine", "mysql")
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "DISALLOWED_SQL_FUNCTIONS": {"mysql": {"kill"}},
+        },
+    )
+
+    result = database.execute("SELECT KILL(123)")
+
+    assert result.status == QueryStatus.FAILED
+    assert result.error_message is not None
+    assert "kill" in result.error_message.lower()
+
+
 def test_execute_disallowed_tables(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:

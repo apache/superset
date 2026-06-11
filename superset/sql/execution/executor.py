@@ -691,16 +691,16 @@ class SQLExecutor:
         if not engine_disallowed:
             return None
 
-        # Check each statement for disallowed functions
-        found = set()
-        for statement in script.statements:
-            # Use the statement's AST to check for function calls
-            statement_str = str(statement).upper()
-            for func in engine_disallowed:
-                if func.upper() in statement_str:
-                    found.add(func)
+        if not script.check_functions_present(engine_disallowed):
+            return None
 
-        return found if found else None
+        # Return only disallowed functions actually invoked in the query.
+        found = {
+            func
+            for func in engine_disallowed
+            if script.check_functions_present({func})
+        }
+        return found or None
 
     def _check_disallowed_tables(self, script: SQLScript) -> set[str] | None:
         """
