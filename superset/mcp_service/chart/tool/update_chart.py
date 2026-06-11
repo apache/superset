@@ -229,7 +229,9 @@ def _validate_update_against_dataset(
             dataset = DatasetDAO.find_by_id(chart.datasource_id)
     if dataset is None:
         missing_id = (
-            dataset_id if dataset_id is not None else getattr(chart, "datasource_id", None)
+            dataset_id
+            if dataset_id is not None
+            else getattr(chart, "datasource_id", None)
         )
         return GenerateChartResponse.model_validate(
             {
@@ -237,9 +239,7 @@ def _validate_update_against_dataset(
                 "error": {
                     "error_type": "DatasetNotAccessible",
                     "message": "Dataset is not accessible",
-                    "details": (
-                        f"Dataset {missing_id} is missing or inaccessible."
-                    ),
+                    "details": (f"Dataset {missing_id} is missing or inaccessible."),
                 },
                 "success": False,
                 "schema_version": "2.0",
