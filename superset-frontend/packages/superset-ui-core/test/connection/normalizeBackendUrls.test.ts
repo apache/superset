@@ -87,6 +87,12 @@ describe('normalizeBackendUrlString', () => {
       }),
     ).toBe('https://external.example.com/foo');
   });
+
+  test('is a no-op when application root is empty', () => {
+    expect(
+      normalizeBackendUrlString('/superset/sqllab', { applicationRoot: '' }),
+    ).toBe('/superset/sqllab');
+  });
 });
 
 test('NORMALIZED_URL_FIELDS is a Set for O(1) lookup', () => {
@@ -146,6 +152,22 @@ describe('normalizeBackendUrls (recursion + identity)', () => {
     const input = { created_at: date };
     const output = normalizeBackendUrls(input, { applicationRoot: PREFIX });
     expect(output.created_at).toBe(date);
+  });
+
+  test('descends into null-prototype objects', () => {
+    // JSON.parse with a reviver or Object.create(null) maps have no
+    // Object.prototype; the walker must still treat them as plain data.
+    const input: Record<string, unknown> = Object.create(null);
+    input.explore_url = '/superset/explore/?id=1';
+    expect(normalizeBackendUrls(input, { applicationRoot: PREFIX })).toEqual({
+      explore_url: '/explore/?id=1',
+    });
+  });
+
+  test('returns an array by reference when nothing inside changed', () => {
+    const input = [{ explore_url: '/explore/?id=1' }];
+    const output = normalizeBackendUrls(input, { applicationRoot: PREFIX });
+    expect(output).toBe(input);
   });
 });
 
