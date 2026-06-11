@@ -18,9 +18,9 @@
 
 import logging
 import secrets
-import warnings
 from typing import Any, Dict, Optional, Sequence
 
+from authlib.jose.errors import JoseError
 from fastmcp.server.auth.providers.jwt import JWTVerifier
 from flask import Flask
 
@@ -30,12 +30,6 @@ from superset.mcp_service.constants import (
     DEFAULT_WARN_THRESHOLD_PCT,
 )
 from superset.mcp_service.jwt_verifier import DetailedJWTVerifier, MCPJWTVerifier
-
-# authlib.jose is deprecated in favor of joserfc. JoseError must stay from
-# authlib to match the error hierarchy raised by fastmcp's JWTVerifier internals.
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", message=r"authlib\.jose module is deprecated")
-    from authlib.jose.errors import JoseError
 
 logger = logging.getLogger(__name__)
 
