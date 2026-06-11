@@ -65,7 +65,7 @@ from typing import Any
 
 import sqlalchemy as sa
 from sqlalchemy import event
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session
 
 from superset.versioning.changes.shadow_queries import (
@@ -263,13 +263,23 @@ def _persist_buffered_records(
 ) -> None:
     """Bulk-insert *buffer*'s records under *tx_id* and reset the buffer.
 
-    Catches ``OperationalError`` to handle the pre-migration startup race
-    (version_changes table missing), and ``Exception`` as the listener-
-    boundary safety net so a malformed record can't crash the user's save.
+    Catches ``OperationalError`` / ``ProgrammingError`` to handle the
+    pre-migration startup race (version_changes table missing — the
+    former on SQLite/MySQL, the latter on PostgreSQL), and ``Exception``
+    as the listener-boundary safety net so a malformed record can't
+    crash the user's save.
+
+    The insert runs under a SAVEPOINT (``begin_nested`` on the
+    connection): on PostgreSQL a failed statement aborts the enclosing
+    transaction, so without it the swallowed exception would still
+    poison the user's save — the COMMIT that follows this listener
+    would raise ``InFailedSqlTransaction``, defeating the fail-open
+    guarantee exactly where it matters.
     """
     try:
-        bulk_insert_records(session, tx_id, buffer)
-    except OperationalError:
+        with session.connection().begin_nested():
+            bulk_insert_records(session, tx_id, buffer)
+    except (OperationalError, ProgrammingError):
         # version_changes table missing (migration not yet applied).
         pass
     except Exception:  # pylint: disable=broad-except

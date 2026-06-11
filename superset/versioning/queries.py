@@ -246,32 +246,39 @@ def list_change_records_batch(
     if not transaction_ids:
         return {}
 
+    # SAVEPOINT so a missing-table failure can't poison the enclosing
+    # transaction: on PostgreSQL a failed statement aborts the tx, and
+    # every later query in the request would raise InFailedSqlTransaction
+    # even though the exception below was caught.
     try:
-        rows = (
-            db.session.connection()
-            .execute(
-                sa.select(
-                    version_changes_table.c.transaction_id,
-                    version_changes_table.c.sequence,
-                    version_changes_table.c.kind,
-                    version_changes_table.c.path,
-                    version_changes_table.c.from_value,
-                    version_changes_table.c.to_value,
+        with db.session.connection().begin_nested():
+            rows = (
+                db.session.connection()
+                .execute(
+                    sa.select(
+                        version_changes_table.c.transaction_id,
+                        version_changes_table.c.sequence,
+                        version_changes_table.c.kind,
+                        version_changes_table.c.path,
+                        version_changes_table.c.from_value,
+                        version_changes_table.c.to_value,
+                    )
+                    .where(
+                        version_changes_table.c.entity_kind == entity_kind,
+                        version_changes_table.c.entity_id == entity_id,
+                        version_changes_table.c.transaction_id.in_(transaction_ids),
+                    )
+                    .order_by(
+                        version_changes_table.c.transaction_id.asc(),
+                        version_changes_table.c.sequence.asc(),
+                    )
                 )
-                .where(
-                    version_changes_table.c.entity_kind == entity_kind,
-                    version_changes_table.c.entity_id == entity_id,
-                    version_changes_table.c.transaction_id.in_(transaction_ids),
-                )
-                .order_by(
-                    version_changes_table.c.transaction_id.asc(),
-                    version_changes_table.c.sequence.asc(),
-                )
+                .mappings()
+                .all()
             )
-            .mappings()
-            .all()
-        )
-    except sa.exc.OperationalError:
+    except (sa.exc.OperationalError, sa.exc.ProgrammingError):
+        # Missing version_changes table: OperationalError on SQLite/MySQL,
+        # ProgrammingError (UndefinedTable) on PostgreSQL.
         return {}
 
     grouped: dict[int, list[dict[str, Any]]] = {tx: [] for tx in transaction_ids}

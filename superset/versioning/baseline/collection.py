@@ -42,7 +42,7 @@ import logging
 from typing import Any
 
 import sqlalchemy as sa
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import OperationalError, ProgrammingError
 from sqlalchemy.orm import Session
 
 # Populated at app startup (superset/initialization/__init__.py) before
@@ -126,7 +126,11 @@ def shadow_row_count(session: Session, obj: Any, version_table: Any) -> int | No
     or the count query raised unexpectedly.
     """
     try:
-        with session.no_autoflush:
+        # SAVEPOINT so a missing-table probe can't poison the enclosing
+        # transaction on PostgreSQL (a failed statement aborts the tx
+        # there; subsequent statements would raise InFailedSqlTransaction
+        # and fail the user's save despite the except below).
+        with session.no_autoflush, session.connection().begin_nested():
             return (
                 session.connection()
                 .execute(
@@ -136,7 +140,9 @@ def shadow_row_count(session: Session, obj: Any, version_table: Any) -> int | No
                 )
                 .scalar()
             )
-    except OperationalError:
+    except (OperationalError, ProgrammingError):
+        # Missing table: OperationalError on SQLite/MySQL,
+        # ProgrammingError (UndefinedTable) on PostgreSQL.
         return None
     except Exception:  # pylint: disable=broad-except
         logger.exception(
