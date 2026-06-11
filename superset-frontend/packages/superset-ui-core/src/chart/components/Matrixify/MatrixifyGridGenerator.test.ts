@@ -72,6 +72,7 @@ test('should generate a 2x2 grid for metrics mode', () => {
     createAdhocMetric('Revenue'),
     createSqlMetric('Q1', 'SUM(CASE WHEN quarter = 1 THEN value END)'),
   ]);
+  expect(firstCell!.formData.metric).toEqual(createAdhocMetric('Revenue'));
 });
 
 test('should generate grid for dimensions mode', () => {
@@ -213,6 +214,9 @@ test('should skip missing column metrics when generating cell form data', () => 
   expect(grid!.cells[0][0]!.formData.metrics).toEqual([
     createAdhocMetric('Revenue'),
   ]);
+  expect(grid!.cells[0][0]!.formData.metric).toEqual(
+    createAdhocMetric('Revenue'),
+  );
 });
 
 test('should not escape HTML entities in cell titles', () => {
@@ -468,6 +472,51 @@ test('should handle metrics without labels', () => {
   // Metrics without labels show empty string
   expect(grid!.rowHeaders).toEqual(['']);
   expect(grid!.colHeaders).toEqual(['count']);
+});
+
+test('should set singular metric for singular-metric chart types like Pie', () => {
+  const rowMetricFormData: TestFormData = {
+    viz_type: 'pie',
+    datasource: '1__table',
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics',
+    matrixify_rows: [createAdhocMetric('Revenue'), createAdhocMetric('Profit')],
+  };
+
+  const grid = generateMatrixifyGrid(rowMetricFormData);
+
+  expect(grid).not.toBeNull();
+  expect(grid!.cells[0][0]!.formData.metrics).toEqual([
+    createAdhocMetric('Revenue'),
+  ]);
+  expect(grid!.cells[0][0]!.formData.metric).toEqual(
+    createAdhocMetric('Revenue'),
+  );
+  expect(grid!.cells[1][0]!.formData.metrics).toEqual([
+    createAdhocMetric('Profit'),
+  ]);
+  expect(grid!.cells[1][0]!.formData.metric).toEqual(
+    createAdhocMetric('Profit'),
+  );
+});
+
+test('should not overwrite singular metric in dimension-only mode', () => {
+  const dimensionFormData: TestFormData = {
+    viz_type: 'pie',
+    datasource: '1__table',
+    matrixify_enable: true,
+    matrixify_mode_rows: 'dimensions',
+    matrixify_dimension_rows: {
+      dimension: 'country',
+      values: ['USA', 'Canada'],
+    },
+    metric: 'existing_metric',
+  };
+
+  const grid = generateMatrixifyGrid(dimensionFormData);
+
+  expect(grid).not.toBeNull();
+  expect(grid!.cells[0][0]!.formData.metric).toBe('existing_metric');
 });
 
 test('should preserve slice_id and dashboardId for embedded dashboard permissions', () => {
