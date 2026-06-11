@@ -229,8 +229,36 @@ def test_raises_when_no_auth_source(app) -> None:
         app.config.pop("MCP_DEV_USERNAME", None)
         g.pop("user", None)
         with patch("fastmcp.server.dependencies.get_access_token", return_value=None):
-            with pytest.raises(ValueError, match="No authenticated user found"):
+            with pytest.raises(ValueError, match="Authentication required"):
                 get_user_from_request()
+
+
+def test_no_auth_source_error_message_has_no_config_details(app) -> None:
+    """Client-facing auth error must be generic — no server config disclosed.
+
+    Diagnostics (MCP_AUTH_ENABLED, JWT key presence, MCP_DEV_USERNAME,
+    API key prefixes) must go to server-side logs, never the exception
+    message returned toward the client.
+    """
+    with app.app_context():
+        app.config.pop("MCP_DEV_USERNAME", None)
+        g.pop("user", None)
+        with patch("fastmcp.server.dependencies.get_access_token", return_value=None):
+            with pytest.raises(ValueError, match="Authentication required") as exc_info:
+                get_user_from_request()
+
+    message = str(exc_info.value)
+    assert message == "Authentication required. No valid credentials provided."
+    # No configuration diagnostics should leak into the client-facing message
+    for leak in (
+        "MCP_AUTH_ENABLED",
+        "MCP_DEV_USERNAME",
+        "JWT keys",
+        "API key",
+        "sst_",
+        "Bearer",
+    ):
+        assert leak not in message
 
 
 def test_dev_username_not_found_raises(app) -> None:
@@ -285,7 +313,7 @@ def test_mcp_auth_hook_clears_stale_g_user(app) -> None:
         # framework's autouse app_context fixture may implicitly provide
         # a request context in some CI environments.
         with (
-            patch("flask.has_request_context", return_value=False),
+            patch("superset.mcp_service.auth.has_request_context", return_value=False),
             patch(
                 "superset.mcp_service.auth.get_user_from_request",
                 side_effect=lambda: _assert_cleared_then_return(),
@@ -324,7 +352,7 @@ def test_mcp_auth_hook_clears_stale_g_user_async(app) -> None:
     with app.app_context():
         g.user = stale_user
         with (
-            patch("flask.has_request_context", return_value=False),
+            patch("superset.mcp_service.auth.has_request_context", return_value=False),
             patch(
                 "superset.mcp_service.auth.get_user_from_request",
                 side_effect=lambda: _assert_cleared_then_return(),
@@ -575,3 +603,95 @@ def test_setup_user_context_allows_active_user(app) -> None:
             result = _setup_user_context()
             assert result is active_user
             assert g.user is active_user
+
+
+# -- Multi-issuer binding guard --
+
+
+def test_multi_issuer_warns_without_custom_resolver(app, caplog) -> None:
+    """When multiple issuers are trusted and no issuer-aware resolver is set,
+    a WARNING is emitted about unbound (non-issuer-scoped) user resolution."""
+    import logging
+
+    mock_user = _make_mock_user("alice")
+    token = _make_access_token(claims={"sub": "alice", "iss": "issuer-a"})
+
+    with app.app_context():
+        app.config["MCP_JWT_ISSUER"] = ["issuer-a", "issuer-b"]
+        try:
+            with (
+                caplog.at_level(logging.WARNING),
+                patch(
+                    "fastmcp.server.dependencies.get_access_token", return_value=token
+                ),
+                patch(
+                    "superset.mcp_service.auth.load_user_with_relationships",
+                    return_value=mock_user,
+                ),
+            ):
+                result = _resolve_user_from_jwt_context(app)
+        finally:
+            app.config.pop("MCP_JWT_ISSUER", None)
+
+    assert result is not None
+    warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+    assert any("Multiple JWT issuers are trusted" in m for m in warnings)
+
+
+def test_single_issuer_does_not_warn(app, caplog) -> None:
+    """A single configured issuer is safe and emits no multi-issuer warning."""
+    import logging
+
+    mock_user = _make_mock_user("alice")
+    token = _make_access_token(claims={"sub": "alice", "iss": "issuer-a"})
+
+    with app.app_context():
+        app.config["MCP_JWT_ISSUER"] = "issuer-a"
+        try:
+            with (
+                caplog.at_level(logging.WARNING),
+                patch(
+                    "fastmcp.server.dependencies.get_access_token", return_value=token
+                ),
+                patch(
+                    "superset.mcp_service.auth.load_user_with_relationships",
+                    return_value=mock_user,
+                ),
+            ):
+                _resolve_user_from_jwt_context(app)
+        finally:
+            app.config.pop("MCP_JWT_ISSUER", None)
+
+    warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+    assert not any("Multiple JWT issuers are trusted" in m for m in warnings)
+
+
+def test_multi_issuer_no_warn_with_custom_resolver(app, caplog) -> None:
+    """A custom MCP_USER_RESOLVER (assumed issuer-aware) suppresses the
+    multi-issuer warning."""
+    import logging
+
+    mock_user = _make_mock_user("alice")
+    token = _make_access_token(claims={"sub": "alice", "iss": "issuer-a"})
+
+    with app.app_context():
+        app.config["MCP_JWT_ISSUER"] = ["issuer-a", "issuer-b"]
+        app.config["MCP_USER_RESOLVER"] = MagicMock(return_value="alice")
+        try:
+            with (
+                caplog.at_level(logging.WARNING),
+                patch(
+                    "fastmcp.server.dependencies.get_access_token", return_value=token
+                ),
+                patch(
+                    "superset.mcp_service.auth.load_user_with_relationships",
+                    return_value=mock_user,
+                ),
+            ):
+                _resolve_user_from_jwt_context(app)
+        finally:
+            app.config.pop("MCP_JWT_ISSUER", None)
+            app.config.pop("MCP_USER_RESOLVER", None)
+
+    warnings = [r.message for r in caplog.records if r.levelno == logging.WARNING]
+    assert not any("Multiple JWT issuers are trusted" in m for m in warnings)

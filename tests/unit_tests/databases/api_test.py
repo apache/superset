@@ -40,7 +40,7 @@ from superset.commands.database.uploaders.excel_reader import ExcelReader
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
-from superset.sql.parse import Table
+from superset.sql.parse import Partition, Table
 from superset.superset_typing import OAuth2State
 from superset.utils import json
 from superset.utils.oauth2 import encode_oauth2_state
@@ -1867,27 +1867,34 @@ def test_table_metadata_happy_path(
     Test the `table_metadata` endpoint.
     """
     database = mocker.MagicMock()
+    # Non-ODPS backend: partition detection short-circuits to (False, []).
+    database.backend = "postgresql"
     database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
     mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
     mocker.patch("superset.databases.api.security_manager.raise_for_access")
+
+    no_partition = Partition(False, ())
 
     response = client.get("/api/v1/database/1/table_metadata/?name=t")
     assert response.json == {"hello": "world"}
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("t"),
+        no_partition,
     )
 
     response = client.get("/api/v1/database/1/table_metadata/?name=t&schema=s")
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("t", "s"),
+        no_partition,
     )
 
     response = client.get("/api/v1/database/1/table_metadata/?name=t&catalog=c")
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("t", None, "c"),
+        no_partition,
     )
 
     response = client.get(
@@ -1896,6 +1903,7 @@ def test_table_metadata_happy_path(
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("t", "s", "c"),
+        no_partition,
     )
 
 
@@ -1941,6 +1949,7 @@ def test_table_metadata_slashes(
     Test the `table_metadata` endpoint with names that have slashes.
     """
     database = mocker.MagicMock()
+    database.backend = "postgresql"
     database.db_engine_spec.get_table_metadata.return_value = {"hello": "world"}
     mocker.patch("superset.databases.api.DatabaseDAO.find_by_id", return_value=database)
     mocker.patch("superset.databases.api.security_manager.raise_for_access")
@@ -1949,6 +1958,7 @@ def test_table_metadata_slashes(
     database.db_engine_spec.get_table_metadata.assert_called_with(
         database,
         Table("foo/bar"),
+        Partition(False, ()),
     )
 
 
