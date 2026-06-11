@@ -676,6 +676,60 @@ class RemoveChartFromDashboardResponse(BaseModel):
         return sanitize_for_llm_context(value, field_path=("error",))
 
 
+class DeleteDashboardRequest(BaseModel):
+    """Request schema for deleting a dashboard."""
+
+    dashboard_id: int = Field(..., description="ID of the dashboard to delete")
+    confirm: bool = Field(
+        ...,
+        description=(
+            "Explicit confirmation of the deletion. Deleting a dashboard is "
+            "permanent and cannot be undone. The tool refuses to delete unless "
+            "this is set to true."
+        ),
+    )
+
+
+class DeletedDashboardSummary(BaseModel):
+    """Summary of a dashboard targeted for deletion."""
+
+    id: int = Field(..., description="ID of the dashboard")
+    dashboard_title: str | None = Field(None, description="Title of the dashboard")
+    slug: str | None = Field(None, description="Slug of the dashboard")
+
+    @field_validator("dashboard_title", "slug")
+    @classmethod
+    def sanitize_text_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap user-controlled dashboard text before LLM exposure."""
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("dashboard",))
+
+
+class DeleteDashboardResponse(BaseModel):
+    """Response schema for deleting a dashboard."""
+
+    deleted: bool = Field(
+        False, description="True when the dashboard was permanently deleted"
+    )
+    dashboard: DeletedDashboardSummary | None = Field(
+        None, description="Summary of the deleted (or targeted) dashboard"
+    )
+    error: str | None = Field(None, description="Error message, if operation failed")
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap error text before it is exposed to LLM context.
+
+        The error may echo the dashboard-controlled title — it must be wrapped
+        so the LLM treats it as data, not instructions.
+        """
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
+
+
 class GenerateDashboardRequest(BaseModel):
     """Request schema for generating a dashboard."""
 

@@ -135,6 +135,7 @@ Dashboard Management:
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 - manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
 - remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
+- delete_dashboard: Delete a dashboard by ID; requires confirm=true (requires write access)
 
 Annotation Layers:
 - list_annotation_layers: List annotation layers with advanced filters (1-based pagination)
@@ -725,6 +726,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
+    delete_dashboard,
     duplicate_dashboard,
     generate_dashboard,
     get_dashboard_datasets,
