@@ -713,6 +713,9 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables the tagging system for organizing assets
     # @lifecycle: development
     "TAGGING_SYSTEM": False,
+    # Enables the version history panel on Explore and Dashboard pages
+    # @lifecycle: development
+    "VERSION_HISTORY": False,
     # =================================================================
     # IN TESTING
     # =================================================================
