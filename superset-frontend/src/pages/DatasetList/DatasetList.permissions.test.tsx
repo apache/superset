@@ -63,31 +63,19 @@ test('admin users see all UI elements', async () => {
 
   renderDatasetList(mockAdminUser);
 
-  expect(await screen.findByText('Datasets')).toBeInTheDocument();
-
-  // Admin should see create button
-  expect(
-    screen.getByRole('button', { name: /(?:plus\s*)?Dataset$/i }),
-  ).toBeInTheDocument();
-
-  // Admin should see import button
-  // Note: Using testId - import button lacks accessible text content
-  // TODO: Add aria-label or text to import button
-  expect(screen.getByTestId('import-button')).toBeInTheDocument();
-
-  // Admin should see bulk select button
-  expect(
-    screen.getByRole('button', { name: /bulk select/i }),
-  ).toBeInTheDocument();
-
-  // Admin should see actions column - wait for table first, then check column
-  const table = await screen.findByTestId('listview-table');
+  // All permission-gated elements share the same canWrite flag from _info,
+  // so waiting for all of them in a single waitFor avoids redundant retries.
   await waitFor(() => {
+    expect(screen.getByText('Datasets')).toBeInTheDocument();
     expect(
-      within(table).getByRole('columnheader', { name: /Actions/i }),
+      screen.getByRole('button', { name: /(?:plus\s*)?Dataset$/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('import-button')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /bulk select/i }),
     ).toBeInTheDocument();
   });
-}, 45000);
+});
 
 test('read-only users cannot see Actions column', async () => {
   // Setup API with read-only permissions
