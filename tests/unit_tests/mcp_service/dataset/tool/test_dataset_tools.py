@@ -2129,8 +2129,9 @@ async def test_create_virtual_dataset_with_metrics_and_columns(
     assert len(update_props["metrics"]) == 1
     assert update_props["metrics"][0]["metric_name"] == "m1"
     assert "columns" in update_props
-    assert len(update_props["columns"]) == 1
-    assert update_props["columns"][0]["column_name"] == "c1"
+    # 1 column from the mock dataset + 1 newly added column
+    assert len(update_props["columns"]) == 2
+    assert update_props["columns"][1]["column_name"] == "c1"
 
 
 class TestListDatasetsCreatedByMe:

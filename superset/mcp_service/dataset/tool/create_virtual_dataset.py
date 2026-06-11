@@ -56,7 +56,8 @@ async def create_virtual_dataset(
     3. Use the returned ``columns`` list to pick columns for the chart config
     """
     await ctx.info(
-        f"Creating virtual dataset: database_id={request.database_id}, dataset_name={request.dataset_name!r}"
+        f"Creating virtual dataset: database_id={request.database_id}, "
+        f"dataset_name={request.dataset_name!r}"
     )
 
     try:
@@ -91,14 +92,29 @@ async def create_virtual_dataset(
                 update_props: dict[str, Any] = {}
                 if request.metrics:
                     # Merge existing metrics with new ones
-                    existing_metrics = [m.to_dict() for m in dataset.metrics] if hasattr(dataset, "metrics") and dataset.metrics else []
-                    update_props["metrics"] = existing_metrics + [m.model_dump(exclude_none=True) for m in request.metrics]
+                    existing_metrics = (
+                        [m.to_dict() for m in dataset.metrics]
+                        if getattr(dataset, "metrics", None)
+                        else []
+                    )
+                    update_props["metrics"] = existing_metrics + [
+                        m.model_dump(exclude_none=True) for m in request.metrics
+                    ]
                 if request.calculated_columns:
                     # Merge existing columns with new ones
-                    existing_cols = [c.to_dict() for c in dataset.columns] if hasattr(dataset, "columns") and dataset.columns else []
-                    update_props["columns"] = existing_cols + [c.model_dump(exclude_none=True) for c in request.calculated_columns]
+                    existing_cols = (
+                        [c.to_dict() for c in dataset.columns]
+                        if getattr(dataset, "columns", None)
+                        else []
+                    )
+                    update_props["columns"] = existing_cols + [
+                        c.model_dump(exclude_none=True)
+                        for c in request.calculated_columns
+                    ]
 
-                with event_logger.log_context(action="mcp.create_virtual_dataset.update"):
+                with event_logger.log_context(
+                    action="mcp.create_virtual_dataset.update"
+                ):
                     dataset = UpdateDatasetCommand(dataset.id, update_props).run()
 
         # Build response
@@ -109,7 +125,8 @@ async def create_virtual_dataset(
         )
 
         await ctx.info(
-            f"Virtual dataset created: id={dataset.id}, dataset_name={dataset.table_name!r}, columns={columns}"
+            f"Virtual dataset created: id={dataset.id}, "
+            f"dataset_name={dataset.table_name!r}, columns={columns}"
         )
 
         return CreateVirtualDatasetResponse(
