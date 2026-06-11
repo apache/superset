@@ -54,20 +54,33 @@ def modify_url_query(url: str, **kwargs: Any) -> str:
     Replace or add parameters to a URL.
     """
     parts = list(urllib.parse.urlsplit(url))
-    pairs = urllib.parse.parse_qsl(parts[3],keep_blank_values=True)
-    for k, v in kwargs.items():
-        idxs = [i for i,(kk,_) in enumerate(pairs) if kk==k]
-        if idxs:
-            pos = min(idxs)
-            pairs = [(kk,vv) for (kk,vv) in pairs if kk!=k]
-            new=[(k,str(x)) for x in v] if isinstance(v, (list,tuple)) else [(k,str(v))]
-            pairs[pos:pos]=new
-        else:
-            if isinstance(v,(list,tuple)):
-                pairs.extend((k,str(x)) for x in v)
-            else:
-                pairs.append((k,str(v)))
-    parts[3]=urllib.parse.urlencode(pairs,doseq=True)
+    pairs = urllib.parse.parse_qsl(parts[3], keep_blank_values=True)
+    replacements = {
+        key: [(key, str(item)) for item in value]
+        if isinstance(value, list | tuple)
+        else [(key, str(value))]
+        for key, value in kwargs.items()
+    }
+    pending_keys = set(replacements)
+    updated_pairs: list[tuple[str, str]] = []
+
+    for key, value in pairs:
+        if key not in replacements:
+            updated_pairs.append((key, value))
+        elif key in pending_keys:
+            updated_pairs.extend(replacements[key])
+            pending_keys.remove(key)
+
+    for key in kwargs:
+        if key in pending_keys:
+            updated_pairs.extend(replacements[key])
+
+    parts[3] = urllib.parse.urlencode(
+        updated_pairs,
+        doseq=True,
+        quote_via=urllib.parse.quote,
+        safe="/",
+    )
     return urllib.parse.urlunsplit(parts)
 
 
