@@ -29,7 +29,7 @@
     "@deck.gl/extensions": "~9.2.9",
     "@deck.gl/geo-layers": "~9.2.5",
     "@deck.gl/layers": "~9.2.5",
-    "@deck.gl/mapbox": "~9.3.1",
+    "@deck.gl/mapbox": "~9.3.3",
     "@deck.gl/mesh-layers": "~9.2.5",
     "@luma.gl/constants": "~9.2.5",
     "@luma.gl/core": "~9.2.5",
@@ -46,7 +46,7 @@
     "d3-scale": "^4.0.2",
     "handlebars": "^4.7.9",
     "lodash": "^4.18.1",
-    "maplibre-gl": "^5.23.0",
+    "maplibre-gl": "^5.24.0",
     "mousetrap": "^1.6.5",
     "ngeohash": "^0.6.3",
     "prop-types": "^15.8.1",
@@ -65,10 +65,10 @@
     "@apache-superset/core": "*",
     "@superset-ui/chart-controls": "*",
     "@superset-ui/core": "*",
-    "dayjs": "^1.11.19",
+    "dayjs": "^1.11.21",
     "mapbox-gl": ">=1.0.0",
-    "react": "^17.0.2 || ^19.0.0",
-    "react-dom": "^17.0.2 || ^19.0.0"
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
   },
   "peerDependenciesMeta": {
     "mapbox-gl": {

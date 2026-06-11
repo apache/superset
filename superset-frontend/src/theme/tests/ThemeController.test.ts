@@ -1082,6 +1082,24 @@ test('setThemeConfig sets complete theme configuration', () => {
   expect(controller.canSetMode()).toBe(true);
 });
 
+test('setThemeConfig flags an active theme config override', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({ default: {}, dark: {} }),
+  );
+
+  const controller = createController({ defaultTheme: { token: {} } });
+
+  // No override until setThemeConfig is called (e.g. from the Embedded SDK).
+  expect(controller.hasThemeConfigOverride()).toBe(false);
+
+  controller.setThemeConfig({
+    theme_default: DEFAULT_THEME,
+    theme_dark: DARK_THEME,
+  });
+
+  expect(controller.hasThemeConfigOverride()).toBe(true);
+});
+
 test('setThemeConfig handles theme_default only', () => {
   mockGetBootstrapData.mockReturnValue(
     createMockBootstrapData({
@@ -1797,4 +1815,39 @@ test('ThemeController invalid initialMode falls back to SYSTEM', () => {
   // Invalid initialMode should be rejected by isValidThemeMode,
   // falling through to the default SYSTEM mode
   expect(controller.getCurrentMode()).toBe(ThemeMode.SYSTEM);
+});
+
+test('getCurrentModeResolved returns light for light theme', () => {
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({
+      default: { token: { colorBgBase: '#ffffff' } },
+      dark: {
+        token: { colorBgBase: '#000000' },
+        algorithm: ThemeAlgorithm.DARK,
+      },
+    }),
+  );
+
+  const controller = createController();
+  expect(controller.getCurrentModeResolved()).toBe('light');
+  controller.setThemeMode(ThemeMode.DARK);
+  expect(controller.getCurrentModeResolved()).toBe('dark');
+});
+
+test('getResolvedThemeMode returns dark when default theme is dark but mode is DEFAULT', () => {
+  // Setup: default theme is dark (has dark algorithm)
+  // This simulates single-theme deployments where THEME_DARK=None but default is dark
+  mockGetBootstrapData.mockReturnValue(
+    createMockBootstrapData({
+      default: {
+        token: { colorBgBase: '#000000' }, // dark background
+        algorithm: antdThemeImport.darkAlgorithm,
+      },
+      dark: {}, // empty - no separate dark theme
+    }),
+  );
+
+  const controller = createController();
+  expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
+  expect(controller.getCurrentModeResolved()).toBe('dark');
 });

@@ -20,8 +20,8 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from unittest import mock
 
-import prison
 import pytest
+import rison
 from flask import current_app
 
 from superset import db, security_manager as sm
@@ -174,7 +174,7 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata_by_name_for_physical_table(self):
         self.login(ADMIN_USERNAME)
         tbl = self.get_table(name="birth_names")
-        params = prison.dumps(
+        params = rison.dumps(
             {
                 "datasource_type": "table",
                 "database_name": tbl.database.database_name,
@@ -200,7 +200,7 @@ class TestDatasource(SupersetTestCase):
     def test_external_metadata_by_name_for_virtual_table(self):
         self.login(ADMIN_USERNAME)
         with create_and_cleanup_table() as tbl:
-            params = prison.dumps(
+            params = rison.dumps(
                 {
                     "datasource_type": "table",
                     "database_name": tbl.database.database_name,
@@ -221,7 +221,7 @@ class TestDatasource(SupersetTestCase):
                 lambda sql, **kwargs: "SELECT 456 as intcol, 'def' as mutated_strcol"
             )
 
-            params = prison.dumps(
+            params = rison.dumps(
                 {
                     "datasource_type": "table",
                     "database_name": tbl.database.database_name,
@@ -240,7 +240,7 @@ class TestDatasource(SupersetTestCase):
         self.login(ADMIN_USERNAME)
         example_database = get_example_database()
         with create_test_table_context(example_database):
-            params = prison.dumps(
+            params = rison.dumps(
                 {
                     "datasource_type": "table",
                     "database_name": example_database.database_name,
@@ -256,7 +256,7 @@ class TestDatasource(SupersetTestCase):
             assert col_names == {"first", "second"}
 
         # No databases found
-        params = prison.dumps(
+        params = rison.dumps(
             {
                 "datasource_type": "table",
                 "database_name": "foo",
@@ -274,7 +274,7 @@ class TestDatasource(SupersetTestCase):
         )
 
         # No table found
-        params = prison.dumps(
+        params = rison.dumps(
             {
                 "datasource_type": "table",
                 "database_name": example_database.database_name,
@@ -292,7 +292,7 @@ class TestDatasource(SupersetTestCase):
         )
 
         # invalid query params
-        params = prison.dumps(
+        params = rison.dumps(
             {
                 "datasource_type": "table",
             }

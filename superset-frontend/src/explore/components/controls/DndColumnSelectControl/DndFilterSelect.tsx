@@ -357,6 +357,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     () =>
       values.map((adhocFilter: AdhocFilter, index: number) => (
         <DndAdhocFilterOption
+          key={adhocFilter.filterOptionName ?? index}
           index={index}
           adhocFilter={adhocFilter}
           options={options}
@@ -453,6 +454,8 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         accept={DND_ACCEPTED_TYPES}
         ghostButtonText={t('Drop columns/metrics here or click')}
         onClickGhostButton={handleClickGhostButton}
+        sortableType={DndItemType.FilterOption}
+        itemCount={values.length}
         {...props}
       />
       <AdhocFilterPopoverTrigger
