@@ -23,7 +23,6 @@ from flask import send_file
 from flask.wrappers import Response
 from flask_appbuilder.api import expose, protect, safe
 
-from superset.commands.extension.settings.get import GetExtensionSettingsCommand
 from superset.extensions.utils import (
     build_extension_data,
     get_extensions,
@@ -50,7 +49,6 @@ class ExtensionsRestApi(BaseSupersetApi):
         "can_get",
         "can_content",
         "can_info",
-        "can_get_settings",
     ]
 
     @expose("/_info", methods=("GET",))
@@ -176,23 +174,6 @@ class ExtensionsRestApi(BaseSupersetApi):
             return self.response_404()
         extension_data = build_extension_data(extension)
         return self.response(200, result=extension_data)
-
-    @protect()
-    @safe
-    @expose("/settings", methods=("GET",))
-    def get_settings(self, **kwargs: Any) -> Response:
-        """Get global extension admin settings.
-
-        No admin gate here by design: authenticated non-admin users need these
-        settings so the ChatbotMount can read active_chatbot_id on every page.
-        ---
-        get:
-          summary: Get extension admin settings (active chatbot id).
-          responses:
-            200:
-              description: Extension settings
-        """
-        return self.response(200, result=GetExtensionSettingsCommand().run())
 
     @protect()
     @safe

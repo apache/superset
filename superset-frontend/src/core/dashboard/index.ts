@@ -56,8 +56,8 @@ function buildChartSummaries(state: RootState): ChartSummary[] {
       vizType: slice?.viz_type ?? '',
       datasourceId: slice?.datasource_id ?? null,
       datasourceName: slice?.datasource_name ?? null,
-      // Tab-accurate visibility is a deferred phase (SIP §10/§11); every chart
-      // on the dashboard is reported visible for now.
+      // Tab-accurate visibility is a deferred phase; every chart on the
+      // dashboard is reported visible for now.
       isVisible: true,
     };
   });
