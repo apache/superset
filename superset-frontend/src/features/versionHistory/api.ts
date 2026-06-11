@@ -19,6 +19,7 @@
 import { JsonObject, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import { DASHBOARD_GET_COLUMNS } from 'src/hooks/apiResources/dashboards';
+import type { ExploreResponsePayload } from 'src/explore/types';
 import type {
   ActivityEntityKind,
   ActivityInclude,
@@ -91,6 +92,71 @@ export async function restoreVersion(
     endpoint: `/api/v1/${API_RESOURCE[entityType]}/${uuid}/versions/${versionUuid}/restore`,
   });
   return json as { message: string };
+}
+
+/** Creates a new chart from a version snapshot; returns the new chart id. */
+export async function createChartFromSnapshot(
+  snapshot: ChartVersionSnapshot,
+  name: string,
+): Promise<number> {
+  const { json } = await SupersetClient.post({
+    endpoint: '/api/v1/chart/',
+    jsonPayload: {
+      slice_name: name,
+      viz_type: snapshot.viz_type,
+      datasource_id: snapshot.datasource_id,
+      datasource_type: snapshot.datasource_type,
+      ...(snapshot.params != null && { params: snapshot.params }),
+      ...(snapshot.query_context != null && {
+        query_context: snapshot.query_context,
+      }),
+      ...(snapshot.description != null && {
+        description: snapshot.description,
+      }),
+      ...(snapshot.cache_timeout != null && {
+        cache_timeout: snapshot.cache_timeout,
+      }),
+    },
+  });
+  return (json as { id: number }).id;
+}
+
+/**
+ * Creates a new dashboard from a version snapshot; returns the new
+ * dashboard id. Charts are shared with the source dashboard (same
+ * semantics as "Save as" without duplicating slices).
+ */
+export async function createDashboardFromSnapshot(
+  snapshot: DashboardVersionSnapshot,
+  name: string,
+): Promise<number> {
+  const { json } = await SupersetClient.post({
+    endpoint: '/api/v1/dashboard/',
+    jsonPayload: {
+      dashboard_title: name,
+      ...(snapshot.css != null && { css: snapshot.css }),
+      ...(snapshot.json_metadata != null && {
+        json_metadata: snapshot.json_metadata,
+      }),
+      ...(snapshot.position_json != null && {
+        position_json: snapshot.position_json,
+      }),
+    },
+  });
+  return (json as { id: number }).id;
+}
+
+/**
+ * Fetches the same explore payload the chart page uses to hydrate, so a
+ * restored chart can be reloaded in place without a full page refresh.
+ */
+export async function fetchExploreRehydrationData(
+  sliceId: number,
+): Promise<ExploreResponsePayload['result']> {
+  const { json } = await SupersetClient.get({
+    endpoint: `/api/v1/explore/?slice_id=${sliceId}`,
+  });
+  return (json as ExploreResponsePayload).result;
 }
 
 /**

@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getUrlParam } from 'src/utils/urlUtils';
@@ -29,12 +29,14 @@ import {
   selectIsVersionHistoryPanelOpen,
   selectVersionHistoryInclude,
   selectVersionPreview,
+  selectVersionRestoreCount,
   selectVersionSessionLog,
   setVersionHistoryInclude,
   setVersionPreview,
 } from './reducer';
 import { openRelatedEntity } from './openRelated';
 import { useVersionActivity } from './useVersionActivity';
+import { useVersionActions } from './useVersionActions';
 import { useDashboardVersionPreview } from './useDashboardVersionPreview';
 import { groupHeadline } from './display';
 import VersionHistoryPanel from './VersionHistoryPanel';
@@ -72,6 +74,24 @@ export default function DashboardVersionHistory() {
 
   useDashboardVersionPreview(uuid);
 
+  const { requestRestore, openAsNew, restoreModal } = useVersionActions(
+    'dashboard',
+    uuid,
+  );
+
+  // Page rehydration after a restore happens in useDashboardVersionPreview;
+  // here only the activity timeline needs a refresh so the new
+  // "Restored version" entry shows up.
+  const restoreCount = useSelector(selectVersionRestoreCount);
+  const lastRestoreCountRef = useRef(restoreCount);
+  const refreshActivity = activity.refresh;
+  useEffect(() => {
+    if (restoreCount !== lastRestoreCountRef.current) {
+      lastRestoreCountRef.current = restoreCount;
+      refreshActivity();
+    }
+  }, [refreshActivity, restoreCount]);
+
   const handleClose = useCallback(() => {
     dispatch(closeVersionHistoryPanel());
   }, [dispatch]);
@@ -108,28 +128,52 @@ export default function DashboardVersionHistory() {
     [addDangerToast],
   );
 
-  // Restore and open-as-new flows are dispatched from here once the
-  // confirmation modal and fork actions land.
-  const handleRestore = useCallback(() => undefined, []);
-  const handleOpenAsNew = useCallback(() => undefined, []);
+  const handleRestore = useCallback(
+    (group: SaveGroup) => {
+      if (group.versionUuid) {
+        requestRestore({
+          versionUuid: group.versionUuid,
+          headline: groupHeadline('dashboard', group),
+          issuedAt: group.issuedAt,
+        });
+      }
+    },
+    [requestRestore],
+  );
+
+  const handleOpenAsNew = useCallback(
+    (group: SaveGroup) => {
+      if (group.versionUuid) {
+        openAsNew({
+          versionUuid: group.versionUuid,
+          headline: groupHeadline('dashboard', group),
+          issuedAt: group.issuedAt,
+        });
+      }
+    },
+    [openAsNew],
+  );
 
   if (!isPanelOpen) {
-    return null;
+    return restoreModal;
   }
 
   return (
-    <VersionHistoryPanel
-      entityType="dashboard"
-      activity={activity}
-      include={include}
-      onIncludeChange={handleIncludeChange}
-      previewedTransactionId={preview?.transactionId ?? null}
-      onClose={handleClose}
-      onPreview={handlePreview}
-      onRestore={handleRestore}
-      onOpenAsNew={handleOpenAsNew}
-      onOpenRelated={handleOpenRelated}
-      sessionEntries={sessionLog}
-    />
+    <>
+      <VersionHistoryPanel
+        entityType="dashboard"
+        activity={activity}
+        include={include}
+        onIncludeChange={handleIncludeChange}
+        previewedTransactionId={preview?.transactionId ?? null}
+        onClose={handleClose}
+        onPreview={handlePreview}
+        onRestore={handleRestore}
+        onOpenAsNew={handleOpenAsNew}
+        onOpenRelated={handleOpenRelated}
+        sessionEntries={sessionLog}
+      />
+      {restoreModal}
+    </>
   );
 }
