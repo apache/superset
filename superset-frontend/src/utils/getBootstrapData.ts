@@ -38,9 +38,21 @@ const normalizePathWithFallback = (
   fallback: string,
 ): string => (path ?? fallback).replace(/\/$/, '');
 
-const APPLICATION_ROOT_NO_TRAILING_SLASH = normalizePathWithFallback(
-  getBootstrapData().common.application_root,
-  DEFAULT_BOOTSTRAP_DATA.common.application_root,
+// The application root is server-rendered operator configuration, but it
+// flows into URL sinks across the app (script.src in ExtensionsLoader,
+// history.pushState in navigationUtils), so enforce the documented
+// "/segment(/segment)*" shape at the source: a value that doesn't conform
+// degrades to a root deployment rather than reaching those sinks.
+const APP_ROOT_PATH_RE = /^(?:\/[\w~.%-]+)*$/;
+
+const sanitizeAppRoot = (root: string): string =>
+  APP_ROOT_PATH_RE.test(root) ? root : '';
+
+const APPLICATION_ROOT_NO_TRAILING_SLASH = sanitizeAppRoot(
+  normalizePathWithFallback(
+    getBootstrapData().common.application_root,
+    DEFAULT_BOOTSTRAP_DATA.common.application_root,
+  ),
 );
 
 const STATIC_ASSETS_PREFIX_NO_TRAILING_SLASH = normalizePathWithFallback(

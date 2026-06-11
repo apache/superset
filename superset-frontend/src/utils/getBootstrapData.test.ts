@@ -110,6 +110,51 @@ describe('getBootstrapData and helpers', () => {
       expect(staticAssetsPrefix()).toEqual(expectedStaticPrefix);
     });
 
+    test.each([
+      ['markup payload', '"><script>x</script>/'],
+      ['protocol-relative URL', '//evil.example.com/app/'],
+      ['absolute URL', 'https://evil.example.com/app/'],
+      ['embedded quote', "/my'app/"],
+    ])(
+      'should degrade a non-path application_root to root deployment (%s)',
+      async (_label, applicationRootValue) => {
+        const customData = {
+          common: {
+            application_root: applicationRootValue,
+            static_assets_prefix: '/custom-static/',
+          },
+        };
+        document.body.innerHTML = `<div id="app"></div>`;
+        document
+          .getElementById('app')
+          ?.setAttribute('data-bootstrap', JSON.stringify(customData));
+
+        jest.resetModules();
+        const { default: getBootstrapData, applicationRoot } =
+          await import('./getBootstrapData');
+        getBootstrapData();
+
+        expect(applicationRoot()).toEqual('');
+      },
+    );
+
+    test('should preserve a multi-segment application_root', async () => {
+      const customData = {
+        common: {
+          application_root: '/team-a/superset/',
+          static_assets_prefix: '/custom-static/',
+        },
+      };
+      document.body.innerHTML = `<div id="app" data-bootstrap='${JSON.stringify(customData)}'></div>`;
+
+      jest.resetModules();
+      const { default: getBootstrapData, applicationRoot } =
+        await import('./getBootstrapData');
+      getBootstrapData();
+
+      expect(applicationRoot()).toEqual('/team-a/superset');
+    });
+
     test('should defaults without trailing slashes when #app element does not include application_root or static_assets_prefix', async () => {
       // Set up the fake #app element
       const customData = {

@@ -208,7 +208,9 @@ test('leaves the remoteEntry unprefixed on root deployments', async () => {
     }),
   );
 
-  expect(script.getSrc()).toBe('/api/v1/extensions/pub/root-ext/remoteEntry.js');
+  expect(script.getSrc()).toBe(
+    '/api/v1/extensions/pub/root-ext/remoteEntry.js',
+  );
 
   errorSpy.mockRestore();
   script.restore();
