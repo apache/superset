@@ -87,7 +87,7 @@ export default styled(CountryMap)`
       stroke: ${theme.colorSplit};
     }
 
-    .hover-popup.popup-at-bottom {
+    .superset-legacy-chart-country-map .hover-popup.popup-at-bottom {
       transform: translateY(-150%);
     }
 

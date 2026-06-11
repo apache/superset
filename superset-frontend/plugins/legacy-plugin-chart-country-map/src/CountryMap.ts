@@ -187,22 +187,13 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
       region => region.country_id === d.properties.ISO,
     );
 
-    const position = d3.mouse(svg.node());
-    hoverPopup
-      .style('display', 'block')
-      .style('top', `${position[1] + 30}px`)
-      .style('left', `${position[0]}px`)
-      .html(
-        `<div><strong>${getNameOfRegion(d)}</strong><br>${result.length > 0 ? formatter(result[0].metric) : ''}</div>`,
-      );
+    hoverPopup.style('display', 'block').html(
+      `<div><strong>${getNameOfRegion(d)}</strong><br>${result.length > 0 ? formatter(result[0].metric) : ''}</div>`,
+    );
     updatePopupPosition();
   };
 
   const mousemove = function mousemove() {
-    const position = d3.mouse(svg.node());
-    hoverPopup
-      .style('top', `${position[1] + 30}px`)
-      .style('left', `${position[0]}px`);
     updatePopupPosition();
   };
 
