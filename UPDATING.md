@@ -598,14 +598,14 @@ SELECT COUNT(*) FROM slice_user WHERE user_id IS NULL OR slice_id IS NULL;
 SELECT COUNT(*) FROM sqlatable_user WHERE user_id IS NULL OR table_id IS NULL;
 ```
 
-**Sizing the maintenance window on PostgreSQL.** The queries above are dialect-portable but only count rows. Operators on PostgreSQL can run the diagnostic queries below to characterize the migration's runtime cost ahead of time: per-table row count and on-disk size, an aggregated duplicate roll-up, the external-FK pre-flight check (the migration runs the same check and aborts if it returns rows), and a rewrite-time estimate for the two tables that go through the slower full-table-rebuild path.
+**Sizing the maintenance window on PostgreSQL.** The queries above are dialect-portable but only count rows. Operators on PostgreSQL can run the diagnostic queries below to characterize the migration's runtime cost ahead of time: per-table row count and on-disk size, an aggregated duplicate roll-up, the external-FK pre-flight check (the migration runs the same check and aborts if it returns rows), and a lock-window estimate. On PostgreSQL **all eight tables take the direct-ALTER path** — the two redundant `UNIQUE` constraints are dropped by name (`DROP CONSTRAINT`), avoiding any full-table rewrite; the `recreate="always"` rewrite path applies only on MySQL/SQLite. Note also that Alembic runs the whole upgrade in **one transaction on PostgreSQL: the `ACCESS EXCLUSIVE` locks acquired per table are held cumulatively until commit**, so total unavailability of these RBAC/RLS junction tables is the *sum* of the per-table windows — and a waiting `ACCESS EXCLUSIVE` queues all later reads behind it. Run the migration with the application quiesced.
 
 ```sql
--- Per-table size, row count, and which migration path each will take.
--- Two tables ("dashboard_slices", "report_schedule_user") have a
--- redundant UNIQUE constraint that the migration drops via a full
--- table rewrite (op.batch_alter_table(recreate="always")). The other
--- six use direct ALTER TABLE, which is much cheaper.
+-- Per-table size and row count. Two tables ("dashboard_slices",
+-- "report_schedule_user") carry a redundant UNIQUE constraint; on
+-- PostgreSQL it is dropped by name (DROP CONSTRAINT) and every table
+-- then takes the same direct-ALTER path — no full-table rewrite on
+-- this dialect. has_unique only signals the extra DROP CONSTRAINT.
 WITH affected(name, has_unique) AS (
   VALUES
     ('dashboard_roles',       false),
@@ -684,23 +684,24 @@ WHERE ccu.table_name IN (
 ```
 
 ```sql
--- Lock-window estimate for the two full-rewrite tables.
--- recreate="always" takes ACCESS EXCLUSIVE on the table for the full
--- rewrite. Use heap size combined with your hardware's effective
--- write throughput (~100-200 MB/s on commodity SSD; faster on NVMe)
--- to size the maintenance window. The other six tables use direct
--- ALTER and are dominated by composite-index build time, typically
--- seconds for tables in the low millions of rows.
+-- Lock-window estimate, all eight tables. Each direct ALTER takes
+-- ACCESS EXCLUSIVE for the duration of the composite-PK index build
+-- (plus the implicit NOT NULL validation scan) — typically seconds
+-- for tables in the low millions of rows, but the locks are held
+-- cumulatively until the migration's single transaction commits.
 SELECT
   c.relname                                              AS table_name,
   pg_size_pretty(pg_relation_size(c.oid))                AS heap_size,
   pg_relation_size(c.oid) / 1024 / 1024                  AS heap_size_mb,
-  ROUND(pg_relation_size(c.oid) / 1024 / 1024 / 100.0, 1) AS est_rewrite_seconds_at_100mbs
+  ROUND(pg_relation_size(c.oid) / 1024 / 1024 / 100.0, 1) AS est_seconds_at_100mbs
 FROM pg_class c
-WHERE c.relname IN ('dashboard_slices', 'report_schedule_user');
+WHERE c.relname IN (
+  'dashboard_roles', 'dashboard_slices', 'dashboard_user',
+  'report_schedule_user', 'rls_filter_roles', 'rls_filter_tables',
+  'slice_user', 'sqlatable_user');
 ```
 
-**Sizing the maintenance window on MySQL.** Equivalent diagnostic queries for MySQL/InnoDB. One important difference from PostgreSQL: InnoDB rebuilds the clustered index on every PK change, so *all eight* tables undergo a full table rebuild on MySQL — not just the two that go through the explicit `recreate="always"` path. The lock-window estimate query below therefore covers all eight tables.
+**Sizing the maintenance window on MySQL.** Equivalent diagnostic queries for MySQL/InnoDB. One important difference from PostgreSQL: InnoDB rebuilds the clustered index on every PK change, so *all eight* tables undergo a full table rebuild on MySQL — not just the two that go through the explicit `recreate="always"` path. Additionally, the upgrade emits `DROP COLUMN id` and `ADD PRIMARY KEY (fk1, fk2)` as **separate ALTER statements, so most tables pay the clustered-index rebuild twice** — budget roughly 2× the single-rebuild estimate from the query below. The **downgrade is a comparable maintenance window in its own right** (it re-adds the `id` column and rebuilds every table on both dialects); plan rollback windows with the same sizing, not as a quick undo.
 
 ```sql
 -- Per-table size, row count, and which migration path each will take.
