@@ -18,14 +18,13 @@
 migration (revision 2bee73611e32).
 
 Builds the pre-migration shape against an isolated in-memory SQLite engine,
-runs the migration's ``upgrade()``, and asserts the resulting shape matches
-the data-model.md "After" specification: no ``id`` column, composite PK on
-the two FK columns, and no redundant ``UNIQUE(fk1, fk2)`` on the two tables
-that previously carried one.
+runs the migration's ``upgrade()``, and asserts the resulting shape: no
+``id`` column, composite PK on the two FK columns, and no redundant
+``UNIQUE(fk1, fk2)`` on the two tables that previously carried one.
 
 Continuum-restore verification is OUT OF SCOPE; that work lives in the
-versioning epic (sc-103156). Cross-backend verification (PostgreSQL, MySQL)
-is handled by the CI matrix (T034a).
+entity-versioning follow-up. Cross-backend verification (PostgreSQL,
+MySQL) is handled by CI's test-postgres / test-mysql shards.
 """
 
 from importlib import import_module
@@ -43,20 +42,27 @@ _migration = import_module(
 )
 AFFECTED_TABLES = _migration.AFFECTED_TABLES
 TABLES_WITH_PRE_EXISTING_UNIQUE = _migration.TABLES_WITH_PRE_EXISTING_UNIQUE
+TABLES_WITH_NULLABLE_FKS = _migration.TABLES_WITH_NULLABLE_FKS
 
 
 @pytest.fixture(scope="module")
 def post_upgrade_engine() -> sa.engine.Engine:
     """An isolated in-memory SQLite engine with the migration applied to a
     pre-migration-shaped seed schema. Used by the post-upgrade assertions
-    below. Module-scoped so the upgrade only runs once per test session."""
+    below. Module-scoped so the upgrade only runs once per module.
+
+    FK columns are NULLABLE on the six tables that historically allowed
+    NULLs — with ``nullable=False`` here, ``test_fk_columns_not_null``
+    would pass trivially rather than because the migration promoted
+    anything."""
     engine = sa.create_engine("sqlite:///:memory:")
     md = sa.MetaData()
     for t in AFFECTED_TABLES:
+        nullable = t.name in TABLES_WITH_NULLABLE_FKS
         cols: list[sa.SchemaItem] = [
             sa.Column("id", sa.Integer, primary_key=True),
-            sa.Column(t.fk1, sa.Integer, nullable=False),
-            sa.Column(t.fk2, sa.Integer, nullable=False),
+            sa.Column(t.fk1, sa.Integer, nullable=nullable),
+            sa.Column(t.fk2, sa.Integer, nullable=nullable),
         ]
         constraints: list[sa.SchemaItem] = []
         if t.name in TABLES_WITH_PRE_EXISTING_UNIQUE:
