@@ -96,9 +96,13 @@ def import_chart(
                 # without write permission — that would let the dashboard
                 # importer reattach to a deleted chart and produce a broken
                 # dashboard.
+                # Name the chart: a dashboard bundle imports many charts, and
+                # without the identity the operator can't tell which of N
+                # charts in the bundle hit the soft-deleted match.
                 raise ImportFailedError(
-                    "Chart was deleted and re-import requires can_write "
-                    "permission to restore it"
+                    f"Chart {existing.slice_name!r} (uuid {config['uuid']}) "
+                    f"was deleted and re-import requires can_write "
+                    f"permission to restore it"
                 )
             # ``user`` is None on background / example-loader paths; combined
             # with ``can_write`` (typically from ``ignore_permissions=True``)
@@ -109,8 +113,9 @@ def import_chart(
                 or (user not in existing.owners and not security_manager.is_admin())
             ):
                 raise ImportFailedError(
-                    "A chart already exists and user doesn't have "
-                    "permissions to restore it"
+                    f"Chart {existing.slice_name!r} (uuid {config['uuid']}) "
+                    f"already exists and user doesn't have permissions to "
+                    f"restore it"
                 )
             # Restore in place (clear ``deleted_at``) rather than
             # hard-delete-and-replace: a hard delete would cascade to
