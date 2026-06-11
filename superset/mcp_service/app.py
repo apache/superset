@@ -133,6 +133,7 @@ Dashboard Management:
 - duplicate_dashboard: Duplicate an existing dashboard, optionally deep-copying its charts (requires write access)
 - add_chart_to_existing_dashboard: Add a chart to an existing dashboard (requires write access)
 - manage_native_filters: Add, update, remove, or reorder native filters on a dashboard (requires write access; supports filter_select and filter_time)
+- remove_chart_from_dashboard: Remove a chart from an existing dashboard (requires write access)
 
 Annotation Layers:
 - list_annotation_layers: List annotation layers with advanced filters (1-based pagination)
@@ -428,7 +429,8 @@ Input format:
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
 - Write tools (generate_chart, generate_dashboard, update_chart, duplicate_dashboard,
   create_dataset, create_virtual_dataset, save_sql_query, add_chart_to_existing_dashboard,
-  manage_native_filters, update_chart_preview) require write
+  manage_native_filters, remove_chart_from_dashboard,
+  update_chart_preview) require write
   permissions. These tools are only listed for users who have the necessary access.
   If a write tool does not appear in the tool list, the current user lacks write access.
 - execute_sql requires SQL Lab access (execute_sql_query permission), which is separate
@@ -700,6 +702,7 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     get_dashboard_layout,
     list_dashboards,
     manage_native_filters,
+    remove_chart_from_dashboard,
     update_dashboard,
 )
 from superset.mcp_service.database.tool import (  # noqa: F401, E402

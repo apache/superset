@@ -22,6 +22,7 @@ from .get_dashboard_info import get_dashboard_info
 from .get_dashboard_layout import get_dashboard_layout
 from .list_dashboards import list_dashboards
 from .manage_native_filters import manage_native_filters
+from .remove_chart_from_dashboard import remove_chart_from_dashboard
 from .update_dashboard import update_dashboard
 
 __all__ = [
@@ -32,5 +33,6 @@ __all__ = [
     "duplicate_dashboard",
     "add_chart_to_existing_dashboard",
     "manage_native_filters",
+    "remove_chart_from_dashboard",
     "update_dashboard",
 ]
