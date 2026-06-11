@@ -43,7 +43,7 @@ from sqlalchemy.engine import Connection
 
 # revision identifiers, used by Alembic.
 revision = "2bee73611e32"
-down_revision = "33d7e0e21daa"
+down_revision = "31dae2559c05"
 
 logger = logging.getLogger("alembic.env")
 
