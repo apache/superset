@@ -23,11 +23,13 @@ from flask import g
 from superset.commands.base import BaseCommand
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.exceptions import (
+    ChartAccessDeniedError,
     ChartInvalidError,
     WarmUpCacheChartNotFoundError,
 )
 from superset.common.db_query_status import QueryStatus
-from superset.extensions import db
+from superset.exceptions import SupersetSecurityException
+from superset.extensions import db, security_manager
 from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import error_msg_from_exception, QueryObjectFilterClause
@@ -124,8 +126,13 @@ class ChartWarmUpCacheCommand(BaseCommand):
 
     def validate(self) -> None:
         if isinstance(self._chart_or_id, Slice):
-            return
-        chart = db.session.query(Slice).filter_by(id=self._chart_or_id).scalar()
-        if not chart:
-            raise WarmUpCacheChartNotFoundError()
-        self._chart_or_id = chart
+            chart = self._chart_or_id
+        else:
+            chart = db.session.query(Slice).filter_by(id=self._chart_or_id).scalar()
+            if not chart:
+                raise WarmUpCacheChartNotFoundError()
+            self._chart_or_id = chart
+        try:
+            security_manager.raise_for_access(chart=chart)
+        except SupersetSecurityException as ex:
+            raise ChartAccessDeniedError() from ex

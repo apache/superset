@@ -306,10 +306,18 @@ class Query(
         """
         Raise an exception if the user cannot access the resource.
 
+        Re-validation of a SQL Lab query uses the same strict scoping as the
+        initial execute path (``force_dataset_match=True``) so that fetching
+        results, exporting CSV, and streaming-exporting all enforce the same
+        per-table dataset-match requirement. ``raise_for_access`` parses
+        ``executed_sql`` (the Jinja-rendered query that actually ran) when
+        set, keeping the table set aligned with execution even though the
+        original ``template_params`` are not persisted on the query record.
+
         :raises SupersetSecurityException: If the user cannot access the resource
         """
 
-        security_manager.raise_for_access(query=self)
+        security_manager.raise_for_access(query=self, force_dataset_match=True)
 
     @property
     def db_engine_spec(
@@ -588,6 +596,21 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
     saved_query = relationship("SavedQuery", foreign_keys=[saved_query_id])
 
     def to_dict(self) -> dict[str, Any]:
+        latest_query = None
+        try:
+            if self.latest_query:
+                latest_query = self.latest_query.to_dict()
+        except Exception:
+            query = self.__dict__.get("latest_query")
+            logger.warning(
+                "Failed to load/serialize latest_query for tab state %s "
+                "(latest_query_id=%s, query_status=%s)",
+                self.id,
+                self.latest_query_id,
+                getattr(query, "status", "N/A"),
+                exc_info=True,
+            )
+
         return {
             "id": self.id,
             "user_id": self.user_id,
@@ -599,7 +622,7 @@ class TabState(AuditMixinNullable, ExtraJSONMixin, Model):
             "table_schemas": [ts.to_dict() for ts in self.table_schemas],
             "sql": self.sql,
             "query_limit": self.query_limit,
-            "latest_query": self.latest_query.to_dict() if self.latest_query else None,
+            "latest_query": latest_query,
             "autorun": self.autorun,
             "template_params": self.template_params,
             "hide_left_bar": self.hide_left_bar,

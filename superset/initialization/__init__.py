@@ -37,7 +37,11 @@ from flask_compress import Compress
 from flask_session import Session
 from werkzeug.middleware.proxy_fix import ProxyFix
 
-from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET, CHANGE_ME_SECRET_KEY
+from superset.constants import (
+    CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
+    CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
+    CHANGE_ME_SECRET_KEY,
+)
 from superset.databases.utils import make_url_safe
 from superset.extensions import (
     _event_logger,
@@ -295,7 +299,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         #
         # Setup regular views
         #
-        app_root = appbuilder.app.config["APPLICATION_ROOT"]
+        app_root = current_app.config["APPLICATION_ROOT"]
         if app_root.endswith("/"):
             app_root = app_root.rstrip("/")
 
@@ -347,7 +351,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+                current_app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
@@ -357,7 +361,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             label=_("User Registrations"),
             category="Security",
             category_label=_("Security"),
-            menu_cond=lambda: bool(appbuilder.app.config["AUTH_USER_REGISTRATION"]),
+            menu_cond=lambda: bool(current_app.config["AUTH_USER_REGISTRATION"]),
         )
 
         appbuilder.add_view(
@@ -367,7 +371,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+                current_app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
@@ -378,7 +382,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category="Security",
             category_label=_("Security"),
             menu_cond=lambda: bool(
-                appbuilder.app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
+                current_app.config.get("SUPERSET_SECURITY_VIEW_MENU", True)
             ),
         )
 
@@ -691,6 +695,32 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         )
         sys.exit(1)
 
+    def check_async_query_secret(self) -> None:
+        """Refuse to start with the default async JWT secret when GAQ is enabled."""
+        if not feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            return
+        if (
+            self.config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET")
+            != CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
+        ):
+            return
+        self._log_config_warning(
+            "GLOBAL_ASYNC_QUERIES is enabled but GLOBAL_ASYNC_QUERIES_JWT_SECRET "
+            "has not been changed from its default value.\n"
+            "The default value is publicly known and must be replaced before "
+            "running in production.\n"
+            "Set a strong random value (at least 32 bytes) in superset_config.py:\n"
+            "  GLOBAL_ASYNC_QUERIES_JWT_SECRET = "
+            "'<output of: openssl rand -base64 42>'"
+        )
+        if self.superset_app.debug or self.superset_app.config["TESTING"] or is_test():
+            return
+        logger.error(
+            "Refusing to start: insecure GLOBAL_ASYNC_QUERIES_JWT_SECRET "
+            "with GLOBAL_ASYNC_QUERIES enabled"
+        )
+        sys.exit(1)
+
     def configure_session(self) -> None:
         if self.config["SESSION_SERVER_SIDE"]:
             Session(self.superset_app)
@@ -776,6 +806,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # conditionally
         self.configure_feature_flags()
         self.check_guest_token_secret()
+        self.check_async_query_secret()
         self.configure_db_encrypt()
         self.setup_db()
 
@@ -796,6 +827,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         with self.superset_app.app_context():
             self.init_app_in_ctx()
 
+        # Registered outside ``init_app_in_ctx`` because the SQLAlchemy
+        # event hook attaches to the ``Session`` *class* (a process-wide
+        # global), not to a Session instance — it has no dependency on
+        # the Flask app context. ``setup_db()`` ran earlier in
+        # ``init_app``, so the ``Session`` import has already been
+        # initialised by the time we get here.
+        self.setup_soft_delete_listener()
         self.post_init()
 
     def set_db_default_isolation(self) -> None:
@@ -978,6 +1016,23 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         migrate.init_app(self.superset_app, db=db, directory=APP_DIR + "/migrations")
 
+    def setup_soft_delete_listener(self) -> None:
+        """Register the global soft-delete filter on the SQLAlchemy Session.
+
+        Must be called after ``setup_db()`` so the Session class is
+        available. Uses the ``do_orm_execute`` + ``with_loader_criteria``
+        pattern recommended by SQLAlchemy maintainer Mike Bayer for
+        soft deletion in SQLAlchemy 1.4+:
+        https://github.com/sqlalchemy/sqlalchemy/issues/7973#issuecomment-1112561295
+        """
+        from sqlalchemy import event
+        from sqlalchemy.orm import Session
+
+        from superset.models.helpers import _add_soft_delete_filter
+
+        if not event.contains(Session, "do_orm_execute", _add_soft_delete_filter):
+            event.listen(Session, "do_orm_execute", _add_soft_delete_filter)
+
     def configure_wtf(self) -> None:
         if self.config["WTF_CSRF_ENABLED"]:
             csrf.init_app(self.superset_app)
@@ -987,6 +1042,16 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_async_queries(self) -> None:
         if feature_flag_manager.is_feature_enabled("GLOBAL_ASYNC_QUERIES"):
+            # In production, check_async_query_secret() already aborts startup when
+            # the default secret is present, so this branch is never reached with it.
+            # In debug/testing the check only warns, so skip async-query init here to
+            # avoid AsyncQueryManager.init_app() hard-failing on the too-short default
+            # secret and crashing startup despite the warn-only intent.
+            if (
+                self.config.get("GLOBAL_ASYNC_QUERIES_JWT_SECRET")
+                == CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
+            ):
+                return
             async_query_manager_factory.init_app(self.superset_app)
 
     def configure_task_manager(self) -> None:

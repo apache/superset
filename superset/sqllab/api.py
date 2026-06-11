@@ -419,6 +419,14 @@ class SqlLabRestApi(BaseSupersetApi):
         command = StreamingSqlResultExportCommand(client_id, chunk_size)
         command.validate()
 
+        if filename:
+            # Sanitize the user-supplied filename before it is used in the
+            # Content-Disposition header (consistent with the generated-name
+            # path below). secure_filename may reduce a name consisting entirely
+            # of unsafe characters to an empty string, in which case we fall
+            # back to the generated default.
+            filename = secure_filename(filename) or None
+
         if not filename:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = secure_filename(f"sqllab_{client_id}_{timestamp}.csv")

@@ -69,7 +69,6 @@ import logging
 from datetime import datetime
 from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
 
-import humanize
 from pydantic import (
     AliasChoices,
     BaseModel,
@@ -104,6 +103,7 @@ from superset.mcp_service.utils import (
     escape_llm_context_delimiters,
     sanitize_for_llm_context,
 )
+from superset.mcp_service.utils.response_utils import humanize_timestamp
 from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
@@ -288,6 +288,32 @@ class ListDashboardsRequest(OwnedByMeMixin, CreatedByMeMixin, MetadataCacheContr
         return self
 
 
+DEFAULT_GET_DASHBOARD_INFO_COLUMNS: List[str] = [
+    "id",
+    "dashboard_title",
+    "slug",
+    "description",
+    "certified_by",
+    "certification_details",
+    "published",
+    "is_managed_externally",
+    "external_url",
+    "created_on",
+    "changed_on",
+    "uuid",
+    "url",
+    "created_on_humanized",
+    "changed_on_humanized",
+    "chart_count",
+    "tags",
+    "charts",
+    "native_filters",
+    "cross_filters_enabled",
+    "is_permalink_state",
+    "permalink_key",
+]
+
+
 class GetDashboardInfoRequest(MetadataCacheControl):
     """Request schema for get_dashboard_info with support for ID, UUID, or slug.
 
@@ -312,6 +338,29 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             "from that permalink."
         ),
     )
+    select_columns: Annotated[
+        List[str],
+        Field(
+            default_factory=lambda: list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS),
+            description=(
+                "Top-level fields to include in the response. Defaults to a lean "
+                "set that excludes 'css' (raw CSS, can be many KB) and 'filter_state' "
+                "(only relevant when permalink_key is provided). Pass an explicit list "
+                "to override, e.g. ['id','dashboard_title','charts'] for minimal "
+                "output, or add 'css' to include raw dashboard CSS."
+            ),
+        ),
+    ]
+
+    @field_validator("select_columns", mode="before")
+    @classmethod
+    def _parse_select_columns(cls, value: Any) -> Any:
+        from superset.mcp_service.utils.schema_utils import parse_json_or_list
+
+        if value is None:
+            return list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS)
+        parsed = parse_json_or_list(value, "select_columns")
+        return parsed if parsed else list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS)
 
 
 class GetDashboardLayoutRequest(BaseModel):
@@ -1124,13 +1173,6 @@ def dashboard_serializer(dashboard: "Dashboard") -> DashboardInfo:
     )
 
 
-def _humanize_timestamp(dt: datetime | None) -> str | None:
-    """Convert a datetime to a humanized string like '2 hours ago'."""
-    if dt is None:
-        return None
-    return humanize.naturaltime(datetime.now() - dt)
-
-
 def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
     """Simple dashboard serializer that safely handles object attributes."""
     from superset.mcp_service.utils.url_utils import get_superset_base_url
@@ -1157,11 +1199,11 @@ def serialize_dashboard_object(dashboard: Any) -> DashboardInfo:
             url=dashboard_url,
             published=getattr(dashboard, "published", None),
             changed_on=getattr(dashboard, "changed_on", None),
-            changed_on_humanized=_humanize_timestamp(
+            changed_on_humanized=humanize_timestamp(
                 getattr(dashboard, "changed_on", None)
             ),
             created_on=getattr(dashboard, "created_on", None),
-            created_on_humanized=_humanize_timestamp(
+            created_on_humanized=humanize_timestamp(
                 getattr(dashboard, "created_on", None)
             ),
             description=getattr(dashboard, "description", None),
