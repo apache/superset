@@ -364,7 +364,7 @@ def import_dashboard(  # noqa: C901
             # then finds the now-live row (the listener filters
             # ``deleted_at IS NULL``) and ``import_from_dict`` applies the
             # config as field updates on the existing object, preserving the PK.
-            existing.deleted_at = None
+            existing.restore()
             # Apply the incoming slug to the existing row before flushing. On
             # the partial-index dialects (Postgres / MySQL 8.0.13+) the
             # active-slug constraint sees the row's post-flush state. If the old
