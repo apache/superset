@@ -1953,7 +1953,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         time_grain: str,
         time_offset: str | None = None,
     ) -> str:
-        value = row[column_index]
+        value = row.iloc[column_index]
 
         if hasattr(value, "strftime"):
             if time_offset and not ExploreMixin.is_valid_date_range_static(time_offset):
