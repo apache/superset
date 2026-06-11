@@ -1717,3 +1717,206 @@ def dashboard_layout_serializer(dashboard: "Dashboard") -> DashboardLayout:
             has_layout=bool(position_json_str),
         )
     )
+
+
+# ---------------------------------------------------------------------------
+# manage_native_filters schemas
+# ---------------------------------------------------------------------------
+
+
+class BaseNewFilterSpec(BaseModel):
+    """Common fields shared by all new native filter specs."""
+
+    name: str = Field(..., min_length=1, description="Filter display name")
+    description: str = Field("", description="Optional filter description")
+    scope_chart_ids: List[int] | None = Field(
+        None,
+        description=(
+            "Chart IDs this filter should apply to. When omitted the filter "
+            "applies to all charts on the dashboard. All IDs must belong to "
+            "charts that are on the dashboard."
+        ),
+    )
+
+
+class FilterSelectSpec(BaseNewFilterSpec):
+    """Spec for a new dropdown (filter_select) native filter."""
+
+    filter_type: Literal["filter_select"] = Field(
+        ..., description="Discriminator - must be 'filter_select'"
+    )
+    dataset_id: int = Field(..., description="ID of the dataset to filter on")
+    column: str = Field(
+        ..., min_length=1, description="Name of the dataset column to filter on"
+    )
+    multi_select: bool = Field(
+        True, description="Allow selecting multiple values (default True)"
+    )
+    default_to_first_item: bool = Field(
+        False, description="Default the filter to the first item in the list"
+    )
+    enable_empty_filter: bool = Field(
+        False, description="Require a value before the filter is applied"
+    )
+    sort_ascending: bool | None = Field(
+        None,
+        description=(
+            "Sort filter values ascending (True) or descending (False). "
+            "When omitted, values are not explicitly sorted."
+        ),
+    )
+    search_all_options: bool = Field(
+        False, description="Query the database on search rather than client-side"
+    )
+
+
+class FilterTimeSpec(BaseNewFilterSpec):
+    """Spec for a new time range (filter_time) native filter."""
+
+    filter_type: Literal["filter_time"] = Field(
+        ..., description="Discriminator - must be 'filter_time'"
+    )
+    default_time_range: str | None = Field(
+        None,
+        description=(
+            "Default time range value, e.g. 'Last week', 'Last month', "
+            "'2024-01-01 : 2024-12-31'. When omitted the filter has no default."
+        ),
+    )
+
+
+NewNativeFilterSpec = Annotated[
+    FilterSelectSpec | FilterTimeSpec,
+    Field(discriminator="filter_type"),
+]
+
+
+class NativeFilterUpdateSpec(BaseModel):
+    """Partial update for an existing native filter.
+
+    Only ``id`` is required; any other provided field is merged into the
+    existing filter configuration. Fields that only apply to one filter
+    type (e.g. ``multi_select`` for filter_select, ``default_time_range``
+    for filter_time) are rejected when used on the wrong filter type.
+    """
+
+    id: str = Field(..., min_length=1, description="ID of the filter to update")
+    name: str | None = Field(None, min_length=1, description="New display name")
+    description: str | None = Field(None, description="New description")
+    dataset_id: int | None = Field(
+        None, description="New target dataset ID (filter_select only)"
+    )
+    column: str | None = Field(
+        None, min_length=1, description="New target column name (filter_select only)"
+    )
+    multi_select: bool | None = Field(
+        None, description="Allow multiple values (filter_select only)"
+    )
+    default_to_first_item: bool | None = Field(
+        None, description="Default to first item (filter_select only)"
+    )
+    enable_empty_filter: bool | None = Field(
+        None, description="Require a value (filter_select only)"
+    )
+    sort_ascending: bool | None = Field(
+        None, description="Sort values ascending/descending (filter_select only)"
+    )
+    search_all_options: bool | None = Field(
+        None, description="Search all options in the database (filter_select only)"
+    )
+    default_time_range: str | None = Field(
+        None, description="Default time range (filter_time only)"
+    )
+    scope_chart_ids: List[int] | None = Field(
+        None,
+        description=(
+            "Chart IDs this filter should apply to. Replaces the current "
+            "scope. All IDs must belong to charts on the dashboard."
+        ),
+    )
+
+
+class ManageNativeFiltersRequest(BaseModel):
+    """Request schema for the manage_native_filters tool."""
+
+    dashboard_id: int = Field(..., description="ID of the dashboard to modify")
+    add: List[NewNativeFilterSpec] = Field(
+        default_factory=list,
+        description=(
+            "New filters to create. Supported types: filter_select "
+            "(dropdown) and filter_time (time range). Other filter types "
+            "(numerical range, time column, time grain) are not yet "
+            "supported by this tool."
+        ),
+    )
+    update: List[NativeFilterUpdateSpec] = Field(
+        default_factory=list,
+        description="Partial updates to existing filters, addressed by filter ID",
+    )
+    remove: List[str] = Field(
+        default_factory=list,
+        description="IDs of filters to delete from the dashboard",
+    )
+    reorder: List[str] | None = Field(
+        None,
+        description=(
+            "Complete ordered list of filter IDs defining the new filter "
+            "order. Must include every filter that remains on the dashboard "
+            "(after removals); newly added filters are appended "
+            "automatically and may be omitted."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def _require_at_least_one_operation(self) -> "ManageNativeFiltersRequest":
+        if not self.add and not self.update and not self.remove and not self.reorder:
+            raise ValueError(
+                "At least one operation (add, update, remove, reorder) is required"
+            )
+        return self
+
+
+class ManageNativeFiltersResponse(BaseModel):
+    """Response schema for the manage_native_filters tool."""
+
+    dashboard_id: int | None = Field(None, description="ID of the dashboard")
+    dashboard_url: str | None = Field(
+        None, description="URL to view the updated dashboard"
+    )
+    added_filter_ids: List[str] = Field(
+        default_factory=list,
+        description=(
+            "Server-generated IDs of the newly created filters, in request order"
+        ),
+    )
+    updated_filter_ids: List[str] = Field(
+        default_factory=list, description="IDs of the filters that were updated"
+    )
+    removed_filter_ids: List[str] = Field(
+        default_factory=list, description="IDs of the filters that were removed"
+    )
+    filters: List[NativeFilterSummary] = Field(
+        default_factory=list,
+        description="Final native filter configuration after the operation, in order",
+    )
+    error: str | None = Field(None, description="Error message, if operation failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=(
+            "True when the operation failed because the current user does "
+            "not have edit rights on the target dashboard."
+        ),
+    )
+
+    @field_validator("error")
+    @classmethod
+    def sanitize_error_for_llm_context(cls, value: str | None) -> str | None:
+        """Wrap error text before it is exposed to LLM context.
+
+        The error may echo user-supplied filter names or dashboard-controlled
+        metadata - both must be wrapped so the LLM treats them as data, not
+        instructions.
+        """
+        if value is None:
+            return value
+        return sanitize_for_llm_context(value, field_path=("error",))
