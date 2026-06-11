@@ -21,6 +21,7 @@ from typing import Any
 from superset import db, security_manager
 from superset.commands.exceptions import ImportFailedError
 from superset.commands.importers.v1.utils import find_existing_for_import
+from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.utils import json
 from superset.utils.core import get_user
@@ -375,6 +376,22 @@ def import_dashboard(  # noqa: C901
             # though the upload was supposed to fix it.
             if "slug" in config:
                 existing.slug = config["slug"]
+            # Same active-slug-twin check as the explicit restore
+            # (``RestoreDashboardCommand``): the common re-import carries the
+            # pre-deletion slug, which another active dashboard may have
+            # claimed during the soft-deleted window. Checking the effective
+            # post-restore slug here surfaces a readable error naming the
+            # conflict instead of the flush below hitting the partial unique
+            # index as an opaque IntegrityError-wrapped import failure.
+            if existing.slug is not None and not (
+                DashboardDAO.validate_update_slug_uniqueness(existing.id, existing.slug)
+            ):
+                raise ImportFailedError(
+                    f"Dashboard cannot be restored via re-import because its "
+                    f"slug {existing.slug!r} is now used by another active "
+                    f"dashboard. Upload a YAML with a different slug, or "
+                    f"rename the active dashboard, and retry."
+                )
             db.session.flush()
             config["id"] = existing.id
         else:

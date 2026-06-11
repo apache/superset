@@ -626,3 +626,60 @@ def test_dashboard_import_matches_existing_active_by_slug(
     assert obj.id == original_id  # matched & updated the existing row by slug
     assert obj.dashboard_title == "Updated via import"
     assert db.session.query(Dashboard).filter_by(slug="shared-slug").count() == 1
+
+
+def test_import_soft_deleted_dashboard_slug_collision_raises(
+    mocker: MockerFixture,
+    session_with_data: Session,
+) -> None:
+    """Restore-via-import fails readably when the slug was claimed.
+
+    The common re-import carries the pre-deletion slug. If another active
+    dashboard claimed it during the soft-deleted window, the importer must
+    surface the same active-slug-twin conflict the explicit restore raises
+    (naming the slug), not let the flush hit the partial unique index as an
+    opaque IntegrityError-wrapped import failure.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
+
+    existing = (
+        session_with_data.query(Dashboard)
+        .filter(Dashboard.uuid == dashboard_config["uuid"])
+        .one_or_none()
+    )
+    assert existing is not None
+    existing.slug = "contested-slug"
+    existing.deleted_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+
+    # Another active dashboard claimed the slug during the deleted window.
+    claimant = Dashboard(
+        id=101,
+        dashboard_title="Claimant",
+        slug="contested-slug",
+        slices=[],
+        published=True,
+        uuid="11111111-1111-1111-1111-111111111111",
+    )
+    session_with_data.add(claimant)
+    session_with_data.flush()
+
+    config = copy.deepcopy(dashboard_config)
+    config["slug"] = "contested-slug"
+
+    admin = User(
+        first_name="Alice",
+        last_name="Doe",
+        email="adoe@example.org",
+        username="admin",
+        roles=[Role(name="Admin")],
+    )
+
+    with override_user(admin):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_dashboard(config, overwrite=True)
+
+    assert "contested-slug" in str(excinfo.value)
+    # The conflict was caught by the pre-check, before any flush could
+    # surface a DB-level error.
+    assert "another active dashboard" in str(excinfo.value)
