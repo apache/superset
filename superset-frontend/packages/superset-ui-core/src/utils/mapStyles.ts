@@ -88,6 +88,9 @@ type BootstrapData = {
 };
 
 export function getBootstrapDataFromDocument(): unknown {
+  /* istanbul ignore if -- a missing document only occurs in SSR/worker
+     contexts, which Jest cannot simulate: jsdom pins `document` as a
+     non-configurable global */
   if (typeof document === 'undefined') {
     return undefined;
   }
