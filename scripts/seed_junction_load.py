@@ -86,7 +86,11 @@ JUNCTIONS: list[tuple[str, str, str, str, str]] = [
 # Junction tables that originally carried ``UNIQUE(fk1, fk2)`` and therefore
 # cannot accept duplicate ``(fk1, fk2)`` pairs even on the pre-migration
 # (downgrade) schema. The other JUNCTIONS allow duplicates pre-migration.
-JUNCTIONS_WITH_UNIQUE: set[str] = {"dashboard_slices", "report_schedule_user"}
+# Only ``dashboard_slices`` is listed: the migration's other UNIQUE table
+# (``report_schedule_user``) is not in JUNCTIONS — this script doesn't seed
+# it — so listing it here would imply coverage that doesn't exist. Add it
+# alongside a JUNCTIONS entry if that table ever gets seeded.
+JUNCTIONS_WITH_UNIQUE: set[str] = {"dashboard_slices"}
 
 
 # ----------------------------------------------------------------------
@@ -454,15 +458,6 @@ def seed_junction(
 # ----------------------------------------------------------------------
 
 
-def required_parent_count(target_pairs: int, other_parent: int) -> int:
-    """How many rows we need in this parent so that
-    (this_parent × other_parent) ≥ target_pairs."""
-    if other_parent == 0:
-        # Bootstrapping: assume we'll create at least 1
-        other_parent = 1
-    return -(-target_pairs // other_parent)  # ceil(target_pairs / other_parent)
-
-
 def _compute_parent_requirements(targets: dict[str, int]) -> dict[str, int]:
     """For each parent table, return the minimum row count needed so that
     parent1 × parent2 ≥ target for every junction it participates in.
@@ -645,9 +640,11 @@ def main() -> None:
             "after seeding distinct pairs, inject this percentage of duplicate "
             "rows on each non-UNIQUE junction (slice_user, dashboard_user, "
             "dashboard_roles). Stress-tests the migration's _dedupe_by_min_id "
-            "phase. Requires the DB to be at the pre-migration revision "
-            "(33d7e0e21daa) — the post-migration composite PK rejects "
-            "duplicates and this will error. Default: 0 (no duplicates)."
+            "phase. Requires 2bee73611e32 to NOT be applied: un-apply it by "
+            "downgrading to its parent (`superset db downgrade <down_revision>`, "
+            "where <down_revision> is read from the 2bee73611e32 migration "
+            "file) — the post-migration composite PK rejects duplicates and "
+            "this will error. Default: 0 (no duplicates)."
         ),
     )
     parser.add_argument(
