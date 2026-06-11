@@ -604,8 +604,17 @@ export default function sqlLabReducer(
     },
     [actions.QUERY_EDITOR_SET_SQL]() {
       const { unsavedQueryEditor } = state;
+      // Normalize tabViewId to client-side id (same pattern as START_QUERY)
+      const queryEditorByTabId = getFromArr(
+        state.queryEditors,
+        action.queryEditor!.id!,
+        'tabViewId',
+      );
+      const normalizedId =
+        (queryEditorByTabId as QueryEditor | undefined)?.id ??
+        action.queryEditor!.id!;
       if (
-        unsavedQueryEditor?.id === action.queryEditor!.id &&
+        unsavedQueryEditor?.id === normalizedId &&
         unsavedQueryEditor.sql === action.sql
       ) {
         return state;
@@ -618,7 +627,7 @@ export default function sqlLabReducer(
             sql: action.sql ?? undefined,
             ...(action.queryId && { latestQueryId: action.queryId }),
           },
-          action.queryEditor!.id!,
+          normalizedId,
         ),
       };
     },

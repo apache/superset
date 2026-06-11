@@ -200,6 +200,27 @@ describe('sqlLabReducer', () => {
       expect(newState.unsavedQueryEditor.sql).toBe(sql);
       expect(newState.unsavedQueryEditor.id).toBe(qe!.id);
     });
+    test('should set Sql when dispatched with tabViewId (backend persistence)', () => {
+      // Simulate SqllabBackendPersistence: queryEditor gets a tabViewId after save
+      const tabViewId = 'tab-view-42';
+      const migrateAction = {
+        type: actions.MIGRATE_QUERY_EDITOR,
+        oldQueryEditor: qe,
+        newQueryEditor: { ...qe!, tabViewId, inLocalStorage: false },
+      };
+      newState = sqlLabReducer(newState, migrateAction as SqlLabAction);
+
+      // Restore SQL using tabViewId (as restoreSql in QueryTable does)
+      const sql = 'SELECT restored_query FROM history';
+      const restoreAction = {
+        type: actions.QUERY_EDITOR_SET_SQL,
+        queryEditor: { id: tabViewId },
+        sql,
+      };
+      newState = sqlLabReducer(newState, restoreAction);
+      expect(newState.unsavedQueryEditor.sql).toBe(sql);
+      expect(newState.unsavedQueryEditor.id).toBe(qe!.id);
+    });
     test('should not fail while setting queryLimit', () => {
       const queryLimit = 101;
       const action = {
