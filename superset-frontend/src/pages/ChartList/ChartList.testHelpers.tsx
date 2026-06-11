@@ -33,7 +33,7 @@ export const mockHandleResourceExport =
 export const mockCharts = [
   {
     id: 0,
-    url: '/superset/slice/0/',
+    url: '/explore/?slice_id=0',
     viz_type: 'table',
     slice_name: 'Test Chart 0',
 
@@ -43,7 +43,7 @@ export const mockCharts = [
     tags: [{ name: 'basic', type: 1, id: 1 }],
 
     datasource_name_text: 'public.test_dataset',
-    datasource_url: '/superset/explore/table/1/',
+    datasource_url: '/explore/?datasource_type=table&datasource_id=1',
     datasource_id: 1,
 
     changed_by_name: 'user',
@@ -72,7 +72,7 @@ export const mockCharts = [
   },
   {
     id: 1,
-    url: '/superset/slice/1/',
+    url: '/explore/?slice_id=1',
     viz_type: 'bar',
     slice_name: 'Test Chart 1',
 
@@ -93,7 +93,7 @@ export const mockCharts = [
     ],
 
     datasource_name_text: 'sales_data',
-    datasource_url: '/superset/explore/table/2/',
+    datasource_url: '/explore/?datasource_type=table&datasource_id=2',
     datasource_id: 2,
 
     changed_by_name: 'admin',
@@ -119,7 +119,7 @@ export const mockCharts = [
   },
   {
     id: 2,
-    url: '/superset/slice/2/',
+    url: '/explore/?slice_id=2',
     viz_type: 'line',
     slice_name: 'Test Chart 2',
 
@@ -150,7 +150,7 @@ export const mockCharts = [
   },
   {
     id: 3,
-    url: '/superset/slice/3/',
+    url: '/explore/?slice_id=3',
     viz_type: 'area',
     slice_name: 'Test Chart 3',
 
@@ -168,7 +168,7 @@ export const mockCharts = [
     tags: [{ name: 'limit-test', type: 1, id: 10 }],
 
     datasource_name_text: 'public.limits_dataset',
-    datasource_url: '/superset/explore/table/4/',
+    datasource_url: '/explore/?datasource_type=table&datasource_id=4',
     datasource_id: 4,
 
     changed_by_name: 'limit_user',
@@ -189,7 +189,7 @@ export const mockCharts = [
   },
   {
     id: 4,
-    url: '/superset/slice/4/',
+    url: '/explore/?slice_id=4',
     viz_type: 'bubble',
     slice_name: 'Test Chart 4',
 
@@ -208,7 +208,7 @@ export const mockCharts = [
     tags: [{ name: 'overflow', type: 1, id: 11 }],
 
     datasource_name_text: 'public.overflow_dataset',
-    datasource_url: '/superset/explore/table/5/',
+    datasource_url: '/explore/?datasource_type=table&datasource_id=5',
     datasource_id: 5,
 
     changed_by_name: 'overflow_user',

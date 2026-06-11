@@ -24,7 +24,16 @@
  * produce `/foo/foo/...`.
  */
 
-/** Field names known to be router-relative URLs to this Superset instance. */
+/**
+ * Field names known to be router-relative URLs to this Superset instance.
+ *
+ * To register a new field: confirm the backend emits a router-relative path
+ * (leading `/`, no host) for it under every deployment, add the name here, and
+ * add a positive strip test. If the field can ever hold an external/absolute
+ * URL, leave it out and document it in `NORMALIZER_EXCLUSIONS` below instead —
+ * a missed entry here leaves the field double-prefixed under subdir deployment
+ * with no static signal.
+ */
 export const NORMALIZED_URL_FIELDS = new Set<string>(['explore_url']);
 
 /**

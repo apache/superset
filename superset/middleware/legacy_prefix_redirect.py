@@ -138,8 +138,12 @@ def _match(
         methods, target = LEGACY_REDIRECT_MAP[canonical_after_strip]
         if not canonical_after_strip.endswith("/"):
             return methods, target
-        # Trailing-slash keys: fall through so the prefix branch returns
-        # the same row (cheap; same answer) — keeps the algorithm uniform.
+        # Trailing-slash keys (e.g. "/dashboard/") deliberately fall through to
+        # step 2 instead of early-returning. A trailing-slash key is also a
+        # prefix key, so the same key handles both the bare path ("/dashboard/",
+        # tail == "") and any sub-path ("/dashboard/5/", tail == "5/") through a
+        # single code path. Early-returning here would special-case the bare
+        # path for no gain — step 2 yields the identical (methods, target) row.
     # 2. Longest-prefix match across keys ending in "/".
     for key in _PREFIX_KEYS:
         if canonical_after_strip.startswith(key):

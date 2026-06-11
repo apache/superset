@@ -422,6 +422,12 @@ export function openInNewTab(path: string): void {
 /**
  * Full-page redirect to a router-relative path. Use only when the destination
  * is outside the React Router tree or a hard reload is required.
+ *
+ * Failure mode differs from the throwing helpers (`openInNewTab`,
+ * `getShareableUrl`, `AppLink`): this delegates to `navigateTo`, which on an
+ * unsafe URL does NOT throw — it soft-falls back to `ensureAppRoot('/')` and
+ * logs via `console.error`. Prefer a throwing helper when the caller must
+ * observe a rejected navigation.
  */
 export function redirect(path: string): void {
   navigateTo(path);

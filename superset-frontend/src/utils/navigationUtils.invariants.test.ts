@@ -331,14 +331,14 @@ test('DIRECT_DOM_NAV_ALLOWLIST has no stale entries', () => {
 // shapes don't slip through.
 const HARDCODED_SUPERSET_LITERAL_PATTERN = /['"`]\/superset(?:[/?#]|['"`])/;
 
-const HARDCODED_SUPERSET_LITERAL_ALLOWLIST: string[] = [
-  // Test-fixture helpers (referenced as production data but shaped as the
-  // legacy URL the backend used to emit). Drop after `Dashboard.url` etc.
-  // stop returning `/superset/...`. The paired
-  // `testHelpers fixtures match the pattern` test below pins the exact set.
-  'src/pages/ChartList/ChartList.testHelpers.tsx',
-  'src/pages/DashboardList/DashboardList.testHelpers.tsx',
-];
+// Empty: the last entries (`ChartList`/`DashboardList` testHelpers) were
+// dropped once `Dashboard.url` / `Slice.url` / `SqlaTable.explore_url` stopped
+// returning `/superset/...` and the fixtures were updated to the live shapes
+// (`/dashboard/<id>/`, `/explore/?slice_id=<id>`,
+// `/explore/?datasource_type=table&datasource_id=<id>`). Kept as an empty
+// constant — paired with the stale-entry guard below — so a future migration
+// can re-introduce a temporary entry without re-deriving the mechanism.
+const HARDCODED_SUPERSET_LITERAL_ALLOWLIST: string[] = [];
 
 test('no hard-coded /superset/ path literals outside the migration allow-list', () => {
   const hits = dropCommentLines(
@@ -357,30 +357,6 @@ test('no hard-coded /superset/ path literals outside the migration allow-list', 
       'Replace with the post-route_base route (e.g. /dashboard/<id>/, ' +
       '/explore/...) and let ensureAppRoot apply the deployment root.',
   );
-});
-
-// Fixture retention: the two *.testHelpers.* files emit legacy /superset/...
-// URLs as production-data fixtures (shaped exactly as `Dashboard.url` /
-// `Slice.url` returned from the backend pre-route_base cleanup). They must
-// stay allowlisted until those backend fields stop returning the literal.
-// This assertion pins the exact set so a third fixture file cannot silently
-// drift in (the scoped pattern check avoids false-failing on
-// `DatasetList.testHelpers.tsx`, which exists but currently has no literal).
-test('HARDCODED_SUPERSET_LITERAL_ALLOWLIST testHelpers fixtures match the pattern', () => {
-  const testHelpersHitFiles = Array.from(
-    new Set(
-      dropCommentLines(
-        scanSource({ pattern: HARDCODED_SUPERSET_LITERAL_PATTERN }),
-        HARDCODED_SUPERSET_LITERAL_PATTERN,
-      ).map(hit => hit.file),
-    ),
-  )
-    .filter(file => /\.testHelpers\.(tsx?|jsx?)$/.test(file))
-    .sort();
-  expect(testHelpersHitFiles).toEqual([
-    'src/pages/ChartList/ChartList.testHelpers.tsx',
-    'src/pages/DashboardList/DashboardList.testHelpers.tsx',
-  ]);
 });
 
 test('HARDCODED_SUPERSET_LITERAL_ALLOWLIST has no stale entries', () => {
