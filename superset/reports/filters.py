@@ -25,6 +25,14 @@ from superset.reports.models import ReportSchedule
 from superset.views.base import BaseFilter
 
 
+def _escape_like(value: str) -> str:
+    """
+    Escape LIKE/ILIKE wildcard characters so user-supplied search text is matched
+    literally instead of being interpreted as wildcards (e.g. ``%`` and ``_``).
+    """
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 class ReportScheduleFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     def apply(self, query: Query, value: Any) -> Query:
         if security_manager.can_access_all_datasources():
@@ -47,11 +55,13 @@ class ReportScheduleAllTextFilter(BaseFilter):  # pylint: disable=too-few-public
     def apply(self, query: Query, value: Any) -> Query:
         if not value:
             return query
-        ilike_value = f"%{value}%"
+        # ``value`` may arrive as a non-string (e.g. an int in the API ``filters``
+        # array); coerce it so escaping never raises on ``.replace``.
+        ilike_value = f"%{_escape_like(str(value))}%"
         return query.filter(
             or_(
-                ReportSchedule.name.ilike(ilike_value),
-                ReportSchedule.description.ilike(ilike_value),
-                ReportSchedule.sql.ilike(ilike_value),
+                ReportSchedule.name.ilike(ilike_value, escape="\\"),
+                ReportSchedule.description.ilike(ilike_value, escape="\\"),
+                ReportSchedule.sql.ilike(ilike_value, escape="\\"),
             )
         )

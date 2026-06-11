@@ -89,3 +89,42 @@ def test_find_last_error_notification_returns_log_when_only_errors(
 
     result = ReportScheduleDAO.find_last_error_notification(schedule)
     assert result is error_log
+
+
+@patch("superset.daos.report.ReportSchedule")
+@patch("superset.daos.report.db")
+def test_find_by_extra_metadata_escapes_like_wildcards(
+    mock_db: MagicMock, mock_report_schedule: MagicMock
+) -> None:
+    """LIKE wildcards in the slug must be escaped so they match literally."""
+    from superset.daos.report import ReportScheduleDAO
+
+    expected: list[MagicMock] = [MagicMock()]
+    mock_db.session.query.return_value.filter.return_value.all.return_value = expected
+
+    result = ReportScheduleDAO.find_by_extra_metadata("100%_off")
+
+    assert result is expected
+    # autoescape=True is what neutralises the LIKE wildcards in the slug
+    mock_report_schedule.extra_json.contains.assert_called_once_with(
+        "100%_off", autoescape=True
+    )
+
+
+@patch("superset.daos.report.ReportSchedule")
+@patch("superset.daos.report.db")
+def test_find_by_native_filter_id_escapes_like_wildcards(
+    mock_db: MagicMock, mock_report_schedule: MagicMock
+) -> None:
+    """LIKE wildcards in the filter id must be escaped so they match literally."""
+    from superset.daos.report import ReportScheduleDAO
+
+    expected: list[MagicMock] = [MagicMock()]
+    mock_db.session.query.return_value.filter.return_value.all.return_value = expected
+
+    result = ReportScheduleDAO.find_by_native_filter_id("NATIVE_FILTER-%_x")
+
+    assert result is expected
+    mock_report_schedule.extra_json.contains.assert_called_once_with(
+        "NATIVE_FILTER-%_x", autoescape=True
+    )
