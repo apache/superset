@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React from 'react';
+import { createElement } from 'react';
 import { views } from 'src/core/views';
 import { CHATBOT_LOCATION } from 'src/views/contributions';
 import { getActiveChatbot } from './index';
@@ -33,7 +33,7 @@ test('getActiveChatbot returns undefined when no chatbot is registered', () => {
 });
 
 test('getActiveChatbot resolves the single registered chatbot', () => {
-  const provider = () => React.createElement('div', null, 'Chatbot');
+  const provider = () => createElement('div', null, 'Chatbot');
   disposables.push(
     views.registerView(
       { id: 'core.chatbot', name: 'Superset Chatbot' },
@@ -46,9 +46,9 @@ test('getActiveChatbot resolves the single registered chatbot', () => {
   expect(active).toEqual({ id: 'core.chatbot', provider });
 });
 
-test('getActiveChatbot picks the first-to-register when multiple are installed', () => {
-  const firstProvider = () => React.createElement('div', null, 'First');
-  const secondProvider = () => React.createElement('div', null, 'Second');
+test('getActiveChatbot picks the last-to-register when multiple are installed', () => {
+  const firstProvider = () => createElement('div', null, 'First');
+  const secondProvider = () => createElement('div', null, 'Second');
   disposables.push(
     views.registerView(
       { id: 'first.chatbot', name: 'First Chatbot' },
@@ -62,13 +62,14 @@ test('getActiveChatbot picks the first-to-register when multiple are installed',
     ),
   );
 
+  // Last-loaded wins: the most-recently-registered chatbot takes the slot.
   const active = getActiveChatbot();
-  expect(active?.id).toBe('first.chatbot');
-  expect(active?.provider).toBe(firstProvider);
+  expect(active?.id).toBe('second.chatbot');
+  expect(active?.provider).toBe(secondProvider);
 });
 
 test('getActiveChatbot ignores views registered at other locations', () => {
-  const provider = () => React.createElement('div', null, 'Panel');
+  const provider = () => createElement('div', null, 'Panel');
   disposables.push(
     views.registerView(
       { id: 'some.panel', name: 'Some Panel' },
@@ -81,7 +82,7 @@ test('getActiveChatbot ignores views registered at other locations', () => {
 });
 
 test('getActiveChatbot stops resolving a chatbot once it is disposed', () => {
-  const provider = () => React.createElement('div', null, 'Chatbot');
+  const provider = () => createElement('div', null, 'Chatbot');
   const disposable = views.registerView(
     { id: 'core.chatbot', name: 'Superset Chatbot' },
     CHATBOT_LOCATION,
@@ -93,40 +94,4 @@ test('getActiveChatbot stops resolving a chatbot once it is disposed', () => {
   disposable.dispose();
 
   expect(getActiveChatbot()).toBeUndefined();
-});
-
-test('getActiveChatbot honours the admin-pinned selection', () => {
-  const firstProvider = () => React.createElement('div', null, 'First');
-  const secondProvider = () => React.createElement('div', null, 'Second');
-  disposables.push(
-    views.registerView(
-      { id: 'first.chatbot', name: 'First Chatbot' },
-      CHATBOT_LOCATION,
-      firstProvider,
-    ),
-    views.registerView(
-      { id: 'second.chatbot', name: 'Second Chatbot' },
-      CHATBOT_LOCATION,
-      secondProvider,
-    ),
-  );
-
-  const active = getActiveChatbot('second.chatbot');
-  expect(active?.id).toBe('second.chatbot');
-  expect(active?.provider).toBe(secondProvider);
-});
-
-test('getActiveChatbot falls back to first-registered when pinned id is unknown', () => {
-  const provider = () => React.createElement('div', null, 'First');
-  disposables.push(
-    views.registerView(
-      { id: 'first.chatbot', name: 'First Chatbot' },
-      CHATBOT_LOCATION,
-      provider,
-    ),
-  );
-
-  // 'stale.chatbot' was once the admin pin but is no longer registered.
-  const active = getActiveChatbot('stale.chatbot');
-  expect(active?.id).toBe('first.chatbot');
 });

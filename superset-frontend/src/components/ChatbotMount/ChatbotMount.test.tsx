@@ -17,39 +17,24 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
-import { SupersetClient } from '@superset-ui/core';
 import { views } from 'src/core';
-import { loadExtensionSettings } from 'src/core/extensions';
 import { CHATBOT_LOCATION } from 'src/views/contributions';
 import ChatbotMount from '.';
 
 const disposables: Array<{ dispose: () => void }> = [];
 
-beforeEach(async () => {
-  // The settings store is a module singleton; reset it to the empty default
-  // (no admin pin) before each test by loading from a mocked API response.
-  jest.spyOn(SupersetClient, 'get').mockResolvedValue({
-    json: { result: { active_chatbot_id: null } },
-  } as any);
-  await loadExtensionSettings();
-});
-
 afterEach(() => {
   disposables.forEach(d => d.dispose());
   disposables.length = 0;
-  jest.restoreAllMocks();
 });
 
-test('renders nothing when no chatbot extension is registered', async () => {
+test('renders nothing when no chatbot extension is registered', () => {
   render(<ChatbotMount />);
 
-  // Wait a tick for the settings load to resolve; the corner must stay empty
-  // even after the gate opens (no chatbot registered → nothing to render).
-  await Promise.resolve();
   expect(screen.queryByTestId('chatbot-mount')).not.toBeInTheDocument();
 });
 
-test('renders the registered chatbot inside the fixed mount slot', async () => {
+test('renders the registered chatbot inside the fixed mount slot', () => {
   const provider = () => <div>My Chatbot Bubble</div>;
   disposables.push(
     views.registerView(
@@ -61,12 +46,11 @@ test('renders the registered chatbot inside the fixed mount slot', async () => {
 
   render(<ChatbotMount />);
 
-  // findBy* awaits the re-render after the initial settings load resolves.
-  expect(await screen.findByTestId('chatbot-mount')).toBeInTheDocument();
+  expect(screen.getByTestId('chatbot-mount')).toBeInTheDocument();
   expect(screen.getByText('My Chatbot Bubble')).toBeInTheDocument();
 });
 
-test('renders only the first-to-register chatbot when several are installed', async () => {
+test('renders the last-registered chatbot when several are installed', () => {
   const firstProvider = () => <div>First Bubble</div>;
   const secondProvider = () => <div>Second Bubble</div>;
   disposables.push(
@@ -84,11 +68,12 @@ test('renders only the first-to-register chatbot when several are installed', as
 
   render(<ChatbotMount />);
 
-  expect(await screen.findByText('First Bubble')).toBeInTheDocument();
-  expect(screen.queryByText('Second Bubble')).not.toBeInTheDocument();
+  // Last-loaded wins: the second registration takes over the singleton bubble.
+  expect(screen.getByText('Second Bubble')).toBeInTheDocument();
+  expect(screen.queryByText('First Bubble')).not.toBeInTheDocument();
 });
 
-test('isolates a failing chatbot so it does not crash the host', async () => {
+test('isolates a failing chatbot so it does not crash the host', () => {
   const FailingChatbot = () => {
     throw new Error('chatbot blew up');
   };
@@ -102,12 +87,12 @@ test('isolates a failing chatbot so it does not crash the host', async () => {
 
   // The host-owned error boundary catches the failure; render does not throw.
   expect(() => render(<ChatbotMount />)).not.toThrow();
-  // The mount slot still renders post-gate (the boundary lives inside it);
-  // awaiting it confirms the provider was actually exercised and contained.
-  expect(await screen.findByTestId('chatbot-mount')).toBeInTheDocument();
+  // The mount slot still renders (the boundary lives inside it), confirming the
+  // provider was actually exercised and contained.
+  expect(screen.getByTestId('chatbot-mount')).toBeInTheDocument();
 });
 
-test('isolates a chatbot whose provider function itself throws', async () => {
+test('isolates a chatbot whose provider function itself throws', () => {
   disposables.push(
     views.registerView(
       { id: 'core.chatbot', name: 'Superset Chatbot' },
@@ -121,5 +106,5 @@ test('isolates a chatbot whose provider function itself throws', async () => {
   // ChatbotRenderer wraps provider() in a component so ErrorBoundary catches
   // synchronous throws from the provider function, not just from its output.
   expect(() => render(<ChatbotMount />)).not.toThrow();
-  expect(await screen.findByTestId('chatbot-mount')).toBeInTheDocument();
+  expect(screen.getByTestId('chatbot-mount')).toBeInTheDocument();
 });
