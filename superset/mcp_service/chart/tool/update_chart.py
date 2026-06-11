@@ -138,7 +138,7 @@ def _build_update_payload(
 
     # Dataset-only update: rebind chart to a different dataset without changing viz
     if request.dataset_id is not None:
-        payload: dict[str, Any] = {
+        payload = {
             "datasource_id": request.dataset_id,
             "datasource_type": "table",
         }

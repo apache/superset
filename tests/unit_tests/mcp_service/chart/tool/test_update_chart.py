@@ -1362,7 +1362,8 @@ class TestBuildUpdatePayloadDatasetId:
         assert result == {"datasource_id": 42, "datasource_type": "table"}
 
     def test_dataset_and_name_update(self):
-        """dataset_id + chart_name: payload includes datasource fields and slice_name."""
+        """dataset_id + chart_name: payload includes datasource fields
+        and slice_name."""
         request = UpdateChartRequest(identifier=1, dataset_id=42, chart_name="Renamed")
         chart = Mock()
         chart.datasource_id = 10
@@ -1478,7 +1479,10 @@ class TestUpdateChartDatasetIdIntegration:
         "superset.commands.chart.update.UpdateChartCommand",
         new_callable=Mock,
     )
-    @patch("superset.daos.dataset.DatasetDAO.find_by_id", new_callable=Mock)
+    @patch(
+        "superset.mcp_service.chart.tool.update_chart._validate_update_against_dataset",
+        return_value=None,
+    )
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
     @patch("superset.db.session")
     @pytest.mark.asyncio
@@ -1486,7 +1490,7 @@ class TestUpdateChartDatasetIdIntegration:
         self,
         mock_db_session,
         mock_find_by_id,
-        mock_dataset_find,
+        mock_validate,
         mock_update_cmd_cls,
         mock_check_access,
         mcp_server,
@@ -1499,10 +1503,6 @@ class TestUpdateChartDatasetIdIntegration:
         mock_chart.viz_type = "table"
         mock_chart.uuid = "uuid-55"
         mock_find_by_id.return_value = mock_chart
-
-        mock_dataset = Mock()
-        mock_dataset.id = 1041
-        mock_dataset_find.return_value = mock_dataset
 
         mock_check_access.return_value = DatasetValidationResult(
             is_valid=True,
@@ -1580,7 +1580,8 @@ class TestUpdateChartDatasetIdIntegration:
             result = await client.call_tool("update_chart", {"request": request})
 
             assert result.structured_content["success"] is False
-            assert result.structured_content["error"]["error_type"] == "DatasetNotAccessible"
+            error_type = result.structured_content["error"]["error_type"]
+            assert error_type == "DatasetNotAccessible"
             assert "9999" in result.structured_content["error"]["details"]
 
     @patch(
@@ -1630,5 +1631,6 @@ class TestUpdateChartDatasetIdIntegration:
             result = await client.call_tool("update_chart", {"request": request})
 
             assert result.structured_content["success"] is False
-            assert result.structured_content["error"]["error_type"] == "DatasetNotAccessible"
+            error_type = result.structured_content["error"]["error_type"]
+            assert error_type == "DatasetNotAccessible"
             assert "9999" in result.structured_content["error"]["details"]
