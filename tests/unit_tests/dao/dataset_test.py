@@ -176,3 +176,57 @@ def test_update_dataset_related_metadata_updates_changed_on(
         update_metrics_mock.assert_not_called()
 
     base_update_mock.assert_called_once_with(item, expected_attributes)
+
+
+def test_override_columns_ignores_payload_pk(session: Session) -> None:
+    """``_override_columns`` matches by natural key (``column_name``) and
+    must never honour a payload ``id``: setattr-ing it onto a name-matched
+    row would rewrite a live primary key, and a *renamed* column whose
+    payload still carries its old ``id`` would INSERT with a live PK while
+    the old-named row is deleted in the same flush — INSERTs flush before
+    DELETEs, so that collides on the PK constraint (sqlalchemy-review #6).
+    """
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(
+        table_name="my_dataset",
+        database=database,
+        columns=[
+            TableColumn(column_name="kept"),
+            TableColumn(column_name="renamed_from"),
+        ],
+    )
+    db.session.add_all([database, dataset])
+    db.session.flush()
+    kept_pk = dataset.columns[0].id
+    renamed_pk = dataset.columns[1].id
+
+    DatasetDAO._override_columns(
+        dataset,
+        [
+            # Foreign id on a name-matched column: must not rewrite the PK.
+            {"column_name": "kept", "id": 99999, "verbose_name": "Kept"},
+            # Rename carrying the old row's live id: must INSERT with a
+            # fresh PK (pre-fix this raised IntegrityError mid-flush).
+            {"column_name": "renamed_to", "id": renamed_pk},
+        ],
+    )
+    db.session.flush()
+
+    # Query the table directly: the new row is added via its ``table_id``
+    # FK, not appended to the (now stale) ``dataset.columns`` collection.
+    columns_by_name = {
+        c.column_name: c
+        for c in db.session.query(TableColumn).filter(
+            TableColumn.table_id == dataset.id
+        )
+    }
+    assert set(columns_by_name) == {"kept", "renamed_to"}
+    assert columns_by_name["kept"].id == kept_pk
+    assert columns_by_name["kept"].verbose_name == "Kept"
+    assert columns_by_name["renamed_to"].id != renamed_pk

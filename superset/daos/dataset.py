@@ -316,16 +316,31 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         existing_by_name = {c.column_name: c for c in model.columns}
         incoming_by_name = {p["column_name"]: p for p in property_columns}
 
+        # Identity is the natural key here, never the payload's ``id``:
+        # setattr-ing an incoming ``id`` onto a name-matched row would
+        # rewrite a live primary key, and a renamed column whose payload
+        # still carries its old ``id`` would INSERT with a live PK while
+        # the old-named row is deleted in the same flush — INSERTs flush
+        # before DELETEs, so that collides on the PK / UNIQUE(table_id,
+        # column_name) constraints. ``table_id`` is pinned to *model*.
+        protected_keys = ("id", "table_id")
+
         # Update columns present in both: in-place setattr.
         for name, col in existing_by_name.items():
             if name in incoming_by_name:
                 for key, value in incoming_by_name[name].items():
-                    setattr(col, key, value)
+                    if key not in protected_keys:
+                        setattr(col, key, value)
 
         # Insert columns present only in incoming.
         for name, properties in incoming_by_name.items():
             if name not in existing_by_name:
-                db.session.add(TableColumn(**{**properties, "table_id": model.id}))
+                cleaned = {
+                    key: value
+                    for key, value in properties.items()
+                    if key not in protected_keys
+                }
+                db.session.add(TableColumn(**{**cleaned, "table_id": model.id}))
 
         # Delete columns present only in existing.
         for name, col in existing_by_name.items():
