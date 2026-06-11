@@ -979,9 +979,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             self.is_set_operation()
             or bool(self._parsed.find(exp.Subquery))
             or any(
-                isinstance(expression, exp.Select)
-                for expression in self._parsed.walk()
-                if expression != self._parsed
+                select != self._parsed for select in self._parsed.find_all(exp.Select)
             )
         )
 
