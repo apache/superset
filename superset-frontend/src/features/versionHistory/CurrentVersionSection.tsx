@@ -108,6 +108,7 @@ export default function CurrentVersionSection({
         onClick={toggle}
         onKeyDown={handleKeyDown}
         aria-expanded={expanded}
+        aria-label={t('Current version')}
       >
         <CaretWrapper>
           {expanded ? (
