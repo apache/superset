@@ -24,15 +24,14 @@ idempotency.
 This is run against an isolated in-memory engine via Alembic's
 ``MigrationContext`` so the test does not perturb the project's test DB.
 
-Cross-backend verification of the same migration against PostgreSQL and
-MySQL is delegated to the CI matrix (see T034a in tasks.md) and to the
-quickstart.md verification (T033). This file covers the SQLite slice.
+Cross-backend (Postgres/MySQL) verification is handled by CI's
+test-postgres / test-mysql shards running ``superset db upgrade``. This
+file covers the SQLite slice.
 """
 
 from importlib import import_module
 from typing import Any
 
-import pytest
 import sqlalchemy as sa
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
@@ -45,20 +44,26 @@ _migration = import_module(
 )
 AFFECTED_TABLES = _migration.AFFECTED_TABLES
 TABLES_WITH_PRE_EXISTING_UNIQUE = _migration.TABLES_WITH_PRE_EXISTING_UNIQUE
+TABLES_WITH_NULLABLE_FKS = _migration.TABLES_WITH_NULLABLE_FKS
 
 
 def _build_pre_migration_schema(engine: sa.engine.Engine) -> None:
     """Recreate the eight tables in their pre-migration shape (surrogate
     ``id INTEGER PRIMARY KEY`` plus an optional ``UNIQUE(fk1, fk2)`` on the
-    two tables that previously carried one). FKs to parent tables are
-    omitted to keep the test self-contained — we're testing schema
-    transformations, not FK enforcement."""
+    two tables that previously carried one). FK columns are NULLABLE on
+    the six tables that historically allowed NULLs — fidelity matters:
+    with ``nullable=False`` here, the post-upgrade NOT NULL assertions
+    pass trivially rather than because the migration promoted anything,
+    and the NULL-row cleanup path can't be exercised. FKs to parent
+    tables are omitted to keep the test self-contained — we're testing
+    schema transformations, not FK enforcement."""
     md = sa.MetaData()
     for t in AFFECTED_TABLES:
+        nullable = t.name in TABLES_WITH_NULLABLE_FKS
         cols: list[sa.Column] = [
             sa.Column("id", sa.Integer, primary_key=True),
-            sa.Column(t.fk1, sa.Integer, nullable=False),
-            sa.Column(t.fk2, sa.Integer, nullable=False),
+            sa.Column(t.fk1, sa.Integer, nullable=nullable),
+            sa.Column(t.fk2, sa.Integer, nullable=nullable),
         ]
         constraints: list[sa.SchemaItem] = []
         if t.name in TABLES_WITH_PRE_EXISTING_UNIQUE:
@@ -110,8 +115,6 @@ def test_round_trip_against_in_memory_sqlite() -> None:
     engine = sa.create_engine("sqlite:///:memory:")
     _build_pre_migration_schema(engine)
 
-    pre_shape = {t.name: _shape(engine, t.name) for t in AFFECTED_TABLES}
-
     _run_with_alembic_context(engine, _migration.upgrade)
 
     for t in AFFECTED_TABLES:
@@ -146,9 +149,45 @@ def test_round_trip_against_in_memory_sqlite() -> None:
         f"diff: {set(re_upgrade_shape.items()) ^ set(post_upgrade_shape.items())}"
     )
 
-    # Use pre_shape only to demonstrate it was captured (not asserted against
-    # because the round-trip downgrade intentionally diverges on FK NOT NULL).
-    _ = pre_shape
+
+def test_upgrade_scrubs_null_fks_and_duplicates() -> None:
+    """The pre-flight data surgery is the migration's riskiest half — and
+    it must be deletable-detectable: this test fails if
+    ``_delete_null_fk_rows`` or ``_dedupe_by_min_id`` is removed from
+    ``upgrade()``.
+
+    Seeds a nullable-FK junction (``slice_user``) with NULL-FK rows and
+    duplicate ``(fk1, fk2)`` pairs in the true pre-migration shape, runs
+    the upgrade, and asserts exactly the distinct non-NULL pairs survive
+    (the composite PK could not even be created otherwise).
+    """
+    engine = sa.create_engine("sqlite:///:memory:")
+    _build_pre_migration_schema(engine)
+
+    md = sa.MetaData()
+    slice_user = sa.Table("slice_user", md, autoload_with=engine)
+    with engine.begin() as conn:
+        conn.execute(
+            slice_user.insert(),
+            [
+                {"id": 1, "user_id": 1, "slice_id": 1},  # keeper (MIN id)
+                {"id": 2, "user_id": 1, "slice_id": 1},  # duplicate pair
+                {"id": 3, "user_id": 1, "slice_id": 1},  # duplicate pair
+                {"id": 4, "user_id": 2, "slice_id": 2},  # distinct keeper
+                {"id": 5, "user_id": None, "slice_id": 3},  # NULL fk1
+                {"id": 6, "user_id": 3, "slice_id": None},  # NULL fk2
+            ],
+        )
+
+    _run_with_alembic_context(engine, _migration.upgrade)
+
+    with engine.connect() as conn:
+        survivors = sorted(
+            conn.execute(sa.text("SELECT user_id, slice_id FROM slice_user")).fetchall()
+        )
+    assert survivors == [(1, 1), (2, 2)], (
+        f"expected the two distinct non-NULL pairs to survive, got {survivors}"
+    )
 
 
 def test_migration_module_constants_are_consistent() -> None:
@@ -159,10 +198,3 @@ def test_migration_module_constants_are_consistent() -> None:
     assert _migration.TABLES_WITH_NULLABLE_FKS.issubset(affected_names)
     # Order is alphabetical (deterministic for review/bisection).
     assert [t.name for t in AFFECTED_TABLES] == sorted(affected_names)
-
-
-@pytest.mark.skipif(True, reason="placeholder — see test_round_trip above")
-def test_placeholder_for_future_postgres_round_trip() -> None:
-    """Reserved slot for a future Postgres-specific round-trip if local
-    SQLite divergence ever needs to be cross-checked against the real
-    backend. Today's CI matrix (T034a) handles this implicitly."""
