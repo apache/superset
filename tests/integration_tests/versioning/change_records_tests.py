@@ -595,3 +595,56 @@ class TestTransactionActionKindPropagation(SupersetTestCase):
             .transaction_id
         )
         assert _action_kind_for(tx_id) is None
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_action_kind_survives_multiple_flushes_in_one_transaction(self) -> None:
+        """A restore/import can flush more than once before commit (an
+        explicit ``flush()`` or an autoflush from a mid-commit query). The
+        listener stamps ``action_kind`` *eagerly* on the first firing and
+        then dedups later firings of the same Continuum tx via the
+        ``_PROCESSED_TXS_KEY`` guard.
+
+        This pins the eager-stamp + dedup interaction: across two flushes
+        in a single transaction the action_kind lands exactly once on the
+        one tx that carries the change records, the key is popped (so it
+        can't leak to the next save), and the second flush does not
+        re-emit records (which would trip the UNIQUE(transaction_id,
+        entity_kind, entity_id, sequence) constraint). Regression for the
+        amin-review finding on stamp-before-short-circuit ordering.
+        """
+        from superset.versioning.changes import ACTION_KIND_KEY
+
+        _persist_fixture_state()
+        chart = db.session.query(Slice).first()
+        assert chart is not None
+
+        # One transaction, two flushes: declare the action_kind, edit +
+        # flush (first after_flush firing stamps and persists), then edit
+        # again + commit (second firing for the same tx must short-circuit).
+        db.session.info[ACTION_KIND_KEY] = "restore"
+        chart.slice_name = f"{chart.slice_name[:60]}_f1"
+        db.session.flush()
+        chart.slice_name = f"{chart.slice_name[:60]}_f2"
+        db.session.commit()
+
+        ver_cls = version_class(Slice)
+        tx_id = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == chart.id)
+            .filter(ver_cls.operation_type == 1)
+            .order_by(ver_cls.transaction_id.desc())
+            .first()
+            .transaction_id
+        )
+
+        # Stamped exactly once on the records-bearing tx, and popped.
+        assert _action_kind_for(tx_id) == "restore"
+        assert ACTION_KIND_KEY not in db.session.info
+        # Records exist for the tx and the dedup guard prevented a
+        # duplicate-sequence re-emit on the second flush.
+        rows = _change_rows_for(tx_id, entity_kind="chart", entity_id=chart.id)
+        assert rows, "expected change records on the multi-flush transaction"
+        sequences = [r["sequence"] for r in rows]
+        assert len(sequences) == len(set(sequences)), (
+            f"duplicate sequences on tx {tx_id}: {sequences}"
+        )
