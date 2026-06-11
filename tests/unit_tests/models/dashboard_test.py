@@ -112,3 +112,18 @@ def test_thumbnail_url_is_none_without_digest(app_context: None) -> None:
     ):
         with current_app.test_request_context("/"):
             assert dash.thumbnail_url is None
+
+
+def test_thumbnail_url_works_outside_request_context(app_context: None) -> None:
+    """The property must stay callable from out-of-request callers (CLI,
+    celery tasks): with no request there is no SCRIPT_NAME to honor, so it
+    falls back to the router-relative shape instead of raising."""
+    dash = Dashboard()
+    dash.id = 7
+
+    with patch.object(
+        Dashboard, "digest", new_callable=PropertyMock, return_value="abc123"
+    ):
+        url = dash.thumbnail_url
+
+    assert url == "/api/v1/dashboard/7/thumbnail/abc123/"

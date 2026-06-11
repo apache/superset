@@ -70,8 +70,9 @@ function captureRemoteEntryScript(): {
       if (element instanceof HTMLScriptElement) {
         capturedSrc = element.getAttribute('src');
         if (element.onerror) {
+          const errorHandler = element.onerror;
           setTimeout(() => {
-            (element.onerror as any)('Script load halted by test');
+            errorHandler('Script load halted by test');
           }, 0);
         }
       }

@@ -643,6 +643,13 @@ def test_get_datasource_full_name():
         ("https://mysuperset.com/myapp/explore/", QuerySource.CHART),
         ("https://mysuperset.com/sqllab/", QuerySource.SQL_LAB),
         ("https://mysuperset.com/myapp/sqllab/", QuerySource.SQL_LAB),
+        # Matching is path-scoped: a query-string payload embedding another
+        # route segment must not win over (or fabricate) an attribution.
+        ("https://mysuperset.com/explore/?next=/dashboard/1/", QuerySource.CHART),
+        ("https://mysuperset.com/?next=/dashboard/1/", None),
+        # Referer is client-controlled: a malformed URL (unclosed IPv6
+        # bracket makes urlparse raise ValueError) must yield None, not 500.
+        ("http://[/explore/", None),
     ],
 )
 def test_get_query_source_from_request(

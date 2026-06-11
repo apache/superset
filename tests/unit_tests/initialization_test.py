@@ -278,6 +278,39 @@ class TestCreateAppRoot:
         assert isinstance(inner, AppRootMiddleware)
         assert inner.app_root == "/from-param"
 
+    @patch("superset.initialization.SupersetAppInitializer.init_app")
+    def test_trailing_slash_normalized_at_source(self, mock_init_app):
+        """A trailing slash in SUPERSET_APP_ROOT is stripped once in
+        create_app, so derived config never sees "/myapp/": otherwise
+        STATIC_ASSETS_PREFIX would build "/myapp//static/..." asset URLs
+        and APPLICATION_ROOT (the session-cookie path) would keep the
+        slash while SCRIPT_NAME drops it."""
+        env = os.environ.copy()
+        env.pop("SUPERSET_CONFIG", None)
+        env["SUPERSET_APP_ROOT"] = "/myapp/"
+        with patch.dict(os.environ, env, clear=True):
+            app = create_app()
+
+        inner = _unwrap_to_app_root(app)
+        assert isinstance(inner, AppRootMiddleware)
+        assert inner.app_root == "/myapp"
+        assert app.config["STATIC_ASSETS_PREFIX"] == "/myapp"
+        assert app.config["APPLICATION_ROOT"] == "/myapp"
+
+    @patch("superset.initialization.SupersetAppInitializer.init_app")
+    def test_bare_slash_app_root_stays_root(self, mock_init_app):
+        """SUPERSET_APP_ROOT="/" normalizes to "/" (not ""), keeping the
+        root-deployment fast path (no AppRootMiddleware)."""
+        env = os.environ.copy()
+        env.pop("SUPERSET_CONFIG", None)
+        env["SUPERSET_APP_ROOT"] = "/"
+        with patch.dict(os.environ, env, clear=True):
+            app = create_app()
+
+        inner = _unwrap_to_app_root(app)
+        assert not isinstance(inner, AppRootMiddleware)
+        assert app.config["APPLICATION_ROOT"] == "/"
+
 
 class TestAppRootMiddlewareBoundary:
     """Direct PATH_INFO handling tests for AppRootMiddleware."""

@@ -445,6 +445,42 @@ describe('navigateWithState (AF-1 + nit-1)', () => {
       );
     });
   });
+
+  // Restore-regex corner cases (review follow-up on the encodeURI fix):
+  // pinned so a future "simplification" of DOUBLE_ENCODED_ESCAPE_RE (e.g.
+  // an uppercase-only hex class, or a greedy restore that collapses
+  // intentional `%25XX`) cannot pass the suite while corrupting URLs.
+  test('preserves intentionally double-encoded %2520 (pushState)', async () => {
+    await withApplicationRoot('', async () => {
+      const { navigateWithState } = await import('src/utils/navigationUtils');
+      navigateWithState('/dashboard/list/?q=%2520', {});
+      expect(pushSpy).toHaveBeenCalledWith({}, '', '/dashboard/list/?q=%2520');
+    });
+  });
+
+  test('preserves literal %25 followed by hex (%25AB) (pushState)', async () => {
+    await withApplicationRoot('', async () => {
+      const { navigateWithState } = await import('src/utils/navigationUtils');
+      navigateWithState('/dashboard/list/?q=%25AB', {});
+      expect(pushSpy).toHaveBeenCalledWith({}, '', '/dashboard/list/?q=%25AB');
+    });
+  });
+
+  test('preserves lowercase hex escapes (%2f) (pushState)', async () => {
+    await withApplicationRoot('', async () => {
+      const { navigateWithState } = await import('src/utils/navigationUtils');
+      navigateWithState('/dashboard/a%2fb/', {});
+      expect(pushSpy).toHaveBeenCalledWith({}, '', '/dashboard/a%2fb/');
+    });
+  });
+
+  test('single-encodes an invalid percent sequence (%zz) (pushState)', async () => {
+    await withApplicationRoot('', async () => {
+      const { navigateWithState } = await import('src/utils/navigationUtils');
+      navigateWithState('/dashboard/100%zz/', {});
+      expect(pushSpy).toHaveBeenCalledWith({}, '', '/dashboard/100%25zz/');
+    });
+  });
 });
 
 describe('getShareableUrl', () => {

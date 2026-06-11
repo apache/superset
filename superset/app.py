@@ -67,6 +67,12 @@ def create_app(
             or os.environ.get("SUPERSET_APP_ROOT")
             or app.config["APPLICATION_ROOT"],
         )
+        # Normalize once at the source: a trailing slash ("/myapp/") would
+        # otherwise leak into STATIC_ASSETS_PREFIX ("/myapp//static/...")
+        # and APPLICATION_ROOT (the session-cookie path). The middlewares
+        # below re-normalize defensively, but every consumer derives from
+        # this value.
+        app_root = app_root.rstrip("/") or "/"
         if app_root != "/":
             # If not set, manually configure options that depend on the
             # value of app_root so things work out of the box

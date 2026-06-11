@@ -22,7 +22,7 @@ from collections import defaultdict, deque
 from typing import Any, Callable
 
 import sqlalchemy as sqla
-from flask import current_app as app, url_for
+from flask import current_app as app, has_request_context, url_for
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from flask_appbuilder.security.sqla.models import User
@@ -243,6 +243,11 @@ class Dashboard(CoreDashboard, AuditMixinNullable, ImportExportMixin):
         if the dashboard has changed
         """
         if digest := self.digest:
+            if not has_request_context():
+                # Out-of-request callers (CLI, celery tasks) have no
+                # SCRIPT_NAME to honor; keep the router-relative shape so
+                # the property stays callable anywhere.
+                return f"/api/v1/dashboard/{self.id}/thumbnail/{digest}/"
             # url_for respects SCRIPT_NAME, so the URL carries the application
             # root prefix under subdirectory deployments.
             return url_for("DashboardRestApi.thumbnail", pk=self.id, digest=digest)

@@ -109,10 +109,11 @@ const FORBIDDEN_CONTROL_CHARS_RE = new RegExp(
 // URL constructor always are — would be double-encoded (`%20` → `%2520`)
 // and the navigation would land on the wrong URL. Mapping `%25XX`
 // (XX = hex) back to `%XX` after the encodeURI pass restores the
-// constructor's escape sequences, while anything encodeURI legitimately
-// escaped (no such character survives the URL constructor, but defence-
-// in-depth) stays encoded: `%` is the only character encodeURI escapes
-// that the WHATWG URL serialiser emits raw.
+// constructor's escape sequences. The pair is NOT a strict no-op: the
+// WHATWG serialiser emits some characters raw that encodeURI escapes
+// (`|`, `^`, `[`, `]` in paths; also `{`, `}`, backtick in queries), so
+// those end up single-encoded — semantically equivalent, since servers
+// percent-decode them back to the same resource.
 const DOUBLE_ENCODED_ESCAPE_RE = /%25([0-9A-Fa-f]{2})/g;
 
 function assertSafeNavigationUrl(url: string): string {
@@ -178,8 +179,10 @@ function assertSafeNavigationUrl(url: string): string {
  *      `parsed.*` through the URL-property derivation into the assigned
  *      string. Because `encodeURI` escapes `%` itself (it is NOT
  *      idempotent on percent-encoded input), each sink restores the
- *      `%XX` escape sequences afterwards via DOUBLE_ENCODED_ESCAPE_RE,
- *      making the pair a runtime no-op for legitimate paths.
+ *      `%XX` escape sequences afterwards via DOUBLE_ENCODED_ESCAPE_RE.
+ *      Characters the WHATWG serialiser emits raw but encodeURI escapes
+ *      (`|^[]{}` and backtick) stay single-encoded — semantically
+ *      equivalent, not byte-identical (see DOUBLE_ENCODED_ESCAPE_RE).
  *
  * External-URL paths get their own block with `URL.protocol` literal-
  * equality + userinfo guards on the URL-constructor's normalised `href`.

@@ -21,7 +21,7 @@ from typing import Any, TYPE_CHECKING
 from urllib import parse
 
 import sqlalchemy as sqla
-from flask import url_for
+from flask import has_request_context, url_for
 from flask_appbuilder import Model
 from flask_appbuilder.models.decorators import renders
 from markupsafe import escape, Markup
@@ -245,6 +245,11 @@ class Slice(  # pylint: disable=too-many-public-methods
         if the dashboard has changed
         """
         if digest := self.digest:
+            if not has_request_context():
+                # Out-of-request callers (CLI, celery tasks) have no
+                # SCRIPT_NAME to honor; keep the router-relative shape so
+                # the property stays callable anywhere.
+                return f"/api/v1/chart/{self.id}/thumbnail/{digest}/"
             # url_for respects SCRIPT_NAME, so the URL carries the application
             # root prefix under subdirectory deployments.
             return url_for("ChartRestApi.thumbnail", pk=self.id, digest=digest)

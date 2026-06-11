@@ -216,6 +216,32 @@ def test_legacy_post_against_get_only_canonical_410(legacy: str) -> None:
     assert "Location" not in resp.headers
 
 
+@pytest.mark.parametrize(("legacy", "canonical"), _POST_BODY_PRESERVED_ROWS)
+def test_app_root_prefixed_legacy_post_body_preserved_308(
+    legacy: str, canonical: str
+) -> None:
+    """Method disposition is shared after the app-root strip: the app-root-
+    prefixed POST form follows the same 308 (body-preserving) branch as the
+    bare form, with the prefixed Location."""
+    client = _build_client(app_root="/myapp")
+    resp = client.post(f"/myapp{legacy}", data={"k": "v"})
+    assert resp.status_code == 308
+    assert resp.headers["Location"] == f"/myapp{canonical}"
+
+
+@pytest.mark.parametrize("legacy", _POST_410_ROWS)
+def test_app_root_prefixed_legacy_post_against_get_only_canonical_410(
+    legacy: str,
+) -> None:
+    """POST against a GET-only canonical → 410 Gone for the app-root-
+    prefixed form too (the most consequential branch of the shim — a 308
+    here would re-POST and 405)."""
+    client = _build_client(app_root="/myapp")
+    resp = client.post(f"/myapp{legacy}", data={"k": "v"})
+    assert resp.status_code == 410
+    assert "Location" not in resp.headers
+
+
 def test_unenumerated_superset_path_passes_through() -> None:
     """A `/superset/<not-in-table>` path passes through to the inner app
     (closed-set discipline — the shim is not an open-prefix rewriter)."""
