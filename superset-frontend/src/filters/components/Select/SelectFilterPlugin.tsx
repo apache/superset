@@ -337,8 +337,15 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   }, [data, datatype, col, labelFormatter, creatable, filterState.value]);
 
   const options = useMemo(() => {
-    if (search && creatable !== false && !hasOption(search, uniqueOptions, true)) {
-      return [{ label: search, value: search, isNewOption: true }, ...uniqueOptions];
+    if (
+      search &&
+      creatable !== false &&
+      !hasOption(search, uniqueOptions, true)
+    ) {
+      return [
+        { label: search, value: search, isNewOption: true },
+        ...uniqueOptions,
+      ];
     }
     return uniqueOptions;
   }, [search, uniqueOptions, creatable]);
