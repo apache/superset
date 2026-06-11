@@ -51,6 +51,16 @@ try:
         logger.info("Reusing existing Flask app from app context for MCP service")
         # Use _get_current_object() to get the actual Flask app, not the LocalProxy
         app = current_app._get_current_object()
+
+        # Configure the chart plugin registry from the host app's config.
+        # This module is the registry's only configure site — core Superset
+        # startup must not import mcp_service (fastmcp is an optional extra).
+        from superset.mcp_service.chart import registry as _chart_registry
+
+        _chart_registry.configure(
+            disabled=app.config.get("MCP_DISABLED_CHART_PLUGINS"),
+            enabled_func=app.config.get("MCP_CHART_PLUGIN_ENABLED_FUNC"),
+        )
     elif appbuilder_initialized:
         # appbuilder is initialized but we have no app context. Calling
         # create_app() here would invoke appbuilder.init_app() a second
@@ -81,10 +91,11 @@ try:
         mcp_config = get_mcp_config(_mcp_app.config)
         _mcp_app.config.update(mcp_config)
 
-        # Re-configure chart registry so MCP-specific overrides (e.g.
-        # MCP_DISABLED_CHART_PLUGINS set by the operator) take effect after
-        # the MCP config overlay.  SupersetAppInitializer.configure_mcp_chart_registry()
-        # ran earlier with pre-overlay values; this call corrects them.
+        # Configure the chart plugin registry with post-overlay values so
+        # MCP-specific overrides (e.g. MCP_DISABLED_CHART_PLUGINS set by the
+        # operator) take effect.  This module is the registry's only configure
+        # site — core Superset startup must not import mcp_service (fastmcp
+        # is an optional extra).
         from superset.mcp_service.chart import registry as _chart_registry
 
         _chart_registry.configure(
