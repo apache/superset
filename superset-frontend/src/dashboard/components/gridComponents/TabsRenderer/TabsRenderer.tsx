@@ -50,6 +50,10 @@ const StyledTabsContainer = styled.div<{ isDragging?: boolean }>`
   width: 100%;
   background-color: ${({ theme }) => theme.colorBgContainer};
 
+  .ant-tabs > .ant-tabs-nav {
+    margin-bottom: ${({ theme }) => theme.sizeUnit * 4}px;
+  }
+
   & .dashboard-component-tabs-content {
     height: 100%;
   }

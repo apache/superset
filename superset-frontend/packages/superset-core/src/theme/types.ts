@@ -237,6 +237,17 @@ export interface SupersetSpecificTokens {
    * Fallback: transparent
    */
   buttonSecondaryActiveBorderColor?: string;
+
+  // Component flexibility tokens (sizing, radius, behavior)
+  selectOptionActiveOutline?: boolean;
+  labelBorderRadius?: number;
+  buttonControlHeight?: number;
+  buttonControlHeightSM?: number;
+  buttonControlHeightXS?: number;
+  buttonPaddingInline?: number;
+  buttonPaddingInlineSM?: number;
+  buttonFontSize?: number;
+  buttonBorderRadius?: number;
 }
 
 /**

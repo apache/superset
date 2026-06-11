@@ -27,6 +27,7 @@ export const DropdownButton = ({
   tooltip,
   tooltipPlacement,
   children,
+  styleConfig,
   ...rest
 }: DropdownButtonProps) => {
   const theme = useTheme();
@@ -57,10 +58,10 @@ export const DropdownButton = ({
         defaultBtnCss,
         css`
           .ant-btn {
-            height: 30px;
-            box-shadow: none;
-            font-size: ${theme.fontSizeSM}px;
-            font-weight: ${theme.fontWeightStrong};
+            height: ${styleConfig?.controlHeight ?? 30}px;
+            box-shadow: ${styleConfig?.boxShadow ?? 'none'};
+            font-size: ${styleConfig?.fontSize ?? theme.fontSizeSM}px;
+            font-weight: ${styleConfig?.fontWeight ?? theme.fontWeightStrong};
           }
         `,
       ]}
