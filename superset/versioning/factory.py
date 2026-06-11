@@ -136,7 +136,6 @@ class VersionTransactionFactory(TransactionFactory):
         # (``restore`` / ``import`` / ``clone`` / ``NULL`` for ordinary
         # saves). The DDL is in the consolidated Alembic migration; we
         # also declare it on the SQLAlchemy Table here so consumers
-        # like ``superset.versioning.activity._select_change_rows_for_kinds``
         # can reference ``versioning_manager.transaction_cls.__table__
         # .c.action_kind`` at runtime, and so the change-record
         # listener's ``sa.update()`` stamp emits the correctly-quoted

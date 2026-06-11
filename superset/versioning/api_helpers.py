@@ -24,12 +24,6 @@ and the resource-specific exception triplet on the restore path.
 Extracting the bodies here lets each per-resource method collapse to
 a single delegation call, while the OpenAPI docstring + FAB decorators
 stay at the method site where they belong.
-
-The corresponding helper for the activity-view endpoint family lives
-at :func:`superset.versioning.activity.resolve_endpoint_path_entity`;
-it does only the path-entity resolution step (not the DAO + ETag
-wrapping), because the activity endpoints follow a different result
-shape.
 """
 
 from __future__ import annotations
