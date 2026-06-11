@@ -46,6 +46,15 @@ from superset.daos.version import VersionDAO
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import security_manager
 from superset.versioning.etag import set_version_etag_by_uuid
+from superset.versioning.schemas import VersionListItemSchema
+
+#: Serializer for version rows (list items and the ``_version`` block of a
+#: single-version snapshot — same shape). Dumping through marshmallow
+#: instead of handing raw dicts to ``jsonify`` keeps ``issued_at``
+#: ISO-8601 (Flask's default JSON provider renders datetimes as RFC-1123
+#: http-dates) and ``version_uuid`` consistently a string (the list rows
+#: carry UUID instances, the snapshot block pre-stringifies).
+_version_item_schema = VersionListItemSchema()
 
 logger = logging.getLogger(__name__)
 
@@ -118,8 +127,9 @@ def list_versions_endpoint(
     versions = VersionDAO.list_versions(model_cls, entity_uuid, entity=entity)
     if versions is None:
         return api.response_404()
+    result = _version_item_schema.dump(versions, many=True)
     return set_version_etag_by_uuid(
-        api.response(200, result=versions, count=len(versions)),
+        api.response(200, result=result, count=len(result)),
         model_cls,
         entity_uuid,
         entity_id=entity.id,
@@ -149,6 +159,11 @@ def get_version_endpoint(
     )
     if snapshot is None:
         return api.response_404()
+    # Normalize the version-level block through the schema; the entity
+    # scalar fields stay as the DAO shaped them (their keys are
+    # entity-specific by design).
+    if "_version" in snapshot:
+        snapshot["_version"] = _version_item_schema.dump(snapshot["_version"])
     return set_version_etag_by_uuid(
         api.response(200, result=snapshot),
         model_cls,

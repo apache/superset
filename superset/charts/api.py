@@ -105,6 +105,7 @@ from superset.versioning.api_helpers import (
     RestoreEndpointSpec,
 )
 from superset.versioning.etag import set_version_etag
+from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -271,7 +272,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Charts"
     """ Override the name set for this collection of endpoints """
-    openapi_spec_component_schemas = CHART_SCHEMAS
+    openapi_spec_component_schemas = CHART_SCHEMAS + (VersionListItemSchema,)
 
     apispec_parameter_schemas = {
         "screenshot_query_schema": screenshot_query_schema,
@@ -1342,7 +1343,7 @@ class ChartRestApi(BaseSupersetModelRestApi):
                       result:
                         type: array
                         items:
-                          type: object
+                          $ref: '#/components/schemas/VersionListItemSchema'
                       count:
                         type: integer
             400:
@@ -1395,6 +1396,13 @@ class ChartRestApi(BaseSupersetModelRestApi):
                     properties:
                       result:
                         type: object
+                        description: >-
+                          The chart's scalar fields at the target version
+                          (entity-specific keys), plus a `_version` block
+                          with the version-level metadata.
+                        properties:
+                          _version:
+                            $ref: '#/components/schemas/VersionListItemSchema'
             400:
               $ref: '#/components/responses/400'
             401:

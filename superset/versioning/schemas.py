@@ -82,6 +82,16 @@ class VersionChangeRecordSchema(Schema):
 class VersionListItemSchema(Schema):
     """A single version row in the version history response."""
 
+    version_uuid = fields.UUID(
+        metadata={
+            "description": (
+                "Deterministic UUIDv5 derived from the entity UUID and the "
+                "Continuum transaction id — stable across replicas and "
+                "retention pruning. The handle accepted by the get/restore "
+                "version endpoints."
+            )
+        },
+    )
     version_number = fields.Integer(
         metadata={"description": "0-based position in the history, oldest first"},
     )
@@ -91,8 +101,10 @@ class VersionListItemSchema(Schema):
     operation_type = fields.String(
         metadata={
             "description": (
-                "One of 'baseline', 'update', 'delete', 'restore'. Derived "
-                "from the Continuum integer constant."
+                "One of 'baseline', 'update', or 'delete', derived from the "
+                "Continuum integer constant. Restore is not a distinct "
+                "operation_type: a restore surfaces as an ordinary 'update' "
+                "transaction."
             )
         },
     )

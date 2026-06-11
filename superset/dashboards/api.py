@@ -149,6 +149,7 @@ from superset.versioning.api_helpers import (
     RestoreEndpointSpec,
 )
 from superset.versioning.etag import set_version_etag
+from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
@@ -469,6 +470,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
         GetFavStarIdsSchema,
         EmbeddedDashboardResponseSchema,
         DashboardScreenshotPostSchema,
+        VersionListItemSchema,
     )
     apispec_parameter_schemas = {
         "get_delete_ids_schema": get_delete_ids_schema,
@@ -2356,7 +2358,7 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                       result:
                         type: array
                         items:
-                          type: object
+                          $ref: '#/components/schemas/VersionListItemSchema'
                       count:
                         type: integer
             400:
@@ -2411,6 +2413,13 @@ class DashboardRestApi(CustomTagsOptimizationMixin, BaseSupersetModelRestApi):
                     properties:
                       result:
                         type: object
+                        description: >-
+                          The dashboard's scalar fields at the target version
+                          (entity-specific keys), plus a `_version` block
+                          with the version-level metadata.
+                        properties:
+                          _version:
+                            $ref: '#/components/schemas/VersionListItemSchema'
             400:
               $ref: '#/components/responses/400'
             401:

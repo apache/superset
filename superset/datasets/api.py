@@ -88,6 +88,7 @@ from superset.versioning.api_helpers import (
     RestoreEndpointSpec,
 )
 from superset.versioning.etag import set_version_etag
+from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -335,6 +336,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         DatasetRelatedObjectsResponse,
         DatasetDuplicateSchema,
         GetOrCreateDatasetSchema,
+        VersionListItemSchema,
     )
 
     openapi_spec_methods = openapi_spec_methods_override
@@ -1563,7 +1565,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                       result:
                         type: array
                         items:
-                          type: object
+                          $ref: '#/components/schemas/VersionListItemSchema'
                       count:
                         type: integer
             400:
@@ -1622,6 +1624,14 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                     properties:
                       result:
                         type: object
+                        description: >-
+                          The dataset's scalar fields at the target version
+                          (entity-specific keys), plus `columns` / `metrics`
+                          as they were at that version, plus a `_version`
+                          block with the version-level metadata.
+                        properties:
+                          _version:
+                            $ref: '#/components/schemas/VersionListItemSchema'
             400:
               $ref: '#/components/responses/400'
             401:
