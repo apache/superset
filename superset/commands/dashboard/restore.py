@@ -24,7 +24,6 @@ from superset.commands.dashboard.exceptions import (
 )
 from superset.commands.restore import BaseRestoreCommand
 from superset.daos.dashboard import DashboardDAO
-from superset.extensions import db
 from superset.models.dashboard import Dashboard
 
 
@@ -75,19 +74,11 @@ class RestoreDashboardCommand(BaseRestoreCommand[Dashboard]):
         so it surfaces as a readable domain error rather than an opaque
         ``IntegrityError`` at flush time.
 
-        Relies on the ``SoftDeleteMixin`` listener to auto-append
-        ``deleted_at IS NULL`` to the query, so only active rows are
-        considered. A future change that adds
-        ``skip_visibility_filter=True`` to this path would silently
-        broaden the check to include soft-deleted rows and could refuse
-        a legitimate restore.
-
-        Caller assumes an active Flask request / app context via
-        ``db.session``.
+        Delegates to ``DashboardDAO.validate_update_slug_uniqueness`` so
+        the active-slug-twin rule has exactly one implementation — the
+        update path, this explicit restore, and the importer's
+        restore-with-update all consult the same predicate (which relies
+        on the ``SoftDeleteMixin`` listener to consider only active
+        rows; see its docstring for the dialect caveat).
         """
-        return (
-            db.session.query(Dashboard.id)
-            .filter(Dashboard.slug == model.slug, Dashboard.id != model.id)
-            .first()
-            is not None
-        )
+        return not DashboardDAO.validate_update_slug_uniqueness(model.id, model.slug)

@@ -1133,10 +1133,14 @@ class DashboardRestApi(
         log_to_statsd=False,
     )
     def delete(self, pk: int) -> Response:
-        """Delete a dashboard.
+        """Soft-delete a dashboard.
+
+        Marks the dashboard as deleted (sets ``deleted_at``) and hides it
+        from list/detail endpoints; the row is preserved and recoverable
+        via ``POST /api/v1/dashboard/<uuid>/restore`` by an owner or admin.
         ---
         delete:
-          summary: Delete a dashboard
+          summary: Delete a dashboard (soft delete; recoverable via restore)
           parameters:
           - in: path
             schema:
@@ -1189,10 +1193,14 @@ class DashboardRestApi(
         log_to_statsd=False,
     )
     def bulk_delete(self, **kwargs: Any) -> Response:
-        """Bulk delete dashboards.
+        """Bulk soft-delete dashboards.
+
+        Marks each dashboard as deleted (sets ``deleted_at``) and hides it
+        from list/detail endpoints; rows are preserved and recoverable via
+        ``POST /api/v1/dashboard/<uuid>/restore`` by an owner or admin.
         ---
         delete:
-          summary: Bulk delete dashboards
+          summary: Bulk delete dashboards (soft delete; recoverable via restore)
           parameters:
           - in: query
             name: q

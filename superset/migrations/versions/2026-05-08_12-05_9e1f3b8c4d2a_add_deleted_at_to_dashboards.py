@@ -58,6 +58,7 @@ from superset.migrations.shared.utils import (
     create_index,
     drop_columns,
     drop_index,
+    table_has_index,
 )
 
 # revision identifiers, used by Alembic.
@@ -146,11 +147,20 @@ def _replace_slug_constraint_with_partial_index(bind: Connection) -> None:
         # so a drop-then-create ordering would leave the table with no slug
         # uniqueness if the CREATE failed. Creating first keeps the stricter
         # existing uniqueness in place until the replacement is confirmed.
-        op.execute(
-            f"CREATE UNIQUE INDEX {PARTIAL_SLUG_INDEX_NAME} "
-            f"ON {TABLE_NAME} ((CASE WHEN deleted_at IS NULL THEN slug END))"
-        )
-        op.execute(f"ALTER TABLE {TABLE_NAME} DROP INDEX {LEGACY_SLUG_INDEX_NAME}")
+        # Both statements are guarded by ``table_has_index`` because MySQL has
+        # no ``IF [NOT] EXISTS`` for indexes and DDL autocommits: an unguarded
+        # run on a table missing the legacy index (it was created inside
+        # ``try/except: pass`` in 2015's ``1a48a5411020``) would fail AFTER
+        # the partial index was committed, wedging the migration — the re-run
+        # would then die on the duplicate partial index. The guards make the
+        # migration re-runnable from any partial state.
+        if not table_has_index(TABLE_NAME, PARTIAL_SLUG_INDEX_NAME):
+            op.execute(
+                f"CREATE UNIQUE INDEX {PARTIAL_SLUG_INDEX_NAME} "
+                f"ON {TABLE_NAME} ((CASE WHEN deleted_at IS NULL THEN slug END))"
+            )
+        if table_has_index(TABLE_NAME, LEGACY_SLUG_INDEX_NAME):
+            op.execute(f"ALTER TABLE {TABLE_NAME} DROP INDEX {LEGACY_SLUG_INDEX_NAME}")
 
 
 def _restore_slug_constraint(bind: Connection) -> None:
@@ -178,7 +188,14 @@ def _restore_slug_constraint(bind: Connection) -> None:
         # Symmetric to the upgrade: add the full unique index before dropping
         # the partial one, so a failed ADD leaves the partial uniqueness intact
         # rather than no uniqueness (MySQL autocommits each DDL statement).
-        op.execute(
-            f"ALTER TABLE {TABLE_NAME} ADD UNIQUE INDEX {LEGACY_SLUG_INDEX_NAME} (slug)"
-        )
-        op.execute(f"ALTER TABLE {TABLE_NAME} DROP INDEX {PARTIAL_SLUG_INDEX_NAME}")
+        # Guarded like the upgrade so the downgrade is re-runnable from any
+        # partial state — including a deployment that migrated on a pre-8.0.13
+        # server (no-op upgrade branch, legacy index still present) and later
+        # upgraded the server, where the unguarded ADD would collide.
+        if not table_has_index(TABLE_NAME, LEGACY_SLUG_INDEX_NAME):
+            op.execute(
+                f"ALTER TABLE {TABLE_NAME} "
+                f"ADD UNIQUE INDEX {LEGACY_SLUG_INDEX_NAME} (slug)"
+            )
+        if table_has_index(TABLE_NAME, PARTIAL_SLUG_INDEX_NAME):
+            op.execute(f"ALTER TABLE {TABLE_NAME} DROP INDEX {PARTIAL_SLUG_INDEX_NAME}")
