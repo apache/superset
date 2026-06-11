@@ -1,0 +1,104 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { SupersetClient } from '@superset-ui/core';
+import rison from 'rison';
+import type {
+  ActivityInclude,
+  ActivityResponse,
+  ChartVersionSnapshot,
+  DashboardVersionSnapshot,
+  VersionedEntityType,
+  VersionSnapshot,
+} from './types';
+
+const API_RESOURCE: Record<VersionedEntityType, string> = {
+  chart: 'chart',
+  dashboard: 'dashboard',
+};
+
+export interface FetchActivityOptions {
+  include?: ActivityInclude;
+  page?: number;
+  pageSize?: number;
+}
+
+export async function fetchActivity(
+  entityType: VersionedEntityType,
+  uuid: string,
+  { include = 'all', page = 0, pageSize = 25 }: FetchActivityOptions = {},
+): Promise<ActivityResponse> {
+  const params = new URLSearchParams({
+    include,
+    page: String(page),
+    page_size: String(pageSize),
+  });
+  const { json } = await SupersetClient.get({
+    endpoint: `/api/v1/${API_RESOURCE[entityType]}/${uuid}/activity/?${params.toString()}`,
+  });
+  return json as ActivityResponse;
+}
+
+export async function fetchVersionSnapshot(
+  entityType: 'chart',
+  uuid: string,
+  versionUuid: string,
+): Promise<ChartVersionSnapshot>;
+export async function fetchVersionSnapshot(
+  entityType: 'dashboard',
+  uuid: string,
+  versionUuid: string,
+): Promise<DashboardVersionSnapshot>;
+export async function fetchVersionSnapshot(
+  entityType: VersionedEntityType,
+  uuid: string,
+  versionUuid: string,
+): Promise<VersionSnapshot>;
+export async function fetchVersionSnapshot(
+  entityType: VersionedEntityType,
+  uuid: string,
+  versionUuid: string,
+): Promise<VersionSnapshot> {
+  const { json } = await SupersetClient.get({
+    endpoint: `/api/v1/${API_RESOURCE[entityType]}/${uuid}/versions/${versionUuid}/`,
+  });
+  return (json as { result: VersionSnapshot }).result;
+}
+
+export async function restoreVersion(
+  entityType: VersionedEntityType,
+  uuid: string,
+  versionUuid: string,
+): Promise<{ message: string }> {
+  const { json } = await SupersetClient.post({
+    endpoint: `/api/v1/${API_RESOURCE[entityType]}/${uuid}/versions/${versionUuid}/restore`,
+  });
+  return json as { message: string };
+}
+
+/**
+ * The explore redux state only carries the chart's numeric id; resolve
+ * its uuid lazily when the version history panel first opens.
+ */
+export async function fetchChartUuid(sliceId: number): Promise<string> {
+  const q = rison.encode({ columns: ['uuid'] });
+  const { json } = await SupersetClient.get({
+    endpoint: `/api/v1/chart/${sliceId}?q=${q}`,
+  });
+  return (json as { result: { uuid: string } }).result.uuid;
+}
