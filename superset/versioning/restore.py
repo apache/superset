@@ -137,8 +137,13 @@ def _stamp_audit_fields_for_restore(entity: Any) -> None:
     overwriting these, the chart list still shows the snapshot's
     original author after a restore, contradicting the user-visible
     timeline.
+
+    Uses naive ``datetime.now()`` to match ``AuditMixinNullable``'s
+    column defaults — stamping UTC here while ordinary saves stamp
+    local time would skew ``changed_on`` ordering on non-UTC servers
+    (``datetime.utcnow`` is also deprecated as of Python 3.12).
     """
-    now = datetime.utcnow()
+    now = datetime.now()
     user_id = get_user_id()
     if hasattr(entity, "changed_on"):
         entity.changed_on = now
