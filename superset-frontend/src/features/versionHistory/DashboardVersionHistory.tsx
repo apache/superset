@@ -16,13 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
 import type { RootState } from 'src/dashboard/types';
-import type { ActivityInclude, ActivityRecord, SaveGroup } from './types';
+import type {
+  ActivityInclude,
+  ActivityRecord,
+  SaveGroup,
+  SessionLogEntry,
+} from './types';
 import {
   closeVersionHistoryPanel,
   openVersionHistoryPanel,
@@ -30,7 +36,6 @@ import {
   selectVersionHistoryInclude,
   selectVersionPreview,
   selectVersionRestoreCount,
-  selectVersionSessionLog,
   setVersionHistoryInclude,
   setVersionPreview,
 } from './reducer';
@@ -50,7 +55,25 @@ export default function DashboardVersionHistory() {
   const isPanelOpen = useSelector(selectIsVersionHistoryPanelOpen);
   const include = useSelector(selectVersionHistoryInclude);
   const preview = useSelector(selectVersionPreview);
-  const sessionLog = useSelector(selectVersionSessionLog);
+  const hasUnsavedChanges = useSelector<RootState, boolean>(
+    state => !!state.dashboardState?.hasUnsavedChanges,
+  );
+  // Dashboard edits are tracked coarsely (no per-control log like
+  // explore): a single "unsaved edits" entry while edit mode is dirty.
+  const sessionEntries = useMemo<SessionLogEntry[]>(
+    () =>
+      hasUnsavedChanges
+        ? [
+            {
+              label: t('Unsaved dashboard edits'),
+              controlName: 'dashboard',
+              ts: Date.now(),
+              user: null,
+            },
+          ]
+        : [],
+    [hasUnsavedChanges],
+  );
 
   useEffect(() => {
     if (getUrlParam(URL_PARAMS.versionHistory)) {
@@ -171,7 +194,7 @@ export default function DashboardVersionHistory() {
         onRestore={handleRestore}
         onOpenAsNew={handleOpenAsNew}
         onOpenRelated={handleOpenRelated}
-        sessionEntries={sessionLog}
+        sessionEntries={sessionEntries}
       />
       {restoreModal}
     </>
