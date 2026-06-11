@@ -41,6 +41,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta
 from typing import Any
+from uuid import uuid4
 
 import pytest
 import sqlalchemy as sa
@@ -235,19 +236,19 @@ class TestChartChangeRecords(SupersetTestCase):
     def test_params_filter_add_produces_filter_kind_record(self) -> None:
         """(a) — params classification still flows through the listener.
 
-        Adds an adhoc_filter with a natural key (``subject``) derived
-        from the chart id so it's unique across test runs on a
-        persistent DB. Whatever was in ``adhoc_filters`` before stays;
-        we only want to confirm at least one ``kind='filter'`` record
-        is emitted.
+        Adds an adhoc_filter with a per-run-unique natural key
+        (``subject``): the filter differ keys on ``subject``, so a
+        STABLE subject is only "new" on the first run against a
+        persistent DB — every later run re-appends an already-present
+        key and the keyed diff emits nothing. Whatever was in
+        ``adhoc_filters`` before stays; we only want to confirm at
+        least one ``kind='filter'`` record is emitted.
         """
         _persist_fixture_state()
 
         chart = db.session.query(Slice).first()
         assert chart is not None
-        unique_subject = (
-            f"col_{chart.id}_{db.session.connection().engine.url.database[-8:]}"
-        )
+        unique_subject = f"col_{chart.id}_{uuid4().hex[:8]}"
         params = _json.loads(chart.params or "{}")
         existing = params.get("adhoc_filters", []) or []
         params["adhoc_filters"] = [
