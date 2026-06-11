@@ -382,8 +382,8 @@
     "regenerator-runtime": "^0.14.1"
   },
   "engines": {
-    "node": "^22.22.0",
-    "npm": "^10.8.1"
+    "node": "^24.16.0",
+    "npm": "^11.13.0"
   },
   "overrides": {
     "uuid": "$uuid",
