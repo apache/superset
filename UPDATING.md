@@ -40,6 +40,27 @@ assists people when migrating to a new version.
 
 - **New config flag `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE` (default `False`).** Share/permalink URLs now substitute `window.location.origin` for the backend-supplied origin so a proxied or subdirectory-deployed Superset never hands the user an unreachable internal hostname. Operators whose reverse proxy correctly forwards `X-Forwarded-Host` *and* who want permalinks to carry the backend's literal origin can opt out by setting `EMBEDDED_DISABLE_PERMALINK_ORIGIN_REWRITE = True` in `superset_config.py`. Default `False` (rewrite is on); flipping the default would regress the dominant proxied/subdir deployment to an unreachable host.
 
+### Map chart renderer and OpenStreetMap migration behavior
+
+The MapLibre migration for deck.gl charts preserves saved non-Mapbox styles on
+the MapLibre-compatible path. Saved styles such as OpenStreetMap, `tile://`
+tile templates, generic HTTPS style URLs, and charts without a saved style are
+not reclassified as Mapbox during migration and do not require
+`MAPBOX_API_KEY` only because of the migration.
+
+Saved true Mapbox styles whose value starts with `mapbox://` remain
+Mapbox-backed. If a Superset deployment does not configure `MAPBOX_API_KEY`,
+those saved Mapbox charts keep the existing missing-key message instead of
+silently falling back to MapLibre or another provider. In Explore, deck.gl and
+point-cluster renderer controls preserve saved Mapbox state, but the Mapbox
+choice is not available as a new working renderer without a configured key.
+
+The MapLibre style choices include `Streets (OSM)`, backed by
+`https://tile.openstreetmap.org/{z}/{x}/{y}.png`. This OpenStreetMap tile
+service requires visible `© OpenStreetMap contributors` attribution and should
+be used through normal browser map tile requests and caching; it is not intended
+for bulk prefetch or offline tile downloads.
+
 ### Duration formatter precision
 
 The `DURATION` number formatter now uses `Intl.DurationFormat` for locale-aware output. By default, sub-second fields are omitted, so values that previously displayed fractional seconds with `pretty-ms`, such as `10500` milliseconds rendering as `10.5s`, now render as `10s`.

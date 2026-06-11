@@ -64,7 +64,7 @@ dependencies = [
     "holidays>=0.45, <1",
     "humanize",
     "isodate",
-    "jsonpath-ng>=1.6.1, <2",
+    "jsonpath-ng>=1.8.0, <2",
     "Mako>=1.2.2",
     "markdown>=3.10.2",
     # marshmallow>=4 has issues: https://github.com/apache/superset/issues/33162
@@ -94,7 +94,7 @@ dependencies = [
     "PyJWT>=2.4.0, <3.0",
     "redis>=5.0.0, <6.0",
     "rison>=2.0.0, <3.0",
-    "selenium>=4.14.0, <5.0",
+    "selenium>=4.44.0, <5.0",
     "shillelagh[gsheetsapi]>=1.4.4, <2.0",
     "sshtunnel>=0.4.0, <0.5",
     "simplejson>=3.15.0",
@@ -107,7 +107,7 @@ dependencies = [
     "typing-extensions>=4, <5",
     "waitress; sys_platform == 'win32'",
     "watchdog>=6.0.0",
-    "wtforms>=2.3.3, <4",
+    "wtforms>=3.2.2, <4",
     "wtforms-json",
     "xlsxwriter>=3.2.9, <3.3",
 ]
@@ -121,7 +121,7 @@ bigquery = [
     "sqlalchemy-bigquery>=1.15.0",
     "google-cloud-bigquery>=3.10.0",
 ]
-clickhouse = ["clickhouse-connect>=0.13.0, <2.0"]
+clickhouse = ["clickhouse-connect>=1.1.1, <2.0"]
 cockroachdb = ["cockroachdb>=0.3.5, <0.4"]
 crate = ["sqlalchemy-cratedb>=0.41.0, <1"]
 d1 = [
@@ -161,7 +161,7 @@ hive = [
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7.0",
     "tableschema",
-    "thrift>=0.14.1, <1.0.0",
+    "thrift>=0.23.0, <1.0.0",
     "thrift_sasl>=0.4.3, < 1.0.0",
 ]
 impala = ["impyla>0.16.2, <0.23"]
@@ -195,7 +195,7 @@ spark = [
     "pyhive[hive]>=0.6.5;python_version<'3.11'",
     "pyhive[hive_pure_sasl]>=0.7",
     "tableschema",
-    "thrift>=0.14.1, <1",
+    "thrift>=0.23.0, <1",
 ]
 tdengine = [
     "taospy>=2.7.21",

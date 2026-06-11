@@ -459,6 +459,7 @@ LANGUAGES = {
     "nl": {"flag": "nl", "name": "Dutch"},
     "uk": {"flag": "ua", "name": "Ukrainian"},
     "mi": {"flag": "nz", "name": "Māori"},
+    "ro": {"flag": "ro", "name": "Romanian"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -504,6 +505,10 @@ D3_FORMAT: D3Format = {}
 # Enable CORS and set map url in origins option.
 # Add also map url in connect-src of TALISMAN_CONFIG variable
 DECKGL_BASE_MAP: list[list[str, str]] = None
+
+# Default map renderer for map visualizations that support multiple providers.
+# Set to "mapbox" only in deployments that also configure MAPBOX_API_KEY.
+DEFAULT_MAP_RENDERER = os.environ.get("DEFAULT_MAP_RENDERER", "maplibre")
 
 
 # Override the default d3 locale for time format
