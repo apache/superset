@@ -55,11 +55,7 @@ const StyledCard = styled(Card)`
     .ant-card-meta-description {
       white-space: normal;
       overflow-wrap: break-word;
-    }
-
-    /* Ensure wrapped descriptions don't get covered by the overlapping cover footer */
-    .ant-card-body {
-      padding-top: ${theme.sizeUnit * 10}px;
+      margin-bottom: ${theme.sizeUnit * 2}px;
     }
   `}
 `;
