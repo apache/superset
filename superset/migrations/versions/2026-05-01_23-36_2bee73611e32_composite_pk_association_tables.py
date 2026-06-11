@@ -27,7 +27,7 @@ tables with surrogate PKs); also closes the data-integrity hole where six
 of the eight tables lacked DB-level uniqueness.
 
 Revision ID: 2bee73611e32
-Revises: 33d7e0e21daa
+Revises: 31dae2559c05
 Create Date: 2026-05-01 23:36:34.050058
 
 """
@@ -345,6 +345,23 @@ def upgrade() -> None:
     insp = inspect(conn)
 
     for t in AFFECTED_TABLES:
+        # Resumability guard: on MySQL every DDL statement auto-commits, so
+        # a failure at table N of 8 leaves tables 1..N-1 already converted
+        # while ``alembic_version`` is still un-stamped. Without this guard
+        # a re-run would fail at table 1 (``drop_column("id")`` on a table
+        # that no longer has ``id``), and ``downgrade`` can't run either
+        # (the revision was never stamped) — recovery would need manual
+        # surgery. A converted table is identified by the absent ``id``
+        # column; skipping it makes re-running the upgrade safe on every
+        # dialect (Postgres/SQLite wrap the migration in a transaction, so
+        # the guard is simply never hit there).
+        if "id" not in {c["name"] for c in insp.get_columns(t.name)}:
+            logger.info(
+                "%s: already converted (no surrogate id column); skipping",
+                t.name,
+            )
+            continue
+
         # Run NULL-FK cleanup unconditionally: it is a no-op DELETE on tables
         # whose FK columns are already NOT NULL (cheap), and skipping it on a
         # table whose FK was nullable would leave the PK-add to fail with a
