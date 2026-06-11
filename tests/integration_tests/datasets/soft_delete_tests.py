@@ -33,6 +33,25 @@ from tests.integration_tests.constants import (
 )
 
 
+def _restore_dataset(dataset_id: int) -> None:
+    """Restore a soft-deleted dataset (cleanup helper).
+
+    Module-level so every test class in this file can use it. Used in
+    ``finally`` blocks so a failed assertion can't strand a soft-deleted
+    row and leak it into later tests; re-queries with the
+    visibility-filter bypass and only restores if still soft-deleted.
+    """
+    row = (
+        db.session.query(SqlaTable)
+        .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+        .filter(SqlaTable.id == dataset_id)
+        .one_or_none()
+    )
+    if row is not None and row.deleted_at is not None:
+        row.restore()
+        db.session.commit()
+
+
 class TestDatasetSoftDelete(SupersetTestCase):
     """Tests for dataset soft-delete behaviour (T015, T018)."""
 
@@ -43,21 +62,8 @@ class TestDatasetSoftDelete(SupersetTestCase):
         return dataset.id
 
     def _restore_dataset(self, dataset_id: int) -> None:
-        """Restore a soft-deleted dataset (cleanup helper).
-
-        Used in ``finally`` blocks so a failed assertion can't strand a
-        soft-deleted row and leak it into later tests; re-queries with the
-        visibility-filter bypass and only restores if still soft-deleted.
-        """
-        row = (
-            db.session.query(SqlaTable)
-            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
-            .filter(SqlaTable.id == dataset_id)
-            .one_or_none()
-        )
-        if row is not None and row.deleted_at is not None:
-            row.restore()
-            db.session.commit()
+        """Class-method shim over the module-level helper (existing call sites)."""
+        _restore_dataset(dataset_id)
 
     def test_delete_dataset_soft_deletes(self) -> None:
         """DELETE should set deleted_at instead of removing the row."""
@@ -331,7 +337,7 @@ class TestDatasetRestore(SupersetTestCase):
         assert rv.status_code == 422
 
         # Cleanup: the mocked restore left the example dataset soft-deleted.
-        self._restore_dataset(dataset_id)
+        _restore_dataset(dataset_id)
 
     def test_restore_uses_can_write_permission(self) -> None:
         """Non-admin owner with ``can_write_Dataset`` can hit the restore
