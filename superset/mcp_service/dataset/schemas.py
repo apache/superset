@@ -120,8 +120,10 @@ class TableColumnInfo(BaseModel):
 class SqlMetricInfo(BaseModel):
     metric_name: str = Field(
         ...,
-        description="Saved metric name. In chart configs, reference as "
-        '{"name": "<metric_name>", "saved_metric": true}.',
+        description=(
+            "Saved metric name. In chart configs, reference as "
+            '{"name": "<metric_name>", "saved_metric": true}.'
+        ),
     )
     verbose_name: str | None = Field(None, description="Verbose name")
     expression: str | None = Field(None, description="SQL expression")
@@ -419,6 +421,7 @@ class CreateDatasetMetric(BaseModel):
     d3format: str | None = None
     warning_text: str | None = None
 
+
 class CreateDatasetCalculatedColumn(BaseModel):
     column_name: str = Field(..., description="Name of the calculated column")
     expression: str = Field(..., description="SQL expression for the column")
@@ -427,6 +430,7 @@ class CreateDatasetCalculatedColumn(BaseModel):
     type: str | None = None
     advanced_data_type: str | None = None
     is_dttm: bool | None = None
+
 
 class CreateVirtualDatasetRequest(BaseModel):
     """Request schema for create_virtual_dataset."""
