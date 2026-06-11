@@ -128,6 +128,7 @@ Dashboard Management:
 - list_dashboards: List dashboards with advanced filters (1-based pagination)
 - get_dashboard_info: Get detailed dashboard information by ID
 - get_dashboard_layout: Get parsed tabs and chart positions for a dashboard (companion to get_dashboard_info when its omitted_fields hint flags position_json)
+- get_dashboard_datasets: List the datasets used by a dashboard's charts, with columns and metrics (context for configuring native filters)
 - generate_dashboard: Create a dashboard from chart IDs (requires write access)
 - update_dashboard: Update an existing dashboard's title/description/slug/published/layout/theme/CSS (requires write access; ownership-checked per-instance)
 - duplicate_dashboard: Duplicate an existing dashboard, optionally deep-copying its charts (requires write access)
@@ -696,6 +697,7 @@ from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
     duplicate_dashboard,
     generate_dashboard,
+    get_dashboard_datasets,
     get_dashboard_info,
     get_dashboard_layout,
     list_dashboards,
