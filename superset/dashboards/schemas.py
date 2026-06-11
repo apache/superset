@@ -23,6 +23,7 @@ from marshmallow.validate import Length, ValidationError
 from superset import security_manager
 from superset.tags.models import TagType
 from superset.utils import json
+from superset.utils.schema import validate_external_url
 
 get_delete_ids_schema = {"type": "array", "items": {"type": "integer"}}
 get_export_ids_schema = {"type": "array", "items": {"type": "integer"}}
@@ -115,6 +116,51 @@ def validate_json_metadata(value: Union[bytes, bytearray, str]) -> None:
         raise ValidationError(errors)
 
 
+# Patterns for CSS constructs that can be abused to execute scripts or pull in
+# remote stylesheets/resources. The custom CSS is stored verbatim and re-served
+# into the dashboard page, so these are rejected at validation time. Ordinary
+# styling (including ``url(...)`` referencing relative paths or ``data:`` image
+# URIs) is left untouched.
+_CSS_SCRIPT_SCHEME = r"(?:javascript|vbscript|livescript|mocha)\s*:"
+_DANGEROUS_CSS_PATTERNS: tuple[tuple[str, "re.Pattern[str]"], ...] = (
+    # Legacy IE dynamic expressions, e.g. ``width: expression(alert(1))``.
+    ("expression(", re.compile(r"expression\s*\(", re.IGNORECASE)),
+    # Inline script schemes anywhere in the declaration.
+    ("script scheme", re.compile(_CSS_SCRIPT_SCHEME, re.IGNORECASE)),
+    # Remote stylesheet imports.
+    ("@import", re.compile(r"@import\b", re.IGNORECASE)),
+    # url(...) pointing at a script scheme. Legitimate image/relative/data URLs
+    # are intentionally not matched here.
+    (
+        "url() with script scheme",
+        re.compile(r"url\(\s*['\"]?\s*" + _CSS_SCRIPT_SCHEME, re.IGNORECASE),
+    ),
+)
+
+
+def validate_css(value: Union[bytes, bytearray, str, None]) -> None:
+    """Reject custom dashboard CSS containing known-dangerous constructs.
+
+    Lightweight input hardening for the user-supplied ``css`` field, which is
+    persisted and re-served into the dashboard page. Blocks ``expression(``,
+    script-scheme URIs (e.g. ``javascript:``), ``@import``, and ``url(...)``
+    referencing a script scheme, while leaving ordinary styling intact.
+
+    CSS escape sequences (e.g. ``\\6a avascript:``) are not expanded before
+    matching, so this validator is a first-line filter and not a complete XSS
+    sanitiser; it should not be treated as a substitute for other defences.
+    """
+    if not value:
+        return
+    if isinstance(value, (bytes, bytearray)):
+        text = value.decode("utf-8", errors="ignore")
+    else:
+        text = value
+    for label, pattern in _DANGEROUS_CSS_PATTERNS:
+        if pattern.search(text):
+            raise ValidationError(f"CSS contains a disallowed construct ({label}).")
+
+
 class SharedLabelsColorsField(fields.Field):
     """
     A custom field that accepts either a list of strings or a dictionary.
@@ -163,6 +209,8 @@ class DashboardJSONMetadataSchema(Schema):
     map_label_colors = fields.Dict()
     color_scheme_domain = fields.List(fields.Str())
     cross_filters_enabled = fields.Boolean(dump_default=True)
+    # controls visibility of "last queried at" timestamp on charts in dashboard view
+    show_chart_timestamps = fields.Boolean(dump_default=False)
     # used for v0 import/export
     import_time = fields.Integer()
     remote_id = fields.Integer()
@@ -293,6 +341,7 @@ class DashboardDatasetSchema(Schema):
     sql = fields.Str()
     select_star = fields.Str()
     main_dttm_col = fields.Str()
+    currency_code_column = fields.Str()
     health_check_message = fields.Str()
     fetch_values_predicate = fields.Str()
     template_params = fields.Str()
@@ -312,8 +361,19 @@ class DashboardDatasetSchema(Schema):
     @post_dump()
     def post_dump(self, serialized: dict[str, Any], **kwargs: Any) -> dict[str, Any]:
         if security_manager.is_guest_user():
-            del serialized["owners"]
-            del serialized["database"]
+            serialized.pop("owners", None)
+            serialized.pop("database", None)
+            # Guest users should never receive fields that expose internal
+            # connection or query details.
+            for key in (
+                "sql",
+                "select_star",
+                "perm",
+                "edit_url",
+                "fetch_values_predicate",
+                "template_params",
+            ):
+                serialized.pop(key, None)
         return serialized
 
 
@@ -357,7 +417,9 @@ class DashboardPostSchema(BaseDashboardSchema):
     position_json = fields.String(
         metadata={"description": position_json_description}, validate=validate_json
     )
-    css = fields.String(metadata={"description": css_description})
+    css = fields.String(
+        metadata={"description": css_description}, validate=validate_css
+    )
     theme_id = fields.Integer(
         metadata={"description": "Theme ID for the dashboard"}, allow_none=True
     )
@@ -373,7 +435,7 @@ class DashboardPostSchema(BaseDashboardSchema):
         metadata={"description": certification_details_description}, allow_none=True
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-    external_url = fields.String(allow_none=True)
+    external_url = fields.String(allow_none=True, validate=validate_external_url)
     uuid = fields.UUID(allow_none=True)
 
 
@@ -383,7 +445,9 @@ class DashboardCopySchema(Schema):
         allow_none=True,
         validate=Length(0, 500),
     )
-    css = fields.String(metadata={"description": css_description})
+    css = fields.String(
+        metadata={"description": css_description}, validate=validate_css
+    )
     json_metadata = fields.String(
         metadata={"description": json_metadata_description},
         validate=validate_json_metadata,
@@ -418,7 +482,11 @@ class DashboardPutSchema(BaseDashboardSchema):
         allow_none=True,
         validate=validate_json,
     )
-    css = fields.String(metadata={"description": css_description}, allow_none=True)
+    css = fields.String(
+        metadata={"description": css_description},
+        allow_none=True,
+        validate=validate_css,
+    )
     theme_id = fields.Integer(
         metadata={"description": "Theme ID for the dashboard"}, allow_none=True
     )
@@ -437,7 +505,7 @@ class DashboardPutSchema(BaseDashboardSchema):
         metadata={"description": certification_details_description}, allow_none=True
     )
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-    external_url = fields.String(allow_none=True)
+    external_url = fields.String(allow_none=True, validate=validate_external_url)
     tags = fields.List(
         fields.Integer(metadata={"description": tags_description}, allow_none=True)
     )
@@ -445,6 +513,12 @@ class DashboardPutSchema(BaseDashboardSchema):
 
 
 class DashboardNativeFiltersConfigUpdateSchema(BaseDashboardSchema):
+    deleted = fields.List(fields.String(), allow_none=False)
+    modified = fields.List(fields.Raw(), allow_none=False)
+    reordered = fields.List(fields.String(), allow_none=False)
+
+
+class DashboardChartCustomizationsConfigUpdateSchema(BaseDashboardSchema):
     deleted = fields.List(fields.String(), allow_none=False)
     modified = fields.List(fields.Raw(), allow_none=False)
     reordered = fields.List(fields.String(), allow_none=False)
@@ -503,13 +577,14 @@ class ImportV1DashboardSchema(Schema):
     metadata = fields.Dict()
     version = fields.String(required=True)
     is_managed_externally = fields.Boolean(allow_none=True, dump_default=False)
-    external_url = fields.String(allow_none=True)
+    external_url = fields.String(allow_none=True, validate=validate_external_url)
     certified_by = fields.String(allow_none=True)
     certification_details = fields.String(allow_none=True)
     published = fields.Boolean(allow_none=True)
     tags = fields.List(fields.String(), allow_none=True)
     theme_uuid = fields.UUID(allow_none=True)
     theme_id = fields.Integer(allow_none=True)
+    roles = fields.List(fields.String(), allow_none=True)
 
 
 class EmbeddedDashboardConfigSchema(Schema):

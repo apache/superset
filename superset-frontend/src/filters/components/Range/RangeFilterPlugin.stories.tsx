@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { action } from '@storybook/addon-actions';
+import { action } from 'storybook/actions';
 import { SuperChart, getChartTransformPropsRegistry } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import RangeFilterPlugin from './index';
 import transformProps from './transformProps';
 

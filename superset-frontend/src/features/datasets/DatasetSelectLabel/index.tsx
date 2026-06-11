@@ -17,8 +17,8 @@
  * under the License.
  */
 import { Tooltip } from '@superset-ui/core/components';
-import { t } from '@superset-ui/core';
-import { styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 
 type Database = {
   database_name: string;

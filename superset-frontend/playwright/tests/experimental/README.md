@@ -28,12 +28,14 @@ This directory contains **experimental** Playwright E2E tests that are being dev
 ### Running Tests
 
 **By default (CI and local), experimental tests are EXCLUDED:**
+
 ```bash
 npm run playwright:test
 # Only runs stable tests (tests/auth/*)
 ```
 
 **To include experimental tests, set the environment variable:**
+
 ```bash
 INCLUDE_EXPERIMENTAL=true npm run playwright:test
 # Runs all tests including experimental/
@@ -60,6 +62,7 @@ testIgnore: process.env.INCLUDE_EXPERIMENTAL
 ```
 
 This ensures:
+
 - Without `INCLUDE_EXPERIMENTAL`: Tests in `experimental/` are ignored
 - With `INCLUDE_EXPERIMENTAL=true`: All tests run, including experimental
 
@@ -77,11 +80,13 @@ Add tests to `experimental/` when:
 Once an experimental test has proven stable (consistent CI passes over time):
 
 1. **Move the test file** from `experimental/` to the appropriate stable directory:
+
    ```bash
    git mv tests/experimental/dataset/my-test.spec.ts tests/dataset/my-test.spec.ts
    ```
 
 2. **Commit the move** with a clear message:
+
    ```bash
    git commit -m "test(playwright): promote my-test from experimental to stable"
    ```
@@ -102,11 +107,13 @@ Once an experimental test has proven stable (consistent CI passes over time):
 **Important**: Supporting infrastructure (components, page objects, API helpers) should live in **stable locations**, NOT under `experimental/`:
 
 ✅ **Correct locations:**
+
 - `playwright/components/` - Components used by any tests
 - `playwright/pages/` - Page objects for any features
 - `playwright/helpers/api/` - API helpers for test data setup
 
 ❌ **Avoid:**
+
 - `playwright/tests/experimental/components/` - Makes it hard to share infrastructure
 
 This keeps infrastructure reusable and avoids duplication when tests graduate from experimental to stable.

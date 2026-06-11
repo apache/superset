@@ -34,3 +34,6 @@ class LoadedExtension:
     frontend: dict[str, bytes]
     backend: dict[str, bytes]
     version: str
+    source_base_path: (
+        str  # Base path for traceback filenames (absolute path or supx:// URL)
+    )

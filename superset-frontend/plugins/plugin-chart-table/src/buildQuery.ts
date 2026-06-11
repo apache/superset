@@ -347,7 +347,7 @@ const buildQuery: BuildQuery<TableChartFormData> = (
         {
           ...queryObject,
           time_offsets: [],
-          row_limit: Number(formData?.row_limit) ?? 0,
+          row_limit: Number(formData?.row_limit ?? 0),
           row_offset: 0,
           post_processing: [],
           is_rowcount: true,

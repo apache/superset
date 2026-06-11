@@ -1,0 +1,1 @@
+{"parameters":[{"description":"The database connection ID","in":"path","name":"pk","required":true,"schema":{"type":"integer"}}]}

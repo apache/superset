@@ -25,7 +25,7 @@ from zipfile import is_zipfile, ZipFile
 
 import yaml
 import pytest
-import prison
+import rison
 from freezegun import freeze_time
 from sqlalchemy.sql import func, and_
 
@@ -258,7 +258,7 @@ class TestSavedQueryApi(SupersetTestCase):
         ).all()
         self.login(ADMIN_USERNAME)
         query_string = {"order_column": "schema", "order_direction": "asc"}
-        uri = f"api/v1/saved_query/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/saved_query/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -270,7 +270,7 @@ class TestSavedQueryApi(SupersetTestCase):
             "order_column": "database.database_name",
             "order_direction": "asc",
         }
-        uri = f"api/v1/saved_query/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/saved_query/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
 
@@ -278,7 +278,7 @@ class TestSavedQueryApi(SupersetTestCase):
             "order_column": "created_by.first_name",
             "order_direction": "asc",
         }
-        uri = f"api/v1/saved_query/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/saved_query/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
 
@@ -294,7 +294,7 @@ class TestSavedQueryApi(SupersetTestCase):
         query_string = {
             "filters": [{"col": "label", "opr": "ct", "value": "2"}],
         }
-        uri = f"api/v1/saved_query/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/saved_query/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -319,7 +319,7 @@ class TestSavedQueryApi(SupersetTestCase):
         query_string = {
             "filters": [{"col": "database", "opr": "rel_o_m", "value": example_db.id}],
         }
-        uri = f"api/v1/saved_query/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/saved_query/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -344,7 +344,7 @@ class TestSavedQueryApi(SupersetTestCase):
         query_string = {
             "filters": [{"col": "schema", "opr": "eq", "value": schema_name}],
         }
-        uri = f"api/v1/saved_query/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/saved_query/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -367,7 +367,7 @@ class TestSavedQueryApi(SupersetTestCase):
         query_string = {
             "filters": [{"col": "label", "opr": "all_text", "value": "schema2"}],
         }
-        uri = f"api/v1/saved_query/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/saved_query/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -389,7 +389,7 @@ class TestSavedQueryApi(SupersetTestCase):
         query_string = {
             "filters": [{"col": "label", "opr": "all_text", "value": "label3"}],
         }
-        uri = f"api/v1/saved_query/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/saved_query/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -411,7 +411,7 @@ class TestSavedQueryApi(SupersetTestCase):
         query_string = {
             "filters": [{"col": "label", "opr": "all_text", "value": "table"}],
         }
-        uri = f"api/v1/saved_query/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/saved_query/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -433,7 +433,7 @@ class TestSavedQueryApi(SupersetTestCase):
         query_string = {
             "filters": [{"col": "label", "opr": "all_text", "value": "cool"}],
         }
-        uri = f"api/v1/saved_query/?q={prison.dumps(query_string)}"
+        uri = f"api/v1/saved_query/?q={rison.dumps(query_string)}"
         rv = self.get_assert_metric(uri, "get_list")
         assert rv.status_code == 200
         data = json.loads(rv.data.decode("utf-8"))
@@ -508,7 +508,7 @@ class TestSavedQueryApi(SupersetTestCase):
             "columns": ["label"],
         }
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/saved_query/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/saved_query/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -530,7 +530,7 @@ class TestSavedQueryApi(SupersetTestCase):
             .all()
         )
         arguments["filters"][0]["value"] = False
-        uri = f"api/v1/saved_query/?q={prison.dumps(arguments)}"
+        uri = f"api/v1/saved_query/?q={rison.dumps(arguments)}"
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -551,7 +551,7 @@ class TestSavedQueryApi(SupersetTestCase):
         """
         self.login(ADMIN_USERNAME)
         params = {"keys": ["permissions"]}
-        uri = f"api/v1/saved_query/_info?q={prison.dumps(params)}"
+        uri = f"api/v1/saved_query/_info?q={rison.dumps(params)}"
         rv = self.get_assert_metric(uri, "info")
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
@@ -779,7 +779,7 @@ class TestSavedQueryApi(SupersetTestCase):
         saved_query_ids = [saved_query.id for saved_query in saved_queries]
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/saved_query/?q={prison.dumps(saved_query_ids)}"
+        uri = f"api/v1/saved_query/?q={rison.dumps(saved_query_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -799,7 +799,7 @@ class TestSavedQueryApi(SupersetTestCase):
         saved_query_ids = [saved_query.id]
 
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/saved_query/?q={prison.dumps(saved_query_ids)}"
+        uri = f"api/v1/saved_query/?q={rison.dumps(saved_query_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 200
         response = json.loads(rv.data.decode("utf-8"))
@@ -814,7 +814,7 @@ class TestSavedQueryApi(SupersetTestCase):
         """
         saved_query_ids = [1, "a"]
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/saved_query/?q={prison.dumps(saved_query_ids)}"
+        uri = f"api/v1/saved_query/?q={rison.dumps(saved_query_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 400
 
@@ -827,7 +827,7 @@ class TestSavedQueryApi(SupersetTestCase):
 
         saved_query_ids = [max_id + 1, max_id + 2]
         self.login(ADMIN_USERNAME)
-        uri = f"api/v1/saved_query/?q={prison.dumps(saved_query_ids)}"
+        uri = f"api/v1/saved_query/?q={rison.dumps(saved_query_ids)}"
         rv = self.delete_assert_metric(uri, "bulk_delete")
         assert rv.status_code == 404
 
@@ -843,11 +843,50 @@ class TestSavedQueryApi(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         argument = [sample_query.id]
-        uri = f"api/v1/saved_query/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/saved_query/export/?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 200
         buf = BytesIO(rv.data)
         assert is_zipfile(buf)
+
+    @pytest.mark.usefixtures("create_saved_queries")
+    def test_export_valid_token_sets_cookie(self):
+        """
+        Saved Query API: Test export echoes a valid token back as a cookie
+        """
+        admin = self.get_user("admin")
+        sample_query = (
+            db.session.query(SavedQuery).filter(SavedQuery.created_by == admin).first()
+        )
+
+        self.login(ADMIN_USERNAME)
+        argument = [sample_query.id]
+        token = "valid_token-123"  # noqa: S105
+        uri = f"api/v1/saved_query/export/?q={rison.dumps(argument)}&token={token}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        cookie = self.client.get_cookie(token)
+        assert cookie is not None
+        assert cookie.value == "done"
+
+    @pytest.mark.usefixtures("create_saved_queries")
+    def test_export_invalid_token_skips_cookie(self):
+        """
+        Saved Query API: Test export ignores an invalid token instead of
+        setting it as a cookie name
+        """
+        admin = self.get_user("admin")
+        sample_query = (
+            db.session.query(SavedQuery).filter(SavedQuery.created_by == admin).first()
+        )
+
+        self.login(ADMIN_USERNAME)
+        argument = [sample_query.id]
+        token = "bad token;with=chars"  # noqa: S105
+        uri = f"api/v1/saved_query/export/?q={rison.dumps(argument)}&token={token}"
+        rv = self.client.get(uri)
+        assert rv.status_code == 200
+        assert self.client.get_cookie(token) is None
 
     @pytest.mark.usefixtures("create_saved_queries")
     def test_export_not_found(self):
@@ -858,7 +897,7 @@ class TestSavedQueryApi(SupersetTestCase):
 
         self.login(ADMIN_USERNAME)
         argument = [max_id + 1, max_id + 2]
-        uri = f"api/v1/saved_query/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/saved_query/export/?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
@@ -874,7 +913,7 @@ class TestSavedQueryApi(SupersetTestCase):
 
         self.login(GAMMA_SQLLAB_USERNAME)
         argument = [sample_query.id]
-        uri = f"api/v1/saved_query/export/?q={prison.dumps(argument)}"
+        uri = f"api/v1/saved_query/export/?q={rison.dumps(argument)}"
         rv = self.client.get(uri)
         assert rv.status_code == 404
 
