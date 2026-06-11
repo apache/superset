@@ -154,4 +154,9 @@ export interface VersionHistoryState {
   include: ActivityInclude;
   preview: VersionPreviewState | null;
   sessionLog: SessionLogEntry[];
+  /**
+   * Incremented on every successful restore so page-level hooks know the
+   * live entity changed underneath them (refetch + rehydrate).
+   */
+  restoreCount: number;
 }

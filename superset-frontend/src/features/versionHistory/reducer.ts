@@ -29,6 +29,7 @@ export const CLOSE_VERSION_HISTORY_PANEL = 'CLOSE_VERSION_HISTORY_PANEL';
 export const SET_VERSION_HISTORY_INCLUDE = 'SET_VERSION_HISTORY_INCLUDE';
 export const SET_VERSION_PREVIEW = 'SET_VERSION_PREVIEW';
 export const CLEAR_VERSION_PREVIEW = 'CLEAR_VERSION_PREVIEW';
+export const VERSION_RESTORED = 'VERSION_RESTORED';
 export const APPEND_VERSION_SESSION_LOG = 'APPEND_VERSION_SESSION_LOG';
 export const CLEAR_VERSION_SESSION_LOG = 'CLEAR_VERSION_SESSION_LOG';
 
@@ -55,6 +56,10 @@ interface ClearPreviewAction {
   type: typeof CLEAR_VERSION_PREVIEW;
 }
 
+interface VersionRestoredAction {
+  type: typeof VERSION_RESTORED;
+}
+
 interface AppendSessionLogAction {
   type: typeof APPEND_VERSION_SESSION_LOG;
   entry: SessionLogEntry;
@@ -70,6 +75,7 @@ export type VersionHistoryAction =
   | SetIncludeAction
   | SetPreviewAction
   | ClearPreviewAction
+  | VersionRestoredAction
   | AppendSessionLogAction
   | ClearSessionLogAction;
 
@@ -102,6 +108,10 @@ export const clearVersionPreview = (): ClearPreviewAction => ({
   type: CLEAR_VERSION_PREVIEW,
 });
 
+export const versionRestored = (): VersionRestoredAction => ({
+  type: VERSION_RESTORED,
+});
+
 export const appendVersionSessionLog = (
   entry: SessionLogEntry,
 ): AppendSessionLogAction => ({
@@ -119,6 +129,7 @@ const initialState: VersionHistoryState = {
   include: 'all',
   preview: null,
   sessionLog: [],
+  restoreCount: 0,
 };
 
 export default function versionHistoryReducer(
@@ -137,6 +148,8 @@ export default function versionHistoryReducer(
       return { ...state, preview: action.preview };
     case CLEAR_VERSION_PREVIEW:
       return { ...state, preview: null };
+    case VERSION_RESTORED:
+      return { ...state, restoreCount: state.restoreCount + 1 };
     case APPEND_VERSION_SESSION_LOG: {
       const last = state.sessionLog[state.sessionLog.length - 1];
       // Collapse consecutive edits of the same control into one entry.
@@ -188,6 +201,9 @@ export const selectIsDashboardVersionPreviewActive = (
   const { entityType, preview } = selectVersionHistory(state);
   return entityType === 'dashboard' && preview !== null;
 };
+
+export const selectVersionRestoreCount = (state: VersionHistoryRootState) =>
+  selectVersionHistory(state).restoreCount;
 
 export const selectVersionSessionLog = (state: VersionHistoryRootState) =>
   selectVersionHistory(state).sessionLog;

@@ -35,7 +35,6 @@ import {
 import { getQuerySettings } from 'src/explore/exploreUtils';
 import type { Dataset } from 'src/components/Chart/types';
 import type { ExplorePageState } from 'src/explore/types';
-import type { VersionPreviewState } from './types';
 import { selectVersionPreview } from './reducer';
 import { fetchVersionSnapshot } from './api';
 import PreviewBanner from './PreviewBanner';
@@ -72,15 +71,7 @@ function buildPreviewFormData(
   } as QueryFormData;
 }
 
-export interface ChartVersionPreviewProps {
-  onRestore?: (preview: VersionPreviewState) => void;
-  onOpenAsNew?: (preview: VersionPreviewState) => void;
-}
-
-export default function ChartVersionPreview({
-  onRestore,
-  onOpenAsNew,
-}: ChartVersionPreviewProps) {
+export default function ChartVersionPreview() {
   const preview = useSelector(selectVersionPreview);
   const datasource = useSelector<ExplorePageState, Dataset | undefined>(
     state => state.explore?.datasource as unknown as Dataset | undefined,
@@ -156,11 +147,7 @@ export default function ChartVersionPreview({
 
   return (
     <Container data-test="chart-version-preview">
-      <PreviewBanner
-        entityType="chart"
-        onRestore={onRestore}
-        onOpenAsNew={onOpenAsNew}
-      />
+      <PreviewBanner entityType="chart" />
       {isLoading && <Loading />}
       {!isLoading && error && (
         <Alert type="error" closable={false} message={error} />
