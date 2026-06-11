@@ -612,6 +612,53 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     # Surface exceptions during initialization of extensions
                     print(ex)
 
+    @staticmethod
+    def _remove_continuum_write_listeners() -> None:
+        """Detach SQLAlchemy-Continuum's own write listeners.
+
+        ``make_versioned()`` runs unconditionally at import of
+        ``superset.extensions`` and registers Continuum's mapper, session,
+        and engine listeners — the ones that write shadow rows and
+        ``version_transaction`` rows on every flush. Skipping only the
+        custom baseline/change-record listeners would leave those running,
+        so with the kill-switch off the shadow tables would silently keep
+        accumulating, contradicting the documented contract.
+
+        This is deliberately a *targeted subset* of
+        ``sqlalchemy_continuum.remove_versioning()``: that helper also
+        calls ``manager.reset()``, which clears ``version_class_map`` —
+        and ``version_class()`` would then silently return the live model
+        class, breaking the read-only ``/versions/`` endpoints this flag
+        promises to keep working.
+
+        Idempotent: guarded on a representative listener so repeated app
+        initializations in one process (test fixtures) don't raise on
+        double-removal.
+        """
+        # pylint: disable=import-outside-toplevel
+        import sqlalchemy as sa
+        from sqlalchemy_continuum import versioning_manager
+
+        if not sa.event.contains(
+            sa.orm.Mapper, "after_insert", versioning_manager.track_inserts
+        ):
+            return  # already detached by a prior init
+        versioning_manager.remove_operations_tracking(sa.orm.Mapper)
+        versioning_manager.remove_session_tracking(sa.orm.session.Session)
+        sa.event.remove(
+            sa.engine.Engine,
+            "before_execute",
+            versioning_manager.track_association_operations,
+        )
+        sa.event.remove(
+            sa.engine.Engine, "rollback", versioning_manager.clear_connection
+        )
+        sa.event.remove(
+            sa.engine.Engine,
+            "set_connection_execution_options",
+            versioning_manager.track_cloned_connections,
+        )
+
     def init_versioning(self) -> None:
         """Register SQLAlchemy-Continuum baseline and retention listeners.
 
@@ -639,10 +686,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         if not self.config.get("ENABLE_VERSIONING_CAPTURE", True):
             logger.warning(
                 "versioning: ENABLE_VERSIONING_CAPTURE is False; "
-                "skipping baseline + change-record listener registration. "
-                "Save-path capture is disabled; existing shadow tables and "
+                "skipping baseline + change-record listener registration "
+                "and detaching Continuum's write listeners. Save-path "
+                "capture is disabled; existing shadow tables and "
                 "/versions/ endpoints continue to work read-only."
             )
+            self._remove_continuum_write_listeners()
             return
 
         from sqlalchemy.orm import Session  # noqa: F401

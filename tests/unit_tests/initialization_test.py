@@ -280,15 +280,25 @@ class TestInitVersioning:
         app.config = config
         return SupersetAppInitializer(app)
 
+    @patch.object(SupersetAppInitializer, "_remove_continuum_write_listeners")
     @patch("superset.initialization.logger")
     @patch("superset.versioning.changes.register_change_record_listener")
     @patch("superset.versioning.baseline.register_baseline_listener")
     def test_kill_switch_off_skips_listener_registration(
-        self, mock_baseline, mock_change, mock_logger
+        self, mock_baseline, mock_change, mock_logger, mock_remove
     ):
         """``ENABLE_VERSIONING_CAPTURE=False`` MUST short-circuit
-        ``init_versioning`` before either listener registers. The
-        operator's 30-second recovery story relies on this."""
+        ``init_versioning`` before either listener registers, AND detach
+        Continuum's own write listeners — ``make_versioned()`` runs at
+        import of ``superset.extensions``, so skipping only the custom
+        listeners would leave shadow tables silently accumulating,
+        contradicting the documented operator contract. The teardown is
+        patched here because it mutates process-global SQLAlchemy event
+        state (verified empirically against a real app: with the flag off,
+        a chart save grows neither ``slices_version`` nor
+        ``version_transaction``, while ``version_class()`` reads survive).
+
+        The operator's 30-second recovery story relies on both halves."""
         initializer = self._initializer(
             {
                 "ENABLE_VERSIONING_CAPTURE": False,
@@ -300,6 +310,8 @@ class TestInitVersioning:
 
         mock_baseline.assert_not_called()
         mock_change.assert_not_called()
+        # Continuum's write listeners must be detached, not just skipped.
+        mock_remove.assert_called_once()
         # One WARNING explaining the skip — operator-visible in deploy log.
         assert any(
             "ENABLE_VERSIONING_CAPTURE is False" in str(call)
