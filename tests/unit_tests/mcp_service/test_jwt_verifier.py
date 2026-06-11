@@ -21,11 +21,11 @@ import asyncio
 import base64
 import logging
 import time
+import warnings
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
 import pytest
-from authlib.jose.errors import BadSignatureError, DecodeError, ExpiredTokenError
 
 from superset.mcp_service.jwt_verifier import (
     _auth_error_handler,
@@ -34,6 +34,10 @@ from superset.mcp_service.jwt_verifier import (
     DetailedJWTVerifier,
 )
 from superset.utils import json
+
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message=r"authlib\.jose module is deprecated")
+    from authlib.jose.errors import BadSignatureError, DecodeError, ExpiredTokenError
 
 
 def _make_token(

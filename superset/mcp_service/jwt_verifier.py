@@ -30,17 +30,12 @@ import base64
 import html as html_module
 import logging
 import time
+import warnings
 from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any, cast
 
 import httpx
-from authlib.jose.errors import (
-    BadSignatureError,
-    DecodeError,
-    ExpiredTokenError,
-    JoseError,
-)
 from fastmcp.server.auth.auth import AccessToken
 from fastmcp.server.auth.providers.jwt import JWTVerifier
 from mcp.server.auth.middleware.auth_context import AuthContextMiddleware
@@ -56,6 +51,18 @@ from superset.mcp_service.utils.error_sanitization import (
     sanitize_for_log as _sanitize_for_log,
 )
 from superset.utils import json
+
+# authlib.jose is deprecated in favor of joserfc. Until fastmcp migrates
+# (it imports authlib.jose internally), these error classes must stay from
+# authlib so exception catches match what fastmcp's jwt.decode() raises.
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message=r"authlib\.jose module is deprecated")
+    from authlib.jose.errors import (
+        BadSignatureError,
+        DecodeError,
+        ExpiredTokenError,
+        JoseError,
+    )
 
 logger = logging.getLogger(__name__)
 
