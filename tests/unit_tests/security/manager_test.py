@@ -672,7 +672,11 @@ def _native_filter_ctx(
         targets = [{"datasetId": dataset_id, "column": {"name": "region"}}]
     qc = mocker.MagicMock()
     qc.slice_ = None
-    qc.form_data = {"native_filter_id": native_filter_id, "dashboardId": dashboard_id}
+    qc.form_data = {
+        "type": "NATIVE_FILTER",
+        "native_filter_id": native_filter_id,
+        "dashboardId": dashboard_id,
+    }
     qc.datasource.data = {"id": dataset_id}
     qc.queries = queries
     dash = mocker.MagicMock()
@@ -807,6 +811,33 @@ def test_query_context_modified_native_filter_orderby_adhoc_blocked(
         orderby=[[{"sqlExpression": "ssn"}, True]],
     )
     qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_chartless_non_native_filter_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A chartless request that is not a native filter (drill-to-detail, drill-by,
+    samples) is validated by the datasource-access checks in raise_for_access and
+    is not constrained here.
+    """
+    qc = mocker.MagicMock()
+    qc.slice_ = None
+    qc.form_data = {"dashboardId": 10, "slice_id": 0, "groupby": ["ssn"]}
+    assert not query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_without_type_marker_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A request identified by native_filter_id is constrained even when the
+    NATIVE_FILTER type marker is absent.
+    """
+    query = SimpleNamespace(columns=["ssn"], metrics=[], groupby=[])
+    qc = _native_filter_ctx(mocker, [query])
+    del qc.form_data["type"]
     assert query_context_modified(qc)
 
 

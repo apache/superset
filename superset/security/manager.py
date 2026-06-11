@@ -402,6 +402,8 @@ def _native_filter_allowed_targets(
         )
         if isinstance(sort_metric, str):
             allowed_metrics.add(sort_metric)
+        # Filter ids are unique, so the matching filter is the only one.
+        break
 
     return allowed_columns, allowed_metrics
 
@@ -422,9 +424,36 @@ def _native_filter_term_allowed(
     return False
 
 
+def _native_filter_query_modified(
+    query: Any, allowed_columns: set[str], allowed_metrics: set[str]
+) -> bool:
+    """Whether a single query in a native-filter request reads beyond its targets."""
+    # Columns and group-by may only reference target column(s); adhoc (free-form
+    # SQL) columns cannot be validated, so reject them.
+    for key in ("columns", "groupby"):
+        for col in getattr(query, key, None) or []:
+            if not isinstance(col, str) or col not in allowed_columns:
+                return True
+    for metric in getattr(query, "metrics", None) or []:
+        if not _native_filter_term_allowed(metric, allowed_columns, allowed_metrics):
+            return True
+    # order-by entries are ``(expression, asc)`` pairs.
+    for order in getattr(query, "orderby", None) or []:
+        expr = order[0] if isinstance(order, (list, tuple)) and order else order
+        if not _native_filter_term_allowed(expr, allowed_columns, allowed_metrics):
+            return True
+    return False
+
+
 def _native_filter_request_modified(query_context: "QueryContext") -> bool:
     """
-    Validate a native-filter data request, which has no associated chart.
+    Validate a chartless data request that targets a native filter.
+
+    Only requests identified as native-filter lookups (by the ``NATIVE_FILTER``
+    type marker or a ``native_filter_id``) are constrained; other chartless
+    paths (drill-to-detail, drill-by, samples) carry neither and are validated by
+    the datasource-access checks in raise_for_access, so they are not treated as
+    modified here.
 
     A native filter may only read the column(s) it targets on the dashboard it
     belongs to. The request is treated as modified (and therefore rejected for
@@ -439,6 +468,10 @@ def _native_filter_request_modified(query_context: "QueryContext") -> bool:
     concern shared with the chart path.
     """
     form_data = query_context.form_data or {}
+    if not (
+        form_data.get("type") == "NATIVE_FILTER" or form_data.get("native_filter_id")
+    ):
+        return False
     targets = _native_filter_allowed_targets(query_context, form_data)
     # Fail closed when the request cannot be tied to a native filter.
     if targets is None:
@@ -447,25 +480,10 @@ def _native_filter_request_modified(query_context: "QueryContext") -> bool:
     # intentionally deny every value-returning term below.
     allowed_columns, allowed_metrics = targets
 
-    for query in query_context.queries:
-        # Columns and group-by may only reference target column(s); adhoc
-        # (free-form SQL) columns cannot be validated, so reject them.
-        for key in ("columns", "groupby"):
-            for col in getattr(query, key, None) or []:
-                if not isinstance(col, str) or col not in allowed_columns:
-                    return True
-        for metric in getattr(query, "metrics", None) or []:
-            if not _native_filter_term_allowed(
-                metric, allowed_columns, allowed_metrics
-            ):
-                return True
-        # order-by entries are ``(expression, asc)`` pairs.
-        for order in getattr(query, "orderby", None) or []:
-            expr = order[0] if isinstance(order, (list, tuple)) and order else order
-            if not _native_filter_term_allowed(expr, allowed_columns, allowed_metrics):
-                return True
-
-    return False
+    return any(
+        _native_filter_query_modified(query, allowed_columns, allowed_metrics)
+        for query in query_context.queries
+    )
 
 
 def query_context_modified(query_context: "QueryContext") -> bool:
@@ -480,7 +498,8 @@ def query_context_modified(query_context: "QueryContext") -> bool:
 
     # Native-filter data requests have no associated chart (no slice_id). Rather
     # than accepting any payload, constrain them to the column(s) the dashboard's
-    # native filter is allowed to target.
+    # native filter is allowed to target; other chartless paths keep prior
+    # behavior (see _native_filter_request_modified).
     if stored_chart is None:
         return _native_filter_request_modified(query_context)
 
