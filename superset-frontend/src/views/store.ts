@@ -64,6 +64,7 @@ import { HydrateExplore } from 'src/explore/actions/hydrateExplore';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { Dataset } from '@superset-ui/chart-controls';
 import databaseReducer from 'src/database/reducers';
+import versionHistoryReducer from 'src/features/versionHistory/reducer';
 
 // Some reducers don't do anything, and redux is just used to reference the initial "state".
 // This may change later, as the client application takes on more responsibilities.
@@ -149,6 +150,7 @@ const reducers = {
   saveModal,
   explore,
   database: databaseReducer,
+  versionHistory: versionHistoryReducer,
 };
 
 /* In some cases the jinja template injects two separate React apps into basic.html

@@ -54,6 +54,7 @@ import copyTextToClipboard from 'src/utils/copy';
 import { useHeaderReportMenuItems } from 'src/features/reports/ReportModal/HeaderReportDropdown';
 import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
 import { logEvent } from 'src/logger/actions';
+import { openVersionHistoryPanel } from 'src/features/versionHistory/reducer';
 import {
   LOG_ACTIONS_CHART_DOWNLOAD_AS_IMAGE,
   LOG_ACTIONS_CHART_DOWNLOAD_AS_PNG,
@@ -109,6 +110,7 @@ const MENU_KEYS = {
   DELETE_REPORT: 'delete_report',
   VIEW_QUERY: 'view_query',
   RUN_IN_SQL_LAB: 'run_in_sql_lab',
+  VERSION_HISTORY: 'version_history',
 };
 
 const VIZ_TYPES_PIVOTABLE = [VizType.PivotTable];
@@ -274,6 +276,7 @@ interface ExploreState {
   explore?: ExploreSlice & {
     chartStates?: Record<number, JsonObject>;
     can_export_image?: boolean;
+    can_overwrite?: boolean;
   };
   common?: {
     conf?: {
@@ -325,6 +328,9 @@ export const useExploreAdditionalActionsMenu = (
   );
   const canExportImage = useSelector<ExploreState, boolean>(
     state => state.explore?.can_export_image ?? false,
+  );
+  const canOverwrite = useSelector<ExploreState, boolean>(
+    state => state.explore?.can_overwrite ?? false,
   );
 
   const dataExportDisabled = !canDownloadCSV;
@@ -1007,6 +1013,21 @@ export const useExploreAdditionalActionsMenu = (
       menuItems.push(reportMenuItem);
     }
 
+    if (
+      isFeatureEnabled(FeatureFlag.VersionHistory) &&
+      canOverwrite &&
+      slice?.slice_id
+    ) {
+      menuItems.push({
+        key: MENU_KEYS.VERSION_HISTORY,
+        label: t('Version history'),
+        onClick: () => {
+          dispatch(openVersionHistoryPanel('chart'));
+          setIsDropdownVisible(false);
+        },
+      });
+    }
+
     // View query
     menuItems.push({
       key: MENU_KEYS.VIEW_QUERY,
@@ -1049,6 +1070,7 @@ export const useExploreAdditionalActionsMenu = (
   }, [
     addDangerToast,
     canDownloadCSV,
+    canOverwrite,
     copyLink,
     dashboards,
     dashboardMenuItems,
