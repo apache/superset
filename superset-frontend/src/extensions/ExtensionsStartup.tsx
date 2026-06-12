@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 // eslint-disable-next-line no-restricted-syntax
 import * as supersetCore from '@apache-superset/core';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
@@ -52,20 +52,12 @@ declare global {
 const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
   children,
 }) => {
-  const [initialized, setInitialized] = useState(false);
-
   const userId = useSelector<RootState, number | undefined>(
     ({ user }) => user.userId,
   );
 
   useEffect(() => {
-    if (initialized) return;
-
-    if (!userId) {
-      // No user logged in — nothing to initialize
-      setInitialized(true);
-      return;
-    }
+    if (userId == null) return;
 
     // Provide the implementations for @apache-superset/core
     window.superset = {
@@ -80,19 +72,10 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       views,
     };
 
-    const setup = async () => {
-      if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
-        await ExtensionsLoader.getInstance().initializeExtensions();
-      }
-      setInitialized(true);
-    };
-
-    setup();
-  }, [initialized, userId]);
-
-  if (!initialized) {
-    return null;
-  }
+    if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+      ExtensionsLoader.getInstance().initializeExtensions();
+    }
+  }, [userId]);
 
   return <>{children}</>;
 };

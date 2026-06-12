@@ -112,7 +112,7 @@ celery==5.5.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-certifi==2025.6.15
+certifi==2026.5.20
     # via
     #   -c requirements/base-constraint.txt
     #   httpcore
@@ -471,7 +471,7 @@ jmespath==1.1.0
     # via
     #   boto3
     #   botocore
-jsonpath-ng==1.7.0
+jsonpath-ng==1.8.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -674,10 +674,6 @@ platformdirs==4.3.8
     #   virtualenv
 pluggy==1.5.0
     # via pytest
-ply==3.11
-    # via
-    #   -c requirements/base-constraint.txt
-    #   jsonpath-ng
 polib==1.2.0
     # via apache-superset
 polyline==2.0.2
@@ -925,7 +921,7 @@ s3transfer==0.16.0
     # via boto3
 secretstorage==3.5.0
     # via keyring
-selenium==4.32.0
+selenium==4.44.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1023,7 +1019,7 @@ tqdm==4.67.1
     #   prophet
 trino==0.330.0
     # via apache-superset
-trio==0.30.0
+trio==0.33.0
     # via
     #   -c requirements/base-constraint.txt
     #   selenium
@@ -1125,7 +1121,7 @@ wsproto==1.2.0
     # via
     #   -c requirements/base-constraint.txt
     #   trio-websocket
-wtforms==3.2.1
+wtforms==3.2.2
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

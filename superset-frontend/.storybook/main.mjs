@@ -1,4 +1,3 @@
-import { dirname, join } from 'path';
 /**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -17,8 +16,16 @@ import { dirname, join } from 'path';
  * specific language governing permissions and limitations
  * under the License.
  */
+
+// This file has been automatically migrated to valid ESM format by Storybook.
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 // Superset's webpack.config.js
-const customConfig = require('../webpack.config.js');
+import customConfig from '../webpack.config.js';
+
+const require = createRequire(import.meta.url);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Filter out plugins that shouldn't be included in Storybook's static build
 // ReactRefreshWebpackPlugin adds Fast Refresh code that requires a dev server runtime,
@@ -76,7 +83,7 @@ const disableDevModeInRules = rules =>
     };
   });
 
-module.exports = {
+export default {
   stories: [
     '../src/**/*.stories.tsx',
     '../packages/superset-ui-core/src/**/*.stories.tsx',
@@ -84,11 +91,8 @@ module.exports = {
   ],
 
   addons: [
-    getAbsolutePath('@storybook/addon-essentials'),
-    getAbsolutePath('@storybook/addon-links'),
-    '@mihkeleidast/storybook-addon-source',
-    getAbsolutePath('@storybook/addon-controls'),
-    getAbsolutePath('@storybook/addon-mdx-gfm'),
+    "@storybook/addon-links",
+    "@storybook/addon-docs"
   ],
 
   staticDirs: ['../src/assets/images'],
@@ -105,11 +109,13 @@ module.exports = {
       alias: {
         ...config.resolve?.alias,
         ...customConfig.resolve?.alias,
-        // Fix for Storybook 8.6.x with React 17 - resolve ESM module paths
-        'react-dom/test-utils': require.resolve('react-dom/test-utils'),
         // Shared storybook utilities
-        '@storybook-shared': join(__dirname, 'shared'),
+        '@storybook-shared': path.join(__dirname, 'shared'),
       },
+      fallback: {
+        tty: false,
+        vm: require.resolve('vm-browserify')
+      }
     },
     plugins: [...config.plugins, ...filteredPlugins],
   }),
@@ -119,15 +125,11 @@ module.exports = {
   },
 
   framework: {
-    name: getAbsolutePath('@storybook/react-webpack5'),
+    name: getAbsolutePath("@storybook/react-webpack5"),
     options: {},
-  },
-
-  docs: {
-    autodocs: false,
-  },
+  }
 };
 
 function getAbsolutePath(value) {
-  return dirname(require.resolve(join(value, 'package.json')));
+  return path.dirname(require.resolve(path.join(value, 'package.json')));
 }
