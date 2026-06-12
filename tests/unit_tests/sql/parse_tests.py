@@ -3600,6 +3600,85 @@ def test_get_disallowed_tables(
 
 
 @pytest.mark.parametrize(
+    "sql, default_schema, denylist, expected",
+    [
+        # Unqualified reference resolves to the default schema, so it matches
+        # a schema-qualified denylist entry when the schemas line up (e.g. a
+        # connection whose search_path is `information_schema`).
+        (
+            "SELECT * FROM tables",
+            "information_schema",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+        # ... case-insensitively.
+        (
+            "SELECT * FROM tables",
+            "INFORMATION_SCHEMA",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+        # The same unqualified name under a user schema must NOT match: a user
+        # table named `tables` stays queryable.
+        (
+            "SELECT * FROM tables",
+            "public",
+            {"information_schema.tables"},
+            set(),
+        ),
+        # An explicit schema on the reference wins over the default schema.
+        (
+            "SELECT * FROM public.tables",
+            "information_schema",
+            {"information_schema.tables"},
+            set(),
+        ),
+        # Without a default schema, behavior is unchanged: unqualified
+        # references never match schema-qualified entries.
+        (
+            "SELECT * FROM tables",
+            None,
+            {"information_schema.tables"},
+            set(),
+        ),
+        # Bare-name denylist entries are schema-agnostic and unaffected by the
+        # default schema.
+        (
+            "SELECT * FROM pg_stat_activity",
+            "information_schema",
+            {"pg_stat_activity"},
+            {"pg_stat_activity"},
+        ),
+        # The default schema is forwarded to every statement in a script, so an
+        # unqualified reference in a later statement is resolved too.
+        (
+            "SELECT * FROM my_table; SELECT * FROM tables",
+            "information_schema",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+    ],
+)
+def test_get_disallowed_tables_default_schema(
+    sql: str,
+    default_schema: str | None,
+    denylist: set[str],
+    expected: set[str],
+) -> None:
+    """
+    `get_disallowed_tables` resolves an unqualified reference against the
+    supplied default schema, so a denylisted system view (e.g.
+    `information_schema.tables`) is still caught when reached without an
+    explicit schema under that search_path, without blocking a same-named
+    user table under a different schema.
+    """
+    assert (
+        SQLScript(sql, "postgresql").get_disallowed_tables(denylist, default_schema)
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
     "sql, denylist, expected",
     [
         ("SELECT * FROM pg_stat_activity", {"pg_stat_activity"}, True),

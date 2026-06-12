@@ -436,7 +436,11 @@ def execute_sql_statements(  # noqa: C901
     if disallowed_tables:
         # Report only the denylisted tables actually referenced in the query,
         # honoring schema-qualified entries (e.g. ``information_schema.tables``).
-        found_tables = parsed_script.get_disallowed_tables(disallowed_tables)
+        # Pass the selected schema so an unqualified reference that resolves
+        # to it at runtime (via the connection ``search_path``) matches too.
+        found_tables = parsed_script.get_disallowed_tables(
+            disallowed_tables, query.schema
+        )
         if found_tables:
             raise SupersetDisallowedSQLTableException(found_tables)
 

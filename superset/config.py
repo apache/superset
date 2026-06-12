@@ -1938,8 +1938,9 @@ DISALLOWED_SQL_TABLES: dict[str, set[str]] = {
         # column / privilege / view-definition metadata across the entire
         # database role the connection user can see. Entries are
         # schema-qualified so `check_tables_present` only matches when the
-        # query actually references `information_schema.<view>`, not any
-        # user table that happens to share a name.
+        # reference resolves to `information_schema.<view>` -- either written
+        # explicitly or as an unqualified name under an `information_schema`
+        # search_path -- not any user table that happens to share a name.
         "information_schema.tables",
         "information_schema.columns",
         "information_schema.schemata",

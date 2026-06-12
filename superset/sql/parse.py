@@ -492,20 +492,28 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
-    def check_tables_present(self, tables: set[str]) -> bool:
+    def check_tables_present(
+        self, tables: set[str], default_schema: str | None = None
+    ) -> bool:
         """
         Check if any of the given tables are present in the statement.
 
         :param tables: Set of table names to check for (case-insensitive)
+        :param default_schema: Schema unqualified references resolve to at
+            runtime (e.g. the session ``search_path`` / selected schema)
         :return: True if any of the tables are present
         """
         raise NotImplementedError()
 
-    def get_disallowed_tables(self, tables: set[str]) -> set[str]:
+    def get_disallowed_tables(
+        self, tables: set[str], default_schema: str | None = None
+    ) -> set[str]:
         """
         Return the subset of ``tables`` referenced by this statement.
 
         :param tables: Set of table names to check for (case-insensitive)
+        :param default_schema: Schema unqualified references resolve to at
+            runtime (e.g. the session ``search_path`` / selected schema)
         :return: The matched entries, in their original denylist form
         """
         raise NotImplementedError()
@@ -985,7 +993,9 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
 
         return any(function.upper() in present for function in functions)
 
-    def check_tables_present(self, tables: set[str]) -> bool:
+    def check_tables_present(
+        self, tables: set[str], default_schema: str | None = None
+    ) -> bool:
         """
         Check if any of the given tables are present in the statement.
 
@@ -997,11 +1007,15 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         user-authored table that happens to be named ``tables``.
 
         :param tables: Set of table names to check for (case-insensitive)
+        :param default_schema: Schema unqualified references resolve to at
+            runtime (e.g. the session ``search_path`` / selected schema)
         :return: True if any of the given tables is referenced
         """
-        return bool(self.get_disallowed_tables(tables))
+        return bool(self.get_disallowed_tables(tables, default_schema))
 
-    def get_disallowed_tables(self, tables: set[str]) -> set[str]:
+    def get_disallowed_tables(
+        self, tables: set[str], default_schema: str | None = None
+    ) -> set[str]:
         """
         Return the subset of ``tables`` referenced by this statement.
 
@@ -1011,16 +1025,26 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         original denylist form so callers can report exactly which
         denylisted tables were hit.
 
+        A reference without an explicit schema is resolved against
+        ``default_schema`` when one is supplied, so an unqualified ``tables``
+        run under ``search_path = information_schema`` still matches the
+        ``information_schema.tables`` entry, while the same name under a
+        user schema does not.
+
         :param tables: Set of table names to check for (case-insensitive)
+        :param default_schema: Schema unqualified references resolve to at
+            runtime (e.g. the session ``search_path`` / selected schema)
         :return: The matched entries, in their original denylist form
         """
+        fallback = default_schema.lower() if default_schema else None
         present_bare: set[str] = set()
         present_qualified: set[str] = set()
         for t in self.tables:
             bare = t.table.lower()
             present_bare.add(bare)
-            if t.schema:
-                present_qualified.add(f"{t.schema.lower()}.{bare}")
+            schema = t.schema.lower() if t.schema else fallback
+            if schema:
+                present_qualified.add(f"{schema}.{bare}")
         found: set[str] = set()
         for entry in tables:
             needle = entry.lower()
@@ -1457,21 +1481,27 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         logger.warning("Kusto KQL doesn't support checking for functions present.")
         return False
 
-    def check_tables_present(self, tables: set[str]) -> bool:
+    def check_tables_present(
+        self, tables: set[str], default_schema: str | None = None
+    ) -> bool:
         """
         Check if any of the given tables are present in the statement.
 
         :param tables: Set of table names to check for (case-insensitive)
+        :param default_schema: Unused; accepted for interface parity
         :return: True if any of the tables are present
         """
         logger.warning("Kusto KQL doesn't support checking for tables present.")
         return False
 
-    def get_disallowed_tables(self, tables: set[str]) -> set[str]:
+    def get_disallowed_tables(
+        self, tables: set[str], default_schema: str | None = None
+    ) -> set[str]:
         """
         Return the subset of ``tables`` referenced by this statement.
 
         :param tables: Set of table names to check for (case-insensitive)
+        :param default_schema: Unused; accepted for interface parity
         :return: The matched entries, in their original denylist form
         """
         logger.warning("Kusto KQL doesn't support checking for tables present.")
@@ -1648,25 +1678,33 @@ class SQLScript:
             for statement in self.statements
         )
 
-    def check_tables_present(self, tables: set[str]) -> bool:
+    def check_tables_present(
+        self, tables: set[str], default_schema: str | None = None
+    ) -> bool:
         """
         Check if any of the given tables are present in the script.
 
         :param tables: Set of table names to check for (case-insensitive)
+        :param default_schema: Schema unqualified references resolve to at
+            runtime (e.g. the session ``search_path`` / selected schema)
         :return: True if any of the tables are present
         """
-        return bool(self.get_disallowed_tables(tables))
+        return bool(self.get_disallowed_tables(tables, default_schema))
 
-    def get_disallowed_tables(self, tables: set[str]) -> set[str]:
+    def get_disallowed_tables(
+        self, tables: set[str], default_schema: str | None = None
+    ) -> set[str]:
         """
         Return the subset of ``tables`` referenced anywhere in the script.
 
         :param tables: Set of table names to check for (case-insensitive)
+        :param default_schema: Schema unqualified references resolve to at
+            runtime (e.g. the session ``search_path`` / selected schema)
         :return: The matched entries, in their original denylist form
         """
         found: set[str] = set()
         for statement in self.statements:
-            found |= statement.get_disallowed_tables(tables)
+            found |= statement.get_disallowed_tables(tables, default_schema)
         return found
 
     def is_valid_ctas(self) -> bool:

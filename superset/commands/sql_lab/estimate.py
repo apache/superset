@@ -105,8 +105,12 @@ class QueryEstimationCommand(BaseCommand):
         if disallowed_tables:
             # Honors schema-qualified denylist entries (e.g.
             # ``information_schema.tables``) and reports only the tables
-            # actually referenced by the query.
-            found_tables = parsed_script.get_disallowed_tables(disallowed_tables)
+            # actually referenced by the query. Pass the selected schema so an
+            # unqualified reference that resolves to it at runtime (via the
+            # connection ``search_path``) matches too.
+            found_tables = parsed_script.get_disallowed_tables(
+                disallowed_tables, self._schema
+            )
             if found_tables:
                 raise SupersetDisallowedSQLTableException(found_tables)
 

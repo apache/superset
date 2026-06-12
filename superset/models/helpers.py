@@ -1227,8 +1227,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # `superset.sql_lab._validate_query` so the user-facing
                     # error doesn't echo the operator's full denylist. Honors
                     # schema-qualified denylist entries (e.g.
-                    # ``information_schema.tables``).
-                    found_tables = parsed.get_disallowed_tables(disallowed_tables)
+                    # ``information_schema.tables``) and resolves unqualified
+                    # references against the query schema.
+                    found_tables = parsed.get_disallowed_tables(
+                        disallowed_tables, schema
+                    )
                     if found_tables:
                         raise SupersetDisallowedSQLTableException(found_tables)
         return expression
@@ -1461,8 +1464,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # Report only the tables actually found in the query, mirroring the
             # canonical execution-time gate so the user-facing error doesn't
             # echo the operator's full denylist. Honors schema-qualified
-            # denylist entries (e.g. ``information_schema.tables``).
-            found_tables = parsed_script.get_disallowed_tables(disallowed_tables)
+            # denylist entries (e.g. ``information_schema.tables``) and resolves
+            # unqualified references against the query schema.
+            found_tables = parsed_script.get_disallowed_tables(
+                disallowed_tables, self.schema
+            )
             if found_tables:
                 raise SupersetDisallowedSQLTableException(found_tables)
 
