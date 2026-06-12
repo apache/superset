@@ -102,10 +102,15 @@ const createFetchRequest = async (
     'Content-Type': 'application/x-www-form-urlencoded',
   };
 
-  // Get CSRF token using SupersetClient
-  const csrfToken = await SupersetClient.getCSRFToken();
-  if (csrfToken) {
-    headers['X-CSRFToken'] = csrfToken;
+  const guestToken = SupersetClient.getGuestToken();
+  const isGuestTokenChartExport =
+    Boolean(guestToken) && !('client_id' in payload);
+
+  if (!isGuestTokenChartExport) {
+    const csrfToken = await SupersetClient.getCSRFToken();
+    if (csrfToken) {
+      headers['X-CSRFToken'] = csrfToken;
+    }
   }
 
   const formParams: Record<string, string> = {};
@@ -118,8 +123,7 @@ const createFetchRequest = async (
     formParams.expected_rows = expectedRows.toString();
   }
 
-  const guestToken = SupersetClient.getGuestToken();
-  if (guestToken) {
+  if (guestToken && isGuestTokenChartExport) {
     formParams.guest_token = guestToken;
   }
 
