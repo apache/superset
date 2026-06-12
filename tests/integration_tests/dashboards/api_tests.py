@@ -2962,7 +2962,7 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
         assert "_example.zip" in rv.headers["Content-Disposition"]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
-    def test_export_as_example_data_respects_row_level_filters(self):
+    def test_export_as_example_data_respects_row_level_filters(self) -> None:
         """
         Dashboard API: export_as_example with export_data must apply the
         dataset's row-level filters, so a restricted user only receives the

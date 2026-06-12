@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+from collections.abc import Iterator
 from io import BytesIO
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -336,9 +337,9 @@ def _make_data_export_dataset(rows: list[dict[str, Any]]) -> MagicMock:
     dataset = MagicMock()
     dataset.table_name = "private_table"
     dataset.database = MagicMock()  # truthy
-    col_uid = MagicMock(column_name="uid", expression=None)
-    col_data = MagicMock(column_name="data", expression=None)
-    dataset.columns = [col_uid, col_data]
+    dataset.columns = [
+        MagicMock(column_name=name, expression=None) for name in ("uid", "data")
+    ]
     result = MagicMock()
     result.status = QueryStatus.SUCCESS
     result.df = pd.DataFrame(rows)
@@ -347,14 +348,14 @@ def _make_data_export_dataset(rows: list[dict[str, Any]]) -> MagicMock:
 
 
 @pytest.fixture
-def patched_db():
+def patched_db() -> Iterator[MagicMock]:
     """Patch ``superset.db`` so merge() returns the dataset unchanged."""
     with patch("superset.db") as mock_db:
         mock_db.session.merge.side_effect = lambda d: d
         yield mock_db
 
 
-def test_export_dataset_data_skips_when_access_denied(patched_db):
+def test_export_dataset_data_skips_when_access_denied(patched_db: MagicMock) -> None:
     """
     A requester without access to the dataset must get no data file, and the
     underlying rows must never be fetched (no fallback raw read).
@@ -374,7 +375,7 @@ def test_export_dataset_data_skips_when_access_denied(patched_db):
     dataset.query.assert_not_called()
 
 
-def test_export_dataset_data_fetches_through_query_path(patched_db):
+def test_export_dataset_data_fetches_through_query_path(patched_db: MagicMock) -> None:
     """
     Rows are fetched through the dataset's own query builder (which applies the
     per-row filters), and exactly those rows are what gets written to Parquet.
@@ -401,7 +402,9 @@ def test_export_dataset_data_fetches_through_query_path(patched_db):
     assert exported.to_dict("records") == own_rows
 
 
-def test_export_dataset_data_applies_row_limit_at_query_level(patched_db):
+def test_export_dataset_data_applies_row_limit_at_query_level(
+    patched_db: MagicMock,
+) -> None:
     """sample_rows is passed as a SQL-level row_limit, not applied post-fetch."""
     dataset = _make_data_export_dataset([{"uid": 1, "data": "a"}])
 
@@ -411,7 +414,7 @@ def test_export_dataset_data_applies_row_limit_at_query_level(patched_db):
     assert query_obj["row_limit"] == 5
 
 
-def test_export_dataset_data_skips_on_failed_query(patched_db):
+def test_export_dataset_data_skips_on_failed_query(patched_db: MagicMock) -> None:
     """
     The query path signals failure via status rather than raising, so a failed
     query must yield no data file instead of an empty/partial Parquet.
