@@ -23,7 +23,7 @@
  * This module defines the aggregate interfaces used by the extension.json
  * manifest and the `superset-extensions` build command. Individual metadata
  * types are defined in their respective namespace modules (commands, views,
- * menus, editors) and re-exported here for the manifest schema.
+ * menus, editors, chat) and re-exported here for the manifest schema.
  */
 
 import { Chat } from '../chat';
