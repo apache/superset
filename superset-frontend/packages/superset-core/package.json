@@ -18,6 +18,10 @@
       "types": "./lib/authentication/index.d.ts",
       "default": "./lib/authentication/index.js"
     },
+    "./chat": {
+      "types": "./lib/chat/index.d.ts",
+      "default": "./lib/chat/index.js"
+    },
     "./dashboard": {
       "types": "./lib/dashboard/index.d.ts",
       "default": "./lib/dashboard/index.js"

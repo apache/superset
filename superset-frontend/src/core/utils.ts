@@ -51,9 +51,20 @@ export interface Emitter<T> {
   getCurrent: () => T;
 }
 
-export function createEmitter<T>(initial: T): Emitter<T> {
+/**
+ * A current-value-less event emitter for pure notifications (e.g. "a chat
+ * was registered", "the panel opened") where a "latest value" reading makes
+ * no sense. {@link createEmitter} layers value tracking on top of this.
+ */
+export interface EventEmitter<T> {
+  /** Subscribe to events; conforms to the public `Event<T>` shape. */
+  event: EventSubscriber<T>;
+  /** Notify all current subscribers with `value`. */
+  fire: (value: T) => void;
+}
+
+export function createEventEmitter<T>(): EventEmitter<T> {
   const listeners = new Set<(e: T) => void>();
-  let current = initial;
 
   return {
     event: (listener, thisArgs) => {
@@ -64,8 +75,20 @@ export function createEmitter<T>(initial: T): Emitter<T> {
       });
     },
     fire: value => {
-      current = value;
       listeners.forEach(fn => fn(value));
+    },
+  };
+}
+
+export function createEmitter<T>(initial: T): Emitter<T> {
+  const { event, fire } = createEventEmitter<T>();
+  let current = initial;
+
+  return {
+    event,
+    fire: value => {
+      current = value;
+      fire(value);
     },
     getCurrent: () => current,
   };

@@ -17,12 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import {
-  views,
-  resolveView,
-  getViewProvider,
-  getRegisteredViewIds,
-} from './index';
+import { views, resolveView } from './index';
 
 const disposables: Array<{ dispose: () => void }> = [];
 
@@ -114,60 +109,4 @@ test('dispose removes the view registration', () => {
   disposable.dispose();
 
   expect(views.getViews('sqllab.panels')).toBeUndefined();
-});
-
-test('getViewProvider returns the registered provider for a matching location', () => {
-  const provider = () => React.createElement('div', null, 'Test');
-  disposables.push(
-    views.registerView(
-      { id: 'test.provider', name: 'Test Provider' },
-      'core.chatbot',
-      provider,
-    ),
-  );
-
-  expect(getViewProvider('core.chatbot', 'test.provider')).toBe(provider);
-});
-
-test('getViewProvider returns undefined when the location does not match', () => {
-  const provider = () => React.createElement('div', null, 'Test');
-  disposables.push(
-    views.registerView(
-      { id: 'test.provider', name: 'Test Provider' },
-      'sqllab.panels',
-      provider,
-    ),
-  );
-
-  // Registered, but at a different location.
-  expect(getViewProvider('core.chatbot', 'test.provider')).toBeUndefined();
-});
-
-test('getViewProvider returns undefined for an unknown id', () => {
-  expect(getViewProvider('core.chatbot', 'nonexistent')).toBeUndefined();
-});
-
-test('getRegisteredViewIds returns ids in registration order', () => {
-  const provider = () => React.createElement('div', null, 'Test');
-  disposables.push(
-    views.registerView(
-      { id: 'first.chatbot', name: 'First' },
-      'core.chatbot',
-      provider,
-    ),
-    views.registerView(
-      { id: 'second.chatbot', name: 'Second' },
-      'core.chatbot',
-      provider,
-    ),
-  );
-
-  expect(getRegisteredViewIds('core.chatbot')).toEqual([
-    'first.chatbot',
-    'second.chatbot',
-  ]);
-});
-
-test('getRegisteredViewIds returns an empty array for an unused location', () => {
-  expect(getRegisteredViewIds('core.chatbot')).toEqual([]);
 });

@@ -97,6 +97,7 @@ test('sets up global superset object when user is logged in', async () => {
     // Verify the global superset object is set up
     expect((window as any).superset).toBeDefined();
     expect((window as any).superset.authentication).toBeDefined();
+    expect((window as any).superset.chat).toBeDefined();
     expect((window as any).superset.core).toBeDefined();
     expect((window as any).superset.commands).toBeDefined();
     expect((window as any).superset.extensions).toBeDefined();

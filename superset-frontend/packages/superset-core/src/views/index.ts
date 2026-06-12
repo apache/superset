@@ -75,15 +75,6 @@ export interface View {
  *   () => <ResultStatsPanel />,
  * );
  * ```
- *
- * @example Chatbot bubble (`core.chatbot` — singleton, host renders one)
- * ```typescript
- * views.registerView(
- *   { id: 'my_ext.chatbot', name: 'My Chatbot', icon: 'Bubble' },
- *   'core.chatbot',
- *   () => <ChatbotApp />,
- * );
- * ```
  */
 export declare function registerView(
   view: View,
