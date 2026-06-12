@@ -1,0 +1,22 @@
+name: SBOM Findings
+
+on:
+  pull_request:
+    branches: [master, main]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: sbom-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  findings:
+    permissions:
+      contents: read
+      pull-requests: write
+    uses: Piletilevi/sec-workflows/.github/workflows/sbom-findings.yaml@v2
+    secrets:
+      DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }}
