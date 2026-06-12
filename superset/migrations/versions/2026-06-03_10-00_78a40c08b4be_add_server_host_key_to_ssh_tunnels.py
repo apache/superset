@@ -37,12 +37,12 @@ revision = "78a40c08b4be"
 down_revision = "b7c9d1e2f3a4"
 
 
-def upgrade():
+def upgrade() -> None:
     add_columns(
         "ssh_tunnels",
         sa.Column("server_host_key", sa.Text(), nullable=True),
     )
 
 
-def downgrade():
+def downgrade() -> None:
     drop_columns("ssh_tunnels", "server_host_key")

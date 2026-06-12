@@ -26,6 +26,7 @@ import paramiko
 import sshtunnel
 from flask import Flask
 from paramiko import RSAKey
+from paramiko.pkey import UnknownKeyType
 
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelDatabasePortError,
@@ -56,7 +57,10 @@ def _parse_authorized_key(authorized_key: str) -> paramiko.PKey:
         key_bytes = base64.b64decode(key_b64)
     except (binascii.Error, ValueError) as ex:
         raise ValueError("Host key base64 payload could not be decoded") from ex
-    return paramiko.PKey.from_type_string(key_type, key_bytes)
+    try:
+        return paramiko.PKey.from_type_string(key_type, key_bytes)
+    except (paramiko.SSHException, UnknownKeyType) as ex:
+        raise ValueError(f"Host key could not be parsed: {ex}") from ex
 
 
 class SSHManager:

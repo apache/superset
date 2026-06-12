@@ -27,6 +27,7 @@ from superset.extensions.ssh import SSHManager, SSHManagerFactory
 
 
 def _make_manager(strict: bool = False) -> SSHManager:
+    """Build an ``SSHManager`` test instance with configurable strict checking."""
     app = Mock()
     app.config = {
         "SSH_TUNNEL_MAX_RETRIES": 2,
@@ -40,10 +41,12 @@ def _make_manager(strict: bool = False) -> SSHManager:
 
 
 def _authorized_key(key: paramiko.PKey) -> str:
+    """Render a paramiko key in authorized-key (``"<type> <base64>"``) form."""
     return f"{key.get_name()} {key.get_base64()}"
 
 
 def _ssh_tunnel(server_host_key: str | None) -> Mock:
+    """Create a mocked SSH tunnel with server connection fields populated."""
     tunnel = Mock()
     tunnel.server_address = "ssh.example.com"
     tunnel.server_port = 22
@@ -71,7 +74,7 @@ def test_ssh_tunnel_timeout_setting() -> None:
 def test_verify_host_key_match(
     mock_transport_cls: Mock, mock_create_connection: Mock
 ) -> None:
-    # The server presents the same key we expect: verification passes.
+    """The server presents the same key we expect: verification passes."""
     server_key = paramiko.RSAKey.generate(2048)
     manager = _make_manager(strict=False)
     tunnel = _ssh_tunnel(_authorized_key(server_key))
@@ -96,7 +99,7 @@ def test_verify_host_key_match(
 def test_verify_host_key_mismatch_raises(
     mock_transport_cls: Mock, mock_create_connection: Mock
 ) -> None:
-    # The server presents a different key than expected: verification fails.
+    """The server presents a different key than expected: verification fails."""
     expected_key = paramiko.RSAKey.generate(2048)
     presented_key = paramiko.RSAKey.generate(2048)
     manager = _make_manager(strict=False)
@@ -182,6 +185,16 @@ def test_verify_host_key_invalid_expected_raises() -> None:
     # A malformed expected key is rejected before any network connection.
     manager = _make_manager(strict=False)
     tunnel = _ssh_tunnel("not-a-valid-key")
+
+    with pytest.raises(SSHTunnelHostKeyVerificationError):
+        manager._verify_host_key(tunnel)
+
+
+def test_verify_host_key_unknown_key_type_raises() -> None:
+    """An unsupported key type is wrapped in the verification error, not leaked."""
+    manager = _make_manager(strict=False)
+    server_key = paramiko.RSAKey.generate(2048)
+    tunnel = _ssh_tunnel(f"ssh-bogus {server_key.get_base64()}")
 
     with pytest.raises(SSHTunnelHostKeyVerificationError):
         manager._verify_host_key(tunnel)

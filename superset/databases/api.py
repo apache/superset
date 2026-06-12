@@ -577,6 +577,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except (
             SSHTunnelingNotEnabledError,
             SSHTunnelDatabasePortError,
+            SSHTunnelHostKeyVerificationError,
         ) as ex:
             return self.response_400(message=str(ex))
 

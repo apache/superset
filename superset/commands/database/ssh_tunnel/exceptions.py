@@ -78,6 +78,8 @@ class SSHTunnelInvalidCredentials(CommandInvalidError, SSHTunnelError):  # noqa:
 
 
 class SSHTunnelHostKeyVerificationError(CommandInvalidError, SSHTunnelError):
+    """The SSH server's host key failed opt-in verification for a tunnel."""
+
     message = _(
         "The SSH server host key could not be verified against the expected key."
     )
