@@ -32,6 +32,22 @@ import {
 } from '@superset-ui/chart-controls';
 import { supersetTheme } from '@apache-superset/core/theme';
 
+type AxisLabelFormatter = ((value: number | string) => string) & {
+  id?: string;
+};
+
+interface TestAxis {
+  type?: string;
+  axisLabel: { formatter: AxisLabelFormatter };
+}
+
+interface TestScatterSeries {
+  type?: string;
+  name?: string;
+  data: (string | number | null)[][];
+  symbolSize: (value: (string | number | null)[]) => number;
+}
+
 describe('Scatter Chart X-axis Time Formatting', () => {
   const baseFormData: EchartsTimeseriesFormData = {
     ...DEFAULT_FORM_DATA,
@@ -74,7 +90,7 @@ describe('Scatter Chart X-axis Time Formatting', () => {
     );
 
     expect(transformedProps.echartOptions.xAxis).toHaveProperty('axisLabel');
-    const xAxis = transformedProps.echartOptions.xAxis as any;
+    const xAxis = transformedProps.echartOptions.xAxis as TestAxis;
     expect(xAxis.axisLabel).toHaveProperty('formatter');
     expect(typeof xAxis.axisLabel.formatter).toBe('function');
   });
@@ -94,7 +110,7 @@ describe('Scatter Chart X-axis Time Formatting', () => {
         chartProps as EchartsTimeseriesChartProps,
       );
 
-      const xAxis = transformedProps.echartOptions.xAxis as any;
+      const xAxis = transformedProps.echartOptions.xAxis as TestAxis;
       expect(xAxis.axisLabel).toHaveProperty('formatter');
       expect(typeof xAxis.axisLabel.formatter).toBe('function');
       if (format !== SMART_DATE_ID) {
@@ -146,7 +162,7 @@ describe('Scatter Chart X-axis Number Formatting', () => {
     );
 
     expect(transformedProps.echartOptions.xAxis).toHaveProperty('axisLabel');
-    const xAxis = transformedProps.echartOptions.xAxis as any;
+    const xAxis = transformedProps.echartOptions.xAxis as TestAxis;
     expect(xAxis.axisLabel).toHaveProperty('formatter');
     expect(typeof xAxis.axisLabel.formatter).toBe('function');
     expect(xAxis.axisLabel.formatter.id).toBe('SMART_NUMBER');
@@ -168,7 +184,7 @@ describe('Scatter Chart X-axis Number Formatting', () => {
       );
 
       expect(transformedProps.echartOptions.xAxis).toHaveProperty('axisLabel');
-      const xAxis = transformedProps.echartOptions.xAxis as any;
+      const xAxis = transformedProps.echartOptions.xAxis as TestAxis;
       expect(xAxis.axisLabel).toHaveProperty('formatter');
       expect(typeof xAxis.axisLabel.formatter).toBe('function');
       expect(xAxis.axisLabel.formatter.id).toBe(format);
@@ -216,7 +232,9 @@ describe('Scatter Chart Orientation and Dot Size Metric', () => {
   };
 
   const getScatterSeries = (props: ReturnType<typeof transformProps>) =>
-    (props.echartOptions.series as any[]).filter(s => s.type === 'scatter');
+    (props.echartOptions.series as TestScatterSeries[]).filter(
+      s => s.type === 'scatter',
+    );
 
   const singleMetricData = [
     {
@@ -240,7 +258,10 @@ describe('Scatter Chart Orientation and Dot Size Metric', () => {
     const transformedProps = transformProps(
       chartProps as EchartsTimeseriesChartProps,
     );
-    const { xAxis, yAxis } = transformedProps.echartOptions as any;
+    const { xAxis, yAxis } = transformedProps.echartOptions as {
+      xAxis: TestAxis;
+      yAxis: TestAxis;
+    };
     expect(yAxis.type).toBe('category');
     expect(xAxis.type).toBe('value');
 
@@ -260,7 +281,10 @@ describe('Scatter Chart Orientation and Dot Size Metric', () => {
     const transformedProps = transformProps(
       chartProps as EchartsTimeseriesChartProps,
     );
-    const { xAxis, yAxis } = transformedProps.echartOptions as any;
+    const { xAxis, yAxis } = transformedProps.echartOptions as {
+      xAxis: TestAxis;
+      yAxis: TestAxis;
+    };
     expect(xAxis.type).toBe('category');
     expect(yAxis.type).toBe('value');
 
@@ -361,12 +385,12 @@ describe('Scatter Chart Orientation and Dot Size Metric', () => {
       chartProps as EchartsTimeseriesChartProps,
     );
     const series = getScatterSeries(transformedProps);
-    expect(series.map((s: any) => s.name).sort()).toEqual([
+    expect(series.map(s => s.name).sort()).toEqual([
       'sum_val, g1',
       'sum_val, g2',
     ]);
-    const g1 = series.find((s: any) => s.name === 'sum_val, g1');
-    const g2 = series.find((s: any) => s.name === 'sum_val, g2');
+    const g1 = series.find(s => s.name === 'sum_val, g1')!;
+    const g2 = series.find(s => s.name === 'sum_val, g2')!;
     // the size extent is global: g1's point holds the minimum (10), g2's the
     // maximum (40)
     expect(g1.symbolSize(['A', 1])).toBe(5);
@@ -396,7 +420,7 @@ describe('Scatter Chart Orientation and Dot Size Metric', () => {
     expect(series.symbolSize([3, 'C'])).toBe(30);
   });
 
-  test('points without a size value fall back to the fixed marker size', () => {
+  test('points without a size value fall back to the minimum dot size', () => {
     const chartProps = new ChartProps({
       ...baseChartPropsConfig,
       queriesData: [
@@ -409,14 +433,40 @@ describe('Scatter Chart Orientation and Dot Size Metric', () => {
           ],
         },
       ],
-      formData: { ...baseFormData, size: 'size_metric', markerSize: 7 },
+      formData: {
+        ...baseFormData,
+        size: 'size_metric',
+        minMarkerSize: 9,
+        maxMarkerSize: 30,
+      },
     });
 
     const transformedProps = transformProps(
       chartProps as EchartsTimeseriesChartProps,
     );
     const [series] = getScatterSeries(transformedProps);
-    expect(series.symbolSize(['B', 2])).toBe(7);
+    expect(series.symbolSize(['B', 2])).toBe(9);
+  });
+
+  test('an inverted min/max dot size range is normalized', () => {
+    const chartProps = new ChartProps({
+      ...baseChartPropsConfig,
+      queriesData: categoricalData,
+      formData: {
+        ...baseFormData,
+        size: 'size_metric',
+        minMarkerSize: 30,
+        maxMarkerSize: 5,
+      },
+    });
+
+    const transformedProps = transformProps(
+      chartProps as EchartsTimeseriesChartProps,
+    );
+    const [series] = getScatterSeries(transformedProps);
+    // larger metric values still render as larger dots
+    expect(series.symbolSize(['A', 1])).toBe(5);
+    expect(series.symbolSize(['C', 3])).toBe(30);
   });
 
   test('size metric equal to the value metric sizes dots by their own value', () => {

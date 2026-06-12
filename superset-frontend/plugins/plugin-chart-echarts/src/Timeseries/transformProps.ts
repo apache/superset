@@ -423,7 +423,12 @@ export default function transformProps(
     }
     return name === matchedLabel ? '' : name.slice(matchedLabel.length + 2);
   };
-  const markerSizeRange: [number, number] = [minMarkerSize, maxMarkerSize];
+  // Normalize the configured dot size range so an inverted min/max still
+  // scales larger metric values to larger dots.
+  const markerSizeRange: [number, number] =
+    minMarkerSize <= maxMarkerSize
+      ? [minMarkerSize, maxMarkerSize]
+      : [maxMarkerSize, minMarkerSize];
 
   const showValueIndexes = extractShowValueIndexes(rawSeries, {
     stack,
@@ -571,9 +576,12 @@ export default function transformProps(
           const sizeValue = sizeIsValueMetric
             ? value[isHorizontal ? 0 : 1]
             : sizeLookup!.get(value[isHorizontal ? 1 : 0]);
+          // Points with a missing/invalid size value get the smallest
+          // configured dot size; the fixed marker size control is hidden
+          // when a size metric is set, so its value would be stale here.
           return typeof sizeValue === 'number'
             ? getAreaScaledSymbolSize(sizeValue, extent, markerSizeRange)
-            : markerSize;
+            : markerSizeRange[0];
         };
       }
     }
