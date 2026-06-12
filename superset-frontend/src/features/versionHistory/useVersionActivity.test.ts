@@ -29,10 +29,7 @@ const mockedFetchActivity = api.fetchActivity as jest.MockedFunction<
 
 const PAGE_SIZE = 25;
 
-const record = (
-  transactionId: number,
-  index: number,
-): ActivityRecord => ({
+const record = (transactionId: number, index: number): ActivityRecord => ({
   version_uuid: `v-${transactionId}`,
   entity_kind: 'chart',
   entity_uuid: 'e-1',
