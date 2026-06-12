@@ -72,7 +72,7 @@ export interface MenuContributions {
 }
 
 /**
- * Aggregates all contributions (commands, menus, views, editors, and chats)
+ * Aggregates all contributions (commands, menus, views, editors, and chat)
  * provided by an extension or module.
  */
 export interface Contributions {
@@ -84,7 +84,10 @@ export interface Contributions {
   views: ViewContributions;
   /** List of editors. */
   editors?: Editor[];
-  /** the host applies singleton resolution and renders exactly one active chat at a time.
+  /**
+   * The chat contributed by the extension — at most one per extension, since
+   * the host applies singleton resolution and renders exactly one active
+   * chat at a time.
    */
-  chats?: Chat[];
+  chat?: Chat;
 }
