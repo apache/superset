@@ -124,6 +124,8 @@ const KebabButton = styled(Button)`
 export interface ActionRowProps {
   entityType: VersionedEntityType;
   record: ActivityRecord;
+  /** False for the current (live) version, where restoring is a no-op. */
+  showRestore: boolean;
   isPreviewed: boolean;
   isLast: boolean;
   onPreview: () => void;
@@ -134,6 +136,7 @@ export interface ActionRowProps {
 export default function ActionRow({
   entityType,
   record,
+  showRestore,
   isPreviewed,
   isLast,
   onPreview,
@@ -153,19 +156,23 @@ export default function ActionRow({
     alignItems: 'center',
   };
   const menuItems = [
-    {
-      key: 'restore',
-      label: t('Restore this version'),
-      style: itemStyle,
-      onClick: ({
-        domEvent,
-      }: {
-        domEvent: { stopPropagation: () => void };
-      }) => {
-        domEvent.stopPropagation();
-        onRestore();
-      },
-    },
+    ...(showRestore
+      ? [
+          {
+            key: 'restore',
+            label: t('Restore this version'),
+            style: itemStyle,
+            onClick: ({
+              domEvent,
+            }: {
+              domEvent: { stopPropagation: () => void };
+            }) => {
+              domEvent.stopPropagation();
+              onRestore();
+            },
+          },
+        ]
+      : []),
     {
       key: 'open-as-new',
       label:

@@ -28,6 +28,7 @@ import type { Slice } from 'src/types/Chart';
 import type { ExplorePageState } from 'src/explore/types';
 import type { ActivityInclude, ActivityRecord, SaveGroup } from './types';
 import {
+  clearVersionPreview,
   closeVersionHistoryPanel,
   openVersionHistoryPanel,
   selectIsVersionHistoryPanelOpen,
@@ -190,6 +191,10 @@ export default function ExploreVersionHistory() {
     [dispatch, uuid],
   );
 
+  const handleExitPreview = useCallback(() => {
+    dispatch(clearVersionPreview());
+  }, [dispatch]);
+
   const handleOpenRelated = useCallback(
     (record: ActivityRecord) => {
       openRelatedEntity(record, addDangerToast);
@@ -238,6 +243,7 @@ export default function ExploreVersionHistory() {
           previewedTransactionId={preview?.transactionId ?? null}
           onClose={handleClose}
           onPreview={handlePreview}
+          onExitPreview={handleExitPreview}
           onRestore={handleRestore}
           onOpenAsNew={handleOpenAsNew}
           onOpenRelated={handleOpenRelated}
