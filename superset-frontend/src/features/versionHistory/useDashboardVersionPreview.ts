@@ -19,7 +19,7 @@
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector, useStore } from 'react-redux';
 import { useHistory } from 'react-router-dom';
-import type { JsonObject } from '@superset-ui/core';
+import type { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
@@ -27,6 +27,7 @@ import {
   HydrateChartData,
   HydrateDashboardData,
 } from 'src/dashboard/actions/hydrate';
+import { clearDataMaskState } from 'src/dataMask/actions';
 import type { RootState } from 'src/dashboard/types';
 import {
   fetchDashboardHydrationData,
@@ -134,6 +135,10 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
     state => state.dashboardInfo?.id,
   );
   const liveDataRef = useRef<DashboardHydrationData | null>(null);
+  // The user's filter selections at the moment they entered preview, restored
+  // when the preview closes. Captured once per live -> preview transition so
+  // switching between previewed versions keeps the original live state.
+  const liveDataMaskRef = useRef<DataMaskStateWithId | null>(null);
   const appliedVersionRef = useRef<string | null>(null);
   const fetchIdRef = useRef(0);
   const restoreCount = useSelector(selectVersionRestoreCount);
@@ -145,13 +150,20 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
     const hydrateWith = (
       dashboard: HydrateDashboardData,
       charts: HydrateChartData[],
+      dataMask: DataMaskStateWithId,
     ) => {
+      // Hydration merges into any existing dataMask entries, which would let
+      // filter selections from one version leak into another; reset first so
+      // each hydrate starts from exactly the dataMask passed in. The two
+      // dispatches are synchronous back-to-back, so React batches them into
+      // a single render.
+      dispatch(clearDataMaskState());
       dispatch(
         hydrateDashboard({
           history,
           dashboard,
           charts,
-          dataMask: store.getState().dataMask,
+          dataMask,
           activeTabs: null,
           chartStates: null,
         }),
@@ -164,6 +176,7 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
       lastRestoreCountRef.current = restoreCount;
       appliedVersionRef.current = null;
       liveDataRef.current = null;
+      liveDataMaskRef.current = null;
       if (!dashboardId) {
         return;
       }
@@ -175,7 +188,9 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
             return;
           }
           liveDataRef.current = data;
-          hydrateWith(data.dashboard, data.charts);
+          // A restored version behaves like a fresh page load: its own
+          // filter defaults, no carried-over selections.
+          hydrateWith(data.dashboard, data.charts, {});
         })
         .catch(() => {
           if (fetchId === fetchIdRef.current) {
@@ -211,7 +226,14 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
           return;
         }
         const { dashboard } = liveDataRef.current;
+        if (appliedVersionRef.current === null) {
+          // Entering preview from the live dashboard: remember the user's
+          // filter selections so closing the preview can bring them back.
+          liveDataMaskRef.current = store.getState().dataMask;
+        }
         appliedVersionRef.current = versionUuid;
+        // The snapshot renders with its own filter defaults (from its
+        // native_filter_configuration), not the live selections.
         hydrateWith(
           {
             ...dashboard,
@@ -223,6 +245,7 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
             position_data: positionData,
           } as HydrateDashboardData,
           charts,
+          {},
         );
       };
       apply().catch(() => {
@@ -232,13 +255,19 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
         }
       });
     } else if (!versionUuid && appliedVersionRef.current) {
-      // Preview closed; put the live dashboard back.
+      // Preview closed; put the live dashboard back along with the filter
+      // selections the user had before previewing.
       fetchIdRef.current += 1;
       appliedVersionRef.current = null;
       const liveData = liveDataRef.current;
       if (liveData) {
-        hydrateWith(liveData.dashboard, liveData.charts);
+        hydrateWith(
+          liveData.dashboard,
+          liveData.charts,
+          liveDataMaskRef.current ?? {},
+        );
       }
+      liveDataMaskRef.current = null;
     }
   }, [
     addDangerToast,
