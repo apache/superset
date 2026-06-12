@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-FROM node:22-alpine AS build
+FROM node:24-alpine AS build
 
 # Harden `npm ci` against transient npm-registry network blips (e.g. ECONNRESET),
 # which otherwise fail the image build with no retry.
@@ -29,7 +29,7 @@ RUN npm ci && \
   npm run build
 
 
-FROM node:22-alpine
+FROM node:24-alpine
 
 # Retry npm-registry fetches so a transient blip doesn't fail the build.
 ENV NODE_ENV=production \

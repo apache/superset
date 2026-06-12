@@ -24,6 +24,27 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Map chart renderer and OpenStreetMap migration behavior
+
+The MapLibre migration for deck.gl charts preserves saved non-Mapbox styles on
+the MapLibre-compatible path. Saved styles such as OpenStreetMap, `tile://`
+tile templates, generic HTTPS style URLs, and charts without a saved style are
+not reclassified as Mapbox during migration and do not require
+`MAPBOX_API_KEY` only because of the migration.
+
+Saved true Mapbox styles whose value starts with `mapbox://` remain
+Mapbox-backed. If a Superset deployment does not configure `MAPBOX_API_KEY`,
+those saved Mapbox charts keep the existing missing-key message instead of
+silently falling back to MapLibre or another provider. In Explore, deck.gl and
+point-cluster renderer controls preserve saved Mapbox state, but the Mapbox
+choice is not available as a new working renderer without a configured key.
+
+The MapLibre style choices include `Streets (OSM)`, backed by
+`https://tile.openstreetmap.org/{z}/{x}/{y}.png`. This OpenStreetMap tile
+service requires visible `© OpenStreetMap contributors` attribution and should
+be used through normal browser map tile requests and caching; it is not intended
+for bulk prefetch or offline tile downloads.
+
 ### Duration formatter precision
 
 The `DURATION` number formatter now uses `Intl.DurationFormat` for locale-aware output. By default, sub-second fields are omitted, so values that previously displayed fractional seconds with `pretty-ms`, such as `10500` milliseconds rendering as `10.5s`, now render as `10s`.
@@ -69,6 +90,10 @@ superset revoke-guest-tokens
 ```
 
 This change is backward compatible. The feature is off by default, and even when enabled nothing is revoked until an admin explicitly bumps the version: the expected version starts at `0`, and tokens minted before this change (which carry no version claim) are treated as version `0`. No database migration is required.
+
+### Sessions are terminated when an account is disabled
+
+Disabling a user account (setting `active` to `False`, via the admin UI, REST API, or CLI) now terminates that user's outstanding sessions on their next request, instead of relying on a passive check. This works for both client-side cookie sessions and server-side session stores via a per-user invalidation epoch (`user_attribute.sessions_invalidated_at`, added by a migration). The mechanism is inert for users that were never disabled (NULL epoch), so there is no behavior change for active users. Re-enabling an account and logging in again starts a fresh, valid session. The migration backfills the epoch for accounts that are already disabled at upgrade time, so re-enabling such an account does not revive a session that predates this feature.
 
 ### Dataset import validates catalog against the target connection
 
