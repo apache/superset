@@ -99,6 +99,10 @@ def validate_password_complexity(password: str) -> None:
         min_length = int(raw_min_length)
     except (TypeError, ValueError):
         min_length = DEFAULT_MIN_LENGTH
+    # A zero or negative value would silently disable the length check, so
+    # treat non-positive values as misconfiguration and use the default.
+    if min_length < 1:
+        min_length = DEFAULT_MIN_LENGTH
 
     if len(password) < min_length:
         raise PasswordComplexityValidationError(

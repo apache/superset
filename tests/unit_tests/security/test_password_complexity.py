@@ -23,16 +23,18 @@ from superset.security.password_complexity import validate_password_complexity
 
 
 def test_validate_password_complexity_accepts_strong_password() -> None:
-    # No exception for a sufficiently long, uncommon password.
+    """A sufficiently long, uncommon password passes without raising."""
     validate_password_complexity("a-Good-Long-Passphrase-42")
 
 
 def test_validate_password_complexity_rejects_short_password() -> None:
+    """A password below the default minimum length is rejected."""
     with pytest.raises(PasswordComplexityValidationError):
         validate_password_complexity("short1")  # < 8 chars
 
 
 def test_validate_password_complexity_rejects_common_password() -> None:
+    """Blocklisted passwords are rejected, case-insensitively."""
     # Common even though length >= 8.
     with pytest.raises(PasswordComplexityValidationError):
         validate_password_complexity("password123")
@@ -42,6 +44,7 @@ def test_validate_password_complexity_rejects_common_password() -> None:
 
 
 def test_validate_password_complexity_honors_configured_min_length() -> None:
+    """A configured AUTH_PASSWORD_MIN_LENGTH overrides the default."""
     original = current_app.config.get("AUTH_PASSWORD_MIN_LENGTH")
     current_app.config["AUTH_PASSWORD_MIN_LENGTH"] = 16
     try:
@@ -52,6 +55,7 @@ def test_validate_password_complexity_honors_configured_min_length() -> None:
 
 
 def test_validate_password_complexity_honors_extra_blocklist() -> None:
+    """Entries in AUTH_PASSWORD_COMMON_BLOCKLIST are enforced."""
     original = current_app.config.get("AUTH_PASSWORD_COMMON_BLOCKLIST")
     current_app.config["AUTH_PASSWORD_COMMON_BLOCKLIST"] = ["AcmeCorp2024"]
     try:
@@ -62,7 +66,7 @@ def test_validate_password_complexity_honors_extra_blocklist() -> None:
 
 
 def test_validate_password_complexity_coerces_string_min_length() -> None:
-    # Operators wiring config via env vars may pass min length as a string.
+    """A string min length (e.g. from an env var) is coerced to int."""
     original = current_app.config.get("AUTH_PASSWORD_MIN_LENGTH")
     current_app.config["AUTH_PASSWORD_MIN_LENGTH"] = "16"  # noqa: S105
     try:
@@ -73,7 +77,7 @@ def test_validate_password_complexity_coerces_string_min_length() -> None:
 
 
 def test_validate_password_complexity_tolerates_invalid_min_length() -> None:
-    # A non-numeric/None min length must not blow up; fall back to the default.
+    """A non-numeric min length falls back to the default instead of raising."""
     original = current_app.config.get("AUTH_PASSWORD_MIN_LENGTH")
     current_app.config["AUTH_PASSWORD_MIN_LENGTH"] = "not-a-number"  # noqa: S105
     try:
@@ -85,7 +89,7 @@ def test_validate_password_complexity_tolerates_invalid_min_length() -> None:
 
 
 def test_validate_password_complexity_blocklist_string_not_split() -> None:
-    # A misconfigured string blocklist must be treated as one entry, not chars.
+    """A bare-string blocklist is one entry, not split into characters."""
     original = current_app.config.get("AUTH_PASSWORD_COMMON_BLOCKLIST")
     current_app.config["AUTH_PASSWORD_COMMON_BLOCKLIST"] = "AcmeCorp2024"  # noqa: S105
     try:
@@ -95,3 +99,15 @@ def test_validate_password_complexity_blocklist_string_not_split() -> None:
         validate_password_complexity("a-Good-Long-Passphrase-42")
     finally:
         current_app.config["AUTH_PASSWORD_COMMON_BLOCKLIST"] = original
+
+
+def test_validate_password_complexity_clamps_non_positive_min_length() -> None:
+    """A zero or negative min length must not disable the length check."""
+    original = current_app.config.get("AUTH_PASSWORD_MIN_LENGTH")
+    for bad_value in (0, -1):
+        current_app.config["AUTH_PASSWORD_MIN_LENGTH"] = bad_value
+        try:
+            with pytest.raises(PasswordComplexityValidationError):
+                validate_password_complexity("short1")  # < default 8
+        finally:
+            current_app.config["AUTH_PASSWORD_MIN_LENGTH"] = original
