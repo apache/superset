@@ -17,7 +17,7 @@
  * under the License.
  */
 import { createElement } from 'react';
-import { chat, getActiveChat } from './index';
+import { chat, getActiveChat, getChatSnapshot } from './index';
 
 const disposables: Array<{ dispose: () => void }> = [];
 
@@ -42,7 +42,18 @@ test('registerChat resolves the registered chat with its providers', () => {
   disposables.push(chat.registerChat(descriptor, trigger, panel));
 
   expect(chat.getChat()).toEqual(descriptor);
-  expect(getActiveChat()).toEqual({ chat: descriptor, trigger, panel });
+  expect(getActiveChat()).toMatchObject({ chat: descriptor, trigger, panel });
+});
+
+test('getChat returns a copy that cannot mutate the registry', () => {
+  disposables.push(
+    chat.registerChat({ id: 'acme.chat', name: 'Acme Chat' }, trigger, panel),
+  );
+
+  const copy = chat.getChat();
+  copy!.name = 'Hijacked';
+
+  expect(chat.getChat()?.name).toBe('Acme Chat');
 });
 
 test('the last-registered chat wins when multiple are installed', () => {
@@ -80,6 +91,22 @@ test('re-registering an id replaces the previous registration', () => {
 
   expect(chat.getChat()?.name).toBe('Acme v2');
   expect(getActiveChat()?.panel).toBe(panel);
+});
+
+test('each registration gets a distinct registrationId, including same-id replacements', () => {
+  disposables.push(
+    chat.registerChat({ id: 'acme.chat', name: 'Acme' }, trigger, panel),
+  );
+  const first = getActiveChat()?.registrationId;
+
+  disposables.push(
+    chat.registerChat({ id: 'acme.chat', name: 'Acme v2' }, trigger, panel),
+  );
+  const second = getActiveChat()?.registrationId;
+
+  expect(first).toBeDefined();
+  expect(second).toBeDefined();
+  expect(second).not.toBe(first);
 });
 
 test('disposing a registration twice unregisters only once', () => {
@@ -129,10 +156,13 @@ test('a disposed event subscription stops receiving notifications', () => {
   expect(registered).not.toHaveBeenCalled();
 });
 
-test('open and close toggle the panel and fire their events once', () => {
+test('open and close toggle the panel and fire once with the active descriptor', () => {
   const opened = jest.fn();
   const closed = jest.fn();
   disposables.push(chat.onDidOpen(opened), chat.onDidClose(closed));
+
+  const descriptor = { id: 'acme.chat', name: 'Acme' };
+  disposables.push(chat.registerChat(descriptor, trigger, panel));
 
   expect(chat.isOpen()).toBe(false);
 
@@ -142,12 +172,125 @@ test('open and close toggle the panel and fire their events once', () => {
 
   expect(chat.isOpen()).toBe(true);
   expect(opened).toHaveBeenCalledTimes(1);
+  expect(opened).toHaveBeenCalledWith(descriptor);
 
   chat.close();
   chat.close();
 
   expect(chat.isOpen()).toBe(false);
   expect(closed).toHaveBeenCalledTimes(1);
+  expect(closed).toHaveBeenCalledWith(descriptor);
+});
+
+test('open is a no-op while no chat is registered', () => {
+  const opened = jest.fn();
+  disposables.push(chat.onDidOpen(opened));
+
+  chat.open();
+
+  expect(chat.isOpen()).toBe(false);
+  expect(opened).not.toHaveBeenCalled();
+
+  // A registration arriving later therefore starts closed.
+  disposables.push(
+    chat.registerChat({ id: 'acme.chat', name: 'Acme' }, trigger, panel),
+  );
+  expect(chat.isOpen()).toBe(false);
+});
+
+test('a takeover by a different id closes the displaced chat panel', () => {
+  const closed = jest.fn();
+  disposables.push(chat.onDidClose(closed));
+
+  const first = { id: 'first.chat', name: 'First' };
+  disposables.push(chat.registerChat(first, trigger, panel));
+  chat.open();
+
+  disposables.push(
+    chat.registerChat({ id: 'second.chat', name: 'Second' }, trigger, panel),
+  );
+
+  // The incoming chat must not mount into an open state it never requested.
+  expect(chat.isOpen()).toBe(false);
+  expect(closed).toHaveBeenCalledTimes(1);
+  expect(closed).toHaveBeenCalledWith(first);
+});
+
+test('a same-id replacement keeps the open state', () => {
+  const closed = jest.fn();
+  disposables.push(chat.onDidClose(closed));
+
+  disposables.push(
+    chat.registerChat({ id: 'acme.chat', name: 'Acme' }, trigger, panel),
+  );
+  chat.open();
+
+  // Upgrade in place: same id, new providers.
+  disposables.push(
+    chat.registerChat({ id: 'acme.chat', name: 'Acme v2' }, trigger, panel),
+  );
+
+  expect(chat.isOpen()).toBe(true);
+  expect(closed).not.toHaveBeenCalled();
+});
+
+test('disposing the active chat while open closes it; the fallback starts closed', () => {
+  const closed = jest.fn();
+  disposables.push(chat.onDidClose(closed));
+
+  disposables.push(
+    chat.registerChat({ id: 'first.chat', name: 'First' }, trigger, panel),
+  );
+  const second = { id: 'second.chat', name: 'Second' };
+  const registration = chat.registerChat(second, trigger, panel);
+  chat.open();
+
+  registration.dispose();
+
+  expect(chat.getChat()?.id).toBe('first.chat');
+  expect(chat.isOpen()).toBe(false);
+  expect(closed).toHaveBeenCalledTimes(1);
+  expect(closed).toHaveBeenCalledWith(second);
+});
+
+test('disposing an inactive registration leaves the open state untouched', () => {
+  const closed = jest.fn();
+  disposables.push(chat.onDidClose(closed));
+
+  const inactive = chat.registerChat(
+    { id: 'first.chat', name: 'First' },
+    trigger,
+    panel,
+  );
+  disposables.push(
+    chat.registerChat({ id: 'second.chat', name: 'Second' }, trigger, panel),
+  );
+  chat.open();
+
+  inactive.dispose();
+
+  expect(chat.isOpen()).toBe(true);
+  expect(closed).not.toHaveBeenCalled();
+});
+
+test('disposing the last chat while open resets the open state', () => {
+  const registration = chat.registerChat(
+    { id: 'acme.chat', name: 'Acme' },
+    trigger,
+    panel,
+  );
+  chat.open();
+  expect(chat.isOpen()).toBe(true);
+
+  registration.dispose();
+
+  expect(chat.isOpen()).toBe(false);
+
+  // A registration arriving much later must not inherit a stale open state.
+  disposables.push(
+    chat.registerChat({ id: 'late.chat', name: 'Late' }, trigger, panel),
+  );
+  expect(chat.isOpen()).toBe(false);
 });
 
 test('mode defaults to floating and setMode fires only on change', () => {
@@ -163,4 +306,26 @@ test('mode defaults to floating and setMode fires only on change', () => {
   chat.setMode('panel');
   expect(chat.getMode()).toBe('panel');
   expect(modeChanged).toHaveBeenCalledWith('panel');
+});
+
+test('the snapshot is immutable per version and consistent with the registry', () => {
+  const before = getChatSnapshot();
+
+  disposables.push(
+    chat.registerChat({ id: 'acme.chat', name: 'Acme' }, trigger, panel),
+  );
+  chat.open();
+
+  const after = getChatSnapshot();
+  // Unchanged references for old snapshots; a new object per change.
+  expect(after).not.toBe(before);
+  expect(before.active).toBeUndefined();
+  expect(after).toMatchObject({
+    open: true,
+    mode: 'floating',
+    active: getActiveChat(),
+  });
+  expect(after.version).toBeGreaterThan(before.version);
+  // Stable reference between changes.
+  expect(getChatSnapshot()).toBe(after);
 });

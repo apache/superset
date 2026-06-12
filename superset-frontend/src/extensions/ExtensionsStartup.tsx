@@ -107,7 +107,7 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
 
     // Render the host immediately; extension bundles load in the background.
     // ChatMount re-resolves reactively once a chat extension registers (via
-    // subscribeToChatState / getChatStateVersion), so the bubble appears
+    // subscribeToChatState / getChatSnapshot), so the bubble appears
     // without blocking the UI.
     setInitialized(true);
 

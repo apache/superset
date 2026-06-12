@@ -52,8 +52,15 @@ export interface Chat {
 export type ChatMode = 'floating' | 'panel';
 
 /**
- * Registers a chat provider. The host applies singleton resolution —
- * only one chat is active at a time per RFC §4.3.
+ * Registers a chat provider. The host applies singleton resolution — only one
+ * chat is active at a time: the most recently registered chat wins, and
+ * disposing it restores the previously registered one. Re-registering an id
+ * replaces that registration in place.
+ *
+ * When a registration with a different id takes over the active slot (or the
+ * active chat is disposed), the host closes the panel first, firing
+ * {@link onDidClose}; an in-place same-id replacement keeps the open state.
+ *
  * Disposing the returned Disposable unregisters the chat.
  *
  * @param chat The chat descriptor (id, name).
@@ -61,8 +68,10 @@ export type ChatMode = 'floating' | 'panel';
  *   the extension — dynamic state such as unread counts and badges lives here.
  *   Hidden by the host when in panel mode.
  * @param panel A function returning the chat panel element. Mounted by the
- *   host as a floating overlay in 'floating' mode, or as a layout slot between
- *   the header and footer in 'panel' mode. Same component in both modes.
+ *   host as a floating overlay in 'floating' mode, or docked at the side of
+ *   the viewport in 'panel' mode (the reference host docks a fixed-width
+ *   overlay at the right edge; hosts may integrate a true layout slot
+ *   instead). Same component in both modes.
  * @returns A Disposable that unregisters the chat when disposed.
  *
  * @example
@@ -83,7 +92,8 @@ export declare function registerChat(
 /**
  * Returns the active chat descriptor.
  *
- * @returns The registered Chat descriptor, or undefined if none is registered.
+ * @returns A copy of the active Chat descriptor, or undefined if none is
+ *   registered. Mutating the returned object has no effect on the registry.
  */
 export declare function getChat(): Chat | undefined;
 
@@ -98,31 +108,41 @@ export declare const onDidRegisterChat: Event<Chat>;
 export declare const onDidUnregisterChat: Event<Chat>;
 
 /**
- * Opens the chat panel.
+ * Opens the active chat's panel.
+ *
+ * Acts on whichever chat is active, regardless of which extension calls it.
+ * No-op when no chat is registered or the panel is already open.
  */
 export declare function open(): void;
 
 /**
- * Closes the chat panel.
+ * Closes the active chat's panel.
+ *
+ * Acts on whichever chat is active, regardless of which extension calls it.
+ * No-op when the panel is not open.
  */
 export declare function close(): void;
 
 /**
- * Returns whether the chat panel is currently open.
+ * Returns whether the active chat's panel is currently open.
  *
  * @returns True if the chat panel is open.
  */
 export declare function isOpen(): boolean;
 
 /**
- * Event fired when the chat panel opens.
+ * Event fired when the chat panel opens, with the descriptor of the chat
+ * whose panel opened. Listen to this rather than assuming your own chat is
+ * the one affected — another registration may hold the active slot.
  */
-export declare const onDidOpen: Event<void>;
+export declare const onDidOpen: Event<Chat>;
 
 /**
- * Event fired when the chat panel closes.
+ * Event fired when the chat panel closes, with the descriptor of the chat
+ * whose panel closed. Also fired when the host closes the panel itself, e.g.
+ * because the active chat was disposed or displaced by a different chat.
  */
-export declare const onDidClose: Event<void>;
+export declare const onDidClose: Event<Chat>;
 
 /**
  * Returns the current display mode.
@@ -134,25 +154,29 @@ export declare function getMode(): ChatMode;
 /**
  * Sets the display mode.
  *
- * The host supports both modes on all pages. The host also exposes a mode
- * toggle in its chrome — use onDidChangeMode to react to changes initiated
- * outside the extension.
+ * The mode is host-global and applies to whichever chat is active, regardless
+ * of which extension calls it. Hosts may also change the mode through their
+ * own controls — use onDidChangeMode to observe all changes rather than
+ * assuming the last setMode() call won.
  *
  * @param mode The display mode to switch to.
  */
 export declare function setMode(mode: ChatMode): void;
 
 /**
- * Event fired when the display mode changes, whether triggered by the
- * extension via setMode() or by the user through host-provided controls.
+ * Event fired when the display mode changes, whether triggered by an
+ * extension via setMode() or by host-provided controls.
  */
 export declare const onDidChangeMode: Event<ChatMode>;
 
 /**
- * Event fired when the user resizes the panel in panel mode.
+ * Event fired when the panel is resized in panel mode.
  *
- * The host owns the resizer handle and drag interaction. Listen to this
- * event to adapt internal layout to the available width.
+ * The host owns the resizer handle and drag interaction; a host without a
+ * resizer never fires this event. (The reference host mounts the panel at a
+ * fixed width and does not provide a resizer, so subscribers receive no
+ * events there.) Listen to this event to adapt internal layout to the
+ * available width; do not rely on it firing.
  */
 export declare const onDidResizePanel: Event<{ width: number }>;
 

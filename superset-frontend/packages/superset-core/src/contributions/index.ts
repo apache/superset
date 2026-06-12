@@ -84,10 +84,7 @@ export interface Contributions {
   views: ViewContributions;
   /** List of editors. */
   editors?: Editor[];
-  /**
-   * Chats contributed by the extension. Chat is its own contribution type
-   * (not a view): the host applies singleton resolution and renders exactly
-   * one active chat at a time.
+  /** the host applies singleton resolution and renders exactly one active chat at a time.
    */
-  chat?: Chat[];
+  chats?: Chat[];
 }

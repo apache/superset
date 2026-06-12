@@ -16,24 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  type ReactElement,
-  useMemo,
-  useRef,
-  useSyncExternalStore,
-} from 'react';
+import { type ReactElement, useRef, useSyncExternalStore } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import { store } from 'src/views/store';
-import {
-  chat,
-  getActiveChat,
-  subscribeToChatState,
-  getChatStateVersion,
-} from 'src/core/chat';
+import { getChatSnapshot, subscribeToChatState } from 'src/core/chat';
 
 const CHAT_EDGE_MARGIN = 24;
 const PANEL_MODE_WIDTH = 400;
@@ -49,32 +39,33 @@ const ChatRenderer = ({ provider }: { provider: () => ReactElement }) =>
 
 const ChatMount = () => {
   const theme = useTheme();
-  // Notify once per mount; a crash can re-render and would otherwise re-toast.
-  const crashNotified = useRef(false);
+  // Notify at most once per registration; a crash can re-render and would
+  // otherwise re-toast, while a replacement (new registrationId) deserves a
+  // fresh notification if it crashes too.
+  const crashNotifiedFor = useRef<number | null>(null);
 
-  // The active chat, the open state, and the display mode all live in the
-  // chat registry. Read via useSyncExternalStore so the mount re-renders
-  // whenever a chat extension registers/disposes or toggles its state.
-  const stateVersion = useSyncExternalStore(
-    subscribeToChatState,
-    getChatStateVersion,
-  );
+  // The active chat, the open state, and the display mode are read from one
+  // immutable registry snapshot so a render never mixes state from two
+  // different store versions (the tearing useSyncExternalStore prevents).
+  const {
+    open: panelOpen,
+    mode,
+    active,
+  } = useSyncExternalStore(subscribeToChatState, getChatSnapshot);
 
-  const activeChat = useMemo(() => getActiveChat(), [stateVersion]);
-  const panelOpen = chat.isOpen();
-  const mode = chat.getMode();
-
-  if (!activeChat) {
+  if (!active) {
     return null;
   }
+
+  const { registrationId } = active;
 
   const onProviderError = (error: Error) => {
     // Fault isolation: contain the crash, log it, surface a one-time
     // notification, and leave the slot empty rather than parking a
     // persistent error card.
     logging.error('[chat] provider crashed', error);
-    if (!crashNotified.current) {
-      crashNotified.current = true;
+    if (crashNotifiedFor.current !== registrationId) {
+      crashNotifiedFor.current = registrationId;
       store.dispatch(addDangerToast(t('The chat failed to load.')));
     }
   };
@@ -102,8 +93,12 @@ const ChatMount = () => {
           z-index: ${theme.zIndexPopupBase + 2};
         `}
       >
-        <ErrorBoundary showMessage={false} onError={onProviderError}>
-          <ChatRenderer provider={activeChat.panel} />
+        <ErrorBoundary
+          key={registrationId}
+          showMessage={false}
+          onError={onProviderError}
+        >
+          <ChatRenderer provider={active.panel} />
         </ErrorBoundary>
       </div>
     );
@@ -124,9 +119,28 @@ const ChatMount = () => {
         z-index: ${theme.zIndexPopupBase + 2};
       `}
     >
-      <ErrorBoundary showMessage={false} onError={onProviderError}>
-        {panelOpen && <ChatRenderer provider={activeChat.panel} />}
-        <ChatRenderer provider={activeChat.trigger} />
+      {/*
+        Each provider gets its own boundary so a crashing panel cannot take
+        the trigger down with it (the trigger is the user's only way back).
+        Keyed by registrationId: Superset's ErrorBoundary latches its error
+        state, so a takeover, fallback, or same-id re-registration must
+        remount the boundary to recover.
+      */}
+      {panelOpen && (
+        <ErrorBoundary
+          key={`panel-${registrationId}`}
+          showMessage={false}
+          onError={onProviderError}
+        >
+          <ChatRenderer provider={active.panel} />
+        </ErrorBoundary>
+      )}
+      <ErrorBoundary
+        key={`trigger-${registrationId}`}
+        showMessage={false}
+        onError={onProviderError}
+      >
+        <ChatRenderer provider={active.trigger} />
       </ErrorBoundary>
     </div>
   );

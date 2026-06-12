@@ -23,10 +23,10 @@ import ChatMount from '.';
 const disposables: Array<{ dispose: () => void }> = [];
 
 afterEach(() => {
-  disposables.forEach(d => d.dispose());
-  disposables.length = 0;
-  // Reset host-owned state shared across tests in this module.
   act(() => {
+    disposables.forEach(d => d.dispose());
+    disposables.length = 0;
+    // Reset host-owned state shared across tests in this module.
     chat.close();
     chat.setMode('floating');
   });
@@ -116,6 +116,35 @@ test('reacts to a chat registering after the initial render', () => {
   expect(screen.getByText('Acme Bubble')).toBeInTheDocument();
 });
 
+test('a takeover mounts the incoming chat closed', () => {
+  disposables.push(
+    chat.registerChat(
+      { id: 'first.chat', name: 'First Chat' },
+      () => <div>First Bubble</div>,
+      () => <div>First Panel</div>,
+    ),
+  );
+
+  render(<ChatMount />);
+  act(() => chat.open());
+  expect(screen.getByText('First Panel')).toBeInTheDocument();
+
+  act(() => {
+    disposables.push(
+      chat.registerChat(
+        { id: 'second.chat', name: 'Second Chat' },
+        () => <div>Second Bubble</div>,
+        () => <div>Second Panel</div>,
+      ),
+    );
+  });
+
+  // The displaced chat's open state must not leak into the winner.
+  expect(screen.getByText('Second Bubble')).toBeInTheDocument();
+  expect(screen.queryByText('Second Panel')).not.toBeInTheDocument();
+  expect(screen.queryByText('First Panel')).not.toBeInTheDocument();
+});
+
 test('panel mode docks the open panel and hides the trigger', () => {
   disposables.push(
     chat.registerChat(
@@ -141,7 +170,28 @@ test('panel mode docks the open panel and hides the trigger', () => {
   expect(screen.queryByTestId('chat-mount')).not.toBeInTheDocument();
 });
 
-test('isolates a failing chat so it does not crash the host', () => {
+test('a crashing panel does not take the trigger down with it', () => {
+  const FailingPanel = () => {
+    throw new Error('panel blew up');
+  };
+  disposables.push(
+    chat.registerChat(
+      { id: 'acme.chat', name: 'Acme Chat' },
+      () => <button type="button">Acme Bubble</button>,
+      () => <FailingPanel />,
+    ),
+  );
+
+  render(<ChatMount />);
+  act(() => chat.open());
+
+  // The panel's boundary contains the crash; the trigger keeps rendering so
+  // the user is not stranded without a way back.
+  expect(screen.queryByText('panel blew up')).not.toBeInTheDocument();
+  expect(screen.getByText('Acme Bubble')).toBeInTheDocument();
+});
+
+test('isolates a failing trigger so it does not crash the host', () => {
   const FailingTrigger = () => {
     throw new Error('chat blew up');
   };
@@ -175,4 +225,63 @@ test('isolates a chat whose provider function itself throws', () => {
   // synchronous throws from the provider function, not just from its output.
   expect(() => render(<ChatMount />)).not.toThrow();
   expect(screen.getByTestId('chat-mount')).toBeInTheDocument();
+});
+
+test('recovers from a crashed chat when a different chat takes over', () => {
+  const FailingTrigger = () => {
+    throw new Error('first chat blew up');
+  };
+  disposables.push(
+    chat.registerChat(
+      { id: 'first.chat', name: 'First Chat' },
+      () => <FailingTrigger />,
+      () => <div>First Panel</div>,
+    ),
+  );
+
+  render(<ChatMount />);
+  expect(screen.queryByText('Second Bubble')).not.toBeInTheDocument();
+
+  act(() => {
+    disposables.push(
+      chat.registerChat(
+        { id: 'second.chat', name: 'Second Chat' },
+        () => <div>Second Bubble</div>,
+        () => <div>Second Panel</div>,
+      ),
+    );
+  });
+
+  // The boundary is keyed per registration, so the latched crash from the
+  // first chat does not blank the second one.
+  expect(screen.getByText('Second Bubble')).toBeInTheDocument();
+});
+
+test('recovers when a crashed chat re-registers a fixed version under the same id', () => {
+  const FailingTrigger = () => {
+    throw new Error('broken release');
+  };
+  disposables.push(
+    chat.registerChat(
+      { id: 'acme.chat', name: 'Acme Chat' },
+      () => <FailingTrigger />,
+      () => <div>Acme Panel</div>,
+    ),
+  );
+
+  render(<ChatMount />);
+  expect(screen.queryByText('Fixed Bubble')).not.toBeInTheDocument();
+
+  act(() => {
+    disposables.push(
+      chat.registerChat(
+        { id: 'acme.chat', name: 'Acme Chat' },
+        () => <div>Fixed Bubble</div>,
+        () => <div>Acme Panel</div>,
+      ),
+    );
+  });
+
+  // Same id, new registrationId: the remounted boundary renders the fix.
+  expect(screen.getByText('Fixed Bubble')).toBeInTheDocument();
 });
