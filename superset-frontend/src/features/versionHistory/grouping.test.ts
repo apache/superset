@@ -305,6 +305,41 @@ test('noise suppression tolerates non-string and trailing path segments', () => 
   ]);
 });
 
+test('noise suppression drops machine-managed permission rewrites', () => {
+  // A datasource/schema change rewrites schema_perm/catalog_perm on
+  // every chart it touches, fanning phantom "Chart updated" records
+  // across the feed.
+  const entries = buildTimeline([
+    record({
+      transaction_id: 53,
+      kind: 'field',
+      path: ['schema_perm'],
+    }),
+    record({
+      source: 'related',
+      entity_kind: 'chart',
+      entity_uuid: 'c-1',
+      entity_name: 'Trend',
+      transaction_id: 53,
+      kind: 'field',
+      path: ['schema_perm'],
+      summary: 'Chart updated: Trend',
+    }),
+    record({
+      source: 'related',
+      entity_kind: 'chart',
+      entity_uuid: 'c-1',
+      entity_name: 'Trend',
+      transaction_id: 53,
+      kind: 'field',
+      path: ['catalog_perm'],
+      summary: 'Chart updated: Trend',
+    }),
+  ]);
+
+  expect(entries).toHaveLength(0);
+});
+
 test('noise suppression also applies to related-source records', () => {
   const entries = buildTimeline([
     record({
