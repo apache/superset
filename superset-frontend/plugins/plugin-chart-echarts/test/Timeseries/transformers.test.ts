@@ -24,6 +24,7 @@ import {
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import type { SeriesOption } from 'echarts';
+import type { ScatterSeriesOption } from 'echarts/charts';
 import { EchartsTimeseriesSeriesType } from '../../src';
 import { TIMESERIES_CONSTANTS } from '../../src/constants';
 import { LegendOrientation } from '../../src/types';
@@ -139,8 +140,9 @@ describe('transformSeries', () => {
 
     const result = transformSeries(series, mockColorScale, 'test-key', opts);
 
-    expect((result as any).symbolSize).toBe(symbolSizeFn);
-    expect((result as any).symbolSize(['A', 4])).toBe(8);
+    const { symbolSize } = result as ScatterSeriesOption;
+    expect(symbolSize).toBe(symbolSizeFn);
+    expect(symbolSizeFn(['A', 4])).toBe(8);
   });
 
   test('should fall back to markerSize for symbolSize when symbolSizeFn is not provided', () => {
@@ -152,7 +154,7 @@ describe('transformSeries', () => {
 
     const result = transformSeries(series, mockColorScale, 'test-key', opts);
 
-    expect((result as any).symbolSize).toBe(7);
+    expect((result as ScatterSeriesOption).symbolSize).toBe(7);
   });
 });
 
