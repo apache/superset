@@ -362,6 +362,10 @@ def test_smtp_ssl_server_auth_defaults_to_true() -> None:
 
 
 def _smtp_config(**overrides: Any) -> dict[str, Any]:
+    """
+    Build a minimal SMTP config dict for ``send_mime_email`` tests, with
+    plaintext transport defaults; keyword ``overrides`` replace any key.
+    """
     config = {
         "SMTP_HOST": "localhost",
         "SMTP_PORT": 25,
