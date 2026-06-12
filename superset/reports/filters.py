@@ -21,16 +21,9 @@ from sqlalchemy import or_
 from sqlalchemy.orm.query import Query
 
 from superset import db, security_manager
+from superset.daos.base import _escape_like
 from superset.reports.models import ReportSchedule
 from superset.views.base import BaseFilter
-
-
-def _escape_like(value: str) -> str:
-    """
-    Escape LIKE/ILIKE wildcard characters so user-supplied search text is matched
-    literally instead of being interpreted as wildcards (e.g. ``%`` and ``_``).
-    """
-    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 class ReportScheduleFilter(BaseFilter):  # pylint: disable=too-few-public-methods
