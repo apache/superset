@@ -31,7 +31,6 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from jinja2.exceptions import TemplateSyntaxError
 from marshmallow import ValidationError
-from sqlalchemy.exc import SQLAlchemyError
 
 from superset import event_logger, is_feature_enabled, security_manager
 from superset.commands.dataset.create import CreateDatasetCommand
@@ -82,7 +81,6 @@ from superset.exceptions import (
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.utils import json
 from superset.utils.core import parse_boolean_string, sanitize_cookie_token
-from superset.utils.decorators import transaction
 from superset.versioning.api_helpers import (
     get_version_endpoint,
     list_versions_endpoint,
@@ -529,33 +527,25 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         )
 
         try:
-            # One transaction for the whole logical save: previously
-            # UpdateDatasetCommand and RefreshDatasetCommand each committed,
-            # producing two Continuum transactions for one user action —
-            # rendered as two "Dataset updated" rows in the version-history
-            # UI (PR #40988 feedback). ``@transaction`` nests via
-            # ``g.in_transaction``, so the commands' own decorators become
-            # pass-throughs and this wrapper commits once. Because the
-            # pass-through also skips the commands' ``on_error`` conversion,
-            # it is replicated inline. Semantic consequence (intended): a
-            # failed refresh now rolls back the whole save — the previous
-            # split could leave the update applied with the refresh lost.
-            @transaction(on_error=None)
-            def _update_and_refresh() -> SqlaTable:
-                try:
-                    model = UpdateDatasetCommand(pk, item, override_columns).run()
-                except (SQLAlchemyError, ValueError) as ex:
-                    raise DatasetUpdateFailedError() from ex
-                if override_columns:
-                    try:
-                        RefreshDatasetCommand(pk).run()
-                    except SQLAlchemyError as ex:
-                        raise DatasetRefreshFailedError() from ex
-                return model
-
-            changed_model = _update_and_refresh()
-            # Single transaction → these post-commit reads attribute the
-            # save correctly, and the ETag matches by construction.
+            # Two commands, two commits, two Continuum transactions for an
+            # ``override_columns`` save — deliberately NOT merged into one
+            # transaction. A single-transaction design was attempted and
+            # reverted: ``DBEventLogger`` writes request logs through the
+            # SHARED scoped session and calls ``commit()`` /
+            # ``rollback()`` on it mid-request (superset/utils/log.py),
+            # so any save held uncommitted across a logged sub-action can
+            # be committed half-done (Postgres/MySQL) or rolled back
+            # entirely on a transient logger failure (SQLite's
+            # "database is locked"). Until the event logger gets its own
+            # session, per-command commit boundaries are the only shape
+            # whose failure modes are honest. Consequence the
+            # version-history UI must tolerate: one logical save can
+            # surface as two version transactions stamped the same second.
+            changed_model = UpdateDatasetCommand(pk, item, override_columns).run()
+            # Capture the post-update identifiers BEFORE the refresh:
+            # RefreshDatasetCommand commits its own transaction, so reading
+            # afterwards would attribute the refresh's version to the
+            # user's update (and old→new would span two transactions).
             new_version = VersionDAO.current_version_number(SqlaTable, changed_model.id)
             new_transaction_id = VersionDAO.current_live_transaction_id(
                 SqlaTable, changed_model.id
@@ -563,6 +553,15 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             new_version_uuid = VersionDAO.current_live_version_uuid(
                 SqlaTable, changed_model.id, changed_model.uuid
             )
+            etag_version_uuid = new_version_uuid
+            if override_columns:
+                RefreshDatasetCommand(pk).run()
+                # The ETag must reflect the entity's *current live* version,
+                # which after the refresh is the refresh's transaction —
+                # re-read it rather than reusing the pre-refresh uuid.
+                etag_version_uuid = VersionDAO.current_live_version_uuid(
+                    SqlaTable, changed_model.id, changed_model.uuid
+                )
             response = self.response(
                 200,
                 id=changed_model.id,
@@ -574,7 +573,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 old_version_uuid=str(old_version_uuid) if old_version_uuid else None,
                 new_version_uuid=str(new_version_uuid) if new_version_uuid else None,
             )
-            set_version_etag(response, new_version_uuid)
+            set_version_etag(response, etag_version_uuid)
         except DatasetNotFoundError:
             response = self.response_404()
         except DatasetForbiddenError:

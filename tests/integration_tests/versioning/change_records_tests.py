@@ -336,6 +336,7 @@ class TestChartChangeRecords(SupersetTestCase):
         chart = db.session.query(Slice).first()
         assert chart is not None
         ver_cls = version_class(Slice)
+        original_perms = (chart.perm, chart.schema_perm, chart.catalog_perm)
         pre_save_tx_row = (
             db.session.query(ver_cls.transaction_id)
             .filter(ver_cls.id == chart.id)
@@ -344,22 +345,31 @@ class TestChartChangeRecords(SupersetTestCase):
         )
         pre_save_tx_id = pre_save_tx_row.transaction_id if pre_save_tx_row else 0
 
-        chart.perm = f"[seed].[perm_rewrite {uuid4().hex[:8]}]"
-        chart.schema_perm = f"[seed].[schema {uuid4().hex[:8]}]"
-        chart.catalog_perm = f"[seed].[catalog {uuid4().hex[:8]}]"
-        db.session.commit()
+        try:
+            chart.perm = f"[seed].[perm_rewrite {uuid4().hex[:8]}]"
+            chart.schema_perm = f"[seed].[schema {uuid4().hex[:8]}]"
+            chart.catalog_perm = f"[seed].[catalog {uuid4().hex[:8]}]"
+            db.session.commit()
 
-        post_save_tx_row = (
-            db.session.query(ver_cls.transaction_id)
-            .filter(ver_cls.id == chart.id)
-            .filter(ver_cls.transaction_id > pre_save_tx_id)
-            .first()
-        )
-        assert post_save_tx_row is None, (
-            "perm-only rewrite created a shadow row "
-            f"(tx {post_save_tx_row.transaction_id}); the perm-string class "
-            "must be excluded from versioning"
-        )
+            post_save_tx_row = (
+                db.session.query(ver_cls.transaction_id)
+                .filter(ver_cls.id == chart.id)
+                .filter(ver_cls.transaction_id > pre_save_tx_id)
+                .first()
+            )
+            assert post_save_tx_row is None, (
+                "perm-only rewrite created a shadow row "
+                f"(tx {post_save_tx_row.transaction_id}); the perm-string "
+                "class must be excluded from versioning"
+            )
+        finally:
+            # Perm strings are security-routing state consulted by
+            # datasource-access checks; leaving random probe values on a
+            # persistent test DB breaks unrelated permission tests.
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart.id).one()
+            chart.perm, chart.schema_perm, chart.catalog_perm = original_perms
+            db.session.commit()
 
 
 class TestDashboardChangeRecords(SupersetTestCase):
@@ -457,63 +467,6 @@ class TestDatasetChildChangeRecords(SupersetTestCase):
         column_rows = [r for r in rows if r["kind"] == "column"]
         assert len(column_rows) >= 1, (
             f"expected at least one kind='column' record, got {rows}"
-        )
-
-    def test_dataset_put_with_override_is_one_transaction(self) -> None:
-        """One logical save must be one Continuum transaction.
-
-        ``PUT /api/v1/dataset/<pk>?override_columns=true`` runs
-        UpdateDatasetCommand *and* RefreshDatasetCommand; before the
-        single-transaction wrapper each committed separately, producing
-        two transactions stamped the same second — rendered as two
-        "Dataset updated" rows for one user action in the
-        version-history UI (PR #40988 feedback).
-        """
-        # pylint: disable=import-outside-toplevel
-        from sqlalchemy_continuum import version_class
-
-        from superset.connectors.sqla.models import SqlaTable, TableColumn
-        from tests.integration_tests.constants import ADMIN_USERNAME
-
-        _persist_fixture_state()
-
-        dataset = (
-            db.session.query(SqlaTable)
-            .filter(SqlaTable.table_name == "birth_names")
-            .one()
-        )
-        ver = version_class(SqlaTable)
-        col_ver = version_class(TableColumn)
-        pre_max = (
-            db.session.query(sa.func.max(ver.transaction_id))
-            .filter(ver.id == dataset.id)
-            .scalar()
-            or 0
-        )
-
-        self.login(ADMIN_USERNAME)
-        rv = self.client.put(
-            f"/api/v1/dataset/{dataset.id}?override_columns=true",
-            json={"description": f"k2 single-tx probe {uuid4().hex[:8]}"},
-        )
-        assert rv.status_code == 200, rv.json
-
-        parent_txs = {
-            r[0]
-            for r in db.session.query(ver.transaction_id).filter(
-                ver.id == dataset.id, ver.transaction_id > pre_max
-            )
-        }
-        child_txs = {
-            r[0]
-            for r in db.session.query(col_ver.transaction_id).filter(
-                col_ver.table_id == dataset.id, col_ver.transaction_id > pre_max
-            )
-        }
-        all_txs = parent_txs | child_txs
-        assert len(all_txs) <= 1, (
-            f"one logical save produced {len(all_txs)} transactions "
-            f"({sorted(all_txs)}); update + refresh must share one commit"
         )
 
 
