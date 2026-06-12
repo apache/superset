@@ -114,6 +114,52 @@ test('chart groups expand to show granular action rows', async () => {
   expect(screen.getByText("Applied 'Revenue' metric")).toBeInTheDocument();
 });
 
+test('long groups cap visible rows behind a show-more expander', async () => {
+  const records = Array.from({ length: 12 }, (_, i) =>
+    record({
+      kind: 'field',
+      operation: 'edit',
+      path: ['params', `field_${i}`],
+    }),
+  );
+  const props = defaultProps([group({ records })]);
+  render(<VersionHistoryPanel {...props} />);
+
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Dec 5, 2025, 12:18 PM' }),
+  );
+  expect(screen.getAllByTestId('version-history-action-row')).toHaveLength(10);
+
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Show 2 more changes' }),
+  );
+  expect(screen.getAllByTestId('version-history-action-row')).toHaveLength(12);
+});
+
+test('search matches records hidden behind the row cap', async () => {
+  const records = Array.from({ length: 12 }, (_, i) =>
+    record({
+      kind: 'field',
+      operation: 'edit',
+      path: ['params', i === 11 ? 'hidden_needle' : `field_${i}`],
+    }),
+  );
+  const props = defaultProps([group({ records })]);
+  render(<VersionHistoryPanel {...props} />);
+
+  await userEvent.type(
+    screen.getByRole('textbox', { name: 'Search actions' }),
+    'hidden needle',
+  );
+
+  // The matching record is past the visible-row cap; the group must
+  // still be considered a match.
+  expect(screen.queryByText('No actions found')).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Dec 5, 2025, 12:18 PM' }),
+  ).toBeInTheDocument();
+});
+
 test('dashboard groups show the compact category headline', () => {
   const filterRecord = record({
     entity_kind: 'dashboard',

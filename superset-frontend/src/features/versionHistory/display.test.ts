@@ -20,6 +20,7 @@ import {
   describeRecord,
   formatAuthor,
   formatVersionDateTime,
+  formatVersionDateTimeShort,
   formatVersionMonthDay,
   groupHeadline,
   relatedHeadline,
@@ -65,6 +66,9 @@ test('timestamps are parsed as UTC and rendered in the local timezone', () => {
     'Dec 5, 2025, 12:18 PM',
   );
   expect(formatVersionMonthDay('2025-12-05T17:18:00')).toBe('Dec 5');
+  expect(formatVersionDateTimeShort('2025-12-05T17:18:00')).toBe(
+    '12/5/2025 12:18PM',
+  );
 });
 
 test('describeRecord labels metric changes with the metric name', () => {

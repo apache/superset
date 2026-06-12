@@ -17,19 +17,30 @@
  * under the License.
  */
 import { KeyboardEvent, useState } from 'react';
-import { t } from '@apache-superset/core/translation';
-import { styled } from '@apache-superset/core/theme';
+import { t, tn } from '@apache-superset/core/translation';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { Button, Dropdown, Icons } from '@superset-ui/core/components';
 import type { SaveGroup, VersionedEntityType } from './types';
 import { classifySaveGroup } from './grouping';
-import { formatAuthor, formatRelativeTime, groupHeadline } from './display';
+import {
+  formatAuthor,
+  formatVersionDateTimeShort,
+  groupHeadline,
+} from './display';
 import ActionRow from './ActionRow';
+
+/**
+ * The first chart save serializes the full form_data and can fan out
+ * into dozens of records; cap the initially visible rows per group.
+ */
+const VISIBLE_RECORD_LIMIT = 10;
 
 const Container = styled.div<{ isPreviewed: boolean }>`
   ${({ theme, isPreviewed }) => `
-    border-bottom: 1px solid ${theme.colorSplit};
-    background-color: ${isPreviewed ? theme.colorSuccessBg : 'transparent'};
-    padding-bottom: ${theme.sizeUnit}px;
+    border-bottom: 1px solid ${theme.colorBorderSecondary};
+    background-color: ${isPreviewed ? theme.colorPrimaryBg : 'transparent'};
+    border-radius: ${isPreviewed ? theme.borderRadius : 0}px;
+    padding: ${theme.sizeUnit * 2}px 0 ${theme.sizeUnit * 4}px;
   `}
 `;
 
@@ -38,7 +49,7 @@ const Header = styled.div`
     display: flex;
     align-items: center;
     gap: ${theme.sizeUnit * 2}px;
-    padding: ${theme.sizeUnit * 2}px;
+    padding: ${theme.sizeUnit * 3}px 0;
     cursor: pointer;
     &:hover {
       background-color: ${theme.colorBgTextHover};
@@ -47,14 +58,20 @@ const Header = styled.div`
 `;
 
 const HeaderText = styled.div`
-  flex: 1;
-  min-width: 0;
+  ${({ theme }) => `
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.sizeUnit * 2}px;
+  `}
 `;
 
 const Headline = styled.div`
   ${({ theme }) => `
-    font-size: ${theme.fontSizeSM}px;
-    font-weight: ${theme.fontWeightStrong};
+    font-size: ${theme.fontSize}px;
+    line-height: ${theme.lineHeight};
+    color: ${theme.colorText};
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -63,15 +80,22 @@ const Headline = styled.div`
 
 const Meta = styled.div`
   ${({ theme }) => `
-    color: ${theme.colorTextTertiary};
+    color: ${theme.colorTextQuaternary};
     font-size: ${theme.fontSizeSM}px;
+    line-height: ${theme.lineHeightSM};
   `}
 `;
 
-const CaretWrapper = styled.span`
+const IconWrapper = styled.span`
   ${({ theme }) => `
     color: ${theme.colorTextSecondary};
     display: flex;
+  `}
+`;
+
+const ExpanderRow = styled.div`
+  ${({ theme }) => `
+    padding-left: ${theme.sizeUnit * 8}px;
   `}
 `;
 
@@ -93,10 +117,19 @@ function GroupKebab({
   SaveGroupItemProps,
   'entityType' | 'group' | 'onRestore' | 'onOpenAsNew'
 >) {
+  const theme = useTheme();
+  const itemStyle = {
+    height: theme.controlHeightLG,
+    paddingLeft: theme.sizeUnit * 6,
+    paddingRight: theme.sizeUnit * 6,
+    display: 'flex',
+    alignItems: 'center',
+  };
   const menuItems = [
     {
       key: 'restore',
       label: t('Restore this version'),
+      style: itemStyle,
       onClick: ({
         domEvent,
       }: {
@@ -112,6 +145,7 @@ function GroupKebab({
         entityType === 'chart'
           ? t('Open as new chart')
           : t('Open as new dashboard'),
+      style: itemStyle,
       onClick: ({
         domEvent,
       }: {
@@ -145,8 +179,9 @@ export default function SaveGroupItem({
   onOpenAsNew,
 }: SaveGroupItemProps) {
   const [expanded, setExpanded] = useState(false);
+  const [showAll, setShowAll] = useState(false);
   const headline = groupHeadline(entityType, group);
-  const meta = `${formatAuthor(group.changedBy)} · ${formatRelativeTime(
+  const meta = `${formatAuthor(group.changedBy)} · ${formatVersionDateTimeShort(
     group.issuedAt,
   )}`;
 
@@ -175,9 +210,9 @@ export default function SaveGroupItem({
           onKeyDown={activate(() => onPreview(group))}
           aria-label={headline}
         >
-          <CaretWrapper>
-            <CategoryIcon iconSize="m" />
-          </CaretWrapper>
+          <IconWrapper>
+            <CategoryIcon iconSize="l" />
+          </IconWrapper>
           <HeaderText>
             <Headline title={headline}>{headline}</Headline>
             <Meta>{meta}</Meta>
@@ -200,6 +235,11 @@ export default function SaveGroupItem({
     }
   };
 
+  const visibleRecords = showAll
+    ? group.records
+    : group.records.slice(0, VISIBLE_RECORD_LIMIT);
+  const hiddenCount = group.records.length - visibleRecords.length;
+
   return (
     <Container isPreviewed={isPreviewed} data-test="version-history-save-group">
       <Header
@@ -210,33 +250,56 @@ export default function SaveGroupItem({
         aria-expanded={hasRecords ? expanded : undefined}
         aria-label={headline}
       >
-        {hasRecords && (
-          <CaretWrapper>
-            {expanded ? (
-              <Icons.DownOutlined iconSize="s" />
-            ) : (
-              <Icons.RightOutlined iconSize="s" />
-            )}
-          </CaretWrapper>
-        )}
+        <IconWrapper>
+          <Icons.CalendarOutlined iconSize="l" />
+        </IconWrapper>
         <HeaderText>
           <Headline title={headline}>{headline}</Headline>
-          <Meta>{meta}</Meta>
         </HeaderText>
+        {hasRecords && (
+          <IconWrapper>
+            {expanded ? (
+              <Icons.UpOutlined iconSize="m" />
+            ) : (
+              <Icons.DownOutlined iconSize="m" />
+            )}
+          </IconWrapper>
+        )}
       </Header>
-      {expanded &&
-        group.records.map(record => (
-          <ActionRow
-            key={`${record.kind}-${record.operation}-${JSON.stringify(
-              record.path,
-            )}`}
-            entityType={entityType}
-            record={record}
-            onPreview={() => onPreview(group)}
-            onRestore={() => onRestore(group)}
-            onOpenAsNew={() => onOpenAsNew(group)}
-          />
-        ))}
+      {expanded && (
+        <>
+          {visibleRecords.map((record, index) => (
+            <ActionRow
+              key={`${record.kind}-${record.operation}-${JSON.stringify(
+                record.path,
+              )}`}
+              entityType={entityType}
+              record={record}
+              isPreviewed={isPreviewed}
+              isLast={index === visibleRecords.length - 1 && hiddenCount === 0}
+              onPreview={() => onPreview(group)}
+              onRestore={() => onRestore(group)}
+              onOpenAsNew={() => onOpenAsNew(group)}
+            />
+          ))}
+          {hiddenCount > 0 && (
+            <ExpanderRow>
+              <Button
+                buttonSize="xsmall"
+                buttonStyle="link"
+                onClick={() => setShowAll(true)}
+              >
+                {tn(
+                  'Show %s more change',
+                  'Show %s more changes',
+                  hiddenCount,
+                  hiddenCount,
+                )}
+              </Button>
+            </ExpanderRow>
+          )}
+        </>
+      )}
     </Container>
   );
 }

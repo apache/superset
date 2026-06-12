@@ -28,6 +28,11 @@ import type {
 } from './types';
 
 const PAGE_SIZE = 25;
+// Pagination counts raw records but the timeline groups and dedupes
+// them, so one fetched page can yield zero new visible rows (e.g. a
+// single save fanning out into dozens of records). "Load more" chases
+// pages until something new becomes visible, capped per click.
+const MAX_CHAINED_PAGES = 8;
 
 export interface UseVersionActivityResult {
   records: ActivityRecord[];
@@ -52,6 +57,13 @@ export function useVersionActivity(
   const [error, setError] = useState<string | null>(null);
   // Monotonic id so stale responses from a previous uuid/include are dropped.
   const fetchIdRef = useRef(0);
+  // Mirror of `records` so the chained loadMore loop can see the merged
+  // result immediately (functional setState doesn't expose it).
+  const recordsRef = useRef<ActivityRecord[]>([]);
+
+  useEffect(() => {
+    recordsRef.current = records;
+  }, [records]);
 
   const fetchPage = useCallback(
     async (pageToLoad: number, reset: boolean) => {
@@ -102,9 +114,57 @@ export function useVersionActivity(
     fetchPage(0, true);
   }, [fetchPage]);
 
-  const loadMore = useCallback(() => {
-    fetchPage(page + 1, false);
-  }, [fetchPage, page]);
+  const loadMore = useCallback(async () => {
+    if (!uuid) {
+      return;
+    }
+    fetchIdRef.current += 1;
+    const fetchId = fetchIdRef.current;
+    setIsLoading(true);
+    setError(null);
+    try {
+      let merged = recordsRef.current;
+      const visibleBefore = buildTimeline(merged).length;
+      let nextPage = page;
+      let total = count;
+      for (let chained = 0; chained < MAX_CHAINED_PAGES; chained += 1) {
+        nextPage += 1;
+        // Pages must be fetched sequentially: each iteration decides
+        // whether to continue based on the merged visible yield so far.
+        // eslint-disable-next-line no-await-in-loop
+        const response = await fetchActivity(entityType, uuid, {
+          include,
+          page: nextPage,
+          pageSize: PAGE_SIZE,
+        });
+        if (fetchId !== fetchIdRef.current) {
+          return;
+        }
+        total = response.count;
+        merged = mergeActivityPages(merged, response.result);
+        const exhausted = (nextPage + 1) * PAGE_SIZE >= total;
+        if (buildTimeline(merged).length > visibleBefore || exhausted) {
+          break;
+        }
+      }
+      setCount(total);
+      setPage(nextPage);
+      recordsRef.current = merged;
+      setRecords(merged);
+    } catch (response) {
+      if (fetchId !== fetchIdRef.current) {
+        return;
+      }
+      const { error: clientError, message } = await getClientErrorObject(
+        response as Parameters<typeof getClientErrorObject>[0],
+      );
+      setError(clientError || message || null);
+    } finally {
+      if (fetchId === fetchIdRef.current) {
+        setIsLoading(false);
+      }
+    }
+  }, [count, entityType, include, page, uuid]);
 
   const refresh = useCallback(() => {
     fetchPage(0, true);
