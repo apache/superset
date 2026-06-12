@@ -97,9 +97,14 @@ const Meta = styled.div`
   `}
 `;
 
+// The kebab centers within the first text line (one line-height tall)
+// so it tracks the title, not the middle of the two-line row.
 const KebabWrapper = styled.div`
   ${({ theme }) => `
-    padding: ${theme.sizeUnit}px 0;
+    align-self: flex-start;
+    display: flex;
+    align-items: center;
+    height: ${theme.fontSize * theme.lineHeight}px;
   `}
 `;
 

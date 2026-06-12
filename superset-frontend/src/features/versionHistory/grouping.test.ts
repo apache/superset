@@ -320,6 +320,103 @@ test('noise suppression also applies to related-source records', () => {
   expect(entries).toHaveLength(0);
 });
 
+test('buildTimeline merges adjacent related entries from one split save', () => {
+  // The backend split one logical dataset save into two transactions
+  // with the same timestamp; the panel must show a single row whose
+  // records union both saves (so search keeps matching all of them).
+  const related = (transactionId: number, field: string) =>
+    record({
+      source: 'related',
+      entity_kind: 'dataset',
+      entity_uuid: 'ds-1',
+      entity_name: 'birth_names',
+      transaction_id: transactionId,
+      issued_at: '2026-06-12T14:50:35',
+      kind: 'metric',
+      path: ['metrics', field],
+      summary: 'Dataset used by 11 charts updated: birth_names',
+    });
+
+  const entries = buildTimeline([
+    related(50, 'a'),
+    related(50, 'b'),
+    related(49, 'c'),
+    related(49, 'd'),
+  ]) as RelatedEntry[];
+
+  expect(entries).toHaveLength(1);
+  expect(entries[0].type).toBe('related');
+  // the newer transaction stays representative (stable React key)
+  expect(entries[0].record.transaction_id).toBe(50);
+  expect(entries[0].records).toHaveLength(4);
+});
+
+test('buildTimeline keeps related entries for the same entity apart when issued far apart', () => {
+  const related = (transactionId: number, issuedAt: string) =>
+    record({
+      source: 'related',
+      entity_kind: 'dataset',
+      entity_uuid: 'ds-1',
+      entity_name: 'birth_names',
+      transaction_id: transactionId,
+      issued_at: issuedAt,
+    });
+
+  const entries = buildTimeline([
+    related(50, '2026-06-12T16:50:35'),
+    related(49, '2026-06-12T14:50:35'),
+  ]);
+
+  expect(entries).toHaveLength(2);
+});
+
+test('buildTimeline keeps simultaneous related entries for different entities apart', () => {
+  const entries = buildTimeline([
+    record({
+      source: 'related',
+      entity_kind: 'dataset',
+      entity_uuid: 'ds-1',
+      entity_name: 'birth_names',
+      transaction_id: 50,
+      issued_at: '2026-06-12T14:50:35',
+    }),
+    record({
+      source: 'related',
+      entity_kind: 'dataset',
+      entity_uuid: 'ds-2',
+      entity_name: 'cleaned_sales',
+      transaction_id: 49,
+      issued_at: '2026-06-12T14:50:35',
+    }),
+  ]);
+
+  expect(entries).toHaveLength(2);
+});
+
+test('a self save between two related entries blocks their merge', () => {
+  const related = (transactionId: number, issuedAt: string) =>
+    record({
+      source: 'related',
+      entity_kind: 'dataset',
+      entity_uuid: 'ds-1',
+      entity_name: 'birth_names',
+      transaction_id: transactionId,
+      issued_at: issuedAt,
+    });
+
+  const entries = buildTimeline([
+    related(30, '2026-06-12T10:00:50'),
+    record({ transaction_id: 29, issued_at: '2026-06-12T10:00:30' }),
+    related(28, '2026-06-12T10:00:10'),
+  ]);
+
+  expect(entries.map(entry => entry.type)).toEqual([
+    'related',
+    'group',
+    'related',
+  ]);
+});
+
 test('mergeActivityPages appends new rows and drops duplicates', () => {
   const pageOne = [
     record({ transaction_id: 14, issued_at: '2025-12-07T09:00:00' }),

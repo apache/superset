@@ -88,13 +88,57 @@ function isNoiseRecord(record: ActivityRecord): boolean {
   );
 }
 
+/** Identity of the entity a related record belongs to, ignoring the
+ * transaction. */
+function relatedEntityKey(record: ActivityRecord): string {
+  return [record.entity_kind, record.entity_uuid ?? record.entity_name].join(
+    '|',
+  );
+}
+
+const RELATED_MERGE_WINDOW_MS = 60_000;
+
+/**
+ * The backend can split one logical save of a related entity into
+ * several transactions issued at (nearly) the same instant, which
+ * would render as duplicate-looking rows. Collapse adjacent related
+ * entries — no self save between them — for the same entity issued
+ * within a short window into the newer entry: its representative
+ * record is kept and the older save's records are absorbed so search
+ * over collapsed records keeps working.
+ */
+function mergeAdjacentRelatedEntries(
+  entries: TimelineEntry[],
+): TimelineEntry[] {
+  const merged: TimelineEntry[] = [];
+  entries.forEach(entry => {
+    const previous = merged[merged.length - 1];
+    if (
+      entry.type === 'related' &&
+      previous?.type === 'related' &&
+      relatedEntityKey(previous.record) === relatedEntityKey(entry.record) &&
+      Math.abs(
+        Date.parse(previous.record.issued_at) -
+          Date.parse(entry.record.issued_at),
+      ) <= RELATED_MERGE_WINDOW_MS
+    ) {
+      previous.records.push(...entry.records);
+    } else {
+      merged.push(entry);
+    }
+  });
+  return merged;
+}
+
 /**
  * Build the timeline from a flat newest-first activity stream:
  * `source='self'` records are grouped into one save container per
  * transaction, `source='related'` records collapse into a single entry
- * per (transaction, entity). Machine-written noise records are dropped
- * first, so saves consisting only of noise never appear and change
- * counts reflect real edits. The result is ordered newest first.
+ * per (transaction, entity), and adjacent related entries from one
+ * split save merge into a single row. Machine-written noise records
+ * are dropped first, so saves consisting only of noise never appear
+ * and change counts reflect real edits. The result is ordered newest
+ * first.
  */
 export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
   const groupsByTransaction = new Map<number, SaveGroup>();
@@ -156,7 +200,7 @@ export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
     }
   });
 
-  return entries.sort((a, b) => {
+  entries.sort((a, b) => {
     const issuedA = a.type === 'group' ? a.issuedAt : a.record.issued_at;
     const issuedB = b.type === 'group' ? b.issuedAt : b.record.issued_at;
     if (issuedA !== issuedB) {
@@ -166,6 +210,8 @@ export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
     const txB = b.type === 'group' ? b.transactionId : b.record.transaction_id;
     return txB - txA;
   });
+
+  return mergeAdjacentRelatedEntries(entries);
 }
 
 /**
