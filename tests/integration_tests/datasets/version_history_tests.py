@@ -124,8 +124,9 @@ class TestDatasetVersionListApi(SupersetTestCase):
             # issued_at is ISO-8601 (dumped through VersionListItemSchema —
             # previously the raw dict hit Flask's jsonify and rendered as an
             # RFC-1123 http-date). Parse before checking monotonic order
-            # rather than comparing strings, to stay robust if the format
-            # gains an explicit offset.
+            # rather than comparing strings. (Note: fromisoformat on the
+            # supported Python floor, 3.10, rejects a trailing 'Z'; the
+            # schema emits naive/offset forms, not 'Z'.)
             from datetime import datetime
 
             parsed = [datetime.fromisoformat(e["issued_at"]) for e in body["result"]]

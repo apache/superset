@@ -46,9 +46,9 @@ from superset.versioning.changes import (
     ACTION_KIND_KEY,
     ACTION_KIND_RESTORE,
     ACTION_META_KEY,
+    build_action_headline,
     ENTITY_KIND_BY_CLASS_NAME,
 )
-from superset.versioning.diff import ChangeRecord
 
 logger = logging.getLogger(__name__)
 
@@ -102,20 +102,14 @@ class BaseRestoreVersionCommand(BaseCommand):
         # can't answer "Restored to X from [date]" (version-history UI,
         # PR #40988). The listener prepends this synthetic ``__meta__``
         # headline record to the transaction's change records.
-        db.session.info[ACTION_META_KEY] = {
-            "entity_kind": ENTITY_KIND_BY_CLASS_NAME[self.model_cls.__name__],
-            "entity_id": live_entity.id,
-            "record": ChangeRecord(
-                kind="__meta__",
-                operation="edit",
-                path=["__meta__", "restore"],
-                from_value=None,
-                to_value={
-                    "version_uuid": str(self._version_uuid),
-                    "version_number": version_number,
-                },
-            ),
-        }
+        db.session.info[ACTION_META_KEY] = build_action_headline(
+            entity_kind=ENTITY_KIND_BY_CLASS_NAME[self.model_cls.__name__],
+            entity_id=live_entity.id,
+            to_value={
+                "version_uuid": str(self._version_uuid),
+                "version_number": version_number,
+            },
+        )
         entity = VersionDAO.restore_version(self.model_cls, self._uuid, version_number)
         if entity is None:
             # Race: entity deleted between validate() and now.

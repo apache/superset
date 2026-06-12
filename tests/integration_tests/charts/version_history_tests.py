@@ -450,13 +450,13 @@ class TestChartRestoreApi(SupersetTestCase):
             # The newest version entry (the restore) carries the headline.
             body = _json.loads(self._list(chart_uuid).data.decode("utf-8"))
             newest = body["result"][-1]
-            meta = [
-                c for c in newest["changes"] if c["path"][:1] == ["__meta__"]
-            ]
+            meta = [c for c in newest["changes"] if c["path"][:1] == ["__meta__"]]
             assert meta, (
                 f"restore transaction has no __meta__ headline: {newest['changes']}"
             )
-            assert meta[0]["path"] == ["__meta__", "restore"]
+            # The verb does NOT ride in path (pure navigation); the
+            # transaction's action_kind identifies the restore.
+            assert meta[0]["path"] == ["__meta__"]
             assert meta[0]["to_value"]["version_uuid"] == target_uuid
             # Headline first: prepended at sequence 0.
             assert newest["changes"][0] is meta[0]
@@ -756,6 +756,17 @@ class TestRestorePreservesIdentity(SupersetTestCase):
             assert rv2.status_code == 200
         finally:
             db.session.rollback()
+            # Undo the planted foreign uuid: leaving corrupted shadow
+            # history pollutes every later suite on a persistent test DB
+            # (the sc-103156 cascade-incident class).
+            db.session.execute(
+                sa.update(ver_cls.__table__)
+                .where(
+                    ver_cls.__table__.c.id == chart_id,
+                    ver_cls.__table__.c.transaction_id == oldest.transaction_id,
+                )
+                .values(uuid=chart_uuid)
+            )
             chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
             chart.slice_name = original_name
             db.session.commit()

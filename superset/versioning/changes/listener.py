@@ -37,8 +37,9 @@ cleanups:
   contiguous sequence numbers.
 
 - ``after_commit`` / ``after_rollback``: clean up session-scoped
-  state (processed-tx set, ``action_kind`` key) so a long-lived session
-  doesn't accumulate stale buffer entries.
+  state (processed-tx set, ``action_kind`` / ``action_meta`` keys, and
+  the pending-records buffer) so a long-lived session doesn't carry any
+  of it into the next transaction.
 
 Scope:
   - Slice, Dashboard, SqlaTable **scalar fields** (via the cached
@@ -132,32 +133,59 @@ ACTION_KINDS: frozenset[str] = frozenset(
 )
 
 # Key on ``session.info`` carrying a synthetic "headline" change record
-# for the current transaction — the ``__meta__`` path convention. Set by
-# commands alongside ``ACTION_KIND_KEY`` when the avenue has a payload
+# for the current transaction — the ``__meta__`` record convention. Set
+# by commands alongside ``ACTION_KIND_KEY`` when the avenue has a payload
 # the field-level diff can't express; the canonical case is restore,
 # whose transaction otherwise carries no pointer to WHICH version was
 # restored (surfaced by the version-history UI, PR #40988: "Restored to
 # X from [date]" can't be rendered from API data alone).
 #
-# Value shape::
+# Build the value with :func:`build_action_headline` — the single owner
+# of the record shape — rather than hand-rolling the dict; renderers
+# dispatch on ``kind == "__meta__"`` plus the transaction's
+# ``action_kind`` (the verb deliberately does NOT ride in ``path``,
+# which stays pure navigation per the ChangeRecord contract).
 #
-#     {
-#         "entity_kind": "chart",          # table-kind, see ENTITY_KIND_BY_CLASS_NAME
-#         "entity_id": 42,
-#         "record": ChangeRecord(
-#             kind="__meta__",
-#             operation="edit",
-#             path=["__meta__", "restore"],
-#             from_value=None,
-#             to_value={"version_uuid": "...", "version_number": 3},
-#         ),
-#     }
-#
-# The listener pops the key on its first firing for the transaction and
-# PREPENDS the record to the entity's buffer (sequence 0 — headline
-# first). Same lifecycle as ``ACTION_KIND_KEY``: popped on use, and the
-# ``after_commit`` / ``after_rollback`` cleanups pop it as a safety net.
+# The listener pops the key on the first record-bearing firing for the
+# transaction and PREPENDS the record to the entity's buffer (sequence 0
+# — headline first). Same lifecycle as ``ACTION_KIND_KEY``: popped on
+# use, and the ``after_commit`` / ``after_rollback`` cleanups pop it as
+# a safety net.
 ACTION_META_KEY = "_versioning_action_meta"
+
+# ``operation`` value for synthetic headline records: a headline
+# announces an action, it does not mutate a field, so the field-verb
+# vocabulary (add / remove / move / edit) would be dishonest here.
+OPERATION_ANNOUNCE = "announce"
+
+
+def build_action_headline(
+    entity_kind: str,
+    entity_id: int,
+    to_value: dict[str, Any],
+) -> dict[str, Any]:
+    """Build the ``ACTION_META_KEY`` payload — the single owner of the
+    ``__meta__`` headline record's shape.
+
+    *entity_kind* is the table-kind (see ``ENTITY_KIND_BY_CLASS_NAME``);
+    *to_value* carries the action's payload (for restore:
+    ``{"version_uuid": ..., "version_number": ...}``). The action itself
+    is identified by the transaction's ``action_kind`` column, which the
+    same command stamps via ``ACTION_KIND_KEY`` — renderers join the
+    two rather than parsing the verb out of the record.
+    """
+    return {
+        "entity_kind": entity_kind,
+        "entity_id": entity_id,
+        "record": ChangeRecord(
+            kind="__meta__",
+            operation=OPERATION_ANNOUNCE,
+            path=["__meta__"],
+            from_value=None,
+            to_value=to_value,
+        ),
+    }
+
 
 # Sentinel attribute set on the session target after first successful
 # registration. Subsequent calls become no-ops. Storing the flag on the
@@ -250,14 +278,22 @@ def _inject_action_meta_record(
     buffer: dict[tuple[str, int], list[ChangeRecord]],
 ) -> None:
     """Pop ``ACTION_META_KEY`` and prepend its synthetic headline record
-    to the owning entity's buffer (the ``__meta__`` path convention).
+    to the owning entity's buffer (the ``__meta__`` record convention).
 
-    No-op when no command set the key. Prepended (not appended) so the
-    headline gets ``sequence`` 0 and renders first. Same eager, first-
-    firing semantics as the action_kind stamp; malformed payloads are
-    logged and dropped — a headline is descriptive enrichment, never
-    worth failing the user's save over.
+    No-op when no command set the key — and, critically, no-op WITHOUT
+    popping when the buffer is empty: the buffer-empty short-circuit in
+    ``flush_change_records`` exists so a multi-flush transaction can
+    deliver its records on a later firing, and a headline-only buffer
+    would defeat it (the first firing would persist just the headline,
+    mark the tx processed, and the later flush's real records would be
+    silently dropped). Leaving the key in place parks the headline until
+    the record-bearing firing. Prepended (not appended) so the headline
+    gets ``sequence`` 0 and renders first. Malformed payloads are logged
+    and dropped — a headline is descriptive enrichment, never worth
+    failing the user's save over.
     """
+    if not buffer:
+        return
     meta = session.info.pop(ACTION_META_KEY, None)
     if meta is None:
         return
@@ -395,6 +431,10 @@ def register_change_record_listener() -> None:  # noqa: C901
         # sequence) constraint on insert.
         processed: set[int] = session.info.setdefault(_PROCESSED_TXS_KEY, set())
         if tx_id in processed:
+            # Drop anything buffered after the tx was persisted: records
+            # left here would otherwise survive on the long-lived scoped
+            # session and be inserted under the NEXT transaction's id.
+            session.info[_BUFFER_KEY] = {}
             return
 
         # Stamp action_kind eagerly, before the buffer-empty short-
@@ -403,9 +443,15 @@ def register_change_record_listener() -> None:  # noqa: C901
         # value still on ``session.info``. The helper pops on success
         # so subsequent firings see ``None`` and short-circuit cleanly.
         _stamp_action_kind_on_transaction(session, tx_id)
-        _inject_action_meta_record(session, buffer)
 
         _append_child_records_to_buffer(session, tx_id, buffer)
+
+        # After the child append and before the emptiness check: the
+        # headline joins whichever firing carries the transaction's real
+        # records (scalar or child), and its peek-don't-pop guard parks
+        # it across record-less firings instead of defeating the
+        # multi-flush short-circuit below.
+        _inject_action_meta_record(session, buffer)
 
         if not buffer:
             # Don't mark tx as processed when nothing was inserted. A
@@ -440,6 +486,7 @@ def register_change_record_listener() -> None:  # noqa: C901
         # the normal path.
         session.info.pop(ACTION_KIND_KEY, None)
         session.info.pop(ACTION_META_KEY, None)
+        session.info.pop(_BUFFER_KEY, None)
 
     def reset_action_kind_after_rollback(session: Session) -> None:
         # When a command sets ``ACTION_KIND_KEY`` and then an exception
@@ -451,6 +498,7 @@ def register_change_record_listener() -> None:  # noqa: C901
         # action's intent doesn't leak forward.
         session.info.pop(ACTION_KIND_KEY, None)
         session.info.pop(ACTION_META_KEY, None)
+        session.info.pop(_BUFFER_KEY, None)
 
     event.listen(db.session, "before_flush", compute_change_records)
     event.listen(db.session, "after_flush", flush_change_records)
