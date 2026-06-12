@@ -121,12 +121,14 @@ class TestDatasetVersionListApi(SupersetTestCase):
             for idx, entry in enumerate(body["result"]):
                 assert entry["version_number"] == idx
                 assert entry["issued_at"] is not None
-            # issued_at is an RFC-1123 HTTP date ("Wed, 22 Apr 2026 …"); parse
-            # before checking monotonic order rather than sorting strings,
-            # which would reorder incorrectly across day-of-week boundaries.
-            from email.utils import parsedate_to_datetime
+            # issued_at is ISO-8601 (dumped through VersionListItemSchema —
+            # previously the raw dict hit Flask's jsonify and rendered as an
+            # RFC-1123 http-date). Parse before checking monotonic order
+            # rather than comparing strings, to stay robust if the format
+            # gains an explicit offset.
+            from datetime import datetime
 
-            parsed = [parsedate_to_datetime(e["issued_at"]) for e in body["result"]]
+            parsed = [datetime.fromisoformat(e["issued_at"]) for e in body["result"]]
             assert parsed == sorted(parsed)
         finally:
             # Restore fixture state even if an assertion above failed (otherwise
