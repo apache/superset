@@ -52,6 +52,7 @@ const snapshot: DashboardVersionSnapshot = {
 };
 
 const LIST_ENDPOINT = 'glob:*/api/v1/dashboard/?q=*';
+const CHART_LIST_ENDPOINT = 'glob:*/api/v1/chart/?q=*';
 const COPY_ENDPOINT = 'glob:*/api/v1/dashboard/42/copy/';
 
 afterEach(() => {
@@ -61,6 +62,7 @@ afterEach(() => {
 
 test('createDashboardFromSnapshot copies via the source dashboard with snapshot layout', async () => {
   fetchMock.get(LIST_ENDPOINT, { result: [{ id: 42 }], count: 1 });
+  fetchMock.get(CHART_LIST_ENDPOINT, { result: [{ id: 101 }], count: 1 });
   fetchMock.post(
     COPY_ENDPOINT,
     { result: { id: 77, last_modified_time: 1 } },
@@ -85,6 +87,48 @@ test('createDashboardFromSnapshot copies via the source dashboard with snapshot 
   const metadata = JSON.parse(payload.json_metadata);
   expect(metadata.color_scheme).toBe('supersetColors');
   expect(metadata.positions).toEqual(positions);
+});
+
+test('createDashboardFromSnapshot swaps deleted-chart slots for placeholders', async () => {
+  const positionsWithDeleted = {
+    ...positions,
+    'CHART-dead': {
+      type: 'CHART',
+      id: 'CHART-dead',
+      children: [],
+      meta: { chartId: 999, uuid: 'chart-999-uuid', width: 4, height: 50 },
+    },
+  };
+  fetchMock.get(LIST_ENDPOINT, { result: [{ id: 42 }], count: 1 });
+  // Only chart 101 still resolves; 999 was deleted since the snapshot.
+  fetchMock.get(CHART_LIST_ENDPOINT, { result: [{ id: 101 }], count: 1 });
+  fetchMock.post(
+    COPY_ENDPOINT,
+    { result: { id: 79, last_modified_time: 1 } },
+    { name: 'post-copy-deleted' },
+  );
+
+  await createDashboardFromSnapshot(
+    'dash-uuid',
+    { ...snapshot, position_json: JSON.stringify(positionsWithDeleted) },
+    'Copy with deleted chart',
+  );
+
+  const calls = fetchMock.callHistory.calls('post-copy-deleted');
+  const metadata = JSON.parse(
+    JSON.parse(calls[0].options.body as string).json_metadata,
+  );
+  // The copy endpoint silently skips chart associations it cannot
+  // resolve, which would leave a dead slot in the forked layout; the
+  // payload must carry the same placeholder the preview renders instead
+  // of the dead chart reference.
+  expect(metadata.positions['CHART-dead']).toEqual({
+    type: 'MARKDOWN',
+    id: 'CHART-dead',
+    children: [],
+    meta: { width: 4, height: 50, code: 'This chart no longer exists.' },
+  });
+  expect(metadata.positions['CHART-abc']).toEqual(positions['CHART-abc']);
 });
 
 test('createDashboardFromSnapshot sends empty layout fields as-is', async () => {

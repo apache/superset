@@ -114,10 +114,17 @@ function matchesQuery(
   query: string,
 ): boolean {
   if (entry.type === 'related') {
-    const { record } = entry;
+    const { record, records } = entry;
     return (
       relatedHeadline(record).toLowerCase().includes(query) ||
-      formatAuthor(record.changed_by).toLowerCase().includes(query)
+      formatAuthor(record.changed_by).toLowerCase().includes(query) ||
+      // One related save collapses many records into one row; keep the
+      // non-representative records' summaries searchable too.
+      records.some(collapsed =>
+        (collapsed.summary || describeRecord(collapsed))
+          .toLowerCase()
+          .includes(query),
+      )
     );
   }
   return (
