@@ -38,9 +38,6 @@ const Header = styled.div`
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 3}px 0;
     cursor: pointer;
-    &:hover {
-      background-color: ${theme.colorBgTextHover};
-    }
   `}
 `;
 
@@ -56,6 +53,13 @@ const Title = styled.div`
 const IconWrapper = styled.span`
   ${({ theme }) => `
     color: ${theme.colorTextSecondary};
+    display: flex;
+  `}
+`;
+
+const ChevronWrapper = styled.span`
+  ${({ theme }) => `
+    color: ${theme.colorTextTertiary};
     display: flex;
   `}
 `;
@@ -125,13 +129,13 @@ export default function CurrentVersionSection({
           <Icons.CheckCircleOutlined iconSize="l" />
         </IconWrapper>
         <Title>{t('Current version')}</Title>
-        <IconWrapper>
+        <ChevronWrapper>
           {expanded ? (
             <Icons.UpOutlined iconSize="m" />
           ) : (
             <Icons.DownOutlined iconSize="m" />
           )}
-        </IconWrapper>
+        </ChevronWrapper>
       </Header>
       {expanded && (
         <EntriesBlock>

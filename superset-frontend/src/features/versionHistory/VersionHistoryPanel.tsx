@@ -105,6 +105,19 @@ const Body = styled.div`
   `}
 `;
 
+// Icon-only trigger: neutral icon color instead of the link-button blue.
+const CloseButton = styled(Button)`
+  ${({ theme }) => `
+    && {
+      color: ${theme.colorText};
+    }
+    &&:hover,
+    &&:focus {
+      color: ${theme.colorTextSecondary};
+    }
+  `}
+`;
+
 const Footer = styled.div`
   ${({ theme }) => `
     padding: ${theme.sizeUnit * 2}px;
@@ -217,20 +230,20 @@ export default function VersionHistoryPanel({
     <Panel role="complementary" aria-label={t('Version history')}>
       <PanelHeader>
         <PanelTitle>{t('Version history')}</PanelTitle>
-        <Button
+        <CloseButton
           buttonSize="xsmall"
           buttonStyle="link"
           aria-label={t('Close version history')}
           onClick={onClose}
         >
           <Icons.CloseOutlined iconSize="xl" />
-        </Button>
+        </CloseButton>
       </PanelHeader>
       <Controls>
         <Input
           allowClear
           placeholder={t('Search actions')}
-          prefix={<Icons.SearchOutlined iconSize="l" />}
+          suffix={<Icons.SearchOutlined iconSize="l" />}
           value={searchTerm}
           onChange={event => setSearchTerm(event.target.value)}
           aria-label={t('Search actions')}

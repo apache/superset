@@ -274,9 +274,9 @@ test('buildTimeline drops saves consisting only of machine-written noise', () =>
 
   // Phantom-only transactions 41 and 40 disappear entirely; the rename
   // save keeps only its real record; the chart save survives untouched.
-  expect(
-    entries.map(entry => (entry as SaveGroup).transactionId),
-  ).toEqual([42, 10]);
+  expect(entries.map(entry => (entry as SaveGroup).transactionId)).toEqual([
+    42, 10,
+  ]);
   expect((entries[0] as SaveGroup).records).toHaveLength(1);
   expect((entries[0] as SaveGroup).records[0].path).toEqual([
     'dashboard_title',
@@ -300,9 +300,9 @@ test('noise suppression tolerates non-string and trailing path segments', () => 
     }),
   ]);
 
-  expect(
-    entries.map(entry => (entry as SaveGroup).transactionId),
-  ).toEqual([52]);
+  expect(entries.map(entry => (entry as SaveGroup).transactionId)).toEqual([
+    52,
+  ]);
 });
 
 test('noise suppression also applies to related-source records', () => {
