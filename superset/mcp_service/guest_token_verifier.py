@@ -151,9 +151,26 @@ class GuestTokenVerifier(TokenVerifier):
         if not self._app.config.get("MCP_EMBEDDED_GUEST_AUTH_ENABLED", False):
             return None
 
-        loop = asyncio.get_running_loop()
-        parsed = await loop.run_in_executor(None, self._verify_guest_sync, token)
+        try:
+            loop = asyncio.get_running_loop()
+            parsed = await loop.run_in_executor(None, self._verify_guest_sync, token)
+        except Exception:  # noqa: BLE001 — asyncio/executor machinery failure
+            # Honor the "any failure -> defer" contract even if the dispatch
+            # itself fails (e.g. executor shutdown, no running loop).
+            logger.warning(
+                "Guest token verification dispatch failed; deferring", exc_info=True
+            )
+            return None
+
         if parsed is None:
+            return None
+
+        try:
+            expires_at = int(parsed["exp"])
+        except (KeyError, TypeError, ValueError):
+            # parse_jwt_guest_token validates exp, but never raise here on a
+            # missing/malformed claim — defer like every other failure path.
+            logger.warning("Guest token lacks a valid exp claim; deferring")
             return None
 
         logger.debug("Guest token validated at transport layer for MCP")
@@ -161,6 +178,6 @@ class GuestTokenVerifier(TokenVerifier):
             token=token,
             client_id="guest",
             scopes=[],
-            expires_at=int(parsed["exp"]),
+            expires_at=expires_at,
             claims={GUEST_TOKEN_CLAIM: True, **parsed},
         )

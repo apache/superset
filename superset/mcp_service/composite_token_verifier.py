@@ -34,6 +34,8 @@ from typing import Any
 from fastmcp.server.auth import AccessToken
 from fastmcp.server.auth.providers.jwt import TokenVerifier
 
+from superset.mcp_service.guest_token_verifier import GUEST_TOKEN_CLAIM
+
 logger = logging.getLogger(__name__)
 
 # Namespaced claim that flags an AccessToken as an API-key token.
@@ -216,4 +218,13 @@ class CompositeTokenVerifier(TokenVerifier):
             )
             return None
 
-        return await self._jwt_verifier.verify_token(token)
+        jwt_access_token = await self._jwt_verifier.verify_token(token)
+        # Defense-in-depth: the embedded-guest marker must only ever be set by the
+        # GuestTokenVerifier. Strip it from JWT-verified tokens so a crafted IdP
+        # JWT carrying the marker (and a "guest" client_id) cannot be mistaken for
+        # a verified guest during user resolution.
+        if jwt_access_token is not None:
+            jwt_claims = getattr(jwt_access_token, "claims", None)
+            if isinstance(jwt_claims, dict):
+                jwt_claims.pop(GUEST_TOKEN_CLAIM, None)
+        return jwt_access_token

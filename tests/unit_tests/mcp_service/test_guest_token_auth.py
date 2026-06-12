@@ -31,6 +31,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import jwt
 import pytest
 from fastmcp.server.auth import AccessToken
 from flask import g
@@ -39,7 +40,9 @@ from superset.mcp_service.auth import (
     _resolve_user_from_jwt_context,
     _tool_denied_for_guest,
     check_tool_permission,
+    CLASS_PERMISSION_ATTR,
     is_tool_visible_to_current_user,
+    METHOD_PERMISSION_ATTR,
 )
 from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
 from superset.mcp_service.guest_token_verifier import (
@@ -250,6 +253,7 @@ def test_resolve_builds_guest_user_from_token(app) -> None:
 
     with app.app_context():
         with (
+            patch.dict(app.config, {"MCP_EMBEDDED_GUEST_AUTH_ENABLED": True}),
             patch("fastmcp.server.dependencies.get_access_token", return_value=token),
             patch("superset.mcp_service.auth.is_feature_enabled", return_value=True),
             patch("superset.mcp_service.auth.security_manager") as mock_sm,
@@ -258,7 +262,9 @@ def test_resolve_builds_guest_user_from_token(app) -> None:
             result = _resolve_user_from_jwt_context(app)
 
     assert result is fake_guest
-    mock_sm.get_guest_user_from_token.assert_called_once()
+    # The internal marker must not leak into the GuestUser's token dict.
+    passed_token = mock_sm.get_guest_user_from_token.call_args.args[0]
+    assert GUEST_TOKEN_CLAIM not in passed_token
 
 
 def test_resolve_ignores_guest_type_without_marker(app) -> None:
@@ -338,3 +344,135 @@ def test_guest_denied_tool_hidden_from_listing(app) -> None:
     with app.app_context():
         g.user = _make_guest_user()
         assert is_tool_visible_to_current_user(tool) is False
+
+
+def test_guest_allowed_tool_permitted_with_rbac(app) -> None:
+    """A guest passes the deny-list and is granted a non-denied tool through the
+    full RBAC chain (deny-list runs, RBAC grants, scopes allow)."""
+    func = MagicMock()
+    func.__name__ = "list_charts"
+    setattr(func, CLASS_PERMISSION_ATTR, "Chart")
+    setattr(func, METHOD_PERMISSION_ATTR, "read")
+
+    with app.app_context():
+        with (
+            patch.dict(app.config, {"MCP_RBAC_ENABLED": True}),
+            patch("superset.mcp_service.auth.security_manager") as mock_sm,
+            patch("superset.mcp_service.auth._token_scope_allows", return_value=True),
+        ):
+            mock_sm.can_access = MagicMock(return_value=True)
+            g.user = _make_guest_user()
+            assert check_tool_permission(func) is True
+
+
+def test_denylist_string_misconfig_falls_back_to_default(app) -> None:
+    """A misconfigured string deny-list must not cause substring matching; the
+    type guard falls back to the safe default set."""
+    func = MagicMock()
+    func.__name__ = "find_user"  # substring of "find_users"
+
+    with app.app_context():
+        with patch.dict(
+            app.config, {"MCP_GUEST_DENIED_TOOLS": "find_users,get_instance_info"}
+        ):
+            g.user = _make_guest_user()
+            # Naive `in` on the string would wrongly match "find_user"; the guard
+            # falls back to the default set, so "find_user" is allowed...
+            assert _tool_denied_for_guest(func) is False
+            # ...while a genuinely-denied tool is still blocked via the default.
+            func.__name__ = "find_users"
+            assert _tool_denied_for_guest(func) is True
+
+
+def test_guest_denied_tools_operator_override(app) -> None:
+    func = MagicMock()
+    func.__name__ = "execute_sql"
+
+    with app.app_context():
+        with patch.dict(app.config, {"MCP_GUEST_DENIED_TOOLS": {"execute_sql"}}):
+            g.user = _make_guest_user()
+            assert _tool_denied_for_guest(func) is True
+
+
+# -- Hardening: expiry, forgery, and the resolution gate --
+
+
+@pytest.mark.asyncio
+async def test_guest_verifier_defers_on_expired_token() -> None:
+    verifier, _ = _make_guest_verifier(parse_error=jwt.ExpiredSignatureError("expired"))
+    with patch("superset.is_feature_enabled", return_value=True):
+        token = await verifier.verify_token("expired-guest-token")
+
+    assert token is None
+
+
+@pytest.mark.asyncio
+async def test_verify_token_defers_on_missing_exp() -> None:
+    """A successfully-parsed token with no usable ``exp`` must defer, not raise."""
+    bad = _parsed_guest_claims()
+    del bad["exp"]
+    verifier, _ = _make_guest_verifier(parsed=bad)
+    with patch("superset.is_feature_enabled", return_value=True):
+        token = await verifier.verify_token("raw-token")
+
+    assert token is None
+
+
+@pytest.mark.asyncio
+async def test_composite_strips_guest_marker_from_jwt_token() -> None:
+    """A crafted IdP JWT carrying the guest marker must have it stripped by the
+    composite, so it cannot be mistaken for a verified guest at resolution."""
+    forged = _access_token("guest", {GUEST_TOKEN_CLAIM: True, "sub": "attacker"})
+    jwt_verifier = _StubVerifier(forged)
+    composite = CompositeTokenVerifier(
+        jwt_verifier=jwt_verifier, api_key_prefixes=[], app=None, guest_verifier=None
+    )
+
+    result = await composite.verify_token("crafted-idp-jwt")
+
+    assert result is forged
+    assert GUEST_TOKEN_CLAIM not in result.claims
+
+
+def test_resolve_rejects_guest_marker_when_guest_auth_disabled(app) -> None:
+    """Even with the marker + client_id, a token is not treated as a guest when
+    embedded guest auth is disabled (defense against marker forgery)."""
+    token = MagicMock()
+    token.claims = {GUEST_TOKEN_CLAIM: True, **_parsed_guest_claims()}
+    token.client_id = "guest"
+
+    with app.app_context():
+        with (
+            patch.dict(app.config, {"MCP_EMBEDDED_GUEST_AUTH_ENABLED": False}),
+            patch("fastmcp.server.dependencies.get_access_token", return_value=token),
+            patch("superset.mcp_service.auth.is_feature_enabled", return_value=True),
+        ):
+            result = _resolve_user_from_jwt_context(app)
+
+    assert result is None
+
+
+def test_resolve_ignores_guest_marker_without_guest_client_id(app) -> None:
+    """The marker alone is not enough — ``client_id == "guest"`` is also required,
+    so a normal JWT that carries the marker resolves as its own user."""
+    mock_user = MagicMock()
+    mock_user.username = "alice"
+    mock_user.roles = []
+    mock_user.groups = []
+    token = MagicMock()
+    token.claims = {GUEST_TOKEN_CLAIM: True, "sub": "alice"}
+    token.client_id = "idp"  # not "guest"
+
+    with app.app_context():
+        with (
+            patch.dict(app.config, {"MCP_EMBEDDED_GUEST_AUTH_ENABLED": True}),
+            patch("fastmcp.server.dependencies.get_access_token", return_value=token),
+            patch(
+                "superset.mcp_service.auth.load_user_with_relationships",
+                return_value=mock_user,
+            ),
+        ):
+            result = _resolve_user_from_jwt_context(app)
+
+    assert result is not None
+    assert result.username == "alice"
