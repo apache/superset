@@ -34,7 +34,7 @@ const Container = styled.div`
 const Header = styled.div`
   ${({ theme }) => `
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 3}px 0;
     cursor: pointer;
@@ -50,10 +50,14 @@ const Title = styled.div`
   `}
 `;
 
+// Icons center within the first text line (one line-height tall) so
+// they track the title, consistent with the other timeline rows.
 const IconWrapper = styled.span`
   ${({ theme }) => `
     color: ${theme.colorTextSecondary};
     display: flex;
+    align-items: center;
+    height: ${theme.fontSize * theme.lineHeight}px;
   `}
 `;
 
@@ -61,6 +65,8 @@ const ChevronWrapper = styled.span`
   ${({ theme }) => `
     color: ${theme.colorTextTertiary};
     display: flex;
+    align-items: center;
+    height: ${theme.fontSize * theme.lineHeight}px;
   `}
 `;
 

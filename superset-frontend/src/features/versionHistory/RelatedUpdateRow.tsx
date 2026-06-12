@@ -38,16 +38,21 @@ const ENTITY_ICON: Record<ActivityEntityKind, ComponentType<IconType>> = {
 const Row = styled.div`
   ${({ theme }) => `
     display: flex;
+    align-items: flex-start;
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 2}px 0 ${theme.sizeUnit * 4}px;
     border-bottom: 1px solid ${theme.colorBorderSecondary};
   `}
 `;
 
+// The icon centers within the first text line (one line-height tall)
+// so it tracks the headline, not the middle of the two-line block.
 const IconWrapper = styled.span`
   ${({ theme }) => `
     color: ${theme.colorTextSecondary};
-    padding-top: ${theme.sizeUnit / 2}px;
+    display: flex;
+    align-items: center;
+    height: ${theme.fontSize * theme.lineHeight}px;
   `}
 `;
 
