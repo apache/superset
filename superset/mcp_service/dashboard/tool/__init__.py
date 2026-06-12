@@ -16,6 +16,7 @@
 # under the License.
 
 from .add_chart_to_existing_dashboard import add_chart_to_existing_dashboard
+from .add_native_filter import add_native_filter
 from .generate_dashboard import generate_dashboard
 from .get_dashboard_info import get_dashboard_info
 from .list_dashboards import list_dashboards
@@ -25,4 +26,5 @@ __all__ = [
     "get_dashboard_info",
     "generate_dashboard",
     "add_chart_to_existing_dashboard",
+    "add_native_filter",
 ]

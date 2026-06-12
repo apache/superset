@@ -468,6 +468,7 @@ from superset.mcp_service.chart.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.dashboard.tool import (  # noqa: F401, E402
     add_chart_to_existing_dashboard,
+    add_native_filter,
     generate_dashboard,
     get_dashboard_info,
     list_dashboards,
