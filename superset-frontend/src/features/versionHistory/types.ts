@@ -130,6 +130,12 @@ export interface RelatedEntry {
   type: 'related';
   record: ActivityRecord;
   records: ActivityRecord[];
+  /**
+   * Present when one transaction touched several distinct entities of
+   * the same kind and they rolled up into this single row; holds one
+   * name per rolled-up entity (the representative's included).
+   */
+  rollupEntityNames?: string[];
 }
 
 export type TimelineEntry = SaveGroup | RelatedEntry;

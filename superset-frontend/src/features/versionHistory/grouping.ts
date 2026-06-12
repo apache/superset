@@ -75,6 +75,8 @@ export function relatedEntryKey(record: ActivityRecord): string {
  * never produce phantom save rows or inflate change counts. Extend the
  * list as more machine-written paths surface.
  */
+// TODO(version-history): backend workaround — remove when upstream stops
+// emitting machine-written paths (e.g. shared_label_colors) as activity.
 const NOISE_PATHS: ReadonlyArray<readonly string[]> = [
   ['json_metadata', 'shared_label_colors'],
 ];
@@ -107,6 +109,8 @@ const RELATED_MERGE_WINDOW_MS = 60_000;
  * record is kept and the older save's records are absorbed so search
  * over collapsed records keeps working.
  */
+// TODO(version-history): backend workaround — remove when upstream emits
+// one transaction per logical save.
 function mergeAdjacentRelatedEntries(
   entries: TimelineEntry[],
 ): TimelineEntry[] {
@@ -131,13 +135,61 @@ function mergeAdjacentRelatedEntries(
 }
 
 /**
+ * One save can cascade into related records for many distinct entities
+ * of the same kind within a single transaction (e.g. a dataset edit
+ * touching every chart built on it), which would render one row per
+ * entity. Roll those entries up into one row per (transaction, kind):
+ * the newest entry keeps the row, absorbed entries contribute their
+ * entity names (for the tooltip) and records (so search keeps
+ * matching). Single-entity transactions are left untouched.
+ */
+// TODO(version-history): backend workaround — remove when upstream emits
+// a dataset-level impact record instead of per-chart cascade records.
+function rollupSameTransactionRelated(
+  entries: TimelineEntry[],
+): TimelineEntry[] {
+  const buckets = new Map<string, RelatedEntry[]>();
+  entries.forEach(entry => {
+    if (entry.type !== 'related') {
+      return;
+    }
+    const key = `${entry.record.transaction_id}|${entry.record.entity_kind}`;
+    const bucket = buckets.get(key);
+    if (bucket) {
+      bucket.push(entry);
+    } else {
+      buckets.set(key, [entry]);
+    }
+  });
+
+  const absorbed = new Set<RelatedEntry>();
+  buckets.forEach(bucket => {
+    if (bucket.length < 2) {
+      return;
+    }
+    // Entries are ordered newest-first; the first one keeps the row.
+    const [head, ...rest] = bucket;
+    head.rollupEntityNames = bucket.map(entry => entry.record.entity_name);
+    rest.forEach(entry => {
+      head.records.push(...entry.records);
+      absorbed.add(entry);
+    });
+  });
+
+  return absorbed.size > 0
+    ? entries.filter(entry => entry.type !== 'related' || !absorbed.has(entry))
+    : entries;
+}
+
+/**
  * Build the timeline from a flat newest-first activity stream:
  * `source='self'` records are grouped into one save container per
  * transaction, `source='related'` records collapse into a single entry
- * per (transaction, entity), and adjacent related entries from one
- * split save merge into a single row. Machine-written noise records
- * are dropped first, so saves consisting only of noise never appear
- * and change counts reflect real edits. The result is ordered newest
+ * per (transaction, entity), adjacent related entries from one split
+ * save merge into a single row, and multi-entity cascades roll up into
+ * one row per (transaction, kind). Machine-written noise records are
+ * dropped first, so saves consisting only of noise never appear and
+ * change counts reflect real edits. The result is ordered newest
  * first.
  */
 export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
@@ -211,7 +263,7 @@ export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
     return txB - txA;
   });
 
-  return mergeAdjacentRelatedEntries(entries);
+  return rollupSameTransactionRelated(mergeAdjacentRelatedEntries(entries));
 }
 
 /**

@@ -393,6 +393,82 @@ test('buildTimeline keeps simultaneous related entries for different entities ap
   expect(entries).toHaveLength(2);
 });
 
+test('buildTimeline rolls up same-transaction related entries per entity kind', () => {
+  // One dataset save cascades into a related record for every chart
+  // built on it; the panel should show one pluralized row, not ten.
+  const entries = buildTimeline(
+    Array.from({ length: 10 }, (_, i) =>
+      record({
+        source: 'related',
+        entity_kind: 'chart',
+        entity_uuid: `c-${i}`,
+        entity_name: `Chart ${i}`,
+        transaction_id: 53,
+        issued_at: '2026-06-12T15:00:00',
+        summary: `Chart updated: Chart ${i}`,
+      }),
+    ),
+  ) as RelatedEntry[];
+
+  expect(entries).toHaveLength(1);
+  expect(entries[0].type).toBe('related');
+  expect(entries[0].rollupEntityNames).toHaveLength(10);
+  expect(entries[0].rollupEntityNames).toContain('Chart 0');
+  expect(entries[0].rollupEntityNames).toContain('Chart 9');
+  // every absorbed entry's records are retained for search
+  expect(entries[0].records).toHaveLength(10);
+});
+
+test('buildTimeline leaves single-entity related transactions un-rolled', () => {
+  const entries = buildTimeline([
+    record({
+      source: 'related',
+      entity_kind: 'dataset',
+      entity_uuid: 'ds-1',
+      entity_name: 'Sales',
+      transaction_id: 53,
+      issued_at: '2026-06-12T15:00:00',
+      summary: 'Dataset updated: Sales',
+    }),
+  ]) as RelatedEntry[];
+
+  expect(entries).toHaveLength(1);
+  expect(entries[0].rollupEntityNames).toBeUndefined();
+});
+
+test('buildTimeline rolls up mixed kinds in one transaction per kind', () => {
+  const related = (
+    kind: 'chart' | 'dataset',
+    uuid: string,
+    name: string,
+  ): ActivityRecord =>
+    record({
+      source: 'related',
+      entity_kind: kind,
+      entity_uuid: uuid,
+      entity_name: name,
+      transaction_id: 53,
+      issued_at: '2026-06-12T15:00:00',
+    });
+
+  const entries = buildTimeline([
+    related('chart', 'c-1', 'Trend'),
+    related('chart', 'c-2', 'Breakdown'),
+    related('dataset', 'ds-1', 'Sales'),
+    related('dataset', 'ds-2', 'Costs'),
+  ]) as RelatedEntry[];
+
+  expect(entries).toHaveLength(2);
+  const byKind = new Map(
+    entries.map(entry => [entry.record.entity_kind, entry]),
+  );
+  expect(byKind.get('chart')?.rollupEntityNames).toEqual([
+    'Trend',
+    'Breakdown',
+  ]);
+  expect(byKind.get('dataset')?.rollupEntityNames).toEqual(['Sales', 'Costs']);
+});
+
 test('a self save between two related entries blocks their merge', () => {
   const related = (transactionId: number, issuedAt: string) =>
     record({

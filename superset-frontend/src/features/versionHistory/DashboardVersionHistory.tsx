@@ -30,6 +30,7 @@ import type {
   SessionLogEntry,
 } from './types';
 import {
+  clearVersionPreview,
   closeVersionHistoryPanel,
   openVersionHistoryPanel,
   selectIsVersionHistoryPanelOpen,
@@ -144,6 +145,10 @@ export default function DashboardVersionHistory() {
     [dispatch, uuid],
   );
 
+  const handleExitPreview = useCallback(() => {
+    dispatch(clearVersionPreview());
+  }, [dispatch]);
+
   const handleOpenRelated = useCallback(
     (record: ActivityRecord) => {
       openRelatedEntity(record, addDangerToast);
@@ -191,6 +196,7 @@ export default function DashboardVersionHistory() {
         previewedTransactionId={preview?.transactionId ?? null}
         onClose={handleClose}
         onPreview={handlePreview}
+        onExitPreview={handleExitPreview}
         onRestore={handleRestore}
         onOpenAsNew={handleOpenAsNew}
         onOpenRelated={handleOpenRelated}
