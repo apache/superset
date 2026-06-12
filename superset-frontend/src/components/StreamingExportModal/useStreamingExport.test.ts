@@ -276,6 +276,7 @@ test('guest-token chart exports skip CSRF fetch and include guest_token form fie
       url: '/api/v1/chart/data',
       payload: { datasource: '1__table', viz_type: 'table' },
       exportType: 'csv',
+      exportSource: 'chart',
       expectedRows: 100000,
     });
   });
@@ -327,6 +328,7 @@ test('non-guest chart exports fetch CSRF and include X-CSRFToken header', async 
       url: '/api/v1/chart/data',
       payload: { datasource: '1__table', viz_type: 'table' },
       exportType: 'csv',
+      exportSource: 'chart',
     });
   });
 
@@ -382,6 +384,7 @@ test('SQL Lab exports fetch CSRF and omit guest_token even when guest token exis
       url: '/api/v1/sqllab/export_streaming/',
       payload: { client_id: 'test-id' },
       exportType: 'csv',
+      exportSource: 'sqllab',
     });
   });
 
@@ -397,6 +400,37 @@ test('SQL Lab exports fetch CSRF and omit guest_token even when guest token exis
     'X-CSRFToken': 'mock-csrf-token',
   });
   expect(body.get('client_id')).toBe('test-id');
+  expect(body.has('guest_token')).toBe(false);
+});
+
+test('guest tokens do not bypass CSRF for unclassified non-client exports', async () => {
+  applicationRoot.mockReturnValue('');
+  SupersetClient.getGuestToken.mockReturnValue('guest-token');
+
+  const mockFetch = createPrefixTestMockFetch();
+  global.fetch = mockFetch;
+
+  const { result } = renderHook(() => useStreamingExport());
+
+  act(() => {
+    result.current.startExport({
+      url: '/api/v1/other/export_streaming/',
+      payload: { export_id: 'test-id' },
+      exportType: 'csv',
+    });
+  });
+
+  await waitFor(() => {
+    expect(mockFetch).toHaveBeenCalledTimes(1);
+  });
+
+  expect(SupersetClient.getCSRFToken).toHaveBeenCalledTimes(1);
+  const [, requestInit] = mockFetch.mock.calls[0];
+  const body = requestInit.body as URLSearchParams;
+
+  expect(requestInit.headers).toMatchObject({
+    'X-CSRFToken': 'mock-csrf-token',
+  });
   expect(body.has('guest_token')).toBe(false);
 });
 
