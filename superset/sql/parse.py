@@ -833,14 +833,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # (`lo_export` writes to the server filesystem, `lo_from_bytea`/
         # `lo_create`/`lo_put`/`lo_import`/`lowrite` mutate the pg_largeobject
         # catalog). These appear as plain function calls inside an `exp.Select`
-        # and would otherwise pass the read-only gate.
+        # and would otherwise pass the read-only gate. Every name in
+        # _MUTATING_FUNCTION_NAMES is dialect-specific and parses as an
+        # `exp.Anonymous`, whose `.name` is the bare function identifier.
         for function in self._parsed.find_all(exp.Func):
-            name = (
-                function.name.upper()
-                if function.sql_name() == "ANONYMOUS"
-                else function.sql_name().upper()
-            )
-            if name in self._MUTATING_FUNCTION_NAMES:
+            if function.name.upper() in self._MUTATING_FUNCTION_NAMES:
                 return True
 
         # depending on the dialect (Oracle, MS SQL) the `ALTER` is parsed as a

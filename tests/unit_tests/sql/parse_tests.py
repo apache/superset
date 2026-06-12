@@ -1512,6 +1512,26 @@ def test_is_mutating_select_into_variable_is_read(engine: str, sql: str) -> None
 
 
 @pytest.mark.parametrize(
+    "engine, sql",
+    [
+        # `SELECT ... INTO new_table` is CTAS on Redshift and T-SQL just as it
+        # is on Postgres, so each dialect in _SELECT_INTO_CTAS_DIALECTS must
+        # classify the statement as mutating.
+        ("redshift", "SELECT * INTO new_table FROM existing_table"),
+        ("redshift", "SELECT col INTO new_table FROM existing_table"),
+        ("mssql", "SELECT * INTO new_table FROM existing_table"),
+        ("mssql", "SELECT col INTO new_table FROM existing_table"),
+    ],
+)
+def test_is_mutating_select_into_ctas_dialects(engine: str, sql: str) -> None:
+    """
+    `SELECT ... INTO new_table` creates a table on the CTAS dialects beyond
+    Postgres (Redshift, T-SQL), so `is_mutating` must return True there.
+    """
+    assert SQLStatement(sql, engine).is_mutating() is True
+
+
+@pytest.mark.parametrize(
     "sql, expected",
     [
         # PostgreSQL constructs that sqlglot parses as opaque exp.Command.
