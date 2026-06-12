@@ -51,9 +51,6 @@ const Header = styled.div`
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 3}px 0;
     cursor: pointer;
-    &:hover {
-      background-color: ${theme.colorBgTextHover};
-    }
   `}
 `;
 
@@ -90,6 +87,26 @@ const IconWrapper = styled.span`
   ${({ theme }) => `
     color: ${theme.colorTextSecondary};
     display: flex;
+  `}
+`;
+
+const ChevronWrapper = styled.span`
+  ${({ theme }) => `
+    color: ${theme.colorTextTertiary};
+    display: flex;
+  `}
+`;
+
+// Icon-only trigger: neutral icon color instead of the link-button blue.
+const KebabButton = styled(Button)`
+  ${({ theme }) => `
+    && {
+      color: ${theme.colorTextTertiary};
+    }
+    &&:hover,
+    &&:focus {
+      color: ${theme.colorText};
+    }
   `}
 `;
 
@@ -158,14 +175,14 @@ function GroupKebab({
   ];
   return (
     <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-      <Button
+      <KebabButton
         buttonSize="xsmall"
         buttonStyle="link"
         aria-label={t('More actions')}
         onClick={event => event.stopPropagation()}
       >
         <Icons.MoreOutlined iconSize="m" />
-      </Button>
+      </KebabButton>
     </Dropdown>
   );
 }
@@ -257,13 +274,13 @@ export default function SaveGroupItem({
           <Headline title={headline}>{headline}</Headline>
         </HeaderText>
         {hasRecords && (
-          <IconWrapper>
+          <ChevronWrapper>
             {expanded ? (
               <Icons.UpOutlined iconSize="m" />
             ) : (
               <Icons.DownOutlined iconSize="m" />
             )}
-          </IconWrapper>
+          </ChevronWrapper>
         )}
       </Header>
       {expanded && (

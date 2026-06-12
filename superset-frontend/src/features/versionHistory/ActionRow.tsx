@@ -103,6 +103,19 @@ const KebabWrapper = styled.div`
   `}
 `;
 
+// Icon-only trigger: neutral icon color instead of the link-button blue.
+const KebabButton = styled(Button)`
+  ${({ theme }) => `
+    && {
+      color: ${theme.colorTextTertiary};
+    }
+    &&:hover,
+    &&:focus {
+      color: ${theme.colorText};
+    }
+  `}
+`;
+
 export interface ActionRowProps {
   entityType: VersionedEntityType;
   record: ActivityRecord;
@@ -191,14 +204,14 @@ export default function ActionRow({
       </Content>
       <KebabWrapper>
         <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-          <Button
+          <KebabButton
             buttonSize="xsmall"
             buttonStyle="link"
             aria-label={t('More actions')}
             onClick={event => event.stopPropagation()}
           >
             <Icons.MoreOutlined iconSize="m" />
-          </Button>
+          </KebabButton>
         </Dropdown>
       </KebabWrapper>
     </Row>
