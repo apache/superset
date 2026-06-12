@@ -253,5 +253,5 @@ def _response_with_location(status: int, location: Optional[str]) -> Response:
         # intact while ensuring any raw control bytes that snuck in from
         # PATH_INFO are header-safe. Most realistic inputs round-trip
         # untouched (PATH_INFO is already %-encoded by the server).
-        headers.append(("Location", quote(location, safe="/?&=#%:+,;@!$'()*~-_.~")))
+        headers.append(("Location", quote(location, safe="/?&=#%:+,;@!$'()*-_.~")))
     return Response(status=status, headers=headers)

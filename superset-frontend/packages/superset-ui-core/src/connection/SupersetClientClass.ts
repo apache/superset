@@ -82,7 +82,11 @@ export default class SupersetClientClass {
     unauthorizedHandler = undefined,
   }: ClientConfig = {}) {
     const url = new URL(`${protocol || 'https:'}//${host || 'localhost'}`);
-    this.appRoot = appRoot;
+    // Strip a trailing slash so the getUrl dedupe comparisons and the final
+    // `${this.appRoot}/${...}` build stay correct regardless of how the root
+    // was supplied. Mirrors normalizeBackendUrlString / AppRootMiddleware /
+    // LegacyPrefixRedirectMiddleware, which all rstrip the root.
+    this.appRoot = appRoot.replace(/\/$/, '');
     this.host = url.host;
     this.protocol = url.protocol as Protocol;
     this.headers = { Accept: 'application/json', ...headers }; // defaulting accept to json

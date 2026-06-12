@@ -104,14 +104,14 @@ describe('openInNewTab neutralises dangerous schemes by appRoot prefix', () => {
         openInNewTab(scheme);
         expect(openSpy).toHaveBeenCalledTimes(1);
         const [calledUrl] = openSpy.mock.calls[0];
-        // With empty appRoot, ensureAppRoot is a no-op. The URL passed in
-        // is `data:...` etc.; SAFE_NAVIGATION_URL_RE rejects every one
-        // (no leading slash, no http/ftp/mailto/tel prefix). The current
-        // contract: `openInNewTab` propagates the throw and `window.open`
-        // is never invoked.
-        // openInNewTab calls assertSafeNavigationUrl directly and the
-        // resulting throw bubbles — we capture it by wrapping the call
-        // in expect().toThrow.
+        // With empty appRoot, ensureAppRoot is NOT a no-op for a dangerous
+        // scheme: a `data:...` string is not safe-absolute, so it gets a
+        // leading slash and becomes `/data:...`. SAFE_NAVIGATION_URL_RE then
+        // accepts it via the leading-slash branch, so `window.open` IS
+        // invoked — but with an inert same-origin path (`/data:...`, a 404),
+        // never an executable scheme. The neutralisation is the path prefix,
+        // not a throw; this is why the assertion is `openSpy` called with
+        // `/${scheme}` rather than `expect().toThrow`.
         expect(calledUrl).toBe(`/${scheme}`);
         expect(calledUrl).not.toMatch(
           /^(?:data|vbscript|file|blob|chrome|about|javascript):/i,

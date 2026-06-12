@@ -257,9 +257,10 @@ def get_explore_redirect_url() -> str | None:  # noqa: C901
     request_form_data = request.args.get("form_data")
     if not request_form_data:
         return None
+    # `loads_request_json` coerces any non-object payload (scalar, list) to
+    # `{}`, so a non-dict `form_data` falls through to the `not datasource`
+    # guard below — no separate isinstance check is needed here.
     parsed_form_data = loads_request_json(request_form_data)
-    if not isinstance(parsed_form_data, dict):
-        return None
     datasource = parsed_form_data.get("datasource")
     if not datasource:
         return None
@@ -324,7 +325,8 @@ def get_explore_redirect_url() -> str | None:  # noqa: C901
     # as sanitization). The endpoint params here (slice_id, dataset_id,
     # form_data_key, ...) are single-valued; we keep the first value if a
     # caller ever repeats a key so `url_for` receives scalars, not lists.
-    query_multi = parse.parse_qs(request.query_string.decode())
+    raw_query_string = request.query_string.decode()
+    query_multi = parse.parse_qs(raw_query_string)
     if form_data_key:
         query_multi.pop("form_data", None)
         query_multi["form_data_key"] = [form_data_key]
@@ -343,7 +345,7 @@ def get_explore_redirect_url() -> str | None:  # noqa: C901
     # (same endpoint, same sorted query items), render the SPA instead of
     # 302-looping. Compare on `(endpoint, sorted_query_items)` rather than
     # `full_path` so SCRIPT_NAME (subdir deployment) is irrelevant.
-    current_query_items = sorted(parse.parse_qsl(request.query_string.decode()))
+    current_query_items = sorted(parse.parse_qsl(raw_query_string))
     target_query_items = sorted(query.items())
     if (
         request.endpoint == "ExploreView.root"

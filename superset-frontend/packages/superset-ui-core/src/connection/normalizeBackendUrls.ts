@@ -34,6 +34,11 @@
  * a missed entry here leaves the field double-prefixed under subdir deployment
  * with no static signal.
  */
+// `explore_url` may resolve to an operator-configured `default_endpoint`
+// (`connectors/sqla/models.py`) rather than the fixed `/explore/?...` path, so
+// the single-pass strip can touch a custom value whose leading segment happens
+// to match the app root. That is the intended single-pass contract; absolute
+// `default_endpoint`s pass through untouched via SAFE_ABSOLUTE_URL_RE.
 export const NORMALIZED_URL_FIELDS = new Set<string>(['explore_url']);
 
 /**
