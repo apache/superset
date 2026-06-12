@@ -178,6 +178,7 @@ class TestBigNumberChartConfig:
             )
 
     def test_aggregation_requires_trendline(self) -> None:
+        """aggregation without show_trendline=True must raise ValidationError."""
         with pytest.raises(
             ValidationError, match="aggregation requires show_trendline"
         ):
@@ -199,6 +200,7 @@ class TestBigNumberChartConfig:
         assert len(config.filters) == 1
 
     def test_with_aggregation_sum(self) -> None:
+        """aggregation='sum' is accepted when show_trendline=True."""
         config = BigNumberChartConfig(
             chart_type="big_number",
             metric=ColumnRef(name="revenue", aggregate="SUM"),
@@ -209,6 +211,7 @@ class TestBigNumberChartConfig:
         assert config.aggregation == "sum"
 
     def test_with_aggregation_last_value(self) -> None:
+        """aggregation='LAST_VALUE' is accepted when show_trendline=True."""
         config = BigNumberChartConfig(
             chart_type="big_number",
             metric=ColumnRef(name="revenue", aggregate="SUM"),
@@ -219,6 +222,7 @@ class TestBigNumberChartConfig:
         assert config.aggregation == "LAST_VALUE"
 
     def test_aggregation_defaults_to_none(self) -> None:
+        """aggregation field is None when omitted."""
         config = BigNumberChartConfig(
             chart_type="big_number",
             metric=ColumnRef(name="revenue", aggregate="SUM"),
@@ -377,6 +381,7 @@ class TestMapBigNumberConfig:
         assert "aggregation" not in form_data
 
     def test_aggregation_not_allowed_for_big_number_total(self) -> None:
+        """aggregation is rejected when show_trendline=False (big_number_total)."""
         with pytest.raises(
             ValidationError, match="aggregation requires show_trendline"
         ):
