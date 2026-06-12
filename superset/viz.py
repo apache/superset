@@ -440,9 +440,9 @@ class BaseViz:  # pylint: disable=too-many-public-methods
             "metrics": metrics,
             "row_limit": row_limit,
             "filter": self.form_data.get("filters", []),
-            "timeseries_limit": limit,
+            "series_limit": limit,
             "extras": extras,
-            "timeseries_limit_metric": timeseries_limit_metric,
+            "series_limit_metric": timeseries_limit_metric,
             "order_desc": order_desc,
         }
 
