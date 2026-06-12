@@ -55,12 +55,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-# Fallback parse-length bound applied when no Flask app context is active
-# (Alembic migrations, scripts, isolated unit tests). The runtime value is
-# read from `SQL_MAX_PARSE_LENGTH` in app config; keep these two in sync.
-_DEFAULT_MAX_PARSE_LENGTH: int = 1_000_000
-
-
 def _check_script_length(script: str, engine: str | None) -> None:
     """
     Reject scripts whose UTF-8 byte length exceeds the configured maximum
@@ -72,12 +66,20 @@ def _check_script_length(script: str, engine: str | None) -> None:
     threat model is parser memory and CPU on the encoded payload that
     sqlglot ingests.
     """
-    if has_app_context():
-        max_length = current_app.config.get(
-            "SQL_MAX_PARSE_LENGTH", _DEFAULT_MAX_PARSE_LENGTH
-        )
-    else:
-        max_length = _DEFAULT_MAX_PARSE_LENGTH
+    # Imported lazily to avoid a circular import (``superset.config`` pulls in
+    # ``superset.jinja_context``, which imports this module).
+    from superset import config
+
+    # The live app config wins when a Flask app context is active (honoring any
+    # operator override); otherwise (Alembic migrations, scripts, isolated unit
+    # tests) fall back to the documented default declared in ``superset.config``
+    # so the bound stays sourced from configuration rather than duplicated here.
+    default = config.SQL_MAX_PARSE_LENGTH
+    max_length = (
+        current_app.config.get("SQL_MAX_PARSE_LENGTH", default)
+        if has_app_context()
+        else default
+    )
 
     if max_length is None:
         return

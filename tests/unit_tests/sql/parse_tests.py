@@ -3409,7 +3409,7 @@ def _small_parse_cap(mocker: MockerFixture) -> None:
     Pin the parse-length cap to 100 bytes and force the no-app-context
     fallback path so tests are decoupled from the suite's Flask config.
     """
-    mocker.patch("superset.sql.parse._DEFAULT_MAX_PARSE_LENGTH", 100)
+    mocker.patch("superset.config.SQL_MAX_PARSE_LENGTH", 100)
     mocker.patch("superset.sql.parse.has_app_context", return_value=False)
 
 
@@ -3432,7 +3432,7 @@ def test_check_script_length_counts_utf8_bytes(mocker: MockerFixture) -> None:
     The cap is in UTF-8 bytes, not code points. A multi-byte char string
     whose char-count is under the cap but byte-count is over must reject.
     """
-    mocker.patch("superset.sql.parse._DEFAULT_MAX_PARSE_LENGTH", 30)
+    mocker.patch("superset.config.SQL_MAX_PARSE_LENGTH", 30)
     mocker.patch("superset.sql.parse.has_app_context", return_value=False)
     # 20 emoji * 4 UTF-8 bytes each = 80 bytes, well over the 30-byte cap
     payload = "\U0001f600" * 20
