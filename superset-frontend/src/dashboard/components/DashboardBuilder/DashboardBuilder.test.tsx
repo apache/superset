@@ -175,19 +175,37 @@ describe('DashboardBuilder', () => {
     window.history.replaceState({}, '', '/?standalone=2');
     try {
       const { queryByTestId } = setup();
-      expect(queryByTestId('dashboard-header-container')).not.toBeInTheDocument();
+      expect(
+        queryByTestId('dashboard-header-container'),
+      ).not.toBeInTheDocument();
     } finally {
       window.history.replaceState({}, '', originalHref);
     }
   });
 
-  test('should apply editing class and hide header when both edit and standalone params are set', () => {
-    // Combined-params analogue of the legacy `?edit=true&standalone=true` Cypress
-    // mount. The two URL params are orthogonal on the React side: standalone=2
-    // suppresses DashboardHeader regardless of editMode, while editMode still
+  test('should keep the DashboardHeader when standalone mode only hides nav (?standalone=1)', () => {
+    // `?standalone=1` maps to DashboardStandaloneMode.HideNav, which only hides the
+    // Flask-rendered global app menu (#app-menu) — it must NOT suppress the React-side
+    // DashboardHeader. This pins the boundary against HideNavAndTitle (?standalone=2).
+    const originalHref = window.location.href;
+    window.history.replaceState({}, '', '/?standalone=1');
+    try {
+      const { queryByTestId } = setup();
+      expect(queryByTestId('dashboard-header-container')).toBeInTheDocument();
+    } finally {
+      window.history.replaceState({}, '', originalHref);
+    }
+  });
+
+  test('should keep the header hidden in standalone mode (?standalone=2) while editMode is active', () => {
+    // Orthogonality analogue of the legacy `?edit=true&standalone=true` Cypress mount.
+    // editMode is sourced from Redux (state.dashboardState.editMode), not the URL —
+    // DashboardBuilder only reads URL_PARAMS.standalone — so the legacy `edit=true`
+    // param is inert here and is intentionally omitted. Contract under test:
+    // standalone=2 (HideNavAndTitle) suppresses DashboardHeader even while editMode
     // drives the `dashboard--editing` class on the wrapper.
     const originalHref = window.location.href;
-    window.history.replaceState({}, '', '/?edit=true&standalone=2');
+    window.history.replaceState({}, '', '/?standalone=2');
     try {
       const { getByTestId, queryByTestId } = setup({
         dashboardState: { ...mockState.dashboardState, editMode: true },
@@ -195,7 +213,9 @@ describe('DashboardBuilder', () => {
       expect(getByTestId('dashboard-content-wrapper')).toHaveClass(
         'dashboard dashboard--editing',
       );
-      expect(queryByTestId('dashboard-header-container')).not.toBeInTheDocument();
+      expect(
+        queryByTestId('dashboard-header-container'),
+      ).not.toBeInTheDocument();
     } finally {
       window.history.replaceState({}, '', originalHref);
     }
