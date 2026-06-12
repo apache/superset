@@ -356,6 +356,7 @@ test('chart streaming export includes guest token in form body when configured',
       url: '/api/v1/chart/data',
       payload: { datasource: '1__table', viz_type: 'table' },
       exportType: 'csv',
+      exportSource: 'chart',
     });
   });
 
