@@ -459,6 +459,63 @@ class TestDatasetChildChangeRecords(SupersetTestCase):
             f"expected at least one kind='column' record, got {rows}"
         )
 
+    def test_dataset_put_with_override_is_one_transaction(self) -> None:
+        """One logical save must be one Continuum transaction.
+
+        ``PUT /api/v1/dataset/<pk>?override_columns=true`` runs
+        UpdateDatasetCommand *and* RefreshDatasetCommand; before the
+        single-transaction wrapper each committed separately, producing
+        two transactions stamped the same second — rendered as two
+        "Dataset updated" rows for one user action in the
+        version-history UI (PR #40988 feedback).
+        """
+        # pylint: disable=import-outside-toplevel
+        from sqlalchemy_continuum import version_class
+
+        from superset.connectors.sqla.models import SqlaTable, TableColumn
+        from tests.integration_tests.constants import ADMIN_USERNAME
+
+        _persist_fixture_state()
+
+        dataset = (
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.table_name == "birth_names")
+            .one()
+        )
+        ver = version_class(SqlaTable)
+        col_ver = version_class(TableColumn)
+        pre_max = (
+            db.session.query(sa.func.max(ver.transaction_id))
+            .filter(ver.id == dataset.id)
+            .scalar()
+            or 0
+        )
+
+        self.login(ADMIN_USERNAME)
+        rv = self.client.put(
+            f"/api/v1/dataset/{dataset.id}?override_columns=true",
+            json={"description": f"k2 single-tx probe {uuid4().hex[:8]}"},
+        )
+        assert rv.status_code == 200, rv.json
+
+        parent_txs = {
+            r[0]
+            for r in db.session.query(ver.transaction_id).filter(
+                ver.id == dataset.id, ver.transaction_id > pre_max
+            )
+        }
+        child_txs = {
+            r[0]
+            for r in db.session.query(col_ver.transaction_id).filter(
+                col_ver.table_id == dataset.id, col_ver.transaction_id > pre_max
+            )
+        }
+        all_txs = parent_txs | child_txs
+        assert len(all_txs) <= 1, (
+            f"one logical save produced {len(all_txs)} transactions "
+            f"({sorted(all_txs)}); update + refresh must share one commit"
+        )
+
 
 class TestBaselineProducesZeroChangeRecords(SupersetTestCase):
     """(f) — operation_type=0 (baseline / INSERT) transactions emit no records."""
