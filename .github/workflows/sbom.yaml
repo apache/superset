@@ -1,0 +1,17 @@
+name: SBOM
+
+on:
+  push:
+    branches: [master, main]
+  schedule:
+    - cron: "0 0 * * 5"  # Friday 00:00 UTC = 03:00 Tallinn (night Thu→Fri)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sbom:
+    uses: Piletilevi/sec-workflows/.github/workflows/sbom-upload.yaml@v2
+    secrets:
+      DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }}
