@@ -76,9 +76,14 @@ export function relatedEntryKey(record: ActivityRecord): string {
  * list as more machine-written paths surface.
  */
 // TODO(version-history): backend workaround — remove when upstream stops
-// emitting machine-written paths (e.g. shared_label_colors) as activity.
+// emitting machine-written paths (e.g. shared_label_colors, schema_perm)
+// as activity.
 const NOISE_PATHS: ReadonlyArray<readonly string[]> = [
   ['json_metadata', 'shared_label_colors'],
+  // Permission strings rewritten whenever a datasource/schema changes;
+  // they cascade phantom "updated" records onto every affected chart.
+  ['schema_perm'],
+  ['catalog_perm'],
 ];
 
 function isNoiseRecord(record: ActivityRecord): boolean {
