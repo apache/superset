@@ -12,7 +12,7 @@
  * Unless required by applicable law or agreed to in writing,
  * software distributed under the License is distributed on an
  * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  You may obtain a copy of the
+ * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
  */
@@ -118,7 +118,10 @@ export function useVersionActivity(
     count,
     isLoading,
     error,
-    hasMore: records.length < count,
+    // Compare fetched pages (not deduplicated record count) against the
+    // server total, so cross-page duplicates can't strand a dead
+    // "Load more" button.
+    hasMore: (page + 1) * PAGE_SIZE < count,
     loadMore,
     refresh,
   };

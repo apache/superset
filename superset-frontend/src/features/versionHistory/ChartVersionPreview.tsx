@@ -36,7 +36,7 @@ import { getQuerySettings } from 'src/explore/exploreUtils';
 import type { Dataset } from 'src/components/Chart/types';
 import type { ExplorePageState } from 'src/explore/types';
 import { selectVersionPreview } from './reducer';
-import { fetchVersionSnapshot } from './api';
+import { fetchDatasourceMetadata, fetchVersionSnapshot } from './api';
 import PreviewBanner from './PreviewBanner';
 
 const Container = styled.div`
@@ -78,9 +78,16 @@ export default function ChartVersionPreview() {
   );
   const [formData, setFormData] = useState<QueryFormData | null>(null);
   const [queriesData, setQueriesData] = useState<QueryData[] | null>(null);
+  const [previewDatasource, setPreviewDatasource] = useState<
+    Dataset | undefined
+  >(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const fetchIdRef = useRef(0);
+  // Read the live datasource through a ref so re-hydrations don't
+  // retrigger the preview fetch.
+  const liveDatasourceRef = useRef(datasource);
+  liveDatasourceRef.current = datasource;
 
   const entityUuid = preview?.entityUuid;
   const versionUuid = preview?.versionUuid;
@@ -95,6 +102,7 @@ export default function ChartVersionPreview() {
     setError(null);
     setQueriesData(null);
     setFormData(null);
+    setPreviewDatasource(undefined);
 
     const load = async () => {
       const snapshot = await fetchVersionSnapshot(
@@ -102,6 +110,34 @@ export default function ChartVersionPreview() {
         entityUuid,
         versionUuid,
       );
+      // The snapshot may reference a different datasource than the live
+      // chart (e.g. the chart was switched to another dataset since);
+      // fetch the metadata the preview should label itself with.
+      const live = liveDatasourceRef.current as
+        | (Dataset & { id?: number; type?: string })
+        | undefined;
+      let datasourceMeta: Dataset | undefined = live;
+      if (
+        !live ||
+        live.id !== snapshot.datasource_id ||
+        live.type !== snapshot.datasource_type
+      ) {
+        try {
+          datasourceMeta = (await fetchDatasourceMetadata(
+            snapshot.datasource_id,
+            snapshot.datasource_type,
+          )) as unknown as Dataset;
+        } catch {
+          if (fetchId === fetchIdRef.current) {
+            setError(
+              t(
+                'The data this version was built on is no longer available, so it cannot be previewed',
+              ),
+            );
+          }
+          return;
+        }
+      }
       const previewFormData = buildPreviewFormData(
         snapshot.params,
         snapshot.viz_type,
@@ -122,6 +158,7 @@ export default function ChartVersionPreview() {
       }
       setFormData(previewFormData);
       setQueriesData(result);
+      setPreviewDatasource(datasourceMeta);
     };
 
     load()
@@ -154,11 +191,13 @@ export default function ChartVersionPreview() {
       )}
       {!isLoading && !error && formData && queriesData && (
         <ChartArea>
+          {/* keep SuperChart's own error boundary so a render failure on
+              stale metadata degrades to a contained error, not a broken
+              page */}
           <SuperChart
-            disableErrorBoundary
             chartType={formData.viz_type}
             enableNoResults
-            datasource={datasource}
+            datasource={previewDatasource}
             formData={formData}
             queriesData={queriesData}
             height="100%"

@@ -1067,7 +1067,7 @@ export const useExploreAdditionalActionsMenu = (
     ) {
       menuItems.push({
         key: MENU_KEYS.VERSION_HISTORY,
-        label: t('Version history'),
+        label: t('View version history'),
         onClick: () => {
           dispatch(openVersionHistoryPanel('chart'));
           setIsDropdownVisible(false);

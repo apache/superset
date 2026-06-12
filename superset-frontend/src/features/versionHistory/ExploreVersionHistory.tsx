@@ -19,6 +19,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { URL_PARAMS } from 'src/constants';
@@ -44,6 +45,28 @@ import { useVersionActions } from './useVersionActions';
 import { groupHeadline } from './display';
 import VersionHistoryPanel from './VersionHistoryPanel';
 
+/**
+ * The explore flex row (datasource rail + control rail + chart) cannot give
+ * up enough width for the panel on narrow viewports; below the XL breakpoint
+ * the panel overlays the page (anchored to the relatively-positioned explore
+ * container) instead of being pushed past the viewport edge.
+ */
+const PanelHost = styled.div`
+  ${({ theme }) => `
+    height: 100%;
+    flex-shrink: 0;
+    @media (max-width: ${theme.screenXL}px) {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      height: auto;
+      z-index: 20;
+      box-shadow: ${theme.boxShadow};
+    }
+  `}
+`;
+
 export default function ExploreVersionHistory() {
   const dispatch = useDispatch();
   const { addDangerToast } = useToasts();
@@ -54,7 +77,18 @@ export default function ExploreVersionHistory() {
   const include = useSelector(selectVersionHistoryInclude);
   const preview = useSelector(selectVersionPreview);
   const sessionLog = useSelector(selectVersionSessionLog);
-  const [uuid, setUuid] = useState<string | undefined>(slice?.uuid);
+  const sliceId = slice?.slice_id;
+  // Key the fetched uuid by slice id so a "save as" (which swaps the slice
+  // in place) invalidates it instead of keeping the old chart's uuid.
+  const [fetchedUuid, setFetchedUuid] = useState<{
+    sliceId: number;
+    uuid: string;
+  } | null>(null);
+  const uuid =
+    slice?.uuid ??
+    (fetchedUuid && fetchedUuid.sliceId === sliceId
+      ? fetchedUuid.uuid
+      : undefined);
 
   useEffect(() => {
     if (getUrlParam(URL_PARAMS.versionHistory)) {
@@ -71,18 +105,14 @@ export default function ExploreVersionHistory() {
   );
 
   useEffect(() => {
-    if (uuid || !isPanelOpen || !slice?.slice_id) {
-      return undefined;
-    }
-    if (slice.uuid) {
-      setUuid(slice.uuid);
+    if (uuid || !isPanelOpen || !sliceId) {
       return undefined;
     }
     let cancelled = false;
-    fetchChartUuid(slice.slice_id)
+    fetchChartUuid(sliceId)
       .then(value => {
         if (!cancelled) {
-          setUuid(value);
+          setFetchedUuid({ sliceId, uuid: value });
         }
       })
       .catch(() => {
@@ -93,7 +123,7 @@ export default function ExploreVersionHistory() {
     return () => {
       cancelled = true;
     };
-  }, [uuid, isPanelOpen, slice?.slice_id, slice?.uuid, addDangerToast]);
+  }, [uuid, isPanelOpen, sliceId, addDangerToast]);
 
   const activity = useVersionActivity(
     'chart',
@@ -113,7 +143,6 @@ export default function ExploreVersionHistory() {
   const restoreCount = useSelector(selectVersionRestoreCount);
   const lastRestoreCountRef = useRef(restoreCount);
   const refreshActivity = activity.refresh;
-  const sliceId = slice?.slice_id;
   useEffect(() => {
     if (restoreCount === lastRestoreCountRef.current) {
       return;
@@ -200,19 +229,21 @@ export default function ExploreVersionHistory() {
 
   return (
     <>
-      <VersionHistoryPanel
-        entityType="chart"
-        activity={activity}
-        include={include}
-        onIncludeChange={handleIncludeChange}
-        previewedTransactionId={preview?.transactionId ?? null}
-        onClose={handleClose}
-        onPreview={handlePreview}
-        onRestore={handleRestore}
-        onOpenAsNew={handleOpenAsNew}
-        onOpenRelated={handleOpenRelated}
-        sessionEntries={sessionLog}
-      />
+      <PanelHost>
+        <VersionHistoryPanel
+          entityType="chart"
+          activity={activity}
+          include={include}
+          onIncludeChange={handleIncludeChange}
+          previewedTransactionId={preview?.transactionId ?? null}
+          onClose={handleClose}
+          onPreview={handlePreview}
+          onRestore={handleRestore}
+          onOpenAsNew={handleOpenAsNew}
+          onOpenRelated={handleOpenRelated}
+          sessionEntries={sessionLog}
+        />
+      </PanelHost>
       {restoreModal}
     </>
   );

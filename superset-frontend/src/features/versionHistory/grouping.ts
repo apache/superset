@@ -19,6 +19,7 @@
 import type {
   ActivityRecord,
   DashboardGroupCategory,
+  RelatedEntry,
   SaveGroup,
   TimelineEntry,
 } from './types';
@@ -57,14 +58,25 @@ export function mergeActivityPages(
   return merged;
 }
 
+/** One related row per save of a related entity, regardless of how many
+ * change records that save produced. */
+export function relatedEntryKey(record: ActivityRecord): string {
+  return [
+    record.transaction_id,
+    record.entity_kind,
+    record.entity_uuid ?? record.entity_name,
+  ].join('|');
+}
+
 /**
  * Build the timeline from a flat newest-first activity stream:
  * `source='self'` records are grouped into one save container per
- * transaction, `source='related'` records stay as standalone entries.
- * The result is ordered newest first.
+ * transaction, `source='related'` records collapse into a single entry
+ * per (transaction, entity). The result is ordered newest first.
  */
 export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
   const groupsByTransaction = new Map<number, SaveGroup>();
+  const relatedByKey = new Map<string, RelatedEntry>();
   const entries: TimelineEntry[] = [];
 
   records.forEach(record => {
@@ -91,7 +103,26 @@ export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
       group.changedBy = group.changedBy ?? record.changed_by;
       group.actionKind = group.actionKind ?? record.action_kind;
     } else {
-      entries.push({ type: 'related', record });
+      const key = relatedEntryKey(record);
+      const existing = relatedByKey.get(key);
+      if (!existing) {
+        const entry: RelatedEntry = { type: 'related', record };
+        relatedByKey.set(key, entry);
+        entries.push(entry);
+      } else {
+        // Keep the row, upgrading it with the most informative fields
+        // seen across the save's records.
+        const current = existing.record;
+        existing.record = {
+          ...current,
+          summary: current.summary || record.summary,
+          impact: current.impact ?? record.impact,
+          issued_at:
+            record.issued_at > current.issued_at
+              ? record.issued_at
+              : current.issued_at,
+        };
+      }
     }
   });
 
@@ -108,13 +139,27 @@ export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
 }
 
 /**
+ * Native-filter changes arrive as `kind="field"` records under
+ * `json_metadata.native_filter_configuration` until the backend
+ * promotes them to `kind="filter"` (deferred per spec); accept both
+ * shapes.
+ */
+function isFilterRecord(record: ActivityRecord): boolean {
+  return (
+    record.kind === 'filter' ||
+    (record.kind === 'field' &&
+      record.path[0] === 'json_metadata' &&
+      record.path[1] === 'native_filter_configuration')
+  );
+}
+
+/**
  * Dashboard saves render as compact containers: a save whose records
  * are all dashboard-level filter changes is a "Filters" save, anything
  * else is an "Edit mode" save.
  */
 export function classifySaveGroup(group: SaveGroup): DashboardGroupCategory {
-  return group.records.length > 0 &&
-    group.records.every(record => record.kind === 'filter')
+  return group.records.length > 0 && group.records.every(isFilterRecord)
     ? 'filters'
     : 'edit';
 }
