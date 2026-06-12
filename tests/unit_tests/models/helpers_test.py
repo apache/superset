@@ -1024,6 +1024,48 @@ def test_get_sqla_query_does_not_mutate_adhoc_orderby_with_jinja(
     assert cast(AdhocMetric, orderby[0][0])["sqlExpression"] == raw_expression
 
 
+def test_cache_key_stable_across_query_build(database: Database) -> None:
+    """
+    Test that `QueryObject.cache_key()` is unchanged by building the query.
+
+    Async queries store data under a key computed before execution and
+    recompute the key from the cached query context on retrieval; a query
+    object mutated during query generation makes the keys diverge,
+    failing retrieval with "Error loading data from cache" (issue #37114).
+    """
+    import copy
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    adhoc_metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": "SUM(CASE \r\n  WHEN a > 0\r\n  THEN a\r\nEND)",
+        "label": "my metric",
+        "hasCustomLabel": True,
+    }
+    query_obj = QueryObject(
+        datasource=table,
+        columns=[],
+        metrics=[adhoc_metric],
+        orderby=[(copy.deepcopy(adhoc_metric), False)],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    cache_key_before = query_obj.cache_key()
+    table.get_query_str_extended(query_obj.to_dict())
+
+    assert query_obj.cache_key() == cache_key_before
+
+
 def test_process_select_expression_basic(
     mocker: MockerFixture,
     database: Database,
