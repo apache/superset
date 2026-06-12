@@ -648,7 +648,7 @@ def _create_search_transform(  # noqa: C901
 ) -> Any:
     """Create the configured search transform with tool-permission filtering."""
     from fastmcp.server.context import Context
-    from fastmcp.tools.base import Tool
+    from fastmcp.tools.tool import Tool
 
     def _make_optional_query_search_tool(transform: Any) -> Any:
         """Create search tool with optional query — returns all tools when omitted."""
@@ -691,6 +691,7 @@ def _create_search_transform(  # noqa: C901
                 return make_normalizing_call_tool(self)
 
             def _make_search_tool(self) -> Any:
+                """Build the optional-query ``search_tools`` for regex search."""
                 return _make_optional_query_search_tool(self)
 
         return _FixedRegexSearchTransform(**kwargs)
@@ -710,6 +711,7 @@ def _create_search_transform(  # noqa: C901
             return make_normalizing_call_tool(self)
 
         def _make_search_tool(self) -> Any:
+            """Build the optional-query ``search_tools`` for BM25 search."""
             return _make_optional_query_search_tool(self)
 
     return _FixedBM25SearchTransform(**kwargs)
