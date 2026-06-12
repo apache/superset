@@ -22,11 +22,12 @@ import { styled } from '@apache-superset/core/theme';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { Icons } from '@superset-ui/core/components';
 import type { SessionLogEntry } from './types';
+import { SHORT_DATETIME_FORMAT } from './display';
 
-const Container = styled.div<{ expanded: boolean }>`
-  ${({ theme, expanded }) => `
-    border-bottom: 1px solid ${theme.colorSplit};
-    background-color: ${expanded ? theme.colorSuccessBg : 'transparent'};
+const Container = styled.div`
+  ${({ theme }) => `
+    border-bottom: 1px solid ${theme.colorBorderSecondary};
+    padding: ${theme.sizeUnit * 2}px 0 ${theme.sizeUnit * 4}px;
   `}
 `;
 
@@ -35,7 +36,7 @@ const Header = styled.div`
     display: flex;
     align-items: center;
     gap: ${theme.sizeUnit * 2}px;
-    padding: ${theme.sizeUnit * 2}px;
+    padding: ${theme.sizeUnit * 3}px 0;
     cursor: pointer;
     &:hover {
       background-color: ${theme.colorBgTextHover};
@@ -46,33 +47,43 @@ const Header = styled.div`
 const Title = styled.div`
   ${({ theme }) => `
     flex: 1;
-    font-size: ${theme.fontSizeSM}px;
-    font-weight: ${theme.fontWeightStrong};
+    font-size: ${theme.fontSize}px;
+    line-height: ${theme.lineHeight};
+    color: ${theme.colorText};
   `}
 `;
 
-const CaretWrapper = styled.span`
+const IconWrapper = styled.span`
   ${({ theme }) => `
     color: ${theme.colorTextSecondary};
     display: flex;
   `}
 `;
 
-const Entry = styled.div`
+const EntriesBlock = styled.div`
   ${({ theme }) => `
+    background-color: ${theme.colorPrimaryBg};
+    border-radius: ${theme.borderRadius}px;
+    padding: ${theme.sizeUnit * 2}px ${theme.sizeUnit * 3}px;
     display: flex;
-    justify-content: space-between;
-    gap: ${theme.sizeUnit}px;
-    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px
-      ${theme.sizeUnit}px ${theme.sizeUnit * 6}px;
-    font-size: ${theme.fontSizeSM}px;
+    flex-direction: column;
+    gap: ${theme.sizeUnit * 2}px;
   `}
 `;
 
-const EntryTime = styled.span`
+const EntryLabel = styled.div`
   ${({ theme }) => `
-    color: ${theme.colorTextTertiary};
-    white-space: nowrap;
+    font-size: ${theme.fontSize}px;
+    line-height: ${theme.lineHeight};
+    color: ${theme.colorText};
+  `}
+`;
+
+const EntryMeta = styled.div`
+  ${({ theme }) => `
+    color: ${theme.colorTextQuaternary};
+    font-size: ${theme.fontSizeSM}px;
+    line-height: ${theme.lineHeightSM};
   `}
 `;
 
@@ -101,7 +112,7 @@ export default function CurrentVersionSection({
   };
 
   return (
-    <Container expanded={expanded} data-test="version-history-current-version">
+    <Container data-test="version-history-current-version">
       <Header
         role="button"
         tabIndex={0}
@@ -110,25 +121,34 @@ export default function CurrentVersionSection({
         aria-expanded={expanded}
         aria-label={t('Current version')}
       >
-        <CaretWrapper>
-          {expanded ? (
-            <Icons.DownOutlined iconSize="s" />
-          ) : (
-            <Icons.RightOutlined iconSize="s" />
-          )}
-        </CaretWrapper>
+        <IconWrapper>
+          <Icons.CheckCircleOutlined iconSize="l" />
+        </IconWrapper>
         <Title>{t('Current version')}</Title>
+        <IconWrapper>
+          {expanded ? (
+            <Icons.UpOutlined iconSize="m" />
+          ) : (
+            <Icons.DownOutlined iconSize="m" />
+          )}
+        </IconWrapper>
       </Header>
       {expanded && (
-        <>
-          {restoreNotice && <Entry>{restoreNotice}</Entry>}
-          {entries.map(entry => (
-            <Entry key={`${entry.controlName}-${entry.ts}`}>
-              <span>{entry.label}</span>
-              <EntryTime>{extendedDayjs(entry.ts).fromNow()}</EntryTime>
-            </Entry>
-          ))}
-        </>
+        <EntriesBlock>
+          {restoreNotice && <EntryLabel>{restoreNotice}</EntryLabel>}
+          {entries.map(entry => {
+            // Session log timestamps are local epoch milliseconds.
+            const time = extendedDayjs(entry.ts).format(SHORT_DATETIME_FORMAT);
+            return (
+              <div key={`${entry.controlName}-${entry.ts}`}>
+                <EntryLabel>{entry.label}</EntryLabel>
+                <EntryMeta>
+                  {entry.user ? `${entry.user} · ${time}` : time}
+                </EntryMeta>
+              </div>
+            );
+          })}
+        </EntriesBlock>
       )}
     </Container>
   );

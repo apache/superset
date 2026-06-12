@@ -25,7 +25,7 @@ import type { ActivityEntityKind, ActivityRecord } from './types';
 import {
   entityDisplayName,
   formatAuthor,
-  formatRelativeTime,
+  formatVersionDateTimeShort,
   relatedHeadline,
 } from './display';
 
@@ -39,8 +39,8 @@ const Row = styled.div`
   ${({ theme }) => `
     display: flex;
     gap: ${theme.sizeUnit * 2}px;
-    padding: ${theme.sizeUnit * 2}px;
-    border-bottom: 1px solid ${theme.colorSplit};
+    padding: ${theme.sizeUnit * 2}px 0 ${theme.sizeUnit * 4}px;
+    border-bottom: 1px solid ${theme.colorBorderSecondary};
   `}
 `;
 
@@ -52,13 +52,20 @@ const IconWrapper = styled.span`
 `;
 
 const Content = styled.div`
-  flex: 1;
-  min-width: 0;
+  ${({ theme }) => `
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.sizeUnit * 2}px;
+  `}
 `;
 
 const Headline = styled.div`
   ${({ theme }) => `
-    font-size: ${theme.fontSizeSM}px;
+    font-size: ${theme.fontSize}px;
+    line-height: ${theme.lineHeight};
+    color: ${theme.colorText};
     overflow-wrap: anywhere;
   `}
 `;
@@ -70,7 +77,7 @@ const NameLink = styled.button`
     padding: 0;
     cursor: pointer;
     color: ${theme.colorPrimary};
-    font-size: ${theme.fontSizeSM}px;
+    font-size: ${theme.fontSize}px;
     &:hover {
       text-decoration: underline;
     }
@@ -79,8 +86,9 @@ const NameLink = styled.button`
 
 const Meta = styled.div`
   ${({ theme }) => `
-    color: ${theme.colorTextTertiary};
+    color: ${theme.colorTextQuaternary};
     font-size: ${theme.fontSizeSM}px;
+    line-height: ${theme.lineHeightSM};
   `}
 `;
 
@@ -108,7 +116,7 @@ export default function RelatedUpdateRow({
   return (
     <Row data-test="version-history-related-row">
       <IconWrapper>
-        <Icon iconSize="m" />
+        <Icon iconSize="l" />
       </IconWrapper>
       <Content>
         <Headline>
@@ -127,7 +135,7 @@ export default function RelatedUpdateRow({
         </Headline>
         <Meta>
           {formatAuthor(record.changed_by)} ·{' '}
-          {formatRelativeTime(record.issued_at)}
+          {formatVersionDateTimeShort(record.issued_at)}
         </Meta>
       </Content>
     </Row>
