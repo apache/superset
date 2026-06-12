@@ -94,6 +94,8 @@ export class ThemeController {
 
   private devThemeOverride: AnyThemeConfig | null = null;
 
+  private bootstrapDefaultMode!: ThemeMode;
+
   // Dashboard themes managed by controller
   private dashboardThemes: Map<string, Theme> = new Map();
 
@@ -125,13 +127,17 @@ export class ThemeController {
     this.globalTheme = themeObject;
 
     // Initialize bootstrap data and themes
-    const { bootstrapDefaultTheme, bootstrapDarkTheme }: BootstrapThemeData =
-      this.loadBootstrapData();
+    const {
+      bootstrapDefaultTheme,
+      bootstrapDarkTheme,
+      bootstrapDefaultMode,
+    }: BootstrapThemeData = this.loadBootstrapData();
 
     // Set themes from bootstrap data
     // These will be the THEME_DEFAULT and THEME_DARK from config
     this.defaultTheme = bootstrapDefaultTheme || defaultTheme || null;
     this.darkTheme = bootstrapDarkTheme;
+    this.bootstrapDefaultMode = bootstrapDefaultMode;
 
     // Initialize system theme detection
     this.systemMode = ThemeController.getSystemPreferredMode();
@@ -686,7 +692,7 @@ export class ThemeController {
       common: { theme = {} as BootstrapThemeDataConfig },
     } = getBootstrapData();
 
-    const { default: defaultTheme, dark: darkTheme } = theme;
+    const { default: defaultTheme, dark: darkTheme, defaultMode } = theme;
 
     const hasValidDefault: boolean = this.isNonEmptyObject(defaultTheme);
     const hasValidDark: boolean = this.isNonEmptyObject(darkTheme);
@@ -696,9 +702,18 @@ export class ThemeController {
       hasValidDefault && !this.isEmptyTheme(defaultTheme);
     const hasCustomDark = hasValidDark && !this.isEmptyTheme(darkTheme);
 
+    const modeMap: Record<string, ThemeMode> = {
+      default: ThemeMode.DEFAULT,
+      dark: ThemeMode.DARK,
+      system: ThemeMode.SYSTEM,
+    };
+    const bootstrapDefaultMode: ThemeMode =
+      (defaultMode && modeMap[defaultMode]) || ThemeMode.SYSTEM;
+
     return {
       bootstrapDefaultTheme: hasCustomDefault ? defaultTheme : null,
       bootstrapDarkTheme: hasCustomDark ? darkTheme : null,
+      bootstrapDefaultMode,
       hasCustomThemes: hasCustomDefault || hasCustomDark,
     };
   }
@@ -790,8 +805,8 @@ export class ThemeController {
     )
       return this.initialMode;
 
-    // Default to system preference when both themes are available
-    return ThemeMode.SYSTEM;
+    // Fall back to the deployment-configured default mode
+    return this.bootstrapDefaultMode;
   }
 
   /**
