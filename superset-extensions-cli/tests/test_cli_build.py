@@ -283,6 +283,7 @@ def test_build_manifest_creates_correct_manifest_structure(
         "displayName": "Test Extension",
         "version": "1.0.0",
         "permissions": ["read_data"],
+        "dependencies": ["some_dep"],
     }
     extension_json = isolated_filesystem / "extension.json"
     extension_json.write_text(json.dumps(extension_data))
@@ -296,6 +297,7 @@ def test_build_manifest_creates_correct_manifest_structure(
     assert manifest.displayName == "Test Extension"
     assert manifest.version == "1.0.0"
     assert manifest.permissions == ["read_data"]
+    assert manifest.dependencies == ["some_dep"]
 
     # Verify frontend section
     assert manifest.frontend is not None
@@ -328,6 +330,7 @@ def test_build_manifest_handles_minimal_extension(isolated_filesystem):
     assert manifest.displayName == "Minimal Extension"
     assert manifest.version == "0.1.0"
     assert manifest.permissions == []
+    assert manifest.dependencies == []  # Default empty list
     assert manifest.frontend is None
     assert manifest.backend is None
 

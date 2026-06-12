@@ -69,6 +69,10 @@ class BaseExtension(BaseModel):
         default=None,
         description="Extension description",
     )
+    dependencies: list[str] = Field(
+        default_factory=list,
+        description="List of extension IDs this extension depends on",
+    )
     permissions: list[str] = Field(
         default_factory=list,
         description="Permissions required by this extension",
