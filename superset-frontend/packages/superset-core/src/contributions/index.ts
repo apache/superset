@@ -26,6 +26,7 @@
  * menus, editors) and re-exported here for the manifest schema.
  */
 
+import { Chat } from '../chat';
 import { Command } from '../commands';
 import { View } from '../views';
 import { Menu } from '../menus';
@@ -43,9 +44,6 @@ export type SqlLabLocation =
   | 'results'
   | 'queryHistory';
 
-/** Valid locations within the app shell (persist across all routes). */
-export type AppLocation = 'chatbot';
-
 /**
  * Nested structure for view contributions by scope and location.
  * @example
@@ -58,7 +56,6 @@ export type AppLocation = 'chatbot';
  */
 export interface ViewContributions {
   sqllab?: Partial<Record<SqlLabLocation, View[]>>;
-  app?: Partial<Record<AppLocation, View[]>>;
 }
 
 /**
@@ -75,7 +72,8 @@ export interface MenuContributions {
 }
 
 /**
- * Aggregates all contributions (commands, menus, views, and editors) provided by an extension or module.
+ * Aggregates all contributions (commands, menus, views, editors, and chats)
+ * provided by an extension or module.
  */
 export interface Contributions {
   /** List of commands. */
@@ -86,4 +84,10 @@ export interface Contributions {
   views: ViewContributions;
   /** List of editors. */
   editors?: Editor[];
+  /**
+   * Chats contributed by the extension. Chat is its own contribution type
+   * (not a view): the host applies singleton resolution and renders exactly
+   * one active chat at a time.
+   */
+  chat?: Chat[];
 }

@@ -22,6 +22,7 @@ import { logging } from '@apache-superset/core/utils';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
   authentication,
+  chat,
   core,
   commands,
   dashboard,
@@ -90,6 +91,7 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
     // as that would leak un-contracted symbols onto window.superset.
     window.superset = {
       authentication,
+      chat,
       core,
       commands,
       dashboard,
@@ -104,8 +106,8 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
     };
 
     // Render the host immediately; extension bundles load in the background.
-    // ChatbotMount re-resolves reactively once the chatbot extension registers
-    // (via subscribeToRegistry / getRegistryVersion), so the bubble appears
+    // ChatMount re-resolves reactively once a chat extension registers (via
+    // subscribeToChatState / getChatStateVersion), so the bubble appears
     // without blocking the UI.
     setInitialized(true);
 

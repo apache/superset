@@ -40,7 +40,7 @@ import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
-import ChatbotMount from 'src/components/ChatbotMount';
+import ChatMount from 'src/components/ChatMount';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
 
@@ -115,12 +115,12 @@ const App = () => (
           ))}
         </Switch>
         {/*
-          The singleton chatbot bubble. Rendered as a sibling of the route
-          Switch — inside ExtensionsStartup so chatbot extensions have been
-          loaded and registered, but outside the Switch so the bubble persists
+          The singleton chat slot. Rendered as a sibling of the route
+          Switch — inside ExtensionsStartup so chat extensions have been
+          loaded and registered, but outside the Switch so the chat persists
           across route changes.
         */}
-        {isFeatureEnabled(FeatureFlag.EnableExtensions) && <ChatbotMount />}
+        {isFeatureEnabled(FeatureFlag.EnableExtensions) && <ChatMount />}
       </ExtensionsStartup>
       <ToastContainer />
     </RootContextProviders>

@@ -18,6 +18,7 @@
  */
 export * as common from './common';
 export * as authentication from './authentication';
+export * as chat from './chat';
 export * as commands from './commands';
 export * as dashboard from './dashboard';
 export * as dataset from './dataset';

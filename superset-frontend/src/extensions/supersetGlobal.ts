@@ -28,6 +28,7 @@
 
 import type {
   authentication,
+  chat,
   commands,
   core,
   dashboard,
@@ -45,6 +46,7 @@ import type {
 export interface SupersetGlobal {
   authentication: typeof authentication;
   core: typeof core;
+  chat: typeof chat;
   commands: typeof commands;
   dashboard: typeof dashboard;
   dataset: typeof dataset;

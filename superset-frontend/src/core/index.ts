@@ -27,6 +27,7 @@ export const core: typeof coreType = {
 };
 
 export * from './authentication';
+export * from './chat';
 export * from './commands';
 export * from './dashboard';
 export * from './dataset';
