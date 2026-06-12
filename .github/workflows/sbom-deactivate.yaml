@@ -1,0 +1,19 @@
+name: SBOM Deactivate
+
+on:
+  pull_request:
+    branches: [master, main]
+    types: [closed]
+
+concurrency:
+  group: sbom-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  deactivate:
+    uses: Piletilevi/sec-workflows/.github/workflows/sbom-deactivate.yaml@v2
+    secrets:
+      DTRACK_API_KEY: ${{ secrets.DTRACK_API_KEY }}
