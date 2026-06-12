@@ -19,67 +19,12 @@
 import { ControlPanelsContainerProps } from '@superset-ui/chart-controls/types';
 import { GenericDataType } from '@apache-superset/core/common';
 import controlPanel from '../../../src/Timeseries/Regular/Scatter/controlPanel';
+import { getControl, mockControls } from '../helpers';
 
 const config = controlPanel;
 
-// Narrow view of a named control entry covering the config fields these
-// tests assert on, so lookups stay type-safe without resorting to `any`.
-interface TestControl {
-  name: string;
-  config: {
-    default?: unknown;
-    options?: unknown;
-    validators?: unknown;
-    visibility: (props: ControlPanelsContainerProps) => boolean;
-  };
-}
-
-const getControl = (controlName: string): TestControl | null => {
-  for (const section of config.controlPanelSections) {
-    if (section?.controlSetRows) {
-      for (const row of section.controlSetRows) {
-        for (const control of row) {
-          if (
-            typeof control === 'object' &&
-            control !== null &&
-            'name' in control &&
-            control.name === controlName
-          ) {
-            return control as unknown as TestControl;
-          }
-        }
-      }
-    }
-  }
-
-  return null;
-};
-
-const mockControls = (
-  xAxisColumn: string | null,
-  typeGeneric: GenericDataType | null,
-): ControlPanelsContainerProps => {
-  const columns =
-    xAxisColumn && typeGeneric !== null
-      ? [{ column_name: xAxisColumn, type_generic: typeGeneric }]
-      : [];
-
-  return {
-    controls: {
-      // @ts-expect-error
-      x_axis: {
-        value: xAxisColumn,
-      },
-      // @ts-expect-error
-      datasource: {
-        datasource: { columns },
-      },
-    },
-  };
-};
-
 // tests for x_axis_time_format control
-const timeFormatControl = getControl('x_axis_time_format')!;
+const timeFormatControl = getControl(config, 'x_axis_time_format')!;
 
 test('scatter chart control panel should include x_axis_time_format control in the panel', () => {
   expect(timeFormatControl).toBeDefined();
@@ -120,7 +65,7 @@ test('x_axis_time_format control should be hidden for non-temporal data types', 
 });
 
 // tests for x_axis_number_format control
-const numberFormatControl = getControl('x_axis_number_format')!;
+const numberFormatControl = getControl(config, 'x_axis_number_format')!;
 
 test('scatter chart control panel should include x_axis_number_format control in the panel', () => {
   expect(numberFormatControl).toBeDefined();
@@ -162,10 +107,10 @@ test('x_axis_number_format control should be hidden for non-numeric data types',
 });
 
 // tests for orientation and dot size controls
-const orientationControl = getControl('orientation')!;
-const sizeControl = getControl('size')!;
-const minMarkerSizeControl = getControl('minMarkerSize')!;
-const maxMarkerSizeControl = getControl('maxMarkerSize')!;
+const orientationControl = getControl(config, 'orientation')!;
+const sizeControl = getControl(config, 'size')!;
+const minMarkerSizeControl = getControl(config, 'minMarkerSize')!;
+const maxMarkerSizeControl = getControl(config, 'maxMarkerSize')!;
 
 test('scatter chart control panel should include an orientation control defaulting to vertical', () => {
   expect(orientationControl).toBeDefined();
@@ -208,7 +153,7 @@ test('dot size range controls should only be visible when a size metric is set',
 });
 
 test('fixed marker size control should hide when a size metric is set', () => {
-  const markerSizeControl = getControl('markerSize')!;
+  const markerSizeControl = getControl(config, 'markerSize')!;
   expect(markerSizeControl.config.visibility(mockSizeControls(null))).toBe(
     true,
   );

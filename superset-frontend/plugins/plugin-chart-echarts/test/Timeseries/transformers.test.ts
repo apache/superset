@@ -125,6 +125,35 @@ describe('transformSeries', () => {
     // OpacityEnum.NonTransparent = 1 (not dimmed)
     expect((result as any).itemStyle.opacity).toBe(1);
   });
+
+  test('should use symbolSizeFn for symbolSize when provided', () => {
+    const symbolSizeFn = jest.fn(
+      (value: (number | string | null)[]) => Number(value[1]) * 2,
+    );
+    const opts = {
+      seriesType: EchartsTimeseriesSeriesType.Scatter,
+      markerSize: 7,
+      symbolSizeFn,
+      timeShiftColor: false,
+    };
+
+    const result = transformSeries(series, mockColorScale, 'test-key', opts);
+
+    expect((result as any).symbolSize).toBe(symbolSizeFn);
+    expect((result as any).symbolSize(['A', 4])).toBe(8);
+  });
+
+  test('should fall back to markerSize for symbolSize when symbolSizeFn is not provided', () => {
+    const opts = {
+      seriesType: EchartsTimeseriesSeriesType.Scatter,
+      markerSize: 7,
+      timeShiftColor: false,
+    };
+
+    const result = transformSeries(series, mockColorScale, 'test-key', opts);
+
+    expect((result as any).symbolSize).toBe(7);
+  });
 });
 
 describe('transformNegativeLabelsPosition', () => {
