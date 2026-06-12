@@ -123,6 +123,7 @@ export type DashboardState = {
   isFiltersRefreshing: boolean;
   hasUnsavedChanges: boolean;
   dashboardIsSaving: boolean;
+  lastModifiedTime?: number;
   colorScheme: string;
   sliceIds: number[];
   directPathLastUpdated: number;

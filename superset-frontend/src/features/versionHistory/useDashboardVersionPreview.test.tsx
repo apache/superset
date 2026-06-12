@@ -144,10 +144,9 @@ test('resolveSnapshotCharts swaps unreachable charts for a markdown placeholder'
 const HYDRATE_TEST = 'HYDRATE_TEST_ACTION';
 
 const mockedHydrateDashboard = hydrateDashboard as unknown as jest.Mock;
-const mockedFetchHydration =
-  fetchDashboardHydrationData as jest.MockedFunction<
-    typeof fetchDashboardHydrationData
-  >;
+const mockedFetchHydration = fetchDashboardHydrationData as jest.MockedFunction<
+  typeof fetchDashboardHydrationData
+>;
 const mockedFetchSnapshot = fetchVersionSnapshot as unknown as jest.Mock<
   Promise<DashboardVersionSnapshot>
 >;
