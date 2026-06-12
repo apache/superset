@@ -212,6 +212,11 @@ def get_channels_with_search(
     return channels
 
 
+_SCOPE_MISSING_ERROR_CODES = frozenset(
+    {"missing_scope", "not_allowed_token_type", "no_permission"}
+)
+
+
 def should_use_v2_api() -> bool:
     if not feature_flag_manager.is_feature_enabled("ALERT_REPORT_SLACK_V2"):
         _emit_v1_flag_off_deprecation()
@@ -221,16 +226,35 @@ def should_use_v2_api() -> bool:
         client.conversations_list()
         logger.info("Slack API v2 is available")
         return True
-    except SlackApiError:
-        # The DeprecationWarning fires once per process, but the actionable
-        # log line fires every send so operators see it in their report logs.
-        _emit_v1_scope_missing_deprecation()
-        logger.warning(
-            "Slack bot is missing the `channels:read` (and `groups:read` for "
-            "private channels) scope; falling back to the deprecated v1 API. "
-            "%s",
-            _SLACK_V1_DEPRECATION_MESSAGE,
-        )
+    except SlackApiError as ex:
+        # Only the scope-missing branch is a v1-deprecation signal; other
+        # SlackApiError codes (invalid_auth, ratelimited, server errors, etc.)
+        # are unrelated probe failures and should not be reported as a missing
+        # scope. We still fall back to v1 in both cases so a transient probe
+        # failure doesn't break sends — operators get an actionable log either
+        # way.
+        response = getattr(ex, "response", None)
+        error_code = ""
+        if response is not None:
+            data = getattr(response, "data", None) or {}
+            error_code = data.get("error", "") if isinstance(data, dict) else ""
+        if error_code in _SCOPE_MISSING_ERROR_CODES:
+            # The DeprecationWarning fires once per process, but the actionable
+            # log line fires every send so operators see it in their report logs.
+            _emit_v1_scope_missing_deprecation()
+            logger.warning(
+                "Slack bot is missing the `channels:read` (and `groups:read` "
+                "for private channels) scope; falling back to the deprecated "
+                "v1 API. %s",
+                _SLACK_V1_DEPRECATION_MESSAGE,
+            )
+        else:
+            logger.warning(
+                "Slack v2 probe failed with error %r; falling back to the "
+                "deprecated v1 API for this send. Investigate the underlying "
+                "Slack API error — this is not a missing-scope problem.",
+                error_code or str(ex),
+            )
         return False
 
 

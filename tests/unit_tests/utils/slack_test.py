@@ -297,8 +297,11 @@ class TestShouldUseV2Api:
             return_value=True,
         )
         mock_client = mocker.Mock()
+        # The Slack SDK exposes the error code as `response["error"]`; that is
+        # what `should_use_v2_api` branches on to decide whether the v1
+        # deprecation warning is the appropriate signal.
         mock_client.conversations_list.side_effect = SlackApiError(
-            message="missing_scope", response={"ok": False}
+            message="missing_scope", response={"ok": False, "error": "missing_scope"}
         )
         mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
         logger_mock = mocker.patch("superset.utils.slack.logger")
@@ -321,6 +324,44 @@ class TestShouldUseV2Api:
         for c in logger_mock.warning.call_args_list:
             assert "channels:read" in c.args[0]
             assert "groups:read" in c.args[0]
+
+    @pytest.mark.parametrize(
+        "error_code",
+        ["invalid_auth", "ratelimited", "fatal_error", "account_inactive", ""],
+    )
+    def test_returns_false_without_scope_warning_on_other_slack_errors(
+        self, error_code: str, mocker
+    ):
+        """Non-scope `SlackApiError` codes must NOT be reported as a missing
+        scope — that mislabels invalid_auth, ratelimited, or server-side
+        failures as a permission problem and sends operators chasing the wrong
+        fix. The probe still falls back to v1 so the send isn't lost, but the
+        log line is generic and no DeprecationWarning fires.
+        """
+        mocker.patch(
+            "superset.utils.slack.feature_flag_manager.is_feature_enabled",
+            return_value=True,
+        )
+        mock_client = mocker.Mock()
+        mock_client.conversations_list.side_effect = SlackApiError(
+            message=error_code or "unknown",
+            response={"ok": False, "error": error_code} if error_code else {"ok": False},
+        )
+        mocker.patch("superset.utils.slack.get_slack_client", return_value=mock_client)
+        logger_mock = mocker.patch("superset.utils.slack.logger")
+
+        with warnings.catch_warnings(record=True) as caught:
+            warnings.simplefilter("always")
+            assert should_use_v2_api() is False
+
+        deprecation_warnings = [
+            w for w in caught if issubclass(w.category, DeprecationWarning)
+        ]
+        assert deprecation_warnings == []
+        assert logger_mock.warning.call_count == 1
+        msg = logger_mock.warning.call_args.args[0]
+        assert "probe failed" in msg
+        assert "channels:read" not in msg
 
     def test_propagates_non_slack_api_errors_from_probe(self, mocker):
         """Any non-`SlackApiError` exception from the probe (network issue,
