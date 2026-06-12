@@ -91,6 +91,10 @@ superset revoke-guest-tokens
 
 This change is backward compatible. The feature is off by default, and even when enabled nothing is revoked until an admin explicitly bumps the version: the expected version starts at `0`, and tokens minted before this change (which carry no version claim) are treated as version `0`. No database migration is required.
 
+### Sessions are terminated when an account is disabled
+
+Disabling a user account (setting `active` to `False`, via the admin UI, REST API, or CLI) now terminates that user's outstanding sessions on their next request, instead of relying on a passive check. This works for both client-side cookie sessions and server-side session stores via a per-user invalidation epoch (`user_attribute.sessions_invalidated_at`, added by a migration). The mechanism is inert for users that were never disabled (NULL epoch), so there is no behavior change for active users. Re-enabling an account and logging in again starts a fresh, valid session. The migration backfills the epoch for accounts that are already disabled at upgrade time, so re-enabling such an account does not revive a session that predates this feature.
+
 ### Dataset import validates catalog against the target connection
 
 Importing a dataset now validates the `catalog` field against the target database connection. When the connection has multi-catalog disabled (`allow_multi_catalog` off) and the dataset's catalog is not the connection's default catalog, the import fails instead of silently persisting the non-default catalog. This matches the validation already enforced on the dataset update path and prevents imported datasets from querying an unintended database.
