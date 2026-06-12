@@ -41,8 +41,12 @@ export function formatVersionMonthDay(issuedAt: string): string {
   return parseIssuedAt(issuedAt).format('MMM D');
 }
 
-export function formatRelativeTime(issuedAt: string): string {
-  return parseIssuedAt(issuedAt).fromNow();
+/** Compact datetime for row meta lines, per design spec. */
+export const SHORT_DATETIME_FORMAT = 'M/D/YYYY h:mmA';
+
+/** e.g. "12/5/2025 2:35PM" */
+export function formatVersionDateTimeShort(issuedAt: string): string {
+  return parseIssuedAt(issuedAt).format(SHORT_DATETIME_FORMAT);
 }
 
 export function formatAuthor(changedBy: ActivityChangedBy | null): string {

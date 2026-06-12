@@ -246,6 +246,80 @@ test('buildTimeline keeps distinct related entities apart within one transaction
   expect(new Set(keys).size).toBe(2);
 });
 
+test('buildTimeline drops saves consisting only of machine-written noise', () => {
+  // Viewing a dashboard rewrites json_metadata.shared_label_colors,
+  // producing phantom "Edit mode · 1 change" saves.
+  const noise = (transactionId: number, issuedAt: string) =>
+    record({
+      entity_kind: 'dashboard',
+      kind: 'field',
+      transaction_id: transactionId,
+      issued_at: issuedAt,
+      path: ['json_metadata', 'shared_label_colors'],
+    });
+
+  const entries = buildTimeline([
+    noise(41, '2025-12-09T10:00:00'),
+    record({
+      entity_kind: 'dashboard',
+      kind: 'field',
+      transaction_id: 42,
+      issued_at: '2025-12-09T09:00:00',
+      path: ['dashboard_title'],
+    }),
+    noise(42, '2025-12-09T09:00:00'),
+    noise(40, '2025-12-08T10:00:00'),
+    record({ transaction_id: 10 }),
+  ]);
+
+  // Phantom-only transactions 41 and 40 disappear entirely; the rename
+  // save keeps only its real record; the chart save survives untouched.
+  expect(
+    entries.map(entry => (entry as SaveGroup).transactionId),
+  ).toEqual([42, 10]);
+  expect((entries[0] as SaveGroup).records).toHaveLength(1);
+  expect((entries[0] as SaveGroup).records[0].path).toEqual([
+    'dashboard_title',
+  ]);
+});
+
+test('noise suppression tolerates non-string and trailing path segments', () => {
+  const entries = buildTimeline([
+    record({
+      transaction_id: 50,
+      path: ['json_metadata', 'shared_label_colors', 'Revenue', 0],
+    }),
+    record({
+      transaction_id: 51,
+      // a leading numeric segment must not break prefix matching
+      path: [0, 'json_metadata', 'shared_label_colors'],
+    }),
+    record({
+      transaction_id: 52,
+      path: ['json_metadata', 'color_scheme'],
+    }),
+  ]);
+
+  expect(
+    entries.map(entry => (entry as SaveGroup).transactionId),
+  ).toEqual([52]);
+});
+
+test('noise suppression also applies to related-source records', () => {
+  const entries = buildTimeline([
+    record({
+      source: 'related',
+      entity_kind: 'dashboard',
+      entity_uuid: 'd-1',
+      transaction_id: 60,
+      path: ['json_metadata', 'shared_label_colors'],
+      summary: 'Dashboard updated: Sales overview',
+    }),
+  ]);
+
+  expect(entries).toHaveLength(0);
+});
+
 test('mergeActivityPages appends new rows and drops duplicates', () => {
   const pageOne = [
     record({ transaction_id: 14, issued_at: '2025-12-07T09:00:00' }),

@@ -69,10 +69,32 @@ export function relatedEntryKey(record: ActivityRecord): string {
 }
 
 /**
+ * Paths the server machine-writes on actions that are not meaningful
+ * user edits (e.g. viewing a dashboard rewrites `shared_label_colors`).
+ * Records under these paths are suppressed before grouping so they
+ * never produce phantom save rows or inflate change counts. Extend the
+ * list as more machine-written paths surface.
+ */
+const NOISE_PATHS: ReadonlyArray<readonly string[]> = [
+  ['json_metadata', 'shared_label_colors'],
+];
+
+function isNoiseRecord(record: ActivityRecord): boolean {
+  const stringPath = record.path.filter(
+    (segment): segment is string => typeof segment === 'string',
+  );
+  return NOISE_PATHS.some(noisePath =>
+    noisePath.every((segment, index) => stringPath[index] === segment),
+  );
+}
+
+/**
  * Build the timeline from a flat newest-first activity stream:
  * `source='self'` records are grouped into one save container per
  * transaction, `source='related'` records collapse into a single entry
- * per (transaction, entity). The result is ordered newest first.
+ * per (transaction, entity). Machine-written noise records are dropped
+ * first, so saves consisting only of noise never appear and change
+ * counts reflect real edits. The result is ordered newest first.
  */
 export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
   const groupsByTransaction = new Map<number, SaveGroup>();
@@ -80,6 +102,9 @@ export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
   const entries: TimelineEntry[] = [];
 
   records.forEach(record => {
+    if (isNoiseRecord(record)) {
+      return;
+    }
     if (record.source === 'self') {
       let group = groupsByTransaction.get(record.transaction_id);
       if (!group) {
