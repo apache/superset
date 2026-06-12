@@ -24,6 +24,16 @@ assists people when migrating to a new version.
 
 ## Next
 
+### SQL parser input length cap (SQL_MAX_PARSE_LENGTH)
+
+The SQL parser now rejects scripts whose UTF-8 byte length exceeds the new
+`SQL_MAX_PARSE_LENGTH` config option (default `1_000_000` bytes) before they are
+handed to sqlglot, which bounds parser memory and CPU usage. A single query
+larger than the cap (for example a very large `IN (...)` list or a big
+virtual-dataset SQL) raises a parse error in SQL Lab and dashboard-generated
+queries. Deployments that legitimately run queries above this size should raise
+the value, and `SQL_MAX_PARSE_LENGTH = None` disables the check entirely.
+
 ### Map chart renderer and OpenStreetMap migration behavior
 
 The MapLibre migration for deck.gl charts preserves saved non-Mapbox styles on
