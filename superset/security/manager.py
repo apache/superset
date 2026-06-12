@@ -342,10 +342,29 @@ PermissionModelView.include_route_methods = {RouteMethod.LIST}
 ViewMenuModelView.include_route_methods = {RouteMethod.LIST}
 
 
+# Keys on an adhoc column/metric that a guest may legitimately change through a
+# supported native filter, and which therefore must not count as payload
+# tampering. The time grain of a temporal x-axis is baked into its `BASE_AXIS`
+# column by `normalizeTimeColumn` on the frontend (it copies
+# `extras.time_grain_sqla` onto the column), so a Time Grain filter alters the
+# column payload without changing which data is queried.
+GUEST_OVERRIDABLE_VALUE_KEYS = frozenset({"timeGrain"})
+
+
 def freeze_value(value: Any) -> str:
     """
     Used to compare column and metric sets.
+
+    Guest-overridable keys (e.g. the time grain baked into a temporal x-axis
+    column) are dropped so that legitimate native-filter changes don't read as
+    payload tampering.
     """
+    if isinstance(value, dict):
+        value = {
+            key: val
+            for key, val in value.items()
+            if key not in GUEST_OVERRIDABLE_VALUE_KEYS
+        }
     return json.dumps(value, sort_keys=True)
 
 
