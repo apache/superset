@@ -1619,3 +1619,76 @@ def test_user_view_menu_names_for_guest_user_no_roles(
 
     assert result == set()
     mock_get_user_id.assert_not_called()
+
+
+def test_reset_password_self_service_clears_flag(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """A user resetting their own password clears the forced-change flag."""
+    sm = SupersetSecurityManager(appbuilder)
+    # The target user (id 5) is the same as the acting user -> self-service.
+    mock_g = SimpleNamespace(user=SimpleNamespace(id=5))
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    # Avoid touching the real DB in the FAB base implementation.
+    mocker.patch(
+        "flask_appbuilder.security.manager.BaseSecurityManager.reset_password",
+        return_value=None,
+    )
+    mock_clear = mocker.patch(
+        "superset.security.password_change.clear_password_must_change"
+    )
+
+    sm.reset_password(5, "new-password")
+
+    mock_clear.assert_called_once_with(5)
+
+
+def test_reset_password_admin_does_not_clear_flag(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """An admin-initiated reset must preserve the forced-change requirement.
+
+    FAB's ``ResetPasswordView`` passes the target as the ``pk`` request-arg
+    string while ``g.user`` remains the admin, so the acting user differs from
+    the target and the flag must NOT be cleared.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    # Acting user is admin (id 1); target is a different user ("5" as a string,
+    # as FAB passes it from request args).
+    mock_g = SimpleNamespace(user=SimpleNamespace(id=1))
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch(
+        "flask_appbuilder.security.manager.BaseSecurityManager.reset_password",
+        return_value=None,
+    )
+    mock_clear = mocker.patch(
+        "superset.security.password_change.clear_password_must_change"
+    )
+
+    sm.reset_password("5", "temp-password")
+
+    mock_clear.assert_not_called()
+
+
+def test_reset_password_self_service_pk_string_clears_flag(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """Self-service identity holds even if ids arrive as mixed int/str types."""
+    sm = SupersetSecurityManager(appbuilder)
+    mock_g = SimpleNamespace(user=SimpleNamespace(id=5))
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch(
+        "flask_appbuilder.security.manager.BaseSecurityManager.reset_password",
+        return_value=None,
+    )
+    mock_clear = mocker.patch(
+        "superset.security.password_change.clear_password_must_change"
+    )
+
+    sm.reset_password("5", "new-password")
+
+    # Coerced to int when clearing, regardless of the inbound id type.
+    mock_clear.assert_called_once_with(5)
