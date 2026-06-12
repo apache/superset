@@ -108,6 +108,7 @@ def restore_version(
     # the complete shadow state in one ``after_flush`` pass. See
     # ``single_flush_scope`` for the full rationale.
     relations = _RESTORE_RELATIONS.get(model_cls.__name__, [])
+    live_uuid = entity.uuid
     try:
         with single_flush_scope(db.session):
             target_version.revert(relations=relations)
@@ -120,6 +121,23 @@ def restore_version(
             relations,
         )
         raise
+
+    # ``uuid`` is identity, not content: a snapshot can carry a DIFFERENT
+    # uuid for the same integer id (id reuse after a hard delete — SQLite
+    # and MySQL both reuse max(id)+1 — while retention still holds the old
+    # entity's shadow rows). Letting the Reverter apply it rewrites the
+    # live row's uuid and every uuid-routed URL for the entity 404s
+    # immediately after the restore. Re-assert the pre-restore identity.
+    if entity.uuid != live_uuid:
+        logger.warning(
+            "restore: snapshot for %s id=%s carried foreign uuid %s; "
+            "preserving live uuid %s (id reuse across a hard delete?)",
+            model_cls.__name__,
+            entity.id,
+            entity.uuid,
+            live_uuid,
+        )
+        entity.uuid = live_uuid
 
     _stamp_audit_fields_for_restore(entity)
     return entity

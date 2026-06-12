@@ -27,6 +27,7 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+import sqlalchemy as sa
 from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
@@ -678,3 +679,83 @@ class TestChartRestoreApi(SupersetTestCase):
         self.login(ALPHA_USERNAME)
         rv = self._restore(chart_uuid, "00000000-0000-0000-0000-000000000001")
         assert rv.status_code == 403
+
+
+class TestRestorePreservesIdentity(SupersetTestCase):
+    """``uuid`` is identity, not content — a restore must never apply a
+    snapshot's uuid to the live row. A snapshot CAN carry a different
+    uuid for the same integer id: id reuse after a hard delete (SQLite
+    and MySQL reuse max(id)+1) while retention still holds the old
+    entity's shadow rows. Pre-fix, restoring such a version rewrote the
+    live uuid and every uuid-routed endpoint 404'd immediately after
+    the restore (surfaced via an xfail that was passing for the wrong
+    reason).
+    """
+
+    @pytest.fixture(autouse=True)
+    def _load_data(self, load_birth_names_dashboard_with_slices):  # noqa: PT004, F811
+        pass
+
+    def test_restore_preserves_live_uuid(self) -> None:
+        from uuid import uuid4 as _uuid4
+
+        _persist_fixture_state()
+        chart: Slice = db.session.query(Slice).first()
+        assert chart is not None
+        chart_uuid = str(chart.uuid)
+        chart_id = chart.id
+        original_name = chart.slice_name
+
+        try:
+            chart.slice_name = f"{original_name[:60]} idprobe"
+            db.session.commit()
+
+            self.login(ADMIN_USERNAME)
+            listing = _json.loads(
+                self.client.get(f"/api/v1/chart/{chart_uuid}/versions/").data
+            )["result"]
+            target_uuid = listing[0]["version_uuid"]
+
+            # Simulate id reuse: plant a foreign uuid on the oldest
+            # shadow row, as if it belonged to a previously hard-deleted
+            # chart that shared this integer id.
+            ver_cls = version_class(Slice)
+            oldest = (
+                db.session.query(ver_cls)
+                .filter(ver_cls.id == chart_id)
+                .order_by(
+                    (ver_cls.operation_type != 0).asc(),
+                    ver_cls.transaction_id.asc(),
+                )
+                .first()
+            )
+            foreign_uuid = _uuid4()
+            db.session.execute(
+                sa.update(ver_cls.__table__)
+                .where(
+                    ver_cls.__table__.c.id == chart_id,
+                    ver_cls.__table__.c.transaction_id == oldest.transaction_id,
+                )
+                .values(uuid=foreign_uuid)
+            )
+            db.session.commit()
+
+            rv = self.client.post(
+                f"/api/v1/chart/{chart_uuid}/versions/{target_uuid}/restore"
+            )
+            assert rv.status_code == 200, rv.data
+
+            db.session.expire_all()
+            live = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            assert str(live.uuid) == chart_uuid, (
+                f"restore rewrote the live uuid to {live.uuid}; identity "
+                "fields must be preserved"
+            )
+            # The uuid-routed endpoint still resolves post-restore.
+            rv2 = self.client.get(f"/api/v1/chart/{chart_uuid}/versions/")
+            assert rv2.status_code == 200
+        finally:
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = original_name
+            db.session.commit()
