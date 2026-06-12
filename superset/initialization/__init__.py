@@ -729,6 +729,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """Register app-level request handlers"""
         from flask import request, Response
 
+        from superset.security.password_change import (
+            register_password_change_enforcement,
+        )
+
+        # Redirect users with a pending forced password change to the reset
+        # page (no-op unless ENABLE_FORCE_PASSWORD_CHANGE is enabled).
+        register_password_change_enforcement(self.superset_app)
+
         @self.superset_app.after_request
         def apply_http_headers(response: Response) -> Response:
             """Applies the configuration's http headers to all responses"""
