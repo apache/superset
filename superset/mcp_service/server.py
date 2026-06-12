@@ -509,6 +509,27 @@ def _fix_call_tool_arguments(tool: Any) -> Any:
     return tool
 
 
+def _fix_search_tool_query(tool: Any) -> Any:
+    """Fix anyOf schema in search_tools ``query`` for MCP bridge compatibility.
+
+    The optional ``query: str | None`` parameter emits an ``anyOf`` JSON
+    Schema with no top-level ``type``. Some MCP bridges (mcp-remote,
+    Claude Desktop) don't handle ``anyOf`` and strip it, leaving the field
+    typeless — the same failure mode ``_fix_call_tool_arguments`` guards
+    against. Replaces the ``anyOf`` with a flat ``type: string``.
+
+    Only the advertised schema changes; FastMCP validates calls against
+    the function signature, so omitting ``query`` remains valid.
+    """
+    if "query" in (props := (tool.parameters or {}).get("properties", {})):
+        props["query"] = {
+            "default": None,
+            "description": "Natural language query. Omit to list all available tools.",
+            "type": "string",
+        }
+    return tool
+
+
 def _normalize_call_tool_arguments(
     arguments: dict[str, Any] | None,
     tool_schema: dict[str, Any] | None,
@@ -651,7 +672,8 @@ def _create_search_transform(  # noqa: C901
                 results = await transform._search(hidden, query)
             return await transform._render_results(results)
 
-        return Tool.from_function(fn=search_tools, name=transform._search_tool_name)
+        tool = Tool.from_function(fn=search_tools, name=transform._search_tool_name)
+        return _fix_search_tool_query(tool)
 
     if strategy == "regex":
         from fastmcp.server.transforms.search import RegexSearchTransform

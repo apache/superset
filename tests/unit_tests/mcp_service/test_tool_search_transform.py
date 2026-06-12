@@ -1232,7 +1232,12 @@ def test_create_serializer_include_schemas_true_with_compact():
 
 
 def test_search_tool_query_is_optional_in_schema():
-    """search_tools parameters schema marks query as optional (not required)."""
+    """search_tools schema marks query optional with a flat concrete type.
+
+    The query schema must not use ``anyOf`` — MCP bridges (mcp-remote,
+    Claude Desktop) strip ``anyOf`` and leave the field typeless, the same
+    failure mode ``_fix_call_tool_arguments`` guards against.
+    """
     mock_mcp = MagicMock()
     config = {
         "strategy": "bm25",
@@ -1247,6 +1252,9 @@ def test_search_tool_query_is_optional_in_schema():
 
     params = search_tool.parameters
     assert "query" not in params.get("required", [])
+    query_schema = params["properties"]["query"]
+    assert query_schema["type"] == "string"
+    assert "anyOf" not in query_schema
 
 
 def test_search_tool_with_no_query_returns_all_visible_tools():
