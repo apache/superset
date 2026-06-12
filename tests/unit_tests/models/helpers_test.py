@@ -30,7 +30,7 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
 from sqlalchemy.sql.elements import ColumnElement
 
-from superset.superset_typing import AdhocColumn
+from superset.superset_typing import AdhocColumn, AdhocMetric, OrderBy
 from superset.utils.core import GenericDataType
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -923,6 +923,105 @@ def test_process_orderby_expression_with_template_processor(
     assert call_args["template_processor"] is template_processor
 
     assert result == "processed_column DESC"
+
+
+def test_get_sqla_query_does_not_mutate_adhoc_orderby(database: Database) -> None:
+    """
+    Test that `get_sqla_query` does not mutate ad-hoc ORDER BY entries.
+
+    The orderby dicts are shared with `QueryContext.cache_values`, so an
+    in-place write changes the cache key of a rehydrated query context
+    (see issue #37114).
+    """
+    import copy
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    raw_expression = "SUM(CASE \r\n      WHEN a > 0\r\n      THEN 1\r\n    END)"
+    adhoc_metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": raw_expression,
+        "label": "my metric",
+        "hasCustomLabel": True,
+    }
+    orderby: list[OrderBy] = [(copy.deepcopy(adhoc_metric), False)]
+    original_orderby = copy.deepcopy(orderby)
+
+    query = table.get_sqla_query(
+        metrics=[adhoc_metric],
+        orderby=orderby,
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            query.sqla_query.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    # Verify the query is ordered but the orderby structure is untouched
+    assert "ORDER BY" in sql
+    assert orderby == original_orderby
+    assert cast(AdhocMetric, orderby[0][0])["sqlExpression"] == raw_expression
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_get_sqla_query_does_not_mutate_adhoc_orderby_with_jinja(
+    database: Database,
+) -> None:
+    """
+    Test that Jinja templates in ad-hoc ORDER BY entries are not rendered
+    back into the caller's dict (see issue #37114).
+    """
+    import copy
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+
+    raw_expression = "SUM(CASE WHEN a > {{ 1 + 1 }} THEN 1 END)"
+    adhoc_metric: AdhocMetric = {
+        "expressionType": "SQL",
+        "sqlExpression": raw_expression,
+        "label": "my metric",
+        "hasCustomLabel": True,
+    }
+    orderby: list[OrderBy] = [(copy.deepcopy(adhoc_metric), False)]
+    original_orderby = copy.deepcopy(orderby)
+
+    query = table.get_sqla_query(
+        metrics=[adhoc_metric],
+        orderby=orderby,
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            query.sqla_query.compile(
+                dialect=engine.dialect, compile_kwargs={"literal_binds": True}
+            )
+        )
+
+    # Verify the template was rendered but the orderby structure is untouched
+    # (whitespace-insensitive, as sqlglot may normalize the SQL slightly)
+    assert "a>2" in sql.replace(" ", "")
+    assert orderby == original_orderby
+    assert cast(AdhocMetric, orderby[0][0])["sqlExpression"] == raw_expression
 
 
 def test_process_select_expression_basic(
