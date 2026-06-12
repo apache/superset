@@ -73,7 +73,7 @@ import {
 export const HYDRATE_DASHBOARD = 'HYDRATE_DASHBOARD';
 type AppDispatch = ThunkDispatch<RootState, undefined, AnyAction>;
 
-interface HydrateChartData {
+export interface HydrateChartData {
   slice_id: number;
   slice_url: string;
   slice_name: string;
@@ -85,7 +85,7 @@ interface HydrateChartData {
   changed_on: string;
 }
 
-interface HydrateDashboardData extends Dashboard {
+export interface HydrateDashboardData extends Dashboard {
   metadata: JsonObject;
   position_data: Record<string, LayoutItem> | null;
   [key: string]: unknown;

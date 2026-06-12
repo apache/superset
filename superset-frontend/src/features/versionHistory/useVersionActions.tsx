@@ -24,6 +24,7 @@ import type { VersionedEntityType } from './types';
 import {
   createChartFromSnapshot,
   createDashboardFromSnapshot,
+  fetchActivity,
   fetchVersionSnapshot,
   restoreVersion,
 } from './api';
@@ -57,7 +58,7 @@ export function useVersionActions(
   uuid: string | undefined,
 ): UseVersionActionsResult {
   const dispatch = useDispatch();
-  const { addSuccessToast, addDangerToast } = useToasts();
+  const { addSuccessToast, addInfoToast, addDangerToast } = useToasts();
   const [restoreTarget, setRestoreTarget] =
     useState<VersionActionTarget | null>(null);
   const [isRestoring, setIsRestoring] = useState(false);
@@ -70,14 +71,44 @@ export function useVersionActions(
     setRestoreTarget(null);
   }, []);
 
+  // The restore endpoint reports success but not whether a new version
+  // transaction was created (restoring an already-matching state is a
+  // server-side no-op); probe the newest self transaction to tell the
+  // two apart in the toast.
+  const latestTransactionId = useCallback(async (): Promise<number | null> => {
+    if (!uuid) {
+      return null;
+    }
+    try {
+      const { result } = await fetchActivity(entityType, uuid, {
+        include: 'self',
+        page: 0,
+        pageSize: 1,
+      });
+      return result[0]?.transaction_id ?? null;
+    } catch {
+      return null;
+    }
+  }, [entityType, uuid]);
+
   const confirmRestore = useCallback(async () => {
     if (!restoreTarget || !uuid || isRestoring) {
       return;
     }
     setIsRestoring(true);
     try {
+      const beforeTransactionId = await latestTransactionId();
       await restoreVersion(entityType, uuid, restoreTarget.versionUuid);
-      addSuccessToast(t("Restored to '%s' version", restoreTarget.headline));
+      const afterTransactionId = await latestTransactionId();
+      if (
+        beforeTransactionId !== null &&
+        afterTransactionId !== null &&
+        beforeTransactionId === afterTransactionId
+      ) {
+        addInfoToast(t('Already at this version'));
+      } else {
+        addSuccessToast(t("Restored to '%s' version", restoreTarget.headline));
+      }
       setRestoreTarget(null);
       dispatch(clearVersionPreview());
       dispatch(versionRestored());
@@ -88,10 +119,12 @@ export function useVersionActions(
     }
   }, [
     addDangerToast,
+    addInfoToast,
     addSuccessToast,
     dispatch,
     entityType,
     isRestoring,
+    latestTransactionId,
     restoreTarget,
     uuid,
   ]);
@@ -121,6 +154,7 @@ export function useVersionActions(
             target.versionUuid,
           );
           const id = await createDashboardFromSnapshot(
+            uuid,
             snapshot,
             t('%s (copy from %s)', snapshot.dashboard_title, copyDate),
           );

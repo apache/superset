@@ -63,11 +63,16 @@ const renderBanner = (
 
 const RESTORE_ENDPOINT =
   'glob:*/api/v1/chart/entity-uuid/versions/version-uuid/restore';
+const ACTIVITY_ENDPOINT = 'glob:*/api/v1/chart/entity-uuid/activity/*';
 
-test('shows the preview headline and date while a preview is active', () => {
+test('shows the preview date once when the headline is the save date', () => {
   renderBanner();
-  expect(screen.getByTestId('version-preview-banner')).toHaveTextContent(
-    'Previewing historical version · Dec 5, 2025, 12:18 PM · Dec 5, 2025, 12:18 PM',
+  const banner = screen.getByTestId('version-preview-banner');
+  expect(banner).toHaveTextContent(
+    'Previewing historical version · Dec 5, 2025, 12:18 PM',
+  );
+  expect(banner).not.toHaveTextContent(
+    'Dec 5, 2025, 12:18 PM · Dec 5, 2025, 12:18 PM',
   );
   expect(
     screen.getByRole('button', { name: 'Restore this version' }),
@@ -75,6 +80,24 @@ test('shows the preview headline and date while a preview is active', () => {
   expect(
     screen.getByRole('button', { name: 'Open as new chart' }),
   ).toBeInTheDocument();
+});
+
+test('shows headline and date when the headline carries its own label', () => {
+  renderBanner(
+    'chart',
+    versionHistoryState({
+      preview: {
+        entityUuid: 'entity-uuid',
+        versionUuid: 'version-uuid',
+        transactionId: 7,
+        headline: 'Restored version',
+        issuedAt: '2025-12-05T17:18:00',
+      },
+    }),
+  );
+  expect(screen.getByTestId('version-preview-banner')).toHaveTextContent(
+    'Previewing historical version · Restored version · Dec 5, 2025, 12:18 PM',
+  );
 });
 
 test('renders nothing when the preview belongs to another entity type', () => {
@@ -106,6 +129,15 @@ test('restoring from the banner confirms, posts, and exits the preview', async (
     { result: { version_uuid: 'version-uuid' } },
     { name: 'post-restore' },
   );
+  // The restore flow probes the newest transaction before/after to
+  // detect no-op restores.
+  fetchMock.get(
+    ACTIVITY_ENDPOINT,
+    { result: [], count: 0 },
+    {
+      name: 'get-activity',
+    },
+  );
   const store = renderBanner();
 
   await userEvent.click(
@@ -131,10 +163,18 @@ test('restoring from the banner confirms, posts, and exits the preview', async (
   ).not.toBeInTheDocument();
 
   fetchMock.removeRoute('post-restore');
+  fetchMock.removeRoute('get-activity');
 });
 
 test('a failed restore keeps the preview active', async () => {
   fetchMock.post(RESTORE_ENDPOINT, 500, { name: 'post-restore-fail' });
+  fetchMock.get(
+    ACTIVITY_ENDPOINT,
+    { result: [], count: 0 },
+    {
+      name: 'get-activity-fail',
+    },
+  );
   const store = renderBanner();
 
   await userEvent.click(
@@ -152,4 +192,5 @@ test('a failed restore keeps the preview active', async () => {
   expect(versionHistoryOf(store).preview).not.toBeNull();
 
   fetchMock.removeRoute('post-restore-fail');
+  fetchMock.removeRoute('get-activity-fail');
 });

@@ -37,6 +37,7 @@ import type {
   VersionedEntityType,
 } from './types';
 import type { UseVersionActivityResult } from './useVersionActivity';
+import { relatedEntryKey } from './grouping';
 import {
   describeRecord,
   formatAuthor,
@@ -264,13 +265,13 @@ export default function VersionHistoryPanel({
             />
           ) : (
             <RelatedUpdateRow
-              key={`related-${entry.record.transaction_id}-${entry.record.entity_uuid}`}
+              key={`related-${relatedEntryKey(entry.record)}`}
               record={entry.record}
               onOpen={onOpenRelated}
             />
           ),
         )}
-        {hasMore && !query && (
+        {hasMore && (
           <Footer>
             <Button
               buttonStyle="link"

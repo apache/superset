@@ -21,8 +21,9 @@ import {
   classifySaveGroup,
   mergeActivityPages,
   recordKey,
+  relatedEntryKey,
 } from './grouping';
-import type { ActivityRecord, SaveGroup } from './types';
+import type { ActivityRecord, RelatedEntry, SaveGroup } from './types';
 
 const baseRecord: ActivityRecord = {
   version_uuid: 'v-1',
@@ -142,6 +143,43 @@ test('classifySaveGroup returns filters when every record is a filter change', (
   expect(classifySaveGroup(group)).toBe('filters');
 });
 
+test('classifySaveGroup treats native-filter field records as filter changes', () => {
+  // The backend emits native-filter changes as kind="field" under
+  // json_metadata.native_filter_configuration until kind promotion lands.
+  const [group] = buildTimeline([
+    record({
+      entity_kind: 'dashboard',
+      kind: 'field',
+      path: [
+        'json_metadata',
+        'native_filter_configuration',
+        'NATIVE_1',
+        'defaultDataMask',
+      ],
+    }),
+    record({
+      entity_kind: 'dashboard',
+      kind: 'field',
+      path: ['json_metadata', 'native_filter_configuration', 'NATIVE_2'],
+      operation: 'remove',
+    }),
+  ]) as SaveGroup[];
+
+  expect(classifySaveGroup(group)).toBe('filters');
+});
+
+test('classifySaveGroup returns edit for non-filter json_metadata field records', () => {
+  const [group] = buildTimeline([
+    record({
+      entity_kind: 'dashboard',
+      kind: 'field',
+      path: ['json_metadata', 'color_scheme'],
+    }),
+  ]) as SaveGroup[];
+
+  expect(classifySaveGroup(group)).toBe('edit');
+});
+
 test('classifySaveGroup returns edit when any record is not a filter change', () => {
   const [group] = buildTimeline([
     record({ entity_kind: 'dashboard', kind: 'filter' }),
@@ -149,6 +187,60 @@ test('classifySaveGroup returns edit when any record is not a filter change', ()
   ]) as SaveGroup[];
 
   expect(classifySaveGroup(group)).toBe('edit');
+});
+
+test('buildTimeline collapses one related save into a single entry', () => {
+  // One dataset save can fan out into many change records; the panel
+  // should show one row per (transaction, entity), upgraded with the
+  // most informative summary/impact across its records.
+  const entries = buildTimeline(
+    Array.from({ length: 5 }, (_, index) =>
+      record({
+        source: 'related',
+        entity_kind: 'dataset',
+        entity_uuid: 'ds-1',
+        entity_name: 'Sales',
+        transaction_id: 13,
+        issued_at: `2025-12-06T12:00:0${index}`,
+        kind: 'metric',
+        path: ['metrics', `metric_${index}`],
+        summary: index === 2 ? 'Dataset metric changed: Sales' : '',
+        impact: index === 3 ? { charts: 4 } : null,
+      }),
+    ),
+  );
+
+  expect(entries).toHaveLength(1);
+  const [entry] = entries as RelatedEntry[];
+  expect(entry.type).toBe('related');
+  expect(entry.record.summary).toBe('Dataset metric changed: Sales');
+  expect(entry.record.impact).toEqual({ charts: 4 });
+  expect(entry.record.issued_at).toBe('2025-12-06T12:00:04');
+});
+
+test('buildTimeline keeps distinct related entities apart within one transaction', () => {
+  const entries = buildTimeline([
+    record({
+      source: 'related',
+      entity_kind: 'dataset',
+      entity_uuid: 'ds-1',
+      entity_name: 'Sales',
+      transaction_id: 13,
+      issued_at: '2025-12-06T12:00:00',
+    }),
+    record({
+      source: 'related',
+      entity_kind: 'chart',
+      entity_uuid: 'ch-1',
+      entity_name: 'Revenue trend',
+      transaction_id: 13,
+      issued_at: '2025-12-06T12:00:00',
+    }),
+  ]) as RelatedEntry[];
+
+  expect(entries).toHaveLength(2);
+  const keys = entries.map(entry => relatedEntryKey(entry.record));
+  expect(new Set(keys).size).toBe(2);
 });
 
 test('mergeActivityPages appends new rows and drops duplicates', () => {

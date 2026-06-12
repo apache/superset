@@ -20,10 +20,16 @@ import { ComponentType } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components';
+import type { IconType } from '@superset-ui/core/components/Icons/types';
 import type { ActivityEntityKind, ActivityRecord } from './types';
-import { formatAuthor, formatRelativeTime, relatedHeadline } from './display';
+import {
+  entityDisplayName,
+  formatAuthor,
+  formatRelativeTime,
+  relatedHeadline,
+} from './display';
 
-const ENTITY_ICON: Record<ActivityEntityKind, ComponentType<any>> = {
+const ENTITY_ICON: Record<ActivityEntityKind, ComponentType<IconType>> = {
   chart: Icons.BarChartOutlined,
   dashboard: Icons.DashboardOutlined,
   dataset: Icons.TableOutlined,
@@ -89,10 +95,15 @@ export default function RelatedUpdateRow({
 }: RelatedUpdateRowProps) {
   const Icon = ENTITY_ICON[record.entity_kind] ?? Icons.FileOutlined;
   const headline = relatedHeadline(record);
+  const entityName = entityDisplayName(record);
   const linkable = !record.entity_deleted && Boolean(onOpen);
   // Both the server summary and the impact-aware phrasing end with the
-  // entity name; split it out so the name can render as a link.
-  const nameIndex = linkable ? headline.lastIndexOf(record.entity_name) : -1;
+  // entity name; split it out so the name can render as a link. Records
+  // without a name can't be split (the empty string matches anywhere).
+  const nameIndex =
+    linkable && record.entity_name
+      ? headline.lastIndexOf(record.entity_name)
+      : -1;
 
   return (
     <Row data-test="version-history-related-row">
@@ -105,7 +116,7 @@ export default function RelatedUpdateRow({
             <>
               {headline.slice(0, nameIndex)}
               <NameLink type="button" onClick={() => onOpen?.(record)}>
-                {record.entity_name}
+                {entityName}
               </NameLink>
               {headline.slice(nameIndex + record.entity_name.length)}
             </>

@@ -193,23 +193,32 @@ export default function SaveGroupItem({
     );
   }
 
+  const hasRecords = group.records.length > 0;
+  const toggleExpanded = () => {
+    if (hasRecords) {
+      setExpanded(value => !value);
+    }
+  };
+
   return (
     <Container isPreviewed={isPreviewed} data-test="version-history-save-group">
       <Header
         role="button"
         tabIndex={0}
-        onClick={() => setExpanded(value => !value)}
-        onKeyDown={activate(() => setExpanded(value => !value))}
-        aria-expanded={expanded}
+        onClick={toggleExpanded}
+        onKeyDown={activate(toggleExpanded)}
+        aria-expanded={hasRecords ? expanded : undefined}
         aria-label={headline}
       >
-        <CaretWrapper>
-          {expanded ? (
-            <Icons.DownOutlined iconSize="s" />
-          ) : (
-            <Icons.RightOutlined iconSize="s" />
-          )}
-        </CaretWrapper>
+        {hasRecords && (
+          <CaretWrapper>
+            {expanded ? (
+              <Icons.DownOutlined iconSize="s" />
+            ) : (
+              <Icons.RightOutlined iconSize="s" />
+            )}
+          </CaretWrapper>
+        )}
         <HeaderText>
           <Headline title={headline}>{headline}</Headline>
           <Meta>{meta}</Meta>
