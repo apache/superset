@@ -100,11 +100,13 @@ class WebhookNotification(BaseNotification):
             raise NotificationParamException(
                 "Webhook failed: only HTTP and HTTPS webhook URLs are supported."
             )
-        if current_app.config["ALERT_REPORTS_WEBHOOK_HTTPS_ONLY"]:
-            if parsed.scheme.lower() != "https":
-                raise NotificationParamException(
-                    "Webhook failed: HTTPS is required by config for webhook URLs."
-                )
+        if (
+            current_app.config["ALERT_REPORTS_WEBHOOK_HTTPS_ONLY"]
+            and parsed.scheme.lower() != "https"
+        ):
+            raise NotificationParamException(
+                "Webhook failed: HTTPS is required by config for webhook URLs."
+            )
         if not parsed.hostname:
             raise NotificationParamException(
                 "Webhook failed: URL must include a valid hostname."

@@ -124,7 +124,7 @@ def test_cancel_query_exception(post_mock: Mock, _safe_host: Mock) -> None:  # n
 
 
 @patch("requests.post")
-def test_cancel_query_blocks_internal_host(post_mock: Mock) -> None:
+def test_cancel_query_blocks_internal_host(post_mock: Mock, app_context: None) -> None:
     """A private/internal Impala host is refused by default (no HTTP call)."""
     query = Query()
     database = Database(

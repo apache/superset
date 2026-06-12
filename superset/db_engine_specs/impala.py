@@ -218,12 +218,13 @@ class ImpalaEngineSpec(BaseEngineSpec):
             # via IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS.
             if not impala_host:
                 return False
-            if not app.config["IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS"]:
-                if not is_safe_host(impala_host):
-                    logger.warning(
-                        "Impala cancel_query refused: target host is not allowed"
-                    )
-                    return False
+            if not app.config[
+                "IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS"
+            ] and not is_safe_host(impala_host):
+                logger.warning(
+                    "Impala cancel_query refused: target host is not allowed"
+                )
+                return False
             url = f"http://{impala_host}:25000/cancel_query?query_id={cancel_query_id}"
             response = requests.post(url, timeout=3)
         except Exception:  # pylint: disable=broad-except
