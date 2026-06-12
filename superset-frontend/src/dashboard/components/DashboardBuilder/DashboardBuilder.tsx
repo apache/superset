@@ -77,6 +77,7 @@ import {
 } from 'src/dashboard/constants';
 import DashboardVersionHistory from 'src/features/versionHistory/DashboardVersionHistory';
 import PreviewBanner from 'src/features/versionHistory/PreviewBanner';
+import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
@@ -408,6 +409,9 @@ const DashboardBuilder = () => {
   const filterBarOrientation = useSelector<RootState, FilterBarOrientation>(
     ({ dashboardInfo }) => dashboardInfo.filterBarOrientation,
   );
+  const isVersionPreviewActive = useSelector(
+    selectIsDashboardVersionPreviewActive,
+  );
 
   const handleChangeTab = useCallback(
     ({ pathToTabIndex }: { pathToTabIndex: string[] }) => {
@@ -548,14 +552,35 @@ const DashboardBuilder = () => {
         {hideDashboardHeader && !isReport && <HeadlessAutoRefresh />}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
-            <FilterBar
-              orientation={FilterBarOrientation.Horizontal}
-              hidden={hideFilterBar}
-            />
+            <div
+              data-test="dashboard-filter-bar-gate"
+              aria-disabled={isVersionPreviewActive}
+              css={css`
+                ${isVersionPreviewActive
+                  ? `
+                    pointer-events: none;
+                    opacity: 0.5;
+                  `
+                  : ''}
+              `}
+              // inert blocks keyboard focus too; React 18 needs the spread form
+              {...(isVersionPreviewActive ? { inert: '' } : {})}
+            >
+              <FilterBar
+                orientation={FilterBarOrientation.Horizontal}
+                hidden={hideFilterBar}
+              />
+            </div>
           )}
       </>
     ),
-    [hideDashboardHeader, showFilterBar, filterBarOrientation, hideFilterBar],
+    [
+      hideDashboardHeader,
+      showFilterBar,
+      filterBarOrientation,
+      hideFilterBar,
+      isVersionPreviewActive,
+    ],
   );
 
   const renderDraggableContent = useCallback(
@@ -622,16 +647,32 @@ const DashboardBuilder = () => {
         >
           <StickyPanel ref={containerRef} width={filterBarWidth}>
             <ErrorBoundary>
-              <FilterBar
-                orientation={FilterBarOrientation.Vertical}
-                verticalConfig={{
-                  filtersOpen: dashboardFiltersOpen,
-                  toggleFiltersBar: toggleDashboardFiltersOpen,
-                  width: filterBarWidth,
-                  height: filterBarHeight,
-                  offset: filterBarOffset,
-                }}
-              />
+              <div
+                data-test="dashboard-filter-bar-gate"
+                aria-disabled={isVersionPreviewActive}
+                css={css`
+                  height: 100%;
+                  ${isVersionPreviewActive
+                    ? `
+                      pointer-events: none;
+                      opacity: 0.5;
+                    `
+                    : ''}
+                `}
+                // inert blocks keyboard focus too; React 18 needs the spread form
+                {...(isVersionPreviewActive ? { inert: '' } : {})}
+              >
+                <FilterBar
+                  orientation={FilterBarOrientation.Vertical}
+                  verticalConfig={{
+                    filtersOpen: dashboardFiltersOpen,
+                    toggleFiltersBar: toggleDashboardFiltersOpen,
+                    width: filterBarWidth,
+                    height: filterBarHeight,
+                    offset: filterBarOffset,
+                  }}
+                />
+              </div>
             </ErrorBoundary>
           </StickyPanel>
         </FiltersPanel>
@@ -643,6 +684,7 @@ const DashboardBuilder = () => {
       filterBarHeight,
       filterBarOffset,
       hideFilterBar,
+      isVersionPreviewActive,
     ],
   );
 

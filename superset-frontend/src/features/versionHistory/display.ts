@@ -110,15 +110,26 @@ function fieldSubject(record: ActivityRecord): string {
   return humanizeFieldName(String(meaningful ?? t('setting')));
 }
 
-const LAYOUT_KIND_LABEL: Record<string, string> = {
-  chart: 'chart',
-  row: 'row',
-  tab: 'tab',
-  tabs: 'tabs',
-  header: 'header',
-  markdown: 'markdown',
-  divider: 'divider',
-};
+function layoutKindLabel(kind: string): string | null {
+  switch (kind) {
+    case 'chart':
+      return t('chart');
+    case 'row':
+      return t('row');
+    case 'tab':
+      return t('tab');
+    case 'tabs':
+      return t('tabs');
+    case 'header':
+      return t('header');
+    case 'markdown':
+      return t('markdown');
+    case 'divider':
+      return t('divider');
+    default:
+      return null;
+  }
+}
 
 /**
  * Human-readable label for a `source='self'` activity record. The
@@ -184,8 +195,8 @@ export function describeRecord(record: ActivityRecord): string {
     return t('Changed color palette');
   }
 
-  if (LAYOUT_KIND_LABEL[kind]) {
-    const label = LAYOUT_KIND_LABEL[kind];
+  const label = layoutKindLabel(kind);
+  if (label) {
     if (operation === 'add') {
       return subject
         ? t("Added %s '%s'", label, subject)
@@ -235,6 +246,11 @@ export function groupHeadline(
   if (group.actionKind === 'clone') {
     return t('Cloned version');
   }
+  // Defensive: a save that produced no renderable change records
+  // (e.g. properties-only metadata edits) still deserves a label.
+  if (group.records.length === 0) {
+    return t('Properties updated');
+  }
   if (entityType === 'dashboard') {
     const changes = group.records.length;
     return classifySaveGroup(group) === 'filters'
@@ -242,6 +258,23 @@ export function groupHeadline(
       : t('Edit mode · %s', tn('%s change', '%s changes', changes, changes));
   }
   return formatVersionDateTime(group.issuedAt);
+}
+
+/** Entity name with a fallback for records that arrive without one. */
+export function entityDisplayName(record: ActivityRecord): string {
+  if (record.entity_name) {
+    return record.entity_name;
+  }
+  switch (record.entity_kind) {
+    case 'chart':
+      return t('Untitled chart');
+    case 'dashboard':
+      return t('Untitled dashboard');
+    case 'dataset':
+      return t('Untitled dataset');
+    default:
+      return t('Untitled');
+  }
 }
 
 /**
@@ -255,8 +288,10 @@ export function relatedHeadline(record: ActivityRecord): string {
     return t(
       'Dataset used by %s charts updated: %s',
       chartCount,
-      record.entity_name,
+      entityDisplayName(record),
     );
   }
-  return record.summary || t('%s updated: %s', t('Item'), record.entity_name);
+  return (
+    record.summary || t('%s updated: %s', t('Item'), entityDisplayName(record))
+  );
 }
