@@ -1493,6 +1493,25 @@ def test_is_mutating_postgres_function_and_select_into(
 
 
 @pytest.mark.parametrize(
+    "engine, sql",
+    [
+        # `SELECT ... INTO new_table` is CTAS only in Postgres/Redshift/T-SQL.
+        # In Oracle PL/SQL and MySQL the same syntax assigns into a variable
+        # and is a read, so it must NOT be classified as mutating.
+        ("oracle", "SELECT col INTO v FROM existing_table"),
+        ("mysql", "SELECT col INTO @v FROM existing_table"),
+    ],
+)
+def test_is_mutating_select_into_variable_is_read(engine: str, sql: str) -> None:
+    """
+    `SELECT ... INTO target` is only CTAS (mutating) for dialects where the
+    syntax creates a table. On Oracle/MySQL it assigns into a variable and is
+    a read, so `is_mutating` must return False there.
+    """
+    assert SQLStatement(sql, engine).is_mutating() is False
+
+
+@pytest.mark.parametrize(
     "sql, expected",
     [
         # PostgreSQL constructs that sqlglot parses as opaque exp.Command.
@@ -3558,6 +3577,33 @@ def test_get_disallowed_tables(
     precisely which tables were hit instead of echoing the whole denylist.
     """
     assert SQLScript(sql, engine).get_disallowed_tables(denylist) == expected
+
+
+@pytest.mark.parametrize(
+    "sql, denylist, expected",
+    [
+        ("SELECT * FROM pg_stat_activity", {"pg_stat_activity"}, True),
+        ("SELECT * FROM my_table", {"pg_stat_activity"}, False),
+    ],
+)
+def test_statement_check_tables_present(
+    sql: str, denylist: set[str], expected: bool
+) -> None:
+    """
+    `SQLStatement.check_tables_present` is the per-statement entry point that
+    `SQLScript` no longer routes through (it calls `get_disallowed_tables`
+    directly), so exercise it on its own to keep the override covered.
+    """
+    assert SQLStatement(sql, "postgresql").check_tables_present(denylist) == expected
+
+
+def test_kustokql_statement_check_tables_present() -> None:
+    """
+    `KustoKQLStatement.check_tables_present` is unsupported and always reports
+    False; exercise it directly so the override stays covered.
+    """
+    statement = KustoKQLStatement("foo | take 100", "kustokql")
+    assert statement.check_tables_present({"foo"}) is False
 
 
 @pytest.mark.parametrize(

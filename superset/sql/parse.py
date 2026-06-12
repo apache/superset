@@ -658,6 +658,19 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         }
     )
 
+    # Dialects where `SELECT ... INTO target` is CTAS (creates a table, and so
+    # mutates schema). Elsewhere the same syntax assigns into a variable and is
+    # a read: Oracle PL/SQL `SELECT ... INTO v` and MySQL `SELECT ... INTO @v`
+    # parse into an identical `exp.Select` with an `into` arg, so the dialect is
+    # the only signal that distinguishes the mutating form from the read form.
+    _SELECT_INTO_CTAS_DIALECTS: frozenset[Dialects] = frozenset(
+        {
+            Dialects.POSTGRES,
+            Dialects.REDSHIFT,
+            Dialects.TSQL,
+        }
+    )
+
     def __init__(
         self,
         statement: str | None = None,
@@ -801,14 +814,18 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             exp.Comment,
         )
 
-        for node_type in mutating_nodes:
-            if self._parsed.find(node_type):
-                return True
+        if self._parsed.find(*mutating_nodes):
+            return True
 
         # `SELECT ... INTO new_table FROM ...` parses as `exp.Select` with an
         # `into` arg (Postgres-style CTAS variant). It creates a new table and
-        # therefore mutates schema.
-        if isinstance(self._parsed, exp.Select) and self._parsed.args.get("into"):
+        # therefore mutates schema. Only treat it as mutating for dialects where
+        # the syntax is CTAS; elsewhere it assigns into a variable (a read).
+        if (
+            self._dialect in self._SELECT_INTO_CTAS_DIALECTS
+            and isinstance(self._parsed, exp.Select)
+            and self._parsed.args.get("into")
+        ):
             return True
 
         # Function calls that mutate server-side state without an enclosing
