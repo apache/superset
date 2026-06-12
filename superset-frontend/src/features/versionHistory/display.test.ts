@@ -167,6 +167,20 @@ test('describeRecord falls back to a humanized field name', () => {
   ).toBe("Cleared 'description'");
 });
 
+test('describeRecord humanizes camelCase field names', () => {
+  expect(
+    describeRecord(
+      record({
+        kind: 'field',
+        operation: 'edit',
+        path: ['params', 'markerSize'],
+        to_value: 8,
+        from_value: 4,
+      }),
+    ),
+  ).toBe("Changed 'marker size'");
+});
+
 test('groupHeadline prefers the transaction action kind', () => {
   expect(groupHeadline('chart', group({ actionKind: 'restore' }))).toBe(
     'Restored version',

@@ -121,10 +121,15 @@ export interface SaveGroup {
   records: ActivityRecord[];
 }
 
-/** A standalone `source='related'` activity record. */
+/**
+ * A `source='related'` timeline row: one representative record plus
+ * every record that collapsed into it, kept so search can still match
+ * the non-representative records' summaries.
+ */
 export interface RelatedEntry {
   type: 'related';
   record: ActivityRecord;
+  records: ActivityRecord[];
 }
 
 export type TimelineEntry = SaveGroup | RelatedEntry;

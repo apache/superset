@@ -27,12 +27,13 @@ import {
   HydrateChartData,
   HydrateDashboardData,
 } from 'src/dashboard/actions/hydrate';
-import { CHART_TYPE, MARKDOWN_TYPE } from 'src/dashboard/util/componentTypes';
 import type { RootState } from 'src/dashboard/types';
 import {
   fetchDashboardHydrationData,
   fetchExploreRehydrationData,
   fetchVersionSnapshot,
+  layoutChartId,
+  swapUnreachableChartSlots,
   DashboardHydrationData,
 } from './api';
 import {
@@ -45,13 +46,6 @@ export interface SnapshotChartResolution {
   charts: HydrateChartData[];
   positionData: JsonObject | null;
 }
-
-const layoutChartId = (item: JsonObject): number | null => {
-  const meta = item?.meta as JsonObject | undefined;
-  return item?.type === CHART_TYPE && typeof meta?.chartId === 'number'
-    ? (meta.chartId as number)
-    : null;
-};
 
 /**
  * A version snapshot stores the layout (position_json) but not the charts
@@ -119,27 +113,10 @@ export async function resolveSnapshotCharts(
     }),
   );
 
-  if (unreachable.size === 0) {
-    return { charts, positionData };
-  }
-
-  const layout: JsonObject = { ...positionData };
-  Object.entries(layout).forEach(([key, item]) => {
-    const chartId = layoutChartId(item as JsonObject);
-    if (chartId !== null && unreachable.has(chartId)) {
-      const meta = (item as JsonObject).meta as JsonObject;
-      layout[key] = {
-        ...(item as JsonObject),
-        type: MARKDOWN_TYPE,
-        meta: {
-          width: meta?.width,
-          height: meta?.height,
-          code: t('This chart no longer exists.'),
-        },
-      };
-    }
-  });
-  return { charts, positionData: layout };
+  return {
+    charts,
+    positionData: swapUnreachableChartSlots(positionData, unreachable),
+  };
 }
 
 /**

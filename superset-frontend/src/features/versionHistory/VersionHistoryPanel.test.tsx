@@ -28,6 +28,7 @@ import type {
   TimelineEntry,
   VersionedEntityType,
 } from './types';
+import { buildTimeline } from './grouping';
 import type { UseVersionActivityResult } from './useVersionActivity';
 import VersionHistoryPanel, {
   VersionHistoryPanelProps,
@@ -168,6 +169,36 @@ test('searching filters the timeline and reports no matches', async () => {
   expect(screen.getByText('Try a different search term')).toBeInTheDocument();
 });
 
+test('search matches summaries of records collapsed into a related row', async () => {
+  const sharedFields = {
+    source: 'related' as const,
+    entity_kind: 'dataset' as const,
+    entity_name: 'Sales',
+    entity_uuid: 'ds-1',
+    transaction_id: 11,
+  };
+  const timeline = buildTimeline([
+    record({ ...sharedFields, summary: 'Dataset updated: Sales' }),
+    record({
+      ...sharedFields,
+      path: ['metrics', 'quarterly_revenue'],
+      summary: 'Dataset metric changed: quarterly_revenue',
+    }),
+  ]);
+  const props = defaultProps(timeline);
+  render(<VersionHistoryPanel {...props} />);
+
+  await userEvent.type(
+    screen.getByRole('textbox', { name: 'Search actions' }),
+    'quarterly_revenue',
+  );
+
+  // The term only appears in a record that was collapsed into the
+  // representative row; the row must still match.
+  expect(screen.queryByText('No actions found')).not.toBeInTheDocument();
+  expect(screen.getByText('Dataset updated: Sales')).toBeInTheDocument();
+});
+
 test('the include filter calls back with the selected scope', async () => {
   const props = defaultProps([group()]);
   render(<VersionHistoryPanel {...props} />);
@@ -185,31 +216,28 @@ test('an empty timeline shows the no-history empty state', () => {
   ).toBeInTheDocument();
 });
 
+const relatedEntry = (overrides: Partial<ActivityRecord>): TimelineEntry => {
+  const relatedRecord = record({ source: 'related', ...overrides });
+  return { type: 'related', record: relatedRecord, records: [relatedRecord] };
+};
+
 test('related rows link to the entity unless it was deleted', () => {
   const props = defaultProps([
-    {
-      type: 'related',
-      record: record({
-        source: 'related',
-        entity_kind: 'dataset',
-        entity_name: 'Sales',
-        entity_uuid: 'ds-1',
-        transaction_id: 11,
-        summary: 'Dataset updated: Sales',
-      }),
-    },
-    {
-      type: 'related',
-      record: record({
-        source: 'related',
-        entity_kind: 'chart',
-        entity_name: 'Trend',
-        entity_uuid: 'c-2',
-        entity_deleted: true,
-        transaction_id: 12,
-        summary: 'Chart updated: Trend',
-      }),
-    },
+    relatedEntry({
+      entity_kind: 'dataset',
+      entity_name: 'Sales',
+      entity_uuid: 'ds-1',
+      transaction_id: 11,
+      summary: 'Dataset updated: Sales',
+    }),
+    relatedEntry({
+      entity_kind: 'chart',
+      entity_name: 'Trend',
+      entity_uuid: 'c-2',
+      entity_deleted: true,
+      transaction_id: 12,
+      summary: 'Chart updated: Trend',
+    }),
   ]);
   props.onOpenRelated = jest.fn();
   render(<VersionHistoryPanel {...props} />);

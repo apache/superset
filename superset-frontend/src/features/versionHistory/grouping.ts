@@ -106,10 +106,15 @@ export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
       const key = relatedEntryKey(record);
       const existing = relatedByKey.get(key);
       if (!existing) {
-        const entry: RelatedEntry = { type: 'related', record };
+        const entry: RelatedEntry = {
+          type: 'related',
+          record,
+          records: [record],
+        };
         relatedByKey.set(key, entry);
         entries.push(entry);
       } else {
+        existing.records.push(record);
         // Keep the row, upgrading it with the most informative fields
         // seen across the save's records.
         const current = existing.record;

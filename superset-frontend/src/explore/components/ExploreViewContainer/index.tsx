@@ -19,6 +19,8 @@
 /* eslint camelcase: 0 */
 import {
   ComponentType,
+  Suspense,
+  lazy,
   memo,
   useCallback,
   useEffect,
@@ -90,8 +92,6 @@ import {
 } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 import { User } from 'src/types/bootstrapTypes';
-import ExploreVersionHistory from 'src/features/versionHistory/ExploreVersionHistory';
-import ChartVersionPreview from 'src/features/versionHistory/ChartVersionPreview';
 import { selectIsChartVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
@@ -99,6 +99,15 @@ import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 import ExploreContainer from '../ExploreContainer';
+
+// Lazy-loaded so deployments with the VersionHistory flag off never pay
+// the bundle cost of the feature's component graph.
+const ExploreVersionHistory = lazy(
+  () => import('src/features/versionHistory/ExploreVersionHistory'),
+);
+const ChartVersionPreview = lazy(
+  () => import('src/features/versionHistory/ChartVersionPreview'),
+);
 
 const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`
@@ -1118,13 +1127,17 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           )}
         >
           {isChartVersionPreviewActive ? (
-            <ChartVersionPreview />
+            <Suspense fallback={null}>
+              <ChartVersionPreview />
+            </Suspense>
           ) : (
             renderChartContainer()
           )}
         </div>
         {isFeatureEnabled(FeatureFlag.VersionHistory) && (
-          <ExploreVersionHistory />
+          <Suspense fallback={null}>
+            <ExploreVersionHistory />
+          </Suspense>
         )}
       </ExplorePanelContainer>
       {props.isSaveModalVisible && (

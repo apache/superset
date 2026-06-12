@@ -97,8 +97,14 @@ function recordSubject(record: ActivityRecord): string | null {
   return null;
 }
 
+/** e.g. "color_scheme" → "color scheme", "markerSize" → "marker size". */
 function humanizeFieldName(field: string): string {
-  return field.replace(/_/g, ' ');
+  return field
+    .replace(/_/g, ' ')
+    .replace(
+      /([a-z\d])([A-Z])/g,
+      (_, before, upper) => `${before} ${upper.toLowerCase()}`,
+    );
 }
 
 function fieldSubject(record: ActivityRecord): string {

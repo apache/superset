@@ -623,3 +623,72 @@ test('should maintain layout when switching between tabs', async () => {
   expect(gridContainer).toBeInTheDocument();
   expect(tabPanels.length).toBeGreaterThan(0);
 });
+
+const dashboardPreviewState = {
+  isPanelOpen: true,
+  entityType: 'dashboard',
+  include: 'all',
+  preview: {
+    entityUuid: 'dash-uuid',
+    versionUuid: 'version-uuid',
+    transactionId: 7,
+    headline: 'Dec 5, 2025, 12:18 PM',
+    issuedAt: '2025-12-05T17:18:00',
+  },
+  sessionLog: [],
+  restoreCount: 0,
+};
+
+test('gates the dashboard grid while a version preview is active', async () => {
+  (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+    100,
+    jest.fn(),
+  ]);
+  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+
+  const { findByTestId } = render(<DashboardBuilder />, {
+    useRedux: true,
+    store: storeWithState({
+      ...mockState,
+      dashboardLayout: undoableDashboardLayout,
+      versionHistory: dashboardPreviewState,
+    }),
+    useDnd: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  const gate = await findByTestId('dashboard-grid-gate');
+  expect(gate).toHaveAttribute('aria-disabled', 'true');
+  expect(gate).toHaveStyleRule('pointer-events', 'none');
+  // Tab navigation is deliberately carved out of the gate so tabbed
+  // dashboards remain navigable while previewing.
+  expect(gate).toHaveStyleRule('pointer-events', 'auto', {
+    target: '.ant-tabs-nav',
+  });
+});
+
+test('does not gate the dashboard grid without an active preview', async () => {
+  (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+    100,
+    jest.fn(),
+  ]);
+  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+
+  const { findByTestId } = render(<DashboardBuilder />, {
+    useRedux: true,
+    store: storeWithState({
+      ...mockState,
+      dashboardLayout: undoableDashboardLayout,
+    }),
+    useDnd: true,
+    useRouter: true,
+    useTheme: true,
+  });
+
+  const gate = await findByTestId('dashboard-grid-gate');
+  expect(gate).toHaveAttribute('aria-disabled', 'false');
+  expect(gate).not.toHaveStyleRule('pointer-events', 'none');
+});

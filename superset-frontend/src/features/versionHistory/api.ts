@@ -18,7 +18,9 @@
  */
 import { JsonObject, SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
+import { t } from '@apache-superset/core/translation';
 import { DASHBOARD_GET_COLUMNS } from 'src/hooks/apiResources/dashboards';
+import { CHART_TYPE, MARKDOWN_TYPE } from 'src/dashboard/util/componentTypes';
 import type { ExploreResponsePayload } from 'src/explore/types';
 import type {
   HydrateChartData,
@@ -150,13 +152,70 @@ export async function resolveEntityId(
   return result.length > 0 ? result[0].id : null;
 }
 
+/** The chart id a layout slot references, or null for non-chart slots. */
+export const layoutChartId = (item: JsonObject): number | null => {
+  const meta = item?.meta as JsonObject | undefined;
+  return item?.type === CHART_TYPE && typeof meta?.chartId === 'number'
+    ? (meta.chartId as number)
+    : null;
+};
+
+/**
+ * Swaps layout slots whose chart is unreachable (deleted, or not visible
+ * to the current user) for a markdown placeholder, preserving the slot's
+ * footprint so the rest of the layout is unaffected.
+ */
+export function swapUnreachableChartSlots(
+  positionData: JsonObject,
+  unreachableIds: Set<number>,
+): JsonObject {
+  if (unreachableIds.size === 0) {
+    return positionData;
+  }
+  const layout: JsonObject = { ...positionData };
+  Object.entries(layout).forEach(([key, item]) => {
+    const chartId = layoutChartId(item as JsonObject);
+    if (chartId !== null && unreachableIds.has(chartId)) {
+      const meta = (item as JsonObject).meta as JsonObject;
+      layout[key] = {
+        ...(item as JsonObject),
+        type: MARKDOWN_TYPE,
+        meta: {
+          width: meta?.width,
+          height: meta?.height,
+          code: t('This chart no longer exists.'),
+        },
+      };
+    }
+  });
+  return layout;
+}
+
+/** The subset of the given chart ids that the list API can resolve. */
+async function fetchReachableChartIds(
+  chartIds: number[],
+): Promise<Set<number>> {
+  const q = rison.encode({
+    columns: ['id'],
+    filters: [{ col: 'id', opr: 'in', value: chartIds }],
+    page_size: chartIds.length,
+  });
+  const { json } = await SupersetClient.get({
+    endpoint: `/api/v1/chart/?q=${q}`,
+  });
+  const { result } = json as { result: Array<{ id: number }> };
+  return new Set(result.map(({ id }) => id));
+}
+
 /**
  * Forks a dashboard version into a new dashboard via the copy endpoint;
  * returns the new dashboard id. The copy endpoint derives the new
  * dashboard's chart associations from the `positions` key of
- * `json_metadata`, so the fork references exactly the charts present in
- * the snapshot's layout (charts deleted since the snapshot are skipped
- * server-side).
+ * `json_metadata`, so the fork references (shares, not duplicates)
+ * exactly the charts present in the snapshot's layout. Slots whose chart
+ * no longer resolves are swapped for the same markdown placeholder the
+ * preview renders — the copy endpoint would silently skip their chart
+ * associations, leaving dead slots in the forked layout.
  */
 export async function createDashboardFromSnapshot(
   sourceUuid: string,
@@ -171,7 +230,22 @@ export async function createDashboardFromSnapshot(
     ? JSON.parse(snapshot.json_metadata)
     : {};
   if (snapshot.position_json) {
-    metadata.positions = JSON.parse(snapshot.position_json);
+    let positions: JsonObject = JSON.parse(snapshot.position_json);
+    const chartIds = new Set<number>();
+    Object.values(positions).forEach(item => {
+      const chartId = layoutChartId(item as JsonObject);
+      if (chartId !== null) {
+        chartIds.add(chartId);
+      }
+    });
+    if (chartIds.size > 0) {
+      const reachable = await fetchReachableChartIds([...chartIds]);
+      const unreachable = new Set(
+        [...chartIds].filter(id => !reachable.has(id)),
+      );
+      positions = swapUnreachableChartSlots(positions, unreachable);
+    }
+    metadata.positions = positions;
   }
   const { json } = await SupersetClient.post({
     endpoint: `/api/v1/dashboard/${encodeURIComponent(sourceId)}/copy/`,
