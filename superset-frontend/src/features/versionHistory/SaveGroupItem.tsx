@@ -19,7 +19,7 @@
 import { KeyboardEvent, useState } from 'react';
 import { t, tn } from '@apache-superset/core/translation';
 import { styled, useTheme } from '@apache-superset/core/theme';
-import { Button, Dropdown, Icons } from '@superset-ui/core/components';
+import { Button, Dropdown, Icons, Tag } from '@superset-ui/core/components';
 import type { SaveGroup, VersionedEntityType } from './types';
 import { classifySaveGroup } from './grouping';
 import {
@@ -33,6 +33,8 @@ import ActionRow from './ActionRow';
  * The first chart save serializes the full form_data and can fan out
  * into dozens of records; cap the initially visible rows per group.
  */
+// TODO(version-history): backend workaround — remove when upstream stops
+// exploding the full form_data into per-field records on the first save.
 const VISIBLE_RECORD_LIMIT = 10;
 
 // The highlighted container gains inner padding but extends outward by
@@ -68,6 +70,15 @@ const HeaderText = styled.div`
     display: flex;
     flex-direction: column;
     gap: ${theme.sizeUnit * 2}px;
+  `}
+`;
+
+const HeadlineRow = styled.div`
+  ${({ theme }) => `
+    display: flex;
+    align-items: center;
+    gap: ${theme.sizeUnit * 2}px;
+    min-width: 0;
   `}
 `;
 
@@ -141,8 +152,12 @@ const ExpanderRow = styled.div`
 export interface SaveGroupItemProps {
   entityType: VersionedEntityType;
   group: SaveGroup;
+  /** The newest self save: it IS the live state, not a historical one. */
+  isCurrent: boolean;
   isPreviewed: boolean;
   onPreview: (group: SaveGroup) => void;
+  /** Leave an active historical preview (back to the live version). */
+  onExitPreview?: () => void;
   onRestore: (group: SaveGroup) => void;
   onOpenAsNew: (group: SaveGroup) => void;
 }
@@ -150,11 +165,12 @@ export interface SaveGroupItemProps {
 function GroupKebab({
   entityType,
   group,
+  isCurrent,
   onRestore,
   onOpenAsNew,
 }: Pick<
   SaveGroupItemProps,
-  'entityType' | 'group' | 'onRestore' | 'onOpenAsNew'
+  'entityType' | 'group' | 'isCurrent' | 'onRestore' | 'onOpenAsNew'
 >) {
   const theme = useTheme();
   const itemStyle = {
@@ -165,19 +181,24 @@ function GroupKebab({
     alignItems: 'center',
   };
   const menuItems = [
-    {
-      key: 'restore',
-      label: t('Restore this version'),
-      style: itemStyle,
-      onClick: ({
-        domEvent,
-      }: {
-        domEvent: { stopPropagation: () => void };
-      }) => {
-        domEvent.stopPropagation();
-        onRestore(group);
-      },
-    },
+    // Restoring the live version is a no-op; offer it only on history.
+    ...(isCurrent
+      ? []
+      : [
+          {
+            key: 'restore',
+            label: t('Restore this version'),
+            style: itemStyle,
+            onClick: ({
+              domEvent,
+            }: {
+              domEvent: { stopPropagation: () => void };
+            }) => {
+              domEvent.stopPropagation();
+              onRestore(group);
+            },
+          },
+        ]),
     {
       key: 'open-as-new',
       label:
@@ -214,8 +235,10 @@ function GroupKebab({
 export default function SaveGroupItem({
   entityType,
   group,
+  isCurrent,
   isPreviewed,
   onPreview,
+  onExitPreview,
   onRestore,
   onOpenAsNew,
 }: SaveGroupItemProps) {
@@ -226,6 +249,16 @@ export default function SaveGroupItem({
     group.issuedAt,
   )}`;
 
+  // The current version is the live state: there is nothing to preview,
+  // and selecting it while previewing an older version exits the preview.
+  const previewIntent = () => {
+    if (isCurrent) {
+      onExitPreview?.();
+    } else {
+      onPreview(group);
+    }
+  };
+
   const activate =
     (handler: () => void) => (event: KeyboardEvent<HTMLDivElement>) => {
       if (event.key === 'Enter' || event.key === ' ') {
@@ -233,6 +266,8 @@ export default function SaveGroupItem({
         handler();
       }
     };
+
+  const currentTag = isCurrent ? <Tag>{t('Current')}</Tag> : null;
 
   if (entityType === 'dashboard') {
     const CategoryIcon =
@@ -247,20 +282,24 @@ export default function SaveGroupItem({
         <Header
           role="button"
           tabIndex={0}
-          onClick={() => onPreview(group)}
-          onKeyDown={activate(() => onPreview(group))}
+          onClick={previewIntent}
+          onKeyDown={activate(previewIntent)}
           aria-label={headline}
         >
           <IconWrapper>
             <CategoryIcon iconSize="l" />
           </IconWrapper>
           <HeaderText>
-            <Headline title={headline}>{headline}</Headline>
+            <HeadlineRow>
+              <Headline title={headline}>{headline}</Headline>
+              {currentTag}
+            </HeadlineRow>
             <Meta>{meta}</Meta>
           </HeaderText>
           <GroupKebab
             entityType={entityType}
             group={group}
+            isCurrent={isCurrent}
             onRestore={onRestore}
             onOpenAsNew={onOpenAsNew}
           />
@@ -295,7 +334,10 @@ export default function SaveGroupItem({
           <Icons.CalendarOutlined iconSize="l" />
         </IconWrapper>
         <HeaderText>
-          <Headline title={headline}>{headline}</Headline>
+          <HeadlineRow>
+            <Headline title={headline}>{headline}</Headline>
+            {currentTag}
+          </HeadlineRow>
         </HeaderText>
         {hasRecords && (
           <ChevronWrapper>
@@ -316,9 +358,10 @@ export default function SaveGroupItem({
               )}`}
               entityType={entityType}
               record={record}
+              showRestore={!isCurrent}
               isPreviewed={isPreviewed}
               isLast={index === visibleRecords.length - 1 && hiddenCount === 0}
-              onPreview={() => onPreview(group)}
+              onPreview={previewIntent}
               onRestore={() => onRestore(group)}
               onOpenAsNew={() => onOpenAsNew(group)}
             />

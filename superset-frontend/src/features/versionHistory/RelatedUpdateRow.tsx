@@ -19,7 +19,7 @@
 import { ComponentType } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
-import { Icons } from '@superset-ui/core/components';
+import { Icons, Tooltip } from '@superset-ui/core/components';
 import type { IconType } from '@superset-ui/core/components/Icons/types';
 import type { ActivityEntityKind, ActivityRecord } from './types';
 import {
@@ -27,6 +27,7 @@ import {
   formatAuthor,
   formatVersionDateTimeShort,
   relatedHeadline,
+  relatedRollupHeadline,
 } from './display';
 
 const ENTITY_ICON: Record<ActivityEntityKind, ComponentType<IconType>> = {
@@ -99,14 +100,48 @@ const Meta = styled.div`
 
 export interface RelatedUpdateRowProps {
   record: ActivityRecord;
+  /** Entity names when several same-kind entities rolled into this row. */
+  rollupEntityNames?: string[];
   onOpen?: (record: ActivityRecord) => void;
 }
 
 export default function RelatedUpdateRow({
   record,
+  rollupEntityNames,
   onOpen,
 }: RelatedUpdateRowProps) {
   const Icon = ENTITY_ICON[record.entity_kind] ?? Icons.FileOutlined;
+
+  if (rollupEntityNames && rollupEntityNames.length > 1) {
+    // No single target to link to; a tooltip lists the rolled-up names.
+    return (
+      <Row data-test="version-history-related-row">
+        <IconWrapper>
+          <Icon iconSize="l" />
+        </IconWrapper>
+        <Content>
+          <Tooltip
+            title={rollupEntityNames.map((name, index) => (
+              // eslint-disable-next-line react/no-array-index-key
+              <div key={index}>{name || t('Untitled')}</div>
+            ))}
+          >
+            <Headline>
+              {relatedRollupHeadline(
+                record.entity_kind,
+                rollupEntityNames.length,
+              )}
+            </Headline>
+          </Tooltip>
+          <Meta>
+            {formatAuthor(record.changed_by)} ·{' '}
+            {formatVersionDateTimeShort(record.issued_at)}
+          </Meta>
+        </Content>
+      </Row>
+    );
+  }
+
   const headline = relatedHeadline(record);
   const entityName = entityDisplayName(record);
   const linkable = !record.entity_deleted && Boolean(onOpen);

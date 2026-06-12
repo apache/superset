@@ -44,6 +44,7 @@ import {
   formatVersionDateTime,
   groupHeadline,
   relatedHeadline,
+  relatedRollupHeadline,
 } from './display';
 import SaveGroupItem from './SaveGroupItem';
 import RelatedUpdateRow from './RelatedUpdateRow';
@@ -137,9 +138,16 @@ function matchesQuery(
   query: string,
 ): boolean {
   if (entry.type === 'related') {
-    const { record, records } = entry;
+    const { record, records, rollupEntityNames } = entry;
+    const headline =
+      rollupEntityNames && rollupEntityNames.length > 1
+        ? relatedRollupHeadline(record.entity_kind, rollupEntityNames.length)
+        : relatedHeadline(record);
     return (
-      relatedHeadline(record).toLowerCase().includes(query) ||
+      headline.toLowerCase().includes(query) ||
+      (rollupEntityNames ?? []).some(name =>
+        name.toLowerCase().includes(query),
+      ) ||
       formatAuthor(record.changed_by).toLowerCase().includes(query) ||
       // One related save collapses many records into one row; keep the
       // non-representative records' summaries searchable too.
@@ -167,6 +175,8 @@ export interface VersionHistoryPanelProps {
   previewedTransactionId: number | null;
   onClose: () => void;
   onPreview: (group: SaveGroup) => void;
+  /** Leave an active historical preview (back to the live version). */
+  onExitPreview?: () => void;
   onRestore: (group: SaveGroup) => void;
   onOpenAsNew: (group: SaveGroup) => void;
   onOpenRelated?: (record: ActivityRecord) => void;
@@ -181,6 +191,7 @@ export default function VersionHistoryPanel({
   previewedTransactionId,
   onClose,
   onPreview,
+  onExitPreview,
   onRestore,
   onOpenAsNew,
   onOpenRelated,
@@ -213,16 +224,21 @@ export default function VersionHistoryPanel({
     [entityType, timeline, query],
   );
 
-  // The newest save being a restore means the live entity matches an
+  // The newest self save IS the live state: it gets a "Current" tag,
+  // no preview affordances, and no restore action. The newest save
+  // being a restore additionally means the live entity matches an
   // older version; surface that in the "Current version" section.
-  const restoreNotice = useMemo(() => {
-    const newestGroup = timeline.find(
-      (entry): entry is SaveGroup => entry.type === 'group',
-    );
-    return newestGroup?.actionKind === 'restore'
+  const newestGroup = useMemo(
+    () =>
+      timeline.find((entry): entry is SaveGroup => entry.type === 'group') ??
+      null,
+    [timeline],
+  );
+  const currentTransactionId = newestGroup?.transactionId ?? null;
+  const restoreNotice =
+    newestGroup?.actionKind === 'restore'
       ? t('Restored version · %s', formatVersionDateTime(newestGroup.issuedAt))
       : null;
-  }, [timeline]);
 
   const isInitialLoading = isLoading && timeline.length === 0;
 
@@ -288,15 +304,25 @@ export default function VersionHistoryPanel({
               key={`group-${entry.transactionId}`}
               entityType={entityType}
               group={entry}
-              isPreviewed={entry.transactionId === previewedTransactionId}
+              isCurrent={entry.transactionId === currentTransactionId}
+              isPreviewed={
+                entry.transactionId === previewedTransactionId &&
+                entry.transactionId !== currentTransactionId
+              }
               onPreview={onPreview}
+              onExitPreview={onExitPreview}
               onRestore={onRestore}
               onOpenAsNew={onOpenAsNew}
             />
           ) : (
             <RelatedUpdateRow
-              key={`related-${relatedEntryKey(entry.record)}`}
+              key={
+                entry.rollupEntityNames
+                  ? `related-rollup-${entry.record.transaction_id}-${entry.record.entity_kind}`
+                  : `related-${relatedEntryKey(entry.record)}`
+              }
               record={entry.record}
+              rollupEntityNames={entry.rollupEntityNames}
               onOpen={onOpenRelated}
             />
           ),
