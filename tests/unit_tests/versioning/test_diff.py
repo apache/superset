@@ -803,6 +803,45 @@ def test_diff_json_field_emits_per_changed_top_level_key() -> None:
     assert {r.kind for r in records} == {"field"}
 
 
+def test_dashboard_json_metadata_audit_keys_suppress_view_time_noise() -> None:
+    """``shared_label_colors`` is rewritten by the DAO when a dashboard is
+    merely *viewed* — without the exclusion, every view that races a save
+    produced phantom "Properties updated" records (PR #40988 feedback).
+    The dashboard call site passes ``DASHBOARD_JSON_METADATA_AUDIT_KEYS``
+    as ``exclude_keys``; a blob change touching only audit keys must
+    produce zero records, while a real key still diffs.
+    """
+    from superset.versioning.diff import DASHBOARD_JSON_METADATA_AUDIT_KEYS
+
+    assert "shared_label_colors" in DASHBOARD_JSON_METADATA_AUDIT_KEYS
+
+    pre = _json.dumps({"refresh_frequency": 0, "shared_label_colors": []})
+    post = _json.dumps(
+        {"refresh_frequency": 0, "shared_label_colors": ["boy", "girl"]}
+    )
+    assert (
+        diff_json_field(
+            "json_metadata",
+            pre,
+            post,
+            exclude_keys=DASHBOARD_JSON_METADATA_AUDIT_KEYS,
+        )
+        == []
+    )
+
+    # A user-authored key alongside the noise still produces its record.
+    post_real = _json.dumps(
+        {"refresh_frequency": 30, "shared_label_colors": ["boy", "girl"]}
+    )
+    records = diff_json_field(
+        "json_metadata",
+        pre,
+        post_real,
+        exclude_keys=DASHBOARD_JSON_METADATA_AUDIT_KEYS,
+    )
+    assert [tuple(r.path) for r in records] == [("json_metadata", "refresh_frequency")]
+
+
 def test_diff_json_field_treats_null_and_empty_string_as_equivalent() -> None:
     """A key that flips from missing/null/"" to "" produces no record."""
     pre = _json.dumps({"color_scheme": None, "label_colors": {}})

@@ -92,6 +92,13 @@ class Slice(  # pylint: disable=too-many-public-methods
     # them lets Continuum's is_modified() return False on no-op saves
     # (e.g. owners-only edits) so we don't create empty version rows.
     # version_transaction.user_id / issued_at preserve "who/when".
+    # The perm-string class (perm / schema_perm / catalog_perm) is derived
+    # security state, not user-authored content: permission maintenance
+    # rewrites it in bulk, and versioning it produced phantom transactions
+    # flooding the activity stream (10 "Chart updated" rows for one user
+    # save — surfaced by the version-history UI, PR #40988). Excluding it
+    # also means a restore can't resurrect stale permission strings; the
+    # live, derived values stay authoritative.
     __versioned__: dict[str, Any] = {
         "exclude": [
             "query_context",
@@ -103,6 +110,9 @@ class Slice(  # pylint: disable=too-many-public-methods
             "created_by_fk",
             "last_saved_at",
             "last_saved_by_fk",
+            "perm",
+            "schema_perm",
+            "catalog_perm",
         ]
     }
     id = Column(Integer, primary_key=True)

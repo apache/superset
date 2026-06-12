@@ -321,6 +321,46 @@ class TestChartChangeRecords(SupersetTestCase):
                 == []
             )
 
+    def test_perm_only_rewrite_produces_no_version(self) -> None:
+        """Bulk permission maintenance rewrites perm / schema_perm /
+        catalog_perm across many entities; the perm-string class is
+        derived security state, not user content, and is excluded from
+        ``__versioned__``. A commit touching ONLY those columns must
+        produce no shadow row at all — not even an empty transaction.
+        Regression for the phantom "Chart updated" flood the
+        version-history UI surfaced (PR #40988: one user save + 10
+        perm-rewrite ride-alongs rendered as 10 phantom rows).
+        """
+        _persist_fixture_state()
+
+        chart = db.session.query(Slice).first()
+        assert chart is not None
+        ver_cls = version_class(Slice)
+        pre_save_tx_row = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == chart.id)
+            .order_by(ver_cls.transaction_id.desc())
+            .first()
+        )
+        pre_save_tx_id = pre_save_tx_row.transaction_id if pre_save_tx_row else 0
+
+        chart.perm = f"[seed].[perm_rewrite {uuid4().hex[:8]}]"
+        chart.schema_perm = f"[seed].[schema {uuid4().hex[:8]}]"
+        chart.catalog_perm = f"[seed].[catalog {uuid4().hex[:8]}]"
+        db.session.commit()
+
+        post_save_tx_row = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == chart.id)
+            .filter(ver_cls.transaction_id > pre_save_tx_id)
+            .first()
+        )
+        assert post_save_tx_row is None, (
+            "perm-only rewrite created a shadow row "
+            f"(tx {post_save_tx_row.transaction_id}); the perm-string class "
+            "must be excluded from versioning"
+        )
+
 
 class TestDashboardChangeRecords(SupersetTestCase):
     """Same flow for dashboards — all scalar fields land in ``kind='field'``."""

@@ -1347,6 +1347,13 @@ class SqlaTable(
     # Continuum's is_modified() return False on no-op saves (e.g. owners-only
     # edits) so we don't create empty version rows. version_transaction.user_id
     # / issued_at preserve "who/when".
+    # The perm-string class (perm / schema_perm / catalog_perm) is derived
+    # security state, not user-authored content: permission maintenance
+    # rewrites it in bulk, and versioning it produced phantom transactions
+    # flooding the activity stream (one "updated" row per touched entity
+    # with no user edit — surfaced by the version-history UI, PR #40988).
+    # Excluding it also means a restore can't resurrect stale permission
+    # strings; the live, derived values stay authoritative.
     __versioned__: dict[str, Any] = {
         "exclude": [
             "owners",
@@ -1355,6 +1362,9 @@ class SqlaTable(
             "created_on",
             "changed_by_fk",
             "created_by_fk",
+            "perm",
+            "schema_perm",
+            "catalog_perm",
         ]
     }
 

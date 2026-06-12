@@ -623,6 +623,16 @@ def diff_json_field(
 #                               dashboard membership.
 #   map_label_colors:           label → colour map, re-stamped on save
 #                               from currently-visible filter values.
+#   shared_label_colors:        cross-chart shared-label colour list,
+#                               rewritten by the DAO when a dashboard is
+#                               merely *viewed* — producing phantom
+#                               "Properties updated" records with no
+#                               user edit (surfaced by the
+#                               version-history UI, PR #40988). The
+#                               view-time write itself is a separate
+#                               round-trip-asymmetry issue (cf. #39706);
+#                               this exclusion stops the change-record
+#                               noise regardless.
 #   show_chart_timestamps:      frontend toggle, defaults applied on
 #                               save when missing.
 #   color_namespace:            scoped colour-scheme namespace, frontend-
@@ -632,6 +642,7 @@ DASHBOARD_JSON_METADATA_AUDIT_KEYS: frozenset[str] = frozenset(
         "chart_configuration",
         "global_chart_configuration",
         "map_label_colors",
+        "shared_label_colors",
         "show_chart_timestamps",
         "color_namespace",
     }
