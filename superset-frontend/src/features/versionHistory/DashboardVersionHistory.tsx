@@ -107,14 +107,39 @@ export default function DashboardVersionHistory() {
   // here only the activity timeline needs a refresh so the new
   // "Restored version" entry shows up.
   const restoreCount = useSelector(selectVersionRestoreCount);
+  // Saves made while the panel is open must surface as new timeline
+  // entries without reopening it. Saves bump one of two redux signals
+  // depending on the path: edit-mode saves round-trip through ON_SAVE
+  // (dashboardState.lastModifiedTime), while native-filter and
+  // properties saves bump dashboardInfo.last_modified_time.
+  const saveSignal = useSelector<RootState, string>(state =>
+    [
+      state.dashboardState?.lastModifiedTime ?? '',
+      state.dashboardInfo?.last_modified_time ?? '',
+    ].join('|'),
+  );
   const lastRestoreCountRef = useRef(restoreCount);
+  const lastSaveSignalRef = useRef(saveSignal);
   const refreshActivity = activity.refresh;
   useEffect(() => {
     if (restoreCount !== lastRestoreCountRef.current) {
       lastRestoreCountRef.current = restoreCount;
+      // The restore refresh covers any save-signal movement caused by
+      // the same change; sync it so it does not refetch again.
+      lastSaveSignalRef.current = saveSignal;
       refreshActivity();
+      return;
     }
-  }, [refreshActivity, restoreCount]);
+    if (saveSignal !== lastSaveSignalRef.current) {
+      // A signal appearing where none existed is the page's initial
+      // hydration, not a save.
+      const isInitialHydration = lastSaveSignalRef.current === '|';
+      lastSaveSignalRef.current = saveSignal;
+      if (!isInitialHydration) {
+        refreshActivity();
+      }
+    }
+  }, [refreshActivity, restoreCount, saveSignal]);
 
   const handleClose = useCallback(() => {
     dispatch(closeVersionHistoryPanel());
