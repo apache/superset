@@ -33,6 +33,7 @@ from typing import Any, Optional
 
 from flask import current_app, flash, g, redirect, request, url_for
 from flask_babel import gettext as __
+from sqlalchemy.exc import IntegrityError
 
 from superset.utils.decorators import transaction
 
@@ -69,10 +70,11 @@ def _get_user_attribute(user_id: int) -> Optional[Any]:
     from superset.extensions import db
     from superset.models.user_attributes import UserAttribute
 
-    # The ``user_attribute`` table does not enforce uniqueness on ``user_id``,
-    # so a user could have more than one row. ``.one_or_none()`` would raise
-    # ``MultipleResultsFound`` (a 500) in that case; fetch deterministically by
-    # ordering on the primary key and taking the first row instead.
+    # ``user_attribute.user_id`` carries a unique constraint, but databases
+    # migrated from before the constraint existed could contain duplicate rows.
+    # ``.one_or_none()`` would raise ``MultipleResultsFound`` (a 500) in that
+    # case; fetch deterministically by ordering on the primary key and taking
+    # the first row instead.
     return (
         db.session.query(UserAttribute)
         .filter(UserAttribute.user_id == user_id)
@@ -102,8 +104,21 @@ def set_password_must_change(user_id: int, value: bool = True) -> None:
 
     attr = _get_user_attribute(user_id)
     if attr is None:
-        attr = UserAttribute(user_id=user_id)
-        db.session.add(attr)
+        # ``user_attribute.user_id`` carries a unique constraint, so a
+        # concurrent call for the same user can win the insert between our
+        # read and flush. Insert in a nested transaction and, on conflict,
+        # fall through to update the row the winner created (mirroring the
+        # upsert in ``superset.security.session_invalidation``).
+        try:
+            with db.session.begin_nested():
+                db.session.add(
+                    UserAttribute(user_id=user_id, password_must_change=value)
+                )
+            return
+        except IntegrityError:
+            attr = _get_user_attribute(user_id)
+            if attr is None:  # pragma: no cover - the conflicting row vanished
+                raise
     attr.password_must_change = value
 
 
@@ -139,6 +154,12 @@ def register_password_change_enforcement(app: Any) -> None:
 
     @app.before_request
     def _enforce_password_change() -> Any:  # pylint: disable=unused-variable
+        """Redirect flagged users to the password-reset page.
+
+        Returns ``None`` (request proceeds) for anonymous users, exempt
+        endpoints, and users without a pending change; otherwise returns a
+        redirect to an exempt target (or an error response if none resolves).
+        """
         if not current_app.config.get("ENABLE_FORCE_PASSWORD_CHANGE"):
             return None
 
@@ -155,12 +176,29 @@ def register_password_change_enforcement(app: Any) -> None:
         flash(__("You must change your password before continuing."), "warning")
         # Resolve the password-reset page. If that endpoint can't be resolved
         # (e.g. a custom security manager without ``ResetMyPasswordView``), fall
-        # back to logout, which is always exempt from this enforcement. We must
-        # NOT fall back to "/" or any other non-exempt route: the index re-runs
-        # this same hook and would trap the user in an infinite 302 loop. If no
+        # back to logout, which is always exempt from this enforcement. The
+        # logout endpoint is derived from the *registered* auth view so the
+        # fallback works for non-DB auth backends (LDAP, OAuth, remote-user)
+        # too, with ``AuthDBView.logout`` as a last resort. We must NOT fall
+        # back to "/" or any other non-exempt route: the index re-runs this
+        # same hook and would trap the user in an infinite 302 loop. If no
         # exempt target can be resolved at all, return an error response rather
         # than redirect, so a flagged user can never get stuck looping.
-        for endpoint in ("ResetMyPasswordView.this_form_get", "AuthDBView.logout"):
+        candidates = ["ResetMyPasswordView.this_form_get"]
+        auth_view = getattr(
+            getattr(getattr(current_app, "appbuilder", None), "sm", None),
+            "auth_view",
+            None,
+        )
+        # Only redirect to the registered auth view's logout if that view is
+        # itself exempt from this hook; otherwise the redirect would loop.
+        if (
+            auth_view is not None
+            and getattr(auth_view, "endpoint", None) in _EXEMPT_VIEW_CLASSES
+        ):
+            candidates.append(f"{auth_view.endpoint}.logout")
+        candidates.append("AuthDBView.logout")
+        for endpoint in candidates:
             try:
                 return redirect(url_for(endpoint))
             except Exception:  # noqa: BLE001, S112  # pylint: disable=broad-except

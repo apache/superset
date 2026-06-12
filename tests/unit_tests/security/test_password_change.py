@@ -15,9 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Iterator
+from typing import Optional
 from unittest.mock import MagicMock, patch
 
 import pytest
+from flask import Flask
 
 from superset.security.password_change import (
     _get_user_attribute,
@@ -48,13 +51,15 @@ from superset.security.password_change import (
         ("UserInfoFancyView.show", False),
     ],
 )
-def test_is_exempt_endpoint(endpoint, expected) -> None:
+def test_is_exempt_endpoint(endpoint: Optional[str], expected: bool) -> None:
+    """Exempt-endpoint matching is exact per view class, never substring."""
     # The password-reset / auth / static endpoints must stay reachable to avoid
     # a redirect loop while a change is pending.
     assert _is_exempt_endpoint(endpoint) is expected
 
 
 def test_password_change_required() -> None:
+    """The flag on the user's attribute row drives the required-change check."""
     user = MagicMock()
     user.id = 5
 
@@ -72,14 +77,16 @@ def test_password_change_required() -> None:
 
 
 def test_password_change_required_no_user_id() -> None:
+    """A user without an id (e.g. anonymous) never requires a change."""
     user = MagicMock()
     user.id = None
     assert password_change_required(user) is False
 
 
 def test_get_user_attribute_deterministic_with_duplicates() -> None:
-    # The ``user_attribute`` table does not enforce uniqueness on ``user_id``,
-    # so duplicate rows are possible. The query must not raise (which
+    """Duplicate attribute rows must yield a deterministic row, not a 500."""
+    # Databases migrated from before the ``user_attribute.user_id`` unique
+    # constraint could contain duplicate rows. The query must not raise (which
     # ``.one_or_none()`` would have done via ``MultipleResultsFound``); it must
     # fetch a single row deterministically via ``order_by(id).first()``.
     query = MagicMock()
@@ -105,10 +112,10 @@ def test_get_user_attribute_deterministic_with_duplicates() -> None:
 
 
 @pytest.fixture
-def enforcement_app():
+def enforcement_app() -> Flask:
     """A minimal Flask app with the enforcement hook registered and a flagged
     user, used to exercise the before-request redirect behavior end to end."""
-    from flask import Flask, g
+    from flask import g
 
     from superset.security.password_change import (
         register_password_change_enforcement,
@@ -136,7 +143,7 @@ def enforcement_app():
 
 
 @pytest.fixture(autouse=True)
-def _no_babel_flash():
+def _no_babel_flash() -> Iterator[None]:
     """The minimal test app has no babel/flash messaging set up; stub them so
     the enforcement hook's translation + flash calls don't blow up. These are
     incidental to the redirect-target logic under test."""
@@ -147,7 +154,7 @@ def _no_babel_flash():
         yield
 
 
-def test_enforcement_redirects_to_reset_view(enforcement_app) -> None:
+def test_enforcement_redirects_to_reset_view(enforcement_app: Flask) -> None:
     # Happy path: the reset endpoint resolves, so flagged users are redirected
     # there (an exempt route) — no loop.
     with (
@@ -165,7 +172,9 @@ def test_enforcement_redirects_to_reset_view(enforcement_app) -> None:
     assert resp.headers["Location"].endswith("/resetmypassword/form")
 
 
-def test_enforcement_falls_back_to_exempt_logout_not_index(enforcement_app) -> None:
+def test_enforcement_falls_back_to_exempt_logout_not_index(
+    enforcement_app: Flask,
+) -> None:
     # If the reset endpoint can't be resolved, the fallback must be an exempt
     # route (logout) — never "/" / the index, which would loop. We make the
     # reset endpoint fail and the logout endpoint resolve.
@@ -195,7 +204,7 @@ def test_enforcement_falls_back_to_exempt_logout_not_index(enforcement_app) -> N
 
 
 def test_enforcement_no_resolvable_target_returns_error_not_loop(
-    enforcement_app,
+    enforcement_app: Flask,
 ) -> None:
     # If NO exempt target can be resolved, we must return an error response
     # rather than redirect, so the flagged user can never get stuck in a loop.

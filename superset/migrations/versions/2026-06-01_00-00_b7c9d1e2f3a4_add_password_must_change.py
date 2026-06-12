@@ -31,7 +31,7 @@ revision = "b7c9d1e2f3a4"
 down_revision = ("c8d2e3f4a5b6", "f7a1c93e0b21")
 
 
-def upgrade():
+def upgrade() -> None:
     add_columns(
         "user_attribute",
         sa.Column(
@@ -43,5 +43,5 @@ def upgrade():
     )
 
 
-def downgrade():
+def downgrade() -> None:
     drop_columns("user_attribute", "password_must_change")
