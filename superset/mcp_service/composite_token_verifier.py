@@ -61,11 +61,16 @@ class CompositeTokenVerifier(TokenVerifier):
             Bearer tokens are rejected at the transport layer (used when
             ``MCP_AUTH_ENABLED=False`` but ``FAB_API_KEY_ENABLED=True``).
         api_key_prefixes: List of prefixes that identify API key tokens
-            (e.g. ``["sst_"]``).
+            (e.g. ``["sst_"]``). Pass an empty list to disable API-key
+            acceptance (e.g. a guest-only deployment).
         app: Flask application instance used to push an app context for
             FAB SecurityManager access during token validation. When
             ``None``, prefix matching is used without DB validation
             (backward-compatible / test mode).
+        guest_verifier: Optional verifier for Superset embedded guest tokens.
+            When provided, non-API-key tokens are offered to it BEFORE the JWT
+            verifier (guest tokens are signed with a different key and would
+            otherwise be rejected by the JWT verifier).
     """
 
     def __init__(
@@ -73,12 +78,14 @@ class CompositeTokenVerifier(TokenVerifier):
         jwt_verifier: TokenVerifier | None,
         api_key_prefixes: list[str],
         app: Any = None,
+        guest_verifier: TokenVerifier | None = None,
     ) -> None:
         super().__init__(
             base_url=getattr(jwt_verifier, "base_url", None),
             required_scopes=getattr(jwt_verifier, "required_scopes", None) or [],
         )
         self._jwt_verifier = jwt_verifier
+        self._guest_verifier = guest_verifier
         self._app = app
         if app is None:
             logger.warning(
@@ -149,6 +156,10 @@ class CompositeTokenVerifier(TokenVerifier):
         - When no app is configured (test/compat mode), falls back to prefix-
           only acceptance and defers DB validation to the Flask layer.
 
+        For embedded guest tokens (when a guest verifier is configured), the
+        token is validated against the core ``GUEST_TOKEN_JWT_*`` config before
+        the JWT verifier is tried.
+
         For all other tokens, delegates to the wrapped JWT verifier when one
         is configured; rejects if no JWT verifier is configured.
         """
@@ -188,6 +199,15 @@ class CompositeTokenVerifier(TokenVerifier):
                 scopes=list(self.required_scopes or []),
                 claims={API_KEY_PASSTHROUGH_CLAIM: True},
             )
+
+        # Embedded guest token: validated against the core GUEST_TOKEN_JWT_*
+        # config. Tried before the JWT verifier because guest tokens are
+        # HS256-signed with a different key and would otherwise be rejected.
+        # A non-guest token yields None here and falls through to the JWT path.
+        if self._guest_verifier is not None:
+            guest_access_token = await self._guest_verifier.verify_token(token)
+            if guest_access_token is not None:
+                return guest_access_token
 
         if self._jwt_verifier is None:
             logger.debug(

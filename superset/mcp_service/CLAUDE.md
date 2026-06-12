@@ -250,10 +250,16 @@ async def health_check(ctx: Context) -> dict:
 ```
 
 **Authentication priority order** (in `auth.py`):
-1. JWT context (per-request ContextVar from FastMCP)
+1. JWT context (per-request ContextVar from FastMCP). Also resolves a verified
+   embedded **guest token** to a `GuestUser` when `MCP_EMBEDDED_GUEST_AUTH_ENABLED`
+   + `EMBEDDED_SUPERSET` are on (a guest is never downgraded to a lower priority).
 2. API Key authentication (via FAB SecurityManager)
 3. `MCP_DEV_USERNAME` config (development only)
 4. `g.user` fallback (set by external middleware)
+
+Guest tokens are verified by `GuestTokenVerifier` (in the `CompositeTokenVerifier`,
+before the JWT verifier) using the shared core `GUEST_TOKEN_JWT_*` config, then
+built into a `GuestUser` in `_resolve_user_from_jwt_context`. See `SECURITY.md`.
 
 **`@mcp_auth_hook`** is only used directly on **resources** — tools get auth wrapping from `@tool(protect=True)`.
 
@@ -452,6 +458,11 @@ MCP_USER_RESOLVER = None         # Custom function to extract username from JWT
 
 # RBAC
 MCP_RBAC_ENABLED = True          # Enable permission checking (default: True)
+
+# Embedded guest auth (opt-in; requires the EMBEDDED_SUPERSET feature flag).
+# Reuses core GUEST_TOKEN_JWT_* config — no MCP-specific guest secret/audience.
+MCP_EMBEDDED_GUEST_AUTH_ENABLED = False
+MCP_GUEST_DENIED_TOOLS = {"find_users", "get_instance_info"}  # tools guests cannot call
 
 
 # Response Caching (optional, uses in-memory store by default; Redis when MCP_STORE_CONFIG enabled)
