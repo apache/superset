@@ -216,6 +216,9 @@ test('buildTimeline collapses one related save into a single entry', () => {
   expect(entry.record.summary).toBe('Dataset metric changed: Sales');
   expect(entry.record.impact).toEqual({ charts: 4 });
   expect(entry.record.issued_at).toBe('2025-12-06T12:00:04');
+  // every collapsed record is retained so search can match summaries
+  // that only appear on non-representative records
+  expect(entry.records).toHaveLength(5);
 });
 
 test('buildTimeline keeps distinct related entities apart within one transaction', () => {

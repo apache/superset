@@ -74,7 +74,8 @@ export function useVersionActions(
   // The restore endpoint reports success but not whether a new version
   // transaction was created (restoring an already-matching state is a
   // server-side no-op); probe the newest self transaction to tell the
-  // two apart in the toast.
+  // two apart in the toast. A save by another user landing between the
+  // two probes can skew which toast variant shows — accepted, cosmetic.
   const latestTransactionId = useCallback(async (): Promise<number | null> => {
     if (!uuid) {
       return null;
