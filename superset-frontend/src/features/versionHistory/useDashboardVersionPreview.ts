@@ -19,12 +19,19 @@
 import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector, useStore } from 'react-redux';
 import { useHistory } from 'react-router-dom';
+import type { JsonObject } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
+import {
+  hydrateDashboard,
+  HydrateChartData,
+  HydrateDashboardData,
+} from 'src/dashboard/actions/hydrate';
+import { CHART_TYPE, MARKDOWN_TYPE } from 'src/dashboard/util/componentTypes';
 import type { RootState } from 'src/dashboard/types';
 import {
   fetchDashboardHydrationData,
+  fetchExploreRehydrationData,
   fetchVersionSnapshot,
   DashboardHydrationData,
 } from './api';
@@ -34,12 +41,111 @@ import {
   selectVersionRestoreCount,
 } from './reducer';
 
-type HydrateParams = Parameters<typeof hydrateDashboard>[0];
+export interface SnapshotChartResolution {
+  charts: HydrateChartData[];
+  positionData: JsonObject | null;
+}
+
+const layoutChartId = (item: JsonObject): number | null => {
+  const meta = item?.meta as JsonObject | undefined;
+  return item?.type === CHART_TYPE && typeof meta?.chartId === 'number'
+    ? (meta.chartId as number)
+    : null;
+};
+
+/**
+ * A version snapshot stores the layout (position_json) but not the charts
+ * themselves, while the live dashboard payload only includes the charts the
+ * dashboard references at present. Reconcile the two: keep live charts the
+ * snapshot layout references (dropping ones added after the snapshot, so the
+ * hydrate "append new slices" path never fires), fetch metadata for charts
+ * the dashboard no longer includes, and swap layout slots whose chart cannot
+ * be fetched (e.g. deleted) for a markdown placeholder.
+ */
+export async function resolveSnapshotCharts(
+  liveCharts: HydrateChartData[],
+  positionData: JsonObject | null,
+): Promise<SnapshotChartResolution> {
+  if (!positionData || Object.keys(positionData).length === 0) {
+    // The snapshot has no layout; hydrate falls back to an empty layout and
+    // appends any charts it is given, so pass none.
+    return { charts: [], positionData };
+  }
+
+  const snapshotChartIds = new Set<number>();
+  Object.values(positionData).forEach(item => {
+    const chartId = layoutChartId(item as JsonObject);
+    if (chartId !== null) {
+      snapshotChartIds.add(chartId);
+    }
+  });
+
+  const liveById = new Map(
+    liveCharts.map(chart => [
+      (chart.form_data?.slice_id as number | undefined) ?? chart.slice_id,
+      chart,
+    ]),
+  );
+  const charts: HydrateChartData[] = [];
+  const missingIds: number[] = [];
+  snapshotChartIds.forEach(id => {
+    const live = liveById.get(id);
+    if (live) {
+      charts.push(live);
+    } else {
+      missingIds.push(id);
+    }
+  });
+
+  const unreachable = new Set<number>();
+  await Promise.all(
+    missingIds.map(async id => {
+      try {
+        const { slice, form_data } = await fetchExploreRehydrationData(id);
+        charts.push({
+          slice_id: id,
+          slice_url: `/explore/?slice_id=${id}`,
+          slice_name: slice?.slice_name ?? t('Untitled chart'),
+          form_data: { ...form_data, slice_id: id },
+          description: slice?.description ?? '',
+          description_markeddown: '',
+          owners: [],
+          modified: '',
+          changed_on: new Date().toISOString(),
+        });
+      } catch {
+        unreachable.add(id);
+      }
+    }),
+  );
+
+  if (unreachable.size === 0) {
+    return { charts, positionData };
+  }
+
+  const layout: JsonObject = { ...positionData };
+  Object.entries(layout).forEach(([key, item]) => {
+    const chartId = layoutChartId(item as JsonObject);
+    if (chartId !== null && unreachable.has(chartId)) {
+      const meta = (item as JsonObject).meta as JsonObject;
+      layout[key] = {
+        ...(item as JsonObject),
+        type: MARKDOWN_TYPE,
+        meta: {
+          width: meta?.width,
+          height: meta?.height,
+          code: t('This chart no longer exists.'),
+        },
+      };
+    }
+  });
+  return { charts, positionData: layout };
+}
 
 /**
  * Applies a previewed dashboard version by re-hydrating the page with the
- * snapshot's title/css/metadata/layout while keeping the live charts, and
- * re-hydrates the live dashboard when the preview is closed.
+ * snapshot's title/css/metadata/layout and the charts that layout references,
+ * and re-hydrates the live dashboard when the preview is closed.
  */
 export function useDashboardVersionPreview(uuid: string | undefined) {
   const dispatch = useDispatch();
@@ -59,7 +165,10 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
   const versionUuid = preview?.versionUuid;
 
   useEffect(() => {
-    const hydrateWith = (dashboard: object, charts: object[]) => {
+    const hydrateWith = (
+      dashboard: HydrateDashboardData,
+      charts: HydrateChartData[],
+    ) => {
       dispatch(
         hydrateDashboard({
           history,
@@ -68,7 +177,7 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
           dataMask: store.getState().dataMask,
           activeTabs: null,
           chartStates: null,
-        } as unknown as HydrateParams),
+        }),
       );
     };
 
@@ -114,10 +223,17 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
           uuid,
           versionUuid,
         );
+        const snapshotLayout: JsonObject | null = snapshot.position_json
+          ? JSON.parse(snapshot.position_json)
+          : null;
+        const { charts, positionData } = await resolveSnapshotCharts(
+          liveDataRef.current.charts,
+          snapshotLayout,
+        );
         if (fetchId !== fetchIdRef.current) {
           return;
         }
-        const { dashboard, charts } = liveDataRef.current;
+        const { dashboard } = liveDataRef.current;
         appliedVersionRef.current = versionUuid;
         hydrateWith(
           {
@@ -127,10 +243,8 @@ export function useDashboardVersionPreview(uuid: string | undefined) {
             metadata: snapshot.json_metadata
               ? JSON.parse(snapshot.json_metadata)
               : {},
-            position_data: snapshot.position_json
-              ? JSON.parse(snapshot.position_json)
-              : null,
-          },
+            position_data: positionData,
+          } as HydrateDashboardData,
           charts,
         );
       };

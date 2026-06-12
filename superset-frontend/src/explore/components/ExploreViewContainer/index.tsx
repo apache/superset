@@ -502,6 +502,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   );
 
   const onQuery = useCallback(() => {
+    if (isChartVersionPreviewActive) {
+      return;
+    }
     props.actions.setForceQuery(false);
 
     // Skip main query if Matrixify is enabled
@@ -526,6 +529,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     props.actions,
     props.chart.id,
     props.form_data,
+    isChartVersionPreviewActive,
   ]);
 
   const handleKeydown = useCallback(
@@ -1014,15 +1018,30 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               />
             </span>
           </div>
-          {/* eslint-disable @typescript-eslint/no-explicit-any -- DataSourcePanel uses narrower types that are compatible at runtime */}
-          <DataSourcePanel
-            formData={props.form_data}
-            datasource={props.datasource as any}
-            controls={props.controls as any}
-            actions={props.actions as any}
-            width={width}
-          />
-          {/* eslint-enable @typescript-eslint/no-explicit-any */}
+          <div
+            data-test="explore-datasource-gate"
+            aria-disabled={isChartVersionPreviewActive}
+            css={css`
+              height: 100%;
+              ${isChartVersionPreviewActive
+                ? `
+                  pointer-events: none;
+                  opacity: 0.5;
+                `
+                : ''}
+            `}
+            {...(isChartVersionPreviewActive ? { inert: '' } : {})}
+          >
+            {/* eslint-disable @typescript-eslint/no-explicit-any -- DataSourcePanel uses narrower types that are compatible at runtime */}
+            <DataSourcePanel
+              formData={props.form_data}
+              datasource={props.datasource as any}
+              controls={props.controls as any}
+              actions={props.actions as any}
+              width={width}
+            />
+            {/* eslint-enable @typescript-eslint/no-explicit-any */}
+          </div>
         </Resizable>
         {isCollapsed ? (
           <div
@@ -1059,22 +1078,38 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           enable={{ right: true }}
           className="col-sm-3 explore-column controls-column"
         >
-          <ConnectedControlPanelsContainer
-            exploreState={props.exploreState}
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Combined actions type is compatible at runtime
-            actions={props.actions as any}
-            form_data={props.form_data}
-            controls={props.controls}
-            chart={props.chart}
-            datasource_type={props.datasource_type}
-            isDatasourceMetaLoading={props.isDatasourceMetaLoading}
-            onQuery={onQuery}
-            onStop={onStop}
-            canStopQuery={props.can_add || props.can_overwrite}
-            errorMessage={dataTabErrorMessage}
-            buttonErrorMessage={errorMessage}
-            chartIsStale={chartIsStale}
-          />
+          <div
+            data-test="explore-controls-gate"
+            aria-disabled={isChartVersionPreviewActive}
+            css={css`
+              height: 100%;
+              ${isChartVersionPreviewActive
+                ? `
+                  pointer-events: none;
+                  opacity: 0.5;
+                `
+                : ''}
+            `}
+            // inert blocks keyboard focus too; React 18 needs the spread form
+            {...(isChartVersionPreviewActive ? { inert: '' } : {})}
+          >
+            <ConnectedControlPanelsContainer
+              exploreState={props.exploreState}
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Combined actions type is compatible at runtime
+              actions={props.actions as any}
+              form_data={props.form_data}
+              controls={props.controls}
+              chart={props.chart}
+              datasource_type={props.datasource_type}
+              isDatasourceMetaLoading={props.isDatasourceMetaLoading}
+              onQuery={onQuery}
+              onStop={onStop}
+              canStopQuery={props.can_add || props.can_overwrite}
+              errorMessage={dataTabErrorMessage}
+              buttonErrorMessage={errorMessage}
+              chartIsStale={chartIsStale}
+            />
+          </div>
         </Resizable>
         <div
           className={cx(

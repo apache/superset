@@ -331,7 +331,7 @@ export const useHeaderActionsMenu = ({
     ) {
       menuItems.push({
         key: MenuKeys.VersionHistory,
-        label: t('Version history'),
+        label: t('View version history'),
       });
     }
 

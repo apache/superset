@@ -62,17 +62,25 @@ export default function PreviewBanner({ entityType }: PreviewBannerProps) {
     issuedAt: preview.issuedAt,
   };
 
+  // Chart save headlines are themselves the save datetime; avoid
+  // rendering the same timestamp twice.
+  const issuedAtLabel = formatVersionDateTime(preview.issuedAt);
+  const message =
+    preview.headline === issuedAtLabel
+      ? t('Previewing historical version · %s', issuedAtLabel)
+      : t(
+          'Previewing historical version · %s · %s',
+          preview.headline,
+          issuedAtLabel,
+        );
+
   return (
     <>
       <Alert
         type="info"
         closable={false}
         data-test="version-preview-banner"
-        message={t(
-          'Previewing historical version · %s · %s',
-          preview.headline,
-          formatVersionDateTime(preview.issuedAt),
-        )}
+        message={message}
         action={
           <Actions>
             <Button
