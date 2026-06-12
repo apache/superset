@@ -253,6 +253,9 @@ MCP_EMBEDDED_GUEST_AUTH_ENABLED = True        # opt-in for the MCP transport (de
 - The `GUEST_ROLE_NAME` role (default `Public`) must exist; a guest token is
   rejected if it does not.
 - Do **not** set `MCP_DEV_USERNAME` on a guest-serving deployment.
+- Guest auth is wired at MCP startup; toggling `EMBEDDED_SUPERSET` or
+  `MCP_EMBEDDED_GUEST_AUTH_ENABLED` at runtime requires an MCP service restart
+  to take effect.
 
 ## Authorization
 
