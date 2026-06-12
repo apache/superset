@@ -131,6 +131,34 @@ ACTION_KINDS: frozenset[str] = frozenset(
     {ACTION_KIND_RESTORE, ACTION_KIND_IMPORT, ACTION_KIND_CLONE}
 )
 
+# Key on ``session.info`` carrying a synthetic "headline" change record
+# for the current transaction — the ``__meta__`` path convention. Set by
+# commands alongside ``ACTION_KIND_KEY`` when the avenue has a payload
+# the field-level diff can't express; the canonical case is restore,
+# whose transaction otherwise carries no pointer to WHICH version was
+# restored (surfaced by the version-history UI, PR #40988: "Restored to
+# X from [date]" can't be rendered from API data alone).
+#
+# Value shape::
+#
+#     {
+#         "entity_kind": "chart",          # table-kind, see ENTITY_KIND_BY_CLASS_NAME
+#         "entity_id": 42,
+#         "record": ChangeRecord(
+#             kind="__meta__",
+#             operation="edit",
+#             path=["__meta__", "restore"],
+#             from_value=None,
+#             to_value={"version_uuid": "...", "version_number": 3},
+#         ),
+#     }
+#
+# The listener pops the key on its first firing for the transaction and
+# PREPENDS the record to the entity's buffer (sequence 0 — headline
+# first). Same lifecycle as ``ACTION_KIND_KEY``: popped on use, and the
+# ``after_commit`` / ``after_rollback`` cleanups pop it as a safety net.
+ACTION_META_KEY = "_versioning_action_meta"
+
 # Sentinel attribute set on the session target after first successful
 # registration. Subsequent calls become no-ops. Storing the flag on the
 # target itself (rather than module-level state) keeps the guard
@@ -215,6 +243,30 @@ def _current_transaction_id(session: Session) -> int | None:
     if uow is None or uow.current_transaction is None:
         return None
     return uow.current_transaction.id
+
+
+def _inject_action_meta_record(
+    session: Session,
+    buffer: dict[tuple[str, int], list[ChangeRecord]],
+) -> None:
+    """Pop ``ACTION_META_KEY`` and prepend its synthetic headline record
+    to the owning entity's buffer (the ``__meta__`` path convention).
+
+    No-op when no command set the key. Prepended (not appended) so the
+    headline gets ``sequence`` 0 and renders first. Same eager, first-
+    firing semantics as the action_kind stamp; malformed payloads are
+    logged and dropped — a headline is descriptive enrichment, never
+    worth failing the user's save over.
+    """
+    meta = session.info.pop(ACTION_META_KEY, None)
+    if meta is None:
+        return
+    try:
+        key = (meta["entity_kind"], meta["entity_id"])
+        record = meta["record"]
+        buffer.setdefault(key, []).insert(0, record)
+    except (KeyError, TypeError):  # pragma: no cover - defensive
+        logger.exception("version_changes: malformed ACTION_META_KEY payload")
 
 
 def _stamp_action_kind_on_transaction(session: Session, tx_id: int) -> None:
@@ -351,6 +403,7 @@ def register_change_record_listener() -> None:  # noqa: C901
         # value still on ``session.info``. The helper pops on success
         # so subsequent firings see ``None`` and short-circuit cleanly.
         _stamp_action_kind_on_transaction(session, tx_id)
+        _inject_action_meta_record(session, buffer)
 
         _append_child_records_to_buffer(session, tx_id, buffer)
 
@@ -386,6 +439,7 @@ def register_change_record_listener() -> None:  # noqa: C901
         # ``_stamp_action_kind_on_transaction`` helper already pops on
         # the normal path.
         session.info.pop(ACTION_KIND_KEY, None)
+        session.info.pop(ACTION_META_KEY, None)
 
     def reset_action_kind_after_rollback(session: Session) -> None:
         # When a command sets ``ACTION_KIND_KEY`` and then an exception
@@ -396,6 +450,7 @@ def register_change_record_listener() -> None:  # noqa: C901
         # as "restore" / "import" / "clone". Pop here so a rolled-back
         # action's intent doesn't leak forward.
         session.info.pop(ACTION_KIND_KEY, None)
+        session.info.pop(ACTION_META_KEY, None)
 
     event.listen(db.session, "before_flush", compute_change_records)
     event.listen(db.session, "after_flush", flush_change_records)

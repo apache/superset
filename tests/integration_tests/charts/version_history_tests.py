@@ -419,6 +419,52 @@ class TestChartRestoreApi(SupersetTestCase):
             chart.slice_name = original_name
             db.session.commit()
 
+    def test_restore_records_target_version_as_meta_headline(self) -> None:
+        """The restore transaction must say WHICH version was restored:
+        ``action_kind='restore'`` alone can't render "Restored to X from
+        [date]" (version-history UI feedback, PR #40988). The restore
+        command emits a synthetic ``__meta__`` headline record carrying
+        the target version_uuid, prepended as sequence 0.
+        """
+        _persist_fixture_state()
+        chart: Slice = (
+            db.session.query(Slice).filter(Slice.slice_name == "Girls").first()
+        )
+        assert chart is not None
+        chart_uuid = str(chart.uuid)
+        chart_id = chart.id
+        original_name = chart.slice_name
+
+        try:
+            chart.slice_name = "Girls meta-probe"
+            db.session.commit()
+
+            self.login(ADMIN_USERNAME)
+            listing = _json.loads(self._list(chart_uuid).data.decode("utf-8"))
+            target_uuid = listing["result"][0]["version_uuid"]
+
+            rv = self._restore(chart_uuid, target_uuid)
+            assert rv.status_code == 200, rv.data
+
+            # The newest version entry (the restore) carries the headline.
+            body = _json.loads(self._list(chart_uuid).data.decode("utf-8"))
+            newest = body["result"][-1]
+            meta = [
+                c for c in newest["changes"] if c["path"][:1] == ["__meta__"]
+            ]
+            assert meta, (
+                f"restore transaction has no __meta__ headline: {newest['changes']}"
+            )
+            assert meta[0]["path"] == ["__meta__", "restore"]
+            assert meta[0]["to_value"]["version_uuid"] == target_uuid
+            # Headline first: prepended at sequence 0.
+            assert newest["changes"][0] is meta[0]
+        finally:
+            db.session.rollback()
+            chart = db.session.query(Slice).filter(Slice.id == chart_id).one()
+            chart.slice_name = original_name
+            db.session.commit()
+
     def test_restore_returns_404_for_unknown_uuid(self) -> None:
         self.login(ADMIN_USERNAME)
         rv = self._restore(

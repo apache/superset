@@ -42,7 +42,13 @@ from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.daos.version import VersionDAO
 from superset.exceptions import SupersetSecurityException
-from superset.versioning.changes import ACTION_KIND_KEY, ACTION_KIND_RESTORE
+from superset.versioning.changes import (
+    ACTION_KIND_KEY,
+    ACTION_KIND_RESTORE,
+    ACTION_META_KEY,
+    ENTITY_KIND_BY_CLASS_NAME,
+)
+from superset.versioning.diff import ChangeRecord
 
 logger = logging.getLogger(__name__)
 
@@ -82,12 +88,34 @@ class BaseRestoreVersionCommand(BaseCommand):
         )
         if version_number is None:
             raise self.not_found_exc()
+        live_entity = VersionDAO.find_active_by_uuid(self.model_cls, self._uuid)
+        if live_entity is None:
+            # Race: entity deleted between validate() and now.
+            raise self.not_found_exc()
         # Declare the high-level avenue before the restore touches the
         # session. The change-record listener reads this on its first
         # after_flush for the new ``version_transaction`` row and stamps
         # ``version_transaction.action_kind = 'restore'``. See
         # data-model.md §"Three dimensions" for the full design.
         db.session.info[ACTION_KIND_KEY] = ACTION_KIND_RESTORE
+        # And declare WHICH version is being restored: action_kind alone
+        # can't answer "Restored to X from [date]" (version-history UI,
+        # PR #40988). The listener prepends this synthetic ``__meta__``
+        # headline record to the transaction's change records.
+        db.session.info[ACTION_META_KEY] = {
+            "entity_kind": ENTITY_KIND_BY_CLASS_NAME[self.model_cls.__name__],
+            "entity_id": live_entity.id,
+            "record": ChangeRecord(
+                kind="__meta__",
+                operation="edit",
+                path=["__meta__", "restore"],
+                from_value=None,
+                to_value={
+                    "version_uuid": str(self._version_uuid),
+                    "version_number": version_number,
+                },
+            ),
+        }
         entity = VersionDAO.restore_version(self.model_cls, self._uuid, version_number)
         if entity is None:
             # Race: entity deleted between validate() and now.
