@@ -142,25 +142,53 @@ export default function ExploreVersionHistory() {
   // refresh the activity timeline so the new "Restored version" entry
   // shows up.
   const restoreCount = useSelector(selectVersionRestoreCount);
+  // An overwrite save re-hydrates explore in place (no remount), which
+  // replaces the slice with a fresh server copy; watch its changed_on
+  // so the save surfaces as a new timeline entry while the panel is
+  // open. A "save as" navigates with PUSH and reloads the page, so it
+  // needs no signal.
+  const saveSignal = useSelector<ExplorePageState, string | undefined>(
+    state => state.explore?.slice?.changed_on,
+  );
   const lastRestoreCountRef = useRef(restoreCount);
+  const lastSaveSignalRef = useRef(saveSignal);
   const refreshActivity = activity.refresh;
   useEffect(() => {
-    if (restoreCount === lastRestoreCountRef.current) {
+    if (restoreCount !== lastRestoreCountRef.current) {
+      lastRestoreCountRef.current = restoreCount;
+      // The restore refresh covers any save-signal movement caused by
+      // the same change; sync it so it does not refetch again.
+      lastSaveSignalRef.current = saveSignal;
+      refreshActivity();
+      if (!sliceId) {
+        return;
+      }
+      fetchExploreRehydrationData(sliceId)
+        .then(result => {
+          dispatch(hydrateExplore({ ...result, saveAction: 'overwrite' }));
+        })
+        .catch(() => {
+          addDangerToast(t('Failed to reload the restored version'));
+        });
       return;
     }
-    lastRestoreCountRef.current = restoreCount;
-    refreshActivity();
-    if (!sliceId) {
-      return;
+    if (saveSignal !== lastSaveSignalRef.current) {
+      // A signal appearing where none existed is the page's initial
+      // hydration, not a save.
+      const isInitialHydration = lastSaveSignalRef.current === undefined;
+      lastSaveSignalRef.current = saveSignal;
+      if (!isInitialHydration) {
+        refreshActivity();
+      }
     }
-    fetchExploreRehydrationData(sliceId)
-      .then(result => {
-        dispatch(hydrateExplore({ ...result, saveAction: 'overwrite' }));
-      })
-      .catch(() => {
-        addDangerToast(t('Failed to reload the restored version'));
-      });
-  }, [addDangerToast, dispatch, refreshActivity, restoreCount, sliceId]);
+  }, [
+    addDangerToast,
+    dispatch,
+    refreshActivity,
+    restoreCount,
+    saveSignal,
+    sliceId,
+  ]);
 
   const handleClose = useCallback(() => {
     dispatch(closeVersionHistoryPanel());
