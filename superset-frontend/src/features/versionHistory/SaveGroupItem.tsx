@@ -35,19 +35,26 @@ import ActionRow from './ActionRow';
  */
 const VISIBLE_RECORD_LIMIT = 10;
 
+// The highlighted container gains inner padding but extends outward by
+// the same amount (negative margin) so its text stays column-aligned
+// with non-highlighted neighbors.
 const Container = styled.div<{ isPreviewed: boolean }>`
-  ${({ theme, isPreviewed }) => `
-    border-bottom: 1px solid ${theme.colorBorderSecondary};
-    background-color: ${isPreviewed ? theme.colorPrimaryBg : 'transparent'};
-    border-radius: ${isPreviewed ? theme.borderRadius : 0}px;
-    padding: ${theme.sizeUnit * 2}px 0 ${theme.sizeUnit * 4}px;
-  `}
+  ${({ theme, isPreviewed }) => {
+    const inset = isPreviewed ? theme.sizeUnit * 3 : 0;
+    return `
+      border-bottom: 1px solid ${theme.colorBorderSecondary};
+      background-color: ${isPreviewed ? theme.colorPrimaryBg : 'transparent'};
+      border-radius: ${isPreviewed ? theme.borderRadius : 0}px;
+      padding: ${theme.sizeUnit * 2}px ${inset}px ${theme.sizeUnit * 4}px;
+      margin: 0 ${-inset}px;
+    `;
+  }}
 `;
 
 const Header = styled.div`
   ${({ theme }) => `
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 3}px 0;
     cursor: pointer;
@@ -83,10 +90,15 @@ const Meta = styled.div`
   `}
 `;
 
+// Icons and trailing controls center within the first text line (one
+// line-height tall) so they track the headline, not the middle of a
+// two-line header block.
 const IconWrapper = styled.span`
   ${({ theme }) => `
     color: ${theme.colorTextSecondary};
     display: flex;
+    align-items: center;
+    height: ${theme.fontSize * theme.lineHeight}px;
   `}
 `;
 
@@ -94,6 +106,16 @@ const ChevronWrapper = styled.span`
   ${({ theme }) => `
     color: ${theme.colorTextTertiary};
     display: flex;
+    align-items: center;
+    height: ${theme.fontSize * theme.lineHeight}px;
+  `}
+`;
+
+const KebabSlot = styled.span`
+  ${({ theme }) => `
+    display: flex;
+    align-items: center;
+    height: ${theme.fontSize * theme.lineHeight}px;
   `}
 `;
 
@@ -174,16 +196,18 @@ function GroupKebab({
     },
   ];
   return (
-    <Dropdown menu={{ items: menuItems }} trigger={['click']}>
-      <KebabButton
-        buttonSize="xsmall"
-        buttonStyle="link"
-        aria-label={t('More actions')}
-        onClick={event => event.stopPropagation()}
-      >
-        <Icons.MoreOutlined iconSize="m" />
-      </KebabButton>
-    </Dropdown>
+    <KebabSlot>
+      <Dropdown menu={{ items: menuItems }} trigger={['click']}>
+        <KebabButton
+          buttonSize="xsmall"
+          buttonStyle="link"
+          aria-label={t('More actions')}
+          onClick={event => event.stopPropagation()}
+        >
+          <Icons.MoreOutlined iconSize="m" />
+        </KebabButton>
+      </Dropdown>
+    </KebabSlot>
   );
 }
 
