@@ -68,7 +68,7 @@ const PanelHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px;
+    padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
     border-bottom: 1px solid ${theme.colorSplit};
   `}
 `;
@@ -76,23 +76,33 @@ const PanelHeader = styled.div`
 const PanelTitle = styled.span`
   ${({ theme }) => `
     font-size: ${theme.fontSize}px;
-    font-weight: ${theme.fontWeightStrong};
+    line-height: ${theme.lineHeight};
+    color: ${theme.colorText};
   `}
 `;
 
 const Controls = styled.div`
   ${({ theme }) => `
     display: flex;
-    flex-direction: column;
+    align-items: center;
     gap: ${theme.sizeUnit * 2}px;
-    padding: ${theme.sizeUnit * 3}px ${theme.sizeUnit * 4}px;
-    border-bottom: 1px solid ${theme.colorSplit};
+    padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
+    > * {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    .ant-input-affix-wrapper {
+      border-radius: ${theme.borderRadiusSM}px;
+    }
   `}
 `;
 
 const Body = styled.div`
-  flex: 1;
-  overflow-y: auto;
+  ${({ theme }) => `
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 ${theme.sizeUnit * 4}px;
+  `}
 `;
 
 const Footer = styled.div`
@@ -213,14 +223,14 @@ export default function VersionHistoryPanel({
           aria-label={t('Close version history')}
           onClick={onClose}
         >
-          <Icons.CloseOutlined iconSize="m" />
+          <Icons.CloseOutlined iconSize="xl" />
         </Button>
       </PanelHeader>
       <Controls>
         <Input
           allowClear
           placeholder={t('Search actions')}
-          prefix={<Icons.SearchOutlined iconSize="m" />}
+          prefix={<Icons.SearchOutlined iconSize="l" />}
           value={searchTerm}
           onChange={event => setSearchTerm(event.target.value)}
           aria-label={t('Search actions')}
