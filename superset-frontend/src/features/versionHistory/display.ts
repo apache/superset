@@ -20,6 +20,7 @@ import { t, tn } from '@apache-superset/core/translation';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import type {
   ActivityChangedBy,
+  ActivityEntityKind,
   ActivityRecord,
   SaveGroup,
   VersionedEntityType,
@@ -284,6 +285,25 @@ export function entityDisplayName(record: ActivityRecord): string {
       return t('Untitled dataset');
     default:
       return t('Untitled');
+  }
+}
+
+/**
+ * Headline for a related row that rolled up several distinct entities
+ * of one kind from a single transaction, e.g. "10 charts updated".
+ */
+export function relatedRollupHeadline(
+  kind: ActivityEntityKind,
+  count: number,
+): string {
+  switch (kind) {
+    case 'chart':
+      return tn('%s chart updated', '%s charts updated', count, count);
+    case 'dashboard':
+      return tn('%s dashboard updated', '%s dashboards updated', count, count);
+    case 'dataset':
+    default:
+      return tn('%s dataset updated', '%s datasets updated', count, count);
   }
 }
 

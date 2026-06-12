@@ -93,9 +93,31 @@ const defaultProps = (
   previewedTransactionId: null,
   onClose: jest.fn(),
   onPreview: jest.fn(),
+  onExitPreview: jest.fn(),
   onRestore: jest.fn(),
   onOpenAsNew: jest.fn(),
 });
+
+/** A pair of dashboard saves: the newest (current) and an older one. */
+const dashboardPair = () => {
+  const older = group({
+    records: [record({ entity_kind: 'dashboard', kind: 'chart' })],
+  });
+  const newest = group({
+    transactionId: 20,
+    versionUuid: 'v-2',
+    issuedAt: '2025-12-08T17:18:00',
+    records: [
+      record({
+        entity_kind: 'dashboard',
+        kind: 'chart',
+        transaction_id: 20,
+        issued_at: '2025-12-08T17:18:00',
+      }),
+    ],
+  });
+  return { newest, older };
+};
 
 test('chart groups expand to show granular action rows', async () => {
   const props = defaultProps([group()]);
@@ -175,32 +197,68 @@ test('dashboard groups show the compact category headline', () => {
 });
 
 test('the group kebab restores and forks the version', async () => {
-  const saveGroup = group({
-    records: [record({ entity_kind: 'dashboard', kind: 'chart' })],
-  });
-  const props = defaultProps([saveGroup], 'dashboard');
+  const { newest, older } = dashboardPair();
+  const props = defaultProps([newest, older], 'dashboard');
   render(<VersionHistoryPanel {...props} />);
 
-  await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
+  // The newest save is the live one; act on the older save's kebab.
+  const olderKebab = () =>
+    screen.getAllByRole('button', { name: 'More actions' })[1];
+  await userEvent.click(olderKebab());
   await userEvent.click(await screen.findByText('Restore this version'));
-  expect(props.onRestore).toHaveBeenCalledWith(saveGroup);
+  expect(props.onRestore).toHaveBeenCalledWith(older);
 
-  await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
+  await userEvent.click(olderKebab());
   await userEvent.click(await screen.findByText('Open as new dashboard'));
-  expect(props.onOpenAsNew).toHaveBeenCalledWith(saveGroup);
+  expect(props.onOpenAsNew).toHaveBeenCalledWith(older);
 });
 
 test('clicking a dashboard group header previews it', async () => {
-  const saveGroup = group({
-    records: [record({ entity_kind: 'dashboard', kind: 'chart' })],
-  });
-  const props = defaultProps([saveGroup], 'dashboard');
+  const { newest, older } = dashboardPair();
+  const props = defaultProps([newest, older], 'dashboard');
+  render(<VersionHistoryPanel {...props} />);
+
+  // The newest save is the live one; previewing applies to older saves.
+  await userEvent.click(
+    screen.getAllByRole('button', { name: 'Edit mode · 1 change' })[1],
+  );
+  expect(props.onPreview).toHaveBeenCalledWith(older);
+});
+
+test('the newest save shows a Current tag and older saves do not', () => {
+  const { newest, older } = dashboardPair();
+  const props = defaultProps([newest, older], 'dashboard');
+  render(<VersionHistoryPanel {...props} />);
+
+  expect(screen.getAllByText('Current')).toHaveLength(1);
+  const groups = screen.getAllByTestId('version-history-save-group');
+  expect(groups[0]).toHaveTextContent('Current');
+  expect(groups[1]).not.toHaveTextContent('Current');
+});
+
+test('selecting the current version exits an active preview instead of previewing', async () => {
+  const { newest, older } = dashboardPair();
+  const props = defaultProps([newest, older], 'dashboard');
+  props.previewedTransactionId = older.transactionId;
   render(<VersionHistoryPanel {...props} />);
 
   await userEvent.click(
-    screen.getByRole('button', { name: 'Edit mode · 1 change' }),
+    screen.getAllByRole('button', { name: 'Edit mode · 1 change' })[0],
   );
-  expect(props.onPreview).toHaveBeenCalledWith(saveGroup);
+  expect(props.onPreview).not.toHaveBeenCalled();
+  expect(props.onExitPreview).toHaveBeenCalled();
+});
+
+test('the current version kebab omits restore but keeps open as new', async () => {
+  const { newest, older } = dashboardPair();
+  const props = defaultProps([newest, older], 'dashboard');
+  render(<VersionHistoryPanel {...props} />);
+
+  await userEvent.click(
+    screen.getAllByRole('button', { name: 'More actions' })[0],
+  );
+  expect(await screen.findByText('Open as new dashboard')).toBeInTheDocument();
+  expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
 });
 
 test('searching filters the timeline and reports no matches', async () => {
@@ -293,6 +351,38 @@ test('related rows link to the entity unless it was deleted', () => {
     screen.queryByRole('button', { name: 'Trend' }),
   ).not.toBeInTheDocument();
   expect(screen.getByText(/\(deleted\)/)).toBeInTheDocument();
+});
+
+test('same-transaction related cascades roll up into one pluralized row', async () => {
+  const timeline = buildTimeline(
+    Array.from({ length: 10 }, (_, i) =>
+      record({
+        source: 'related',
+        entity_kind: 'chart',
+        entity_uuid: `c-${i}`,
+        entity_name: `Chart ${i}`,
+        transaction_id: 30,
+        summary: `Chart updated: Chart ${i}`,
+      }),
+    ),
+  );
+  const props = defaultProps(timeline);
+  render(<VersionHistoryPanel {...props} />);
+
+  expect(screen.getAllByTestId('version-history-related-row')).toHaveLength(1);
+  const headline = screen.getByText('10 charts updated');
+
+  // The rolled-up entity names are listed in a tooltip.
+  await userEvent.hover(headline);
+  expect(await screen.findByText('Chart 7')).toBeInTheDocument();
+
+  // Search still matches records collapsed into the rollup.
+  await userEvent.type(
+    screen.getByRole('textbox', { name: 'Search actions' }),
+    'Chart 3',
+  );
+  expect(screen.queryByText('No actions found')).not.toBeInTheDocument();
+  expect(screen.getByText('10 charts updated')).toBeInTheDocument();
 });
 
 test('load more requests the next page', async () => {
