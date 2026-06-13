@@ -32,6 +32,7 @@ from urllib.parse import parse_qs, urlparse
 from superset.constants import EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS
 
 if TYPE_CHECKING:
+    from superset.mcp_service.chart.schemas import AppliedDashboardFilter
     from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
@@ -44,20 +45,33 @@ QUERY_CONTEXT_EXTRA_FORM_DATA_OVERRIDE_KEYS = {
 }
 
 
-def find_chart_by_identifier(identifier: int | str) -> Slice | None:
+class ChartNotOnDashboardError(ValueError):
+    """Raised when a chart is not part of the given dashboard's slices."""
+
+
+def find_chart_by_identifier(
+    identifier: int | str,
+    query_options: list[Any] | None = None,
+) -> Slice | None:
     """Find a chart by numeric ID or UUID string.
 
     Accepts an integer ID, a string that looks like a digit (e.g. "123"),
     or a UUID string. Returns the Slice model instance or None.
+
+    ``query_options`` is forwarded to the DAO so callers can eager-load
+    relationships needed after the request-scoped session is detached.
     """
     from superset.daos.chart import ChartDAO  # avoid circular import
 
+    extra: dict[str, Any] = (
+        {"query_options": query_options} if query_options is not None else {}
+    )
     if isinstance(identifier, int) or (
         isinstance(identifier, str) and identifier.isdigit()
     ):
         chart_id = int(identifier) if isinstance(identifier, str) else identifier
-        return ChartDAO.find_by_id(chart_id)
-    return ChartDAO.find_by_id(identifier, id_column="uuid")
+        return ChartDAO.find_by_id(chart_id, **extra)
+    return ChartDAO.find_by_id(identifier, id_column="uuid", **extra)
 
 
 def get_cached_form_data(form_data_key: str) -> str | None:
@@ -260,6 +274,125 @@ def merge_extra_form_data_filters_into_query(
     merge_form_data_filters_into_query(query, extra_query_form_data)
 
 
+def _deck_gl_spatial_cols(spatial: dict[str, Any] | None) -> list[str]:
+    """Return the column names referenced by a single Deck.gl spatial control."""
+    if not isinstance(spatial, dict):
+        return []
+    spatial_type = spatial.get("type")
+    if spatial_type == "latlong":
+        return [c for c in [spatial.get("lonCol"), spatial.get("latCol")] if c]
+    if spatial_type == "delimited":
+        return [c for c in [spatial.get("lonlatCol")] if c]
+    if spatial_type == "geohash":
+        return [c for c in [spatial.get("geohashCol")] if c]
+    return []
+
+
+def _is_metric_ref(value: Any) -> bool:
+    """Return True if value is a metric reference (dict or non-numeric string).
+
+    Deck.gl size/metric fields hold either a dict metric definition or a
+    simple saved-metric string key (e.g. "count"). Scalar numeric strings
+    like "100" are fixed display settings and must not be treated as metrics.
+    Note: float() accepts "inf", "-inf", and "nan", so those strings would be
+    excluded here too — they are not valid metric names in practice.
+    """
+    if isinstance(value, dict):
+        return True
+    if isinstance(value, str) and value:
+        try:
+            float(value)
+            return False
+        except ValueError:
+            return True
+    return False
+
+
+def _deck_gl_null_filters(form_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Build IS NOT NULL simple filters for Deck.gl spatial and data columns.
+
+    Mirrors BaseDeckGLViz.add_null_filters() behavior: spatial control columns,
+    line_column, and the geojson column are filtered for non-null values by
+    default.
+    """
+    seen: set[str] = set()
+    result: list[dict[str, Any]] = []
+    for key in ("spatial", "start_spatial", "end_spatial"):
+        for col in _deck_gl_spatial_cols(form_data.get(key)):
+            if col not in seen:
+                seen.add(col)
+                result.append({"col": col, "op": "IS NOT NULL", "val": ""})
+    for field in ("line_column", "geojson"):
+        data_col = form_data.get(field)
+        if isinstance(data_col, str) and data_col and data_col not in seen:
+            seen.add(data_col)
+            result.append({"col": data_col, "op": "IS NOT NULL", "val": ""})
+    return result
+
+
+def _resolve_deck_gl_metrics(
+    form_data: dict[str, Any], viz_type: str = ""
+) -> list[Any]:
+    """Extract metrics for Deck.gl chart types.
+
+    deck_geojson.query_obj() forces metrics=[] regardless of form_data.
+    For other types, size/metric values are included when they are metric
+    references (dicts or non-numeric strings); numeric scalars like "100"
+    are fixed display settings and are excluded.
+    deck_scatter and deck_polygon can additionally store metric-backed
+    values in point_radius_fixed (radius for scatter, elevation for polygon).
+    """
+    if viz_type == "deck_geojson":
+        return []
+    metrics: list[Any] = []
+    for field in ("size", "metric"):
+        m = form_data.get(field)
+        if _is_metric_ref(m):
+            metrics.append(m)
+    prf = form_data.get("point_radius_fixed")
+    if isinstance(prf, dict) and prf.get("type") == "metric":
+        value = prf.get("value")
+        if value:
+            metrics.append(value)
+    elif isinstance(prf, str) and _is_metric_ref(prf):
+        # Legacy deck_scatter: point_radius_fixed as a bare non-numeric metric key
+        logger.debug("Legacy point_radius_fixed string metric encountered: %s", prf)
+        metrics.append(prf)
+    return metrics
+
+
+def resolve_deck_gl_columns(form_data: dict[str, Any]) -> list[str]:
+    """Extract SQL column names for Deck.gl chart types from form_data.
+
+    Deck.gl charts use spatial controls (lat/lon pairs, geohash, etc.)
+    rather than the standard metrics/groupby structure. This function
+    maps those spatial control configs to the actual column names
+    needed by the SQL query.
+    """
+    seen: set[str] = set()
+    columns: list[str] = []
+
+    def _add(col: str | None) -> None:
+        if col and isinstance(col, str) and col not in seen:
+            seen.add(col)
+            columns.append(col)
+
+    # Most Deck.gl types use "spatial"; arc charts use start/end spatial
+    for key in ("spatial", "start_spatial", "end_spatial"):
+        for col in _deck_gl_spatial_cols(form_data.get(key)):
+            _add(col)
+
+    # deck_path / deck_polygon use a line column; deck_geojson uses geojson
+    for field in ("line_column", "geojson", "dimension"):
+        _add(form_data.get(field))
+
+    for col in form_data.get("js_columns") or []:
+        if isinstance(col, str):
+            _add(col)
+
+    return columns
+
+
 def resolve_metrics(form_data: dict[str, Any], viz_type: str) -> list[Any]:
     """Extract metrics from form_data, handling chart-type-specific fields."""
     if viz_type == "bubble":
@@ -398,6 +531,12 @@ def _build_mixed_timeseries_secondary(
     return qd
 
 
+# Deck.gl viz types that conditionally set is_timeseries from time_grain_sqla
+_DECK_TIMESERIES_VIZ_TYPES: frozenset[str] = frozenset(
+    {"deck_arc", "deck_path", "deck_polygon", "deck_scatter", "deck_screengrid"}
+)
+
+
 def build_query_dicts_from_form_data(
     form_data: dict[str, Any],
     datasource_id: Any,
@@ -423,6 +562,34 @@ def build_query_dicts_from_form_data(
         or (getattr(chart, "viz_type", "") if chart else "")
         or ""
     )
+
+    # Deck.gl charts use spatial column configs rather than the standard
+    # metrics / groupby fields. Extract columns from the spatial controls.
+    if viz_type.startswith("deck_"):
+        deck_columns = resolve_deck_gl_columns(form_data)
+        deck_metrics = _resolve_deck_gl_metrics(form_data, viz_type)
+        qd = _build_single_query_dict(
+            form_data,
+            deck_columns,
+            deck_metrics,
+            row_limit=row_limit,
+            order_desc=order_desc,
+        )
+        if deck_metrics:
+            # Mirror BaseDeckGLViz.query_obj(): order by first metric descending
+            qd["orderby"] = [(deck_metrics[0], not form_data.get("order_desc", True))]
+        if viz_type in _DECK_TIMESERIES_VIZ_TYPES and (
+            time_grain := form_data.get("time_grain_sqla")
+        ):
+            qd["is_timeseries"] = True
+            qd["granularity"] = form_data.get("granularity_sqla")
+            qd.setdefault("extras", {})["time_grain_sqla"] = time_grain
+        if form_data.get("filter_nulls", True):
+            null_filters = _deck_gl_null_filters(form_data)
+            if null_filters:
+                qd["filters"] = [*(qd.get("filters") or []), *null_filters]
+        return [qd]
+
     is_timeseries = (
         viz_type.startswith("echarts_timeseries") or viz_type == "mixed_timeseries"
     )
@@ -528,3 +695,118 @@ def extract_form_data_key_from_url(url: str | None) -> str | None:
     parsed = urlparse(url)
     values = parse_qs(parsed.query).get("form_data_key", [])
     return values[0] if values else None
+
+
+def _match_adhoc_by_subject(
+    adhoc_filters: Any, column: str | None
+) -> tuple[str | None, Any] | None:
+    if not column or not isinstance(adhoc_filters, list):
+        return None
+    for af in adhoc_filters:
+        if isinstance(af, dict) and af.get("subject") == column:
+            return af.get("operator"), af.get("comparator")
+    return None
+
+
+def _match_legacy_by_col(
+    legacy_filters: Any, column: str | None
+) -> tuple[str | None, Any] | None:
+    if not column or not isinstance(legacy_filters, list):
+        return None
+    for f in legacy_filters:
+        if isinstance(f, dict) and f.get("col") == column:
+            return f.get("op"), f.get("val")
+    return None
+
+
+def _resolve_filter_operator_and_value(
+    extra_form_data: dict[str, Any] | None,
+    column: str | None,
+) -> tuple[str | None, Any]:
+    """Pull operator and value for a dashboard filter from its
+    default extra_form_data, matching on target column where applicable."""
+    if not extra_form_data:
+        return None, None
+
+    if match := _match_adhoc_by_subject(extra_form_data.get("adhoc_filters"), column):
+        return match
+    if match := _match_legacy_by_col(extra_form_data.get("filters"), column):
+        return match
+    # Temporal filters contribute time_range with no target column
+    if time_range := extra_form_data.get("time_range"):
+        return "TIME_RANGE", time_range
+    return None, None
+
+
+def build_applied_dashboard_filters(
+    dashboard_id: int, chart_id: int
+) -> list[AppliedDashboardFilter]:
+    """Resolve dashboard-level native filters in scope for a chart.
+
+    Validates that the dashboard exists, the caller has access, and the chart
+    is on the dashboard. Returns one AppliedDashboardFilter per non-DIVIDER
+    native filter whose scope includes the chart, populated with the filter's
+    default operator and value.
+
+    Raises DashboardNotFoundError if the dashboard is missing,
+    ChartNotOnDashboardError if the chart is not on it, and
+    SupersetSecurityException if the caller cannot access the dashboard.
+    """
+    # Local imports avoid circular deps at module load
+    from superset import db, security_manager
+    from superset.charts.data.dashboard_filter_context import (
+        _extract_filter_extra_form_data,
+        _get_filter_target_column,
+        _is_filter_in_scope_for_chart,
+    )
+    from superset.commands.dashboard.exceptions import DashboardNotFoundError
+    from superset.mcp_service.chart.schemas import AppliedDashboardFilter
+    from superset.models.dashboard import Dashboard
+    from superset.utils import json
+
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one_or_none()
+    if not dashboard:
+        raise DashboardNotFoundError(dashboard_id=str(dashboard_id))
+
+    security_manager.raise_for_access(dashboard=dashboard)
+
+    slice_ids = {slc.id for slc in dashboard.slices}
+    if chart_id not in slice_ids:
+        raise ChartNotOnDashboardError(
+            f"Chart {chart_id} is not on dashboard {dashboard_id}"
+        )
+
+    metadata = json.loads(dashboard.json_metadata or "{}")
+    native_filter_config = metadata.get("native_filter_configuration", [])
+    if not isinstance(native_filter_config, list):
+        return []
+    position_json = json.loads(dashboard.position_json or "{}")
+    if not isinstance(position_json, dict):
+        position_json = {}
+
+    applied: list[AppliedDashboardFilter] = []
+    for flt in native_filter_config:
+        if not isinstance(flt, dict):
+            continue
+        if flt.get("type", "") == "DIVIDER":
+            continue
+        if not _is_filter_in_scope_for_chart(flt, chart_id, position_json):
+            continue
+
+        extra_form_data, status = _extract_filter_extra_form_data(flt)
+        column = _get_filter_target_column(flt)
+        operator, value = _resolve_filter_operator_and_value(extra_form_data, column)
+
+        applied.append(
+            AppliedDashboardFilter(
+                id=flt.get("id"),
+                name=flt.get("name"),
+                filter_type=flt.get("filterType"),
+                column=column,
+                operator=operator,
+                value=value,
+                status=status.value,
+            )
+        )
+
+    return applied

@@ -19,12 +19,16 @@ concurrency:
 jobs:
   pre-commit:
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     strategy:
       matrix:
-        python-version: ["current", "previous", "next"]
+        # Run the full version spread on push (master/release) and nightly,
+        # but only the current version on PRs — lint/format/type results
+        # rarely differ across patch versions, so 3x per PR is wasteful.
+        python-version: ${{ github.event_name == 'pull_request' && fromJSON('["current"]') || fromJSON('["current", "previous", "next"]') }}
     steps:
       - name: "Checkout ${{ github.ref }} ( ${{ github.sha }} )"
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
           submodules: recursive
@@ -44,7 +48,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
         with:
-          node-version: '20'
+          node-version-file: "superset-frontend/.nvmrc"
+          cache: "npm"
+          cache-dependency-path: "superset-frontend/package-lock.json"
 
       - name: Install Frontend Dependencies
         run: |
@@ -68,13 +74,15 @@ jobs:
         id: changed_files
         uses: ./.github/actions/file-changes-action
         with:
-          output: ' '
+          output: " "
 
       - name: pre-commit
+        env:
+          CHANGED_FILES: ${{ steps.changed_files.outputs.files }}
         run: |
           set +e  # Don't exit immediately on failure
           export SKIP=type-checking-frontend
-          pre-commit run --files ${{ steps.changed_files.outputs.files }}
+          pre-commit run --files $CHANGED_FILES
           PRE_COMMIT_EXIT_CODE=$?
           git diff --quiet --exit-code
           GIT_DIFF_EXIT_CODE=$?
