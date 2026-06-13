@@ -38,7 +38,7 @@ export function overrideExtraFormData(
   );
   EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS.forEach(key => {
     if (key in overrideFormData) {
-      // @ts-ignore
+      // @ts-expect-error
       overriddenExtras[key] = overrideFormData[key];
     }
   });

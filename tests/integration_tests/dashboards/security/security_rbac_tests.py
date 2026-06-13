@@ -108,7 +108,7 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
 
         # act
         response = self.get_dashboard_view_response(dashboard_to_access)
-        assert response.status_code == 404
+        assert response.status_code == 404  # Authenticated users without access get 404
 
         request_payload = get_query_context("birth_names")
         rv = self.post_assert_metric(CHART_DATA_URI, request_payload, "data")
@@ -221,7 +221,8 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         response = self.get_dashboard_view_response(dashboard_to_access)
 
         # assert
-        assert response.status_code == 404
+        # Anonymous users are redirected to login instead of getting 404
+        assert response.status_code == 302
 
     @pytest.mark.usefixtures("public_role_like_gamma")
     def test_get_dashboard_view__public_user_with_dashboard_permission_can_not_access_draft(  # noqa: E501
@@ -234,7 +235,8 @@ class TestDashboardRoleBasedSecurity(BaseTestDashboardSecurity):
         response = self.get_dashboard_view_response(dashboard_to_access)
 
         # assert
-        assert response.status_code == 404
+        # Anonymous users are redirected to login for unpublished dashboards
+        assert response.status_code == 302
 
         # post
         revoke_access_to_dashboard(dashboard_to_access, "Public")  # noqa: F405

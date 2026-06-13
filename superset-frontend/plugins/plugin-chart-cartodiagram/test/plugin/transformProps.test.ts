@@ -16,11 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  ChartProps,
-  getChartTransformPropsRegistry,
-  supersetTheme,
-} from '@superset-ui/core';
+import { ChartProps, getChartTransformPropsRegistry } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { LayerConf, MapViewConfigs, ZoomConfigs } from '../../src/types';
 import transformProps from '../../src/plugin/transformProps';
 import {
@@ -116,13 +113,13 @@ describe('CartodiagramPlugin transformProps', () => {
     registry.clear();
   });
 
-  it('should call the transform props function of the referenced chart', () => {
+  test('should call the transform props function of the referenced chart', () => {
     transformProps(chartProps);
     expect(chartTransformPropsPieMock).toHaveBeenCalled();
     expect(chartTransformPropsTimeseriesMock).not.toHaveBeenCalled();
   });
 
-  it('should transform chart props for viz', () => {
+  test('should transform chart props for viz', () => {
     const transformedProps = transformProps(chartProps);
     expect(transformedProps).toEqual(
       expect.objectContaining({

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useMemo, useState } from 'react';
-import { SupersetClient, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { SupersetClient } from '@superset-ui/core';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
 import handleResourceExport from 'src/utils/export';
@@ -61,7 +62,9 @@ function DashboardTable({
     TableTab.Other,
   );
 
-  const filteredOtherTabData = otherTabData.filter(obj => !('viz_type' in obj));
+  const filteredOtherTabData = otherTabData?.filter(
+    obj => !('viz_type' in obj),
+  );
 
   const {
     state: { loading, resourceCollection: dashboards },
@@ -118,12 +121,17 @@ function DashboardTable({
     setLoaded(true);
   }, [activeTab]);
 
-  const handleBulkDashboardExport = (dashboardsToExport: Dashboard[]) => {
+  const handleBulkDashboardExport = async (dashboardsToExport: Dashboard[]) => {
     const ids = dashboardsToExport.map(({ id }) => id);
-    handleResourceExport('dashboard', ids, () => {
-      setPreparingExport(false);
-    });
     setPreparingExport(true);
+    try {
+      await handleResourceExport('dashboard', ids, () => {
+        setPreparingExport(false);
+      });
+    } catch (error) {
+      setPreparingExport(false);
+      addDangerToast(t('There was an issue exporting the selected dashboards'));
+    }
   };
 
   const handleDashboardEdit = (edits: Dashboard) =>
@@ -237,6 +245,7 @@ function DashboardTable({
               addDangerToast,
               activeTab,
               user?.userId,
+              getData,
             );
             setDashboardToDelete(null);
           }}

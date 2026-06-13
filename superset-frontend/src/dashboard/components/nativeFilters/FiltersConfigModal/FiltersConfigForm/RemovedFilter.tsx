@@ -18,7 +18,8 @@
  */
 import { Button, type OnClickHandler } from '@superset-ui/core/components';
 import { FC } from 'react';
-import { styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { styled } from '@apache-superset/core/theme';
 
 const RemovedContent = styled.div`
   display: flex;

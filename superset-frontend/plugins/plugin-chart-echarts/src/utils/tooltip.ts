@@ -29,7 +29,8 @@ import { Refs } from '../types';
 
 export function getDefaultTooltip(refs: Refs) {
   return {
-    appendToBody: true,
+    appendToBody:
+      typeof document !== 'undefined' ? !document.fullscreenElement : true,
     borderColor: 'transparent',
     // CSS hack applied on this class to resolve https://github.com/apache/superset/issues/30058
     className: 'echarts-tooltip',

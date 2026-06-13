@@ -28,26 +28,27 @@ import {
 } from '@testing-library/react';
 import {
   ThemeProvider,
-  // eslint-disable-next-line no-restricted-imports
-  supersetTheme,
   themeObject,
-} from '@superset-ui/core';
+  supersetTheme,
+} from '@apache-superset/core/theme';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
 import { BrowserRouter } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import { DndContext } from '@dnd-kit/core';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { configureStore, Store } from '@reduxjs/toolkit';
 import { api } from 'src/hooks/apiResources/queryApi';
 import userEvent from '@testing-library/user-event';
-import { ExtensionsProvider } from 'src/extensions/ExtensionsContext';
 
 type Options = Omit<RenderOptions, 'queries'> & {
   useRedux?: boolean;
   useDnd?: boolean;
+  useDndKit?: boolean; // Use @dnd-kit instead of react-dnd
   useQueryParams?: boolean;
   useRouter?: boolean;
   useTheme?: boolean;
@@ -75,6 +76,7 @@ export const defaultStore = createStore();
 export function createWrapper(options?: Options) {
   const {
     useDnd,
+    useDndKit,
     useRedux,
     useQueryParams,
     useRouter,
@@ -86,9 +88,7 @@ export function createWrapper(options?: Options) {
 
   return ({ children }: { children?: ReactNode }) => {
     let result = (
-      <ThemeProvider theme={supersetTheme}>
-        <ExtensionsProvider>{children}</ExtensionsProvider>
-      </ThemeProvider>
+      <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
     );
 
     if (useTheme) {
@@ -99,7 +99,12 @@ export function createWrapper(options?: Options) {
       );
     }
 
+    if (useDndKit) {
+      result = <DndContext>{result}</DndContext>;
+    }
+
     if (useDnd) {
+      // @ts-ignore react-dnd's DndProviderProps omits `children` under React 18 types
       result = <DndProvider backend={HTML5Backend}>{result}</DndProvider>;
     }
 
@@ -110,7 +115,11 @@ export function createWrapper(options?: Options) {
     }
 
     if (useQueryParams) {
-      result = <QueryParamProvider>{result}</QueryParamProvider>;
+      result = (
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
+          {result}
+        </QueryParamProvider>
+      );
     }
 
     if (useRouter) {
@@ -136,7 +145,8 @@ export { customRender as render };
 export { default as userEvent } from '@testing-library/user-event';
 
 export async function selectOption(option: string, selectName?: string) {
-  const select = screen.getByRole(
+  // Use findByRole (async) to wait for element to be ready, preventing race conditions on slow CI
+  const select = await screen.findByRole(
     'combobox',
     selectName ? { name: selectName } : {},
   );
@@ -147,5 +157,35 @@ export async function selectOption(option: string, selectName?: string) {
       document.querySelector('.rc-virtual-list')!,
     ).getByText(option),
   );
+  await userEvent.click(item);
+}
+
+/**
+ * Select an option from a compact pill filter (new UI that replaced comboboxes).
+ * Clicks the pill button matching the label, then clicks the option in the panel.
+ */
+export async function selectPillOption(option: string, pillLabel?: string) {
+  let pill: HTMLElement;
+  if (pillLabel) {
+    // Find the pill whose text content includes the label
+    pill = await waitFor(() => {
+      const pills = screen.getAllByTestId('compact-filter-pill');
+      const match = pills.find(p => p.textContent?.includes(pillLabel));
+      if (!match)
+        throw new Error(`Could not find pill with label "${pillLabel}"`);
+      return match;
+    });
+  } else {
+    pill = await screen.findByTestId('compact-filter-pill');
+  }
+  await userEvent.click(pill);
+  // Wait for the option list to appear and click the item
+  const item = await waitFor(() => {
+    const listbox = document.querySelector('[role="listbox"]');
+    if (!listbox) throw new Error('No listbox found');
+    const opt = within(listbox as HTMLElement).getByText(option);
+    if (!opt) throw new Error(`Option "${option}" not found`);
+    return opt;
+  });
   await userEvent.click(item);
 }

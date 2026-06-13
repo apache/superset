@@ -24,7 +24,9 @@ notifications:
   discussions: notifications@superset.apache.org
 
 github:
-  del_branch_on_merge: true
+  pull_requests:
+    del_branch_on_merge: true
+    allow_update_branch: true
   description: "Apache Superset is a Data Visualization and Data Exploration Platform"
   homepage: https://superset.apache.org/
   labels:
@@ -75,22 +77,17 @@ github:
         # combination here.
         contexts:
           - lint-check
-          - cypress-matrix (0, chrome)
-          - cypress-matrix (1, chrome)
-          - cypress-matrix (2, chrome)
-          - cypress-matrix (3, chrome)
-          - cypress-matrix (4, chrome)
-          - cypress-matrix (5, chrome)
+          - cypress-matrix-required
           - dependency-review
           - frontend-build
+          - playwright-tests-required
           - pre-commit (current)
-          - pre-commit (previous)
           - test-mysql
-          - test-postgres (current)
+          - test-postgres-required
           - test-postgres-hive
           - test-postgres-presto
           - test-sqlite
-          - unit-tests (current)
+          - unit-tests-required
 
       required_pull_request_reviews:
         dismiss_stale_reviews: false

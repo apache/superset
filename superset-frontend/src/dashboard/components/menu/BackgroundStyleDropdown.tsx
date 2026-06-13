@@ -18,7 +18,8 @@
  */
 import { PureComponent } from 'react';
 import cx from 'classnames';
-import { css, styled, t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 
 import backgroundStyleOptions from 'src/dashboard/util/backgroundStyleOptions';
 import PopoverDropdown, {

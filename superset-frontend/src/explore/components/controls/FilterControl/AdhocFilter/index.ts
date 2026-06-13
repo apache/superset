@@ -1,0 +1,216 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import type { AdhocFilter as CoreAdhocFilter } from '@superset-ui/core';
+import {
+  CUSTOM_OPERATORS,
+  DISABLE_INPUT_OPERATORS,
+  OPERATOR_ENUM_TO_OPERATOR_TYPE,
+  Operators,
+} from 'src/explore/constants';
+import { translateToSql } from '../utils/translateToSQL';
+import { Clauses, ExpressionTypes } from '../types';
+
+const CUSTOM_OPERATIONS = [...CUSTOM_OPERATORS].map(
+  op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
+);
+
+interface AdhocFilterInput {
+  expressionType?: string;
+  subject?: string | { column_name?: string; [key: string]: unknown } | null;
+  operator?: string | null;
+  operatorId?: string;
+  comparator?: unknown;
+  clause?: string | null;
+  sqlExpression?: string | null;
+  isExtra?: boolean;
+  isNew?: boolean;
+  datasourceWarning?: boolean;
+  deck_slices?: unknown;
+  layerFilterScope?: unknown;
+  filterOptionName?: string;
+  // Allow additional properties for flexibility
+  [key: string]: unknown;
+}
+
+export default class AdhocFilter {
+  expressionType: string;
+  subject?: string | { column_name?: string; [key: string]: unknown } | null;
+  operator?: string | null;
+  operatorId?: string;
+  comparator?: unknown;
+  clause?: string | null;
+  sqlExpression?: string | null;
+  isExtra: boolean;
+  isNew: boolean;
+  datasourceWarning: boolean;
+  deck_slices?: unknown;
+  layerFilterScope?: unknown;
+  filterOptionName: string;
+
+  constructor(adhocFilter: AdhocFilterInput) {
+    this.expressionType = adhocFilter.expressionType || ExpressionTypes.Simple;
+    if (this.expressionType === ExpressionTypes.Simple) {
+      this.subject = adhocFilter.subject;
+      this.operator = adhocFilter.operator?.toUpperCase();
+      this.operatorId = adhocFilter.operatorId;
+      this.comparator = adhocFilter.comparator;
+      if (
+        adhocFilter.operatorId &&
+        DISABLE_INPUT_OPERATORS.indexOf(adhocFilter.operatorId as Operators) >=
+          0
+      ) {
+        this.comparator = undefined;
+      }
+      this.clause = adhocFilter.clause || Clauses.Where;
+      this.sqlExpression = null;
+    } else if (this.expressionType === ExpressionTypes.Sql) {
+      this.sqlExpression =
+        typeof adhocFilter.sqlExpression === 'string'
+          ? adhocFilter.sqlExpression
+          : translateToSql(adhocFilter as unknown as CoreAdhocFilter, {
+              useSimple: true,
+            });
+      this.clause = adhocFilter.clause;
+      if (
+        adhocFilter.operator &&
+        CUSTOM_OPERATIONS.indexOf(adhocFilter.operator) >= 0
+      ) {
+        this.subject = adhocFilter.subject;
+        this.operator = adhocFilter.operator;
+        this.operatorId = adhocFilter.operatorId;
+      } else {
+        this.subject = null;
+        this.operator = null;
+      }
+      this.comparator = null;
+    }
+    this.isExtra = !!adhocFilter.isExtra;
+    this.isNew = !!adhocFilter.isNew;
+    this.datasourceWarning = !!adhocFilter.datasourceWarning;
+    this.deck_slices = adhocFilter?.deck_slices;
+    this.layerFilterScope = adhocFilter?.layerFilterScope;
+
+    this.filterOptionName =
+      adhocFilter.filterOptionName ||
+      `filter_${Math.random().toString(36).substring(2, 15)}_${Math.random()
+        .toString(36)
+        .substring(2, 15)}`;
+  }
+
+  duplicateWith(nextFields: Partial<AdhocFilterInput>): AdhocFilter {
+    // Spread class properties as plain object for constructor input
+    const currentFields: AdhocFilterInput = {
+      expressionType: this.expressionType,
+      subject: this.subject,
+      operator: this.operator,
+      operatorId: this.operatorId,
+      comparator: this.comparator,
+      clause: this.clause,
+      sqlExpression: this.sqlExpression,
+      isExtra: this.isExtra,
+      isNew: false, // all duplicated fields are not new
+      datasourceWarning: this.datasourceWarning,
+      deck_slices: this.deck_slices,
+      layerFilterScope: this.layerFilterScope,
+      filterOptionName: this.filterOptionName,
+      ...nextFields,
+    };
+    return new AdhocFilter(currentFields);
+  }
+
+  equals(adhocFilter: AdhocFilter): boolean {
+    return (
+      adhocFilter.clause === this.clause &&
+      adhocFilter.expressionType === this.expressionType &&
+      adhocFilter.sqlExpression === this.sqlExpression &&
+      adhocFilter.operator === this.operator &&
+      adhocFilter.operatorId === this.operatorId &&
+      adhocFilter.comparator === this.comparator &&
+      adhocFilter.subject === this.subject
+    );
+  }
+
+  isValid(): boolean {
+    if (this.expressionType === ExpressionTypes.Simple) {
+      // operators where the comparator is not used
+      if (
+        this.operator &&
+        DISABLE_INPUT_OPERATORS.map(
+          op => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
+        ).indexOf(this.operator) >= 0
+      ) {
+        return !!this.subject;
+      }
+
+      if (this.operator && this.subject && this.clause) {
+        if (Array.isArray(this.comparator)) {
+          // A non-empty array of values ('IN' or 'NOT IN' clauses)
+          return this.comparator.length > 0;
+        }
+        // A value has been selected or typed
+        return this.comparator !== null;
+      }
+    }
+
+    return (
+      this.expressionType === ExpressionTypes.Sql &&
+      !!(this.sqlExpression && this.clause)
+    );
+  }
+
+  getDefaultLabel(): string {
+    const label = this.translateToSql();
+    return label.length < 43 ? label : `${label.substring(0, 40)}...`;
+  }
+
+  getTooltipTitle(): string {
+    return this.translateToSql();
+  }
+
+  translateToSql(): string {
+    return translateToSql(this as unknown as CoreAdhocFilter);
+  }
+}
+
+/**
+ * Adapter function to create an AdhocFilter instance from a core AdhocFilter type.
+ * This bridges the type gap between @superset-ui/core's AdhocFilter and the local class.
+ */
+export function fromCoreAdhocFilter(filter: CoreAdhocFilter): AdhocFilter {
+  return new AdhocFilter(filter as AdhocFilterInput);
+}
+
+/**
+ * Type guard to check if an object can be used to construct an AdhocFilter.
+ * Returns true for plain objects that have filter-like properties.
+ */
+export function isDictionaryForAdhocFilter(
+  value: unknown,
+): value is AdhocFilterInput {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    !(value instanceof AdhocFilter) &&
+    ('expressionType' in value ||
+      'subject' in value ||
+      'operator' in value ||
+      'sqlExpression' in value ||
+      'clause' in value)
+  );
+}

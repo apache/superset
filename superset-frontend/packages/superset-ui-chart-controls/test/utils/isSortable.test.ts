@@ -17,7 +17,7 @@
  * under the License.
  */
 import { ControlStateMapping } from '@superset-ui/chart-controls';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { isSortable } from '../../src/utils/isSortable';
 
 const controls: ControlStateMapping = {

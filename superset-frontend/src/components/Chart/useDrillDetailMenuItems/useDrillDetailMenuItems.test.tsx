@@ -420,6 +420,7 @@ test('context menu for supported chart, dimensions, filter B', async () => {
   await expectDrillToDetailByDimension(filterB);
 });
 
+/* oxlint-disable-next-line jest/no-disabled-tests */
 test.skip('context menu for supported chart, dimensions, all filters', async () => {
   const filters = [filterA, filterB];
   await setupMenu(filters);

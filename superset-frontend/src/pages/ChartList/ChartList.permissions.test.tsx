@@ -22,6 +22,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import { QueryParamProvider } from 'use-query-params';
+import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { isFeatureEnabled } from '@superset-ui/core';
 import ChartList from 'src/pages/ChartList';
 import { API_ENDPOINTS, mockCharts, setupMocks } from './ChartList.testHelpers';
@@ -116,22 +117,11 @@ const renderChartList = (
   return render(
     <Provider store={store}>
       <MemoryRouter>
-        <QueryParamProvider>
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
           <ChartList user={user} {...props} />
         </QueryParamProvider>
       </MemoryRouter>
     </Provider>,
-  );
-};
-
-// Setup API permissions mock
-const setupApiPermissions = (permissions: string[]) => {
-  fetchMock.get(
-    API_ENDPOINTS.CHARTS_INFO,
-    {
-      permissions,
-    },
-    { overwriteRoutes: true },
   );
 };
 
@@ -151,8 +141,7 @@ const renderWithPermissions = async (
   });
 
   // Convert role permissions to API permissions
-  const apiPermissions = permissions.map(perm => perm[0]);
-  setupApiPermissions(apiPermissions);
+  setupMocks({ [API_ENDPOINTS.CHARTS_INFO]: permissions.map(perm => perm[0]) });
 
   const storeState = createStoreStateWithPermissions(permissions, userId);
 
@@ -176,12 +165,7 @@ const renderWithPermissions = async (
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('ChartList - Permission-based UI Tests', () => {
   beforeEach(() => {
-    setupMocks();
-  });
-
-  afterEach(() => {
-    fetchMock.resetHistory();
-    fetchMock.restore();
+    fetchMock.clearHistory().removeRoutes();
     (
       isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
     ).mockReset();
@@ -199,7 +183,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(screen.getByTestId('bulk-select')).toBeInTheDocument();
 
     // Verify Actions column is visible
-    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(screen.getByTitle('Actions')).toBeInTheDocument();
 
     // Verify favorite stars are rendered for each chart
     const favoriteStars = screen.getAllByTestId('fave-unfave-icon');
@@ -231,7 +215,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     await renderWithPermissions(PERMISSIONS.ADMIN);
     await screen.findByTestId('chart-list-view');
 
-    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(screen.getByTitle('Actions')).toBeInTheDocument();
 
     // Wait for table to load with charts data
     await waitFor(() => {
@@ -264,7 +248,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     await renderWithPermissions(PERMISSIONS.WRITE_ONLY);
     await screen.findByTestId('chart-list-view');
 
-    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(screen.getByTitle('Actions')).toBeInTheDocument();
 
     // Wait for table to load with charts data
     await waitFor(() => {
@@ -297,7 +281,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     await renderWithPermissions(PERMISSIONS.ADMIN, 1, { tagging: true });
     await screen.findByTestId('chart-list-view');
 
-    expect(screen.getByText('Tags')).toBeInTheDocument();
+    expect(screen.getByTitle('Tags')).toBeInTheDocument();
   });
 
   test('hides Tags column when TAGGING_SYSTEM feature flag is disabled', async () => {
@@ -311,7 +295,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     await renderWithPermissions(PERMISSIONS.READ_ONLY, 1, { tagging: true });
     await screen.findByTestId('chart-list-view');
 
-    expect(screen.getByText('Tags')).toBeInTheDocument();
+    expect(screen.getByTitle('Tags')).toBeInTheDocument();
   });
 
   test('shows bulk select button for users with admin permissions', async () => {
@@ -383,7 +367,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     await screen.findByTestId('chart-list-view');
 
     // Actions column should be visible
-    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(screen.getByTitle('Actions')).toBeInTheDocument();
 
     // Wait for table to load with charts data
     await waitFor(() => {
@@ -418,7 +402,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     await screen.findByTestId('chart-list-view');
 
     // Actions column should be visible (requires can_write)
-    expect(screen.getByText('Actions')).toBeInTheDocument();
+    expect(screen.getByTitle('Actions')).toBeInTheDocument();
 
     // Wait for table to load
     await waitFor(() => {
@@ -441,7 +425,7 @@ describe('ChartList - Permission-based UI Tests', () => {
     expect(favoriteStars).toHaveLength(mockCharts.length);
 
     // Tags column should be visible (feature flag enabled)
-    expect(screen.getByText('Tags')).toBeInTheDocument();
+    expect(screen.getByTitle('Tags')).toBeInTheDocument();
 
     // Bulk select should be visible (user has can_export)
     expect(screen.getByTestId('bulk-select')).toBeInTheDocument();
@@ -461,8 +445,8 @@ describe('ChartList - Permission-based UI Tests', () => {
     await screen.findByTestId('chart-list-view');
 
     // All permission-based elements should be hidden
-    expect(screen.queryByText('Actions')).not.toBeInTheDocument();
-    expect(screen.queryByText('Tags')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Actions')).not.toBeInTheDocument();
+    expect(screen.queryByTitle('Tags')).not.toBeInTheDocument();
     expect(screen.queryByTestId('bulk-select')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', { name: /chart/i }),

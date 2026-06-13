@@ -19,13 +19,13 @@
 import { render, screen } from '@superset-ui/core/spec';
 import { AgGridReact } from 'ag-grid-react';
 import { createRef } from 'react';
-import { ThemeProvider, supersetTheme } from '../../theme';
+import { ThemeProvider, supersetTheme } from '@apache-superset/core/theme';
+import * as uiModule from '@apache-superset/core/theme';
 import { ThemedAgGridReact } from './index';
-import * as themeUtils from '../../theme/utils/themeUtils';
 
 // Mock useThemeMode hook
-jest.mock('../../theme/utils/themeUtils', () => ({
-  ...jest.requireActual('../../theme/utils/themeUtils'),
+jest.mock('@apache-superset/core/theme', () => ({
+  ...jest.requireActual('@apache-superset/core/theme'),
   useThemeMode: jest.fn(() => false), // Default to light mode
 }));
 
@@ -68,7 +68,7 @@ const mockColumnDefs = [
 beforeEach(() => {
   jest.clearAllMocks();
   // Reset to light mode by default
-  (themeUtils.useThemeMode as jest.Mock).mockReturnValue(false);
+  (uiModule.useThemeMode as jest.Mock).mockReturnValue(false);
 });
 
 test('renders the AgGridReact component', () => {
@@ -101,7 +101,7 @@ test('applies light theme when background is light', () => {
 
 test('applies dark theme when background is dark', () => {
   // Mock dark mode
-  (themeUtils.useThemeMode as jest.Mock).mockReturnValue(true);
+  (uiModule.useThemeMode as jest.Mock).mockReturnValue(true);
 
   const darkTheme = {
     ...supersetTheme,
@@ -158,17 +158,60 @@ test('passes all props through to AgGridReact', () => {
     />,
   );
 
+  // onGridReady and onFirstDataRendered are intercepted by the component to expose
+  // the grid API on the container element; the wrapped function is passed instead.
   expect(AgGridReact).toHaveBeenCalledWith(
     expect.objectContaining({
       rowData: mockRowData,
       columnDefs: mockColumnDefs,
-      onGridReady,
+      onGridReady: expect.any(Function),
       onCellClicked,
       pagination: true,
       paginationPageSize: 10,
     }),
     expect.any(Object),
   );
+});
+
+test('onGridReady wrapper calls user callback and exposes api on container', () => {
+  const onGridReady = jest.fn();
+
+  render(
+    <ThemedAgGridReact
+      rowData={mockRowData}
+      columnDefs={mockColumnDefs}
+      onGridReady={onGridReady}
+    />,
+  );
+
+  // Retrieve the wrapped handler that was passed to AgGridReact
+  const lastCall = (AgGridReact as jest.Mock).mock.calls.at(-1)[0];
+  const wrappedOnGridReady = lastCall.onGridReady as Function;
+
+  const mockApi = { setGridOption: jest.fn() };
+  wrappedOnGridReady({ api: mockApi });
+
+  // The user-provided callback must be forwarded
+  expect(onGridReady).toHaveBeenCalledWith({ api: mockApi });
+});
+
+test('onFirstDataRendered wrapper calls user callback', () => {
+  const onFirstDataRendered = jest.fn();
+
+  render(
+    <ThemedAgGridReact
+      rowData={mockRowData}
+      columnDefs={mockColumnDefs}
+      onFirstDataRendered={onFirstDataRendered}
+    />,
+  );
+
+  const lastCall = (AgGridReact as jest.Mock).mock.calls.at(-1)[0];
+  const wrappedOnFirstDataRendered = lastCall.onFirstDataRendered as Function;
+
+  wrappedOnFirstDataRendered({ firstRow: 0 });
+
+  expect(onFirstDataRendered).toHaveBeenCalledWith({ firstRow: 0 });
 });
 
 test('applies custom theme colors from Superset theme', () => {
@@ -217,4 +260,30 @@ test('handles missing theme gracefully', () => {
 
   // Should still render without crashing
   expect(screen.getByTestId('ag-grid-react')).toBeInTheDocument();
+});
+
+test('merges theme overrides with default theme parameters', () => {
+  const themeOverrides = {
+    fontSize: 16,
+    headerBackgroundColor: '#custom-color',
+  };
+
+  render(
+    <ThemedAgGridReact
+      rowData={mockRowData}
+      columnDefs={mockColumnDefs}
+      themeOverrides={themeOverrides}
+    />,
+  );
+
+  const agGrid = screen.getByTestId('ag-grid-react');
+  const theme = JSON.parse(agGrid.getAttribute('data-theme') || '{}');
+
+  // Custom overrides should be applied
+  expect(theme.fontSize).toBe(16);
+  expect(theme.headerBackgroundColor).toBe('#custom-color');
+
+  // Default theme parameters should still be present
+  expect(theme.foregroundColor).toBeDefined();
+  expect(theme.borderColor).toBeDefined();
 });

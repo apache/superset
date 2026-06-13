@@ -16,11 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook } from '@testing-library/react-hooks';
-import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
+import { renderHook, act } from '@testing-library/react';
 import { Router } from 'react-router-dom';
 import { createMemoryHistory } from 'history';
-import { act } from 'spec/helpers/testing-library';
+import { useUnsavedChangesPrompt } from '.';
 
 let history = createMemoryHistory({
   initialEntries: ['/dashboard'],
@@ -57,10 +56,7 @@ test('should block navigation and show modal if there are unsaved changes', () =
     { wrapper },
   );
 
-  // Simulate blocked navigation
   act(() => {
-    const unblock = history.block((tx: any) => tx);
-    unblock();
     history.push('/another-page');
   });
 
@@ -79,9 +75,7 @@ test('should trigger onSave and hide modal on handleSaveAndCloseModal', async ()
     { wrapper },
   );
 
-  await act(async () => {
-    await result.current.handleSaveAndCloseModal();
-  });
+  await result.current.handleSaveAndCloseModal();
 
   expect(onSave).toHaveBeenCalled();
   expect(result.current.showModal).toBe(false);
@@ -99,9 +93,7 @@ test('should trigger manual save and not show modal again', async () => {
     { wrapper },
   );
 
-  act(() => {
-    result.current.triggerManualSave();
-  });
+  result.current.triggerManualSave();
 
   expect(onSave).toHaveBeenCalled();
   expect(result.current.showModal).toBe(false);
@@ -121,8 +113,6 @@ test('should close modal when handleConfirmNavigation is called', () => {
 
   // First, trigger navigation to show the modal
   act(() => {
-    const unblock = history.block((tx: any) => tx);
-    unblock();
     history.push('/another-page');
   });
 
@@ -134,4 +124,44 @@ test('should close modal when handleConfirmNavigation is called', () => {
   });
 
   expect(result.current.showModal).toBe(false);
+});
+
+test('should preserve pathname, search, and state when confirming navigation', () => {
+  const onSave = jest.fn();
+  const history = createMemoryHistory();
+  const wrapper = ({ children }: any) => (
+    <Router history={history}>{children}</Router>
+  );
+
+  const locationState = { fromDashboard: true, dashboardId: 123 };
+  const pathname = '/another-page';
+  const search = '?slice_id=42&foo=bar';
+
+  const { result } = renderHook(
+    () => useUnsavedChangesPrompt({ hasUnsavedChanges: true, onSave }),
+    { wrapper },
+  );
+
+  const pushSpy = jest.spyOn(history, 'push');
+
+  // Simulate a blocked navigation (the hook sets up history.block internally)
+  act(() => {
+    history.push({ pathname, search }, locationState);
+  });
+
+  // Modal should now be visible
+  expect(result.current.showModal).toBe(true);
+
+  // Confirm navigation
+  act(() => {
+    result.current.handleConfirmNavigation();
+  });
+
+  // Modal should close
+  expect(result.current.showModal).toBe(false);
+
+  // Verify correct call with pathname, search, and state preserved
+  expect(pushSpy).toHaveBeenCalledWith({ pathname, search }, locationState);
+
+  pushSpy.mockRestore();
 });

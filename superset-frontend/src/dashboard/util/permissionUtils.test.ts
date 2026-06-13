@@ -41,12 +41,13 @@ const ownerUser: UserWithPermissionsAndRoles = {
   username: 'owner',
   permissions: {},
   roles: { Alpha: [['can_write', 'Dashboard']] },
+  groups: [],
 };
 
 const adminUser: UserWithPermissionsAndRoles = {
   ...ownerUser,
   roles: {
-    ...(ownerUser?.roles || {}),
+    ...ownerUser?.roles,
     Admin: [['can_write', 'Dashboard']],
   },
   userId: 2,

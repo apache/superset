@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { css, styled, SupersetTheme } from '@superset-ui/core';
+import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
 import { Button, JsonEditor } from '@superset-ui/core/components';
 
 const CTAS_CVAS_SCHEMA_FORM_HEIGHT = 108;
@@ -106,6 +106,7 @@ export const infoTooltip = (theme: SupersetTheme) => css`
     margin-bottom: ${theme.sizeUnit * 0.25}px;
   }
   display: flex;
+  align-items: center;
 `;
 
 export const toggleStyle = (theme: SupersetTheme) => css`
@@ -119,7 +120,7 @@ export const formScrollableStyles = (theme: SupersetTheme) => css`
 
 export const antDModalStyles = (theme: SupersetTheme) => css`
   .ant-select-dropdown {
-    height: ${theme.sizeUnit * 40}px;
+    max-height: ${theme.sizeUnit * 40}px;
   }
 
   .ant-modal-header {
@@ -292,10 +293,17 @@ export const StyledInputContainer = styled.div`
   `}
 `;
 
+// Named-reference type annotation: TypeScript 6.0 declaration emit (TS2883)
+// won't let us leak react-ace's IAceOptions/ICommand/IEditorProps/IMarker
+// through the inferred type because they live in @superset-ui/core's nested
+// node_modules and aren't portable. Aliasing to `typeof JsonEditor` emits a
+// named reference in the .d.ts instead of the expanded structural type.
+// The styled-components and ForwardRefExoticComponent shapes don't overlap
+// structurally, so we bounce through `unknown` to widen the cast.
 export const StyledJsonEditor = styled(JsonEditor)`
   flex: 1 1 auto;
   /* Border is already applied by AceEditor itself */
-`;
+` as unknown as typeof JsonEditor;
 
 export const StyledExpandableForm = styled.div`
   padding-top: ${({ theme }) => theme.sizeUnit}px;
@@ -324,6 +332,7 @@ export const StyledAlignment = styled.div`
 
 export const buttonLinkStyles = (theme: SupersetTheme) => css`
   text-transform: initial;
+  padding: 0 ${theme.sizeUnit * 4}px;
   padding-right: ${theme.sizeUnit * 2}px;
 `;
 
@@ -335,8 +344,8 @@ export const importDbButtonLinkStyles = (theme: SupersetTheme) => css`
 
 export const alchemyButtonLinkStyles = (theme: SupersetTheme) => css`
   text-transform: initial;
-  padding: ${theme.sizeUnit * 8}px 0 0;
   margin-left: 0px;
+  padding: 0 ${theme.sizeUnit * 2}px 0 0;
 `;
 
 export const TabHeader = styled.div`
@@ -375,6 +384,15 @@ export const EditHeaderSubtitle = styled.div`
 `;
 
 export const CredentialInfoForm = styled.div`
+  margin-top: ${({ theme }) => theme.sizeUnit * 4}px;
+
+  /* Match the label-to-input spacing used by LabeledErrorBoundInput's
+     StyledInput so the bare <FormLabel>+<Select> pairs in this form look
+     consistent with the surrounding Display name / Service Account inputs. */
+  .ant-select {
+    margin: ${({ theme }) => `${theme.sizeUnit}px 0 ${theme.sizeUnit * 2}px`};
+  }
+
   .catalog-type-select {
     margin: 0 0 20px;
   }

@@ -60,7 +60,7 @@ export const extractForecastValuesFromTooltipParams = (
 ): Record<string, ForecastValue> => {
   const values: Record<string, ForecastValue> = {};
   params.forEach(param => {
-    const { marker, seriesId, value } = param;
+    const { marker, seriesId, value, color } = param;
     const context = extractForecastSeriesContext(seriesId);
     const numericValue = isHorizontal ? value[0] : value[1];
     if (typeof numericValue === 'number') {
@@ -69,6 +69,7 @@ export const extractForecastValuesFromTooltipParams = (
           marker: marker || '',
         };
       const forecastValues = values[context.name];
+      forecastValues.color = color;
       if (context.type === ForecastSeriesEnum.Observation)
         forecastValues.observation = numericValue;
       if (context.type === ForecastSeriesEnum.ForecastTrend)

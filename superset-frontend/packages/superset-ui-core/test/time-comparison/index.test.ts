@@ -24,7 +24,7 @@ import {
 } from '@superset-ui/core';
 
 describe('index', () => {
-  it('exports modules', () => {
+  test('exports modules', () => {
     [ComparisonTimeRangeType, getComparisonFilters, getComparisonInfo].forEach(
       x => expect(x).toBeDefined(),
     );

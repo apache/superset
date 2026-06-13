@@ -24,12 +24,9 @@ from typing import Any, Callable
 from zipfile import is_zipfile, ZipFile
 
 from flask import request, Response, send_file
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.api.schemas import get_item_schema
-from flask_appbuilder.const import (
-    API_RESULT_RES_KEY,
-    API_SELECT_COLUMNS_RIS_KEY,
-)
+from flask_appbuilder.const import API_RESULT_RES_KEY, API_SELECT_COLUMNS_RIS_KEY
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
 from jinja2.exceptions import TemplateSyntaxError
@@ -76,13 +73,10 @@ from superset.datasets.schemas import (
     GetOrCreateDatasetSchema,
     openapi_spec_methods_override,
 )
-from superset.exceptions import (
-    SupersetSyntaxErrorException,
-    SupersetTemplateException,
-)
+from superset.exceptions import SupersetSyntaxErrorException, SupersetTemplateException
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.utils import json
-from superset.utils.core import parse_boolean_string
+from superset.utils.core import parse_boolean_string, sanitize_cookie_token
 from superset.views.base import DatasourceFilter
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
@@ -167,6 +161,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "schema",
         "description",
         "main_dttm_col",
+        "currency_code_column",
         "normalize_columns",
         "always_filter_main_dttm",
         "offset",
@@ -250,6 +245,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
         "schema",
         "description",
         "main_dttm_col",
+        "currency_code_column",
         "normalize_columns",
         "always_filter_main_dttm",
         "offset",
@@ -517,7 +513,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_export_ids_schema)
+    @parse_rison(get_export_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.export",
         log_to_statsd=False,
@@ -574,7 +570,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 
@@ -705,6 +701,88 @@ class DatasetRestApi(BaseSupersetModelRestApi):
             )
             return self.response_422(message=str(ex))
 
+    @expose("/<pk>/detect_datetime_formats", methods=("POST",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
+        ".detect_datetime_formats",
+        log_to_statsd=False,
+    )
+    def detect_datetime_formats(self, pk: int) -> Response:
+        """Detect and store datetime formats for dataset columns.
+        ---
+        post:
+          summary: Detect datetime formats for dataset columns
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+          - in: query
+            schema:
+              type: boolean
+            name: force
+            description: Force re-detection even if formats already exist
+          responses:
+            200:
+              description: Datetime formats detected
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      formats:
+                        type: object
+                        additionalProperties:
+                          type: string
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.datasets.datetime_format_detector import DatetimeFormatDetector
+
+        try:
+            # Get force parameter from query string
+            force = parse_boolean_string(request.args.get("force", "false"))
+
+            # Get dataset
+            dataset = DatasetDAO.find_by_id(pk)
+            if not dataset:
+                return self.response_404()
+
+            # Check ownership
+            try:
+                security_manager.raise_for_ownership(dataset)
+            except Exception:  # pylint: disable=broad-except
+                return self.response_403()
+
+            # Detect formats
+            detector = DatetimeFormatDetector()
+            formats = detector.detect_all_formats(dataset, force=force)
+
+            return self.response(
+                200,
+                message="Datetime formats detected successfully",
+                formats=formats,
+            )
+        except Exception as ex:
+            logger.exception(
+                "Error detecting datetime formats for dataset %s: %s",
+                pk,
+                str(ex),
+            )
+            return self.response_500(message=str(ex))
+
     @expose("/<id_or_uuid>/related_objects", methods=("GET",))
     @protect()
     @safe
@@ -750,6 +828,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 "viz_type": chart.viz_type,
             }
             for chart in data["charts"]
+            if security_manager.can_access_chart(chart)
         ]
         dashboards = [
             {
@@ -759,6 +838,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
                 "title": dashboard.dashboard_title,
             }
             for dashboard in data["dashboards"]
+            if security_manager.can_access_dashboard(dashboard)
         ]
         return self.response(
             200,
@@ -770,7 +850,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_delete_ids_schema)
+    @parse_rison(get_delete_ids_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.bulk_delete",
         log_to_statsd=False,
@@ -1087,7 +1167,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
     @expose("/<id_or_uuid>", methods=("GET",))
     @protect()
     @safe
-    @rison(get_item_schema)
+    @parse_rison(get_item_schema)
     @statsd_metrics
     @handle_api_exception
     @event_logger.log_this_with_context(
@@ -1173,7 +1253,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
         if parse_boolean_string(request.args.get("include_rendered_sql")):
             try:
-                processor = get_template_processor(database=table.database)
+                processor = get_template_processor(database=table.database, table=table)
                 response["result"] = self.render_dataset_fields(
                     response["result"], processor
                 )
@@ -1184,7 +1264,7 @@ class DatasetRestApi(BaseSupersetModelRestApi):
 
     @expose("/<int:pk>/drill_info/", methods=("GET",))
     @protect()
-    @rison(get_drill_info_schema)
+    @parse_rison(get_drill_info_schema)
     @safe
     @statsd_metrics
     @event_logger.log_this_with_context(

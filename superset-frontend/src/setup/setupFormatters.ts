@@ -36,6 +36,7 @@ import { TimeLocaleDefinition } from 'd3-time-format';
 export default function setupFormatters(
   d3NumberFormat: Partial<FormatLocaleDefinition>,
   d3TimeFormat: Partial<TimeLocaleDefinition>,
+  locale: string,
 ) {
   getNumberFormatterRegistry()
     .setD3Format(d3NumberFormat)
@@ -73,14 +74,22 @@ export default function setupFormatters(
     .registerValue('$,0', getNumberFormatter('$,.4f'))
     .registerValue('$,0f', getNumberFormatter('$,.4f'))
     .registerValue('$,.f', getNumberFormatter('$,.4f'))
-    .registerValue('DURATION', createDurationFormatter())
+    .registerValue('DURATION', createDurationFormatter({ locale }))
     .registerValue(
       'DURATION_SUB',
-      createDurationFormatter({ formatSubMilliseconds: true }),
+      createDurationFormatter({
+        locale,
+        formatSubMilliseconds: true,
+      }),
     )
     .registerValue(
       'DURATION_COL',
-      createDurationFormatter({ colonNotation: true }),
+      createDurationFormatter({
+        locale,
+        style: 'digital',
+        formatSubMilliseconds: true,
+        fractionalDigits: 1,
+      }),
     )
     .registerValue('MEMORY_DECIMAL', createMemoryFormatter({ binary: false }))
     .registerValue('MEMORY_BINARY', createMemoryFormatter({ binary: true }))

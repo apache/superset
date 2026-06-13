@@ -19,15 +19,9 @@
 /* eslint-env browser */
 import cx from 'classnames';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  addAlpha,
-  css,
-  JsonObject,
-  styled,
-  t,
-  useTheme,
-  useElementOnScreen,
-} from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
+import { addAlpha, JsonObject, useElementOnScreen } from '@superset-ui/core';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { EmptyState, Loading } from '@superset-ui/core/components';
 import { ErrorBoundary, BasicErrorAlert } from 'src/components';
@@ -55,6 +49,7 @@ import {
   handleComponentDrop,
   clearDashboardHistory,
 } from 'src/dashboard/actions/dashboardLayout';
+import { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
 import {
   DASHBOARD_GRID_ID,
   DASHBOARD_ROOT_DEPTH,
@@ -96,14 +91,18 @@ const StickyPanel = styled.div<{ width: number }>`
 `;
 
 // @z-index-above-dashboard-popovers (99) + 1 = 100
-const StyledHeader = styled.div`
-  ${({ theme }) => css`
+const StyledHeader = styled.div<{ filterBarWidth: number }>`
+  ${({ theme, filterBarWidth }) => css`
     grid-column: 2;
     grid-row: 1;
     position: sticky;
     top: 0;
     z-index: 99;
-    max-width: 100vw;
+    max-width: calc(100vw - ${filterBarWidth}px);
+
+    .empty-droptarget {
+      min-height: ${theme.sizeUnit * 4}px;
+    }
 
     .empty-droptarget:before {
       position: absolute;
@@ -258,7 +257,7 @@ const DashboardContentWrapper = styled.div`
         width: 100%;
       }
 
-      & > .empty-droptarget:first-child:not(.empty-droptarget--full) {
+      & > .empty-droptarget:first-of-type:not(.empty-droptarget--full) {
         height: ${theme.sizeUnit * 4}px;
         top: 0;
       }
@@ -304,8 +303,8 @@ const StyledDashboardContent = styled.div<{
     `}
 
       /* this is the ParentSize wrapper */
-    & > div:first-child {
-        height: inherit !important;
+    & > div:first-of-type {
+        height: 100% !important;
       }
     }
 
@@ -320,6 +319,7 @@ const StyledDashboardContent = styled.div<{
       background-color: ${theme.colorBgContainer};
       position: relative;
       padding: ${theme.sizeUnit * 4}px;
+      box-sizing: border-box;
       overflow-y: visible;
 
       // transitionable traits to show filter relevance
@@ -337,7 +337,7 @@ const StyledDashboardContent = styled.div<{
 
       &.fade-out {
         border-radius: ${theme.borderRadius}px;
-        box-shadow: none;
+        box-shadow: 0 0 0 1px ${addAlpha(theme.colorBorder, 0.5)};
       }
 
       & .missing-chart-container {
@@ -407,7 +407,7 @@ const DashboardBuilder = () => {
   }, [dashboardLayout, dispatch]);
 
   const handleDrop = useCallback(
-    dropResult => dispatch(handleComponentDrop(dropResult)),
+    (dropResult: DropResult) => dispatch(handleComponentDrop(dropResult)),
     [dispatch],
   );
 
@@ -426,6 +426,9 @@ const DashboardBuilder = () => {
     isReport;
 
   const [barTopOffset, setBarTopOffset] = useState(0);
+  const [currentFilterBarWidth, setCurrentFilterBarWidth] = useState(
+    CLOSED_FILTER_BAR_WIDTH,
+  );
 
   useEffect(() => {
     setBarTopOffset(headerRef.current?.getBoundingClientRect()?.height || 0);
@@ -506,9 +509,9 @@ const DashboardBuilder = () => {
     currentTopLevelTabs.current = topLevelTabs;
   }, [topLevelTabs]);
 
-  const renderDraggableContent = useCallback(
-    ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
-      <div>
+  const headerContent = useMemo(
+    () => (
+      <>
         {!hideDashboardHeader && <DashboardHeader />}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
@@ -517,42 +520,51 @@ const DashboardBuilder = () => {
               hidden={isReport}
             />
           )}
+      </>
+    ),
+    [hideDashboardHeader, showFilterBar, filterBarOrientation, isReport],
+  );
+
+  const renderDraggableContent = useCallback(
+    ({ dropIndicatorProps }: { dropIndicatorProps: JsonObject }) => (
+      <div>
         {dropIndicatorProps && <div {...dropIndicatorProps} />}
-        {!isReport && topLevelTabs && !uiConfig.hideNav && (
-          <WithPopoverMenu
-            shouldFocus={shouldFocusTabs}
-            menuItems={[
-              <IconButton
-                icon={<Icons.FallOutlined iconSize="xl" />}
-                label={t('Collapse tab content')}
-                onClick={handleDeleteTopLevelTabs}
-              />,
-            ]}
-            editMode={editMode}
-          >
-            {/* @ts-ignore */}
-            <DashboardComponent
-              id={topLevelTabs?.id}
-              parentId={DASHBOARD_ROOT_ID}
-              depth={DASHBOARD_ROOT_DEPTH + 1}
-              index={0}
-              renderTabContent={false}
-              renderHoverMenu={false}
-              onChangeTab={handleChangeTab}
-            />
-          </WithPopoverMenu>
-        )}
+        {!isReport &&
+          topLevelTabs &&
+          !uiConfig.hideTab &&
+          !uiConfig.hideNav && (
+            <WithPopoverMenu
+              shouldFocus={shouldFocusTabs}
+              menuItems={[
+                <IconButton
+                  key="collapse-tabs"
+                  icon={<Icons.FallOutlined iconSize="xl" />}
+                  label={t('Collapse tab content')}
+                  onClick={handleDeleteTopLevelTabs}
+                />,
+              ]}
+              editMode={editMode}
+            >
+              <DashboardComponent
+                id={topLevelTabs?.id}
+                parentId={DASHBOARD_ROOT_ID}
+                depth={DASHBOARD_ROOT_DEPTH + 1}
+                index={0}
+                renderTabContent={false}
+                renderHoverMenu={false}
+                onChangeTab={handleChangeTab}
+              />
+            </WithPopoverMenu>
+          )}
       </div>
     ),
     [
-      nativeFiltersEnabled,
-      filterBarOrientation,
       editMode,
       handleChangeTab,
       handleDeleteTopLevelTabs,
-      hideDashboardHeader,
       isReport,
       topLevelTabs,
+      uiConfig.hideTab,
       uiConfig.hideNav,
     ],
   );
@@ -562,10 +574,13 @@ const DashboardBuilder = () => {
     : theme.sizeUnit * 8;
 
   const renderChild = useCallback(
-    adjustedWidth => {
+    (adjustedWidth: number) => {
       const filterBarWidth = dashboardFiltersOpen
         ? adjustedWidth
         : CLOSED_FILTER_BAR_WIDTH;
+      if (filterBarWidth !== currentFilterBarWidth) {
+        setCurrentFilterBarWidth(filterBarWidth);
+      }
       return (
         <FiltersPanel
           width={filterBarWidth}
@@ -598,24 +613,31 @@ const DashboardBuilder = () => {
     ],
   );
 
+  const isVerticalFilterBarVisible =
+    showFilterBar && filterBarOrientation === FilterBarOrientation.Vertical;
+  const headerFilterBarWidth = isVerticalFilterBarVisible
+    ? currentFilterBarWidth
+    : 0;
+
   return (
     <DashboardWrapper>
-      {showFilterBar &&
-        filterBarOrientation === FilterBarOrientation.Vertical && (
-          <>
-            <ResizableSidebar
-              id={`dashboard:${dashboardId}`}
-              enable={dashboardFiltersOpen}
-              minWidth={OPEN_FILTER_BAR_WIDTH}
-              maxWidth={OPEN_FILTER_BAR_MAX_WIDTH}
-              initialWidth={OPEN_FILTER_BAR_WIDTH}
-            >
-              {renderChild}
-            </ResizableSidebar>
-          </>
-        )}
-      <StyledHeader ref={headerRef}>
-        {/* @ts-ignore */}
+      {isVerticalFilterBarVisible && (
+        <ResizableSidebar
+          id={`dashboard:${dashboardId}`}
+          enable={dashboardFiltersOpen}
+          minWidth={OPEN_FILTER_BAR_WIDTH}
+          maxWidth={OPEN_FILTER_BAR_MAX_WIDTH}
+          initialWidth={OPEN_FILTER_BAR_WIDTH}
+        >
+          {renderChild}
+        </ResizableSidebar>
+      )}
+      <StyledHeader
+        data-test="dashboard-header-wrapper"
+        ref={headerRef}
+        filterBarWidth={headerFilterBarWidth}
+      >
+        {headerContent}
         <Droppable
           data-test="top-level-tabs"
           className={cx(!topLevelTabs && editMode && 'empty-droptarget')}

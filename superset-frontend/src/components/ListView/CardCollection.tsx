@@ -18,7 +18,7 @@
  */
 import { ReactNode, MouseEvent as ReactMouseEvent } from 'react';
 import { TableInstance, Row, UseRowSelectRowProps } from 'react-table';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import cx from 'classnames';
 
 interface CardCollectionProps {
@@ -79,7 +79,7 @@ export default function CardCollection({
     <CardContainer showThumbnails={showThumbnails}>
       {loading &&
         rows.length === 0 &&
-        [...new Array(25)].map((e, i) => (
+        Array.from({ length: 25 }, (_, i) => (
           <div key={i}>{renderCard({ loading })}</div>
         ))}
       {rows.length > 0 &&

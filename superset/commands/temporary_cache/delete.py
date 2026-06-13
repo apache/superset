@@ -32,6 +32,7 @@ class DeleteTemporaryCacheCommand(BaseCommand, ABC):
 
     @transaction(on_error=partial(on_error, reraise=TemporaryCacheDeleteFailedError))
     def run(self) -> bool:
+        self.validate()
         return self.delete(self._cmd_params)
 
     def validate(self) -> None:

@@ -18,15 +18,18 @@
  */
 import 'src/public-path';
 
-import { lazy, Suspense } from 'react';
-import ReactDOM from 'react-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
 import { BrowserRouter as Router, Route } from 'react-router-dom';
+import { Global } from '@emotion/react';
+import { t } from '@apache-superset/core/translation';
+import { makeApi } from '@superset-ui/core';
+import { logging } from '@apache-superset/core/utils';
 import {
   type SupersetThemeConfig,
-  makeApi,
-  t,
-  logging,
-} from '@superset-ui/core';
+  ThemeMode,
+  css,
+} from '@apache-superset/core/theme';
 import Switchboard from '@superset-ui/switchboard';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import setupClient from 'src/setup/setupClient';
@@ -45,6 +48,7 @@ import {
 } from './EmbeddedContextProviders';
 import { embeddedApi } from './api';
 import { getDataMaskChangeTrigger } from './utils';
+import { validateMessageEvent } from './originValidation';
 
 setupPlugins();
 setupCodeOverrides({ embedded: true });
@@ -63,20 +67,21 @@ const LazyDashboardPage = lazy(
     ),
 );
 
-const EmbededLazyDashboardPage = () => {
+const EmbeddedLazyDashboardPage = () => {
   const uiConfig = useUiConfig();
+  const emitDataMasks = uiConfig?.emitDataMasks;
 
-  // Emit data mask changes to the parent window
-  if (uiConfig?.emitDataMasks) {
+  // Emit data mask changes to the parent window. Subscribing inside an effect
+  // (rather than during render) ensures the unsubscribe runs on unmount,
+  // including StrictMode's dev-mode double-mount cycle.
+  useEffect(() => {
+    if (!emitDataMasks) return undefined;
     log('setting up Switchboard event emitter');
 
     let previousDataMask = store.getState().dataMask;
 
-    store.subscribe(() => {
-      const currentState = store.getState();
-      const currentDataMask = currentState.dataMask;
-
-      // Only emit if the dataMask has changed
+    return store.subscribe(() => {
+      const currentDataMask = store.getState().dataMask;
       if (previousDataMask !== currentDataMask) {
         Switchboard.emit('observeDataMask', {
           ...currentDataMask,
@@ -85,16 +90,26 @@ const EmbededLazyDashboardPage = () => {
         previousDataMask = currentDataMask;
       }
     });
-  }
+  }, [emitDataMasks]);
 
   return <LazyDashboardPage idOrSlug={bootstrapData.embedded!.dashboard_id} />;
 };
 
 const EmbeddedRoute = () => (
   <EmbeddedContextProviders>
+    <Global
+      styles={css`
+        /* Apply box-sizing reset for embedded dashboards to fix layout issues */
+        *,
+        *::before,
+        *::after {
+          box-sizing: border-box;
+        }
+      `}
+    />
     <Suspense fallback={<Loading />}>
       <ErrorBoundary>
-        <EmbededLazyDashboardPage />
+        <EmbeddedLazyDashboardPage />
       </ErrorBoundary>
       <ToastContainer position="top" />
     </Suspense>
@@ -111,8 +126,6 @@ const EmbeddedApp = () => (
 
 const appMountPoint = document.getElementById('app')!;
 
-const MESSAGE_TYPE = '__embedded_comms__';
-
 function showFailureMessage(message: string) {
   appMountPoint.innerHTML = message;
 }
@@ -125,18 +138,9 @@ if (!window.parent || window.parent === window) {
   );
 }
 
-// if the page is embedded in an origin that hasn't
-// been authorized by the curator, we forbid access entirely.
-// todo: check the referrer on the route serving this page instead
-// const ALLOW_ORIGINS = ['http://127.0.0.1:9001', 'http://localhost:9001'];
-// const parentOrigin = new URL(document.referrer).origin;
-// if (!ALLOW_ORIGINS.includes(parentOrigin)) {
-//   throw new Error(
-//     `[superset] iframe parent ${parentOrigin} is not in the list of allowed origins`,
-//   );
-// }
-
 let displayedUnauthorizedToast = false;
+let root: Root | null = null;
+let started = false;
 
 /**
  * If there is a problem with the guest token, we will start getting
@@ -162,6 +166,8 @@ function guestUnauthorizedHandler() {
 }
 
 function start() {
+  if (started) return undefined;
+  started = true;
   const getMeWithRole = makeApi<void, { result: UserWithPermissionsAndRoles }>({
     method: 'GET',
     endpoint: '/api/v1/me/roles/',
@@ -176,16 +182,21 @@ function start() {
         type: USER_LOADED,
         user: result,
       });
-      ReactDOM.render(<EmbeddedApp />, appMountPoint);
+      if (!root) {
+        root = createRoot(appMountPoint);
+      }
+      root.render(<EmbeddedApp />);
     },
     err => {
-      // something is most likely wrong with the guest token
+      // something is most likely wrong with the guest token; reset the guard
+      // so a rehandshake with a valid token can retry.
       logging.error(err);
       showFailureMessage(
         t(
           'Something went wrong with embedded authentication. Check the dev console for details.',
         ),
       );
+      started = false;
     },
   );
 }
@@ -202,21 +213,9 @@ function setupGuestClient(guestToken: string) {
   });
 }
 
-function validateMessageEvent(event: MessageEvent) {
-  // if (!ALLOW_ORIGINS.includes(event.origin)) {
-  //   throw new Error('Message origin is not in the allowed list');
-  // }
-
-  if (typeof event.data !== 'object' || event.data.type !== MESSAGE_TYPE) {
-    throw new Error(`Message type does not match type used for embedded comms`);
-  }
-}
-
 window.addEventListener('message', function embeddedPageInitializer(event) {
-  try {
-    validateMessageEvent(event);
-  } catch (err) {
-    log('ignoring message unrelated to embedded comms', err, event);
+  if (!validateMessageEvent(event, bootstrapData.embedded?.allowed_domains)) {
+    log('ignoring message unrelated to embedded comms', event);
     return;
   }
 
@@ -230,16 +229,11 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
       debug: debugMode,
     });
 
-    let started = false;
-
     Switchboard.defineMethod(
       'guestToken',
       ({ guestToken }: { guestToken: string }) => {
         setupGuestClient(guestToken);
-        if (!started) {
-          start();
-          started = true;
-        }
+        start();
       },
     );
 
@@ -250,6 +244,11 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
     );
     Switchboard.defineMethod('getActiveTabs', embeddedApi.getActiveTabs);
     Switchboard.defineMethod('getDataMask', embeddedApi.getDataMask);
+    Switchboard.defineMethod('getChartStates', embeddedApi.getChartStates);
+    Switchboard.defineMethod(
+      'getChartDataPayloads',
+      embeddedApi.getChartDataPayloads,
+    );
     Switchboard.defineMethod(
       'setThemeConfig',
       (payload: { themeConfig: SupersetThemeConfig }) => {
@@ -267,11 +266,44 @@ window.addEventListener('message', function embeddedPageInitializer(event) {
       },
     );
 
+    Switchboard.defineMethod(
+      'setThemeMode',
+      (payload: { mode: 'default' | 'dark' | 'system' }) => {
+        const { mode } = payload;
+        log('Received setThemeMode request:', mode);
+
+        try {
+          const themeController = getThemeController();
+
+          const themeModeMap: Record<string, ThemeMode> = {
+            default: ThemeMode.DEFAULT,
+            dark: ThemeMode.DARK,
+            system: ThemeMode.SYSTEM,
+          };
+
+          const themeMode = themeModeMap[mode];
+          if (!themeMode) {
+            throw new Error(`Invalid theme mode: ${mode}`);
+          }
+
+          themeController.setThemeMode(themeMode);
+          return { success: true, message: `Theme mode set to ${mode}` };
+        } catch (error) {
+          logging.debug('Theme mode not changed:', error.message);
+          return {
+            success: false,
+            message: `Theme locked to current mode`,
+            silent: true,
+          };
+        }
+      },
+    );
+
     Switchboard.start();
   }
 });
 
-// Clean up theme controller on page unload
+// Clean up theme controller and unmount React root on page unload
 window.addEventListener('beforeunload', () => {
   try {
     const controller = getThemeController();
@@ -281,6 +313,10 @@ window.addEventListener('beforeunload', () => {
     }
   } catch (error) {
     logging.warn('Failed to destroy theme controller:', error);
+  }
+  if (root) {
+    root.unmount();
+    root = null;
   }
 });
 

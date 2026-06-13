@@ -32,6 +32,11 @@ from superset.commands.database.exceptions import (
 )
 from superset.daos.database import DatabaseDAO
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import (
+    SupersetSyntaxErrorException,
+    SupersetTemplateException,
+)
+from superset.jinja_context import get_template_processor
 from superset.models.core import Database
 from superset.sql_validators import get_validator_by_name
 from superset.sql_validators.base import BaseSQLValidator
@@ -62,12 +67,51 @@ class ValidateSQLCommand(BaseCommand):
         sql = self._properties["sql"]
         catalog = self._properties.get("catalog")
         schema = self._properties.get("schema")
+        template_params = self._properties.get("template_params") or {}
+
         try:
+            # Render Jinja templates to handle template syntax before
+            # validation. Note: The ENABLE_TEMPLATE_PROCESSING feature flag is
+            # checked within get_template_processor(), which returns
+            # NoOpTemplateProcessor when disabled. Template processing errors
+            # (e.g., undefined filters, syntax errors) are caught by this
+            # exception handler and surfaced to the client as
+            # ValidatorSQLError or ValidatorSQL400Error with appropriate error
+            # messages.
+            template_processor = get_template_processor(self._model)
+            # process_template() renders Jinja2 templates and always returns a
+            # new string (does not mutate the input SQL). May raise
+            # SupersetSyntaxErrorException for template syntax errors or
+            # SupersetTemplateException for internal errors.
+            sql = template_processor.process_template(sql, **template_params)
+
             timeout = app.config["SQLLAB_VALIDATION_TIMEOUT"]
             timeout_msg = f"The query exceeded the {timeout} seconds timeout."
             with utils.timeout(seconds=timeout, error_message=timeout_msg):
                 errors = self._validator.validate(sql, catalog, schema, self._model)
             return [err.to_dict() for err in errors]
+        except SupersetSyntaxErrorException as ex:
+            # Template syntax errors (e.g., invalid Jinja2 syntax, undefined variables)
+            # These contain detailed error information including line numbers
+            logger.warning(
+                "Template syntax error during SQL validation",
+                extra={"errors": [err.message for err in ex.errors]},
+            )
+            raise ValidatorSQL400Error(ex.errors[0]) from ex
+        except SupersetTemplateException as ex:
+            # Internal template processing errors (e.g., recursion, unexpected failures)
+            logger.error(
+                "Template processing error during SQL validation", exc_info=True
+            )
+            superset_error = SupersetError(
+                message=__(
+                    "Template processing failed: %(ex)s",
+                    ex=str(ex),
+                ),
+                error_type=SupersetErrorType.GENERIC_COMMAND_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+            raise ValidatorSQL400Error(superset_error) from ex
         except Exception as ex:
             logger.exception(ex)
             superset_error = SupersetError(

@@ -1,0 +1,35 @@
+{
+  "name": "@superset/mcp-server",
+  "version": "1.0.0",
+  "description": "Apache Superset MCP (Model Context Protocol) Server",
+  "main": "index.js",
+  "bin": {
+    "superset-mcp": "./bin/superset-mcp.js"
+  },
+  "scripts": {
+    "start": "node bin/superset-mcp.js",
+    "stdio": "node bin/superset-mcp.js --stdio",
+    "http": "node bin/superset-mcp.js --http"
+  },
+  "keywords": [
+    "mcp",
+    "superset",
+    "apache-superset",
+    "model-context-protocol",
+    "ai",
+    "claude"
+  ],
+  "author": "Apache Superset Contributors",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset/mcp_service"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {},
+  "preferGlobal": false
+}

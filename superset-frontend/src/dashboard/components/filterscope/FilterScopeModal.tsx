@@ -17,7 +17,7 @@
  * under the License.
  */
 import { createRef, PureComponent } from 'react';
-import { styled } from '@superset-ui/core';
+import { styled } from '@apache-superset/core/theme';
 import {
   ModalTrigger,
   ModalTriggerRef,

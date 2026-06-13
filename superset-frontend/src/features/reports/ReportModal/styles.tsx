@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { styled, css, SupersetTheme } from '@superset-ui/core';
+import { styled, css, SupersetTheme } from '@apache-superset/core/theme';
 import { Button, CronPicker, Modal } from '@superset-ui/core/components';
 import { Radio } from '@superset-ui/core/components/Radio';
 
@@ -67,10 +67,13 @@ export const StyledScheduleTitle = styled.div`
   }
 `;
 
+// Named-reference type annotation: TypeScript 6.0 declaration emit (TS2883)
+// can't name CronProps from react-js-cron via its nested node_modules path.
+// Aliasing to `typeof CronPicker` emits a named reference in the .d.ts.
 export const StyledCronPicker = styled(CronPicker)`
   margin-bottom: ${({ theme }) => theme.sizeUnit * 3}px;
   width: ${({ theme }) => theme.sizeUnit * 120}px;
-`;
+` as typeof CronPicker;
 
 export const StyledCronError = styled.p`
   color: ${({ theme }) => theme.colorError};

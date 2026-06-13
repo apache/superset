@@ -30,7 +30,7 @@ from sqlalchemy.engine.reflection import Inspector
 
 from superset import db
 from superset.constants import QUERY_EARLY_CANCEL_KEY, TimeGrain
-from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.base import BaseEngineSpec, DatabaseCategory
 from superset.models.sql_lab import Query
 
 if TYPE_CHECKING:
@@ -46,6 +46,23 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     engine = "impala"
     engine_name = "Apache Impala"
+
+    metadata = {
+        "description": (
+            "Apache Impala is an open-source massively parallel "
+            "processing SQL query engine."
+        ),
+        "logo": "apache-impala.png",
+        "homepage_url": "https://impala.apache.org/",
+        "categories": [
+            DatabaseCategory.APACHE_PROJECTS,
+            DatabaseCategory.QUERY_ENGINES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["impyla"],
+        "connection_string": "impala://{hostname}:{port}/{database}",
+        "default_port": 21050,
+    }
 
     _time_grain_expressions = {
         None: "{col}",
@@ -187,11 +204,20 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
         :param cursor: New cursor instance to the db of the query
         :param query: Query instance
-        :param cancel_query_id: impala db not need
+        :param cancel_query_id: Impala query ID in format "hex:hex"
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent URL injection
+        # Impala query IDs are in "hex:hex" form (16 hex chars per side)
+        if not cls.validate_cancel_query_id(
+            cancel_query_id, r"^[A-Fa-f0-9]{16}:[A-Fa-f0-9]{16}$"
+        ):
+            return False
+
         try:
             impala_host = query.database.url_object.host
+            if not impala_host:
+                return False
             url = f"http://{impala_host}:25000/cancel_query?query_id={cancel_query_id}"
             response = requests.post(url, timeout=3)
         except Exception:  # pylint: disable=broad-except
