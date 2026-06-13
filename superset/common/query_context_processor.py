@@ -541,10 +541,14 @@ class QueryContextProcessor:
 
         :raises SupersetSecurityException: If the user cannot access the resource
         """
-        for query in self._query_context.queries:
-            query.validate()
-
+        # Evaluate access before validating the queries: query validation
+        # renders the request's filter expressions, so the access decision must
+        # come first to avoid rendering caller-supplied input for a resource the
+        # caller is not allowed to access.
         if self._qc_datasource.type == DatasourceType.QUERY:
             security_manager.raise_for_access(query=self._qc_datasource)
         else:
             security_manager.raise_for_access(query_context=self._query_context)
+
+        for query in self._query_context.queries:
+            query.validate()
