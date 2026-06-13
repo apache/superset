@@ -1043,14 +1043,33 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         ``default_schema``, so denylist matching against ``default_schema``
         alone becomes unreliable once such a statement is present.
         """
-        # `SET search_path = schema` parses as a structured exp.Set, surfaced
-        # by get_settings(); `SET search_path TO ...` falls back to an opaque
-        # exp.Command whose expression text names the target variable.
-        if any(key.lower() == "search_path" for key in self.get_settings()):
+        # `SET search_path = schema` (and the `TO`/`SESSION`/`LOCAL` variants)
+        # parse as a structured exp.Set, surfaced by get_settings(). Strip any
+        # identifier quoting so `SET "search_path" = ...` (equivalent to the
+        # unquoted form in Postgres) is still recognized.
+        if any(key.strip('"').lower() == "search_path" for key in self.get_settings()):
             return True
+        # `set_config('search_path', ...)` rebinds the search path through a
+        # function call rather than a SET statement, so it never reaches
+        # get_settings() and must be detected on the parsed tree.
+        for func in self._parsed.find_all(exp.Anonymous):
+            if (
+                func.name.lower() == "set_config"
+                and func.expressions
+                and isinstance(func.expressions[0], exp.Literal)
+                and func.expressions[0].name.lower() == "search_path"
+            ):
+                return True
+        # Exotic forms (e.g. `SET search_path TO "$user", public`) fall back to
+        # an opaque exp.Command. Match the leading setting name rather than
+        # scanning the whole expression, so `SET ROLE my_search_path_role`
+        # (whose value merely contains the substring) is not misclassified.
         parsed = self._parsed
         if isinstance(parsed, exp.Command) and parsed.name.upper() == "SET":
-            return "search_path" in str(parsed.expression).lower()
+            tokens = str(parsed.expression).replace("=", " ").split()
+            while tokens and tokens[0].upper() in {"SESSION", "LOCAL"}:
+                tokens.pop(0)
+            return bool(tokens) and tokens[0].strip('"').lower() == "search_path"
         return False
 
     def get_disallowed_tables(
@@ -1763,19 +1782,21 @@ class SQLScript:
             runtime (e.g. the session ``search_path`` / selected schema)
         :return: The matched entries, in their original denylist form
         """
-        # A `SET search_path` anywhere in the script means a later unqualified
-        # reference can resolve to a schema other than ``default_schema``, so
-        # match unqualified references conservatively to keep a qualified
-        # denylist entry from being bypassed (e.g. `SET search_path =
-        # information_schema; SELECT * FROM tables`).
-        schema_indeterminate = any(
-            statement.changes_search_path() for statement in self.statements
-        )
+        # A `SET search_path` only affects statements that run *after* it, so
+        # track the indeterminate state in statement order: an unqualified
+        # reference is matched conservatively (against the bare-name portion of
+        # qualified denylist entries) only once a preceding statement has
+        # rebound the search path. This keeps a qualified denylist entry from
+        # being bypassed (e.g. `SET search_path = information_schema; SELECT *
+        # FROM tables`) without penalizing statements that ran beforehand.
         found: set[str] = set()
+        schema_indeterminate = False
         for statement in self.statements:
             found |= statement.get_disallowed_tables(
                 tables, default_schema, schema_indeterminate
             )
+            if statement.changes_search_path():
+                schema_indeterminate = True
         return found
 
     def is_valid_ctas(self) -> bool:

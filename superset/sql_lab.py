@@ -436,10 +436,12 @@ def execute_sql_statements(  # noqa: C901
     if disallowed_tables:
         # Report only the denylisted tables actually referenced in the query,
         # honoring schema-qualified entries (e.g. ``information_schema.tables``).
-        # Pass the selected schema so an unqualified reference that resolves
-        # to it at runtime (via the connection ``search_path``) matches too.
+        # Resolve the effective default schema so an unqualified reference that
+        # the connection resolves to it at runtime (e.g. Postgres ``public``)
+        # still matches a qualified entry, even when no schema was selected.
+        effective_schema = query.schema or database.get_default_schema(query.catalog)
         found_tables = parsed_script.get_disallowed_tables(
-            disallowed_tables, query.schema
+            disallowed_tables, effective_schema
         )
         if found_tables:
             raise SupersetDisallowedSQLTableException(found_tables)

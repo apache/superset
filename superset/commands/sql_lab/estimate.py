@@ -105,11 +105,15 @@ class QueryEstimationCommand(BaseCommand):
         if disallowed_tables:
             # Honors schema-qualified denylist entries (e.g.
             # ``information_schema.tables``) and reports only the tables
-            # actually referenced by the query. Pass the selected schema so an
-            # unqualified reference that resolves to it at runtime (via the
-            # connection ``search_path``) matches too.
+            # actually referenced by the query. Resolve the effective default
+            # schema so an unqualified reference that the connection resolves to
+            # it at runtime (e.g. Postgres ``public``) still matches a qualified
+            # entry, even when the request omitted the schema.
+            effective_schema = self._schema or self._database.get_default_schema(
+                self._catalog or self._database.get_default_catalog()
+            )
             found_tables = parsed_script.get_disallowed_tables(
-                disallowed_tables, self._schema
+                disallowed_tables, effective_schema
             )
             if found_tables:
                 raise SupersetDisallowedSQLTableException(found_tables)

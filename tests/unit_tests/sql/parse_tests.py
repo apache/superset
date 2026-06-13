@@ -3712,13 +3712,32 @@ def test_get_disallowed_tables_default_schema(
             {"information_schema.tables"},
             {"information_schema.tables"},
         ),
-        # `SET search_path TO ...` (the exp.Command fallback form) triggers the
-        # same conservative matching.
+        # `SET search_path TO "$user", ...` falls back to an exp.Command (it is
+        # not a structured exp.Set), exercising the same conservative matching
+        # via the command-name detection branch.
         (
-            "SET search_path TO information_schema; SELECT * FROM tables",
+            'SET search_path TO "$user", information_schema; SELECT * FROM tables',
             "public",
             {"information_schema.tables"},
             {"information_schema.tables"},
+        ),
+        # `set_config('search_path', ...)` rebinds the search path through a
+        # function call and must trigger the same conservative matching.
+        (
+            "SELECT set_config('search_path', 'information_schema', true);"
+            " SELECT * FROM tables",
+            "public",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+        # The search-path change only affects later statements: a statement that
+        # runs before it keeps resolving against the original default schema, so
+        # its unqualified reference must NOT be widened.
+        (
+            "SELECT * FROM tables; SET search_path = information_schema",
+            "public",
+            {"information_schema.tables"},
+            set(),
         ),
         # An explicitly qualified reference is unambiguous and must NOT be
         # widened to match a different schema's denylist entry.
@@ -3753,6 +3772,42 @@ def test_get_disallowed_tables_search_path_change(
         SQLScript(sql, "postgresql").get_disallowed_tables(denylist, default_schema)
         == expected
     )
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        # Structured `SET search_path` (exp.Set), surfaced via get_settings().
+        ("SET search_path = information_schema", True),
+        # Exotic form that falls back to exp.Command; the leading setting name
+        # is `search_path`.
+        ('SET search_path TO "$user", public', True),
+        # `SET SESSION ...` can also fall back to exp.Command; the optional
+        # SESSION/LOCAL qualifier is skipped before matching the setting name.
+        ("SET SESSION search_path FROM CURRENT", True),
+        # A quoted identifier is equivalent to the unquoted form in Postgres,
+        # so it must be recognized too (both the exp.Set and exp.Command forms).
+        ('SET "search_path" = information_schema', True),
+        ('SET "search_path" TO "$user", public', True),
+        # A `SET` whose value merely contains the substring `search_path` must
+        # not be misclassified (the setting being changed is `ROLE`).
+        ("SET ROLE app_search_path_user", False),
+        # `set_config('search_path', ...)` rebinds the path via a function call.
+        ("SELECT set_config('search_path', 'information_schema', true)", True),
+        # A different setting changed through `set_config` is not a search-path
+        # change.
+        ("SELECT set_config('statement_timeout', '0', true)", False),
+        # An unrelated (non-`set_config`) function call is not a change either.
+        ("SELECT my_custom_func(1)", False),
+        ("SELECT 1", False),
+    ],
+)
+def test_changes_search_path(sql: str, expected: bool) -> None:
+    """
+    `changes_search_path` detects search-path rebinds (via `SET` or
+    `set_config`) without misclassifying unrelated `SET` statements.
+    """
+    assert SQLStatement(sql, "postgresql").changes_search_path() == expected
 
 
 @pytest.mark.parametrize(
