@@ -1,10 +1,11 @@
 {
-  "docs": {
+  "user_docs": {
     "disabled": false,
-    "lastVersion": "6.0.0",
+    "lastVersion": "current",
     "includeCurrentVersion": true,
     "onlyIncludeVersions": [
       "current",
+      "6.1.0",
       "6.0.0"
     ],
     "versions": {
@@ -17,22 +18,54 @@
         "label": "6.0.0",
         "path": "6.0.0",
         "banner": "none"
+      },
+      "6.1.0": {
+        "label": "6.1.0",
+        "path": "6.1.0",
+        "banner": "none"
       }
     }
   },
-  "developer_portal": {
+  "admin_docs": {
     "disabled": false,
-    "hideFromNav": true,
     "lastVersion": "current",
     "includeCurrentVersion": true,
     "onlyIncludeVersions": [
-      "current"
+      "current",
+      "6.1.0"
     ],
     "versions": {
       "current": {
         "label": "Next",
         "path": "",
         "banner": "unreleased"
+      },
+      "6.1.0": {
+        "label": "6.1.0",
+        "path": "6.1.0",
+        "banner": "none"
+      }
+    }
+  },
+  "developer_docs": {
+    "disabled": false,
+    "hideFromNav": false,
+    "lastVersion": "current",
+    "includeCurrentVersion": true,
+    "onlyIncludeVersions": [
+      "current",
+      "6.1.0"
+    ],
+    "versions": {
+      "current": {
+        "label": "Next",
+        "path": "",
+        "banner": "unreleased"
+      },
+      "6.1.0": {
+        "label": "6.1.0",
+        "path": "6.1.0",
+        "banner": "none"
       }
     }
   },
@@ -41,13 +74,19 @@
     "lastVersion": "current",
     "includeCurrentVersion": true,
     "onlyIncludeVersions": [
-      "current"
+      "current",
+      "6.1.0"
     ],
     "versions": {
       "current": {
         "label": "Next",
         "path": "",
         "banner": "unreleased"
+      },
+      "6.1.0": {
+        "label": "6.1.0",
+        "path": "6.1.0",
+        "banner": "none"
       }
     }
   }

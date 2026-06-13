@@ -25,7 +25,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import {
   LineEditableTabs,
   TabsProps as AntdTabsProps,
@@ -87,7 +87,7 @@ export interface TabItem {
   key: string;
   label: ReactElement;
   closeIcon: ReactElement;
-  children: ReactElement;
+  children?: ReactElement;
 }
 
 export interface TabsComponent {

@@ -31,7 +31,7 @@ describe('Get ChartUri', () => {
     expect(
       getChartDataUri({
         path: '/path',
-        qs: 'same-string',
+        qs: { key: 'same-string' },
         allowDomainSharding: false,
       }),
     ).toEqual({
@@ -46,7 +46,7 @@ describe('Get ChartUri', () => {
         port: '',
         preventInvalidHostname: false,
         protocol: 'http',
-        query: 'same-string',
+        query: 'key=same-string',
         urn: null,
         username: null,
       },
@@ -58,7 +58,7 @@ describe('Get ChartUri', () => {
     expect(
       getChartDataUri({
         path: '/path-allowDomainSharding-true',
-        qs: 'same-string-allowDomainSharding-true',
+        qs: { key: 'allowDomainSharding-true' },
         allowDomainSharding: true,
       }),
     ).toEqual({
@@ -73,7 +73,7 @@ describe('Get ChartUri', () => {
         port: '',
         preventInvalidHostname: false,
         protocol: 'http',
-        query: 'same-string-allowDomainSharding-true',
+        query: 'key=allowDomainSharding-true',
         urn: null,
         username: null,
       },

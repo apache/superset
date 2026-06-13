@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { styled, css } from '@apache-superset/core/ui';
+import { styled, css } from '@apache-superset/core/theme';
 import { IconTooltip } from '@superset-ui/core/components';
 
 export const StaticPosition = css`
@@ -44,5 +44,4 @@ export const ModalResultSetWrapper = styled.div`
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  max-height: 50vh;
 `;

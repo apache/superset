@@ -69,7 +69,6 @@ export default function setupColors(
     config => new SequentialScheme(config),
   );
   registerColorSchemes(
-    // @ts-ignore
     getCategoricalSchemeRegistry(),
     [
       ...CategoricalAirbnb,
@@ -90,7 +89,6 @@ export default function setupColors(
     'supersetColors',
   );
   registerColorSchemes(
-    // @ts-ignore
     getSequentialSchemeRegistry(),
     [...SequentialCommon, ...SequentialD3, ...extraSequentialColorSchemes],
     'superset_seq_1',

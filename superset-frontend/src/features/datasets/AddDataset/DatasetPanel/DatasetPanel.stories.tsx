@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { StoryFn, Meta } from '@storybook/react';
+import { StoryFn, Meta } from '@storybook/react-webpack5';
 import DatasetPanel from './DatasetPanel';
 import { exampleColumns } from './fixtures';
 

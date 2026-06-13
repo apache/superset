@@ -22,7 +22,8 @@ import 'regenerator-runtime/runtime';
 import jQuery from 'jquery';
 // https://jestjs.io/docs/jest-object#jestmockmodulename-factory-options
 // in order to mock modules in test case, so avoid absolute import module
-import { configure as configureTranslation } from '../../packages/superset-ui-core/src/translation';
+import { configure as configureTranslation } from '@apache-superset/core/translation';
+import fetchMock from 'fetch-mock';
 import { Worker } from './Worker';
 import { IntersectionObserver } from './IntersectionObserver';
 import { ResizeObserver } from './ResizeObserver';
@@ -42,6 +43,9 @@ if (defaultView != null) {
     }
   });
 }
+
+fetchMock.mockGlobal();
+fetchMock.config.allowRelativeUrls = true;
 
 const g = global as any;
 g.window ??= Object.create(window);

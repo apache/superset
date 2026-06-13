@@ -30,9 +30,9 @@ const parser = require('@babel/parser');
 const traverse = require('@babel/traverse').default;
 
 // ANSI color codes
-const RED = '\x1b[31m';
-const YELLOW = '\x1b[33m';
-const RESET = '\x1b[0m';
+const RED = '\x1B[31m';
+const YELLOW = '\x1B[33m';
+const RESET = '\x1B[0m';
 
 let errorCount = 0;
 let warningCount = 0;
@@ -198,6 +198,413 @@ function checkI18nTemplates(ast, filepath) {
 }
 
 /**
+ * Check for eager t()/tn() calls in `label` / `description` properties of
+ * config objects evaluated at module load (e.g., controlPanel files). The
+ * translation is captured at module-evaluation time, before i18n has loaded,
+ * and never updates when the user switches language. The fix is to wrap the
+ * call in an arrow function: `label: () => t('Foo')`.
+ *
+ * Limited to controlPanel files because that's where this pattern is
+ * problematic at scale; t() inside JSX or component bodies is evaluated at
+ * render time and works fine.
+ */
+const EAGER_T_WATCHED_PROPS = new Set(['label', 'description']);
+
+function checkEagerTranslationsInConfig(ast, filepath) {
+  if (!/controlPanel\.(ts|tsx|js|jsx)$/.test(filepath)) return;
+
+  traverse(ast, {
+    ObjectProperty(path) {
+      const { node } = path;
+      if (node.computed || node.shorthand) return;
+
+      const keyName =
+        node.key.type === 'Identifier'
+          ? node.key.name
+          : node.key.type === 'StringLiteral'
+            ? node.key.value
+            : null;
+      if (!keyName || !EAGER_T_WATCHED_PROPS.has(keyName)) return;
+
+      const { value } = node;
+      if (
+        value.type !== 'CallExpression' ||
+        value.callee.type !== 'Identifier' ||
+        (value.callee.name !== 't' && value.callee.name !== 'tn')
+      ) {
+        return;
+      }
+
+      if (hasEslintDisable(path, 'i18n-strings/no-eager-t-in-config')) return;
+
+      // Warn (not error) because there are many pre-existing violations.
+      // The ESLint plugin provides an autofix so authors can sweep files
+      // as they touch them. Promote to error once the codebase is clean.
+      // eslint-disable-next-line no-console
+      console.warn(
+        `${YELLOW}⚠${RESET} ${filepath}:${node.loc?.start.line ?? '?'}: ` +
+          `Eager \`${keyName}: ${value.callee.name}(...)\` is evaluated at ` +
+          `module load, before i18n is initialized. Wrap in an arrow ` +
+          `function: \`${keyName}: () => ${value.callee.name}(...)\`. ` +
+          `Run \`eslint --fix\` to autofix.`,
+      );
+      warningCount += 1;
+    },
+  });
+}
+
+/**
+ * Props that should contain translated strings
+ */
+const TRANSLATABLE_PROPS = new Set([
+  'title',
+  'placeholder',
+  'label',
+  'alt',
+  'aria-label',
+  'aria-placeholder',
+  'aria-roledescription',
+  'aria-valuetext',
+]);
+
+/**
+ * Props that should NOT be checked for translation
+ */
+const IGNORED_PROPS = new Set([
+  'className',
+  'id',
+  'name',
+  'type',
+  'role',
+  'href',
+  'src',
+  'key',
+  'data-test',
+  'data-testid',
+  'htmlFor',
+  'target',
+  'rel',
+  'method',
+  'action',
+  'pattern',
+  'accept',
+  'autoComplete',
+  'inputMode',
+  'lang',
+  'dir',
+  'xmlns',
+  'viewBox',
+  'd',
+  'fill',
+  'stroke',
+  'transform',
+  'style',
+  'dangerouslySetInnerHTML',
+]);
+
+/**
+ * SQL keywords and technical terms that should not be translated
+ */
+const TECHNICAL_TERMS = new Set([
+  // SQL keywords
+  'SELECT',
+  'FROM',
+  'WHERE',
+  'HAVING',
+  'GROUP',
+  'ORDER',
+  'BY',
+  'JOIN',
+  'LEFT',
+  'RIGHT',
+  'INNER',
+  'OUTER',
+  'FULL',
+  'CROSS',
+  'ON',
+  'AND',
+  'OR',
+  'NOT',
+  'IN',
+  'EXISTS',
+  'BETWEEN',
+  'LIKE',
+  'IS',
+  'NULL',
+  'TRUE',
+  'FALSE',
+  'ASC',
+  'DESC',
+  'LIMIT',
+  'OFFSET',
+  'UNION',
+  'ALL',
+  'DISTINCT',
+  'AS',
+  'CASE',
+  'WHEN',
+  'THEN',
+  'ELSE',
+  'END',
+  'CAST',
+  'CONVERT',
+  // SQL date functions (common in Superset)
+  'DATETIME',
+  'DATEADD',
+  'DATETRUNC',
+  'LASTDAY',
+  'HOLIDAY',
+  'DATE',
+  'TIME',
+  'TIMESTAMP',
+  'YEAR',
+  'MONTH',
+  'DAY',
+  'HOUR',
+  'MINUTE',
+  'SECOND',
+  'WEEK',
+  // Data types
+  'JSON',
+  'XML',
+  'CSV',
+  'INT',
+  'INTEGER',
+  'FLOAT',
+  'DOUBLE',
+  'VARCHAR',
+  'CHAR',
+  'TEXT',
+  'BOOLEAN',
+  'BOOL',
+  'BIGINT',
+  'SMALLINT',
+  'DECIMAL',
+  // Technical abbreviations
+  'SQL',
+  'API',
+  'URL',
+  'URI',
+  'HTML',
+  'CSS',
+  'JS',
+  'TS',
+  'ID',
+  'UUID',
+  'HTTP',
+  'HTTPS',
+  'GET',
+  'POST',
+  'PUT',
+  'DELETE',
+  'PATCH',
+  // Error/status indicators that are typically not translated
+  'OK',
+  'ERROR',
+  'WARNING',
+  'INFO',
+  'DEBUG',
+  'N/A',
+  'TBD',
+]);
+
+/**
+ * Check if a string looks like it needs translation
+ * Returns false for technical strings, identifiers, etc.
+ */
+function needsTranslation(value) {
+  if (typeof value !== 'string') return false;
+
+  const trimmed = value.trim();
+
+  // Empty or whitespace-only strings don't need translation
+  if (!trimmed) return false;
+
+  // Single characters don't need translation
+  if (trimmed.length === 1) return false;
+
+  // Pure numbers don't need translation
+  if (/^-?\d+\.?\d*$/.test(trimmed)) return false;
+
+  // Punctuation-only strings don't need translation
+  if (/^[^\w\s]+$/.test(trimmed)) return false;
+
+  // URLs and paths don't need translation
+  if (/^(https?:\/\/|\/|\.\/|\.\.\/)/.test(trimmed)) return false;
+
+  // File extensions don't need translation
+  if (/^\.\w+$/.test(trimmed)) return false;
+
+  // CSS-like values (colors, sizes, etc.)
+  if (
+    /^(#[0-9a-f]+|\d+(%|px|em|rem|vh|vw|pt|cm|mm|in)|none|auto|inherit|initial|unset)$/i.test(
+      trimmed,
+    )
+  )
+    return false;
+
+  // camelCase or PascalCase identifiers (likely code, not user text)
+  if (/^[a-z][a-zA-Z0-9]*$/.test(trimmed) && /[A-Z]/.test(trimmed))
+    return false;
+
+  // snake_case or SCREAMING_SNAKE_CASE identifiers
+  if (/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(trimmed) && trimmed.includes('_'))
+    return false;
+
+  // kebab-case identifiers (CSS classes, data attributes)
+  if (/^[a-z][a-z0-9-]*$/.test(trimmed) && trimmed.includes('-')) return false;
+
+  // Looks like a variable or placeholder pattern
+  if (/^[%$]\w+$/.test(trimmed) || /^\{\{?\w+\}?\}$/.test(trimmed))
+    return false;
+
+  // Very short strings (2-3 chars) that are all lowercase are likely codes
+  if (trimmed.length <= 3 && /^[a-z]+$/.test(trimmed)) return false;
+
+  // Single lowercase words up to 10 chars are often icon names or technical terms
+  // (e.g., "check", "stop", "down", "empty", "starred")
+  if (/^[a-z]+$/.test(trimmed) && trimmed.length <= 10) return false;
+
+  // Code fragments (contains = or other code syntax)
+  if (/[=<>{}[\]]/.test(trimmed)) return false;
+
+  // ALL_CAPS words are usually technical terms (SQL keywords, constants)
+  if (/^[A-Z][A-Z0-9]*$/.test(trimmed)) return false;
+
+  // Known technical terms
+  if (TECHNICAL_TERMS.has(trimmed.toUpperCase())) return false;
+
+  // Code-like patterns: function calls, SQL syntax examples
+  if (/^[a-zA-Z]+\s*\([^)]*\)/.test(trimmed)) return false;
+
+  // SQL-like syntax: "SELECT * FROM", "GROUP BY", etc.
+  if (/^(SELECT|FROM|WHERE|GROUP|ORDER|HAVING)\s/i.test(trimmed)) return false;
+
+  // Date format patterns (strftime, moment.js, etc.)
+  if (/^%[YymdHMSjWwUzZ%-]+$/.test(trimmed)) return false;
+  if (/^%[a-zA-Z][/%\-a-zA-Z]*$/.test(trimmed)) return false;
+
+  // Format patterns with slashes/dashes (e.g., YYYY-MM-DD, mm/dd/yyyy)
+  if (/^[YMDHhms/\-:. ]+$/i.test(trimmed) && /[YMDHhms]{2,}/i.test(trimmed))
+    return false;
+
+  // Strings ending with colon followed by technical content are often labels
+  // But if it's just "Label:" with a space-containing label, it might need translation
+
+  // Strings that are likely user-visible text (contains spaces or is a readable word)
+  return (
+    /\s/.test(trimmed) || /^[A-Z][a-z]+/.test(trimmed) || trimmed.length > 3
+  );
+}
+
+/**
+ * Check if a JSX expression is wrapped in t() or tn()
+ */
+function isWrappedInTranslation(node) {
+  if (!node) return false;
+
+  // Direct t() or tn() call
+  if (node.type === 'CallExpression') {
+    const { callee } = node;
+    if (
+      callee.type === 'Identifier' &&
+      (callee.name === 't' || callee.name === 'tn')
+    ) {
+      return true;
+    }
+  }
+
+  // JSX expression container with t() call
+  if (node.type === 'JSXExpressionContainer') {
+    return isWrappedInTranslation(node.expression);
+  }
+
+  return false;
+}
+
+/**
+ * Check for untranslated user-facing strings
+ */
+function checkUntranslatedStrings(ast, filepath) {
+  traverse(ast, {
+    // Check JSX attributes for untranslated strings
+    JSXAttribute(path) {
+      const attrName =
+        path.node.name.name ||
+        (path.node.name.namespace
+          ? `${path.node.name.namespace.name}:${path.node.name.name.name}`
+          : null);
+
+      if (!attrName) return;
+
+      // Skip ignored props
+      if (IGNORED_PROPS.has(attrName)) return;
+
+      // Skip data-* and aria-* props that aren't in our translatable list
+      if (attrName.startsWith('data-') && !TRANSLATABLE_PROPS.has(attrName))
+        return;
+      if (attrName.startsWith('aria-') && !TRANSLATABLE_PROPS.has(attrName))
+        return;
+
+      // Only check props that should be translated
+      if (!TRANSLATABLE_PROPS.has(attrName)) return;
+
+      const { value } = path.node;
+
+      // String literal value
+      if (value && value.type === 'StringLiteral') {
+        if (needsTranslation(value.value)) {
+          if (hasEslintDisable(path, 'i18n/no-untranslated-string')) {
+            return;
+          }
+          // eslint-disable-next-line no-console
+          console.error(
+            `${RED}✖${RESET} ${filepath}: Untranslated string in "${attrName}" prop: "${value.value}". Wrap with t().`,
+          );
+          errorCount += 1;
+        }
+      }
+
+      // JSX expression that's not a t() call
+      if (value && value.type === 'JSXExpressionContainer') {
+        const { expression } = value;
+        if (
+          expression.type === 'StringLiteral' &&
+          needsTranslation(expression.value)
+        ) {
+          if (!isWrappedInTranslation(value)) {
+            if (hasEslintDisable(path, 'i18n/no-untranslated-string')) {
+              return;
+            }
+            // eslint-disable-next-line no-console
+            console.error(
+              `${RED}✖${RESET} ${filepath}: Untranslated string in "${attrName}" prop: "${expression.value}". Wrap with t().`,
+            );
+            errorCount += 1;
+          }
+        }
+      }
+    },
+
+    // Check JSX text content
+    JSXText(path) {
+      const text = path.node.value.trim();
+
+      if (needsTranslation(text)) {
+        if (hasEslintDisable(path, 'i18n/no-untranslated-string')) {
+          return;
+        }
+        // eslint-disable-next-line no-console
+        console.error(
+          `${RED}✖${RESET} ${filepath}: Untranslated JSX text: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}". Wrap with {t('...')}.`,
+        );
+        errorCount += 1;
+      }
+    },
+  });
+}
+
+/**
  * Process a single file
  */
 function processFile(filepath) {
@@ -214,6 +621,8 @@ function processFile(filepath) {
     checkNoLiteralColors(ast, filepath);
     checkNoFaIcons(ast, filepath);
     checkI18nTemplates(ast, filepath);
+    checkEagerTranslationsInConfig(ast, filepath);
+    checkUntranslatedStrings(ast, filepath);
   } catch (error) {
     // eslint-disable-next-line no-console
     console.warn(
@@ -237,17 +646,18 @@ function main() {
     /\/test\//,
     /\/tests\//,
     /\/storybook\//,
+    /^\.storybook\//, // .storybook directory at root
     /\.stories\./,
     /\/demo\//,
     /\/examples\//,
     /\/color\/colorSchemes\//,
     /\/cypress\//,
     /\/cypress-base\//,
-    /packages\/superset-ui-demo\//,
     /\/esm\//,
     /\/lib\//,
     /\/dist\//,
     /plugins\/legacy-/, // Legacy plugins can have old color patterns
+    /plugin-chart-point-cluster-map\/src\/controlPanel/, // Data visualization color choices
     /\/vendor\//, // Third-party vendor code
     /spec\/fixtures\//, // Test fixtures
     /theme\/exampleThemes/, // Theme examples legitimately have colors
@@ -272,11 +682,11 @@ function main() {
         '**/color/colorSchemes/**', // Color scheme definitions legitimately contain colors
         '**/cypress/**',
         '**/cypress-base/**',
-        'packages/superset-ui-demo/**', // Demo package
         '**/esm/**', // Build artifacts
         '**/lib/**', // Build artifacts
         '**/dist/**', // Build artifacts
         'plugins/legacy-*/**', // Legacy plugins
+        'plugins/plugin-chart-point-cluster-map/src/controlPanel.*', // Data visualization color choices
         '**/vendor/**',
         'spec/fixtures/**',
         '**/theme/exampleThemes/**',
@@ -300,7 +710,7 @@ function main() {
   }
 
   // eslint-disable-next-line no-console
-  console.log(`Checking ${files.length} files for Superset custom rules...\\n`);
+  console.log(`Checking ${files.length} files for Superset custom rules...\n`);
 
   files.forEach(file => {
     // Resolve the file path
@@ -313,7 +723,7 @@ function main() {
   });
 
   // eslint-disable-next-line no-console
-  console.log(`\\n${errorCount} errors, ${warningCount} warnings`);
+  console.log(`\n${errorCount} errors, ${warningCount} warnings`);
 
   if (errorCount > 0) {
     process.exit(1);
@@ -325,4 +735,9 @@ if (require.main === module) {
   main();
 }
 
-module.exports = { checkNoLiteralColors, checkNoFaIcons, checkI18nTemplates };
+module.exports = {
+  checkNoLiteralColors,
+  checkNoFaIcons,
+  checkI18nTemplates,
+  checkUntranslatedStrings,
+};

@@ -18,7 +18,7 @@
 # Python version installed; we need 3.10-3.11
 PYTHON=`command -v python3.11 || command -v python3.10`
 
-.PHONY: install superset venv pre-commit up down logs ps nuke
+.PHONY: install superset venv pre-commit up down logs ps nuke ports open
 
 install: superset pre-commit
 
@@ -131,3 +131,9 @@ ps:
 
 nuke:
 	./scripts/docker-compose-up.sh nuke
+
+ports:
+	./scripts/docker-compose-up.sh ports
+
+open:
+	./scripts/docker-compose-up.sh open

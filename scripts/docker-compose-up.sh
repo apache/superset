@@ -114,6 +114,32 @@ find_and_claim_port $BASE_REDIS REDIS_PORT
 
 # Export for docker-compose
 export COMPOSE_PROJECT_NAME="$PROJECT_NAME"
+
+# Function to get port from running container, or use the found available port
+get_running_port() {
+    local service=$1
+    local container_port=$2
+    local fallback=$3
+    local running_port=$(docker compose port "$service" "$container_port" 2>/dev/null | cut -d: -f2)
+    if [[ -n "$running_port" ]]; then
+        echo "$running_port"
+    else
+        echo "$fallback"
+    fi
+}
+
+# Check if containers are running and get actual ports, otherwise use available ports
+cd "$REPO_ROOT"
+if docker compose ps --status running 2>/dev/null | grep -q "$PROJECT_NAME"; then
+    # Containers are running - get actual ports
+    NGINX_PORT=$(get_running_port nginx 80 $NGINX_PORT)
+    SUPERSET_PORT=$(get_running_port superset 8088 $SUPERSET_PORT)
+    NODE_PORT=$(get_running_port superset-node 9000 $NODE_PORT)
+    WEBSOCKET_PORT=$(get_running_port superset-websocket 8080 $WEBSOCKET_PORT)
+    DATABASE_PORT=$(get_running_port db 5432 $DATABASE_PORT)
+    REDIS_PORT=$(get_running_port redis 6379 $REDIS_PORT)
+fi
+
 export NGINX_PORT
 export SUPERSET_PORT
 export NODE_PORT
@@ -122,19 +148,32 @@ export CYPRESS_PORT
 export DATABASE_PORT
 export REDIS_PORT
 
-echo ""
-echo "🐳 Starting Superset with:"
-echo "   Project:    $PROJECT_NAME"
-echo "   Superset:   http://localhost:$SUPERSET_PORT"
-echo "   Dev Server: http://localhost:$NODE_PORT"
-echo "   Nginx:      http://localhost:$NGINX_PORT"
-echo "   WebSocket:  localhost:$WEBSOCKET_PORT"
-echo "   Database:   localhost:$DATABASE_PORT"
-echo "   Redis:      localhost:$REDIS_PORT"
-echo ""
+# Function to print connection info
+print_connection_info() {
+    echo ""
+    echo "🐳 Superset ($PROJECT_NAME):"
+    echo "   Dev Server: http://localhost:$NODE_PORT  ← Use this for development"
+    echo "   Superset:   http://localhost:$SUPERSET_PORT"
+    echo "   Nginx:      http://localhost:$NGINX_PORT"
+    echo "   WebSocket:  localhost:$WEBSOCKET_PORT"
+    echo "   Database:   localhost:$DATABASE_PORT"
+    echo "   Redis:      localhost:$REDIS_PORT"
+    echo ""
+}
 
-# Change to repo root
-cd "$REPO_ROOT"
+# Function to open browser (macOS/Linux compatible)
+open_browser() {
+    local url="http://localhost:$NODE_PORT"
+    if command -v open &> /dev/null; then
+        open "$url"  # macOS
+    elif command -v xdg-open &> /dev/null; then
+        xdg-open "$url"  # Linux
+    else
+        echo "Open in browser: $url"
+    fi
+}
+
+print_connection_info
 
 # Handle special commands
 case "${1:-}" in
@@ -154,6 +193,16 @@ case "${1:-}" in
         echo "export REDIS_PORT=$REDIS_PORT"
         exit 0
         ;;
+    ports)
+        # Just show the ports (already printed above)
+        exit 0
+        ;;
+    open)
+        # Open browser to the dev server
+        echo "🌐 Opening browser..."
+        open_browser
+        exit 0
+        ;;
     down|stop|logs|ps|exec|restart)
         # Pass through to docker compose
         docker compose "$@"
@@ -166,6 +215,8 @@ case "${1:-}" in
         ;;
     *)
         # Default: start services
+        # Print connection info again when user exits (Ctrl+C)
+        trap 'echo ""; print_connection_info; echo "Run '\''make open'\'' to open browser, '\''make ports'\'' to see ports"' EXIT
         docker compose up "$@"
         ;;
 esac

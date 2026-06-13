@@ -22,13 +22,22 @@ from typing import Any, TypedDict
 from flask import current_app as app
 from flask_babel import gettext as __
 
-from superset import db
+from superset import db, is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetErrorException, SupersetTimeoutException
+from superset.exceptions import (
+    SupersetDisallowedSQLFunctionException,
+    SupersetDisallowedSQLTableException,
+    SupersetDMLNotAllowedException,
+    SupersetErrorException,
+    SupersetTimeoutException,
+)
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database
+from superset.models.sql_lab import Query
+from superset.sql.parse import SQLScript
 from superset.utils import core as utils
+from superset.utils.rls import apply_rls
 
 logger = logging.getLogger(__name__)
 
@@ -67,6 +76,86 @@ class QueryEstimationCommand(BaseCommand):
                 ),
                 status=404,
             )
+        security_manager.raise_for_access(database=self._database)
+
+    def _apply_sql_security(self, sql: str) -> str:
+        """Run the disallowed-function/table, DML and RLS controls against the
+        SQL to be estimated, mirroring ``sql_lab.execute_sql_statements``.
+
+        Returns the SQL with RLS predicates injected (when ``RLS_IN_SQLLAB`` is
+        enabled), so the cost estimate reflects the same constrained query the
+        user would actually be allowed to run.
+        """
+        db_engine_spec = self._database.db_engine_spec
+        parsed_script = SQLScript(sql, engine=db_engine_spec.engine)
+
+        disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(
+            db_engine_spec.engine,
+            set(),
+        )
+        if disallowed_functions and parsed_script.check_functions_present(
+            disallowed_functions
+        ):
+            raise SupersetDisallowedSQLFunctionException(disallowed_functions)
+
+        disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(
+            db_engine_spec.engine,
+            set(),
+        )
+        if disallowed_tables and parsed_script.check_tables_present(disallowed_tables):
+            found_tables = set()
+            for statement in parsed_script.statements:
+                present = {table.table.lower() for table in statement.tables}
+                for table in disallowed_tables:
+                    if table.lower() in present:
+                        found_tables.add(table)
+            raise SupersetDisallowedSQLTableException(found_tables or disallowed_tables)
+
+        if parsed_script.has_mutation() and not self._database.allow_dml:
+            raise SupersetDMLNotAllowedException()
+
+        if is_feature_enabled("RLS_IN_SQLLAB"):
+            # Resolve the default catalog/schema the same way the execution path
+            # does (``sql_lab.execute_sql_statements``) before injecting RLS.
+            # Crucially this goes through ``get_default_schema_for_query`` rather
+            # than the plain ``get_default_schema``, so engine-specific per-query
+            # security gates run too — e.g. ``PostgresEngineSpec`` rejects a query
+            # that sets ``search_path``. Resolving against the static default
+            # schema instead would both skip that gate and let unqualified tables
+            # dodge the RLS predicates the real query enforces, defeating the
+            # security parity this command exists to provide.
+            catalog = self._catalog or self._database.get_default_catalog()
+            # Build a transient (unsaved) Query so the engine spec can resolve the
+            # effective per-query schema exactly as the executor does. Mirror the
+            # probe built in ``SupersetSecurityManager.raise_for_access``: set a
+            # ``client_id`` (the column is ``nullable=False``) and expunge it, so
+            # the ``database`` backref's ``cascade="all, delete-orphan"`` cannot
+            # autoflush this incomplete row into the session when ``apply_rls``
+            # issues its own ``db.session`` query below.
+            probe_query = Query(
+                database=self._database,
+                sql=self._sql,
+                schema=self._schema or None,
+                catalog=catalog,
+                client_id=utils.shortid()[:10],
+                user_id=utils.get_user_id(),
+            )
+            db.session.expunge(probe_query)
+            # Always resolve through ``get_default_schema_for_query`` — even when
+            # the caller pinned a schema — so the engine's per-query security gate
+            # runs (e.g. ``PostgresEngineSpec`` rejects a query that sets
+            # ``search_path``), exactly as the executor does unconditionally. Only
+            # the resulting value falls back to the resolved default; an explicit
+            # schema still wins for the RLS predicate target.
+            resolved_schema = self._database.get_default_schema_for_query(
+                probe_query, self._template_params
+            )
+            schema = self._schema or resolved_schema or ""
+            for statement in parsed_script.statements:
+                apply_rls(self._database, catalog, schema, statement)
+            return parsed_script.format()
+
+        return sql
 
     def run(
         self,
@@ -77,6 +166,12 @@ class QueryEstimationCommand(BaseCommand):
         if self._template_params:
             template_processor = get_template_processor(self._database)
             sql = template_processor.process_template(sql, **self._template_params)
+
+        # Apply the same SQL security controls used by the execution path
+        # (sql_lab.execute_sql_statements) so cost estimation cannot be used to
+        # probe disallowed functions/tables, bypass the DML guard, or confirm
+        # the existence of rows hidden by row-level security.
+        sql = self._apply_sql_security(sql)
 
         timeout = app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
         timeout_msg = f"The estimation exceeded the {timeout} seconds timeout."

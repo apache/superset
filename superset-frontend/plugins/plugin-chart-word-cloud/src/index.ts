@@ -19,4 +19,3 @@
 
 export { default as WordCloudChartPlugin } from './plugin';
 export * from './types';
-export { default as configureEncodable } from './configureEncodable';

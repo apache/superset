@@ -29,7 +29,12 @@ from superset.commands.dataset.exceptions import (
     DatasetNotFoundError,
     MultiCatalogDisabledValidationError,
 )
-from superset.commands.dataset.update import UpdateDatasetCommand, validate_folders
+from superset.commands.dataset.update import (
+    DEFAULT_COLUMNS_FOLDER_UUID,
+    DEFAULT_METRICS_FOLDER_UUID,
+    UpdateDatasetCommand,
+    validate_folders,
+)
 from superset.commands.exceptions import OwnersNotFoundValidationError
 from superset.datasets.schemas import FolderSchema
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -233,6 +238,166 @@ def test_update_dataset_validation_errors(
     with pytest.raises(DatasetInvalidError) as excinfo:
         UpdateDatasetCommand(1, payload).run()
     assert any(error_msg in str(exc) for exc in excinfo.value._exceptions)
+
+
+@pytest.mark.parametrize(
+    ("payload", "field"),
+    [
+        (
+            {
+                "columns": [
+                    {
+                        "column_name": "evil_col",
+                        "expression": "1; DROP TABLE users",
+                    }
+                ]
+            },
+            "columns.0.expression",
+        ),
+        (
+            {
+                "metrics": [
+                    {
+                        "metric_name": "evil_metric",
+                        "expression": "1 UNION SELECT password FROM ab_user",
+                    }
+                ]
+            },
+            "metrics.0.expression",
+        ),
+    ],
+)
+def test_update_dataset_rejects_malicious_expression(
+    payload: dict[str, Any],
+    field: str,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Stored column and metric ``expression`` strings are routed through the
+    same validator as adhoc SQL fields, and command-level validation
+    surfaces the parser's verdict as a field-level ``ValidationError``.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    mocker.patch(
+        "superset.commands.utils.security_manager.get_user_by_id", return_value=None
+    )
+    mock_database = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.backend = "sqlite"
+    mock_database.allow_multi_catalog = False
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_dataset = mocker.MagicMock()
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = None
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.get_database_by_id.return_value = mock_database
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+    mock_dataset_dao.validate_columns_exist.return_value = True
+    mock_dataset_dao.validate_columns_uniqueness.return_value = True
+    mock_dataset_dao.validate_metrics_exist.return_value = True
+    mock_dataset_dao.validate_metrics_uniqueness.return_value = True
+
+    with pytest.raises(DatasetInvalidError) as excinfo:
+        UpdateDatasetCommand(1, payload).run()
+    expression_errors = [
+        exc
+        for exc in excinfo.value._exceptions
+        if isinstance(exc, ValidationError) and field in (exc.field_name or "")
+    ]
+    assert expression_errors, (
+        f"Expected a field-level ValidationError on '{field}'. Got: "
+        f"{[(type(e).__name__, getattr(e, 'field_name', None), str(e)) for e in excinfo.value._exceptions]}"  # noqa: E501
+    )
+
+
+def test_update_dataset_accepts_benign_expression(mocker: MockerFixture) -> None:
+    """
+    A well-formed stored expression (e.g. CASE) passes the validator: the
+    command's ``validate()`` collects no expression-level errors. We
+    invoke ``validate()`` directly to isolate the validator from the
+    rest of the run-path (commit, audit, etc.).
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    mocker.patch(
+        "superset.commands.utils.security_manager.get_user_by_id", return_value=None
+    )
+    mock_database = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.backend = "sqlite"
+    mock_database.allow_multi_catalog = False
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_dataset = mocker.MagicMock()
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = None
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.get_database_by_id.return_value = mock_database
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+    mock_dataset_dao.validate_columns_exist.return_value = True
+    mock_dataset_dao.validate_columns_uniqueness.return_value = True
+
+    payload = {
+        "columns": [
+            {
+                "column_name": "case_col",
+                "expression": "CASE WHEN amount > 0 THEN 'a' ELSE 'b' END",
+            }
+        ]
+    }
+    UpdateDatasetCommand(1, payload).validate()
+
+
+def test_update_dataset_accepts_jinja_expression(mocker: MockerFixture) -> None:
+    """
+    Stored column/metric expressions can use Jinja templating (e.g.
+    ``{{ current_username() }}``). At save time there is no template
+    context, so the parser-based gate is bypassed; the same validator
+    re-runs on the rendered SQL at query time.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_ownership",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    mocker.patch(
+        "superset.commands.utils.security_manager.get_user_by_id", return_value=None
+    )
+    mock_database = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.backend = "sqlite"
+    mock_database.allow_multi_catalog = False
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_dataset = mocker.MagicMock()
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = None
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.get_database_by_id.return_value = mock_database
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+    mock_dataset_dao.validate_columns_exist.return_value = True
+    mock_dataset_dao.validate_columns_uniqueness.return_value = True
+
+    payload = {
+        "columns": [
+            {
+                "column_name": "user_match",
+                "expression": (
+                    "case when '{{ current_username() }}' = 'abc' "
+                    "then 'yes' else 'no' end"
+                ),
+            }
+        ]
+    }
+    UpdateDatasetCommand(1, payload).validate()
 
 
 @with_feature_flags(DATASET_FOLDERS=True)
@@ -562,6 +727,34 @@ def test_validate_folders_invalid_names(mocker: MockerFixture) -> None:
     with pytest.raises(ValidationError) as excinfo:
         validate_folders(folders=folders_with_columns, valid_uuids=set())
     assert str(excinfo.value) == "Folder cannot have name 'Columns'"
+
+
+@with_feature_flags(DATASET_FOLDERS=True)
+def test_validate_folders_allows_default_folders(mocker: MockerFixture) -> None:
+    """
+    Test that default system folders (Metrics/Columns) are allowed when using
+    the well-known default folder UUIDs, so their position can be persisted.
+    """
+    folders = cast(
+        list[FolderSchema],
+        [
+            {
+                "uuid": DEFAULT_METRICS_FOLDER_UUID,
+                "type": "folder",
+                "name": "Metrics",
+                "children": [],
+            },
+            {
+                "uuid": DEFAULT_COLUMNS_FOLDER_UUID,
+                "type": "folder",
+                "name": "Columns",
+                "children": [],
+            },
+        ],
+    )
+
+    # Should not raise - default folders are allowed to use reserved names
+    validate_folders(folders=folders, valid_uuids=set())
 
 
 @with_feature_flags(DATASET_FOLDERS=True)
