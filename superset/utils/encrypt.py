@@ -131,9 +131,13 @@ class SQLAlchemyUtilsAdapter(  # pylint: disable=too-few-public-methods
             # AES-CBC. An explicit ``engine`` kwarg (e.g. from the migrator)
             # always takes precedence.
             if "engine" not in kwargs:
-                engine_name = (
-                    app_config.get("SQLALCHEMY_ENCRYPTED_FIELD_ENGINE")
-                    or DEFAULT_ENCRYPTION_ENGINE_NAME
+                # Only an *absent* key defaults to AES-CBC; a present value
+                # (even an empty string) is routed through the fail-closed
+                # resolver so a blanked-out config does not silently degrade to
+                # unauthenticated encryption.
+                engine_name = app_config.get(
+                    "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE",
+                    DEFAULT_ENCRYPTION_ENGINE_NAME,
                 )
                 # ``**kwargs`` is loosely annotated as ``Optional[dict]`` here, so
                 # route the resolved engine class through an ``Any`` local.

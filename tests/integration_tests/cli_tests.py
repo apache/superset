@@ -368,7 +368,7 @@ def test_re_encrypt_secrets_failure_exits_nonzero(app_context):
     assert response.exception is None or isinstance(response.exception, SystemExit)
 
 
-def test_re_encrypt_secrets_engine_option_invokes_migrator(app_context):
+def test_re_encrypt_secrets_engine_option_invokes_migrator(app_context) -> None:
     """
     When --engine is provided, the CLI must resolve the engine name to the
     correct engine class and pass it to SecretsMigrator as target_engine.
@@ -393,7 +393,7 @@ def test_re_encrypt_secrets_engine_option_invokes_migrator(app_context):
     assert call_kwargs.get("previous_secret_key") is None
 
 
-def test_re_encrypt_secrets_engine_option_case_insensitive(app_context):
+def test_re_encrypt_secrets_engine_option_case_insensitive(app_context) -> None:
     """
     The --engine option must be case-insensitive per
     click.Choice(..., case_sensitive=False).
@@ -416,7 +416,7 @@ def test_re_encrypt_secrets_engine_option_case_insensitive(app_context):
     assert migrator_mock.call_args.kwargs.get("target_engine") is AesGcmEngine
 
 
-def test_re_encrypt_secrets_combined_key_rotation_and_engine(app_context):
+def test_re_encrypt_secrets_combined_key_rotation_and_engine(app_context) -> None:
     """
     --previous_secret_key and --engine combine in a single run: the migrator
     must receive both the previous key (for decryption) and the target engine
@@ -443,7 +443,7 @@ def test_re_encrypt_secrets_combined_key_rotation_and_engine(app_context):
     assert call_kwargs.get("previous_secret_key") == "old-key"
 
 
-def test_re_encrypt_secrets_engine_option_invalid_raises_usage(app_context):
+def test_re_encrypt_secrets_engine_option_invalid_raises_usage(app_context) -> None:
     """
     An unrecognized engine name must produce a click usage error, not a
     traceback or silent failure.

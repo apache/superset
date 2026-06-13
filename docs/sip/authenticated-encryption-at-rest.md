@@ -110,7 +110,10 @@ Once the migrator and docs are in place, change the default to `"aes-gcm"` for
   the config comment and must be in `UPDATING.md`.
 - Recommended operator runbook: take a metadata-DB backup → run
   `re-encrypt-secrets --engine aes-gcm` → set
-  `SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes-gcm"` → restart.
+  `SQLALCHEMY_ENCRYPTED_FIELD_ENGINE = "aes-gcm"` → restart → re-run
+  `re-encrypt-secrets --engine aes-gcm` once more to sweep up any secrets a live
+  instance wrote as AES-CBC during the cutover window. The canonical, more
+  detailed version of this runbook lives in `UPDATING.md`; this is a summary.
 - `AesEngine` allows queryability over encrypted fields; AES-GCM does not.
   Any code that filters/queries on an encrypted column directly must be audited
   before Phase 3 (none is expected, but it must be verified).

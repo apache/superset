@@ -93,6 +93,23 @@ def test_unknown_engine_raises_fail_closed() -> None:
     assert "aes-gcm" in message
 
 
+def test_empty_engine_value_raises_fail_closed() -> None:
+    """A present-but-empty engine value fails closed instead of defaulting.
+
+    Only an *absent* key falls back to AES-CBC. An empty string (e.g. a
+    blanked-out env var) must not silently degrade to unauthenticated CBC after
+    a GCM migration — it routes through the same fail-closed resolver as any
+    other unrecognized value.
+    """
+    with pytest.raises(
+        ValueError, match="Unrecognized SQLALCHEMY_ENCRYPTED_FIELD_ENGINE"
+    ):
+        SQLAlchemyUtilsAdapter().create(
+            {**SECRET, "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE": ""},
+            String(128),
+        )
+
+
 def test_engine_name_is_normalized() -> None:
     """Engine names are case/separator-normalized to match the CLI's Choice."""
     for name in ("AES-GCM", "aes_gcm", " Aes-Gcm "):
