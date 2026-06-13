@@ -19,8 +19,9 @@
 import type { ReactElement } from 'react';
 import type {
   ControlPanelSectionConfig,
-  ControlSetItem,
+  CustomControlItem,
 } from '@superset-ui/chart-controls';
+import { isCustomControlItem } from '@superset-ui/chart-controls';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { render } from '@testing-library/react';
 import { SqlaFormData } from '@superset-ui/core';
@@ -366,13 +367,9 @@ const controlItems = controlPanel.controlPanelSections
   .flat();
 
 const findControlConfig = (name: string): ControlConfig | undefined =>
-  controlItems.find(
-    (item: ControlSetItem): item is { name: string; config: ControlConfig } =>
-      !!item &&
-      typeof item === 'object' &&
-      'name' in item &&
-      (item as { name?: string }).name === name,
-  )?.config;
+  (controlItems.filter(isCustomControlItem) as CustomControlItem[]).find(
+    (item: CustomControlItem) => item.name === name,
+  )?.config as ControlConfig | undefined;
 
 test('controlPanel exposes a Point Radius control defaulting to 10', () => {
   const config = findControlConfig('point_radius');
