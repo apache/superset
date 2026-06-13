@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import type React from 'react';
 import { OptionControlLabel } from 'src/explore/components/controls/OptionControls';
 import { DndItemType } from 'src/explore/components/DndItemType';
 import AdhocFilterPopoverTrigger from 'src/explore/components/controls/FilterControl/AdhocFilterPopoverTrigger';
@@ -26,14 +27,14 @@ import { useGetTimeRangeLabel } from '../utils';
 
 export interface AdhocFilterOptionProps {
   adhocFilter: AdhocFilter;
-  onFilterEdit: () => void;
-  onRemoveFilter: () => void;
+  onFilterEdit: (editedFilter: AdhocFilter) => void;
+  onRemoveFilter: (e: React.MouseEvent) => void;
   options: OptionSortType[];
-  sections: string[];
-  operators: Operators[];
-  datasource: Record<string, any>;
-  partitionColumn: string;
-  onMoveLabel: () => void;
+  sections?: string[];
+  operators?: Operators[];
+  datasource?: Record<string, unknown>;
+  partitionColumn?: string | null;
+  onMoveLabel: (dragIndex: number, hoverIndex: number) => void;
   onDropLabel: () => void;
   index: number;
 }
@@ -59,14 +60,18 @@ export default function AdhocFilterOption({
       operators={operators}
       adhocFilter={adhocFilter}
       options={options}
-      datasource={datasource}
+      datasource={(datasource as Record<string, unknown>) || {}}
       onFilterEdit={onFilterEdit}
-      partitionColumn={partitionColumn}
+      partitionColumn={partitionColumn ?? undefined}
     >
       <OptionControlLabel
         label={actualTimeRange ?? adhocFilter.getDefaultLabel()}
         tooltipTitle={title ?? adhocFilter.getTooltipTitle()}
-        onRemove={onRemoveFilter}
+        onRemove={() =>
+          onRemoveFilter({
+            stopPropagation: () => {},
+          } as React.MouseEvent<Element, MouseEvent>)
+        }
         onMoveLabel={onMoveLabel}
         onDropLabel={onDropLabel}
         index={index}

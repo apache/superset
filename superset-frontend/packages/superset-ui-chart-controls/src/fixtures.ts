@@ -17,7 +17,7 @@
  * under the License.
  */
 import { DatasourceType } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { Dataset } from './types';
 
 export const TestDataset: Dataset = {

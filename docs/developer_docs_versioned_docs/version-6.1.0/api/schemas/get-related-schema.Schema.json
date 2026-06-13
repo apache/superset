@@ -1,0 +1,1 @@
+{"schema":{"properties":{"filter":{"type":"string"},"include_ids":{"items":{"type":"integer"},"type":"array"},"page":{"type":"integer"},"page_size":{"type":"integer"}},"type":"object","title":"get_related_schema"},"schemaType":"response"}

@@ -17,8 +17,9 @@
  * under the License.
  */
 
-import { format as d3Format } from 'd3-format';
+import { formatLocale } from 'd3-format';
 import NumberFormatter from '../NumberFormatter';
+import { DEFAULT_D3_FORMAT } from '../D3FormatConfig';
 
 export default function createSiAtMostNDigitFormatter(
   config: {
@@ -29,7 +30,8 @@ export default function createSiAtMostNDigitFormatter(
   } = {},
 ) {
   const { description, n = 3, id, label } = config;
-  const siFormatter = d3Format(`.${n}s`);
+  const locale = formatLocale(DEFAULT_D3_FORMAT);
+  const siFormatter = locale.format(`.${n}s`);
 
   return new NumberFormatter({
     description,

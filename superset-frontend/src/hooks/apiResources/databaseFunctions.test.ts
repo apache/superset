@@ -17,7 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
-import { act, renderHook } from '@testing-library/react-hooks';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   createWrapper,
   defaultStore as store,
@@ -34,7 +34,7 @@ const expectDbId = 'db1';
 const dbFunctionNamesApiRoute = `glob:*/api/v1/database/${expectDbId}/function_names/`;
 
 afterEach(() => {
-  fetchMock.reset();
+  fetchMock.clearHistory().removeRoutes();
   act(() => {
     store.dispatch(api.util.resetApiState());
   });
@@ -45,7 +45,7 @@ beforeEach(() => {
 });
 
 test('returns api response mapping json result', async () => {
-  const { result, waitFor } = renderHook(
+  const { result } = renderHook(
     () =>
       useDatabaseFunctionsQuery({
         dbId: expectDbId,
@@ -58,21 +58,21 @@ test('returns api response mapping json result', async () => {
     },
   );
   await waitFor(() =>
-    expect(fetchMock.calls(dbFunctionNamesApiRoute).length).toBe(1),
+    expect(fetchMock.callHistory.calls(dbFunctionNamesApiRoute).length).toBe(1),
   );
   expect(result.current.data).toEqual(expectedResult);
-  expect(fetchMock.calls(dbFunctionNamesApiRoute).length).toBe(1);
+  expect(fetchMock.callHistory.calls(dbFunctionNamesApiRoute).length).toBe(1);
   act(() => {
     result.current.refetch();
   });
   await waitFor(() =>
-    expect(fetchMock.calls(dbFunctionNamesApiRoute).length).toBe(2),
+    expect(fetchMock.callHistory.calls(dbFunctionNamesApiRoute).length).toBe(2),
   );
   expect(result.current.data).toEqual(expectedResult);
 });
 
 test('returns cached data without api request', async () => {
-  const { result, waitFor, rerender } = renderHook(
+  const { result, rerender } = renderHook(
     () =>
       useDatabaseFunctionsQuery({
         dbId: expectDbId,
@@ -85,8 +85,8 @@ test('returns cached data without api request', async () => {
     },
   );
   await waitFor(() => expect(result.current.data).toEqual(expectedResult));
-  expect(fetchMock.calls(dbFunctionNamesApiRoute).length).toBe(1);
+  expect(fetchMock.callHistory.calls(dbFunctionNamesApiRoute).length).toBe(1);
   rerender();
   await waitFor(() => expect(result.current.data).toEqual(expectedResult));
-  expect(fetchMock.calls(dbFunctionNamesApiRoute).length).toBe(1);
+  expect(fetchMock.callHistory.calls(dbFunctionNamesApiRoute).length).toBe(1);
 });

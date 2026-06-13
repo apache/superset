@@ -27,7 +27,7 @@ import { HandlebarsChartPlugin } from '../src';
  * properly transform the data and/or any resulting props).
  */
 describe('@superset-ui/plugin-chart-handlebars', () => {
-  it('exists', () => {
+  test('exists', () => {
     expect(HandlebarsChartPlugin).toBeDefined();
   });
 });

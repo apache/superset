@@ -16,8 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useRef, useState } from 'react';
-import { t } from '@superset-ui/core';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { t } from '@apache-superset/core/translation';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { RoleObject } from 'src/pages/RolesList';
 import {
@@ -29,11 +29,12 @@ import {
 } from '@superset-ui/core/components';
 import {
   BaseModalProps,
-  FormattedPermission,
   RoleForm,
+  RolePermissions,
+  SelectOption,
 } from 'src/features/roles/types';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { GroupObject } from 'src/pages/GroupsList';
+import { SupersetClient } from '@superset-ui/core';
 import { fetchPaginatedData } from 'src/utils/fetchOptions';
 import { type UserObject } from 'src/pages/UsersList/types';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
@@ -48,12 +49,12 @@ import {
   updateRoleName,
   updateRolePermissions,
   updateRoleUsers,
+  formatPermissionLabel,
 } from './utils';
+import { getUserDisplayLabel } from 'src/features/users/utils';
 
 export interface RoleListEditModalProps extends BaseModalProps {
   role: RoleObject;
-  permissions: FormattedPermission[];
-  groups: GroupObject[];
 }
 
 const roleTabs = {
@@ -101,30 +102,48 @@ function RoleListEditModal({
   onHide,
   role,
   onSave,
-  permissions,
-  groups,
 }: RoleListEditModalProps) {
-  const { id, name, permission_ids, user_ids, group_ids } = role;
+  const { id, name, permission_ids = [], group_ids = [] } = role;
+  const stablePermissionIds = useMemo(
+    () => permission_ids,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(permission_ids)],
+  );
+  const stableGroupIds = useMemo(
+    () => group_ids,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [JSON.stringify(group_ids)],
+  );
   const [activeTabKey, setActiveTabKey] = useState(roleTabs.edit.key);
   const { addDangerToast, addSuccessToast } = useToasts();
   const [roleUsers, setRoleUsers] = useState<UserObject[]>([]);
+  const [rolePermissions, setRolePermissions] = useState<SelectOption[]>([]);
+  const [roleGroups, setRoleGroups] = useState<SelectOption[]>([]);
   const [loadingRoleUsers, setLoadingRoleUsers] = useState(true);
+  const [loadingRolePermissions, setLoadingRolePermissions] = useState(true);
+  const [loadingRoleGroups, setLoadingRoleGroups] = useState(true);
   const formRef = useRef<FormInstance | null>(null);
+  const permissionFetchSucceeded = useRef(false);
+  const groupFetchSucceeded = useRef(false);
 
   useEffect(() => {
-    if (!user_ids.length) {
-      setRoleUsers([]);
-      setLoadingRoleUsers(false);
-      return;
-    }
-
-    const filters = [{ col: 'id', opr: 'in', value: user_ids }];
+    const filters = [{ col: 'roles', opr: 'rel_m_m', value: id }];
 
     fetchPaginatedData({
       endpoint: `/api/v1/security/users/`,
       pageSize: 100,
-      setData: setRoleUsers,
+      setData: (users: UserObject[]) => {
+        const seen = new Set<number>();
+        setRoleUsers(
+          users.filter(u => {
+            if (seen.has(u.id)) return false;
+            seen.add(u.id);
+            return true;
+          }),
+        );
+      },
       filters,
+      orderBy: { column: 'id', direction: 'asc' },
       setLoadingState: (loading: boolean) => setLoadingRoleUsers(loading),
       loadingKey: 'roleUsers',
       addDangerToast,
@@ -137,29 +156,153 @@ function RoleListEditModal({
         email: user.email,
       }),
     });
-  }, [user_ids]);
+  }, [addDangerToast, id]);
 
   useEffect(() => {
-    if (!loadingRoleUsers && formRef.current && roleUsers.length >= 0) {
+    if (!stablePermissionIds.length) {
+      setRolePermissions([]);
+      setLoadingRolePermissions(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingRolePermissions(true);
+    permissionFetchSucceeded.current = false;
+
+    SupersetClient.get({
+      endpoint: `/api/v1/security/roles/${id}/permissions/`,
+    })
+      .then(response => {
+        if (cancelled) return;
+        permissionFetchSucceeded.current = true;
+        const result: RolePermissions[] = response.json.result ?? [];
+        setRolePermissions(
+          result.map(p => ({
+            value: p.id,
+            label: formatPermissionLabel(p.permission_name, p.view_menu_name),
+          })),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) {
+          addDangerToast(t('There was an error loading permissions.'));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingRolePermissions(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [addDangerToast, id, stablePermissionIds]);
+
+  useEffect(() => {
+    if (!stableGroupIds.length) {
+      setRoleGroups([]);
+      setLoadingRoleGroups(false);
+      return;
+    }
+
+    setLoadingRoleGroups(true);
+    groupFetchSucceeded.current = false;
+    const filters = [{ col: 'id', opr: 'in', value: stableGroupIds }];
+
+    fetchPaginatedData({
+      endpoint: `/api/v1/security/groups/`,
+      pageSize: 100,
+      setData: (data: SelectOption[]) => {
+        groupFetchSucceeded.current = true;
+        setRoleGroups(data);
+      },
+      filters,
+      setLoadingState: (loading: boolean) => setLoadingRoleGroups(loading),
+      loadingKey: 'roleGroups',
+      addDangerToast,
+      errorMessage: t('There was an error loading groups.'),
+      mapResult: (group: { id: number; name: string }) => ({
+        value: group.id,
+        label: group.name,
+      }),
+    });
+  }, [addDangerToast, stableGroupIds, id]);
+
+  useEffect(() => {
+    if (!loadingRoleUsers && formRef.current) {
       const userOptions = roleUsers.map(user => ({
         value: user.id,
-        label: user.username,
+        label: getUserDisplayLabel(user),
       }));
-
       formRef.current.setFieldsValue({
         roleUsers: userOptions,
       });
     }
   }, [loadingRoleUsers, roleUsers]);
 
+  useEffect(() => {
+    if (
+      !loadingRolePermissions &&
+      formRef.current &&
+      stablePermissionIds.length > 0
+    ) {
+      const fetchedIds = new Set(rolePermissions.map(p => p.value));
+      const missingIds = stablePermissionIds.filter(id => !fetchedIds.has(id));
+      const allPermissions = [
+        ...rolePermissions,
+        ...missingIds.map(id => ({ value: id, label: String(id) })),
+      ];
+      if (missingIds.length > 0 && permissionFetchSucceeded.current) {
+        addDangerToast(
+          t('Some permissions could not be resolved and are shown as IDs.'),
+        );
+      }
+      formRef.current.setFieldsValue({
+        rolePermissions: allPermissions,
+      });
+    }
+  }, [
+    loadingRolePermissions,
+    rolePermissions,
+    stablePermissionIds,
+    addDangerToast,
+  ]);
+
+  useEffect(() => {
+    if (!loadingRoleGroups && formRef.current && stableGroupIds.length > 0) {
+      const fetchedIds = new Set(roleGroups.map(g => g.value));
+      const missingIds = stableGroupIds.filter(id => !fetchedIds.has(id));
+      const allGroups = [
+        ...roleGroups,
+        ...missingIds.map(id => ({ value: id, label: String(id) })),
+      ];
+      if (missingIds.length > 0 && groupFetchSucceeded.current) {
+        addDangerToast(
+          t('Some groups could not be resolved and are shown as IDs.'),
+        );
+      }
+      formRef.current.setFieldsValue({
+        roleGroups: allGroups,
+      });
+    }
+  }, [loadingRoleGroups, roleGroups, stableGroupIds, addDangerToast]);
+
+  const mapSelectedIds = (options?: Array<SelectOption | number>) =>
+    options?.map(option =>
+      typeof option === 'number' ? option : option.value,
+    ) || [];
+
   const handleFormSubmit = async (values: RoleForm) => {
     try {
-      const userIds = values.roleUsers?.map(user => user.value) || [];
+      const permissionIds = mapSelectedIds(values.rolePermissions);
+      const userIds = mapSelectedIds(values.roleUsers);
+      const groupIds = mapSelectedIds(values.roleGroups);
       await Promise.all([
         updateRoleName(id, values.roleName),
-        updateRolePermissions(id, values.rolePermissions),
+        updateRolePermissions(id, permissionIds),
         updateRoleUsers(id, userIds),
-        updateRoleGroups(id, values.roleGroups),
+        updateRoleGroups(id, groupIds),
       ]);
       addSuccessToast(t('The role has been updated successfully.'));
     } catch (err) {
@@ -172,13 +315,19 @@ function RoleListEditModal({
 
   const initialValues = {
     roleName: name,
-    rolePermissions: permission_ids,
+    rolePermissions: permission_ids.map(permissionId => ({
+      value: permissionId,
+      label: String(permissionId),
+    })),
     roleUsers:
       roleUsers?.map(user => ({
         value: user.id,
-        label: user.username,
+        label: getUserDisplayLabel(user),
       })) || [],
-    roleGroups: group_ids,
+    roleGroups: group_ids.map(groupId => ({
+      value: groupId,
+      label: String(groupId),
+    })),
   };
 
   return (
@@ -197,39 +346,47 @@ function RoleListEditModal({
       initialValues={initialValues}
       requiredFields={['roleName']}
     >
-      {(form: FormInstance) => {
-        formRef.current = form;
+      {
+        ((form: FormInstance) => {
+          formRef.current = form;
 
-        return (
-          <Tabs
-            activeKey={activeTabKey}
-            onChange={activeKey => setActiveTabKey(activeKey)}
-          >
-            <Tabs.TabPane
-              tab={roleTabs.edit.name}
-              key={roleTabs.edit.key}
-              forceRender
+          return (
+            <Tabs
+              activeKey={activeTabKey}
+              onChange={activeKey => setActiveTabKey(activeKey)}
             >
-              <>
-                <RoleNameField />
-                <PermissionsField permissions={permissions} />
-                <UsersField
-                  addDangerToast={addDangerToast}
-                  loading={loadingRoleUsers}
+              <Tabs.TabPane
+                tab={roleTabs.edit.name}
+                key={roleTabs.edit.key}
+                forceRender
+              >
+                <>
+                  <RoleNameField />
+                  <PermissionsField
+                    addDangerToast={addDangerToast}
+                    loading={loadingRolePermissions}
+                  />
+                  <UsersField
+                    addDangerToast={addDangerToast}
+                    loading={loadingRoleUsers}
+                  />
+                  <GroupsField
+                    addDangerToast={addDangerToast}
+                    loading={loadingRoleGroups}
+                  />
+                </>
+              </Tabs.TabPane>
+              <Tabs.TabPane tab={roleTabs.users.name} key={roleTabs.users.key}>
+                <TableView
+                  columns={userColumns}
+                  data={roleUsers}
+                  emptyWrapperType={EmptyWrapperType.Small}
                 />
-                <GroupsField groups={groups} />
-              </>
-            </Tabs.TabPane>
-            <Tabs.TabPane tab={roleTabs.users.name} key={roleTabs.users.key}>
-              <TableView
-                columns={userColumns}
-                data={roleUsers}
-                emptyWrapperType={EmptyWrapperType.Small}
-              />
-            </Tabs.TabPane>
-          </Tabs>
-        );
-      }}
+              </Tabs.TabPane>
+            </Tabs>
+          );
+        }) as unknown as ReactNode
+      }
     </FormModal>
   );
 }

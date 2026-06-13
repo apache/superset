@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 
 import type { ErrorMessageComponentProps } from './types';
 import { ErrorAlert } from './ErrorAlert';
@@ -25,11 +25,13 @@ export function FrontendNetworkErrorMessage({
   error,
   subtitle,
   compact,
+  closable,
 }: ErrorMessageComponentProps) {
   const { level, message } = error;
   return (
     <ErrorAlert
       compact={compact}
+      closable={closable}
       errorType={t('Network Error')}
       message={message}
       type={level}

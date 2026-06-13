@@ -17,7 +17,7 @@
  * under the License.
  */
 /* eslint-disable import/no-extraneous-dependencies */
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { RawAntdSelect } from '@superset-ui/core/components';
 import { SearchOption } from '../../types';
 
