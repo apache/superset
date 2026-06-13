@@ -524,7 +524,7 @@ test('should disable both buttons when no actions available', () => {
 
 test('should render the "Discard" button as disabled', () => {
   setup(editableState);
-  expect(screen.getByText('Discard').parentElement).toBeDisabled();
+  expect(screen.getByRole('button', { name: /discard/i })).toBeDisabled();
 });
 
 test('should enable the "Discard" button when there are unsaved changes', () => {
@@ -536,7 +536,7 @@ test('should enable the "Discard" button when there are unsaved changes', () => 
     },
   };
   setup(unsavedState);
-  expect(screen.getByText('Discard').parentElement).toBeEnabled();
+  expect(screen.getByRole('button', { name: /discard/i })).toBeEnabled();
 });
 
 test('should render the "Save" button as disabled', () => {
