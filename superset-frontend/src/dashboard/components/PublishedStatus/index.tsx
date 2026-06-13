@@ -65,6 +65,7 @@ export default class PublishedStatus extends Component<DashboardPublishedStatusT
             id="unpublished-dashboard-tooltip"
             placement="bottom"
             title={draftButtonTooltip}
+            overlayClassName="dashboard-header-tooltip"
           >
             <div>
               <PublishedLabel
@@ -80,6 +81,7 @@ export default class PublishedStatus extends Component<DashboardPublishedStatusT
           id="unpublished-dashboard-tooltip"
           placement="bottom"
           title={draftDivTooltip}
+          overlayClassName="dashboard-header-tooltip"
         >
           <div>
             <PublishedLabel isPublished={isPublished} />
@@ -95,6 +97,7 @@ export default class PublishedStatus extends Component<DashboardPublishedStatusT
           id="published-dashboard-tooltip"
           placement="bottom"
           title={publishedTooltip}
+          overlayClassName="dashboard-header-tooltip"
         >
           <div>
             <PublishedLabel
