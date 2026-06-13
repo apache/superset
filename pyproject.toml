@@ -150,7 +150,7 @@ fastmcp = [
     # tiktoken backs the response-size-guard token estimator. Without
     # it, the middleware falls back to a coarser character-based
     # heuristic that under-counts JSON-heavy MCP responses.
-    "tiktoken>=0.7.0,<1.0",
+    "tiktoken>=0.13.0,<1.0",
 ]
 firebird = ["sqlalchemy-firebird>=0.7.0, <2.2"]
 firebolt = ["firebolt-sqlalchemy>=1.0.0, <2"]
