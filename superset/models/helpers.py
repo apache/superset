@@ -27,7 +27,7 @@ import re
 import uuid
 from collections.abc import Hashable, Iterator
 from contextlib import contextmanager
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import (
     Any,
     Callable,
@@ -39,6 +39,7 @@ from typing import (
     TypedDict,
     Union,
 )
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import dateutil.parser
 import humanize
@@ -2786,19 +2787,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if dataset_timezone and (start_dttm or end_dttm):
             try:
-                tz = pytz.timezone(dataset_timezone)
-                utc = pytz.UTC
+                tz = ZoneInfo(dataset_timezone)
 
                 # The datetimes from the UI are naive (no timezone info)
                 # We interpret them as being in the dataset's configured timezone
                 # and convert them to UTC for comparison with UTC-stored data
                 if start_dttm:
-                    local_start = tz.localize(start_dttm)
-                    adjusted_start = local_start.astimezone(utc).replace(tzinfo=None)
+                    local_start = start_dttm.replace(tzinfo=tz)
+                    adjusted_start = local_start.astimezone(timezone.utc).replace(
+                        tzinfo=None
+                    )
                 if end_dttm:
-                    local_end = tz.localize(end_dttm)
-                    adjusted_end = local_end.astimezone(utc).replace(tzinfo=None)
-            except pytz.UnknownTimeZoneError:
+                    local_end = end_dttm.replace(tzinfo=tz)
+                    adjusted_end = local_end.astimezone(timezone.utc).replace(
+                        tzinfo=None
+                    )
+            except ZoneInfoNotFoundError:
                 logger.warning(
                     "Invalid timezone '%s' in dataset extra",
                     dataset_timezone,
