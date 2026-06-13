@@ -16,8 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { withJsx } from '@mihkeleidast/storybook-addon-source';
-import { themeObject, css, exampleThemes } from '@apache-superset/core/ui';
+import { themeObject, css, exampleThemes } from '@apache-superset/core/theme';
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
 import { Provider } from 'react-redux';
@@ -27,6 +26,27 @@ import { App, Layout, Space, Content } from 'antd';
 
 import 'src/theme.ts';
 import './storybook.css';
+
+// Set up bootstrap data for components that check HTML_SANITIZATION config
+// (e.g., HandlebarsViewer). This allows <style> tags in Handlebars templates.
+if (typeof document !== 'undefined') {
+  let appEl = document.getElementById('app');
+  if (!appEl) {
+    appEl = document.createElement('div');
+    appEl.id = 'app';
+    document.body.appendChild(appEl);
+  }
+  appEl.setAttribute(
+    'data-bootstrap',
+    JSON.stringify({
+      common: {
+        conf: {
+          HTML_SANITIZATION: false,
+        },
+      },
+    }),
+  );
+}
 
 export const GlobalStylesOverrides = () => (
   <Global
@@ -93,9 +113,12 @@ const providerDecorator = Story => (
   </Provider>
 );
 
-export const decorators = [withJsx, themeDecorator, providerDecorator];
+export const decorators = [themeDecorator, providerDecorator];
 
 export const parameters = {
+  docs: {
+    codePanel: true,
+  },
   paddings: {
     values: [
       { name: 'None', value: '0px' },

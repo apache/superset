@@ -21,7 +21,7 @@ import {
   ControlSetItem,
   QueryModeLabel,
 } from '@superset-ui/chart-controls';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { QueryMode } from '@superset-ui/core';
 import { getQueryMode } from './shared';
 

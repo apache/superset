@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useEffect, useCallback, useMemo, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 
 import { SqlLabRootState } from 'src/SqlLab/types';
 import {
@@ -41,7 +42,7 @@ export default function useDatabaseSelector(queryEditorId: string) {
     SqlLabRootState,
     SqlLabRootState['sqlLab']['databases']
   >(({ sqlLab }) => sqlLab.databases);
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const queryEditor = useQueryEditor(queryEditorId, [
     'dbId',
     'catalog',
@@ -67,9 +68,9 @@ export default function useDatabaseSelector(queryEditorId: string) {
   );
 
   const handleCatalogChange = useCallback(
-    (catalog: string | null) => {
+    (catalog?: string | null) => {
       if (queryEditor) {
-        dispatch(queryEditorSetCatalog(queryEditor, catalog));
+        dispatch(queryEditorSetCatalog(queryEditor, catalog ?? null));
       }
     },
     [dispatch, queryEditor],

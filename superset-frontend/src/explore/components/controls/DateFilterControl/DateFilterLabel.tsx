@@ -17,13 +17,18 @@
  * under the License.
  */
 import { ReactNode, useState, useEffect, useMemo } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   NO_TIME_RANGE,
   useCSSTextTruncation,
   fetchTimeRange,
 } from '@superset-ui/core';
-import { css, styled, useTheme, SupersetTheme } from '@apache-superset/core/ui';
+import {
+  css,
+  styled,
+  useTheme,
+  SupersetTheme,
+} from '@apache-superset/core/theme';
 import {
   Button,
   Constants,
@@ -120,7 +125,7 @@ const getTooltipTitle = (
 ) =>
   isLabelTruncated ? (
     <div>
-      {label && <strong>{label}</strong>}
+      {label && <strong>{t(label)}</strong>}
       {range && (
         <div
           css={(theme: SupersetTheme) => css`
@@ -155,7 +160,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   const [timeRangeValue, setTimeRangeValue] = useState(value);
   const [validTimeRange, setValidTimeRange] = useState<boolean>(false);
   const [evalResponse, setEvalResponse] = useState<string>(value);
-  const [tooltipTitle, setTooltipTitle] = useState<ReactNode | null>(value);
+  const [tooltipTitle, setTooltipTitle] = useState<ReactNode | null>(t(value));
   const theme = useTheme();
   const [labelRef, labelIsTruncated] = useCSSTextTruncation<HTMLSpanElement>();
 
@@ -170,7 +175,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       if (error) {
         setEvalResponse(error || '');
         setValidTimeRange(false);
-        setTooltipTitle(value || null);
+        setTooltipTitle(t(value) || null);
       } else {
         /*
           HRT == human readable text
@@ -355,7 +360,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       open={show}
       onOpenChange={toggleOverlay}
       overlayStyle={{ width: '600px' }}
-      destroyTooltipOnHide
+      destroyOnHidden
       getPopupContainer={nodeTrigger =>
         isOverflowingFilterBar
           ? (nodeTrigger.parentNode as HTMLElement)

@@ -16,14 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 
 import { ControlSubSectionHeader } from '../components/ControlSubSectionHeader';
 import { ControlPanelSectionConfig } from '../types';
 import { formatSelectOptions } from '../utils';
 
 export const TITLE_MARGIN_OPTIONS: number[] = [
-  15, 30, 50, 75, 100, 125, 150, 200,
+  0, 15, 30, 40, 50, 75, 100, 125, 150, 200,
 ];
 export const TITLE_POSITION_OPTIONS: [string, string][] = [
   ['Left', t('Left')],
@@ -56,7 +56,7 @@ export const titleControls: ControlPanelSectionConfig = {
           clearable: true,
           label: t('X Axis Title Margin'),
           renderTrigger: true,
-          default: TITLE_MARGIN_OPTIONS[0],
+          default: TITLE_MARGIN_OPTIONS[3],
           choices: formatSelectOptions(TITLE_MARGIN_OPTIONS),
         },
       },
@@ -82,7 +82,7 @@ export const titleControls: ControlPanelSectionConfig = {
           clearable: true,
           label: t('Y Axis Title Margin'),
           renderTrigger: true,
-          default: TITLE_MARGIN_OPTIONS[1],
+          default: TITLE_MARGIN_OPTIONS[4],
           choices: formatSelectOptions(TITLE_MARGIN_OPTIONS),
         },
       },

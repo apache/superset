@@ -17,18 +17,34 @@
  * under the License.
  */
 import { useState, useCallback } from 'react';
-import { t } from '@apache-superset/core';
+import { styled } from '@apache-superset/core/theme';
+import { GridTable } from 'src/components/GridTable';
+import { GridSize } from 'src/components/GridTable/constants';
 import {
-  TableView,
-  TableSize,
-  EmptyWrapperType,
-} from '@superset-ui/core/components';
-import {
-  useFilteredTableData,
-  useTableColumns,
-} from 'src/explore/components/DataTableControl';
+  useGridColumns,
+  useKeywordFilter,
+  useGridHeight,
+} from './useGridResultTable';
 import { TableControls } from './DataTableControls';
 import { SingleQueryResultPaneProp } from '../types';
+
+const ResultPaneContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+`;
+
+const GridContainer = styled.div`
+  flex: 1;
+  min-height: 0;
+  position: relative;
+`;
+
+const GridSizer = styled.div`
+  position: absolute;
+  inset: 0;
+`;
 
 export const SingleQueryResultPane = ({
   data,
@@ -36,24 +52,20 @@ export const SingleQueryResultPane = ({
   coltypes,
   rowcount,
   datasourceId,
-  dataSize = 50,
-  isVisible,
   canDownload,
+  columnDisplayNames,
+  rowLimit,
+  rowLimitOptions,
+  onRowLimitChange,
+  onDownloadCSV,
+  onDownloadXLSX,
+  onReload,
 }: SingleQueryResultPaneProp) => {
   const [filterText, setFilterText] = useState('');
+  const { gridHeight, measuredRef } = useGridHeight();
 
-  // this is to preserve the order of the columns, even if there are integer values,
-  // while also only grabbing the first column's keys
-  const columns = useTableColumns(
-    colnames,
-    coltypes,
-    data,
-    datasourceId,
-    isVisible,
-    {}, // moreConfig
-    true, // allowHTML
-  );
-  const filteredData = useFilteredTableData(filterText, data);
+  const columns = useGridColumns(colnames, coltypes, data, columnDisplayNames);
+  const keywordFilter = useKeywordFilter(filterText);
 
   const handleInputChange = useCallback(
     (input: string) => setFilterText(input),
@@ -61,9 +73,9 @@ export const SingleQueryResultPane = ({
   );
 
   return (
-    <>
+    <ResultPaneContainer>
       <TableControls
-        data={filteredData}
+        data={data}
         columnNames={colnames}
         columnTypes={coltypes}
         rowcount={rowcount}
@@ -71,19 +83,25 @@ export const SingleQueryResultPane = ({
         onInputChange={handleInputChange}
         isLoading={false}
         canDownload={canDownload}
+        rowLimit={rowLimit}
+        rowLimitOptions={rowLimitOptions}
+        onRowLimitChange={onRowLimitChange}
+        onDownloadCSV={onDownloadCSV}
+        onDownloadXLSX={onDownloadXLSX}
+        onReload={onReload}
       />
-      <TableView
-        columns={columns}
-        size={TableSize.Small}
-        data={filteredData}
-        pageSize={dataSize}
-        noDataText={t('No results')}
-        emptyWrapperType={EmptyWrapperType.Small}
-        className="table-condensed"
-        isPaginationSticky
-        showRowCount={false}
-        small
-      />
-    </>
+      <GridContainer>
+        <GridSizer ref={measuredRef}>
+          <GridTable
+            data={data}
+            columns={columns}
+            height={gridHeight}
+            size={GridSize.Small}
+            externalFilter={keywordFilter}
+            showRowNumber
+          />
+        </GridSizer>
+      </GridContainer>
+    </ResultPaneContainer>
   );
 };

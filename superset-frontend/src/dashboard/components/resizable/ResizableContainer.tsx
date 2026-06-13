@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, ReactNode } from 'react';
 import { ResizeCallback, ResizeStartCallback, Resizable } from 're-resizable';
 import cx from 'classnames';
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
 
 import {
   RightResizeHandle,
@@ -33,7 +33,7 @@ const proxyToInfinity = Number.MAX_VALUE;
 
 export interface ResizableContainerProps {
   id: string;
-  children?: object;
+  children?: ReactNode;
   adjustableWidth?: boolean;
   adjustableHeight?: boolean;
   gutterWidth?: number;
@@ -62,7 +62,7 @@ const HANDLE_CLASSES = {
   right: 'resizable-container-handle--right',
   bottom: 'resizable-container-handle--bottom',
 };
-// @ts-ignore
+// @ts-expect-error
 const StyledResizable = styled(Resizable)`
   ${({ theme }) => css`
     &.resizable-container {
@@ -205,7 +205,7 @@ export default function ResizableContainer({
             width: adjustableWidth ? nextWidthMultiple : 0,
             height: adjustableHeight ? nextHeightMultiple : 0,
           },
-          // @ts-ignore
+          // @ts-expect-error
           id,
         );
       }

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { styled } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { ColorBreakpointOptionProps } from './types';
 import ColorBreakpointPopoverTrigger from './ColorBreakpointPopoverTrigger';
 import { DragContainer } from '../OptionControls';

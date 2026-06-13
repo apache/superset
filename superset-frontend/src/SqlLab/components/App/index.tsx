@@ -20,8 +20,8 @@ import { PureComponent } from 'react';
 import { connect } from 'react-redux';
 import { Redirect } from 'react-router-dom';
 import Mousetrap from 'mousetrap';
-import { t } from '@apache-superset/core';
-import { css, styled } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 import { throttle } from 'lodash';
 import {
   LOCALSTORAGE_MAX_USAGE_KB,
@@ -117,11 +117,15 @@ interface AppState {
 class App extends PureComponent<AppProps, AppState> {
   hasLoggedLocalStorageUsage: boolean;
 
+  private boundOnHashChanged: () => void;
+
   constructor(props: AppProps) {
     super(props);
     this.state = {
       hash: window.location.hash,
     };
+
+    this.boundOnHashChanged = this.onHashChanged.bind(this);
 
     this.showLocalStorageUsageWarning = throttle(
       this.showLocalStorageUsageWarning,
@@ -131,7 +135,7 @@ class App extends PureComponent<AppProps, AppState> {
   }
 
   componentDidMount() {
-    window.addEventListener('hashchange', this.onHashChanged.bind(this));
+    window.addEventListener('hashchange', this.boundOnHashChanged);
 
     // Horrible hack to disable side swipe navigation when in SQL Lab. Even though the
     // docs say setting this style on any div will prevent it, turns out it only works
@@ -165,7 +169,7 @@ class App extends PureComponent<AppProps, AppState> {
   }
 
   componentWillUnmount() {
-    window.removeEventListener('hashchange', this.onHashChanged.bind(this));
+    window.removeEventListener('hashchange', this.boundOnHashChanged);
 
     // And now we need to reset the overscroll behavior back to the default.
     document.body.style.overscrollBehaviorX = 'auto';

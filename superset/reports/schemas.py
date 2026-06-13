@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import re
 from typing import Any, Optional, Union
 
 from croniter import croniter
@@ -120,8 +121,10 @@ class ValidatorConfigJSONSchema(Schema):
     threshold = fields.Float()
 
 
+EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")
+
+
 class ReportRecipientConfigJSONSchema(Schema):
-    # TODO if email check validity
     target = fields.String()
     ccTarget = fields.String()  # noqa: N815
     bccTarget = fields.String()  # noqa: N815
@@ -137,6 +140,34 @@ class ReportRecipientSchema(Schema):
         ),
     )
     recipient_config_json = fields.Nested(ReportRecipientConfigJSONSchema)
+
+    @validates_schema
+    def validate_email_recipients(self, data: dict[str, Any], **kwargs: Any) -> None:
+        if data.get("type") != ReportRecipientType.EMAIL.value:
+            return
+
+        config = data.get("recipient_config_json") or {}
+
+        def validate_addresses(field: str, value: str | None, required: bool) -> None:
+            if not value or not value.strip():
+                if required:
+                    raise ValidationError(
+                        {field: ["Email target is required for Email recipients"]}
+                    )
+                return
+            invalid = [
+                addr.strip()
+                for addr in re.split(r"[,;]", value)
+                if addr.strip() and not EMAIL_REGEX.match(addr.strip())
+            ]
+            if invalid:
+                raise ValidationError(
+                    {field: [f"Invalid email address(es): {', '.join(invalid)}"]}
+                )
+
+        validate_addresses("target", config.get("target"), required=True)
+        validate_addresses("ccTarget", config.get("ccTarget"), required=False)
+        validate_addresses("bccTarget", config.get("bccTarget"), required=False)
 
 
 class ReportSchedulePostSchema(Schema):
@@ -199,7 +230,6 @@ class ReportSchedulePostSchema(Schema):
         metadata={"description": creation_method_description},
     )
     dashboard = fields.Integer(required=False, allow_none=True)
-    selected_tabs = fields.List(fields.Integer(), required=False, allow_none=True)
     database = fields.Integer(required=False)
     owners = fields.List(fields.Integer(metadata={"description": owners_description}))
     validator_type = fields.String(
@@ -275,6 +305,30 @@ class ReportSchedulePostSchema(Schema):
                 )
 
 
+class ReportScheduleSubscribeSchema(ReportSchedulePostSchema):
+    """Schema for creating a chart/dashboard subscription.
+
+    ``recipients`` and ``creation_method`` are excluded — both are set
+    server-side: recipients are locked to the authenticated user's email,
+    and creation_method is derived from the presence of ``chart`` or
+    ``dashboard`` in the payload.
+
+    ``type`` is restricted to ``Report`` — alert schedules cannot be
+    created through the subscribe endpoint.
+    """
+
+    type = fields.String(
+        metadata={"description": type_description},
+        allow_none=False,
+        required=True,
+        validate=validate.OneOf(choices=[ReportScheduleType.REPORT.value]),
+    )
+
+    class Meta:
+        exclude = ("recipients", "creation_method", "owners")
+        unknown = EXCLUDE
+
+
 class ReportSchedulePutSchema(Schema):
     type = fields.String(
         metadata={"description": type_description},
@@ -334,7 +388,7 @@ class ReportSchedulePutSchema(Schema):
         metadata={"description": creation_method_description},
     )
     dashboard = fields.Integer(required=False, allow_none=True)
-    database = fields.Integer(required=False)
+    database = fields.Integer(required=False, allow_none=True)
     owners = fields.List(
         fields.Integer(metadata={"description": owners_description}), required=False
     )

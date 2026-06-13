@@ -25,14 +25,14 @@ import {
 } from 'react';
 import rison from 'rison';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   FeatureFlag,
   JsonResponse,
   SupersetClient,
   isFeatureEnabled,
 } from '@superset-ui/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Input, Select } from '@superset-ui/core/components';
 import RefreshLabel from '@superset-ui/core/components/RefreshLabel';
@@ -100,7 +100,7 @@ const StyledNotificationMethod = styled.div`
       margin-left: ${theme.sizeUnit * 4}px;
     }
 
-    .ghost-button:first-child[style*='none'] + .ghost-button {
+    .ghost-button:first-of-type[style*='none'] + .ghost-button {
       margin-left: 0px; /* Remove margin when the first button is hidden */
     }
   `}

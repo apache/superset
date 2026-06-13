@@ -43,4 +43,51 @@ export const TIMEOUT = {
    * Form and UI element load timeouts
    */
   FORM_LOAD: 5000, // 5s for forms to become visible (login form, modals)
+
+  /**
+   * API response timeout for operations like export/download
+   */
+  API_RESPONSE: 15000, // 15s for API responses and downloads
+
+  /**
+   * Confirmation dialog wait (e.g., "Confirm save", "Are you sure?")
+   */
+  CONFIRM_DIALOG: 2000, // 2s for confirmation dialogs that may or may not appear
+
+  /**
+   * File import/upload operations (upload + server processing)
+   */
+  FILE_IMPORT: 30000, // 30s for file import operations
+
+  /**
+   * UI transition timeout (tab close, popover dismiss, dropdown close)
+   */
+  UI_TRANSITION: 5000, // 5s ceiling for Ant Design animations (~300-500ms actual)
+
+  /**
+   * SQL query execution (query → backend processing → results).
+   * 30s matches Playwright's default test timeout — cold-start CI on the
+   * /app/prefix variant has been observed running trivial SELECTs in
+   * ~25s before results render, which exceeded the previous 15s budget.
+   */
+  QUERY_EXECUTION: 30000, // 30s for SQL queries
+
+  /**
+   * Extended test timeout for multi-step tests (page load + query execution + assertions).
+   * Use with test.setTimeout() when the default 30s test timeout is insufficient.
+   */
+  SLOW_TEST: 60000, // 60s for tests that chain multiple slow operations
+} as const;
+
+/**
+ * Embedded dashboard test app configuration.
+ * The test app is served by a Node.js http server started in the test fixture.
+ */
+export const EMBEDDED = {
+  /** Timeout for iframe to appear in the DOM */
+  IFRAME_LOAD: 15000, // 15s
+  /** Timeout for dashboard content to render inside the iframe */
+  DASHBOARD_RENDER: 30000, // 30s
+  /** Timeout for individual chart cells to finish rendering */
+  CHART_RENDER: 30000, // 30s
 } as const;

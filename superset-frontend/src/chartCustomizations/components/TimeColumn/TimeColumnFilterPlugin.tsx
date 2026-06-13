@@ -16,9 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t, tn } from '@apache-superset/core';
+import { t, tn } from '@apache-superset/core/translation';
 import { ensureIsArray, ExtraFormData } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { useEffect, useState } from 'react';
 import {
   FormItem,
@@ -111,7 +111,7 @@ export default function PluginFilterTimeColumn(
           allowClear
           value={value}
           placeholder={placeholderText}
-          // @ts-ignore
+          // @ts-expect-error
           onChange={handleChange}
           onBlur={unsetFocusedFilter}
           onFocus={setFocusedFilter}

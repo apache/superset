@@ -19,12 +19,12 @@
 
 import { useCallback, useContext, useMemo } from 'react';
 import { useHistory } from 'react-router-dom';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   BinaryQueryObjectFilterClause,
   QueryFormData,
 } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { Button, Modal } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';

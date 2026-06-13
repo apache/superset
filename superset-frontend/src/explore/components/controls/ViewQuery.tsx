@@ -26,9 +26,9 @@ import {
 } from 'react';
 import { useSelector } from 'react-redux';
 import rison from 'rison';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import {
   Icons,
   Switch,
@@ -62,6 +62,8 @@ const StyledSyntaxContainer = styled.div`
 
 const StyledThemedSyntaxHighlighter = styled(CodeSyntaxHighlighter)`
   flex: 1;
+  height: ${({ theme }) => theme.sizeUnit * 26}px;
+  margin-top: 0;
 `;
 
 const StyledFooter = styled.div`
@@ -163,7 +165,12 @@ const ViewQuery: FC<ViewQueryProps> = props => {
         ) : (
           <StyledThemedSyntaxHighlighter
             language={language}
-            customStyle={{ flex: 1, marginBottom: theme.sizeUnit * 3 }}
+            customStyle={{
+              flex: 1,
+              marginBottom: theme.sizeUnit * 3,
+              fontSize: theme.fontSize * 0.75,
+              padding: 0,
+            }}
           >
             {currentSQL}
           </StyledThemedSyntaxHighlighter>

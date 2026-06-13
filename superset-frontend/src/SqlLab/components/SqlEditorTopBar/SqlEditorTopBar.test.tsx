@@ -17,37 +17,16 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
-import { MenuItemType } from '@superset-ui/core/components/Menu';
 import SqlEditorTopBar, {
   SqlEditorTopBarProps,
 } from 'src/SqlLab/components/SqlEditorTopBar';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import {
+  registerToolbarAction,
+  cleanupExtensions,
+} from 'spec/helpers/extensionTestHelpers';
 
-jest.mock('src/components/MenuListExtension', () => ({
-  __esModule: true,
-  default: ({
-    children,
-    viewId,
-    primary,
-    secondary,
-    defaultItems,
-  }: {
-    children?: React.ReactNode;
-    viewId: string;
-    primary?: boolean;
-    secondary?: boolean;
-    defaultItems?: MenuItemType[];
-  }) => (
-    <div
-      data-test="mock-menu-extension"
-      data-view-id={viewId}
-      data-primary={primary}
-      data-secondary={secondary}
-      data-default-items-count={defaultItems?.length ?? 0}
-    >
-      {children}
-    </div>
-  ),
-}));
+afterEach(cleanupExtensions);
 
 const defaultProps: SqlEditorTopBarProps = {
   queryEditorId: 'test-query-editor-id',
@@ -61,32 +40,7 @@ const defaultProps: SqlEditorTopBarProps = {
 const setup = (props?: Partial<SqlEditorTopBarProps>) =>
   render(<SqlEditorTopBar {...defaultProps} {...props} />);
 
-test('renders SqlEditorTopBar component', () => {
-  setup();
-  const menuExtensions = screen.getAllByTestId('mock-menu-extension');
-  expect(menuExtensions).toHaveLength(2);
-});
-
-test('renders primary MenuListExtension with correct props', () => {
-  setup();
-  const menuExtensions = screen.getAllByTestId('mock-menu-extension');
-  const primaryExtension = menuExtensions[0];
-
-  expect(primaryExtension).toHaveAttribute('data-view-id', 'sqllab.editor');
-  expect(primaryExtension).toHaveAttribute('data-primary', 'true');
-});
-
-test('renders secondary MenuListExtension with correct props', () => {
-  setup();
-  const menuExtensions = screen.getAllByTestId('mock-menu-extension');
-  const secondaryExtension = menuExtensions[1];
-
-  expect(secondaryExtension).toHaveAttribute('data-view-id', 'sqllab.editor');
-  expect(secondaryExtension).toHaveAttribute('data-secondary', 'true');
-  expect(secondaryExtension).toHaveAttribute('data-default-items-count', '2');
-});
-
-test('renders defaultPrimaryActions as children of primary MenuListExtension', () => {
+test('renders defaultPrimaryActions', () => {
   setup();
   expect(
     screen.getByRole('button', { name: 'Primary Action' }),
@@ -111,20 +65,24 @@ test('renders with custom primary actions', () => {
   ).toBeInTheDocument();
 });
 
-test('renders with empty secondary actions', () => {
-  setup({ defaultSecondaryActions: [] });
-
-  const menuExtensions = screen.getAllByTestId('mock-menu-extension');
-  const secondaryExtension = menuExtensions[1];
-
-  expect(secondaryExtension).toHaveAttribute('data-default-items-count', '0');
+test('renders contributed toolbar action in editor slot', () => {
+  registerToolbarAction(
+    ViewLocations.sqllab.editor,
+    'test-editor-action',
+    'Test Editor Action',
+    jest.fn(),
+  );
+  setup();
+  expect(
+    screen.getByRole('button', { name: 'Test Editor Action' }),
+  ).toBeInTheDocument();
 });
 
-test('passes correct viewId (ViewContribution.Editor) to MenuListExtension', () => {
-  setup();
-  const menuExtensions = screen.getAllByTestId('mock-menu-extension');
-
-  menuExtensions.forEach(extension => {
-    expect(extension).toHaveAttribute('data-view-id', 'sqllab.editor');
+test('renders nothing when no toolbar actions registered and no default actions', () => {
+  setup({
+    defaultPrimaryActions: undefined,
+    defaultSecondaryActions: [],
   });
+  // PanelToolbar returns null when there are no actions at all
+  expect(screen.queryByRole('button')).not.toBeInTheDocument();
 });

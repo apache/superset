@@ -20,11 +20,12 @@ import { PureComponent } from 'react';
 import { EditableTabs } from '@superset-ui/core/components/Tabs';
 import { connect } from 'react-redux';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/ui';
+import { styled } from '@apache-superset/core/theme';
 import { Logger } from 'src/logger/LogUtils';
 import { EmptyState, Tooltip } from '@superset-ui/core/components';
+import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { detectOS } from 'src/utils/common';
 import * as Actions from 'src/SqlLab/actions/sqlLab';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -87,6 +88,11 @@ const StyledTab = styled.span`
 const TabTitle = styled.span`
   margin-right: ${({ theme }) => theme.sizeUnit * 2}px;
   text-transform: none;
+`;
+
+const AddTabIconWrapper = styled.span`
+  display: inline-flex;
+  vertical-align: middle;
 `;
 
 // Get the user's OS
@@ -171,14 +177,16 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
       key: qe.id,
       label: <SqlEditorTabHeader queryEditor={qe} />,
       children: (
-        <SqlEditor
-          queryEditor={qe}
-          defaultQueryLimit={this.props.defaultQueryLimit}
-          maxRow={this.props.maxRow}
-          displayLimit={this.props.displayLimit}
-          saveQueryWarning={this.props.saveQueryWarning}
-          scheduleQueryWarning={this.props.scheduleQueryWarning}
-        />
+        <ErrorBoundary>
+          <SqlEditor
+            queryEditor={qe}
+            defaultQueryLimit={this.props.defaultQueryLimit}
+            maxRow={this.props.maxRow}
+            displayLimit={this.props.displayLimit}
+            saveQueryWarning={this.props.saveQueryWarning}
+            scheduleQueryWarning={this.props.scheduleQueryWarning}
+          />
+        </ErrorBoundary>
       ),
     }));
 
@@ -194,13 +202,9 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
               : t('New tab (Ctrl + t)')
           }
         >
-          <Icons.PlusCircleOutlined
-            iconSize="s"
-            css={css`
-              vertical-align: middle;
-            `}
-            data-test="add-tab-icon"
-          />
+          <AddTabIconWrapper>
+            <Icons.PlusCircleOutlined iconSize="s" data-test="add-tab-icon" />
+          </AddTabIconWrapper>
         </Tooltip>
       </StyledTab>
     );
@@ -241,13 +245,9 @@ class TabbedSqlEditors extends PureComponent<TabbedSqlEditorsProps> {
                 : t('New tab (Ctrl + t)')
             }
           >
-            <Icons.PlusOutlined
-              iconSize="l"
-              css={css`
-                vertical-align: middle;
-              `}
-              data-test="add-tab-icon"
-            />
+            <AddTabIconWrapper>
+              <Icons.PlusOutlined iconSize="l" data-test="add-tab-icon" />
+            </AddTabIconWrapper>
           </Tooltip>
         }
         items={tabItems}

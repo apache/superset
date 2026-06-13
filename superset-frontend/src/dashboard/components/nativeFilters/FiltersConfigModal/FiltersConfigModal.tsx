@@ -18,9 +18,9 @@
  */
 import { memo, useEffect, useCallback, useMemo, useState, useRef } from 'react';
 import { uniq, debounce } from 'lodash';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { ChartCustomizationType, NativeFilterType } from '@superset-ui/core';
-import { styled, css, useTheme } from '@apache-superset/core/ui';
+import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { Constants, Form, Icons, Flex } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
 import { testWithId } from 'src/utils/testUtils';
@@ -57,6 +57,7 @@ import {
   isFilterId,
   isChartCustomizationId,
   transformDividerId,
+  isDivider,
 } from './utils';
 import { ConfigModalContent } from './ConfigModalContent';
 import ConfigModalSidebar from './ConfigModalSidebar';
@@ -450,13 +451,40 @@ function FiltersConfigModal({
     ? Icons.FullscreenExitOutlined
     : Icons.FullscreenOutlined;
 
-  const handleValuesChange = useMemo(
+  const [formValuesVersion, setFormValuesVersion] = useState(0);
+
+  const itemTitles = useMemo(() => {
+    const titles: Record<string, string> = {};
+    [...filterIds, ...chartCustomizationIds].forEach(id => {
+      titles[id] = modalSaveLogic.getItemTitle(id);
+    });
+    return titles;
+  }, [filterIds, chartCustomizationIds, modalSaveLogic, formValuesVersion]);
+
+  const debouncedHandleErroredItems = useMemo(
     () =>
       debounce(() => {
         setSaveAlertVisible(false);
         modalSaveLogic.handleErroredItems();
+        setFormValuesVersion(prev => prev + 1);
       }, Constants.SLOW_DEBOUNCE),
-    [modalSaveLogic],
+    [modalSaveLogic, setSaveAlertVisible],
+  );
+
+  const handleValuesChange = useCallback(
+    (changedValues: Partial<NativeFiltersForm>) => {
+      debouncedHandleErroredItems();
+      // DividerConfigForm doesn't call handleModifyItem on change the way
+      // FiltersConfigForm does, so detect divider field changes here and mark
+      // the divider as modified so canSave becomes true and the save payload
+      // includes the updated divider values.
+      Object.keys(changedValues?.filters ?? {}).forEach(id => {
+        if (isDivider(id)) {
+          handleModifyItem(id);
+        }
+      });
+    },
+    [debouncedHandleErroredItems, handleModifyItem],
   );
 
   const handleActiveFilterPanelChange = useCallback(
@@ -503,7 +531,7 @@ function FiltersConfigModal({
     <BaseModalWrapper
       open={isOpen}
       maskClosable={false}
-      title={t('Filters and customization settings')}
+      title={t('Add or edit display controls')}
       expanded={expanded}
       destroyOnHidden
       onCancel={handleCancel}
@@ -557,6 +585,7 @@ function FiltersConfigModal({
                 customizationErroredItems={customizationState.erroredIds}
                 activeCollapseKeys={activeCollapseKeys}
                 getItemTitle={modalSaveLogic.getItemTitle}
+                itemTitles={itemTitles}
                 onAddFilter={filterOperations.addFilter}
                 onAddCustomization={
                   customizationOperations.addChartCustomization

@@ -17,19 +17,21 @@
  * under the License.
  */
 import { useCallback, useEffect, useState } from 'react';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   SupersetClient,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
-import { styled, Alert } from '@apache-superset/core/ui';
-import { CssEditor, Select, Switch } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/components';
+import { styled } from '@apache-superset/core/theme';
+import { Select, Switch } from '@superset-ui/core/components';
+import { EditorHost } from 'src/core/editors';
 import rison from 'rison';
 import ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import { ModalFormField } from 'src/components/Modal';
 
-const StyledCssEditor = styled(CssEditor)`
+const StyledEditorHost = styled(EditorHost)`
   border-radius: ${({ theme }) => theme.borderRadius}px;
   border: 1px solid ${({ theme }) => theme.colorBorder};
 `;
@@ -67,6 +69,7 @@ const StyledSwitchContainer = styled.div`
 interface Theme {
   id: number;
   theme_name: string;
+  json_data?: string;
 }
 
 interface CssTemplate {
@@ -254,14 +257,14 @@ const StylingSection = ({
         )}
         bottomSpacing={false}
       >
-        <StyledCssEditor
+        <StyledEditorHost
+          id="dashboard-css-editor"
           data-test="dashboard-css-editor"
           onChange={onCustomCssChange}
           value={customCss}
+          language="css"
           width="100%"
-          minLines={10}
-          maxLines={50}
-          editorProps={{ $blockScrolling: true }}
+          height="160px"
         />
       </ModalFormField>
     </>

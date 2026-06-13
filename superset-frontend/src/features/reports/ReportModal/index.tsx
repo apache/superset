@@ -25,13 +25,14 @@ import {
   ChangeEvent,
 } from 'react';
 
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import { getClientErrorObject, VizType } from '@superset-ui/core';
-import { SupersetTheme, Alert } from '@apache-superset/core/ui';
+import { Alert } from '@apache-superset/core/components';
+import { SupersetTheme } from '@apache-superset/core/theme';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  addReport,
   editReport,
+  subscribeReport,
 } from 'src/features/reports/ReportModal/actions';
 import {
   Input,
@@ -178,26 +179,13 @@ function ReportModal({
   }, [isEditMode, report]);
 
   const onSave = async () => {
-    // Create new Report
-    const newReportValues: Partial<ReportObject> = {
+    const commonFields: Partial<ReportObject> = {
       type: 'Report',
       active: true,
       force_screenshot: false,
       custom_width: currentReport.custom_width,
-      creation_method: creationMethod,
       dashboard: dashboardId,
       chart: chart?.id,
-      owners: [userId],
-      recipients: [
-        {
-          recipient_config_json: {
-            target: userEmail,
-            ccTarget: ccEmail,
-            bccTarget: bccEmail,
-          },
-          type: 'Email',
-        },
-      ],
       name: currentReport.name,
       description: currentReport.description,
       crontab: currentReport.crontab,
@@ -207,12 +195,28 @@ function ReportModal({
 
     setCurrentReport({ isSubmitting: true, error: undefined });
     try {
-      if (isEditMode) {
+      if (isEditMode && currentReport.id) {
+        // Edit path: include all fields, PUT endpoint accepts recipients/owners directly
         await dispatch(
-          editReport(currentReport.id, newReportValues as ReportObject),
+          editReport(currentReport.id, {
+            ...commonFields,
+            creation_method: creationMethod,
+            owners: [userId],
+            recipients: [
+              {
+                recipient_config_json: {
+                  target: userEmail,
+                  ccTarget: ccEmail,
+                  bccTarget: bccEmail,
+                },
+                type: 'Email',
+              },
+            ],
+          } as ReportObject),
         );
       } else {
-        await dispatch(addReport(newReportValues as ReportObject));
+        // Subscribe path: creation_method, owners, and recipients are set server-side.
+        await dispatch(subscribeReport(commonFields as ReportObject));
       }
       onHide();
     } catch (e) {
@@ -364,7 +368,7 @@ function ReportModal({
           }}
           onError={setCronError}
         />
-        <StyledCronError>{cronError}</StyledCronError>
+        <StyledCronError>{cronError?.description}</StyledCronError>
         <div
           className="control-label"
           css={(theme: SupersetTheme) => TimezoneHeaderStyle(theme)}

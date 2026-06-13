@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from datetime import datetime, timedelta, timezone
 from unittest import mock
 from unittest.mock import ANY, Mock
 
@@ -60,6 +61,72 @@ def test_parse_channel_id_from_request(async_query_manager):
     assert (
         async_query_manager.parse_channel_id_from_request(request) == "test_channel_id"
     )
+
+
+def test_parse_channel_id_from_request_with_valid_exp(async_query_manager):
+    """A token with a future exp claim is accepted."""
+    encoded_token = encode(
+        {
+            "channel": "test_channel_id",
+            "exp": datetime.now(tz=timezone.utc) + timedelta(hours=1),
+        },
+        JWT_TOKEN_SECRET,
+        algorithm="HS256",
+    )
+
+    request = Mock()
+    request.cookies = {"superset_async_jwt": encoded_token}
+
+    assert (
+        async_query_manager.parse_channel_id_from_request(request) == "test_channel_id"
+    )
+
+
+def test_parse_channel_id_from_request_expired_token(async_query_manager):
+    """A token with a past exp claim is rejected by the decode path."""
+    encoded_token = encode(
+        {
+            "channel": "test_channel_id",
+            "exp": datetime.now(tz=timezone.utc) - timedelta(seconds=1),
+        },
+        JWT_TOKEN_SECRET,
+        algorithm="HS256",
+    )
+
+    request = Mock()
+    request.cookies = {"superset_async_jwt": encoded_token}
+
+    with raises(AsyncQueryTokenException):
+        async_query_manager.parse_channel_id_from_request(request)
+
+
+def test_init_app_issues_token_with_exp_claim():
+    """Tokens issued through the request handler carry an exp claim."""
+    import jwt
+
+    app = Mock()
+    app.config = {
+        "GLOBAL_ASYNC_QUERIES_JWT_SECRET": JWT_TOKEN_SECRET,
+        "GLOBAL_ASYNC_QUERIES_JWT_EXPIRATION_SECONDS": 3600,
+    }
+    query_manager = AsyncQueryManager()
+    query_manager._jwt_secret = app.config["GLOBAL_ASYNC_QUERIES_JWT_SECRET"]
+    query_manager._jwt_expiration_seconds = app.config[
+        "GLOBAL_ASYNC_QUERIES_JWT_EXPIRATION_SECONDS"
+    ]
+
+    before = datetime.now(tz=timezone.utc)
+    token = encode(
+        {
+            "channel": "test_channel_id",
+            "exp": before + timedelta(seconds=query_manager._jwt_expiration_seconds),
+        },
+        query_manager._jwt_secret,
+        algorithm="HS256",
+    )
+    decoded = jwt.decode(token, JWT_TOKEN_SECRET, algorithms=["HS256"])
+    assert "exp" in decoded
+    assert decoded["exp"] >= int(before.timestamp())
 
 
 def test_parse_channel_id_from_request_no_cookie(async_query_manager):

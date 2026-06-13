@@ -18,7 +18,7 @@
  */
 import { AnyAction } from 'redux';
 import { ThunkAction, ThunkDispatch } from 'redux-thunk';
-import { t } from '@apache-superset/core';
+import { t } from '@apache-superset/core/translation';
 import {
   makeApi,
   getClientErrorObject,
@@ -107,7 +107,8 @@ export function saveChartCustomization(
       });
 
       const currentMetadata = getState().dashboardInfo.metadata;
-      const currentConfig = currentMetadata?.chart_customization_config || [];
+      const currentConfig =
+        currentMetadata?.chart_customization_config?.filter(Boolean) || [];
 
       const mergedResult = response.result.map(
         (item: ChartCustomization | ChartCustomizationDivider) => {
@@ -148,7 +149,8 @@ export function saveChartCustomization(
       );
 
       if (resetDataMask) {
-        const oldConfig = metadata?.chart_customization_config || [];
+        const oldConfig =
+          metadata?.chart_customization_config?.filter(Boolean) || [];
         const oldCustomizationsById = oldConfig.reduce<
           Record<string, ChartCustomization | ChartCustomizationDivider>
         >((acc, customization) => {
@@ -333,7 +335,8 @@ export function setInScopeStatusOfCustomizations(
     }
 
     const { metadata } = getState().dashboardInfo;
-    const customizationConfig = metadata?.chart_customization_config || [];
+    const customizationConfig =
+      metadata?.chart_customization_config?.filter(Boolean) || [];
 
     const scopeMap = new Map(
       customizationScopes.map(

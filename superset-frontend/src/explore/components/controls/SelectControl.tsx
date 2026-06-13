@@ -17,10 +17,9 @@
  * under the License.
  */
 import { PureComponent, type ReactNode } from 'react';
-import PropTypes from 'prop-types';
 import { isEqualArray } from '@superset-ui/core';
-import { t } from '@apache-superset/core';
-import { css } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css } from '@apache-superset/core/theme';
 import { Select } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 
@@ -71,55 +70,6 @@ export interface SelectControlProps {
   danger?: string;
   sortComparator?: (a: SelectOption, b: SelectOption) => number;
 }
-
-const propTypes = {
-  ariaLabel: PropTypes.string,
-  autoFocus: PropTypes.bool,
-  choices: PropTypes.array,
-  clearable: PropTypes.bool,
-  description: PropTypes.oneOfType([PropTypes.string, PropTypes.node]),
-  disabled: PropTypes.bool,
-  freeForm: PropTypes.bool,
-  isLoading: PropTypes.bool,
-  mode: PropTypes.string,
-  multi: PropTypes.bool,
-  isMulti: PropTypes.bool,
-  name: PropTypes.string.isRequired,
-  onChange: PropTypes.func,
-  onFocus: PropTypes.func,
-  onSelect: PropTypes.func,
-  onDeselect: PropTypes.func,
-  value: PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.number,
-    PropTypes.array,
-  ]),
-  default: PropTypes.oneOfType([
-    PropTypes.string,
-    PropTypes.number,
-    PropTypes.array,
-  ]),
-  showHeader: PropTypes.bool,
-  optionRenderer: PropTypes.func,
-  valueKey: PropTypes.string,
-  options: PropTypes.array,
-  placeholder: PropTypes.string,
-  filterOption: PropTypes.func,
-  tokenSeparators: PropTypes.arrayOf(PropTypes.string),
-  notFoundContent: PropTypes.object,
-
-  // ControlHeader props
-  label: PropTypes.string,
-  renderTrigger: PropTypes.bool,
-  validationErrors: PropTypes.array,
-  rightNode: PropTypes.node,
-  leftNode: PropTypes.node,
-  onClick: PropTypes.func,
-  hovered: PropTypes.bool,
-  tooltipOnClick: PropTypes.func,
-  warning: PropTypes.string,
-  danger: PropTypes.string,
-};
 
 const defaultProps = {
   autoFocus: false,
@@ -219,8 +169,6 @@ export default class SelectControl extends PureComponent<
   SelectControlProps,
   SelectControlState
 > {
-  static propTypes = propTypes;
-
   static defaultProps = defaultProps;
 
   constructor(props: SelectControlProps) {
@@ -336,7 +284,7 @@ export default class SelectControl extends PureComponent<
       // safety check - the value is intended to be undefined but null was used
       if (
         currentValue === null &&
-        !this.state.options.find(o => o.value === null)
+        !this.state.options.some(o => o.value === null)
       ) {
         return undefined;
       }

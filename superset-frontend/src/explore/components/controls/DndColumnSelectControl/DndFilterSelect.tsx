@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { t, logging } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
+import { t } from '@apache-superset/core/translation';
 import {
   Metric,
   QueryFormData,
@@ -356,6 +357,7 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
     () =>
       values.map((adhocFilter: AdhocFilter, index: number) => (
         <DndAdhocFilterOption
+          key={adhocFilter.filterOptionName ?? index}
           index={index}
           adhocFilter={adhocFilter}
           options={options}
@@ -452,6 +454,8 @@ const DndFilterSelect = (props: DndFilterSelectProps) => {
         accept={DND_ACCEPTED_TYPES}
         ghostButtonText={t('Drop columns/metrics here or click')}
         onClickGhostButton={handleClickGhostButton}
+        sortableType={DndItemType.FilterOption}
+        itemCount={values.length}
         {...props}
       />
       <AdhocFilterPopoverTrigger
