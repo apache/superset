@@ -686,7 +686,7 @@ prison==0.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   flask-appbuilder
-progress==1.6
+progress==1.6.1
     # via apache-superset
 prompt-toolkit==3.0.51
     # via
