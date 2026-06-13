@@ -34,6 +34,7 @@ import {
 import { SupersetClient, isFeatureEnabled } from '@superset-ui/core';
 import { ADD_TOAST } from 'src/components/MessageToasts/actions';
 import { EMPTY_STATE_QE_ID } from 'src/SqlLab/hooks/useQueryEditor';
+import { api } from 'src/hooks/apiResources/queryApi';
 import { ToastType } from '../../components/MessageToasts/types';
 
 const isFeatureEnabledMock = isFeatureEnabled as unknown as jest.Mock;
@@ -1104,6 +1105,44 @@ describe('async actions', () => {
         ];
         store.dispatch(actions.removeQueryEditor(queryEditor));
         expect(store.getActions()).toEqual(expectedActions);
+      });
+    });
+
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+    describe('removeQuery', () => {
+      afterEach(() => {
+        jest.restoreAllMocks();
+      });
+
+      test('removes the deleted query from the editor queries cache', async () => {
+        const queryToRemove = {
+          ...query,
+          id: 'queryToRemove',
+          sqlEditorId: 'editor1',
+        };
+        const updateCache = jest.spyOn(api.util, 'updateQueryData');
+
+        await actions.removeQuery(queryToRemove)(
+          jest.fn(),
+          () => typedInitialState,
+          undefined,
+        );
+
+        expect(updateCache).toHaveBeenCalledWith(
+          'editorQueries',
+          { editorId: queryToRemove.sqlEditorId },
+          expect.any(Function),
+        );
+        const recipe = updateCache.mock.calls[0][2] as (draft: {
+          count: number;
+          result: { id: string }[];
+        }) => void;
+        const draft = {
+          count: 2,
+          result: [{ id: 'queryToRemove' }, { id: 'keep' }],
+        };
+        recipe(draft);
+        expect(draft).toEqual({ count: 1, result: [{ id: 'keep' }] });
       });
     });
 
