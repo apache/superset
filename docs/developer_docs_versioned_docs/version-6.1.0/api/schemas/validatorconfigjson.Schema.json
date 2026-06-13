@@ -1,0 +1,1 @@
+{"schema":{"properties":{"op":{"description":"The operation to compare with a threshold to apply to the SQL output\n","enum":["<","<=",">",">=","==","!="],"type":"string"},"threshold":{"type":"number"}},"type":"object","title":"ValidatorConfigJSON"},"schemaType":"response"}

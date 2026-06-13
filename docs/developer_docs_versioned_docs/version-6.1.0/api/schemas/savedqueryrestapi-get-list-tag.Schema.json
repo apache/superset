@@ -1,0 +1,1 @@
+{"schema":{"properties":{"id":{"type":"integer"},"name":{"maxLength":250,"nullable":true,"type":"string"},"type":{"enum":[1,2,3,4]}},"type":"object","title":"SavedQueryRestApi.get_list.Tag"},"schemaType":"response"}

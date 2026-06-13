@@ -1,0 +1,1 @@
+{"schema":{"properties":{"descr":{"description":"Give a description for this annotation layer","nullable":true,"type":"string"},"name":{"description":"The annotation layer name","maxLength":250,"minLength":1,"type":"string"}},"required":["name"],"type":"object","title":"AnnotationLayerRestApi.post"},"schemaType":"response"}

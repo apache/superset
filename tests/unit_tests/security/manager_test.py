@@ -1547,3 +1547,148 @@ def test_validate_child_in_parent_multilayer_null_params(
     assert not sm._validate_child_in_parent_multilayer(
         child_slice_id=1, parent_slice=parent_slice
     )
+
+
+def test_user_view_menu_names_for_guest_user(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that user_view_menu_names resolves permissions from the guest
+    user's roles instead of querying by user_id (which is None for guests).
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    mock_role = mocker.MagicMock(spec=Role)
+    mock_role.id = 99
+
+    mock_guest = mocker.MagicMock()
+    mock_guest.is_anonymous = False
+    mock_guest.roles = [mock_role]
+
+    mock_g = SimpleNamespace(user=mock_guest)
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    # The regression: guest path must NEVER fall through to get_user_id().
+    # Patching it as an error means an accidental fall-through fails loudly.
+    mock_get_user_id = mocker.patch(
+        "superset.security.manager.get_user_id",
+        side_effect=AssertionError("get_user_id must not be called for guest users"),
+    )
+
+    mock_result = [SimpleNamespace(name="[PostgreSQL].[my_table](id:1)")]
+    mock_query = mocker.MagicMock()
+    mock_query.join.return_value = mock_query
+    mock_query.filter.return_value = mock_query
+    mock_query.all.return_value = mock_result
+    mocker.patch.object(sm.session, "query", return_value=mock_query)
+
+    result = sm.user_view_menu_names("datasource_access")
+
+    assert result == {"[PostgreSQL].[my_table](id:1)"}
+    mock_get_user_id.assert_not_called()
+    mock_query.filter.assert_called()
+
+
+def test_user_view_menu_names_for_guest_user_no_roles(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Test that user_view_menu_names returns empty set when guest user has
+    no roles with valid IDs.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    mock_role = mocker.MagicMock(spec=Role)
+    mock_role.id = None
+
+    mock_guest = mocker.MagicMock()
+    mock_guest.is_anonymous = False
+    mock_guest.roles = [mock_role]
+
+    mock_g = SimpleNamespace(user=mock_guest)
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch.object(sm, "is_guest_user", return_value=True)
+    mock_get_user_id = mocker.patch(
+        "superset.security.manager.get_user_id",
+        side_effect=AssertionError("get_user_id must not be called for guest users"),
+    )
+
+    result = sm.user_view_menu_names("datasource_access")
+
+    assert result == set()
+    mock_get_user_id.assert_not_called()
+
+
+def test_reset_password_self_service_clears_flag(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """A user resetting their own password clears the forced-change flag."""
+    sm = SupersetSecurityManager(appbuilder)
+    # The target user (id 5) is the same as the acting user -> self-service.
+    mock_g = SimpleNamespace(user=SimpleNamespace(id=5))
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    # Avoid touching the real DB in the FAB base implementation.
+    mocker.patch(
+        "flask_appbuilder.security.manager.BaseSecurityManager.reset_password",
+        return_value=None,
+    )
+    mock_clear = mocker.patch(
+        "superset.security.password_change.clear_password_must_change"
+    )
+
+    sm.reset_password(5, "new-password")
+
+    mock_clear.assert_called_once_with(5)
+
+
+def test_reset_password_admin_does_not_clear_flag(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """An admin-initiated reset must preserve the forced-change requirement.
+
+    FAB's ``ResetPasswordView`` passes the target as the ``pk`` request-arg
+    string while ``g.user`` remains the admin, so the acting user differs from
+    the target and the flag must NOT be cleared.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    # Acting user is admin (id 1); target is a different user ("5" as a string,
+    # as FAB passes it from request args).
+    mock_g = SimpleNamespace(user=SimpleNamespace(id=1))
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch(
+        "flask_appbuilder.security.manager.BaseSecurityManager.reset_password",
+        return_value=None,
+    )
+    mock_clear = mocker.patch(
+        "superset.security.password_change.clear_password_must_change"
+    )
+
+    sm.reset_password("5", "temp-password")
+
+    mock_clear.assert_not_called()
+
+
+def test_reset_password_self_service_pk_string_clears_flag(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """Self-service identity holds even if ids arrive as mixed int/str types."""
+    sm = SupersetSecurityManager(appbuilder)
+    mock_g = SimpleNamespace(user=SimpleNamespace(id=5))
+    mocker.patch("superset.security.manager.g", new=mock_g)
+    mocker.patch(
+        "flask_appbuilder.security.manager.BaseSecurityManager.reset_password",
+        return_value=None,
+    )
+    mock_clear = mocker.patch(
+        "superset.security.password_change.clear_password_must_change"
+    )
+
+    sm.reset_password("5", "new-password")
+
+    # Coerced to int when clearing, regardless of the inbound id type.
+    mock_clear.assert_called_once_with(5)

@@ -211,6 +211,10 @@ export const handleFilterOptionHelper = (
     return filterOption(search, option);
   }
 
+  if (filterOption === false) {
+    return true;
+  }
+
   if (filterOption) {
     const searchValue = search.trim().toLowerCase();
     if (optionFilterProps?.length) {

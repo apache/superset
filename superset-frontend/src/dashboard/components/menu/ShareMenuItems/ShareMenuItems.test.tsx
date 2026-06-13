@@ -45,15 +45,23 @@ const createProps = () => ({
   submenuKey: 'share',
 });
 
-const originalLocation = window.location;
-
 const postDashboardPermalinkMockUrl = `http://localhost/api/v1/dashboard/${DASHBOARD_ID}/permalink`;
+
+let hrefValue = '';
+let locationSpy: jest.SpyInstance;
 
 beforeEach(() => {
   jest.clearAllMocks();
-  // @ts-expect-error
-  delete window.location;
-  window.location = { href: '' } as any;
+  hrefValue = '';
+  locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+    ...window.location,
+    get href() {
+      return hrefValue;
+    },
+    set href(v: string) {
+      hrefValue = v;
+    },
+  } as Location);
   fetchMock.clearHistory().removeRoutes();
   fetchMock.post(
     postDashboardPermalinkMockUrl,
@@ -63,7 +71,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  window.location = originalLocation;
+  locationSpy.mockRestore();
   window.featureFlags = {};
   fetchMock.clearHistory().removeRoutes();
 });
