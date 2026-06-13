@@ -117,3 +117,31 @@ def test_validate_file_size_allows_within_limit(
         {"UPLOAD_MAX_FILE_SIZE_BYTES": 1024},
     )
     UploadCommand.validate_file_size(_file(b"small"))  # should not raise
+
+
+class _NonSeekableStream(io.RawIOBase):
+    def seekable(self) -> bool:
+        return False
+
+    def tell(self) -> int:
+        raise OSError("not seekable")
+
+
+def _non_seekable_file() -> FileStorage:
+    return FileStorage(stream=_NonSeekableStream(), filename="data.bin")
+
+
+def test_file_size_bytes_returns_none_when_not_seekable() -> None:
+    # a non-seekable stream raises on seek/tell; the size is unknown
+    assert UploadCommand._file_size_bytes(_non_seekable_file()) is None
+
+
+def test_validate_file_size_skips_when_not_seekable(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    mocker.patch.dict(
+        "superset.commands.database.uploaders.base.current_app.config",
+        {"UPLOAD_MAX_FILE_SIZE_BYTES": 4},
+    )
+    # size can't be determined cheaply -> skip rather than raising a 500
+    UploadCommand.validate_file_size(_non_seekable_file())

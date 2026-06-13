@@ -191,13 +191,22 @@ class UploadCommand(BaseCommand):
         sqla_table.fetch_metadata()
 
     @staticmethod
-    def _file_size_bytes(file: Any) -> int:
-        """Return the size of an uploaded file without consuming its stream."""
+    def _file_size_bytes(file: Any) -> Optional[int]:
+        """
+        Return the size of an uploaded file without consuming its stream.
+
+        Returns ``None`` when the stream is not seekable, in which case the
+        size cannot be determined cheaply and the size check is skipped in
+        favour of downstream guards.
+        """
         stream = getattr(file, "stream", file)
-        position = stream.tell()
-        stream.seek(0, 2)  # seek to end
-        size = stream.tell()
-        stream.seek(position)  # restore the original position
+        try:
+            position = stream.tell()
+            stream.seek(0, 2)  # seek to end
+            size = stream.tell()
+            stream.seek(position)  # restore the original position
+        except (AttributeError, OSError):
+            return None
         return size
 
     @classmethod
@@ -212,11 +221,10 @@ class UploadCommand(BaseCommand):
         :raises DatabaseUploadFileTooLarge: if the file is larger than the limit
         """
         max_file_size = current_app.config.get("UPLOAD_MAX_FILE_SIZE_BYTES")
-        if (
-            max_file_size is not None
-            and file is not None
-            and cls._file_size_bytes(file) > max_file_size
-        ):
+        if max_file_size is None or file is None:
+            return
+        size = cls._file_size_bytes(file)
+        if size is not None and size > max_file_size:
             raise DatabaseUploadFileTooLarge()
 
     def validate(self) -> None:
