@@ -20,10 +20,13 @@ import logging
 from datetime import datetime
 from typing import Any
 
-from superset.daos.base import BaseDAO
+from sqlalchemy import or_, select
+
+from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
 from superset.reports.filters import ReportScheduleFilter
 from superset.reports.models import (
+    report_schedule_user,
     ReportExecutionLog,
     ReportRecipients,
     ReportSchedule,
@@ -41,6 +44,51 @@ REPORT_SCHEDULE_ERROR_NOTIFICATION_MARKER = "Notification sent with error"
 
 class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     base_filter = ReportScheduleFilter
+
+    @classmethod
+    def apply_column_operators(
+        cls,
+        query: Any,
+        column_operators: list[ColumnOperator] | None = None,
+    ) -> Any:
+        """Override to handle owners.id and created_by_fk_or_owner via subqueries.
+
+        - owners.id: filters reports by owner user ID via report_schedule_user M2M table
+        - created_by_fk_or_owner: OR(created_by_fk == value, id IN owners_subq)
+        """
+        if not column_operators:
+            return query
+
+        remaining_operators: list[ColumnOperator] = []
+        for c in column_operators:
+            if not isinstance(c, ColumnOperator):
+                c = ColumnOperator.model_validate(c)
+            if c.col == "owners.id":
+                operator_enum = ColumnOperatorEnum(c.opr)
+                subq = select(report_schedule_user.c.report_schedule_id).where(
+                    operator_enum.apply(report_schedule_user.c.user_id, c.value)
+                )
+                query = query.filter(ReportSchedule.id.in_(subq))
+            elif c.col == "created_by_fk_or_owner":
+                if c.opr != "eq":
+                    raise ValueError(
+                        f"created_by_fk_or_owner only supports 'eq'; got '{c.opr}'"
+                    )
+                owner_subq = select(report_schedule_user.c.report_schedule_id).where(
+                    report_schedule_user.c.user_id == c.value
+                )
+                query = query.filter(
+                    or_(
+                        ReportSchedule.created_by_fk == c.value,
+                        ReportSchedule.id.in_(owner_subq),
+                    )
+                )
+            else:
+                remaining_operators.append(c)
+
+        if remaining_operators:
+            query = super().apply_column_operators(query, remaining_operators)
+        return query
 
     @staticmethod
     def find_by_chart_id(chart_id: int) -> list[ReportSchedule]:
@@ -94,7 +142,7 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
     def find_by_extra_metadata(slug: str) -> list[ReportSchedule]:
         return (
             db.session.query(ReportSchedule)
-            .filter(ReportSchedule.extra_json.like(f"%{slug}%"))
+            .filter(ReportSchedule.extra_json.contains(slug, autoescape=True))
             .all()
         )
 
@@ -200,7 +248,8 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
             item = ReportSchedule()
 
         if attributes:
-            if recipients := attributes.pop("recipients", None):
+            if "recipients" in attributes:
+                recipients = attributes.pop("recipients")
                 attributes["recipients"] = [
                     ReportRecipients(
                         type=recipient["type"],

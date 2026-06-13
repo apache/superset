@@ -22,6 +22,7 @@ from flask import current_app as app
 from flask_babel import gettext as _
 from marshmallow import ValidationError
 
+from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.report.exceptions import (
     ChartNotFoundValidationError,
@@ -29,12 +30,18 @@ from superset.commands.report.exceptions import (
     DashboardNotFoundValidationError,
     DashboardNotSavedValidationError,
     ReportScheduleEitherChartOrDashboardError,
+    ReportScheduleForbiddenError,
     ReportScheduleFrequencyNotAllowed,
     ReportScheduleOnlyChartOrDashboardError,
 )
+from superset.daos.base import BaseDAO
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
-from superset.reports.models import ReportCreationMethod, ReportScheduleType
+from superset.exceptions import SupersetSecurityException
+from superset.reports.models import (
+    ReportCreationMethod,
+    ReportScheduleType,
+)
 from superset.reports.types import ReportScheduleExtra
 from superset.utils import json
 
@@ -49,6 +56,26 @@ class BaseReportScheduleCommand(BaseCommand):
 
     def validate(self) -> None:
         pass
+
+    def _check_object_access(
+        self,
+        object_id: int,
+        *,
+        kind: str,
+        dao: type[BaseDAO[Any]],
+        not_found_exc: type[ValidationError],
+        exceptions: list[ValidationError],
+    ) -> None:
+        """Validate the object exists and the current user can access it."""
+        obj = dao.find_by_id(object_id)
+        if not obj:
+            exceptions.append(not_found_exc())
+        else:
+            try:
+                security_manager.raise_for_access(**{kind: obj})
+            except SupersetSecurityException as ex:
+                raise ReportScheduleForbiddenError() from ex
+        self._properties[kind] = obj
 
     def validate_chart_dashboard(
         self, exceptions: list[ValidationError], update: bool = False
@@ -71,15 +98,21 @@ class BaseReportScheduleCommand(BaseCommand):
             exceptions.append(ReportScheduleOnlyChartOrDashboardError())
 
         if chart_id:
-            chart = ChartDAO.find_by_id(chart_id)
-            if not chart:
-                exceptions.append(ChartNotFoundValidationError())
-            self._properties["chart"] = chart
+            self._check_object_access(
+                chart_id,
+                kind="chart",
+                dao=ChartDAO,
+                not_found_exc=ChartNotFoundValidationError,
+                exceptions=exceptions,
+            )
         elif dashboard_id:
-            dashboard = DashboardDAO.find_by_id(dashboard_id)
-            if not dashboard:
-                exceptions.append(DashboardNotFoundValidationError())
-            self._properties["dashboard"] = dashboard
+            self._check_object_access(
+                dashboard_id,
+                kind="dashboard",
+                dao=DashboardDAO,
+                not_found_exc=DashboardNotFoundValidationError,
+                exceptions=exceptions,
+            )
         elif not update:
             exceptions.append(ReportScheduleEitherChartOrDashboardError())
 

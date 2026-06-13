@@ -32,6 +32,7 @@ export function isLegacyChartCustomizationFormat(
     typeof item === 'object' &&
     item !== null &&
     'customization' in item &&
+    (item as Record<string, unknown>).customization != null &&
     !('type' in item)
   );
 }
@@ -77,12 +78,15 @@ export function migrateChartCustomization(
 
   const controlValues: ChartCustomization['controlValues'] = {
     sortAscending: customization.sortAscending,
-    sortMetric: customization.sortMetric,
     canSelectMultiple: customization.canSelectMultiple,
   };
 
   if (customization.controlValues) {
-    Object.assign(controlValues, customization.controlValues);
+    Object.entries(customization.controlValues).forEach(([key, value]) => {
+      if (key !== 'sortMetric') {
+        controlValues[key] = value;
+      }
+    });
   }
 
   let defaultDataMask = customization.defaultDataMask || {
@@ -146,10 +150,17 @@ export function migrateChartCustomization(
 export function migrateChartCustomizationArray(
   items: unknown[],
 ): ChartCustomization[] {
-  return items.map(item => {
-    if (isLegacyChartCustomizationFormat(item)) {
-      return migrateChartCustomization(item);
-    }
-    return item as ChartCustomization;
-  });
+  return items
+    .filter(
+      item =>
+        item != null &&
+        (isLegacyChartCustomizationFormat(item) ||
+          (typeof item === 'object' && 'type' in item)),
+    )
+    .map(item => {
+      if (isLegacyChartCustomizationFormat(item)) {
+        return migrateChartCustomization(item);
+      }
+      return item as ChartCustomization;
+    });
 }

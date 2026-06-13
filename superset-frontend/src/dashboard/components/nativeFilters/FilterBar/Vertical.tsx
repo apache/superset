@@ -45,6 +45,7 @@ import Header from './Header';
 import FilterControls from './FilterControls/FilterControls';
 import CrossFiltersVertical from './CrossFilters/Vertical';
 import crossFiltersSelector from './CrossFilters/selectors';
+import UrlFiltersVertical from './UrlFilters/Vertical';
 
 enum SectionType {
   Filters = 'filters',
@@ -288,12 +289,20 @@ const VerticalFilterBar: FC<VerticalBarProps> = ({
         <Bar className={cx({ open: filtersOpen })} width={width}>
           <Header toggleFiltersBar={toggleFiltersBar} />
           {!isInitialized ? (
-            <div css={{ height }}>
-              <Loading size="s" muted />
+            <div
+              css={{
+                height,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+            >
+              <Loading position="inline-centered" size="s" muted />
             </div>
           ) : (
             <div css={tabPaneStyle} onScroll={onScroll}>
               <>
+                <UrlFiltersVertical />
                 <CrossFiltersVertical hideHeader={hasOnlyOneSectionType} />
                 {filterControls}
               </>

@@ -350,7 +350,7 @@ export const getReadableTextColor = (
 
   const { r: bgR, g: bgG, b: bgB, a: bgAlpha } = background.toRgb();
   const { r: surfaceR, g: surfaceG, b: surfaceB } = surface.toRgb();
-  const alpha = bgAlpha ?? 1;
+  const alpha = bgAlpha;
 
   const compositeColor = tinycolor({
     r: bgR * alpha + surfaceR * (1 - alpha),

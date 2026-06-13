@@ -50,6 +50,7 @@ export const renderResultCell = ({
         modalTitle={t('Cell content')}
         jsonObject={jsonObject}
         jsonValue={cellData}
+        wrapContent={false}
       />
     );
   }

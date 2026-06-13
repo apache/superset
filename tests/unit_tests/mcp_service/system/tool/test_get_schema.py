@@ -19,10 +19,12 @@
 Tests for the get_schema unified schema discovery tool.
 """
 
+import importlib
 from unittest.mock import patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.exceptions import ToolError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.common.schema_discovery import (
@@ -39,6 +41,10 @@ from superset.mcp_service.common.schema_discovery import (
     ModelSchemaInfo,
 )
 from superset.utils import json
+
+get_schema_module = importlib.import_module(
+    "superset.mcp_service.system.tool.get_schema"
+)
 
 
 @pytest.fixture
@@ -57,6 +63,17 @@ def mock_auth():
         mock_user.username = "admin"
         mock_get_user.return_value = mock_user
         yield mock_get_user
+
+
+@pytest.fixture(autouse=True)
+def allow_data_model_metadata():
+    """Keep the standalone get_schema suite in the unrestricted default path."""
+    with patch.object(
+        get_schema_module,
+        "user_can_view_data_model_metadata",
+        return_value=True,
+    ):
+        yield
 
 
 class TestGetSchemaRequest:
@@ -153,16 +170,18 @@ class TestModelSchemaInfo:
 
     def test_chart_default_columns(self):
         """Test chart default columns include required minimal set."""
-        required_columns = {
+        assert set(CHART_DEFAULT_COLUMNS) == {
             "id",
             "slice_name",
             "viz_type",
+            "description",
+            "certified_by",
+            "certification_details",
             "url",
+            "changed_on",
             "changed_on_humanized",
         }
-        assert required_columns.issubset(set(CHART_DEFAULT_COLUMNS))
-        # These should NOT be in defaults
-        assert "description" not in CHART_DEFAULT_COLUMNS
+        # Heavy columns should NOT be in defaults
         assert "form_data" not in CHART_DEFAULT_COLUMNS
         assert "uuid" not in CHART_DEFAULT_COLUMNS
 
@@ -269,28 +288,6 @@ class TestGetSchemaToolViaClient:
             assert "dashboard_title" in info["sortable_columns"]
             assert "changed_on" in info["sortable_columns"]
 
-    @patch(
-        "superset.mcp_service.utils.schema_utils._is_parse_request_enabled",
-        return_value=True,
-    )
-    @patch("superset.daos.chart.ChartDAO.get_filterable_columns_and_operators")
-    @pytest.mark.asyncio
-    async def test_get_schema_with_json_string_request(
-        self, mock_filters, mock_parse_enabled, mcp_server
-    ):
-        """Test get_schema accepts JSON string request (Claude Code compatibility)."""
-        mock_filters.return_value = {"slice_name": ["eq"]}
-
-        async with Client(mcp_server) as client:
-            # Send request as JSON string (Claude Code bug workaround)
-            result = await client.call_tool(
-                "get_schema", {"request": '{"model_type": "chart"}'}
-            )
-
-            assert result.content is not None
-            data = json.loads(result.content[0].text)
-            assert data["schema_info"]["model_type"] == "chart"
-
     @patch("superset.daos.chart.ChartDAO.get_filterable_columns_and_operators")
     @pytest.mark.asyncio
     async def test_get_schema_select_columns_have_metadata(
@@ -313,12 +310,208 @@ class TestGetSchemaToolViaClient:
             assert id_col["type"] == "int"
             assert id_col["is_default"] is True
 
-            # Find a non-default column (description is on the model)
+            # description is now a default column
             desc_col = next(
                 (c for c in select_cols if c["name"] == "description"), None
             )
             assert desc_col is not None
-            assert desc_col["is_default"] is False
+            assert desc_col["is_default"] is True
+
+            # Find a non-default column (uuid is on the model but not default)
+            uuid_col = next((c for c in select_cols if c["name"] == "uuid"), None)
+            assert uuid_col is not None
+            assert uuid_col["is_default"] is False
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_get_schema_omits_user_directory_columns(
+        self, mock_filters, mcp_server
+    ):
+        """Test that schema discovery does not advertise user/access fields.
+
+        created_by_fk and changed_by_fk are intentionally allowed in
+        filter_columns so callers can filter by user ID resolved via find_users,
+        but they remain hidden from select_columns and sortable_columns so the
+        directory itself is never exposed.
+        """
+        mock_filters.return_value = {
+            "dashboard_title": ["eq", "ilike"],
+            "owner": ["rel_m_m"],
+            "published": ["eq"],
+            "created_by_fk": ["eq", "in"],
+            "changed_by_fk": ["eq", "in"],
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "dashboard"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        info = data["schema_info"]
+        select_column_names = {column["name"] for column in info["select_columns"]}
+
+        for field in (
+            "owners",
+            "roles",
+            "created_by",
+            "created_by_fk",
+            "changed_by",
+            "changed_by_fk",
+            "owner",
+        ):
+            assert field not in select_column_names
+            assert field not in info["sortable_columns"]
+
+        # User-name and relationship fields stay out of filter_columns
+        for field in ("owners", "roles", "created_by", "changed_by", "owner"):
+            assert field not in info["filter_columns"]
+
+        # ID-only filter columns are advertised so callers can filter via find_users
+        assert "created_by_fk" in info["filter_columns"]
+        assert "changed_by_fk" in info["filter_columns"]
+
+    @patch("superset.daos.chart.ChartDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_get_schema_chart_omits_self_referencing_filter_columns(
+        self, mock_filters, mcp_server
+    ):
+        """Test that chart schema does not advertise self-referencing filter columns.
+
+        Even if the DAO returns owner or created_by_fk_or_owner, they must be
+        excluded — these synthetic columns are generated server-side from the
+        owned_by_me flag and are not directly usable by LLM callers.
+        """
+        mock_filters.return_value = {
+            "slice_name": ["eq", "ilike"],
+            "created_by_fk": ["eq"],
+            "owner": ["eq", "in"],
+            "created_by_fk_or_owner": ["eq"],
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "chart"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        info = data["schema_info"]
+
+        assert "slice_name" in info["filter_columns"]
+        for field in ("owner", "created_by_fk_or_owner"):
+            assert field not in info["filter_columns"]
+
+    @patch("superset.daos.dataset.DatasetDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_get_schema_dataset_omits_self_referencing_filter_columns(
+        self, mock_filters, mcp_server
+    ):
+        """Test that dataset schema does not advertise self-referencing filter columns.
+
+        Even if the DAO returns owner or created_by_fk_or_owner, they must be
+        excluded — these synthetic columns are generated server-side from the
+        owned_by_me flag and are not directly usable by LLM callers.
+        """
+        mock_filters.return_value = {
+            "table_name": ["eq", "ilike"],
+            "created_by_fk": ["eq"],
+            "owner": ["eq", "in"],
+            "created_by_fk_or_owner": ["eq"],
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "dataset"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        info = data["schema_info"]
+
+        assert "table_name" in info["filter_columns"]
+        for field in ("owner", "created_by_fk_or_owner"):
+            assert field not in info["filter_columns"]
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_filterable_columns_and_operators")
+    @pytest.mark.asyncio
+    async def test_get_schema_dashboard_omits_self_referencing_filter_columns(
+        self, mock_filters, mcp_server
+    ):
+        """Test dashboard schema omits self-referencing filter columns.
+
+        Even if the DAO returns owner or created_by_fk_or_owner, they must be
+        excluded — these synthetic columns are generated server-side from the
+        owned_by_me flag and are not directly usable by LLM callers.
+        """
+        mock_filters.return_value = {
+            "dashboard_title": ["eq", "ilike"],
+            "created_by_fk": ["eq"],
+            "owner": ["eq", "in"],
+            "created_by_fk_or_owner": ["eq"],
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_schema", {"request": {"model_type": "dashboard"}}
+            )
+
+        data = json.loads(result.content[0].text)
+        info = data["schema_info"]
+
+        assert "dashboard_title" in info["filter_columns"]
+        for field in ("owner", "created_by_fk_or_owner"):
+            assert field not in info["filter_columns"]
+
+    @patch(
+        "superset.daos.report.ReportScheduleDAO.get_filterable_columns_and_operators"
+    )
+    @pytest.mark.asyncio
+    async def test_get_schema_report_omits_self_referencing_filter_columns(
+        self, mock_filters, mcp_server
+    ):
+        """Test that report schema does not advertise self-referencing filter columns.
+
+        Even if the DAO returns owners.id or created_by_fk_or_owner, they must be
+        excluded — these synthetic columns are generated server-side from the
+        owned_by_me flag and are not directly usable by LLM callers.
+        """
+        mock_filters.return_value = {
+            "name": ["eq", "ilike"],
+            "type": ["eq"],
+            "active": ["eq"],
+            "last_state": ["eq"],
+            "creation_method": ["eq"],
+            "owners.id": ["eq", "in"],
+            "created_by_fk_or_owner": ["eq"],
+        }
+
+        with patch("superset.is_feature_enabled", return_value=True):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "get_schema", {"request": {"model_type": "report"}}
+                )
+
+        data = json.loads(result.content[0].text)
+        info = data["schema_info"]
+
+        assert "name" in info["filter_columns"]
+        assert "type" in info["filter_columns"]
+        assert "active" in info["filter_columns"]
+        assert "last_state" in info["filter_columns"]
+        assert "creation_method" in info["filter_columns"]
+        for field in ("owners.id", "created_by_fk_or_owner"):
+            assert field not in info["filter_columns"]
+
+    @pytest.mark.asyncio
+    async def test_get_schema_report_requires_alert_reports_feature_flag(
+        self, mcp_server
+    ):
+        """Report schema discovery is gated by the ALERT_REPORTS feature flag."""
+        with patch("superset.is_feature_enabled", return_value=False):
+            async with Client(mcp_server) as client:
+                with pytest.raises(ToolError, match="Alerts & Reports"):
+                    await client.call_tool(
+                        "get_schema", {"request": {"model_type": "report"}}
+                    )
 
 
 class TestGetSchemaEdgeCases:
@@ -405,3 +598,13 @@ class TestSchemaDiscoveryConstants:
         assert "slice_name" in CHART_SEARCH_COLUMNS
         assert "table_name" in DATASET_SEARCH_COLUMNS
         assert "dashboard_title" in DASHBOARD_SEARCH_COLUMNS
+
+
+class TestGetSchemaPermissionMap:
+    """Verify _MODEL_TYPE_CLASS_PERMISSION and _SCHEMA_CORE_FACTORIES are in sync."""
+
+    def test_all_schema_factory_types_covered(self):
+        """Every key in _SCHEMA_CORE_FACTORIES must have a permission entry."""
+        factories = set(get_schema_module._SCHEMA_CORE_FACTORIES.keys())
+        perms = set(get_schema_module._MODEL_TYPE_CLASS_PERMISSION.keys())
+        assert factories == perms

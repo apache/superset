@@ -150,7 +150,8 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
       fillColor: colorFn(d.name, sliceId),
     }));
   } else {
-    const rawExtents = d3Extent(filteredData, d => d.m1);
+    const colorableData = filteredData.filter(d => d.m1 != null);
+    const rawExtents = d3Extent(colorableData, d => d.m1);
     const extents: [number, number] =
       rawExtents[0] != null && rawExtents[1] != null
         ? [rawExtents[0], rawExtents[1]]
@@ -163,7 +164,7 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
     processedData = filteredData.map(d => ({
       ...d,
       radius: radiusScale(Math.sqrt(d.m2)),
-      fillColor: colorFn(d.m1) ?? theme.colorBorder,
+      fillColor: d.m1 != null ? colorFn(d.m1) ?? theme.colorBorder : theme.colorBorder,
     }));
   }
 

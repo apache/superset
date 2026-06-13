@@ -78,6 +78,7 @@ SCHEMA_DOES_NOT_EXIST_REGEX = re.compile(
     "line (?P<location>.+?): .*Schema '(?P<schema_name>.+?)' does not exist"
 )
 CONNECTION_ACCESS_DENIED_REGEX = re.compile("Access Denied: Invalid credentials")
+CONNECTION_ACCESS_DENIED_401_REGEX = re.compile(r"Unexpected status code 401")
 CONNECTION_INVALID_HOSTNAME_REGEX = re.compile(
     r"Failed to establish a new connection: \[Errno 8\] nodename nor servname "
     "provided, or not known"
@@ -165,6 +166,10 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
+    # Presto/Trino don't reliably support IS true/false on computed boolean
+    # expressions (e.g. columns defined as `(expiration = 1) AS expiration`),
+    # which raises a query error. Use = true/false instead.
+    use_equality_for_boolean_filters = True
 
     column_type_mappings = (
         (
@@ -920,6 +925,19 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
         ],
     }
 
+    @classmethod
+    def convert_dttm(
+        cls, target_type: str, dttm: datetime, db_extra: dict[str, Any] | None = None
+    ) -> str | None:
+        sqla_type = cls.get_sqla_column_type(target_type)
+
+        if isinstance(sqla_type, types.Date):
+            return f"DATE '{dttm.date().isoformat()}'"
+        if isinstance(sqla_type, types.TIMESTAMP):
+            return f"""TIMESTAMP '{dttm.isoformat(timespec="milliseconds", sep=" ")}'"""
+
+        return None
+
     custom_errors: dict[Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]] = {
         COLUMN_DOES_NOT_EXIST_REGEX: (
             __(
@@ -949,6 +967,11 @@ class PrestoEngineSpec(PrestoBaseEngineSpec):
             __('Either the username "%(username)s" or the password is incorrect.'),
             SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
             {},
+        ),
+        CONNECTION_ACCESS_DENIED_401_REGEX: (
+            __("Unexpected HTTP 401 response. Check your credentials."),
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            {"invalid_credentials": True},
         ),
         CONNECTION_INVALID_HOSTNAME_REGEX: (
             __('The hostname "%(hostname)s" cannot be resolved.'),
