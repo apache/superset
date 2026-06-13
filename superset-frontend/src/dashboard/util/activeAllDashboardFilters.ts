@@ -111,8 +111,11 @@ export const getAllActiveFilters = ({
   }
 
   Object.values(dataMask).forEach(({ id: filterId, extraFormData = {} }) => {
+    const nativeFilter = nativeFilters?.[filterId];
     let scope =
-      nativeFilters?.[filterId]?.chartsInScope ??
+      (nativeFilter && 'chartsInScope' in nativeFilter
+        ? nativeFilter.chartsInScope
+        : undefined) ??
       chartConfiguration?.[parseInt(filterId, 10)]?.crossFilters
         ?.chartsInScope ??
       allSliceIds ??

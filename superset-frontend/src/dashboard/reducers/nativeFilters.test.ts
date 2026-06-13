@@ -16,9 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Filter, NativeFilterType } from '@superset-ui/core';
-import nativeFilterReducer from './nativeFilters';
+import {
+  Filter,
+  NativeFilterType,
+  ChartCustomization,
+  ChartCustomizationType,
+} from '@superset-ui/core';
+import nativeFilterReducer, { getInitialState } from './nativeFilters';
 import { SET_NATIVE_FILTERS_CONFIG_COMPLETE } from '../actions/nativeFilters';
+import { HYDRATE_DASHBOARD } from '../actions/hydrate';
+import { migrateChartCustomizationArray } from '../util/migrateChartCustomization';
 
 const createMockFilter = (
   id: string,
@@ -53,6 +60,40 @@ const createMockFilter = (
   },
   type: NativeFilterType.NativeFilter,
   description: '',
+  chartsInScope,
+  tabsInScope,
+});
+
+const createMockChartCustomization = (
+  id: string,
+  chartsInScope?: number[],
+  tabsInScope?: string[],
+): ChartCustomization => ({
+  id,
+  type: ChartCustomizationType.ChartCustomization,
+  name: `Chart Customization ${id}`,
+  filterType: 'filter_select',
+  targets: [
+    {
+      datasetId: 0,
+      column: {
+        name: 'test column',
+        displayName: 'test column',
+      },
+    },
+  ],
+  scope: {
+    rootPath: [],
+    excluded: [],
+  },
+  defaultDataMask: {
+    filterState: {
+      value: null,
+    },
+  },
+  controlValues: {
+    sortAscending: true,
+  },
   chartsInScope,
   tabsInScope,
 });
@@ -159,4 +200,310 @@ test('SET_NATIVE_FILTERS_CONFIG_COMPLETE treats empty arrays as valid scope prop
 
   expect(result.filters.filter1.chartsInScope).toEqual([]);
   expect(result.filters.filter1.tabsInScope).toEqual([]);
+});
+
+test('HYDRATE_DASHBOARD preserves existing chartsInScope and tabsInScope from state', () => {
+  const initialState = {
+    filters: {
+      filter1: createMockFilter('filter1', [1, 2, 3], ['tab1', 'tab2']),
+    },
+  };
+
+  const incomingFilterWithoutScopes: Filter = {
+    ...createMockFilter('filter1'),
+    chartsInScope: undefined,
+    tabsInScope: undefined,
+  };
+
+  const action = {
+    type: HYDRATE_DASHBOARD as typeof HYDRATE_DASHBOARD,
+    data: {
+      nativeFilters: {
+        filters: {
+          filter1: incomingFilterWithoutScopes,
+        },
+      },
+    },
+  };
+
+  const result = nativeFilterReducer(initialState, action as any);
+
+  expect(result.filters.filter1.chartsInScope).toEqual([1, 2, 3]);
+  expect(result.filters.filter1.tabsInScope).toEqual(['tab1', 'tab2']);
+});
+
+test('HYDRATE_DASHBOARD uses incoming scopes when provided', () => {
+  const initialState = {
+    filters: {
+      filter1: createMockFilter('filter1', [1, 2, 3], ['tab1', 'tab2']),
+    },
+  };
+
+  const action = {
+    type: HYDRATE_DASHBOARD as typeof HYDRATE_DASHBOARD,
+    data: {
+      nativeFilters: {
+        filters: {
+          filter1: createMockFilter('filter1', [4, 5], ['tab3']),
+        },
+      },
+    },
+  };
+
+  const result = nativeFilterReducer(initialState, action as any);
+
+  expect(result.filters.filter1.chartsInScope).toEqual([4, 5]);
+  expect(result.filters.filter1.tabsInScope).toEqual(['tab3']);
+});
+
+test('HYDRATE_DASHBOARD handles new filters without existing state', () => {
+  const initialState = {
+    filters: {},
+  };
+
+  const action = {
+    type: HYDRATE_DASHBOARD as typeof HYDRATE_DASHBOARD,
+    data: {
+      nativeFilters: {
+        filters: {
+          filter1: createMockFilter('filter1', [1, 2], ['tab1']),
+        },
+      },
+    },
+  };
+
+  const result = nativeFilterReducer(initialState, action as any);
+
+  expect(result.filters.filter1.chartsInScope).toEqual([1, 2]);
+  expect(result.filters.filter1.tabsInScope).toEqual(['tab1']);
+});
+
+test('SET_NATIVE_FILTERS_CONFIG_COMPLETE removes deleted filters from state', () => {
+  const initialState = {
+    filters: {
+      filter1: createMockFilter('filter1', [1, 2], ['tab1']),
+      filter2: createMockFilter('filter2', [3, 4], ['tab2']),
+      filter3: createMockFilter('filter3', [5, 6], ['tab3']),
+    },
+  };
+
+  // Backend response only includes filter1 and filter3 (filter2 was deleted)
+  const action = {
+    type: SET_NATIVE_FILTERS_CONFIG_COMPLETE as typeof SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+    filterChanges: [
+      createMockFilter('filter1', [1, 2], ['tab1']),
+      createMockFilter('filter3', [5, 6], ['tab3']),
+    ],
+  };
+
+  const result = nativeFilterReducer(initialState, action);
+
+  // filter2 should be removed from state
+  expect(result.filters.filter1).toBeDefined();
+  expect(result.filters.filter2).toBeUndefined();
+  expect(result.filters.filter3).toBeDefined();
+  expect(Object.keys(result.filters)).toHaveLength(2);
+});
+
+test('SET_NATIVE_FILTERS_CONFIG_COMPLETE removes all filters when backend returns empty array', () => {
+  const initialState = {
+    filters: {
+      filter1: createMockFilter('filter1', [1, 2], ['tab1']),
+      filter2: createMockFilter('filter2', [3, 4], ['tab2']),
+    },
+  };
+
+  const action = {
+    type: SET_NATIVE_FILTERS_CONFIG_COMPLETE as typeof SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+    filterChanges: [],
+  };
+
+  const result = nativeFilterReducer(initialState, action);
+
+  expect(Object.keys(result.filters)).toHaveLength(0);
+  expect(result.filters).toEqual({});
+});
+
+test('SET_NATIVE_FILTERS_CONFIG_COMPLETE handles mixed Filter and ChartCustomization types', () => {
+  const initialState = {
+    filters: {
+      filter1: createMockFilter('filter1', [1, 2], ['tab1']),
+      customization1: createMockChartCustomization(
+        'customization1',
+        [3, 4],
+        ['tab2'],
+      ),
+    },
+  };
+
+  const action = {
+    type: SET_NATIVE_FILTERS_CONFIG_COMPLETE as typeof SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+    filterChanges: [
+      createMockFilter('filter1', [5, 6], ['tab3']),
+      createMockChartCustomization('customization1', [7, 8], ['tab4']),
+    ],
+  };
+
+  const result = nativeFilterReducer(initialState, action);
+
+  expect(result.filters.filter1.chartsInScope).toEqual([5, 6]);
+  expect(result.filters.filter1.tabsInScope).toEqual(['tab3']);
+  expect(result.filters.customization1.chartsInScope).toEqual([7, 8]);
+  expect(result.filters.customization1.tabsInScope).toEqual(['tab4']);
+});
+
+test('SET_NATIVE_FILTERS_CONFIG_COMPLETE adds new filters while removing deleted ones', () => {
+  const initialState = {
+    filters: {
+      filter1: createMockFilter('filter1', [1, 2], ['tab1']),
+      filter2: createMockFilter('filter2', [3, 4], ['tab2']),
+    },
+  };
+
+  // Backend response: keep filter1, delete filter2, add filter3
+  const action = {
+    type: SET_NATIVE_FILTERS_CONFIG_COMPLETE as typeof SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+    filterChanges: [
+      createMockFilter('filter1', [1, 2], ['tab1']),
+      createMockFilter('filter3', [5, 6], ['tab3']),
+    ],
+  };
+
+  const result = nativeFilterReducer(initialState, action);
+
+  expect(result.filters.filter1).toBeDefined();
+  expect(result.filters.filter2).toBeUndefined();
+  expect(result.filters.filter3).toBeDefined();
+  expect(result.filters.filter3.chartsInScope).toEqual([5, 6]);
+  expect(Object.keys(result.filters)).toHaveLength(2);
+});
+
+test('SET_NATIVE_FILTERS_CONFIG_COMPLETE treats backend response as source of truth', () => {
+  const initialState = {
+    filters: {
+      filter1: createMockFilter('filter1', [1, 2], ['tab1']),
+      filter2: createMockFilter('filter2', [3, 4], ['tab2']),
+      filter3: createMockFilter('filter3', [5, 6], ['tab3']),
+      customization1: createMockChartCustomization(
+        'customization1',
+        [7, 8],
+        ['tab4'],
+      ),
+    },
+  };
+
+  // Backend only returns filter2 and customization1
+  const action = {
+    type: SET_NATIVE_FILTERS_CONFIG_COMPLETE as typeof SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+    filterChanges: [
+      createMockFilter('filter2', [10, 11], ['tab5']),
+      createMockChartCustomization('customization1', [12, 13], ['tab6']),
+    ],
+  };
+
+  const result = nativeFilterReducer(initialState, action);
+
+  // Only filter2 and customization1 should remain
+  expect(result.filters.filter1).toBeUndefined();
+  expect(result.filters.filter2).toBeDefined();
+  expect(result.filters.filter3).toBeUndefined();
+  expect(result.filters.customization1).toBeDefined();
+  expect(Object.keys(result.filters)).toHaveLength(2);
+
+  // Values should be from backend response
+  expect(result.filters.filter2.chartsInScope).toEqual([10, 11]);
+  expect(result.filters.filter2.tabsInScope).toEqual(['tab5']);
+  expect(result.filters.customization1.chartsInScope).toEqual([12, 13]);
+  expect(result.filters.customization1.tabsInScope).toEqual(['tab6']);
+});
+
+test('getInitialState builds filters map from combined filter and customization config', () => {
+  const filter = createMockFilter('filter1', [1, 2], ['tab1']);
+  const customization = createMockChartCustomization(
+    'custom1',
+    [3, 4],
+    ['tab2'],
+  );
+
+  const result = getInitialState({
+    filterConfig: [filter, customization],
+  });
+
+  expect(Object.keys(result.filters)).toHaveLength(2);
+  expect(result.filters.filter1).toBeDefined();
+  expect(result.filters.custom1).toBeDefined();
+  expect(result.filters.filter1.chartsInScope).toEqual([1, 2]);
+  expect(result.filters.custom1.chartsInScope).toEqual([3, 4]);
+});
+
+test('getInitialState crashes on null entries in filterConfig (hydrate must pre-filter)', () => {
+  // This proves why hydrate.ts MUST call .filter(Boolean) before passing
+  // chart_customization_config to getInitialState — null entries cause a
+  // TypeError when accessing .id on null.
+  expect(() =>
+    getInitialState({
+      filterConfig: [
+        null as unknown as Filter,
+        createMockFilter('filter1', [1], []),
+      ],
+    }),
+  ).toThrow();
+});
+
+test('hydrate pipeline: filter(Boolean) + migrate + getInitialState succeeds with null entries', () => {
+  // Reproduces the exact pipeline in hydrate.ts (lines 296-312):
+  //   rawConfig.filter(Boolean) → migrateChartCustomizationArray → getInitialState
+  const rawConfig = [
+    null,
+    {
+      id: 'CHART_CUSTOMIZATION-1',
+      type: ChartCustomizationType.ChartCustomization,
+      name: 'Dynamic Group By',
+      filterType: 'chart_customization_dynamic_groupby',
+      targets: [{ datasetId: 1, column: { name: 'status' } }],
+      scope: { rootPath: ['ROOT_ID'], excluded: [] },
+      chartsInScope: [10],
+      defaultDataMask: { filterState: { value: null } },
+      controlValues: {},
+      cascadeParentIds: [],
+      description: '',
+    },
+    null,
+  ];
+
+  // Step 1: filter(Boolean) — as hydrate.ts does
+  const filtered = rawConfig.filter(Boolean);
+  // Step 2: migrate — as hydrate.ts does
+  const migrated = migrateChartCustomizationArray(filtered);
+  // Step 3: combine with native filters and pass to getInitialState
+  const nativeFilters = [createMockFilter('filter1', [1, 2], ['tab1'])];
+  const result = getInitialState({
+    filterConfig: [...nativeFilters, ...migrated] as Filter[],
+  });
+
+  expect(Object.keys(result.filters)).toHaveLength(2);
+  expect(result.filters.filter1).toBeDefined();
+  expect(result.filters['CHART_CUSTOMIZATION-1']).toBeDefined();
+  expect(result.filters['CHART_CUSTOMIZATION-1'].chartsInScope).toEqual([10]);
+});
+
+test('hydrate pipeline: native_filter_configuration with null entries does not crash getInitialState', () => {
+  // Reproduces the native_filter_configuration path in hydrate.ts (L305):
+  //   native_filter_configuration may contain null entries from corrupted metadata.
+  //   Without .filter(Boolean), these nulls reach getInitialState which reads .id → crash.
+  const nativeFilters = [
+    null,
+    createMockFilter('filter1', [1, 2], ['tab1']),
+    null,
+  ];
+
+  // After .filter(Boolean), only valid filters remain
+  const filtered = nativeFilters.filter(Boolean);
+  const result = getInitialState({
+    filterConfig: filtered as Filter[],
+  });
+
+  expect(Object.keys(result.filters)).toHaveLength(1);
+  expect(result.filters.filter1).toBeDefined();
+  expect(result.filters.filter1.chartsInScope).toEqual([1, 2]);
 });

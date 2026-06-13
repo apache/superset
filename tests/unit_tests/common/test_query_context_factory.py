@@ -436,3 +436,109 @@ class TestQueryContextFactory:
         self.factory._apply_filters(query_object)
 
         assert query_object.filter[0]["val"] == "value"
+
+    def test_add_currency_column_no_form_data(self):
+        """Test _add_currency_column when form_data is None."""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = ["col1"]
+        datasource = Mock()
+
+        self.factory._add_currency_column(query_object, None, datasource)
+
+        assert query_object.columns == ["col1"]
+
+    def test_add_currency_column_no_columns(self):
+        """Test _add_currency_column when query_object has no columns."""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = []
+        form_data = {
+            "viz_type": "pivot_table_v2",
+            "currency_format": {"symbol": "AUTO"},
+        }
+        datasource = Mock()
+        datasource.currency_code_column = "currency_code"
+
+        self.factory._add_currency_column(query_object, form_data, datasource)
+
+        assert query_object.columns == []
+
+    def test_add_currency_column_unsupported_viz_type(self):
+        """Test _add_currency_column with unsupported viz type."""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = ["col1"]
+        form_data = {"viz_type": "pie", "currency_format": {"symbol": "AUTO"}}
+        datasource = Mock()
+        datasource.currency_code_column = "currency_code"
+
+        self.factory._add_currency_column(query_object, form_data, datasource)
+
+        assert query_object.columns == ["col1"]
+
+    def test_add_currency_column_symbol_not_auto(self):
+        """Test _add_currency_column when symbol is not AUTO."""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = ["col1"]
+        form_data = {"viz_type": "pivot_table_v2", "currency_format": {"symbol": "USD"}}
+        datasource = Mock()
+        datasource.currency_code_column = "currency_code"
+
+        self.factory._add_currency_column(query_object, form_data, datasource)
+
+        assert query_object.columns == ["col1"]
+
+    def test_add_currency_column_no_currency_column_on_datasource(self):
+        """Test _add_currency_column when datasource has no currency column."""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = ["col1"]
+        form_data = {
+            "viz_type": "pivot_table_v2",
+            "currency_format": {"symbol": "AUTO"},
+        }
+        datasource = Mock()
+        datasource.currency_code_column = None
+
+        self.factory._add_currency_column(query_object, form_data, datasource)
+
+        assert query_object.columns == ["col1"]
+
+    def test_add_currency_column_already_in_query(self):
+        """Test _add_currency_column when currency column already exists."""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = ["col1", "currency_code"]
+        form_data = {
+            "viz_type": "pivot_table_v2",
+            "currency_format": {"symbol": "AUTO"},
+        }
+        datasource = Mock()
+        datasource.currency_code_column = "currency_code"
+
+        self.factory._add_currency_column(query_object, form_data, datasource)
+
+        assert query_object.columns == ["col1", "currency_code"]
+
+    def test_add_currency_column_adds_column_for_pivot_table(self):
+        """Test _add_currency_column adds column for pivot_table_v2 viz type"""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = ["col1"]
+        form_data = {
+            "viz_type": "pivot_table_v2",
+            "currency_format": {"symbol": "AUTO"},
+        }
+        datasource = Mock()
+        datasource.currency_code_column = "currency_code"
+
+        self.factory._add_currency_column(query_object, form_data, datasource)
+
+        assert query_object.columns == ["col1", "currency_code"]
+
+    def test_add_currency_column_skips_table_viz_type(self):
+        """Test _add_currency_column does not add column for table viz type."""
+        query_object = Mock(spec=QueryObject)
+        query_object.columns = ["col1"]
+        form_data = {"viz_type": "table", "currency_format": {"symbol": "AUTO"}}
+        datasource = Mock()
+        datasource.currency_code_column = "currency_code"
+
+        self.factory._add_currency_column(query_object, form_data, datasource)
+
+        assert query_object.columns == ["col1"]

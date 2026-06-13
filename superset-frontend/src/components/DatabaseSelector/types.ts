@@ -24,6 +24,7 @@ export type DatabaseValue = {
   id: number;
   database_name: string;
   backend?: string;
+  supports_schemas?: boolean;
 };
 
 export type DatabaseObject = {
@@ -31,6 +32,7 @@ export type DatabaseObject = {
   database_name: string;
   backend?: string;
   allow_multi_catalog?: boolean;
+  supports_schemas?: boolean;
 };
 
 export interface DatabaseSelectorProps {
@@ -48,4 +50,5 @@ export interface DatabaseSelectorProps {
   schema?: string;
   readOnly?: boolean;
   sqlLabMode?: boolean;
+  onOpenModal?: () => void;
 }

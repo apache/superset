@@ -17,19 +17,22 @@
  * under the License.
  */
 import { createRef, useCallback, useMemo } from 'react';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { nanoid } from 'nanoid';
 import Tabs from '@superset-ui/core/components/Tabs';
-import { t } from '@superset-ui/core';
-import { css, styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { css, styled, useTheme } from '@apache-superset/core/theme';
 
 import { removeTables, setActiveSouthPaneTab } from 'src/SqlLab/actions/sqlLab';
 
-import { Label } from '@superset-ui/core/components';
+import { Flex, Label } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
-import { useExtensionsContext } from 'src/extensions/ExtensionsContext';
-import ExtensionsManager from 'src/extensions/ExtensionsManager';
+import { ViewLocations } from 'src/SqlLab/contributions';
+import PanelToolbar from 'src/components/PanelToolbar';
+import { useViews } from 'src/core';
+import { resolveView } from 'src/core/views';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import useLogAction from 'src/logger/useLogAction';
 import { LOG_ACTIONS_SQLLAB_SWITCH_SOUTH_PANE_TAB } from 'src/logger/LogUtils';
@@ -41,7 +44,6 @@ import {
 } from '../../constants';
 import Results from './Results';
 import TablePreview from '../TablePreview';
-import { ViewContribution } from 'src/SqlLab/contributions';
 
 /*
     editorQueries are queries executed by users passed from SqlEditor component
@@ -62,6 +64,7 @@ const TABS_KEYS = {
 const StyledPane = styled.div`
   width: 100%;
   height: 100%;
+
   .ant-tabs .ant-tabs-content-holder {
     overflow: visible;
   }
@@ -73,7 +76,12 @@ const StyledPane = styled.div`
       overflow-y: auto;
     }
   }
+  .ant-tabs-extra-content {
+    margin: 0 ${({ theme }) => theme.sizeUnit * 4}px
+      ${({ theme }) => theme.sizeUnit * 2}px;
+  }
   .ant-tabs-tabpane {
+    padding-top: ${({ theme }) => theme.sizeUnit * 3}px;
     .scrollable {
       overflow-y: auto;
     }
@@ -98,12 +106,8 @@ const SouthPane = ({
   const { id, tabViewId } = useQueryEditor(queryEditorId, ['tabViewId']);
   const editorId = tabViewId ?? id;
   const theme = useTheme();
-  const dispatch = useDispatch();
-  const contributions =
-    ExtensionsManager.getInstance().getViewContributions(
-      ViewContribution.SouthPanels,
-    ) || [];
-  const { getView } = useExtensionsContext();
+  const dispatch = useAppDispatch();
+  const viewItems = useViews(ViewLocations.sqllab.panels) || [];
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
       offline,
@@ -137,7 +141,7 @@ const SouthPane = ({
     logAction(LOG_ACTIONS_SQLLAB_SWITCH_SOUTH_PANE_TAB, { tab: id });
   };
   const removeTable = useCallback(
-    (key, action) => {
+    (key: string, action: string) => {
       if (action === 'remove') {
         const table = pinnedTables.find(
           ({ dbId, catalog, schema, name }) =>
@@ -207,10 +211,21 @@ const SouthPane = ({
         />
       ),
     })),
-    ...contributions.map(contribution => ({
-      key: contribution.id,
-      label: contribution.name,
-      children: getView(contribution.id),
+    ...viewItems.map(view => ({
+      key: view.id,
+      label: view.name,
+      children: (
+        <div
+          css={css`
+            & > div:first-of-type {
+              padding-bottom: ${theme.sizeUnit * 2}px;
+            }
+          `}
+        >
+          <PanelToolbar viewId={view.id} />
+          {resolveView(view.id)}
+        </div>
+      ),
       forceRender: true,
       closable: false,
     })),
@@ -219,6 +234,17 @@ const SouthPane = ({
   return (
     <StyledPane data-test="south-pane" className="SouthPane" ref={southPaneRef}>
       <Tabs
+        tabBarExtraContent={{
+          right: (
+            <Flex
+              css={css`
+                padding: 8px;
+              `}
+            >
+              <PanelToolbar viewId={ViewLocations.sqllab.panels} />
+            </Flex>
+          ),
+        }}
         type="editable-card"
         activeKey={pinnedTableKeys[activeSouthPaneTab] || activeSouthPaneTab}
         className="SouthPaneTabs"

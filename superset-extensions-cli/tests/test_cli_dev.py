@@ -49,7 +49,13 @@ def test_dev_command_starts_watchers(
     """Test dev command starts file watchers."""
     # Setup mocks
     mock_rebuild_frontend.return_value = "remoteEntry.abc123.js"
-    mock_build_manifest.return_value = Manifest(id="test", name="test", version="1.0.0")
+    mock_build_manifest.return_value = Manifest(
+        id="test-org.test-extension",
+        publisher="test-org",
+        name="test-extension",
+        displayName="Test Extension",
+        version="1.0.0",
+    )
 
     mock_observer = Mock()
     mock_observer_class.return_value = mock_observer
@@ -101,7 +107,13 @@ def test_dev_command_initial_build(
     """Test dev command performs initial build setup."""
     # Setup mocks
     mock_rebuild_frontend.return_value = "remoteEntry.abc123.js"
-    mock_build_manifest.return_value = Manifest(id="test", name="test", version="1.0.0")
+    mock_build_manifest.return_value = Manifest(
+        id="test-org.test-extension",
+        publisher="test-org",
+        name="test-extension",
+        displayName="Test Extension",
+        version="1.0.0",
+    )
 
     extension_setup_for_dev(isolated_filesystem)
 
@@ -178,8 +190,9 @@ def test_frontend_watcher_function_coverage(isolated_filesystem):
     """Test frontend watcher function for coverage."""
     # Create extension.json
     extension_json = {
-        "id": "test_extension",
-        "name": "Test Extension",
+        "publisher": "test-org",
+        "name": "test-extension",
+        "displayName": "Test Extension",
         "version": "1.0.0",
         "permissions": [],
     }
@@ -189,7 +202,13 @@ def test_frontend_watcher_function_coverage(isolated_filesystem):
     dist_dir = isolated_filesystem / "dist"
     dist_dir.mkdir()
 
-    mock_manifest = Manifest(id="test", name="test", version="1.0.0")
+    mock_manifest = Manifest(
+        id="test-org.test-extension",
+        publisher="test-org",
+        name="test-extension",
+        displayName="Test Extension",
+        version="1.0.0",
+    )
     with patch("superset_extensions_cli.cli.rebuild_frontend") as mock_rebuild:
         with patch("superset_extensions_cli.cli.build_manifest") as mock_build:
             with patch("superset_extensions_cli.cli.write_manifest") as mock_write:
@@ -216,23 +235,15 @@ def test_frontend_watcher_function_coverage(isolated_filesystem):
 
 @pytest.mark.unit
 def test_backend_watcher_function_coverage(isolated_filesystem):
-    """Test backend watcher function for coverage."""
-    # Create dist directory with manifest
-    dist_dir = isolated_filesystem / "dist"
-    dist_dir.mkdir()
-
-    manifest_data = {"name": "test", "version": "1.0.0"}
-    (dist_dir / "manifest.json").write_text(json.dumps(manifest_data))
+    """Test backend watcher function only rebuilds backend files."""
+    # Create backend directory
+    backend_dir = isolated_filesystem / "backend"
+    backend_dir.mkdir()
 
     with patch("superset_extensions_cli.cli.rebuild_backend") as mock_rebuild:
-        with patch("superset_extensions_cli.cli.write_manifest") as mock_write:
-            # Simulate backend watcher function
+        # Simulate backend watcher function - it only rebuilds backend
+        if backend_dir.exists():
             mock_rebuild(isolated_filesystem)
 
-            manifest_path = dist_dir / "manifest.json"
-            if manifest_path.exists():
-                manifest = json.loads(manifest_path.read_text())
-                mock_write(isolated_filesystem, manifest)
-
-            mock_rebuild.assert_called_once_with(isolated_filesystem)
-            mock_write.assert_called_once()
+        # Backend watcher should only call rebuild_backend
+        mock_rebuild.assert_called_once_with(isolated_filesystem)

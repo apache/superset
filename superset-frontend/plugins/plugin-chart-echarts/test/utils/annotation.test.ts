@@ -35,7 +35,7 @@ import {
 } from '../../src/utils/annotation';
 
 describe('formatAnnotationLabel', () => {
-  it('should handle default cases properly', () => {
+  test('should handle default cases properly', () => {
     expect(formatAnnotationLabel('name')).toEqual('name');
     expect(formatAnnotationLabel('name', 'title')).toEqual('name - title');
     expect(formatAnnotationLabel('name', 'title', ['description'])).toEqual(
@@ -43,7 +43,7 @@ describe('formatAnnotationLabel', () => {
     );
   });
 
-  it('should handle missing cases properly', () => {
+  test('should handle missing cases properly', () => {
     expect(formatAnnotationLabel()).toEqual('');
     expect(formatAnnotationLabel(undefined, 'title')).toEqual('title');
     expect(formatAnnotationLabel('name', undefined, ['description'])).toEqual(
@@ -54,7 +54,7 @@ describe('formatAnnotationLabel', () => {
     ).toEqual('description');
   });
 
-  it('should handle multiple descriptions properly', () => {
+  test('should handle multiple descriptions properly', () => {
     expect(
       formatAnnotationLabel('name', 'title', [
         'description 1',
@@ -71,7 +71,7 @@ describe('formatAnnotationLabel', () => {
 });
 
 describe('extractForecastSeriesContext', () => {
-  it('should extract the correct series name and type', () => {
+  test('should extract the correct series name and type', () => {
     expect(parseAnnotationOpacity(AnnotationOpacity.Low)).toEqual(0.2);
     expect(parseAnnotationOpacity(AnnotationOpacity.Medium)).toEqual(0.5);
     expect(parseAnnotationOpacity(AnnotationOpacity.High)).toEqual(0.8);
@@ -81,7 +81,7 @@ describe('extractForecastSeriesContext', () => {
 });
 
 describe('extractAnnotationLabels', () => {
-  it('should extract all annotations that can be added to the legend', () => {
+  test('should extract all annotations that can be added to the legend', () => {
     const layers: AnnotationLayer[] = [
       {
         annotationType: AnnotationType.Formula,
@@ -140,7 +140,7 @@ describe('evalFormula', () => {
     value: 'x+1',
     showLabel: true,
   };
-  it('Should evaluate a regular formula', () => {
+  test('Should evaluate a regular formula', () => {
     const data: TimeseriesDataRecord[] = [
       { __timestamp: 0 },
       { __timestamp: 10 },
@@ -152,7 +152,7 @@ describe('evalFormula', () => {
     ]);
   });
 
-  it('Should evaluate a formula containing redundant characters', () => {
+  test('Should evaluate a formula containing redundant characters', () => {
     const data: TimeseriesDataRecord[] = [
       { __timestamp: 0 },
       { __timestamp: 10 },
@@ -171,7 +171,7 @@ describe('evalFormula', () => {
     ]);
   });
 
-  it('Should evaluate a formula if axis type is category', () => {
+  test('Should evaluate a formula if axis type is category', () => {
     const data: DataRecord[] = [{ gender: 'boy' }, { gender: 'girl' }];
 
     expect(

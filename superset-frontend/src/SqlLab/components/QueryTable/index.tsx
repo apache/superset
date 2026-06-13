@@ -27,9 +27,11 @@ import {
   TableView,
 } from '@superset-ui/core/components';
 import ProgressBar from '@superset-ui/core/components/ProgressBar';
-import { t, QueryResponse, QueryState } from '@superset-ui/core';
-import { useTheme } from '@apache-superset/core/ui';
-import { shallowEqual, useDispatch, useSelector } from 'react-redux';
+import { t } from '@apache-superset/core/translation';
+import { QueryResponse, QueryState } from '@superset-ui/core';
+import { useTheme } from '@apache-superset/core/theme';
+import { shallowEqual, useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 
 import {
   queryEditorSetSql,
@@ -49,14 +51,23 @@ import { StaticPosition, StyledTooltip, ModalResultSetWrapper } from './styles';
 
 interface QueryTableQuery extends Omit<
   QueryResponse,
-  'state' | 'sql' | 'progress' | 'results' | 'duration' | 'started'
+  | 'state'
+  | 'sql'
+  | 'progress'
+  | 'results'
+  | 'duration'
+  | 'started'
+  | 'user'
+  | 'db'
 > {
-  state?: Record<string, any>;
-  sql?: Record<string, any>;
-  progress?: Record<string, any>;
-  results?: Record<string, any>;
+  state?: ReactNode;
+  sql?: ReactNode;
+  progress?: ReactNode;
+  results?: ReactNode;
   duration?: ReactNode;
   started?: ReactNode;
+  user?: ReactNode;
+  db?: ReactNode;
 }
 
 interface QueryTableProps {
@@ -82,7 +93,7 @@ const QueryTable = ({
   latestQueryId,
 }: QueryTableProps) => {
   const theme = useTheme();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const [selectedQuery, setSelectedQuery] = useState<QueryResponse | null>(
     null,
   );
@@ -248,7 +259,7 @@ const QueryTable = ({
 
     return queries
       .map(query => {
-        const { state, sql, progress, ...rest } = query;
+        const { state, sql, progress, results: _results, ...rest } = query;
         const q = rest as QueryTableQuery;
 
         const status = statusAttributes[state] || statusAttributes.error;
@@ -264,7 +275,7 @@ const QueryTable = ({
             buttonStyle="link"
             onClick={() => onUserClicked(q.userId)}
           >
-            {q.user}
+            {q.user as ReactNode}
           </Button>
         );
         q.db = (
@@ -273,7 +284,7 @@ const QueryTable = ({
             buttonStyle="link"
             onClick={() => onDbClicked(q.dbId)}
           >
-            {q.db}
+            {q.db as ReactNode}
           </Button>
         );
         q.started = (

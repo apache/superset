@@ -41,6 +41,16 @@ class ExplorePermalinkStateSchema(Schema):
         allow_none=True,
         metadata={"description": "URL Parameters"},
     )
+    chartState = fields.Dict(  # noqa: N815
+        required=False,
+        allow_none=True,
+        metadata={
+            "description": (
+                "Chart-level state for stateful tables "
+                "(column filters, sorting, column order)"
+            )
+        },
+    )
 
 
 class ExplorePermalinkSchema(Schema):

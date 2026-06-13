@@ -20,6 +20,7 @@
 import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { isEmpty, isEqual, noop } from 'lodash';
+import { t } from '@apache-superset/core/translation';
 import {
   BinaryAdhocFilter,
   ensureIsArray,
@@ -27,9 +28,8 @@ import {
   getTimeOffset,
   parseDttmToDate,
   SimpleAdhocFilter,
-  t,
 } from '@superset-ui/core';
-import { css } from '@apache-superset/core/ui';
+import { css } from '@apache-superset/core/theme';
 import ControlHeader, {
   ControlHeaderProps,
 } from 'src/explore/components/ControlHeader';

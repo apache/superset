@@ -30,3 +30,13 @@ declare module '@theme/Layout' {
 
   export default function Layout(props: Props): ReactNode;
 }
+
+declare module '@theme/Playground/Header' {
+  import type { ReactNode } from 'react';
+
+  export interface Props {
+    readonly children?: ReactNode;
+  }
+
+  export default function PlaygroundHeader(props: Props): ReactNode;
+}

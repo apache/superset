@@ -97,6 +97,7 @@ export type EchartsTimeseriesFormData = QueryFormData & {
   onlyTotal: boolean;
   showExtraControls: boolean;
   percentageThreshold: number;
+  colorByPrimaryAxis?: boolean;
   orientation?: OrientationType;
 } & LegendFormData &
   TitleFormData;
@@ -110,6 +111,7 @@ export type TimeseriesChartTransformedProps =
     ContextMenuTransformedProps &
     CrossFilterTransformedProps & {
       legendData?: OptionName[];
+      isRefreshing?: boolean;
       xValueFormatter: TimeFormatter | StringConstructor;
       xAxis: {
         label: string;

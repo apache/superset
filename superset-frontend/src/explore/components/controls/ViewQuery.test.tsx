@@ -73,21 +73,29 @@ const formatSqlEndpoint = 'glob:*/api/v1/sqllab/format_sql/';
 const formattedSQL = 'SELECT * FROM table;';
 
 beforeEach(() => {
-  fetchMock.get(datasetApiEndpoint, {
-    result: {
-      database: {
-        backend: 'sqlite',
+  fetchMock.get(
+    datasetApiEndpoint,
+    {
+      result: {
+        database: {
+          backend: 'sqlite',
+        },
       },
     },
-  });
-  fetchMock.post(formatSqlEndpoint, {
-    result: formattedSQL,
-  });
+    { name: datasetApiEndpoint },
+  );
+  fetchMock.post(
+    formatSqlEndpoint,
+    {
+      result: formattedSQL,
+    },
+    { name: formatSqlEndpoint },
+  );
 });
 
 afterEach(() => {
   jest.resetAllMocks();
-  fetchMock.restore();
+  fetchMock.clearHistory().removeRoutes();
 });
 
 const getFormatSwitch = () =>
@@ -100,7 +108,7 @@ test('renders the component with Formatted SQL and buttons', async () => {
   expect(screen.getByText('View in SQL Lab')).toBeInTheDocument();
 
   await waitFor(() =>
-    expect(fetchMock.calls(formatSqlEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(formatSqlEndpoint)).toHaveLength(1),
   );
 
   expect(container).toHaveTextContent(formattedSQL);
@@ -121,7 +129,7 @@ test('shows the original SQL when Format switch is unchecked', async () => {
   const formatButton = getFormatSwitch();
 
   await waitFor(() =>
-    expect(fetchMock.calls(formatSqlEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(formatSqlEndpoint)).toHaveLength(1),
   );
 
   fireEvent.click(formatButton);
@@ -134,7 +142,7 @@ test('toggles back to formatted SQL when Format switch is clicked', async () => 
   const formatButton = getFormatSwitch();
 
   await waitFor(() =>
-    expect(fetchMock.calls(formatSqlEndpoint)).toHaveLength(1),
+    expect(fetchMock.callHistory.calls(formatSqlEndpoint)).toHaveLength(1),
   );
 
   // Click to format SQL
@@ -207,11 +215,8 @@ test('handles dataset API error gracefully when no exploreBackend', async () => 
     explore: undefined,
   };
 
-  fetchMock.get(
-    datasetApiEndpoint,
-    { throws: new Error('API Error') },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoute(datasetApiEndpoint);
+  fetchMock.get(datasetApiEndpoint, { throws: new Error('API Error') });
 
   setup(mockProps, stateWithoutBackend);
 
@@ -219,7 +224,7 @@ test('handles dataset API error gracefully when no exploreBackend', async () => 
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
 
-  expect(fetchMock.calls(formatSqlEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(formatSqlEndpoint)).toHaveLength(0);
 });
 
 test('handles SQL formatting API error gracefully', async () => {
@@ -228,11 +233,8 @@ test('handles SQL formatting API error gracefully', async () => {
     explore: undefined,
   };
 
-  fetchMock.post(
-    formatSqlEndpoint,
-    { throws: new Error('Format Error') },
-    { overwriteRoutes: true },
-  );
+  fetchMock.removeRoute(formatSqlEndpoint);
+  fetchMock.post(formatSqlEndpoint, { throws: new Error('Format Error') });
 
   setup(mockProps, stateWithoutBackend);
 
@@ -256,14 +258,14 @@ test('uses exploreBackend from Redux state when available', async () => {
   setup(mockProps, stateWithBackend);
 
   await waitFor(() => {
-    expect(fetchMock.calls(formatSqlEndpoint)).toHaveLength(1);
+    expect(fetchMock.callHistory.calls(formatSqlEndpoint)).toHaveLength(1);
   });
 
   const formatCallBody = JSON.parse(
-    fetchMock.lastCall(formatSqlEndpoint)?.[1]?.body as string,
+    fetchMock.callHistory.lastCall(formatSqlEndpoint)?.options.body as string,
   );
   expect(formatCallBody.engine).toBe('postgresql');
-  expect(fetchMock.calls(datasetApiEndpoint)).toHaveLength(0);
+  expect(fetchMock.callHistory.calls(datasetApiEndpoint)).toHaveLength(0);
 });
 
 test('sends engine as string (not object) when fetched from dataset API', async () => {
@@ -275,15 +277,15 @@ test('sends engine as string (not object) when fetched from dataset API', async 
   setup(mockProps, stateWithoutBackend);
 
   await waitFor(() => {
-    expect(fetchMock.calls(datasetApiEndpoint)).toHaveLength(1);
+    expect(fetchMock.callHistory.calls(datasetApiEndpoint)).toHaveLength(1);
   });
 
   await waitFor(() => {
-    expect(fetchMock.calls(formatSqlEndpoint)).toHaveLength(1);
+    expect(fetchMock.callHistory.calls(formatSqlEndpoint)).toHaveLength(1);
   });
 
   const formatCallBody = JSON.parse(
-    fetchMock.lastCall(formatSqlEndpoint)?.[1]?.body as string,
+    fetchMock.callHistory.lastCall(formatSqlEndpoint)?.options.body as string,
   );
 
   expect(formatCallBody).toEqual({

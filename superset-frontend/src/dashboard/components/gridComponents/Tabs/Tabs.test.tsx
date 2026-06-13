@@ -28,7 +28,11 @@ import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import DeleteComponentButton from 'src/dashboard/components/DeleteComponentButton';
 import getLeafComponentIdFromPath from 'src/dashboard/util/getLeafComponentIdFromPath';
 import emptyDashboardLayout from 'src/dashboard/fixtures/emptyDashboardLayout';
-import Tabs from './Tabs';
+import React from 'react';
+import TabsComponent from './Tabs';
+
+// Cast to accept partial mock props in tests
+const Tabs = TabsComponent as unknown as React.FC<Record<string, unknown>>;
 
 jest.mock('src/dashboard/containers/DashboardComponent', () =>
   jest.fn(props => (
@@ -109,6 +113,7 @@ const createProps = () => ({
   renderTabContent: true,
   renderHoverMenu: true,
   logEvent: jest.fn(),
+  setActiveTab: jest.fn(),
   createComponent: jest.fn(),
   handleComponentDrop: jest.fn(),
   onChangeTab: jest.fn(),

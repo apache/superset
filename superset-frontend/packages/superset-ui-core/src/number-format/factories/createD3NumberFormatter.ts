@@ -16,14 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  format as d3Format,
-  formatLocale,
-  FormatLocaleDefinition,
-} from 'd3-format';
+import { formatLocale, FormatLocaleDefinition } from 'd3-format';
 import { isRequired } from '../../utils';
 import NumberFormatter from '../NumberFormatter';
 import { NumberFormatFunction } from '../types';
+import { DEFAULT_D3_FORMAT } from '../D3FormatConfig';
 
 export default function createD3NumberFormatter(config: {
   description?: string;
@@ -42,10 +39,7 @@ export default function createD3NumberFormatter(config: {
   let isInvalid = false;
 
   try {
-    formatFunc =
-      typeof locale === 'undefined'
-        ? d3Format(formatString)
-        : formatLocale(locale).format(formatString);
+    formatFunc = formatLocale(locale ?? DEFAULT_D3_FORMAT).format(formatString);
   } catch (error) {
     formatFunc = value => `${value} (Invalid format: ${formatString})`;
     isInvalid = true;
