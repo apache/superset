@@ -24,6 +24,7 @@ from zipfile import is_zipfile, ZipFile
 import pytest
 import yaml  # noqa: F401
 from flask import current_app
+from flask.ctx import AppContext
 from freezegun import freeze_time
 from sqlalchemy_utils.types.encrypted.encrypted_type import AesGcmEngine
 
@@ -368,7 +369,9 @@ def test_re_encrypt_secrets_failure_exits_nonzero(app_context):
     assert response.exception is None or isinstance(response.exception, SystemExit)
 
 
-def test_re_encrypt_secrets_engine_option_invokes_migrator(app_context) -> None:
+def test_re_encrypt_secrets_engine_option_invokes_migrator(
+    app_context: AppContext,
+) -> None:
     """
     When --engine is provided, the CLI must resolve the engine name to the
     correct engine class and pass it to SecretsMigrator as target_engine.
@@ -393,7 +396,9 @@ def test_re_encrypt_secrets_engine_option_invokes_migrator(app_context) -> None:
     assert call_kwargs.get("previous_secret_key") is None
 
 
-def test_re_encrypt_secrets_engine_option_case_insensitive(app_context) -> None:
+def test_re_encrypt_secrets_engine_option_case_insensitive(
+    app_context: AppContext,
+) -> None:
     """
     The --engine option must be case-insensitive per
     click.Choice(..., case_sensitive=False).
@@ -416,7 +421,9 @@ def test_re_encrypt_secrets_engine_option_case_insensitive(app_context) -> None:
     assert migrator_mock.call_args.kwargs.get("target_engine") is AesGcmEngine
 
 
-def test_re_encrypt_secrets_combined_key_rotation_and_engine(app_context) -> None:
+def test_re_encrypt_secrets_combined_key_rotation_and_engine(
+    app_context: AppContext,
+) -> None:
     """
     --previous_secret_key and --engine combine in a single run: the migrator
     must receive both the previous key (for decryption) and the target engine
@@ -443,7 +450,9 @@ def test_re_encrypt_secrets_combined_key_rotation_and_engine(app_context) -> Non
     assert call_kwargs.get("previous_secret_key") == "old-key"
 
 
-def test_re_encrypt_secrets_engine_option_invalid_raises_usage(app_context) -> None:
+def test_re_encrypt_secrets_engine_option_invalid_raises_usage(
+    app_context: AppContext,
+) -> None:
     """
     An unrecognized engine name must produce a click usage error, not a
     traceback or silent failure.

@@ -26,6 +26,7 @@ from sqlalchemy_utils.types.encrypted.encrypted_type import AesEngine, AesGcmEng
 from superset.utils.encrypt import (
     EncryptedType,
     ReEncryptStats,
+    resolve_encryption_engine,
     SecretsMigrator,
     SQLAlchemyUtilsAdapter,
 )
@@ -108,6 +109,20 @@ def test_empty_engine_value_raises_fail_closed() -> None:
             {**SECRET, "SQLALCHEMY_ENCRYPTED_FIELD_ENGINE": ""},
             String(128),
         )
+
+
+def test_non_string_engine_value_raises_fail_closed() -> None:
+    """A non-string engine value (e.g. ``None``) fails closed, not with an
+    ``AttributeError``.
+
+    A custom config override could set the engine to a non-string. That must
+    take the same controlled ``ValueError`` path as any unrecognized value
+    rather than raising ``AttributeError`` when the resolver normalizes it.
+    """
+    with pytest.raises(
+        ValueError, match="Unrecognized SQLALCHEMY_ENCRYPTED_FIELD_ENGINE"
+    ):
+        resolve_encryption_engine(None)
 
 
 def test_engine_name_is_normalized() -> None:

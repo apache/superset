@@ -125,6 +125,14 @@ def re_encrypt_secrets(
     previous_secret_key: Optional[str] = None,
     target_engine_name: Optional[str] = None,
 ) -> None:
+    """Re-encrypt every app-encrypted field via :class:`SecretsMigrator`.
+
+    Supports key rotation (``previous_secret_key``, falling back to the
+    ``PREVIOUS_SECRET_KEY`` config) and engine migration (``target_engine_name``,
+    a case-insensitive ``ENCRYPTION_ENGINES`` key such as ``aes-gcm``); the two
+    can combine. With neither provided the command is a no-op. Exits non-zero on
+    failure.
+    """
     previous_secret_key = previous_secret_key or current_app.config.get(
         "PREVIOUS_SECRET_KEY"
     )

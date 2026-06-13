@@ -60,10 +60,13 @@ AUTHENTICATED_ENGINES: frozenset[type[EncryptionDecryptionBaseEngine]] = frozens
 
 
 def _is_authenticated_engine(engine: type[EncryptionDecryptionBaseEngine]) -> bool:
+    """Return whether ``engine`` produces authenticated ciphertext (e.g. AES-GCM)."""
     return engine in AUTHENTICATED_ENGINES
 
 
-def resolve_encryption_engine(engine_name: str) -> type[EncryptionDecryptionBaseEngine]:
+def resolve_encryption_engine(
+    engine_name: Any,
+) -> type[EncryptionDecryptionBaseEngine]:
     """Resolve a configured engine name to its engine class, fail-closed.
 
     The value is normalized (trimmed, lower-cased, underscores → hyphens) so it
@@ -79,6 +82,14 @@ def resolve_encryption_engine(engine_name: str) -> type[EncryptionDecryptionBase
     clear-text secret exposure. The set of valid engine names is enough to
     diagnose a typo.
     """
+    # A non-string config value (e.g. ``None`` from a custom override) must take
+    # the same fail-closed path rather than blowing up with an ``AttributeError``
+    # during field construction.
+    if not isinstance(engine_name, str):
+        raise ValueError(
+            "Unrecognized SQLALCHEMY_ENCRYPTED_FIELD_ENGINE. Valid engines: "
+            + ", ".join(sorted(ENCRYPTION_ENGINES))
+        )
     normalized = engine_name.strip().lower().replace("_", "-")
     try:
         return ENCRYPTION_ENGINES[normalized]
@@ -202,6 +213,14 @@ class SecretsMigrator:
         previous_secret_key: Optional[str] = None,
         target_engine: Optional[type[Any]] = None,
     ) -> None:
+        """Configure a migration run.
+
+        ``previous_secret_key`` enables key rotation (decrypt under the old key,
+        re-encrypt under the current ``SECRET_KEY``). ``target_engine`` enables
+        engine migration (e.g. ``AesGcmEngine``); in that mode the ``SECRET_KEY``
+        is unchanged, so an absent ``previous_secret_key`` defaults to the current
+        one. Passing both combines key rotation and engine migration in one run.
+        """
         from superset import db  # pylint: disable=import-outside-toplevel
 
         self._db = db
