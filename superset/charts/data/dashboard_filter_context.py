@@ -314,3 +314,50 @@ def get_dashboard_filter_context(
         )
 
     return context
+
+
+def apply_extra_form_data_to_query_context_json(
+    json_body: dict[str, Any],
+    extra_form_data: dict[str, Any],
+) -> None:
+    """
+    Merge a dashboard filter context's ``extra_form_data`` into a raw query
+    context JSON body, mutating ``json_body`` in place.
+
+    For each query it appends scoped native filters (flagged ``isExtra``),
+    overrides ``extras`` keys (e.g. ``relative_start``) and regular mappings
+    (e.g. ``time_range``), and exposes the full ``extra_form_data`` so Jinja
+    templating can resolve it in ``get_sqla_query``. Shared by the chart data
+    API (GET) and the dashboard Excel export task.
+
+    :param json_body: The query context JSON body (mutated in place)
+    :param extra_form_data: The merged extra_form_data to apply
+    """
+    if not extra_form_data:
+        return
+
+    efd = extra_form_data
+    extra_filters = efd.get("filters", [])
+
+    for query in json_body.get("queries", []):
+        if extra_filters:
+            existing = query.get("filters") or []
+            query["filters"] = existing + [
+                {**f, "isExtra": True} for f in extra_filters
+            ]
+
+        extras = query.get("extras") or {}
+        for key in EXTRA_FORM_DATA_OVERRIDE_EXTRA_KEYS:
+            if key in efd:
+                extras[key] = efd[key]
+        if extras:
+            query["extras"] = extras
+
+        for (
+            src_key,
+            target_key,
+        ) in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.items():
+            if src_key in efd:
+                query[target_key] = efd[src_key]
+
+        query["extra_form_data"] = efd
