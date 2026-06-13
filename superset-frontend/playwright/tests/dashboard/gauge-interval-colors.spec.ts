@@ -35,15 +35,15 @@
  *             plugin-chart-echarts/src/Gauge (color-scheme resolution).
  */
 import { testWithAssets, expect } from '../../helpers/fixtures';
-import { apiPostChart } from '../../helpers/api/chart';
-import { apiPut } from '../../helpers/api/requests';
+import { apiPostChart, apiPutChart } from '../../helpers/api/chart';
 import { apiPostDashboard } from '../../helpers/api/dashboard';
 import { getDatasetByName } from '../../helpers/api/dataset';
 import { DashboardPage } from '../../pages/DashboardPage';
 
 const DATASET_NAME = 'birth_names';
 
-// supersetColors palette: index 1 = #1FA8C9, index 2 = #454E7C, index 3 = #5AC189
+// supersetColors palette (1-based, matching interval_color_indices):
+// index 1 = #1FA8C9, index 2 = #454E7C, index 3 = #5AC189
 const COLOR_INTERVAL_1: [number, number, number] = [31, 168, 201];
 const COLOR_INTERVAL_2: [number, number, number] = [69, 78, 124];
 const COLOR_UNUSED_3: [number, number, number] = [90, 193, 137];
@@ -57,12 +57,12 @@ testWithAssets(
     }
     const datasetId = dataset.id;
 
+    const sliceName = `gauge_interval_colors_${Date.now()}`;
     const chartParams = {
       datasource: `${datasetId}__table`,
       viz_type: 'gauge_chart',
       metric: 'count',
       adhoc_filters: [],
-      groupby: [],
       row_limit: 10,
       color_scheme: 'supersetColors',
       min_val: 0,
@@ -76,7 +76,7 @@ testWithAssets(
       value_formatter: '{value}',
     };
     const chartResp = await apiPostChart(page, {
-      slice_name: `gauge_interval_colors_${Date.now()}`,
+      slice_name: sliceName,
       viz_type: 'gauge_chart',
       datasource_id: datasetId,
       datasource_type: 'table',
@@ -119,7 +119,7 @@ testWithAssets(
           chartId,
           width: 6,
           height: 60,
-          sliceName: 'gauge_interval_colors',
+          sliceName,
         },
       },
     };
@@ -134,26 +134,21 @@ testWithAssets(
     const dashboardId: number = dashBody.result?.id ?? dashBody.id;
     testAssets.trackDashboard(dashboardId);
 
-    await apiPut(page, `api/v1/chart/${chartId}`, { dashboards: [dashboardId] });
+    await apiPutChart(page, chartId, { dashboards: [dashboardId] });
 
     const dashboardPage = new DashboardPage(page);
     await dashboardPage.gotoById(dashboardId);
     await dashboardPage.waitForLoad();
     await dashboardPage.waitForChartsToLoad();
 
-    const canvas = page
-      .locator('[data-test="chart-container"] canvas')
-      .first();
+    const canvas = page.locator('[data-test="chart-container"] canvas').first();
     await canvas.waitFor({ state: 'visible', timeout: 30_000 });
 
     // Read the configured interval colors back from the rendered canvas.
     // Poll because the gauge paints shortly after the chart container appears.
     const countColors = () =>
       canvas.evaluate(
-        (
-          el: HTMLCanvasElement,
-          targets: Array<[number, number, number]>,
-        ) => {
+        (el: HTMLCanvasElement, targets: Array<[number, number, number]>) => {
           const ctx = el.getContext('2d');
           if (!ctx) return targets.map(() => 0);
           const { data } = ctx.getImageData(0, 0, el.width, el.height);
@@ -176,11 +171,20 @@ testWithAssets(
         [COLOR_INTERVAL_1, COLOR_INTERVAL_2, COLOR_UNUSED_3],
       );
 
+    // Capture the counts inside the poll so the assertions below run against the
+    // exact paint snapshot that satisfied the poll, not a second canvas read.
+    let counts: number[] = [0, 0, 0];
     await expect
-      .poll(async () => (await countColors())[0], { timeout: 20_000 })
+      .poll(
+        async () => {
+          counts = await countColors();
+          return counts[0];
+        },
+        { timeout: 20_000 },
+      )
       .toBeGreaterThan(50);
 
-    const [interval1, interval2, unused3] = await countColors();
+    const [interval1, interval2, unused3] = counts;
 
     expect(
       interval1,
