@@ -72,11 +72,11 @@ test('getDefaultTooltip computes height and sets scroll styles', () => {
     { contentSize: [300, 600], viewSize: [1200, 1000] },
   );
 
-  // Verify position returns coordinate tuple
-  expect(Array.isArray(result)).toBe(true);
-  expect(result).toHaveLength(2);
-  expect(typeof result[0]).toBe('number');
-  expect(typeof result[1]).toBe('number');
+  // Verify the actual computed position, not just its shape. The cursor sits
+  // in the right half of the chart, so the tooltip is placed to its left;
+  // that pushes it past the left edge, so it clamps to the overflow margin.
+  // Vertically it would overflow the top, so it flips to just below the cursor.
+  expect(result).toEqual([5, 310]);
 
   const computedMaxHeight = parseInt(tooltipDom.style.maxHeight, 10);
   const viewportHeight = 1000;
