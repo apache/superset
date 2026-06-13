@@ -1007,7 +1007,7 @@ tabulate==0.10.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-tiktoken==0.12.0
+tiktoken==0.13.0
     # via apache-superset
 tomli-w==1.2.0
     # via apache-superset-extensions-cli
