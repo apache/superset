@@ -527,6 +527,18 @@ test('should render the "Discard" button as disabled', () => {
   expect(screen.getByText('Discard').parentElement).toBeDisabled();
 });
 
+test('should enable the "Discard" button when there are unsaved changes', () => {
+  const unsavedState = {
+    ...editableState,
+    dashboardState: {
+      ...editableState.dashboardState,
+      hasUnsavedChanges: true,
+    },
+  };
+  setup(unsavedState);
+  expect(screen.getByText('Discard').parentElement).toBeEnabled();
+});
+
 test('should render the "Save" button as disabled', () => {
   setup(editableState);
   expect(screen.getByText('Save').parentElement).toBeDisabled();
