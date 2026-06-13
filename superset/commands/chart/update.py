@@ -144,11 +144,12 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
         except (KeyError, TypeError, ValueError):
             ids_match = False
 
+        # A datasource object must carry a type that matches the chart's own.
+        # Treating a missing type as valid would let an id-only payload through,
+        # and query-context loading reads datasource["type"] directly, so that
+        # payload raises KeyError when the saved context is later replayed.
         datasource_type = datasource.get("type")
-        types_match = (
-            datasource_type is None
-            or str(datasource_type) == self._model.datasource_type
-        )
+        types_match = str(datasource_type) == self._model.datasource_type
 
         if not ids_match or not types_match:
             exceptions.append(ChartQueryContextDatasourceMismatchValidationError())
