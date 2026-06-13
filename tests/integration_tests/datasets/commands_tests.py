@@ -98,9 +98,11 @@ class TestExportDatasetsCommand(SupersetTestCase):
         assert metadata == {
             "cache_timeout": None,
             "catalog": None,
+            "currency_code_column": None,
             "columns": [
                 {
                     "column_name": "source",
+                    "datetime_format": None,
                     "description": None,
                     "expression": "",
                     "filterable": True,
@@ -115,6 +117,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                 },
                 {
                     "column_name": "target",
+                    "datetime_format": None,
                     "description": None,
                     "expression": "",
                     "filterable": True,
@@ -129,6 +132,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
                 },
                 {
                     "column_name": "value",
+                    "datetime_format": None,
                     "description": None,
                     "expression": "",
                     "filterable": True,
@@ -226,6 +230,7 @@ class TestExportDatasetsCommand(SupersetTestCase):
         assert list(metadata.keys()) == [
             "table_name",
             "main_dttm_col",
+            "currency_code_column",
             "description",
             "default_endpoint",
             "offset",
@@ -367,6 +372,7 @@ class TestImportDatasetsCommand(SupersetTestCase):
         )
         assert dataset.table_name == "imported_dataset"
         assert dataset.main_dttm_col is None
+        assert dataset.currency_code_column == "currency"
         assert dataset.description == "This is a dataset that was exported"
         assert dataset.default_endpoint == ""
         assert dataset.offset == 66
@@ -563,15 +569,14 @@ class TestCreateDatasetCommand(SupersetTestCase):
         with self.assertRaises(DatasetInvalidError):  # noqa: PT027
             CreateDatasetCommand({"table_name": "table", "database": 9999}).run()
 
-    @patch("superset.commands.utils.g")
     @patch("superset.models.core.Database.get_table")
-    def test_get_table_from_database_error(self, get_table_mock, mock_g):
+    def test_get_table_from_database_error(self, get_table_mock):
         get_table_mock.side_effect = SQLAlchemyError
-        mock_g.user = security_manager.find_user("admin")
-        with self.assertRaises(DatasetInvalidError):  # noqa: PT027
-            CreateDatasetCommand(
-                {"table_name": "table", "database": get_example_database().id}
-            ).run()
+        with override_user(security_manager.find_user("admin")):
+            with self.assertRaises(DatasetInvalidError):  # noqa: PT027
+                CreateDatasetCommand(
+                    {"table_name": "table", "database": get_example_database().id}
+                ).run()
 
     def test_create_dataset_command(self):
         examples_db = get_example_database()
@@ -629,9 +634,10 @@ class TestDatasetWarmUpCacheCommand(SupersetTestCase):
             )
             .all()
         )
-        results = DatasetWarmUpCacheCommand(
-            get_example_database().database_name, "birth_names", None, None
-        ).run()
+        with override_user(security_manager.find_user("admin")):
+            results = DatasetWarmUpCacheCommand(
+                get_example_database().database_name, "birth_names", None, None
+            ).run()
         assert len(results) == len(birth_charts)
         for chart_result in results:
             assert "chart_id" in chart_result

@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import time
+from datetime import datetime
 from unittest.mock import patch
 
 import pytest
@@ -370,22 +372,56 @@ class TestChartsUpdateCommand(SupersetTestCase):
     @patch("superset.utils.core.g")
     @patch("superset.security.manager.g")
     @pytest.mark.usefixtures("load_energy_table_with_slice")
-    def test_update_v1_response(self, mock_sm_g, mock_c_g, mock_u_g):
-        """Test that a chart command updates properties"""
+    def test_update_sets_last_saved_at(self, mock_sm_g, mock_c_g, mock_u_g):
+        """Test that update sets last_saved_at when previously unset"""
         pk = db.session.query(Slice).all()[0].id
         user = security_manager.find_user(username="admin")
         mock_u_g.user = mock_c_g.user = mock_sm_g.user = user
-        model_id = pk
-        json_obj = {
-            "description": "test for update",
-            "cache_timeout": None,
-            "owners": [user.id],
-        }
-        command = UpdateChartCommand(model_id, json_obj)
-        last_saved_before = db.session.query(Slice).get(pk).last_saved_at
+
+        # Explicitly set last_saved_at to None to test None -> datetime transition
+        chart_to_update = db.session.query(Slice).get(pk)
+        chart_to_update.last_saved_at = None
+        db.session.commit()
+
+        command = UpdateChartCommand(
+            pk,
+            {"description": "test", "owners": [user.id]},
+        )
         command.run()
+
         chart = db.session.query(Slice).get(pk)
-        assert chart.last_saved_at != last_saved_before
+        assert chart.last_saved_at is not None
+        assert chart.last_saved_by == user
+
+    @patch("superset.commands.chart.update.g")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_update_changes_last_saved_at(self, mock_sm_g, mock_c_g, mock_u_g):
+        """Test that update changes last_saved_at when it already has a value"""
+        pk = db.session.query(Slice).all()[0].id
+        user = security_manager.find_user(username="admin")
+        mock_u_g.user = mock_c_g.user = mock_sm_g.user = user
+
+        chart_to_update = db.session.query(Slice).get(pk)
+        chart_to_update.last_saved_at = datetime.now()
+        db.session.commit()
+        # Refresh to get the database value with MySQL's truncated microseconds
+        db.session.refresh(chart_to_update)
+        last_saved_before = chart_to_update.last_saved_at
+
+        command = UpdateChartCommand(
+            pk,
+            {"description": "test", "owners": [user.id]},
+        )
+        # Sleep to ensure timestamp differs at MySQL's second precision (DATETIME(0))
+        time.sleep(1)
+        command.run()
+
+        chart = db.session.query(Slice).get(pk)
+        assert chart.last_saved_at.replace(microsecond=0) != last_saved_before.replace(
+            microsecond=0
+        )
         assert chart.last_saved_by == user
 
     @patch("superset.utils.core.g")
@@ -416,6 +452,43 @@ class TestChartsUpdateCommand(SupersetTestCase):
         assert chart.query_context == query_context
         assert len(chart.owners) == 1
         assert chart.owners[0] == admin
+
+    @patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    @patch("superset.commands.chart.update.g")
+    @patch("superset.utils.core.g")
+    @patch("superset.security.manager.g")
+    @pytest.mark.usefixtures("load_energy_table_with_slice")
+    def test_query_context_update_requires_chart_access(
+        self, mock_sm_g, mock_core_g, mock_update_g, mock_find_by_id
+    ) -> None:
+        """
+        A query_context-only update relaxes the ownership requirement but must
+        still require access to the chart. We bypass the DAO ``ChartFilter``
+        base filter (by patching ``find_by_id`` to return the chart directly)
+        so the request reaches the new explicit ``raise_for_access`` check, and
+        assert that a non-owner with no access to the chart's datasource is
+        rejected with ``ChartForbiddenError``. This deterministically exercises
+        the new branch and would fail on master, where the check is absent.
+        """
+        chart = db.session.query(Slice).filter_by(slice_name="Energy Sankey").one()
+        pk = chart.id
+        admin = security_manager.find_user(username="admin")
+        chart.owners = [admin]
+        db.session.commit()
+
+        # Return the chart directly, bypassing ChartFilter, so the command's
+        # own raise_for_access gate is what denies the request.
+        mock_find_by_id.return_value = chart
+
+        # gamma has no access to the energy datasource and does not own the chart
+        gamma = security_manager.find_user(username="gamma")
+        mock_core_g.user = mock_sm_g.user = mock_update_g.user = gamma
+        json_obj = {
+            "query_context_generation": True,
+            "query_context": json.dumps({"foo": "bar"}),
+        }
+        with pytest.raises(ChartForbiddenError):
+            UpdateChartCommand(pk, json_obj).run()
 
     @patch("superset.commands.chart.update.g")
     @patch("superset.utils.core.g")
@@ -632,8 +705,8 @@ class TestFavoriteChartCommand(SupersetTestCase):
 
     @pytest.mark.usefixtures("load_energy_table_with_slice")
     @patch("superset.daos.base.BaseDAO.find_by_id")
-    def test_fave_unfave_chart_command_forbidden(self, mock_find_by_id):
-        """Test that faving / unfaving raises an exception for a chart the user doesn't own"""  # noqa: E501
+    def test_fave_unfave_chart_command_non_owner(self, mock_find_by_id):
+        """Test that faving / unfaving a chart the user doesn't own works properly"""  # noqa: E501
         with self.client.application.test_request_context():
             example_chart = db.session.query(Slice).all()[0]
             mock_find_by_id.return_value = example_chart
@@ -641,9 +714,22 @@ class TestFavoriteChartCommand(SupersetTestCase):
             # Assert that the chart exists
             assert example_chart is not None
 
-            with override_user(security_manager.find_user("gamma")):
-                with self.assertRaises(ChartForbiddenError):  # noqa: PT027
-                    AddFavoriteChartCommand(example_chart.id).run()
+            # Grant gamma read access to the datasource so the access check passes.
+            # Faving requires datasource access but not ownership.
+            if example_chart.datasource:
+                self.grant_role_access_to_table(example_chart.datasource, "Gamma")
 
-                with self.assertRaises(ChartForbiddenError):  # noqa: PT027
+            try:
+                with override_user(security_manager.find_user("gamma")):
+                    AddFavoriteChartCommand(example_chart.id).run()
+                    ids = ChartDAO.favorited_ids([example_chart])
+
+                    assert example_chart.id in ids
+
                     DelFavoriteChartCommand(example_chart.id).run()
+                    ids = ChartDAO.favorited_ids([example_chart])
+
+                    assert example_chart.id not in ids
+            finally:
+                if example_chart.datasource:
+                    self.revoke_role_access_to_table("Gamma", example_chart.datasource)

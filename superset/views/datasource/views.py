@@ -19,7 +19,7 @@ from typing import Any
 
 from flask import redirect, request
 from flask_appbuilder import expose, permission_name
-from flask_appbuilder.api import rison
+from flask_appbuilder.api import rison as parse_rison
 from flask_appbuilder.security.decorators import has_access, has_access_api
 from flask_babel import _
 from marshmallow import ValidationError
@@ -36,18 +36,14 @@ from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
 from superset.daos.datasource import DatasourceDAO
+from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import DatasourceType
-from superset.views.base import (
-    api,
-    BaseSupersetView,
-    deprecated,
-    json_error_response,
-)
+from superset.views.base import api, BaseSupersetView, deprecated, json_error_response
 from superset.views.datasource.schemas import (
     ExternalMetadataParams,
     ExternalMetadataSchema,
@@ -90,8 +86,7 @@ class Datasource(BaseSupersetView):
         )
         orm_datasource.database_id = database_id
 
-        if "owners" in datasource_dict and orm_datasource.owner_class is not None:
-            # Check ownership
+        if orm_datasource.owner_class is not None:
             try:
                 security_manager.raise_for_ownership(orm_datasource)
             except SupersetSecurityException as ex:
@@ -131,6 +126,7 @@ class Datasource(BaseSupersetView):
         datasource = DatasourceDAO.get_datasource(
             DatasourceType(datasource_type), datasource_id
         )
+        security_manager.raise_for_access(datasource=datasource)
         return self.json_response(sanitize_datasource_data(datasource.data))
 
     @expose("/external_metadata/<datasource_type>/<datasource_id>/")
@@ -145,6 +141,7 @@ class Datasource(BaseSupersetView):
             DatasourceType(datasource_type),
             datasource_id,
         )
+        security_manager.raise_for_access(datasource=datasource)
         try:
             external_metadata = datasource.external_metadata()
         except SupersetException as ex:
@@ -155,7 +152,7 @@ class Datasource(BaseSupersetView):
     @has_access_api
     @api
     @handle_api_exception
-    @rison(get_external_metadata_schema)
+    @parse_rison(get_external_metadata_schema)
     def external_metadata_by_name(self, **kwargs: Any) -> FlaskResponse:
         """Gets table metadata from the source system and SQLAlchemy inspector"""
         try:
@@ -174,6 +171,7 @@ class Datasource(BaseSupersetView):
         try:
             if datasource is not None:
                 # Get columns from Superset metadata
+                security_manager.raise_for_access(datasource=datasource)
                 external_metadata = datasource.external_metadata()
             else:
                 # Use the SQLAlchemy inspector to get columns
@@ -182,9 +180,18 @@ class Datasource(BaseSupersetView):
                     .filter_by(database_name=params["database_name"])
                     .one()
                 )
+                table = Table(
+                    params["table_name"],
+                    params["schema_name"],
+                    params.get("catalog_name"),
+                )
+                security_manager.raise_for_access(
+                    database=database,
+                    table=table,
+                )
                 external_metadata = get_physical_table_metadata(
                     database=database,
-                    table=Table(params["table_name"], params["schema_name"]),
+                    table=table,
                     normalize_columns=params.get("normalize_columns") or False,
                 )
         except (NoResultFound, NoSuchTableError) as ex:
@@ -201,16 +208,15 @@ class Datasource(BaseSupersetView):
             payload = SamplesPayloadSchema().load(request.json)
         except ValidationError as err:
             return json_error_response(err.messages, status=400)
-
+        dashboard_id = None
         if security_manager.is_guest_user():
             if not params["dashboard_id"]:
                 return json_error_response(_("Forbidden"), status=403)
+            dashboard_id = params["dashboard_id"]
             dataset = DatasetDAO.find_by_id(
                 params["datasource_id"], skip_base_filter=True
             )
-            dashboard = DashboardDAO.find_by_id(
-                params["dashboard_id"], skip_base_filter=True
-            )
+            dashboard = DashboardDAO.find_by_id(dashboard_id, skip_base_filter=True)
             if not (dashboard and dataset):
                 return self.response_404()
             if not security_manager.can_drill_dataset_via_dashboard_access(
@@ -218,6 +224,28 @@ class Datasource(BaseSupersetView):
                 dashboard,
             ):
                 return json_error_response(_("Forbidden"), status=403)
+        else:
+            # Pre-fetch and access-check only for table-type datasources.
+            # Non-table types (query, saved_query) use a different access model;
+            # passing them to raise_for_access(datasource=...) would check the
+            # wrong attributes. Let get_samples() handle the lookup for those types.
+            if params["datasource_type"] in {
+                DatasourceType.TABLE.value,
+                DatasourceType.DATASET.value,
+            }:
+                try:
+                    dataset = DatasourceDAO.get_datasource(
+                        datasource_type=params["datasource_type"],
+                        database_id_or_uuid=params["datasource_id"],
+                    )
+                except (DatasourceNotFound, DatasourceTypeNotSupportedError):
+                    return self.response_404()
+                try:
+                    security_manager.raise_for_access(datasource=dataset)
+                except SupersetSecurityException:
+                    return json_error_response(_("Forbidden"), status=403)
+            else:
+                dataset = None
 
         rv = get_samples(
             datasource_type=params["datasource_type"],
@@ -226,6 +254,8 @@ class Datasource(BaseSupersetView):
             page=params["page"],
             per_page=params["per_page"],
             payload=payload,
+            datasource=dataset,
+            dashboard_id=dashboard_id,
         )
         return self.json_response({"result": rv})
 

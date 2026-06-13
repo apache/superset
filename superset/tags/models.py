@@ -21,7 +21,6 @@ import enum
 from typing import TYPE_CHECKING
 
 from flask_appbuilder import Model
-from markupsafe import escape
 from sqlalchemy import (
     Column,
     Enum,
@@ -37,7 +36,7 @@ from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
-from superset_core.api.models import Tag as CoreTag
+from superset_core.common.models import Tag as CoreTag
 
 from superset import security_manager
 from superset.models.helpers import AuditMixinNullable
@@ -139,7 +138,7 @@ def get_tag(
     tag_name = name.strip()
     tag = session.query(Tag).filter_by(name=tag_name, type=type_).one_or_none()
     if tag is None:
-        tag = Tag(name=escape(tag_name), type=type_)
+        tag = Tag(name=tag_name, type=type_)
         session.add(tag)
         session.commit()
     return tag

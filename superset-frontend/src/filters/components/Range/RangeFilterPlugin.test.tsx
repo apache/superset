@@ -17,11 +17,11 @@
  * under the License.
  */
 import { AppSection } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import userEvent from '@testing-library/user-event';
 import { render, screen } from 'spec/helpers/testing-library';
-import RangeFilterPlugin from './RangeFilterPlugin';
-import { RangeDisplayMode } from './types';
+import RangeFilterPlugin, { calculateStep } from './RangeFilterPlugin';
+import { RangeDisplayMode, type PluginFilterRangeProps } from './types';
 import { SingleValueType } from './SingleValueType';
 import transformProps from './transformProps';
 
@@ -89,14 +89,12 @@ describe('RangeFilterPlugin', () => {
   const setDataMask = jest.fn();
   const getWrapper = (props: any = {}) =>
     render(
-      // @ts-ignore
       <RangeFilterPlugin
-        // @ts-ignore
-        {...transformProps({
+        {...(transformProps({
           ...rangeProps,
           ...props,
           formData: { ...rangeProps.formData, ...props.formData },
-        })}
+        }) as PluginFilterRangeProps)}
         setDataMask={setDataMask}
       />,
     );
@@ -322,4 +320,161 @@ describe('RangeFilterPlugin', () => {
       expect(sliders.length).toBeGreaterThan(0);
     });
   });
+
+  describe('Decimal value handling', () => {
+    test('should handle decimal ranges correctly (0.03 to 1.08)', () => {
+      const decimalProps = {
+        queriesData: [
+          {
+            rowcount: 1,
+            colnames: ['min', 'max'],
+            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+            data: [{ min: 0.03, max: 1.08 }],
+            applied_filters: [],
+            rejected_filters: [],
+          },
+        ],
+        filterState: { value: [0.5, 0.8] },
+      };
+      getWrapper(decimalProps);
+
+      const inputs = screen.getAllByRole('spinbutton');
+      expect(inputs).toHaveLength(2);
+      expect(inputs[0]).toHaveValue('0.5');
+      expect(inputs[1]).toHaveValue('0.8');
+
+      // Verify the slider exists and can handle decimal values
+      const sliders = screen.getAllByRole('slider');
+      expect(sliders.length).toBeGreaterThan(0);
+    });
+
+    test('should calculate appropriate step size for small decimal ranges', () => {
+      const smallRangeProps = {
+        queriesData: [
+          {
+            rowcount: 1,
+            colnames: ['min', 'max'],
+            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+            data: [{ min: 0.001, max: 0.01 }],
+            applied_filters: [],
+            rejected_filters: [],
+          },
+        ],
+        filterState: { value: [0.005, 0.008] },
+      };
+      getWrapper(smallRangeProps);
+
+      const inputs = screen.getAllByRole('spinbutton');
+      expect(inputs[0]).toHaveValue('0.005');
+      expect(inputs[1]).toHaveValue('0.008');
+    });
+
+    test('should handle very large ranges with appropriate step size', () => {
+      const largeRangeProps = {
+        queriesData: [
+          {
+            rowcount: 1,
+            colnames: ['min', 'max'],
+            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+            data: [{ min: 0, max: 1000000 }],
+            applied_filters: [],
+            rejected_filters: [],
+          },
+        ],
+        filterState: { value: [100000, 500000] },
+      };
+      getWrapper(largeRangeProps);
+
+      const inputs = screen.getAllByRole('spinbutton');
+      expect(inputs[0]).toHaveValue('100000');
+      expect(inputs[1]).toHaveValue('500000');
+    });
+
+    test('should handle negative decimal ranges', () => {
+      const negativeDecimalProps = {
+        queriesData: [
+          {
+            rowcount: 1,
+            colnames: ['min', 'max'],
+            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+            data: [{ min: -1.5, max: 2.5 }],
+            applied_filters: [],
+            rejected_filters: [],
+          },
+        ],
+        filterState: { value: [-0.5, 1.5] },
+      };
+      getWrapper(negativeDecimalProps);
+
+      const inputs = screen.getAllByRole('spinbutton');
+      expect(inputs[0]).toHaveValue('-0.5');
+      expect(inputs[1]).toHaveValue('1.5');
+    });
+
+    test('should allow decimal input via keyboard', async () => {
+      const decimalProps = {
+        queriesData: [
+          {
+            rowcount: 1,
+            colnames: ['min', 'max'],
+            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+            data: [{ min: 0, max: 10 }],
+            applied_filters: [],
+            rejected_filters: [],
+          },
+        ],
+        filterState: { value: [null, null] },
+      };
+      getWrapper(decimalProps);
+
+      const inputs = screen.getAllByRole('spinbutton');
+      const fromInput = inputs[0];
+
+      await userEvent.clear(fromInput);
+      await userEvent.type(fromInput, '2.5');
+      await userEvent.tab();
+
+      expect(setDataMask).toHaveBeenCalledWith(
+        expect.objectContaining({
+          filterState: expect.objectContaining({
+            value: [2.5, null],
+          }),
+        }),
+      );
+    });
+  });
+});
+
+test('calculateStep returns ~100 steps for integer ranges', () => {
+  // 0..100 -> 1, 0..1000 -> 10
+  expect(calculateStep(0, 100)).toBe(1);
+  expect(calculateStep(0, 1000)).toBe(10);
+});
+
+test('calculateStep produces sub-unit steps for small decimal ranges', () => {
+  // 0..1 -> ~0.01, giving roughly 100 increments
+  expect(calculateStep(0, 1)).toBeCloseTo(0.01, 10);
+  // 0..0.1 -> ~0.001
+  expect(calculateStep(0, 0.1)).toBeCloseTo(0.001, 10);
+});
+
+test('calculateStep is numerically stable for floating-point ranges', () => {
+  // 0.05..0.07 computes to 0.020000000000000004 internally; should still
+  // yield a sensible step rather than over-counting decimal places.
+  const step = calculateStep(0.05, 0.07);
+  expect(step).toBeGreaterThan(0);
+  expect(step).toBeLessThanOrEqual(0.01);
+});
+
+test('calculateStep handles negative and offset decimal ranges', () => {
+  expect(calculateStep(-1, 1)).toBeCloseTo(0.02, 10);
+});
+
+test('calculateStep never returns 0 for tiny ranges', () => {
+  expect(calculateStep(0, 0.0000001)).toBeGreaterThan(0);
+});
+
+test('calculateStep falls back for non-positive ranges', () => {
+  expect(calculateStep(5, 5)).toBe(0.01);
+  expect(calculateStep(10, 5)).toBe(0.01);
 });

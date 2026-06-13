@@ -17,7 +17,7 @@
 from typing import Any, Optional
 
 from flask import current_app as app
-from flask_appbuilder.api import expose, protect, rison, safe
+from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.filters import FilterRelationOneToManyEqual
 from flask_appbuilder.models.sqla.interface import SQLAInterface
@@ -46,14 +46,15 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     resource_name = "log"
     allow_browser_login = True
     list_columns = [
-        "user",
+        "user.first_name",
+        "user.last_name",
+        "user.username",
         "user_id",
         "action",
         "dttm",
         "json",
         "slice_id",
         "dashboard_id",
-        "user_id",
         "duration_ms",
         "referrer",
     ]
@@ -65,7 +66,6 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
         "json",
         "slice_id",
         "dashboard_id",
-        "user_id",
         "duration_ms",
         "referrer",
     ]
@@ -106,7 +106,7 @@ class LogRestApi(LogMixin, BaseSupersetModelRestApi):
     @protect()
     @safe
     @statsd_metrics
-    @rison(get_recent_activity_schema)
+    @parse_rison(get_recent_activity_schema)
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}"
         f".recent_activity",

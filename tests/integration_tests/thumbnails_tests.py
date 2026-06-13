@@ -147,31 +147,31 @@ class TestWebDriverSelenium(SupersetTestCase):
     def test_screenshot_selenium_headstart(
         self, mock_sleep, mock_webdriver, mock_webdriver_wait
     ):
-        webdriver = WebDriverSelenium("firefox")
         user = security_manager.get_user_by_username(ADMIN_USERNAME)
+        webdriver = WebDriverSelenium("firefox", user=user)
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
         app.config["SCREENSHOT_SELENIUM_HEADSTART"] = 5
-        webdriver.get_screenshot(url, "chart-container", user=user)
+        webdriver.get_screenshot(url, "chart-container")
         assert mock_sleep.call_args_list[0] == call(5)
 
     @patch("superset.utils.webdriver.WebDriverWait")
     @patch("superset.utils.webdriver.firefox")
     def test_screenshot_selenium_locate_wait(self, mock_webdriver, mock_webdriver_wait):
         app.config["SCREENSHOT_LOCATE_WAIT"] = 15
-        webdriver = WebDriverSelenium("firefox")
         user = security_manager.get_user_by_username(ADMIN_USERNAME)
+        webdriver = WebDriverSelenium("firefox", user=user)
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
-        webdriver.get_screenshot(url, "chart-container", user=user)
+        webdriver.get_screenshot(url, "chart-container")
         assert mock_webdriver_wait.call_args_list[0] == call(ANY, 15)
 
     @patch("superset.utils.webdriver.WebDriverWait")
     @patch("superset.utils.webdriver.firefox")
     def test_screenshot_selenium_load_wait(self, mock_webdriver, mock_webdriver_wait):
         app.config["SCREENSHOT_LOAD_WAIT"] = 15
-        webdriver = WebDriverSelenium("firefox")
         user = security_manager.get_user_by_username(ADMIN_USERNAME)
+        webdriver = WebDriverSelenium("firefox", user=user)
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
-        webdriver.get_screenshot(url, "chart-container", user=user)
+        webdriver.get_screenshot(url, "chart-container")
         assert mock_webdriver_wait.call_args_list[2] == call(ANY, 15)
 
     @patch("superset.utils.webdriver.WebDriverWait")
@@ -180,18 +180,19 @@ class TestWebDriverSelenium(SupersetTestCase):
     def test_screenshot_selenium_animation_wait(
         self, mock_sleep, mock_webdriver, mock_webdriver_wait
     ):
-        webdriver = WebDriverSelenium("firefox")
         user = security_manager.get_user_by_username(ADMIN_USERNAME)
+        webdriver = WebDriverSelenium("firefox", user=user)
         url = get_url_path("Superset.slice", slice_id=1, standalone="true")
         app.config["SCREENSHOT_SELENIUM_ANIMATION_WAIT"] = 4
-        webdriver.get_screenshot(url, "chart-container", user=user)
+        webdriver.get_screenshot(url, "chart-container")
         assert mock_sleep.call_args_list[1] == call(4)
 
 
 class TestThumbnails(SupersetTestCase):
     mock_image = b"bytes mock image"
     digest_return_value = "foo_bar"
-    digest_hash = "5c7d96a3dd7a87850a2ef34087565a6e"
+    # SHA-256 hash of "foo_bar" (default HASH_ALGORITHM is sha256)
+    digest_hash = "4928cae8b37b3d1113f5e01e60c967df6c2b9e826dc7d91488d23a62fec715ba"
 
     def _get_id_and_thumbnail_url(self, url: str) -> tuple[int, str]:
         rv = self.client.get(url)

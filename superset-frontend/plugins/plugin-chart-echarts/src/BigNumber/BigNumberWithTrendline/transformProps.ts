@@ -16,7 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { t } from '@apache-superset/core/translation';
 import {
+  BRAND_COLOR,
   extractTimegrain,
   getNumberFormatter,
   NumberFormats,
@@ -24,12 +26,13 @@ import {
   getXAxisLabel,
   Metric,
   getValueFormatter,
-  t,
   tooltipHtml,
 } from '@superset-ui/core';
-import { GenericDataType } from '@apache-superset/core/api/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import { EChartsCoreOption, graphic } from 'echarts/core';
 import { aggregationChoices } from '@superset-ui/chart-controls';
+import { TIMESERIES_CONSTANTS } from '../../constants';
+import { getXAxisFormatter } from '../../utils/formatters';
 import {
   BigNumberVizProps,
   BigNumberDatum,
@@ -81,7 +84,11 @@ export default function transformProps(
     hooks,
     inContextMenu,
     theme,
-    datasource: { currencyFormats = {}, columnFormats = {} },
+    datasource: {
+      currencyFormats = {},
+      columnFormats = {},
+      currencyCodeColumn,
+    },
   } = chartProps;
   const {
     colorPicker,
@@ -103,6 +110,10 @@ export default function transformProps(
     yAxisFormat,
     currencyFormat,
     timeRangeFixed,
+    showXAxis = false,
+    showXAxisMinMaxLabels = false,
+    showYAxis = false,
+    showYAxisMinMaxLabels = false,
   } = formData;
   const granularity = extractTimegrain(rawFormData);
   const {
@@ -111,6 +122,7 @@ export default function transformProps(
     coltypes = [],
     from_dttm: fromDatetime,
     to_dttm: toDatetime,
+    detected_currency: detectedCurrency,
   } = queriesData[0];
 
   const aggregatedQueryData = queriesData.length > 1 ? queriesData[1] : null;
@@ -129,8 +141,9 @@ export default function transformProps(
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
 
-  const { r, g, b } = colorPicker;
-  const mainColor = `rgb(${r}, ${g}, ${b})`;
+  const mainColor = colorPicker
+    ? `rgb(${colorPicker.r}, ${colorPicker.g}, ${colorPicker.b})`
+    : undefined;
 
   const xAxisLabel = getXAxisLabel(rawFormData) as string;
   let trendLineData: TimeSeriesDatum[] | undefined;
@@ -204,10 +217,13 @@ export default function transformProps(
     }
   }
 
-  if (data.length > 0) {
-    const reversedData = [...sortedData].reverse();
-    // @ts-ignore
-    trendLineData = showTrendLine ? reversedData : undefined;
+  if (data.length > 0 && showTrendLine) {
+    // Filter out entries with null timestamps and reverse for chronological order
+    // TimeSeriesDatum requires [number, number | null] - timestamp must be non-null
+    const validData = sortedData.filter(
+      (d): d is [number, number | null] => d[0] !== null,
+    );
+    trendLineData = [...validData].reverse();
   }
 
   let className = '';
@@ -234,21 +250,6 @@ export default function transformProps(
     metricEntry?.d3format,
   );
 
-  const numberFormatter = getValueFormatter(
-    metric,
-    currencyFormats,
-    columnFormats,
-    metricEntry?.d3format || yAxisFormat,
-    currencyFormat,
-  );
-
-  const headerFormatter =
-    metricColtype === GenericDataType.Temporal ||
-    metricColtype === GenericDataType.String ||
-    forceTimestampFormatting
-      ? formatTime
-      : numberFormatter;
-
   if (trendLineData && timeRangeFixed && fromDatetime) {
     const toDatetimeOrToday = toDatetime ?? Date.now();
     if (!trendLineData[0][0] || trendLineData[0][0] > fromDatetime) {
@@ -262,6 +263,25 @@ export default function transformProps(
     }
   }
 
+  const numberFormatter = getValueFormatter(
+    metric,
+    currencyFormats,
+    columnFormats,
+    metricEntry?.d3format || yAxisFormat,
+    currencyFormat,
+    undefined,
+    data,
+    currencyCodeColumn,
+    detectedCurrency,
+  );
+  const xAxisFormatter = getXAxisFormatter(timeFormat);
+  const yAxisFormatter =
+    metricColtype === GenericDataType.Temporal ||
+    metricColtype === GenericDataType.String ||
+    forceTimestampFormatting
+      ? formatTime
+      : numberFormatter;
+
   const echartOptions: EChartsCoreOption = trendLineData
     ? {
         series: [
@@ -272,12 +292,12 @@ export default function transformProps(
             symbol: 'circle',
             symbolSize: 10,
             showSymbol: false,
-            color: mainColor,
+            color: mainColor ?? BRAND_COLOR,
             areaStyle: {
               color: new graphic.LinearGradient(0, 0, 0, 1, [
                 {
                   offset: 0,
-                  color: mainColor,
+                  color: mainColor ?? BRAND_COLOR,
                 },
                 {
                   offset: 1,
@@ -288,21 +308,49 @@ export default function transformProps(
           },
         ],
         xAxis: {
-          min: trendLineData[0][0],
-          max: trendLineData[trendLineData.length - 1][0],
-          show: false,
-          type: 'value',
+          type: 'time',
+          show: showXAxis,
+          splitLine: {
+            show: false,
+          },
+          axisLabel: {
+            hideOverlap: true,
+            formatter: xAxisFormatter,
+            alignMinLabel: 'left',
+            alignMaxLabel: 'right',
+            showMinLabel: showXAxisMinMaxLabels,
+            showMaxLabel: showXAxisMinMaxLabels,
+          },
         },
         yAxis: {
+          type: 'value',
+          show: showYAxis,
           scale: !startYAxisAtZero,
-          show: false,
+          splitLine: {
+            show: false,
+          },
+          axisLabel: {
+            hideOverlap: true,
+            formatter: yAxisFormatter,
+            showMinLabel: showYAxisMinMaxLabels,
+            showMaxLabel: showYAxisMinMaxLabels,
+          },
         },
-        grid: {
-          left: 0,
-          right: 0,
-          top: 0,
-          bottom: 0,
-        },
+        grid:
+          showXAxis || showYAxis
+            ? {
+                containLabel: true,
+                bottom: TIMESERIES_CONSTANTS.gridOffsetBottom,
+                left: TIMESERIES_CONSTANTS.gridOffsetLeft,
+                right: TIMESERIES_CONSTANTS.gridOffsetRight,
+                top: TIMESERIES_CONSTANTS.gridOffsetTop,
+              }
+            : {
+                bottom: 0,
+                left: 0,
+                right: 0,
+                top: 0,
+              },
         tooltip: {
           ...getDefaultTooltip(refs),
           show: !inContextMenu,
@@ -314,7 +362,7 @@ export default function transformProps(
                   metricName,
                   params[0].data[1] === null
                     ? t('N/A')
-                    : headerFormatter.format(params[0].data[1]),
+                    : yAxisFormatter.format(params[0].data[1]),
                 ],
               ],
               formatTime(params[0].data[0]),
@@ -326,6 +374,7 @@ export default function transformProps(
             description: `Big number visualization ${subheader}`,
           },
         },
+        useUTC: true,
       }
     : {};
 
@@ -335,10 +384,10 @@ export default function transformProps(
     width,
     height,
     bigNumber,
-    // @ts-ignore
+    // @ts-expect-error
     bigNumberFallback,
     className,
-    headerFormatter,
+    headerFormatter: yAxisFormatter,
     formatTime,
     formData,
     metricName: originalLabel,

@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useState, useRef, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector } from 'react-redux';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import type { QueryEditor, SqlLabRootState, Table } from 'src/SqlLab/types';
 import {
   ButtonGroup,
@@ -31,8 +32,8 @@ import {
   type CollapseProps,
 } from '@superset-ui/core/components';
 import { CopyToClipboard } from 'src/components';
-import { t } from '@superset-ui/core';
-import { styled, useTheme } from '@apache-superset/core/ui';
+import { t } from '@apache-superset/core/translation';
+import { styled, useTheme } from '@apache-superset/core/theme';
 import { debounce } from 'lodash';
 
 import {
@@ -75,7 +76,7 @@ const Fade = styled.div`
 const TableElement = ({ table, ...props }: TableElementProps) => {
   const { dbId, catalog, schema, name, expanded, id } = table;
   const theme = useTheme();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const {
     currentData: tableMetadata,
     isSuccess: isMetadataSuccess,
@@ -171,7 +172,7 @@ const TableElement = ({ table, ...props }: TableElementProps) => {
     dispatch(
       tableApiUtil.invalidateTags([{ type: 'TableMetadatas', id: name }]),
     );
-    dispatch(syncTable(table, tableData));
+    dispatch(syncTable(table, tableData, table.queryEditorId));
   };
 
   const renderWell = () => {

@@ -21,7 +21,7 @@ import '@testing-library/jest-dom';
 import { Col, Row } from '.';
 
 describe('Grid Component', () => {
-  it('should render the grid with rows and columns', async () => {
+  test('should render the grid with rows and columns', async () => {
     render(
       <Row>
         <Col span={8}>Column 1</Col>

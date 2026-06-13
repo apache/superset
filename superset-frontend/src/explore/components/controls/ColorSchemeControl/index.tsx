@@ -18,15 +18,15 @@
  */
 import { useMemo, ReactNode } from 'react';
 
+import { t } from '@apache-superset/core/translation';
 import {
   ColorScheme,
   ColorSchemeGroup,
   SequentialScheme,
-  t,
   getLabelsColorMap,
   CategoricalColorNamespace,
 } from '@superset-ui/core';
-import { css, useTheme } from '@apache-superset/core/ui';
+import { css, useTheme } from '@apache-superset/core/theme';
 import { sortBy } from 'lodash';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import {

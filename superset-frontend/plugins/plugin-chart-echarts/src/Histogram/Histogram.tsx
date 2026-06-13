@@ -28,6 +28,7 @@ export default function Histogram(props: HistogramTransformedProps) {
     onFocusedSeries,
     onLegendStateChanged,
     refs,
+    formData,
   } = props;
 
   const eventHandlers: EventHandlers = {
@@ -55,6 +56,7 @@ export default function Histogram(props: HistogramTransformedProps) {
       width={width}
       echartOptions={echartOptions}
       eventHandlers={eventHandlers}
+      vizType={formData.vizType}
     />
   );
 }

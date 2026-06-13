@@ -18,6 +18,7 @@
 import dataclasses
 import logging
 import sys
+import traceback
 import uuid
 from contextlib import closing
 from datetime import datetime
@@ -45,6 +46,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
     SupersetDisallowedSQLFunctionException,
+    SupersetDisallowedSQLTableException,
     SupersetDMLNotAllowedException,
     SupersetErrorException,
     SupersetErrorsException,
@@ -121,6 +123,9 @@ def handle_query_error(
 
     db.session.commit()
     payload.update({"status": query.status, "error": msg, "errors": errors_payload})
+    if app.config.get("SHOW_STACKTRACE"):
+        if stacktrace := traceback.format_exc():
+            payload["stacktrace"] = stacktrace
     if troubleshooting_link := app.config["TROUBLESHOOTING_LINK"]:
         payload["link"] = troubleshooting_link
     return payload
@@ -191,7 +196,7 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                     log_params=log_params,
                 )
             except Exception as ex:  # pylint: disable=broad-except
-                logger.debug("Query %d: %s", query_id, ex)
+                logger.exception("Query %d: %s", query_id, ex)
                 stats_logger = app.config["STATS_LOGGER"]
                 stats_logger.incr("error_sqllab_unhandled")
                 query = get_query(query_id=query_id)
@@ -266,6 +271,19 @@ def execute_query(  # pylint: disable=too-many-statements, too-many-locals  # no
                 log_params,
             )
         db.session.commit()
+        # Eagerly reload query attributes so no lazy-load triggers a new
+        # metadata DB connection during the (potentially long) cursor
+        # execution. With NullPool each lazy-load opens a fresh connection
+        # that stays idle for the query duration; if the query runs longer
+        # than the DB's idle_in_transaction_session_timeout the connection
+        # is killed, leaving the query stuck in "running" state forever.
+        db.session.expire_on_commit = False
+        try:
+            db.session.refresh(query)
+            _ = query.database
+            db.session.commit()
+        finally:
+            db.session.expire_on_commit = True
         with event_logger.log_context(
             action="execute_sql",
             database=database,
@@ -410,6 +428,20 @@ def execute_sql_statements(  # noqa: C901
         disallowed_functions
     ):
         raise SupersetDisallowedSQLFunctionException(disallowed_functions)
+
+    disallowed_tables = app.config["DISALLOWED_SQL_TABLES"].get(
+        db_engine_spec.engine,
+        set(),
+    )
+    if disallowed_tables and parsed_script.check_tables_present(disallowed_tables):
+        # Report only the tables actually found in the query
+        found_tables = set()
+        for statement in parsed_script.statements:
+            present = {table.table.lower() for table in statement.tables}
+            for table in disallowed_tables:
+                if table.lower() in present:
+                    found_tables.add(table)
+        raise SupersetDisallowedSQLTableException(found_tables or disallowed_tables)
 
     if parsed_script.has_mutation() and not database.allow_dml:
         raise SupersetDMLNotAllowedException()
@@ -582,10 +614,50 @@ def execute_sql_statements(  # noqa: C901
                 "*** serialized payload size: %i", getsizeof(serialized_payload)
             )
             logger.debug("*** compressed payload size: %i", getsizeof(compressed))
-            results_backend.set(key, compressed, cache_timeout)
-        query.results_key = key
 
-    query.status = QueryStatus.SUCCESS
+            # Store results in backend and check if write succeeded
+            write_success = results_backend.set(key, compressed, cache_timeout)
+            if not write_success:
+                # Backend write failed - log error and don't set results_key
+                logger.error(
+                    "Query %s: Failed to store results in backend, key: %s",
+                    str(query_id),
+                    key,
+                )
+                stats_logger.incr("sqllab.results_backend.write_failure")
+                # Don't set results_key to prevent 410 errors when fetching
+                query.results_key = None
+
+                # For async queries (not returning results inline), mark as FAILED
+                # because results are inaccessible to the user
+                if not return_results:
+                    query.status = QueryStatus.FAILED
+                    query.error_message = (
+                        "Failed to store query results in the results backend. "
+                        "Please try again or contact your administrator."
+                    )
+                    db.session.commit()
+                    raise SupersetErrorException(
+                        SupersetError(
+                            message=__(
+                                "Failed to store query results. Please try again."
+                            ),
+                            error_type=SupersetErrorType.RESULTS_BACKEND_ERROR,
+                            level=ErrorLevel.ERROR,
+                        )
+                    )
+            else:
+                # Write succeeded - set results_key in database
+                query.results_key = key
+                logger.info(
+                    "Query %s: Successfully stored results in backend, key: %s",
+                    str(query_id),
+                    key,
+                )
+
+    # Only set SUCCESS if we didn't already set FAILED above
+    if query.status != QueryStatus.FAILED:
+        query.status = QueryStatus.SUCCESS
     db.session.commit()
 
     if return_results:

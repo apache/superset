@@ -1,0 +1,64 @@
+# Apache Superset
+
+> Apache Superset is a modern, enterprise-ready business intelligence web application. It provides a no-code interface for building charts, a powerful SQL editor, support for nearly any SQL database, and beautiful visualizations. Superset is open source under the Apache 2.0 license.
+
+Superset is designed for data exploration and visualization at scale. It features a lightweight semantic layer, configurable caching, extensible security with RBAC, a REST API for programmatic access, and a cloud-native architecture.
+
+## Getting Started
+
+- [Introduction](https://superset.apache.org/docs/intro): Overview of Superset features, supported databases, and resources
+- [Quickstart](https://superset.apache.org/docs/quickstart): Get Superset running quickly with Docker Compose
+
+## Installation
+
+- [Architecture](https://superset.apache.org/docs/installation/architecture): Production deployment architecture and components
+- [Docker Compose](https://superset.apache.org/docs/installation/docker-compose): Install Superset using Docker Compose
+- [Docker Builds](https://superset.apache.org/docs/installation/docker-builds): Building and customizing Docker images
+- [Kubernetes](https://superset.apache.org/docs/installation/kubernetes): Deploy Superset on Kubernetes with Helm
+- [PyPI](https://superset.apache.org/docs/installation/pypi): Install from PyPI using pip
+- [Upgrading Superset](https://superset.apache.org/docs/installation/upgrading-superset): Upgrade between Superset versions
+
+## Configuration
+
+- [Configuring Superset](https://superset.apache.org/docs/configuration/configuring-superset): Main configuration options and superset_config.py
+- [Databases](https://superset.apache.org/docs/configuration/databases): Connect to databases with SQLAlchemy connection strings
+- [Caching](https://superset.apache.org/docs/configuration/cache): Configure caching with Redis or other backends
+- [Async Queries & Celery](https://superset.apache.org/docs/configuration/async-queries-celery): Set up async query execution with Celery
+- [Alerts & Reports](https://superset.apache.org/docs/configuration/alerts-reports): Configure email/Slack alerts and scheduled reports
+- [SQL Templating](https://superset.apache.org/docs/configuration/sql-templating): Use Jinja templates in SQL queries
+- [Theming](https://superset.apache.org/docs/configuration/theming): Customize Superset's appearance
+- [Networking Settings](https://superset.apache.org/docs/configuration/networking-settings): CORS, proxy, and network configuration
+- [Timezones](https://superset.apache.org/docs/configuration/timezones): Timezone handling configuration
+- [Event Logging](https://superset.apache.org/docs/configuration/event-logging): Configure event and analytics logging
+- [Importing/Exporting Datasources](https://superset.apache.org/docs/configuration/importing-exporting-datasources): Import and export datasource definitions
+
+## Using Superset
+
+- [Creating Your First Dashboard](https://superset.apache.org/docs/using-superset/creating-your-first-dashboard): Step-by-step tutorial for building dashboards
+- [Exploring Data](https://superset.apache.org/docs/using-superset/exploring-data): Guide to data exploration features
+- [Issue Codes](https://superset.apache.org/docs/using-superset/issue-codes): Reference for Superset error codes
+
+## Security
+
+- [Security Overview](https://superset.apache.org/docs/security/security): RBAC, row-level security, and authentication options
+- [Securing Superset](https://superset.apache.org/docs/security/securing_superset): Production security hardening guide
+- [CVEs](https://superset.apache.org/docs/security/cves): Security vulnerabilities and advisories
+
+## Contributing
+
+- [Contributing Guide](https://superset.apache.org/docs/contributing/contributing): How to contribute to Apache Superset
+- [Development Environment](https://superset.apache.org/docs/contributing/development): Set up a local development environment
+- [Guidelines](https://superset.apache.org/docs/contributing/guidelines): Code style, testing, and PR guidelines
+- [How-Tos](https://superset.apache.org/docs/contributing/howtos): Common development tasks and recipes
+- [Resources](https://superset.apache.org/docs/contributing/resources): Additional contributor resources
+
+## Reference
+
+- [FAQ](https://superset.apache.org/docs/faq): Frequently asked questions
+- [REST API](https://superset.apache.org/docs/api): Superset REST API documentation
+
+## Optional
+
+- [Country Map Tools](https://superset.apache.org/docs/configuration/country-map-tools): Custom country map visualizations
+- [Map Tiles](https://superset.apache.org/docs/configuration/map-tiles): Configure map tile providers for deck.gl charts
+- [Miscellaneous](https://superset.apache.org/docs/contributing/misc): Additional contributor information

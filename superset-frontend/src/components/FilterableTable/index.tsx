@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, useRef, useCallback } from 'react';
+import { useMemo, useCallback, useRef, memo } from 'react';
 import { GridSize } from 'src/components/GridTable/constants';
 import { GridTable } from 'src/components/GridTable';
 import { type ColDef } from 'src/components/GridTable/types';
@@ -112,7 +112,7 @@ export const FilterableTable = ({
   const keyword = useRef<string | undefined>(filterText);
   keyword.current = filterText;
 
-  const keywordFilter = useCallback(node => {
+  const keywordFilter = useCallback((node: { data: Datum }) => {
     if (keyword.current && node.data) {
       return hasMatch(keyword.current, node.data);
     }
@@ -137,3 +137,4 @@ export const FilterableTable = ({
 };
 
 export type { FilterableTableProps };
+export default memo(FilterableTable);

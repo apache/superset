@@ -17,7 +17,10 @@
  * under the License.
  */
 import { useState, useEffect } from 'react';
-import { styled, css, useTheme } from '@apache-superset/core/ui';
+import { styled, css, useTheme } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
+import { ensureStaticPrefix } from 'src/utils/assetUrl';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { MainNav, MenuItem } from '@superset-ui/core/components/Menu';
 import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
@@ -32,6 +35,7 @@ import {
   MenuObjectProps,
   MenuData,
 } from 'src/types/bootstrapTypes';
+import { datasetsLabel } from 'src/features/semanticLayers/label';
 import RightMenu from './RightMenu';
 import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
 
@@ -174,6 +178,7 @@ const StyledCol = styled(Col)`
   ${({ theme }) => css`
     display: flex;
     gap: ${theme.sizeUnit * 4}px;
+    flex-wrap: wrap;
   `}
 `;
 
@@ -219,7 +224,7 @@ export function Menu({
         setActiveTabs(['Charts']);
         break;
       case path.startsWith(Paths.Datasets):
-        setActiveTabs(['Datasets']);
+        setActiveTabs([datasetsLabel()]);
         break;
       case path.startsWith(Paths.SqlLab) || path.startsWith(Paths.SavedQueries):
         setActiveTabs(['SQL']);
@@ -277,8 +282,10 @@ export function Menu({
     return {
       key: label,
       label,
-      icon: <Icons.DownOutlined iconSize="xs" />,
-      popupOffset: NAVBAR_MENU_POPUP_OFFSET,
+      ...(screens.md && {
+        icon: <Icons.DownOutlined iconSize="xs" />,
+        popupOffset: NAVBAR_MENU_POPUP_OFFSET,
+      }),
       children: childItems,
     };
   };
@@ -287,10 +294,10 @@ export function Menu({
     if (theme.brandLogoUrl) {
       link = (
         <StyledBrandWrapper margin={theme.brandLogoMargin}>
-          <StyledBrandLink href={theme.brandLogoHref}>
+          <StyledBrandLink href={ensureAppRoot(theme.brandLogoHref)}>
             <StyledImage
               preview={false}
-              src={theme.brandLogoUrl}
+              src={ensureStaticPrefix(theme.brandLogoUrl)}
               alt={theme.brandLogoAlt || 'Apache Superset'}
               height={theme.brandLogoHeight}
             />
@@ -303,17 +310,25 @@ export function Menu({
       // Kept as is for backwards compatibility with the old theme system / superset_config.py
       link = (
         <GenericLink className="navbar-brand" to={brand.path}>
-          <StyledImage preview={false} src={brand.icon} alt={brand.alt} />
+          <StyledImage
+            preview={false}
+            src={ensureStaticPrefix(brand.icon)}
+            alt={brand.alt}
+          />
         </GenericLink>
       );
     } else {
       link = (
         <Typography.Link
           className="navbar-brand"
-          href={brand.path}
+          href={ensureAppRoot(brand.path)}
           tabIndex={-1}
         >
-          <StyledImage preview={false} src={brand.icon} alt={brand.alt} />
+          <StyledImage
+            preview={false}
+            src={ensureStaticPrefix(brand.icon)}
+            alt={brand.alt}
+          />
         </Typography.Link>
       );
     }
@@ -321,7 +336,12 @@ export function Menu({
     return <>{link}</>;
   };
   return (
-    <StyledHeader className="top" id="main-menu" role="navigation">
+    <StyledHeader
+      className="top"
+      id="main-menu"
+      role="navigation"
+      aria-label={t('Main navigation')}
+    >
       <StyledRow>
         <StyledCol md={16} xs={24}>
           <Tooltip
@@ -338,7 +358,7 @@ export function Menu({
             </StyledBrandText>
           )}
           <StyledMainNav
-            mode="horizontal"
+            mode={screens.md ? 'horizontal' : 'inline'}
             data-test="navbar-top"
             className="main-nav"
             selectedKeys={activeTabs}
@@ -389,6 +409,12 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
     Manage: true,
   };
 
+  // Remap labels that depend on feature flags so they stay in sync with
+  // the active-tab key used in the Menu component above.
+  const labelOverrides: Record<string, () => string> = {
+    Datasets: datasetsLabel,
+  };
+
   // Cycle through menu.menu to build out cleanedMenu and settings
   const cleanedMenu: MenuObjectProps[] = [];
   const settings: MenuObjectProps[] = [];
@@ -400,6 +426,10 @@ export default function MenuWrapper({ data, ...rest }: MenuProps) {
     const children: (MenuObjectProps | string)[] = [];
     const newItem = {
       ...item,
+      // Apply any label override for this item (keyed by FAB internal name).
+      ...(item.name && labelOverrides[item.name]
+        ? { label: labelOverrides[item.name]() }
+        : {}),
     };
 
     // Filter childs

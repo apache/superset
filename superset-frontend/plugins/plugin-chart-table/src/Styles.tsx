@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { css, styled } from '@apache-superset/core/ui';
+import { css, styled } from '@apache-superset/core/theme';
 
 export default styled.div`
   ${({ theme }) => css`
@@ -98,6 +98,11 @@ export default styled.div`
       background-color: ${theme.colorBgLayout};
     }
 
+    .dt-select-page-size .ant-select .ant-select-arrow {
+      color: ${theme.colorTextQuaternary};
+      z-index: 11;
+    }
+
     /* Controls and metrics */
     .dt-controls {
       padding-bottom: 0.65em;
@@ -120,12 +125,12 @@ export default styled.div`
     }
 
     td.dt-is-filter:hover {
-      background-color: ${theme.colorPrimaryBgHover};
+      background-color: ${theme.colorFillContentHover};
     }
 
     td.dt-is-active-filter,
     td.dt-is-active-filter:hover {
-      background-color: ${theme.colorPrimaryBgHover};
+      background-color: ${theme.colorFillContentHover};
     }
 
     .dt-global-filter {

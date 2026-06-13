@@ -20,7 +20,6 @@
 import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
 import { Provider } from 'react-redux';
 import thunk from 'redux-thunk';
-import sinon from 'sinon';
 import mockState from 'spec/fixtures/mockState';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
@@ -399,7 +398,7 @@ describe('ChartHolder', () => {
   });
 
   test('should call deleteComponent when deleted', async () => {
-    const deleteComponent = sinon.spy();
+    const deleteComponent = jest.fn();
     const store = createMockStore();
     const { rerender } = renderWrapper(store, {
       editMode: false,
@@ -433,6 +432,6 @@ describe('ChartHolder', () => {
       screen.getByTestId('dashboard-delete-component-button')
         .firstElementChild!,
     );
-    expect(deleteComponent.callCount).toBe(1);
+    expect(deleteComponent).toHaveBeenCalledTimes(1);
   });
 });
