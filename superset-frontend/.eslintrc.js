@@ -149,6 +149,7 @@ module.exports = {
     'theme-colors/no-literal-colors': 'error',
     'icons/no-fa-icons-usage': 'error',
     'i18n-strings/no-template-vars': 'error',
+    'i18n-strings/no-eager-t-in-config': 'off', // enabled only for controlPanel files via overrides below
 
     // Core ESLint overrides for Superset
     'no-console': 'warn',
@@ -262,6 +263,19 @@ module.exports = {
     ],
   },
   overrides: [
+    // Eager t()/tn() in `label`/`description` config props is captured at
+    // module-load time, before i18n initializes — labels stay in the fallback
+    // language even after the user switches. Surfaced as a warning (with
+    // autofix to `() => t(...)`) wherever this is a real foot-gun:
+    // controlPanel files. Many pre-existing call sites need conversion;
+    // run `eslint --fix` on a controlPanel file to sweep it. Promote to
+    // `'error'` once the codebase is clean.
+    {
+      files: ['**/controlPanel.{ts,tsx,js,jsx}'],
+      rules: {
+        'i18n-strings/no-eager-t-in-config': 'warn',
+      },
+    },
     // Ban JavaScript files in src/ - all new code must be TypeScript
     {
       files: ['src/**/*.js', 'src/**/*.jsx'],
