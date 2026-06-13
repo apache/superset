@@ -17,7 +17,10 @@
  * under the License.
  */
 import type { ReactElement } from 'react';
-import type { ControlPanelSectionConfig } from '@superset-ui/chart-controls';
+import type {
+  ControlPanelSectionConfig,
+  ControlSetItem,
+} from '@superset-ui/chart-controls';
 // eslint-disable-next-line import/no-extraneous-dependencies
 import { render } from '@testing-library/react';
 import { SqlaFormData } from '@superset-ui/core';
@@ -345,4 +348,70 @@ test('getLayer uses control panel defaults for new charts', () => {
   expect(props.getPointRadius).toBe(10);
   expect(props.pointRadiusUnits).toBe('pixels');
   expect(props.pointRadiusScale).toBe(1);
+});
+
+type ControlConfig = {
+  default?: unknown;
+  validators?: unknown[];
+  choices?: [unknown, unknown][];
+  renderTrigger?: boolean;
+};
+
+const controlItems = controlPanel.controlPanelSections
+  .filter(
+    (s: ControlPanelSectionConfig | null): s is ControlPanelSectionConfig =>
+      s !== null,
+  )
+  .flatMap((section: ControlPanelSectionConfig) => section.controlSetRows)
+  .flat();
+
+const findControlConfig = (name: string): ControlConfig | undefined =>
+  controlItems.find(
+    (item: ControlSetItem): item is { name: string; config: ControlConfig } =>
+      !!item &&
+      typeof item === 'object' &&
+      'name' in item &&
+      (item as { name?: string }).name === name,
+  )?.config;
+
+test('controlPanel exposes a Point Radius control defaulting to 10', () => {
+  const config = findControlConfig('point_radius');
+  expect(config).toBeDefined();
+  expect(config?.default).toBe(10);
+  expect(config?.renderTrigger).toBe(true);
+  expect(config?.validators).toHaveLength(1);
+  expect(config?.choices).toEqual(
+    expect.arrayContaining([
+      [1, '1'],
+      [10, '10'],
+      [100, '100'],
+    ]),
+  );
+});
+
+test('controlPanel Point Radius Scale defaults to 1 with fractional choices', () => {
+  const config = findControlConfig('point_radius_scale');
+  expect(config).toBeDefined();
+  expect(config?.default).toBe(1);
+  expect(config?.renderTrigger).toBe(true);
+  expect(config?.validators).toHaveLength(1);
+  expect(config?.choices).toEqual(
+    expect.arrayContaining([
+      [0.1, '0.1'],
+      [1, '1'],
+      [10, '10'],
+    ]),
+  );
+});
+
+test('controlPanel Point Radius Units defaults to pixels', () => {
+  const config = findControlConfig('point_radius_units');
+  expect(config).toBeDefined();
+  expect(config?.default).toBe('pixels');
+  expect(config?.renderTrigger).toBe(true);
+  expect(config?.choices?.map(([value]) => value)).toEqual([
+    'pixels',
+    'meters',
+    'common',
+  ]);
 });
