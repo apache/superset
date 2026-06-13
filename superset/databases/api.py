@@ -130,6 +130,7 @@ from superset.utils.core import (
     error_msg_from_exception,
     get_username,
     parse_js_uri_path_item,
+    sanitize_cookie_token,
 )
 from superset.utils.decorators import transaction
 from superset.utils.oauth2 import decode_oauth2_state
@@ -1540,7 +1541,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             as_attachment=True,
             download_name=filename,
         )
-        if token := request.args.get("token"):
+        if token := sanitize_cookie_token(request.args.get("token")):
             response.set_cookie(token, "done", max_age=600)
         return response
 

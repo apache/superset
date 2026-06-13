@@ -51,7 +51,11 @@ from sqlalchemy.orm.query import Query
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
 from superset.advanced_data_type.types import AdvancedDataType
-from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET, CHANGE_ME_SECRET_KEY
+from superset.constants import (
+    CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET,
+    CHANGE_ME_GUEST_TOKEN_JWT_SECRET,
+    CHANGE_ME_SECRET_KEY,
+)
 from superset.jinja_context import BaseTemplateProcessor
 from superset.key_value.types import JsonKeyValueCodec
 from superset.stats_logger import DummyStatsLogger
@@ -167,6 +171,21 @@ SAMPLES_ROW_LIMIT = 1000
 NATIVE_FILTER_DEFAULT_ROW_LIMIT = 1000
 # max rows retrieved by filter select auto complete
 FILTER_SELECT_ROW_LIMIT = 10000
+
+# Upper bound on the number of time-shift comparisons a single chart may request.
+# Each comparison spawns an additional query, so this caps the work amplification
+# from a single chart request while still allowing generous normal use.
+VIZ_TIME_COMPARE_MAX = 50
+
+# Upper bound on the number of sub-slices a deck.gl multi-layer chart may
+# aggregate. Each sub-slice issues its own query, so this caps the work
+# amplification from a single multi-layer request.
+DECK_MULTI_MAX_SLICES = 50
+
+# Upper bound on the page size accepted by the generic DAO list/pagination layer.
+# Caps how many rows a single paginated query can request, regardless of the
+# requested page size, to keep query result sets bounded.
+SQLALCHEMY_DAO_MAX_PAGE_SIZE = 1000
 
 # SupersetClient HTTP retry configuration
 # Controls retry behavior for all HTTP requests made through SupersetClient
@@ -343,6 +362,11 @@ RATELIMIT_ENABLED = os.environ.get("SUPERSET_ENV") == "production"
 RATELIMIT_APPLICATION = "50 per second"
 AUTH_RATE_LIMITED = True
 AUTH_RATE_LIMIT = "5 per second"
+
+# When enabled, users whose account is flagged with ``password_must_change``
+# (e.g. accounts provisioned by an administrator) are redirected to the
+# password-reset page until they set a new password. Off by default.
+ENABLE_FORCE_PASSWORD_CHANGE = False
 # A storage location conforming to the scheme in storage-scheme. See the limits
 # library for allowed values: https://limits.readthedocs.io/en/stable/storage.html
 # RATELIMIT_STORAGE_URI = "redis://host:port"
@@ -440,6 +464,7 @@ LANGUAGES = {
     "nl": {"flag": "nl", "name": "Dutch"},
     "uk": {"flag": "ua", "name": "Ukrainian"},
     "mi": {"flag": "nz", "name": "Māori"},
+    "ro": {"flag": "ro", "name": "Romanian"},
 }
 # Turning off i18n by default as translation in most languages are
 # incomplete and not well maintained.
@@ -485,6 +510,10 @@ D3_FORMAT: D3Format = {}
 # Enable CORS and set map url in origins option.
 # Add also map url in connect-src of TALISMAN_CONFIG variable
 DECKGL_BASE_MAP: list[list[str, str]] = None
+
+# Default map renderer for map visualizations that support multiple providers.
+# Set to "mapbox" only in deployments that also configure MAPBOX_API_KEY.
+DEFAULT_MAP_RENDERER = os.environ.get("DEFAULT_MAP_RENDERER", "maplibre")
 
 
 # Override the default d3 locale for time format
@@ -1121,6 +1150,12 @@ SCREENSHOT_TILED_VIEWPORT_HEIGHT = 2000  # Height of each tile in pixels
 UPLOAD_FOLDER = BASE_DIR + "/static/uploads/"
 UPLOAD_CHUNK_SIZE = 4096
 
+# Upper bound, in bytes, on the size of a single uploaded data file (e.g. CSV,
+# Excel, columnar). Files larger than this are rejected before their contents
+# are buffered into memory, keeping the resources consumed by a single upload
+# bounded. Set to ``None`` to disable the check. Defaults to 100 MB.
+UPLOAD_MAX_FILE_SIZE_BYTES: int | None = 100 * 1024 * 1024
+
 # ---------------------------------------------------
 # Cache configuration
 # ---------------------------------------------------
@@ -1325,6 +1360,10 @@ MAPBOX_API_KEY = os.environ.get("MAPBOX_API_KEY", "")
 
 # Maximum number of rows returned for any analytical database query
 SQL_MAX_ROW = 100000
+
+# Maximum number of forecast periods accepted by the Prophet post-processing
+# operation. Bounds resource usage when predicting into the future.
+MAX_PROPHET_PERIODS = 10000
 
 # Maximum number of rows for any query with Server Pagination in Table Viz type
 TABLE_VIZ_MAX_ROW_SERVER = 500000
@@ -2345,7 +2384,10 @@ GLOBAL_ASYNC_QUERIES_JWT_COOKIE_SAMESITE: None | (Literal["None", "Lax", "Strict
     None
 )
 GLOBAL_ASYNC_QUERIES_JWT_COOKIE_DOMAIN = None
-GLOBAL_ASYNC_QUERIES_JWT_SECRET = "test-secret-change-me"  # noqa: S105
+GLOBAL_ASYNC_QUERIES_JWT_SECRET = CHANGE_ME_GLOBAL_ASYNC_QUERIES_JWT_SECRET
+# Lifetime of the async-query JWT, in seconds. After this period the token
+# expires and a fresh one is issued on the next request.
+GLOBAL_ASYNC_QUERIES_JWT_EXPIRATION_SECONDS = int(timedelta(hours=1).total_seconds())
 GLOBAL_ASYNC_QUERIES_TRANSPORT: Literal["polling", "ws"] = "polling"
 GLOBAL_ASYNC_QUERIES_POLLING_DELAY = int(
     timedelta(milliseconds=500).total_seconds() * 1000
@@ -2393,6 +2435,19 @@ GUEST_TOKEN_JWT_AUDIENCE: Callable[[], str] | str | None = None
 # Return False from the callable to return a HTTP 400 to the user.
 
 GUEST_TOKEN_VALIDATOR_HOOK = None
+
+# Enables coarse-grained, runtime revocation of outstanding guest tokens.
+#
+# When True, every minted guest token carries a revocation version, and tokens
+# whose version is below the current expected version (stored in the metadata
+# database) are rejected at validation time. Bump the expected version with the
+# `superset revoke-guest-tokens` CLI command to invalidate all outstanding guest
+# tokens (e.g. after a token leak, or when a user's access or RLS rules change).
+#
+# This is opt-in and backward compatible: the default expected version is 0 and
+# tokens minted before this feature (which carry no version claim) are treated as
+# version 0, so nothing is revoked until an admin explicitly bumps the version.
+GUEST_TOKEN_REVOCATION_ENABLED = False
 
 # A SQL dataset health check. Note if enabled it is strongly advised that the callable
 # be memoized to aid with performance, i.e.,
@@ -2446,6 +2501,8 @@ WELCOME_PAGE_LAST_TAB: Literal["examples", "all"] | tuple[str, list[dict[str, An
 ZIPPED_FILE_MAX_SIZE = 100 * 1024 * 1024  # 100MB
 # Max allowed compression ratio for a zipped file
 ZIP_FILE_MAX_COMPRESS_RATIO = 200.0
+# Max allowed total decompressed size across all entries in a zipped file
+ZIP_FILE_MAX_TOTAL_SIZE = 1024 * 1024 * 1024  # 1GB
 
 # Configuration for environment tag shown on the navbar. Setting 'text' to '' will hide the tag.  # noqa: E501
 # 'color' support only Ant Design semantic colors (e.g., 'error', 'warning', 'success', 'processing', 'default)  # noqa: E501

@@ -21,8 +21,9 @@ import logging
 import re
 import time
 from collections import defaultdict
+from math import ceil
 from types import SimpleNamespace
-from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING
+from typing import Any, Callable, cast, NamedTuple, Optional, TYPE_CHECKING, Union
 
 from flask import current_app, Flask, g, Request
 from flask_appbuilder import Model
@@ -66,6 +67,9 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.security.guest_token import (
+    DEFAULT_GUEST_TOKEN_REVOCATION_VERSION,
+    get_current_guest_token_revocation_version,
+    GUEST_TOKEN_REVOCATION_CLAIM,
     GuestToken,
     GuestTokenResources,
     GuestTokenResourceType,
@@ -83,6 +87,7 @@ from superset.utils.core import (
     get_username,
     RowLevelSecurityFilterType,
 )
+from superset.utils.decorators import transaction
 from superset.utils.filters import get_dataset_access_filters
 from superset.utils.urls import get_url_host
 
@@ -635,7 +640,56 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         lm.request_loader(self.request_loader)
         return lm
 
+    def reset_password(self, userid: Union[int, str], password: str) -> None:
+        """Reset a user's password, clearing the forced-change flag only on a
+        self-service reset.
+
+        Both the self-service reset (``ResetMyPasswordView``) and the admin
+        "Reset Password" action (``ResetPasswordView``) route through this
+        method. The forced-password-change flag must only be cleared when the
+        user resets *their own* password — an admin-initiated reset sets a
+        temporary password and must preserve the "must change at next login"
+        requirement, otherwise the first-use lifecycle would be silently
+        bypassed. We distinguish the two by comparing the acting user
+        (``g.user``) against the target ``userid``: they match for a
+        self-service reset and differ for an admin reset.
+        """
+        super().reset_password(userid, password)
+
+        acting_user = getattr(g, "user", None)
+        acting_user_id = getattr(acting_user, "id", None)
+        # ``userid`` arrives as a string (the ``pk`` request arg) on the admin
+        # path, so coerce both sides before comparing.
+        is_self_service = acting_user_id is not None and self._same_user(
+            acting_user_id, userid
+        )
+        if is_self_service:
+            from superset.security.password_change import (
+                clear_password_must_change,
+            )
+
+            clear_password_must_change(int(userid))
+
+    @staticmethod
+    def _same_user(left: Any, right: Any) -> bool:
+        """Return True if two user identifiers refer to the same user.
+
+        Identifiers may be ints or numeric strings (FAB passes the admin-reset
+        target as a ``pk`` request arg string), so compare them as integers and
+        fall back to a string comparison if coercion fails.
+        """
+        try:
+            return int(left) == int(right)
+        except (TypeError, ValueError):
+            return str(left) == str(right)
+
     def on_user_login(self, user: Any) -> None:
+        # pylint: disable=import-outside-toplevel
+        from superset.security.session_invalidation import stamp_login_time
+
+        # Record the authentication time so outstanding sessions can be
+        # invalidated when the account is later disabled.
+        stamp_login_time()
         _log_audit_event(
             "UserLoggedIn",
             {"username": user.username, "user_id": user.id},
@@ -3638,6 +3692,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             "user": user,
             "resources": resources,
             "rls_rules": rls,
+            # revocation version: bumping the expected version (see
+            # GUEST_TOKEN_REVOCATION_ENABLED) invalidates tokens minted with a
+            # lower version.
+            GUEST_TOKEN_REVOCATION_CLAIM: self._get_guest_token_revocation_version(),
             # standard jwt claims:
             "iat": now,  # issued at
             "exp": exp,  # expiration time
@@ -3647,6 +3705,18 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if datasets is not None:
             claims["datasets"] = datasets
         return self.pyjwt_for_guest_token.encode(claims, secret, algorithm=algo)
+
+    @staticmethod
+    def _get_guest_token_revocation_version() -> int:
+        """
+        Return the revocation version to stamp into newly minted guest tokens.
+
+        Reading the version is gated on ``GUEST_TOKEN_REVOCATION_ENABLED`` so that
+        deployments which have not opted in never touch the metadata store.
+        """
+        if not get_conf()["GUEST_TOKEN_REVOCATION_ENABLED"]:
+            return DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
+        return get_current_guest_token_revocation_version()
 
     def get_guest_user_from_request(self, req: Request) -> Optional[GuestUser]:
         """
@@ -3673,6 +3743,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise ValueError("Guest token does not contain an rls_rules claim")
             if token.get("type") != "guest":
                 raise ValueError("This is not a guest token.")
+            if self._is_guest_token_revoked(token):
+                raise ValueError("This guest token has been revoked.")
         except Exception:  # pylint: disable=broad-except
             # The login manager will handle sending 401s.
             # We don't need to send a special error message.
@@ -3680,6 +3752,103 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return None
 
         return self.get_guest_user_from_token(cast(GuestToken, token))
+
+    @classmethod
+    def _is_guest_token_revoked(cls, token: dict[str, Any]) -> bool:
+        """
+        Determine whether a guest token has been revoked by any mechanism.
+
+        Two complementary revocation mechanisms apply:
+
+        - **Global version bump** (opt-in via ``GUEST_TOKEN_REVOCATION_ENABLED``):
+          a token is revoked if the version it was minted with is below the
+          expected version. Tokens minted before this feature existed carry no
+          version claim and are treated as
+          :data:`DEFAULT_GUEST_TOKEN_REVOCATION_VERSION` (0), so they only become
+          revoked once an admin has explicitly bumped the expected version above 0.
+        - **Per-embedded-dashboard cutoff** (``guest_token_revoked_before``): a
+          token is revoked if its ``iat`` predates the revocation cutoff of any of
+          its embedded-dashboard resources.
+        """
+        return cls._is_guest_token_revoked_by_version(
+            token
+        ) or cls._is_guest_token_revoked_by_embedded(token)
+
+    @staticmethod
+    def _is_guest_token_revoked_by_version(token: dict[str, Any]) -> bool:
+        """Return True if the token's revocation version is below the expected
+        version. Gated on ``GUEST_TOKEN_REVOCATION_ENABLED``."""
+        if not get_conf()["GUEST_TOKEN_REVOCATION_ENABLED"]:
+            return False
+        token_version = token.get(
+            GUEST_TOKEN_REVOCATION_CLAIM, DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
+        )
+        try:
+            token_version = int(token_version)
+        except (TypeError, ValueError):
+            token_version = DEFAULT_GUEST_TOKEN_REVOCATION_VERSION
+        return token_version < get_current_guest_token_revocation_version()
+
+    @staticmethod
+    def _is_guest_token_revoked_by_embedded(token: dict[str, Any]) -> bool:
+        """Return True if the token predates a revocation on any of its
+        embedded-dashboard resources (``guest_token_revoked_before``).
+
+        A token missing ``iat`` cannot prove it was issued after a revocation
+        cutoff, so it is treated as revoked whenever any of its dashboard
+        resources has an active cutoff; otherwise it is not revoked.
+        """
+        issued_at = token.get("iat")
+
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.dashboard import EmbeddedDashboardDAO
+        from superset.models.dashboard import Dashboard
+
+        for resource in token.get("resources") or []:
+            if resource.get("type") != GuestTokenResourceType.DASHBOARD.value:
+                continue
+            resource_id = str(resource.get("id"))
+            # A dashboard resource id may be an embedded UUID or, during the
+            # UUID migration, a legacy dashboard id. Resolve the embedded
+            # config(s) for either form (mirrors validate_guest_token_resources).
+            embedded = EmbeddedDashboardDAO.find_by_id(resource_id)
+            if embedded:
+                embedded_configs = [embedded]
+            else:
+                dashboard = Dashboard.get(resource_id)
+                embedded_configs = dashboard.embedded if dashboard else []
+            for embedded_config in embedded_configs:
+                revoked_before = getattr(
+                    embedded_config, "guest_token_revoked_before", None
+                )
+                if revoked_before is None:
+                    continue
+                # Without an issued-at claim the token cannot be shown to
+                # postdate the cutoff, so fail closed and treat it as revoked.
+                if not issued_at or issued_at < revoked_before:
+                    return True
+        return False
+
+    @transaction()
+    def revoke_guest_token_access(
+        self, embedded_uuid: str, before: Optional[int] = None
+    ) -> None:
+        """Revoke all guest tokens issued for an embedded dashboard before
+        ``before`` (epoch seconds, default: now). Subsequent tokens are
+        unaffected."""
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.dashboard import EmbeddedDashboardDAO
+
+        embedded = EmbeddedDashboardDAO.find_by_id(str(embedded_uuid))
+        if embedded is None:
+            return
+        # Round the cutoff up to the next whole second so that tokens whose
+        # fractional ``iat`` falls within the current second are reliably
+        # revoked (the column stores integer seconds). Rounding up fails
+        # closed: at worst it revokes a token issued slightly after the call.
+        embedded.guest_token_revoked_before = (
+            before if before is not None else ceil(self._get_current_epoch_time())
+        )
 
     def get_guest_user_from_token(self, token: GuestToken) -> GuestUser:
         return self.guest_user_cls(

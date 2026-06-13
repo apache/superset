@@ -1765,7 +1765,7 @@ class TestChartApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCase):
         rv = self.client.get(uri)
         data = json.loads(rv.data.decode("utf-8"))
         assert rv.status_code == 200
-        assert rv.content_type == "application/json"
+        assert rv.content_type == "application/json; charset=utf-8"
         if slice:
             assert data["slice_id"] == slice.id
 

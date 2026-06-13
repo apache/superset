@@ -17002,6 +17002,10 @@ msgstr ""
 msgid "`operation` property of post processing object undefined"
 msgstr "Pēcapstrādes objekta `operation` rekvizīts nav definēts"
 
+#, python-format
+msgid "`periods` must be between 1 and %(max)s"
+msgstr ""
+
 msgid "`prophet` package not installed"
 msgstr "`prophet` pakotne nav instalēta"
 
