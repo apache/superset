@@ -316,14 +316,19 @@ class TestTrinoCancelQueryValidation:
 class TestImpalaCancelQueryValidation:
     """Tests for Impala cancel_query input validation"""
 
+    @patch("superset.db_engine_specs.impala.is_safe_host", return_value=True)
     @patch("requests.post")
-    def test_cancel_query_valid_id(self, requests_mock: Mock) -> None:
+    def test_cancel_query_valid_id(
+        self, requests_mock: Mock, safe_host_mock: Mock
+    ) -> None:
         """Test that valid Impala query ID works"""
         from superset.db_engine_specs.impala import ImpalaEngineSpec
         from superset.models.core import Database
         from superset.models.sql_lab import Query
 
-        # Mock the database and query
+        # Mock the database and query. The host-safety check (added alongside
+        # the cancel call) is mocked as allowed here so the test stays focused
+        # on query-ID validation; host validation is covered separately.
         mock_db = Mock(spec=Database)
         mock_db.url_object.host = "impala-host"
 
