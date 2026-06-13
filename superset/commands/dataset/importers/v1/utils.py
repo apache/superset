@@ -154,10 +154,7 @@ def validate_data_uri(data_uri: str) -> None:
             )
             raise
         if match:
-            allow_internal = app.config.get(
-                "DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS", False
-            )
-            if not allow_internal:
+            if not app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"]:
                 hostname = urlparse(data_uri).hostname
                 # Fail-closed: reject URIs that have no parseable hostname as
                 # well as those that resolve to non-public addresses.

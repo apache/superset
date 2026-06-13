@@ -79,6 +79,7 @@ def test_cancel_query(post_mock: Mock, _safe_host: Mock) -> None:  # noqa: PT019
     post_mock.assert_called_once_with(
         "http://impala.example.com:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
         timeout=3,
+        allow_redirects=False,
     )
     assert result is True
 
@@ -102,6 +103,7 @@ def test_cancel_query_failed(post_mock: Mock, _safe_host: Mock) -> None:  # noqa
     post_mock.assert_called_once_with(
         "http://impala.example.com:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
         timeout=3,
+        allow_redirects=False,
     )
     assert result is False
 
@@ -167,5 +169,6 @@ def test_cancel_query_allows_internal_host_with_opt_out(
     post_mock.assert_called_once_with(
         "http://10.0.0.5:25000/cancel_query?query_id=6940643a2731718b:9fbdba2000000000",
         timeout=3,
+        allow_redirects=False,
     )
     assert result is True

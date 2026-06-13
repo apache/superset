@@ -226,7 +226,9 @@ class ImpalaEngineSpec(BaseEngineSpec):
                 )
                 return False
             url = f"http://{impala_host}:25000/cancel_query?query_id={cancel_query_id}"
-            response = requests.post(url, timeout=3)
+            # Do not follow redirects: a validated host could otherwise 30x the
+            # request to an internal target, bypassing the is_safe_host check.
+            response = requests.post(url, timeout=3, allow_redirects=False)
         except Exception:  # pylint: disable=broad-except
             return False
 

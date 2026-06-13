@@ -95,15 +95,23 @@ class WebhookNotification(BaseNotification):
         return files
 
     def _validate_webhook_url(self, url: str) -> None:
+        """
+        Validate the webhook target URL before dispatch.
+
+        Checks that the scheme is HTTP(S) (and HTTPS when required by config),
+        that a hostname is present, and, unless the operator opts out via
+        ``ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS``, that the host does not
+        resolve to a private/internal address.
+
+        :raises NotificationParamException: if any of the above checks fail.
+        """
         parsed = urlparse(url)
-        if parsed.scheme.lower() not in ("http", "https"):
+        scheme = parsed.scheme.lower()
+        if scheme not in ("http", "https"):
             raise NotificationParamException(
                 "Webhook failed: only HTTP and HTTPS webhook URLs are supported."
             )
-        if (
-            current_app.config["ALERT_REPORTS_WEBHOOK_HTTPS_ONLY"]
-            and parsed.scheme.lower() != "https"
-        ):
+        if current_app.config["ALERT_REPORTS_WEBHOOK_HTTPS_ONLY"] and scheme != "https":
             raise NotificationParamException(
                 "Webhook failed: HTTPS is required by config for webhook URLs."
             )
@@ -143,9 +151,17 @@ class WebhookNotification(BaseNotification):
                     else:
                         data[key] = value
 
-                response = requests.post(wh_url, data=data, files=files, timeout=60)
+                response = requests.post(
+                    wh_url,
+                    data=data,
+                    files=files,
+                    timeout=60,
+                    allow_redirects=False,
+                )
             else:
-                response = requests.post(wh_url, json=payload, timeout=60)
+                response = requests.post(
+                    wh_url, json=payload, timeout=60, allow_redirects=False
+                )
 
             logger.info(
                 "Webhook sent to %s, status code: %s", wh_url, response.status_code
