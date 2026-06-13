@@ -19,6 +19,7 @@
 
 import json  # noqa: TID251
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 from flask_appbuilder.security.sqla.models import Role, User
@@ -656,16 +657,188 @@ def test_query_context_modified_tampered(
     assert query_context_modified(query_context)
 
 
-def test_query_context_modified_native_filter(mocker: MockerFixture) -> None:
-    """
-    Test the `query_context_modified` function with a native filter request.
+def _native_filter_ctx(
+    mocker: MockerFixture,
+    queries: list[Any],
+    *,
+    native_filter_id: str | None = "F1",
+    dashboard_id: int | None = 10,
+    dataset_id: int = 20,
+    targets: list[Any] | None = None,
+    control_values: dict[str, Any] | None = None,
+) -> Any:
+    """Build a native-filter query context (no slice_) + patched dashboard."""
+    if targets is None:
+        targets = [{"datasetId": dataset_id, "column": {"name": "region"}}]
+    qc = mocker.MagicMock()
+    qc.slice_ = None
+    qc.form_data = {
+        "type": "NATIVE_FILTER",
+        "native_filter_id": native_filter_id,
+        "dashboardId": dashboard_id,
+    }
+    qc.datasource.data = {"id": dataset_id}
+    qc.queries = queries
+    dash = mocker.MagicMock()
+    dash.json_metadata = json.dumps(
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "F1",
+                    "targets": targets,
+                    "controlValues": control_values or {},
+                }
+            ]
+        }
+    )
+    query_chain = mocker.patch("superset.db.session.query")
+    query_chain.return_value.filter.return_value.one_or_none.return_value = dash
+    return qc
 
-    A native filter request has no chart (slice) associated with it.
-    """
-    query_context = mocker.MagicMock()
-    query_context.slice_ = None
 
-    assert not query_context_modified(query_context)
+def test_query_context_modified_native_filter_target_column_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """A native-filter request reading only its target column is allowed."""
+    query = SimpleNamespace(columns=["region"], metrics=[], groupby=[])
+    qc = _native_filter_ctx(mocker, [query])
+    assert not query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_arbitrary_column_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """A native-filter request reading a non-target column is modified."""
+    query = SimpleNamespace(columns=["ssn"], metrics=[], groupby=[])
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_simple_metric_on_target_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """A range-style request (simple aggregate over the target column) is allowed."""
+    query = SimpleNamespace(
+        columns=[],
+        metrics=[
+            {
+                "expressionType": "SIMPLE",
+                "column": {"column_name": "region"},
+                "aggregate": "MIN",
+            }
+        ],
+        groupby=[],
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert not query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_adhoc_metric_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """A free-form SQL metric on the native-filter path is modified."""
+    query = SimpleNamespace(
+        columns=[],
+        metrics=[{"expressionType": "SQL", "sqlExpression": "SUM(salary)"}],
+        groupby=[],
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_adhoc_column_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """An adhoc (free-form SQL) column on the native-filter path is modified."""
+    query = SimpleNamespace(
+        columns=[{"sqlExpression": "ssn", "label": "x"}], metrics=[], groupby=[]
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_no_filter_context_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """Without a native_filter_id / dashboardId the request fails closed."""
+    query = SimpleNamespace(columns=["region"], metrics=[], groupby=[])
+    qc = _native_filter_ctx(mocker, [query], native_filter_id=None)
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_configured_sort_metric_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """A value lookup sorted by the filter's configured saved metric is allowed."""
+    query = SimpleNamespace(
+        columns=["region"],
+        metrics=["total"],
+        groupby=[],
+        orderby=[["total", True]],
+    )
+    qc = _native_filter_ctx(mocker, [query], control_values={"sortMetric": "total"})
+    assert not query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_arbitrary_saved_metric_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """A saved metric other than the filter's configured sort metric is modified."""
+    query = SimpleNamespace(columns=["region"], metrics=["salary_total"], groupby=[])
+    qc = _native_filter_ctx(mocker, [query], control_values={"sortMetric": "total"})
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_orderby_arbitrary_column_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """Ordering by a non-target column on the native-filter path is modified."""
+    query = SimpleNamespace(
+        columns=["region"], metrics=[], groupby=[], orderby=[["ssn", True]]
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_orderby_adhoc_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """Ordering by a free-form SQL expression on the native-filter path is modified."""
+    query = SimpleNamespace(
+        columns=["region"],
+        metrics=[],
+        groupby=[],
+        orderby=[[{"sqlExpression": "ssn"}, True]],
+    )
+    qc = _native_filter_ctx(mocker, [query])
+    assert query_context_modified(qc)
+
+
+def test_query_context_modified_chartless_non_native_filter_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A chartless request that is not a native filter (drill-to-detail, drill-by,
+    samples) is validated by the datasource-access checks in raise_for_access and
+    is not constrained here.
+    """
+    qc = mocker.MagicMock()
+    qc.slice_ = None
+    qc.form_data = {"dashboardId": 10, "slice_id": 0, "groupby": ["ssn"]}
+    assert not query_context_modified(qc)
+
+
+def test_query_context_modified_native_filter_without_type_marker_blocked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A request identified by native_filter_id is constrained even when the
+    NATIVE_FILTER type marker is absent.
+    """
+    query = SimpleNamespace(columns=["ssn"], metrics=[], groupby=[])
+    qc = _native_filter_ctx(mocker, [query])
+    del qc.form_data["type"]
+    assert query_context_modified(qc)
 
 
 def test_query_context_modified_mixed_chart(mocker: MockerFixture) -> None:
