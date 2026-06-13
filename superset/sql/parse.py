@@ -505,8 +505,22 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def changes_search_path(self) -> bool:
+        """
+        Check if the statement changes the session ``search_path``.
+
+        Defaults to ``False``; engines whose statements can rebind unqualified
+        schema resolution override this.
+
+        :return: True if the statement changes the session ``search_path``
+        """
+        return False
+
     def get_disallowed_tables(
-        self, tables: set[str], default_schema: str | None = None
+        self,
+        tables: set[str],
+        default_schema: str | None = None,
+        schema_indeterminate: bool = False,
     ) -> set[str]:
         """
         Return the subset of ``tables`` referenced by this statement.
@@ -514,6 +528,9 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         :param tables: Set of table names to check for (case-insensitive)
         :param default_schema: Schema unqualified references resolve to at
             runtime (e.g. the session ``search_path`` / selected schema)
+        :param schema_indeterminate: When True, unqualified references are
+            matched against schema-qualified entries too (see
+            :meth:`SQLStatement.get_disallowed_tables`)
         :return: The matched entries, in their original denylist form
         """
         raise NotImplementedError()
@@ -842,11 +859,15 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # `lo_create`/`lo_put`/`lo_import`/`lowrite` mutate the pg_largeobject
         # catalog). These appear as plain function calls inside an `exp.Select`
         # and would otherwise pass the read-only gate. Every name in
-        # _MUTATING_FUNCTION_NAMES is dialect-specific and parses as an
-        # `exp.Anonymous`, whose `.name` is the bare function identifier.
-        for function in self._parsed.find_all(exp.Func):
-            if function.name.upper() in self._MUTATING_FUNCTION_NAMES:
-                return True
+        # _MUTATING_FUNCTION_NAMES is PostgreSQL-specific, so the walk is gated
+        # on the dialect: other engines may expose read-only functions/UDFs with
+        # the same names, and flagging those would wrongly block read-only
+        # queries. Each parses as an `exp.Anonymous`, whose `.name` is the bare
+        # function identifier.
+        if self._dialect == Dialects.POSTGRES:
+            for function in self._parsed.find_all(exp.Func):
+                if function.name.upper() in self._MUTATING_FUNCTION_NAMES:
+                    return True
 
         # depending on the dialect (Oracle, MS SQL) the `ALTER` is parsed as a
         # command, not an expression - check at root level
@@ -1013,8 +1034,30 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         return bool(self.get_disallowed_tables(tables, default_schema))
 
+    def changes_search_path(self) -> bool:
+        """
+        Return True if the statement changes the session ``search_path``.
+
+        A ``SET search_path = ...`` makes unqualified references in later
+        statements resolve to a schema other than the caller's
+        ``default_schema``, so denylist matching against ``default_schema``
+        alone becomes unreliable once such a statement is present.
+        """
+        # `SET search_path = schema` parses as a structured exp.Set, surfaced
+        # by get_settings(); `SET search_path TO ...` falls back to an opaque
+        # exp.Command whose expression text names the target variable.
+        if any(key.lower() == "search_path" for key in self.get_settings()):
+            return True
+        parsed = self._parsed
+        if isinstance(parsed, exp.Command) and parsed.name.upper() == "SET":
+            return "search_path" in str(parsed.expression).lower()
+        return False
+
     def get_disallowed_tables(
-        self, tables: set[str], default_schema: str | None = None
+        self,
+        tables: set[str],
+        default_schema: str | None = None,
+        schema_indeterminate: bool = False,
     ) -> set[str]:
         """
         Return the subset of ``tables`` referenced by this statement.
@@ -1034,22 +1077,36 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param tables: Set of table names to check for (case-insensitive)
         :param default_schema: Schema unqualified references resolve to at
             runtime (e.g. the session ``search_path`` / selected schema)
+        :param schema_indeterminate: When True, the effective ``search_path``
+            cannot be pinned to ``default_schema`` (e.g. the script contains a
+            ``SET search_path``), so an unqualified reference is matched
+            against the bare-name portion of schema-qualified entries too, to
+            avoid bypassing a qualified denylist entry
         :return: The matched entries, in their original denylist form
         """
         fallback = default_schema.lower() if default_schema else None
         present_bare: set[str] = set()
         present_qualified: set[str] = set()
+        present_unqualified: set[str] = set()
         for t in self.tables:
             bare = t.table.lower()
             present_bare.add(bare)
-            schema = t.schema.lower() if t.schema else fallback
-            if schema:
-                present_qualified.add(f"{schema}.{bare}")
+            if t.schema:
+                present_qualified.add(f"{t.schema.lower()}.{bare}")
+            else:
+                present_unqualified.add(bare)
+                if fallback:
+                    present_qualified.add(f"{fallback}.{bare}")
         found: set[str] = set()
         for entry in tables:
             needle = entry.lower()
             if "." in needle:
                 if needle in present_qualified:
+                    found.add(entry)
+                elif (
+                    schema_indeterminate
+                    and needle.rsplit(".", 1)[1] in present_unqualified
+                ):
                     found.add(entry)
             elif needle in present_bare:
                 found.add(entry)
@@ -1495,13 +1552,17 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         return False
 
     def get_disallowed_tables(
-        self, tables: set[str], default_schema: str | None = None
+        self,
+        tables: set[str],
+        default_schema: str | None = None,
+        schema_indeterminate: bool = False,
     ) -> set[str]:
         """
         Return the subset of ``tables`` referenced by this statement.
 
         :param tables: Set of table names to check for (case-insensitive)
         :param default_schema: Unused; accepted for interface parity
+        :param schema_indeterminate: Unused; accepted for interface parity
         :return: The matched entries, in their original denylist form
         """
         logger.warning("Kusto KQL doesn't support checking for tables present.")
@@ -1702,9 +1763,19 @@ class SQLScript:
             runtime (e.g. the session ``search_path`` / selected schema)
         :return: The matched entries, in their original denylist form
         """
+        # A `SET search_path` anywhere in the script means a later unqualified
+        # reference can resolve to a schema other than ``default_schema``, so
+        # match unqualified references conservatively to keep a qualified
+        # denylist entry from being bypassed (e.g. `SET search_path =
+        # information_schema; SELECT * FROM tables`).
+        schema_indeterminate = any(
+            statement.changes_search_path() for statement in self.statements
+        )
         found: set[str] = set()
         for statement in self.statements:
-            found |= statement.get_disallowed_tables(tables, default_schema)
+            found |= statement.get_disallowed_tables(
+                tables, default_schema, schema_indeterminate
+            )
         return found
 
     def is_valid_ctas(self) -> bool:

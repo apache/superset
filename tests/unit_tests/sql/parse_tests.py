@@ -1532,6 +1532,27 @@ def test_is_mutating_select_into_ctas_dialects(engine: str, sql: str) -> None:
 
 
 @pytest.mark.parametrize(
+    "engine, sql",
+    [
+        # The mutating-function names are PostgreSQL built-ins. On other engines
+        # a same-named read-only function or UDF must NOT be flagged as
+        # mutating, otherwise read-only queries get wrongly blocked.
+        ("mysql", "SELECT setval(my_col)"),
+        ("mysql", "SELECT lo_export(id, path) FROM t"),
+        ("base", "SELECT setval(my_col)"),
+        ("trino", "SELECT lowrite(x)"),
+    ],
+)
+def test_is_mutating_function_names_scoped_to_postgres(engine: str, sql: str) -> None:
+    """
+    `_MUTATING_FUNCTION_NAMES` is PostgreSQL-specific, so the function-name walk
+    only runs for the Postgres dialect; same-named functions on other engines
+    must stay non-mutating.
+    """
+    assert SQLStatement(sql, engine).is_mutating() is False
+
+
+@pytest.mark.parametrize(
     "sql, expected",
     [
         # PostgreSQL constructs that sqlglot parses as opaque exp.Command.
@@ -3671,6 +3692,62 @@ def test_get_disallowed_tables_default_schema(
     `information_schema.tables`) is still caught when reached without an
     explicit schema under that search_path, without blocking a same-named
     user table under a different schema.
+    """
+    assert (
+        SQLScript(sql, "postgresql").get_disallowed_tables(denylist, default_schema)
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "sql, default_schema, denylist, expected",
+    [
+        # `SET search_path` rebinds where an unqualified reference resolves, so
+        # the static default schema can no longer be trusted. A qualified
+        # denylist entry must still match the later unqualified reference,
+        # otherwise the block is trivially bypassable.
+        (
+            "SET search_path = information_schema; SELECT * FROM tables",
+            "public",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+        # `SET search_path TO ...` (the exp.Command fallback form) triggers the
+        # same conservative matching.
+        (
+            "SET search_path TO information_schema; SELECT * FROM tables",
+            "public",
+            {"information_schema.tables"},
+            {"information_schema.tables"},
+        ),
+        # An explicitly qualified reference is unambiguous and must NOT be
+        # widened to match a different schema's denylist entry.
+        (
+            "SET search_path = information_schema; SELECT * FROM public.tables",
+            "public",
+            {"information_schema.tables"},
+            set(),
+        ),
+        # Without a search_path change, matching is unchanged: an unqualified
+        # reference under a user schema does not match the qualified entry.
+        (
+            "SELECT * FROM tables",
+            "public",
+            {"information_schema.tables"},
+            set(),
+        ),
+    ],
+)
+def test_get_disallowed_tables_search_path_change(
+    sql: str,
+    default_schema: str | None,
+    denylist: set[str],
+    expected: set[str],
+) -> None:
+    """
+    A `SET search_path` in the script makes unqualified references resolve to a
+    schema other than the caller's default, so `get_disallowed_tables` matches
+    them against schema-qualified entries too, closing a denylist bypass.
     """
     assert (
         SQLScript(sql, "postgresql").get_disallowed_tables(denylist, default_schema)
