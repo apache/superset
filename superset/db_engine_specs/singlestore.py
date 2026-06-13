@@ -578,7 +578,7 @@ class SingleStoreSpec(BasicParametersMixin, BaseEngineSpec):
         :return: True if query cancelled successfully, False otherwise
         """
         # Validate cancel_query_id to prevent SQL injection
-        # SingleStore format: "CONNECTION_ID AGGREGATOR_ID" (two space-separated integers)
+        # SingleStore: "CONNECTION_ID AGGREGATOR_ID" (two space-separated ints)
         if not cls.validate_cancel_query_id(cancel_query_id, r"^\d+(\s+\d+)?$"):
             return False
 

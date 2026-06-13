@@ -24,8 +24,6 @@ rejects malicious input that could be used for SQL injection attacks.
 
 from unittest.mock import Mock, patch
 
-import pytest
-
 
 class TestValidateCancelQueryId:
     """Tests for BaseEngineSpec.validate_cancel_query_id"""
@@ -43,9 +41,14 @@ class TestValidateCancelQueryId:
         from superset.db_engine_specs.base import BaseEngineSpec
 
         # Common SQL injection payloads
-        assert BaseEngineSpec.validate_cancel_query_id("1; DROP TABLE users; --") is False
+        assert (
+            BaseEngineSpec.validate_cancel_query_id("1; DROP TABLE users; --") is False
+        )
         assert BaseEngineSpec.validate_cancel_query_id("1' OR '1'='1") is False
-        assert BaseEngineSpec.validate_cancel_query_id("1 UNION SELECT * FROM users") is False
+        assert (
+            BaseEngineSpec.validate_cancel_query_id("1 UNION SELECT * FROM users")
+            is False
+        )
         assert BaseEngineSpec.validate_cancel_query_id("1; DELETE FROM users;") is False
 
     def test_validate_cancel_query_id_invalid_special_chars(self) -> None:
@@ -74,20 +77,30 @@ class TestValidateCancelQueryId:
         from superset.db_engine_specs.base import BaseEngineSpec
 
         # Hex pattern with exact length (for Impala - 16 hex chars per side)
-        assert BaseEngineSpec.validate_cancel_query_id(
-            "abc123def4567890:789abc123def4567", r"[A-Fa-f0-9]{16}:[A-Fa-f0-9]{16}"
-        ) is True
-        assert BaseEngineSpec.validate_cancel_query_id(
-            "invalid:pattern!", r"[A-Fa-f0-9]{16}:[A-Fa-f0-9]{16}"
-        ) is False
+        assert (
+            BaseEngineSpec.validate_cancel_query_id(
+                "abc123def4567890:789abc123def4567", r"[A-Fa-f0-9]{16}:[A-Fa-f0-9]{16}"
+            )
+            is True
+        )
+        assert (
+            BaseEngineSpec.validate_cancel_query_id(
+                "invalid:pattern!", r"[A-Fa-f0-9]{16}:[A-Fa-f0-9]{16}"
+            )
+            is False
+        )
 
         # Alphanumeric with underscores (for Trino)
-        assert BaseEngineSpec.validate_cancel_query_id(
-            "20240101_123456_00001_abcde", r"[a-zA-Z0-9_]+"
-        ) is True
-        assert BaseEngineSpec.validate_cancel_query_id(
-            "20240101-123456", r"[a-zA-Z0-9_]+"
-        ) is False
+        assert (
+            BaseEngineSpec.validate_cancel_query_id(
+                "20240101_123456_00001_abcde", r"[a-zA-Z0-9_]+"
+            )
+            is True
+        )
+        assert (
+            BaseEngineSpec.validate_cancel_query_id("20240101-123456", r"[a-zA-Z0-9_]+")
+            is False
+        )
 
 
 class TestMySQLCancelQueryValidation:
@@ -193,9 +206,7 @@ class TestPostgresCancelQueryValidation:
         cursor_mock = engine_mock.return_value.__enter__.return_value
 
         # SQL injection in WHERE clause
-        result = PostgresEngineSpec.cancel_query(
-            cursor_mock, query, "1' OR '1'='1"
-        )
+        result = PostgresEngineSpec.cancel_query(cursor_mock, query, "1' OR '1'='1")
         assert result is False
         cursor_mock.execute.assert_not_called()
 
@@ -241,10 +252,14 @@ class TestSnowflakeCancelQueryValidation:
         query = Query()
         cursor_mock = engine_mock.return_value.__enter__.return_value
         # Snowflake session IDs are alphanumeric (VARCHAR)
-        assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, "34359980038") is True
+        assert (
+            SnowflakeEngineSpec.cancel_query(cursor_mock, query, "34359980038") is True
+        )
         cursor_mock.reset_mock()
         # Also test alphanumeric (per Snowflake docs)
-        assert SnowflakeEngineSpec.cancel_query(cursor_mock, query, "ABC123def456") is True
+        assert (
+            SnowflakeEngineSpec.cancel_query(cursor_mock, query, "ABC123def456") is True
+        )
 
     @patch("sqlalchemy.engine.Engine.connect")
     def test_cancel_query_sql_injection_blocked(self, engine_mock: Mock) -> None:
@@ -275,9 +290,12 @@ class TestTrinoCancelQueryValidation:
         cursor_mock = engine_mock.return_value.__enter__.return_value
 
         # Trino query IDs are alphanumeric with underscores
-        assert TrinoEngineSpec.cancel_query(
-            cursor_mock, query, "20240101_123456_00001_abcde"
-        ) is True
+        assert (
+            TrinoEngineSpec.cancel_query(
+                cursor_mock, query, "20240101_123456_00001_abcde"
+            )
+            is True
+        )
 
     @patch("sqlalchemy.engine.Engine.connect")
     def test_cancel_query_sql_injection_blocked(self, engine_mock: Mock) -> None:
@@ -302,8 +320,8 @@ class TestImpalaCancelQueryValidation:
     def test_cancel_query_valid_id(self, requests_mock: Mock) -> None:
         """Test that valid Impala query ID works"""
         from superset.db_engine_specs.impala import ImpalaEngineSpec
-        from superset.models.sql_lab import Query
         from superset.models.core import Database
+        from superset.models.sql_lab import Query
 
         # Mock the database and query
         mock_db = Mock(spec=Database)
@@ -333,8 +351,8 @@ class TestImpalaCancelQueryValidation:
     def test_cancel_query_url_injection_blocked(self, requests_mock: Mock) -> None:
         """Test that URL injection is blocked"""
         from superset.db_engine_specs.impala import ImpalaEngineSpec
-        from superset.models.sql_lab import Query
         from superset.models.core import Database
+        from superset.models.sql_lab import Query
 
         mock_db = Mock(spec=Database)
         mock_db.url_object.host = "impala-host"
@@ -343,15 +361,11 @@ class TestImpalaCancelQueryValidation:
         query.database = mock_db
 
         # URL injection payloads should be rejected
-        result = ImpalaEngineSpec.cancel_query(
-            None, query, "abc123&admin=true"
-        )
+        result = ImpalaEngineSpec.cancel_query(None, query, "abc123&admin=true")
         assert result is False
         requests_mock.assert_not_called()
 
-        result = ImpalaEngineSpec.cancel_query(
-            None, query, "abc123#fragment"
-        )
+        result = ImpalaEngineSpec.cancel_query(None, query, "abc123#fragment")
         assert result is False
         requests_mock.assert_not_called()
 
@@ -359,8 +373,8 @@ class TestImpalaCancelQueryValidation:
     def test_cancel_query_invalid_format_blocked(self, requests_mock: Mock) -> None:
         """Test that invalid format is blocked"""
         from superset.db_engine_specs.impala import ImpalaEngineSpec
-        from superset.models.sql_lab import Query
         from superset.models.core import Database
+        from superset.models.sql_lab import Query
 
         mock_db = Mock(spec=Database)
         mock_db.url_object.host = "impala-host"
@@ -394,8 +408,8 @@ class TestImpalaCancelQueryValidation:
     def test_cancel_query_null_host_blocked(self, requests_mock: Mock) -> None:
         """Test that missing host returns False"""
         from superset.db_engine_specs.impala import ImpalaEngineSpec
-        from superset.models.sql_lab import Query
         from superset.models.core import Database
+        from superset.models.sql_lab import Query
 
         mock_db = Mock(spec=Database)
         mock_db.url_object.host = None  # Null host
@@ -417,3 +431,41 @@ class TestImpalaCancelQueryValidation:
         )
         assert result is False
         requests_mock.assert_not_called()
+
+
+class TestOcientCancelQueryValidation:
+    """Tests for Ocient cancel_query input validation.
+
+    Ocient validates the query ID it looked up from ``query_id_mapping`` (which
+    originates from the database), so these tests seed that mapping directly.
+    """
+
+    def test_cancel_query_valid_id(self) -> None:
+        """Test that a valid mapped Ocient query ID is cancelled"""
+        from superset.db_engine_specs.ocient import OcientEngineSpec
+        from superset.models.sql_lab import Query
+
+        query = Mock(spec=Query)
+        query.id = "ocient-valid"
+        cursor_mock = Mock()
+        OcientEngineSpec.query_id_mapping[query.id] = "abc_123-DEF"
+        try:
+            assert OcientEngineSpec.cancel_query(cursor_mock, query, "") is True
+            cursor_mock.execute.assert_called_once_with("CANCEL abc_123-DEF")
+        finally:
+            OcientEngineSpec.query_id_mapping.pop(query.id, None)
+
+    def test_cancel_query_sql_injection_blocked(self) -> None:
+        """Test that a malicious mapped query ID is rejected before execute"""
+        from superset.db_engine_specs.ocient import OcientEngineSpec
+        from superset.models.sql_lab import Query
+
+        query = Mock(spec=Query)
+        query.id = "ocient-injection"
+        cursor_mock = Mock()
+        OcientEngineSpec.query_id_mapping[query.id] = "1; DROP TABLE users; --"
+        try:
+            assert OcientEngineSpec.cancel_query(cursor_mock, query, "") is False
+            cursor_mock.execute.assert_not_called()
+        finally:
+            OcientEngineSpec.query_id_mapping.pop(query.id, None)

@@ -208,9 +208,9 @@ class ImpalaEngineSpec(BaseEngineSpec):
         :return: True if query cancelled successfully, False otherwise
         """
         # Validate cancel_query_id to prevent URL injection
-        # Impala query IDs are in format: "hex_string:hex_string" (16 hex chars per side)
+        # Impala query IDs are in "hex:hex" form (16 hex chars per side)
         if not cls.validate_cancel_query_id(
-            cancel_query_id, r"[A-Fa-f0-9]{16}:[A-Fa-f0-9]{16}"
+            cancel_query_id, r"^[A-Fa-f0-9]{16}:[A-Fa-f0-9]{16}$"
         ):
             return False
 

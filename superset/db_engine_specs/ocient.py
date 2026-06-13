@@ -394,7 +394,7 @@ class OcientEngineSpec(BaseEngineSpec):
             if query.id in OcientEngineSpec.query_id_mapping:
                 ocient_query_id = OcientEngineSpec.query_id_mapping[query.id]
                 # Validate query ID to prevent SQL injection (defense-in-depth)
-                # Ocient query IDs are typically numeric
+                # Ocient query IDs are alphanumeric with underscores and dashes
                 if not cls.validate_cancel_query_id(str(ocient_query_id), r"^[\w\-]+$"):
                     return False
 
