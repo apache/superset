@@ -1099,6 +1099,20 @@ def test_validate_data_uri_file_scheme_outside_examples_blocked() -> None:
 
 @pytest.mark.parametrize(
     "data_uri",
+    ["FiLe:///etc/passwd", "FILE:///etc/passwd", "file:/etc/passwd"],
+)
+def test_validate_data_uri_file_scheme_case_insensitive(data_uri: str) -> None:
+    """Mixed-case / single-slash file URIs still go through the sandbox check
+    and are blocked when outside the examples folder, so they cannot skip the
+    local-file check via a case-sensitive scheme gate."""
+    current_app.config["DATASET_IMPORT_ALLOWED_DATA_URLS"] = []
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+    with pytest.raises(DatasetForbiddenDataURI):
+        validate_data_uri(data_uri)
+
+
+@pytest.mark.parametrize(
+    "data_uri",
     [
         # Userinfo-injection: allowlist matches the trusted hostname in the
         # authority but urlparse().hostname resolves to the actual target.

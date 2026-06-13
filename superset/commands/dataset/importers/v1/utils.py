@@ -126,12 +126,16 @@ def validate_data_uri(data_uri: str) -> None:
     :param data_uri: the URI to validate
     :raises DatasetForbiddenDataURI: if the URI is not permitted
     """
-    if data_uri.startswith("file://"):
+    parsed = urlparse(data_uri)
+    # ``urlparse`` lower-cases the scheme, so gating on it (rather than a
+    # case-sensitive ``startswith("file://")``) also rejects mixed-case
+    # variants like ``FiLe://`` that would otherwise skip the local-file
+    # sandbox check below.
+    if parsed.scheme == "file":
         from urllib.request import url2pathname
 
         from superset.examples.helpers import get_examples_folder
 
-        parsed = urlparse(data_uri)
         # Reject non-local authority components (e.g. file://remotehost/path).
         if parsed.netloc and parsed.netloc.lower() != "localhost":
             raise DatasetForbiddenDataURI()
@@ -155,7 +159,7 @@ def validate_data_uri(data_uri: str) -> None:
             raise
         if match:
             if not app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"]:
-                hostname = urlparse(data_uri).hostname
+                hostname = parsed.hostname
                 # Fail-closed: reject URIs that have no parseable hostname as
                 # well as those that resolve to non-public addresses.
                 if not hostname or not is_safe_host(hostname):

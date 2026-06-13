@@ -177,6 +177,14 @@ class WebhookNotification(BaseNotification):
                     f"Webhook failed with status code {response.status_code}: \
                     {response.text}"
                 )
+            if response.status_code >= 300:
+                # Redirects are intentionally not followed (allow_redirects=False),
+                # so a 3xx means the request never reached the final target. Treat
+                # it as a failure rather than silently reporting success.
+                raise NotificationParamException(
+                    f"Webhook returned an unfollowed redirect "
+                    f"(status code {response.status_code})"
+                )
 
         except requests.exceptions.RequestException as ex:
             raise NotificationUnprocessableException(str(ex)) from ex
