@@ -75,6 +75,9 @@ def test_password_with_single_percent(mock_has_app_context: MagicMock) -> None:
         "pass=word",  # noqa: S105
         "p@ss%w0rd",  # noqa: S105
         "p@ss%25",  # noqa: S105
+        "pass word",  # noqa: S105
+        "pass\\word",  # noqa: S105
+        "pässwörd",  # noqa: S105
     ],
 )
 def test_password_with_special_chars(
