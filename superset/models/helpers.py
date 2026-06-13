@@ -1161,8 +1161,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Returns an IANA timezone name (e.g., "Europe/Berlin", "America/New_York")
         or None if not configured.
 
+        ``extra_dict`` is provided by concrete datasources (e.g. ``SqlaTable``)
+        rather than this mixin, so read it defensively: subclasses without it
+        simply have no configured timezone.
         """
-        return self.extra_dict.get("timezone")
+        extra = getattr(self, "extra_dict", None) or {}
+        return extra.get("timezone")
 
     def get_fetch_values_predicate(
         self,

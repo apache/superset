@@ -341,6 +341,78 @@ def test_normalize_dttm_col_with_offset_and_time_shift() -> None:
     assert df["date_col"][2].strftime("%Y-%m-%d %H:%M:%S") == "2022-01-01 04:00:00"
 
 
+def test_normalize_dttm_col_with_timezone() -> None:
+    """UTC-stored values are converted to the dataset's configured timezone."""
+    # Winter date: Europe/Berlin is UTC+1, so 00:00 UTC renders as 01:00 local.
+    df = pd.DataFrame({"date_col": ["2020-01-01 00:00:00"]})
+    dttm_cols = (
+        DateColumn(
+            col_label="date_col",
+            timestamp_format="%Y-%m-%d %H:%M:%S",
+            timezone="Europe/Berlin",
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["date_col"])
+    # tz-naive after conversion (display value), shifted by the zone offset.
+    assert df["date_col"][0].tzinfo is None
+    assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 01:00:00"
+
+
+def test_normalize_dttm_col_timezone_handles_dst() -> None:
+    """The timezone path respects DST, unlike a fixed hour offset."""
+    # Summer date: Europe/Berlin is UTC+2 (CEST), so 00:00 UTC renders as 02:00.
+    df = pd.DataFrame({"date_col": ["2020-07-01 00:00:00"]})
+    dttm_cols = (
+        DateColumn(
+            col_label="date_col",
+            timestamp_format="%Y-%m-%d %H:%M:%S",
+            timezone="Europe/Berlin",
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-07-01 02:00:00"
+
+
+def test_normalize_dttm_col_timezone_takes_precedence_over_offset() -> None:
+    """When both timezone and offset are set, the timezone conversion wins."""
+    df = pd.DataFrame({"date_col": ["2020-01-01 00:00:00"]})
+    dttm_cols = (
+        DateColumn(
+            col_label="date_col",
+            timestamp_format="%Y-%m-%d %H:%M:%S",
+            timezone="Europe/Berlin",
+            offset=10,
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    # +1h from the Berlin (winter) conversion, NOT +10h from the offset.
+    assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 01:00:00"
+
+
+def test_normalize_dttm_col_invalid_timezone_falls_back_to_offset() -> None:
+    """An unknown timezone falls back to the plain hour offset."""
+    df = pd.DataFrame({"date_col": ["2020-01-01 00:00:00"]})
+    dttm_cols = (
+        DateColumn(
+            col_label="date_col",
+            timestamp_format="%Y-%m-%d %H:%M:%S",
+            timezone="Not/AZone",
+            offset=3,
+        ),
+    )
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 03:00:00"
+
+
 def test_normalize_dttm_col_invalid_date_coerced() -> None:
     """Test that invalid dates are coerced to NaT."""
     df = pd.DataFrame({"date_col": ["2020-01-01", "invalid_date", "2022-01-01"]})
