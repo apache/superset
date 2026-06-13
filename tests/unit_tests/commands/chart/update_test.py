@@ -155,6 +155,7 @@ def test_update_chart_owner_can_perform_regular_update(
 
 
 def _query_context_payload(datasource: object) -> dict[str, object]:
+    """Build a query-context-only update payload targeting ``datasource``."""
     return {
         "query_context": json.dumps({"datasource": datasource, "queries": []}),
         "query_context_generation": True,
@@ -183,6 +184,7 @@ def test_update_chart_query_context_matching_datasource_is_allowed(
         {"id": 99, "type": "table"},  # different id
         {"id": 42, "type": "query"},  # different type
         {"id": "99", "type": "table"},  # different id as string
+        {"id": 42},  # matching id but missing type
     ],
 )
 def test_update_chart_query_context_mismatched_datasource_is_rejected(
