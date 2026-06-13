@@ -40,6 +40,10 @@ class EmbeddedDashboard(Model, AuditMixinNullable):
 
     uuid = Column(UUIDType(binary=True), default=uuid.uuid4, primary_key=True)
     allow_domain_list = Column(Text)  # reference the `allowed_domains` property instead
+    # Epoch seconds; guest tokens whose `iat` predates this are rejected. Set to
+    # "now" to revoke all currently-issued guest tokens for this embedded
+    # dashboard. NULL = no revocation.
+    guest_token_revoked_before = Column(Integer, nullable=True)
     dashboard_id = Column(
         Integer,
         ForeignKey("dashboards.id", ondelete="CASCADE"),
