@@ -3434,9 +3434,8 @@ def test_check_script_length_counts_utf8_bytes(mocker: MockerFixture) -> None:
     """
     mocker.patch("superset.config.SQL_MAX_PARSE_LENGTH", 30)
     mocker.patch("superset.sql.parse.has_app_context", return_value=False)
-    # 20 emoji * 4 UTF-8 bytes each = 80 bytes, well over the 30-byte cap
+    # 20 emoji = 20 code points (under the 30-byte cap) but 80 UTF-8 bytes (over)
     payload = "\U0001f600" * 20
-    assert len(payload) == 20  # code points under the cap
     with pytest.raises(SupersetParseError):
         _check_script_length(payload, "postgresql")
 

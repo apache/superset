@@ -74,11 +74,10 @@ def _check_script_length(script: str, engine: str | None) -> None:
     # operator override); otherwise (Alembic migrations, scripts, isolated unit
     # tests) fall back to the documented default declared in ``superset.config``
     # so the bound stays sourced from configuration rather than duplicated here.
-    default = config.SQL_MAX_PARSE_LENGTH
     max_length = (
-        current_app.config.get("SQL_MAX_PARSE_LENGTH", default)
+        current_app.config.get("SQL_MAX_PARSE_LENGTH", config.SQL_MAX_PARSE_LENGTH)
         if has_app_context()
-        else default
+        else config.SQL_MAX_PARSE_LENGTH
     )
 
     if max_length is None:
