@@ -3210,6 +3210,85 @@ class TestDashboardApi(ApiOwnersTestCaseMixin, InsertChartMixin, SupersetTestCas
             response_roles = [result["text"] for result in response["result"]]
             assert response_roles == ["Alpha"]
 
+    def test_export_xlsx_501_when_bucket_unset(self):
+        """Dashboard API: export_xlsx returns 501 when the S3 bucket is unset."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard("xlsx-501", None, [admin.id])
+        self.login(ADMIN_USERNAME)
+        try:
+            rv = self.client.post(f"api/v1/dashboard/{dashboard.id}/export_xlsx/")
+            assert rv.status_code == 501
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_404_for_missing_dashboard(self, mock_task):
+        """Dashboard API: export_xlsx returns 404 for an unknown dashboard."""
+        self.login(ADMIN_USERNAME)
+        with patch.dict(
+            "flask.current_app.config",
+            {"EXCEL_EXPORT_S3_BUCKET": "exports"},
+        ):
+            rv = self.client.post("api/v1/dashboard/99999999/export_xlsx/")
+            assert rv.status_code == 404
+        mock_task.apply_async.assert_not_called()
+
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_400_for_empty_dashboard(self, mock_task):
+        """Dashboard API: export_xlsx returns 400 for a dashboard with no charts."""
+        admin = self.get_user("admin")
+        dashboard = self.insert_dashboard("xlsx-empty", None, [admin.id])
+        self.login(ADMIN_USERNAME)
+        try:
+            with patch.dict(
+                "flask.current_app.config",
+                {"EXCEL_EXPORT_S3_BUCKET": "exports"},
+            ):
+                rv = self.client.post(f"api/v1/dashboard/{dashboard.id}/export_xlsx/")
+                assert rv.status_code == 400
+            mock_task.apply_async.assert_not_called()
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_202_enqueues_task(self, mock_task):
+        """Dashboard API: export_xlsx enqueues the task and returns 202 + job_id."""
+        self.login(ADMIN_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        with patch.dict(
+            "flask.current_app.config",
+            {"EXCEL_EXPORT_S3_BUCKET": "exports"},
+        ):
+            rv = self.client.post(
+                f"api/v1/dashboard/{dashboard.id}/export_xlsx/",
+                json={"active_data_mask": {}},
+            )
+        assert rv.status_code == 202
+        body = json.loads(rv.data.decode("utf-8"))
+        job_id = body["job_id"]
+        assert job_id
+        mock_task.apply_async.assert_called_once()
+        _, kwargs = mock_task.apply_async.call_args
+        assert kwargs["task_id"] == job_id
+        assert kwargs["kwargs"]["dashboard_id"] == dashboard.id
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.api.export_dashboard_excel")
+    def test_export_xlsx_denied_for_gamma(self, mock_task):
+        """Dashboard API: a user without can_export cannot export to Excel."""
+        self.login(GAMMA_USERNAME)
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").first()
+        with patch.dict(
+            "flask.current_app.config",
+            {"EXCEL_EXPORT_S3_BUCKET": "exports"},
+        ):
+            rv = self.client.post(f"api/v1/dashboard/{dashboard.id}/export_xlsx/")
+        assert rv.status_code in (403, 404)
+        mock_task.apply_async.assert_not_called()
+
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_embedded_dashboards(self):
         self.login(ADMIN_USERNAME)
