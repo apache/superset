@@ -976,7 +976,7 @@ sqlalchemy==1.4.54
     #   shillelagh
     #   sqlalchemy-bigquery
     #   sqlalchemy-utils
-sqlalchemy-bigquery==1.15.0
+sqlalchemy-bigquery==1.17.0
     # via apache-superset
 sqlalchemy-utils==0.42.0
     # via
