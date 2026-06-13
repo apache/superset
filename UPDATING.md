@@ -67,6 +67,10 @@ Operators can tune or disable the policy via config:
 - `FAB_PASSWORD_COMPLEXITY_VALIDATOR` — replace with your own callable for custom rules.
 - `FAB_PASSWORD_COMPLEXITY_ENABLED = False` — disable enforcement entirely.
 
+### Data uploads bounded by UPLOAD_MAX_FILE_SIZE_BYTES
+
+Single data-file uploads (CSV, Excel, columnar) are now bounded by the `UPLOAD_MAX_FILE_SIZE_BYTES` config option, which defaults to `100 * 1024 * 1024` (100 MB). Files larger than this are rejected with a `413` before their contents are buffered into memory. Set `UPLOAD_MAX_FILE_SIZE_BYTES = None` to disable the check and restore unbounded uploads.
+
 ### Duration formatter precision
 
 The `DURATION` number formatter now uses `Intl.DurationFormat` for locale-aware output. By default, sub-second fields are omitted, so values that previously displayed fractional seconds with `pretty-ms`, such as `10500` milliseconds rendering as `10.5s`, now render as `10s`.
