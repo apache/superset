@@ -1,0 +1,80 @@
+---
+title: Exporting Dashboard Data to Excel
+hide_title: true
+sidebar_position: 7
+version: 1
+---
+
+# Exporting Dashboard Data to Excel
+
+Superset can export every chart on a dashboard to a single Excel workbook, with
+each chart's underlying data rendered as its own worksheet. The export reflects
+the dashboard's currently applied filters and runs asynchronously: when it
+finishes, the requesting user receives an email with a time-limited download
+link.
+
+## Using the export
+
+From a dashboard, open the **... (actions) → Download** submenu and choose
+**Export Data to Excel**. The action appears for users who have the dashboard
+`can_export` permission. You'll see a confirmation that the export is being
+prepared; the workbook arrives by email when it's ready.
+
+Notes on the generated workbook:
+
+- One worksheet per chart, named `{chart_id} - {chart title}` (truncated to
+  Excel's 31-character limit; the chart id keeps names unique).
+- Charts nested in tabs are included.
+- Data reflects the dashboard's active filter state at the time of export.
+- A chart with no saved query context is skipped and listed in the email; open
+  the chart in Explore and re-save it to include it next time.
+- Row counts per sheet are capped the same way as the chart-level CSV/Excel
+  export (`ROW_LIMIT`, bounded by `SQL_MAX_ROW`), and never exceed Excel's
+  per-sheet maximum.
+
+## Prerequisites
+
+This feature is **disabled by default**. It requires:
+
+1. **An S3 bucket.** Set `EXCEL_EXPORT_S3_BUCKET`. Until it is set, the export
+   endpoint returns `501` and the menu action surfaces a "not configured"
+   message.
+2. **A running Celery worker.** The export runs as a Celery task. If no worker
+   is running, the request is accepted but nothing is produced.
+3. **A configured SMTP transport.** The download link is delivered by email
+   using the same settings as alerts & reports (`SMTP_*`,
+   `EMAIL_REPORTS_SUBJECT_PREFIX`).
+
+Deployments that override `CELERY_CONFIG` must add
+`"superset.tasks.export_dashboard_excel"` to the `imports` tuple, or the task
+will not register.
+
+## Configuration keys
+
+| Key | Default | Description |
+| --- | --- | --- |
+| `EXCEL_EXPORT_S3_BUCKET` | `None` | Destination bucket. Required; `501` if unset. |
+| `EXCEL_EXPORT_S3_KEY_PREFIX` | `"dashboard-exports/"` | Key prefix: `{prefix}{dashboard_id}/{job_id}.xlsx`. |
+| `EXCEL_EXPORT_LINK_TTL_SECONDS` | `86400` | Lifetime of the pre-signed download URL (24h). |
+| `EXCEL_EXPORT_S3_CLIENT_KWARGS` | `{}` | Extra kwargs for `boto3.client("s3", ...)` — e.g. `region_name`, or `endpoint_url` for MinIO/LocalStack. |
+
+Credentials and region resolve through the standard boto3 chain (environment
+variables, shared config, or instance role) unless overridden via
+`EXCEL_EXPORT_S3_CLIENT_KWARGS`. The worker needs `s3:PutObject` on the bucket.
+
+## Security considerations
+
+- The emailed link is a **pre-signed S3 URL**: anyone who holds it can download
+  the workbook until it expires. Keep the bucket **private**, enable
+  encryption, and consider a lifecycle rule to delete objects after a few days.
+  Lower `EXCEL_EXPORT_LINK_TTL_SECONDS` if 24 hours is too long for your data.
+- The export runs with the requesting user's permissions; each chart's query is
+  access-checked, so users only ever receive data they are entitled to.
+
+## Limitations
+
+- **Embedded dashboards / guest tokens are not supported** in this version,
+  because guest users have no email address to deliver the link to. Logged-in
+  users viewing an embedded dashboard can still use the export.
+- Chart images and visual styling are not exported — data only.
+- Scheduled/automated exports are not part of this feature.
