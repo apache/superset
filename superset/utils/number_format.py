@@ -35,6 +35,7 @@ from babel.numbers import get_currency_symbol
 
 SMART_NUMBER = "SMART_NUMBER"
 SMART_NUMBER_SIGNED = "SMART_NUMBER_SIGNED"
+AUTO_CURRENCY = "AUTO"
 
 LOCALE = "en_US"
 
@@ -93,7 +94,10 @@ def format_number_with_config(
             # the frontend strips the currency symbol from the d3 format and
             # falls back to SMART_NUMBER when no explicit format is set
             number_format = (d3_format or SMART_NUMBER).replace("$", "")
-            return apply_currency(format_numeric(number_format, value), currency)
+            formatted = format_numeric(number_format, value)
+            if currency["symbol"] == AUTO_CURRENCY:
+                return formatted
+            return apply_currency(formatted, currency)
         if not d3_format:
             return raw_string(value)
         return format_numeric(d3_format, value)

@@ -299,17 +299,19 @@ def apply_pivot_number_formats(
     """
     Apply `valueFormat`/`columnFormats` and currency config to pivot values.
 
-    The metric name is the first level of each (Multi)Index column, so per-metric
-    overrides fall back to the global value format. In the ROWS metrics layout the
-    metric moves to the index and every value column uses the global format.
+    The metric name is the first column level, or the last when `combineMetric`
+    moves it there; per-metric overrides fall back to the global value format. In
+    the ROWS metrics layout the metric is on the index, so every value column
+    uses the global format.
     """
     value_format = form_data.get("valueFormat")
     column_formats = form_data.get("columnFormats") or {}
     currency_format = form_data.get("currencyFormat") or {}
     currency_formats = form_data.get("currencyFormats") or {}
+    metric_level = -1 if form_data.get("combineMetric") else 0
 
     for column in df.columns:
-        metric = column[0] if isinstance(column, tuple) else column
+        metric = column[metric_level] if isinstance(column, tuple) else column
         format_column(
             df,
             column,

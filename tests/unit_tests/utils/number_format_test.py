@@ -60,6 +60,15 @@ def test_currency_defaults_to_smart_number_when_no_d3_format():
     )
 
 
+def test_auto_currency_formats_without_symbol():
+    assert (
+        format_number_with_config(
+            ",.2f", {"symbol": "AUTO", "symbolPosition": "prefix"}, 1234.5
+        )
+        == "1,234.50"
+    )
+
+
 def test_non_numeric_value_is_returned_as_is():
     assert format_number_with_config(",.2f", None, "abc") == "abc"
     assert format_number_with_config(",.2f", None, None) == ""
