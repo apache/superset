@@ -1287,6 +1287,61 @@ def test_query_context_modified_time_grain_native_filter(
     assert not query_context_modified(query_context)
 
 
+def test_query_context_modified_time_grain_with_tampered_column(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that relaxing the time grain comparison does not open a tamper hole.
+
+    Only the ``timeGrain`` key is guest-overridable. A request that changes the
+    grain *and* also swaps a non-overridable attribute (here ``sqlExpression``,
+    which selects which column is queried) must still be flagged as tampering --
+    otherwise a guest could query an arbitrary column under cover of a Time Grain
+    filter.
+    """
+    stored_axis_column: AdhocColumn = {
+        "label": "order_date",
+        "sqlExpression": "order_date",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1M",
+    }
+    # Guest changes the grain (allowed) but also rewrites the SQL expression to a
+    # different column (not allowed) -- this must still read as a modification.
+    tampered_axis_column: AdhocColumn = {
+        **stored_axis_column,
+        "sqlExpression": "secret_column",
+        "timeGrain": "P1D",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+    }
+    query_context.slice_.query_context = json.dumps(
+        {
+            "queries": [
+                {
+                    "columns": [stored_axis_column],
+                    "metrics": ["count"],
+                }
+            ],
+        }
+    )
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+    }
+    query_context.queries = [
+        QueryObject(
+            columns=[tampered_axis_column],
+            metrics=["count"],
+        ),
+    ]
+
+    assert query_context_modified(query_context)
+
+
 def test_get_catalog_perm() -> None:
     """
     Test the `get_catalog_perm` method.
