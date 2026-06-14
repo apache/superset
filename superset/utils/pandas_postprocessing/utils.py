@@ -52,6 +52,13 @@ NUMPY_FUNCTIONS: dict[str, Callable[..., Any]] = {
     "var": np.var,
 }
 
+# Operators that pandas GroupBy.agg accepts as string names. Passing the string
+# avoids a FutureWarning raised when pandas receives a numpy callable it internally
+# maps to its own method (e.g. np.mean → SeriesGroupBy.mean).
+_PANDAS_STRING_AGGREGATORS: frozenset[str] = frozenset(
+    {"count", "max", "mean", "median", "min", "prod", "std", "sum", "var"}
+)
+
 DENYLIST_ROLLING_FUNCTIONS = (
     "count",
     "corr",
@@ -164,7 +171,7 @@ def _get_aggregate_funcs(
             )
         operator = agg_obj["operator"]
         if callable(operator):
-            aggfunc = operator
+            aggfunc: str | Callable[..., Any] = operator
         else:
             func = NUMPY_FUNCTIONS.get(operator)
             if not func:
@@ -175,7 +182,10 @@ def _get_aggregate_funcs(
                     )
                 )
             options = agg_obj.get("options", {})
-            aggfunc = partial(func, **options)
+            if not options and operator in _PANDAS_STRING_AGGREGATORS:
+                aggfunc = operator
+            else:
+                aggfunc = partial(func, **options)
         agg_funcs[name] = NamedAgg(column=column, aggfunc=aggfunc)
 
     return agg_funcs
