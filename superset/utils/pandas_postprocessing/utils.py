@@ -56,7 +56,7 @@ NUMPY_FUNCTIONS: dict[str, Callable[..., Any]] = {
 # avoids a FutureWarning raised when pandas receives a numpy callable it internally
 # maps to its own method (e.g. np.mean → SeriesGroupBy.mean).
 _PANDAS_STRING_AGGREGATORS: frozenset[str] = frozenset(
-    {"count", "max", "mean", "median", "min", "prod", "std", "sum", "var"}
+    {"max", "mean", "median", "min", "prod", "std", "sum", "var"}
 )
 
 DENYLIST_ROLLING_FUNCTIONS = (
