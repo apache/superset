@@ -69,6 +69,12 @@ def test_common_bootstrap_payload_handles_none_locale(
     mock_cached.assert_called_once_with(1, None)
 
 
+def test_default_map_renderer_is_exposed_to_frontend_config() -> None:
+    from superset.views.base import FRONTEND_CONF_KEYS
+
+    assert "DEFAULT_MAP_RENDERER" in FRONTEND_CONF_KEYS
+
+
 def _extract_language(
     locale_str: str | None,
     languages: dict[str, dict[str, object]] | None = None,
@@ -137,3 +143,37 @@ def test_locale_language_extraction_preserves_region_when_configured(
         "de": {},
     }
     assert _extract_language(locale_str, languages) == expected_language
+
+
+def test_api_query_returns_json_content_type() -> None:
+    """``Api.query`` returns a response with a JSON content type.
+
+    The handler should use ``json_response`` (like its ``query_form_data`` and
+    ``time_range`` siblings) so the ``Content-Type`` header is set consistently
+    instead of returning a raw JSON string.
+    """
+    from flask import current_app
+
+    from superset.views.api import Api
+
+    # Unwrap the decorator stack (event logger, auth, etc.) to exercise the
+    # handler body directly without app/DB auth context.
+    handler = Api.query
+    while hasattr(handler, "__wrapped__"):
+        handler = handler.__wrapped__
+
+    query_context = MagicMock()
+    query_context.get_payload.return_value = {"queries": [{"data": [{"a": 1}]}]}
+    factory = MagicMock()
+    factory.create.return_value = query_context
+
+    api_view = Api()
+
+    with patch.object(api_view, "get_query_context_factory", return_value=factory):
+        with current_app.test_request_context(
+            data={"query_context": '{"datasource": {"id": 1}}'}
+        ):
+            response = handler(api_view)
+
+    assert response.mimetype == "application/json"
+    assert response.content_type.startswith("application/json")

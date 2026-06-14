@@ -18,7 +18,7 @@
  */
 import { createRef, useCallback, useMemo } from 'react';
 import { shallowEqual, useSelector } from 'react-redux';
-import { useAppDispatch } from 'src/views/store';
+import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import { nanoid } from 'nanoid';
 import Tabs from '@superset-ui/core/components/Tabs';
 import { t } from '@apache-superset/core/translation';
@@ -31,7 +31,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { SqlLabRootState } from 'src/SqlLab/types';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import PanelToolbar from 'src/components/PanelToolbar';
-import { views } from 'src/core';
+import { useViews } from 'src/core';
 import { resolveView } from 'src/core/views';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
 import useLogAction from 'src/logger/useLogAction';
@@ -107,7 +107,7 @@ const SouthPane = ({
   const editorId = tabViewId ?? id;
   const theme = useTheme();
   const dispatch = useAppDispatch();
-  const viewItems = views.getViews(ViewLocations.sqllab.panels) || [];
+  const viewItems = useViews(ViewLocations.sqllab.panels) || [];
   const { offline, tables } = useSelector(
     ({ sqlLab: { offline, tables } }: SqlLabRootState) => ({
       offline,

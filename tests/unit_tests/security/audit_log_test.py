@@ -206,9 +206,12 @@ def test_group_api_post_delete_logs_event(mock_log: MagicMock) -> None:
 # --- Login / Logout ---
 
 
+@patch("superset.security.session_invalidation.stamp_login_time")
 @patch("superset.security.manager._log_audit_event")
-def test_on_user_login_logs_event(mock_log: MagicMock) -> None:
-    """on_user_login logs a UserLoggedIn event."""
+def test_on_user_login_logs_event(
+    mock_log: MagicMock, mock_stamp_login_time: MagicMock
+) -> None:
+    """on_user_login logs a UserLoggedIn event and stamps the session."""
     sm = SupersetSecurityManager.__new__(SupersetSecurityManager)
     user = MagicMock(spec=User)
     user.username = "testuser"
@@ -216,6 +219,7 @@ def test_on_user_login_logs_event(mock_log: MagicMock) -> None:
 
     sm.on_user_login(user)
 
+    mock_stamp_login_time.assert_called_once()
     mock_log.assert_called_once_with(
         "UserLoggedIn", {"username": "testuser", "user_id": 7}
     )
