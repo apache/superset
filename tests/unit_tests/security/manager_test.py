@@ -1342,6 +1342,58 @@ def test_query_context_modified_time_grain_with_tampered_column(
     assert query_context_modified(query_context)
 
 
+def test_query_context_modified_time_grain_in_orderby(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test `query_context_modified` when the time grain travels inside `orderby`.
+
+    Each ``orderby`` entry is an ``(column, bool)`` tuple, so a temporal x-axis
+    adhoc column carrying the guest-overridable ``timeGrain`` is nested one level
+    deep rather than sitting at the top level. The overridable key must still be
+    stripped before comparing, otherwise sorting by the temporal axis would make
+    a pure time-grain change read as tampering.
+    """
+    stored_axis_column: AdhocColumn = {
+        "label": "order_date",
+        "sqlExpression": "order_date",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1M",
+    }
+    requested_axis_column: AdhocColumn = {
+        **stored_axis_column,
+        "timeGrain": "P1D",
+    }
+
+    query_context = mocker.MagicMock()
+    query_context.slice_.id = 42
+    query_context.slice_.params_dict = {
+        "metrics": ["count"],
+    }
+    query_context.slice_.query_context = json.dumps(
+        {
+            "queries": [
+                {
+                    "orderby": [[stored_axis_column, True]],
+                    "metrics": ["count"],
+                }
+            ],
+        }
+    )
+    query_context.form_data = {
+        "slice_id": 42,
+        "metrics": ["count"],
+    }
+    query_context.queries = [
+        QueryObject(
+            orderby=[(requested_axis_column, True)],
+            metrics=["count"],
+        ),
+    ]
+
+    assert not query_context_modified(query_context)
+
+
 def test_get_catalog_perm() -> None:
     """
     Test the `get_catalog_perm` method.
