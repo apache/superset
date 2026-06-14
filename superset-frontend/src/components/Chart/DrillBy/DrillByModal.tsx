@@ -54,7 +54,7 @@ import {
   LOG_ACTIONS_FURTHER_DRILL_BY,
 } from 'src/logger/LogUtils';
 import { findPermission } from 'src/utils/findPermission';
-import { getQuerySettings } from 'src/explore/exploreUtils';
+import { getQuerySettings, exportChart } from 'src/explore/exploreUtils';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
@@ -208,12 +208,6 @@ export default function DrillByModal({
 
   const { displayModeToggle, drillByDisplayMode } = useDisplayModeToggle();
   const [chartDataResult, setChartDataResult] = useState<QueryData[]>();
-
-  const resultsTable = useResultsTableView(
-    chartDataResult,
-    formData.datasource,
-    canDownload,
-  );
 
   const [currentFormData, setCurrentFormData] = useState(formData);
   const [usedGroupbyColumns, setUsedGroupbyColumns] = useState<Column[]>(
@@ -376,6 +370,63 @@ export default function DrillByModal({
     getNewGroupby,
     formData,
   ]);
+
+  const handleDownload = useCallback(
+    (exportType: 'csv' | 'xlsx') => {
+      Promise.resolve(
+        exportChart({
+          formData: drilledFormData,
+          resultFormat: exportType,
+          resultType: 'full',
+        }),
+      ).catch(error => {
+        addDangerToast(
+          t('Failed to generate download: %s', error?.message || error),
+        );
+      });
+    },
+    [drilledFormData, addDangerToast],
+  );
+
+  const handleDownloadCSV = useCallback(
+    () => handleDownload('csv'),
+    [handleDownload],
+  );
+
+  const handleDownloadXLSX = useCallback(
+    () => handleDownload('xlsx'),
+    [handleDownload],
+  );
+
+  const handleReload = useCallback(() => {
+    setChartDataResult(undefined);
+    setIsChartDataLoading(true);
+    const [useLegacyApi] = getQuerySettings(drilledFormData);
+    getChartDataRequest({
+      formData: drilledFormData,
+    })
+      .then(({ response, json }) =>
+        handleChartDataResponse(response, json, useLegacyApi),
+      )
+      .then(queriesResponse => {
+        setChartDataResult(queriesResponse);
+      })
+      .catch(() => {
+        addDangerToast(t('Failed to load chart data.'));
+      })
+      .finally(() => {
+        setIsChartDataLoading(false);
+      });
+  }, [addDangerToast, drilledFormData]);
+
+  const resultsTable = useResultsTableView(
+    chartDataResult,
+    formData.datasource,
+    canDownload,
+    handleDownloadCSV,
+    handleDownloadXLSX,
+    handleReload,
+  );
 
   useEffect(() => {
     setUsedGroupbyColumns(usedCols =>

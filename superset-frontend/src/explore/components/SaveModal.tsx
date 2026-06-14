@@ -34,6 +34,7 @@ import {
   Loading,
   Divider,
   Flex,
+  Typography,
   TreeSelect,
 } from '@superset-ui/core/components';
 import { logging } from '@apache-superset/core/utils';
@@ -92,11 +93,6 @@ type SaveModalState = {
 export const StyledModal = styled(Modal)`
   .ant-modal-body {
     overflow: visible;
-  }
-  i {
-    position: absolute;
-    top: -${({ theme }) => theme.sizeUnit * 5.25}px;
-    left: ${({ theme }) => theme.sizeUnit * 26.75}px;
   }
 `;
 
@@ -172,17 +168,21 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
     this.setState({ newSliceName: event.target.value });
   }
 
-  onDashboardChange = async (dashboard: {
-    label: string;
-    value: string | number;
-  }) => {
+  onDashboardChange = async (
+    dashboard:
+      | {
+          label: string;
+          value: string | number;
+        }
+      | undefined,
+  ) => {
     this.setState({
       dashboard,
       tabsData: [],
       selectedTab: undefined,
     });
 
-    if (typeof dashboard.value === 'number') {
+    if (dashboard && typeof dashboard.value === 'number') {
       await this.loadTabs(dashboard.value);
     }
   };
@@ -598,18 +598,32 @@ class SaveModal extends Component<SaveModalProps, SaveModalState> {
 
   renderSaveChartModal = () => {
     const info = this.info();
+    const canOverwriteSlice = this.canOverwriteSlice();
     return (
       <Form data-test="save-modal-body" layout="vertical">
         <FormItem data-test="radio-group">
           <Radio
             id="overwrite-radio"
-            disabled={!this.canOverwriteSlice()}
+            disabled={!canOverwriteSlice}
             checked={this.state.action === 'overwrite'}
             onChange={() => this.changeAction('overwrite')}
             data-test="save-overwrite-radio"
           >
             {t('Save (Overwrite)')}
           </Radio>
+          {this.props.slice && !canOverwriteSlice && (
+            <div>
+              <Typography.Text type="secondary">
+                {this.props.slice.is_managed_externally
+                  ? t(
+                      "This chart is managed externally and can't be overwritten in Superset.",
+                    )
+                  : t(
+                      'Must be a chart owner to overwrite this chart. Save as a new chart instead.',
+                    )}
+              </Typography.Text>
+            </div>
+          )}
           <Radio
             id="saveas-radio"
             data-test="saveas-radio"

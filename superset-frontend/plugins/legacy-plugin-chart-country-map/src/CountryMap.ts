@@ -21,6 +21,7 @@
 import d3 from 'd3';
 import { extent as d3Extent } from 'd3-array';
 import {
+  ValueFormatter,
   getNumberFormatter,
   getSequentialSchemeRegistry,
   CategoricalColorNamespace,
@@ -60,7 +61,8 @@ interface CountryMapProps {
   height: number;
   country: string;
   linearColorScheme: string;
-  numberFormat: string;
+  numberFormat?: string; // left for backward compatibility
+  formatter: ValueFormatter;
   colorScheme: string;
   sliceId: number;
 }
@@ -74,13 +76,12 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     height,
     country,
     linearColorScheme,
-    numberFormat,
+    formatter,
     colorScheme,
     sliceId,
   } = props;
 
   const container = element;
-  const format = getNumberFormatter(numberFormat);
   const rawExtents = d3Extent(data, v => v.metric);
   const extents: [number, number] =
     rawExtents[0] != null && rawExtents[1] != null
@@ -164,6 +165,16 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
     return '';
   };
 
+  const updatePopupPosition = () => {
+    const svgHeight = svg.node().getBoundingClientRect().height;
+    const [x, y] = d3.mouse(svg.node());
+    hoverPopup
+      .style('display', 'block')
+      .style('top', `${y + 30}px`)
+      .style('left', `${x}px`)
+      .classed('popup-at-bottom', y > (svgHeight * 2) / 3);
+  };
+
   const mouseenter = function mouseenter(this: SVGPathElement, d: GeoFeature) {
     // Darken color
     let c: string = colorFn(d);
@@ -176,21 +187,14 @@ function CountryMap(element: HTMLElement, props: CountryMapProps) {
       region => region.country_id === d.properties.ISO,
     );
 
-    const position = d3.mouse(svg.node());
-    hoverPopup
-      .style('display', 'block')
-      .style('top', `${position[1] + 30}px`)
-      .style('left', `${position[0]}px`)
-      .html(
-        `<div><strong>${getNameOfRegion(d)}</strong><br>${result.length > 0 ? format(result[0].metric) : ''}</div>`,
-      );
+    hoverPopup.style('display', 'block').html(
+      `<div><strong>${getNameOfRegion(d)}</strong><br>${result.length > 0 ? formatter(result[0].metric) : ''}</div>`,
+    );
+    updatePopupPosition();
   };
 
   const mousemove = function mousemove() {
-    const position = d3.mouse(svg.node());
-    hoverPopup
-      .style('top', `${position[1] + 30}px`)
-      .style('left', `${position[0]}px`);
+    updatePopupPosition();
   };
 
   const mouseout = function mouseout(this: SVGPathElement) {

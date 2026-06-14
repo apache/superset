@@ -17,8 +17,17 @@
  * under the License.
  */
 import cx from 'classnames';
-import { useCallback, useEffect, useRef, useMemo, useState, memo } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useMemo,
+  useState,
+  memo,
+  RefObject,
+} from 'react';
 import type { ChartCustomization, JsonObject } from '@superset-ui/core';
+import { VizType } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { debounce } from 'lodash';
@@ -88,6 +97,7 @@ interface ChartProps {
   extraControls?: JsonObject;
   isInView?: boolean;
   cacheBusterProp?: string | number;
+  chartHolderRef?: RefObject<HTMLDivElement>;
 }
 
 const RESIZE_TIMEOUT = 500;
@@ -486,7 +496,9 @@ const Chart = (props: ChartProps) => {
       const resultType = isPivot ? 'post_processed' : 'full';
 
       let actualRowCount: number | undefined;
-      const isTableViz = (formData as JsonObject)?.viz_type === 'table';
+      const vizType = (formData as JsonObject)?.viz_type;
+      const isTableViz =
+        vizType === VizType.Table || vizType === VizType.TableAgGrid;
 
       if (
         isTableViz &&
@@ -688,6 +700,7 @@ const Chart = (props: ChartProps) => {
         width={width}
         height={getHeaderHeight()}
         exportPivotExcel={exportPivotExcel as unknown as (arg0: string) => void}
+        chartHolderRef={props.chartHolderRef}
       />
 
       {/*

@@ -32,11 +32,11 @@ def test_csrf_exempt_blueprints(app_context: None) -> None:
     are exempt from CSRF protection.
     """
     assert {blueprint.name for blueprint in csrf._exempt_blueprints} == {
-        "GroupApi",
+        "SupersetGroupApi",
         "MenuApi",
         "SecurityApi",
         "OpenApi",
-        "PermissionViewMenuApi",
+        "SupersetPermissionViewMenuApi",
         "SupersetRoleApi",
         "SupersetUserApi",
         "PermissionApi",

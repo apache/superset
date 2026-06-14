@@ -334,6 +334,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         :param cancel_query_id: Snowflake Session ID
         :return: True if query cancelled successfully, False otherwise
         """
+        # Validate cancel_query_id to prevent SQL injection
+        # Snowflake CURRENT_SESSION() returns an alphanumeric VARCHAR session ID
+        if not cls.validate_cancel_query_id(cancel_query_id, r"^[a-zA-Z0-9]+$"):
+            return False
+
         try:
             cursor.execute(f"SELECT SYSTEM$CANCEL_ALL_QUERIES({cancel_query_id})")
         except Exception:  # pylint: disable=broad-except

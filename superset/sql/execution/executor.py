@@ -69,6 +69,8 @@ from flask import current_app as app, g, has_app_context
 from superset import db
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
     SupersetSecurityException,
     SupersetTimeoutException,
 )
@@ -318,6 +320,10 @@ class SQLExecutor:
             )
         except SupersetSecurityException as ex:
             return self._create_error_result(QueryStatus.FAILED, str(ex), start_time)
+        except (OAuth2RedirectError, OAuth2Error):
+            # Let OAuth2 exceptions propagate so callers (MCP, API) can
+            # handle them with context-appropriate responses.
+            raise
         except Exception as ex:
             error_msg = self.database.db_engine_spec.extract_error_message(ex)
             return self._create_error_result(QueryStatus.FAILED, error_msg, start_time)
