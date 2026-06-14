@@ -134,7 +134,7 @@ def test_command_with_masking_database_invalid_error(mocker: MockerFixture) -> N
     Test that the command handles DatabaseInvalidError when masking the sqlalchemy_uri.
     """
     database = mocker.MagicMock()
-    database.sqlalchemy_uri = "invalid-uri"
+    database.sqlalchemy_uri = "sqlite://"
     database.db_engine_spec.__name__ = "PostgresEngineSpec"
 
     # Mock ping to raise a Timeout exception
@@ -148,10 +148,11 @@ def test_command_with_masking_database_invalid_error(mocker: MockerFixture) -> N
         ),
     )
 
-    # Mock make_url_safe to raise DatabaseInvalidError
+    # Mock make_url_safe to succeed initially and raise DatabaseInvalidError later
+    from superset.databases.utils import make_url_safe
     mocker.patch(
         "superset.commands.database.test_connection.make_url_safe",
-        side_effect=DatabaseInvalidError(),
+        side_effect=[make_url_safe("sqlite://"), DatabaseInvalidError()],
     )
 
     DatabaseDAO = mocker.patch(  # noqa: N806

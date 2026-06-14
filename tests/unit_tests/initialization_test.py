@@ -16,7 +16,7 @@
 # under the License.
 
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 from sqlalchemy.exc import OperationalError
@@ -204,7 +204,7 @@ class TestSupersetAppInitializer:
             with patch.object(
                 SupersetAppInitializer,
                 "database_uri",
-                new_callable=pytest.PropertyMock,
+                new_callable=PropertyMock,
             ) as mock_uri:
                 mock_uri.return_value = "postgresql://user:pass@host/db"
                 app_initializer = SupersetAppInitializer(mock_app)
