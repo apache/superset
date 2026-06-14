@@ -125,7 +125,7 @@ HandlebarsGroupBy.register(Handlebars);
 // signature so existing templates keep rendering.
 Handlebars.registerHelper('formatDate', (formatString, date, localeString) => {
   const format = typeof formatString === 'string' ? formatString : '';
-  const instance = dayjs(date || new Date());
+  const instance = dayjs(date ?? new Date());
   // Handlebars always passes its options object as the final argument, so a
   // locale is only present when the caller supplied an explicit string.
   return typeof localeString === 'string'
