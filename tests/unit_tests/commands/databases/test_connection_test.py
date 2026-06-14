@@ -150,9 +150,14 @@ def test_command_with_masking_database_invalid_error(mocker: MockerFixture) -> N
 
     # Mock make_url_safe to succeed initially and raise DatabaseInvalidError later
     from superset.databases.utils import make_url_safe
+
     mocker.patch(
         "superset.commands.database.test_connection.make_url_safe",
-        side_effect=[make_url_safe("sqlite://"), DatabaseInvalidError()],
+        side_effect=[
+            make_url_safe("sqlite://"),
+            make_url_safe("sqlite://"),
+            DatabaseInvalidError(),
+        ],
     )
 
     DatabaseDAO = mocker.patch(  # noqa: N806
