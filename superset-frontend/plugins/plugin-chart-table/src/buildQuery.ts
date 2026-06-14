@@ -229,11 +229,17 @@ const buildQuery: BuildQuery<TableChartFormData> = (
     }
 
     if (!isDownloadQuery && formDataCopy.server_pagination) {
-      const pageSize = ownState.pageSize ?? formDataCopy.server_page_length;
-      const currentPage = ownState.currentPage ?? 0;
+      const pageSize =
+        Number(ownState.pageSize ?? formDataCopy.server_page_length) || 0;
+      const currentPage = Number(ownState.currentPage) || 0;
+      const rowOffset = currentPage * pageSize;
+      const rowLimit = Number(formDataCopy.row_limit) || 0;
+      const remainingRows =
+        rowLimit > 0 ? Math.max(rowLimit - rowOffset, 0) : pageSize;
 
-      moreProps.row_limit = pageSize;
-      moreProps.row_offset = currentPage * pageSize;
+      moreProps.row_limit =
+        rowLimit > 0 ? Math.min(pageSize, remainingRows) : pageSize;
+      moreProps.row_offset = rowOffset;
     }
 
     // getting sort by in case of server pagination from own state
