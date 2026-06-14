@@ -32,6 +32,7 @@ import {
   getExtensionsRegistry,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
+import { Button } from '@superset-ui/core/components';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import { updateExploreChartState } from 'src/explore/actions/exploreActions';
@@ -392,14 +393,13 @@ const ExploreChartPanel = ({
                 {t(
                   'This chart type is not supported when using an unsaved query as a chart source. ',
                 )}
-                <span
-                  role="button"
-                  tabIndex={0}
+                <Button
+                  buttonStyle="link"
                   onClick={() => setShowDatasetModal(true)}
                   css={{ textDecoration: 'underline' }}
                 >
                   {t('Create a dataset')}
-                </span>
+                </Button>
                 {t(' to visualize your data.')}
               </>
             }
@@ -420,9 +420,9 @@ const ExploreChartPanel = ({
                   {t(
                     'You updated the values in the control panel, but the chart was not updated automatically. Run the query by clicking on the "Update chart" button or',
                   )}{' '}
-                  <span role="button" tabIndex={0} onClick={onQuery}>
+                  <Button buttonStyle="link" onClick={onQuery}>
                     {t('click here')}
-                  </span>
+                  </Button>
                   .
                 </span>
               )

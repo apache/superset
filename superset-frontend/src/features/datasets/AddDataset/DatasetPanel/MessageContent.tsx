@@ -52,9 +52,7 @@ const renderEmptyDescription = () => (
   <>
     {SELECT_MESSAGE}
     <Link to="/sqllab">
-      <span role="button" tabIndex={0}>
-        {CREATE_MESSAGE}
-      </span>
+      {CREATE_MESSAGE}
     </Link>
     {VIEW_DATASET_MESSAGE}
   </>

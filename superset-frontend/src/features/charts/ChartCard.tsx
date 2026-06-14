@@ -82,10 +82,9 @@ export default function ChartCard({
     menuItems.push({
       key: 'edit',
       label: (
-        <div
+        <Button
+          buttonStyle="link"
           data-test="chart-list-edit-option"
-          role="button"
-          tabIndex={0}
           onClick={() => openChartEditModal(chart)}
         >
           <Icons.EditOutlined
@@ -95,7 +94,7 @@ export default function ChartCard({
             `}
           />{' '}
           {t('Edit')}
-        </div>
+        </Button>
       ),
     });
   }
@@ -104,9 +103,8 @@ export default function ChartCard({
     menuItems.push({
       key: 'export',
       label: (
-        <div
-          role="button"
-          tabIndex={0}
+        <Button
+          buttonStyle="link"
           onClick={() => handleBulkChartExport([chart])}
         >
           <Icons.UploadOutlined
@@ -116,7 +114,7 @@ export default function ChartCard({
             `}
           />{' '}
           {t('Export')}
-        </div>
+        </Button>
       ),
     });
   }
@@ -145,10 +143,9 @@ export default function ChartCard({
           }
         >
           {confirmDelete => (
-            <div
+            <Button
+              buttonStyle="link"
               data-test="chart-list-delete-option"
-              role="button"
-              tabIndex={0}
               className="action-button"
               onClick={confirmDelete}
             >
@@ -159,7 +156,7 @@ export default function ChartCard({
                 `}
               />{' '}
               {t('Delete')}
-            </div>
+            </Button>
           )}
         </ConfirmStatusChange>
       ),

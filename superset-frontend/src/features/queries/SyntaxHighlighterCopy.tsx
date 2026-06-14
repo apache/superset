@@ -25,6 +25,7 @@ import CodeSyntaxHighlighter, {
   preloadLanguages,
 } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { Button } from '@superset-ui/core/components';
 import { ToastProps } from 'src/components/MessageToasts/withToasts';
 import copyTextToClipboard from 'src/utils/copy';
 
@@ -116,14 +117,14 @@ export default function SyntaxHighlighterCopy({
 
   return (
     <SyntaxHighlighterWrapper>
-      <Icons.CopyOutlined
+      <Button
+        buttonStyle="link"
         className="copy-button"
-        tabIndex={0}
-        role="button"
         aria-label={t('Copy code to clipboard')}
         onClick={handleCopyClick}
-        onKeyDown={handleKeyDown}
-      />
+      >
+        <Icons.CopyOutlined />
+      </Button>
       <CodeSyntaxHighlighter
         language={language}
         showCopyButton={false}

@@ -103,15 +103,14 @@ function DashboardCard({
     menuItems.push({
       key: 'edit',
       label: (
-        <div
-          role="button"
-          tabIndex={0}
+        <Button
+          buttonStyle="link"
           className="action-button"
           onClick={() => openDashboardEditModal(dashboard)}
           data-test="dashboard-card-option-edit-button"
         >
           <Icons.EditOutlined iconSize="l" data-test="edit-alt" /> {t('Edit')}
-        </div>
+        </Button>
       ),
     });
   }
@@ -120,15 +119,14 @@ function DashboardCard({
     menuItems.push({
       key: 'export',
       label: (
-        <div
-          role="button"
-          tabIndex={0}
+        <Button
+          buttonStyle="link"
           onClick={() => handleBulkDashboardExport([dashboard])}
           className="action-button"
           data-test="dashboard-card-option-export-button"
         >
           <Icons.UploadOutlined iconSize="l" /> {t('Export')}
-        </div>
+        </Button>
       ),
     });
   }
@@ -137,15 +135,14 @@ function DashboardCard({
     menuItems.push({
       key: 'delete',
       label: (
-        <div
-          role="button"
-          tabIndex={0}
+        <Button
+          buttonStyle="link"
           className="action-button"
           onClick={() => onDelete(dashboard)}
           data-test="dashboard-card-option-delete-button"
         >
           <Icons.DeleteOutlined iconSize="l" /> {t('Delete')}
-        </div>
+        </Button>
       ),
     });
   }

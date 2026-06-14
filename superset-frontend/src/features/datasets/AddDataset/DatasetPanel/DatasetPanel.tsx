@@ -18,6 +18,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
+import { Button } from '@superset-ui/core/components';
 import { styled } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Loading } from '@superset-ui/core/components';
@@ -224,8 +225,8 @@ const renderExistingDatasetAlert = (dataset?: DatasetObject) => (
     description={
       <>
         {EXISTING_DATASET_DESCRIPTION}
-        <span
-          role="button"
+        <Button
+          buttonStyle="link"
           onClick={() => {
             window.open(
               dataset?.explore_url,
@@ -233,11 +234,10 @@ const renderExistingDatasetAlert = (dataset?: DatasetObject) => (
               'noreferrer noopener popup=false',
             );
           }}
-          tabIndex={0}
           className="view-dataset-button"
         >
           {VIEW_DATASET}
-        </span>
+        </Button>
       </>
     }
   />

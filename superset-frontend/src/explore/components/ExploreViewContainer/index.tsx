@@ -48,7 +48,7 @@ import { logging } from '@apache-superset/core/utils';
 import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash';
 import { Resizable } from 're-resizable';
 import { useHistory } from 'react-router-dom';
-import { Tooltip } from '@superset-ui/core/components';
+import { Button, Tooltip } from '@superset-ui/core/components';
 import { usePluginContext } from 'src/components';
 import { Global } from '@emotion/react';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -989,11 +989,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         >
           <div className="title-container">
             <span className="horizontal-text">{t('Chart Source')}</span>
-            <span
-              role="button"
-              tabIndex={0}
+            <Button
+              buttonStyle="link"
               className="action-button"
               onClick={toggleCollapse}
+              aria-label={t('Close Datasource tab')}
             >
               <Icons.VerticalAlignTopOutlined
                 iconSize="xl"
@@ -1003,7 +1003,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
                 className="collapse-icon"
                 iconColor={theme.colorPrimary}
               />
-            </span>
+            </Button>
           </div>
           {/* eslint-disable @typescript-eslint/no-explicit-any -- DataSourcePanel uses narrower types that are compatible at runtime */}
           <DataSourcePanel
@@ -1020,10 +1020,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
             className="sidebar"
             onClick={toggleCollapse}
             data-test="open-datasource-tab"
-            role="button"
-            tabIndex={0}
           >
-            <span role="button" tabIndex={0} className="action-button">
+            <Button
+              buttonStyle="link"
+              className="action-button"
+              aria-label={t('Open Datasource tab')}
+              onClick={toggleCollapse}
+            >
               <Tooltip title={t('Open Datasource tab')}>
                 <Icons.VerticalAlignTopOutlined
                   iconSize="xl"
@@ -1034,7 +1037,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
                   iconColor={theme.colorPrimary}
                 />
               </Tooltip>
-            </span>
+            </Button>
           </div>
         ) : null}
         <Resizable
