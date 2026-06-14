@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2025-11-05 14:37+0300\n"
 "Last-Translator: innovark\n"
 "Language: ru\n"
@@ -4552,6 +4552,9 @@ msgstr "Настройки базы данных обновлены"
 
 msgid "Database type does not support file uploads."
 msgstr "База данных не поддерживает загрузку файлов"
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "Произошла ошибка при загрузке файла в базу данных"
@@ -17861,10 +17864,6 @@ msgstr "по возрастанию значения"
 
 msgid "value descending"
 msgstr "по убыванию значения"
-
-#, fuzzy
-msgid "valuename"
-msgstr "Имя таблицы"
 
 msgid "var"
 msgstr "дисперсия"

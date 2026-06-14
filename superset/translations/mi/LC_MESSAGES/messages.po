@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -4583,6 +4583,9 @@ msgstr "Kua whakahouhia ngā tautuhinga pātengi raraunga"
 
 msgid "Database type does not support file uploads."
 msgstr "Karekau e tautoko te momo pātengi raraunga i ngā tukuake kōnae."
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 msgid "Database upload file failed"
 msgstr "I rahua te tukuake kōnae pātengi raraunga"
@@ -18223,10 +18226,6 @@ msgstr "uara piki"
 
 msgid "value descending"
 msgstr "uara heke"
-
-#, fuzzy
-msgid "valuename"
-msgstr "Ingoa ripanga"
 
 msgid "var"
 msgstr "var"

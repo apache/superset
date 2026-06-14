@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -4562,6 +4562,9 @@ msgstr "La tua query non può essere salvata"
 #, fuzzy
 msgid "Database type does not support file uploads."
 msgstr "Sorgente dati e tipo di grafico"
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 #, fuzzy
 msgid "Database upload file failed"
@@ -17931,10 +17934,6 @@ msgstr "Importa"
 #, fuzzy
 msgid "value descending"
 msgstr "Importa"
-
-#, fuzzy
-msgid "valuename"
-msgstr "Database"
 
 msgid "var"
 msgstr ""
