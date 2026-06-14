@@ -1717,7 +1717,7 @@ def test_native_filter_default_uses_data_cache_timeout(
     login_as_admin,
     physical_query_context,
 ):
-    physical_query_context["form_data"] = _NATIVE_FILTER_SELECT_FORM_DATA
+    physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
     assert rv.json["result"][0]["cache_timeout"] == 3456
 
@@ -1731,7 +1731,7 @@ def test_native_filter_uses_native_filter_options_cache_timeout(
     login_as_admin,
     physical_query_context,
 ):
-    physical_query_context["form_data"] = _NATIVE_FILTER_SELECT_FORM_DATA
+    physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
     assert rv.json["result"][0]["cache_timeout"] == 9999
 
@@ -1753,7 +1753,7 @@ def test_native_filter_overrides_dataset_timeout(
     datasource.cache_timeout = 86400
     db.session.commit()
 
-    physical_query_context["form_data"] = _NATIVE_FILTER_SELECT_FORM_DATA
+    physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
     assert rv.json["result"][0]["cache_timeout"] == 300
 
@@ -1795,7 +1795,7 @@ def test_native_filter_cache_disabled_semantics(
     login_as_admin,
     physical_query_context,
 ):
-    physical_query_context["form_data"] = _NATIVE_FILTER_SELECT_FORM_DATA
+    physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
     test_client.post(CHART_DATA_URI, json=physical_query_context)
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
     assert rv.json["result"][0]["is_cached"] is None
@@ -1829,7 +1829,7 @@ def test_explicit_custom_timeout_wins_over_native_filter(
     login_as_admin,
     physical_query_context,
 ):
-    physical_query_context["form_data"] = _NATIVE_FILTER_SELECT_FORM_DATA
+    physical_query_context["form_data"] = copy.deepcopy(_NATIVE_FILTER_SELECT_FORM_DATA)
     physical_query_context["custom_cache_timeout"] = CACHE_DISABLED_TIMEOUT
     rv = test_client.post(CHART_DATA_URI, json=physical_query_context)
     assert rv.json["result"][0]["cache_timeout"] == CACHE_DISABLED_TIMEOUT

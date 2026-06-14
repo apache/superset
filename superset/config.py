@@ -1217,8 +1217,8 @@ STORE_CACHE_KEYS_IN_METADATA_DB = False
 
 # Cache timeout (in seconds) specifically for native dashboard filter option queries.
 # Native filter queries use `DATA_CACHE_CONFIG` as their backend, but their TTL can be
-# configured independently here because they often require fresher data (e.g., due to
-# RLS).
+# configured independently here because they often require fresher data (e.g., for
+# datasets whose visible values change frequently, including RLS-constrained datasets).
 #
 # Valid values:
 #   None : Preserve the existing cache timeout resolution chain.

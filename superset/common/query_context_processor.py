@@ -446,7 +446,8 @@ class QueryContextProcessor:
         filter system when "Dynamically search all filter values" is enabled.
         They share the ``/api/v1/chart/data`` endpoint with regular chart
         queries but have different freshness requirements, especially for
-        datasets with Row Level Security (RLS).
+        datasets whose visible values may change frequently, including
+        RLS-constrained datasets.
 
         Detection is based on two stable fields that are exclusively set by
         the native filter system:
