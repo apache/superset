@@ -107,7 +107,9 @@ def test_get_data_csv(mock_df_to_escaped_csv, processor, mock_query_context):
 
     mock_df_to_escaped_csv.return_value = "col1,col2\n1,a\n2,b\n3,c\n"
     result = processor.get_data(df, coltypes)
-    assert result == "col1,col2\n1,a\n2,b\n3,c\n"
+    # CSV output is encoded to bytes using the CSV_EXPORT encoding so dashboard
+    # chart exports honor the configured encoding (e.g. the utf-8-sig BOM).
+    assert result == "col1,col2\n1,a\n2,b\n3,c\n".encode("utf-8-sig")
     mock_df_to_escaped_csv.assert_called_once_with(
         df, index=False, encoding="utf-8-sig"
     )
@@ -183,7 +185,7 @@ def test_get_data_empty_dataframe_csv(
     mock_query_context.result_format = ChartDataResultFormat.CSV
     mock_df_to_escaped_csv.return_value = "col1,col2\n"
     result = processor.get_data(df, coltypes)
-    assert result == "col1,col2\n"
+    assert result == "col1,col2\n".encode("utf-8-sig")
     mock_df_to_escaped_csv.assert_called_once_with(
         df, index=False, encoding="utf-8-sig"
     )
