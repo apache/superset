@@ -81,6 +81,13 @@ async function startEmbedAppServer(): Promise<EmbedAppServer> {
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const urlPath = req.url?.split('?')[0] || '/';
     if (urlPath === '/sdk/index.js') {
+      if (!existsSync(SDK_BUNDLE_PATH)) {
+        res.writeHead(404);
+        res.end(
+          'SDK bundle not found. Run: cd superset-embedded-sdk && npm ci && npm run build',
+        );
+        return;
+      }
       res.writeHead(200, { 'Content-Type': 'text/javascript' });
       res.end(readFileSync(SDK_BUNDLE_PATH));
       return;
@@ -215,7 +222,7 @@ test.describe('Embedded Pivot Table collapse state (#33406)', () => {
         position_json: JSON.stringify(positionJson),
       });
       const dashBody = await dashResp.json();
-      dashboardId = dashBody.result?.id ?? dashBody.id;
+      dashboardId = dashBody.id;
       await apiPut(setupPage, `api/v1/chart/${chartId}`, {
         dashboards: [dashboardId],
       });
