@@ -1835,8 +1835,6 @@ def test_explicit_custom_timeout_wins_over_native_filter(
     assert rv.json["result"][0]["cache_timeout"] == CACHE_DISABLED_TIMEOUT
 
 
-
-
 def test_chart_cache_timeout(
     load_energy_table_with_slice: list[Slice],  # noqa: F811
     test_client,
