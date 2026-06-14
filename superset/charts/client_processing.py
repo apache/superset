@@ -25,6 +25,7 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 """
 
 import logging
+from functools import partial
 from io import StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
 
@@ -41,6 +42,7 @@ from superset.utils.core import (
     get_column_names,
     get_metric_names,
 )
+from superset.utils.number_format import format_number_with_config
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -256,6 +258,16 @@ pivot_v2_aggfunc_map = {
 }
 
 
+def format_column(
+    df: pd.DataFrame, column: Any, d3_format: Optional[str], currency: dict[str, Any]
+) -> None:
+    """Format a column in place when a number or currency format is configured."""
+    if d3_format or currency.get("symbol"):
+        df[column] = df[column].apply(
+            partial(format_number_with_config, d3_format, currency)
+        )
+
+
 def pivot_table_v2(
     df: pd.DataFrame,
     form_data: dict[str, Any],
@@ -266,7 +278,7 @@ def pivot_table_v2(
     """
     verbose_map = datasource.data["verbose_map"] if datasource else None
 
-    return pivot_df(
+    pivoted = pivot_df(
         df,
         rows=get_column_names(form_data.get("groupbyRows"), verbose_map),
         columns=get_column_names(form_data.get("groupbyColumns"), verbose_map),
@@ -278,6 +290,34 @@ def pivot_table_v2(
         show_columns_total=bool(form_data.get("colTotals")),
         apply_metrics_on_rows=form_data.get("metricsLayout") == "ROWS",
     )
+    return apply_pivot_number_formats(pivoted, form_data)
+
+
+def apply_pivot_number_formats(
+    df: pd.DataFrame, form_data: dict[str, Any]
+) -> pd.DataFrame:
+    """
+    Apply `valueFormat`/`columnFormats` and currency config to pivot values.
+
+    The metric name is the first level of each (Multi)Index column, so per-metric
+    overrides fall back to the global value format. In the ROWS metrics layout the
+    metric moves to the index and every value column uses the global format.
+    """
+    value_format = form_data.get("valueFormat")
+    column_formats = form_data.get("columnFormats") or {}
+    currency_format = form_data.get("currencyFormat") or {}
+    currency_formats = form_data.get("currencyFormats") or {}
+
+    for column in df.columns:
+        metric = column[0] if isinstance(column, tuple) else column
+        format_column(
+            df,
+            column,
+            column_formats.get(metric, value_format),
+            currency_formats.get(metric) or currency_format,
+        )
+
+    return df
 
 
 def table(
@@ -290,16 +330,15 @@ def table(
     """
     Table.
     """
-    # apply `d3NumberFormat` to columns, if present
     column_config = form_data.get("column_config", {})
     for column, config in column_config.items():
-        if "d3NumberFormat" in config:
-            format_ = "{:" + config["d3NumberFormat"] + "}"
-            try:
-                df[column] = df[column].apply(format_.format)
-            except Exception:  # pylint: disable=broad-except  # noqa: S110
-                # if we can't format the column for any reason, send as is
-                pass
+        if column in df.columns:
+            format_column(
+                df,
+                column,
+                config.get("d3NumberFormat"),
+                config.get("currencyFormat") or {},
+            )
 
     return df
 

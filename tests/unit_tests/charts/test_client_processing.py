@@ -21,7 +21,12 @@ import pytest
 from flask_babel import lazy_gettext as _
 from sqlalchemy.orm.session import Session
 
-from superset.charts.client_processing import apply_client_processing, pivot_df, table
+from superset.charts.client_processing import (
+    apply_client_processing,
+    pivot_df,
+    pivot_table_v2,
+    table,
+)
 from superset.common.chart_data import ChartDataResultFormat
 from superset.utils.core import GenericDataType
 from tests.conftest import with_config
@@ -1846,6 +1851,59 @@ def test_table():
     )
 
 
+def test_table_applies_currency_format():
+    """
+    Table reports honor a column's `currencyFormat`.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 1234.5}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "currencyFormat": {"symbol": "USD", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["amount"].tolist() == ["$ 1,234.50"]
+
+
+def test_table_applies_si_number_format():
+    """
+    Table reports honor d3 formats that Python's str.format cannot express.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 1234.0}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"amount": {"d3NumberFormat": ".3s"}},
+    }
+    formatted = table(df, form_data)
+    assert formatted["amount"].tolist() == ["1.23k"]
+
+
+def test_pivot_table_v2_applies_value_format():
+    """
+    Pivot table reports honor `valueFormat` and per-metric `columnFormats`.
+    """
+    df = pd.DataFrame(
+        {"region": ["A", "B"], "sales": [1234.5, 6789.0], "qty": [10.0, 20.0]}
+    )
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["sales", "qty"],
+        "aggregateFunction": "Sum",
+        "metricsLayout": "COLUMNS",
+        "valueFormat": ",.2f",
+        "columnFormats": {"qty": ",d"},
+    }
+    formatted = pivot_table_v2(df, form_data)
+    assert formatted[("sales",)].tolist() == ["1,234.50", "6,789.00"]
+    assert formatted[("qty",)].tolist() == ["10", "20"]
+
+
 def test_apply_client_processing_no_form_invalid_viz_type():
     """
     Test with invalid viz type. It should just return the result
@@ -2051,10 +2109,10 @@ COUNT(is_software_dev)
         "queries": [
             {
                 "result_format": ChartDataResultFormat.CSV,
-                "data": ",COUNT(is_software_dev)\nTotal (Sum),4725\n",
+                "data": ",COUNT(is_software_dev)\nTotal (Sum),4.73k\n",
                 "colnames": [("COUNT(is_software_dev)",)],
                 "indexnames": [("Total (Sum)",)],
-                "coltypes": [GenericDataType.NUMERIC],
+                "coltypes": [GenericDataType.STRING],
                 "rowcount": 1,
             }
         ]
@@ -2423,10 +2481,10 @@ COUNT(is_software_dev)
             {"result_format": ChartDataResultFormat.CSV, "data": ""},
             {
                 "result_format": ChartDataResultFormat.CSV,
-                "data": ",COUNT(is_software_dev)\nTotal (Sum),4725\n",
+                "data": ",COUNT(is_software_dev)\nTotal (Sum),4.73k\n",
                 "colnames": [("COUNT(is_software_dev)",)],
                 "indexnames": [("Total (Sum)",)],
-                "coltypes": [GenericDataType.NUMERIC],
+                "coltypes": [GenericDataType.STRING],
                 "rowcount": 1,
             },
         ]
@@ -2633,10 +2691,10 @@ def test_apply_client_processing_verbose_map(session: Session):
         "queries": [
             {
                 "result_format": ChartDataResultFormat.JSON,
-                "data": {"COUNT(*)": {"Total (Sum)": 4725}},
+                "data": {"COUNT(*)": {"Total (Sum)": "4.73k"}},
                 "colnames": [("COUNT(*)",)],
                 "indexnames": [("Total (Sum)",)],
-                "coltypes": [GenericDataType.NUMERIC],
+                "coltypes": [GenericDataType.STRING],
                 "rowcount": 1,
             }
         ]
