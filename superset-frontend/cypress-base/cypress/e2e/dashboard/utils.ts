@@ -160,18 +160,6 @@ export function interceptLog() {
   cy.intercept('**/superset/log/?explode=events&dashboard_id=*').as('logs');
 }
 
-export function interceptFav() {
-  cy.intercept({ url: `**/api/v1/dashboard/*/favorites/`, method: 'POST' }).as(
-    'select',
-  );
-}
-
-export function interceptUnfav() {
-  cy.intercept({ url: `**/api/v1/dashboard/*/favorites/`, method: 'POST' }).as(
-    'unselect',
-  );
-}
-
 export function interceptDataset() {
   cy.intercept('GET', `**/api/v1/dataset/*`).as('getDataset');
 }

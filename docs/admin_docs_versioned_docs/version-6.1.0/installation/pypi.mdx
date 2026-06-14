@@ -157,8 +157,15 @@ superset load_examples
 superset init
 
 # To start a development web server on port 8088, use -p to bind to another port
-superset run -p 8088 --with-threads --reload --debugger
+superset run -p 8088 --with-threads --reload
+
+# For debugging with interactive console (⚠️ localhost only)
+# superset run -p 8088 --with-threads --reload --debugger
 ```
+
+:::warning Security Note
+The `--debugger` flag enables Werkzeug's interactive console at `/console`. Only use this for local development and never bind to `0.0.0.0` or expose the server to networks when debugging is enabled.
+:::
 
 If everything worked, you should be able to navigate to `hostname:port` in your browser (e.g.
 locally by default at `localhost:8088`) and login using the username and password you created.

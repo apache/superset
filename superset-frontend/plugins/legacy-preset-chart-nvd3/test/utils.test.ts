@@ -24,8 +24,12 @@ import {
 
 import {
   computeYDomain,
+  generateAnnotationTooltipContent,
+  generateBubbleTooltipContent,
+  generateMultiLineTooltipContent,
   getTimeOrNumberFormatter,
   formatLabel,
+  tipFactory,
 } from '../src/utils';
 
 const DATA = [
@@ -122,6 +126,42 @@ describe('nvd3/utils', () => {
     );
   });
 
+  describe('generateMultiLineTooltipContent()', () => {
+    const identity = (value: any) => value;
+
+    test('renders the series key in the tooltip markup', () => {
+      const tooltip = generateMultiLineTooltipContent(
+        {
+          value: 'x-value',
+          series: [{ key: 'Region A', color: '#fff', value: 1 }],
+        },
+        identity,
+        [identity],
+      );
+      expect(tooltip).toContain('Region A');
+    });
+
+    test('strips a script payload from a malicious series key', () => {
+      const tooltip = generateMultiLineTooltipContent(
+        {
+          value: 'x-value',
+          series: [
+            {
+              key: '<img src=x onerror="alert(1)">',
+              color: '#fff',
+              value: 1,
+            },
+          ],
+        },
+        identity,
+        [identity],
+      );
+      // DOMPurify removes the event handler that would execute on render.
+      expect(tooltip).not.toContain('onerror');
+      expect(tooltip).not.toContain('alert(1)');
+    });
+  });
+
   describe('getTimeOrNumberFormatter(format)', () => {
     test('is a function', () => {
       expect(typeof getTimeOrNumberFormatter).toBe('function');
@@ -179,6 +219,140 @@ describe('nvd3/utils', () => {
       expect(computeYDomain(DATA_WITH_DISABLED_SERIES)).toEqual([
         660881033.0, 668526708.0,
       ]);
+    });
+  });
+
+  // ------------------------------------------------------------------
+  // Tooltip HTML sanitisation (XSS regression).
+  // Each helper below feeds user-controlled column values into a
+  // d3 / nvd3 .html() sink; the sanitised return must strip dangerous
+  // markup so a stored payload cannot execute on hover.
+  // ------------------------------------------------------------------
+
+  describe('generateBubbleTooltipContent() sanitises user input', () => {
+    test('strips <script> from the entity column', () => {
+      const html = generateBubbleTooltipContent({
+        point: {
+          color: 'red',
+          group: 'g',
+          entity: '<script>alert(1)</script>',
+          x: 1,
+          y: 2,
+          size: 3,
+        },
+        entity: 'entity',
+        xField: 'x',
+        yField: 'y',
+        sizeField: 'size',
+        xFormatter: (v: number) => String(v),
+        yFormatter: (v: number) => String(v),
+        sizeFormatter: (v: number) => String(v),
+      });
+      expect(html).not.toMatch(/<script/i);
+      expect(html).not.toMatch(/onerror=/i);
+    });
+
+    test('strips <img onerror> injected via the group column', () => {
+      const html = generateBubbleTooltipContent({
+        point: {
+          color: 'red',
+          group: '<img src=x onerror=alert(1)>',
+          entity: 'safe',
+          x: 1,
+          y: 2,
+          size: 3,
+        },
+        entity: 'entity',
+        xField: 'x',
+        yField: 'y',
+        sizeField: 'size',
+        xFormatter: (v: number) => String(v),
+        yFormatter: (v: number) => String(v),
+        sizeFormatter: (v: number) => String(v),
+      });
+      expect(html).not.toMatch(/onerror/i);
+    });
+  });
+
+  describe('generateMultiLineTooltipContent() sanitises user input', () => {
+    test('strips <script> from a series key', () => {
+      const html = generateMultiLineTooltipContent(
+        {
+          value: 0,
+          series: [
+            {
+              key: '<script>alert(1)</script>',
+              color: 'red',
+              value: 1,
+            },
+          ],
+        },
+        (v: number) => String(v),
+        [(v: number) => String(v)],
+      );
+      expect(html).not.toMatch(/<script/i);
+    });
+  });
+
+  describe('tipFactory() sanitises annotation columns', () => {
+    test('strips <script> from a description column value', () => {
+      const tip = tipFactory({
+        annotationTipClass: 'foo',
+        titleColumn: 'title',
+        descriptionColumns: ['desc'],
+        name: 'layer',
+      });
+      // d3-tip's .html(fn) stores the callback as the renderer; invoke
+      // it directly to assert the sanitised output.
+      const datum = {
+        title: 'normal',
+        desc: '<script>alert(1)</script>payload',
+      };
+      const html = tip.html()(datum);
+      expect(html).not.toMatch(/<script/i);
+      expect(html).toContain('payload');
+    });
+  });
+
+  describe('generateAnnotationTooltipContent()', () => {
+    const layer = {
+      name: 'My annotations',
+      titleColumn: 'title',
+      descriptionColumns: ['description'],
+    };
+
+    test('renders the annotation title and description', () => {
+      const html = generateAnnotationTooltipContent(layer, {
+        title: 'Release',
+        description: 'Shipped v1',
+      });
+      expect(html).toContain('Release - My annotations');
+      expect(html).toContain('Shipped v1');
+    });
+
+    test('falls back to the layer name when the title column is empty', () => {
+      const html = generateAnnotationTooltipContent(layer, {
+        title: '',
+        description: 'Shipped v1',
+      });
+      expect(html).toContain('My annotations');
+    });
+
+    test('strips an event-handler payload from the title column', () => {
+      const html = generateAnnotationTooltipContent(layer, {
+        title: '<img src=x onerror="alert(1)">',
+        description: 'ok',
+      });
+      expect(html).not.toContain('onerror');
+      expect(html).not.toContain('alert(1)');
+    });
+
+    test('strips a script payload from a description column', () => {
+      const html = generateAnnotationTooltipContent(layer, {
+        title: 'Release',
+        description: '<script>alert(document.cookie)</script>',
+      });
+      expect(html).not.toContain('<script>');
     });
   });
 });
