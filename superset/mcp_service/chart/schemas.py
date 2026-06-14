@@ -1956,6 +1956,15 @@ class UpdateChartRequest(QueryCacheControl):
         max_length=255,
         validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
     )
+    dataset_id: int | None = Field(
+        None,
+        description=(
+            "Target dataset ID to rebind the chart to a different dataset. "
+            "When omitted, the chart retains its existing dataset. "
+            "Can be combined with config to simultaneously change the dataset "
+            "and visualization, or used alone to rebind without altering the config."
+        ),
+    )
     generate_preview: bool = Field(
         default=True,
         description=(

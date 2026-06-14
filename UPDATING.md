@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Webhook alerts/reports block private/internal hosts by default
+
+Webhook alert/report dispatch (`WebhookNotification.send`) now validates the target URL's host against the same private/internal-IP block applied to dataset import URLs. If the resolved host is in a loopback, link-local, private (RFC-1918), shared-CGNAT, or multicast range, the webhook is rejected with `NotificationParamException`.
+
+Deployments that intentionally point webhooks at internal targets (chatops bridges, internal automation servers, on-premises Mattermost/Rocket.Chat, etc.) can opt out by setting `ALERT_REPORTS_WEBHOOK_ALLOW_INTERNAL_HOSTS = True` in `superset_config.py`. This mirrors the existing `DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS` opt-out for dataset imports.
+
+### Impala cancel_query blocks private/internal hosts by default
+
+The Impala engine spec's `cancel_query` issues an HTTP request from the Superset backend to the host configured on the Impala database connection. That host is now validated before the request: if it resolves to a private/internal IP range, the cancel call is refused and a warning is logged. Operators whose Impala cluster runs on an internal network can opt out by setting `IMPALA_CANCEL_QUERY_ALLOW_INTERNAL_HOSTS = True` in `superset_config.py`. This mirrors the dataset-import and webhook opt-out flags.
 ### Map chart renderer and OpenStreetMap migration behavior
 
 The MapLibre migration for deck.gl charts preserves saved non-Mapbox styles on
@@ -44,6 +53,23 @@ The MapLibre style choices include `Streets (OSM)`, backed by
 service requires visible `© OpenStreetMap contributors` attribution and should
 be used through normal browser map tile requests and caching; it is not intended
 for bulk prefetch or offline tile downloads.
+
+### Password complexity policy enabled by default
+
+Superset now ships a default password-complexity policy, enforced (via Flask-AppBuilder) across self-registration, the user create/edit/reset forms, and the User REST API. The policy requires a minimum password length of 8 characters and rejects a built-in blocklist of common/guessable passwords.
+
+This is enabled by default (`FAB_PASSWORD_COMPLEXITY_ENABLED = True`), so new or reset passwords that are too short or appear in the blocklist will be rejected where they were previously accepted. Existing stored passwords are unaffected until they are next changed.
+
+Operators can tune or disable the policy via config:
+
+- `AUTH_PASSWORD_MIN_LENGTH` — minimum length (default `8`).
+- `AUTH_PASSWORD_COMMON_BLOCKLIST` — extra passwords to reject, in addition to the built-in list.
+- `FAB_PASSWORD_COMPLEXITY_VALIDATOR` — replace with your own callable for custom rules.
+- `FAB_PASSWORD_COMPLEXITY_ENABLED = False` — disable enforcement entirely.
+
+### Data uploads bounded by UPLOAD_MAX_FILE_SIZE_BYTES
+
+Single data-file uploads (CSV, Excel, columnar) are now bounded by the `UPLOAD_MAX_FILE_SIZE_BYTES` config option, which defaults to `100 * 1024 * 1024` (100 MB). Files larger than this are rejected with a `413` before their contents are buffered into memory. Set `UPLOAD_MAX_FILE_SIZE_BYTES = None` to disable the check and restore unbounded uploads.
 
 ### Duration formatter precision
 

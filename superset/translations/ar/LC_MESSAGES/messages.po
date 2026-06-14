@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-06-05 12:59+0300\n"
+"POT-Creation-Date: 2026-06-08 12:27-0700\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -4661,6 +4661,9 @@ msgstr "تم تحديث إعدادات قاعدة البيانات"
 #, fuzzy
 msgid "Database type does not support file uploads."
 msgstr "قاعدة البيانات لا تدعم الاستعلامات الفرعية"
+
+msgid "Database upload file exceeds the maximum allowed size."
+msgstr ""
 
 #, fuzzy
 msgid "Database upload file failed"
@@ -18307,10 +18310,6 @@ msgstr "قيمة تصاعدية"
 
 msgid "value descending"
 msgstr "قيمة تنازلي"
-
-#, fuzzy
-msgid "valuename"
-msgstr "اسم الجدول"
 
 msgid "var"
 msgstr "VAR"
