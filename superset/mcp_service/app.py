@@ -333,9 +333,10 @@ Chart Types You Can CREATE with generate_chart/generate_explore_link:
    Use aggregation="sum" for all-time totals, "mean" for averages, "max"/"min" for extremes.
    DIAGNOSIS: if a Big Number with Trendline shows wrong values, check
    form_data["aggregation"] — missing/LAST_VALUE means the chart shows only the last data
-   point, not a total. Fix by setting aggregation="sum" in the update_chart config.
-   IMPORTANT: always include show_trendline=True and temporal_column when updating a
-   Big Number with Trendline chart, or the chart type will revert to a plain Big Number.)
+   point, not a total. Fix by calling update_chart with a complete Big Number config:
+   chart_type="big_number", metric=<metric>, show_trendline=True,
+   temporal_column=<date_col>, aggregation="sum". update_chart requires the full
+   config — omitting chart_type or metric causes a validation error.)
 - chart_type="table": Data table for detailed views
 - chart_type="table", viz_type="ag-grid-table": Interactive AG Grid table
 - chart_type="pie": Pie chart for proportional data (set donut=True for donut)

@@ -349,6 +349,7 @@ class TestMapBigNumberConfig:
         assert "start_y_axis_at_zero" not in form_data
 
     def test_with_aggregation_sum(self) -> None:
+        """aggregation='sum' is written to form_data for trendline charts."""
         config = BigNumberChartConfig(
             chart_type="big_number",
             metric=ColumnRef(name="revenue", aggregate="SUM"),
@@ -360,6 +361,7 @@ class TestMapBigNumberConfig:
         assert form_data["aggregation"] == "sum"
 
     def test_with_aggregation_last_value(self) -> None:
+        """aggregation='LAST_VALUE' is written to form_data for trendline charts."""
         config = BigNumberChartConfig(
             chart_type="big_number",
             metric=ColumnRef(name="revenue", aggregate="SUM"),
@@ -371,6 +373,7 @@ class TestMapBigNumberConfig:
         assert form_data["aggregation"] == "LAST_VALUE"
 
     def test_aggregation_absent_when_not_set(self) -> None:
+        """aggregation key is absent from form_data when config.aggregation is None."""
         config = BigNumberChartConfig(
             chart_type="big_number",
             metric=ColumnRef(name="revenue", aggregate="SUM"),
