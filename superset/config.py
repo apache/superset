@@ -1151,9 +1151,18 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
 # store cache keys by datasource UID (via CacheKey) for custom processing/invalidation
 STORE_CACHE_KEYS_IN_METADATA_DB = False
 
-# If True, native filter option queries use FILTER_STATE_CACHE_CONFIG timeout
-# instead of DATA_CACHE_CONFIG. Disabled by default for backward compatibility.
-NATIVE_FILTER_QUERIES_USE_FILTER_STATE_TIMEOUT = False
+# Cache timeout (in seconds) specifically for native dashboard filter option queries.
+# Native filter queries use `DATA_CACHE_CONFIG` as their backend, but their TTL can be
+# configured independently here because they often require fresher data (e.g., due to
+# RLS).
+#
+# Valid values:
+#   None : Preserve the existing cache timeout resolution chain.
+#   -1   : Completely disable cache writes for native filter options.
+#   0    : Passed directly to the underlying cache backend. Backend-specific
+#          behavior may vary. Do not use 0 to disable caching; use -1 instead.
+#   >0   : Cache filter options for the specified number of seconds.
+NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT: int | None = None
 
 # CORS Options
 # NOTE: enabling this requires installing the cors-related python dependencies
